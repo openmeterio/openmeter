@@ -92,15 +92,27 @@ jobs:
       id-token: write
       security-events: write
 
-  # TODO: enable once the repository is Open Source
-  # dependency-review:
-  #   name: Dependency review
-  #   runs-on: ubuntu-latest
-  #   if: github.event_name == 'pull_request'
-  #
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
-  #
-  #     - name: Dependency Review
-  #       uses: actions/dependency-review-action@f46c48ed6d4f1227fb2d9ea62bf6bcbed315589e # v3.0.4
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@f46c48ed6d4f1227fb2d9ea62bf6bcbed315589e # v3.0.4
+
+  fossa-scan:
+    name: FOSSA Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+
+      - name: Run FOSSA Scan
+        uses: fossas/fossa-action@v1.3.1
+        with:
+          api-key: ${{secrets.FOSSA_API_KEY}}
