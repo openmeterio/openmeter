@@ -1,0 +1,274 @@
+openapi: "3.0.3"
+info:
+  title: OpenMeter API
+  version: "1.0.0"
+  description: ""
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+paths:
+  /api/v1/events:
+    post:
+      description: Ingest events
+      operationId: ingestEvents
+      requestBody:
+        required: true
+        content:
+          application/cloudevents+json:
+            schema:
+              $ref: "#/components/schemas/Event"
+      responses:
+        "200":
+          description: OK
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/meters:
+    get:
+      description: Get meters
+      operationId: getMeters
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Meter"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/meters/{meterId}:
+    get:
+      description: Get meter by ID
+      operationId: getMetersById
+      parameters:
+        - name: meterId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Meter"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/meters/{meterId}/values:
+    get:
+      description: Get meter values
+      operationId: getValuesByMeterId
+      parameters:
+        - name: meterId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: from
+          in: query
+          required: false
+          description: |
+            Start date-time in RFC 3339 format.
+            Inclusive.
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: false
+          description: |
+            End date-time in RFC 3339 format.
+            Exclusive.
+          schema:
+            type: string
+            format: date-time
+        - name: subject
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  values:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        subject:
+                          type: string
+                        windowStart:
+                          type: string
+                          format: date-time
+                        windowEnd:
+                          type: string
+                          format: date-time
+                        value:
+                          type: number
+                        groupBy:
+                          type: object
+                          additionalProperties:
+                            type: string
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    Error:
+      type: object
+      x-go-type: ErrResponse
+      properties:
+        statusCode:
+          type: integer
+          format: int32
+        status:
+          type: string
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+    Event:
+      description: CloudEvents Specification JSON Schema
+      x-go-type: event.Event
+      x-go-type-import:
+        path: github.com/cloudevents/sdk-go/v2/event
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          description: Identifies the event.
+          type: string
+          minLength: 1
+          example: A234-1234-1234
+        source:
+          description: Identifies the context in which an event happened.
+          type: string
+          format: uri-reference
+          minLength: 1
+          example: https://github.com/cloudevents
+        specversion:
+          description: The version of the CloudEvents specification which the event uses.
+          type: string
+          minLength: 1
+          example: "1.0"
+        type:
+          description: Describes the type of event related to the originating occurrence.
+          type: string
+          minLength: 1
+          example: com.github.pull_request.opened
+        datacontenttype:
+          description: Content type of the data value. Must adhere to RFC 2046 format.
+          type: string
+          enum:
+            - application/json
+          nullable: true
+          minLength: 1
+          example: application/json
+        dataschema:
+          description: Identifies the schema that data adheres to.
+          type: string
+          nullable: true
+          format: uri
+          minLength: 1
+        subject:
+          description: Describes the subject of the event in the context of the event producer (identified by source).
+          type: string
+          nullable: true
+          minLength: 1
+          example: mynewfile.jpg
+        time:
+          description: Timestamp of when the occurrence happened. Must adhere to RFC 3339.
+          type: string
+          nullable: true
+          format: date-time
+          minLength: 1
+          example: "2018-04-05T17:31:00Z"
+        data:
+          description: The event payload.
+          type: object
+          additionalProperties: true
+          example: |
+            {"foo": "bar"}
+      required:
+        - id
+        - source
+        - specversion
+        - type
+        - subject
+    Meter:
+      type: object
+      x-go-type: models.Meter
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/internal/models
+      properties:
+        id:
+          type: string
+          example: my_meter
+        name:
+          type: string
+          example: My Meter
+        description:
+          type: string
+          example: My Meter Description
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+          example: |
+            {
+              "my_label": "my_value"
+            }
+        type:
+          type: string
+          example: event_type
+        aggregation:
+          type: string
+          enum:
+            - SUM
+            - COUNT
+            - MAX
+            - COUNT_DISTINCT
+            - LATEST_BY_OFFSET
+          example: SUM
+        valueProperty:
+          type: string
+          example: $.duration_ms
+          description: JSONPath expression to extract the value from the event data.
+        groupBy:
+          type: array
+          items:
+            type: string
+          example: |
+            [
+              "$.my_label"
+            ]
+          description: JSONPath expressions to extract the group by values from the event data.

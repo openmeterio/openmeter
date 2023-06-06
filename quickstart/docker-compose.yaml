@@ -1,0 +1,50 @@
+version: '3.9'
+
+services:
+  openmeter:
+    image: ghcr.io/openmeterio/openmeter
+    command: openmeter --config /etc/openmeter/config.yaml
+    hostname: openmeter
+    container_name: openmeter
+    depends_on:
+      ksqldb-server-healthcheck:
+        condition: service_healthy
+    environment:
+      BROKER: broker:29092
+      KSQLDB: http://ksqldb-server:8088
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./config.yaml:/etc/openmeter/config.yaml
+
+  ksqldb-server-healthcheck:
+    image: alpine/curl:3.14
+    entrypoint: /bin/sh
+    tty: true
+    healthcheck:
+      test: curl --fail http://ksqldb-server:8088/healthcheck
+      interval: 5s
+      timeout: 5s
+      retries: 100
+
+  zookeeper:
+    extends:
+      file: ../docker-compose.yaml
+      service: zookeeper
+
+  broker:
+    extends:
+      file: ../docker-compose.yaml
+      service: broker
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_HOST://broker:29092
+
+  schema:
+    extends:
+      file: ../docker-compose.yaml
+      service: schema
+
+  ksqldb-server:
+    extends:
+      file: ../docker-compose.yaml
+      service: ksqldb-server

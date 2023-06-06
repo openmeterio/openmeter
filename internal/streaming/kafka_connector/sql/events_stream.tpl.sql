@@ -1,0 +1,13 @@
+CREATE STREAM IF NOT EXISTS OM_EVENTS (
+    SUBJECT STRING KEY,
+    ID STRING,
+    TYPE STRING,
+    SOURCE STRING,
+    TIME STRING,
+    DATA STRING
+)
+WITH (
+    KAFKA_TOPIC = {{ .Topic | squote }},
+    VALUE_FORMAT = 'JSON',
+    PARTITIONS = {{ .Partitions }}
+);

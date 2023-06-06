@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+  - name: ❓ Ask a question
+    url: https://github.com/openmeterio/openmeter/discussions/new?category=q-a
+    about: Ask and discuss questions with other OpenMeter community members
+
+  - name: 💬 Discord
+    url: https://discord.gg/nYH3ZQ3Xzq
+    about: Please ask and answer questions here
