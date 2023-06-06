@@ -1,0 +1,15 @@
+address: 127.0.0.1:8888
+
+log:
+  format: json
+  level: info
+
+meters:
+  - id: m1
+    name: Meter 1
+    type: api-calls
+    valueProperty: $.duration_ms
+    aggregation: SUM
+    groupBy:
+      - $.method
+      - $.path
