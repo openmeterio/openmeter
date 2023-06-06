@@ -1,0 +1,10 @@
+version: 3
+
+project:
+  id: github.com/openmeterio/openmeter
+  url: https://github.com/openmeterio/openmeter
+
+paths:
+  exclude:
+    - ./.direnv/
+    - ./.devenv/
