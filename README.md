@@ -45,3 +45,5 @@ Visit our website at [https://openmeter.io](https://openmeter.io#roadmap) for ou
 ## License
 
 The project is licensed under the [Apache 2.0 License](LICENSE).
+
+[![FOSSA Status](https://app.fossa.com/api/projects/custom%2B38090%2Fgithub.com%2Fopenmeterio%2Fopenmeter.svg?type=large)](https://app.fossa.com/projects/custom%2B38090%2Fgithub.com%2Fopenmeterio%2Fopenmeter?ref=badge_large)
