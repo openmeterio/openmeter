@@ -23,8 +23,9 @@ async function main() {
       source: 'my-app',
       type: 'openai',
       subject: 'my-awesome-user-id',
-      // We use Open AI response dat as event date
+      // We get date from Open AI response
       time: new Date(data.created * 1000).toISOString(),
+      // We report usage with model
       data: {
         total_tokens: data.usage.total_tokens,
         prompt_tokens: data.usage.prompt_tokens,
