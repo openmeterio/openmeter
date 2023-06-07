@@ -101,28 +101,30 @@ curl http://localhost:8888/api/v1/meters/m1/values | jq
 ```
 
 ```json
-[
-  {
-    "subject": "customer-1",
-    "windowStart": 1672531200000,
-    "windowEnd": 1672534800000,
-    "value": 2,
-    "groupBy": {
-      "$.method": "GET",
-      "$.path": "/hello"
+{
+  "values": [
+    {
+      "subject": "customer-1",
+      "windowStart": "2023-01-01T00:00:00Z",
+      "windowEnd": "2023-01-01T01:00:00Z",
+      "value": 2,
+      "groupBy": {
+        "$.method": "GET",
+        "$.path": "/hello"
+      }
+    },
+    {
+      "subject": "customer-1",
+      "windowStart": "2023-01-02T00:00:00Z",
+      "windowEnd": "2023-01-02T01:00:00Z",
+      "value": 1,
+      "groupBy": {
+        "$.method": "GET",
+        "$.path": "/hello"
+      }
     }
-  },
-  {
-    "subject": "customer-1",
-    "windowStart": 1672617600000,
-    "windowEnd": 1672621200000,
-    "value": 1,
-    "groupBy": {
-      "$.method": "GET",
-      "$.path": "/hello"
-    }
-  }
-]
+  ]
+}
 ```
 
 ## 4. Configure additional meter(s) _(optional)_
