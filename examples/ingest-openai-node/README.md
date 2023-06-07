@@ -10,6 +10,8 @@ Language: Node.js, TypeScript
 The OpenAI response contains token usage so all we need to do is to report it to OpenMeter with the corresponding user.
 For idempotency we use the OpenAI API response `id` and for time we use response's `created` property.
 
+Check out the [quickstart guide](/quickstart) to see how to run OpenMeter.
+
 Open AI response:
 
 ```json

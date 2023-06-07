@@ -113,7 +113,7 @@ declare namespace Components {
             /**
              * JSONPath expression to extract the value from the event data.
              * example:
-             * $.bytes
+             * $.duration_ms
              */
             valueProperty?: string;
             /**
@@ -150,15 +150,31 @@ declare namespace Paths {
     }
     namespace GetValuesByMeterId {
         namespace Parameters {
+            export type From = string; // date-time
             export type MeterId = string;
+            export type Subject = string;
+            export type To = string; // date-time
         }
         export interface PathParameters {
             meterId: Parameters.MeterId;
         }
+        export interface QueryParameters {
+            from?: Parameters.From /* date-time */;
+            to?: Parameters.To /* date-time */;
+            subject?: Parameters.Subject;
+        }
         namespace Responses {
-            export type $200 = {
-                [name: string]: any;
-            }[];
+            export interface $200 {
+                values?: {
+                    subject?: string;
+                    windowStart?: string; // date-time
+                    windowEnd?: string; // date-time
+                    value?: number;
+                    groupBy?: {
+                        [name: string]: string;
+                    };
+                }[];
+            }
             export type Default = Components.Schemas.Error;
         }
     }
@@ -201,7 +217,7 @@ export interface OperationMethods {
    * getValuesByMeterId - Get meter values
    */
   'getValuesByMeterId'(
-    parameters?: Parameters<Paths.GetValuesByMeterId.PathParameters> | null,
+    parameters?: Parameters<Paths.GetValuesByMeterId.PathParameters & Paths.GetValuesByMeterId.QueryParameters> | null,
     data?: any,
     config?: AxiosRequestConfig  
   ): OperationResponse<Paths.GetValuesByMeterId.Responses.$200>
@@ -243,7 +259,7 @@ export interface PathsDictionary {
      * getValuesByMeterId - Get meter values
      */
     'get'(
-      parameters?: Parameters<Paths.GetValuesByMeterId.PathParameters> | null,
+      parameters?: Parameters<Paths.GetValuesByMeterId.PathParameters & Paths.GetValuesByMeterId.QueryParameters> | null,
       data?: any,
       config?: AxiosRequestConfig  
     ): OperationResponse<Paths.GetValuesByMeterId.Responses.$200>

@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	openmeter "github.com/openmeterio/openmeter/api"
 	stripe "github.com/stripe/stripe-go/v74"
@@ -95,16 +96,15 @@ func (s *Server) reportUsage(ctx context.Context, subscription *stripe.Subscript
 
 		// Query total usage from OpenMeter for billing period
 		meterId := stripePriceIdToMeterId[item.Price.ID]
+		periodStart := time.Unix(subscription.CurrentPeriodStart, 0)
+		periodEnd := time.Unix(subscription.CurrentPeriodEnd, 0)
 
-		// TODO: finish after filters implemented
-		// queryParams := &GetTotalParams{
-		// 	Meter: meterId,
-		// 	// If you don't report usage events via Stripe Customer ID you need to map Stripe IDs to your internal ID
-		// 	Consumer: subscription.Customer.ID,
-		// 	From:     time.Unix(subscription.CurrentPeriodStart, 0),
-		// 	To:       time.Unix(subscription.CurrentPeriodEnd, 0),
-		// }
-		_, err := s.openmeter.GetValuesByMeterId(ctx, meterId)
+		_, err := s.openmeter.GetValuesByMeterId(ctx, meterId, &openmeter.GetValuesByMeterIdParams{
+			// If you don't report usage events via Stripe Customer ID you need to map Stripe IDs to your internal ID
+			Subject: &subscription.Customer.ID,
+			From:    &periodStart,
+			To:      &periodEnd,
+		})
 		if err != nil {
 			// handle err
 		}

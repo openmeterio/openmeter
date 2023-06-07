@@ -43,6 +43,8 @@ You can trigger or forward webhooks locally; see [Test webhooks](https://stripe.
 
 When our server receives the `customer.subscription.updated` event, we will validate the signature if this event comes from Stripe, then we will report usage for the subscription period.
 
+Check out the [quickstart guide](/quickstart) to see how to run OpenMeter.
+
 Check out the sample code in this repo to see how to handle webhook and report OpenMeter usage for `customer.subscription.updated`.
 The sample code does the following:
 
