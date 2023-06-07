@@ -36,3 +36,5 @@ minikube kubectl -- run hello --image=nginxdemos/hello --labels=subject=customer
 minikube kubectl -- run k8s-pod-time-1 --image=k8s-pod-time:latest --image-pull-policy=Never
 minikube kubectl -- logs -f k8s-pod-time-1
 ```
+
+Check out the [quickstart guide](/quickstart) to see how to run OpenMeter.

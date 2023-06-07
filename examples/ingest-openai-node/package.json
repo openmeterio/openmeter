@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "ts-node app.ts",
-    "typegen": "typegen ../../internal/server/api/openapi.yml > ./openapi.d.ts",
+    "typegen": "typegen ../../api/openapi.yml > ./openapi.d.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
