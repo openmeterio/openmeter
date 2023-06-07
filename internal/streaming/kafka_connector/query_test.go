@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/openmeterio/openmeter/internal/models"
 	. "github.com/openmeterio/openmeter/internal/streaming"
 )
@@ -29,9 +31,7 @@ func TestDetectedEventsTableQuery(t *testing.T) {
 				t.Error(err)
 			}
 
-			if got != tt.want {
-				t.Errorf("got = \n%s, want \n%s", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -64,9 +64,7 @@ func TestCloudEventsStreamQuery(t *testing.T) {
 				t.Error(err)
 			}
 
-			if got != tt.want {
-				t.Errorf("got = \n%v, want \n%v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -85,8 +83,8 @@ func TestMeterTableQuery(t *testing.T) {
 					Type:          "api-calls",
 					Aggregation:   models.MeterAggregationSum,
 					GroupBy:       []string{"$.path"},
+					WindowSize:    models.WindowSizeHour,
 				},
-				WindowSize:      "1 HOUR",
 				WindowRetention: "365 DAYS",
 				Partitions:      1,
 			},
@@ -99,8 +97,8 @@ func TestMeterTableQuery(t *testing.T) {
 					Name:        "API Calls",
 					Type:        "api-calls",
 					Aggregation: models.MeterAggregationCount,
+					WindowSize:  models.WindowSizeHour,
 				},
-				WindowSize:      "1 HOUR",
 				WindowRetention: "365 DAYS",
 				Partitions:      1,
 			},
@@ -109,17 +107,32 @@ func TestMeterTableQuery(t *testing.T) {
 		{
 			data: meterTableQueryData{
 				Meter: &models.Meter{
-					ID:            "meter3",
-					Name:          "API call count by path",
+					ID:            "meter2",
+					Name:          "API Calls",
 					Type:          "api-calls",
-					Aggregation:   models.MeterAggregationCountDistinct,
-					ValueProperty: "$.path",
+					ValueProperty: "$.duration_ms",
+					Aggregation:   models.MeterAggregationCount,
+					WindowSize:    models.WindowSizeHour,
 				},
-				WindowSize:      "2 HOURS",
 				WindowRetention: "365 DAYS",
 				Partitions:      1,
 			},
-			want: "CREATE TABLE IF NOT EXISTS `OM_METER_METER3` WITH ( KAFKA_TOPIC = 'om_meter_meter3', KEY_FORMAT = 'JSON', VALUE_FORMAT = 'JSON', PARTITIONS = 1 ) AS SELECT SUBJECT, COUNT_DISTINCT(EXTRACTJSONFIELD(data, '$.path')) AS VALUE FROM OM_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 2 HOURS, RETENTION 365 DAYS ) WHERE ID_COUNT = 1 AND TYPE = 'api-calls' GROUP BY SUBJECT EMIT CHANGES;",
+			want: "CREATE TABLE IF NOT EXISTS `OM_METER_METER2` WITH ( KAFKA_TOPIC = 'om_meter_meter2', KEY_FORMAT = 'JSON', VALUE_FORMAT = 'JSON', PARTITIONS = 1 ) AS SELECT SUBJECT, COUNT(EXTRACTJSONFIELD(data, '$.duration_ms')) AS VALUE FROM OM_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 1 HOUR, RETENTION 365 DAYS ) WHERE ID_COUNT = 1 AND TYPE = 'api-calls' GROUP BY SUBJECT EMIT CHANGES;",
+		},
+		{
+			data: meterTableQueryData{
+				Meter: &models.Meter{
+					ID:            "meter3",
+					Name:          "API call count by path",
+					Type:          "api-calls",
+					Aggregation:   models.MeterAggregationAvg,
+					ValueProperty: "$.duration_ms",
+					WindowSize:    models.WindowSizeMinute,
+				},
+				WindowRetention: "365 DAYS",
+				Partitions:      1,
+			},
+			want: "CREATE TABLE IF NOT EXISTS `OM_METER_METER3` WITH ( KAFKA_TOPIC = 'om_meter_meter3', KEY_FORMAT = 'JSON', VALUE_FORMAT = 'JSON', PARTITIONS = 1 ) AS SELECT SUBJECT, AVG(CAST(EXTRACTJSONFIELD(data, '$.duration_ms') AS DECIMAL(12, 4))) AS VALUE FROM OM_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 1 MINUTE, RETENTION 365 DAYS ) WHERE ID_COUNT = 1 AND TYPE = 'api-calls' GROUP BY SUBJECT EMIT CHANGES;",
 		},
 	}
 
@@ -130,9 +143,7 @@ func TestMeterTableQuery(t *testing.T) {
 				t.Error(err)
 			}
 
-			if got != tt.want {
-				t.Errorf("got = \n%v, \nwant \n%v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -187,7 +198,7 @@ func TestValuesSelectQuery(t *testing.T) {
 					To:      &to,
 				},
 			},
-			want: "SELECT * FROM `OM_METER_METER4` WHERE SUBJECT = 'subject1' AND WINDOWEND < 1609545600000;",
+			want: "SELECT * FROM `OM_METER_METER4` WHERE SUBJECT = 'subject1' AND WINDOWEND <= 1609545600000;",
 		},
 		{
 			data: meterValuesData{
@@ -200,7 +211,7 @@ func TestValuesSelectQuery(t *testing.T) {
 					To:      &to,
 				},
 			},
-			want: "SELECT * FROM `OM_METER_METER5` WHERE SUBJECT = 'subject1' AND WINDOWSTART >= 1609459200001 AND WINDOWEND < 1609545600000;",
+			want: "SELECT * FROM `OM_METER_METER5` WHERE SUBJECT = 'subject1' AND WINDOWSTART >= 1609459200001 AND WINDOWEND <= 1609545600000;",
 		},
 	}
 
@@ -211,9 +222,7 @@ func TestValuesSelectQuery(t *testing.T) {
 				t.Error(err)
 			}
 
-			if got != tt.want {
-				t.Errorf("got = \n%v, \nwant \n%v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

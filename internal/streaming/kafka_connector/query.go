@@ -59,7 +59,6 @@ var meterTableQueryTemplate string
 
 type meterTableQueryData struct {
 	*models.Meter
-	WindowSize      string
 	WindowRetention string
 	Partitions      int
 }

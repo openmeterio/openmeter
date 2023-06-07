@@ -8,9 +8,11 @@
 {{- end }}
 
 {{- if eq .Aggregation "COUNT" }}
-{{- $select = printf "COUNT(*) AS VALUE" | append $select }}
-{{- else if eq .Aggregation "COUNT_DISTINCT" }}
-{{- $select = printf "COUNT_DISTINCT(EXTRACTJSONFIELD(data, '%s')) AS VALUE" .ValueProperty | append $select }}
+    {{- if .ValueProperty }}
+    {{- $select = printf "COUNT(EXTRACTJSONFIELD(data, '%s')) AS VALUE" .ValueProperty | append $select }}
+    {{- else }}
+    {{- $select = printf "COUNT(*) AS VALUE" | append $select }}
+    {{- end }}
 {{- else }}
 {{- $select = printf "%s(CAST(EXTRACTJSONFIELD(data, '%s') AS DECIMAL(12, 4))) AS VALUE" .Aggregation .ValueProperty | append $select }}
 {{- end }}
@@ -25,7 +27,7 @@ SELECT {{ $select | join ", " }}
 FROM
     OM_DETECTED_EVENTS_STREAM
 WINDOW TUMBLING (
-    SIZE {{ .WindowSize }},
+    SIZE 1 {{ .WindowSize }},
     RETENTION {{ .WindowRetention }}
 )
 WHERE

@@ -18,8 +18,8 @@ func TestMeterQueryAssert(t *testing.T) {
 			Type:          "api-calls",
 			Aggregation:   models.MeterAggregationSum,
 			GroupBy:       []string{"$.path", "$.method"},
+			WindowSize:    models.WindowSizeHour,
 		},
-		WindowSize:      "1 HOUR",
 		WindowRetention: "365 DAYS",
 		Partitions:      1,
 	}
@@ -55,13 +55,13 @@ func TestMeterQueryAssert(t *testing.T) {
 			match: fmt.Errorf("meter group by not found: $.path"),
 		},
 		{
-			name:  "should not match if window size by differs",
+			name:  "should not match if window size differs",
 			data:  data,
 			query: "CREATE TABLE IF NOT EXISTS `OM_METER_METER1` WITH ( KAFKA_TOPIC = 'om_meter_meter1', KEY_FORMAT = 'JSON', VALUE_FORMAT = 'JSON', PARTITIONS = 1 ) AS SELECT SUBJECT, COALESCE(EXTRACTJSONFIELD(data, '$.path'), '') AS `$.path`, SUM(CAST(EXTRACTJSONFIELD(data, '$.bytes') AS DECIMAL(12, 4))) AS VALUE FROM OM_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 2 HOUR, RETENTION 365 DAYS ) WHERE ID_COUNT = 1 AND TYPE = 'api-calls' GROUP BY SUBJECT, COALESCE(EXTRACTJSONFIELD(data, '$.path'), ''), COALESCE(EXTRACTJSONFIELD(data, '$.method'), '') EMIT CHANGES;",
 			match: fmt.Errorf("meter window size mismatch, old: 2 HOUR, new: 1 HOUR"),
 		},
 		{
-			name:  "should not match if window retention by differs",
+			name:  "should not match if window retention differs",
 			data:  data,
 			query: "CREATE TABLE IF NOT EXISTS `OM_METER_METER1` WITH ( KAFKA_TOPIC = 'om_meter_meter1', KEY_FORMAT = 'JSON', VALUE_FORMAT = 'JSON', PARTITIONS = 1 ) AS SELECT SUBJECT, COALESCE(EXTRACTJSONFIELD(data, '$.path'), '') AS `$.path`, SUM(CAST(EXTRACTJSONFIELD(data, '$.bytes') AS DECIMAL(12, 4))) AS VALUE FROM OM_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 1 HOUR, RETENTION 1 DAYS ) WHERE ID_COUNT = 1 AND TYPE = 'api-calls' GROUP BY SUBJECT, COALESCE(EXTRACTJSONFIELD(data, '$.path'), ''), COALESCE(EXTRACTJSONFIELD(data, '$.method'), '') EMIT CHANGES;",
 			match: fmt.Errorf("meter window retention mismatch, old: 1 DAY, new: 365 DAYS"),

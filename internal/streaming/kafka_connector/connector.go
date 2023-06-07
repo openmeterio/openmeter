@@ -148,7 +148,6 @@ func NewKafkaConnector(config *KafkaConnectorConfig) (Connector, error) {
 func (c *KafkaConnector) Init(meter *models.Meter) error {
 	queryData := meterTableQueryData{
 		Meter:           meter,
-		WindowSize:      "1 HOUR",
 		WindowRetention: "36500 DAYS",
 		Partitions:      c.config.Partitions,
 	}
@@ -264,5 +263,10 @@ func (c *KafkaConnector) GetValues(meter *models.Meter, params *GetValuesParams)
 	}
 
 	slog.Debug("ksqlDB response", "header", header, "payload", payload)
-	return NewMeterValues(header, payload)
+	values, err := NewMeterValues(header, payload)
+	if err != nil {
+		return nil, err
+	}
+
+	return meter.AggregateMeterValues(values, params.WindowSize)
 }
