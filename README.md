@@ -22,6 +22,14 @@ Check out the [quickstart guide](/quickstart) for a 5-minute overview and demo o
 - [Examples](/examples)
 - [Decisions](/docs/decisions)
 
+## Examples
+
+See our examples to learn about common OpenMeter use-cases.
+
+- [Metering OpenAI Chat GPT Usage](/examples/ingest-openai-node)
+- [Metering Kubernetes Pod Execution Time](/examples/ingest-kubernetes-pod-time-go)
+- [Usage Based Billing with Stripe](/examples/export-stripe-go)
+
 ## Development
 
 For the best developer experience, install [Nix](https://nixos.org/download.html) and [direnv](https://direnv.net/docs/installation.html).
