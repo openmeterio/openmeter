@@ -1,17 +1,5 @@
 # A Self-Documenting Makefile: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 
-# Project variables
-PACKAGE = github.com/openmeterio/openmeter
-BINARY_NAME ?= openmeter
-DOCKER_REGISTRY ?= ghcr.io/openmeterio
-DOCKER_IMAGE = ${DOCKER_REGISTRY}/openmeter
-
-# Build variables
-VERSION ?= $(shell git describe --tags --exclude 'chart/*' --exact-match 2>/dev/null || git symbolic-ref -q --short HEAD | tr "/" "-")
-COMMIT_HASH ?= $(shell git rev-parse --short HEAD 2>/dev/null)
-BUILD_DATE ?= $(shell date +%FT%T%z)
-LDFLAGS += -X main.version=${VERSION} -X main.commitHash=${COMMIT_HASH} -X main.buildDate=${BUILD_DATE}
-
 .PHONY: up
 up: ## Start the dependencies via docker compose
 	$(call print-target)
@@ -44,15 +32,15 @@ run: ## Run OpenMeter
 .PHONY: test
 test: ## Run tests
 	$(call print-target)
-	mage -d ci -w . test
+	dagger run mage -d ci -w . test
 
 .PHONY: lint
 lint: ## Run linters
 	$(call print-target)
-	mage -d ci -w . lint
+	dagger run mage -d ci -w . lint
 
-.PHONY: fix
-fix: ## Run auto-fixers
+.PHONY: fmt
+fmt: ## Format code
 	$(call print-target)
 	golangci-lint run --fix
 

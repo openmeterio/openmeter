@@ -13,10 +13,6 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        shell: nix develop .#ci -c bash {0}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -28,19 +24,15 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Prepare Nix shell
-        run: echo
+        run: nix develop --impure .#ci
 
       - name: Build
-        run: go build .
+        run: nix develop --impure .#ci -c make build
 
   test:
     name: Test
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        shell: nix develop .#ci -c bash {0}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -52,19 +44,15 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Prepare Nix shell
-        run: echo
+        run: nix develop --impure .#ci
 
       - name: Test
-        run: mage -d ci -w . test
+        run: nix develop --impure .#ci -c make test
 
   lint:
     name: Lint
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        shell: nix develop .#ci -c bash {0}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -76,10 +64,10 @@ jobs:
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Prepare Nix shell
-        run: echo
+        run: nix develop --impure .#ci
 
       - name: Lint
-        run: mage -d ci -w . lint
+        run: nix develop --impure .#ci -c make lint
 
   artifacts:
     name: Artifacts

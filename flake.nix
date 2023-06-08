@@ -3,45 +3,42 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    devenv.url = "github:cachix/devenv";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = import nixpkgs {
-          inherit system;
+  outputs = inputs@{ flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      imports = [
+        inputs.devenv.flakeModule
+      ];
 
-          overlays = [
-            (final: prev: {
-              rdkafka = prev.rdkafka.overrideAttrs (f: p: rec {
-                version = "2.1.1";
+      systems = [ "x86_64-linux" "x86_64-darwin" "aarch64-darwin" ];
 
-                src = prev.fetchFromGitHub {
-                  owner = "confluentinc";
-                  repo = "librdkafka";
-                  rev = "v${version}";
-                  sha256 = "sha256-MwPRnD/S8o1gG6RWq2tKxqdpGum4FB5K8bHPAvlKW10=";
-                };
-              });
-            })
-          ];
-        };
-      in
-      {
-        devShells = {
-          default = pkgs.mkShell {
-            buildInputs = with pkgs; [
-              git
+      perSystem = { config, self', inputs', pkgs, system, ... }: rec {
+        devenv.shells = {
+          default = {
+            languages = {
+              go.enable = true;
+            };
+
+            pre-commit.hooks = {
+              nixpkgs-fmt.enable = true;
+              commitizen.enable = true;
+            };
+
+            packages = with pkgs; [
               gnumake
+              dagger
+              mage
 
-              go_1_20
+              # Kafka build dependencies
               rdkafka # https://github.com/confluentinc/confluent-kafka-go#librdkafka
               cyrus_sasl
               pkg-config
+
               golangci-lint
               goreleaser
-              mage
               air
               oapi-codegen
 
@@ -49,24 +46,24 @@
               jq
               minikube
             ];
+
+            scripts = {
+              versions.exec = ''
+                go version
+                golangci-lint version
+              '';
+            };
+
+            enterShell = ''
+              versions
+            '';
+
+            # https://github.com/cachix/devenv/issues/528#issuecomment-1556108767
+            containers = pkgs.lib.mkForce { };
           };
 
-          ci = pkgs.mkShell {
-            buildInputs = with pkgs; [
-              git
-              gnumake
-
-              go_1_20
-              rdkafka # https://github.com/confluentinc/confluent-kafka-go#librdkafka
-              cyrus_sasl
-              pkg-config
-              golangci-lint
-              goreleaser
-              mage
-              oapi-codegen
-            ];
-          };
+          ci = devenv.shells.default;
         };
-      }
-    );
+      };
+    };
 }

@@ -1,22 +1,10 @@
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-
-# Test binary, built with `go test -c`
-*.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
+/.devenv/
+/.direnv/
+/.pre-commit-config.yaml
+/build/
+/config.yaml
+/tmp/
 
 # Go workspace file
 go.work
 go.work.sum
-
-dist/
-build/
-tmp/
-/.direnv/
-/config.yaml
