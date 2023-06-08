@@ -22,6 +22,11 @@
               go.enable = true;
             };
 
+            pre-commit.hooks = {
+              nixpkgs-fmt.enable = true;
+              commitizen.enable = true;
+            };
+
             packages = with pkgs; [
               gnumake
               dagger
@@ -46,11 +51,6 @@
               versions.exec = ''
                 go version
                 golangci-lint version
-                echo controller-gen $(controller-gen --version)
-                kind version
-                kubectl version --client
-                echo kustomize $(kustomize version --short)
-                echo helm $(helm version --short)
               '';
             };
 

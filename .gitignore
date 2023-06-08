@@ -1,5 +1,6 @@
 /.devenv/
 /.direnv/
+/.pre-commit-config.yaml
 /build/
 /config.yaml
 /tmp/
