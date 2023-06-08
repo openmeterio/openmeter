@@ -32,7 +32,7 @@ See our examples to learn about common OpenMeter use-cases.
 
 ## Development
 
-For the best developer experience, install [Nix](https://nixos.org/download.html) and [direnv](https://direnv.net/docs/installation.html).
+**For an optimal developer experience, it is recommended to install [Nix](https://nixos.org/download.html) and [direnv](https://direnv.net/docs/installation.html).**
 
 Run the dependencies:
 
@@ -44,6 +44,18 @@ Run OpenMeter:
 
 ```sh
 make run
+```
+
+Run tests:
+
+```sh
+make test
+```
+
+Run linters:
+
+```sh
+make lint
 ```
 
 ## Roadmap

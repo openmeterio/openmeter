@@ -2,6 +2,8 @@
 # Make sure to check the documentation at https://goreleaser.com
 project_name: openmeter
 
+dist: build/dist
+
 gomod:
   proxy: true
 
