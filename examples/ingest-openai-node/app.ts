@@ -1,5 +1,8 @@
+import fs from 'fs'
+
 import { Configuration, OpenAIApi } from "openai";
 import { OpenAPIClientAxios } from 'openapi-client-axios'
+import yml from 'yaml'
 import { Client as OpenMeterClient } from './openapi';
 
 const configuration = new Configuration({
@@ -7,7 +10,11 @@ const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
 });
 const openai = new OpenAIApi(configuration);
-const openmeter = new OpenAPIClientAxios({ definition: 'https://openmeter.io/api/openapi.json' }).initSync<OpenMeterClient>();
+const openmeterApi = fs.readFileSync('../../api/openapi.yml', 'utf8')
+const openmeter = await new OpenAPIClientAxios({
+  definition: yml.parse(openmeterApi),
+  withServer: { url: 'http://localhost:8888' },
+}).initSync<OpenMeterClient>()
 
 async function main() {
   const { data } = await openai.createChatCompletion({
