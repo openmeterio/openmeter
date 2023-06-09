@@ -33,7 +33,7 @@ async function setup() {
       usage_type: 'metered',
     },
     billing_scheme: 'per_unit',
-    unit_amount: 10, // cents
+    unit_amount: 1, // cent
   })
   console.log(
     `Stripe price created: https://dashboard.stripe.com/test/prices/${price.id}`

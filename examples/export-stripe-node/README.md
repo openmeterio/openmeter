@@ -13,7 +13,7 @@ In this example we will report usage when `npm start` is executed. In a real app
 
 ## 1. Setting Up Stripe
 
-In this example we will create a metered product and price with a monthly recurring billing period, priced at $0.1 per unit.
+In this example we will create a metered product called `AI Tokens` and price with a monthly recurring billing period, priced at $0.01 per unit (per token).
 Run the setup code in this repo with your [Stripe key](https://dashboard.stripe.com/test/apikeys):
 
 ```sh
