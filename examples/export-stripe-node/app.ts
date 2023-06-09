@@ -2,8 +2,6 @@ import assert from 'assert'
 import fs from 'fs'
 
 import yml from 'yaml'
-import express from 'express'
-import bodyParser from 'body-parser'
 import Stripe from 'stripe'
 import moment from 'moment'
 import { OpenAPIClientAxios } from 'openapi-client-axios'
@@ -23,48 +21,37 @@ const openmeter = await new OpenAPIClientAxios({
   withServer: { url: 'http://localhost:8888' },
 }).initSync<OpenMeterClient>()
 
-const app = express()
+async function main() {
+  // We round down period to closest windows as OpenMeter aggregates usage in windows.
+  // Usage occuring between rounded down date and now will be attributed to the next billing period.
+  const to = moment().startOf('hour').toDate()
+  const from = moment(to).subtract(1, 'hour').toDate()
+  const { data: subscriptions } = await stripe.subscriptions.list({
+    status: 'active',
+  })
 
-// Match the raw body to content type application/json
-app.post(
-  '/webhook',
-  bodyParser.json({ type: 'application/json' }),
-  async (request, response) => {
-    // in a production app you want to check if signature matches
-    // see: https://stripe.com/docs/payments/handling-payment-events#signature-checking
-    const event = request.body
-
-    // Handle the event
-    switch (event.type) {
-      case 'customer.subscription.updated':
-        // Event type is `subscription`
-        // See: https://stripe.com/docs/api/events/types#event_types-customer.subscription.updated
-        const subscription = event.data.object as Stripe.Subscription
-        const previousAttributes = event.data.previous_attributes
-
-        // Report usage if billing period changed
-        if (previousAttributes.current_period_start) {
-          const from = previousAttributes.current_period_start
-          const to = subscription.current_period_start
-          await reportUsage(event.id, subscription, from, to)
-        }
-
-        break
+  // Report usage for all active subscriptions
+  for (const subscription of subscriptions) {
+    // Skip subscriptions that started before `to`.
+    if (moment(subscription.current_period_start).isBefore(to)) {
+      continue
     }
 
-    // Return a 200 response to acknowledge receipt of the event
-    response.json({ received: true })
+    await reportUsage(subscription, from, to)
   }
-)
+}
+
+main()
+  .then(() => console.info('done'))
+  .catch((err) => console.error('failed', err))
 
 /**
  * Reports usage to Stripe
  */
 async function reportUsage(
-  eventId: string,
   subscription: Stripe.Subscription,
-  fromUnix: number,
-  toUnix: number
+  from: Date,
+  to: Date
 ) {
   for (const item of subscription.items.data) {
     // Skip non metered items
@@ -78,11 +65,6 @@ async function reportUsage(
       continue
     }
 
-    // We round down period to closest windows as OpenMeter aggregates usage in windows.
-    // Usage occuring between rounded down `current_period_end` and `current_period_end` will be attributed to the next billing period.
-    const from = moment.unix(fromUnix).startOf('minute').toISOString()
-    const to = moment.unix(toUnix).startOf('minute').toISOString()
-
     // Query usage from OpenMeter for billing period
     const customerId =
       typeof subscription.customer === 'object'
@@ -91,8 +73,8 @@ async function reportUsage(
     const values = await openmeter.getValuesByMeterId({
       meterId,
       subject: customerId,
-      from,
-      to,
+      from: from.toISOString(),
+      to: to.toISOString(),
     })
 
     // Sum usage windows
@@ -106,17 +88,17 @@ async function reportUsage(
     }
 
     // Report usage to Stripe
-    // We use `action=set` so even if this webhook get called multiple time
-    // we still end up with only one usage record for the same period.
+    const timestamp = moment(to).unix()
     await stripe.subscriptionItems.createUsageRecord(
       item.id,
       {
         quantity: total,
-        timestamp: toUnix - 1,
+        timestamp,
         action: 'set',
       },
       {
-        idempotencyKey: eventId,
+        // Ensures we only report once even if scripts runs multiple times.
+        idempotencyKey: `${item.id}-${timestamp}`,
       }
     )
 
@@ -126,6 +108,3 @@ async function reportUsage(
     )
   }
 }
-
-// Start server
-app.listen(4242, () => console.log('Running on port 4242'))
