@@ -1,23 +1,30 @@
 {
-  "name": "openmeter-example-openai",
+  "name": "openmeter-example-stripe",
   "version": "1.0.0",
-  "description": "OpenMeter example for OpenAI metering",
+  "description": "OpenMeter example for Stripe",
   "main": "app.ts",
   "type": "module",
   "scripts": {
     "start": "ts-node app.ts",
+    "setup": "ts-node setup.ts",
+    "lint": "prettier --write .",
     "typegen": "typegen ../../api/openapi.yml > ./openapi.d.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "axios": "^1.4.0",
-    "openai": "^3.2.1",
+    "moment": "^2.29.4",
     "openapi-client-axios": "^7.1.3",
+    "stripe": "^12.8.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.4",
     "yaml": "^2.3.1"
   },
   "devDependencies": {
-    "openapi-client-axios-typegen": "^7.2.0"
+    "@types/body-parser": "^1.19.2",
+    "@types/express": "^4.17.17",
+    "@types/node-cron": "^3.0.7",
+    "openapi-client-axios-typegen": "^7.2.0",
+    "prettier": "^2.8.8"
   }
 }
