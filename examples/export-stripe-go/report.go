@@ -45,7 +45,7 @@ func (r *Report) Run() error {
 	for i.Next() {
 		s := i.Subscription()
 
-		// Skip subscriptions that started before `to`.
+		// Skip subscriptions that started after `to`.
 		if s.CurrentPeriodStart > r.to.Unix() {
 			continue
 		}
