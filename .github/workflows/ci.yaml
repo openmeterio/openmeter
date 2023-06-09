@@ -95,6 +95,7 @@ jobs:
   fossa-scan:
     name: FOSSA Scan
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
 
     steps:
       - name: Checkout repository
