@@ -88,9 +88,9 @@ func (r *Report) reportUsage(subscription *stripe.Subscription) error {
 		}
 
 		// TODO (pmarton): switch to OpenMeter aggregate API
-		var total float32 = 0
+		var total float64 = 0
 		for _, value := range *payload.JSON200.Values {
-			total += *value.Value
+			total += value.Value
 		}
 
 		// Debug log
