@@ -44,8 +44,8 @@ await openmeter.ingestEvents(null, {
     total_tokens: data.usage.total_tokens,
     prompt_tokens: data.usage.prompt_tokens,
     completion_tokens: data.usage.completion_tokens,
-    model: data.model
-  }
+    model: data.model,
+  },
 })
 ```
 

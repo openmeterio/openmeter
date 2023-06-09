@@ -7,7 +7,7 @@ You can read more about Stripe's Usage-Based Pricing features [here](https://str
 
 ## Our Example
 
-In this example, we integrate usage reporting with Stripe for an imaginary serverless product called Epsilon which charges their customer after execution duration.
+In this example, we integrate usage reporting with Stripe for an imaginary AI product that need to attribute Chat GPT token usage to their users.
 To report usage, Stripe recommends a [periodic usage reporting](https://stripe.com/docs/billing/subscriptions/usage-based#report).
 In this example we will report usage when `npm start` is executed. In a real app you want to report usage periodically via cron or workflow management.
 

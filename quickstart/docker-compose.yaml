@@ -21,6 +21,8 @@ services:
     image: alpine/curl:3.14
     entrypoint: /bin/sh
     tty: true
+    depends_on:
+      - ksqldb-server
     healthcheck:
       test: curl --fail http://ksqldb-server:8088/healthcheck
       interval: 5s
@@ -33,6 +35,8 @@ services:
       service: zookeeper
 
   broker:
+    depends_on:
+      - zookeeper
     extends:
       file: ../docker-compose.yaml
       service: broker
@@ -40,11 +44,15 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_HOST://broker:29092
 
   schema:
+    depends_on:
+      - broker
     extends:
       file: ../docker-compose.yaml
       service: schema
 
   ksqldb-server:
+    depends_on:
+      - broker
     extends:
       file: ../docker-compose.yaml
       service: ksqldb-server
