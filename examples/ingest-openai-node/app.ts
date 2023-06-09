@@ -60,6 +60,10 @@ async function main() {
         },
       }
     )
+
+    // Debug logs
+    console.debug(`input: Hello world, output: ${data.choices.map(({ message }) => message?.content).join(' ')}`)
+    console.debug(`total_tokens: ${data.usage.total_tokens}, subject: my-awesome-user-id`)
   }
 }
 
