@@ -44,6 +44,21 @@ func (c configuration) Validate() error {
 		return err
 	}
 
+	if len(c.Meters) == 0 {
+		return errors.New("at least one meter is required")
+	}
+
+	for _, m := range c.Meters {
+		// set default window size
+		if m.WindowSize == "" {
+			m.WindowSize = models.WindowSizeMinute
+		}
+
+		if err := m.Validate(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

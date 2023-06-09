@@ -66,7 +66,7 @@ func MeterQueryAssert(query string, data meterTableQueryData) error {
 	windowSizeRe := regexp.MustCompile(`SIZE (?:\d+ [DAY|HOUR|MINUTE|SECOND|MILLISECOND]{1,})`)
 	windowSize := windowSizeRe.FindString(query)
 	// Go doesn't support \K to reset match after SIZE in regex so we trim it out
-	windowSize = strings.Trim(windowSize, "SIZE ")
+	windowSize = strings.TrimPrefix(windowSize, "SIZE ")
 	windowRetentionRe := regexp.MustCompile(`RETENTION (?:\d+ [DAY|HOUR]{1,})`)
 	windowRetention := windowRetentionRe.FindString(query)
 	// Go doesn't support \K to reset match after RETENTION in regex so we trim it out
@@ -94,8 +94,8 @@ func MeterQueryAssert(query string, data meterTableQueryData) error {
 	}
 
 	// We trim tailing S in case config would be in plural DAY vs DAYS
-	if windowSize != strings.TrimRight(data.WindowSize, "S") {
-		return fmt.Errorf("meter window size mismatch, old: %s, new: %s", windowSize, data.WindowSize)
+	if fmt.Sprintf("1 %s", data.WindowSize) != strings.TrimRight(windowSize, "S") {
+		return fmt.Errorf("meter window size mismatch, old: %s, new: 1 %s", windowSize, data.WindowSize)
 	}
 	if windowRetention != strings.TrimRight(data.WindowRetention, "S") {
 		return fmt.Errorf("meter window retention mismatch, old: %s, new: %s", windowRetention, data.WindowRetention)

@@ -2,6 +2,8 @@ package router
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -101,33 +103,69 @@ func (a *Router) GetMetersById(w http.ResponseWriter, r *http.Request, meterID s
 }
 
 type GetValuesByMeterIdResponse struct {
-	Values []*models.MeterValue `json:"values"`
-}
-
-func NewGetValuesByMeterIdResponse(values []*models.MeterValue) *GetValuesByMeterIdResponse {
-	return &GetValuesByMeterIdResponse{
-		Values: values,
-	}
+	WindowSize *models.WindowSize   `json:"windowSize"`
+	Values     []*models.MeterValue `json:"values"`
 }
 
 func (rd *GetValuesByMeterIdResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func ValidateGetValuesByMeterIdParams(meter *models.Meter, params api.GetValuesByMeterIdParams) error {
+	if params.From != nil && params.To != nil && params.From.After(*params.To) {
+		return errors.New("from must be before to")
+	}
+
+	if params.WindowSize != nil {
+		windowDuration := params.WindowSize.Duration()
+		if params.From != nil && params.From.Truncate(windowDuration) != *params.From {
+			return errors.New("from must be aligned to window size")
+		}
+		if params.To != nil && params.To.Truncate(windowDuration) != *params.To {
+			return errors.New("to must be aligned to window size")
+		}
+		if (meter.WindowSize == models.WindowSizeDay && *params.WindowSize != models.WindowSizeDay) ||
+			(meter.WindowSize == models.WindowSizeHour && *params.WindowSize == models.WindowSizeMinute) {
+			return fmt.Errorf("expected window size to be less than or equal to %s, but got %s", meter.WindowSize, *params.WindowSize)
+		}
+		if (meter.Aggregation == models.MeterAggregationCountDistinct) && *params.WindowSize != meter.WindowSize {
+			return fmt.Errorf("expected window size to be %s, but got %s", meter.WindowSize, *params.WindowSize)
+		}
+	}
+
+	return nil
+}
+
 func (a *Router) GetValuesByMeterId(w http.ResponseWriter, r *http.Request, meterId string, params api.GetValuesByMeterIdParams) {
 	for _, meter := range a.config.Meters {
 		if meter.ID == meterId {
+			if err := ValidateGetValuesByMeterIdParams(meter, params); err != nil {
+				_ = render.Render(w, r, api.ErrBadRequest(err))
+				return
+			}
+
 			values, err := a.config.StreamingConnector.GetValues(meter, &streaming.GetValuesParams{
-				From:    params.From,
-				To:      params.To,
-				Subject: params.Subject,
+				From:       params.From,
+				To:         params.To,
+				Subject:    params.Subject,
+				WindowSize: params.WindowSize,
 			})
 			if err != nil {
 				_ = render.Render(w, r, api.ErrInternalServerError(err))
 				return
 			}
 
-			if err := render.Render(w, r, NewGetValuesByMeterIdResponse(values)); err != nil {
+			windowSize := params.WindowSize
+			if windowSize == nil {
+				windowSize = &meter.WindowSize
+			}
+
+			resp := &GetValuesByMeterIdResponse{
+				WindowSize: windowSize,
+				Values:     values,
+			}
+
+			if err := render.Render(w, r, resp); err != nil {
 				_ = render.Render(w, r, api.ErrUnprocessableEntity(err))
 				return
 			}

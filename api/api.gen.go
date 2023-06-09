@@ -33,16 +33,26 @@ type Event = event.Event
 // Meter defines model for Meter.
 type Meter = models.Meter
 
+// MeterValue defines model for MeterValue.
+type MeterValue = models.MeterValue
+
+// WindowSize defines model for WindowSize.
+type WindowSize = models.WindowSize
+
 // GetValuesByMeterIdParams defines parameters for GetValuesByMeterId.
 type GetValuesByMeterIdParams struct {
+	Subject *string `form:"subject,omitempty" json:"subject,omitempty"`
+
 	// From Start date-time in RFC 3339 format.
+	// Must be aligned with the window size.
 	// Inclusive.
 	From *time.Time `form:"from,omitempty" json:"from,omitempty"`
 
 	// To End date-time in RFC 3339 format.
-	// Exclusive.
-	To      *time.Time `form:"to,omitempty" json:"to,omitempty"`
-	Subject *string    `form:"subject,omitempty" json:"subject,omitempty"`
+	// Must be aligned with the window size.
+	// Inclusive.
+	To         *time.Time  `form:"to,omitempty" json:"to,omitempty"`
+	WindowSize *WindowSize `form:"windowSize,omitempty" json:"windowSize,omitempty"`
 }
 
 // IngestEventsJSONRequestBody defines body for IngestEvents for application/cloudevents+json ContentType.
@@ -325,6 +335,22 @@ func NewGetValuesByMeterIdRequest(server string, meterId string, params *GetValu
 
 	queryValues := queryURL.Query()
 
+	if params.Subject != nil {
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "subject", runtime.ParamLocationQuery, *params.Subject); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+	}
+
 	if params.From != nil {
 
 		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, *params.From); err != nil {
@@ -357,9 +383,9 @@ func NewGetValuesByMeterIdRequest(server string, meterId string, params *GetValu
 
 	}
 
-	if params.Subject != nil {
+	if params.WindowSize != nil {
 
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "subject", runtime.ParamLocationQuery, *params.Subject); err != nil {
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "windowSize", runtime.ParamLocationQuery, *params.WindowSize); err != nil {
 			return nil, err
 		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 			return nil, err
@@ -514,13 +540,8 @@ type GetValuesByMeterIdResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *struct {
-		Values *[]struct {
-			GroupBy     *map[string]string `json:"groupBy,omitempty"`
-			Subject     *string            `json:"subject,omitempty"`
-			Value       *float32           `json:"value,omitempty"`
-			WindowEnd   *time.Time         `json:"windowEnd,omitempty"`
-			WindowStart *time.Time         `json:"windowStart,omitempty"`
-		} `json:"values,omitempty"`
+		Values     *[]MeterValue `json:"values,omitempty"`
+		WindowSize *WindowSize   `json:"windowSize,omitempty"`
 	}
 	JSONDefault *Error
 }
@@ -700,13 +721,8 @@ func ParseGetValuesByMeterIdResponse(rsp *http.Response) (*GetValuesByMeterIdRes
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest struct {
-			Values *[]struct {
-				GroupBy     *map[string]string `json:"groupBy,omitempty"`
-				Subject     *string            `json:"subject,omitempty"`
-				Value       *float32           `json:"value,omitempty"`
-				WindowEnd   *time.Time         `json:"windowEnd,omitempty"`
-				WindowStart *time.Time         `json:"windowStart,omitempty"`
-			} `json:"values,omitempty"`
+			Values     *[]MeterValue `json:"values,omitempty"`
+			WindowSize *WindowSize   `json:"windowSize,omitempty"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
@@ -824,6 +840,14 @@ func (siw *ServerInterfaceWrapper) GetValuesByMeterId(w http.ResponseWriter, r *
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetValuesByMeterIdParams
 
+	// ------------- Optional query parameter "subject" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "subject", r.URL.Query(), &params.Subject)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subject", Err: err})
+		return
+	}
+
 	// ------------- Optional query parameter "from" -------------
 
 	err = runtime.BindQueryParameter("form", true, false, "from", r.URL.Query(), &params.From)
@@ -840,11 +864,11 @@ func (siw *ServerInterfaceWrapper) GetValuesByMeterId(w http.ResponseWriter, r *
 		return
 	}
 
-	// ------------- Optional query parameter "subject" -------------
+	// ------------- Optional query parameter "windowSize" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "subject", r.URL.Query(), &params.Subject)
+	err = runtime.BindQueryParameter("form", true, false, "windowSize", r.URL.Query(), &params.WindowSize)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subject", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "windowSize", Err: err})
 		return
 	}
 
@@ -991,31 +1015,33 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"///UpDoHZhcAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

@@ -9,9 +9,10 @@ import (
 )
 
 type GetValuesParams struct {
-	From    *time.Time
-	To      *time.Time
-	Subject *string
+	From       *time.Time
+	To         *time.Time
+	Subject    *string
+	WindowSize *models.WindowSize
 }
 
 type Connector interface {

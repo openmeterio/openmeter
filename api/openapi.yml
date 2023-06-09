@@ -84,11 +84,17 @@ paths:
           required: true
           schema:
             type: string
+        - name: subject
+          in: query
+          required: false
+          schema:
+            type: string
         - name: from
           in: query
           required: false
           description: |
             Start date-time in RFC 3339 format.
+            Must be aligned with the window size.
             Inclusive.
           schema:
             type: string
@@ -98,15 +104,16 @@ paths:
           required: false
           description: |
             End date-time in RFC 3339 format.
-            Exclusive.
+            Must be aligned with the window size.
+            Inclusive.
           schema:
             type: string
             format: date-time
-        - name: subject
+        - name: windowSize
           in: query
           required: false
           schema:
-            type: string
+            $ref: "#/components/schemas/WindowSize"
       responses:
         "200":
           description: OK
@@ -115,25 +122,12 @@ paths:
               schema:
                 type: object
                 properties:
+                  windowSize:
+                    $ref: "#/components/schemas/WindowSize"
                   values:
                     type: array
                     items:
-                      type: object
-                      properties:
-                        subject:
-                          type: string
-                        windowStart:
-                          type: string
-                          format: date-time
-                        windowEnd:
-                          type: string
-                          format: date-time
-                        value:
-                          type: number
-                        groupBy:
-                          type: object
-                          additionalProperties:
-                            type: string
+                      $ref: "#/components/schemas/MeterValue"
         default:
           description: Unexpected error
           content:
@@ -272,3 +266,34 @@ components:
               "$.my_label"
             ]
           description: JSONPath expressions to extract the group by values from the event data.
+        windowSize:
+          $ref: "#/components/schemas/WindowSize"
+    WindowSize:
+      type: string
+      x-go-type: models.WindowSize
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/internal/models
+      enum:
+        - MINUTE
+        - HOUR
+        - DAY
+    MeterValue:
+      type: object
+      x-go-type: models.MeterValue
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/internal/models
+      properties:
+        subject:
+          type: string
+        windowStart:
+          type: string
+          format: date-time
+        windowEnd:
+          type: string
+          format: date-time
+        value:
+          type: number
+        groupBy:
+          type: object
+          additionalProperties:
+            type: string
