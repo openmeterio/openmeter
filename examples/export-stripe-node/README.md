@@ -14,7 +14,7 @@ In this example we will report usage when `npm start` is executed. In a real app
 ## 1. Setting Up Stripe
 
 In this example we will create a metered product and price with a monthly recurring billing period, priced at $0.1 per unit.
-Run the sample code this repo in an another terminal with your keys as:
+Run the setup code in this repo with your [Stripe key](https://dashboard.stripe.com/test/apikeys):
 
 ```sh
 STRIPE_KEY=sk_test_... npm run setup
@@ -32,13 +32,13 @@ Stripe subscription created: https://dashboard.stripe.com/test/subscriptions/sub
 ## 2. Report Usage
 
 Ensure your OpenMeter runs. Check out the [quickstart guide](/quickstart) to see how to run OpenMeter.
-Run the app to report usage:
+Run the following to report usage to Stripe:
 
 ```sh
 STRIPE_KEY=sk_test_... npm start
 ```
 
-You should see the usage reported to Stripe:
+You should see the usage reported to Stripe as:
 
 ```text
 stripe_customer: cus_.., stripe_price: price_.., meter: m1, total_usage: 10.000000, from: 2023-06-07 14:00:00 -0700 PDT, to: 2023-07-07 14:00:00 -0700 PDT

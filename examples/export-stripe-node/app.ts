@@ -21,19 +21,22 @@ const openmeter = await new OpenAPIClientAxios({
   withServer: { url: 'http://localhost:8888' },
 }).initSync<OpenMeterClient>()
 
+// In a real app you will probably report hourly or daily and run this script at the same frequency via cron or workflow management
+const reportingFrequency = 'second'
+
 async function main() {
   // We round down period to closest windows as OpenMeter aggregates usage in windows.
   // Usage occuring between rounded down date and now will be attributed to the next billing period.
-  const to = moment().startOf('hour').toDate()
-  const from = moment(to).subtract(1, 'hour').toDate()
+  const to = moment().startOf(reportingFrequency).toDate()
+  const from = moment(to).subtract(1, reportingFrequency).toDate()
   const { data: subscriptions } = await stripe.subscriptions.list({
     status: 'active',
   })
 
   // Report usage for all active subscriptions
   for (const subscription of subscriptions) {
-    // Skip subscriptions that started before `to`.
-    if (moment(subscription.current_period_start).isBefore(to)) {
+    // Skip subscriptions that started after `to`.
+    if (moment(subscription.current_period_start).isAfter(to)) {
       continue
     }
 
