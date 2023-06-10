@@ -7,13 +7,13 @@ You can read more about Stripe's Usage-Based Pricing features [here](https://str
 
 ## Our Example
 
-In this example, we integrate usage reporting with Stripe for an imaginary serverless product called Epsilon which charges their customer after execution duration.
+In this example, we integrate usage reporting with Stripe for an imaginary AI product that need to attribute Chat GPT token usage to their users.
 To report usage, Stripe recommends a [periodic usage reporting](https://stripe.com/docs/billing/subscriptions/usage-based#report).
 In this example we will report usage when `npm start` is executed. In a real app you want to report usage periodically via cron or workflow management.
 
 ## 1. Setting Up Stripe
 
-In this example we will create a metered product and price with a monthly recurring billing period, priced at $0.1 per unit.
+In this example we will create a metered product called `AI Tokens` and price with a monthly recurring billing period, priced at $0.01 per unit (per token).
 Run the setup code in this repo with your [Stripe key](https://dashboard.stripe.com/test/apikeys):
 
 ```sh
