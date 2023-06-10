@@ -170,87 +170,104 @@ func (m *MeterValue) Render(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (m *Meter) AggregateMeterValues(values []*MeterValue, windowSize *WindowSize) ([]*MeterValue, error) {
-	// no need to aggregate
-	if windowSize == nil || *windowSize == m.WindowSize {
-		return values, nil
-	}
+	if windowSize != nil {
+		// no need to aggregate
+		if *windowSize == m.WindowSize {
+			return values, nil
+		}
 
-	// cannot aggregate count distinct
-	if m.Aggregation == MeterAggregationCountDistinct {
-		return nil, fmt.Errorf("invalid aggregation: expected window size of %s for meter with ID %s, but got %s", m.WindowSize, m.ID, *windowSize)
-	}
+		// cannot aggregate when window size is different
+		if m.Aggregation == MeterAggregationCountDistinct {
+			return nil, fmt.Errorf("invalid aggregation: expected window size of %s for meter with ID %s, but got %s", m.WindowSize, m.ID, *windowSize)
+		}
 
-	// cannot aggregate with a lower resolution
-	if m.WindowSize == WindowSizeDay && *windowSize != WindowSizeDay {
-		return nil, fmt.Errorf("invalid aggregation: expected window size of %s for meter with ID %s, but got %s", WindowSizeDay, m.ID, *windowSize)
-	}
-	if m.WindowSize == WindowSizeHour && *windowSize == WindowSizeMinute {
-		return nil, fmt.Errorf("invalid aggregation: expected window size of %s or %s for meter with ID %s, but got %s", WindowSizeHour, WindowSizeDay, m.ID, *windowSize)
+		// cannot aggregate with a lower resolution
+		if m.WindowSize == WindowSizeDay && *windowSize != WindowSizeDay {
+			return nil, fmt.Errorf("invalid aggregation: expected window size of %s for meter with ID %s, but got %s", WindowSizeDay, m.ID, *windowSize)
+		}
+		if m.WindowSize == WindowSizeHour && *windowSize == WindowSizeMinute {
+			return nil, fmt.Errorf("invalid aggregation: expected window size of %s or %s for meter with ID %s, but got %s", WindowSizeHour, WindowSizeDay, m.ID, *windowSize)
+		}
 	}
 
 	if len(values) == 0 {
 		return values, nil
 	}
 
-	// group by subject, group by and window
-	type groupByKey struct {
+	// key by subject, group by and window
+	type key struct {
 		Subject     string
 		GroupBy     string
 		WindowStart time.Time
 		WindowEnd   time.Time
 	}
 
-	windowDuration := windowSize.Duration()
-	groupBy := make(map[groupByKey]*MeterValue)
-	avgCount := make(map[groupByKey]int)
+	groupBy := make(map[key]*MeterValue)
+	avgCount := make(map[key]int)
+	fullWindowStart := make(map[key]time.Time)
+	fullWindowEnd := make(map[key]time.Time)
 
 	for _, value := range values {
-		windowStart := value.WindowStart.UTC().Truncate(windowDuration)
-		windowEnd := windowStart.Add(windowDuration)
-		groupByKey := groupByKey{
-			Subject:     value.Subject,
-			GroupBy:     fmt.Sprint(value.GroupBy),
-			WindowStart: windowStart,
-			WindowEnd:   windowEnd,
+		key := key{
+			Subject: value.Subject,
+			GroupBy: fmt.Sprint(value.GroupBy),
 		}
 
-		if _, ok := groupBy[groupByKey]; !ok {
-			groupBy[groupByKey] = value
-			groupBy[groupByKey].WindowStart = windowStart
-			groupBy[groupByKey].WindowEnd = windowEnd
+		if windowSize != nil {
+			windowDuration := windowSize.Duration()
+			key.WindowStart = value.WindowStart.UTC().Truncate(windowDuration)
+			key.WindowEnd = key.WindowStart.Add(windowDuration)
+		}
+
+		// set full window
+		if fullWindowStart[key].IsZero() || value.WindowStart.Before(fullWindowStart[key]) {
+			fullWindowStart[key] = value.WindowStart
+		}
+		if fullWindowEnd[key].IsZero() || value.WindowEnd.After(fullWindowEnd[key]) {
+			fullWindowEnd[key] = value.WindowEnd
+		}
+
+		if _, ok := groupBy[key]; !ok {
+			groupBy[key] = value
+			groupBy[key].WindowStart = key.WindowStart
+			groupBy[key].WindowEnd = key.WindowEnd
 			if m.Aggregation == MeterAggregationAvg {
-				avgCount[groupByKey] = 1
+				avgCount[key] = 1
 			}
 		} else {
+			// update value
 			switch m.Aggregation {
 			case MeterAggregationCount:
-				groupBy[groupByKey].Value += value.Value
+				groupBy[key].Value += value.Value
 			case MeterAggregationSum:
-				groupBy[groupByKey].Value += value.Value
+				groupBy[key].Value += value.Value
 			case MeterAggregationMax:
-				groupBy[groupByKey].Value = math.Max(groupBy[groupByKey].Value, value.Value)
+				groupBy[key].Value = math.Max(groupBy[key].Value, value.Value)
 			case MeterAggregationMin:
-				groupBy[groupByKey].Value = math.Min(groupBy[groupByKey].Value, value.Value)
+				groupBy[key].Value = math.Min(groupBy[key].Value, value.Value)
 			case MeterAggregationAvg:
-				avgCount[groupByKey]++
-				n := float64(avgCount[groupByKey])
-				groupBy[groupByKey].Value = (groupBy[groupByKey].Value*(n-1) + value.Value) / n
+				avgCount[key]++
+				n := float64(avgCount[key])
+				groupBy[key].Value = (groupBy[key].Value*(n-1) + value.Value) / n
 			case MeterAggregationLatest:
-				groupBy[groupByKey].Value = value.Value
-			}
-
-			// adjust window start and end
-			if groupBy[groupByKey].WindowStart.After(windowStart) {
-				groupBy[groupByKey].WindowStart = windowStart
-			}
-			if groupBy[groupByKey].WindowEnd.Before(windowEnd) {
-				groupBy[groupByKey].WindowEnd = windowEnd
+				groupBy[key].Value = value.Value
 			}
 		}
 	}
 
 	v := make([]*MeterValue, 0, len(groupBy))
 	for _, value := range groupBy {
+		// set full window if window size is not set
+		if windowSize == nil {
+			key := key{
+				Subject: value.Subject,
+				GroupBy: fmt.Sprint(value.GroupBy),
+			}
+
+			value.WindowStart = fullWindowStart[key]
+			value.WindowEnd = fullWindowEnd[key]
+		}
+
 		v = append(v, value)
 	}
 
