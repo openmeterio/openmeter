@@ -4,6 +4,9 @@ log:
   format: json
   level: info
 
+telemetry:
+  address: 127.0.0.1:10000
+
 meters:
   - id: m1
     name: Meter 1
