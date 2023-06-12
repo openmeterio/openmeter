@@ -50,10 +50,6 @@ services:
     depends_on:
       - broker
       - kafka-connect-01
-    links:
-      - schema
-      - kafka-connect-01
-      - broker
     ports:
       - "8088:8088"
     environment:
