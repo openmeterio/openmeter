@@ -17,16 +17,42 @@ func TestDetectedEventsTableQuery(t *testing.T) {
 	}{
 		{
 			data: detectedEventsTableQueryData{
+				Topic:      "om_detected_events",
 				Retention:  32,
 				Partitions: 100,
 			},
-			want: "CREATE TABLE IF NOT EXISTS OM_DETECTED_EVENTS WITH ( KAFKA_TOPIC = 'om_detected_events', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 100 ) AS SELECT ID AS KEY1, SOURCE AS KEY2, AS_VALUE(ID) AS ID, AS_VALUE(SOURCE) AS SOURCE, EARLIEST_BY_OFFSET(TIME) AS TIME, EARLIEST_BY_OFFSET(TYPE) AS TYPE, EARLIEST_BY_OFFSET(SUBJECT) AS SUBJECT, EARLIEST_BY_OFFSET(TIME) AS STRING, EARLIEST_BY_OFFSET(DATA) AS DATA, COUNT(ID) as ID_COUNT FROM OM_EVENTS WINDOW TUMBLING ( SIZE 32 DAYS, RETENTION 32 DAYS ) GROUP BY ID, SOURCE;",
+			want: "CREATE TABLE IF NOT EXISTS OM_DETECTED_EVENTS WITH ( KAFKA_TOPIC = 'om_detected_events', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 100 ) AS SELECT ID AS KEY1, SOURCE AS KEY2, AS_VALUE(ID) AS ID, EARLIEST_BY_OFFSET(TYPE) AS TYPE, AS_VALUE(SOURCE) AS SOURCE, EARLIEST_BY_OFFSET(SUBJECT) AS SUBJECT, EARLIEST_BY_OFFSET(TIME) AS TIME, EARLIEST_BY_OFFSET(DATA) AS DATA, COUNT(ID) as ID_COUNT FROM OM_EVENTS WINDOW TUMBLING ( SIZE 32 DAYS, RETENTION 32 DAYS ) GROUP BY ID, SOURCE;",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
 			got, err := Execute(detectedEventsTableQueryTemplate, tt.data)
+			if err != nil {
+				t.Error(err)
+			}
+
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestDetectedEventsStreamQuery(t *testing.T) {
+	tests := []struct {
+		data detectedEventsStreamQueryData
+		want string
+	}{
+		{
+			data: detectedEventsStreamQueryData{
+				Topic: "om_detected_events",
+			},
+			want: "CREATE STREAM IF NOT EXISTS OM_DETECTED_EVENTS_STREAM WITH ( KAFKA_TOPIC = 'om_detected_events', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR' );",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+			got, err := Execute(detectedEventsStreamQueryTemplate, tt.data)
 			if err != nil {
 				t.Error(err)
 			}

@@ -32,6 +32,7 @@ type cloudEventsStreamQueryData struct {
 var detectedEventsTableQueryTemplate string
 
 type detectedEventsTableQueryData struct {
+	Topic      string
 	Retention  int
 	Partitions int
 }
@@ -39,7 +40,9 @@ type detectedEventsTableQueryData struct {
 //go:embed sql/detected_events_stream.tpl.sql
 var detectedEventsStreamQueryTemplate string
 
-type detectedEventsStreamQueryData struct{}
+type detectedEventsStreamQueryData struct {
+	Topic string
+}
 
 //go:embed sql/meter_table_describe.tpl.sql
 var meterTableDescribeQueryTemplate string

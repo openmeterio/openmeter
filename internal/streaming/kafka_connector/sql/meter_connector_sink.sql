@@ -1,3 +1,4 @@
+-- Example, currently not in use
 CREATE SINK CONNECTOR SINK_METERS_PG WITH (
     'connector.class'                         = 'io.confluent.connect.jdbc.JdbcSinkConnector',
     'connection.url'                          = 'jdbc:postgresql://postgres:5432/postgres',

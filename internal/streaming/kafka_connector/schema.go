@@ -17,8 +17,9 @@ var eventKeySchema string
 var eventValueSchema string
 
 type SchemaConfig struct {
-	SchemaRegistry schemaregistry.Client
-	EventsTopic    string
+	SchemaRegistry      schemaregistry.Client
+	EventsTopic         string
+	DetectedEventsTopic string
 }
 
 type Schema struct {
@@ -28,40 +29,14 @@ type Schema struct {
 
 func NewSchema(config SchemaConfig) (*Schema, error) {
 	// Event Key Serializer
-	eventsSchemaKeySubject := fmt.Sprintf("%s-key", config.EventsTopic)
-	eventsSchemaKeyId, err := config.SchemaRegistry.Register(eventsSchemaKeySubject, schemaregistry.SchemaInfo{
-		Schema:     eventKeySchema,
-		SchemaType: "JSON",
-	}, true)
-	if err != nil {
-		slog.Error("Schema Registry failed to register event value schema", "topic", config.EventsTopic, "error", err)
-		return nil, err
-	}
-
-	eventKeySerializerConfig := jsonschema.NewSerializerConfig()
-	eventKeySerializerConfig.AutoRegisterSchemas = false
-	eventKeySerializerConfig.UseSchemaID = eventsSchemaKeyId
-	eventKeySerializer, err := jsonschema.NewSerializer(config.SchemaRegistry, serde.KeySerde, eventKeySerializerConfig)
+	eventKeySerializer, err := getSerializer(config.SchemaRegistry, config.EventsTopic, serde.KeySerde, eventKeySchema)
 	if err != nil {
 		slog.Error("Schema Registry failed to create event key serializer", "error", err)
 		return nil, err
 	}
 
 	// Event Value Serializer
-	eventsSchemaValueSubject := fmt.Sprintf("%s-value", config.EventsTopic)
-	eventsSchemaValueId, err := config.SchemaRegistry.Register(eventsSchemaValueSubject, schemaregistry.SchemaInfo{
-		Schema:     eventValueSchema,
-		SchemaType: "JSON",
-	}, true)
-	if err != nil {
-		slog.Error("Schema Registry failed to register event key schema", "topic", config.EventsTopic, "error", err)
-		return nil, err
-	}
-
-	eventValueSerializerConfig := jsonschema.NewSerializerConfig()
-	eventValueSerializerConfig.AutoRegisterSchemas = false
-	eventValueSerializerConfig.UseSchemaID = eventsSchemaValueId
-	eventValueSerializer, err := jsonschema.NewSerializer(config.SchemaRegistry, serde.ValueSerde, eventValueSerializerConfig)
+	eventValueSerializer, err := getSerializer(config.SchemaRegistry, config.EventsTopic, serde.ValueSerde, eventValueSchema)
 	if err != nil {
 		slog.Error("Schema Registry failed to create event key serializer", "error", err)
 		return nil, err
@@ -71,6 +46,36 @@ func NewSchema(config SchemaConfig) (*Schema, error) {
 	serializer := &Schema{
 		EventKeySerializer:   eventKeySerializer,
 		EventValueSerializer: eventValueSerializer,
+	}
+
+	return serializer, nil
+}
+
+// Registers schema with Registry and returns configured serializer
+func getSerializer(registry schemaregistry.Client, topic string, serdeType serde.Type, schema string) (*jsonschema.Serializer, error) {
+	// Event Key Serializer
+	suffix := "key"
+	if serdeType == serde.ValueSerde {
+		suffix = "value"
+	}
+
+	schemaSubject := fmt.Sprintf("%s-%s", topic, suffix)
+	schemaId, err := registry.Register(schemaSubject, schemaregistry.SchemaInfo{
+		Schema:     schema,
+		SchemaType: "JSON",
+	}, true)
+	if err != nil {
+		slog.Error("Schema Registry failed to register schema", "schemaSubject", schemaSubject, "error", err)
+		return nil, err
+	}
+
+	serializerConfig := jsonschema.NewSerializerConfig()
+	serializerConfig.AutoRegisterSchemas = false
+	serializerConfig.UseSchemaID = schemaId
+	serializer, err := jsonschema.NewSerializer(registry, serdeType, serializerConfig)
+	if err != nil {
+		slog.Error("Schema Registry failed to create serializer", "schemaSubject", schemaSubject, "error", err)
+		return nil, err
 	}
 
 	return serializer, nil

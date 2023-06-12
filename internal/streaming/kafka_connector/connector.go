@@ -32,6 +32,7 @@ type KafkaConnectorConfig struct {
 }
 
 func NewKafkaConnector(config *KafkaConnectorConfig) (Connector, error) {
+	// Initialize KSQLDB Client
 	ksqldbClient, err := ksqldb.NewClientWithOptions(*config.KsqlDB)
 	if err != nil {
 		return nil, err
@@ -50,23 +51,31 @@ func NewKafkaConnector(config *KafkaConnectorConfig) (Connector, error) {
 		"status", i.ServerStatus,
 	)
 
+	// Initialize schema
 	schemaRegistry, err := schemaregistry.NewClient(config.SchemaRegistry)
 	if err != nil {
 		slog.Error("Schema Registry failed to create client", "error", err)
 		return nil, err
 	}
 
+	schemaConfig := SchemaConfig{
+		SchemaRegistry:      schemaRegistry,
+		EventsTopic:         config.EventsTopic,
+		DetectedEventsTopic: "om_detected_events",
+	}
 	schema, err := NewSchema(SchemaConfig{
-		SchemaRegistry: schemaRegistry,
-		EventsTopic:    config.EventsTopic,
+		SchemaRegistry:      schemaRegistry,
+		EventsTopic:         config.EventsTopic,
+		DetectedEventsTopic: "om_detected_events",
 	})
 	if err != nil {
 		slog.Error("Schema failed to initialize", "error", err)
 		return nil, err
 	}
 
+	// Create KSQL Entities (tables, streams)
 	cloudEventsStreamQuery, err := Execute(cloudEventsStreamQueryTemplate, cloudEventsStreamQueryData{
-		Topic:         config.EventsTopic,
+		Topic:         schemaConfig.EventsTopic,
 		Partitions:    int(config.Partitions),
 		KeySchemaId:   int(schema.EventKeySerializer.Conf.UseSchemaID),
 		ValueSchemaId: int(schema.EventValueSerializer.Conf.UseSchemaID),
@@ -78,6 +87,7 @@ func NewKafkaConnector(config *KafkaConnectorConfig) (Connector, error) {
 	slog.Info("ksqlDB create event stream query", "query", cloudEventsStreamQuery)
 
 	detectedEventsTableQuery, err := Execute(detectedEventsTableQueryTemplate, detectedEventsTableQueryData{
+		Topic:      schemaConfig.DetectedEventsTopic,
 		Retention:  32,
 		Partitions: int(config.Partitions),
 	})
@@ -87,7 +97,9 @@ func NewKafkaConnector(config *KafkaConnectorConfig) (Connector, error) {
 	}
 	slog.Info("ksqlDB create detected table query", "query", detectedEventsTableQuery)
 
-	detectedEventsStreamQuery, err := Execute(detectedEventsStreamQueryTemplate, detectedEventsStreamQueryData{})
+	detectedEventsStreamQuery, err := Execute(detectedEventsStreamQueryTemplate, detectedEventsStreamQueryData{
+		Topic: schemaConfig.DetectedEventsTopic,
+	})
 	if err != nil {
 		slog.Error("ksqlDB failed to build detected stream query", "error", err)
 		return nil, err
@@ -121,7 +133,7 @@ func NewKafkaConnector(config *KafkaConnectorConfig) (Connector, error) {
 	}
 	slog.Debug("ksqlDB create detected stream response", "response", resp)
 
-	// Kafka Producer
+	// Initialize Kafka Producer
 	producer, err := kafka.NewProducer(config.Kafka)
 	if err != nil {
 		return nil, err
