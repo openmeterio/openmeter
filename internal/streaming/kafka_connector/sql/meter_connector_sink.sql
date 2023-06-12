@@ -13,7 +13,7 @@ CREATE SINK CONNECTOR SINK_OM_PG WITH (
     'delete.enabled'                          = 'false',
     'insert.mode'                             = 'upsert',
     'pk.mode'                                 = 'record_key',
-    'transforms'                              = 'ValueToKey,tsWindowStart, tsWindowEnd',
+    'transforms'                              = 'ValueToKey,tsWindowStart,tsWindowEnd,RenameField',
     'transforms.ValueToKey.type'              = 'org.apache.kafka.connect.transforms.ValueToKey',
     'transforms.ValueToKey.fields'            = 'WINDOWSTART_TS,WINDOWEND_TS',
     'transforms.tsWindowStart.type'           = 'org.apache.kafka.connect.transforms.TimestampConverter$Key',
@@ -21,5 +21,7 @@ CREATE SINK CONNECTOR SINK_OM_PG WITH (
     'transforms.tsWindowStart.target.type'    = 'Timestamp',
     'transforms.tsWindowEnd.type'             = 'org.apache.kafka.connect.transforms.TimestampConverter$Key',
     'transforms.tsWindowEnd.field'            = 'WINDOWEND_TS',
-    'transforms.tsWindowEnd.target.type'      = 'Timestamp'
+    'transforms.tsWindowEnd.target.type'      = 'Timestamp',
+    'transforms.RenameField.type'             = 'org.apache.kafka.connect.transforms.ReplaceField$Key',
+    'transforms.RenameField.renames'          = 'WINDOWSTART_TS:WINDOWSTART,WINDOWEND_TS:WINDOWEND'
 );
