@@ -166,7 +166,7 @@ func main() {
 	}
 	defer connector.Close()
 
-	slog.Info("kafka connector sucesfully initialized")
+	slog.Info("kafka connector successfully initialized")
 
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: &router.Config{
@@ -217,7 +217,7 @@ func main() {
 			os.Exit(1)
 		}
 	}
-	slog.Info("meters sucesfully initialized", "count", len(config.Meters))
+	slog.Info("meters successfully initialized", "count", len(config.Meters))
 
 	var group run.Group
 
