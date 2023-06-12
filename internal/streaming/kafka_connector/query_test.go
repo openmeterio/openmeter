@@ -27,7 +27,7 @@ func TestDetectedEventsTableQuery(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-			got, err := Execute(detectedEventsTableQueryTemplate, tt.data)
+			got, err := templateQuery(detectedEventsTableQueryTemplate, tt.data)
 			if err != nil {
 				t.Error(err)
 			}
@@ -52,7 +52,7 @@ func TestDetectedEventsStreamQuery(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-			got, err := Execute(detectedEventsStreamQueryTemplate, tt.data)
+			got, err := templateQuery(detectedEventsStreamQueryTemplate, tt.data)
 			if err != nil {
 				t.Error(err)
 			}
@@ -89,7 +89,7 @@ func TestCloudEventsStreamQuery(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-			got, err := Execute(cloudEventsStreamQueryTemplate, tt.data)
+			got, err := templateQuery(cloudEventsStreamQueryTemplate, tt.data)
 			if err != nil {
 				t.Error(err)
 			}
@@ -168,7 +168,7 @@ func TestMeterTableQuery(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-			got, err := Execute(meterTableQueryTemplate, tt.data)
+			got, err := templateQuery(meterTableQueryTemplate, tt.data)
 			if err != nil {
 				t.Error(err)
 			}
@@ -247,7 +247,7 @@ func TestValuesSelectQuery(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-			got, err := Execute(meterValuesTemplate, tt.data)
+			got, err := templateQuery(meterValuesTemplate, tt.data)
 			if err != nil {
 				t.Error(err)
 			}

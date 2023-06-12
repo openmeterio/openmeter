@@ -14,17 +14,17 @@ import (
 )
 
 func GetTableQuery(data meterTableQueryData) (string, error) {
-	return Execute(meterTableQueryTemplate, data)
+	return templateQuery(meterTableQueryTemplate, data)
 }
 
 func GetTableDescribeQuery(meter *models.Meter) (string, error) {
-	return Execute(meterTableDescribeQueryTemplate, meterTableDescribeQueryData{
+	return templateQuery(meterTableDescribeQueryTemplate, meterTableDescribeQueryData{
 		Meter: meter,
 	})
 }
 
 func GetTableValuesQuery(meter *models.Meter, params *GetValuesParams) (string, error) {
-	return Execute(meterValuesTemplate, meterValuesData{
+	return templateQuery(meterValuesTemplate, meterValuesData{
 		Meter:           meter,
 		GetValuesParams: params,
 	})

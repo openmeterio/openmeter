@@ -2,6 +2,7 @@ package kafka_connector
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/cloudevents/sdk-go/v2/event"
@@ -35,15 +36,15 @@ func NewKafkaConnector(config *KafkaConnectorConfig) (Connector, error) {
 	// Initialize KSQLDB Client
 	ksqldbClient, err := ksqldb.NewClientWithOptions(*config.KsqlDB)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("init ksqldb client: %w", err)
 	}
 
 	i, err := ksqldbClient.GetServerInfo()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get ksqldb server info: %w", err)
 	}
 
-	slog.Info(
+	slog.Debug(
 		"connected to ksqlDB",
 		"cluster", i.KafkaClusterID,
 		"service", i.KsqlServiceID,
@@ -54,8 +55,7 @@ func NewKafkaConnector(config *KafkaConnectorConfig) (Connector, error) {
 	// Initialize schema
 	schemaRegistry, err := schemaregistry.NewClient(config.SchemaRegistry)
 	if err != nil {
-		slog.Error("Schema Registry failed to create client", "error", err)
-		return nil, err
+		return nil, fmt.Errorf("init schema registry client: %w", err)
 	}
 
 	schemaConfig := SchemaConfig{
@@ -69,49 +69,44 @@ func NewKafkaConnector(config *KafkaConnectorConfig) (Connector, error) {
 		DetectedEventsTopic: "om_detected_events",
 	})
 	if err != nil {
-		slog.Error("Schema failed to initialize", "error", err)
-		return nil, err
+		return nil, fmt.Errorf("init schema: %w", err)
 	}
 
 	// Create KSQL Entities (tables, streams)
-	cloudEventsStreamQuery, err := Execute(cloudEventsStreamQueryTemplate, cloudEventsStreamQueryData{
+	cloudEventsStreamQuery, err := templateQuery(cloudEventsStreamQueryTemplate, cloudEventsStreamQueryData{
 		Topic:         schemaConfig.EventsTopic,
 		Partitions:    int(config.Partitions),
 		KeySchemaId:   int(schema.EventKeySerializer.Conf.UseSchemaID),
 		ValueSchemaId: int(schema.EventValueSerializer.Conf.UseSchemaID),
 	})
 	if err != nil {
-		slog.Error("ksqlDB failed to build event stream query", "error", err)
-		return nil, err
+		return nil, fmt.Errorf("template event ksql stream: %w", err)
 	}
-	slog.Info("ksqlDB create event stream query", "query", cloudEventsStreamQuery)
+	slog.Debug("ksqlDB create events stream query", "query", cloudEventsStreamQuery)
 
-	detectedEventsTableQuery, err := Execute(detectedEventsTableQueryTemplate, detectedEventsTableQueryData{
+	detectedEventsTableQuery, err := templateQuery(detectedEventsTableQueryTemplate, detectedEventsTableQueryData{
 		Topic:      schemaConfig.DetectedEventsTopic,
 		Retention:  32,
 		Partitions: int(config.Partitions),
 	})
 	if err != nil {
-		slog.Error("ksqlDB failed to build detected table query", "error", err)
-		return nil, err
+		return nil, fmt.Errorf("template detected events ksql table: %w", err)
 	}
-	slog.Info("ksqlDB create detected table query", "query", detectedEventsTableQuery)
+	slog.Debug("ksqlDB create detected table query", "query", detectedEventsTableQuery)
 
-	detectedEventsStreamQuery, err := Execute(detectedEventsStreamQueryTemplate, detectedEventsStreamQueryData{
+	detectedEventsStreamQuery, err := templateQuery(detectedEventsStreamQueryTemplate, detectedEventsStreamQueryData{
 		Topic: schemaConfig.DetectedEventsTopic,
 	})
 	if err != nil {
-		slog.Error("ksqlDB failed to build detected stream query", "error", err)
-		return nil, err
+		return nil, fmt.Errorf("template detected events ksql stream: %w", err)
 	}
-	slog.Info("ksqlDB create detected stream query", "query", detectedEventsStreamQuery)
+	slog.Debug("ksqlDB create detected stream query", "query", detectedEventsStreamQuery)
 
 	resp, err := ksqldbClient.Execute(ksqldb.ExecOptions{
 		KSql: cloudEventsStreamQuery,
 	})
 	if err != nil {
-		slog.Error("ksqlDB failed to create event stream", "error", err)
-		return nil, err
+		return nil, fmt.Errorf("init events ksql stream: %w", err)
 	}
 	slog.Debug("ksqlDB create event stream response", "response", resp)
 
@@ -119,8 +114,7 @@ func NewKafkaConnector(config *KafkaConnectorConfig) (Connector, error) {
 		KSql: detectedEventsTableQuery,
 	})
 	if err != nil {
-		slog.Error("ksqlDB failed to create detected table", "error", err)
-		return nil, err
+		return nil, fmt.Errorf("init detected events ksql table: %w", err)
 	}
 	slog.Debug("ksqlDB create detected table response", "response", resp)
 
@@ -128,8 +122,7 @@ func NewKafkaConnector(config *KafkaConnectorConfig) (Connector, error) {
 		KSql: detectedEventsStreamQuery,
 	})
 	if err != nil {
-		slog.Error("ksqlDB failed to create detected stream", "error", err)
-		return nil, err
+		return nil, fmt.Errorf("init detected event ksql stream: %w", err)
 	}
 	slog.Debug("ksqlDB create detected stream response", "response", resp)
 
@@ -139,7 +132,7 @@ func NewKafkaConnector(config *KafkaConnectorConfig) (Connector, error) {
 		return nil, err
 	}
 
-	slog.Info("connected to Kafka")
+	slog.Debug("connected to Kafka")
 
 	// TODO: move to main
 	go func() {
@@ -194,8 +187,7 @@ func (c *KafkaConnector) Init(meter *models.Meter) error {
 
 	q, err := GetTableQuery(queryData)
 	if err != nil {
-		slog.Error("failed to get ksqlDB table", "meter", meter, "error", err)
-		return err
+		return fmt.Errorf("get table query for meter: %w", err)
 	}
 	slog.Debug("ksqlDB create table query", "query", q)
 
@@ -203,10 +195,9 @@ func (c *KafkaConnector) Init(meter *models.Meter) error {
 		KSql: q,
 	})
 	if err != nil {
-		slog.Error("failed to create ksqlDB table", "meter", meter, "query", q, "error", err)
-		return err
+		return fmt.Errorf("create ksql table for meter: %w", err)
 	}
-	slog.Info("ksqlDB response", "response", resp)
+	slog.Debug("ksqlDB response", "response", resp)
 
 	return nil
 }
@@ -215,8 +206,7 @@ func (c *KafkaConnector) Init(meter *models.Meter) error {
 func (c *KafkaConnector) MeterAssert(data meterTableQueryData) error {
 	q, err := GetTableDescribeQuery(data.Meter)
 	if err != nil {
-		slog.Error("failed to get ksqlDB table", "meter", data.Meter, "error", err)
-		return err
+		return fmt.Errorf("get table describe query: %w", err)
 	}
 
 	resp, err := c.KsqlDBClient.Execute(ksqldb.ExecOptions{
@@ -230,14 +220,13 @@ func (c *KafkaConnector) MeterAssert(data meterTableQueryData) error {
 			return nil
 		}
 
-		slog.Error("failed to describe ksqlDB table", "meter", data.Meter, "query", q, "error", err)
-		return err
+		return fmt.Errorf("describe table: %w", err)
 	}
 
 	sourceDescription := (*resp)[0]
 
 	if len(sourceDescription.SourceDescription.WriteQueries) > 0 {
-		slog.Info("ksqlDB meter assert", "exists", true)
+		slog.Debug("ksqlDB meter assert", "exists", true)
 
 		query := sourceDescription.SourceDescription.WriteQueries[0].QueryString
 
@@ -246,9 +235,9 @@ func (c *KafkaConnector) MeterAssert(data meterTableQueryData) error {
 			return err
 		}
 
-		slog.Info("ksqlDB meter assert", "equals", true)
+		slog.Debug("ksqlDB meter assert", "equals", true)
 	} else {
-		slog.Info("ksqlDB meter assert", "exists", false)
+		slog.Debug("ksqlDB meter assert", "exists", false)
 	}
 
 	return nil
@@ -268,15 +257,13 @@ func (c *KafkaConnector) Close() error {
 func (c *KafkaConnector) Publish(event event.Event) error {
 	key, err := c.Schema.EventKeySerializer.Serialize(c.config.EventsTopic, event.Subject())
 	if err != nil {
-		slog.Error("failed to serialize event key", "error", err)
-		return err
+		return fmt.Errorf("serialize event key: %w", err)
 	}
 
 	ce := ToCloudEventsKafkaPayload(event)
 	value, err := c.Schema.EventValueSerializer.Serialize(c.config.EventsTopic, &ce)
 	if err != nil {
-		slog.Error("failed to serialize event value", "error", err)
-		return err
+		return fmt.Errorf("serialize event value: %w", err)
 	}
 
 	err = c.KafkaProducer.Produce(&kafka.Message{
@@ -308,7 +295,7 @@ func (c *KafkaConnector) GetValues(meter *models.Meter, params *GetValuesParams)
 	slog.Debug("ksqlDB response", "header", header, "payload", payload)
 	values, err := NewMeterValues(header, payload)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get meter values: %w", err)
 	}
 
 	return meter.AggregateMeterValues(values, params.WindowSize)

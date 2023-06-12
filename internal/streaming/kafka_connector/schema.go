@@ -7,7 +7,6 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry/serde"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry/serde/jsonschema"
-	"golang.org/x/exp/slog"
 )
 
 //go:embed schema/event_key.json
@@ -31,15 +30,13 @@ func NewSchema(config SchemaConfig) (*Schema, error) {
 	// Event Key Serializer
 	eventKeySerializer, err := getSerializer(config.SchemaRegistry, config.EventsTopic, serde.KeySerde, eventKeySchema)
 	if err != nil {
-		slog.Error("Schema Registry failed to create event key serializer", "error", err)
-		return nil, err
+		return nil, fmt.Errorf("init event key: %w", err)
 	}
 
 	// Event Value Serializer
 	eventValueSerializer, err := getSerializer(config.SchemaRegistry, config.EventsTopic, serde.ValueSerde, eventValueSchema)
 	if err != nil {
-		slog.Error("Schema Registry failed to create event key serializer", "error", err)
-		return nil, err
+		return nil, fmt.Errorf("init event value: %w", err)
 	}
 
 	// Serializers
@@ -65,8 +62,7 @@ func getSerializer(registry schemaregistry.Client, topic string, serdeType serde
 		SchemaType: "JSON",
 	}, true)
 	if err != nil {
-		slog.Error("Schema Registry failed to register schema", "schemaSubject", schemaSubject, "error", err)
-		return nil, err
+		return nil, fmt.Errorf("register schema: %w", err)
 	}
 
 	serializerConfig := jsonschema.NewSerializerConfig()
@@ -74,8 +70,7 @@ func getSerializer(registry schemaregistry.Client, topic string, serdeType serde
 	serializerConfig.UseSchemaID = schemaId
 	serializer, err := jsonschema.NewSerializer(registry, serdeType, serializerConfig)
 	if err != nil {
-		slog.Error("Schema Registry failed to create serializer", "schemaSubject", schemaSubject, "error", err)
-		return nil, err
+		return nil, fmt.Errorf("init serializer: %w", err)
 	}
 
 	return serializer, nil

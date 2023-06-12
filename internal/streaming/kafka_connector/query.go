@@ -106,19 +106,19 @@ func funcMap() template.FuncMap {
 	return f
 }
 
-func Execute(temp string, data any) (string, error) {
+func templateQuery(temp string, data any) (string, error) {
 	tmpl := template.New("sql")
 	tmpl.Funcs(funcMap())
 
 	t, err := tmpl.Parse(temp)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("parse query: %w", err)
 	}
 
 	b := bytes.NewBufferString("")
 	err = t.Execute(b, data)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("template query: %w", err)
 	}
 
 	return sanitizeQuery(b.String()), nil
