@@ -1,8 +1,8 @@
 CREATE TABLE IF NOT EXISTS OM_DETECTED_EVENTS
 WITH (
     KAFKA_TOPIC = 'om_detected_events',
-    KEY_FORMAT = 'JSON',
-    VALUE_FORMAT = 'JSON',
+    KEY_FORMAT = 'JSON_SR',
+    VALUE_FORMAT = 'JSON_SR',
     PARTITIONS = {{ .Partitions }}
 ) AS
 SELECT

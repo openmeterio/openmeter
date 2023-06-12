@@ -56,3 +56,4 @@ services:
     extends:
       file: ../docker-compose.yaml
       service: ksqldb-server
+      

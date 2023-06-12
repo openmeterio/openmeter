@@ -2,6 +2,7 @@ package kafka_connector
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 
 	"github.com/cloudevents/sdk-go/v2/event"
@@ -231,7 +232,8 @@ func (c *KafkaConnector) Close() error {
 }
 
 func (c *KafkaConnector) Publish(event event.Event) error {
-	value, err := event.MarshalJSON()
+	ce := ToCloudEventsKafkaPayload(event)
+	value, err := json.Marshal(ce)
 	if err != nil {
 		return err
 	}
@@ -239,10 +241,10 @@ func (c *KafkaConnector) Publish(event event.Event) error {
 	err = c.KafkaProducer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &c.config.EventsTopic, Partition: kafka.PartitionAny},
 		Timestamp:      event.Time(),
-		Key:            []byte(event.Subject()),
 		Headers: []kafka.Header{
 			{Key: "specversion", Value: []byte(event.SpecVersion())},
 		},
+		Key:   []byte(event.Subject()),
 		Value: value,
 	}, nil)
 
