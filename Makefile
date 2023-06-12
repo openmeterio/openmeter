@@ -49,6 +49,11 @@ mod: ## go mod tidy
 	$(call print-target)
 	go mod tidy
 
+.PHONY: license-check
+license-check: ## Run license check
+	licensei check
+	licensei header
+
 .PHONY: help
 .DEFAULT_GOAL := help
 help:

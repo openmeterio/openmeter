@@ -69,6 +69,44 @@ jobs:
       - name: Lint
         run: nix develop --impure .#ci -c make lint
 
+
+  license-check:
+    name: License check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+
+      - name: Set up Nix
+        uses: cachix/install-nix-action@4b933aa7ebcc94a6174cf1364864e957b4910265 # v21
+        with:
+          extra_nix_config: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache license information
+        uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
+        with:
+          path: .licensei.cache
+          key: licensei-v1-${{ github.ref_name }}-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            licensei-v1-${{ github.ref_name }}
+            licensei-v1-main
+            licensei-v1
+
+      - name: Prepare Nix shell
+        run: nix develop --impure .#ci
+
+      - name: Populate license cache
+        run: nix develop --impure .#ci -c licensei cache
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check licenses
+        run: nix develop --impure .#ci -c make license-check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   artifacts:
     name: Artifacts
     uses: ./.github/workflows/artifacts.yaml
