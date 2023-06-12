@@ -19,6 +19,7 @@ type configuration struct {
 	Address    string
 	Broker     string
 	KSQLDB     string
+	Schema     string
 	Partitions int
 
 	Log logConfiguration
@@ -44,6 +45,10 @@ func (c configuration) Validate() error {
 
 	if c.KSQLDB == "" {
 		return errors.New("ksqldb URL is required")
+	}
+
+	if c.Schema == "" {
+		return errors.New("schema registry URL is required")
 	}
 
 	if err := c.Log.Validate(); err != nil {
@@ -125,6 +130,11 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	flags.String("ksqldb-url", "http://127.0.0.1:8088", "KSQLDB to connect to")
 	_ = v.BindPFlag("ksqldb", flags.Lookup("ksqldb-url"))
 	v.SetDefault("ksqldb", "http://127.0.0.1:8088")
+
+	// Schema configuration
+	flags.String("schema-registry-url", "http://127.0.0.1:8081", "Schema Registry")
+	_ = v.BindPFlag("schema", flags.Lookup("schema"))
+	v.SetDefault("schema", "http://127.0.0.1:8081")
 
 	// Log configuration
 	v.SetDefault("log.format", "json")

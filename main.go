@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/lmittmann/tint"
@@ -155,8 +156,9 @@ func main() {
 			BaseUrl:   config.KSQLDB,
 			AllowHTTP: true,
 		},
-		EventsTopic: topic,
-		Partitions:  config.Partitions,
+		SchemaRegistry: schemaregistry.NewConfig(config.Schema),
+		EventsTopic:    topic,
+		Partitions:     config.Partitions,
 	})
 	if err != nil {
 		slog.Error("failed to create streaming connector", "error", err)

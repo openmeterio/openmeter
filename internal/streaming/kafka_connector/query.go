@@ -22,8 +22,10 @@ import (
 var cloudEventsStreamQueryTemplate string
 
 type cloudEventsStreamQueryData struct {
-	Topic      string
-	Partitions int
+	Topic         string
+	Partitions    int
+	KeySchemaId   int
+	ValueSchemaId int
 }
 
 //go:embed sql/detected_events_table.tpl.sql

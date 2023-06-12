@@ -1,4 +1,4 @@
-CREATE SINK CONNECTOR SINK_OM_PG WITH (
+CREATE SINK CONNECTOR SINK_METERS_PG WITH (
     'connector.class'                         = 'io.confluent.connect.jdbc.JdbcSinkConnector',
     'connection.url'                          = 'jdbc:postgresql://postgres:5432/postgres',
     'connection.user'                         = 'postgres',
@@ -13,15 +13,15 @@ CREATE SINK CONNECTOR SINK_OM_PG WITH (
     'delete.enabled'                          = 'false',
     'insert.mode'                             = 'upsert',
     'pk.mode'                                 = 'record_key',
-    'transforms'                              = 'ValueToKey,tsWindowStart,tsWindowEnd,RenameField',
+    'transforms'                              = 'RenameField,ValueToKey,tsWindowStart,tsWindowEnd',
+    'transforms.RenameField.type'             = 'org.apache.kafka.connect.transforms.ReplaceField$Value',
+    'transforms.RenameField.renames'          = 'WINDOWSTART_TS:WINDOWSTART,WINDOWEND_TS:WINDOWEND',
     'transforms.ValueToKey.type'              = 'org.apache.kafka.connect.transforms.ValueToKey',
-    'transforms.ValueToKey.fields'            = 'WINDOWSTART_TS,WINDOWEND_TS',
+    'transforms.ValueToKey.fields'            = 'WINDOWSTART,WINDOWEND',
     'transforms.tsWindowStart.type'           = 'org.apache.kafka.connect.transforms.TimestampConverter$Key',
-    'transforms.tsWindowStart.field'          = 'WINDOWSTART_TS',
+    'transforms.tsWindowStart.field'          = 'WINDOWSTART',
     'transforms.tsWindowStart.target.type'    = 'Timestamp',
     'transforms.tsWindowEnd.type'             = 'org.apache.kafka.connect.transforms.TimestampConverter$Key',
-    'transforms.tsWindowEnd.field'            = 'WINDOWEND_TS',
-    'transforms.tsWindowEnd.target.type'      = 'Timestamp',
-    'transforms.RenameField.type'             = 'org.apache.kafka.connect.transforms.ReplaceField$Key',
-    'transforms.RenameField.renames'          = 'WINDOWSTART_TS:WINDOWSTART,WINDOWEND_TS:WINDOWEND'
+    'transforms.tsWindowEnd.field'            = 'WINDOWEND',
+    'transforms.tsWindowEnd.target.type'      = 'Timestamp'
 );

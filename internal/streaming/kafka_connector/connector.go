@@ -2,11 +2,11 @@ package kafka_connector
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
 	"github.com/thmeitz/ksqldb-go"
 	"github.com/thmeitz/ksqldb-go/net"
 	"golang.org/x/exp/slog"
@@ -16,16 +16,19 @@ import (
 )
 
 type KafkaConnector struct {
-	config        *KafkaConnectorConfig
-	KafkaProducer *kafka.Producer
-	KsqlDBClient  *ksqldb.KsqldbClient
+	config         *KafkaConnectorConfig
+	KafkaProducer  *kafka.Producer
+	KsqlDBClient   *ksqldb.KsqldbClient
+	SchemaRegistry *schemaregistry.Client
+	Schema         *Schema
 }
 
 type KafkaConnectorConfig struct {
-	Kafka       *kafka.ConfigMap
-	KsqlDB      *net.Options
-	EventsTopic string
-	Partitions  int
+	Kafka          *kafka.ConfigMap
+	KsqlDB         *net.Options
+	SchemaRegistry *schemaregistry.Config
+	EventsTopic    string
+	Partitions     int
 }
 
 func NewKafkaConnector(config *KafkaConnectorConfig) (Connector, error) {
@@ -47,9 +50,26 @@ func NewKafkaConnector(config *KafkaConnectorConfig) (Connector, error) {
 		"status", i.ServerStatus,
 	)
 
+	schemaRegistry, err := schemaregistry.NewClient(config.SchemaRegistry)
+	if err != nil {
+		slog.Error("Schema Registry failed to create client", "error", err)
+		return nil, err
+	}
+
+	schema, err := NewSchema(SchemaConfig{
+		SchemaRegistry: schemaRegistry,
+		EventsTopic:    config.EventsTopic,
+	})
+	if err != nil {
+		slog.Error("Schema failed to initialize", "error", err)
+		return nil, err
+	}
+
 	cloudEventsStreamQuery, err := Execute(cloudEventsStreamQueryTemplate, cloudEventsStreamQueryData{
-		Topic:      config.EventsTopic,
-		Partitions: int(config.Partitions),
+		Topic:         config.EventsTopic,
+		Partitions:    int(config.Partitions),
+		KeySchemaId:   int(schema.EventKeySerializer.Conf.UseSchemaID),
+		ValueSchemaId: int(schema.EventValueSerializer.Conf.UseSchemaID),
 	})
 	if err != nil {
 		slog.Error("ksqlDB failed to build event stream query", "error", err)
@@ -138,9 +158,11 @@ func NewKafkaConnector(config *KafkaConnectorConfig) (Connector, error) {
 	}()
 
 	connector := &KafkaConnector{
-		config:        config,
-		KafkaProducer: producer,
-		KsqlDBClient:  &ksqldbClient,
+		config:         config,
+		KafkaProducer:  producer,
+		KsqlDBClient:   &ksqldbClient,
+		SchemaRegistry: &schemaRegistry,
+		Schema:         schema,
 	}
 
 	return connector, nil
@@ -232,9 +254,16 @@ func (c *KafkaConnector) Close() error {
 }
 
 func (c *KafkaConnector) Publish(event event.Event) error {
-	ce := ToCloudEventsKafkaPayload(event)
-	value, err := json.Marshal(ce)
+	key, err := c.Schema.EventKeySerializer.Serialize(c.config.EventsTopic, event.Subject())
 	if err != nil {
+		slog.Error("failed to serialize event key", "error", err)
+		return err
+	}
+
+	ce := ToCloudEventsKafkaPayload(event)
+	value, err := c.Schema.EventValueSerializer.Serialize(c.config.EventsTopic, &ce)
+	if err != nil {
+		slog.Error("failed to serialize event value", "error", err)
 		return err
 	}
 
@@ -244,7 +273,7 @@ func (c *KafkaConnector) Publish(event event.Event) error {
 		Headers: []kafka.Header{
 			{Key: "specversion", Value: []byte(event.SpecVersion())},
 		},
-		Key:   []byte(event.Subject()),
+		Key:   key,
 		Value: value,
 	}, nil)
 
