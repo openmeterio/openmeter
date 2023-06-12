@@ -113,7 +113,7 @@ services:
       KMAGIC_ALLOW_SCHEMA_DELETE: "true"
 
   postgres:
-    image: postgres:latest
+    image: postgres:15.3
     container_name: postgres
     hostname: postgres
     ports:
