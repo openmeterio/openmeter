@@ -26,6 +26,7 @@ func (l *ServerLogger) Print(v ...interface{}) {
 
 type Config struct {
 	RouterConfig *router.Config
+	RouterHook   func(r chi.Router)
 }
 
 func NewServer(config *Config) (*Server, error) {
@@ -47,6 +48,11 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	r := chi.NewRouter()
+
+	if config.RouterHook != nil {
+		config.RouterHook(r)
+	}
+
 	// override default logger with slog
 	// TODO: use https://github.com/go-chi/httplog/tree/master?
 	middleware.DefaultLogger = middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: &ServerLogger{}, NoColor: true})
