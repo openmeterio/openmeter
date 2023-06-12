@@ -133,7 +133,7 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 
 	// Schema configuration
 	flags.String("schema-registry-url", "http://127.0.0.1:8081", "Schema Registry")
-	_ = v.BindPFlag("schema", flags.Lookup("schema"))
+	_ = v.BindPFlag("schema", flags.Lookup("schema-registry-url"))
 	v.SetDefault("schema", "http://127.0.0.1:8081")
 
 	// Log configuration
