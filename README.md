@@ -20,6 +20,7 @@ Check out the [quickstart guide](/quickstart) for a 5-minute overview and demo o
 ## Links
 
 - [Examples](/examples)
+- [Demo Video](https://www.loom.com/share/bc1cfa1b7ed94e65bd3a82f9f0334d04)
 - [Decisions](/docs/decisions)
 
 ## Examples
