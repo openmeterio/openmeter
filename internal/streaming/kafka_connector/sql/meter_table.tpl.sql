@@ -1,9 +1,10 @@
 
 {{- $groupBy := list "SUBJECT" -}}
-{{- $select := list "SUBJECT" -}}
+{{- $select := list "SUBJECT AS KEY1, AS_VALUE(SUBJECT) AS SUBJECT, WINDOWSTART AS WINDOWSTART_TS, WINDOWEND AS WINDOWEND_TS" -}}
 
 {{- range .GroupBy -}}
-{{- $select = printf "COALESCE(EXTRACTJSONFIELD(data, '%s'), '') AS `%s`" . . | append $select -}}
+{{- $select = printf "COALESCE(EXTRACTJSONFIELD(data, '%s'), '') AS `%s_KEY`" . . | append $select -}}
+{{- $select = printf "AS_VALUE(COALESCE(EXTRACTJSONFIELD(data, '%s'), '')) AS `%s`" . . | append $select -}}
 {{- $groupBy = printf "COALESCE(EXTRACTJSONFIELD(data, '%s'), '')" . | append $groupBy -}}
 {{- end }}
 
@@ -19,8 +20,8 @@
 CREATE TABLE IF NOT EXISTS {{ printf "OM_METER_%s" .ID | upper | bquote  }}
 WITH (
     KAFKA_TOPIC = {{ printf "OM_METER_%s" .ID | lower | squote  }},
-    KEY_FORMAT = 'JSON',
-    VALUE_FORMAT = 'JSON',
+    KEY_FORMAT = 'JSON_SR',
+    VALUE_FORMAT = 'JSON_SR',
     PARTITIONS = {{ .Partitions }}
 ) AS
 SELECT {{ $select | join ", " }}

@@ -17,16 +17,42 @@ func TestDetectedEventsTableQuery(t *testing.T) {
 	}{
 		{
 			data: detectedEventsTableQueryData{
+				Topic:      "om_detected_events",
 				Retention:  32,
 				Partitions: 100,
 			},
-			want: "CREATE TABLE IF NOT EXISTS OM_DETECTED_EVENTS WITH ( KAFKA_TOPIC = 'om_detected_events', KEY_FORMAT = 'JSON', VALUE_FORMAT = 'JSON', PARTITIONS = 100 ) AS SELECT ID AS KEY1, SOURCE AS KEY2, AS_VALUE(ID) AS ID, AS_VALUE(SOURCE) AS SOURCE, EARLIEST_BY_OFFSET(TIME) AS TIME, EARLIEST_BY_OFFSET(TYPE) AS TYPE, EARLIEST_BY_OFFSET(SUBJECT) AS SUBJECT, EARLIEST_BY_OFFSET(TIME) AS STRING, EARLIEST_BY_OFFSET(DATA) AS DATA, COUNT(ID) as ID_COUNT FROM OM_EVENTS WINDOW TUMBLING ( SIZE 32 DAYS, RETENTION 32 DAYS ) GROUP BY ID, SOURCE;",
+			want: "CREATE TABLE IF NOT EXISTS OM_DETECTED_EVENTS WITH ( KAFKA_TOPIC = 'om_detected_events', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 100 ) AS SELECT ID AS KEY1, SOURCE AS KEY2, AS_VALUE(ID) AS ID, EARLIEST_BY_OFFSET(TYPE) AS TYPE, AS_VALUE(SOURCE) AS SOURCE, EARLIEST_BY_OFFSET(SUBJECT) AS SUBJECT, EARLIEST_BY_OFFSET(TIME) AS TIME, EARLIEST_BY_OFFSET(DATA) AS DATA, COUNT(ID) as ID_COUNT FROM OM_EVENTS WINDOW TUMBLING ( SIZE 32 DAYS, RETENTION 32 DAYS ) GROUP BY ID, SOURCE;",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-			got, err := Execute(detectedEventsTableQueryTemplate, tt.data)
+			got, err := templateQuery(detectedEventsTableQueryTemplate, tt.data)
+			if err != nil {
+				t.Error(err)
+			}
+
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestDetectedEventsStreamQuery(t *testing.T) {
+	tests := []struct {
+		data detectedEventsStreamQueryData
+		want string
+	}{
+		{
+			data: detectedEventsStreamQueryData{
+				Topic: "om_detected_events",
+			},
+			want: "CREATE STREAM IF NOT EXISTS OM_DETECTED_EVENTS_STREAM WITH ( KAFKA_TOPIC = 'om_detected_events', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR' );",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+			got, err := templateQuery(detectedEventsStreamQueryTemplate, tt.data)
 			if err != nil {
 				t.Error(err)
 			}
@@ -43,23 +69,27 @@ func TestCloudEventsStreamQuery(t *testing.T) {
 	}{
 		{
 			data: cloudEventsStreamQueryData{
-				Topic:      "om_events",
-				Partitions: 1,
+				Topic:         "om_events",
+				Partitions:    1,
+				KeySchemaId:   1,
+				ValueSchemaId: 1,
 			},
-			want: "CREATE STREAM IF NOT EXISTS OM_EVENTS ( SUBJECT STRING KEY, ID STRING, TYPE STRING, SOURCE STRING, TIME STRING, DATA STRING ) WITH ( KAFKA_TOPIC = 'om_events', VALUE_FORMAT = 'JSON', PARTITIONS = 1 );",
+			want: "CREATE STREAM IF NOT EXISTS OM_EVENTS WITH ( KAFKA_TOPIC = 'om_events', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 1, KEY_SCHEMA_ID = 1, VALUE_SCHEMA_ID = 1 );",
 		},
 		{
 			data: cloudEventsStreamQueryData{
-				Topic:      "foo",
-				Partitions: 2,
+				Topic:         "foo",
+				Partitions:    2,
+				KeySchemaId:   2,
+				ValueSchemaId: 2,
 			},
-			want: "CREATE STREAM IF NOT EXISTS OM_EVENTS ( SUBJECT STRING KEY, ID STRING, TYPE STRING, SOURCE STRING, TIME STRING, DATA STRING ) WITH ( KAFKA_TOPIC = 'foo', VALUE_FORMAT = 'JSON', PARTITIONS = 2 );",
+			want: "CREATE STREAM IF NOT EXISTS OM_EVENTS WITH ( KAFKA_TOPIC = 'foo', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 2, KEY_SCHEMA_ID = 2, VALUE_SCHEMA_ID = 2 );",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-			got, err := Execute(cloudEventsStreamQueryTemplate, tt.data)
+			got, err := templateQuery(cloudEventsStreamQueryTemplate, tt.data)
 			if err != nil {
 				t.Error(err)
 			}
@@ -88,7 +118,7 @@ func TestMeterTableQuery(t *testing.T) {
 				WindowRetention: "365 DAYS",
 				Partitions:      1,
 			},
-			want: "CREATE TABLE IF NOT EXISTS `OM_METER_METER1` WITH ( KAFKA_TOPIC = 'om_meter_meter1', KEY_FORMAT = 'JSON', VALUE_FORMAT = 'JSON', PARTITIONS = 1 ) AS SELECT SUBJECT, COALESCE(EXTRACTJSONFIELD(data, '$.path'), '') AS `$.path`, SUM(CAST(EXTRACTJSONFIELD(data, '$.bytes') AS DECIMAL(12, 4))) AS VALUE FROM OM_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 1 HOUR, RETENTION 365 DAYS ) WHERE ID_COUNT = 1 AND TYPE = 'api-calls' GROUP BY SUBJECT, COALESCE(EXTRACTJSONFIELD(data, '$.path'), '') EMIT CHANGES;",
+			want: "CREATE TABLE IF NOT EXISTS `OM_METER_METER1` WITH ( KAFKA_TOPIC = 'om_meter_meter1', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 1 ) AS SELECT SUBJECT AS KEY1, AS_VALUE(SUBJECT) AS SUBJECT, WINDOWSTART AS WINDOWSTART_TS, WINDOWEND AS WINDOWEND_TS, COALESCE(EXTRACTJSONFIELD(data, '$.path'), '') AS `$.path_KEY`, AS_VALUE(COALESCE(EXTRACTJSONFIELD(data, '$.path'), '')) AS `$.path`, SUM(CAST(EXTRACTJSONFIELD(data, '$.bytes') AS DECIMAL(12, 4))) AS VALUE FROM OM_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 1 HOUR, RETENTION 365 DAYS ) WHERE ID_COUNT = 1 AND TYPE = 'api-calls' GROUP BY SUBJECT, COALESCE(EXTRACTJSONFIELD(data, '$.path'), '') EMIT CHANGES;",
 		},
 		{
 			data: meterTableQueryData{
@@ -102,7 +132,7 @@ func TestMeterTableQuery(t *testing.T) {
 				WindowRetention: "365 DAYS",
 				Partitions:      1,
 			},
-			want: "CREATE TABLE IF NOT EXISTS `OM_METER_METER2` WITH ( KAFKA_TOPIC = 'om_meter_meter2', KEY_FORMAT = 'JSON', VALUE_FORMAT = 'JSON', PARTITIONS = 1 ) AS SELECT SUBJECT, COUNT(*) AS VALUE FROM OM_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 1 HOUR, RETENTION 365 DAYS ) WHERE ID_COUNT = 1 AND TYPE = 'api-calls' GROUP BY SUBJECT EMIT CHANGES;",
+			want: "CREATE TABLE IF NOT EXISTS `OM_METER_METER2` WITH ( KAFKA_TOPIC = 'om_meter_meter2', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 1 ) AS SELECT SUBJECT AS KEY1, AS_VALUE(SUBJECT) AS SUBJECT, WINDOWSTART AS WINDOWSTART_TS, WINDOWEND AS WINDOWEND_TS, COUNT(*) AS VALUE FROM OM_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 1 HOUR, RETENTION 365 DAYS ) WHERE ID_COUNT = 1 AND TYPE = 'api-calls' GROUP BY SUBJECT EMIT CHANGES;",
 		},
 		{
 			data: meterTableQueryData{
@@ -117,7 +147,7 @@ func TestMeterTableQuery(t *testing.T) {
 				WindowRetention: "365 DAYS",
 				Partitions:      1,
 			},
-			want: "CREATE TABLE IF NOT EXISTS `OM_METER_METER2` WITH ( KAFKA_TOPIC = 'om_meter_meter2', KEY_FORMAT = 'JSON', VALUE_FORMAT = 'JSON', PARTITIONS = 1 ) AS SELECT SUBJECT, COUNT(EXTRACTJSONFIELD(data, '$.duration_ms')) AS VALUE FROM OM_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 1 HOUR, RETENTION 365 DAYS ) WHERE ID_COUNT = 1 AND TYPE = 'api-calls' GROUP BY SUBJECT EMIT CHANGES;",
+			want: "CREATE TABLE IF NOT EXISTS `OM_METER_METER2` WITH ( KAFKA_TOPIC = 'om_meter_meter2', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 1 ) AS SELECT SUBJECT AS KEY1, AS_VALUE(SUBJECT) AS SUBJECT, WINDOWSTART AS WINDOWSTART_TS, WINDOWEND AS WINDOWEND_TS, COUNT(EXTRACTJSONFIELD(data, '$.duration_ms')) AS VALUE FROM OM_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 1 HOUR, RETENTION 365 DAYS ) WHERE ID_COUNT = 1 AND TYPE = 'api-calls' GROUP BY SUBJECT EMIT CHANGES;",
 		},
 		{
 			data: meterTableQueryData{
@@ -132,13 +162,13 @@ func TestMeterTableQuery(t *testing.T) {
 				WindowRetention: "365 DAYS",
 				Partitions:      1,
 			},
-			want: "CREATE TABLE IF NOT EXISTS `OM_METER_METER3` WITH ( KAFKA_TOPIC = 'om_meter_meter3', KEY_FORMAT = 'JSON', VALUE_FORMAT = 'JSON', PARTITIONS = 1 ) AS SELECT SUBJECT, AVG(CAST(EXTRACTJSONFIELD(data, '$.duration_ms') AS DECIMAL(12, 4))) AS VALUE FROM OM_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 1 MINUTE, RETENTION 365 DAYS ) WHERE ID_COUNT = 1 AND TYPE = 'api-calls' GROUP BY SUBJECT EMIT CHANGES;",
+			want: "CREATE TABLE IF NOT EXISTS `OM_METER_METER3` WITH ( KAFKA_TOPIC = 'om_meter_meter3', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 1 ) AS SELECT SUBJECT AS KEY1, AS_VALUE(SUBJECT) AS SUBJECT, WINDOWSTART AS WINDOWSTART_TS, WINDOWEND AS WINDOWEND_TS, AVG(CAST(EXTRACTJSONFIELD(data, '$.duration_ms') AS DECIMAL(12, 4))) AS VALUE FROM OM_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 1 MINUTE, RETENTION 365 DAYS ) WHERE ID_COUNT = 1 AND TYPE = 'api-calls' GROUP BY SUBJECT EMIT CHANGES;",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-			got, err := Execute(meterTableQueryTemplate, tt.data)
+			got, err := templateQuery(meterTableQueryTemplate, tt.data)
 			if err != nil {
 				t.Error(err)
 			}
@@ -217,7 +247,7 @@ func TestValuesSelectQuery(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-			got, err := Execute(meterValuesTemplate, tt.data)
+			got, err := templateQuery(meterValuesTemplate, tt.data)
 			if err != nil {
 				t.Error(err)
 			}

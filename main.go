@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/lmittmann/tint"
@@ -155,14 +156,17 @@ func main() {
 			BaseUrl:   config.KSQLDB,
 			AllowHTTP: true,
 		},
-		EventsTopic: topic,
-		Partitions:  config.Partitions,
+		SchemaRegistry: schemaregistry.NewConfig(config.Schema),
+		EventsTopic:    topic,
+		Partitions:     config.Partitions,
 	})
 	if err != nil {
 		slog.Error("failed to create streaming connector", "error", err)
 		os.Exit(1)
 	}
 	defer connector.Close()
+
+	slog.Info("kafka connector successfully initialized")
 
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: &router.Config{
@@ -213,6 +217,7 @@ func main() {
 			os.Exit(1)
 		}
 	}
+	slog.Info("meters successfully initialized", "count", len(config.Meters))
 
 	var group run.Group
 
