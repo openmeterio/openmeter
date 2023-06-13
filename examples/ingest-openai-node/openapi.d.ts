@@ -232,7 +232,7 @@ export interface OperationMethods {
 }
 
 export interface PathsDictionary {
-  ['/api/v1/events']: {
+  ['/api/v1alpha1/events']: {
     /**
      * ingestEvents - Ingest events
      */
@@ -242,7 +242,7 @@ export interface PathsDictionary {
       config?: AxiosRequestConfig
     ): OperationResponse<Paths.IngestEvents.Responses.$200>
   }
-  ['/api/v1/meters']: {
+  ['/api/v1alpha1/meters']: {
     /**
      * getMeters - Get meters
      */
@@ -252,7 +252,7 @@ export interface PathsDictionary {
       config?: AxiosRequestConfig
     ): OperationResponse<Paths.GetMeters.Responses.$200>
   }
-  ['/api/v1/meters/{meterId}']: {
+  ['/api/v1alpha1/meters/{meterId}']: {
     /**
      * getMetersById - Get meter by ID
      */
@@ -262,7 +262,7 @@ export interface PathsDictionary {
       config?: AxiosRequestConfig
     ): OperationResponse<Paths.GetMetersById.Responses.$200>
   }
-  ['/api/v1/meters/{meterId}/values']: {
+  ['/api/v1alpha1/meters/{meterId}/values']: {
     /**
      * getValuesByMeterId - Get meter values
      */
