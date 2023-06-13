@@ -37,6 +37,12 @@ type configuration struct {
 
 	Log logConfiguration
 
+	// Telemetry configuration
+	Telemetry struct {
+		// Telemetry HTTP server address
+		Address string
+	}
+
 	Meters []*models.Meter
 }
 
@@ -56,6 +62,10 @@ func (c configuration) Validate() error {
 
 	if err := c.Log.Validate(); err != nil {
 		return err
+	}
+
+	if c.Telemetry.Address == "" {
+		return errors.New("telemetry http server address is required")
 	}
 
 	if len(c.Meters) == 0 {
@@ -133,4 +143,9 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	// Log configuration
 	v.SetDefault("log.format", "json")
 	v.SetDefault("log.level", "info")
+	//
+	// Telemetry configuration
+	flags.String("telemetry-address", ":10000", "Telemetry HTTP server address")
+	_ = v.BindPFlag("telemetry.address", flags.Lookup("telemetry-address"))
+	v.SetDefault("telemetry.address", ":10000")
 }

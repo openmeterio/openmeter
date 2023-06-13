@@ -25,11 +25,21 @@ import (
 	"syscall"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/lmittmann/tint"
 	"github.com/oklog/run"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/thmeitz/ksqldb-go/net"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/prometheus"
+	"go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/resource"
+	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/exp/slog"
 
 	"github.com/openmeterio/openmeter/internal/server"
@@ -111,6 +121,41 @@ func main() {
 
 	slog.SetDefault(logger)
 
+	telemetryRouter := chi.NewRouter()
+	telemetryRouter.Mount("/debug", middleware.Profiler())
+
+	extraResources, _ := resource.New(
+		context.Background(),
+		resource.WithContainer(),
+		resource.WithAttributes(
+			semconv.ServiceName("openmeter"),
+		),
+	)
+	res, _ := resource.Merge(
+		resource.Default(),
+		extraResources,
+	)
+
+	exporter, err := prometheus.New()
+	if err != nil {
+		logger.Error("initializing prometheus exporter: %v", err)
+		os.Exit(1)
+	}
+
+	meterProvider := metric.NewMeterProvider(
+		metric.WithReader(exporter),
+		metric.WithResource(res),
+	)
+	defer func() {
+		if err := meterProvider.Shutdown(context.Background()); err != nil {
+			logger.Error("shutting down meter provider: %v", err)
+		}
+	}()
+
+	otel.SetMeterProvider(meterProvider)
+
+	telemetryRouter.Handle("/metrics", promhttp.Handler())
+
 	const topic = "om_events"
 
 	slog.Info("starting OpenMeter server", "config", config)
@@ -138,6 +183,28 @@ func main() {
 			StreamingConnector: connector,
 			Meters:             config.Meters,
 		},
+		RouterHook: func(r chi.Router) {
+			r.Use(func(h http.Handler) http.Handler {
+				return otelhttp.NewHandler(
+					http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						h.ServeHTTP(w, r)
+
+						routePattern := chi.RouteContext(r.Context()).RoutePattern()
+
+						span := trace.SpanFromContext(r.Context())
+						span.SetName(routePattern)
+						span.SetAttributes(semconv.HTTPTarget(r.URL.String()), semconv.HTTPRoute(routePattern))
+
+						labeler, ok := otelhttp.LabelerFromContext(r.Context())
+						if ok {
+							labeler.Add(semconv.HTTPRoute(routePattern))
+						}
+					}),
+					"",
+					otelhttp.WithMeterProvider(meterProvider),
+				)
+			})
+		},
 	})
 
 	if err != nil {
@@ -163,6 +230,21 @@ func main() {
 
 	var group run.Group
 
+	// Set up telemetry server
+	{
+		server := &http.Server{
+			Addr:    config.Telemetry.Address,
+			Handler: telemetryRouter,
+		}
+		defer server.Close()
+
+		group.Add(
+			func() error { return server.ListenAndServe() },
+			func(err error) { _ = server.Shutdown(context.Background()) },
+		)
+	}
+
+	// Set up server
 	{
 		server := &http.Server{
 			Addr:    config.Address,
