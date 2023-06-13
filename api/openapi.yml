@@ -112,6 +112,8 @@ paths:
         - name: windowSize
           in: query
           required: false
+          description: |
+            If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
           schema:
             $ref: "#/components/schemas/WindowSize"
       responses:
@@ -124,10 +126,12 @@ paths:
                 properties:
                   windowSize:
                     $ref: "#/components/schemas/WindowSize"
-                  values:
+                  data:
                     type: array
                     items:
                       $ref: "#/components/schemas/MeterValue"
+                required:
+                  - data
         default:
           description: Unexpected error
           content:
@@ -178,7 +182,7 @@ components:
           description: Describes the type of event related to the originating occurrence.
           type: string
           minLength: 1
-          example: com.github.pull_request.opened
+          example: api_request
         datacontenttype:
           description: Content type of the data value. Must adhere to RFC 2046 format.
           type: string
@@ -198,7 +202,7 @@ components:
           type: string
           nullable: true
           minLength: 1
-          example: mynewfile.jpg
+          example: customer_id
         time:
           description: Timestamp of when the occurrence happened. Must adhere to RFC 3339.
           type: string
@@ -211,7 +215,7 @@ components:
           type: object
           additionalProperties: true
           example: |
-            {"foo": "bar"}
+            {"duration_ms": "123"}
       required:
         - id
         - source

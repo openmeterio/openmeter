@@ -49,6 +49,12 @@ func TestAggregateMeterValues(t *testing.T) {
 	}, {
 		start: baseTime.Add(2 * time.Hour).Truncate(time.Minute),
 		end:   baseTime.Add(2*time.Hour + time.Minute).Truncate(time.Minute),
+	}, {
+		start: baseTime.Add(48 * time.Hour).Truncate(time.Minute),
+		end:   baseTime.Add(48*time.Hour + time.Minute).Truncate(time.Minute),
+	}, {
+		start: baseTime.Add(49 * time.Hour).Truncate(time.Minute),
+		end:   baseTime.Add(49*time.Hour + time.Minute).Truncate(time.Minute),
 	}}
 	hourWindows := []struct {
 		start time.Time
@@ -264,6 +270,26 @@ func TestAggregateMeterValues(t *testing.T) {
 			meterValues: []*MeterValue{},
 			windowSize:  windowSizePtr(WindowSizeHour),
 			wantErr:     "invalid aggregation: expected window size of MINUTE for meter with ID meter15, but got HOUR",
+		},
+		// aggregate to total
+		{
+			meter: &Meter{ID: "meter16", WindowSize: WindowSizeMinute, Aggregation: MeterAggregationSum},
+			meterValues: []*MeterValue{
+				{Subject: "s1", WindowStart: minuteWindows[0].start, WindowEnd: minuteWindows[0].end, Value: 100},
+				{Subject: "s1", WindowStart: minuteWindows[1].start, WindowEnd: minuteWindows[1].end, Value: 200},
+				{Subject: "s1", WindowStart: minuteWindows[2].start, WindowEnd: minuteWindows[2].end, Value: 300},
+				{Subject: "s1", WindowStart: minuteWindows[3].start, WindowEnd: minuteWindows[3].end, Value: 400},
+				{Subject: "s1", WindowStart: minuteWindows[4].start, WindowEnd: minuteWindows[4].end, Value: 500},
+				{Subject: "s1", WindowStart: minuteWindows[5].start, WindowEnd: minuteWindows[5].end, Value: 600},
+				{Subject: "s2", WindowStart: minuteWindows[0].start, WindowEnd: minuteWindows[0].end, Value: 700},
+				{Subject: "s2", WindowStart: minuteWindows[1].start, WindowEnd: minuteWindows[1].end, Value: 800},
+				{Subject: "s2", WindowStart: minuteWindows[2].start, WindowEnd: minuteWindows[2].end, Value: 900},
+			},
+			windowSize: nil,
+			want: []*MeterValue{
+				{Subject: "s1", WindowStart: minuteWindows[0].start, WindowEnd: minuteWindows[5].end, Value: 2100},
+				{Subject: "s2", WindowStart: minuteWindows[0].start, WindowEnd: minuteWindows[2].end, Value: 2400},
+			},
 		},
 	}
 

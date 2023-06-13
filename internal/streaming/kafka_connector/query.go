@@ -36,14 +36,17 @@ import (
 var cloudEventsStreamQueryTemplate string
 
 type cloudEventsStreamQueryData struct {
-	Topic      string
-	Partitions int
+	Topic         string
+	Partitions    int
+	KeySchemaId   int
+	ValueSchemaId int
 }
 
 //go:embed sql/detected_events_table.tpl.sql
 var detectedEventsTableQueryTemplate string
 
 type detectedEventsTableQueryData struct {
+	Topic      string
 	Retention  int
 	Partitions int
 }
@@ -51,7 +54,9 @@ type detectedEventsTableQueryData struct {
 //go:embed sql/detected_events_stream.tpl.sql
 var detectedEventsStreamQueryTemplate string
 
-type detectedEventsStreamQueryData struct{}
+type detectedEventsStreamQueryData struct {
+	Topic string
+}
 
 //go:embed sql/meter_table_describe.tpl.sql
 var meterTableDescribeQueryTemplate string
@@ -115,19 +120,19 @@ func funcMap() template.FuncMap {
 	return f
 }
 
-func Execute(temp string, data any) (string, error) {
+func templateQuery(temp string, data any) (string, error) {
 	tmpl := template.New("sql")
 	tmpl.Funcs(funcMap())
 
 	t, err := tmpl.Parse(temp)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("parse query: %w", err)
 	}
 
 	b := bytes.NewBufferString("")
 	err = t.Execute(b, data)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("template query: %w", err)
 	}
 
 	return sanitizeQuery(b.String()), nil

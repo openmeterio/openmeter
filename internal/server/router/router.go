@@ -118,7 +118,7 @@ func (a *Router) GetMetersById(w http.ResponseWriter, r *http.Request, meterID s
 
 type GetValuesByMeterIdResponse struct {
 	WindowSize *models.WindowSize   `json:"windowSize"`
-	Values     []*models.MeterValue `json:"values"`
+	Data       []*models.MeterValue `json:"data"`
 }
 
 func (rd *GetValuesByMeterIdResponse) Render(w http.ResponseWriter, r *http.Request) error {
@@ -138,12 +138,23 @@ func ValidateGetValuesByMeterIdParams(meter *models.Meter, params api.GetValuesB
 		if params.To != nil && params.To.Truncate(windowDuration) != *params.To {
 			return errors.New("to must be aligned to window size")
 		}
+		if (meter.Aggregation == models.MeterAggregationCountDistinct) && *params.WindowSize != meter.WindowSize {
+			return fmt.Errorf("expected window size to be %s, but got %s", meter.WindowSize, *params.WindowSize)
+		}
 		if (meter.WindowSize == models.WindowSizeDay && *params.WindowSize != models.WindowSizeDay) ||
 			(meter.WindowSize == models.WindowSizeHour && *params.WindowSize == models.WindowSizeMinute) {
 			return fmt.Errorf("expected window size to be less than or equal to %s, but got %s", meter.WindowSize, *params.WindowSize)
 		}
-		if (meter.Aggregation == models.MeterAggregationCountDistinct) && *params.WindowSize != meter.WindowSize {
-			return fmt.Errorf("expected window size to be %s, but got %s", meter.WindowSize, *params.WindowSize)
+	} else {
+		windowDuration := meter.WindowSize.Duration()
+		if params.From != nil && params.From.Truncate(windowDuration) != *params.From {
+			return fmt.Errorf("from must be aligned to the meter's window size of %s", meter.WindowSize)
+		}
+		if params.To != nil && params.To.Truncate(windowDuration) != *params.To {
+			return fmt.Errorf("to must be aligned to the meter's window size of %s", meter.WindowSize)
+		}
+		if meter.Aggregation == models.MeterAggregationCountDistinct {
+			return fmt.Errorf("expected window size to be %s", meter.WindowSize)
 		}
 	}
 
@@ -170,13 +181,9 @@ func (a *Router) GetValuesByMeterId(w http.ResponseWriter, r *http.Request, mete
 			}
 
 			windowSize := params.WindowSize
-			if windowSize == nil {
-				windowSize = &meter.WindowSize
-			}
-
 			resp := &GetValuesByMeterIdResponse{
 				WindowSize: windowSize,
-				Values:     values,
+				Data:       values,
 			}
 
 			if err := render.Render(w, r, resp); err != nil {
