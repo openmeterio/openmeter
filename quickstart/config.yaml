@@ -1,3 +1,21 @@
+address: 0.0.0.0:8888
+
+log:
+  format: json
+  level: info
+
+telemetry:
+  address: 0.0.0.0:10000
+
+ingest:
+  kafka:
+    broker: broker:29092
+    schemaRegistry: http://schema-registry:8081
+
+processor:
+  ksqldb:
+    url: http://ksqldb-server:8088
+
 meters:
   - id: m1
     name: Meter 1
