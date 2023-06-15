@@ -150,15 +150,15 @@ func main() {
 	// TODO: config file (https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md)
 	connector, err := kafka_connector.NewKafkaConnector(&kafka_connector.KafkaConnectorConfig{
 		Kafka: &kafka.ConfigMap{
-			"bootstrap.servers": config.Broker,
+			"bootstrap.servers": config.Ingest.Kafka.Broker,
 		},
 		KsqlDB: &net.Options{
-			BaseUrl:   config.KSQLDB,
+			BaseUrl:   config.Processor.KSQLDB.URL,
 			AllowHTTP: true,
 		},
-		SchemaRegistry: schemaregistry.NewConfig(config.Schema),
+		SchemaRegistry: schemaregistry.NewConfig(config.Ingest.Kafka.SchemaRegistry),
 		EventsTopic:    topic,
-		Partitions:     config.Partitions,
+		Partitions:     config.Ingest.Kafka.Partitions,
 	})
 	if err != nil {
 		slog.Error("failed to create streaming connector", "error", err)
