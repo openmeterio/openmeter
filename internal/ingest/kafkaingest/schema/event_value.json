@@ -1,0 +1,38 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+        "ID": {
+            "connect.index": 0,
+            "type": "string"
+        },
+        "TYPE": {
+            "connect.index": 1,
+            "type": "string"
+        },
+        "SOURCE": {
+            "connect.index": 2,
+            "type": "string"
+        },
+        "SUBJECT": {
+            "connect.index": 3,
+            "type": "string"
+        },
+        "TIME": {
+            "connect.index": 4,
+            "type": "string"
+        },
+        "DATA": {
+            "connect.index": 5,
+            "type": "string"
+        }
+    },
+    "required": [
+        "ID",
+        "TYPE",
+        "SOURCE",
+        "SUBJECT",
+        "TIME",
+        "DATA"
+    ]
+}

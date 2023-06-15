@@ -39,7 +39,7 @@ func (l *ServerLogger) Print(v ...interface{}) {
 }
 
 type Config struct {
-	RouterConfig *router.Config
+	RouterConfig router.Config
 	RouterHook   func(r chi.Router)
 }
 
