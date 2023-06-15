@@ -29,6 +29,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/exp/slog"
 
+	"github.com/openmeterio/openmeter/internal/ingest/httpingest"
+	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/internal/server"
 	"github.com/openmeterio/openmeter/internal/server/router"
 	"github.com/openmeterio/openmeter/internal/streaming/kafka_connector"
@@ -143,9 +145,42 @@ func main() {
 
 	telemetryRouter.Handle("/metrics", promhttp.Handler())
 
+	logger.Info("starting OpenMeter server", "config", config)
+
 	const topic = "om_events"
 
-	slog.Info("starting OpenMeter server", "config", config)
+	// Initialize schema
+	schemaRegistry, err := schemaregistry.NewClient(schemaregistry.NewConfig(config.Ingest.Kafka.SchemaRegistry))
+	if err != nil {
+		logger.Error("init schema registry client: %v", err)
+		os.Exit(1)
+	}
+
+	// Initialize Kafka Producer
+	producer, err := kafka.NewProducer(&kafka.ConfigMap{
+		"bootstrap.servers": config.Ingest.Kafka.Broker,
+	})
+	if err != nil {
+		logger.Error("init Kafka producer: %v", err)
+		os.Exit(1)
+	}
+
+	defer producer.Flush(30 * 1000)
+	defer producer.Close()
+
+	slog.Debug("connected to Kafka")
+
+	schema, err := kafkaingest.NewSchema(schemaRegistry, topic)
+	if err != nil {
+		logger.Error("init schema: %v", err)
+		os.Exit(1)
+	}
+
+	collector := kafkaingest.Collector{
+		Producer: producer,
+		Topic:    topic,
+		Schema:   schema,
+	}
 
 	// TODO: config file (https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md)
 	connector, err := kafka_connector.NewKafkaConnector(&kafka_connector.KafkaConnectorConfig{
@@ -169,9 +204,13 @@ func main() {
 	slog.Info("kafka connector successfully initialized")
 
 	s, err := server.NewServer(&server.Config{
-		RouterConfig: &router.Config{
+		RouterConfig: router.Config{
 			StreamingConnector: connector,
-			Meters:             config.Meters,
+			IngestHandler: httpingest.Handler{
+				Collector: collector,
+				Logger:    logger,
+			},
+			Meters: config.Meters,
 		},
 		RouterHook: func(r chi.Router) {
 			r.Use(func(h http.Handler) http.Handler {
@@ -249,6 +288,8 @@ func main() {
 		)
 	}
 
+	group.Add(kafkaGroup(context.Background(), producer, logger))
+
 	// Setup signal handler
 	group.Add(run.SignalHandler(context.Background(), syscall.SIGINT, syscall.SIGTERM))
 
@@ -258,4 +299,42 @@ func main() {
 	} else if !errors.Is(err, http.ErrServerClosed) {
 		slog.Error("application stopped due to error", slog.String("error", err.Error()))
 	}
+}
+
+func kafkaGroup(ctx context.Context, producer *kafka.Producer, logger *slog.Logger) (execute func() error, interrupt func(error)) {
+	ctx, cancel := context.WithCancel(ctx)
+	return func() error {
+			for {
+				select {
+				case e := <-producer.Events():
+					switch ev := e.(type) {
+					case *kafka.Message:
+						// The message delivery report, indicating success or
+						// permanent failure after retries have been exhausted.
+						// Application level retries won't help since the client
+						// is already configured to do that.
+						m := ev
+						if m.TopicPartition.Error != nil {
+							logger.Error("kafka delivery failed", "error", m.TopicPartition.Error)
+						} else {
+							logger.Debug("kafka message delivered", "topic", *m.TopicPartition.Topic, "partition", m.TopicPartition.Partition, "offset", m.TopicPartition.Offset)
+						}
+					case kafka.Error:
+						// Generic client instance-level errors, such as
+						// broker connection failures, authentication issues, etc.
+						//
+						// These errors should generally be considered informational
+						// as the underlying client will automatically try to
+						// recover from any errors encountered, the application
+						// does not need to take action on them.
+						logger.Error("kafka error", "error", ev)
+					}
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+			}
+		},
+		func(error) {
+			cancel()
+		}
 }
