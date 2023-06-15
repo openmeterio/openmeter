@@ -30,11 +30,7 @@ import (
 // is necessary for running the application.
 // TODO: improve configuration options
 type configuration struct {
-	Address    string
-	Broker     string
-	KSQLDB     string
-	Schema     string
-	Partitions int
+	Address string
 
 	Log logConfiguration
 
@@ -42,6 +38,22 @@ type configuration struct {
 	Telemetry struct {
 		// Telemetry HTTP server address
 		Address string
+	}
+
+	// Ingest configuration
+	Ingest struct {
+		Kafka struct {
+			Broker         string
+			Partitions     int
+			SchemaRegistry string
+		}
+	}
+
+	// Processor configuration
+	Processor struct {
+		KSQLDB struct {
+			URL string
+		}
 	}
 
 	Meters []*models.Meter
@@ -53,16 +65,16 @@ func (c configuration) Validate() error {
 		return errors.New("server address is required")
 	}
 
-	if c.Broker == "" {
+	if c.Ingest.Kafka.Broker == "" {
 		return errors.New("kafka broker is required")
 	}
 
-	if c.KSQLDB == "" {
-		return errors.New("ksqldb URL is required")
+	if c.Ingest.Kafka.SchemaRegistry == "" {
+		return errors.New("schema registry URL is required")
 	}
 
-	if c.Schema == "" {
-		return errors.New("schema registry URL is required")
+	if c.Processor.KSQLDB.URL == "" {
+		return errors.New("ksqldb URL is required")
 	}
 
 	if err := c.Log.Validate(); err != nil {
@@ -128,28 +140,6 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	_ = v.BindPFlag("address", flags.Lookup("address"))
 	v.SetDefault("address", ":8888")
 
-	// Kafka configuration
-	flags.String("broker", "127.0.0.1:29092", "Kafka broker")
-	_ = v.BindPFlag("broker", flags.Lookup("broker"))
-	v.SetDefault("broker", "127.0.0.1:29092")
-
-	// Kafka partition count
-	flags.Int("partitions", 100, "Kafka Partitions")
-	_ = v.BindPFlag("partitions", flags.Lookup("partitions"))
-	// TODO: default to 100 in prod
-	v.SetDefault("partitions", 1)
-
-	// kSQL configuration
-	// TODO: improve this section
-	flags.String("ksqldb-url", "http://127.0.0.1:8088", "KSQLDB to connect to")
-	_ = v.BindPFlag("ksqldb", flags.Lookup("ksqldb-url"))
-	v.SetDefault("ksqldb", "http://127.0.0.1:8088")
-
-	// Schema configuration
-	flags.String("schema-registry-url", "http://127.0.0.1:8081", "Schema Registry")
-	_ = v.BindPFlag("schema", flags.Lookup("schema-registry-url"))
-	v.SetDefault("schema", "http://127.0.0.1:8081")
-
 	// Log configuration
 	v.SetDefault("log.format", "json")
 	v.SetDefault("log.level", "info")
@@ -158,4 +148,13 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	flags.String("telemetry-address", ":10000", "Telemetry HTTP server address")
 	_ = v.BindPFlag("telemetry.address", flags.Lookup("telemetry-address"))
 	v.SetDefault("telemetry.address", ":10000")
+
+	// Ingest configuration
+	v.SetDefault("ingest.kafka.broker", "127.0.0.1:29092")
+	// TODO: default to 100 in prod
+	v.SetDefault("ingest.kafka.partitions", 1)
+	v.SetDefault("ingest.kafka.schemaRegistry", "http://127.0.0.1:8081")
+
+	// kSQL configuration
+	v.SetDefault("processor.ksqldb.url", "http://127.0.0.1:8088")
 }
