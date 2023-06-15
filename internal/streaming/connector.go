@@ -5,7 +5,7 @@ import (
 
 	"github.com/cloudevents/sdk-go/v2/event"
 
-	"github.com/openmeterio/openmeter/internal/models"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type GetValuesParams struct {

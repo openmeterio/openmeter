@@ -43,7 +43,7 @@ async function main() {
   // List all stripe active subscriptions and expand customer object
   const { data: subscriptions } = await stripe.subscriptions.list({
     status: 'active',
-    expand: ['data.customer']
+    expand: ['data.customer'],
   })
 
   // Report usage for all active subscriptions
@@ -98,11 +98,12 @@ async function reportUsage(
       subject,
       from: from.toISOString(),
       to: moment(to).endOf('day').toISOString(),
+      windowSize: 'HOUR',
     })
 
     // Sum usage windows
     // TODO (pmarton): switch to OpenMeter aggregate API
-    const total = values.data.values?.reduce(
+    const total = values.data.data?.reduce(
       (total, { value }) => total + (value || 0),
       0
     )
@@ -136,7 +137,9 @@ async function reportUsage(
 }
 
 // Typeguard that returns true if customer is a `Stripe.Customer`
-function isCustomer(customer: string | Stripe.Customer | Stripe.DeletedCustomer): customer is Stripe.Customer {
+function isCustomer(
+  customer: string | Stripe.Customer | Stripe.DeletedCustomer
+): customer is Stripe.Customer {
   if (typeof customer === 'object' && !customer.deleted) {
     return true
   }
