@@ -195,7 +195,7 @@ func TestValuesSelectQuery(t *testing.T) {
 					Subject: &subject,
 				},
 			},
-			want: "SELECT * FROM `OM_METER_METER1` WHERE SUBJECT = 'subject1';",
+			want: "SELECT SUBJECT, VALUE, WINDOWSTART, WINDOWEND FROM `OM_METER_METER1` WHERE SUBJECT = 'subject1';",
 		},
 		{
 			data: meterValuesData{
@@ -207,7 +207,7 @@ func TestValuesSelectQuery(t *testing.T) {
 					From:    &from,
 				},
 			},
-			want: "SELECT * FROM `OM_METER_METER2` WHERE SUBJECT = 'subject1' AND WINDOWSTART >= 1609459200001;",
+			want: "SELECT SUBJECT, VALUE, WINDOWSTART, WINDOWEND FROM `OM_METER_METER2` WHERE SUBJECT = 'subject1' AND WINDOWSTART >= 1609459200001;",
 		},
 		{
 			data: meterValuesData{
@@ -216,7 +216,7 @@ func TestValuesSelectQuery(t *testing.T) {
 				},
 				GetValuesParams: &GetValuesParams{},
 			},
-			want: "SELECT * FROM `OM_METER_METER3`;",
+			want: "SELECT SUBJECT, VALUE, WINDOWSTART, WINDOWEND FROM `OM_METER_METER3`;",
 		},
 		{
 			data: meterValuesData{
@@ -228,7 +228,7 @@ func TestValuesSelectQuery(t *testing.T) {
 					To:      &to,
 				},
 			},
-			want: "SELECT * FROM `OM_METER_METER4` WHERE SUBJECT = 'subject1' AND WINDOWEND <= 1609545600000;",
+			want: "SELECT SUBJECT, VALUE, WINDOWSTART, WINDOWEND FROM `OM_METER_METER4` WHERE SUBJECT = 'subject1' AND WINDOWEND <= 1609545600000;",
 		},
 		{
 			data: meterValuesData{
@@ -241,7 +241,7 @@ func TestValuesSelectQuery(t *testing.T) {
 					To:      &to,
 				},
 			},
-			want: "SELECT * FROM `OM_METER_METER5` WHERE SUBJECT = 'subject1' AND WINDOWSTART >= 1609459200001 AND WINDOWEND <= 1609545600000;",
+			want: "SELECT SUBJECT, VALUE, WINDOWSTART, WINDOWEND FROM `OM_METER_METER5` WHERE SUBJECT = 'subject1' AND WINDOWSTART >= 1609459200001 AND WINDOWEND <= 1609545600000;",
 		},
 	}
 
