@@ -26,8 +26,8 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 
-	"github.com/openmeterio/openmeter/internal/models"
 	. "github.com/openmeterio/openmeter/internal/streaming"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // https://github.com/cloudevents/spec/blob/main/cloudevents/formats/cloudevents.json

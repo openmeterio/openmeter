@@ -226,7 +226,7 @@ components:
       type: object
       x-go-type: models.Meter
       x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/models
+        path: github.com/openmeterio/openmeter/pkg/models
       properties:
         id:
           type: string
@@ -276,7 +276,7 @@ components:
       type: string
       x-go-type: models.WindowSize
       x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/models
+        path: github.com/openmeterio/openmeter/pkg/models
       enum:
         - MINUTE
         - HOUR
@@ -285,7 +285,7 @@ components:
       type: object
       x-go-type: models.MeterValue
       x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/models
+        path: github.com/openmeterio/openmeter/pkg/models
       properties:
         subject:
           type: string

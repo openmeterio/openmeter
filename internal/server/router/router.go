@@ -29,8 +29,8 @@ import (
 	"golang.org/x/exp/slog"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/internal/models"
 	"github.com/openmeterio/openmeter/internal/streaming"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func init() {
