@@ -1,3 +1,9 @@
+{{- $select := list "SUBJECT" "VALUE" "WINDOWSTART" "WINDOWEND" -}}
+
+{{- range .GroupBy -}}
+{{- $select = printf "`%s`" . | append $select -}}
+{{- end }}
+
 {{- $clauses := list -}}
 {{- if .Subject }}
 {{- $clauses = (printf "SUBJECT = %s" (.Subject | derefstr | squote)) | append $clauses }}
@@ -9,7 +15,7 @@
 {{- $clauses = (printf "WINDOWEND <= %s" (.To | dereftime | unixEpochMs)) | append $clauses }}
 {{- end -}}
 
-SELECT * FROM {{ printf "OM_METER_%s" .ID | upper | bquote }}
+SELECT {{ $select | join ", " }} FROM {{ printf "OM_METER_%s" .ID | upper | bquote }}
 {{- if len $clauses }}
 WHERE {{ $clauses | join " AND " }}
 {{- end -}}
