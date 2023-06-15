@@ -9,9 +9,6 @@ services:
     depends_on:
       ksqldb-server-healthcheck:
         condition: service_healthy
-    environment:
-      BROKER: broker:29092
-      KSQLDB: http://ksqldb-server:8088
     ports:
       - "8888:8888"
     volumes:
@@ -53,6 +50,15 @@ services:
   ksqldb-server:
     depends_on:
       - broker
+      - kafka-connect-01
     extends:
       file: ../docker-compose.yaml
       service: ksqldb-server
+
+  kafka-connect-01:
+    depends_on:
+      - broker
+      - schema
+    extends:
+      file: ../docker-compose.yaml
+      service: kafka-connect-01
