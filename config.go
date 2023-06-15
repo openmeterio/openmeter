@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slices"
 
-	"github.com/openmeterio/openmeter/internal/models"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // configuration holds any kind of configuration that comes from the outside world and

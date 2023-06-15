@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/internal/models"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestMeterQueryAssert(t *testing.T) {
