@@ -143,3 +143,35 @@ jobs:
         uses: fossas/fossa-action@f61a4c0c263690f2ddb54b9822a719c25a7b608f # v1.3.1
         with:
           api-key: ${{secrets.FOSSA_API_KEY}}
+
+  # TODO: Rewrite this into Dagger
+  quickstart:
+    name: Quickstart
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+
+      - name: Launch Docker Compose
+        run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml up -d
+        working-directory: quickstart
+
+      - name: Wait for OpenMeter to become ready
+        run: curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:8888/version
+
+      - name: Ingest sample data
+        run: ./ingest.sh
+        working-directory: quickstart
+
+      - name: Wait for data to be processed
+        run: sleep 20
+
+      - name: Verify sample data
+        run: ./verify.sh
+        working-directory: quickstart
+
+      - name: Cleanup Docker Compose
+        run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml down -v
+        working-directory: quickstart
+        if: always()
