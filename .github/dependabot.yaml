@@ -5,13 +5,22 @@ updates:
     directory: /
     schedule:
       interval: daily
+    labels:
+      - area/dependencies
+      - dependency/go
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: daily
+    labels:
+      - area/dependencies
+      - dependency/github_actions
 
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "daily"
+    labels:
+      - area/dependencies
+      - dependency/docker
