@@ -35,7 +35,7 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /usr/local/bin/openmeter /usr/local/bin/
 COPY --from=builder /usr/local/src/openmeter/go.* /usr/local/src/openmeter/
 
-CMD openmeter serve
+CMD openmeter
 
 FROM redhat/ubi8-micro:8.8@sha256:c743e8d6f673f8287a07e3590cbf65dfa7c5c21bb81df6dbd4d9a2fcf21173cd AS ubi8
 
@@ -44,7 +44,7 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /usr/local/bin/openmeter /usr/local/bin/
 COPY --from=builder /usr/local/src/openmeter/go.* /usr/local/src/openmeter/
 
-CMD openmeter serve
+CMD openmeter
 
 FROM alpine:3.18.2@sha256:82d1e9d7ed48a7523bdebc18cf6290bdb97b82302a8a9c27d4fe885949ea94d1 AS alpine
 
@@ -55,4 +55,4 @@ SHELL ["/bin/bash", "-c"]
 COPY --from=builder /usr/local/bin/openmeter /usr/local/bin/
 COPY --from=builder /usr/local/src/openmeter/go.* /usr/local/src/openmeter/
 
-CMD openmeter serve
+CMD openmeter
