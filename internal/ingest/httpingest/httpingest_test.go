@@ -14,13 +14,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type inMemorySink struct {
+type inMemoryCollector struct {
 	events []event.Event
 
 	mu sync.Mutex
 }
 
-func (s *inMemorySink) Receive(event event.Event) error {
+func (s *inMemoryCollector) Receive(event event.Event) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -30,9 +30,9 @@ func (s *inMemorySink) Receive(event event.Event) error {
 }
 
 func TestHandler(t *testing.T) {
-	sink := &inMemorySink{}
+	collector := &inMemoryCollector{}
 	handler := Handler{
-		Collector: sink,
+		Collector: collector,
 	}
 	server := httptest.NewServer(handler)
 	client := server.Client()
@@ -55,9 +55,9 @@ func TestHandler(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	require.Len(t, sink.events, 1)
+	require.Len(t, collector.events, 1)
 
-	receivedEvent := sink.events[0]
+	receivedEvent := collector.events[0]
 
 	assert.Equal(t, ev.ID(), receivedEvent.ID())
 	assert.Equal(t, ev.Subject(), receivedEvent.Subject())
