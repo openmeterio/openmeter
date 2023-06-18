@@ -170,7 +170,7 @@ func main() {
 
 	slog.Debug("connected to Kafka")
 
-	schema, err := kafkaingest.NewSchema(schemaRegistry, topic)
+	schema, keySchemaID, valueSchemaID, err := kafkaingest.NewSchema(schemaRegistry, topic)
 	if err != nil {
 		logger.Error("init schema: %v", err)
 		os.Exit(1)
@@ -184,16 +184,14 @@ func main() {
 
 	// TODO: config file (https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md)
 	connector, err := kafka_connector.NewKafkaConnector(&kafka_connector.KafkaConnectorConfig{
-		Kafka: &kafka.ConfigMap{
-			"bootstrap.servers": config.Ingest.Kafka.Broker,
-		},
 		KsqlDB: &net.Options{
 			BaseUrl:   config.Processor.KSQLDB.URL,
 			AllowHTTP: true,
 		},
-		SchemaRegistry: schemaregistry.NewConfig(config.Ingest.Kafka.SchemaRegistry),
-		EventsTopic:    topic,
-		Partitions:     config.Ingest.Kafka.Partitions,
+		EventsTopic:   topic,
+		Partitions:    config.Ingest.Kafka.Partitions,
+		KeySchemaID:   keySchemaID,
+		ValueSchemaID: valueSchemaID,
 	})
 	if err != nil {
 		slog.Error("failed to create streaming connector", "error", err)
