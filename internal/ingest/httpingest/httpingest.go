@@ -52,14 +52,14 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	err = h.Collector.Receive(event)
 	if err != nil {
-		logger.ErrorCtx(r.Context(), "unable to forward event to sink", "error", err)
+		logger.ErrorCtx(r.Context(), "unable to forward event to collector", "error", err)
 
 		_ = render.Render(w, r, api.ErrInternalServerError(err))
 
 		return
 	}
 
-	logger.InfoCtx(r.Context(), "event forwarded to downstream sink")
+	logger.InfoCtx(r.Context(), "event forwarded to downstream collector")
 
 	w.WriteHeader(http.StatusOK)
 }
