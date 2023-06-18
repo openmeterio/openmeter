@@ -22,22 +22,22 @@ type schema struct {
 }
 
 // NewSchema initializes a new schema in the registry.
-func NewSchema(schemaRegistry schemaregistry.Client, topic string) (Schema, error) {
+func NewSchema(schemaRegistry schemaregistry.Client, topic string) (Schema, int, int, error) {
 	keySerializer, err := getSerializer(schemaRegistry, topic, serde.KeySerde, eventKeySchema)
 	if err != nil {
-		return nil, fmt.Errorf("init event key serializer: %w", err)
+		return nil, 0, 0, fmt.Errorf("init event key serializer: %w", err)
 	}
 
 	valueSerializer, err := getSerializer(schemaRegistry, topic, serde.ValueSerde, eventValueSchema)
 	if err != nil {
-		return nil, fmt.Errorf("init event value serializer: %w", err)
+		return nil, 0, 0, fmt.Errorf("init event value serializer: %w", err)
 	}
 
-	// Serializers
+	// TODO: improve schema ID propagation
 	return schema{
 		keySerializer:   keySerializer,
 		valueSerializer: valueSerializer,
-	}, nil
+	}, keySerializer.Conf.UseSchemaID, valueSerializer.Conf.UseSchemaID, nil
 }
 
 func (s schema) SerializeKey(topic string, ev event.Event) ([]byte, error) {
