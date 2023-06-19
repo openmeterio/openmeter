@@ -1,0 +1,25 @@
+{
+    "name": "@openmeter/sdk",
+    "version": "0.0.1",
+    "description": "Client for OpenMeter: Real-Time and Scalable Usage Metering",
+    "license": "Apache 2.0",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "type": "module",
+    "scripts": {
+        "lint": "prettier --write .",
+        "build": "tsc",
+        "generate": "openapi-typescript ../../api/openapi.yml -o openapi.d.ts",
+        "test": "ts-node-esm test.ts"
+    },
+    "devDependencies": {
+        "nock": "^13.3.1",
+        "openapi-typescript": "^6.2.8",
+        "ts-node": "^10.9.1",
+        "typescript": "5.0.4",
+        "node-fetch": "^3.3.1"
+    },
+    "dependencies": {
+        "openapi-fetch": "^0.3.0"
+    }
+}
