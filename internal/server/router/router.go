@@ -6,13 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 
-	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/render"
-	"golang.org/x/exp/slog"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/streaming"
@@ -34,43 +31,25 @@ func jsonBodyDecoder(body io.Reader, header http.Header, schema *openapi3.Schema
 
 type Config struct {
 	StreamingConnector streaming.Connector
+	IngestHandler      http.Handler
 	Meters             []*models.Meter
 }
 
 type Router struct {
-	config *Config
+	config Config
 }
 
 // Make sure we conform to ServerInterface
 var _ api.ServerInterface = (*Router)(nil)
 
-func NewRouter(config *Config) (*Router, error) {
+func NewRouter(config Config) (*Router, error) {
 	return &Router{
 		config: config,
 	}, nil
 }
 
 func (a *Router) IngestEvents(w http.ResponseWriter, r *http.Request) {
-	var event event.Event
-	err := json.NewDecoder(r.Body).Decode(&event)
-	if err != nil {
-		slog.Error("unable to parse event", "error", err)
-		_ = render.Render(w, r, api.ErrInternalServerError(err))
-		return
-	}
-
-	if event.Time().IsZero() {
-		event.SetTime(time.Now().UTC())
-	}
-
-	err = a.config.StreamingConnector.Publish(event)
-	if err != nil {
-		slog.Error("unable to produce event to Kafka", "error", err)
-		_ = render.Render(w, r, api.ErrInternalServerError(err))
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
+	a.config.IngestHandler.ServeHTTP(w, r)
 }
 
 func (a *Router) GetMeters(w http.ResponseWriter, r *http.Request) {
