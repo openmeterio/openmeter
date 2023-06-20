@@ -16,14 +16,28 @@ jobs:
           mode: minimum
           count: 1
           labels: |
-            release-note/ignore
-            kind/enhancement
-            release-note/enhancement
-            kind/bug
-            release-note/bug-fix
-            release-note/breaking-change
-            release-note/deprecation
+            area/api
             area/dependencies
-            release-note/dependency-update
+            area/ingest
+            area/processor
+            dependency/docker
+            dependency/github_actions
+            dependency/go
+            good first
+            help wanted
+            kind/bug
+            kind/documentation
+            kind/feature
             kind/refactor
+            question
+            release-note/release-note/breaking-change
+            release-note/bug-fix
+            release-note/dependency-update
+            release-note/deprecation
+            release-note/feature
+            release-note/ignore
             release-note/misc
+            resolution/duplicate
+            resolution/invalid
+            resolution/wontfix
+
