@@ -17,8 +17,8 @@ jobs:
           count: 1
           labels: |
             release-note/ignore
-            kind/enhancement
-            release-note/enhancement
+            kind/feature
+            release-note/feature
             kind/bug
             release-note/bug-fix
             release-note/breaking-change
