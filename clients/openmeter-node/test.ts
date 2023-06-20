@@ -2,7 +2,7 @@ import assert from 'node:assert'
 import { mock, test } from 'node:test'
 
 import { RequestInfo, RequestInit, Response } from 'node-fetch'
-import { OpenMeter } from './src/index.js'
+import { HttpError, OpenMeter } from './src/index.js'
 
 test('should ingest event', async () => {
 	const mockFetch = mock.fn(
@@ -55,4 +55,31 @@ test('should get meter', async () => {
 		'http://localhost:8888/api/v1alpha1/meters/m1'
 	)
 	assert.deepStrictEqual(data, 'mock-data')
+})
+
+test('should throw error', async () => {
+	const resp = new Response('mock-data', {
+		status: 500,
+		statusText: 'status-text',
+	})
+
+	const mockFetch = mock.fn(
+		(url: URL | RequestInfo, init?: RequestInit | undefined) =>
+			Promise.resolve(resp)
+	)
+	const openmeter = new OpenMeter({
+		baseUrl: 'http://localhost:8888',
+		fetch: mockFetch,
+	})
+
+	try {
+		await openmeter.getMetersById({ meterId: 'm1' })
+	} catch (err) {
+		if (err instanceof HttpError) {
+			assert.strictEqual(err.message, 'HttpError')
+			return
+		}
+	}
+
+	throw new Error('Did not throw')
 })

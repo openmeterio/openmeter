@@ -27,7 +27,7 @@ await openmeter.ingestEvents({
 })
 
 // Fetching a meter
-const { data, error } = await openmeter.getMetersById({ meterId: 'm1' })
+const { data } = await openmeter.getMetersById({ meterId: 'm1' })
 ```
 
 ## API
@@ -45,7 +45,7 @@ const openmeter = new OpenMeter({
 	// ...fetch options see: https://developer.mozilla.org/en-US/docs/Web/API/fetch#options
 })
 
-const { date, error } = await openmeter.getMetersById(
+const { data } = await openmeter.getMetersById(
 	{ meterId: 'm1' },
 	{ headers: { 'x-foo': 'bar' } }
 )
@@ -55,12 +55,10 @@ const { date, error } = await openmeter.getMetersById(
 
 All methods return an object with **data**, **error**, and **response**.
 
-- **data** will contain that endpoint’s `2xx` response if the server returned `2xx`; otherwise it will be `undefined`
-- **error** likewise contains that endpoint’s `4xx`/`5xx` response if the server returned either; otherwise it will be `undefined`
-  - _Note: `default` will also be interpreted as `error`, since its intent is handling unexpected HTTP codes_
+- **data** will contain that endpoint’s `2xx` response if the server returned `2xx`;
 - **response** has response info like `status`, `headers`, etc. It is not typechecked.
 
-See [openapi-fetch](https://github.com/drwpow/openapi-typescript/tree/main/packages/openapi-fetch) for more info.
+For non `2xx` a `HttpError` will be thrown.
 
 ### ingestEvents
 
@@ -81,19 +79,19 @@ const { error } = await openmeter.ingestEvents({
 ### getMeters
 
 ```js
-const { data, error } = await openmeter.getMeters()
+const { data } = await openmeter.getMeters()
 ```
 
 ### getMetersById
 
 ```js
-const { data, error } = await openmeter.getMetersById({ meterId: 'm1' })
+const { data } = await openmeter.getMetersById({ meterId: 'm1' })
 ```
 
 ### getValuesByMeterId
 
 ```js
-const { data, error } = await openmeter.getValuesByMeterId(
+const { data } = await openmeter.getValuesByMeterId(
 	{ meterId: 'm1' },
 	{
 		subject: 'my-ubject',

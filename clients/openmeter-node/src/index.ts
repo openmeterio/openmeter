@@ -14,38 +14,62 @@ export class OpenMeter {
 		event: components['schemas']['Event'],
 		opts?: RequestInit
 	) {
-		return await this.client.post('/api/v1alpha1/events', {
-			...opts,
-			headers: {
-				'content-type': 'application/cloudevents+json',
-				...opts?.headers,
-			},
-			body: event,
-		})
+		const { data, response, error } = await this.client.post(
+			'/api/v1alpha1/events',
+			{
+				...opts,
+				headers: {
+					'content-type': 'application/cloudevents+json',
+					...opts?.headers,
+				},
+				body: event,
+			}
+		)
+		if (error) {
+			throw new HttpError(error)
+		}
+
+		return { data, response }
 	}
 
 	public async getMeters(opts?: RequestInit) {
-		return await this.client.get('/api/v1alpha1/meters', {
-			...opts,
-			headers: {
-				'content-type': 'application/json',
-				...opts?.headers,
-			},
-		})
+		const { data, response, error } = await this.client.get(
+			'/api/v1alpha1/meters',
+			{
+				...opts,
+				headers: {
+					'content-type': 'application/json',
+					...opts?.headers,
+				},
+			}
+		)
+		if (error) {
+			throw new HttpError(error)
+		}
+
+		return { data, response }
 	}
 
 	public async getMetersById(
 		path: operations['getMetersById']['parameters']['path'],
 		opts?: RequestInit
 	) {
-		return await this.client.get('/api/v1alpha1/meters/{meterId}', {
-			...opts,
-			params: { path },
-			headers: {
-				'content-type': 'application/json',
-				...opts?.headers,
-			},
-		})
+		const { data, response, error } = await this.client.get(
+			'/api/v1alpha1/meters/{meterId}',
+			{
+				...opts,
+				params: { path },
+				headers: {
+					'content-type': 'application/json',
+					...opts?.headers,
+				},
+			}
+		)
+		if (error) {
+			throw new HttpError(error)
+		}
+
+		return { data, response }
 	}
 
 	public async getValuesByMeterId(
@@ -53,13 +77,44 @@ export class OpenMeter {
 		query: operations['getValuesByMeterId']['parameters']['query'],
 		opts?: RequestInit
 	) {
-		return await this.client.get('/api/v1alpha1/meters/{meterId}/values', {
-			...opts,
-			params: { path, query },
-			headers: {
-				'content-type': 'application/json',
-				...opts?.headers,
-			},
-		})
+		const { data, response, error } = await this.client.get(
+			'/api/v1alpha1/meters/{meterId}/values',
+			{
+				...opts,
+				params: { path, query },
+				headers: {
+					'content-type': 'application/json',
+					...opts?.headers,
+				},
+			}
+		)
+		if (error) {
+			throw new HttpError(error)
+		}
+
+		return { data, response }
+	}
+}
+
+export class HttpError extends Error {
+	public statusCode?: number
+	public status?: string
+	public code?: number
+
+	constructor(
+		params: {
+			statusCode?: number | undefined
+			status?: string | undefined
+			code?: number | undefined
+			message?: string | undefined
+		},
+		options?: ErrorOptions
+	) {
+		super(params.message ?? 'HttpError', options)
+
+		this.name = 'HttpError'
+		this.statusCode = params.statusCode
+		this.status = params.status
+		this.code = params.code
 	}
 }
