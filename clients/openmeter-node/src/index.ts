@@ -1,12 +1,12 @@
 import createClient from 'openapi-fetch'
 import type fetch from 'node-fetch'
 import type { RequestInit } from 'node-fetch'
-import type { paths, components, operations } from '../openapi.js'
+import type { paths, components, operations } from '../openapi.d.ts'
 
 export class OpenMeter {
 	private client: ReturnType<typeof createClient<paths>>
 
-	constructor(opts: { baseUrl: string; fetch?: typeof fetch }) {
+	constructor(opts: RequestInit & { baseUrl: string; fetch?: typeof fetch }) {
 		this.client = createClient<paths>(opts)
 	}
 

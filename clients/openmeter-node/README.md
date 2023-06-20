@@ -27,13 +27,12 @@ await openmeter.ingestEvents({
 })
 
 // Fetching a meter
-const response = await openmeter.getMetersById({ meterId: 'm1' })
-const meter = await response.json()
+const { data, error } = await openmeter.getMetersById({ meterId: 'm1' })
 ```
 
 ## API
 
-The OpenMeter SDK uses the `fetch` API.
+The OpenMeter SDK uses [openapi-fetch](https://github.com/drwpow/openapi-typescript/tree/main/packages/openapi-fetch).
 You can pass a custom `fetch` implementation to the constructor and extend the request params per method call, for example:
 
 ```js
@@ -43,13 +42,25 @@ import openmeter from '@openmeter/sdk'
 const openmeter = new OpenMeter({
 	baseUrl: 'http://localhost:8888',
 	fetch: nodeFetch,
+	// ...fetch options see: https://developer.mozilla.org/en-US/docs/Web/API/fetch#options
 })
 
-await openmeter.getMetersById(
+const { date, error } = await openmeter.getMetersById(
 	{ meterId: 'm1' },
 	{ headers: { 'x-foo': 'bar' } }
 )
 ```
+
+### Response
+
+All methods return an object with **data**, **error**, and **response**.
+
+- **data** will contain that endpoint’s `2xx` response if the server returned `2xx`; otherwise it will be `undefined`
+- **error** likewise contains that endpoint’s `4xx`/`5xx` response if the server returned either; otherwise it will be `undefined`
+  - _Note: `default` will also be interpreted as `error`, since its intent is handling unexpected HTTP codes_
+- **response** has response info like `status`, `headers`, etc. It is not typechecked.
+
+See [openapi-fetch](https://github.com/drwpow/openapi-typescript/tree/main/packages/openapi-fetch) for more info.
 
 ### ingestEvents
 
