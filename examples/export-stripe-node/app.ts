@@ -17,20 +17,16 @@ const reportAll = process.env.REPORT_ALL === 'true'
 const stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: '2022-11-15' })
 const openmeter = new OpenMeter({ baseUrl: 'http://localhost:8888' })
 
-// In a real app you will probably report hourly or daily and run this script at the same frequency via cron or workflow management
-const reportingFrequency = 'hour'
-
 async function main() {
+    // Current day
+    const from = moment().startOf('day').toDate()
+    const to = moment(from).add(1, 'day').toDate()
+
+    // In a real app you will probably report hourly or daily and run this script at the same frequency via cron or workflow management
     // We round down period to closest windows as OpenMeter aggregates usage in windows.
     // Usage occuring between rounded down date and now will be attributed to the next billing period.
-    let to = moment().startOf(reportingFrequency).toDate()
-    let from = moment(to).subtract(1, reportingFrequency).toDate()
-
-    // With special flag we report entire day, useful for testing
-    if (reportAll) {
-        from = moment(to).startOf('day').toDate()
-        to = moment(from).add(1, 'day').toDate()
-    }
+    // const to = moment().startOf('hour').toDate()
+    // const from = moment(to).subtract(1, 'hour').toDate()
 
     // List all stripe active subscriptions and expand customer object
     const { data: subscriptions } = await stripe.subscriptions.list({
@@ -85,33 +81,27 @@ async function reportUsage(
         }
 
         // Query usage from OpenMeter for billing period
-        const resp = await openmeter.getValuesByMeterId(meterId, subject, from.toISOString(), to.toISOString(), WindowSize.HOUR)
+        // Change window size if you want to report hourly
+        const resp = await openmeter.getValuesByMeterId(meterId, subject, from.toISOString(), to.toISOString(), WindowSize.DAY)
 
-        // Sum usage windows
-        // TODO (pmarton): switch to OpenMeter aggregate API
-        const total = resp.data.reduce(
-            (total, { value }) => total + (value || 0),
-            0
-        )
+        // We asked for the whole day with window daily size so we will have only one usage record which is the total for that day
+        const total = resp.data[0]?.value
         if (total === undefined) {
             continue
         }
 
         // Report usage to Stripe
-        let reportingTimestamp: number | 'now' = moment(to).unix()
-        if (reportAll) {
-            reportingTimestamp = moment().unix()
-        }
         await stripe.subscriptionItems.createUsageRecord(
             item.id,
             {
                 quantity: total,
-                timestamp: reportingTimestamp,
+                timestamp: 'now',
                 action: 'set',
             },
             {
                 // Ensures we only report once even if scripts runs multiple times.
-                idempotencyKey: `${item.id}-${reportingTimestamp}`,
+                // In a real-app you want to turn this on
+                // idempotencyKey: `${item.id}-${moment(from).unix()}`,
             }
         )
 
@@ -130,8 +120,4 @@ function isCustomer(
         return true
     }
     return false
-}
-
-function isError(err: any): err is Error {
-    return err instanceof Error
 }
