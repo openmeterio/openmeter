@@ -45,6 +45,7 @@
               curl
               jq
               minikube
+              k6
             ];
 
             scripts = {
