@@ -6,6 +6,8 @@ services:
     command: openmeter --config /etc/openmeter/config.yaml
     hostname: openmeter
     container_name: openmeter
+    restart: always
+    pull_policy: always
     depends_on:
       ksqldb-server-healthcheck:
         condition: service_healthy
