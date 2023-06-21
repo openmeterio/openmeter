@@ -45,6 +45,8 @@
               curl
               jq
               minikube
+            ] ++ [
+              self'.packages.licensei
             ];
 
             scripts = {
