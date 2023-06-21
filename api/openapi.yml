@@ -132,6 +132,12 @@ paths:
                       $ref: "#/components/schemas/MeterValue"
                 required:
                   - data
+      default:
+        description: Unexpected error
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Error"
   /healthcheck:
     get:
       summary: Health check endpoint
@@ -140,6 +146,12 @@ paths:
     responses:
       "200":
         description: All checkers were in success
+    default:
+      description: Unexpected error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
 components:
   schemas:
     Error:
