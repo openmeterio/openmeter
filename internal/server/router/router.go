@@ -162,3 +162,13 @@ func (a *Router) GetValuesByMeterId(w http.ResponseWriter, r *http.Request, mete
 
 	_ = render.Render(w, r, api.ErrNotFound)
 }
+
+func (a *Router) Healthcheck(w http.ResponseWriter, r *http.Request) {
+	err := a.config.StreamingConnector.Healthcheck()
+	if err != nil {
+		_ = render.Render(w, r, api.ErrInternalServerError(err))
+		return
+	}
+
+	w.WriteHeader(200)
+}

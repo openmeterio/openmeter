@@ -15,6 +15,11 @@ services:
       - "8888:8888"
     volumes:
       - ./config.yaml:/etc/openmeter/config.yaml
+    healthcheck:
+      test: curl --fail http://openmeter:8888/healthcheck
+      interval: 5s
+      timeout: 5s
+      retries: 100
 
   ksqldb-server-healthcheck:
     image: alpine/curl:3.14

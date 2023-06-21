@@ -17,5 +17,6 @@ type Connector interface {
 	Close() error
 	Init(meter *models.Meter) error
 	GetValues(meter *models.Meter, params *GetValuesParams) ([]*models.MeterValue, error)
+	Healthcheck() error
 	// Add more methods as needed ...
 }

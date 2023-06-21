@@ -181,6 +181,20 @@ func (c *KafkaConnector) MeterAssert(data meterTableQueryData) error {
 	return nil
 }
 
+func (c *KafkaConnector) Healthcheck() error {
+	if c.KsqlDBClient == nil {
+		return fmt.Errorf("ksqldb client is not initialized yet")
+	}
+	status, err := c.KsqlDBClient.GetServerStatus()
+	if err != nil {
+		return err
+	}
+	if !*status.IsHealthy {
+		return fmt.Errorf("ksqldb server status is unhealthy")
+	}
+	return nil
+}
+
 func (c *KafkaConnector) Close() error {
 	if c.KsqlDBClient != nil {
 		c.KsqlDBClient.Close()
