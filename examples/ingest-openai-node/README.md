@@ -31,21 +31,21 @@ Open AI response:
 Report usage to OpenMeter:
 
 ```javascript
-await openmeter.ingestEvents(null, {
-  specversion: '1.0',
-  // We use Open AI response ID as idempotent key
-  id: data.id,
-  source: 'my-app',
-  type: 'openai',
-  subject: 'my-awesome-user-id',
-  // We use Open AI response date as event date
-  time: new Date(data.created * 1000).toISOString(),
-  data: {
-    total_tokens: data.usage.total_tokens,
-    prompt_tokens: data.usage.prompt_tokens,
-    completion_tokens: data.usage.completion_tokens,
-    model: data.model,
-  },
+await openmeter.ingestEvents({
+	specversion: '1.0',
+	// We use Open AI response ID as idempotent key
+	id: data.id,
+	source: 'my-app',
+	type: 'openai',
+	subject: 'my-awesome-user-id',
+	// We use Open AI response date as event date
+	time: new Date(data.created * 1000).toISOString(),
+	data: {
+		total_tokens: data.usage.total_tokens,
+		prompt_tokens: data.usage.prompt_tokens,
+		completion_tokens: data.usage.completion_tokens,
+		model: data.model,
+	},
 })
 ```
 
@@ -59,7 +59,3 @@ You can also run it as:
 npm install
 OPENAI_ORG=org-.. OPENAI_API_KEY=sk-... npm start
 ```
-
-## Scripts
-
-To regenerate the OpenMeter TypeScript client run `npm run typegen`.
