@@ -35,7 +35,7 @@ Ensure your OpenMeter runs. Check out the [quickstart guide](/quickstart) to see
 Run the following to report usage to Stripe:
 
 ```sh
-STRIPE_KEY=sk_test_... npm start
+STRIPE_KEY=sk_test_... REPORT_ALL=true npm start
 ```
 
 You should see the usage reported to Stripe as:
