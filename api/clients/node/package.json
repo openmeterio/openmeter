@@ -3,6 +3,11 @@
 	"version": "0.0.1",
 	"description": "Client for OpenMeter: Real-Time and Scalable Usage Metering",
 	"license": "Apache 2.0",
+	"homepage": "https://openmeter.io",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/openmeterio/openmeter.git"
+	},
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"type": "module",

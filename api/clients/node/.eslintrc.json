@@ -1,0 +1,54 @@
+{
+	"root": true,
+	"parserOptions": {
+		"ecmaVersion": 2022,
+		"sourceType": "module"
+	},
+	"parser": "@typescript-eslint/parser",
+	"plugins": ["@typescript-eslint", "require-extensions"],
+	"settings": {
+		"import/parsers": {
+			"@typescript-eslint/parser": ["", ".ts"]
+		},
+		"import/resolver": {
+			"typescript": {
+				"alwaysTryTypes": true
+			}
+		}
+	},
+	"extends": [
+		"prettier",
+		"eslint:recommended",
+		"plugin:import/recommended",
+		"plugin:require-extensions/recommended",
+		"plugin:compat/recommended",
+		"plugin:@typescript-eslint/recommended",
+		"plugin:vitest/recommended"
+	],
+	"rules": {
+		"indent": ["error", "tab"],
+		"no-mixed-spaces-and-tabs": "warn",
+		"no-prototype-builtins": "off",
+		"@typescript-eslint/no-namespace": "off",
+		"import/order": [
+			"error",
+			{
+				"groups": [
+					"builtin",
+					"external",
+					"internal",
+					"parent",
+					"sibling",
+					"index",
+					"object",
+					"type"
+				],
+				"newlines-between": "never",
+				"alphabetize": {
+					"order": "asc",
+					"caseInsensitive": true
+				}
+			}
+		]
+	}
+}

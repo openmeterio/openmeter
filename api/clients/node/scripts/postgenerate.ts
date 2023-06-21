@@ -27,6 +27,12 @@ async function walk(dir: PathLike) {
 			for (const c of removeComments) {
 				fileContent = fileContent.replace(c, '')
 			}
+			// TODO: generated code type output for succesfull response is incorrect
+			// For example it generates `CancelablePromise<Meter | Error>` instead of `CancelablePromise<Meter>
+			// The library behavior is correct and the promise throws in the case of error.
+			if (dirent.name === 'DefaultService.ts') {
+				fileContent = fileContent.replace(/ \| Error/g, '')
+			}
 			// write back
 			await fs.writeFile(p, fileContent)
 		}

@@ -1,0 +1,22 @@
+# dot-files (.env, .git, ...)
+
+# logs
+logs
+*.log
+npm-debug.log*
+
+# dependency directory
+# https://www.npmjs.org/doc/misc/npm-faq.html#should-i-check-my-node_modules-folder-into-git
+node_modules
+
+# editor
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# build
+dist/
+generated/
