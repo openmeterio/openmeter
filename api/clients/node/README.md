@@ -38,6 +38,8 @@ The OpenMeter SDK uses [openapi-typescript-codegen](https://www.npmjs.com/packag
 ### ingestEvents
 
 ```js
+import { type Event } from '@openmeter/sdk'
+
 const event: Event = {
  specversion: '1.0',
  id: 'id-1',
@@ -67,6 +69,8 @@ const meter = await openmeter.getMetersById('m1')
 ### getValuesByMeterId
 
 ```js
+import { type WindowSize } from '@openmeter/sdk'
+
 const meterId = 'm2'
 const subject = 'user-1'
 const from = new Date('2021-01-01').toISOString()
