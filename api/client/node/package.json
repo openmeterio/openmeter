@@ -18,7 +18,7 @@
 		"lint": "eslint . --ext .ts --format=pretty",
 		"format": "prettier --write .",
 		"build": "rimraf ./dist && tsc --build",
-		"generate": "rimraf ./generated && openapi -i ../../openapi.yml -o ./generated --name HttpService --client node",
+		"generate": "rimraf ./generated && openapi -i ../../openapi.yaml -o ./generated --name HttpService --client node",
 		"postgenerate": "ts-node-esm scripts/postgenerate.ts && eslint ./generated --ext .ts --format=pretty --fix && prettier --write ./generated",
 		"pretest": "npm run build",
 		"test": "vitest --run --threads=false",
