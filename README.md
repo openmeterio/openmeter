@@ -40,7 +40,7 @@ Currently, we offer the following Client SDKs:
 - [Node.js](/api/client/node)
 - [Go](/api/client/go)
 
-For languages where an SDK isn't available yet, we encourage using the [OpenAPI definition](/api/openapi.yaml). It can be utilized with the [OpenAPI Generator](https://openapi-generator.tech/) to generate your own client.
+For languages where an SDK isn't available yet, we encourage using the [OpenAPI definition](/api/openapi.yaml). We recommend using the [OpenAPI Generator](https://openapi-generator.tech/) to generate your own client.
 
 ## Development
 
