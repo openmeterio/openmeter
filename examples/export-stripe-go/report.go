@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	openmeter "github.com/openmeterio/openmeter/api"
+	openmeter "github.com/openmeterio/openmeter/api/client/go"
 	stripe "github.com/stripe/stripe-go/v74"
 	subscription "github.com/stripe/stripe-go/v74/subscription"
 	usagerecord "github.com/stripe/stripe-go/v74/usagerecord"
