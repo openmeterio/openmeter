@@ -27,3 +27,4 @@ jobs:
             release-note/dependency-update
             kind/refactor
             release-note/misc
+            kind/documentation
