@@ -1,17 +1,19 @@
-# OpenMeter
+<p align="center">
+  <a href="https://openmeter.io">
+    <img src="assets/logo.png" width="100" alt="OpenMeter logo" />
+  </a>
+
+  <h1 align="center">
+    OpenMeter
+  </h1>
+</p>
 
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/openmeterio/openmeter/ci.yaml?style=flat-square)](https://github.com/openmeterio/openmeter/actions/workflows/ci.yaml)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/openmeterio/openmeter/badge?style=flat-square)](https://api.securityscorecards.dev/projects/github.com/openmeterio/openmeter)
 
-<img src="assets/logo.png" width="100" alt="OpenMeter logo" />
-
-----
-
 OpenMeter is a Real-Time and Scalable Usage Metering for AI, Usage-Based Billing, Infrastructure, and IoT use-cases.
 
-Learn more about OpenMeter on [https://openmeter.io](https://openmeter.io).
-
-----
+Learn more about OpenMeter at [https://openmeter.io](https://openmeter.io).
 
 ## Quickstart
 
@@ -30,6 +32,15 @@ See our examples to learn about common OpenMeter use-cases.
 - [Metering OpenAI Chat GPT Usage](/examples/ingest-openai-node)
 - [Metering Kubernetes Pod Execution Time](/examples/ingest-kubernetes-pod-time-go)
 - [Usage Based Billing with Stripe](/examples/export-stripe-go)
+
+## Client SDKs
+
+Currently, we offer the following Client SDKs:
+
+- [Node.js](/api/client/node)
+- [Go](/api/client/go)
+
+For languages where an SDK isn't available yet, we encourage using the [OpenAPI definition](/api/openapi.yaml). It can be utilized with the [OpenAPI Generator](https://openapi-generator.tech/) to generate your own client.
 
 ## Development
 
