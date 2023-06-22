@@ -39,6 +39,11 @@ lint: ## Run linters
 	$(call print-target)
 	dagger run mage -d ci -w . lint
 
+.PHONY: license-check
+license-check: ## Run license check
+	licensei check
+	licensei header
+
 .PHONY: fmt
 fmt: ## Format code
 	$(call print-target)
