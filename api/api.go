@@ -12,5 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:generate oapi-codegen --config=codegen.yml ./openapi.yml
+//go:generate oapi-codegen --config=codegen.yaml ./openapi.yaml
 package api

@@ -21,7 +21,7 @@ import (
 
 	cloudevents "github.com/cloudevents/sdk-go/v2/event"
 	"github.com/google/uuid"
-	openmeter "github.com/openmeterio/openmeter/api"
+	openmeter "github.com/openmeterio/openmeter/api/client/go"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
