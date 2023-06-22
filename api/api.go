@@ -1,2 +1,2 @@
-//go:generate oapi-codegen --config=codegen.yml ./openapi.yml
+//go:generate oapi-codegen --config=codegen.yaml ./openapi.yaml
 package api
