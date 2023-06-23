@@ -13,10 +13,17 @@ paths:
       operationId: ingestEvents
       requestBody:
         required: true
-        content:
-          application/cloudevents+json:
-            schema:
-              $ref: "#/components/schemas/Event"
+            requestBody:
+              required: true
+              content:
+                application/cloudevents+json:
+                  schema:
+                    $ref: "#/components/schemas/Event"
+                application/cloudevents-batch+json:
+                  schema:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Event"
       responses:
         "200":
           description: OK
