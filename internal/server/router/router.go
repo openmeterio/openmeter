@@ -18,15 +18,21 @@ import (
 
 func init() {
 	// See https://github.com/getkin/kin-openapi/issues/640
-	openapi3filter.RegisterBodyDecoder("application/cloudevents+json", jsonBodyDecoder)
+  openapi3filter.RegisterBodyDecoder("application/cloudevents-batch+json", jsonBodyDecoder)
 }
 
 func jsonBodyDecoder(body io.Reader, header http.Header, schema *openapi3.SchemaRef, encFn openapi3filter.EncodingFn) (interface{}, error) {
 	var value interface{}
-	if err := json.NewDecoder(body).Decode(&value); err != nil {
+	if header.Get("Content-Type") == "application/cloudevents-batch+json" {
+		value = &[]interface{}{}
+	} else {
+		value = &interface{}{}
+	}
+	if err := json.NewDecoder(body).Decode(value); err != nil {
 		return nil, &openapi3filter.ParseError{Kind: openapi3filter.KindInvalidFormat, Cause: err}
 	}
 	return value, nil
+}
 }
 
 type Config struct {
@@ -49,7 +55,18 @@ func NewRouter(config Config) (*Router, error) {
 }
 
 func (a *Router) IngestEvents(w http.ResponseWriter, r *http.Request) {
-	a.config.IngestHandler.ServeHTTP(w, r)
+	if r.Header.Get("Content-Type") == "application/cloudevents-batch+json" {
+		var events []interface{}
+		if err := json.NewDecoder(r.Body).Decode(&events); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		for _, event := range events {
+			a.config.IngestHandler.ServeHTTP(w, r)
+		}
+	} else {
+		a.config.IngestHandler.ServeHTTP(w, r)
+	}
 }
 
 func (a *Router) GetMeters(w http.ResponseWriter, r *http.Request) {
