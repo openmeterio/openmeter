@@ -12,9 +12,9 @@ paths:
       description: Ingest events
       operationId: ingestEvents
       requestBody:
-        required: true
-            requestBody:
-              required: true
+    requestBody:
+      required: true
+      content:
               content:
                 application/cloudevents+json:
                   schema:
