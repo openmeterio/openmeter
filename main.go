@@ -207,6 +207,7 @@ func main() {
 		logger.Error("init ksqldb client: %w", err)
 		os.Exit(1)
 	}
+	defer ksqldbClient.Close()
 
 	slog.Debug("connected to KSQLDB")
 
@@ -222,7 +223,6 @@ func main() {
 		slog.Error("failed to create streaming connector", "error", err)
 		os.Exit(1)
 	}
-	defer connector.Close()
 
 	slog.Info("kafka connector successfully initialized")
 

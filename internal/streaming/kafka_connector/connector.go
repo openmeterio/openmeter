@@ -163,13 +163,6 @@ func (c *KafkaConnector) MeterAssert(data meterTableQueryData) error {
 	return nil
 }
 
-func (c *KafkaConnector) Close() error {
-	if c.KsqlDBClient != nil {
-		c.KsqlDBClient.Close()
-	}
-	return nil
-}
-
 func (c *KafkaConnector) GetValues(meter *models.Meter, params *GetValuesParams) ([]*models.MeterValue, error) {
 	q, err := GetTableValuesQuery(meter, params)
 	if err != nil {
