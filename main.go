@@ -10,6 +10,8 @@ import (
 	"runtime"
 	"syscall"
 
+	health "github.com/AppsFlyer/go-sundheit"
+	healthhttp "github.com/AppsFlyer/go-sundheit/http"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
 	"github.com/go-chi/chi/v5"
@@ -34,6 +36,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/server"
 	"github.com/openmeterio/openmeter/internal/server/router"
 	"github.com/openmeterio/openmeter/internal/streaming/kafka_connector"
+	"github.com/openmeterio/openmeter/pkg/gosundheit"
 )
 
 // TODO: inject logger in main
@@ -144,6 +147,19 @@ func main() {
 	otel.SetMeterProvider(meterProvider)
 
 	telemetryRouter.Handle("/metrics", promhttp.Handler())
+
+	// Configure health checker
+	healthChecker := health.New(health.WithCheckListeners(gosundheit.NewLogger(logger.With(slog.String("component", "healthcheck")))))
+	{
+		handler := healthhttp.HandleHealthJSON(healthChecker)
+		telemetryRouter.Handle("/healthz", handler)
+
+		// Kubernetes style health checks
+		telemetryRouter.HandleFunc("/healthz/live", func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = w.Write([]byte("ok"))
+		})
+		telemetryRouter.Handle("/healthz/ready", handler)
+	}
 
 	logger.Info("starting OpenMeter server", "config", config)
 

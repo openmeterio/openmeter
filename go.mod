@@ -3,6 +3,7 @@ module github.com/openmeterio/openmeter
 go 1.20
 
 require (
+	github.com/AppsFlyer/go-sundheit v0.5.0
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/cloudevents/sdk-go/v2 v2.14.0
 	github.com/deepmap/oapi-codegen v1.13.0
@@ -74,6 +75,7 @@ require (
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
 	github.com/perimeterx/marshmallow v1.1.4 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.4.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
