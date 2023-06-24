@@ -21,6 +21,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"github.com/thmeitz/ksqldb-go"
 	"github.com/thmeitz/ksqldb-go/net"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
@@ -198,12 +199,20 @@ func main() {
 		Schema:   schema,
 	}
 
+	ksqldbClient, err := ksqldb.NewClientWithOptions(net.Options{
+		BaseUrl:   config.Processor.KSQLDB.URL,
+		AllowHTTP: true,
+	})
+	if err != nil {
+		logger.Error("init ksqldb client: %w", err)
+		os.Exit(1)
+	}
+
+	slog.Debug("connected to KSQLDB")
+
 	// TODO: config file (https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md)
 	connector, err := kafka_connector.NewKafkaConnector(&kafka_connector.KafkaConnectorConfig{
-		KsqlDB: &net.Options{
-			BaseUrl:   config.Processor.KSQLDB.URL,
-			AllowHTTP: true,
-		},
+		KsqlDBClient:  ksqldbClient,
 		EventsTopic:   topic,
 		Partitions:    config.Ingest.Kafka.Partitions,
 		KeySchemaID:   keySchemaID,
