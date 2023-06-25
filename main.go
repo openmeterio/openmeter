@@ -9,6 +9,7 @@ import (
 	"os"
 	"runtime"
 	"syscall"
+	"time"
 
 	health "github.com/AppsFlyer/go-sundheit"
 	healthhttp "github.com/AppsFlyer/go-sundheit/http"
@@ -38,6 +39,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/server/router"
 	"github.com/openmeterio/openmeter/internal/streaming/kafka_connector"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
+	"github.com/openmeterio/openmeter/pkg/gosundheit/ksqldbcheck"
 )
 
 // TODO: inject logger in main
@@ -208,6 +210,16 @@ func main() {
 		os.Exit(1)
 	}
 	defer ksqldbClient.Close()
+
+	// Register KSQLDB health check
+	err = healthChecker.RegisterCheck(
+		ksqldbcheck.NewCheck("ksqldb", ksqldbClient),
+		health.ExecutionPeriod(5*time.Second),
+	)
+	if err != nil {
+		logger.Error("registering ksqldb health check: %w", err)
+		os.Exit(1)
+	}
 
 	slog.Debug("connected to KSQLDB")
 
