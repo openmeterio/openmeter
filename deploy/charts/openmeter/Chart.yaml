@@ -1,0 +1,31 @@
+apiVersion: v2
+name: openmeter
+description: A Helm chart for OpenMeter
+home: https://openmeter.io
+keywords:
+  - metering
+  - usage
+  - billing
+  - aggregation
+sources:
+  - https://github.com/openmeterio/openmeter
+type: application
+# Versions are expected to follow Semantic Versioning (https://semver.org/)
+version: 0.1.0
+# TODO (tothandras): update on release
+appVersion: "latest"
+dependencies:
+  - name: strimzi-kafka-operator
+    version: "0.35.1"
+    repository: "https://strimzi.io/charts/"
+    condition: kafka.enabled
+  - name: cp-schema-registry
+    alias: schemaregistry
+    version: "*"
+    repository: "file://../cp-helm-charts/charts/cp-schema-registry"
+    condition: schemaregistry.enabled
+  - name: cp-ksql-server
+    alias: ksql
+    version: "*"
+    repository: "file://../cp-helm-charts/charts/cp-ksql-server"
+    condition: ksql.enabled

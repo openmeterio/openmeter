@@ -1,0 +1,48 @@
+{{- if .Values.kafka.enabled -}}
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: {{ .Values.kafka.name }}
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    {{- include "openmeter.labels" . | nindent 4 }}
+spec:
+  kafka:
+    version: 3.4.0
+    replicas: 1
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+    config:
+      offsets.topic.replication.factor: 1
+      transaction.state.log.replication.factor: 1
+      transaction.state.log.min.isr: 1
+      default.replication.factor: 1
+      min.insync.replicas: 1
+      inter.broker.protocol.version: "3.4"
+    storage:
+      type: jbod
+      volumes:
+        - id: 0
+          type: persistent-claim
+          size: 10Gi
+          deleteClaim: true
+    template:
+      podDisruptionBudget:
+        maxUnavailable: 0
+  zookeeper:
+    replicas: 1
+    storage:
+      type: persistent-claim
+      size: 10Gi
+      deleteClaim: true
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+{{- end }}

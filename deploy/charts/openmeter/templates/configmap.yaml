@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "openmeter.fullname" . }}
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    {{- include "openmeter.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    address: 0.0.0.0:{{ .Values.service.port }}
+
+    telemetry:
+      address: 0.0.0.0:10000
+
+    ingest:
+      kafka:
+        broker: PLAINTEXT://{{ .Values.kafka.name }}-kafka-bootstrap:9092
+        schemaRegistry: http://{{ .Values.schemaregistry.fullnameOverride }}:8081
+
+    processor:
+      ksqldb:
+        url: http://{{ .Values.ksql.fullnameOverride }}:8088
+
+    log:
+      format: json
+      level: debug
+
+    meters:
+      {{ .Values.meters | toYaml | nindent 6 }}
