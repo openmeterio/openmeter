@@ -14,7 +14,6 @@ type GetValuesParams struct {
 }
 
 type Connector interface {
-	Close() error
 	Init(meter *models.Meter) error
 	GetValues(meter *models.Meter, params *GetValuesParams) ([]*models.MeterValue, error)
 	// Add more methods as needed ...

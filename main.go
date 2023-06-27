@@ -9,7 +9,10 @@ import (
 	"os"
 	"runtime"
 	"syscall"
+	"time"
 
+	health "github.com/AppsFlyer/go-sundheit"
+	healthhttp "github.com/AppsFlyer/go-sundheit/http"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
 	"github.com/go-chi/chi/v5"
@@ -19,6 +22,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"github.com/thmeitz/ksqldb-go"
 	"github.com/thmeitz/ksqldb-go/net"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
@@ -34,6 +38,8 @@ import (
 	"github.com/openmeterio/openmeter/internal/server"
 	"github.com/openmeterio/openmeter/internal/server/router"
 	"github.com/openmeterio/openmeter/internal/streaming/kafka_connector"
+	"github.com/openmeterio/openmeter/pkg/gosundheit"
+	"github.com/openmeterio/openmeter/pkg/gosundheit/ksqldbcheck"
 )
 
 // TODO: inject logger in main
@@ -145,6 +151,19 @@ func main() {
 
 	telemetryRouter.Handle("/metrics", promhttp.Handler())
 
+	// Configure health checker
+	healthChecker := health.New(health.WithCheckListeners(gosundheit.NewLogger(logger.With(slog.String("component", "healthcheck")))))
+	{
+		handler := healthhttp.HandleHealthJSON(healthChecker)
+		telemetryRouter.Handle("/healthz", handler)
+
+		// Kubernetes style health checks
+		telemetryRouter.HandleFunc("/healthz/live", func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = w.Write([]byte("ok"))
+		})
+		telemetryRouter.Handle("/healthz/ready", handler)
+	}
+
 	logger.Info("starting OpenMeter server", "config", config)
 
 	const topic = "om_events"
@@ -182,12 +201,31 @@ func main() {
 		Schema:   schema,
 	}
 
+	ksqldbClient, err := ksqldb.NewClientWithOptions(net.Options{
+		BaseUrl:   config.Processor.KSQLDB.URL,
+		AllowHTTP: true,
+	})
+	if err != nil {
+		logger.Error("init ksqldb client: %w", err)
+		os.Exit(1)
+	}
+	defer ksqldbClient.Close()
+
+	// Register KSQLDB health check
+	err = healthChecker.RegisterCheck(
+		ksqldbcheck.NewCheck("ksqldb", ksqldbClient),
+		health.ExecutionPeriod(5*time.Second),
+	)
+	if err != nil {
+		logger.Error("registering ksqldb health check: %w", err)
+		os.Exit(1)
+	}
+
+	slog.Debug("connected to KSQLDB")
+
 	// TODO: config file (https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md)
 	connector, err := kafka_connector.NewKafkaConnector(&kafka_connector.KafkaConnectorConfig{
-		KsqlDB: &net.Options{
-			BaseUrl:   config.Processor.KSQLDB.URL,
-			AllowHTTP: true,
-		},
+		KsqlDBClient:  ksqldbClient,
 		EventsTopic:   topic,
 		Partitions:    config.Ingest.Kafka.Partitions,
 		KeySchemaID:   keySchemaID,
@@ -197,7 +235,6 @@ func main() {
 		slog.Error("failed to create streaming connector", "error", err)
 		os.Exit(1)
 	}
-	defer connector.Close()
 
 	slog.Info("kafka connector successfully initialized")
 

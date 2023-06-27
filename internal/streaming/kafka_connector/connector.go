@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/thmeitz/ksqldb-go"
-	"github.com/thmeitz/ksqldb-go/net"
 	"golang.org/x/exp/slog"
 
 	. "github.com/openmeterio/openmeter/internal/streaming"
@@ -19,33 +18,16 @@ type KafkaConnector struct {
 }
 
 type KafkaConnectorConfig struct {
-	KsqlDB      *net.Options
-	EventsTopic string
-	Partitions  int
+	KsqlDBClient ksqldb.KsqldbClient
+	EventsTopic  string
+	Partitions   int
 
 	KeySchemaID   int
 	ValueSchemaID int
 }
 
 func NewKafkaConnector(config *KafkaConnectorConfig) (Connector, error) {
-	// Initialize KSQLDB Client
-	ksqldbClient, err := ksqldb.NewClientWithOptions(*config.KsqlDB)
-	if err != nil {
-		return nil, fmt.Errorf("init ksqldb client: %w", err)
-	}
-
-	i, err := ksqldbClient.GetServerInfo()
-	if err != nil {
-		return nil, fmt.Errorf("get ksqldb server info: %w", err)
-	}
-
-	slog.Debug(
-		"connected to ksqlDB",
-		"cluster", i.KafkaClusterID,
-		"service", i.KsqlServiceID,
-		"version", i.Version,
-		"status", i.ServerStatus,
-	)
+	ksqldbClient := config.KsqlDBClient
 
 	const detectedEventsTopic = "om_detected_events"
 
@@ -178,13 +160,6 @@ func (c *KafkaConnector) MeterAssert(data meterTableQueryData) error {
 		slog.Debug("ksqlDB meter assert", "exists", false)
 	}
 
-	return nil
-}
-
-func (c *KafkaConnector) Close() error {
-	if c.KsqlDBClient != nil {
-		c.KsqlDBClient.Close()
-	}
 	return nil
 }
 
