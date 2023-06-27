@@ -39,14 +39,17 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+            - name: telemetry-http
+              containerPort: 10000
+              protocol: TCP
           livenessProbe:
             httpGet:
-              path: /api/v1alpha1/meters
-              port: http
+              path: /healthz/live
+              port: telemetry-http
           readinessProbe:
             httpGet:
-              path: /api/v1alpha1/meters
-              port: http
+              path: /healthz/ready
+              port: telemetry-http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
