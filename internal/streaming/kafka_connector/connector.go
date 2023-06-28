@@ -61,7 +61,7 @@ func NewKafkaConnector(config *KafkaConnectorConfig) (Connector, error) {
 	}
 	slog.Debug("ksqlDB create detected stream query", "query", detectedEventsStreamQuery)
 
-	resp, err := ksqldbClient.Execute(ksqldb.ExecOptions{
+	resp, err := ksqldbClient.Execute(context.Background(), ksqldb.ExecOptions{
 		KSql: cloudEventsStreamQuery,
 	})
 	if err != nil {
@@ -69,7 +69,7 @@ func NewKafkaConnector(config *KafkaConnectorConfig) (Connector, error) {
 	}
 	slog.Debug("ksqlDB create event stream response", "response", resp)
 
-	resp, err = ksqldbClient.Execute(ksqldb.ExecOptions{
+	resp, err = ksqldbClient.Execute(context.Background(), ksqldb.ExecOptions{
 		KSql: detectedEventsTableQuery,
 	})
 	if err != nil {
@@ -77,7 +77,7 @@ func NewKafkaConnector(config *KafkaConnectorConfig) (Connector, error) {
 	}
 	slog.Debug("ksqlDB create detected table response", "response", resp)
 
-	resp, err = ksqldbClient.Execute(ksqldb.ExecOptions{
+	resp, err = ksqldbClient.Execute(context.Background(), ksqldb.ExecOptions{
 		KSql: detectedEventsStreamQuery,
 	})
 	if err != nil {
@@ -111,7 +111,7 @@ func (c *KafkaConnector) Init(meter *models.Meter) error {
 	}
 	slog.Debug("ksqlDB create table query", "query", q)
 
-	resp, err := c.KsqlDBClient.Execute(ksqldb.ExecOptions{
+	resp, err := c.KsqlDBClient.Execute(context.Background(), ksqldb.ExecOptions{
 		KSql: q,
 	})
 	if err != nil {
@@ -129,7 +129,7 @@ func (c *KafkaConnector) MeterAssert(data meterTableQueryData) error {
 		return fmt.Errorf("get table describe query: %w", err)
 	}
 
-	resp, err := c.KsqlDBClient.Execute(ksqldb.ExecOptions{
+	resp, err := c.KsqlDBClient.Execute(context.Background(), ksqldb.ExecOptions{
 		KSql: q,
 	})
 	if err != nil {
