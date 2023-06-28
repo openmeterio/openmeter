@@ -26,7 +26,7 @@ func (c check) Name() string {
 }
 
 func (c check) Execute(ctx context.Context) (details any, err error) {
-	status, err := c.client.GetServerStatus()
+	status, err := c.client.GetServerStatus(ctx)
 	if err != nil {
 		return details, err
 	}
