@@ -8,7 +8,7 @@ up: ## Start the dependencies via docker compose
 .PHONY: down
 down: ## Stop the dependencies via docker compose
 	$(call print-target)
-	docker compose down
+	docker compose down --remove-orphans --volumes
 
 .PHONY: generate
 generate: ## Generate code

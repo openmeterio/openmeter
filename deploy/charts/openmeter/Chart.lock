@@ -1,0 +1,12 @@
+dependencies:
+- name: strimzi-kafka-operator
+  repository: https://strimzi.io/charts/
+  version: 0.35.1
+- name: cp-schema-registry
+  repository: file://../cp-helm-charts/charts/cp-schema-registry
+  version: 0.1.0
+- name: cp-ksql-server
+  repository: file://../cp-helm-charts/charts/cp-ksql-server
+  version: 0.1.0
+digest: sha256:e66fd107e2d19002aa91671bfe8d30f45a8a54fcd3b1928bdb7a0acade497fe4
+generated: "2023-06-26T13:22:20.694373+02:00"
