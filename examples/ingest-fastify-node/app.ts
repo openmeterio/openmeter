@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto'
-import { OpenMeter } from '@openmeter/sdk'
-import fastify from 'fastify'
+import { OpenMeter, WindowSize } from '@openmeter/sdk'
+import fastify, { FastifyRequest } from 'fastify'
 import fastifyCookie from '@fastify/cookie'
 import fastifySession from '@fastify/session'
 
@@ -12,8 +12,20 @@ const server = fastify({
 server.register(fastifyCookie);
 server.register(fastifySession, { secret: 'a secret with minimum length of 32 characters' });
 
-server.get('/', async () => {
-    return 'hello root'
+// To make testing this example easier we list all the meter values for root request
+// This endpoint is not metered
+server.get('/', {
+    schema: {
+        querystring: {
+            subject: { type: 'string', nullable: true },
+            from: { type: 'string', format: 'date-time', nullable: true },
+            to: { type: 'string', format: 'date-time', nullable: true }
+        },
+    },
+    handler: async (req: FastifyRequest<{ Querystring: { subject?: string, from?: string, to?: string } }>) => {
+        const values = await openmeter.getValuesByMeterId('m1', req.query.subject, req.query.from, req.query.to, WindowSize.HOUR)
+        return values
+    }
 })
 
 // Metered APIs on /api

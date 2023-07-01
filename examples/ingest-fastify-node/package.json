@@ -7,6 +7,7 @@
     "scripts": {
         "lint": "prettier --write .",
         "start": "ts-node app.ts",
+        "dev": "nodemon app.ts",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "dependencies": {
@@ -18,6 +19,7 @@
         "typescript": "^5.0.4"
     },
     "devDependencies": {
+        "nodemon": "^2.0.22",
         "prettier": "^2.8.8"
     }
 }
