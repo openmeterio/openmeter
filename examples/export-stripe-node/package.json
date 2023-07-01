@@ -8,7 +8,6 @@
         "start": "TZ=utc ts-node app.ts",
         "setup": "ts-node setup.ts",
         "lint": "prettier --write .",
-        "typegen": "typegen ../../api/openapi.yaml > ./openapi.d.ts",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "dependencies": {
