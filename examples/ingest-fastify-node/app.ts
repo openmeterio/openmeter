@@ -5,7 +5,9 @@ import fastifyCookie from '@fastify/cookie'
 import fastifySession from '@fastify/session'
 
 const openmeter = new OpenMeter({ baseUrl: 'http://localhost:8888' })
-const server = fastify()
+const server = fastify({
+    logger: true
+})
 
 server.register(fastifyCookie);
 server.register(fastifySession, { secret: 'a secret with minimum length of 32 characters' });
@@ -50,12 +52,11 @@ server.register((instance, opts, next) => {
     next()
 }, { prefix: 'api' })
 
-server.listen({ port: 3000 }, (err, address) => {
+server.listen({ port: 3000 }, (err) => {
     if (err) {
         console.error(err)
         process.exit(1)
     }
-    console.log(`Server listening at ${address}`)
 })
 
 declare module "fastify" {

@@ -7,7 +7,6 @@
     "scripts": {
         "lint": "prettier --write .",
         "start": "ts-node app.ts",
-        "typegen": "typegen ../../api/openapi.yaml > ./openapi.d.ts",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "dependencies": {
