@@ -38,13 +38,13 @@ server.register((instance, opts, next) => {
             specversion: '1.0',
             id,
             source: 'my-app',
-            type: 'request',
+            type: 'api-calls',
             subject: request.session.user.id,
             time: new Date().toISOString(),
             data: {
                 method: request.method,
                 path: request.routerPath,
-                response_time: reply.getResponseTime().toString(),
+                duration_ms: reply.getResponseTime().toString(),
             },
         })
     })
