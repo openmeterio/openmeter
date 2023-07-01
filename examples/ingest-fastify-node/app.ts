@@ -1,8 +1,8 @@
+import { randomUUID } from 'crypto'
 import { OpenMeter } from '@openmeter/sdk'
 import fastify from 'fastify'
 import fastifyCookie from '@fastify/cookie'
 import fastifySession from '@fastify/session'
-import { v4 as uuidv4 } from 'uuid';
 
 const openmeter = new OpenMeter({ baseUrl: 'http://localhost:8888' })
 const server = fastify()
@@ -28,26 +28,23 @@ server.register((instance, opts, next) => {
     })
 
     // Execute metering
-    instance.addHook('onResponse', function (request, reply, done) {
+    instance.addHook('onResponse', async (request, reply) => {
         const reqId = request.headers['x-request-id']
-        const id = typeof reqId === 'string' ? reqId : uuidv4()
+        const id = typeof reqId === 'string' ? reqId : randomUUID()
 
-        openmeter
-            .ingestEvents({
-                specversion: '1.0',
-                id,
-                source: 'my-app',
-                type: 'request',
-                subject: request.session.user.id,
-                time: new Date().toISOString(),
-                data: {
-                    method: request.method,
-                    path: request.routerPath,
-                    response_time: reply.getResponseTime().toString(),
-                },
-            })
-            .catch((err) => done(err))
-            .then(() => done())
+        await openmeter.ingestEvents({
+            specversion: '1.0',
+            id,
+            source: 'my-app',
+            type: 'request',
+            subject: request.session.user.id,
+            time: new Date().toISOString(),
+            data: {
+                method: request.method,
+                path: request.routerPath,
+                response_time: reply.getResponseTime().toString(),
+            },
+        })
     })
 
     next()
