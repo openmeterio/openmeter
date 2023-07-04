@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -50,7 +51,7 @@ func TestHandler(t *testing.T) {
 	err := json.NewEncoder(&buf).Encode(ev)
 	require.NoError(t, err)
 
-	resp, err := client.Post(server.URL, "", &buf)
+	resp, err := client.Post(server.URL, "application/cloudevents+json", &buf)
 	require.NoError(t, err)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -63,4 +64,44 @@ func TestHandler(t *testing.T) {
 	assert.Equal(t, ev.Subject(), receivedEvent.Subject())
 	assert.Equal(t, ev.Source(), receivedEvent.Source())
 	assert.Equal(t, receivedEvent.Time(), ev.Time())
+}
+
+func TestBatchHandler(t *testing.T) {
+	collector := &inMemoryCollector{}
+	handler := Handler{
+		Collector: collector,
+	}
+	server := httptest.NewServer(handler)
+	client := server.Client()
+
+	var events []event.Event
+	for i := 1; i <= 10; i++ {
+		id := strconv.Itoa(i)
+
+		event := event.New()
+		event.SetID("id" + id)
+		event.SetSubject("sub" + id)
+		event.SetSource("test" + id)
+		events = append(events, event)
+	}
+
+	var buf bytes.Buffer
+
+	err := json.NewEncoder(&buf).Encode(events)
+	require.NoError(t, err)
+
+	resp, err := client.Post(server.URL, "application/cloudevents-batch+json", &buf)
+	require.NoError(t, err)
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	require.Len(t, collector.events, 10)
+
+	lastRecivedEvent := collector.events[len(collector.events) - 1]
+	comperableEvent := collector.events[len(collector.events) - 2]
+
+	assert.Equal(t, "id10", lastRecivedEvent.ID())
+	assert.Equal(t, "sub10", lastRecivedEvent.Subject())
+	assert.Equal(t, "test10", lastRecivedEvent.Source())
+	assert.NotEqual(t, comperableEvent.Time(), lastRecivedEvent.Time())
 }
