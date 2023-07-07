@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -166,19 +167,35 @@ func main() {
 
 	logger.Info("starting OpenMeter server", "config", config)
 
-	const topic = "om_events"
-
-	// Initialize schema
-	schemaRegistry, err := schemaregistry.NewClient(schemaregistry.NewConfig(config.Ingest.Kafka.SchemaRegistry))
+	// Initialize Schema Registry
+	schemaRegistryConfig := schemaregistry.NewConfig(config.SchemaRegistry.URL)
+	if config.SchemaRegistry.Username != "" || config.SchemaRegistry.Password != "" {
+		schemaRegistryConfig.BasicAuthCredentialsSource = "USER_INFO"
+		schemaRegistryConfig.BasicAuthUserInfo = fmt.Sprintf("%s:%s", config.SchemaRegistry.Username, config.SchemaRegistry.Password)
+	}
+	schemaRegistry, err := schemaregistry.NewClient(schemaRegistryConfig)
 	if err != nil {
 		logger.Error("init schema registry client: %v", err)
 		os.Exit(1)
 	}
 
 	// Initialize Kafka Producer
-	producer, err := kafka.NewProducer(&kafka.ConfigMap{
+	kafkaConfig := kafka.ConfigMap{
 		"bootstrap.servers": config.Ingest.Kafka.Broker,
-	})
+	}
+	if config.Ingest.Kafka.SecurityProtocol != "" {
+		kafkaConfig["security.protocol"] = config.Ingest.Kafka.SecurityProtocol
+	}
+	if config.Ingest.Kafka.SecurityProtocol != "" {
+		kafkaConfig["sasl.mechanism"] = config.Ingest.Kafka.SaslMechanisms
+	}
+	if config.Ingest.Kafka.SecurityProtocol != "" {
+		kafkaConfig["sasl.username"] = config.Ingest.Kafka.SaslUsername
+	}
+	if config.Ingest.Kafka.SecurityProtocol != "" {
+		kafkaConfig["sasl.password"] = config.Ingest.Kafka.SaslPassword
+	}
+	producer, err := kafka.NewProducer(&kafkaConfig)
 	if err != nil {
 		logger.Error("init Kafka producer: %v", err)
 		os.Exit(1)
@@ -189,6 +206,8 @@ func main() {
 
 	slog.Debug("connected to Kafka")
 
+	// Initialize events topic
+	const topic = "om_events"
 	schema, keySchemaID, valueSchemaID, err := kafkaingest.NewSchema(schemaRegistry, topic)
 	if err != nil {
 		logger.Error("init schema: %v", err)
@@ -201,10 +220,21 @@ func main() {
 		Schema:   schema,
 	}
 
-	ksqldbClient, err := ksqldb.NewClientWithOptions(net.Options{
+	// Initialize ksqlDB Client
+	ksqldbConfig := net.Options{
 		BaseUrl:   config.Processor.KSQLDB.URL,
 		AllowHTTP: true,
-	})
+	}
+	if strings.HasPrefix(config.Processor.KSQLDB.URL, "https://") {
+		ksqldbConfig.AllowHTTP = false
+	}
+	if config.Processor.KSQLDB.Username != "" || config.Processor.KSQLDB.Password != "" {
+		ksqldbConfig.Credentials = net.Credentials{
+			Username: config.Processor.KSQLDB.Username,
+			Password: config.Processor.KSQLDB.Password,
+		}
+	}
+	ksqldbClient, err := ksqldb.NewClientWithOptions(ksqldbConfig)
 	if err != nil {
 		logger.Error("init ksqldb client: %w", err)
 		os.Exit(1)
