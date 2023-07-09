@@ -63,6 +63,8 @@ func toCloudEventsKafkaPayload(ev event.Event) (*cloudEventsKafkaPayload, error)
 		Time:    ev.Time().String(),
 	}
 
+	// We try to parse data as JSON.
+	// CloudEvents data can be other than JSON but currently only support JSON data.
 	err := json.Unmarshal(ev.Data(), &payload.Data)
 	if err != nil {
 		return nil, err
