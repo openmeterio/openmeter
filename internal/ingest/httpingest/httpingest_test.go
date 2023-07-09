@@ -15,12 +15,12 @@ import (
 )
 
 type inMemoryCollector struct {
-	events []event.Event
+	events []*event.Event
 
 	mu sync.Mutex
 }
 
-func (s *inMemoryCollector) Receive(event event.Event) error {
+func (s *inMemoryCollector) Receive(event *event.Event) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

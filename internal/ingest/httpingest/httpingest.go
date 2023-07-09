@@ -1,7 +1,6 @@
 package httpingest
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -10,6 +9,8 @@ import (
 	"golang.org/x/exp/slog"
 
 	"github.com/openmeterio/openmeter/api"
+
+	cloudevents "github.com/cloudevents/sdk-go/v2"
 )
 
 // Handler receives an event in CloudEvents format and forwards it to a {Collector}.
@@ -21,15 +22,13 @@ type Handler struct {
 
 // Collector is a receiver of events that handles sending those events to some downstream broker.
 type Collector interface {
-	Receive(ev event.Event) error
+	Receive(ev *event.Event) error
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := h.getLogger()
 
-	var event event.Event
-
-	err := json.NewDecoder(r.Body).Decode(&event)
+	event, err := cloudevents.NewEventFromHTTPRequest(r)
 	if err != nil {
 		logger.ErrorCtx(r.Context(), "unable to parse event", "error", err)
 

@@ -16,11 +16,11 @@ type Collector struct {
 
 // Schema serializes events.
 type Schema interface {
-	SerializeKey(topic string, ev event.Event) ([]byte, error)
-	SerializeValue(topic string, ev event.Event) ([]byte, error)
+	SerializeKey(topic string, ev *event.Event) ([]byte, error)
+	SerializeValue(topic string, ev *event.Event) ([]byte, error)
 }
 
-func (s Collector) Receive(ev event.Event) error {
+func (s Collector) Receive(ev *event.Event) error {
 	key, err := s.Schema.SerializeKey(s.Topic, ev)
 	if err != nil {
 		return fmt.Errorf("serialize event key: %w", err)

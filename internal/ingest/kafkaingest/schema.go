@@ -41,7 +41,7 @@ func NewSchema(schemaRegistry schemaregistry.Client, topic string) (Schema, int,
 	}, keySerializer.Conf.UseSchemaID, valueSerializer.Conf.UseSchemaID, nil
 }
 
-func (s schema) SerializeKey(topic string, ev event.Event) ([]byte, error) {
+func (s schema) SerializeKey(topic string, ev *event.Event) ([]byte, error) {
 	return s.keySerializer.Serialize(topic, ev.Subject())
 }
 
@@ -71,7 +71,7 @@ func toCloudEventsKafkaPayload(ev *event.Event) (*cloudEventsKafkaPayload, error
 	return payload, nil
 }
 
-func (s schema) SerializeValue(topic string, ev event.Event) ([]byte, error) {
+func (s schema) SerializeValue(topic string, ev *event.Event) ([]byte, error) {
 	value, err := toCloudEventsKafkaPayload(ev)
 	if err != nil {
 		return nil, err
