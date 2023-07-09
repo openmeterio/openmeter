@@ -2,6 +2,7 @@ package kafkaingest
 
 import (
 	_ "embed"
+	"encoding/json"
 	"fmt"
 
 	"github.com/cloudevents/sdk-go/v2/event"
@@ -45,27 +46,38 @@ func (s schema) SerializeKey(topic string, ev event.Event) ([]byte, error) {
 }
 
 type cloudEventsKafkaPayload struct {
-	Id      string `json:"ID"`
-	Type    string `json:"TYPE"`
-	Source  string `json:"SOURCE"`
-	Subject string `json:"SUBJECT"`
-	Time    string `json:"TIME"`
-	Data    string `json:"DATA"`
+	Id      string      `json:"ID"`
+	Type    string      `json:"TYPE"`
+	Source  string      `json:"SOURCE"`
+	Subject string      `json:"SUBJECT"`
+	Time    string      `json:"TIME"`
+	Data    interface{} `json:"DATA"`
 }
 
-func toCloudEventsKafkaPayload(ev event.Event) cloudEventsKafkaPayload {
-	return cloudEventsKafkaPayload{
+func toCloudEventsKafkaPayload(ev *event.Event) (*cloudEventsKafkaPayload, error) {
+	payload := &cloudEventsKafkaPayload{
 		Id:      ev.ID(),
 		Type:    ev.Type(),
 		Source:  ev.Source(),
 		Subject: ev.Subject(),
 		Time:    ev.Time().String(),
-		Data:    string(ev.Data()),
 	}
+
+	err := json.Unmarshal(ev.Data(), &payload.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	return payload, nil
 }
 
 func (s schema) SerializeValue(topic string, ev event.Event) ([]byte, error) {
-	return s.valueSerializer.Serialize(topic, toCloudEventsKafkaPayload(ev))
+	value, err := toCloudEventsKafkaPayload(ev)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.valueSerializer.Serialize(topic, value)
 }
 
 // Registers schema with Registry and returns configured serializer
