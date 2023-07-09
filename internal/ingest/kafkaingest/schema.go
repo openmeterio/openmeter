@@ -2,6 +2,7 @@ package kafkaingest
 
 import (
 	_ "embed"
+	"encoding/json"
 	"fmt"
 
 	"github.com/cloudevents/sdk-go/v2/event"
@@ -53,19 +54,42 @@ type cloudEventsKafkaPayload struct {
 	Data    string `json:"DATA"`
 }
 
-func toCloudEventsKafkaPayload(ev event.Event) cloudEventsKafkaPayload {
-	return cloudEventsKafkaPayload{
+func toCloudEventsKafkaPayload(ev event.Event) (cloudEventsKafkaPayload, error) {
+	payload := cloudEventsKafkaPayload{
 		Id:      ev.ID(),
 		Type:    ev.Type(),
 		Source:  ev.Source(),
 		Subject: ev.Subject(),
 		Time:    ev.Time().String(),
-		Data:    string(ev.Data()),
 	}
+
+	// We try to parse data as JSON.
+	// CloudEvents data can be other than JSON but currently only support JSON data.
+	var data interface{}
+	err := json.Unmarshal(ev.Data(), &data)
+	if err != nil {
+		return payload, err
+	}
+
+	// We use JSON Path in stream processing so we convert it back to string
+	// Converting JSON back and forth is wasteful but this way we can validate
+	// that data is a valid JSON and clean whitespaces and newlines from data.
+	dataBytes, err := json.Marshal(data)
+	if err != nil {
+		return payload, err
+	}
+	payload.Data = string(dataBytes)
+
+	return payload, nil
 }
 
 func (s schema) SerializeValue(topic string, ev event.Event) ([]byte, error) {
-	return s.valueSerializer.Serialize(topic, toCloudEventsKafkaPayload(ev))
+	value, err := toCloudEventsKafkaPayload(ev)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.valueSerializer.Serialize(topic, value)
 }
 
 // Registers schema with Registry and returns configured serializer
