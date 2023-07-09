@@ -54,7 +54,7 @@ type cloudEventsKafkaPayload struct {
 	Data    interface{} `json:"DATA"`
 }
 
-func toCloudEventsKafkaPayload(ev *event.Event) (*cloudEventsKafkaPayload, error) {
+func toCloudEventsKafkaPayload(ev event.Event) (*cloudEventsKafkaPayload, error) {
 	payload := &cloudEventsKafkaPayload{
 		Id:      ev.ID(),
 		Type:    ev.Type(),
