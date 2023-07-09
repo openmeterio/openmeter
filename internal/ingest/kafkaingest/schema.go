@@ -46,12 +46,12 @@ func (s schema) SerializeKey(topic string, ev event.Event) ([]byte, error) {
 }
 
 type cloudEventsKafkaPayload struct {
-	Id      string      `json:"ID"`
-	Type    string      `json:"TYPE"`
-	Source  string      `json:"SOURCE"`
-	Subject string      `json:"SUBJECT"`
-	Time    string      `json:"TIME"`
-	Data    interface{} `json:"DATA"`
+	Id      string `json:"ID"`
+	Type    string `json:"TYPE"`
+	Source  string `json:"SOURCE"`
+	Subject string `json:"SUBJECT"`
+	Time    string `json:"TIME"`
+	Data    string `json:"DATA"`
 }
 
 func toCloudEventsKafkaPayload(ev event.Event) (cloudEventsKafkaPayload, error) {
@@ -65,10 +65,20 @@ func toCloudEventsKafkaPayload(ev event.Event) (cloudEventsKafkaPayload, error) 
 
 	// We try to parse data as JSON.
 	// CloudEvents data can be other than JSON but currently only support JSON data.
-	err := json.Unmarshal(ev.Data(), &payload.Data)
+	var data interface{}
+	err := json.Unmarshal(ev.Data(), &data)
 	if err != nil {
 		return payload, err
 	}
+
+	// We use JSON Path in stream processing so we convert it back to string
+	// Converting JSON back and forth is wasteful but this way we can validate
+	// that data is a valid JSON and clean whitespaces and newlines from data.
+	dataBytes, err := json.Marshal(data)
+	if err != nil {
+		return payload, err
+	}
+	payload.Data = string(dataBytes)
 
 	return payload, nil
 }
