@@ -54,8 +54,8 @@ type cloudEventsKafkaPayload struct {
 	Data    interface{} `json:"DATA"`
 }
 
-func toCloudEventsKafkaPayload(ev event.Event) (*cloudEventsKafkaPayload, error) {
-	payload := &cloudEventsKafkaPayload{
+func toCloudEventsKafkaPayload(ev event.Event) (cloudEventsKafkaPayload, error) {
+	payload := cloudEventsKafkaPayload{
 		Id:      ev.ID(),
 		Type:    ev.Type(),
 		Source:  ev.Source(),
@@ -67,7 +67,7 @@ func toCloudEventsKafkaPayload(ev event.Event) (*cloudEventsKafkaPayload, error)
 	// CloudEvents data can be other than JSON but currently only support JSON data.
 	err := json.Unmarshal(ev.Data(), &payload.Data)
 	if err != nil {
-		return nil, err
+		return payload, err
 	}
 
 	return payload, nil
