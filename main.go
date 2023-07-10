@@ -165,7 +165,13 @@ func main() {
 		telemetryRouter.Handle("/healthz/ready", handler)
 	}
 
-	logger.Info("starting OpenMeter server", "config", config)
+	logger.Info("starting OpenMeter server", "config", map[string]string{
+		"address":              config.Address,
+		"telemetry.address":    config.Telemetry.Address,
+		"ingest.kafka.broker":  config.Ingest.Kafka.Broker,
+		"processor.ksqldb.url": config.Processor.KSQLDB.URL,
+		"schemaRegistry.url":   config.SchemaRegistry.URL,
+	})
 
 	// Initialize Schema Registry
 	schemaRegistryConfig := schemaregistry.NewConfig(config.SchemaRegistry.URL)
