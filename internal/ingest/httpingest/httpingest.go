@@ -3,6 +3,7 @@ package httpingest
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
@@ -17,8 +18,7 @@ import (
 type Handler struct {
 	Collector Collector
 
-	Logger  *slog.Logger
-	Context context.Context
+	Logger *slog.Logger
 }
 
 // Collector is a receiver of events that handles sending those events to some downstream broker.
@@ -28,24 +28,23 @@ type Collector interface {
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := h.getLogger()
-	h.Context = r.Context()
 
 	contentType := r.Header.Get("Content-Type")
 
-	if contentType == "application/cloudevents-batch+json" {
-		err := h.processBatchRequest(w, r)
-		if err != nil {
-			logger.ErrorCtx(h.Context, "unable to process batch request", "error", err)
-			_ = render.Render(w, r, api.ErrInternalServerError(err))
-			return
-		}
-	} else {
-		err := h.processSingleRequest(w, r)
-		if err != nil {
-			logger.ErrorCtx(h.Context, "unable to process single request", "error", err)
-			_ = render.Render(w, r, api.ErrInternalServerError(err))
-			return
-		}
+	var err error
+	switch contentType {
+	case "application/cloudevents+json":
+		err = h.processSingleRequest(w, r)
+	case "application/cloudevents-batch+json":
+		err = h.processBatchRequest(w, r)
+	default:
+		_ = render.Render(w, r, api.ErrUnsupportedMediaType(errors.New("content type must be application/cloudevents+json or application/cloudevents-batch+json")))
+	}
+
+	if err != nil {
+		logger.ErrorCtx(r.Context(), "unable to process request", "error", err)
+		_ = render.Render(w, r, api.ErrInternalServerError(err))
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -60,7 +59,7 @@ func (h Handler) processBatchRequest(w http.ResponseWriter, r *http.Request) err
 	}
 
 	for _, event := range events {
-		err = h.processEvent(event)
+		err = h.processEvent(r.Context(), event)
 		if err != nil {
 			return err
 		}
@@ -77,7 +76,7 @@ func (h Handler) processSingleRequest(w http.ResponseWriter, r *http.Request) er
 		return err
 	}
 
-	err = h.processEvent(event)
+	err = h.processEvent(r.Context(), event)
 	if err != nil {
 		return err
 	}
@@ -85,7 +84,7 @@ func (h Handler) processSingleRequest(w http.ResponseWriter, r *http.Request) er
 	return nil
 }
 
-func (h Handler) processEvent(event event.Event) error {
+func (h Handler) processEvent(context context.Context, event event.Event) error {
 	logger := h.getLogger()
 
 	logger = logger.With(
@@ -95,7 +94,7 @@ func (h Handler) processEvent(event event.Event) error {
 	)
 
 	if event.Time().IsZero() {
-		logger.DebugCtx(h.Context, "event does not have a timestamp")
+		logger.DebugCtx(context, "event does not have a timestamp")
 		event.SetTime(time.Now().UTC())
 	}
 
@@ -104,7 +103,7 @@ func (h Handler) processEvent(event event.Event) error {
 		return err
 	}
 
-	logger.InfoCtx(h.Context, "event forwarded to downstream collector")
+	logger.InfoCtx(context, "event forwarded to downstream collector")
 	return nil
 }
 

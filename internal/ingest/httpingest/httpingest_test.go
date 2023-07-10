@@ -3,6 +3,7 @@ package httpingest
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -79,9 +80,9 @@ func TestBatchHandler(t *testing.T) {
 		id := strconv.Itoa(i)
 
 		event := event.New()
-		event.SetID("id" + id)
-		event.SetSubject("sub" + id)
-		event.SetSource("test" + id)
+		event.SetID(fmt.Sprintf("id%s", id))
+		event.SetSubject(fmt.Sprintf("sub%s", id))
+		event.SetSource(fmt.Sprintf("test%s", id))
 		events = append(events, event)
 	}
 
@@ -97,8 +98,8 @@ func TestBatchHandler(t *testing.T) {
 
 	require.Len(t, collector.events, 10)
 
-	lastRecivedEvent := collector.events[len(collector.events) - 1]
-	comperableEvent := collector.events[len(collector.events) - 2]
+	lastRecivedEvent := collector.events[len(collector.events)-1]
+	comperableEvent := collector.events[len(collector.events)-2]
 
 	assert.Equal(t, "id10", lastRecivedEvent.ID())
 	assert.Equal(t, "sub10", lastRecivedEvent.Subject())
