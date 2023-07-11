@@ -29,16 +29,28 @@ type configuration struct {
 	// Ingest configuration
 	Ingest struct {
 		Kafka struct {
-			Broker         string
-			Partitions     int
-			SchemaRegistry string
+			Broker           string
+			SecurityProtocol string
+			SaslMechanisms   string
+			SaslUsername     string
+			SaslPassword     string
+			Partitions       int
 		}
+	}
+
+	// SchemaRegistry configuration
+	SchemaRegistry struct {
+		URL      string
+		Username string
+		Password string
 	}
 
 	// Processor configuration
 	Processor struct {
 		KSQLDB struct {
-			URL string
+			URL      string
+			Username string
+			Password string
 		}
 	}
 
@@ -55,7 +67,7 @@ func (c configuration) Validate() error {
 		return errors.New("kafka broker is required")
 	}
 
-	if c.Ingest.Kafka.SchemaRegistry == "" {
+	if c.SchemaRegistry.URL == "" {
 		return errors.New("schema registry URL is required")
 	}
 
@@ -137,10 +149,20 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 
 	// Ingest configuration
 	v.SetDefault("ingest.kafka.broker", "127.0.0.1:29092")
+	v.SetDefault("ingest.kafka.securityProtocol", "")
+	v.SetDefault("ingest.kafka.saslMechanisms", "")
+	v.SetDefault("ingest.kafka.saslUsername", "")
+	v.SetDefault("ingest.kafka.saslPassword", "")
 	// TODO: default to 100 in prod
 	v.SetDefault("ingest.kafka.partitions", 1)
-	v.SetDefault("ingest.kafka.schemaRegistry", "http://127.0.0.1:8081")
+
+	// Schema Registry configuration
+	v.SetDefault("schemaRegistry.url", "http://127.0.0.1:8081")
+	v.SetDefault("schemaRegistry.username", "")
+	v.SetDefault("schemaRegistry.password", "")
 
 	// kSQL configuration
 	v.SetDefault("processor.ksqldb.url", "http://127.0.0.1:8088")
+	v.SetDefault("processor.ksqldb.username", "")
+	v.SetDefault("processor.ksqldb.password", "")
 }
