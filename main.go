@@ -172,22 +172,7 @@ func main() {
 	}
 
 	// Initialize Kafka Producer
-	kafkaConfig := kafka.ConfigMap{
-		"bootstrap.servers": config.Ingest.Kafka.Broker,
-	}
-	if config.Ingest.Kafka.SecurityProtocol != "" {
-		kafkaConfig["security.protocol"] = config.Ingest.Kafka.SecurityProtocol
-	}
-	if config.Ingest.Kafka.SecurityProtocol != "" {
-		kafkaConfig["sasl.mechanism"] = config.Ingest.Kafka.SaslMechanisms
-	}
-	if config.Ingest.Kafka.SecurityProtocol != "" {
-		kafkaConfig["sasl.username"] = config.Ingest.Kafka.SaslUsername
-	}
-	if config.Ingest.Kafka.SecurityProtocol != "" {
-		kafkaConfig["sasl.password"] = config.Ingest.Kafka.SaslPassword
-	}
-	producer, err := kafka.NewProducer(&kafkaConfig)
+	producer, err := kafka.NewProducer(config.Ingest.Kafka.CreateKafkaConfig())
 	if err != nil {
 		logger.Error("init Kafka producer: %v", err)
 		os.Exit(1)

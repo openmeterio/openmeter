@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slices"
@@ -28,14 +29,7 @@ type configuration struct {
 
 	// Ingest configuration
 	Ingest struct {
-		Kafka struct {
-			Broker           string
-			SecurityProtocol string
-			SaslMechanisms   string
-			SaslUsername     string
-			SaslPassword     string
-			Partitions       int
-		}
+		Kafka ingestKafkaConfiguration
 	}
 
 	// SchemaRegistry configuration
@@ -63,8 +57,8 @@ func (c configuration) Validate() error {
 		return errors.New("server address is required")
 	}
 
-	if c.Ingest.Kafka.Broker == "" {
-		return errors.New("kafka broker is required")
+	if err := c.Ingest.Kafka.Validate(); err != nil {
+		return err
 	}
 
 	if c.SchemaRegistry.URL == "" {
@@ -95,6 +89,65 @@ func (c configuration) Validate() error {
 
 		if err := m.Validate(); err != nil {
 			return err
+		}
+	}
+
+	return nil
+}
+
+type ingestKafkaConfiguration struct {
+	Broker           string
+	SecurityProtocol string
+	SaslMechanisms   string
+	SaslUsername     string
+	SaslPassword     string
+	Partitions       int
+}
+
+// CreateKafkaConfig creates a Kafka config map.
+func (c ingestKafkaConfiguration) CreateKafkaConfig() *kafka.ConfigMap {
+	config := kafka.ConfigMap{
+		"bootstrap.servers": c.Broker,
+	}
+
+	// TODO(hekike): is this really how it works? Looks like a copy-paste error at first.
+	if c.SecurityProtocol != "" {
+		config["security.protocol"] = c.SecurityProtocol
+	}
+
+	if c.SecurityProtocol != "" {
+		config["sasl.mechanism"] = c.SaslMechanisms
+	}
+
+	if c.SecurityProtocol != "" {
+		config["sasl.username"] = c.SaslUsername
+	}
+
+	if c.SecurityProtocol != "" {
+		config["sasl.password"] = c.SaslPassword
+	}
+
+	return &config
+}
+
+// Validate validates the configuration.
+func (c ingestKafkaConfiguration) Validate() error {
+	if c.Broker == "" {
+		return errors.New("kafka broker is required")
+	}
+
+	// TODO(hekike): is this really how it works?
+	if c.SecurityProtocol != "" {
+		if c.SaslMechanisms == "" {
+			return errors.New("kafka sasl mechanisms is required")
+		}
+
+		if c.SaslUsername == "" {
+			return errors.New("kafka sasl username is required")
+		}
+
+		if c.SaslPassword == "" {
+			return errors.New("kafka sasl password is required")
 		}
 	}
 
