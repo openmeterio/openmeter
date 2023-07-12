@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"runtime"
-	"strings"
 	"syscall"
 	"time"
 
@@ -24,7 +23,6 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/thmeitz/ksqldb-go"
-	"github.com/thmeitz/ksqldb-go/net"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/prometheus"
@@ -42,20 +40,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	"github.com/openmeterio/openmeter/pkg/gosundheit/ksqldbcheck"
 )
-
-// TODO: inject logger in main
-func init() {
-	var logger *slog.Logger
-	// TODO NO_COLOR
-	if os.Getenv("LOG_FORMAT") == "json" {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	} else {
-		logger = slog.New(tint.NewHandler(os.Stdout, &tint.Options{
-			Level: slog.LevelDebug,
-		}))
-	}
-	slog.SetDefault(logger)
-}
 
 func main() {
 	v, flags := viper.New(), pflag.NewFlagSet("Open Meter", pflag.ExitOnError)
@@ -186,22 +170,7 @@ func main() {
 	}
 
 	// Initialize Kafka Producer
-	kafkaConfig := kafka.ConfigMap{
-		"bootstrap.servers": config.Ingest.Kafka.Broker,
-	}
-	if config.Ingest.Kafka.SecurityProtocol != "" {
-		kafkaConfig["security.protocol"] = config.Ingest.Kafka.SecurityProtocol
-	}
-	if config.Ingest.Kafka.SecurityProtocol != "" {
-		kafkaConfig["sasl.mechanism"] = config.Ingest.Kafka.SaslMechanisms
-	}
-	if config.Ingest.Kafka.SecurityProtocol != "" {
-		kafkaConfig["sasl.username"] = config.Ingest.Kafka.SaslUsername
-	}
-	if config.Ingest.Kafka.SecurityProtocol != "" {
-		kafkaConfig["sasl.password"] = config.Ingest.Kafka.SaslPassword
-	}
-	producer, err := kafka.NewProducer(&kafkaConfig)
+	producer, err := kafka.NewProducer(config.Ingest.Kafka.CreateKafkaConfig())
 	if err != nil {
 		logger.Error("init Kafka producer: %v", err)
 		os.Exit(1)
@@ -227,20 +196,7 @@ func main() {
 	}
 
 	// Initialize ksqlDB Client
-	ksqldbConfig := net.Options{
-		BaseUrl:   config.Processor.KSQLDB.URL,
-		AllowHTTP: true,
-	}
-	if strings.HasPrefix(config.Processor.KSQLDB.URL, "https://") {
-		ksqldbConfig.AllowHTTP = false
-	}
-	if config.Processor.KSQLDB.Username != "" || config.Processor.KSQLDB.Password != "" {
-		ksqldbConfig.Credentials = net.Credentials{
-			Username: config.Processor.KSQLDB.Username,
-			Password: config.Processor.KSQLDB.Password,
-		}
-	}
-	ksqldbClient, err := ksqldb.NewClientWithOptions(ksqldbConfig)
+	ksqldbClient, err := ksqldb.NewClientWithOptions(config.Processor.KSQLDB.CreateKSQLDBConfig())
 	if err != nil {
 		logger.Error("init ksqldb client: %w", err)
 		os.Exit(1)
@@ -306,7 +262,6 @@ func main() {
 			})
 		},
 	})
-
 	if err != nil {
 		slog.Error("failed to create server", "error", err)
 		os.Exit(1)

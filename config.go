@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"github.com/thmeitz/ksqldb-go/net"
 	"golang.org/x/exp/slices"
 
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -28,14 +30,7 @@ type configuration struct {
 
 	// Ingest configuration
 	Ingest struct {
-		Kafka struct {
-			Broker           string
-			SecurityProtocol string
-			SaslMechanisms   string
-			SaslUsername     string
-			SaslPassword     string
-			Partitions       int
-		}
+		Kafka ingestKafkaConfiguration
 	}
 
 	// SchemaRegistry configuration
@@ -47,11 +42,7 @@ type configuration struct {
 
 	// Processor configuration
 	Processor struct {
-		KSQLDB struct {
-			URL      string
-			Username string
-			Password string
-		}
+		KSQLDB processorKSQLDBConfiguration
 	}
 
 	Meters []*models.Meter
@@ -63,16 +54,16 @@ func (c configuration) Validate() error {
 		return errors.New("server address is required")
 	}
 
-	if c.Ingest.Kafka.Broker == "" {
-		return errors.New("kafka broker is required")
+	if err := c.Ingest.Kafka.Validate(); err != nil {
+		return err
 	}
 
 	if c.SchemaRegistry.URL == "" {
 		return errors.New("schema registry URL is required")
 	}
 
-	if c.Processor.KSQLDB.URL == "" {
-		return errors.New("ksqldb URL is required")
+	if err := c.Processor.KSQLDB.Validate(); err != nil {
+		return err
 	}
 
 	if err := c.Log.Validate(); err != nil {
@@ -96,6 +87,85 @@ func (c configuration) Validate() error {
 		if err := m.Validate(); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+type ingestKafkaConfiguration struct {
+	Broker           string
+	SecurityProtocol string
+	SaslMechanisms   string
+	SaslUsername     string
+	SaslPassword     string
+	Partitions       int
+}
+
+// CreateKafkaConfig creates a Kafka config map.
+func (c ingestKafkaConfiguration) CreateKafkaConfig() *kafka.ConfigMap {
+	config := kafka.ConfigMap{
+		"bootstrap.servers": c.Broker,
+	}
+
+	if c.SecurityProtocol != "" {
+		config["security.protocol"] = c.SecurityProtocol
+	}
+
+	if c.SaslMechanisms != "" {
+		config["sasl.mechanism"] = c.SaslMechanisms
+	}
+
+	if c.SaslUsername != "" {
+		config["sasl.username"] = c.SaslUsername
+	}
+
+	if c.SaslPassword != "" {
+		config["sasl.password"] = c.SaslPassword
+	}
+
+	return &config
+}
+
+// Validate validates the configuration.
+func (c ingestKafkaConfiguration) Validate() error {
+	if c.Broker == "" {
+		return errors.New("kafka broker is required")
+	}
+
+	return nil
+}
+
+type processorKSQLDBConfiguration struct {
+	URL      string
+	Username string
+	Password string
+}
+
+// CreateKafkaConfig creates a Kafka config map.
+func (c processorKSQLDBConfiguration) CreateKSQLDBConfig() net.Options {
+	config := net.Options{
+		BaseUrl:   c.URL,
+		AllowHTTP: true,
+	}
+
+	if strings.HasPrefix(c.URL, "https://") {
+		config.AllowHTTP = false
+	}
+
+	if c.Username != "" || c.Password != "" {
+		config.Credentials = net.Credentials{
+			Username: c.Username,
+			Password: c.Password,
+		}
+	}
+
+	return config
+}
+
+// Validate validates the configuration.
+func (c processorKSQLDBConfiguration) Validate() error {
+	if c.URL == "" {
+		return errors.New("ksqldb URL is required")
 	}
 
 	return nil
