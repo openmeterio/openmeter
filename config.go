@@ -107,20 +107,19 @@ func (c ingestKafkaConfiguration) CreateKafkaConfig() *kafka.ConfigMap {
 		"bootstrap.servers": c.Broker,
 	}
 
-	// TODO(hekike): is this really how it works? Looks like a copy-paste error at first.
 	if c.SecurityProtocol != "" {
 		config["security.protocol"] = c.SecurityProtocol
 	}
 
-	if c.SecurityProtocol != "" {
+	if c.SaslMechanisms != "" {
 		config["sasl.mechanism"] = c.SaslMechanisms
 	}
 
-	if c.SecurityProtocol != "" {
+	if c.SaslUsername != "" {
 		config["sasl.username"] = c.SaslUsername
 	}
 
-	if c.SecurityProtocol != "" {
+	if c.SaslPassword != "" {
 		config["sasl.password"] = c.SaslPassword
 	}
 
@@ -131,21 +130,6 @@ func (c ingestKafkaConfiguration) CreateKafkaConfig() *kafka.ConfigMap {
 func (c ingestKafkaConfiguration) Validate() error {
 	if c.Broker == "" {
 		return errors.New("kafka broker is required")
-	}
-
-	// TODO(hekike): is this really how it works?
-	if c.SecurityProtocol != "" {
-		if c.SaslMechanisms == "" {
-			return errors.New("kafka sasl mechanisms is required")
-		}
-
-		if c.SaslUsername == "" {
-			return errors.New("kafka sasl username is required")
-		}
-
-		if c.SaslPassword == "" {
-			return errors.New("kafka sasl password is required")
-		}
 	}
 
 	return nil
