@@ -8,6 +8,7 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"github.com/thmeitz/ksqldb-go/net"
 	"golang.org/x/exp/slices"
 
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -41,11 +42,7 @@ type configuration struct {
 
 	// Processor configuration
 	Processor struct {
-		KSQLDB struct {
-			URL      string
-			Username string
-			Password string
-		}
+		KSQLDB processorKSQLDBConfiguration
 	}
 
 	Meters []*models.Meter
@@ -65,8 +62,8 @@ func (c configuration) Validate() error {
 		return errors.New("schema registry URL is required")
 	}
 
-	if c.Processor.KSQLDB.URL == "" {
-		return errors.New("ksqldb URL is required")
+	if err := c.Processor.KSQLDB.Validate(); err != nil {
+		return err
 	}
 
 	if err := c.Log.Validate(); err != nil {
@@ -149,6 +146,42 @@ func (c ingestKafkaConfiguration) Validate() error {
 		if c.SaslPassword == "" {
 			return errors.New("kafka sasl password is required")
 		}
+	}
+
+	return nil
+}
+
+type processorKSQLDBConfiguration struct {
+	URL      string
+	Username string
+	Password string
+}
+
+// CreateKafkaConfig creates a Kafka config map.
+func (c processorKSQLDBConfiguration) CreateKSQLDBConfig() net.Options {
+	config := net.Options{
+		BaseUrl:   c.URL,
+		AllowHTTP: true,
+	}
+
+	if strings.HasPrefix(c.URL, "https://") {
+		config.AllowHTTP = false
+	}
+
+	if c.Username != "" || c.Password != "" {
+		config.Credentials = net.Credentials{
+			Username: c.Username,
+			Password: c.Password,
+		}
+	}
+
+	return config
+}
+
+// Validate validates the configuration.
+func (c processorKSQLDBConfiguration) Validate() error {
+	if c.URL == "" {
+		return errors.New("ksqldb URL is required")
 	}
 
 	return nil

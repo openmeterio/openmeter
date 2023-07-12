@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"runtime"
-	"strings"
 	"syscall"
 	"time"
 
@@ -24,7 +23,6 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/thmeitz/ksqldb-go"
-	"github.com/thmeitz/ksqldb-go/net"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/prometheus"
@@ -198,20 +196,7 @@ func main() {
 	}
 
 	// Initialize ksqlDB Client
-	ksqldbConfig := net.Options{
-		BaseUrl:   config.Processor.KSQLDB.URL,
-		AllowHTTP: true,
-	}
-	if strings.HasPrefix(config.Processor.KSQLDB.URL, "https://") {
-		ksqldbConfig.AllowHTTP = false
-	}
-	if config.Processor.KSQLDB.Username != "" || config.Processor.KSQLDB.Password != "" {
-		ksqldbConfig.Credentials = net.Credentials{
-			Username: config.Processor.KSQLDB.Username,
-			Password: config.Processor.KSQLDB.Password,
-		}
-	}
-	ksqldbClient, err := ksqldb.NewClientWithOptions(ksqldbConfig)
+	ksqldbClient, err := ksqldb.NewClientWithOptions(config.Processor.KSQLDB.CreateKSQLDBConfig())
 	if err != nil {
 		logger.Error("init ksqldb client: %w", err)
 		os.Exit(1)
