@@ -1,7 +1,9 @@
 package httpingest
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
@@ -27,16 +29,63 @@ type Collector interface {
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := h.getLogger()
 
+	contentType := r.Header.Get("Content-Type")
+
+	var err error
+	switch contentType {
+	case "application/cloudevents+json":
+		err = h.processSingleRequest(w, r)
+	case "application/cloudevents-batch+json":
+		err = h.processBatchRequest(w, r)
+	default:
+		_ = render.Render(w, r, api.ErrUnsupportedMediaType(errors.New("content type must be application/cloudevents+json or application/cloudevents-batch+json")))
+	}
+
+	if err != nil {
+		logger.ErrorCtx(r.Context(), "unable to process request", "error", err)
+		_ = render.Render(w, r, api.ErrInternalServerError(err))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h Handler) processBatchRequest(w http.ResponseWriter, r *http.Request) error {
+	var events []event.Event
+
+	err := json.NewDecoder(r.Body).Decode(&events)
+	if err != nil {
+		return err
+	}
+
+	for _, event := range events {
+		err = h.processEvent(r.Context(), event)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (h Handler) processSingleRequest(w http.ResponseWriter, r *http.Request) error {
 	var event event.Event
 
 	err := json.NewDecoder(r.Body).Decode(&event)
 	if err != nil {
-		logger.ErrorCtx(r.Context(), "unable to parse event", "error", err)
-
-		_ = render.Render(w, r, api.ErrInternalServerError(err))
-
-		return
+		return err
 	}
+
+	err = h.processEvent(r.Context(), event)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h Handler) processEvent(context context.Context, event event.Event) error {
+	logger := h.getLogger()
 
 	logger = logger.With(
 		slog.String("event_id", event.ID()),
@@ -45,23 +94,17 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if event.Time().IsZero() {
-		logger.DebugCtx(r.Context(), "event does not have a timestamp")
-
+		logger.DebugCtx(context, "event does not have a timestamp")
 		event.SetTime(time.Now().UTC())
 	}
 
-	err = h.Collector.Receive(event)
+	err := h.Collector.Receive(event)
 	if err != nil {
-		logger.ErrorCtx(r.Context(), "unable to forward event to collector", "error", err)
-
-		_ = render.Render(w, r, api.ErrInternalServerError(err))
-
-		return
+		return err
 	}
 
-	logger.InfoCtx(r.Context(), "event forwarded to downstream collector")
-
-	w.WriteHeader(http.StatusOK)
+	logger.InfoCtx(context, "event forwarded to downstream collector")
+	return nil
 }
 
 func (h Handler) getLogger() *slog.Logger {

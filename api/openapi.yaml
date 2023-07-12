@@ -17,6 +17,11 @@ paths:
           application/cloudevents+json:
             schema:
               $ref: "#/components/schemas/Event"
+          application/cloudevents-batch+json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/Event"
       responses:
         "200":
           description: OK
