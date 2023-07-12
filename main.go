@@ -43,20 +43,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/gosundheit/ksqldbcheck"
 )
 
-// TODO: inject logger in main
-func init() {
-	var logger *slog.Logger
-	// TODO NO_COLOR
-	if os.Getenv("LOG_FORMAT") == "json" {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	} else {
-		logger = slog.New(tint.NewHandler(os.Stdout, &tint.Options{
-			Level: slog.LevelDebug,
-		}))
-	}
-	slog.SetDefault(logger)
-}
-
 func main() {
 	v, flags := viper.New(), pflag.NewFlagSet("Open Meter", pflag.ExitOnError)
 
@@ -306,7 +292,6 @@ func main() {
 			})
 		},
 	})
-
 	if err != nil {
 		slog.Error("failed to create server", "error", err)
 		os.Exit(1)
