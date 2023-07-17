@@ -1,7 +1,7 @@
-openapi: "3.0.3"
+openapi: 3.1.0
 info:
   title: OpenMeter API
-  version: "1.0.0"
+  version: 1.0.0
   description: ""
   license:
     name: Apache 2.0
@@ -50,11 +50,7 @@ paths:
       description: Get meter by ID
       operationId: getMetersById
       parameters:
-        - name: meterId
-          in: path
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/meterId'
       responses:
         "200":
           description: OK
@@ -79,11 +75,7 @@ paths:
       description: Get meter values
       operationId: getValuesByMeterId
       parameters:
-        - name: meterId
-          in: path
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/meterId'
         - name: subject
           in: query
           required: false
@@ -139,6 +131,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 components:
+  parameters:
+    meterId:
+      name: meterId
+      in: path
+      required: true
+      schema:
+        type: string
   schemas:
     Error:
       type: object
@@ -227,9 +226,17 @@ components:
       x-go-type: models.Meter
       x-go-type-import:
         path: github.com/openmeterio/openmeter/pkg/models
+      required:
+        - name
+        - type
+        - aggregation
+        - valueProperty
+        - groupBy
+        - windowSize
       properties:
         id:
           type: string
+          readOnly: true
           example: my_meter
         name:
           type: string
@@ -237,14 +244,6 @@ components:
         description:
           type: string
           example: My Meter Description
-        labels:
-          type: object
-          additionalProperties:
-            type: string
-          example: |
-            {
-              "my_label": "my_value"
-            }
         type:
           type: string
           example: event_type
