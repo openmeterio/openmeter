@@ -23,13 +23,13 @@ type schema struct {
 }
 
 // NewSchema initializes a new schema in the registry.
-func NewSchema(schemaRegistry schemaregistry.Client, topic string) (Schema, int, int, error) {
-	keySerializer, err := getSerializer(schemaRegistry, topic, serde.KeySerde, eventKeySchema)
+func NewSchema(schemaRegistry schemaregistry.Client) (Schema, int, int, error) {
+	keySerializer, err := getSerializer(schemaRegistry, serde.KeySerde, eventKeySchema)
 	if err != nil {
 		return nil, 0, 0, fmt.Errorf("init event key serializer: %w", err)
 	}
 
-	valueSerializer, err := getSerializer(schemaRegistry, topic, serde.ValueSerde, eventValueSchema)
+	valueSerializer, err := getSerializer(schemaRegistry, serde.ValueSerde, eventValueSchema)
 	if err != nil {
 		return nil, 0, 0, fmt.Errorf("init event value serializer: %w", err)
 	}
@@ -93,15 +93,15 @@ func (s schema) SerializeValue(topic string, ev event.Event) ([]byte, error) {
 }
 
 // Registers schema with Registry and returns configured serializer
-func getSerializer(registry schemaregistry.Client, topic string, serdeType serde.Type, schema string) (*jsonschema.Serializer, error) {
+func getSerializer(registry schemaregistry.Client, serdeType serde.Type, schema string) (*jsonschema.Serializer, error) {
 	// Event Key Serializer
 	suffix := "key"
 	if serdeType == serde.ValueSerde {
 		suffix = "value"
 	}
 
-	schemaSubject := fmt.Sprintf("%s-%s", topic, suffix)
-	schemaId, err := registry.Register(schemaSubject, schemaregistry.SchemaInfo{
+	schemaSubject := fmt.Sprintf("om-cloudevents-%s", suffix)
+	schemaID, err := registry.Register(schemaSubject, schemaregistry.SchemaInfo{
 		Schema:     schema,
 		SchemaType: "JSON",
 	}, true)
@@ -111,7 +111,7 @@ func getSerializer(registry schemaregistry.Client, topic string, serdeType serde
 
 	serializerConfig := jsonschema.NewSerializerConfig()
 	serializerConfig.AutoRegisterSchemas = false
-	serializerConfig.UseSchemaID = schemaId
+	serializerConfig.UseSchemaID = schemaID
 	serializer, err := jsonschema.NewSerializer(registry, serdeType, serializerConfig)
 	if err != nil {
 		return nil, fmt.Errorf("init serializer: %w", err)
