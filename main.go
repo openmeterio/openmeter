@@ -183,7 +183,7 @@ func main() {
 
 	// Initialize events topic
 	const topic = "om_events"
-	schema, keySchemaID, valueSchemaID, err := kafkaingest.NewSchema(schemaRegistry, topic)
+	schema, keySchemaID, valueSchemaID, err := kafkaingest.NewSchema(schemaRegistry)
 	if err != nil {
 		logger.Error("init schema: %v", err)
 		os.Exit(1)
