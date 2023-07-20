@@ -137,8 +137,8 @@ You can think about it how AWS Lambda [charges](https://aws.amazon.com/lambda/pr
 # ...
 
 meters:
-  - id: m1
-    name: Meter 1
+  - slug: m1
+    description: API calls
     type: api-calls
     valueProperty: $.duration_ms
     aggregation: SUM

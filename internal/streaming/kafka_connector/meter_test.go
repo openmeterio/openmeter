@@ -12,10 +12,10 @@ import (
 func TestMeterQueryAssert(t *testing.T) {
 	data := meterTableQueryData{
 		Meter: &models.Meter{
-			ID:            "meter1",
-			Name:          "API Network Traffic",
+			Slug:          "meter1",
+			Description:   "API Network Traffic",
 			ValueProperty: "$.bytes",
-			Type:          "api-calls",
+			EventType:     "api-calls",
 			Aggregation:   models.MeterAggregationSum,
 			GroupBy:       []string{"$.path", "$.method"},
 			WindowSize:    models.WindowSizeHour,

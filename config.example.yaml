@@ -8,9 +8,8 @@ telemetry:
   address: 127.0.0.1:10000
 
 meters:
-  - id: m1
-    name: Meter 1
-    type: api-calls
+  - slug: m1
+    eventType: api-calls
     valueProperty: $.duration_ms
     aggregation: SUM
     groupBy:

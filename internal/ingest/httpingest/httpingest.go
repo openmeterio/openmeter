@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/render"
 	"golang.org/x/exp/slog"
 
-	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Handler receives an event in CloudEvents format and forwards it to a {Collector}.
@@ -33,8 +33,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.ErrorCtx(r.Context(), "unable to parse event", "error", err)
 
-		_ = render.Render(w, r, api.ErrInternalServerError(err))
-
+		_ = render.Render(w, r, models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError))
 		return
 	}
 
@@ -54,7 +53,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.ErrorCtx(r.Context(), "unable to forward event to collector", "error", err)
 
-		_ = render.Render(w, r, api.ErrInternalServerError(err))
+		_ = render.Render(w, r, models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError))
 
 		return
 	}

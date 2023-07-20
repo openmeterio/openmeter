@@ -1,10 +1,14 @@
 package server
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
 	oapimiddleware "github.com/deepmap/oapi-codegen/pkg/chi-middleware"
+	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
@@ -12,6 +16,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/server/router"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Server struct {
@@ -67,10 +72,22 @@ func NewServer(config *Config) (*Server, error) {
 	_ = api.HandlerWithOptions(impl, api.ChiServerOptions{
 		BaseRouter: r,
 		Middlewares: []api.MiddlewareFunc{
-			oapimiddleware.OapiRequestValidator(swagger),
+			oapimiddleware.OapiRequestValidatorWithOptions(swagger, &oapimiddleware.Options{
+				ErrorHandler: func(w http.ResponseWriter, message string, statusCode int) {
+					problem := models.NewStatusProblem(context.Background(), errors.New(message), statusCode)
+					w.Header().Set("Content-Type", models.ProblemContentType)
+					w.WriteHeader(statusCode)
+					json.NewEncoder(w).Encode(problem)
+				},
+				Options: openapi3filter.Options{
+					AuthenticationFunc:  openapi3filter.NoopAuthenticationFunc,
+					SkipSettingDefaults: true,
+				},
+			}),
 		},
 		ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
-			_ = render.Render(w, r, api.ErrInternalServerError(err))
+			// TODO: hide error details from client
+			_ = render.Render(w, r, models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError))
 		},
 	})
 

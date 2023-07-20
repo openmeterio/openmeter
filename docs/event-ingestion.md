@@ -41,11 +41,9 @@ For example, you can define meters called "Parallel jobs", and OpenMeter will ag
 Using an example, let’s dive into how OpenMeter’s event processing works.
 Imagine you want to track serverless execution duration by endpoint and you defined the following meter:
 
-meters:
-
 ```yaml
-id: m1
-    name: Meter 1
+meters:
+  - slug: m1
     type: api-calls
     valueProperty: $.duration
     aggregation: SUM

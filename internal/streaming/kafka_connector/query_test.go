@@ -107,10 +107,10 @@ func TestMeterTableQuery(t *testing.T) {
 		{
 			data: meterTableQueryData{
 				Meter: &models.Meter{
-					ID:            "meter1",
-					Name:          "API Network Traffic",
+					Slug:          "meter1",
+					Description:   "API Network Traffic",
 					ValueProperty: "$.bytes",
-					Type:          "api-calls",
+					EventType:     "api-calls",
 					Aggregation:   models.MeterAggregationSum,
 					GroupBy:       []string{"$.path"},
 					WindowSize:    models.WindowSizeHour,
@@ -123,9 +123,9 @@ func TestMeterTableQuery(t *testing.T) {
 		{
 			data: meterTableQueryData{
 				Meter: &models.Meter{
-					ID:          "meter2",
-					Name:        "API Calls",
-					Type:        "api-calls",
+					Slug:        "meter2",
+					Description: "API Calls",
+					EventType:   "api-calls",
 					Aggregation: models.MeterAggregationCount,
 					WindowSize:  models.WindowSizeHour,
 				},
@@ -137,9 +137,9 @@ func TestMeterTableQuery(t *testing.T) {
 		{
 			data: meterTableQueryData{
 				Meter: &models.Meter{
-					ID:            "meter2",
-					Name:          "API Calls",
-					Type:          "api-calls",
+					Slug:          "meter2",
+					Description:   "API Calls",
+					EventType:     "api-calls",
 					ValueProperty: "$.duration_ms",
 					Aggregation:   models.MeterAggregationCount,
 					WindowSize:    models.WindowSizeHour,
@@ -152,9 +152,9 @@ func TestMeterTableQuery(t *testing.T) {
 		{
 			data: meterTableQueryData{
 				Meter: &models.Meter{
-					ID:            "meter3",
-					Name:          "API call count by path",
-					Type:          "api-calls",
+					Slug:          "meter3",
+					Description:   "API call count by path",
+					EventType:     "api-calls",
 					Aggregation:   models.MeterAggregationAvg,
 					ValueProperty: "$.duration_ms",
 					WindowSize:    models.WindowSizeMinute,
@@ -189,7 +189,7 @@ func TestValuesSelectQuery(t *testing.T) {
 		{
 			data: meterValuesData{
 				Meter: &models.Meter{
-					ID: "meter1",
+					Slug: "meter1",
 				},
 				GetValuesParams: &GetValuesParams{
 					Subject: &subject,
@@ -200,7 +200,7 @@ func TestValuesSelectQuery(t *testing.T) {
 		{
 			data: meterValuesData{
 				Meter: &models.Meter{
-					ID: "meter2",
+					Slug: "meter2",
 				},
 				GetValuesParams: &GetValuesParams{
 					Subject: &subject,
@@ -212,7 +212,7 @@ func TestValuesSelectQuery(t *testing.T) {
 		{
 			data: meterValuesData{
 				Meter: &models.Meter{
-					ID: "meter3",
+					Slug: "meter3",
 				},
 				GetValuesParams: &GetValuesParams{},
 			},
@@ -221,7 +221,7 @@ func TestValuesSelectQuery(t *testing.T) {
 		{
 			data: meterValuesData{
 				Meter: &models.Meter{
-					ID: "meter4",
+					Slug: "meter4",
 				},
 				GetValuesParams: &GetValuesParams{
 					Subject: &subject,
@@ -233,7 +233,7 @@ func TestValuesSelectQuery(t *testing.T) {
 		{
 			data: meterValuesData{
 				Meter: &models.Meter{
-					ID: "meter5",
+					Slug: "meter5",
 				},
 				GetValuesParams: &GetValuesParams{
 					Subject: &subject,

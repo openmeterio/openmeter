@@ -19,17 +19,17 @@ processor:
     url: http://ksqldb-server:8088
 
 meters:
-  - id: m1
-    name: Meter 1
-    type: api-calls
+  - slug: m1
+    description: API calls
+    eventType: api-calls
     valueProperty: $.duration_ms
     aggregation: SUM
     groupBy:
       - $.method
       - $.path
-  - id: m2
-    name: Open AI Tokens
-    type: openai
+  - slug: m2
+    description: Open AI Tokens
+    eventType: openai
     valueProperty: $.total_tokens
     aggregation: SUM
     groupBy:

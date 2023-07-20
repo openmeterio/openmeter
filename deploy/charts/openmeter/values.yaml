@@ -3,9 +3,8 @@
 # Declare variables to be passed into your templates.
 
 meters:
-  - id: m1
-    name: Meter 1
-    type: api-calls
+  - slug: m1
+    eventType: api-calls
     valueProperty: $.duration_ms
     aggregation: SUM
     groupBy:

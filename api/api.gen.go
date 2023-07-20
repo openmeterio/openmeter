@@ -21,23 +21,29 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// Error defines model for Error.
-type Error = ErrResponse
-
 // Event CloudEvents Specification JSON Schema
 type Event = event.Event
 
 // Meter defines model for Meter.
 type Meter = models.Meter
 
+// MeterAggregation The aggregation type to use for the meter.
+type MeterAggregation = models.MeterAggregation
+
 // MeterValue defines model for MeterValue.
 type MeterValue = models.MeterValue
+
+// Problem A Problem Details object (RFC 7807)
+type Problem = models.Problem
 
 // WindowSize defines model for WindowSize.
 type WindowSize = models.WindowSize
 
-// GetValuesByMeterIdParams defines parameters for GetValuesByMeterId.
-type GetValuesByMeterIdParams struct {
+// MeterSlug defines model for meterSlug.
+type MeterSlug = string
+
+// GetMeterValuesParams defines parameters for GetMeterValues.
+type GetMeterValuesParams struct {
 	Subject *string `form:"subject,omitempty" json:"subject,omitempty"`
 
 	// From Start date-time in RFC 3339 format.
@@ -51,26 +57,35 @@ type GetValuesByMeterIdParams struct {
 	To *time.Time `form:"to,omitempty" json:"to,omitempty"`
 
 	// WindowSize If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
-	WindowSize *WindowSize `form:"windowSize,omitempty" json:"windowSize,omitempty"`
+	WindowSize *WindowSize `form:"window_size,omitempty" json:"window_size,omitempty"`
 }
 
 // IngestEventsJSONRequestBody defines body for IngestEvents for application/cloudevents+json ContentType.
 type IngestEventsJSONRequestBody = Event
 
+// CreateMeterJSONRequestBody defines body for CreateMeter for application/json ContentType.
+type CreateMeterJSONRequestBody = Meter
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
-	// (POST /api/v1alpha1/events)
+	// (POST /api/v1betav1/events)
 	IngestEvents(w http.ResponseWriter, r *http.Request)
 
-	// (GET /api/v1alpha1/meters)
-	GetMeters(w http.ResponseWriter, r *http.Request)
+	// (GET /api/v1betav1/meters)
+	ListMeters(w http.ResponseWriter, r *http.Request)
 
-	// (GET /api/v1alpha1/meters/{meterId})
-	GetMetersById(w http.ResponseWriter, r *http.Request, meterId string)
+	// (POST /api/v1betav1/meters)
+	CreateMeter(w http.ResponseWriter, r *http.Request)
 
-	// (GET /api/v1alpha1/meters/{meterId}/values)
-	GetValuesByMeterId(w http.ResponseWriter, r *http.Request, meterId string, params GetValuesByMeterIdParams)
+	// (DELETE /api/v1betav1/meters/{meterSlug})
+	DeleteMeter(w http.ResponseWriter, r *http.Request, meterSlug MeterSlug)
+
+	// (GET /api/v1betav1/meters/{meterSlug})
+	GetMeter(w http.ResponseWriter, r *http.Request, meterSlug MeterSlug)
+
+	// (GET /api/v1betav1/meters/{meterSlug}/values)
+	GetMeterValues(w http.ResponseWriter, r *http.Request, meterSlug MeterSlug, params GetMeterValuesParams)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -97,12 +112,12 @@ func (siw *ServerInterfaceWrapper) IngestEvents(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// GetMeters operation middleware
-func (siw *ServerInterfaceWrapper) GetMeters(w http.ResponseWriter, r *http.Request) {
+// ListMeters operation middleware
+func (siw *ServerInterfaceWrapper) ListMeters(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetMeters(w, r)
+		siw.Handler.ListMeters(w, r)
 	})
 
 	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
@@ -112,23 +127,38 @@ func (siw *ServerInterfaceWrapper) GetMeters(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// GetMetersById operation middleware
-func (siw *ServerInterfaceWrapper) GetMetersById(w http.ResponseWriter, r *http.Request) {
+// CreateMeter operation middleware
+func (siw *ServerInterfaceWrapper) CreateMeter(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateMeter(w, r)
+	})
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// DeleteMeter operation middleware
+func (siw *ServerInterfaceWrapper) DeleteMeter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
 
-	// ------------- Path parameter "meterId" -------------
-	var meterId string
+	// ------------- Path parameter "meterSlug" -------------
+	var meterSlug MeterSlug
 
-	err = runtime.BindStyledParameterWithLocation("simple", false, "meterId", runtime.ParamLocationPath, chi.URLParam(r, "meterId"), &meterId)
+	err = runtime.BindStyledParameterWithLocation("simple", false, "meterSlug", runtime.ParamLocationPath, chi.URLParam(r, "meterSlug"), &meterSlug)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "meterId", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "meterSlug", Err: err})
 		return
 	}
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetMetersById(w, r, meterId)
+		siw.Handler.DeleteMeter(w, r, meterSlug)
 	})
 
 	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
@@ -138,23 +168,49 @@ func (siw *ServerInterfaceWrapper) GetMetersById(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// GetValuesByMeterId operation middleware
-func (siw *ServerInterfaceWrapper) GetValuesByMeterId(w http.ResponseWriter, r *http.Request) {
+// GetMeter operation middleware
+func (siw *ServerInterfaceWrapper) GetMeter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
 
-	// ------------- Path parameter "meterId" -------------
-	var meterId string
+	// ------------- Path parameter "meterSlug" -------------
+	var meterSlug MeterSlug
 
-	err = runtime.BindStyledParameterWithLocation("simple", false, "meterId", runtime.ParamLocationPath, chi.URLParam(r, "meterId"), &meterId)
+	err = runtime.BindStyledParameterWithLocation("simple", false, "meterSlug", runtime.ParamLocationPath, chi.URLParam(r, "meterSlug"), &meterSlug)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "meterId", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "meterSlug", Err: err})
+		return
+	}
+
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMeter(w, r, meterSlug)
+	})
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetMeterValues operation middleware
+func (siw *ServerInterfaceWrapper) GetMeterValues(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "meterSlug" -------------
+	var meterSlug MeterSlug
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "meterSlug", runtime.ParamLocationPath, chi.URLParam(r, "meterSlug"), &meterSlug)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "meterSlug", Err: err})
 		return
 	}
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params GetValuesByMeterIdParams
+	var params GetMeterValuesParams
 
 	// ------------- Optional query parameter "subject" -------------
 
@@ -180,16 +236,16 @@ func (siw *ServerInterfaceWrapper) GetValuesByMeterId(w http.ResponseWriter, r *
 		return
 	}
 
-	// ------------- Optional query parameter "windowSize" -------------
+	// ------------- Optional query parameter "window_size" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "windowSize", r.URL.Query(), &params.WindowSize)
+	err = runtime.BindQueryParameter("form", true, false, "window_size", r.URL.Query(), &params.WindowSize)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "windowSize", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "window_size", Err: err})
 		return
 	}
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetValuesByMeterId(w, r, meterId, params)
+		siw.Handler.GetMeterValues(w, r, meterSlug, params)
 	})
 
 	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
@@ -313,16 +369,22 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/v1alpha1/events", wrapper.IngestEvents)
+		r.Post(options.BaseURL+"/api/v1betav1/events", wrapper.IngestEvents)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/v1alpha1/meters", wrapper.GetMeters)
+		r.Get(options.BaseURL+"/api/v1betav1/meters", wrapper.ListMeters)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/v1alpha1/meters/{meterId}", wrapper.GetMetersById)
+		r.Post(options.BaseURL+"/api/v1betav1/meters", wrapper.CreateMeter)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/v1alpha1/meters/{meterId}/values", wrapper.GetValuesByMeterId)
+		r.Delete(options.BaseURL+"/api/v1betav1/meters/{meterSlug}", wrapper.DeleteMeter)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1betav1/meters/{meterSlug}", wrapper.GetMeter)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1betav1/meters/{meterSlug}/values", wrapper.GetMeterValues)
 	})
 
 	return r
@@ -331,34 +393,46 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"//8GJUvaBxgAAA==",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

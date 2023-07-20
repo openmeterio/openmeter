@@ -52,45 +52,44 @@ func (a *Router) IngestEvents(w http.ResponseWriter, r *http.Request) {
 	a.config.IngestHandler.ServeHTTP(w, r)
 }
 
-func (a *Router) GetMeters(w http.ResponseWriter, r *http.Request) {
-	if err := render.RenderList(w, r, NewMeterListResponse(a.config.Meters)); err != nil {
-		_ = render.Render(w, r, api.ErrUnprocessableEntity(err))
-		return
-	}
-}
-
-func NewMeterListResponse(meters []*models.Meter) []render.Renderer {
-	list := make([]render.Renderer, 0, len(meters))
-	for _, m := range meters {
+func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request) {
+	list := make([]render.Renderer, 0, len(a.config.Meters))
+	for _, m := range a.config.Meters {
 		list = append(list, m)
 	}
-	return list
+
+	_ = render.RenderList(w, r, list)
 }
 
-func (a *Router) GetMetersById(w http.ResponseWriter, r *http.Request, meterID string) {
-	println(meterID)
+func (a *Router) CreateMeter(w http.ResponseWriter, r *http.Request) {
+	_ = render.Render(w, r, models.NewStatusProblem(r.Context(), nil, http.StatusMethodNotAllowed))
+}
+
+func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterSlug string) {
+	_ = render.Render(w, r, models.NewStatusProblem(r.Context(), nil, http.StatusMethodNotAllowed))
+}
+
+func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterSlug string) {
 	for _, meter := range a.config.Meters {
-		if meter.ID == meterID {
-			if err := render.Render(w, r, meter); err != nil {
-				_ = render.Render(w, r, api.ErrUnprocessableEntity(err))
-			}
+		if meter.Slug == meterSlug {
+			_ = render.Render(w, r, meter)
 			return
 		}
 	}
 
-	_ = render.Render(w, r, api.ErrNotFound)
+	_ = render.Render(w, r, models.NewStatusProblem(r.Context(), fmt.Errorf("meter is not found with slug %s", meterSlug), http.StatusNotFound))
 }
 
-type GetValuesByMeterIdResponse struct {
+type GetMeterValuesResponse struct {
 	WindowSize *models.WindowSize   `json:"windowSize"`
 	Data       []*models.MeterValue `json:"data"`
 }
 
-func (rd *GetValuesByMeterIdResponse) Render(w http.ResponseWriter, r *http.Request) error {
+func (rd *GetMeterValuesResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func ValidateGetValuesByMeterIdParams(meter *models.Meter, params api.GetValuesByMeterIdParams) error {
+func ValidateGetMeterValuesParams(meter *models.Meter, params api.GetMeterValuesParams) error {
 	if params.From != nil && params.To != nil && params.From.After(*params.To) {
 		return errors.New("from must be before to")
 	}
@@ -102,9 +101,6 @@ func ValidateGetValuesByMeterIdParams(meter *models.Meter, params api.GetValuesB
 		}
 		if params.To != nil && params.To.Truncate(windowDuration) != *params.To {
 			return errors.New("to must be aligned to window size")
-		}
-		if (meter.Aggregation == models.MeterAggregationCountDistinct) && *params.WindowSize != meter.WindowSize {
-			return fmt.Errorf("expected window size to be %s, but got %s", meter.WindowSize, *params.WindowSize)
 		}
 		if (meter.WindowSize == models.WindowSizeDay && *params.WindowSize != models.WindowSizeDay) ||
 			(meter.WindowSize == models.WindowSizeHour && *params.WindowSize == models.WindowSizeMinute) {
@@ -118,19 +114,16 @@ func ValidateGetValuesByMeterIdParams(meter *models.Meter, params api.GetValuesB
 		if params.To != nil && params.To.Truncate(windowDuration) != *params.To {
 			return fmt.Errorf("to must be aligned to the meter's window size of %s", meter.WindowSize)
 		}
-		if meter.Aggregation == models.MeterAggregationCountDistinct {
-			return fmt.Errorf("expected window size to be %s", meter.WindowSize)
-		}
 	}
 
 	return nil
 }
 
-func (a *Router) GetValuesByMeterId(w http.ResponseWriter, r *http.Request, meterId string, params api.GetValuesByMeterIdParams) {
+func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterSlug string, params api.GetMeterValuesParams) {
 	for _, meter := range a.config.Meters {
-		if meter.ID == meterId {
-			if err := ValidateGetValuesByMeterIdParams(meter, params); err != nil {
-				_ = render.Render(w, r, api.ErrBadRequest(err))
+		if meter.Slug == meterSlug {
+			if err := ValidateGetMeterValuesParams(meter, params); err != nil {
+				_ = render.Render(w, r, models.NewStatusProblem(r.Context(), err, http.StatusBadRequest))
 				return
 			}
 
@@ -141,24 +134,20 @@ func (a *Router) GetValuesByMeterId(w http.ResponseWriter, r *http.Request, mete
 				WindowSize: params.WindowSize,
 			})
 			if err != nil {
-				_ = render.Render(w, r, api.ErrInternalServerError(err))
+				_ = render.Render(w, r, models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError))
 				return
 			}
 
 			windowSize := params.WindowSize
-			resp := &GetValuesByMeterIdResponse{
+			resp := &GetMeterValuesResponse{
 				WindowSize: windowSize,
 				Data:       values,
 			}
 
-			if err := render.Render(w, r, resp); err != nil {
-				_ = render.Render(w, r, api.ErrUnprocessableEntity(err))
-				return
-			}
-
+			_ = render.Render(w, r, resp)
 			return
 		}
 	}
 
-	_ = render.Render(w, r, api.ErrNotFound)
+	_ = render.Render(w, r, models.NewStatusProblem(r.Context(), fmt.Errorf("meter is not found with slug %s", meterSlug), http.StatusNotFound))
 }

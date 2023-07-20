@@ -1,13 +1,18 @@
 openapi: "3.0.3"
 info:
   title: OpenMeter API
-  version: "1.0.0"
+  version: "1.0.0-beta.1"
   description: ""
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
+tags:
+  - name: Events
+    description: Endpoints related to ingesting events
+  - name: Meters
+    description: Endpoints related to meters
 paths:
-  /api/v1alpha1/events:
+  /api/v1betav1/events:
     post:
       description: Ingest events
       operationId: ingestEvents
@@ -17,22 +22,24 @@ paths:
           application/cloudevents+json:
             schema:
               $ref: "#/components/schemas/Event"
+      tags:
+        - Events
       responses:
         "200":
           description: OK
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
         default:
-          description: Unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-  /api/v1alpha1/meters:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+  /api/v1betav1/meters:
     get:
-      description: Get meters
-      operationId: getMeters
+      description: List meters
+      operationId: listMeters
+      tags:
+        - Meters
       responses:
         "200":
-          description: OK
+          description: Meters response
           content:
             application/json:
               schema:
@@ -40,21 +47,39 @@ paths:
                 items:
                   $ref: "#/components/schemas/Meter"
         default:
-          description: Unexpected error
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+    post:
+      description: Create meter
+      operationId: createMeter
+      tags:
+        - Meters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Meter"
+      responses:
+        "201":
+          description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-  /api/v1alpha1/meters/{meterId}:
+                $ref: "#/components/schemas/Meter"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+  /api/v1betav1/meters/{meterSlug}:
     get:
-      description: Get meter by ID
-      operationId: getMetersById
+      description: Get meter by slug
+      operationId: getMeter
+      tags:
+        - Meters
       parameters:
-        - name: meterId
-          in: path
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/meterSlug"
       responses:
         "200":
           description: OK
@@ -63,27 +88,33 @@ paths:
               schema:
                 $ref: "#/components/schemas/Meter"
         "404":
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+          $ref: "#/components/responses/NotFoundProblemResponse"
         default:
-          description: Unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-  /api/v1alpha1/meters/{meterId}/values:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+    delete:
+      description: Delete meter by slug
+      operationId: deleteMeter
+      tags:
+        - Meters
+      parameters:
+        - $ref: "#/components/parameters/meterSlug"
+      responses:
+        "204":
+          description: No Content
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
+        "405":
+          $ref: "#/components/responses/MethodNotAllowedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+  /api/v1betav1/meters/{meterSlug}/values:
     get:
       description: Get meter values
-      operationId: getValuesByMeterId
+      operationId: getMeterValues
+      tags:
+        - Meters
       parameters:
-        - name: meterId
-          in: path
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/meterSlug"
         - name: subject
           in: query
           required: false
@@ -109,7 +140,7 @@ paths:
           schema:
             type: string
             format: date-time
-        - name: windowSize
+        - name: window_size
           in: query
           required: false
           description: |
@@ -132,28 +163,61 @@ paths:
                       $ref: "#/components/schemas/MeterValue"
                 required:
                   - data
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
         default:
-          description: Unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+
 components:
   schemas:
-    Error:
+    Problem:
       type: object
-      x-go-type: ErrResponse
+      description: A Problem Details object (RFC 7807)
+      x-go-type: models.Problem
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/models
+      additionalProperties: true
       properties:
-        statusCode:
-          type: integer
-          format: int32
+        type:
+          type: string
+          format: uri
+          description: Type contains a URI that identifies the problem type.
+          example: urn:problem-type:belgif:payloadTooLarge
+        title:
+          type: string
+          description: A a short, human-readable summary of the problem type.
+          example: Payload Too Large
         status:
-          type: string
-        code:
           type: integer
           format: int32
-        message:
+          description: The HTTP status code generated by the origin server for this occurrence of the problem.
+          minimum: 400
+          maximum: 600
+          exclusiveMaximum: true
+          example: 413
+        detail:
           type: string
+          description: A human-readable explanation specific to this occurrence of the problem.
+          example: Request message must not be larger than 10 MB
+        instance:
+          type: string
+          format: uri
+          description: A URI reference that identifies the specific occurrence of the problem.
+          example: urn:uuid:123e4567-e89b-12d3-a456-426614174000
+      required:
+        - type
+        - title
+        - status
+        - detail
+      example: |
+        {
+          "type": "urn:problem-type:belgif:payloadTooLarge",
+          "title": "Payload Too Large",
+          "status": 413,
+          "detail": "Request message must not be larger than 10 MB",
+          "instance": "urn:uuid:123e4567-e89b-12d3-a456-426614174000",
+          "limit": 10485760
+        }
     Event:
       description: CloudEvents Specification JSON Schema
       x-go-type: event.Event
@@ -166,13 +230,13 @@ components:
           description: Identifies the event.
           type: string
           minLength: 1
-          example: A234-1234-1234
+          example: 5c10fade-1c9e-4d6c-8275-c52c36731d3c
         source:
           description: Identifies the context in which an event happened.
           type: string
           format: uri-reference
           minLength: 1
-          example: https://github.com/cloudevents
+          example: services/service-0
         specversion:
           description: The version of the CloudEvents specification which the event uses.
           type: string
@@ -200,7 +264,7 @@ components:
         subject:
           description: Describes the subject of the event in the context of the event producer (identified by source).
           type: string
-          nullable: true
+          nullable: false
           minLength: 1
           example: customer_id
         time:
@@ -209,13 +273,16 @@ components:
           nullable: true
           format: date-time
           minLength: 1
-          example: "2018-04-05T17:31:00Z"
+          example: "2023-01-01T01:01:01.001Z"
         data:
           description: The event payload.
           type: object
           additionalProperties: true
           example: |
-            {"duration_ms": "123"}
+            {
+              "duration_ms": "12",
+              "path": "/hello"
+            }
       required:
         - id
         - source
@@ -228,50 +295,57 @@ components:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/pkg/models
       properties:
-        id:
+        slug:
           type: string
-          example: my_meter
-        name:
-          type: string
-          example: My Meter
+          description: A unique identifier for the meter.
+          pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
+          example: my-meter
         description:
           type: string
+          description: A description of the meter.
+          nullable: true
           example: My Meter Description
-        labels:
-          type: object
-          additionalProperties:
-            type: string
-          example: |
-            {
-              "my_label": "my_value"
-            }
-        type:
-          type: string
-          example: event_type
         aggregation:
+          $ref: "#/components/schemas/MeterAggregation"
+        eventType:
           type: string
-          enum:
-            - SUM
-            - COUNT
-            - MAX
-            - COUNT_DISTINCT
-            - LATEST_BY_OFFSET
-          example: SUM
+          description: The event type to aggregate.
+          example: api_request
         valueProperty:
           type: string
-          example: $.duration_ms
           description: JSONPath expression to extract the value from the event data.
+          example: $.duration_ms
         groupBy:
           type: array
           items:
             type: string
+          description: JSONPath expressions to extract the group by values from the event data.
           example: |
             [
               "$.my_label"
             ]
-          description: JSONPath expressions to extract the group by values from the event data.
         windowSize:
           $ref: "#/components/schemas/WindowSize"
+      required:
+        - slug
+        - name
+        - aggregation
+        - eventType
+        - valueProperty
+        - windowSize
+    MeterAggregation:
+      type: string
+      x-go-type: models.MeterAggregation
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/models
+      enum:
+        - SUM
+        - COUNT
+        - MIN
+        - MAX
+        - COUNT_DISTINCT
+        - LATEST_BY_OFFSET
+      description: The aggregation type to use for the meter.
     WindowSize:
       type: string
       x-go-type: models.WindowSize
@@ -289,6 +363,7 @@ components:
       properties:
         subject:
           type: string
+          description: The subject of the meter value.
         windowStart:
           type: string
           format: date-time
@@ -301,3 +376,39 @@ components:
           type: object
           additionalProperties:
             type: string
+
+  parameters:
+    meterSlug:
+      name: meterSlug
+      description: A unique identifier for the meter.
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
+
+  responses:
+    BadRequestProblemResponse:
+      description: Bad Request
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    MethodNotAllowedProblemResponse:
+      description: Method not allowed, feature not supported
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    NotFoundProblemResponse:
+      description: Not Found
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
+    UnexpectedProblemResponse:
+      description: Unexpected error
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"

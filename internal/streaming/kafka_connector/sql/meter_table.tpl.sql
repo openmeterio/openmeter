@@ -17,9 +17,9 @@
 {{- else }}
 {{- $select = printf "%s(CAST(EXTRACTJSONFIELD(data, '%s') AS DECIMAL(12, 4))) AS VALUE" .Aggregation .ValueProperty | append $select }}
 {{- end }}
-CREATE TABLE IF NOT EXISTS {{ printf "OM_METER_%s" .ID | upper | bquote  }}
+CREATE TABLE IF NOT EXISTS {{ printf "OM_METER_%s" .Slug | upper | bquote  }}
 WITH (
-    KAFKA_TOPIC = {{ printf "OM_METER_%s" .ID | lower | squote  }},
+    KAFKA_TOPIC = {{ printf "OM_METER_%s" .Slug | lower | squote  }},
     KEY_FORMAT = 'JSON_SR',
     VALUE_FORMAT = 'JSON_SR',
     PARTITIONS = {{ .Partitions }}
@@ -33,7 +33,7 @@ WINDOW TUMBLING (
 )
 WHERE
     ID_COUNT = 1 AND
-    TYPE = {{ .Type | squote }}
+    TYPE = {{ .EventType | squote }}
 GROUP BY
     {{ $groupBy | join ", " }}
 EMIT CHANGES;
