@@ -77,7 +77,10 @@ func NewServer(config *Config) (*Server, error) {
 					problem := models.NewStatusProblem(context.Background(), errors.New(message), statusCode)
 					w.Header().Set("Content-Type", models.ProblemContentType)
 					w.WriteHeader(statusCode)
-					json.NewEncoder(w).Encode(problem)
+					err := json.NewEncoder(w).Encode(problem)
+					if err != nil {
+						slog.Error("error happened during encoding", "err", err)
+					}
 				},
 				Options: openapi3filter.Options{
 					AuthenticationFunc:  openapi3filter.NoopAuthenticationFunc,

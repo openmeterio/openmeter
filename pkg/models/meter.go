@@ -122,7 +122,7 @@ type MeterApi struct {
 
 func (ma *MeterApi) Validate() error {
 	m := &Meter{}
-	err := ma.CopyToMeter(m)
+	err := ma.AssignToMeter(m)
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func (ma *MeterApi) Validate() error {
 
 func (ma *MeterApi) ToMeter() (*Meter, error) {
 	m := &Meter{}
-	err := ma.CopyToMeter(m)
+	err := ma.AssignToMeter(m)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func (ma *MeterApi) ToMeter() (*Meter, error) {
 	return m, nil
 }
 
-func (ma *MeterApi) CopyToMeter(m *Meter) error {
+func (ma *MeterApi) AssignToMeter(m *Meter) error {
 	m.Slug = ma.Slug
 	m.Description = ma.Description
 	m.Aggregation = ma.Aggregation
@@ -235,7 +235,7 @@ func (m *Meter) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	return ma.CopyToMeter(m)
+	return ma.AssignToMeter(m)
 }
 
 func (m *Meter) Validate() error {
