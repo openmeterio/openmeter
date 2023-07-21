@@ -26,7 +26,7 @@ docker-compose up
 Ingest usage events in [CloudEvents](https://cloudevents.io/) format:
 
 ```sh
-curl -X POST http://localhost:8888/api/v1alpha1/events \
+curl -X POST http://localhost:8888/api/v1betav1/events \
 -H "Expect:" \
 -H 'Content-Type: application/cloudevents+json' \
 --data-raw '
@@ -49,7 +49,7 @@ curl -X POST http://localhost:8888/api/v1alpha1/events \
 Note how ID is different:
 
 ```sh
-curl -X POST http://localhost:8888/api/v1alpha1/events \
+curl -X POST http://localhost:8888/api/v1betav1/events \
 -H "Expect:" \
 -H 'Content-Type: application/cloudevents+json' \
 --data-raw '
@@ -72,7 +72,7 @@ curl -X POST http://localhost:8888/api/v1alpha1/events \
 Note how ID and time are different:
 
 ```sh
-curl -X POST http://localhost:8888/api/v1alpha1/events \
+curl -X POST http://localhost:8888/api/v1betav1/events \
 -H "Expect:" \
 -H 'Content-Type: application/cloudevents+json' \
 --data-raw '
@@ -97,7 +97,7 @@ curl -X POST http://localhost:8888/api/v1alpha1/events \
 Query the usage hourly:
 
 ```sh
-curl http://localhost:8888/api/v1alpha1/meters/m1/values?windowSize=HOUR | jq
+curl http://localhost:8888/api/v1betav1/meters/m1/values?windowSize=HOUR | jq
 ```
 
 ```json
@@ -109,8 +109,8 @@ curl http://localhost:8888/api/v1alpha1/meters/m1/values?windowSize=HOUR | jq
       "windowEnd": "2023-01-01T01:00:00Z",
       "value": 2,
       "groupBy": {
-        "$.method": "GET",
-        "$.path": "/hello"
+        "method": "GET",
+        "path": "/hello"
       }
     },
     {
@@ -119,8 +119,8 @@ curl http://localhost:8888/api/v1alpha1/meters/m1/values?windowSize=HOUR | jq
       "windowEnd": "2023-01-02T01:00:00Z",
       "value": 1,
       "groupBy": {
-        "$.method": "GET",
-        "$.path": "/hello"
+        "method": "GET",
+        "path": "/hello"
       }
     }
   ]
@@ -143,6 +143,6 @@ meters:
     valueProperty: $.duration_ms
     aggregation: SUM
     groupBy:
-      - $.method
-      - $.path
+      - method
+      - path
 ```

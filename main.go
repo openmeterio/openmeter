@@ -39,6 +39,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/streaming/kafka_connector"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	"github.com/openmeterio/openmeter/pkg/gosundheit/ksqldbcheck"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func main() {
@@ -75,6 +76,15 @@ func main() {
 	err = config.Validate()
 	if err != nil {
 		panic(err)
+	}
+
+	meters := []*models.Meter{}
+	for _, ma := range config.Meters {
+		m, err := ma.ToMeter()
+		if err != nil {
+			panic(err)
+		}
+		meters = append(meters, m)
 	}
 
 	var logger *slog.Logger
@@ -237,7 +247,7 @@ func main() {
 				Collector: collector,
 				Logger:    logger,
 			},
-			Meters: config.Meters,
+			Meters: meters,
 		},
 		RouterHook: func(r chi.Router) {
 			r.Use(func(h http.Handler) http.Handler {
@@ -275,14 +285,14 @@ func main() {
 		})
 	})
 
-	for _, meter := range config.Meters {
+	for _, meter := range meters {
 		err := connector.Init(meter)
 		if err != nil {
 			slog.Warn("failed to initialize meter", "error", err)
 			os.Exit(1)
 		}
 	}
-	slog.Info("meters successfully initialized", "count", len(config.Meters))
+	slog.Info("meters successfully initialized", "count", len(meters))
 
 	var group run.Group
 

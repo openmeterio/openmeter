@@ -45,7 +45,7 @@ type configuration struct {
 		KSQLDB processorKSQLDBConfiguration
 	}
 
-	Meters []*models.Meter
+	Meters []*models.MeterApi
 }
 
 // Validate validates the configuration.

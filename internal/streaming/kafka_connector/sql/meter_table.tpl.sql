@@ -2,10 +2,10 @@
 {{- $groupBy := list "SUBJECT" -}}
 {{- $select := list "SUBJECT AS KEY1, AS_VALUE(SUBJECT) AS SUBJECT, WINDOWSTART AS WINDOWSTART_TS, WINDOWEND AS WINDOWEND_TS" -}}
 
-{{- range .GroupBy -}}
-{{- $select = printf "COALESCE(EXTRACTJSONFIELD(data, '%s'), '') AS `%s_KEY`" . . | append $select -}}
-{{- $select = printf "AS_VALUE(COALESCE(EXTRACTJSONFIELD(data, '%s'), '')) AS `%s`" . . | append $select -}}
-{{- $groupBy = printf "COALESCE(EXTRACTJSONFIELD(data, '%s'), '')" . | append $groupBy -}}
+{{- range $groupByKey, $groupByValue := .GroupBy -}}
+{{- $select = printf "COALESCE(EXTRACTJSONFIELD(data, '%s'), '') AS `%s_KEY`" $groupByValue $groupByKey | append $select -}}
+{{- $select = printf "AS_VALUE(COALESCE(EXTRACTJSONFIELD(data, '%s'), '')) AS `%s`" $groupByValue $groupByKey | append $select -}}
+{{- $groupBy = printf "COALESCE(EXTRACTJSONFIELD(data, '%s'), '')" $groupByValue | append $groupBy -}}
 {{- end }}
 
 {{- if eq .Aggregation "COUNT" }}

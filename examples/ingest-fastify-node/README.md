@@ -38,8 +38,8 @@ You should see your metered usage groupped by path, method in an hourly resoluti
       "windowEnd": "2023-07-01T21:00:00Z",
       "value": 10.3178,
       "groupBy": {
-        "$.method": "GET",
-        "$.path": "/api"
+        "method": "GET",
+        "path": "/api"
       }
     },
     {
@@ -48,8 +48,8 @@ You should see your metered usage groupped by path, method in an hourly resoluti
       "windowEnd": "2023-07-01T22:00:00Z",
       "value": 15.818299999999999,
       "groupBy": {
-        "$.method": "GET",
-        "$.path": "/api"
+        "method": "GET",
+        "path": "/api"
       }
     }
   ]

@@ -25,12 +25,12 @@ meters:
     valueProperty: $.duration_ms
     aggregation: SUM
     groupBy:
-      - $.method
-      - $.path
+      - method
+      - path
   - slug: m2
     description: Open AI Tokens
     eventType: openai
     valueProperty: $.total_tokens
     aggregation: SUM
     groupBy:
-      - $.model
+      - model

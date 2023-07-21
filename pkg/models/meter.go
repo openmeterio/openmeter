@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -109,21 +110,90 @@ func (w WindowSize) Duration() time.Duration {
 	return windowDuration
 }
 
-type Meter struct {
+type MeterApi struct {
 	Slug          string           `json:"slug" yaml:"slug"`
 	Description   string           `json:"description,omitempty" yaml:"description,omitempty"`
 	Aggregation   MeterAggregation `json:"aggregation" yaml:"aggregation"`
 	EventType     string           `json:"eventType" yaml:"eventType"`
 	ValueProperty string           `json:"valueProperty,omitempty" yaml:"valueProperty,omitempty"`
-	GroupBy       []string         `json:"groupBy,omitempty" yaml:"groupBy,omitempty"`
+	GroupBy       interface{}      `json:"groupBy,omitempty" yaml:"groupBy,omitempty"`
 	WindowSize    WindowSize       `json:"windowSize,omitempty" yaml:"windowSize,omitempty"`
-	// TODO: add filter by
-	// FilterBy      []MeterFilter
+}
+
+func (ma *MeterApi) Validate() error {
+	m := &Meter{}
+	err := ma.CopyToMeter(m)
+	if err != nil {
+		return err
+	}
+
+	return m.Validate()
+}
+
+func (ma *MeterApi) ToMeter() (*Meter, error) {
+	m := &Meter{}
+	err := ma.CopyToMeter(m)
+	if err != nil {
+		return nil, err
+	}
+
+	return m, nil
+}
+
+func (ma *MeterApi) CopyToMeter(m *Meter) error {
+	m.Slug = ma.Slug
+	m.Description = ma.Description
+	m.Aggregation = ma.Aggregation
+	m.EventType = ma.EventType
+	m.ValueProperty = ma.ValueProperty
+	m.GroupBy = map[string]string{}
+	m.WindowSize = ma.WindowSize
+
+	// Parse group by
+	list, ok := ma.GroupBy.([]string)
+	// Converting list of property keys to map of JSONPaths
+	if ok {
+		for _, item := range list {
+			m.GroupBy[item] = fmt.Sprintf("$.%s", item)
+		}
+		return nil
+	}
+
+	// Group by is map
+	g, ok := ma.GroupBy.(map[string]interface{})
+	if ok {
+		for key, val := range g {
+			s, ok := val.(string)
+			if ok {
+				m.GroupBy[key] = s
+			} else {
+				return fmt.Errorf("group by map value must be a JSON Path string: %s", key)
+			}
+
+		}
+		return nil
+	}
+
+	// Group by is not defined
+	if g == nil {
+		return nil
+	}
+	return errors.New("group by must be a []strings or map(string, JSONPath)")
+}
+
+type Meter struct {
+	Slug          string            `json:"slug" yaml:"slug"`
+	Description   string            `json:"description,omitempty" yaml:"description,omitempty"`
+	Aggregation   MeterAggregation  `json:"aggregation" yaml:"aggregation"`
+	EventType     string            `json:"eventType" yaml:"eventType"`
+	ValueProperty string            `json:"valueProperty,omitempty" yaml:"valueProperty,omitempty"`
+	GroupBy       map[string]string `json:"groupBy,omitempty" yaml:"groupBy,omitempty"`
+	WindowSize    WindowSize        `json:"windowSize,omitempty" yaml:"windowSize,omitempty"`
 }
 
 type MeterOptions struct {
 	Description string
-	GroupBy     []string
+	GroupBy     map[string]string
 	WindowSize  *WindowSize
 }
 
@@ -158,6 +228,16 @@ func NewMeter(
 	return meter, nil
 }
 
+func (m *Meter) UnmarshalJSON(data []byte) error {
+	var ma MeterApi
+
+	if err := json.Unmarshal(data, &ma); err != nil {
+		return err
+	}
+
+	return ma.CopyToMeter(m)
+}
+
 func (m *Meter) Validate() error {
 	if m.Slug == "" {
 		return errors.New("meter id is required")
@@ -181,9 +261,9 @@ func (m *Meter) Validate() error {
 	}
 
 	if len(m.GroupBy) != 0 {
-		for _, field := range m.GroupBy {
-			if !strings.HasPrefix(field, "$") {
-				return errors.New("meter group by field must start with $")
+		for _, value := range m.GroupBy {
+			if !strings.HasPrefix(value, "$") {
+				return errors.New("meter group by value must be a JSONPath and start with $")
 			}
 		}
 	}

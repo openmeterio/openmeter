@@ -1,7 +1,7 @@
 {{- $select := list "SUBJECT" "VALUE" "WINDOWSTART" "WINDOWEND" -}}
 
-{{- range .GroupBy -}}
-{{- $select = printf "`%s`" . | append $select -}}
+{{- range $groupByKey, $groupByValue := .GroupBy -}}
+{{- $select = printf "`%s`" $groupByKey | append $select -}}
 {{- end }}
 
 {{- $clauses := list -}}

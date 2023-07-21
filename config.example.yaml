@@ -13,5 +13,5 @@ meters:
     valueProperty: $.duration_ms
     aggregation: SUM
     groupBy:
-      - $.method
-      - $.path
+      method: $.method
+      path: $.path

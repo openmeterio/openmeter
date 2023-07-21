@@ -8,8 +8,8 @@ meters:
     valueProperty: $.duration_ms
     aggregation: SUM
     groupBy:
-      - $.method
-      - $.path
+      - method
+      - path
 
 replicaCount: 1
 
