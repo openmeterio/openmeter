@@ -34,7 +34,6 @@ func NewKafkaConnector(config *KafkaConnectorConfig) (Connector, error) {
 	// Create KSQL Entities (tables, streams)
 	cloudEventsStreamQuery, err := templateQuery(cloudEventsStreamQueryTemplate, cloudEventsStreamQueryData{
 		Topic:         config.EventsTopic,
-		Partitions:    int(config.Partitions),
 		KeySchemaId:   config.KeySchemaID,
 		ValueSchemaId: config.ValueSchemaID,
 	})
