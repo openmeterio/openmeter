@@ -112,6 +112,17 @@ services:
       KMAGIC_ALLOW_TOPIC_DELETE: "true"
       KMAGIC_ALLOW_SCHEMA_DELETE: "true"
 
+  redpanda:
+    image: docker.redpanda.com/redpandadata/console
+    ports:
+      - "8084:8080"
+    depends_on:
+      - broker
+    environment:
+      KAFKA_BROKERS: broker:9092
+      KAFKA_SCHEMAREGISTRY_ENABLED: true
+      KAFKA_SCHEMAREGISTRY_URLS: http://schema-registry:8081
+
   postgres:
     image: postgres:15.3
     container_name: postgres
