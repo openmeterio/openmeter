@@ -178,7 +178,6 @@ func main() {
 	}
 
 	const eventsTopic = "om_events"
-	const detectedEventsTopic = "om_detected_events"
 
 	logger.Info("create default Kafka topics")
 
@@ -188,14 +187,6 @@ func main() {
 		{
 			Topic:         eventsTopic,
 			NumPartitions: config.Ingest.Kafka.Partitions,
-		},
-		{
-			Topic:         detectedEventsTopic,
-			NumPartitions: config.Ingest.Kafka.Partitions,
-			Config: map[string]string{
-				"retention.ms":   fmt.Sprintf("%d", (32 * 24 * time.Hour).Milliseconds()),
-				"cleanup.policy": "compact,delete", // based on configuration created by ksqldb
-			},
 		},
 	})
 	if err != nil {
