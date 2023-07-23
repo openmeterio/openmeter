@@ -169,8 +169,53 @@ func main() {
 		os.Exit(1)
 	}
 
+	kafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
+
+	kafkaAdminClient, err := kafka.NewAdminClient(kafkaConfig)
+	if err != nil {
+		logger.Error("init Kafka client: %v", err)
+		os.Exit(1)
+	}
+
+	const eventsTopic = "om_events"
+	const detectedEventsTopic = "om_detected_events"
+
+	logger.Info("create default Kafka topics")
+
+	// Create default topics
+	// TODO: make this more resilient
+	result, err := kafkaAdminClient.CreateTopics(context.Background(), []kafka.TopicSpecification{
+		{
+			Topic:         eventsTopic,
+			NumPartitions: config.Ingest.Kafka.Partitions,
+		},
+		{
+			Topic:         detectedEventsTopic,
+			NumPartitions: config.Ingest.Kafka.Partitions,
+			Config: map[string]string{
+				"retention.ms":   fmt.Sprintf("%d", (32 * 24 * time.Hour).Milliseconds()),
+				"cleanup.policy": "compact,delete", // based on configuration created by ksqldb
+			},
+		},
+	})
+	if err != nil {
+		logger.Error("create default Kafka topics: %v", err)
+		os.Exit(1)
+	}
+
+	for _, r := range result {
+		if r.Error.Code() != kafka.ErrNoError {
+			if err != nil {
+				logger.Error("create default Kafka topic %q: %v", r.Topic, err)
+				os.Exit(1)
+			}
+		}
+	}
+
+	logger.Info("default Kafka topics created")
+
 	// Initialize Kafka Producer
-	producer, err := kafka.NewProducer(config.Ingest.Kafka.CreateKafkaConfig())
+	producer, err := kafka.NewProducer(kafkaConfig)
 	if err != nil {
 		logger.Error("init Kafka producer: %v", err)
 		os.Exit(1)
@@ -182,7 +227,6 @@ func main() {
 	slog.Debug("connected to Kafka")
 
 	// Initialize events topic
-	const topic = "om_events"
 	schema, keySchemaID, valueSchemaID, err := kafkaingest.NewSchema(schemaRegistry)
 	if err != nil {
 		logger.Error("init schema: %v", err)
@@ -191,7 +235,7 @@ func main() {
 
 	collector := kafkaingest.Collector{
 		Producer: producer,
-		Topic:    topic,
+		Topic:    eventsTopic,
 		Schema:   schema,
 	}
 
@@ -218,7 +262,7 @@ func main() {
 	// TODO: config file (https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md)
 	connector, err := kafka_connector.NewKafkaConnector(&kafka_connector.KafkaConnectorConfig{
 		KsqlDBClient:  ksqldbClient,
-		EventsTopic:   topic,
+		EventsTopic:   eventsTopic,
 		Partitions:    config.Ingest.Kafka.Partitions,
 		KeySchemaID:   keySchemaID,
 		ValueSchemaID: valueSchemaID,
