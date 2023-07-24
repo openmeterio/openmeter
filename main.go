@@ -179,7 +179,7 @@ func main() {
 
 	const eventsTopic = "om_events"
 
-	logger.Info("create default Kafka topics")
+	logger.Debug("create default Kafka topics")
 
 	// Create default topics
 	// TODO: make this more resilient
@@ -197,7 +197,7 @@ func main() {
 	for _, r := range result {
 		if r.Error.Code() != kafka.ErrNoError {
 			if err != nil {
-				logger.Error("create default Kafka topic %q: %v", r.Topic, err)
+				logger.Error("create default Kafka topic", "topic", r.Topic, "error", err)
 				os.Exit(1)
 			}
 		}
