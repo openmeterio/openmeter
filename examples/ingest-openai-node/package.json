@@ -5,12 +5,13 @@
     "main": "app.ts",
     "type": "module",
     "scripts": {
-        "start": "ts-node app.ts",
+        "start": "TZ=utc ts-node app.ts",
         "lint": "prettier --write .",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "dependencies": {
         "@openmeter/sdk": "^0.0.2",
+        "dayjs": "^1.11.9",
         "dotenv": "^16.1.4",
         "openai": "^3.2.1",
         "ts-node": "^10.9.1",
