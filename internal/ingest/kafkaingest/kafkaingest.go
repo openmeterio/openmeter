@@ -20,6 +20,7 @@ type Schema interface {
 	SerializeValue(topic string, ev event.Event) ([]byte, error)
 }
 
+// Receive receives an event produces a message in a Kafka topic.
 func (s Collector) Receive(ev event.Event) error {
 	key, err := s.Schema.SerializeKey(s.Topic, ev)
 	if err != nil {

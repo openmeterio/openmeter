@@ -70,20 +70,18 @@ func TestCloudEventsStreamQuery(t *testing.T) {
 		{
 			data: cloudEventsStreamQueryData{
 				Topic:         "om_events",
-				Partitions:    1,
 				KeySchemaId:   1,
 				ValueSchemaId: 1,
 			},
-			want: "CREATE STREAM IF NOT EXISTS OM_EVENTS WITH ( KAFKA_TOPIC = 'om_events', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 1, KEY_SCHEMA_ID = 1, VALUE_SCHEMA_ID = 1 );",
+			want: "CREATE STREAM IF NOT EXISTS OM_EVENTS WITH ( KAFKA_TOPIC = 'om_events', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', KEY_SCHEMA_ID = 1, VALUE_SCHEMA_ID = 1 );",
 		},
 		{
 			data: cloudEventsStreamQueryData{
 				Topic:         "foo",
-				Partitions:    2,
 				KeySchemaId:   2,
 				ValueSchemaId: 2,
 			},
-			want: "CREATE STREAM IF NOT EXISTS OM_EVENTS WITH ( KAFKA_TOPIC = 'foo', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 2, KEY_SCHEMA_ID = 2, VALUE_SCHEMA_ID = 2 );",
+			want: "CREATE STREAM IF NOT EXISTS OM_EVENTS WITH ( KAFKA_TOPIC = 'foo', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', KEY_SCHEMA_ID = 2, VALUE_SCHEMA_ID = 2 );",
 		},
 	}
 

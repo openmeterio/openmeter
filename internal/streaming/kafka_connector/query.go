@@ -23,7 +23,6 @@ var cloudEventsStreamQueryTemplate string
 
 type cloudEventsStreamQueryData struct {
 	Topic         string
-	Partitions    int
 	KeySchemaId   int
 	ValueSchemaId int
 }

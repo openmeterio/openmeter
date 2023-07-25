@@ -17,9 +17,9 @@ SELECT
     COUNT(ID) as ID_COUNT
 FROM OM_EVENTS
 WINDOW TUMBLING (
-    SIZE {{ .Retention }} DAYS, 
+    SIZE {{ .Retention }} DAYS,
     RETENTION {{ .Retention }} DAYS
 )
-GROUP BY 
-    ID, 
+GROUP BY
+    ID,
     SOURCE;
