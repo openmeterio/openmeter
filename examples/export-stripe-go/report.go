@@ -66,14 +66,14 @@ func (r *Report) reportUsage(subscription *stripe.Subscription) error {
 			return nil
 		}
 
-		meterId := item.Metadata["om_meter_id"]
+		meterSlug := item.Metadata["om_meter_id"]
 		// Skip subscription item if doesn't have corresponding OpenMeter meter
-		if meterId == "" {
+		if meterSlug == "" {
 			return nil
 		}
 
 		// Query usage from OpenMeter for billing period
-		resp, err := r.openmeter.GetValuesByMeterId(r.ctx, meterId, &openmeter.GetValuesByMeterIdParams{
+		resp, err := r.openmeter.GetMeterValues(r.ctx, meterSlug, &openmeter.GetMeterValuesParams{
 			// If you don't report usage events via Stripe Customer ID you need to map Stripe IDs to your internal ID
 			Subject: &subscription.Customer.ID,
 			From:    &r.from,
@@ -82,7 +82,7 @@ func (r *Report) reportUsage(subscription *stripe.Subscription) error {
 		if err != nil {
 			return err
 		}
-		payload, err := openmeter.ParseGetValuesByMeterIdResponse(resp)
+		payload, err := openmeter.ParseGetMeterValuesResponse(resp)
 		if err != nil {
 			return err
 		}
@@ -98,7 +98,7 @@ func (r *Report) reportUsage(subscription *stripe.Subscription) error {
 			"stripe_customer: %s, stripe_price: %s, meter: %s, total_usage: %f, from: %s, to: %s\n",
 			subscription.Customer.ID,
 			item.Price.ID,
-			meterId,
+			meterSlug,
 			total,
 			r.from.String(),
 			r.to.String(),

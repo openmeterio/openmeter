@@ -65,20 +65,20 @@ func TestAggregateMeterValues(t *testing.T) {
 	}{
 		// aggregate to lower resolution
 		{
-			meter:       &Meter{ID: "meter1", WindowSize: WindowSizeDay, Aggregation: MeterAggregationSum},
+			meter:       &Meter{Slug: "meter1", WindowSize: WindowSizeDay, Aggregation: MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
 			meterValues: []*MeterValue{},
 			windowSize:  windowSizePtr(WindowSizeHour),
-			wantErr:     "invalid aggregation: expected window size of DAY for meter with ID meter1, but got HOUR",
+			wantErr:     "invalid aggregation: expected window size of DAY for meter with slug meter1, but got HOUR",
 		},
 		{
-			meter:       &Meter{ID: "meter2", WindowSize: WindowSizeHour, Aggregation: MeterAggregationSum},
+			meter:       &Meter{Slug: "meter2", WindowSize: WindowSizeHour, Aggregation: MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
 			meterValues: []*MeterValue{},
 			windowSize:  windowSizePtr(WindowSizeMinute),
-			wantErr:     "invalid aggregation: expected window size of HOUR or DAY for meter with ID meter2, but got MINUTE",
+			wantErr:     "invalid aggregation: expected window size of HOUR or DAY for meter with slug meter2, but got MINUTE",
 		},
 		// same resolution
 		{
-			meter: &Meter{ID: "meter3", WindowSize: WindowSizeHour, Aggregation: MeterAggregationSum},
+			meter: &Meter{Slug: "meter3", WindowSize: WindowSizeHour, Aggregation: MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
 			meterValues: []*MeterValue{
 				{Subject: "s1", WindowStart: hourWindows[0].start, WindowEnd: hourWindows[0].end, Value: 100},
 				{Subject: "s1", WindowStart: hourWindows[1].start, WindowEnd: hourWindows[1].end, Value: 200},
@@ -92,7 +92,7 @@ func TestAggregateMeterValues(t *testing.T) {
 		// aggregate to higher resolution
 		// hour -> day
 		{
-			meter: &Meter{ID: "meter4", WindowSize: WindowSizeHour, Aggregation: MeterAggregationSum},
+			meter: &Meter{Slug: "meter4", WindowSize: WindowSizeHour, Aggregation: MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
 			meterValues: []*MeterValue{
 				{Subject: "s1", WindowStart: hourWindows[0].start, WindowEnd: hourWindows[0].end, Value: 100},
 				{Subject: "s1", WindowStart: hourWindows[1].start, WindowEnd: hourWindows[1].end, Value: 200},
@@ -106,7 +106,7 @@ func TestAggregateMeterValues(t *testing.T) {
 			},
 		},
 		{
-			meter: &Meter{ID: "meter5", WindowSize: WindowSizeHour, Aggregation: MeterAggregationAvg},
+			meter: &Meter{Slug: "meter5", WindowSize: WindowSizeHour, Aggregation: MeterAggregationAvg, EventType: "event", ValueProperty: "$.value"},
 			meterValues: []*MeterValue{
 				{Subject: "s1", WindowStart: hourWindows[0].start, WindowEnd: hourWindows[0].end, Value: 100},
 				{Subject: "s1", WindowStart: hourWindows[1].start, WindowEnd: hourWindows[1].end, Value: 200},
@@ -120,7 +120,7 @@ func TestAggregateMeterValues(t *testing.T) {
 			},
 		},
 		{
-			meter: &Meter{ID: "meter6", WindowSize: WindowSizeHour, Aggregation: MeterAggregationMax},
+			meter: &Meter{Slug: "meter6", WindowSize: WindowSizeHour, Aggregation: MeterAggregationMax, EventType: "event", ValueProperty: "$.value"},
 			meterValues: []*MeterValue{
 				{Subject: "s1", WindowStart: hourWindows[0].start, WindowEnd: hourWindows[0].end, Value: 100},
 				{Subject: "s1", WindowStart: hourWindows[1].start, WindowEnd: hourWindows[1].end, Value: 200},
@@ -136,7 +136,7 @@ func TestAggregateMeterValues(t *testing.T) {
 		// aggregate to higher resolution
 		// minute -> hour
 		{
-			meter: &Meter{ID: "meter7", WindowSize: WindowSizeMinute, Aggregation: MeterAggregationSum},
+			meter: &Meter{Slug: "meter7", WindowSize: WindowSizeMinute, Aggregation: MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
 			meterValues: []*MeterValue{
 				{Subject: "s1", WindowStart: minuteWindows[0].start, WindowEnd: minuteWindows[0].end, Value: 100},
 				{Subject: "s1", WindowStart: minuteWindows[1].start, WindowEnd: minuteWindows[1].end, Value: 200},
@@ -150,7 +150,7 @@ func TestAggregateMeterValues(t *testing.T) {
 			},
 		},
 		{
-			meter: &Meter{ID: "meter8", WindowSize: WindowSizeMinute, Aggregation: MeterAggregationAvg},
+			meter: &Meter{Slug: "meter8", WindowSize: WindowSizeMinute, Aggregation: MeterAggregationAvg, EventType: "event", ValueProperty: "$.value"},
 			meterValues: []*MeterValue{
 				{Subject: "s1", WindowStart: minuteWindows[0].start, WindowEnd: minuteWindows[0].end, Value: 100},
 				{Subject: "s1", WindowStart: minuteWindows[1].start, WindowEnd: minuteWindows[1].end, Value: 200},
@@ -164,7 +164,7 @@ func TestAggregateMeterValues(t *testing.T) {
 			},
 		},
 		{
-			meter: &Meter{ID: "meter9", WindowSize: WindowSizeMinute, Aggregation: MeterAggregationMin},
+			meter: &Meter{Slug: "meter9", WindowSize: WindowSizeMinute, Aggregation: MeterAggregationMin, EventType: "event", ValueProperty: "$.value"},
 			meterValues: []*MeterValue{
 				{Subject: "s1", WindowStart: minuteWindows[0].start, WindowEnd: minuteWindows[0].end, Value: 100},
 				{Subject: "s1", WindowStart: minuteWindows[1].start, WindowEnd: minuteWindows[1].end, Value: 200},
@@ -178,7 +178,7 @@ func TestAggregateMeterValues(t *testing.T) {
 			},
 		},
 		{
-			meter: &Meter{ID: "meter10", WindowSize: WindowSizeMinute, Aggregation: MeterAggregationMax},
+			meter: &Meter{Slug: "meter10", WindowSize: WindowSizeMinute, Aggregation: MeterAggregationMax, EventType: "event", ValueProperty: "$.value"},
 			meterValues: []*MeterValue{
 				{Subject: "s1", WindowStart: minuteWindows[0].start, WindowEnd: minuteWindows[0].end, Value: 100},
 				{Subject: "s1", WindowStart: minuteWindows[1].start, WindowEnd: minuteWindows[1].end, Value: 200},
@@ -194,7 +194,7 @@ func TestAggregateMeterValues(t *testing.T) {
 		// aggregate to higher resolution
 		// minute -> day
 		{
-			meter: &Meter{ID: "meter11", WindowSize: WindowSizeMinute, Aggregation: MeterAggregationSum},
+			meter: &Meter{Slug: "meter11", WindowSize: WindowSizeMinute, Aggregation: MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
 			meterValues: []*MeterValue{
 				{Subject: "s1", WindowStart: minuteWindows[0].start, WindowEnd: minuteWindows[0].end, Value: 100},
 				{Subject: "s1", WindowStart: minuteWindows[1].start, WindowEnd: minuteWindows[1].end, Value: 200},
@@ -208,7 +208,7 @@ func TestAggregateMeterValues(t *testing.T) {
 			},
 		},
 		{
-			meter: &Meter{ID: "meter12", WindowSize: WindowSizeMinute, Aggregation: MeterAggregationAvg},
+			meter: &Meter{Slug: "meter12", WindowSize: WindowSizeMinute, Aggregation: MeterAggregationAvg, EventType: "event", ValueProperty: "$.value"},
 			meterValues: []*MeterValue{
 				{Subject: "s1", WindowStart: minuteWindows[0].start, WindowEnd: minuteWindows[0].end, Value: 100},
 				{Subject: "s1", WindowStart: minuteWindows[1].start, WindowEnd: minuteWindows[1].end, Value: 200},
@@ -222,7 +222,7 @@ func TestAggregateMeterValues(t *testing.T) {
 			},
 		},
 		{
-			meter: &Meter{ID: "meter13", WindowSize: WindowSizeMinute, Aggregation: MeterAggregationMin},
+			meter: &Meter{Slug: "meter13", WindowSize: WindowSizeMinute, Aggregation: MeterAggregationMin, EventType: "event", ValueProperty: "$.value"},
 			meterValues: []*MeterValue{
 				{Subject: "s1", WindowStart: minuteWindows[0].start, WindowEnd: minuteWindows[0].end, Value: 100},
 				{Subject: "s1", WindowStart: minuteWindows[1].start, WindowEnd: minuteWindows[1].end, Value: 200},
@@ -236,7 +236,7 @@ func TestAggregateMeterValues(t *testing.T) {
 			},
 		},
 		{
-			meter: &Meter{ID: "meter14", WindowSize: WindowSizeMinute, Aggregation: MeterAggregationMax},
+			meter: &Meter{Slug: "meter14", WindowSize: WindowSizeMinute, Aggregation: MeterAggregationMax, EventType: "event", ValueProperty: "$.value"},
 			meterValues: []*MeterValue{
 				{Subject: "s1", WindowStart: minuteWindows[0].start, WindowEnd: minuteWindows[0].end, Value: 100},
 				{Subject: "s1", WindowStart: minuteWindows[1].start, WindowEnd: minuteWindows[1].end, Value: 200},
@@ -250,16 +250,9 @@ func TestAggregateMeterValues(t *testing.T) {
 			},
 		},
 		// aggregate to higher resolution
-		// aggregate type not supported
-		{
-			meter:       &Meter{ID: "meter15", WindowSize: WindowSizeMinute, Aggregation: MeterAggregationCountDistinct},
-			meterValues: []*MeterValue{},
-			windowSize:  windowSizePtr(WindowSizeHour),
-			wantErr:     "invalid aggregation: expected window size of MINUTE for meter with ID meter15, but got HOUR",
-		},
 		// aggregate to total
 		{
-			meter: &Meter{ID: "meter16", WindowSize: WindowSizeMinute, Aggregation: MeterAggregationSum},
+			meter: &Meter{Slug: "meter16", WindowSize: WindowSizeMinute, Aggregation: MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
 			meterValues: []*MeterValue{
 				{Subject: "s1", WindowStart: minuteWindows[0].start, WindowEnd: minuteWindows[0].end, Value: 100},
 				{Subject: "s1", WindowStart: minuteWindows[1].start, WindowEnd: minuteWindows[1].end, Value: 200},
@@ -280,7 +273,13 @@ func TestAggregateMeterValues(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.meter.ID, func(t *testing.T) {
+		tt := tt
+		t.Run(tt.meter.Slug, func(t *testing.T) {
+			err := tt.meter.Validate()
+			if err != nil {
+				t.Fatal(err)
+			}
+
 			got, err := tt.meter.AggregateMeterValues(tt.meterValues, tt.windowSize)
 			if err != nil {
 				assert.Equal(t, tt.wantErr, err.Error())

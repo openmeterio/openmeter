@@ -11,7 +11,7 @@ import (
 )
 
 // Meter in your config, we use it to map our price to this meter
-var meterId = "m1"
+var meterSlug = "m1"
 
 func SetupStripe() error {
 	// Create a Stripe Product
@@ -56,7 +56,7 @@ func SetupStripe() error {
 			{
 				Price: &price.ID,
 				Metadata: map[string]string{
-					"om_meter_id": meterId,
+					"om_meter_id": meterSlug,
 				},
 			},
 		},

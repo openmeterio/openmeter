@@ -1,12 +1,13 @@
 {
 	"name": "@openmeter/sdk",
-	"version": "0.0.2",
+	"version": "1.0.0-alpha.1",
 	"description": "Client for OpenMeter: Real-Time and Scalable Usage Metering",
 	"license": "Apache 2.0",
 	"homepage": "https://openmeter.io",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/openmeterio/openmeter.git"
+		"url": "https://github.com/openmeterio/openmeter.git",
+		"directory": "api/client/node"
 	},
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -18,7 +19,7 @@
 		"lint": "eslint . --ext .ts --format=pretty",
 		"format": "prettier --write .",
 		"build": "rimraf ./dist && tsc --build",
-		"generate": "rimraf ./generated && openapi -i ../../openapi.yaml -o ./generated --name HttpService --client node",
+		"generate": "rimraf ./generated && openapi -i ../../openapi.yaml -o ./generated --exportSchemas true --name HttpService --client node",
 		"postgenerate": "ts-node-esm scripts/postgenerate.ts && eslint ./generated --ext .ts --format=pretty --fix && prettier --write ./generated",
 		"pretest": "npm run build",
 		"test": "vitest --run --threads=false",
@@ -26,25 +27,25 @@
 		"prepublishOnly": "npm run generate && npm run build && npm run test && npm run lint"
 	},
 	"devDependencies": {
-		"@types/node": "^18.16.18",
+		"@types/node": "^20.4.5",
 		"@types/node-fetch": "^2.6.4",
-		"@typescript-eslint/eslint-plugin": "^5.60.0",
-		"@typescript-eslint/parser": "^5.60.0",
-		"eslint": "^8.43.0",
+		"@typescript-eslint/eslint-plugin": "^6.2.0",
+		"@typescript-eslint/parser": "^6.2.0",
+		"eslint": "^8.45.0",
 		"eslint-config-prettier": "^8.8.0",
 		"eslint-formatter-pretty": "^5.0.0",
 		"eslint-import-resolver-typescript": "^3.5.5",
 		"eslint-plugin-compat": "^4.1.4",
 		"eslint-plugin-import": "^2.27.5",
 		"eslint-plugin-require-extensions": "^0.1.3",
-		"eslint-plugin-unused-imports": "^2.0.0",
+		"eslint-plugin-unused-imports": "^3.0.0",
 		"eslint-plugin-vitest": "^0.2.6",
-		"openapi-typescript-codegen": "^0.24.0",
-		"prettier": "^2.8.8",
+		"openapi-typescript-codegen": "^0.25.0",
+		"prettier": "^3.0.0",
 		"rimraf": "^5.0.1",
 		"ts-node": "^10.9.1",
-		"typescript": "^5.0.4",
-		"vitest": "^0.32.2"
+		"typescript": "^5.1.6",
+		"vitest": "^0.33.0"
 	},
 	"browserslist": [
 		"current node"
@@ -52,6 +53,6 @@
 	"dependencies": {
 		"abort-controller": "^3.0.0",
 		"form-data": "^4.0.0",
-		"node-fetch": "^3.3.1"
+		"node-fetch": "^3.3.2"
 	}
 }

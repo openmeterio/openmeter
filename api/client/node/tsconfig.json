@@ -13,6 +13,7 @@
 		"incremental": true,
 		"experimentalDecorators": true,
 		"emitDecoratorMetadata": true,
+		"allowSyntheticDefaultImports": true,
 		"outDir": "./dist"
 	},
 	"include": ["**/*.ts"],

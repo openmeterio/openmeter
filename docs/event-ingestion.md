@@ -41,16 +41,14 @@ For example, you can define meters called "Parallel jobs", and OpenMeter will ag
 Using an example, let’s dive into how OpenMeter’s event processing works.
 Imagine you want to track serverless execution duration by endpoint and you defined the following meter:
 
-meters:
-
 ```yaml
-id: m1
-    name: Meter 1
+meters:
+  - slug: m1
     type: api-calls
     valueProperty: $.duration
     aggregation: SUM
     groupBy:
-        - $.path
+      path: $.path
 ```
 
 The meter config above tells OpenMeter that expect CloudEvents with `type=api-calls` where the usage value is stored in the `data.duration` and we need to sum them by `data.path`.
@@ -81,8 +79,8 @@ OpenMeter will track the usage value for the time window and cusomer as:
 windowstart   = "2023-01-01T00:00"
 windowend     = "2023-01-01T00:01"
 subject       = "customer-1"
-duration      = 10
-$.path        = "/hello"
+value         = 10
+path          = "/hello"
 ```
 
 When sending the second event (with a different `id` and `duration` value):
@@ -108,8 +106,8 @@ OpenMeter will increase sum of the duration for the two events for the same time
 windowstart   = "2023-01-01T00:00"
 windowend     = "2023-01-01T00:01"
 subject       = "customer-1"
-duration      = 30
-$.path        = "/hello"
+value         = 30
+path          = "/hello"
 ```
 
 ## Event Deduplication

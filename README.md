@@ -34,6 +34,10 @@ See our examples to learn about common OpenMeter use-cases.
 - [Metering Kubernetes Pod Execution Time](/examples/ingest-kubernetes-pod-time-go)
 - [Usage Based Billing with Stripe](/examples/export-stripe-go)
 
+## API
+
+OpenMeter exposes a [REST API](https://editor.swagger.io/?url=https://raw.githubusercontent.com/openmeterio/openmeter/main/api/openapi.yaml) for integrations.
+
 ## Client SDKs
 
 Currently, we offer the following Client SDKs:
@@ -41,7 +45,8 @@ Currently, we offer the following Client SDKs:
 - [Node.js](/api/client/node)
 - [Go](/api/client/go)
 
-For languages where an SDK isn't available yet, we encourage using the [OpenAPI definition](/api/openapi.yaml). We recommend using the [OpenAPI Generator](https://openapi-generator.tech/) to generate your own client.
+In cases where no specific SDK is available for your preferred programming language, you can utilize the [OpenAPI definition](https://github.com/openmeterio/openmeter/blob/main/api/openapi.yaml).
+Please raise a [GitHub issue](https://github.com/openmeterio/openmeter/issues/new?assignees=&labels=area%2Fapi%2Ckind%2Ffeature&projects=&template=feature_request.yaml) to request SDK support in other languages.
 
 ## Development
 

@@ -26,6 +26,7 @@ func TestDetectedEventsTableQuery(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run("", func(t *testing.T) {
 			got, err := templateQuery(detectedEventsTableQueryTemplate, tt.data)
 			if err != nil {
@@ -51,6 +52,7 @@ func TestDetectedEventsStreamQuery(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run("", func(t *testing.T) {
 			got, err := templateQuery(detectedEventsStreamQueryTemplate, tt.data)
 			if err != nil {
@@ -86,6 +88,7 @@ func TestCloudEventsStreamQuery(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run("", func(t *testing.T) {
 			got, err := templateQuery(cloudEventsStreamQueryTemplate, tt.data)
 			if err != nil {
@@ -105,25 +108,25 @@ func TestMeterTableQuery(t *testing.T) {
 		{
 			data: meterTableQueryData{
 				Meter: &models.Meter{
-					ID:            "meter1",
-					Name:          "API Network Traffic",
+					Slug:          "meter1",
+					Description:   "API Network Traffic",
 					ValueProperty: "$.bytes",
-					Type:          "api-calls",
+					EventType:     "api-calls",
 					Aggregation:   models.MeterAggregationSum,
-					GroupBy:       []string{"$.path"},
+					GroupBy:       map[string]string{"path": "$.path"},
 					WindowSize:    models.WindowSizeHour,
 				},
 				WindowRetention: "365 DAYS",
 				Partitions:      1,
 			},
-			want: "CREATE TABLE IF NOT EXISTS `OM_METER_METER1` WITH ( KAFKA_TOPIC = 'om_meter_meter1', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 1 ) AS SELECT SUBJECT AS KEY1, AS_VALUE(SUBJECT) AS SUBJECT, WINDOWSTART AS WINDOWSTART_TS, WINDOWEND AS WINDOWEND_TS, COALESCE(EXTRACTJSONFIELD(data, '$.path'), '') AS `$.path_KEY`, AS_VALUE(COALESCE(EXTRACTJSONFIELD(data, '$.path'), '')) AS `$.path`, SUM(CAST(EXTRACTJSONFIELD(data, '$.bytes') AS DECIMAL(12, 4))) AS VALUE FROM OM_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 1 HOUR, RETENTION 365 DAYS ) WHERE ID_COUNT = 1 AND TYPE = 'api-calls' GROUP BY SUBJECT, COALESCE(EXTRACTJSONFIELD(data, '$.path'), '') EMIT CHANGES;",
+			want: "CREATE TABLE IF NOT EXISTS `OM_METER_METER1` WITH ( KAFKA_TOPIC = 'om_meter_meter1', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 1 ) AS SELECT SUBJECT AS KEY1, AS_VALUE(SUBJECT) AS SUBJECT, WINDOWSTART AS WINDOWSTART_TS, WINDOWEND AS WINDOWEND_TS, COALESCE(EXTRACTJSONFIELD(data, '$.path'), '') AS `path_KEY`, AS_VALUE(COALESCE(EXTRACTJSONFIELD(data, '$.path'), '')) AS `path`, SUM(CAST(EXTRACTJSONFIELD(data, '$.bytes') AS DECIMAL(12, 4))) AS VALUE FROM OM_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 1 HOUR, RETENTION 365 DAYS ) WHERE ID_COUNT = 1 AND TYPE = 'api-calls' GROUP BY SUBJECT, COALESCE(EXTRACTJSONFIELD(data, '$.path'), '') EMIT CHANGES;",
 		},
 		{
 			data: meterTableQueryData{
 				Meter: &models.Meter{
-					ID:          "meter2",
-					Name:        "API Calls",
-					Type:        "api-calls",
+					Slug:        "meter2",
+					Description: "API Calls",
+					EventType:   "api-calls",
 					Aggregation: models.MeterAggregationCount,
 					WindowSize:  models.WindowSizeHour,
 				},
@@ -135,9 +138,9 @@ func TestMeterTableQuery(t *testing.T) {
 		{
 			data: meterTableQueryData{
 				Meter: &models.Meter{
-					ID:            "meter2",
-					Name:          "API Calls",
-					Type:          "api-calls",
+					Slug:          "meter2",
+					Description:   "API Calls",
+					EventType:     "api-calls",
 					ValueProperty: "$.duration_ms",
 					Aggregation:   models.MeterAggregationCount,
 					WindowSize:    models.WindowSizeHour,
@@ -150,9 +153,9 @@ func TestMeterTableQuery(t *testing.T) {
 		{
 			data: meterTableQueryData{
 				Meter: &models.Meter{
-					ID:            "meter3",
-					Name:          "API call count by path",
-					Type:          "api-calls",
+					Slug:          "meter3",
+					Description:   "API call count by path",
+					EventType:     "api-calls",
 					Aggregation:   models.MeterAggregationAvg,
 					ValueProperty: "$.duration_ms",
 					WindowSize:    models.WindowSizeMinute,
@@ -165,6 +168,7 @@ func TestMeterTableQuery(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run("", func(t *testing.T) {
 			got, err := templateQuery(meterTableQueryTemplate, tt.data)
 			if err != nil {
@@ -187,7 +191,7 @@ func TestValuesSelectQuery(t *testing.T) {
 		{
 			data: meterValuesData{
 				Meter: &models.Meter{
-					ID: "meter1",
+					Slug: "meter1",
 				},
 				GetValuesParams: &GetValuesParams{
 					Subject: &subject,
@@ -198,7 +202,7 @@ func TestValuesSelectQuery(t *testing.T) {
 		{
 			data: meterValuesData{
 				Meter: &models.Meter{
-					ID: "meter2",
+					Slug: "meter2",
 				},
 				GetValuesParams: &GetValuesParams{
 					Subject: &subject,
@@ -210,7 +214,7 @@ func TestValuesSelectQuery(t *testing.T) {
 		{
 			data: meterValuesData{
 				Meter: &models.Meter{
-					ID: "meter3",
+					Slug: "meter3",
 				},
 				GetValuesParams: &GetValuesParams{},
 			},
@@ -219,7 +223,7 @@ func TestValuesSelectQuery(t *testing.T) {
 		{
 			data: meterValuesData{
 				Meter: &models.Meter{
-					ID: "meter4",
+					Slug: "meter4",
 				},
 				GetValuesParams: &GetValuesParams{
 					Subject: &subject,
@@ -231,7 +235,7 @@ func TestValuesSelectQuery(t *testing.T) {
 		{
 			data: meterValuesData{
 				Meter: &models.Meter{
-					ID: "meter5",
+					Slug: "meter5",
 				},
 				GetValuesParams: &GetValuesParams{
 					Subject: &subject,
@@ -244,6 +248,7 @@ func TestValuesSelectQuery(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run("", func(t *testing.T) {
 			got, err := templateQuery(meterValuesTemplate, tt.data)
 			if err != nil {
