@@ -41,11 +41,11 @@ describe('api', () => {
 					api_calls: 1,
 				},
 			}
-			await openmeter.ingestEvents(event)
+			await openmeter.events.ingestEvents(event)
 
 			expect(fetch).toHaveBeenCalledOnce()
 			expect(fetch).toHaveBeenCalledWith(
-				'http://127.0.0.1:8888/api/v1alpha1/events',
+				'http://127.0.0.1:8888/api/v1alpha2/events',
 				expect.objectContaining({
 					method: 'POST',
 					body: JSON.stringify(event),
@@ -58,13 +58,13 @@ describe('api', () => {
 		})
 	})
 
-	describe('getMeters', () => {
-		it('should get meters', async ({ openmeter }) => {
-			await openmeter.getMeters()
+	describe('listMeters', () => {
+		it('should list meters', async ({ openmeter }) => {
+			await openmeter.meters.listMeters()
 
 			expect(fetch).toHaveBeenCalledOnce()
 			expect(fetch).toHaveBeenCalledWith(
-				'http://127.0.0.1:8888/api/v1alpha1/meters',
+				'http://127.0.0.1:8888/api/v1alpha2/meters',
 				expect.objectContaining({
 					method: 'GET',
 					headers: new Headers({
@@ -75,14 +75,14 @@ describe('api', () => {
 		})
 	})
 
-	describe('getMetersById', () => {
+	describe('getMeter', () => {
 		it('should get meter', async ({ openmeter }) => {
-			const meterId = 'm1'
-			await openmeter.getMetersById(meterId)
+			const meterSlug = 'm1'
+			await openmeter.meters.getMeter(meterSlug)
 
 			expect(fetch).toHaveBeenCalledOnce()
 			expect(fetch).toHaveBeenCalledWith(
-				'http://127.0.0.1:8888/api/v1alpha1/meters/m1',
+				'http://127.0.0.1:8888/api/v1alpha2/meters/m1',
 				expect.objectContaining({
 					method: 'GET',
 					headers: new Headers({
@@ -93,14 +93,14 @@ describe('api', () => {
 		})
 	})
 
-	describe('getValuesByMeterId', () => {
+	describe('getMeterValues', () => {
 		it('should get meter values', async ({ openmeter }) => {
-			const meterId = 'm1'
-			await openmeter.getValuesByMeterId(meterId)
+			const meterSlug = 'm1'
+			await openmeter.meters.getMeterValues(meterSlug)
 
 			expect(fetch).toHaveBeenCalledOnce()
 			expect(fetch).toHaveBeenCalledWith(
-				'http://127.0.0.1:8888/api/v1alpha1/meters/m1/values',
+				'http://127.0.0.1:8888/api/v1alpha2/meters/m1/values',
 				expect.objectContaining({
 					method: 'GET',
 					headers: new Headers({
@@ -111,16 +111,22 @@ describe('api', () => {
 		})
 
 		it('should get meter values (with params)', async ({ openmeter }) => {
-			const meterId = 'm2'
+			const meterSlug = 'm2'
 			const subject = 'user-1'
 			const from = new Date('2021-01-01').toISOString()
 			const to = new Date('2021-01-02').toISOString()
 			const windowSize = WindowSize.HOUR
-			await openmeter.getValuesByMeterId(meterId, subject, from, to, windowSize)
+			await openmeter.meters.getMeterValues(
+				meterSlug,
+				subject,
+				from,
+				to,
+				windowSize
+			)
 
 			expect(fetch).toHaveBeenCalledOnce()
 			expect(fetch).toHaveBeenCalledWith(
-				'http://127.0.0.1:8888/api/v1alpha1/meters/m2/values?subject=user-1&from=2021-01-01T00%3A00%3A00.000Z&to=2021-01-02T00%3A00%3A00.000Z&windowSize=HOUR',
+				'http://127.0.0.1:8888/api/v1alpha2/meters/m2/values?subject=user-1&from=2021-01-01T00%3A00%3A00.000Z&to=2021-01-02T00%3A00%3A00.000Z&windowSize=HOUR',
 				expect.objectContaining({
 					method: 'GET',
 					headers: new Headers({

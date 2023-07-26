@@ -1,10 +1,12 @@
 package server
 
 import (
-	"fmt"
+	"context"
+	"errors"
 	"net/http"
 
 	oapimiddleware "github.com/deepmap/oapi-codegen/pkg/chi-middleware"
+	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
@@ -12,6 +14,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/server/router"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Server struct {
@@ -19,10 +22,6 @@ type Server struct {
 }
 
 type ServerLogger struct{}
-
-func (l *ServerLogger) Print(v ...interface{}) {
-	slog.Debug(fmt.Sprintf("%v", v[0]), v[1:]...)
-}
 
 type Config struct {
 	RouterConfig router.Config
@@ -53,24 +52,39 @@ func NewServer(config *Config) (*Server, error) {
 		config.RouterHook(r)
 	}
 
-	// override default logger with slog
-	// TODO: use https://github.com/go-chi/httplog/tree/master?
-	middleware.DefaultLogger = middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: &ServerLogger{}, NoColor: true})
-
 	r.Use(middleware.RealIP)
 	r.Use(middleware.RequestID)
-	r.Use(middleware.Logger)
+	r.Use(NewStructuredLogger(slog.Default().Handler(), nil))
 	r.Use(middleware.Recoverer)
 	r.Use(render.SetContentType(render.ContentTypeJSON))
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		models.NewStatusProblem(r.Context(), nil, http.StatusNotFound).Respond(w, r)
+	})
+	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+		models.NewStatusProblem(r.Context(), nil, http.StatusMethodNotAllowed).Respond(w, r)
+	})
+
+	// Serve the OpenAPI spec
+	r.Get("/api/swagger.json", func(w http.ResponseWriter, r *http.Request) {
+		render.JSON(w, r, swagger)
+	})
 
 	// Use validator middleware to check requests against the OpenAPI schema
 	_ = api.HandlerWithOptions(impl, api.ChiServerOptions{
 		BaseRouter: r,
 		Middlewares: []api.MiddlewareFunc{
-			oapimiddleware.OapiRequestValidator(swagger),
+			oapimiddleware.OapiRequestValidatorWithOptions(swagger, &oapimiddleware.Options{
+				ErrorHandler: func(w http.ResponseWriter, message string, statusCode int) {
+					models.NewStatusProblem(context.Background(), errors.New(message), statusCode).Respond(w, nil)
+				},
+				Options: openapi3filter.Options{
+					AuthenticationFunc:  openapi3filter.NoopAuthenticationFunc,
+					SkipSettingDefaults: true,
+				},
+			}),
 		},
 		ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
-			_ = render.Render(w, r, api.ErrInternalServerError(err))
+			models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
 		},
 	})
 

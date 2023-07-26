@@ -8,21 +8,33 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/oklog/ulid/v2"
 )
 
 type MeterAggregation string
 
 const (
-	MeterAggregationSum    MeterAggregation = "SUM"
-	MeterAggregationCount  MeterAggregation = "COUNT"
-	MeterAggregationAvg    MeterAggregation = "AVG"
-	MeterAggregationMin    MeterAggregation = "MIN"
-	MeterAggregationMax    MeterAggregation = "MAX"
-	MeterAggregationLatest MeterAggregation = "LATEST_BY_OFFSET"
-
-	// these types can not be used for further aggregations
-	MeterAggregationCountDistinct MeterAggregation = "COUNT_DISTINCT"
+	MeterAggregationSum   MeterAggregation = "SUM"
+	MeterAggregationCount MeterAggregation = "COUNT"
+	MeterAggregationAvg   MeterAggregation = "AVG"
+	MeterAggregationMin   MeterAggregation = "MIN"
+	MeterAggregationMax   MeterAggregation = "MAX"
 )
+
+// Values provides list valid values for Enum
+func (MeterAggregation) Values() (kinds []string) {
+	for _, s := range []MeterAggregation{
+		MeterAggregationSum,
+		MeterAggregationCount,
+		MeterAggregationAvg,
+		MeterAggregationMin,
+		MeterAggregationMax,
+	} {
+		kinds = append(kinds, string(s))
+	}
+	return
+}
 
 type MeterFilterOperator string
 
@@ -45,6 +57,23 @@ type MeterFilter struct {
 	Value    string              `json:"value" yaml:"value"`
 }
 
+// Values provides list valid values for Enum
+func (MeterFilterOperator) Values() (kinds []string) {
+	for _, s := range []MeterFilterOperator{
+		MeterFilterOperatorEquals,
+		MeterFilterOperatorNot,
+		MeterFilterLowerThan,
+		MeterFilterLowerThanOrEq,
+		MeterFilterGreaterThan,
+		MeterFilterGreaterThanOrEq,
+		MeterFilterOperatorIsNull,
+		MeterFilterOperatorIsNotNull,
+	} {
+		kinds = append(kinds, string(s))
+	}
+	return
+}
+
 type WindowSize string
 
 const (
@@ -52,6 +81,18 @@ const (
 	WindowSizeHour   WindowSize = "HOUR"
 	WindowSizeDay    WindowSize = "DAY"
 )
+
+// Values provides list valid values for Enum
+func (WindowSize) Values() (kinds []string) {
+	for _, s := range []WindowSize{
+		WindowSizeMinute,
+		WindowSizeHour,
+		WindowSizeDay,
+	} {
+		kinds = append(kinds, string(s))
+	}
+	return
+}
 
 // Duration returns the duration of the window size
 func (w WindowSize) Duration() time.Duration {
@@ -69,40 +110,43 @@ func (w WindowSize) Duration() time.Duration {
 }
 
 type Meter struct {
-	ID            string            `json:"id" yaml:"id"`
-	Name          string            `json:"name" yaml:"name"`
+	ID            string            `json:"id,omitempty" yaml:"id,omitempty"`
+	Slug          string            `json:"slug" yaml:"slug"`
 	Description   string            `json:"description,omitempty" yaml:"description,omitempty"`
-	Labels        map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
-	Type          string            `json:"type" yaml:"type"`
 	Aggregation   MeterAggregation  `json:"aggregation" yaml:"aggregation"`
+	EventType     string            `json:"eventType" yaml:"eventType"`
 	ValueProperty string            `json:"valueProperty,omitempty" yaml:"valueProperty,omitempty"`
-	GroupBy       []string          `json:"groupBy,omitempty" yaml:"groupBy,omitempty"`
+	GroupBy       map[string]string `json:"groupBy,omitempty" yaml:"groupBy,omitempty"`
 	WindowSize    WindowSize        `json:"windowSize,omitempty" yaml:"windowSize,omitempty"`
 	// TODO: add filter by
 	// FilterBy      []MeterFilter
 }
 
 type MeterOptions struct {
+	ID          string
 	Description string
-	Labels      map[string]string
-	GroupBy     []string
+	GroupBy     map[string]string
 	WindowSize  *WindowSize
 }
 
-func NewMeter(id, name, meterType, valueProperty string, aggregation MeterAggregation, options *MeterOptions) (*Meter, error) {
+func NewMeter(
+	slug string,
+	aggregatation MeterAggregation,
+	eventType string,
+	valueProperty string,
+	options *MeterOptions,
+) (*Meter, error) {
 	meter := &Meter{
-		ID:            id,
-		Name:          name,
+		Slug:          slug,
+		Aggregation:   aggregatation,
+		EventType:     eventType,
 		ValueProperty: valueProperty,
-		Aggregation:   aggregation,
-		Type:          meterType,
-		WindowSize:    WindowSizeHour,
 	}
 
 	// Apply optional parameters if provided
 	if options != nil {
+		meter.ID = options.ID
 		meter.Description = options.Description
-		meter.Labels = options.Labels
 		meter.GroupBy = options.GroupBy
 		if options.WindowSize != nil {
 			meter.WindowSize = *options.WindowSize
@@ -118,14 +162,17 @@ func NewMeter(id, name, meterType, valueProperty string, aggregation MeterAggreg
 }
 
 func (m *Meter) Validate() error {
-	if m.ID == "" {
-		return errors.New("meter id is required")
+	if m.ID != "" {
+		_, err := ulid.ParseStrict(m.ID)
+		if err != nil {
+			return errors.New("meter id is not a valid ULID")
+		}
 	}
-	if m.Name == "" {
-		return errors.New("meter name is required")
+	if m.Slug == "" {
+		return errors.New("meter slug is required")
 	}
-	if m.Type == "" {
-		return errors.New("meter type is required")
+	if m.EventType == "" {
+		return errors.New("meter event type is required")
 	}
 	if m.Aggregation == "" {
 		return errors.New("meter aggregation is required")
@@ -143,9 +190,9 @@ func (m *Meter) Validate() error {
 	}
 
 	if len(m.GroupBy) != 0 {
-		for _, field := range m.GroupBy {
-			if !strings.HasPrefix(field, "$") {
-				return errors.New("meter group by field must start with $")
+		for key, value := range m.GroupBy {
+			if !strings.HasPrefix(value, "$") {
+				return fmt.Errorf("meter group by value must start with $ for key %s", key)
 			}
 		}
 	}
@@ -176,17 +223,12 @@ func (m *Meter) AggregateMeterValues(values []*MeterValue, windowSize *WindowSiz
 			return values, nil
 		}
 
-		// cannot aggregate when window size is different
-		if m.Aggregation == MeterAggregationCountDistinct {
-			return nil, fmt.Errorf("invalid aggregation: expected window size of %s for meter with ID %s, but got %s", m.WindowSize, m.ID, *windowSize)
-		}
-
 		// cannot aggregate with a lower resolution
 		if m.WindowSize == WindowSizeDay && *windowSize != WindowSizeDay {
-			return nil, fmt.Errorf("invalid aggregation: expected window size of %s for meter with ID %s, but got %s", WindowSizeDay, m.ID, *windowSize)
+			return nil, fmt.Errorf("invalid aggregation: expected window size of %s for meter with slug %s, but got %s", WindowSizeDay, m.Slug, *windowSize)
 		}
 		if m.WindowSize == WindowSizeHour && *windowSize == WindowSizeMinute {
-			return nil, fmt.Errorf("invalid aggregation: expected window size of %s or %s for meter with ID %s, but got %s", WindowSizeHour, WindowSizeDay, m.ID, *windowSize)
+			return nil, fmt.Errorf("invalid aggregation: expected window size of %s or %s for meter with slug %s, but got %s", WindowSizeHour, WindowSizeDay, m.Slug, *windowSize)
 		}
 	}
 
@@ -249,8 +291,6 @@ func (m *Meter) AggregateMeterValues(values []*MeterValue, windowSize *WindowSiz
 				avgCount[key]++
 				n := float64(avgCount[key])
 				groupBy[key].Value = (groupBy[key].Value*(n-1) + value.Value) / n
-			case MeterAggregationLatest:
-				groupBy[key].Value = value.Value
 			}
 		}
 	}

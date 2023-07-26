@@ -1,5 +1,6 @@
 import { NodeHttpRequest } from './generated/core/NodeHttpRequest.js'
-import { DefaultService } from './generated/services/DefaultService.js'
+import { HttpService } from './generated/HttpService.js'
+import { EventsService, MetersService } from './generated/index.js'
 import type { BaseHttpRequest } from './generated/core/BaseHttpRequest.js'
 import type { OpenAPIConfig } from './generated/core/OpenAPI.js'
 export * from './generated/index.js'
@@ -12,7 +13,11 @@ export type ClientConfig = {
 	baseUrl: string
 }
 
-export class OpenMeter extends DefaultService {
+export class OpenMeter extends HttpService {
+	public readonly events: EventsService
+	public readonly meters: MetersService
+	public readonly request: BaseHttpRequest
+
 	constructor(
 		config: ClientConfig,
 		HttpRequest: HttpRequestConstructor = NodeHttpRequest
@@ -23,8 +28,9 @@ export class OpenMeter extends DefaultService {
 			CREDENTIALS: 'include',
 			WITH_CREDENTIALS: false,
 		}
-		const request = new HttpRequest(openAPIConfig)
-
-		super(request)
+		super(openAPIConfig, HttpRequest)
+		this.request = new HttpRequest(openAPIConfig)
+		this.events = new EventsService(this.request)
+		this.meters = new MetersService(this.request)
 	}
 }

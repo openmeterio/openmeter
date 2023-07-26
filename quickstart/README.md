@@ -109,8 +109,8 @@ curl http://localhost:8888/api/v1alpha1/meters/m1/values?windowSize=HOUR | jq
       "windowEnd": "2023-01-01T01:00:00Z",
       "value": 2,
       "groupBy": {
-        "$.method": "GET",
-        "$.path": "/hello"
+        "method": "GET",
+        "path": "/hello"
       }
     },
     {
@@ -119,8 +119,8 @@ curl http://localhost:8888/api/v1alpha1/meters/m1/values?windowSize=HOUR | jq
       "windowEnd": "2023-01-02T01:00:00Z",
       "value": 1,
       "groupBy": {
-        "$.method": "GET",
-        "$.path": "/hello"
+        "method": "GET",
+        "path": "/hello"
       }
     }
   ]
@@ -137,12 +137,12 @@ You can think about it how AWS Lambda [charges](https://aws.amazon.com/lambda/pr
 # ...
 
 meters:
-  - id: m1
-    name: Meter 1
+  - slug: m1
+    description: API calls
     type: api-calls
     valueProperty: $.duration_ms
     aggregation: SUM
     groupBy:
-      - $.method
-      - $.path
+      method: $.method
+      path: $.path
 ```
