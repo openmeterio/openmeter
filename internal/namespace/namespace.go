@@ -6,6 +6,8 @@ import (
 	"errors"
 )
 
+var DefaultNamespace = "default"
+
 // Manager is responsible for managing namespaces in different components.
 type Manager struct {
 	Handlers []Handler
@@ -32,7 +34,7 @@ func (m Manager) CreateNamespace(ctx context.Context, name string) error {
 //
 // The concept of a default namespace is implementation specific.
 func (m Manager) CreateDefaultNamespace(ctx context.Context) error {
-	return m.createNamespace(ctx, "")
+	return m.createNamespace(ctx, DefaultNamespace)
 }
 
 // TODO: introduce some resiliency (eg. retries or rollbacks in case a component fails to create a namespace).

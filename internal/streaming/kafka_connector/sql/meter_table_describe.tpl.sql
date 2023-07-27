@@ -1,1 +1,1 @@
-DESCRIBE {{ printf "OM_METER_%s" .Slug | upper | bquote  }} EXTENDED;
+DESCRIBE {{ printf "OM_%s_METER_%s" .Namespace .Slug | upper | bquote  }} EXTENDED;

@@ -17,14 +17,16 @@ func GetTableQuery(data meterTableQueryData) (string, error) {
 	return templateQuery(meterTableQueryTemplate, data)
 }
 
-func GetTableDescribeQuery(meter *models.Meter) (string, error) {
+func GetTableDescribeQuery(meter *models.Meter, namespace string) (string, error) {
 	return templateQuery(meterTableDescribeQueryTemplate, meterTableDescribeQueryData{
-		Meter: meter,
+		Namespace: namespace,
+		Meter:     meter,
 	})
 }
 
-func GetTableValuesQuery(meter *models.Meter, params *GetValuesParams) (string, error) {
+func GetTableValuesQuery(meter *models.Meter, params *GetValuesParams, namespace string) (string, error) {
 	return templateQuery(meterValuesTemplate, meterValuesData{
+		Namespace:       namespace,
 		Meter:           meter,
 		GetValuesParams: params,
 	})

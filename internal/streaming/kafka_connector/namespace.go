@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	ns "github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/thmeitz/ksqldb-go"
 )
 
@@ -11,13 +12,9 @@ import (
 type NamespaceHandler struct {
 	KsqlDBClient *ksqldb.KsqldbClient
 
-	DefaultEventsTopic string
-
 	// NamespacedTopicTemplate needs to contain at least one string parameter passed to fmt.Sprintf.
 	// For example: "om_%s_events"
 	NamespacedEventsTopicTemplate string
-
-	DefaultDetectedEventsTopic string
 
 	// NamespacedDetectedEventsTopicTemplate needs to contain at least one string parameter passed to fmt.Sprintf.
 	// For example: "om_%s_detected_events"
@@ -29,16 +26,17 @@ type NamespaceHandler struct {
 }
 
 // CreateNamespace implements the namespace handler interface.
-func (h NamespaceHandler) CreateNamespace(ctx context.Context, name string) error {
-	eventsTopic := h.DefaultEventsTopic
-	detectedEventsTopic := h.DefaultDetectedEventsTopic
+func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string) error {
+	eventsTopic := fmt.Sprintf(h.NamespacedEventsTopicTemplate, ns.DefaultNamespace)
+	detectedEventsTopic := fmt.Sprintf(h.NamespacedDetectedEventsTopicTemplate, ns.DefaultNamespace)
 
-	if name != "" {
-		eventsTopic = fmt.Sprintf(h.NamespacedEventsTopicTemplate, name)
-		detectedEventsTopic = fmt.Sprintf(h.NamespacedDetectedEventsTopicTemplate, name)
+	if namespace != "" {
+		eventsTopic = fmt.Sprintf(h.NamespacedEventsTopicTemplate, namespace)
+		detectedEventsTopic = fmt.Sprintf(h.NamespacedDetectedEventsTopicTemplate, namespace)
 	}
 
 	cloudEventsStreamQuery, err := templateQuery(cloudEventsStreamQueryTemplate, cloudEventsStreamQueryData{
+		Namespace:     namespace,
 		Topic:         eventsTopic,
 		KeySchemaId:   h.KeySchemaID,
 		ValueSchemaId: h.ValueSchemaID,
@@ -48,6 +46,7 @@ func (h NamespaceHandler) CreateNamespace(ctx context.Context, name string) erro
 	}
 
 	detectedEventsTableQuery, err := templateQuery(detectedEventsTableQueryTemplate, detectedEventsTableQueryData{
+		Namespace:  namespace,
 		Topic:      detectedEventsTopic,
 		Retention:  32,
 		Partitions: h.Partitions,
@@ -57,7 +56,8 @@ func (h NamespaceHandler) CreateNamespace(ctx context.Context, name string) erro
 	}
 
 	detectedEventsStreamQuery, err := templateQuery(detectedEventsStreamQueryTemplate, detectedEventsStreamQueryData{
-		Topic: detectedEventsTopic,
+		Namespace: namespace,
+		Topic:     detectedEventsTopic,
 	})
 	if err != nil {
 		return fmt.Errorf("template detected events ksql stream: %w", err)

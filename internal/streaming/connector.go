@@ -14,7 +14,7 @@ type GetValuesParams struct {
 }
 
 type Connector interface {
-	Init(meter *models.Meter) error
-	GetValues(meter *models.Meter, params *GetValuesParams) ([]*models.MeterValue, error)
+	Init(meter *models.Meter, namespace string) error
+	GetValues(meter *models.Meter, params *GetValuesParams, namespace string) ([]*models.MeterValue, error)
 	// Add more methods as needed ...
 }

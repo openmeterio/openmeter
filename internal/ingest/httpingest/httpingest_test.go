@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/cloudevents/sdk-go/v2/event"
+	"github.com/openmeterio/openmeter/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +21,7 @@ type inMemoryCollector struct {
 	mu sync.Mutex
 }
 
-func (s *inMemoryCollector) Receive(event event.Event) error {
+func (s *inMemoryCollector) Receive(event event.Event, namespace string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -29,10 +30,22 @@ func (s *inMemoryCollector) Receive(event event.Event) error {
 	return nil
 }
 
+// Wrap the handler so we can set the namespace with `httptest“
+type MockHandler struct {
+	handler Handler
+}
+
+func (h MockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	namespace := "test"
+	h.handler.ServeHTTP(w, r, api.IngestEventsParams{Namespace: &namespace})
+}
+
 func TestHandler(t *testing.T) {
 	collector := &inMemoryCollector{}
-	handler := Handler{
-		Collector: collector,
+	handler := MockHandler{
+		handler: Handler{
+			Collector: collector,
+		},
 	}
 	server := httptest.NewServer(handler)
 	client := server.Client()

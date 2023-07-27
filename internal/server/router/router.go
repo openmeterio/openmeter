@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/render"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -29,9 +30,13 @@ func jsonBodyDecoder(body io.Reader, header http.Header, schema *openapi3.Schema
 	return value, nil
 }
 
+type IngestHandler interface {
+	ServeHTTP(w http.ResponseWriter, r *http.Request, params api.IngestEventsParams)
+}
+
 type Config struct {
 	StreamingConnector streaming.Connector
-	IngestHandler      http.Handler
+	IngestHandler      IngestHandler
 	Meters             []*models.Meter
 }
 
@@ -48,11 +53,11 @@ func NewRouter(config Config) (*Router, error) {
 	}, nil
 }
 
-func (a *Router) IngestEvents(w http.ResponseWriter, r *http.Request) {
-	a.config.IngestHandler.ServeHTTP(w, r)
+func (a *Router) IngestEvents(w http.ResponseWriter, r *http.Request, params api.IngestEventsParams) {
+	a.config.IngestHandler.ServeHTTP(w, r, params)
 }
 
-func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request) {
+func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request, params api.ListMetersParams) {
 	list := make([]render.Renderer, 0, len(a.config.Meters))
 	for _, m := range a.config.Meters {
 		list = append(list, m)
@@ -61,15 +66,15 @@ func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request) {
 	_ = render.RenderList(w, r, list)
 }
 
-func (a *Router) CreateMeter(w http.ResponseWriter, r *http.Request) {
+func (a *Router) CreateMeter(w http.ResponseWriter, r *http.Request, params api.CreateMeterParams) {
 	models.NewStatusProblem(r.Context(), nil, http.StatusNotImplemented).Respond(w, r)
 }
 
-func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string) {
+func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.DeleteMeterParams) {
 	models.NewStatusProblem(r.Context(), nil, http.StatusNotImplemented).Respond(w, r)
 }
 
-func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string) {
+func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.GetMeterParams) {
 	for _, meter := range a.config.Meters {
 		if meter.ID == meterIdOrSlug || meter.Slug == meterIdOrSlug {
 			_ = render.Render(w, r, meter)
@@ -120,6 +125,11 @@ func ValidateGetMeterValuesParams(meter *models.Meter, params api.GetMeterValues
 }
 
 func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.GetMeterValuesParams) {
+	namespace := namespace.DefaultNamespace
+	if params.Namespace != nil {
+		namespace = *params.Namespace
+	}
+
 	for _, meter := range a.config.Meters {
 		if meter.ID == meterIdOrSlug || meter.Slug == meterIdOrSlug {
 			if err := ValidateGetMeterValuesParams(meter, params); err != nil {
@@ -127,12 +137,16 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 				return
 			}
 
-			values, err := a.config.StreamingConnector.GetValues(meter, &streaming.GetValuesParams{
-				From:       params.From,
-				To:         params.To,
-				Subject:    params.Subject,
-				WindowSize: params.WindowSize,
-			})
+			values, err := a.config.StreamingConnector.GetValues(
+				meter,
+				&streaming.GetValuesParams{
+					From:       params.From,
+					To:         params.To,
+					Subject:    params.Subject,
+					WindowSize: params.WindowSize,
+				},
+				namespace,
+			)
 			if err != nil {
 				models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
 				return

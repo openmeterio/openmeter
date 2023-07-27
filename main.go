@@ -206,25 +206,20 @@ func main() {
 
 	logger.Debug("connected to KSQLDB")
 
-	const eventsTopic = "om_events"
 	const namespacedEventsTopicTemplate = "om_%s_events"
-	const detectedEventsTopic = "om_detected_events"
 	const namespacedDetectedEventsTopicTemplate = "om_%s_detected_events"
 
 	namespaceManager := namespace.Manager{
 		Handlers: []namespace.Handler{
 			namespaceadapter.KafkaIngestHandler{
 				AdminClient:             kafkaAdminClient,
-				DefaultTopic:            eventsTopic,
 				NamespacedTopicTemplate: namespacedEventsTopicTemplate,
 				Partitions:              config.Ingest.Kafka.Partitions,
 				Logger:                  logger,
 			},
 			kafka_connector.NamespaceHandler{
 				KsqlDBClient:                          &ksqldbClient,
-				DefaultEventsTopic:                    eventsTopic,
 				NamespacedEventsTopicTemplate:         namespacedEventsTopicTemplate,
-				DefaultDetectedEventsTopic:            detectedEventsTopic,
 				NamespacedDetectedEventsTopicTemplate: namespacedDetectedEventsTopicTemplate,
 				KeySchemaID:                           keySchemaID,
 				ValueSchemaID:                         valueSchemaID,
@@ -256,9 +251,9 @@ func main() {
 	slog.Debug("connected to Kafka")
 
 	collector := kafkaingest.Collector{
-		Producer: producer,
-		Topic:    eventsTopic,
-		Schema:   schema,
+		Producer:                producer,
+		NamespacedTopicTemplate: namespacedEventsTopicTemplate,
+		Schema:                  schema,
 	}
 
 	// TODO: config file (https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md)
@@ -316,7 +311,7 @@ func main() {
 	})
 
 	for _, meter := range config.Meters {
-		err := connector.Init(meter)
+		err := connector.Init(meter, namespace.DefaultNamespace)
 		if err != nil {
 			slog.Warn("failed to initialize meter", "error", err)
 			os.Exit(1)

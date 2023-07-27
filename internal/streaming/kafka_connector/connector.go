@@ -29,8 +29,9 @@ func NewKafkaConnector(ksqldbClient *ksqldb.KsqldbClient, partitions int, logger
 	return connector, nil
 }
 
-func (c *KafkaConnector) Init(meter *models.Meter) error {
+func (c *KafkaConnector) Init(meter *models.Meter, namespace string) error {
 	queryData := meterTableQueryData{
+		Namespace:       namespace,
 		Meter:           meter,
 		WindowRetention: "36500 DAYS",
 		Partitions:      c.partitions,
@@ -60,7 +61,7 @@ func (c *KafkaConnector) Init(meter *models.Meter) error {
 
 // MeterAssert ensures meter table immutability by checking that existing meter table is the same as new
 func (c *KafkaConnector) MeterAssert(data meterTableQueryData) error {
-	q, err := GetTableDescribeQuery(data.Meter)
+	q, err := GetTableDescribeQuery(data.Meter, data.Namespace)
 	if err != nil {
 		return fmt.Errorf("get table describe query: %w", err)
 	}
@@ -99,8 +100,8 @@ func (c *KafkaConnector) MeterAssert(data meterTableQueryData) error {
 	return nil
 }
 
-func (c *KafkaConnector) GetValues(meter *models.Meter, params *streaming.GetValuesParams) ([]*models.MeterValue, error) {
-	q, err := GetTableValuesQuery(meter, params)
+func (c *KafkaConnector) GetValues(meter *models.Meter, params *streaming.GetValuesParams, namespace string) ([]*models.MeterValue, error) {
+	q, err := GetTableValuesQuery(meter, params, namespace)
 	if err != nil {
 		return nil, err
 	}
