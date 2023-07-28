@@ -15,7 +15,7 @@
 {{- $clauses = (printf "WINDOWEND <= %s" (.To | dereftime | unixEpochMs)) | append $clauses }}
 {{- end -}}
 
-SELECT {{ $select | join ", " }} FROM {{ printf "OM_METER_%s" .Slug | upper | bquote }}
+SELECT {{ $select | join ", " }} FROM {{ printf "OM_%s_METER_%s" .Namespace .Slug | upper | bquote }}
 {{- if len $clauses }}
 WHERE {{ $clauses | join " AND " }}
 {{- end -}}

@@ -13,6 +13,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/server/router"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -30,12 +31,18 @@ var values = []*models.MeterValue{
 
 type MockConnector struct{}
 
-func (c *MockConnector) Init(meter *models.Meter) error {
+func (c *MockConnector) Init(meter *models.Meter, namespace string) error {
 	return nil
 }
 
-func (c *MockConnector) GetValues(meter *models.Meter, params *streaming.GetValuesParams) ([]*models.MeterValue, error) {
+func (c *MockConnector) GetValues(meter *models.Meter, params *streaming.GetValuesParams, namespace string) ([]*models.MeterValue, error) {
 	return meter.AggregateMeterValues(values, params.WindowSize)
+}
+
+type MockHandler struct{}
+
+func (h MockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, params api.IngestEventsParams) {
+	w.WriteHeader(http.StatusOK)
 }
 
 func makeRequest(r *http.Request) *httptest.ResponseRecorder {
@@ -43,9 +50,7 @@ func makeRequest(r *http.Request) *httptest.ResponseRecorder {
 		RouterConfig: router.Config{
 			Meters:             meters,
 			StreamingConnector: &MockConnector{},
-			IngestHandler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-			}),
+			IngestHandler:      MockHandler{},
 		},
 		RouterHook: func(r chi.Router) {},
 	})
@@ -86,6 +91,20 @@ func TestRoutes(t *testing.T) {
 					e.SetSource("source")
 					return &e
 				}(),
+			},
+			res: testResponse{
+				status: http.StatusOK,
+			},
+		},
+		{
+			name: "create namespace",
+			req: testRequest{
+				method:      http.MethodPost,
+				path:        "/api/v1alpha2/namespaces",
+				contentType: "application/json",
+				body: &models.Namespace{
+					Namespace: "test",
+				},
 			},
 			res: testResponse{
 				status: http.StatusOK,

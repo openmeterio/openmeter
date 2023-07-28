@@ -17,16 +17,16 @@
 {{- else }}
 {{- $select = printf "%s(CAST(EXTRACTJSONFIELD(data, '%s') AS DECIMAL(12, 4))) AS VALUE" .Aggregation .ValueProperty | append $select }}
 {{- end }}
-CREATE TABLE IF NOT EXISTS {{ printf "OM_METER_%s" .Slug | upper | bquote  }}
+CREATE TABLE IF NOT EXISTS {{ printf "OM_%s_METER_%s" .Namespace .Slug | upper | bquote  }}
 WITH (
-    KAFKA_TOPIC = {{ printf "OM_METER_%s" .Slug | lower | squote  }},
+    KAFKA_TOPIC = {{ printf "OM_%s_METER_%s" .Namespace .Slug | lower | squote  }},
     KEY_FORMAT = 'JSON_SR',
     VALUE_FORMAT = 'JSON_SR',
     PARTITIONS = {{ .Partitions }}
 ) AS
 SELECT {{ $select | join ", " }}
 FROM
-    OM_DETECTED_EVENTS_STREAM
+    OM_{{ .Namespace | upper }}_DETECTED_EVENTS_STREAM
 WINDOW TUMBLING (
     SIZE 1 {{ .WindowSize }},
     RETENTION {{ .WindowRetention }}

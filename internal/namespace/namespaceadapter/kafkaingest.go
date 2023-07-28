@@ -6,13 +6,13 @@ import (
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"golang.org/x/exp/slog"
+
+	ns "github.com/openmeterio/openmeter/internal/namespace"
 )
 
 // KafkaIngestHandler is a namespace handler for Kafka ingest topics.
 type KafkaIngestHandler struct {
 	AdminClient *kafka.AdminClient
-
-	DefaultTopic string
 
 	// NamespacedTopicTemplate needs to contain at least one string parameter passed to fmt.Sprintf.
 	// For example: "om_%s_events"
@@ -24,11 +24,11 @@ type KafkaIngestHandler struct {
 }
 
 // CreateNamespace implements the namespace handler interface.
-func (h KafkaIngestHandler) CreateNamespace(ctx context.Context, name string) error {
-	topic := h.DefaultTopic
+func (h KafkaIngestHandler) CreateNamespace(ctx context.Context, namespace string) error {
+	topic := fmt.Sprintf(h.NamespacedTopicTemplate, ns.DefaultNamespace)
 
-	if name != "" {
-		topic = fmt.Sprintf(h.NamespacedTopicTemplate, name)
+	if namespace != "" {
+		topic = fmt.Sprintf(h.NamespacedTopicTemplate, namespace)
 	}
 
 	result, err := h.AdminClient.CreateTopics(ctx, []kafka.TopicSpecification{

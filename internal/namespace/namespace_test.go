@@ -55,5 +55,5 @@ func TestManager_CreateDefaultNamespce(t *testing.T) {
 	err := manager.CreateDefaultNamespace(context.Background())
 	require.NoError(t, err)
 
-	assert.True(t, handler.namespaces[""])
+	assert.True(t, handler.namespaces[DefaultNamespace])
 }

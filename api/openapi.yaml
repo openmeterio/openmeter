@@ -16,6 +16,8 @@ paths:
     post:
       description: Ingest events
       operationId: ingestEvents
+      parameters:
+        - $ref: "#/components/parameters/namespaceParam"
       requestBody:
         required: true
         content:
@@ -35,6 +37,8 @@ paths:
     get:
       description: List meters
       operationId: listMeters
+      parameters:
+        - $ref: "#/components/parameters/namespaceParam"
       tags:
         - Meters
       responses:
@@ -51,6 +55,8 @@ paths:
     post:
       description: Create meter
       operationId: createMeter
+      parameters:
+        - $ref: "#/components/parameters/namespaceParam"
       tags:
         - Meters
       requestBody:
@@ -77,6 +83,7 @@ paths:
       description: Get meter by slugs
       operationId: getMeter
       parameters:
+        - $ref: "#/components/parameters/namespaceParam"
         - $ref: "#/components/parameters/meterIdOrSlug"
       tags:
         - Meters
@@ -95,6 +102,7 @@ paths:
       description: Delete meter by slug
       operationId: deleteMeter
       parameters:
+        - $ref: "#/components/parameters/namespaceParam"
         - $ref: "#/components/parameters/meterIdOrSlug"
       tags:
         - Meters
@@ -114,6 +122,7 @@ paths:
       tags:
         - Meters
       parameters:
+        - $ref: "#/components/parameters/namespaceParam"
         - $ref: "#/components/parameters/meterIdOrSlug"
         - name: subject
           in: query
@@ -165,6 +174,25 @@ paths:
                   - data
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+  /api/v1alpha2/namespaces:
+    post:
+      description: Create namespace
+      operationId: createNamespace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Namespace"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Namespace"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
 
@@ -243,9 +271,6 @@ components:
         type:
           description: Describes the type of event related to the originating occurrence.
           type: string
-          minLength: 1
-          maxLength: 63
-          pattern: "^[a-z0-9]+(?:[_-][a-z0-9]+)*$"
           example: api_request
         datacontenttype:
           description: Content type of the data value. Must adhere to RFC 2046 format.
@@ -303,7 +328,7 @@ components:
         slug:
           type: string
           description: A unique identifier for the meter.
-          pattern: "^[a-z0-9]+(?:[_-][a-z0-9]+)*$"
+          pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
           example: my-meter
         description:
           type: string
@@ -315,9 +340,6 @@ components:
         eventType:
           type: string
           description: The event type to aggregate.
-          minLength: 1
-          maxLength: 63
-          pattern: "^[a-z0-9]+(?:[_-][a-z0-9]+)*$"
           example: api_request
         valueProperty:
           type: string
@@ -392,9 +414,22 @@ components:
           maxLength: 26
         # slug
         - type: string
-          pattern: "^[a-z0-9]+(?:[_-][a-z0-9]+)*$"
+          pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
           minLength: 1
           maxLength: 63
+    Namespace:
+      type: object
+      x-go-name: Namespace
+      x-go-type: models.Namespace
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/models
+      required:
+        - namespace
+      properties:
+        namespace:
+          type: string
+          description: A namespace
+          example: my-namesapce
 
   parameters:
     meterIdOrSlug:
@@ -404,6 +439,15 @@ components:
       required: true
       schema:
         $ref: "#/components/schemas/IdOrSlug"
+    namespaceParam:
+      name: OM-Namespace
+      description: Optional namespace
+      default: default
+      in: header
+      x-go-name: NamespaceInput
+      schema:
+        type: string
+        pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
 
   responses:
     BadRequestProblemResponse:
