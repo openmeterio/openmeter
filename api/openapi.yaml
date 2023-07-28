@@ -276,7 +276,7 @@ components:
           type: string
           minLength: 1
           maxLength: 63
-          pattern: "^[a-z0-9]+(?:[_-][a-z0-9]+)*$"
+          pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
           example: api_request
         datacontenttype:
           description: Content type of the data value. Must adhere to RFC 2046 format.
@@ -334,7 +334,7 @@ components:
         slug:
           type: string
           description: A unique identifier for the meter.
-          pattern: "^[a-z0-9]+(?:[_-][a-z0-9]+)*$"
+          pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
           example: my-meter
         description:
           type: string
@@ -348,7 +348,7 @@ components:
           description: The event type to aggregate.
           minLength: 1
           maxLength: 63
-          pattern: "^[a-z0-9]+(?:[_-][a-z0-9]+)*$"
+          pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
           example: api_request
         valueProperty:
           type: string
@@ -423,7 +423,7 @@ components:
           maxLength: 26
         # slug
         - type: string
-          pattern: "^[a-z0-9]+(?:[_-][a-z0-9]+)*$"
+          pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
           minLength: 1
           maxLength: 63
     Namespace:
@@ -456,7 +456,7 @@ components:
       x-go-name: Namespace
       schema:
         type: string
-        pattern: "^[a-z0-9]+(?:[_-][a-z0-9]+)*$"
+        pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
 
   responses:
     BadRequestProblemResponse:
