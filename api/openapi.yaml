@@ -180,8 +180,6 @@ paths:
     post:
       description: Create namespace
       operationId: createNamespace
-      tags:
-        - Ingest
       requestBody:
         required: true
         content:
