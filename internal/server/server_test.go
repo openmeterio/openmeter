@@ -97,6 +97,20 @@ func TestRoutes(t *testing.T) {
 			},
 		},
 		{
+			name: "create namespace",
+			req: testRequest{
+				method:      http.MethodPost,
+				path:        "/api/v1alpha2/namespaces",
+				contentType: "application/json",
+				body: &models.Namespace{
+					Namespace: "test",
+				},
+			},
+			res: testResponse{
+				status: http.StatusOK,
+			},
+		},
+		{
 			name: "list meters",
 			req: testRequest{
 				method: http.MethodGet,

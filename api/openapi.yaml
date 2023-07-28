@@ -271,9 +271,6 @@ components:
         type:
           description: Describes the type of event related to the originating occurrence.
           type: string
-          minLength: 1
-          maxLength: 63
-          pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
           example: api_request
         datacontenttype:
           description: Content type of the data value. Must adhere to RFC 2046 format.
@@ -343,9 +340,6 @@ components:
         eventType:
           type: string
           description: The event type to aggregate.
-          minLength: 1
-          maxLength: 63
-          pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
           example: api_request
         valueProperty:
           type: string
