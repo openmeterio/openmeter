@@ -35,6 +35,7 @@ type IngestHandler interface {
 }
 
 type Config struct {
+	NamespaceManager   namespace.Manager
 	StreamingConnector streaming.Connector
 	IngestHandler      IngestHandler
 	Meters             []*models.Meter
@@ -51,6 +52,21 @@ func NewRouter(config Config) (*Router, error) {
 	return &Router{
 		config: config,
 	}, nil
+}
+
+// FIXME: openapi generator doesn't generate an input param
+func (a *Router) CreateNamespace(w http.ResponseWriter, r *http.Request) {
+	namespace := &models.Namespace{
+		Namespace: "default2",
+	}
+
+	err := a.config.NamespaceManager.CreateNamespace(r.Context(), namespace.Namespace)
+	if err != nil {
+		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+		return
+	}
+
+	_ = render.Render(w, r, namespace)
 }
 
 func (a *Router) IngestEvents(w http.ResponseWriter, r *http.Request, params api.IngestEventsParams) {

@@ -176,6 +176,28 @@ paths:
           $ref: "#/components/responses/BadRequestProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
+  /api/v1alpha2/namespaces:
+    post:
+      description: Create namespace
+      operationId: createNamespace
+      tags:
+        - Meters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Namespace"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Namespace"
+          $ref: "#/components/responses/NotFoundProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
 
 components:
   schemas:
@@ -404,6 +426,19 @@ components:
           pattern: "^[a-z0-9]+(?:[_-][a-z0-9]+)*$"
           minLength: 1
           maxLength: 63
+    Namespace:
+      type: object
+      x-go-name: NS
+      x-go-type: models.Namespace
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/models
+      required:
+        - namespace
+      properties:
+        namespace:
+          type: string
+          description: A namespace
+          example: my-namesapce
 
   parameters:
     meterIdOrSlug:

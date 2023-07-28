@@ -267,6 +267,7 @@ func main() {
 
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{
+			NamespaceManager:   namespaceManager,
 			StreamingConnector: connector,
 			IngestHandler: httpingest.Handler{
 				Collector: collector,
