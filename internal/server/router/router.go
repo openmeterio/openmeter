@@ -54,10 +54,11 @@ func NewRouter(config Config) (*Router, error) {
 	}, nil
 }
 
-// FIXME: openapi generator doesn't generate an input param
 func (a *Router) CreateNamespace(w http.ResponseWriter, r *http.Request) {
-	namespace := &models.Namespace{
-		Namespace: "default2",
+	namespace := &models.Namespace{}
+
+	if err := render.DecodeJSON(r.Body, namespace); err != nil {
+		models.NewStatusProblem(r.Context(), fmt.Errorf("cannot parse request body"), http.StatusBadRequest).Respond(w, r)
 	}
 
 	err := a.config.NamespaceManager.CreateNamespace(r.Context(), namespace.Namespace)
