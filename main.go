@@ -34,6 +34,8 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/ingest/httpingest"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
+	"github.com/openmeterio/openmeter/internal/namespace"
+	"github.com/openmeterio/openmeter/internal/namespace/namespaceadapter"
 	"github.com/openmeterio/openmeter/internal/server"
 	"github.com/openmeterio/openmeter/internal/server/router"
 	"github.com/openmeterio/openmeter/internal/streaming/kafka_connector"
@@ -177,57 +179,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	const eventsTopic = "om_events"
-
-	logger.Debug("create default Kafka topics")
-
-	// Create default topics
-	// TODO: make this more resilient
-	result, err := kafkaAdminClient.CreateTopics(context.Background(), []kafka.TopicSpecification{
-		{
-			Topic:         eventsTopic,
-			NumPartitions: config.Ingest.Kafka.Partitions,
-		},
-	})
-	if err != nil {
-		logger.Error("create default Kafka topics: %v", err)
-		os.Exit(1)
-	}
-
-	for _, r := range result {
-		if r.Error.Code() != kafka.ErrNoError {
-			if err != nil {
-				logger.Error("create default Kafka topic", "topic", r.Topic, "error", err)
-				os.Exit(1)
-			}
-		}
-	}
-
-	logger.Info("default Kafka topics created")
-
-	// Initialize Kafka Producer
-	producer, err := kafka.NewProducer(kafkaConfig)
-	if err != nil {
-		logger.Error("init Kafka producer: %v", err)
-		os.Exit(1)
-	}
-
-	defer producer.Flush(30 * 1000)
-	defer producer.Close()
-
-	slog.Debug("connected to Kafka")
-
 	// Initialize events topic
 	schema, keySchemaID, valueSchemaID, err := kafkaingest.NewSchema(schemaRegistry)
 	if err != nil {
 		logger.Error("init schema: %v", err)
 		os.Exit(1)
-	}
-
-	collector := kafkaingest.Collector{
-		Producer: producer,
-		Topic:    eventsTopic,
-		Schema:   schema,
 	}
 
 	// Initialize ksqlDB Client
@@ -248,16 +204,60 @@ func main() {
 		os.Exit(1)
 	}
 
-	slog.Debug("connected to KSQLDB")
+	logger.Debug("connected to KSQLDB")
+
+	const namespacedEventsTopicTemplate = "om_%s_events"
+	const namespacedDetectedEventsTopicTemplate = "om_%s_detected_events"
+
+	namespaceManager := namespace.Manager{
+		Handlers: []namespace.Handler{
+			namespaceadapter.KafkaIngestHandler{
+				AdminClient:             kafkaAdminClient,
+				NamespacedTopicTemplate: namespacedEventsTopicTemplate,
+				Partitions:              config.Ingest.Kafka.Partitions,
+				Logger:                  logger,
+			},
+			kafka_connector.NamespaceHandler{
+				KsqlDBClient:                          &ksqldbClient,
+				NamespacedEventsTopicTemplate:         namespacedEventsTopicTemplate,
+				NamespacedDetectedEventsTopicTemplate: namespacedDetectedEventsTopicTemplate,
+				KeySchemaID:                           keySchemaID,
+				ValueSchemaID:                         valueSchemaID,
+				Partitions:                            config.Ingest.Kafka.Partitions,
+			},
+		},
+	}
+
+	logger.Debug("create default namespace")
+
+	err = namespaceManager.CreateDefaultNamespace(context.Background())
+	if err != nil {
+		logger.Error("create default namespace: %v", err)
+		os.Exit(1)
+	}
+
+	logger.Info("default namespace created")
+
+	// Initialize Kafka Producer
+	producer, err := kafka.NewProducer(kafkaConfig)
+	if err != nil {
+		logger.Error("init Kafka producer: %v", err)
+		os.Exit(1)
+	}
+
+	defer producer.Flush(30 * 1000)
+	defer producer.Close()
+
+	slog.Debug("connected to Kafka")
+
+	collector := kafkaingest.Collector{
+		Producer:                producer,
+		NamespacedTopicTemplate: namespacedEventsTopicTemplate,
+		Schema:                  schema,
+	}
 
 	// TODO: config file (https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md)
-	connector, err := kafka_connector.NewKafkaConnector(&kafka_connector.KafkaConnectorConfig{
-		KsqlDBClient:  ksqldbClient,
-		EventsTopic:   eventsTopic,
-		Partitions:    config.Ingest.Kafka.Partitions,
-		KeySchemaID:   keySchemaID,
-		ValueSchemaID: valueSchemaID,
-	})
+	connector, err := kafka_connector.NewKafkaConnector(&ksqldbClient, config.Ingest.Kafka.Partitions, logger)
 	if err != nil {
 		slog.Error("failed to create streaming connector", "error", err)
 		os.Exit(1)
@@ -267,6 +267,7 @@ func main() {
 
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{
+			NamespaceManager:   namespaceManager,
 			StreamingConnector: connector,
 			IngestHandler: httpingest.Handler{
 				Collector: collector,
@@ -311,7 +312,7 @@ func main() {
 	})
 
 	for _, meter := range config.Meters {
-		err := connector.Init(meter)
+		err := connector.Init(meter, namespace.DefaultNamespace)
 		if err != nil {
 			slog.Warn("failed to initialize meter", "error", err)
 			os.Exit(1)

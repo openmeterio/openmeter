@@ -1,4 +1,4 @@
-CREATE STREAM IF NOT EXISTS OM_EVENTS
+CREATE STREAM IF NOT EXISTS OM_{{ .Namespace | upper }}_EVENTS
 WITH (
     KAFKA_TOPIC = {{ .Topic | squote }},
     KEY_FORMAT = 'JSON_SR',

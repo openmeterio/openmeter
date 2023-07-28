@@ -8,95 +8,33 @@ import (
 	"github.com/thmeitz/ksqldb-go"
 	"golang.org/x/exp/slog"
 
-	. "github.com/openmeterio/openmeter/internal/streaming"
+	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type KafkaConnector struct {
-	config       *KafkaConnectorConfig
-	KsqlDBClient *ksqldb.KsqldbClient
+	ksqlDBClient *ksqldb.KsqldbClient
+	partitions   int
+
+	logger *slog.Logger
 }
 
-type KafkaConnectorConfig struct {
-	KsqlDBClient ksqldb.KsqldbClient
-	EventsTopic  string
-	Partitions   int
-
-	KeySchemaID   int
-	ValueSchemaID int
-}
-
-func NewKafkaConnector(config *KafkaConnectorConfig) (Connector, error) {
-	ksqldbClient := config.KsqlDBClient
-
-	const detectedEventsTopic = "om_detected_events"
-
-	// Create KSQL Entities (tables, streams)
-	cloudEventsStreamQuery, err := templateQuery(cloudEventsStreamQueryTemplate, cloudEventsStreamQueryData{
-		Topic:         config.EventsTopic,
-		KeySchemaId:   config.KeySchemaID,
-		ValueSchemaId: config.ValueSchemaID,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("template event ksql stream: %w", err)
-	}
-	slog.Debug("ksqlDB create events stream query", "query", cloudEventsStreamQuery)
-
-	detectedEventsTableQuery, err := templateQuery(detectedEventsTableQueryTemplate, detectedEventsTableQueryData{
-		Topic:      detectedEventsTopic,
-		Retention:  32,
-		Partitions: int(config.Partitions),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("template detected events ksql table: %w", err)
-	}
-	slog.Debug("ksqlDB create detected table query", "query", detectedEventsTableQuery)
-
-	detectedEventsStreamQuery, err := templateQuery(detectedEventsStreamQueryTemplate, detectedEventsStreamQueryData{
-		Topic: detectedEventsTopic,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("template detected events ksql stream: %w", err)
-	}
-	slog.Debug("ksqlDB create detected stream query", "query", detectedEventsStreamQuery)
-
-	resp, err := ksqldbClient.Execute(context.Background(), ksqldb.ExecOptions{
-		KSql: cloudEventsStreamQuery,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("init events ksql stream: %w", err)
-	}
-	slog.Debug("ksqlDB create event stream response", "response", resp)
-
-	resp, err = ksqldbClient.Execute(context.Background(), ksqldb.ExecOptions{
-		KSql: detectedEventsTableQuery,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("init detected events ksql table: %w", err)
-	}
-	slog.Debug("ksqlDB create detected table response", "response", resp)
-
-	resp, err = ksqldbClient.Execute(context.Background(), ksqldb.ExecOptions{
-		KSql: detectedEventsStreamQuery,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("init detected event ksql stream: %w", err)
-	}
-	slog.Debug("ksqlDB create detected stream response", "response", resp)
-
+func NewKafkaConnector(ksqldbClient *ksqldb.KsqldbClient, partitions int, logger *slog.Logger) (*KafkaConnector, error) {
 	connector := &KafkaConnector{
-		config:       config,
-		KsqlDBClient: &ksqldbClient,
+		ksqlDBClient: ksqldbClient,
+		partitions:   partitions,
+		logger:       logger,
 	}
 
 	return connector, nil
 }
 
-func (c *KafkaConnector) Init(meter *models.Meter) error {
+func (c *KafkaConnector) Init(meter *models.Meter, namespace string) error {
 	queryData := meterTableQueryData{
+		Namespace:       namespace,
 		Meter:           meter,
 		WindowRetention: "36500 DAYS",
-		Partitions:      c.config.Partitions,
+		Partitions:      c.partitions,
 	}
 
 	err := c.MeterAssert(queryData)
@@ -108,27 +46,27 @@ func (c *KafkaConnector) Init(meter *models.Meter) error {
 	if err != nil {
 		return fmt.Errorf("get table query for meter: %w", err)
 	}
-	slog.Debug("ksqlDB create table query", "query", q)
+	c.logger.Debug("ksqlDB create table query", "query", q)
 
-	resp, err := c.KsqlDBClient.Execute(context.Background(), ksqldb.ExecOptions{
+	resp, err := c.ksqlDBClient.Execute(context.Background(), ksqldb.ExecOptions{
 		KSql: q,
 	})
 	if err != nil {
 		return fmt.Errorf("create ksql table for meter: %w", err)
 	}
-	slog.Debug("ksqlDB response", "response", resp)
+	c.logger.Debug("ksqlDB response", "response", resp)
 
 	return nil
 }
 
 // MeterAssert ensures meter table immutability by checking that existing meter table is the same as new
 func (c *KafkaConnector) MeterAssert(data meterTableQueryData) error {
-	q, err := GetTableDescribeQuery(data.Meter)
+	q, err := GetTableDescribeQuery(data.Meter, data.Namespace)
 	if err != nil {
 		return fmt.Errorf("get table describe query: %w", err)
 	}
 
-	resp, err := c.KsqlDBClient.Execute(context.Background(), ksqldb.ExecOptions{
+	resp, err := c.ksqlDBClient.Execute(context.Background(), ksqldb.ExecOptions{
 		KSql: q,
 	})
 	if err != nil {
@@ -145,7 +83,7 @@ func (c *KafkaConnector) MeterAssert(data meterTableQueryData) error {
 	sourceDescription := (*resp)[0]
 
 	if len(sourceDescription.SourceDescription.WriteQueries) > 0 {
-		slog.Debug("ksqlDB meter assert", "exists", true)
+		c.logger.Debug("ksqlDB meter assert", "exists", true)
 
 		query := sourceDescription.SourceDescription.WriteQueries[0].QueryString
 
@@ -154,28 +92,28 @@ func (c *KafkaConnector) MeterAssert(data meterTableQueryData) error {
 			return err
 		}
 
-		slog.Debug("ksqlDB meter assert", "equals", true)
+		c.logger.Debug("ksqlDB meter assert", "equals", true)
 	} else {
-		slog.Debug("ksqlDB meter assert", "exists", false)
+		c.logger.Debug("ksqlDB meter assert", "exists", false)
 	}
 
 	return nil
 }
 
-func (c *KafkaConnector) GetValues(meter *models.Meter, params *GetValuesParams) ([]*models.MeterValue, error) {
-	q, err := GetTableValuesQuery(meter, params)
+func (c *KafkaConnector) GetValues(meter *models.Meter, params *streaming.GetValuesParams, namespace string) ([]*models.MeterValue, error) {
+	q, err := GetTableValuesQuery(meter, params, namespace)
 	if err != nil {
 		return nil, err
 	}
 
-	header, payload, err := c.KsqlDBClient.Pull(context.TODO(), ksqldb.QueryOptions{
+	header, payload, err := c.ksqlDBClient.Pull(context.TODO(), ksqldb.QueryOptions{
 		Sql: q,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	slog.Debug("ksqlDB response", "header", header, "payload", payload)
+	c.logger.Debug("ksqlDB response", "header", header, "payload", payload)
 	values, err := NewMeterValues(header, payload)
 	if err != nil {
 		return nil, fmt.Errorf("get meter values: %w", err)

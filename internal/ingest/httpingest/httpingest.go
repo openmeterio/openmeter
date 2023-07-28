@@ -8,6 +8,8 @@ import (
 	"github.com/cloudevents/sdk-go/v2/event"
 	"golang.org/x/exp/slog"
 
+	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -20,10 +22,10 @@ type Handler struct {
 
 // Collector is a receiver of events that handles sending those events to some downstream broker.
 type Collector interface {
-	Receive(ev event.Event) error
+	Receive(ev event.Event, namespace string) error
 }
 
-func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, params api.IngestEventsParams) {
 	logger := h.getLogger()
 
 	var event event.Event
@@ -48,7 +50,12 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		event.SetTime(time.Now().UTC())
 	}
 
-	err = h.Collector.Receive(event)
+	namespace := namespace.DefaultNamespace
+	if params.NamespaceInput != nil {
+		namespace = *params.NamespaceInput
+	}
+
+	err = h.Collector.Receive(event, namespace)
 	if err != nil {
 		logger.ErrorCtx(r.Context(), "unable to forward event to collector", "error", err)
 

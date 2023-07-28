@@ -22,6 +22,7 @@ import (
 var cloudEventsStreamQueryTemplate string
 
 type cloudEventsStreamQueryData struct {
+	Namespace     string
 	Topic         string
 	KeySchemaId   int
 	ValueSchemaId int
@@ -31,6 +32,7 @@ type cloudEventsStreamQueryData struct {
 var detectedEventsTableQueryTemplate string
 
 type detectedEventsTableQueryData struct {
+	Namespace  string
 	Topic      string
 	Retention  int
 	Partitions int
@@ -40,7 +42,8 @@ type detectedEventsTableQueryData struct {
 var detectedEventsStreamQueryTemplate string
 
 type detectedEventsStreamQueryData struct {
-	Topic string
+	Namespace string
+	Topic     string
 }
 
 //go:embed sql/meter_table_describe.tpl.sql
@@ -50,11 +53,13 @@ var meterTableDescribeQueryTemplate string
 var meterValuesTemplate string
 
 type meterValuesData struct {
+	Namespace string
 	*models.Meter
 	*GetValuesParams
 }
 
 type meterTableDescribeQueryData struct {
+	Namespace string
 	*models.Meter
 }
 
@@ -62,6 +67,7 @@ type meterTableDescribeQueryData struct {
 var meterTableQueryTemplate string
 
 type meterTableQueryData struct {
+	Namespace string
 	*models.Meter
 	WindowRetention string
 	Partitions      int
