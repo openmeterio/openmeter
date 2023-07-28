@@ -195,7 +195,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Namespace"
-          $ref: "#/components/responses/NotFoundProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
 
