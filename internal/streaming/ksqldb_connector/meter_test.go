@@ -12,6 +12,7 @@ import (
 
 func TestMeterQueryAssert(t *testing.T) {
 	data := meterTableQueryData{
+		Format:    "JSON_SR",
 		Namespace: namespace.DefaultNamespace,
 		Meter: &models.Meter{
 			Slug:          "meter1",

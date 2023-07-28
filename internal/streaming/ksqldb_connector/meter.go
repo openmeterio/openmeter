@@ -40,13 +40,14 @@ func NewMeterValues(header ksqldb.Header, payload ksqldb.Payload) ([]*models.Met
 			GroupBy: make(map[string]string),
 		}
 		for idx, column := range header.Columns {
-			if column.Name == "windostart" {
+			// KSQL returns them in uppsercase even if we use lowercase in the query
+			if column.Name == "WINDOWSTART" {
 				value.WindowStart = time.UnixMilli(int64(row[idx].(float64))).UTC()
-			} else if column.Name == "windowend" {
+			} else if column.Name == "WINDOWEND" {
 				value.WindowEnd = time.UnixMilli(int64(row[idx].(float64))).UTC()
-			} else if column.Name == "subject" {
+			} else if column.Name == "SUBJECT" {
 				value.Subject = row[idx].(string)
-			} else if column.Name == "value" {
+			} else if column.Name == "VALUE" {
 				value.Value = row[idx].(float64)
 			} else {
 				value.GroupBy[column.Name] = fmt.Sprintf("%s", row[idx])

@@ -59,6 +59,7 @@ func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string)
 	if err != nil {
 		return fmt.Errorf("template detected events ksql table: %w", err)
 	}
+	slog.Debug("detectedEventsTableQuery", "query", detectedEventsTableQuery)
 
 	detectedEventsStreamQuery, err := templateQuery(detectedEventsStreamQueryTemplate, detectedEventsStreamQueryData{
 		Format:    h.Format,
@@ -68,7 +69,6 @@ func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string)
 	if err != nil {
 		return fmt.Errorf("template detected events ksql stream: %w", err)
 	}
-	slog.Debug("cloudEventsStreamQuery", "query", cloudEventsStreamQuery)
 
 	_, err = h.KsqlDBClient.Execute(ctx, ksqldb.ExecOptions{
 		KSql: cloudEventsStreamQuery,

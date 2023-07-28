@@ -1,12 +1,13 @@
 {{- $with := list -}}
 {{- $with = printf "KAFKA_TOPIC = '%s'" .Topic | append $with -}}
-{{- $with = printf "VALUE_FORMAT = '%s'" .Format | append $with -}}
 
 {{if eq .Format "JSON" }}
     {{- $with = printf "KEY_FORMAT = 'NONE'" | append $with -}}
+    {{- $with = printf "VALUE_FORMAT = '%s'" .Format | append $with -}}
 {{end}}
 {{if eq .Format "JSON_SR" }}
-    {{- $with = printf "KEY_FORMAT = '%s'" | .Format  | append $with -}}
+    {{- $with = printf "KEY_FORMAT = '%s'" .Format | append $with -}}
+    {{- $with = printf "VALUE_FORMAT = '%s'" .Format | append $with -}}
     {{- $with = printf "KEY_SCHEMA_ID = %d" .KeySchemaId | append $with -}}
     {{- $with = printf "VALUE_SCHEMA_ID = %d" .ValueSchemaId | append $with -}}
 {{end}}

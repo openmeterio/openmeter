@@ -24,11 +24,13 @@
         },
         "time": {
             "connect.index": 4,
-            "type": "integer"
+            "type": "string"
         },
         "data": {
             "connect.index": 5,
-            "type": "string"
+            "type": "object",
+            "properties": {},
+            "additionalProperties": true
         }
     },
     "required": [
