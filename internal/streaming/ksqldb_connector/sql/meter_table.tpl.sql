@@ -1,6 +1,6 @@
 
-{{- $groupBy := list "SUBJECT" -}}
-{{- $select := list "SUBJECT AS KEY1, AS_VALUE(SUBJECT) AS SUBJECT, WINDOWSTART AS WINDOWSTART_TS, WINDOWEND AS WINDOWEND_TS" -}}
+{{- $groupBy := list "subject" -}}
+{{- $select := list "subject AS KEY1, AS_VALUE(subject) AS subject, windowstart AS windowstart_ts, windowend AS windowend_ts" -}}
 
 {{- range $groupByKey, $groupByValue := .GroupBy -}}
 {{- $select = printf "COALESCE(EXTRACTJSONFIELD(data, '%s'), '') AS `%s_KEY`" $groupByValue $groupByKey | append $select -}}
@@ -20,8 +20,8 @@
 CREATE TABLE IF NOT EXISTS {{ printf "OM_%s_METER_%s" .Namespace .Slug | upper | bquote  }}
 WITH (
     KAFKA_TOPIC = {{ printf "OM_%s_METER_%s" .Namespace .Slug | lower | squote  }},
-    KEY_FORMAT = 'JSON_SR',
-    VALUE_FORMAT = 'JSON_SR',
+    KEY_FORMAT = {{ .Format | squote }},
+    VALUE_FORMAT = {{ .Format | squote }},
     PARTITIONS = {{ .Partitions }}
 ) AS
 SELECT {{ $select | join ", " }}
@@ -32,7 +32,7 @@ WINDOW TUMBLING (
     RETENTION {{ .WindowRetention }}
 )
 WHERE
-    ID_COUNT = 1 AND
+    id_count = 1 AND
     TYPE = {{ .EventType | squote }}
 GROUP BY
     {{ $groupBy | join ", " }}

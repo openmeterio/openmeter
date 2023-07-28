@@ -1,4 +1,4 @@
-package kafka_connector
+package ksqldb_connector
 
 import (
 	"fmt"
@@ -40,13 +40,13 @@ func NewMeterValues(header ksqldb.Header, payload ksqldb.Payload) ([]*models.Met
 			GroupBy: make(map[string]string),
 		}
 		for idx, column := range header.Columns {
-			if column.Name == "WINDOWSTART" {
+			if column.Name == "windostart" {
 				value.WindowStart = time.UnixMilli(int64(row[idx].(float64))).UTC()
-			} else if column.Name == "WINDOWEND" {
+			} else if column.Name == "windowend" {
 				value.WindowEnd = time.UnixMilli(int64(row[idx].(float64))).UTC()
-			} else if column.Name == "SUBJECT" {
+			} else if column.Name == "subject" {
 				value.Subject = row[idx].(string)
-			} else if column.Name == "VALUE" {
+			} else if column.Name == "value" {
 				value.Value = row[idx].(float64)
 			} else {
 				value.GroupBy[column.Name] = fmt.Sprintf("%s", row[idx])

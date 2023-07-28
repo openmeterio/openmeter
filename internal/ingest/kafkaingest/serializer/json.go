@@ -26,10 +26,14 @@ func (s JSONSerializer) SerializeValue(topic string, ev event.Event) ([]byte, er
 	return json.Marshal(value)
 }
 
-func (s JSONSerializer) GetKeySchemaId() *int {
-	return nil
+func (s JSONSerializer) GetFormat() string {
+	return "JSON"
 }
 
-func (s JSONSerializer) GetValueSchemaId() *int {
-	return nil
+func (s JSONSerializer) GetKeySchemaId() int {
+	return -1
+}
+
+func (s JSONSerializer) GetValueSchemaId() int {
+	return -1
 }

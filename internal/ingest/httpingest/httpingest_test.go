@@ -31,6 +31,8 @@ func (s *inMemoryCollector) Receive(event event.Event, namespace string) error {
 	return nil
 }
 
+func (s *inMemoryCollector) Close() {}
+
 // Wrap the handler so we can set the namespace with `httptest“
 type MockHandler struct {
 	handler Handler

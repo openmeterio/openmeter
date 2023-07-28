@@ -1,11 +1,13 @@
 package kafkaingest
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
+	"golang.org/x/exp/slog"
 )
 
 // Collector is a receiver of events that handles sending those events to a downstream Kafka broker.
@@ -46,4 +48,47 @@ func (s Collector) Receive(ev event.Event, namespace string) error {
 	}
 
 	return nil
+}
+
+func KafkaProducerGroup(ctx context.Context, producer *kafka.Producer, logger *slog.Logger) (execute func() error, interrupt func(error)) {
+	ctx, cancel := context.WithCancel(ctx)
+	return func() error {
+			for {
+				select {
+				case e := <-producer.Events():
+					switch ev := e.(type) {
+					case *kafka.Message:
+						// The message delivery report, indicating success or
+						// permanent failure after retries have been exhausted.
+						// Application level retries won't help since the client
+						// is already configured to do that.
+						m := ev
+						if m.TopicPartition.Error != nil {
+							logger.Error("kafka delivery failed", "error", m.TopicPartition.Error)
+						} else {
+							logger.Debug("kafka message delivered", "topic", *m.TopicPartition.Topic, "partition", m.TopicPartition.Partition, "offset", m.TopicPartition.Offset)
+						}
+					case kafka.Error:
+						// Generic client instance-level errors, such as
+						// broker connection failures, authentication issues, etc.
+						//
+						// These errors should generally be considered informational
+						// as the underlying client will automatically try to
+						// recover from any errors encountered, the application
+						// does not need to take action on them.
+						logger.Error("kafka error", "error", ev)
+					}
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+			}
+		},
+		func(error) {
+			cancel()
+		}
+}
+
+func (s Collector) Close() {
+	s.Producer.Flush(30 * 1000)
+	s.Producer.Close()
 }

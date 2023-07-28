@@ -1,4 +1,4 @@
-package kafka_connector
+package ksqldb_connector
 
 import (
 	"fmt"

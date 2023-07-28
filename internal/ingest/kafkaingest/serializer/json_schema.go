@@ -52,12 +52,16 @@ func (s JSONSchemaSerializer) SerializeValue(topic string, ev event.Event) ([]by
 	return s.valueSerializer.Serialize(topic, value)
 }
 
-func (s JSONSchemaSerializer) GetKeySchemaId() *int {
-	return &s.keySerializer.Conf.UseSchemaID
+func (s JSONSchemaSerializer) GetFormat() string {
+	return "JSON_SR"
 }
 
-func (s JSONSchemaSerializer) GetValueSchemaId() *int {
-	return &s.valueSerializer.Conf.UseSchemaID
+func (s JSONSchemaSerializer) GetKeySchemaId() int {
+	return s.keySerializer.Conf.UseSchemaID
+}
+
+func (s JSONSchemaSerializer) GetValueSchemaId() int {
+	return s.valueSerializer.Conf.UseSchemaID
 }
 
 // Registers schema with Registry and returns configured serializer

@@ -23,6 +23,7 @@ type Handler struct {
 // Collector is a receiver of events that handles sending those events to some downstream broker.
 type Collector interface {
 	Receive(ev event.Event, namespace string) error
+	Close()
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, params api.IngestEventsParams) {

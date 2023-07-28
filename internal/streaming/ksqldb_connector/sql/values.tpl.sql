@@ -1,4 +1,4 @@
-{{- $select := list "SUBJECT" "VALUE" "WINDOWSTART" "WINDOWEND" -}}
+{{- $select := list "subject" "value" "windowstart" "windowend" -}}
 
 {{- range $groupByKey, $groupByValue := .GroupBy -}}
 {{- $select = printf "`%s`" $groupByKey | append $select -}}
@@ -6,13 +6,13 @@
 
 {{- $clauses := list -}}
 {{- if .Subject }}
-{{- $clauses = (printf "SUBJECT = %s" (.Subject | derefstr | squote)) | append $clauses }}
+{{- $clauses = (printf "subject = %s" (.Subject | derefstr | squote)) | append $clauses }}
 {{- end -}}
 {{- if .From }}
-{{- $clauses = (printf "WINDOWSTART >= %s" (.From | dereftime | unixEpochMs)) | append $clauses }}
+{{- $clauses = (printf "windowstart >= %s" (.From | dereftime | unixEpochMs)) | append $clauses }}
 {{- end -}}
 {{- if .To }}
-{{- $clauses = (printf "WINDOWEND <= %s" (.To | dereftime | unixEpochMs)) | append $clauses }}
+{{- $clauses = (printf "windowend <= %s" (.To | dereftime | unixEpochMs)) | append $clauses }}
 {{- end -}}
 
 SELECT {{ $select | join ", " }} FROM {{ printf "OM_%s_METER_%s" .Namespace .Slug | upper | bquote }}

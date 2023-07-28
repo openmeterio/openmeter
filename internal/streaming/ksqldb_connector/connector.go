@@ -1,4 +1,4 @@
-package kafka_connector
+package ksqldb_connector
 
 import (
 	"context"
@@ -12,25 +12,27 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type KafkaConnector struct {
+type KsqlDBConnector struct {
 	ksqlDBClient *ksqldb.KsqldbClient
 	partitions   int
-
-	logger *slog.Logger
+	format       string
+	logger       *slog.Logger
 }
 
-func NewKafkaConnector(ksqldbClient *ksqldb.KsqldbClient, partitions int, logger *slog.Logger) (*KafkaConnector, error) {
-	connector := &KafkaConnector{
+func NewKsqlDBConnector(ksqldbClient *ksqldb.KsqldbClient, partitions int, format string, logger *slog.Logger) (*KsqlDBConnector, error) {
+	connector := &KsqlDBConnector{
 		ksqlDBClient: ksqldbClient,
 		partitions:   partitions,
+		format:       format,
 		logger:       logger,
 	}
 
 	return connector, nil
 }
 
-func (c *KafkaConnector) Init(meter *models.Meter, namespace string) error {
+func (c *KsqlDBConnector) Init(meter *models.Meter, namespace string) error {
 	queryData := meterTableQueryData{
+		Format:          c.format,
 		Namespace:       namespace,
 		Meter:           meter,
 		WindowRetention: "36500 DAYS",
@@ -60,7 +62,7 @@ func (c *KafkaConnector) Init(meter *models.Meter, namespace string) error {
 }
 
 // MeterAssert ensures meter table immutability by checking that existing meter table is the same as new
-func (c *KafkaConnector) MeterAssert(data meterTableQueryData) error {
+func (c *KsqlDBConnector) MeterAssert(data meterTableQueryData) error {
 	q, err := GetTableDescribeQuery(data.Meter, data.Namespace)
 	if err != nil {
 		return fmt.Errorf("get table describe query: %w", err)
@@ -100,7 +102,7 @@ func (c *KafkaConnector) MeterAssert(data meterTableQueryData) error {
 	return nil
 }
 
-func (c *KafkaConnector) GetValues(meter *models.Meter, params *streaming.GetValuesParams, namespace string) ([]*models.MeterValue, error) {
+func (c *KsqlDBConnector) GetValues(meter *models.Meter, params *streaming.GetValuesParams, namespace string) ([]*models.MeterValue, error) {
 	q, err := GetTableValuesQuery(meter, params, namespace)
 	if err != nil {
 		return nil, err

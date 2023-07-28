@@ -1,4 +1,4 @@
-package kafka_connector
+package ksqldb_connector
 
 import (
 	"testing"
@@ -18,6 +18,7 @@ func TestDetectedEventsTableQuery(t *testing.T) {
 	}{
 		{
 			data: detectedEventsTableQueryData{
+				Format:     "JSON_SR",
 				Namespace:  namespace.DefaultNamespace,
 				Topic:      "om_default_detected_events",
 				Retention:  32,
@@ -47,6 +48,7 @@ func TestDetectedEventsStreamQuery(t *testing.T) {
 	}{
 		{
 			data: detectedEventsStreamQueryData{
+				Format:    "JSON_SR",
 				Namespace: namespace.DefaultNamespace,
 				Topic:     "om_default_detected_events",
 			},
@@ -74,6 +76,7 @@ func TestCloudEventsStreamQuery(t *testing.T) {
 	}{
 		{
 			data: cloudEventsStreamQueryData{
+				Format:        "JSON_SR",
 				Namespace:     namespace.DefaultNamespace,
 				Topic:         "om_default_events",
 				KeySchemaId:   1,
@@ -83,6 +86,7 @@ func TestCloudEventsStreamQuery(t *testing.T) {
 		},
 		{
 			data: cloudEventsStreamQueryData{
+				Format:        "JSON_SR",
 				Namespace:     namespace.DefaultNamespace,
 				Topic:         "foo",
 				KeySchemaId:   2,

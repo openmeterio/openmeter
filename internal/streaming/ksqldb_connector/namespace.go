@@ -1,10 +1,11 @@
-package kafka_connector
+package ksqldb_connector
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/thmeitz/ksqldb-go"
+	"golang.org/x/exp/slog"
 
 	ns "github.com/openmeterio/openmeter/internal/namespace"
 )
@@ -21,6 +22,7 @@ type NamespaceHandler struct {
 	// For example: "om_%s_detected_events"
 	NamespacedDetectedEventsTopicTemplate string
 
+	Format        string
 	KeySchemaID   int
 	ValueSchemaID int
 	Partitions    int
@@ -37,6 +39,7 @@ func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string)
 	}
 
 	cloudEventsStreamQuery, err := templateQuery(cloudEventsStreamQueryTemplate, cloudEventsStreamQueryData{
+		Format:        h.Format,
 		Namespace:     namespace,
 		Topic:         eventsTopic,
 		KeySchemaId:   h.KeySchemaID,
@@ -47,6 +50,7 @@ func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string)
 	}
 
 	detectedEventsTableQuery, err := templateQuery(detectedEventsTableQueryTemplate, detectedEventsTableQueryData{
+		Format:     h.Format,
 		Namespace:  namespace,
 		Topic:      detectedEventsTopic,
 		Retention:  32,
@@ -57,12 +61,14 @@ func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string)
 	}
 
 	detectedEventsStreamQuery, err := templateQuery(detectedEventsStreamQueryTemplate, detectedEventsStreamQueryData{
+		Format:    h.Format,
 		Namespace: namespace,
 		Topic:     detectedEventsTopic,
 	})
 	if err != nil {
 		return fmt.Errorf("template detected events ksql stream: %w", err)
 	}
+	slog.Debug("cloudEventsStreamQuery", "query", cloudEventsStreamQuery)
 
 	_, err = h.KsqlDBClient.Execute(ctx, ksqldb.ExecOptions{
 		KSql: cloudEventsStreamQuery,
