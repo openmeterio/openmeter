@@ -17,7 +17,7 @@ paths:
       description: Ingest events
       operationId: ingestEvents
       parameters:
-        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/namespaceParam"
       requestBody:
         required: true
         content:
@@ -38,7 +38,7 @@ paths:
       description: List meters
       operationId: listMeters
       parameters:
-        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/namespaceParam"
       tags:
         - Meters
       responses:
@@ -56,7 +56,7 @@ paths:
       description: Create meter
       operationId: createMeter
       parameters:
-        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/namespaceParam"
       tags:
         - Meters
       requestBody:
@@ -83,7 +83,7 @@ paths:
       description: Get meter by slugs
       operationId: getMeter
       parameters:
-        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/namespaceParam"
         - $ref: "#/components/parameters/meterIdOrSlug"
       tags:
         - Meters
@@ -102,7 +102,7 @@ paths:
       description: Delete meter by slug
       operationId: deleteMeter
       parameters:
-        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/namespaceParam"
         - $ref: "#/components/parameters/meterIdOrSlug"
       tags:
         - Meters
@@ -122,7 +122,7 @@ paths:
       tags:
         - Meters
       parameters:
-        - $ref: "#/components/parameters/namespace"
+        - $ref: "#/components/parameters/namespaceParam"
         - $ref: "#/components/parameters/meterIdOrSlug"
         - name: subject
           in: query
@@ -419,7 +419,7 @@ components:
           maxLength: 63
     Namespace:
       type: object
-      x-go-name: NS
+      x-go-name: Namespace
       x-go-type: models.Namespace
       x-go-type-import:
         path: github.com/openmeterio/openmeter/pkg/models
@@ -439,12 +439,12 @@ components:
       required: true
       schema:
         $ref: "#/components/schemas/IdOrSlug"
-    namespace:
+    namespaceParam:
       name: OM-Namespace
       description: Optional namespace
       default: default
       in: header
-      x-go-name: Namespace
+      x-go-name: NamespaceInput
       schema:
         type: string
         pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"

@@ -38,7 +38,7 @@ type MockHandler struct {
 
 func (h MockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	namespace := "test"
-	h.handler.ServeHTTP(w, r, api.IngestEventsParams{Namespace: &namespace})
+	h.handler.ServeHTTP(w, r, api.IngestEventsParams{NamespaceInput: &namespace})
 }
 
 func TestHandler(t *testing.T) {

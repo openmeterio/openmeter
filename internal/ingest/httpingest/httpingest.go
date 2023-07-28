@@ -51,8 +51,8 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, params api.In
 	}
 
 	namespace := namespace.DefaultNamespace
-	if params.Namespace != nil {
-		namespace = *params.Namespace
+	if params.NamespaceInput != nil {
+		namespace = *params.NamespaceInput
 	}
 
 	err = h.Collector.Receive(event, namespace)

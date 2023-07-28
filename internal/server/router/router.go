@@ -143,8 +143,8 @@ func ValidateGetMeterValuesParams(meter *models.Meter, params api.GetMeterValues
 
 func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.GetMeterValuesParams) {
 	namespace := namespace.DefaultNamespace
-	if params.Namespace != nil {
-		namespace = *params.Namespace
+	if params.NamespaceInput != nil {
+		namespace = *params.NamespaceInput
 	}
 
 	for _, meter := range a.config.Meters {

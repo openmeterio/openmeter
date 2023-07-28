@@ -15,15 +15,15 @@ const openmeter = new OpenMeter({ baseUrl: 'http://localhost:8888' })
 
 // Ingesting an event
 const event: Event = {
- specversion: '1.0',
- id: 'id-1',
- source: 'my-app',
- type: 'my-type',
- subject: 'my-awesome-user-id',
- time: new Date().toISOString(),
- data: {
-  api_calls: 1,
- },
+	specversion: '1.0',
+	id: 'id-1',
+	source: 'my-app',
+	type: 'my-type',
+	subject: 'my-awesome-user-id',
+	time: new Date().toISOString(),
+	data: {
+		api_calls: 1,
+	},
 }
 await openmeter.events.ingestEvents(event)
 
