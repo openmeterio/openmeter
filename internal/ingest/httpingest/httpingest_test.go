@@ -10,9 +10,10 @@ import (
 	"time"
 
 	"github.com/cloudevents/sdk-go/v2/event"
-	"github.com/openmeterio/openmeter/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/openmeterio/openmeter/api"
 )
 
 type inMemoryCollector struct {

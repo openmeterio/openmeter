@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	ns "github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/thmeitz/ksqldb-go"
+
+	ns "github.com/openmeterio/openmeter/internal/namespace"
 )
 
 // NamespaceHandler is a namespace handler for Kafka ingest topics.

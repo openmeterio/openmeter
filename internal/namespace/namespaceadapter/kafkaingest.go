@@ -5,8 +5,9 @@ import (
 	"fmt"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	ns "github.com/openmeterio/openmeter/internal/namespace"
 	"golang.org/x/exp/slog"
+
+	ns "github.com/openmeterio/openmeter/internal/namespace"
 )
 
 // KafkaIngestHandler is a namespace handler for Kafka ingest topics.
