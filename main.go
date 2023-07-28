@@ -34,8 +34,8 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/ingest/httpingest"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
+	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/internal/namespace"
-	"github.com/openmeterio/openmeter/internal/namespace/namespaceadapter"
 	"github.com/openmeterio/openmeter/internal/server"
 	"github.com/openmeterio/openmeter/internal/server/router"
 	"github.com/openmeterio/openmeter/internal/streaming/kafka_connector"
@@ -159,30 +159,18 @@ func main() {
 		"schemaRegistry.url":   config.SchemaRegistry.URL,
 	})
 
-	// Initialize Schema Registry
-	schemaRegistryConfig := schemaregistry.NewConfig(config.SchemaRegistry.URL)
-	if config.SchemaRegistry.Username != "" || config.SchemaRegistry.Password != "" {
-		schemaRegistryConfig.BasicAuthCredentialsSource = "USER_INFO"
-		schemaRegistryConfig.BasicAuthUserInfo = fmt.Sprintf("%s:%s", config.SchemaRegistry.Username, config.SchemaRegistry.Password)
-	}
-	schemaRegistry, err := schemaregistry.NewClient(schemaRegistryConfig)
+	// Initialize serializer
+	eventSerializer, err := initializeSerializer(config)
 	if err != nil {
-		logger.Error("init schema registry client: %v", err)
+		slog.Error("failed to initialize serializer", "error", err)
 		os.Exit(1)
 	}
 
+	// Initialize Kafka Admin Client
 	kafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
-
 	kafkaAdminClient, err := kafka.NewAdminClient(kafkaConfig)
 	if err != nil {
 		logger.Error("init Kafka client: %v", err)
-		os.Exit(1)
-	}
-
-	// Initialize events topic
-	schema, keySchemaID, valueSchemaID, err := kafkaingest.NewSchema(schemaRegistry)
-	if err != nil {
-		logger.Error("init schema: %v", err)
 		os.Exit(1)
 	}
 
@@ -211,7 +199,7 @@ func main() {
 
 	namespaceManager := namespace.Manager{
 		Handlers: []namespace.Handler{
-			namespaceadapter.KafkaIngestHandler{
+			kafkaingest.NamespaceHandler{
 				AdminClient:             kafkaAdminClient,
 				NamespacedTopicTemplate: namespacedEventsTopicTemplate,
 				Partitions:              config.Ingest.Kafka.Partitions,
@@ -221,8 +209,8 @@ func main() {
 				KsqlDBClient:                          &ksqldbClient,
 				NamespacedEventsTopicTemplate:         namespacedEventsTopicTemplate,
 				NamespacedDetectedEventsTopicTemplate: namespacedDetectedEventsTopicTemplate,
-				KeySchemaID:                           keySchemaID,
-				ValueSchemaID:                         valueSchemaID,
+				KeySchemaID:                           *eventSerializer.GetKeySchemaId(),
+				ValueSchemaID:                         *eventSerializer.GetValueSchemaId(),
 				Partitions:                            config.Ingest.Kafka.Partitions,
 			},
 		},
@@ -253,7 +241,7 @@ func main() {
 	collector := kafkaingest.Collector{
 		Producer:                producer,
 		NamespacedTopicTemplate: namespacedEventsTopicTemplate,
-		Schema:                  schema,
+		Serializer:              eventSerializer,
 	}
 
 	// TODO: config file (https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md)
@@ -360,6 +348,27 @@ func main() {
 		slog.Info("received signal; shutting down", slog.String("signal", e.Signal.String()))
 	} else if !errors.Is(err, http.ErrServerClosed) {
 		slog.Error("application stopped due to error", slog.String("error", err.Error()))
+	}
+}
+
+// initializeSerializer initializes the serializer based on the configuration.
+func initializeSerializer(config configuration) (serializer.Serializer, error) {
+	// Initialize JSON_SR with Schema Registry
+	if config.SchemaRegistry.URL != "" {
+		schemaRegistryConfig := schemaregistry.NewConfig(config.SchemaRegistry.URL)
+		if config.SchemaRegistry.Username != "" || config.SchemaRegistry.Password != "" {
+			schemaRegistryConfig.BasicAuthCredentialsSource = "USER_INFO"
+			schemaRegistryConfig.BasicAuthUserInfo = fmt.Sprintf("%s:%s", config.SchemaRegistry.Username, config.SchemaRegistry.Password)
+		}
+		schemaRegistry, err := schemaregistry.NewClient(schemaRegistryConfig)
+		if err != nil {
+			return nil, err
+		}
+
+		return serializer.NewJSONSchemaSerializer(schemaRegistry)
+	} else {
+		// Initialize JSON without Schema Registry
+		return serializer.NewJSONSerializer(), nil
 	}
 }
 

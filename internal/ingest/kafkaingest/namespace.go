@@ -1,4 +1,4 @@
-package namespaceadapter
+package kafkaingest
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	ns "github.com/openmeterio/openmeter/internal/namespace"
 )
 
-// KafkaIngestHandler is a namespace handler for Kafka ingest topics.
-type KafkaIngestHandler struct {
+// NamespaceHandler is a namespace handler for Kafka ingest topics.
+type NamespaceHandler struct {
 	AdminClient *kafka.AdminClient
 
 	// NamespacedTopicTemplate needs to contain at least one string parameter passed to fmt.Sprintf.
@@ -24,7 +24,7 @@ type KafkaIngestHandler struct {
 }
 
 // CreateNamespace implements the namespace handler interface.
-func (h KafkaIngestHandler) CreateNamespace(ctx context.Context, namespace string) error {
+func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string) error {
 	topic := fmt.Sprintf(h.NamespacedTopicTemplate, ns.DefaultNamespace)
 
 	if namespace != "" {

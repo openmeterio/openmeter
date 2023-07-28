@@ -6,37 +6,37 @@
     "description": "Event Value Schema",
     "additionalProperties": false,
     "properties": {
-        "ID": {
+        "id": {
             "connect.index": 0,
             "type": "string"
         },
-        "TYPE": {
+        "type": {
             "connect.index": 1,
             "type": "string"
         },
-        "SOURCE": {
+        "source": {
             "connect.index": 2,
             "type": "string"
         },
-        "SUBJECT": {
+        "subject": {
             "connect.index": 3,
             "type": "string"
         },
-        "TIME": {
+        "time": {
             "connect.index": 4,
-            "type": "string"
+            "type": "integer"
         },
-        "DATA": {
+        "data": {
             "connect.index": 5,
             "type": "string"
         }
     },
     "required": [
-        "ID",
-        "TYPE",
-        "SOURCE",
-        "SUBJECT",
-        "TIME",
-        "DATA"
+        "id",
+        "type",
+        "source",
+        "subject",
+        "time",
+        "data"
     ]
 }
