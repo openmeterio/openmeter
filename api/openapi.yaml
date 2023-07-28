@@ -181,7 +181,7 @@ paths:
       description: Create namespace
       operationId: createNamespace
       tags:
-        - Meters
+        - Ingest
       requestBody:
         required: true
         content:
