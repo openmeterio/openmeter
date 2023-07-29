@@ -17,12 +17,12 @@ type Serializer interface {
 }
 
 type CloudEventsKafkaPayload struct {
-	Id      string      `json:"id"`
-	Type    string      `json:"type"`
-	Source  string      `json:"source"`
-	Subject string      `json:"subject"`
-	Time    time.Time   `json:"time"`
-	Data    interface{} `json:"data"`
+	Id      string    `json:"id"`
+	Type    string    `json:"type"`
+	Source  string    `json:"source"`
+	Subject string    `json:"subject"`
+	Time    time.Time `json:"time"`
+	Data    string    `json:"data"`
 }
 
 func toCloudEventsKafkaPayload(ev event.Event) (CloudEventsKafkaPayload, error) {
@@ -41,7 +41,9 @@ func toCloudEventsKafkaPayload(ev event.Event) (CloudEventsKafkaPayload, error) 
 	if err != nil {
 		return payload, err
 	}
-	payload.Data = data
+
+	payloadData, _ := json.Marshal(data)
+	payload.Data = string(payloadData)
 
 	return payload, nil
 }

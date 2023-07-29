@@ -24,7 +24,7 @@ func TestDetectedEventsTableQuery(t *testing.T) {
 				Retention:  32,
 				Partitions: 100,
 			},
-			want: "CREATE TABLE IF NOT EXISTS OM_DEFAULT_DETECTED_EVENTS WITH ( KAFKA_TOPIC = 'om_default_detected_events', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 100 ) AS SELECT id AS key1, source AS key2, AS_VALUE(id) AS id, EARLIEST_BY_OFFSET(type) AS type, AS_VALUE(source) AS source, EARLIEST_BY_OFFSET(subject) AS subject, EARLIEST_BY_OFFSET(time) AS time, EARLIEST_BY_OFFSET(data) AS data, COUNT(id) as id_count FROM OM_DEFAULT_EVENTS WINDOW TUMBLING ( SIZE 32 DAYS, RETENTION 32 DAYS ) GROUP BY id, source;",
+			want: "CREATE TABLE IF NOT EXISTS OM_DEFAULT_DETECTED_EVENTS WITH ( KAFKA_TOPIC = 'om_default_detected_events', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 100 ) AS SELECT `id` AS `key1`, `source` AS `key2`, AS_VALUE(`id`) AS `id`, EARLIEST_BY_OFFSET(`type`) AS `type`, AS_VALUE(`source`) AS `source`, EARLIEST_BY_OFFSET(`subject`) AS `subject`, EARLIEST_BY_OFFSET(`time`) AS `time`, EARLIEST_BY_OFFSET(`data`) AS `data`, COUNT(`id`) as `id_count` FROM OM_DEFAULT_EVENTS WINDOW TUMBLING ( SIZE 32 DAYS, RETENTION 32 DAYS ) GROUP BY `id`, `source`;",
 		},
 	}
 
@@ -52,7 +52,7 @@ func TestDetectedEventsStreamQuery(t *testing.T) {
 				Namespace: namespace.DefaultNamespace,
 				Topic:     "om_default_detected_events",
 			},
-			want: "CREATE STREAM IF NOT EXISTS OM_DEFAULT_DETECTED_EVENTS_STREAM WITH ( KAFKA_TOPIC = 'om_default_detected_events', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR' );",
+			want: "CREATE STREAM IF NOT EXISTS OM_DEFAULT_DETECTED_EVENTS_STREAM ( `key1` STRING KEY, `key2` STRING KEY, `id` STRING, `id_count` BIGINT, `type` STRING, `source` STRING, `subject` STRING, `time` STRING, `data` STRING ) WITH ( KAFKA_TOPIC = 'om_default_detected_events', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR' );",
 		},
 	}
 
@@ -130,7 +130,7 @@ func TestMeterTableQuery(t *testing.T) {
 				WindowRetention: "365 DAYS",
 				Partitions:      1,
 			},
-			want: "CREATE TABLE IF NOT EXISTS `OM_DEFAULT_METER_METER1` WITH ( KAFKA_TOPIC = 'om_default_meter_meter1', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 1 ) AS SELECT subject AS key1, AS_VALUE(subject) AS subject, windowstart AS windowstart_ts, windowend AS windowend_ts, COALESCE(EXTRACTJSONFIELD(data, '$.path'), '') AS `path_key`, AS_VALUE(COALESCE(EXTRACTJSONFIELD(data, '$.path'), '')) AS `path`, SUM(CAST(EXTRACTJSONFIELD(data, '$.bytes') AS DECIMAL(12, 4))) AS value FROM OM_DEFAULT_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 1 HOUR, RETENTION 365 DAYS ) WHERE id_count = 1 AND type = 'api-calls' GROUP BY subject, COALESCE(EXTRACTJSONFIELD(data, '$.path'), '') EMIT CHANGES;",
+			want: "CREATE TABLE IF NOT EXISTS `OM_DEFAULT_METER_METER1` WITH ( KAFKA_TOPIC = 'om_default_meter_meter1', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 1 ) AS SELECT `subject` AS `key1`, AS_VALUE(`subject`) AS `subject`, windowstart AS `windowstart_ts`, windowend AS `windowend_ts`, COALESCE(EXTRACTJSONFIELD(`data`, '$.path'), '') AS `path_key`, AS_VALUE(COALESCE(EXTRACTJSONFIELD(`data`, '$.path'), '')) AS `path`, SUM(CAST(EXTRACTJSONFIELD(`data`, '$.bytes') AS DECIMAL(12, 4))) AS `value` FROM OM_DEFAULT_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 1 HOUR, RETENTION 365 DAYS ) WHERE `id_count` = 1 AND `type` = 'api-calls' GROUP BY `subject`, COALESCE(EXTRACTJSONFIELD(`data`, '$.path'), '') EMIT CHANGES;",
 		},
 		{
 			data: meterTableQueryData{
@@ -146,7 +146,7 @@ func TestMeterTableQuery(t *testing.T) {
 				WindowRetention: "365 DAYS",
 				Partitions:      1,
 			},
-			want: "CREATE TABLE IF NOT EXISTS `OM_DEFAULT_METER_METER2` WITH ( KAFKA_TOPIC = 'om_default_meter_meter2', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 1 ) AS SELECT subject AS key1, AS_VALUE(subject) AS subject, windowstart AS windowstart_ts, windowend AS windowend_ts, COUNT(*) AS value FROM OM_DEFAULT_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 1 HOUR, RETENTION 365 DAYS ) WHERE id_count = 1 AND type = 'api-calls' GROUP BY subject EMIT CHANGES;",
+			want: "CREATE TABLE IF NOT EXISTS `OM_DEFAULT_METER_METER2` WITH ( KAFKA_TOPIC = 'om_default_meter_meter2', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 1 ) AS SELECT `subject` AS `key1`, AS_VALUE(`subject`) AS `subject`, windowstart AS `windowstart_ts`, windowend AS `windowend_ts`, COUNT(*) AS `value` FROM OM_DEFAULT_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 1 HOUR, RETENTION 365 DAYS ) WHERE `id_count` = 1 AND `type` = 'api-calls' GROUP BY `subject` EMIT CHANGES;",
 		},
 		{
 			data: meterTableQueryData{
@@ -163,7 +163,7 @@ func TestMeterTableQuery(t *testing.T) {
 				WindowRetention: "365 DAYS",
 				Partitions:      1,
 			},
-			want: "CREATE TABLE IF NOT EXISTS `OM_DEFAULT_METER_METER2` WITH ( KAFKA_TOPIC = 'om_default_meter_meter2', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 1 ) AS SELECT subject AS key1, AS_VALUE(subject) AS subject, windowstart AS windowstart_ts, windowend AS windowend_ts, COUNT(EXTRACTJSONFIELD(data, '$.duration_ms')) AS value FROM OM_DEFAULT_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 1 HOUR, RETENTION 365 DAYS ) WHERE id_count = 1 AND type = 'api-calls' GROUP BY subject EMIT CHANGES;",
+			want: "CREATE TABLE IF NOT EXISTS `OM_DEFAULT_METER_METER2` WITH ( KAFKA_TOPIC = 'om_default_meter_meter2', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 1 ) AS SELECT `subject` AS `key1`, AS_VALUE(`subject`) AS `subject`, windowstart AS `windowstart_ts`, windowend AS `windowend_ts`, COUNT(EXTRACTJSONFIELD(`data`, '$.duration_ms')) AS `value` FROM OM_DEFAULT_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 1 HOUR, RETENTION 365 DAYS ) WHERE `id_count` = 1 AND `type` = 'api-calls' GROUP BY `subject` EMIT CHANGES;",
 		},
 		{
 			data: meterTableQueryData{
@@ -180,7 +180,7 @@ func TestMeterTableQuery(t *testing.T) {
 				WindowRetention: "365 DAYS",
 				Partitions:      1,
 			},
-			want: "CREATE TABLE IF NOT EXISTS `OM_DEFAULT_METER_METER3` WITH ( KAFKA_TOPIC = 'om_default_meter_meter3', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 1 ) AS SELECT subject AS key1, AS_VALUE(subject) AS subject, windowstart AS windowstart_ts, windowend AS windowend_ts, AVG(CAST(EXTRACTJSONFIELD(data, '$.duration_ms') AS DECIMAL(12, 4))) AS value FROM OM_DEFAULT_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 1 MINUTE, RETENTION 365 DAYS ) WHERE id_count = 1 AND type = 'api-calls' GROUP BY subject EMIT CHANGES;",
+			want: "CREATE TABLE IF NOT EXISTS `OM_DEFAULT_METER_METER3` WITH ( KAFKA_TOPIC = 'om_default_meter_meter3', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR', PARTITIONS = 1 ) AS SELECT `subject` AS `key1`, AS_VALUE(`subject`) AS `subject`, windowstart AS `windowstart_ts`, windowend AS `windowend_ts`, AVG(CAST(EXTRACTJSONFIELD(`data`, '$.duration_ms') AS DECIMAL(12, 4))) AS `value` FROM OM_DEFAULT_DETECTED_EVENTS_STREAM WINDOW TUMBLING ( SIZE 1 MINUTE, RETENTION 365 DAYS ) WHERE `id_count` = 1 AND `type` = 'api-calls' GROUP BY `subject` EMIT CHANGES;",
 		},
 	}
 
@@ -215,7 +215,7 @@ func TestValuesSelectQuery(t *testing.T) {
 					Subject: &subject,
 				},
 			},
-			want: "SELECT subject, value, windowstart, windowend FROM `OM_DEFAULT_METER_METER1` WHERE subject = 'subject1';",
+			want: "SELECT `subject`, `value`, windowstart as `windowstart`, windowend as `windowend` FROM `OM_DEFAULT_METER_METER1` WHERE subject = 'subject1';",
 		},
 		{
 			data: meterValuesData{
@@ -228,7 +228,7 @@ func TestValuesSelectQuery(t *testing.T) {
 					From:    &from,
 				},
 			},
-			want: "SELECT subject, value, windowstart, windowend FROM `OM_DEFAULT_METER_METER2` WHERE subject = 'subject1' AND windowstart >= 1609459200001;",
+			want: "SELECT `subject`, `value`, windowstart as `windowstart`, windowend as `windowend` FROM `OM_DEFAULT_METER_METER2` WHERE subject = 'subject1' AND windowstart >= 1609459200001;",
 		},
 		{
 			data: meterValuesData{
@@ -238,7 +238,7 @@ func TestValuesSelectQuery(t *testing.T) {
 				},
 				GetValuesParams: &GetValuesParams{},
 			},
-			want: "SELECT subject, value, windowstart, windowend FROM `OM_DEFAULT_METER_METER3`;",
+			want: "SELECT `subject`, `value`, windowstart as `windowstart`, windowend as `windowend` FROM `OM_DEFAULT_METER_METER3`;",
 		},
 		{
 			data: meterValuesData{
@@ -251,7 +251,7 @@ func TestValuesSelectQuery(t *testing.T) {
 					To:      &to,
 				},
 			},
-			want: "SELECT subject, value, windowstart, windowend FROM `OM_DEFAULT_METER_METER4` WHERE subject = 'subject1' AND windowend <= 1609545600000;",
+			want: "SELECT `subject`, `value`, windowstart as `windowstart`, windowend as `windowend` FROM `OM_DEFAULT_METER_METER4` WHERE subject = 'subject1' AND windowend <= 1609545600000;",
 		},
 		{
 			data: meterValuesData{
@@ -265,7 +265,7 @@ func TestValuesSelectQuery(t *testing.T) {
 					To:      &to,
 				},
 			},
-			want: "SELECT subject, value, windowstart, windowend FROM `OM_DEFAULT_METER_METER5` WHERE subject = 'subject1' AND windowstart >= 1609459200001 AND windowend <= 1609545600000;",
+			want: "SELECT `subject`, `value`, windowstart as `windowstart`, windowend as `windowend` FROM `OM_DEFAULT_METER_METER5` WHERE subject = 'subject1' AND windowstart >= 1609459200001 AND windowend <= 1609545600000;",
 		},
 	}
 

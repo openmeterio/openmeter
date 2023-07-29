@@ -15,12 +15,12 @@
 CREATE STREAM IF NOT EXISTS OM_{{ .Namespace | upper }}_EVENTS
 {{if eq .Format "JSON" }}
 (
-    id STRING,
-    type STRING,
-    source STRING,
-    subject STRING,
-    time STRING,
-    data STRING
+    `id` STRING,
+    `type` STRING,
+    `source` STRING,
+    `subject` STRING,
+    `time` STRING,
+    `data` STRING
 )
 {{end}}
 WITH (

@@ -28,9 +28,7 @@
         },
         "data": {
             "connect.index": 5,
-            "type": "object",
-            "properties": {},
-            "additionalProperties": true
+            "type": "string"
         }
     },
     "required": [

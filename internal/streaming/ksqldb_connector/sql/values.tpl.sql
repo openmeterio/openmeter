@@ -1,4 +1,4 @@
-{{- $select := list "subject" "value" "windowstart" "windowend" -}}
+{{- $select := list "`subject`" "`value`" "windowstart as `windowstart`" "windowend as `windowend`" -}}
 
 {{- range $groupByKey, $groupByValue := .GroupBy -}}
 {{- $select = printf "`%s`" $groupByKey | append $select -}}

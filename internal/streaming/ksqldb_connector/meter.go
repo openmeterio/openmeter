@@ -9,7 +9,7 @@ import (
 	"github.com/thmeitz/ksqldb-go"
 	"golang.org/x/exp/slog"
 
-	. "github.com/openmeterio/openmeter/internal/streaming"
+	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -24,7 +24,7 @@ func GetTableDescribeQuery(meter *models.Meter, namespace string) (string, error
 	})
 }
 
-func GetTableValuesQuery(meter *models.Meter, params *GetValuesParams, namespace string) (string, error) {
+func GetTableValuesQuery(meter *models.Meter, params *streaming.GetValuesParams, namespace string) (string, error) {
 	return templateQuery(meterValuesTemplate, meterValuesData{
 		Namespace:       namespace,
 		Meter:           meter,
@@ -41,13 +41,13 @@ func NewMeterValues(header ksqldb.Header, payload ksqldb.Payload) ([]*models.Met
 		}
 		for idx, column := range header.Columns {
 			// KSQL returns them in uppsercase even if we use lowercase in the query
-			if column.Name == "WINDOWSTART" {
+			if column.Name == "windowstart" {
 				value.WindowStart = time.UnixMilli(int64(row[idx].(float64))).UTC()
-			} else if column.Name == "WINDOWEND" {
+			} else if column.Name == "windowend" {
 				value.WindowEnd = time.UnixMilli(int64(row[idx].(float64))).UTC()
-			} else if column.Name == "SUBJECT" {
+			} else if column.Name == "subject" {
 				value.Subject = row[idx].(string)
-			} else if column.Name == "VALUE" {
+			} else if column.Name == "value" {
 				value.Value = row[idx].(float64)
 			} else {
 				value.GroupBy[column.Name] = fmt.Sprintf("%s", row[idx])
@@ -65,7 +65,7 @@ func MeterQueryAssert(query string, data meterTableQueryData) error {
 	// syntax: https://github.com/json-path/JsonPath
 	jsonRe := regexp.MustCompile(`([$][._\[\]0-9a-zA-Z]+)+`)
 	groupBy := jsonRe.FindAllString(getStringInBetweenTwoString(query, "GROUP BY", "EMIT CHANGES"), -1)
-	valueProperty := jsonRe.FindString(getStringInBetweenTwoString(query, string(data.Meter.Aggregation), "VALUE"))
+	valueProperty := jsonRe.FindString(getStringInBetweenTwoString(query, string(data.Meter.Aggregation), "value"))
 	windowSizeRe := regexp.MustCompile(`SIZE (?:\d+ [DAY|HOUR|MINUTE|SECOND|MILLISECOND]{1,})`)
 	windowSize := windowSizeRe.FindString(query)
 	// Go doesn't support \K to reset match after SIZE in regex so we trim it out

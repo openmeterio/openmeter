@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/thmeitz/ksqldb-go"
-	"golang.org/x/exp/slog"
 
 	ns "github.com/openmeterio/openmeter/internal/namespace"
 )
@@ -59,7 +58,6 @@ func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string)
 	if err != nil {
 		return fmt.Errorf("template detected events ksql table: %w", err)
 	}
-	slog.Debug("detectedEventsTableQuery", "query", detectedEventsTableQuery)
 
 	detectedEventsStreamQuery, err := templateQuery(detectedEventsStreamQueryTemplate, detectedEventsStreamQueryData{
 		Format:    h.Format,

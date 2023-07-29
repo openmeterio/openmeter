@@ -107,6 +107,7 @@ func (c *KsqlDBConnector) GetValues(meter *models.Meter, params *streaming.GetVa
 	if err != nil {
 		return nil, err
 	}
+	slog.Debug("detectedEventsTableQuery", "query", q)
 
 	header, payload, err := c.ksqlDBClient.Pull(context.TODO(), ksqldb.QueryOptions{
 		Sql: q,
