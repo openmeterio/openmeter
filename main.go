@@ -32,6 +32,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/exp/slog"
 
+	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/ingest/httpingest"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
@@ -161,7 +162,7 @@ func main() {
 	})
 
 	var group run.Group
-	var ingestCollector httpingest.Collector
+	var ingestCollector ingest.Collector
 	var streamingConnector streaming.Connector
 
 	// Initialize serializer

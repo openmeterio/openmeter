@@ -20,8 +20,8 @@ type Collector struct {
 	Serializer              serializer.Serializer
 }
 
-// Receive receives an event produces a message in a Kafka topic.
-func (s Collector) Receive(ev event.Event, namespace string) error {
+// Ingest produces an event to a Kafka topic.
+func (s Collector) Ingest(ev event.Event, namespace string) error {
 	topic := fmt.Sprintf(s.NamespacedTopicTemplate, namespace)
 	key, err := s.Serializer.SerializeKey(topic, ev)
 	if err != nil {

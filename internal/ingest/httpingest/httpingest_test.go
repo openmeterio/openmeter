@@ -22,7 +22,7 @@ type inMemoryCollector struct {
 	mu sync.Mutex
 }
 
-func (s *inMemoryCollector) Receive(event event.Event, namespace string) error {
+func (s *inMemoryCollector) Ingest(event event.Event, namespace string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
