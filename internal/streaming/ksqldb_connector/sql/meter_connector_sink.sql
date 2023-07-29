@@ -16,13 +16,13 @@ CREATE SINK CONNECTOR SINK_METERS_PG WITH (
     'pk.mode'                                 = 'record_key',
     'transforms'                              = 'RenameField,ValueToKey,tsWindowStart,tsWindowEnd',
     'transforms.RenameField.type'             = 'org.apache.kafka.connect.transforms.ReplaceField$Value',
-    'transforms.RenameField.renames'          = 'WINDOWSTART_TS:WINDOWSTART,WINDOWEND_TS:WINDOWEND',
+    'transforms.RenameField.renames'          = 'windowstart_ts:windowstart,windowend_ts:windowend',
     'transforms.ValueToKey.type'              = 'org.apache.kafka.connect.transforms.ValueToKey',
-    'transforms.ValueToKey.fields'            = 'WINDOWSTART,WINDOWEND',
+    'transforms.ValueToKey.fields'            = 'windowstart,windowend',
     'transforms.tsWindowStart.type'           = 'org.apache.kafka.connect.transforms.TimestampConverter$Key',
-    'transforms.tsWindowStart.field'          = 'WINDOWSTART',
+    'transforms.tsWindowStart.field'          = 'windowstart',
     'transforms.tsWindowStart.target.type'    = 'Timestamp',
     'transforms.tsWindowEnd.type'             = 'org.apache.kafka.connect.transforms.TimestampConverter$Key',
-    'transforms.tsWindowEnd.field'            = 'WINDOWEND',
+    'transforms.tsWindowEnd.field'            = 'windowend',
     'transforms.tsWindowEnd.target.type'      = 'Timestamp'
 );

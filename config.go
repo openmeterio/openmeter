@@ -33,6 +33,11 @@ type configuration struct {
 		Kafka ingestKafkaConfiguration
 	}
 
+	Namespace struct {
+		EventsTopicTemplate         string
+		DetectedEventsTopicTemplate string
+	}
+
 	// SchemaRegistry configuration
 	SchemaRegistry struct {
 		URL      string
@@ -56,10 +61,6 @@ func (c configuration) Validate() error {
 
 	if err := c.Ingest.Kafka.Validate(); err != nil {
 		return err
-	}
-
-	if c.SchemaRegistry.URL == "" {
-		return errors.New("schema registry URL is required")
 	}
 
 	if err := c.Processor.KSQLDB.Validate(); err != nil {
@@ -227,7 +228,7 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("ingest.kafka.partitions", 1)
 
 	// Schema Registry configuration
-	v.SetDefault("schemaRegistry.url", "http://127.0.0.1:8081")
+	v.SetDefault("schemaRegistry.url", "")
 	v.SetDefault("schemaRegistry.username", "")
 	v.SetDefault("schemaRegistry.password", "")
 
@@ -235,4 +236,8 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("processor.ksqldb.url", "http://127.0.0.1:8088")
 	v.SetDefault("processor.ksqldb.username", "")
 	v.SetDefault("processor.ksqldb.password", "")
+
+	// namespace configuration
+	v.SetDefault("namespace.EventsTopicTemplate", "om_%s_events")
+	v.SetDefault("namespace.DetectedEventsTopicTemplate", "om_%s_detected_events")
 }

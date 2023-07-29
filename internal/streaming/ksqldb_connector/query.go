@@ -1,4 +1,4 @@
-package kafka_connector
+package ksqldb_connector
 
 import (
 	"bytes"
@@ -22,6 +22,7 @@ import (
 var cloudEventsStreamQueryTemplate string
 
 type cloudEventsStreamQueryData struct {
+	Format        string
 	Namespace     string
 	Topic         string
 	KeySchemaId   int
@@ -32,6 +33,7 @@ type cloudEventsStreamQueryData struct {
 var detectedEventsTableQueryTemplate string
 
 type detectedEventsTableQueryData struct {
+	Format     string
 	Namespace  string
 	Topic      string
 	Retention  int
@@ -42,6 +44,7 @@ type detectedEventsTableQueryData struct {
 var detectedEventsStreamQueryTemplate string
 
 type detectedEventsStreamQueryData struct {
+	Format    string
 	Namespace string
 	Topic     string
 }
@@ -67,6 +70,7 @@ type meterTableDescribeQueryData struct {
 var meterTableQueryTemplate string
 
 type meterTableQueryData struct {
+	Format    string
 	Namespace string
 	*models.Meter
 	WindowRetention string

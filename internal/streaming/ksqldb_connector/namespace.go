@@ -1,4 +1,4 @@
-package kafka_connector
+package ksqldb_connector
 
 import (
 	"context"
@@ -21,6 +21,7 @@ type NamespaceHandler struct {
 	// For example: "om_%s_detected_events"
 	NamespacedDetectedEventsTopicTemplate string
 
+	Format        string
 	KeySchemaID   int
 	ValueSchemaID int
 	Partitions    int
@@ -37,6 +38,7 @@ func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string)
 	}
 
 	cloudEventsStreamQuery, err := templateQuery(cloudEventsStreamQueryTemplate, cloudEventsStreamQueryData{
+		Format:        h.Format,
 		Namespace:     namespace,
 		Topic:         eventsTopic,
 		KeySchemaId:   h.KeySchemaID,
@@ -47,6 +49,7 @@ func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string)
 	}
 
 	detectedEventsTableQuery, err := templateQuery(detectedEventsTableQueryTemplate, detectedEventsTableQueryData{
+		Format:     h.Format,
 		Namespace:  namespace,
 		Topic:      detectedEventsTopic,
 		Retention:  32,
@@ -57,6 +60,7 @@ func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string)
 	}
 
 	detectedEventsStreamQuery, err := templateQuery(detectedEventsStreamQueryTemplate, detectedEventsStreamQueryData{
+		Format:    h.Format,
 		Namespace: namespace,
 		Topic:     detectedEventsTopic,
 	})

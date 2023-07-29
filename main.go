@@ -32,13 +32,15 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/exp/slog"
 
+	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/ingest/httpingest"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
+	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/internal/namespace"
-	"github.com/openmeterio/openmeter/internal/namespace/namespaceadapter"
 	"github.com/openmeterio/openmeter/internal/server"
 	"github.com/openmeterio/openmeter/internal/server/router"
-	"github.com/openmeterio/openmeter/internal/streaming/kafka_connector"
+	"github.com/openmeterio/openmeter/internal/streaming"
+	"github.com/openmeterio/openmeter/internal/streaming/ksqldb_connector"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	"github.com/openmeterio/openmeter/pkg/gosundheit/ksqldbcheck"
 )
@@ -159,118 +161,45 @@ func main() {
 		"schemaRegistry.url":   config.SchemaRegistry.URL,
 	})
 
-	// Initialize Schema Registry
-	schemaRegistryConfig := schemaregistry.NewConfig(config.SchemaRegistry.URL)
-	if config.SchemaRegistry.Username != "" || config.SchemaRegistry.Password != "" {
-		schemaRegistryConfig.BasicAuthCredentialsSource = "USER_INFO"
-		schemaRegistryConfig.BasicAuthUserInfo = fmt.Sprintf("%s:%s", config.SchemaRegistry.Username, config.SchemaRegistry.Password)
-	}
-	schemaRegistry, err := schemaregistry.NewClient(schemaRegistryConfig)
+	var group run.Group
+	var ingestCollector ingest.Collector
+	var streamingConnector streaming.Connector
+
+	// Initialize serializer
+	eventSerializer, err := initSerializer(config)
 	if err != nil {
-		logger.Error("init schema registry client: %v", err)
+		slog.Error("failed to initialize serializer", "error", err)
 		os.Exit(1)
 	}
 
-	kafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
-
-	kafkaAdminClient, err := kafka.NewAdminClient(kafkaConfig)
+	// Initialize Kafka Ingest
+	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(config, logger, eventSerializer, group)
 	if err != nil {
-		logger.Error("init Kafka client: %v", err)
+		slog.Error("failed to initialize kafka ingest", "error", err)
+		os.Exit(1)
+	}
+	defer ingestCollector.Close()
+
+	// Initialize ksqlDB Streaming Processor
+	streamingConnector, ksqlDBNamespaceHandler, err := initKsqlDBStreaming(config, logger, eventSerializer, healthChecker)
+	if err != nil {
+		slog.Error("failed to initialize ksqldb streaming processor", "error", err)
 		os.Exit(1)
 	}
 
-	// Initialize events topic
-	schema, keySchemaID, valueSchemaID, err := kafkaingest.NewSchema(schemaRegistry)
+	// Initialize Namespace
+	namespaceManager, err := initNamespace(kafkaIngestNamespaceHandler, ksqlDBNamespaceHandler)
 	if err != nil {
-		logger.Error("init schema: %v", err)
+		slog.Error("failed to initialize namespace", "error", err)
 		os.Exit(1)
 	}
-
-	// Initialize ksqlDB Client
-	ksqldbClient, err := ksqldb.NewClientWithOptions(config.Processor.KSQLDB.CreateKSQLDBConfig())
-	if err != nil {
-		logger.Error("init ksqldb client: %w", err)
-		os.Exit(1)
-	}
-	defer ksqldbClient.Close()
-
-	// Register KSQLDB health check
-	err = healthChecker.RegisterCheck(
-		ksqldbcheck.NewCheck("ksqldb", ksqldbClient),
-		health.ExecutionPeriod(5*time.Second),
-	)
-	if err != nil {
-		logger.Error("registering ksqldb health check: %w", err)
-		os.Exit(1)
-	}
-
-	logger.Debug("connected to KSQLDB")
-
-	const namespacedEventsTopicTemplate = "om_%s_events"
-	const namespacedDetectedEventsTopicTemplate = "om_%s_detected_events"
-
-	namespaceManager := namespace.Manager{
-		Handlers: []namespace.Handler{
-			namespaceadapter.KafkaIngestHandler{
-				AdminClient:             kafkaAdminClient,
-				NamespacedTopicTemplate: namespacedEventsTopicTemplate,
-				Partitions:              config.Ingest.Kafka.Partitions,
-				Logger:                  logger,
-			},
-			kafka_connector.NamespaceHandler{
-				KsqlDBClient:                          &ksqldbClient,
-				NamespacedEventsTopicTemplate:         namespacedEventsTopicTemplate,
-				NamespacedDetectedEventsTopicTemplate: namespacedDetectedEventsTopicTemplate,
-				KeySchemaID:                           keySchemaID,
-				ValueSchemaID:                         valueSchemaID,
-				Partitions:                            config.Ingest.Kafka.Partitions,
-			},
-		},
-	}
-
-	logger.Debug("create default namespace")
-
-	err = namespaceManager.CreateDefaultNamespace(context.Background())
-	if err != nil {
-		logger.Error("create default namespace: %v", err)
-		os.Exit(1)
-	}
-
-	logger.Info("default namespace created")
-
-	// Initialize Kafka Producer
-	producer, err := kafka.NewProducer(kafkaConfig)
-	if err != nil {
-		logger.Error("init Kafka producer: %v", err)
-		os.Exit(1)
-	}
-
-	defer producer.Flush(30 * 1000)
-	defer producer.Close()
-
-	slog.Debug("connected to Kafka")
-
-	collector := kafkaingest.Collector{
-		Producer:                producer,
-		NamespacedTopicTemplate: namespacedEventsTopicTemplate,
-		Schema:                  schema,
-	}
-
-	// TODO: config file (https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md)
-	connector, err := kafka_connector.NewKafkaConnector(&ksqldbClient, config.Ingest.Kafka.Partitions, logger)
-	if err != nil {
-		slog.Error("failed to create streaming connector", "error", err)
-		os.Exit(1)
-	}
-
-	slog.Info("kafka connector successfully initialized")
 
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{
 			NamespaceManager:   namespaceManager,
-			StreamingConnector: connector,
+			StreamingConnector: streamingConnector,
 			IngestHandler: httpingest.Handler{
-				Collector: collector,
+				Collector: ingestCollector,
 				Logger:    logger,
 			},
 			Meters: config.Meters,
@@ -312,15 +241,13 @@ func main() {
 	})
 
 	for _, meter := range config.Meters {
-		err := connector.Init(meter, namespace.DefaultNamespace)
+		err := streamingConnector.Init(meter, namespace.DefaultNamespace)
 		if err != nil {
 			slog.Warn("failed to initialize meter", "error", err)
 			os.Exit(1)
 		}
 	}
 	slog.Info("meters successfully initialized", "count", len(config.Meters))
-
-	var group run.Group
 
 	// Set up telemetry server
 	{
@@ -350,8 +277,6 @@ func main() {
 		)
 	}
 
-	group.Add(kafkaGroup(context.Background(), producer, logger))
-
 	// Setup signal handler
 	group.Add(run.SignalHandler(context.Background(), syscall.SIGINT, syscall.SIGTERM))
 
@@ -363,40 +288,105 @@ func main() {
 	}
 }
 
-func kafkaGroup(ctx context.Context, producer *kafka.Producer, logger *slog.Logger) (execute func() error, interrupt func(error)) {
-	ctx, cancel := context.WithCancel(ctx)
-	return func() error {
-			for {
-				select {
-				case e := <-producer.Events():
-					switch ev := e.(type) {
-					case *kafka.Message:
-						// The message delivery report, indicating success or
-						// permanent failure after retries have been exhausted.
-						// Application level retries won't help since the client
-						// is already configured to do that.
-						m := ev
-						if m.TopicPartition.Error != nil {
-							logger.Error("kafka delivery failed", "error", m.TopicPartition.Error)
-						} else {
-							logger.Debug("kafka message delivered", "topic", *m.TopicPartition.Topic, "partition", m.TopicPartition.Partition, "offset", m.TopicPartition.Offset)
-						}
-					case kafka.Error:
-						// Generic client instance-level errors, such as
-						// broker connection failures, authentication issues, etc.
-						//
-						// These errors should generally be considered informational
-						// as the underlying client will automatically try to
-						// recover from any errors encountered, the application
-						// does not need to take action on them.
-						logger.Error("kafka error", "error", ev)
-					}
-				case <-ctx.Done():
-					return ctx.Err()
-				}
-			}
-		},
-		func(error) {
-			cancel()
+func initKafkaIngest(config configuration, logger *slog.Logger, serializer serializer.Serializer, group run.Group) (*kafkaingest.Collector, *kafkaingest.NamespaceHandler, error) {
+	// Initialize Kafka Admin Client
+	kafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
+	kafkaAdminClient, err := kafka.NewAdminClient(kafkaConfig)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	namespaceHandler := &kafkaingest.NamespaceHandler{
+		AdminClient:             kafkaAdminClient,
+		NamespacedTopicTemplate: config.Namespace.EventsTopicTemplate,
+		Partitions:              config.Ingest.Kafka.Partitions,
+		Logger:                  logger,
+	}
+
+	// Initialize Kafka Producer
+	producer, err := kafka.NewProducer(kafkaConfig)
+	if err != nil {
+		return nil, namespaceHandler, fmt.Errorf("init kafka ingest: %w", err)
+	}
+	group.Add(kafkaingest.KafkaProducerGroup(context.Background(), producer, logger))
+
+	slog.Debug("connected to Kafka")
+
+	collector := &kafkaingest.Collector{
+		Producer:                producer,
+		NamespacedTopicTemplate: config.Namespace.EventsTopicTemplate,
+		Serializer:              serializer,
+	}
+
+	return collector, namespaceHandler, nil
+}
+
+// initSerializer initializes the serializer based on the configuration.
+func initSerializer(config configuration) (serializer.Serializer, error) {
+	// Initialize JSON_SR with Schema Registry
+	if config.SchemaRegistry.URL != "" {
+		schemaRegistryConfig := schemaregistry.NewConfig(config.SchemaRegistry.URL)
+		if config.SchemaRegistry.Username != "" || config.SchemaRegistry.Password != "" {
+			schemaRegistryConfig.BasicAuthCredentialsSource = "USER_INFO"
+			schemaRegistryConfig.BasicAuthUserInfo = fmt.Sprintf("%s:%s", config.SchemaRegistry.Username, config.SchemaRegistry.Password)
 		}
+		schemaRegistry, err := schemaregistry.NewClient(schemaRegistryConfig)
+		if err != nil {
+			return nil, fmt.Errorf("init serializer: %w", err)
+		}
+
+		return serializer.NewJSONSchemaSerializer(schemaRegistry)
+	} else {
+		// Initialize JSON without Schema Registry
+		return serializer.NewJSONSerializer(), nil
+	}
+}
+
+func initKsqlDBStreaming(config configuration, logger *slog.Logger, serializer serializer.Serializer, healthChecker health.Health) (*ksqldb_connector.KsqlDBConnector, *ksqldb_connector.NamespaceHandler, error) {
+	// Initialize ksqlDB Client
+	ksqldbClient, err := ksqldb.NewClientWithOptions(config.Processor.KSQLDB.CreateKSQLDBConfig())
+	if err != nil {
+		return nil, nil, fmt.Errorf("init ksqldb streaming: %w", err)
+	}
+	defer ksqldbClient.Close()
+
+	// Register KSQLDB health check
+	err = healthChecker.RegisterCheck(
+		ksqldbcheck.NewCheck("ksqldb", ksqldbClient),
+		health.ExecutionPeriod(5*time.Second),
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("init ksqldb streaming: %w", err)
+	}
+
+	namespaceHandler := &ksqldb_connector.NamespaceHandler{
+		KsqlDBClient:                          &ksqldbClient,
+		NamespacedEventsTopicTemplate:         config.Namespace.EventsTopicTemplate,
+		NamespacedDetectedEventsTopicTemplate: config.Namespace.DetectedEventsTopicTemplate,
+		Format:                                serializer.GetFormat(),
+		KeySchemaID:                           serializer.GetKeySchemaId(),
+		ValueSchemaID:                         serializer.GetValueSchemaId(),
+		Partitions:                            config.Ingest.Kafka.Partitions,
+	}
+
+	connector, err := ksqldb_connector.NewKsqlDBConnector(&ksqldbClient, config.Ingest.Kafka.Partitions, serializer.GetFormat(), logger)
+	if err != nil {
+		return nil, nil, fmt.Errorf("init ksqldb streaming: %w", err)
+	}
+
+	return connector, namespaceHandler, nil
+}
+
+func initNamespace(namespaces ...namespace.Handler) (namespace.Manager, error) {
+	namespaceManager := namespace.Manager{
+		Handlers: namespaces,
+	}
+
+	slog.Debug("create default namespace")
+	err := namespaceManager.CreateDefaultNamespace(context.Background())
+	if err != nil {
+		return namespaceManager, fmt.Errorf("create default namespace: %v", err)
+	}
+	slog.Info("default namespace created")
+	return namespaceManager, nil
 }

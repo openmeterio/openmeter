@@ -22,7 +22,7 @@ type inMemoryCollector struct {
 	mu sync.Mutex
 }
 
-func (s *inMemoryCollector) Receive(event event.Event, namespace string) error {
+func (s *inMemoryCollector) Ingest(event event.Event, namespace string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -30,6 +30,8 @@ func (s *inMemoryCollector) Receive(event event.Event, namespace string) error {
 
 	return nil
 }
+
+func (s *inMemoryCollector) Close() {}
 
 // Wrap the handler so we can set the namespace with `httptest“
 type MockHandler struct {
