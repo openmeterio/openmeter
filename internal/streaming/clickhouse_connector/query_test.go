@@ -16,7 +16,7 @@ func TestCreateEventsTable(t *testing.T) {
 				Database:        "openmeter",
 				EventsTableName: "meter_events",
 			},
-			want: "",
+			want: "CREATE TABLE IF NOT EXISTS openmeter.meter_events ( id String, type LowCardinality(String), subject String, source String, time DateTime, data String ) ENGINE = MergeTree PARTITION BY toYYYYMM(time) ORDER BY (time, type, subject);",
 		},
 	}
 
@@ -46,7 +46,7 @@ func TestCreateMeterView(t *testing.T) {
 				ValueProperty:   "$.duration_ms",
 				GroupBy:         map[string]string{"group1": "$.group1", "group2": "$.group2"},
 			},
-			want: "",
+			want: "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 ( subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(sum, Float64), group1 String, group2 String ) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject, group1, group2) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, sumState(cast(JSON_VALUE(data, '$.duration_ms'), 'Float64')) AS value, JSON_VALUE(data, '$.group1') as group1, JSON_VALUE(data, '$.group2') as group2 FROM openmeter.meter_events WHERE type = '' GROUP BY windowstart, windowend, subject, group1, group2;",
 		},
 	}
 
