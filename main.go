@@ -40,7 +40,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/server"
 	"github.com/openmeterio/openmeter/internal/server/router"
-	"github.com/openmeterio/openmeter/internal/sink/clickhouse_sink"
+	"github.com/openmeterio/openmeter/internal/sink"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 	"github.com/openmeterio/openmeter/internal/streaming/ksqldb_connector"
@@ -205,18 +205,6 @@ func main() {
 		}
 		streamingConnector = clickhouseStreamingConnector
 		namespaceHandlers = append(namespaceHandlers, clickhouseStreamingConnector)
-	}
-
-	// Initialize clickhouse sink
-	if config.Processor.ClickHouse.Enabled && config.Sink.KafkaConnect.Enabled {
-		clickhouseSink, err := clickhouse_sink.NewClickHouseSink(&clickhouse_sink.ClickHouseSinkConfig{
-			KafkaConnectAddress: config.Sink.KafkaConnect.Address,
-		})
-		if err != nil {
-			slog.Error("failed to initialize clickhouse sink", "error", err)
-			os.Exit(1)
-		}
-		namespaceHandlers = append(namespaceHandlers, clickhouseSink)
 	}
 
 	// Initialize Namespace
@@ -429,13 +417,21 @@ func initClickHouseStreaming(config configuration, logger *slog.Logger) (*clickh
 		BlockBufferSize:  10,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("init clickhouse streaming: %w", err)
+		return nil, fmt.Errorf("init clickhouse client: %w", err)
+	}
+
+	kafkaConnect, err := sink.NewKafkaConnect(&sink.KafkaConnectConfig{
+		Address: config.Sink.KafkaConnect.Address,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("init kafka connect: %w", err)
 	}
 
 	streamingConnector, err := clickhouse_connector.NewClickhouseConnector(&clickhouse_connector.ClickhouseConnectorConfig{
-		Logger:     logger,
-		ClickHouse: clickHouseClient,
-		Database:   config.Processor.ClickHouse.Database,
+		Logger:       logger,
+		KafkaConnect: kafkaConnect,
+		ClickHouse:   clickHouseClient,
+		Database:     config.Processor.ClickHouse.Database,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("init clickhouse streaming: %w", err)
