@@ -67,19 +67,10 @@ services:
       CONNECT_LOG4J_ROOT_LOGLEVEL: "INFO"
       CONNECT_LOG4J_LOGGERS: "org.apache.kafka.connect.runtime.rest=WARN,org.reflections=ERROR"
       CONNECT_LOG4J_APPENDER_STDOUT_LAYOUT_CONVERSIONPATTERN: "[%d] %p %X{connector.context}%m (%c:%L)%n"
-      # ClickHouse
-      CONNECT_PLUGIN_PATH: '/data/connectors/'
-      CONNECT_DATABASE: default
-      CONNECT_EXACTLY_ONCE: true
       CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
       CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: false
-      CONNECT_HOSTNAME: clickhouse
-      CONNECT_USERNAME: default
-      CONNECT_PORT: 9000
-      CONNECT_SCHEMAS_ENABLED: false
-      CONNECT_TOPICS: om_default_events
-      # CONNECT_TOPICS_REGEX: "om_.+_events"
+      CONNECT_PLUGIN_PATH: '/data/connectors/'
     volumes:
       - ./clickhouse-kafka-connect-v0.0.18/lib:/data/connectors
 

@@ -24,9 +24,10 @@ var createMeterViewTemplate string
 
 type createMeterViewData struct {
 	Database        string
-	MeterViewName   string
-	MeterSlug       string
 	EventsTableName string
+	MeterViewName   string
+	EventType       string
+	ValueProperty   string
 	GroupBy         map[string]string
 }
 

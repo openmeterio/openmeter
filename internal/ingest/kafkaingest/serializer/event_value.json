@@ -24,7 +24,7 @@
         },
         "time": {
             "connect.index": 4,
-            "type": "string"
+            "type": "integer"
         },
         "data": {
             "connect.index": 5,

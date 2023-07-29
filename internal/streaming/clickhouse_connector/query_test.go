@@ -43,7 +43,7 @@ func TestCreateMeterView(t *testing.T) {
 				Database:        "openmeter",
 				EventsTableName: "meter_events",
 				MeterViewName:   "meter_meter1",
-				MeterSlug:       "meter1",
+				ValueProperty:   "$.duration_ms",
 				GroupBy:         map[string]string{"group1": "$.group1", "group2": "$.group2"},
 			},
 			want: "",

@@ -3,7 +3,6 @@ package serializer
 import (
 	_ "embed"
 	"encoding/json"
-	"time"
 
 	"github.com/cloudevents/sdk-go/v2/event"
 )
@@ -17,12 +16,12 @@ type Serializer interface {
 }
 
 type CloudEventsKafkaPayload struct {
-	Id      string    `json:"id"`
-	Type    string    `json:"type"`
-	Source  string    `json:"source"`
-	Subject string    `json:"subject"`
-	Time    time.Time `json:"time"`
-	Data    string    `json:"data"`
+	Id      string `json:"id"`
+	Type    string `json:"type"`
+	Source  string `json:"source"`
+	Subject string `json:"subject"`
+	Time    int64  `json:"time"`
+	Data    string `json:"data"`
 }
 
 func toCloudEventsKafkaPayload(ev event.Event) (CloudEventsKafkaPayload, error) {
@@ -31,7 +30,7 @@ func toCloudEventsKafkaPayload(ev event.Event) (CloudEventsKafkaPayload, error) 
 		Type:    ev.Type(),
 		Source:  ev.Source(),
 		Subject: ev.Subject(),
-		Time:    ev.Time(),
+		Time:    ev.Time().Unix(),
 	}
 
 	// We try to parse data as JSON.

@@ -51,6 +51,11 @@ type configuration struct {
 		ClickHouse processorClickhouseConfiguration
 	}
 
+	// Sink configuration
+	Sink struct {
+		KafkaConnect sinkKafkaConnectConfiguration
+	}
+
 	Meters []*models.Meter
 }
 
@@ -203,6 +208,24 @@ func (c processorClickhouseConfiguration) Validate() error {
 	return nil
 }
 
+// Sink configuration
+type sinkKafkaConnectConfiguration struct {
+	Enabled bool
+	Address string
+}
+
+func (c sinkKafkaConnectConfiguration) Validate() error {
+	if !c.Enabled {
+		return nil
+	}
+
+	if c.Address == "" {
+		return errors.New("kafka connect address is required")
+	}
+
+	return nil
+}
+
 type logConfiguration struct {
 	// Format specifies the output log format.
 	// Accepted values are: json, text
@@ -275,6 +298,10 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("processor.clickhouse.database", "default")
 	v.SetDefault("processor.clickhouse.username", "default")
 	v.SetDefault("processor.clickhouse.password", "")
+
+	// Sink Kafka Connect configuration
+	v.SetDefault("sink.kafkaConnect.enabled", true)
+	v.SetDefault("sink.kafkaConnect.address", "http://127.0.0.1:8083")
 
 	// namespace configuration
 	v.SetDefault("namespace.EventsTopicTemplate", "om_%s_events")

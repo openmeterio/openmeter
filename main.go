@@ -40,6 +40,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/server"
 	"github.com/openmeterio/openmeter/internal/server/router"
+	"github.com/openmeterio/openmeter/internal/sink/clickhouse_sink"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 	"github.com/openmeterio/openmeter/internal/streaming/ksqldb_connector"
@@ -204,6 +205,18 @@ func main() {
 		}
 		streamingConnector = clickhouseStreamingConnector
 		namespaceHandlers = append(namespaceHandlers, clickhouseStreamingConnector)
+	}
+
+	// Initialize clickhouse sink
+	if config.Processor.ClickHouse.Enabled && config.Sink.KafkaConnect.Enabled {
+		clickhouseSink, err := clickhouse_sink.NewClickHouseSink(&clickhouse_sink.ClickHouseSinkConfig{
+			KafkaConnectAddress: config.Sink.KafkaConnect.Address,
+		})
+		if err != nil {
+			slog.Error("failed to initialize clickhouse sink", "error", err)
+			os.Exit(1)
+		}
+		namespaceHandlers = append(namespaceHandlers, clickhouseSink)
 	}
 
 	// Initialize Namespace

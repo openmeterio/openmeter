@@ -60,7 +60,7 @@ func (c *ClickhouseConnector) GetValues(meter *models.Meter, params *streaming.G
 func (c *ClickhouseConnector) createEventsTable(ctx context.Context, namespace string) error {
 	query, err := templateQuery(createEventsTableTemplate, createEventsTableData{
 		Database:        c.config.Database,
-		EventsTableName: getEventsTableName(namespace),
+		EventsTableName: GetEventsTableName(namespace),
 	})
 	if err != nil {
 		return fmt.Errorf("create events table: %w", err)
@@ -72,9 +72,10 @@ func (c *ClickhouseConnector) createEventsTable(ctx context.Context, namespace s
 func (c *ClickhouseConnector) createMetersTable(ctx context.Context, namespace string, meter *models.Meter) error {
 	query, err := templateQuery(createMeterViewTemplate, createMeterViewData{
 		Database:        c.config.Database,
-		EventsTableName: getEventsTableName(namespace),
-		MeterViewName:   getMeterViewName(namespace, meter),
-		MeterSlug:       meter.Slug,
+		EventsTableName: GetEventsTableName(namespace),
+		EventType:       meter.EventType,
+		MeterViewName:   GetMeterViewName(namespace, meter),
+		ValueProperty:   meter.ValueProperty,
 		GroupBy:         meter.GroupBy,
 	})
 	if err != nil {
@@ -88,10 +89,10 @@ func (c *ClickhouseConnector) createMetersTable(ctx context.Context, namespace s
 	return nil
 }
 
-func getEventsTableName(namespace string) string {
+func GetEventsTableName(namespace string) string {
 	return fmt.Sprintf("%s_%s_%s", prefix, namespace, eventsTableName)
 }
 
-func getMeterViewName(namespace string, meter *models.Meter) string {
+func GetMeterViewName(namespace string, meter *models.Meter) string {
 	return fmt.Sprintf("%s_%s_%s", prefix, namespace, meter.Slug)
 }
