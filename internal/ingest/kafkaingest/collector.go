@@ -6,8 +6,9 @@ import (
 
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
 	"golang.org/x/exp/slog"
+
+	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
 )
 
 // Collector is a receiver of events that handles sending those events to a downstream Kafka broker.
