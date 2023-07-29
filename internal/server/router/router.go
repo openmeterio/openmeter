@@ -10,6 +10,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/render"
+	"golang.org/x/exp/slog"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/namespace"
@@ -165,6 +166,7 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 				namespace,
 			)
 			if err != nil {
+				slog.Error("error getting values", "err", err)
 				models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
 				return
 			}

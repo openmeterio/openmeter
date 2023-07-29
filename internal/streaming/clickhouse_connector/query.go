@@ -1,14 +1,10 @@
 package clickhouse_connector
 
 import (
-	"bytes"
 	_ "embed"
-	"fmt"
-	"regexp"
-	"strings"
-	"text/template"
+	"time"
 
-	"github.com/Masterminds/sprig/v3"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 //go:embed sql/create_events_table.tpl.sql
@@ -31,36 +27,15 @@ type createMeterViewData struct {
 	GroupBy         map[string]string
 }
 
-// TODO: consolidate between ksql's query.go file and this one
-func funcMap() template.FuncMap {
-	f := sprig.TxtFuncMap()
-	delete(f, "env")
-	delete(f, "expandenv")
+//go:embed sql/query_meter_view.tpl.sql
+var queryMeterViewTemplate string
 
-	return f
-}
-
-func templateQuery(temp string, data any) (string, error) {
-	tmpl := template.New("sql")
-	tmpl.Funcs(funcMap())
-
-	t, err := tmpl.Parse(temp)
-	if err != nil {
-		return "", fmt.Errorf("parse query: %w", err)
-	}
-
-	b := bytes.NewBufferString("")
-	err = t.Execute(b, data)
-	if err != nil {
-		return "", fmt.Errorf("template query: %w", err)
-	}
-
-	return sanitizeQuery(b.String()), nil
-}
-
-func sanitizeQuery(content string) string {
-	r := regexp.MustCompile(`\s+`)
-	content = r.ReplaceAllString(content, " ")
-	content = strings.TrimSpace(content)
-	return content
+type queryMeterViewData struct {
+	Database      string
+	MeterViewName string
+	Subject       *string
+	From          *time.Time
+	To            *time.Time
+	GroupBy       []string
+	WindowSize    *models.WindowSize
 }

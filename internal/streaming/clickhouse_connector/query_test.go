@@ -2,8 +2,12 @@ package clickhouse_connector
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/openmeterio/openmeter/internal/streaming"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestCreateEventsTable(t *testing.T) {
@@ -23,7 +27,7 @@ func TestCreateEventsTable(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run("", func(t *testing.T) {
-			got, err := templateQuery(createEventsTableTemplate, tt.data)
+			got, err := streaming.TemplateQuery(createEventsTableTemplate, tt.data)
 			if err != nil {
 				t.Error(err)
 			}
@@ -53,7 +57,44 @@ func TestCreateMeterView(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run("", func(t *testing.T) {
-			got, err := templateQuery(createMeterViewTemplate, tt.data)
+			got, err := streaming.TemplateQuery(createMeterViewTemplate, tt.data)
+			if err != nil {
+				t.Error(err)
+			}
+
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestQueryMeterView(t *testing.T) {
+	subject := "subject1"
+	from, _ := time.Parse(time.RFC3339, "2023-01-01T00:00:00.001Z")
+	to, _ := time.Parse(time.RFC3339, "2023-01-02T00:00:00Z")
+	windowSize := models.WindowSizeHour
+
+	tests := []struct {
+		data queryMeterViewData
+		want string
+	}{
+		{
+			data: queryMeterViewData{
+				Database:      "openmeter",
+				MeterViewName: "meter_meter1",
+				Subject:       &subject,
+				From:          &from,
+				To:            &to,
+				GroupBy:       []string{"group1", "group2"},
+				WindowSize:    &windowSize,
+			},
+			want: "SELECT windowstart, windowend, subject, sumMerge(value) AS value, group1, group2 FROM openmeter.meter_meter1 WHERE subject = 'subject1' AND windowstart >= toDateTime(1672531200001) AND windowend <= toDateTime(1672617600000)GROUP BY windowstart, windowend, subject, group1, group2;",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run("", func(t *testing.T) {
+			got, err := streaming.TemplateQuery(queryMeterViewTemplate, tt.data)
 			if err != nil {
 				t.Error(err)
 			}

@@ -7,6 +7,7 @@ import (
 	"github.com/thmeitz/ksqldb-go"
 
 	ns "github.com/openmeterio/openmeter/internal/namespace"
+	"github.com/openmeterio/openmeter/internal/streaming"
 )
 
 // NamespaceHandler is a namespace handler for Kafka ingest topics.
@@ -37,7 +38,7 @@ func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string)
 		detectedEventsTopic = fmt.Sprintf(h.NamespacedDetectedEventsTopicTemplate, namespace)
 	}
 
-	cloudEventsStreamQuery, err := templateQuery(cloudEventsStreamQueryTemplate, cloudEventsStreamQueryData{
+	cloudEventsStreamQuery, err := streaming.TemplateQuery(cloudEventsStreamQueryTemplate, cloudEventsStreamQueryData{
 		Format:        h.Format,
 		Namespace:     namespace,
 		Topic:         eventsTopic,
@@ -48,7 +49,7 @@ func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string)
 		return fmt.Errorf("template event ksql stream: %w", err)
 	}
 
-	detectedEventsTableQuery, err := templateQuery(detectedEventsTableQueryTemplate, detectedEventsTableQueryData{
+	detectedEventsTableQuery, err := streaming.TemplateQuery(detectedEventsTableQueryTemplate, detectedEventsTableQueryData{
 		Format:     h.Format,
 		Namespace:  namespace,
 		Topic:      detectedEventsTopic,
@@ -59,7 +60,7 @@ func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string)
 		return fmt.Errorf("template detected events ksql table: %w", err)
 	}
 
-	detectedEventsStreamQuery, err := templateQuery(detectedEventsStreamQueryTemplate, detectedEventsStreamQueryData{
+	detectedEventsStreamQuery, err := streaming.TemplateQuery(detectedEventsStreamQueryTemplate, detectedEventsStreamQueryData{
 		Format:    h.Format,
 		Namespace: namespace,
 		Topic:     detectedEventsTopic,
