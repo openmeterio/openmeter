@@ -27,6 +27,18 @@ require (
 )
 
 require (
+	github.com/ClickHouse/ch-go v0.52.1 // indirect
+	github.com/andybalholm/brotli v1.0.5 // indirect
+	github.com/go-faster/city v1.0.1 // indirect
+	github.com/go-faster/errors v0.6.1 // indirect
+	github.com/klauspost/compress v1.16.3 // indirect
+	github.com/paulmach/orb v0.9.0 // indirect
+	github.com/pierrec/lz4/v4 v4.1.17 // indirect
+	github.com/segmentio/asm v1.2.0 // indirect
+)
+
+require (
+	github.com/ClickHouse/clickhouse-go/v2 v2.12.0
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/log-go v1.0.0 // indirect
 	github.com/Masterminds/semver/v3 v3.2.0 // indirect
@@ -87,7 +99,7 @@ require (
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.10.1 // indirect
 	github.com/santhosh-tekuri/jsonschema/v5 v5.2.0 // indirect
-	github.com/shopspring/decimal v1.2.0 // indirect
+	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect

@@ -13,6 +13,7 @@ import (
 
 	health "github.com/AppsFlyer/go-sundheit"
 	healthhttp "github.com/AppsFlyer/go-sundheit/http"
+	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
 	"github.com/go-chi/chi/v5"
@@ -40,6 +41,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/server"
 	"github.com/openmeterio/openmeter/internal/server/router"
 	"github.com/openmeterio/openmeter/internal/streaming"
+	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 	"github.com/openmeterio/openmeter/internal/streaming/ksqldb_connector"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	"github.com/openmeterio/openmeter/pkg/gosundheit/ksqldbcheck"
@@ -164,6 +166,7 @@ func main() {
 	var group run.Group
 	var ingestCollector ingest.Collector
 	var streamingConnector streaming.Connector
+	namespaceHandlers := make([]namespace.Handler, 0)
 
 	// Initialize serializer
 	eventSerializer, err := initSerializer(config)
@@ -178,17 +181,33 @@ func main() {
 		slog.Error("failed to initialize kafka ingest", "error", err)
 		os.Exit(1)
 	}
+	namespaceHandlers = append(namespaceHandlers, kafkaIngestNamespaceHandler)
 	defer ingestCollector.Close()
 
 	// Initialize ksqlDB Streaming Processor
-	streamingConnector, ksqlDBNamespaceHandler, err := initKsqlDBStreaming(config, logger, eventSerializer, healthChecker)
-	if err != nil {
-		slog.Error("failed to initialize ksqldb streaming processor", "error", err)
-		os.Exit(1)
+	if config.Processor.KSQLDB.Enabled {
+		ksqlDBStreamingConnector, ksqlDBNamespaceHandler, err := initKsqlDBStreaming(config, logger, eventSerializer, healthChecker)
+		if err != nil {
+			slog.Error("failed to initialize ksqldb streaming processor", "error", err)
+			os.Exit(1)
+		}
+		streamingConnector = ksqlDBStreamingConnector
+		namespaceHandlers = append(namespaceHandlers, ksqlDBNamespaceHandler)
+	}
+
+	// Initialize ClickHouse Streaming Processor
+	if config.Processor.ClickHouse.Enabled {
+		clickhouseStreamingConnector, err := initClickHouseStreaming(config, logger)
+		if err != nil {
+			slog.Error("failed to initialize clickhouse streaming processor", "error", err)
+			os.Exit(1)
+		}
+		streamingConnector = clickhouseStreamingConnector
+		namespaceHandlers = append(namespaceHandlers, clickhouseStreamingConnector)
 	}
 
 	// Initialize Namespace
-	namespaceManager, err := initNamespace(kafkaIngestNamespaceHandler, ksqlDBNamespaceHandler)
+	namespaceManager, err := initNamespace(namespaceHandlers...)
 	if err != nil {
 		slog.Error("failed to initialize namespace", "error", err)
 		os.Exit(1)
@@ -375,6 +394,41 @@ func initKsqlDBStreaming(config configuration, logger *slog.Logger, serializer s
 	}
 
 	return connector, namespaceHandler, nil
+}
+
+func initClickHouseStreaming(config configuration, logger *slog.Logger) (*clickhouse_connector.ClickhouseConnector, error) {
+	// Initialize ClickHouse
+	clickHouseClient, err := clickhouse.Open(&clickhouse.Options{
+		Addr: []string{config.Processor.ClickHouse.Address},
+		Auth: clickhouse.Auth{
+			Database: config.Processor.ClickHouse.Database,
+			Username: config.Processor.ClickHouse.Username,
+			Password: config.Processor.ClickHouse.Password,
+		},
+		// TLS: &tls.Config{
+		// 	InsecureSkipVerify: true,
+		// },
+		DialTimeout:      time.Duration(10) * time.Second,
+		MaxOpenConns:     5,
+		MaxIdleConns:     5,
+		ConnMaxLifetime:  time.Duration(10) * time.Minute,
+		ConnOpenStrategy: clickhouse.ConnOpenInOrder,
+		BlockBufferSize:  10,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("init clickhouse streaming: %w", err)
+	}
+
+	streamingConnector, err := clickhouse_connector.NewClickhouseConnector(&clickhouse_connector.ClickhouseConnectorConfig{
+		Logger:     logger,
+		ClickHouse: clickHouseClient,
+		Database:   config.Processor.ClickHouse.Database,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("init clickhouse streaming: %w", err)
+	}
+
+	return streamingConnector, nil
 }
 
 func initNamespace(namespaces ...namespace.Handler) (namespace.Manager, error) {

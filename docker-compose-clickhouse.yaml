@@ -1,0 +1,94 @@
+version: '3.9'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  broker:
+    image: confluentinc/cp-kafka:7.4.0
+    hostname: broker
+    container_name: broker
+    depends_on:
+      - zookeeper
+    ports:
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+  clickhouse:
+    image: clickhouse/clickhouse-server
+    hostname: clickhouse
+    container_name: clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+      - "9009:9009"
+    ulimits:
+      nofile:
+        soft: "262144"
+        hard: "262144"
+
+  kafka-connect-01:
+    build:
+      context: .
+      dockerfile: Dockerfile.kafka-connect
+    hostname: kafka-connect-01
+    container_name: kafka-connect-01
+    depends_on:
+      - broker
+      - clickhouse
+    ports:
+      - 8083:8083
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: "broker:9092"
+      CONNECT_REST_ADVERTISED_HOST_NAME: "kafka-connect-01"
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: kafka-connect-01
+      CONNECT_CONFIG_STORAGE_TOPIC: _kafka-connect-01-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: _kafka-connect-01-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: _kafka-connect-01-status
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_LOG4J_ROOT_LOGLEVEL: "INFO"
+      CONNECT_LOG4J_LOGGERS: "org.apache.kafka.connect.runtime.rest=WARN,org.reflections=ERROR"
+      CONNECT_LOG4J_APPENDER_STDOUT_LAYOUT_CONVERSIONPATTERN: "[%d] %p %X{connector.context}%m (%c:%L)%n"
+      # ClickHouse
+      CONNECT_PLUGIN_PATH: '/data/connectors/'
+      CONNECT_DATABASE: default
+      CONNECT_EXACTLY_ONCE: true
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: false
+      CONNECT_HOSTNAME: clickhouse
+      CONNECT_USERNAME: default
+      CONNECT_PORT: 9000
+      CONNECT_SCHEMAS_ENABLED: false
+      CONNECT_TOPICS: om_default_events
+      # CONNECT_TOPICS_REGEX: "om_.+_events"
+    volumes:
+      - ./clickhouse-kafka-connect-v0.0.18/lib:/data/connectors
+
+  magic:
+    image: digitsy/kafka-magic
+    ports:
+      - "9999:80"
+    depends_on:
+      - broker
+    environment:
+      KMAGIC_ALLOW_TOPIC_DELETE: "true"
+

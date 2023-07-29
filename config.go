@@ -47,7 +47,8 @@ type configuration struct {
 
 	// Processor configuration
 	Processor struct {
-		KSQLDB processorKSQLDBConfiguration
+		KSQLDB     processorKSQLDBConfiguration
+		ClickHouse processorClickhouseConfiguration
 	}
 
 	Meters []*models.Meter
@@ -64,6 +65,10 @@ func (c configuration) Validate() error {
 	}
 
 	if err := c.Processor.KSQLDB.Validate(); err != nil {
+		return err
+	}
+
+	if err := c.Processor.ClickHouse.Validate(); err != nil {
 		return err
 	}
 
@@ -137,6 +142,7 @@ func (c ingestKafkaConfiguration) Validate() error {
 }
 
 type processorKSQLDBConfiguration struct {
+	Enabled  bool
 	URL      string
 	Username string
 	Password string
@@ -165,8 +171,33 @@ func (c processorKSQLDBConfiguration) CreateKSQLDBConfig() net.Options {
 
 // Validate validates the configuration.
 func (c processorKSQLDBConfiguration) Validate() error {
+	if !c.Enabled {
+		return nil
+	}
+
 	if c.URL == "" {
 		return errors.New("ksqldb URL is required")
+	}
+
+	return nil
+}
+
+// Clickhouse configuration
+type processorClickhouseConfiguration struct {
+	Enabled  bool
+	Address  string
+	Database string
+	Username string
+	Password string
+}
+
+func (c processorClickhouseConfiguration) Validate() error {
+	if !c.Enabled {
+		return nil
+	}
+
+	if c.Address == "" {
+		return errors.New("clickhouse address is required")
 	}
 
 	return nil
@@ -232,10 +263,18 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("schemaRegistry.username", "")
 	v.SetDefault("schemaRegistry.password", "")
 
-	// kSQL configuration
+	// Processor ksqlDB configuration
+	v.SetDefault("processor.ksqldb.enabled", false)
 	v.SetDefault("processor.ksqldb.url", "http://127.0.0.1:8088")
 	v.SetDefault("processor.ksqldb.username", "")
 	v.SetDefault("processor.ksqldb.password", "")
+
+	// Processor Clickhouse configuration
+	v.SetDefault("processor.clickhouse.enabled", true)
+	v.SetDefault("processor.clickhouse.address", "127.0.0.1:9000")
+	v.SetDefault("processor.clickhouse.database", "default")
+	v.SetDefault("processor.clickhouse.username", "default")
+	v.SetDefault("processor.clickhouse.password", "")
 
 	// namespace configuration
 	v.SetDefault("namespace.EventsTopicTemplate", "om_%s_events")
