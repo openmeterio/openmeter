@@ -45,7 +45,7 @@ describe('api', () => {
 
 			expect(fetch).toHaveBeenCalledOnce()
 			expect(fetch).toHaveBeenCalledWith(
-				'http://127.0.0.1:8888/api/v1alpha2/events',
+				'http://127.0.0.1:8888/api/v1/events',
 				expect.objectContaining({
 					method: 'POST',
 					body: JSON.stringify(event),
@@ -64,7 +64,7 @@ describe('api', () => {
 
 			expect(fetch).toHaveBeenCalledOnce()
 			expect(fetch).toHaveBeenCalledWith(
-				'http://127.0.0.1:8888/api/v1alpha2/meters',
+				'http://127.0.0.1:8888/api/v1/meters',
 				expect.objectContaining({
 					method: 'GET',
 					headers: new Headers({
@@ -82,7 +82,7 @@ describe('api', () => {
 
 			expect(fetch).toHaveBeenCalledOnce()
 			expect(fetch).toHaveBeenCalledWith(
-				'http://127.0.0.1:8888/api/v1alpha2/meters/m1',
+				'http://127.0.0.1:8888/api/v1/meters/m1',
 				expect.objectContaining({
 					method: 'GET',
 					headers: new Headers({
@@ -100,7 +100,7 @@ describe('api', () => {
 
 			expect(fetch).toHaveBeenCalledOnce()
 			expect(fetch).toHaveBeenCalledWith(
-				'http://127.0.0.1:8888/api/v1alpha2/meters/m1/values',
+				'http://127.0.0.1:8888/api/v1/meters/m1/values',
 				expect.objectContaining({
 					method: 'GET',
 					headers: new Headers({
@@ -118,6 +118,7 @@ describe('api', () => {
 			const windowSize = WindowSize.HOUR
 			await openmeter.meters.getMeterValues(
 				meterSlug,
+				undefined,
 				subject,
 				from,
 				to,
@@ -126,7 +127,7 @@ describe('api', () => {
 
 			expect(fetch).toHaveBeenCalledOnce()
 			expect(fetch).toHaveBeenCalledWith(
-				'http://127.0.0.1:8888/api/v1alpha2/meters/m2/values?subject=user-1&from=2021-01-01T00%3A00%3A00.000Z&to=2021-01-02T00%3A00%3A00.000Z&windowSize=HOUR',
+				'http://127.0.0.1:8888/api/v1/meters/m2/values?subject=user-1&from=2021-01-01T00%3A00%3A00.000Z&to=2021-01-02T00%3A00%3A00.000Z&windowSize=HOUR',
 				expect.objectContaining({
 					method: 'GET',
 					headers: new Headers({

@@ -81,7 +81,7 @@ func TestRoutes(t *testing.T) {
 			name: "ingest event",
 			req: testRequest{
 				method:      http.MethodPost,
-				path:        "/api/v1alpha2/events",
+				path:        "/api/v1/events",
 				contentType: "application/cloudevents+json",
 				body: func() *cloudevents.Event {
 					e := cloudevents.New()
@@ -100,7 +100,7 @@ func TestRoutes(t *testing.T) {
 			name: "create namespace",
 			req: testRequest{
 				method:      http.MethodPost,
-				path:        "/api/v1alpha2/namespaces",
+				path:        "/api/v1/namespaces",
 				contentType: "application/json",
 				body: &models.Namespace{
 					Namespace: "test",
@@ -114,7 +114,7 @@ func TestRoutes(t *testing.T) {
 			name: "list meters",
 			req: testRequest{
 				method: http.MethodGet,
-				path:   "/api/v1alpha2/meters",
+				path:   "/api/v1/meters",
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -125,7 +125,7 @@ func TestRoutes(t *testing.T) {
 			name: "create meter",
 			req: testRequest{
 				method:      http.MethodPost,
-				path:        "/api/v1alpha2/meters",
+				path:        "/api/v1/meters",
 				contentType: "application/json",
 				body: &models.Meter{
 					Slug:          "meter3",
@@ -145,7 +145,7 @@ func TestRoutes(t *testing.T) {
 			name: "get meter",
 			req: testRequest{
 				method: http.MethodGet,
-				path:   "/api/v1alpha2/meters/" + meters[0].ID,
+				path:   "/api/v1/meters/" + meters[0].ID,
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -156,7 +156,7 @@ func TestRoutes(t *testing.T) {
 			name: "delete meter",
 			req: testRequest{
 				method: http.MethodDelete,
-				path:   "/api/v1alpha2/meters/" + meters[0].ID,
+				path:   "/api/v1/meters/" + meters[0].ID,
 			},
 			res: testResponse{
 				status: http.StatusNotImplemented,
@@ -166,7 +166,7 @@ func TestRoutes(t *testing.T) {
 			name: "get meter values",
 			req: testRequest{
 				method: http.MethodGet,
-				path:   "/api/v1alpha2/meters/" + meters[0].ID + "/values",
+				path:   "/api/v1/meters/" + meters[0].ID + "/values",
 			},
 			res: testResponse{
 				status: http.StatusOK,

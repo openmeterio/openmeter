@@ -12,7 +12,7 @@ tags:
   - name: Meters
     description: Endpoints related to meters
 paths:
-  /api/v1alpha2/events:
+  /api/v1/events:
     post:
       description: Ingest events
       operationId: ingestEvents
@@ -33,7 +33,7 @@ paths:
           $ref: "#/components/responses/BadRequestProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
-  /api/v1alpha2/meters:
+  /api/v1/meters:
     get:
       description: List meters
       operationId: listMeters
@@ -78,7 +78,7 @@ paths:
           $ref: "#/components/responses/NotImplementedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
-  /api/v1alpha2/meters/{meterIdOrSlug}:
+  /api/v1/meters/{meterIdOrSlug}:
     get:
       description: Get meter by slugs
       operationId: getMeter
@@ -115,7 +115,7 @@ paths:
           $ref: "#/components/responses/NotImplementedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
-  /api/v1alpha2/meters/{meterIdOrSlug}/values:
+  /api/v1/meters/{meterIdOrSlug}/values:
     get:
       description: Get meter values
       operationId: getMeterValues
@@ -176,7 +176,7 @@ paths:
           $ref: "#/components/responses/BadRequestProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
-  /api/v1alpha2/namespaces:
+  /api/v1/namespaces:
     post:
       description: Create namespace
       operationId: createNamespace
