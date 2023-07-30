@@ -287,20 +287,20 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("schemaRegistry.password", "")
 
 	// Processor ksqlDB configuration
-	v.SetDefault("processor.ksqldb.enabled", false)
+	v.SetDefault("processor.ksqldb.enabled", true)
 	v.SetDefault("processor.ksqldb.url", "http://127.0.0.1:8088")
 	v.SetDefault("processor.ksqldb.username", "")
 	v.SetDefault("processor.ksqldb.password", "")
 
 	// Processor Clickhouse configuration
-	v.SetDefault("processor.clickhouse.enabled", true)
+	v.SetDefault("processor.clickhouse.enabled", false)
 	v.SetDefault("processor.clickhouse.address", "127.0.0.1:9000")
 	v.SetDefault("processor.clickhouse.database", "default")
 	v.SetDefault("processor.clickhouse.username", "default")
 	v.SetDefault("processor.clickhouse.password", "")
 
 	// Sink Kafka Connect configuration
-	v.SetDefault("sink.kafkaConnect.enabled", true)
+	v.SetDefault("sink.kafkaConnect.enabled", false)
 	v.SetDefault("sink.kafkaConnect.address", "http://127.0.0.1:8083")
 
 	// namespace configuration
