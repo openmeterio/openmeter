@@ -20,8 +20,9 @@ type CloudEventsKafkaPayload struct {
 	Type    string `json:"type"`
 	Source  string `json:"source"`
 	Subject string `json:"subject"`
-	Time    int64  `json:"time"`
-	Data    string `json:"data"`
+	// Note: By converting to unix timestamp we loose timezone information.
+	Time int64  `json:"time"`
+	Data string `json:"data"`
 }
 
 func toCloudEventsKafkaPayload(ev event.Event) (CloudEventsKafkaPayload, error) {

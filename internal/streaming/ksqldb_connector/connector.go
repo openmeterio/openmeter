@@ -50,7 +50,7 @@ func (c *KsqlDBConnector) Init(meter *models.Meter, namespace string) error {
 	}
 	c.logger.Debug("ksqlDB create table query", "query", q)
 
-	resp, err := c.ksqlDBClient.Execute(context.Background(), ksqldb.ExecOptions{
+	resp, err := c.ksqlDBClient.Execute(context.TODO(), ksqldb.ExecOptions{
 		KSql: q,
 	})
 	if err != nil {
@@ -68,7 +68,7 @@ func (c *KsqlDBConnector) MeterAssert(data meterTableQueryData) error {
 		return fmt.Errorf("get table describe query: %w", err)
 	}
 
-	resp, err := c.ksqlDBClient.Execute(context.Background(), ksqldb.ExecOptions{
+	resp, err := c.ksqlDBClient.Execute(context.TODO(), ksqldb.ExecOptions{
 		KSql: q,
 	})
 	if err != nil {

@@ -15,19 +15,29 @@ import (
 var prefix = "om"
 var eventsTableName = "events"
 
+type SinkConfig struct {
+	Database string
+	Hostname string
+	Port     int
+	SSL      bool
+	Username string
+	Password string
+}
+
 // ClickhouseConnector implements `ingest.Connector“ and `namespace.Handler interfaces.
 type ClickhouseConnector struct {
-	config *ClickhouseConnectorConfig
+	config ClickhouseConnectorConfig
 }
 
 type ClickhouseConnectorConfig struct {
 	Logger       *slog.Logger
-	KafkaConnect *sink.KafkaConnect
+	KafkaConnect sink.KafkaConnect
 	ClickHouse   clickhouse.Conn
 	Database     string
+	SinkConfig   SinkConfig
 }
 
-func NewClickhouseConnector(config *ClickhouseConnectorConfig) (*ClickhouseConnector, error) {
+func NewClickhouseConnector(config ClickhouseConnectorConfig) (*ClickhouseConnector, error) {
 	connector := &ClickhouseConnector{
 		config: config,
 	}
@@ -37,7 +47,7 @@ func NewClickhouseConnector(config *ClickhouseConnectorConfig) (*ClickhouseConne
 
 func (c *ClickhouseConnector) Init(meter *models.Meter, namespace string) error {
 	// TODO: pass context to Init, also consider renaming it to CreateMeter
-	ctx := context.Background()
+	ctx := context.TODO()
 
 	err := c.createMeterView(ctx, namespace, meter)
 	if err != nil {
@@ -49,7 +59,7 @@ func (c *ClickhouseConnector) Init(meter *models.Meter, namespace string) error 
 
 func (c *ClickhouseConnector) GetValues(meter *models.Meter, params *streaming.GetValuesParams, namespace string) ([]*models.MeterValue, error) {
 	// TODO: pass context to GetValues, also consider renaming it to QueryMeter
-	ctx := context.Background()
+	ctx := context.TODO()
 
 	values, err := c.queryMeterView(ctx, namespace, meter, params)
 	if err != nil {
@@ -165,22 +175,22 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 }
 
 func (c *ClickhouseConnector) createSinkConnector(ctx context.Context, namespace string) error {
-	connector := &sink.Connector{
+	connector := sink.Connector{
 		Name: "clickhouse",
 		Config: map[string]string{
 			"connector.class":                "com.clickhouse.kafka.connect.ClickHouseSinkConnector",
-			"database":                       "default",
+			"database":                       c.config.SinkConfig.Database,
 			"errors.retry.timeout":           "30",
-			"hostname":                       "clickhouse",
-			"port":                           "8123",
-			"ssl":                            "false",
-			"username":                       "default",
-			"password":                       "",
+			"hostname":                       c.config.SinkConfig.Hostname,
+			"port":                           fmt.Sprint(c.config.SinkConfig.Port),
+			"ssl":                            fmt.Sprint(c.config.SinkConfig.SSL),
+			"username":                       c.config.SinkConfig.Username,
+			"password":                       c.config.SinkConfig.Password,
 			"key.converter":                  "org.apache.kafka.connect.storage.StringConverter",
 			"value.converter":                "org.apache.kafka.connect.json.JsonConverter",
 			"value.converter.schemas.enable": "false",
 			"schemas.enable":                 "false",
-			"topics":                         getEventsTableName(namespace),
+			"topics.regex":                   "om_.+_events",
 		},
 	}
 

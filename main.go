@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -167,19 +168,19 @@ func main() {
 	var group run.Group
 	var ingestCollector ingest.Collector
 	var streamingConnector streaming.Connector
-	namespaceHandlers := make([]namespace.Handler, 0)
+	var namespaceHandlers []namespace.Handler
 
 	// Initialize serializer
 	eventSerializer, err := initSerializer(config)
 	if err != nil {
-		slog.Error("failed to initialize serializer", "error", err)
+		logger.Error("failed to initialize serializer", "error", err)
 		os.Exit(1)
 	}
 
 	// Initialize Kafka Ingest
 	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(config, logger, eventSerializer, group)
 	if err != nil {
-		slog.Error("failed to initialize kafka ingest", "error", err)
+		logger.Error("failed to initialize kafka ingest", "error", err)
 		os.Exit(1)
 	}
 	namespaceHandlers = append(namespaceHandlers, kafkaIngestNamespaceHandler)
@@ -189,7 +190,7 @@ func main() {
 	if config.Processor.KSQLDB.Enabled {
 		ksqlDBStreamingConnector, ksqlDBNamespaceHandler, err := initKsqlDBStreaming(config, logger, eventSerializer, healthChecker)
 		if err != nil {
-			slog.Error("failed to initialize ksqldb streaming processor", "error", err)
+			logger.Error("failed to initialize ksqldb streaming processor", "error", err)
 			os.Exit(1)
 		}
 		streamingConnector = ksqlDBStreamingConnector
@@ -200,7 +201,7 @@ func main() {
 	if config.Processor.ClickHouse.Enabled {
 		clickhouseStreamingConnector, err := initClickHouseStreaming(config, logger)
 		if err != nil {
-			slog.Error("failed to initialize clickhouse streaming processor", "error", err)
+			logger.Error("failed to initialize clickhouse streaming processor", "error", err)
 			os.Exit(1)
 		}
 		streamingConnector = clickhouseStreamingConnector
@@ -210,7 +211,7 @@ func main() {
 	// Initialize Namespace
 	namespaceManager, err := initNamespace(namespaceHandlers...)
 	if err != nil {
-		slog.Error("failed to initialize namespace", "error", err)
+		logger.Error("failed to initialize namespace", "error", err)
 		os.Exit(1)
 	}
 
@@ -248,7 +249,7 @@ func main() {
 		},
 	})
 	if err != nil {
-		slog.Error("failed to create server", "error", err)
+		logger.Error("failed to create server", "error", err)
 		os.Exit(1)
 	}
 
@@ -304,7 +305,7 @@ func main() {
 	if e := (run.SignalError{}); errors.As(err, &e) {
 		slog.Info("received signal; shutting down", slog.String("signal", e.Signal.String()))
 	} else if !errors.Is(err, http.ErrServerClosed) {
-		slog.Error("application stopped due to error", slog.String("error", err.Error()))
+		logger.Error("application stopped due to error", slog.String("error", err.Error()))
 	}
 }
 
@@ -398,40 +399,53 @@ func initKsqlDBStreaming(config configuration, logger *slog.Logger, serializer s
 }
 
 func initClickHouseStreaming(config configuration, logger *slog.Logger) (*clickhouse_connector.ClickhouseConnector, error) {
-	// Initialize ClickHouse
-	clickHouseClient, err := clickhouse.Open(&clickhouse.Options{
+	options := &clickhouse.Options{
 		Addr: []string{config.Processor.ClickHouse.Address},
 		Auth: clickhouse.Auth{
 			Database: config.Processor.ClickHouse.Database,
 			Username: config.Processor.ClickHouse.Username,
 			Password: config.Processor.ClickHouse.Password,
 		},
-		// TLS: &tls.Config{
-		// 	InsecureSkipVerify: true,
-		// },
 		DialTimeout:      time.Duration(10) * time.Second,
 		MaxOpenConns:     5,
 		MaxIdleConns:     5,
 		ConnMaxLifetime:  time.Duration(10) * time.Minute,
 		ConnOpenStrategy: clickhouse.ConnOpenInOrder,
 		BlockBufferSize:  10,
-	})
+	}
+	// This minimal TLS.Config is normally sufficient to connect to the secure native port (normally 9440) on a ClickHouse server.
+	// See: https://clickhouse.com/docs/en/integrations/go#using-tls
+	if config.Processor.ClickHouse.TLS {
+		options.TLS = &tls.Config{}
+	}
+
+	// Initialize ClickHouse
+	clickHouseClient, err := clickhouse.Open(options)
 	if err != nil {
 		return nil, fmt.Errorf("init clickhouse client: %w", err)
 	}
 
-	kafkaConnect, err := sink.NewKafkaConnect(&sink.KafkaConnectConfig{
-		Address: config.Sink.KafkaConnect.Address,
+	kafkaConnect, err := sink.NewKafkaConnect(sink.KafkaConnectConfig{
+		Logger: logger,
+		URL:    config.Sink.KafkaConnect.URL,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("init kafka connect: %w", err)
 	}
 
-	streamingConnector, err := clickhouse_connector.NewClickhouseConnector(&clickhouse_connector.ClickhouseConnectorConfig{
+	streamingConnector, err := clickhouse_connector.NewClickhouseConnector(clickhouse_connector.ClickhouseConnectorConfig{
 		Logger:       logger,
 		KafkaConnect: kafkaConnect,
-		ClickHouse:   clickHouseClient,
-		Database:     config.Processor.ClickHouse.Database,
+		SinkConfig: clickhouse_connector.SinkConfig{
+			Hostname: config.Sink.KafkaConnect.ClickHouse.Hostname,
+			Port:     config.Sink.KafkaConnect.ClickHouse.Port,
+			SSL:      config.Sink.KafkaConnect.ClickHouse.SSL,
+			Username: config.Sink.KafkaConnect.ClickHouse.Username,
+			Password: config.Sink.KafkaConnect.ClickHouse.Password,
+			Database: config.Sink.KafkaConnect.ClickHouse.Database,
+		},
+		ClickHouse: clickHouseClient,
+		Database:   config.Processor.ClickHouse.Database,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("init clickhouse streaming: %w", err)

@@ -43,25 +43,6 @@ services:
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:9092'
       SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
 
-  ksqldb-server:
-    image: confluentinc/cp-ksqldb-server:7.4.0
-    hostname: ksqldb-server
-    container_name: ksqldb-server
-    depends_on:
-      - broker
-      - kafka-connect-01
-    ports:
-      - "8088:8088"
-    environment:
-      KSQL_LISTENERS: http://ksqldb-server:8088
-      KSQL_BOOTSTRAP_SERVERS: broker:9092
-      KSQL_KSQL_CONNECT_URL: http://kafka-connect-01:8083
-      KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
-      KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
-      KSQL_KSQL_SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      KSQL_KSQL_STREAMS_PROCESSING_GUARANTEE: exactly_once_v2
-      KSQL_KSQL_STREAMS_CONSUMER_ISOLATION_LEVEL: read_committed
-
   kafka-connect-01:
     build:
       context: .
@@ -70,7 +51,6 @@ services:
     container_name: kafka-connect-01
     depends_on:
       - broker
-      - schema
     ports:
       - 8083:8083
     environment:
@@ -81,19 +61,41 @@ services:
       CONNECT_CONFIG_STORAGE_TOPIC: _kafka-connect-01-configs
       CONNECT_OFFSET_STORAGE_TOPIC: _kafka-connect-01-offsets
       CONNECT_STATUS_STORAGE_TOPIC: _kafka-connect-01-status
-      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-      CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: 'http://schema:8081'
-      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: 'http://schema:8081'
-      CONNECT_LOG4J_ROOT_LOGLEVEL: "INFO"
-      CONNECT_LOG4J_LOGGERS: "org.apache.kafka.connect.runtime.rest=WARN,org.reflections=ERROR"
-      CONNECT_LOG4J_APPENDER_STDOUT_LAYOUT_CONVERSIONPATTERN: "[%d] %p %X{connector.context}%m (%c:%L)%n"
       CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "1"
       CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "1"
       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_LOG4J_ROOT_LOGLEVEL: "INFO"
+      CONNECT_LOG4J_LOGGERS: "org.apache.kafka.connect.runtime.rest=WARN,org.reflections=ERROR"
+      CONNECT_LOG4J_APPENDER_STDOUT_LAYOUT_CONVERSIONPATTERN: "[%d] %p %X{connector.context}%m (%c:%L)%n"
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: false
+      CONNECT_PLUGIN_PATH: '/data/connectors/'
 
+  # KsqlDB Profile
+  # docker compose --profile ksqldb up
+  ksqldb-server:
+    profiles:
+      - ksqldb
+    image: confluentinc/cp-ksqldb-server:7.4.0
+    hostname: ksqldb-server
+    container_name: ksqldb-server
+    depends_on:
+      - broker
+    ports:
+      - "8088:8088"
+    environment:
+      KSQL_LISTENERS: http://ksqldb-server:8088
+      KSQL_BOOTSTRAP_SERVERS: broker:9092
+      KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
+      KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
+      KSQL_KSQL_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      KSQL_KSQL_STREAMS_PROCESSING_GUARANTEE: exactly_once_v2
+      KSQL_KSQL_STREAMS_CONSUMER_ISOLATION_LEVEL: read_committed
 
   ksqldb-cli:
+    profiles:
+      - ksqldb
     image: confluentinc/cp-ksqldb-cli:7.4.0
     container_name: ksqldb-cli
     depends_on:
@@ -112,7 +114,26 @@ services:
       KMAGIC_ALLOW_TOPIC_DELETE: "true"
       KMAGIC_ALLOW_SCHEMA_DELETE: "true"
 
+  # ClickHouse Profile
+  # docker compose --profile clickhouse up
+  clickhouse:
+    profiles: ["clickhouse"]
+    image: clickhouse/clickhouse-server
+    hostname: clickhouse
+    container_name: clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+      - "9009:9009"
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+  # Debug Profile
+  # docker compose --profile ksqldb --profile debug up
   redpanda:
+    profiles: ["debug"]
     image: docker.redpanda.com/redpandadata/console
     ports:
       - "8084:8080"
@@ -122,18 +143,3 @@ services:
       KAFKA_BROKERS: broker:9092
       KAFKA_SCHEMAREGISTRY_ENABLED: true
       KAFKA_SCHEMAREGISTRY_URLS: http://schema-registry:8081
-
-  postgres:
-    image: postgres:15.3
-    container_name: postgres
-    hostname: postgres
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=postgres
-      - POSTGRES_PASSWORD=postgres
-    command:
-      - "postgres"
-      - "-c"
-      - "wal_level=logical"
