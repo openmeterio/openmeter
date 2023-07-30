@@ -16,7 +16,10 @@ schemaRegistry:
 
 processor:
   ksqldb:
+    enabled: true
     url: http://ksqldb-server:8088
+  clickhouse:
+    enabled: false
 
 meters:
   - slug: m1
