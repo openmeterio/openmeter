@@ -114,25 +114,25 @@ type CreateNamespaceJSONRequestBody = Namespace
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
-	// (POST /api/v1alpha2/events)
+	// (POST /api/v1/events)
 	IngestEvents(w http.ResponseWriter, r *http.Request, params IngestEventsParams)
 
-	// (GET /api/v1alpha2/meters)
+	// (GET /api/v1/meters)
 	ListMeters(w http.ResponseWriter, r *http.Request, params ListMetersParams)
 
-	// (POST /api/v1alpha2/meters)
+	// (POST /api/v1/meters)
 	CreateMeter(w http.ResponseWriter, r *http.Request, params CreateMeterParams)
 
-	// (DELETE /api/v1alpha2/meters/{meterIdOrSlug})
+	// (DELETE /api/v1/meters/{meterIdOrSlug})
 	DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug, params DeleteMeterParams)
 
-	// (GET /api/v1alpha2/meters/{meterIdOrSlug})
+	// (GET /api/v1/meters/{meterIdOrSlug})
 	GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug, params GetMeterParams)
 
-	// (GET /api/v1alpha2/meters/{meterIdOrSlug}/values)
+	// (GET /api/v1/meters/{meterIdOrSlug}/values)
 	GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug, params GetMeterValuesParams)
 
-	// (POST /api/v1alpha2/namespaces)
+	// (POST /api/v1/namespaces)
 	CreateNamespace(w http.ResponseWriter, r *http.Request)
 }
 
@@ -579,25 +579,25 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/v1alpha2/events", wrapper.IngestEvents)
+		r.Post(options.BaseURL+"/api/v1/events", wrapper.IngestEvents)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/v1alpha2/meters", wrapper.ListMeters)
+		r.Get(options.BaseURL+"/api/v1/meters", wrapper.ListMeters)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/v1alpha2/meters", wrapper.CreateMeter)
+		r.Post(options.BaseURL+"/api/v1/meters", wrapper.CreateMeter)
 	})
 	r.Group(func(r chi.Router) {
-		r.Delete(options.BaseURL+"/api/v1alpha2/meters/{meterIdOrSlug}", wrapper.DeleteMeter)
+		r.Delete(options.BaseURL+"/api/v1/meters/{meterIdOrSlug}", wrapper.DeleteMeter)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/v1alpha2/meters/{meterIdOrSlug}", wrapper.GetMeter)
+		r.Get(options.BaseURL+"/api/v1/meters/{meterIdOrSlug}", wrapper.GetMeter)
 	})
 	r.Group(func(r chi.Router) {
-		r.Get(options.BaseURL+"/api/v1alpha2/meters/{meterIdOrSlug}/values", wrapper.GetMeterValues)
+		r.Get(options.BaseURL+"/api/v1/meters/{meterIdOrSlug}/values", wrapper.GetMeterValues)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/v1alpha2/namespaces", wrapper.CreateNamespace)
+		r.Post(options.BaseURL+"/api/v1/namespaces", wrapper.CreateNamespace)
 	})
 
 	return r
@@ -637,17 +637,17 @@ var swaggerSpec = []string{
 	"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",
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

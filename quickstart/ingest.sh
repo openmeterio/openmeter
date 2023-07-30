@@ -1,6 +1,6 @@
 #!/bin/bash
 
-curl -X POST http://localhost:8888/api/v1alpha2/events \
+curl -X POST http://localhost:8888/api/v1/events \
     -H "Expect:" \
     -H 'Content-Type: application/cloudevents+json' \
     --data-raw '
@@ -19,7 +19,7 @@ curl -X POST http://localhost:8888/api/v1alpha2/events \
 }
 '
 
-curl -X POST http://localhost:8888/api/v1alpha2/events \
+curl -X POST http://localhost:8888/api/v1/events \
     -H "Expect:" \
     -H 'Content-Type: application/cloudevents+json' \
     --data-raw '
@@ -38,7 +38,7 @@ curl -X POST http://localhost:8888/api/v1alpha2/events \
 }
 '
 
-curl -X POST http://localhost:8888/api/v1alpha2/events \
+curl -X POST http://localhost:8888/api/v1/events \
     -H "Expect:" \
     -H 'Content-Type: application/cloudevents+json' \
     --data-raw '
