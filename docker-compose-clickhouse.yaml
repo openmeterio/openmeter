@@ -71,8 +71,6 @@ services:
       CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: false
       CONNECT_PLUGIN_PATH: '/data/connectors/'
-    volumes:
-      - ./clickhouse-kafka-connect-v0.0.18/lib:/data/connectors
 
   magic:
     image: digitsy/kafka-magic

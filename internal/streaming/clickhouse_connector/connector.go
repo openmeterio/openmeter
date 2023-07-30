@@ -124,7 +124,6 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		// TODO: implement window size
 		WindowSize: params.WindowSize,
 	})
-	fmt.Println("QUERY", query)
 	if err != nil {
 		return values, err
 	}
