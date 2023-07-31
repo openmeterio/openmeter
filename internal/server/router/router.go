@@ -58,6 +58,11 @@ func NewRouter(config Config) (*Router, error) {
 func (a *Router) CreateNamespace(w http.ResponseWriter, r *http.Request) {
 	namespace := &models.Namespace{}
 
+	if a.config.NamespaceManager.IsManagementDisabled() {
+		models.NewStatusProblem(r.Context(), errors.New("namespace management is disabled"), http.StatusForbidden).Respond(w, r)
+		return
+	}
+
 	if err := render.DecodeJSON(r.Body, namespace); err != nil {
 		models.NewStatusProblem(r.Context(), fmt.Errorf("cannot parse request body"), http.StatusBadRequest).Respond(w, r)
 	}

@@ -12,8 +12,9 @@ type Manager struct {
 }
 
 type ManagerConfig struct {
-	DefaultNamespace string
-	Handlers         []Handler
+	DefaultNamespace  string
+	DisableManagement bool
+	Handlers          []Handler
 }
 
 func NewManager(config ManagerConfig) (*Manager, error) {
@@ -54,6 +55,10 @@ func (m Manager) CreateDefaultNamespace(ctx context.Context) error {
 
 func (m Manager) GetDefaultNamespace() string {
 	return m.config.DefaultNamespace
+}
+
+func (m Manager) IsManagementDisabled() bool {
+	return m.config.DisableManagement
 }
 
 // TODO: introduce some resiliency (eg. retries or rollbacks in case a component fails to create a namespace).

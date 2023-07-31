@@ -510,8 +510,9 @@ func initDedupeRedis(config configuration, logger *slog.Logger, collector ingest
 
 func initNamespace(config configuration, namespaces ...namespace.Handler) (*namespace.Manager, error) {
 	namespaceManager, err := namespace.NewManager(namespace.ManagerConfig{
-		Handlers:         namespaces,
-		DefaultNamespace: config.Namespace.Default,
+		Handlers:          namespaces,
+		DefaultNamespace:  config.Namespace.Default,
+		DisableManagement: config.Namespace.DisableManagement,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create namespace manager: %v", err)
