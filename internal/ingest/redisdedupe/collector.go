@@ -56,9 +56,25 @@ func (c Collector) Close() {
 
 // IsUnique checks if the entry is unique based on the key and sets it in store
 func (c *Collector) isUnique(ctx context.Context, namespace string, ev event.Event) (bool, error) {
-	isSet, err := c.config.Redis.Exists(ctx, ingest.GetEventKey(namespace, ev)).Result()
-	if err != nil {
+	status, err := c.config.Redis.SetArgs(ctx, ingest.GetEventKey(namespace, ev), "", redis.SetArgs{
+		TTL:  c.config.Expiration,
+		Mode: "nx",
+	}).Result()
+
+	// This is an unusual API, see: https://github.com/redis/go-redis/blob/v9.0.5/commands_test.go#L1545
+	// Redis returns redis.Nil
+	if err != nil && err != redis.Nil {
 		return false, err
 	}
-	return isSet == 0, nil
+
+	// Key already existed before, so it's a duplicate
+	if status == "" {
+		return false, nil
+	}
+	// Key did not exist before, so it's unique
+	if status == "OK" {
+		return true, nil
+	}
+
+	return false, fmt.Errorf("unknown status")
 }
