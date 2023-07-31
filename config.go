@@ -70,6 +70,10 @@ func (c configuration) Validate() error {
 		return errors.New("server address is required")
 	}
 
+	if err := c.Namespace.Validate(); err != nil {
+		return err
+	}
+
 	if err := c.Ingest.Kafka.Validate(); err != nil {
 		return err
 	}
