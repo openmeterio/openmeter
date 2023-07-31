@@ -6,7 +6,6 @@ import (
 
 	"github.com/thmeitz/ksqldb-go"
 
-	ns "github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/streaming"
 )
 
@@ -30,8 +29,12 @@ type NamespaceHandler struct {
 
 // CreateNamespace implements the namespace handler interface.
 func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string) error {
-	eventsTopic := fmt.Sprintf(h.NamespacedEventsTopicTemplate, ns.DefaultNamespace)
-	detectedEventsTopic := fmt.Sprintf(h.NamespacedDetectedEventsTopicTemplate, ns.DefaultNamespace)
+	if namespace == "" {
+		return fmt.Errorf("namespace is empty")
+	}
+
+	eventsTopic := fmt.Sprintf(h.NamespacedEventsTopicTemplate, namespace)
+	detectedEventsTopic := fmt.Sprintf(h.NamespacedDetectedEventsTopicTemplate, namespace)
 
 	if namespace != "" {
 		eventsTopic = fmt.Sprintf(h.NamespacedEventsTopicTemplate, namespace)

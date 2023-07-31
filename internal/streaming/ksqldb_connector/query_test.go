@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	. "github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -20,7 +19,7 @@ func TestDetectedEventsTableQuery(t *testing.T) {
 		{
 			data: detectedEventsTableQueryData{
 				Format:     "JSON_SR",
-				Namespace:  namespace.DefaultNamespace,
+				Namespace:  "default",
 				Topic:      "om_default_detected_events",
 				Retention:  32,
 				Partitions: 100,
@@ -50,7 +49,7 @@ func TestDetectedEventsStreamQuery(t *testing.T) {
 		{
 			data: detectedEventsStreamQueryData{
 				Format:    "JSON_SR",
-				Namespace: namespace.DefaultNamespace,
+				Namespace: "default",
 				Topic:     "om_default_detected_events",
 			},
 			want: "CREATE STREAM IF NOT EXISTS OM_DEFAULT_DETECTED_EVENTS_STREAM ( `key1` STRING KEY, `key2` STRING KEY, `id` STRING, `id_count` BIGINT, `type` STRING, `source` STRING, `subject` STRING, `time` STRING, `data` STRING ) WITH ( KAFKA_TOPIC = 'om_default_detected_events', KEY_FORMAT = 'JSON_SR', VALUE_FORMAT = 'JSON_SR' );",
@@ -78,7 +77,7 @@ func TestCloudEventsStreamQuery(t *testing.T) {
 		{
 			data: cloudEventsStreamQueryData{
 				Format:        "JSON_SR",
-				Namespace:     namespace.DefaultNamespace,
+				Namespace:     "default",
 				Topic:         "om_default_events",
 				KeySchemaId:   1,
 				ValueSchemaId: 1,
@@ -88,7 +87,7 @@ func TestCloudEventsStreamQuery(t *testing.T) {
 		{
 			data: cloudEventsStreamQueryData{
 				Format:        "JSON_SR",
-				Namespace:     namespace.DefaultNamespace,
+				Namespace:     "default",
 				Topic:         "foo",
 				KeySchemaId:   2,
 				ValueSchemaId: 2,
@@ -118,7 +117,7 @@ func TestMeterTableQuery(t *testing.T) {
 		{
 			data: meterTableQueryData{
 				Format:    "JSON_SR",
-				Namespace: namespace.DefaultNamespace,
+				Namespace: "default",
 				Meter: &models.Meter{
 					Slug:          "meter1",
 					Description:   "API Network Traffic",
@@ -136,7 +135,7 @@ func TestMeterTableQuery(t *testing.T) {
 		{
 			data: meterTableQueryData{
 				Format:    "JSON_SR",
-				Namespace: namespace.DefaultNamespace,
+				Namespace: "default",
 				Meter: &models.Meter{
 					Slug:        "meter2",
 					Description: "API Calls",
@@ -152,7 +151,7 @@ func TestMeterTableQuery(t *testing.T) {
 		{
 			data: meterTableQueryData{
 				Format:    "JSON_SR",
-				Namespace: namespace.DefaultNamespace,
+				Namespace: "default",
 				Meter: &models.Meter{
 					Slug:          "meter2",
 					Description:   "API Calls",
@@ -169,7 +168,7 @@ func TestMeterTableQuery(t *testing.T) {
 		{
 			data: meterTableQueryData{
 				Format:    "JSON_SR",
-				Namespace: namespace.DefaultNamespace,
+				Namespace: "default",
 				Meter: &models.Meter{
 					Slug:          "meter3",
 					Description:   "API call count by path",
@@ -208,7 +207,7 @@ func TestValuesSelectQuery(t *testing.T) {
 	}{
 		{
 			data: meterValuesData{
-				Namespace: namespace.DefaultNamespace,
+				Namespace: "default",
 				Meter: &models.Meter{
 					Slug: "meter1",
 				},
@@ -220,7 +219,7 @@ func TestValuesSelectQuery(t *testing.T) {
 		},
 		{
 			data: meterValuesData{
-				Namespace: namespace.DefaultNamespace,
+				Namespace: "default",
 				Meter: &models.Meter{
 					Slug: "meter2",
 				},
@@ -233,7 +232,7 @@ func TestValuesSelectQuery(t *testing.T) {
 		},
 		{
 			data: meterValuesData{
-				Namespace: namespace.DefaultNamespace,
+				Namespace: "default",
 				Meter: &models.Meter{
 					Slug: "meter3",
 				},
@@ -243,7 +242,7 @@ func TestValuesSelectQuery(t *testing.T) {
 		},
 		{
 			data: meterValuesData{
-				Namespace: namespace.DefaultNamespace,
+				Namespace: "default",
 				Meter: &models.Meter{
 					Slug: "meter4",
 				},
@@ -256,7 +255,7 @@ func TestValuesSelectQuery(t *testing.T) {
 		},
 		{
 			data: meterValuesData{
-				Namespace: namespace.DefaultNamespace,
+				Namespace: "default",
 				Meter: &models.Meter{
 					Slug: "meter5",
 				},

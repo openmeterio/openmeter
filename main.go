@@ -212,7 +212,7 @@ func main() {
 	}
 
 	// Initialize Namespace
-	namespaceManager, err := initNamespace(namespaceHandlers...)
+	namespaceManager, err := initNamespace(config, namespaceHandlers...)
 	if err != nil {
 		logger.Error("failed to initialize namespace", "error", err)
 		os.Exit(1)
@@ -239,15 +239,23 @@ func main() {
 		}
 	}
 
+	// Initialize HTTP Ingest handler
+	ingestHandler, err := httpingest.NewHandler(httpingest.HandlerConfig{
+		Collector:        ingestCollector,
+		NamespaceManager: namespaceManager,
+		Logger:           logger,
+	})
+	if err != nil {
+		logger.Error("failed to initialize http ingest handler", "error", err)
+		os.Exit(1)
+	}
+
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{
 			NamespaceManager:   namespaceManager,
 			StreamingConnector: streamingConnector,
-			IngestHandler: httpingest.Handler{
-				Collector: ingestCollector,
-				Logger:    logger,
-			},
-			Meters: config.Meters,
+			IngestHandler:      ingestHandler,
+			Meters:             config.Meters,
 		},
 		RouterHook: func(r chi.Router) {
 			r.Use(func(h http.Handler) http.Handler {
@@ -286,7 +294,7 @@ func main() {
 	})
 
 	for _, meter := range config.Meters {
-		err := streamingConnector.Init(meter, namespace.DefaultNamespace)
+		err := streamingConnector.Init(meter, namespaceManager.GetDefaultNamespace())
 		if err != nil {
 			slog.Warn("failed to initialize meter", "error", err)
 			os.Exit(1)
@@ -343,7 +351,7 @@ func initKafkaIngest(config configuration, logger *slog.Logger, serializer seria
 
 	namespaceHandler := &kafkaingest.NamespaceHandler{
 		AdminClient:             kafkaAdminClient,
-		NamespacedTopicTemplate: config.Namespace.EventsTopicTemplate,
+		NamespacedTopicTemplate: config.Ingest.Kafka.EventsTopicTemplate,
 		Partitions:              config.Ingest.Kafka.Partitions,
 		Logger:                  logger,
 	}
@@ -359,7 +367,7 @@ func initKafkaIngest(config configuration, logger *slog.Logger, serializer seria
 
 	collector := &kafkaingest.Collector{
 		Producer:                producer,
-		NamespacedTopicTemplate: config.Namespace.EventsTopicTemplate,
+		NamespacedTopicTemplate: config.Ingest.Kafka.EventsTopicTemplate,
 		Serializer:              serializer,
 	}
 
@@ -406,8 +414,8 @@ func initKsqlDBStreaming(config configuration, logger *slog.Logger, serializer s
 
 	namespaceHandler := &ksqldb_connector.NamespaceHandler{
 		KsqlDBClient:                          &ksqldbClient,
-		NamespacedEventsTopicTemplate:         config.Namespace.EventsTopicTemplate,
-		NamespacedDetectedEventsTopicTemplate: config.Namespace.DetectedEventsTopicTemplate,
+		NamespacedEventsTopicTemplate:         config.Ingest.Kafka.EventsTopicTemplate,
+		NamespacedDetectedEventsTopicTemplate: config.Processor.KSQLDB.DetectedEventsTopicTemplate,
 		Format:                                serializer.GetFormat(),
 		KeySchemaID:                           serializer.GetKeySchemaId(),
 		ValueSchemaID:                         serializer.GetValueSchemaId(),
@@ -500,15 +508,19 @@ func initDedupeRedis(config configuration, logger *slog.Logger, collector ingest
 	return dedupeRedis, nil
 }
 
-func initNamespace(namespaces ...namespace.Handler) (namespace.Manager, error) {
-	namespaceManager := namespace.Manager{
-		Handlers: namespaces,
+func initNamespace(config configuration, namespaces ...namespace.Handler) (*namespace.Manager, error) {
+	namespaceManager, err := namespace.NewManager(namespace.ManagerConfig{
+		Handlers:         namespaces,
+		DefaultNamespace: config.Namespace.Default,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create namespace manager: %v", err)
 	}
 
 	slog.Debug("create default namespace")
-	err := namespaceManager.CreateDefaultNamespace(context.Background())
+	err = namespaceManager.CreateDefaultNamespace(context.Background())
 	if err != nil {
-		return namespaceManager, fmt.Errorf("create default namespace: %v", err)
+		return nil, fmt.Errorf("create default namespace: %v", err)
 	}
 	slog.Info("default namespace created")
 	return namespaceManager, nil

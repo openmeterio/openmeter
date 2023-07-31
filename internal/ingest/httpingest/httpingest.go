@@ -2,6 +2,7 @@ package httpingest
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
@@ -16,8 +17,28 @@ import (
 
 // Handler receives an event in CloudEvents format and forwards it to a {Collector}.
 type Handler struct {
-	Collector ingest.Collector
-	Logger    *slog.Logger
+	config HandlerConfig
+}
+
+type HandlerConfig struct {
+	Collector        ingest.Collector
+	NamespaceManager *namespace.Manager
+	Logger           *slog.Logger
+}
+
+func NewHandler(config HandlerConfig) (*Handler, error) {
+	if config.Collector == nil {
+		return nil, errors.New("collector is required")
+	}
+	if config.NamespaceManager == nil {
+		return nil, errors.New("namespace manager is required")
+	}
+
+	handler := Handler{
+		config: config,
+	}
+
+	return &handler, nil
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, params api.IngestEventsParams) {
@@ -45,12 +66,12 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, params api.In
 		event.SetTime(time.Now().UTC())
 	}
 
-	namespace := namespace.DefaultNamespace
+	namespace := h.config.NamespaceManager.GetDefaultNamespace()
 	if params.NamespaceInput != nil {
 		namespace = *params.NamespaceInput
 	}
 
-	err = h.Collector.Ingest(event, namespace)
+	err = h.config.Collector.Ingest(event, namespace)
 	if err != nil {
 		logger.ErrorCtx(r.Context(), "unable to forward event to collector", "error", err)
 
@@ -64,7 +85,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, params api.In
 }
 
 func (h Handler) getLogger() *slog.Logger {
-	logger := h.Logger
+	logger := h.config.Logger
 
 	if logger == nil {
 		logger = slog.Default()

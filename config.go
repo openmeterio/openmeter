@@ -29,6 +29,9 @@ type configuration struct {
 		Address string
 	}
 
+	// Namespace configuration
+	Namespace namespaceConfiguration
+
 	// Ingest configuration
 	Ingest struct {
 		Kafka ingestKafkaConfiguration
@@ -38,11 +41,6 @@ type configuration struct {
 	Dedupe struct {
 		Redis  dedupeRedisConfiguration
 		Memory dedupeMemoryConfiguration
-	}
-
-	Namespace struct {
-		EventsTopicTemplate         string
-		DetectedEventsTopicTemplate string
 	}
 
 	// SchemaRegistry configuration
@@ -118,13 +116,29 @@ func (c configuration) Validate() error {
 	return nil
 }
 
+// Namespace configuration
+type namespaceConfiguration struct {
+	Default           string
+	DisableManagement bool
+}
+
+func (c namespaceConfiguration) Validate() error {
+	if c.Default == "" {
+		return errors.New("default namespace is required")
+	}
+
+	return nil
+}
+
+// Ingest Kafka configuration
 type ingestKafkaConfiguration struct {
-	Broker           string
-	SecurityProtocol string
-	SaslMechanisms   string
-	SaslUsername     string
-	SaslPassword     string
-	Partitions       int
+	Broker              string
+	SecurityProtocol    string
+	SaslMechanisms      string
+	SaslUsername        string
+	SaslPassword        string
+	Partitions          int
+	EventsTopicTemplate string
 }
 
 // CreateKafkaConfig creates a Kafka config map.
@@ -158,14 +172,20 @@ func (c ingestKafkaConfiguration) Validate() error {
 		return errors.New("kafka broker is required")
 	}
 
+	if c.EventsTopicTemplate == "" {
+		return errors.New("events topic template is required")
+	}
+
 	return nil
 }
 
+// KSQLDB Processor configuration
 type processorKSQLDBConfiguration struct {
-	Enabled  bool
-	URL      string
-	Username string
-	Password string
+	Enabled                     bool
+	URL                         string
+	Username                    string
+	Password                    string
+	DetectedEventsTopicTemplate string
 }
 
 // CreateKafkaConfig creates a Kafka config map.
@@ -197,6 +217,10 @@ func (c processorKSQLDBConfiguration) Validate() error {
 
 	if c.URL == "" {
 		return errors.New("ksqldb URL is required")
+	}
+
+	if c.DetectedEventsTopicTemplate == "" {
+		return errors.New("namespace detected events topic template is required")
 	}
 
 	return nil
@@ -363,14 +387,18 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	_ = v.BindPFlag("telemetry.address", flags.Lookup("telemetry-address"))
 	v.SetDefault("telemetry.address", ":10000")
 
+	// Namespace configuration
+	v.SetDefault("namespace.default", "default")
+	v.SetDefault("namespace.disableManagement", false)
+
 	// Ingest configuration
 	v.SetDefault("ingest.kafka.broker", "127.0.0.1:29092")
 	v.SetDefault("ingest.kafka.securityProtocol", "")
 	v.SetDefault("ingest.kafka.saslMechanisms", "")
 	v.SetDefault("ingest.kafka.saslUsername", "")
 	v.SetDefault("ingest.kafka.saslPassword", "")
-	// TODO: default to 100 in prod
 	v.SetDefault("ingest.kafka.partitions", 1)
+	v.SetDefault("ingest.kafka.eventsTopicTemplate", "om_%s_events")
 
 	// Schema Registry configuration
 	v.SetDefault("schemaRegistry.url", "")
@@ -382,6 +410,7 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("processor.ksqldb.url", "http://127.0.0.1:8088")
 	v.SetDefault("processor.ksqldb.username", "")
 	v.SetDefault("processor.ksqldb.password", "")
+	v.SetDefault("namespace.ksqldb.detectedEventsTopicTemplate", "om_%s_detected_events")
 
 	// Processor Clickhouse configuration
 	v.SetDefault("processor.clickhouse.enabled", false)
@@ -411,8 +440,4 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	// Dedupe Memory configuration
 	v.SetDefault("dedupe.memory", false)
 	v.SetDefault("dedupe.memory.size", 128)
-
-	// namespace configuration
-	v.SetDefault("namespace.EventsTopicTemplate", "om_%s_events")
-	v.SetDefault("namespace.DetectedEventsTopicTemplate", "om_%s_detected_events")
 }

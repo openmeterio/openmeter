@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/server/router"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -45,18 +46,26 @@ func (h MockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, params ap
 	w.WriteHeader(http.StatusOK)
 }
 
-func makeRequest(r *http.Request) *httptest.ResponseRecorder {
+func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
+	namespaceManager, err := namespace.NewManager(namespace.ManagerConfig{
+		DefaultNamespace: "test",
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	server, _ := NewServer(&Config{
 		RouterConfig: router.Config{
 			Meters:             meters,
 			StreamingConnector: &MockConnector{},
 			IngestHandler:      MockHandler{},
+			NamespaceManager:   namespaceManager,
 		},
 		RouterHook: func(r chi.Router) {},
 	})
 	writer := httptest.NewRecorder()
 	server.ServeHTTP(writer, r)
-	return writer
+	return writer, nil
 }
 
 type testRequest struct {
@@ -194,7 +203,8 @@ func TestRoutes(t *testing.T) {
 			if tt.req.contentType != "" {
 				req.Header.Set("Content-Type", tt.req.contentType)
 			}
-			w := makeRequest(req)
+			w, err := makeRequest(req)
+			assert.NoError(t, err)
 			res := w.Result()
 
 			// status

@@ -36,7 +36,7 @@ type IngestHandler interface {
 }
 
 type Config struct {
-	NamespaceManager   namespace.Manager
+	NamespaceManager   *namespace.Manager
 	StreamingConnector streaming.Connector
 	IngestHandler      IngestHandler
 	Meters             []*models.Meter
@@ -143,7 +143,7 @@ func ValidateGetMeterValuesParams(meter *models.Meter, params api.GetMeterValues
 }
 
 func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.GetMeterValuesParams) {
-	namespace := namespace.DefaultNamespace
+	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 	if params.NamespaceInput != nil {
 		namespace = *params.NamespaceInput
 	}

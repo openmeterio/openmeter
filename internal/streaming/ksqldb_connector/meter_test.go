@@ -6,14 +6,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestMeterQueryAssert(t *testing.T) {
 	data := meterTableQueryData{
 		Format:    "JSON_SR",
-		Namespace: namespace.DefaultNamespace,
+		Namespace: "default",
 		Meter: &models.Meter{
 			Slug:          "meter1",
 			Description:   "API Network Traffic",
