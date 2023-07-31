@@ -22,7 +22,7 @@ type CollectorConfig struct {
 
 func NewCollector(config CollectorConfig) (*Collector, error) {
 	if config.Size == 0 {
-		config.Size = 128
+		return nil, fmt.Errorf("size cannot be 0")
 	}
 	if config.Collector == nil {
 		return nil, fmt.Errorf("collector is nil")

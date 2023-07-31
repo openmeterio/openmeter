@@ -222,6 +222,7 @@ func main() {
 	if config.Dedupe.Memory.Enabled {
 		ingestCollector, err = memorydedupe.NewCollector(memorydedupe.CollectorConfig{
 			Collector: ingestCollector,
+			Size:      config.Dedupe.Memory.Size,
 		})
 		if err != nil {
 			logger.Error("failed to initialize memory dedupe", "error", err)
