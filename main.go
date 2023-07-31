@@ -22,6 +22,7 @@ import (
 	"github.com/lmittmann/tint"
 	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/redis/go-redis/v9"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/thmeitz/ksqldb-go"
@@ -38,6 +39,8 @@ import (
 	"github.com/openmeterio/openmeter/internal/ingest/httpingest"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
+	"github.com/openmeterio/openmeter/internal/ingest/memorydedupe"
+	"github.com/openmeterio/openmeter/internal/ingest/redisdedupe"
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/server"
 	"github.com/openmeterio/openmeter/internal/server/router"
@@ -213,6 +216,23 @@ func main() {
 	if err != nil {
 		logger.Error("failed to initialize namespace", "error", err)
 		os.Exit(1)
+	}
+
+	// Initialize ingestDeduplicator
+	if config.Dedupe.Redis.Enabled {
+		ingestCollector, err = initDedupeRedis(config, logger, ingestCollector)
+		if err != nil {
+			logger.Error("failed to initialize redis dedupe", "error", err)
+			os.Exit(1)
+		}
+	} else {
+		ingestCollector, err = memorydedupe.NewCollector(memorydedupe.CollectorConfig{
+			Collector: ingestCollector,
+		})
+		if err != nil {
+			logger.Error("failed to initialize memory dedupe", "error", err)
+			os.Exit(1)
+		}
 	}
 
 	s, err := server.NewServer(&server.Config{
@@ -452,6 +472,28 @@ func initClickHouseStreaming(config configuration, logger *slog.Logger) (*clickh
 	}
 
 	return streamingConnector, nil
+}
+
+// initDedupe initializes the dedupe based on the configuration.
+func initDedupeRedis(config configuration, logger *slog.Logger, collector ingest.Collector) (*redisdedupe.Collector, error) {
+	// Initialize Redis
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     config.Dedupe.Redis.Address,
+		Password: config.Dedupe.Redis.Password,
+		DB:       config.Dedupe.Redis.Database,
+	})
+
+	dedupeRedis, err := redisdedupe.NewCollector(redisdedupe.CollectorConfig{
+		Logger:     logger,
+		Redis:      redisClient,
+		Expiration: config.Dedupe.Redis.Expiration,
+		Collector:  collector,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("init redis dedupe: %w", err)
+	}
+
+	return dedupeRedis, nil
 }
 
 func initNamespace(namespaces ...namespace.Handler) (namespace.Manager, error) {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/spf13/pflag"
@@ -31,6 +32,11 @@ type configuration struct {
 	// Ingest configuration
 	Ingest struct {
 		Kafka ingestKafkaConfiguration
+	}
+
+	// Dedupe configuration
+	Dedupe struct {
+		Redis dedupeRedisConfiguration
 	}
 
 	Namespace struct {
@@ -78,6 +84,10 @@ func (c configuration) Validate() error {
 	}
 
 	if err := c.Sink.KafkaConnect.Validate(); err != nil {
+		return err
+	}
+
+	if err := c.Dedupe.Redis.Validate(); err != nil {
 		return err
 	}
 
@@ -267,6 +277,27 @@ func (c kafkaSinkClickhouseConfiguration) Validate() error {
 	return nil
 }
 
+// Dedupe redis configuration
+type dedupeRedisConfiguration struct {
+	Enabled    bool
+	Address    string
+	Database   int
+	Password   string
+	Expiration time.Duration
+}
+
+func (c dedupeRedisConfiguration) Validate() error {
+	if !c.Enabled {
+		return nil
+	}
+
+	if c.Address == "" {
+		return errors.New("dedupe redis address is required")
+	}
+
+	return nil
+}
+
 type logConfiguration struct {
 	// Format specifies the output log format.
 	// Accepted values are: json, text
@@ -350,6 +381,13 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("sink.kafkaConnect.clickhouse.database", "default")
 	v.SetDefault("sink.kafkaConnect.clickhouse.username", "default")
 	v.SetDefault("sink.kafkaConnect.clickhouse.password", "")
+
+	// Redis configuration
+	v.SetDefault("dedupe.redis", false)
+	v.SetDefault("dedupe.redis.address", "127.0.0.1:6379")
+	v.SetDefault("dedupe.redis.database", 0)
+	v.SetDefault("dedupe.redis.password", "")
+	v.SetDefault("dedupe.redis.expiration", "24h")
 
 	// namespace configuration
 	v.SetDefault("namespace.EventsTopicTemplate", "om_%s_events")

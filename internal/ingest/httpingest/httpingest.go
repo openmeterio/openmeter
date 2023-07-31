@@ -17,8 +17,7 @@ import (
 // Handler receives an event in CloudEvents format and forwards it to a {Collector}.
 type Handler struct {
 	Collector ingest.Collector
-
-	Logger *slog.Logger
+	Logger    *slog.Logger
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, params api.IngestEventsParams) {
@@ -59,7 +58,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, params api.In
 		return
 	}
 
-	logger.InfoCtx(r.Context(), "event forwarded to downstream collector")
+	logger.DebugCtx(r.Context(), "event forwarded to downstream collector")
 
 	w.WriteHeader(http.StatusOK)
 }
