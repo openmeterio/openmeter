@@ -3,7 +3,7 @@
 .PHONY: up
 up: ## Start the dependencies via docker compose
 	$(call print-target)
-	docker compose up -d --profile ksqldb
+	docker compose --profile ksqldb up -d
 
 .PHONY: down
 down: ## Stop the dependencies via docker compose
