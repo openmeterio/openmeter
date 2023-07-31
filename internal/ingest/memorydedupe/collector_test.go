@@ -79,7 +79,10 @@ func TestIsUnique(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ingestCount := newTestCounter()
 			downstreamCollector := newTestCollector(&ingestCount)
-			dedupeCollector, err := NewCollector(CollectorConfig{Collector: downstreamCollector})
+			dedupeCollector, err := NewCollector(CollectorConfig{
+				Collector: downstreamCollector,
+				Size:      128,
+			})
 			if err != nil {
 				t.Error(err)
 			}
