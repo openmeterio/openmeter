@@ -1,6 +1,7 @@
 package streaming
 
 import (
+	"context"
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -14,7 +15,8 @@ type GetValuesParams struct {
 }
 
 type Connector interface {
-	Init(meter *models.Meter, namespace string) error
-	GetValues(meter *models.Meter, params *GetValuesParams, namespace string) ([]*models.MeterValue, error)
+	CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error
+	DeleteMeter(ctx context.Context, namespace string, meterSlug string) error
+	QueryMeter(ctx context.Context, namespace string, meter *models.Meter, params *GetValuesParams) ([]*models.MeterValue, error)
 	// Add more methods as needed ...
 }

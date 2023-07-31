@@ -24,6 +24,10 @@ func GetTableDescribeQuery(meter *models.Meter, namespace string) (string, error
 	})
 }
 
+func DeleteTableQuery(data deleteMeterTableQueryData) (string, error) {
+	return streaming.TemplateQuery(deleteMeterTableQueryTemplate, data)
+}
+
 func GetTableValuesQuery(meter *models.Meter, params *streaming.GetValuesParams, namespace string) (string, error) {
 	return streaming.TemplateQuery(meterValuesTemplate, meterValuesData{
 		Namespace:       namespace,

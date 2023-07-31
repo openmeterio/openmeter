@@ -90,11 +90,37 @@ func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request, params api.L
 }
 
 func (a *Router) CreateMeter(w http.ResponseWriter, r *http.Request, params api.CreateMeterParams) {
-	models.NewStatusProblem(r.Context(), nil, http.StatusNotImplemented).Respond(w, r)
+	namespace := a.config.NamespaceManager.GetDefaultNamespace()
+	if params.NamespaceInput != nil {
+		namespace = *params.NamespaceInput
+	}
+	meter := &models.Meter{}
+
+	if err := render.DecodeJSON(r.Body, meter); err != nil {
+		models.NewStatusProblem(r.Context(), fmt.Errorf("cannot parse request body"), http.StatusBadRequest).Respond(w, r)
+	}
+
+	err := a.config.StreamingConnector.CreateMeter(r.Context(), namespace, meter)
+	if err != nil {
+		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+		return
+	}
+
+	_ = render.Render(w, r, meter)
 }
 
 func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.DeleteMeterParams) {
-	models.NewStatusProblem(r.Context(), nil, http.StatusNotImplemented).Respond(w, r)
+	namespace := a.config.NamespaceManager.GetDefaultNamespace()
+	if params.NamespaceInput != nil {
+		namespace = *params.NamespaceInput
+	}
+	err := a.config.StreamingConnector.DeleteMeter(r.Context(), namespace, meterIdOrSlug)
+	if err != nil {
+		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.GetMeterParams) {
@@ -160,7 +186,9 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 				return
 			}
 
-			values, err := a.config.StreamingConnector.GetValues(
+			values, err := a.config.StreamingConnector.QueryMeter(
+				r.Context(),
+				namespace,
 				meter,
 				&streaming.GetValuesParams{
 					From:       params.From,
@@ -168,7 +196,6 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 					Subject:    params.Subject,
 					WindowSize: params.WindowSize,
 				},
-				namespace,
 			)
 			if err != nil {
 				slog.Error("error getting values", "err", err)

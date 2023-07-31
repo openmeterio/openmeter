@@ -197,6 +197,33 @@ func TestMeterTableQuery(t *testing.T) {
 	}
 }
 
+func TestDeleteMeterTableQuery(t *testing.T) {
+	tests := []struct {
+		data deleteMeterTableQueryData
+		want string
+	}{
+		{
+			data: deleteMeterTableQueryData{
+				Slug:      "meter1",
+				Namespace: "default",
+			},
+			want: "DROP TABLE `OM_DEFAULT_METER_METER1`;",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run("", func(t *testing.T) {
+			got, err := streaming.TemplateQuery(deleteMeterTableQueryTemplate, tt.data)
+			if err != nil {
+				t.Error(err)
+			}
+
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestValuesSelectQuery(t *testing.T) {
 	subject := "subject1"
 	from, _ := time.Parse(time.RFC3339, "2021-01-01T00:00:00.001Z")

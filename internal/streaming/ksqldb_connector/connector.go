@@ -30,7 +30,7 @@ func NewKsqlDBConnector(ksqldbClient *ksqldb.KsqldbClient, partitions int, forma
 	return connector, nil
 }
 
-func (c *KsqlDBConnector) Init(meter *models.Meter, namespace string) error {
+func (c *KsqlDBConnector) CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error {
 	queryData := meterTableQueryData{
 		Format:          c.format,
 		Namespace:       namespace,
@@ -39,7 +39,7 @@ func (c *KsqlDBConnector) Init(meter *models.Meter, namespace string) error {
 		Partitions:      c.partitions,
 	}
 
-	err := c.MeterAssert(queryData)
+	err := c.MeterAssert(ctx, queryData)
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func (c *KsqlDBConnector) Init(meter *models.Meter, namespace string) error {
 	}
 	c.logger.Debug("ksqlDB create table query", "query", q)
 
-	resp, err := c.ksqlDBClient.Execute(context.TODO(), ksqldb.ExecOptions{
+	resp, err := c.ksqlDBClient.Execute(ctx, ksqldb.ExecOptions{
 		KSql: q,
 	})
 	if err != nil {
@@ -61,14 +61,44 @@ func (c *KsqlDBConnector) Init(meter *models.Meter, namespace string) error {
 	return nil
 }
 
+func (c *KsqlDBConnector) DeleteMeter(ctx context.Context, namespace string, meterSlug string) error {
+	if meterSlug == "" {
+		return fmt.Errorf("slug is required")
+	}
+	if namespace == "" {
+		return fmt.Errorf("namespace is required")
+	}
+
+	queryData := deleteMeterTableQueryData{
+		Slug:      meterSlug,
+		Namespace: namespace,
+	}
+
+	q, err := DeleteTableQuery(queryData)
+	if err != nil {
+		return fmt.Errorf("delete table query for meter: %w", err)
+	}
+	c.logger.Debug("ksqlDB delete table query", "query", q)
+
+	resp, err := c.ksqlDBClient.Execute(ctx, ksqldb.ExecOptions{
+		KSql: q,
+	})
+	if err != nil {
+		return fmt.Errorf("delete ksql table for meter: %w", err)
+	}
+	c.logger.Debug("ksqlDB response", "response", resp)
+
+	return fmt.Errorf("not implemented")
+}
+
 // MeterAssert ensures meter table immutability by checking that existing meter table is the same as new
-func (c *KsqlDBConnector) MeterAssert(data meterTableQueryData) error {
+func (c *KsqlDBConnector) MeterAssert(ctx context.Context, data meterTableQueryData) error {
 	q, err := GetTableDescribeQuery(data.Meter, data.Namespace)
 	if err != nil {
 		return fmt.Errorf("get table describe query: %w", err)
 	}
 
-	resp, err := c.ksqlDBClient.Execute(context.TODO(), ksqldb.ExecOptions{
+	resp, err := c.ksqlDBClient.Execute(ctx, ksqldb.ExecOptions{
 		KSql: q,
 	})
 	if err != nil {
@@ -102,14 +132,14 @@ func (c *KsqlDBConnector) MeterAssert(data meterTableQueryData) error {
 	return nil
 }
 
-func (c *KsqlDBConnector) GetValues(meter *models.Meter, params *streaming.GetValuesParams, namespace string) ([]*models.MeterValue, error) {
+func (c *KsqlDBConnector) QueryMeter(ctx context.Context, namespace string, meter *models.Meter, params *streaming.GetValuesParams) ([]*models.MeterValue, error) {
 	q, err := GetTableValuesQuery(meter, params, namespace)
 	if err != nil {
 		return nil, err
 	}
 	slog.Debug("detectedEventsTableQuery", "query", q)
 
-	header, payload, err := c.ksqlDBClient.Pull(context.TODO(), ksqldb.QueryOptions{
+	header, payload, err := c.ksqlDBClient.Pull(ctx, ksqldb.QueryOptions{
 		Sql: q,
 	})
 	if err != nil {
