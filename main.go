@@ -218,19 +218,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Initialize ingestDeduplicator
-	if config.Dedupe.Redis.Enabled {
-		ingestCollector, err = initDedupeRedis(config, logger, ingestCollector)
-		if err != nil {
-			logger.Error("failed to initialize redis dedupe", "error", err)
-			os.Exit(1)
-		}
-	} else {
+	// Initialize Memory Dedupe
+	if config.Dedupe.Memory.Enabled {
 		ingestCollector, err = memorydedupe.NewCollector(memorydedupe.CollectorConfig{
 			Collector: ingestCollector,
 		})
 		if err != nil {
 			logger.Error("failed to initialize memory dedupe", "error", err)
+			os.Exit(1)
+		}
+	}
+
+	// Initialize Redis Dedupe
+	if config.Dedupe.Redis.Enabled {
+		ingestCollector, err = initDedupeRedis(config, logger, ingestCollector)
+		if err != nil {
+			logger.Error("failed to initialize redis dedupe", "error", err)
 			os.Exit(1)
 		}
 	}

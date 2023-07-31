@@ -36,7 +36,8 @@ type configuration struct {
 
 	// Dedupe configuration
 	Dedupe struct {
-		Redis dedupeRedisConfiguration
+		Redis  dedupeRedisConfiguration
+		Memory dedupeMemoryConfiguration
 	}
 
 	Namespace struct {
@@ -298,6 +299,24 @@ func (c dedupeRedisConfiguration) Validate() error {
 	return nil
 }
 
+// Dedupe memory configuration
+type dedupeMemoryConfiguration struct {
+	Enabled bool
+	Size    int
+}
+
+func (c dedupeMemoryConfiguration) Validate() error {
+	if !c.Enabled {
+		return nil
+	}
+
+	if c.Size == 0 {
+		return errors.New("dedupe memory size is required")
+	}
+
+	return nil
+}
+
 type logConfiguration struct {
 	// Format specifies the output log format.
 	// Accepted values are: json, text
@@ -382,12 +401,16 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("sink.kafkaConnect.clickhouse.username", "default")
 	v.SetDefault("sink.kafkaConnect.clickhouse.password", "")
 
-	// Redis configuration
+	// Dedupe Redis configuration
 	v.SetDefault("dedupe.redis", false)
 	v.SetDefault("dedupe.redis.address", "127.0.0.1:6379")
 	v.SetDefault("dedupe.redis.database", 0)
 	v.SetDefault("dedupe.redis.password", "")
 	v.SetDefault("dedupe.redis.expiration", "24h")
+
+	// Dedupe Memory configuration
+	v.SetDefault("dedupe.memory", false)
+	v.SetDefault("dedupe.memory.size", 128)
 
 	// namespace configuration
 	v.SetDefault("namespace.EventsTopicTemplate", "om_%s_events")
