@@ -18,7 +18,7 @@ cd openmeter/quickstart
 Launch OpenMeter and its dependencies via:
 
 ```sh
-docker-compose up
+docker-compose --profile ksqldb up
 ```
 
 ## 2. Ingest usage event(s)

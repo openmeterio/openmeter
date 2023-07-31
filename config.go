@@ -47,7 +47,13 @@ type configuration struct {
 
 	// Processor configuration
 	Processor struct {
-		KSQLDB processorKSQLDBConfiguration
+		KSQLDB     processorKSQLDBConfiguration
+		ClickHouse processorClickhouseConfiguration
+	}
+
+	// Sink configuration
+	Sink struct {
+		KafkaConnect sinkKafkaConnectConfiguration
 	}
 
 	Meters []*models.Meter
@@ -64,6 +70,14 @@ func (c configuration) Validate() error {
 	}
 
 	if err := c.Processor.KSQLDB.Validate(); err != nil {
+		return err
+	}
+
+	if err := c.Processor.ClickHouse.Validate(); err != nil {
+		return err
+	}
+
+	if err := c.Sink.KafkaConnect.Validate(); err != nil {
 		return err
 	}
 
@@ -137,6 +151,7 @@ func (c ingestKafkaConfiguration) Validate() error {
 }
 
 type processorKSQLDBConfiguration struct {
+	Enabled  bool
 	URL      string
 	Username string
 	Password string
@@ -165,8 +180,88 @@ func (c processorKSQLDBConfiguration) CreateKSQLDBConfig() net.Options {
 
 // Validate validates the configuration.
 func (c processorKSQLDBConfiguration) Validate() error {
+	if !c.Enabled {
+		return nil
+	}
+
 	if c.URL == "" {
 		return errors.New("ksqldb URL is required")
+	}
+
+	return nil
+}
+
+// Clickhouse configuration
+type processorClickhouseConfiguration struct {
+	Enabled  bool
+	Address  string
+	TLS      bool
+	Database string
+	Username string
+	Password string
+}
+
+func (c processorClickhouseConfiguration) Validate() error {
+	if !c.Enabled {
+		return nil
+	}
+
+	if c.Address == "" {
+		return errors.New("clickhouse address is required")
+	}
+
+	return nil
+}
+
+// Sink configuration
+type sinkKafkaConnectConfiguration struct {
+	Enabled    bool
+	URL        string
+	ClickHouse kafkaSinkClickhouseConfiguration
+}
+
+func (c sinkKafkaConnectConfiguration) Validate() error {
+	if !c.Enabled {
+		return nil
+	}
+
+	if c.URL == "" {
+		return errors.New("kafka connect url is required")
+	}
+
+	if err := c.ClickHouse.Validate(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Clickhouse configuration
+// This may feel repetative but clikhouse sink and processor configs can be different,
+// for example Kafka Connect ClickHouse plugin uses 8123 HTTP port while client uses native protocol's 9000 port.
+// Hostname can be also different, as Kafka Connect and ClickHouse communicates inside the docker compose network.
+// This why we default hostname in config to `clickhouse`.
+type kafkaSinkClickhouseConfiguration struct {
+	Hostname string
+	Port     int
+	SSL      bool
+	Database string
+	Username string
+	Password string
+}
+
+func (c kafkaSinkClickhouseConfiguration) Validate() error {
+	if c.Hostname == "" {
+		return errors.New("kafka sink clickhouse hostname is required")
+	}
+	if c.Port == 0 {
+		return errors.New("kafka sink clickhouse port is required")
+	}
+	if c.Database == "" {
+		return errors.New("kafka sink clickhouse database is required")
+	}
+	if c.Username == "" {
+		return errors.New("kafka sink clickhouse username is required")
 	}
 
 	return nil
@@ -232,10 +327,29 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("schemaRegistry.username", "")
 	v.SetDefault("schemaRegistry.password", "")
 
-	// kSQL configuration
+	// Processor ksqlDB configuration
+	v.SetDefault("processor.ksqldb.enabled", true)
 	v.SetDefault("processor.ksqldb.url", "http://127.0.0.1:8088")
 	v.SetDefault("processor.ksqldb.username", "")
 	v.SetDefault("processor.ksqldb.password", "")
+
+	// Processor Clickhouse configuration
+	v.SetDefault("processor.clickhouse.enabled", false)
+	v.SetDefault("processor.clickhouse.address", "127.0.0.1:9000")
+	v.SetDefault("processor.clickhouse.tls", false)
+	v.SetDefault("processor.clickhouse.database", "default")
+	v.SetDefault("processor.clickhouse.username", "default")
+	v.SetDefault("processor.clickhouse.password", "")
+
+	// Sink Kafka Connect configuration
+	v.SetDefault("sink.kafkaConnect.enabled", false)
+	v.SetDefault("sink.kafkaConnect.url", "http://127.0.0.1:8083")
+	v.SetDefault("sink.kafkaConnect.clickhouse.hostname", "clickhouse")
+	v.SetDefault("sink.kafkaConnect.clickhouse.port", 8123)
+	v.SetDefault("sink.kafkaConnect.clickhouse.ssl", false)
+	v.SetDefault("sink.kafkaConnect.clickhouse.database", "default")
+	v.SetDefault("sink.kafkaConnect.clickhouse.username", "default")
+	v.SetDefault("sink.kafkaConnect.clickhouse.password", "")
 
 	// namespace configuration
 	v.SetDefault("namespace.EventsTopicTemplate", "om_%s_events")

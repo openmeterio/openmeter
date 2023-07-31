@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/internal/namespace"
+	"github.com/openmeterio/openmeter/internal/streaming"
 	. "github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -31,7 +32,7 @@ func TestDetectedEventsTableQuery(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run("", func(t *testing.T) {
-			got, err := templateQuery(detectedEventsTableQueryTemplate, tt.data)
+			got, err := streaming.TemplateQuery(detectedEventsTableQueryTemplate, tt.data)
 			if err != nil {
 				t.Error(err)
 			}
@@ -59,7 +60,7 @@ func TestDetectedEventsStreamQuery(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run("", func(t *testing.T) {
-			got, err := templateQuery(detectedEventsStreamQueryTemplate, tt.data)
+			got, err := streaming.TemplateQuery(detectedEventsStreamQueryTemplate, tt.data)
 			if err != nil {
 				t.Error(err)
 			}
@@ -99,7 +100,7 @@ func TestCloudEventsStreamQuery(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run("", func(t *testing.T) {
-			got, err := templateQuery(cloudEventsStreamQueryTemplate, tt.data)
+			got, err := streaming.TemplateQuery(cloudEventsStreamQueryTemplate, tt.data)
 			if err != nil {
 				t.Error(err)
 			}
@@ -187,7 +188,7 @@ func TestMeterTableQuery(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run("", func(t *testing.T) {
-			got, err := templateQuery(meterTableQueryTemplate, tt.data)
+			got, err := streaming.TemplateQuery(meterTableQueryTemplate, tt.data)
 			if err != nil {
 				t.Error(err)
 			}
@@ -272,7 +273,7 @@ func TestValuesSelectQuery(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run("", func(t *testing.T) {
-			got, err := templateQuery(meterValuesTemplate, tt.data)
+			got, err := streaming.TemplateQuery(meterValuesTemplate, tt.data)
 			if err != nil {
 				t.Error(err)
 			}

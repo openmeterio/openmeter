@@ -14,18 +14,18 @@ import (
 )
 
 func GetTableQuery(data meterTableQueryData) (string, error) {
-	return templateQuery(meterTableQueryTemplate, data)
+	return streaming.TemplateQuery(meterTableQueryTemplate, data)
 }
 
 func GetTableDescribeQuery(meter *models.Meter, namespace string) (string, error) {
-	return templateQuery(meterTableDescribeQueryTemplate, meterTableDescribeQueryData{
+	return streaming.TemplateQuery(meterTableDescribeQueryTemplate, meterTableDescribeQueryData{
 		Namespace: namespace,
 		Meter:     meter,
 	})
 }
 
 func GetTableValuesQuery(meter *models.Meter, params *streaming.GetValuesParams, namespace string) (string, error) {
-	return templateQuery(meterValuesTemplate, meterValuesData{
+	return streaming.TemplateQuery(meterValuesTemplate, meterValuesData{
 		Namespace:       namespace,
 		Meter:           meter,
 		GetValuesParams: params,

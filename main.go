@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 
 	health "github.com/AppsFlyer/go-sundheit"
 	healthhttp "github.com/AppsFlyer/go-sundheit/http"
+	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
 	"github.com/go-chi/chi/v5"
@@ -39,7 +41,9 @@ import (
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/server"
 	"github.com/openmeterio/openmeter/internal/server/router"
+	"github.com/openmeterio/openmeter/internal/sink"
 	"github.com/openmeterio/openmeter/internal/streaming"
+	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 	"github.com/openmeterio/openmeter/internal/streaming/ksqldb_connector"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	"github.com/openmeterio/openmeter/pkg/gosundheit/ksqldbcheck"
@@ -164,33 +168,50 @@ func main() {
 	var group run.Group
 	var ingestCollector ingest.Collector
 	var streamingConnector streaming.Connector
+	var namespaceHandlers []namespace.Handler
 
 	// Initialize serializer
 	eventSerializer, err := initSerializer(config)
 	if err != nil {
-		slog.Error("failed to initialize serializer", "error", err)
+		logger.Error("failed to initialize serializer", "error", err)
 		os.Exit(1)
 	}
 
 	// Initialize Kafka Ingest
 	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(config, logger, eventSerializer, group)
 	if err != nil {
-		slog.Error("failed to initialize kafka ingest", "error", err)
+		logger.Error("failed to initialize kafka ingest", "error", err)
 		os.Exit(1)
 	}
+	namespaceHandlers = append(namespaceHandlers, kafkaIngestNamespaceHandler)
 	defer ingestCollector.Close()
 
 	// Initialize ksqlDB Streaming Processor
-	streamingConnector, ksqlDBNamespaceHandler, err := initKsqlDBStreaming(config, logger, eventSerializer, healthChecker)
-	if err != nil {
-		slog.Error("failed to initialize ksqldb streaming processor", "error", err)
-		os.Exit(1)
+	if config.Processor.KSQLDB.Enabled {
+		ksqlDBStreamingConnector, ksqlDBNamespaceHandler, err := initKsqlDBStreaming(config, logger, eventSerializer, healthChecker)
+		if err != nil {
+			logger.Error("failed to initialize ksqldb streaming processor", "error", err)
+			os.Exit(1)
+		}
+		streamingConnector = ksqlDBStreamingConnector
+		namespaceHandlers = append(namespaceHandlers, ksqlDBNamespaceHandler)
+	}
+
+	// Initialize ClickHouse Streaming Processor
+	if config.Processor.ClickHouse.Enabled {
+		clickhouseStreamingConnector, err := initClickHouseStreaming(config, logger)
+		if err != nil {
+			logger.Error("failed to initialize clickhouse streaming processor", "error", err)
+			os.Exit(1)
+		}
+		streamingConnector = clickhouseStreamingConnector
+		namespaceHandlers = append(namespaceHandlers, clickhouseStreamingConnector)
 	}
 
 	// Initialize Namespace
-	namespaceManager, err := initNamespace(kafkaIngestNamespaceHandler, ksqlDBNamespaceHandler)
+	namespaceManager, err := initNamespace(namespaceHandlers...)
 	if err != nil {
-		slog.Error("failed to initialize namespace", "error", err)
+		logger.Error("failed to initialize namespace", "error", err)
 		os.Exit(1)
 	}
 
@@ -228,7 +249,7 @@ func main() {
 		},
 	})
 	if err != nil {
-		slog.Error("failed to create server", "error", err)
+		logger.Error("failed to create server", "error", err)
 		os.Exit(1)
 	}
 
@@ -284,7 +305,7 @@ func main() {
 	if e := (run.SignalError{}); errors.As(err, &e) {
 		slog.Info("received signal; shutting down", slog.String("signal", e.Signal.String()))
 	} else if !errors.Is(err, http.ErrServerClosed) {
-		slog.Error("application stopped due to error", slog.String("error", err.Error()))
+		logger.Error("application stopped due to error", slog.String("error", err.Error()))
 	}
 }
 
@@ -375,6 +396,62 @@ func initKsqlDBStreaming(config configuration, logger *slog.Logger, serializer s
 	}
 
 	return connector, namespaceHandler, nil
+}
+
+func initClickHouseStreaming(config configuration, logger *slog.Logger) (*clickhouse_connector.ClickhouseConnector, error) {
+	options := &clickhouse.Options{
+		Addr: []string{config.Processor.ClickHouse.Address},
+		Auth: clickhouse.Auth{
+			Database: config.Processor.ClickHouse.Database,
+			Username: config.Processor.ClickHouse.Username,
+			Password: config.Processor.ClickHouse.Password,
+		},
+		DialTimeout:      time.Duration(10) * time.Second,
+		MaxOpenConns:     5,
+		MaxIdleConns:     5,
+		ConnMaxLifetime:  time.Duration(10) * time.Minute,
+		ConnOpenStrategy: clickhouse.ConnOpenInOrder,
+		BlockBufferSize:  10,
+	}
+	// This minimal TLS.Config is normally sufficient to connect to the secure native port (normally 9440) on a ClickHouse server.
+	// See: https://clickhouse.com/docs/en/integrations/go#using-tls
+	if config.Processor.ClickHouse.TLS {
+		options.TLS = &tls.Config{}
+	}
+
+	// Initialize ClickHouse
+	clickHouseClient, err := clickhouse.Open(options)
+	if err != nil {
+		return nil, fmt.Errorf("init clickhouse client: %w", err)
+	}
+
+	kafkaConnect, err := sink.NewKafkaConnect(sink.KafkaConnectConfig{
+		Logger: logger,
+		URL:    config.Sink.KafkaConnect.URL,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("init kafka connect: %w", err)
+	}
+
+	streamingConnector, err := clickhouse_connector.NewClickhouseConnector(clickhouse_connector.ClickhouseConnectorConfig{
+		Logger:       logger,
+		KafkaConnect: kafkaConnect,
+		SinkConfig: clickhouse_connector.SinkConfig{
+			Hostname: config.Sink.KafkaConnect.ClickHouse.Hostname,
+			Port:     config.Sink.KafkaConnect.ClickHouse.Port,
+			SSL:      config.Sink.KafkaConnect.ClickHouse.SSL,
+			Username: config.Sink.KafkaConnect.ClickHouse.Username,
+			Password: config.Sink.KafkaConnect.ClickHouse.Password,
+			Database: config.Sink.KafkaConnect.ClickHouse.Database,
+		},
+		ClickHouse: clickHouseClient,
+		Database:   config.Processor.ClickHouse.Database,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("init clickhouse streaming: %w", err)
+	}
+
+	return streamingConnector, nil
 }
 
 func initNamespace(namespaces ...namespace.Handler) (namespace.Manager, error) {

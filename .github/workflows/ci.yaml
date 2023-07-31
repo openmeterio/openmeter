@@ -116,7 +116,7 @@ jobs:
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
       - name: Launch Docker Compose
-        run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml up -d
+        run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml --profile ksqldb up -d
         working-directory: quickstart
 
       - name: Wait for OpenMeter to become ready
@@ -134,6 +134,6 @@ jobs:
         working-directory: quickstart
 
       - name: Cleanup Docker Compose
-        run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml down -v
+        run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml --profile ksqldb down -v
         working-directory: quickstart
         if: always()

@@ -49,18 +49,23 @@ services:
       file: ../docker-compose.yaml
       service: schema
 
+  kafka-connect-01:
+    depends_on:
+      - broker
+    extends:
+      file: ../docker-compose.yaml
+      service: kafka-connect-01
+
+  # Profile: ksqldb
   ksqldb-server:
     depends_on:
       - broker
-      - kafka-connect-01
     extends:
       file: ../docker-compose.yaml
       service: ksqldb-server
 
-  kafka-connect-01:
-    depends_on:
-      - broker
-      - schema
+  # Profile: clickhouse
+  clickhouse:
     extends:
       file: ../docker-compose.yaml
-      service: kafka-connect-01
+      service: clickhouse

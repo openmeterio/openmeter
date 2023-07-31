@@ -2,4 +2,10 @@ FROM confluentinc/cp-kafka-connect-base:7.4.1
 
 USER root
 
-RUN confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:10.7.2
+RUN mkdir -p /data/connectors
+RUN confluent-hub install --component-dir /data/connectors --no-prompt confluentinc/kafka-connect-jdbc:10.7.2
+
+# TODO: Use init container to download and unzip the ClickHouse connector
+RUN yum -y install unzip
+RUN curl -o ./clickhouse-kafka-connect.zip -sL $(curl -s https://api.github.com/repos/clickhouse/clickhouse-kafka-connect/releases/latest | grep browser_download_url | cut -d : -f 2,3 | tr -d '"')
+RUN unzip clickhouse-kafka-connect.zip -d /data/connectors/
