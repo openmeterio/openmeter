@@ -207,7 +207,7 @@ func TestDeleteMeterTableQuery(t *testing.T) {
 				Slug:      "meter1",
 				Namespace: "default",
 			},
-			want: "DROP TABLE `OM_DEFAULT_METER_METER1`;",
+			want: "DROP TABLE `OM_DEFAULT_METER_METER1` DELETE TOPIC;",
 		},
 	}
 
