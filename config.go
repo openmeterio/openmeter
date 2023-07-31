@@ -414,7 +414,7 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("processor.ksqldb.url", "http://127.0.0.1:8088")
 	v.SetDefault("processor.ksqldb.username", "")
 	v.SetDefault("processor.ksqldb.password", "")
-	v.SetDefault("namespace.ksqldb.detectedEventsTopicTemplate", "om_%s_detected_events")
+	v.SetDefault("processor.ksqldb.detectedEventsTopicTemplate", "om_%s_detected_events")
 
 	// Processor Clickhouse configuration
 	v.SetDefault("processor.clickhouse.enabled", false)
