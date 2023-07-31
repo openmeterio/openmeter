@@ -65,6 +65,7 @@ func (k *KafkaConnect) CreateConnector(ctx context.Context, connector Connector)
 		return nil
 	}
 
+	// TODO: only log error not the whole body
 	k.config.Logger.Error("unexpected status code at connector create", "status_code", response.StatusCode, "body", string(body))
 	return fmt.Errorf("unexpected status code at connector create: %d", response.StatusCode)
 }
