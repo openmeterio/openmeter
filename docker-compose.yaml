@@ -117,7 +117,8 @@ services:
   # ClickHouse Profile
   # docker compose --profile clickhouse up
   clickhouse:
-    profiles: ["clickhouse"]
+    profiles:
+      - clickhouse
     image: clickhouse/clickhouse-server
     hostname: clickhouse
     container_name: clickhouse
@@ -133,7 +134,8 @@ services:
   # Debug Profile
   # docker compose --profile ksqldb --profile debug up
   redpanda:
-    profiles: ["debug"]
+    profiles:
+      - debug
     image: docker.redpanda.com/redpandadata/console
     ports:
       - "8084:8080"
