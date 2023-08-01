@@ -33,13 +33,15 @@ func (h *fakeHandler) CreateNamespace(_ context.Context, name string) error {
 func TestManager_CreateNamespce(t *testing.T) {
 	handler := newFakeHandler()
 
-	manager := Manager{
-		Handlers: []Handler{handler},
-	}
+	manager, err := NewManager(ManagerConfig{
+		Handlers:         []Handler{handler},
+		DefaultNamespace: "default",
+	})
+	require.NoError(t, err)
 
 	const namespace = "my-namespace"
 
-	err := manager.CreateNamespace(context.Background(), namespace)
+	err = manager.CreateNamespace(context.Background(), namespace)
 	require.NoError(t, err)
 
 	assert.True(t, handler.namespaces[namespace])
@@ -48,12 +50,14 @@ func TestManager_CreateNamespce(t *testing.T) {
 func TestManager_CreateDefaultNamespce(t *testing.T) {
 	handler := newFakeHandler()
 
-	manager := Manager{
-		Handlers: []Handler{handler},
-	}
-
-	err := manager.CreateDefaultNamespace(context.Background())
+	manager, err := NewManager(ManagerConfig{
+		Handlers:         []Handler{handler},
+		DefaultNamespace: "default",
+	})
 	require.NoError(t, err)
 
-	assert.True(t, handler.namespaces[DefaultNamespace])
+	err = manager.CreateDefaultNamespace(context.Background())
+	require.NoError(t, err)
+
+	assert.True(t, handler.namespaces["default"])
 }

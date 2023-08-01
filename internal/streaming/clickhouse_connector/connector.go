@@ -71,6 +71,10 @@ func (c *ClickhouseConnector) GetValues(meter *models.Meter, params *streaming.G
 }
 
 func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace string) error {
+	if namespace == "" {
+		return fmt.Errorf("namespace is empty")
+	}
+
 	err := c.createEventsTable(ctx, namespace)
 	if err != nil {
 		return fmt.Errorf("create namespace in clickhouse: %w", err)

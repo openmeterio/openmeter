@@ -6,8 +6,6 @@ import (
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"golang.org/x/exp/slog"
-
-	ns "github.com/openmeterio/openmeter/internal/namespace"
 )
 
 // NamespaceHandler is a namespace handler for Kafka ingest topics.
@@ -25,12 +23,11 @@ type NamespaceHandler struct {
 
 // CreateNamespace implements the namespace handler interface.
 func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string) error {
-	topic := fmt.Sprintf(h.NamespacedTopicTemplate, ns.DefaultNamespace)
-
-	if namespace != "" {
-		topic = fmt.Sprintf(h.NamespacedTopicTemplate, namespace)
+	if namespace == "" {
+		return fmt.Errorf("namespace is empty")
 	}
 
+	topic := fmt.Sprintf(h.NamespacedTopicTemplate, namespace)
 	result, err := h.AdminClient.CreateTopics(ctx, []kafka.TopicSpecification{
 		{
 			Topic:         topic,

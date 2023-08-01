@@ -36,7 +36,7 @@ type IngestHandler interface {
 }
 
 type Config struct {
-	NamespaceManager   namespace.Manager
+	NamespaceManager   *namespace.Manager
 	StreamingConnector streaming.Connector
 	IngestHandler      IngestHandler
 	Meters             []*models.Meter
@@ -57,6 +57,11 @@ func NewRouter(config Config) (*Router, error) {
 
 func (a *Router) CreateNamespace(w http.ResponseWriter, r *http.Request) {
 	namespace := &models.Namespace{}
+
+	if a.config.NamespaceManager.IsManagementDisabled() {
+		models.NewStatusProblem(r.Context(), errors.New("namespace management is disabled"), http.StatusForbidden).Respond(w, r)
+		return
+	}
 
 	if err := render.DecodeJSON(r.Body, namespace); err != nil {
 		models.NewStatusProblem(r.Context(), fmt.Errorf("cannot parse request body"), http.StatusBadRequest).Respond(w, r)
@@ -143,7 +148,7 @@ func ValidateGetMeterValuesParams(meter *models.Meter, params api.GetMeterValues
 }
 
 func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.GetMeterValuesParams) {
-	namespace := namespace.DefaultNamespace
+	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 	if params.NamespaceInput != nil {
 		namespace = *params.NamespaceInput
 	}
