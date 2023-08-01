@@ -131,6 +131,16 @@ services:
         soft: 262144
         hard: 262144
 
+  # Api Dedupe
+  redis:
+    profiles:
+      - dedupe-redis
+    image: redis:6-alpine
+    hostname: redis
+    container_name: redis
+    ports:
+      - '6379:6379'
+
   # Debug Profile
   # docker compose --profile ksqldb --profile debug up
   redpanda:

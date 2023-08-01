@@ -69,3 +69,9 @@ services:
     extends:
       file: ../docker-compose.yaml
       service: clickhouse
+
+  # Profile: dedupe-redis
+  redis:
+    extends:
+      file: ../docker-compose.yaml
+      service: redis
