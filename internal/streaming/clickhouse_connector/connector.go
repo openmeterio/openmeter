@@ -228,7 +228,7 @@ func (c *ClickhouseConnector) createSinkConnector(ctx context.Context, namespace
 			"value.converter":                "org.apache.kafka.connect.json.JsonConverter",
 			"value.converter.schemas.enable": "false",
 			"schemas.enable":                 "false",
-			"topics.regex":                   "om_.+_events",
+			"topics.regex":                   "^om_[a-z0-9]+(?:_[a-z0-9]+)*_events$",
 		},
 	}
 
