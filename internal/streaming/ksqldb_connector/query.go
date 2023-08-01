@@ -67,3 +67,11 @@ type meterTableQueryData struct {
 	WindowRetention string
 	Partitions      int
 }
+
+//go:embed sql/delete_meter_table.tpl.sql
+var deleteMeterTableQueryTemplate string
+
+type deleteMeterTableQueryData struct {
+	Namespace string
+	Slug      string
+}

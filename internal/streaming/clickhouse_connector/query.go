@@ -27,6 +27,14 @@ type createMeterViewData struct {
 	GroupBy         map[string]string
 }
 
+//go:embed sql/delete_meter_view.tpl.sql
+var deleteMeterViewTemplate string
+
+type deleteMeterViewData struct {
+	Database      string
+	MeterViewName string
+}
+
 //go:embed sql/query_meter_view.tpl.sql
 var queryMeterViewTemplate string
 

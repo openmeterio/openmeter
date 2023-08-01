@@ -54,6 +54,7 @@ import (
 
 func main() {
 	v, flags := viper.New(), pflag.NewFlagSet("Open Meter", pflag.ExitOnError)
+	ctx := context.Background()
 
 	configure(v, flags)
 
@@ -116,7 +117,7 @@ func main() {
 	telemetryRouter.Mount("/debug", middleware.Profiler())
 
 	extraResources, _ := resource.New(
-		context.Background(),
+		ctx,
 		resource.WithContainer(),
 		resource.WithAttributes(
 			semconv.ServiceName("openmeter"),
@@ -138,7 +139,7 @@ func main() {
 		metric.WithResource(res),
 	)
 	defer func() {
-		if err := meterProvider.Shutdown(context.Background()); err != nil {
+		if err := meterProvider.Shutdown(ctx); err != nil {
 			logger.Error("shutting down meter provider: %v", err)
 		}
 	}()
@@ -181,7 +182,7 @@ func main() {
 	}
 
 	// Initialize Kafka Ingest
-	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(config, logger, eventSerializer, group)
+	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(ctx, config, logger, eventSerializer, group)
 	if err != nil {
 		logger.Error("failed to initialize kafka ingest", "error", err)
 		os.Exit(1)
@@ -294,13 +295,13 @@ func main() {
 	})
 
 	for _, meter := range config.Meters {
-		err := streamingConnector.Init(meter, namespaceManager.GetDefaultNamespace())
+		err := streamingConnector.CreateMeter(ctx, namespaceManager.GetDefaultNamespace(), meter)
 		if err != nil {
 			slog.Warn("failed to initialize meter", "error", err)
 			os.Exit(1)
 		}
 	}
-	slog.Info("meters successfully initialized", "count", len(config.Meters))
+	slog.Info("meters successfully created", "count", len(config.Meters))
 
 	// Set up telemetry server
 	{
@@ -312,7 +313,7 @@ func main() {
 
 		group.Add(
 			func() error { return server.ListenAndServe() },
-			func(err error) { _ = server.Shutdown(context.Background()) },
+			func(err error) { _ = server.Shutdown(ctx) },
 		)
 	}
 
@@ -326,12 +327,12 @@ func main() {
 
 		group.Add(
 			func() error { return server.ListenAndServe() },
-			func(err error) { _ = server.Shutdown(context.Background()) }, // TODO: context deadline
+			func(err error) { _ = server.Shutdown(ctx) }, // TODO: context deadline
 		)
 	}
 
 	// Setup signal handler
-	group.Add(run.SignalHandler(context.Background(), syscall.SIGINT, syscall.SIGTERM))
+	group.Add(run.SignalHandler(ctx, syscall.SIGINT, syscall.SIGTERM))
 
 	err = group.Run()
 	if e := (run.SignalError{}); errors.As(err, &e) {
@@ -341,7 +342,7 @@ func main() {
 	}
 }
 
-func initKafkaIngest(config configuration, logger *slog.Logger, serializer serializer.Serializer, group run.Group) (*kafkaingest.Collector, *kafkaingest.NamespaceHandler, error) {
+func initKafkaIngest(ctx context.Context, config configuration, logger *slog.Logger, serializer serializer.Serializer, group run.Group) (*kafkaingest.Collector, *kafkaingest.NamespaceHandler, error) {
 	// Initialize Kafka Admin Client
 	kafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
 	kafkaAdminClient, err := kafka.NewAdminClient(kafkaConfig)
@@ -361,7 +362,7 @@ func initKafkaIngest(config configuration, logger *slog.Logger, serializer seria
 	if err != nil {
 		return nil, namespaceHandler, fmt.Errorf("init kafka ingest: %w", err)
 	}
-	group.Add(kafkaingest.KafkaProducerGroup(context.Background(), producer, logger))
+	group.Add(kafkaingest.KafkaProducerGroup(ctx, producer, logger))
 
 	slog.Debug("connected to Kafka")
 

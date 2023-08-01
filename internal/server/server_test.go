@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -32,11 +33,15 @@ var values = []*models.MeterValue{
 
 type MockConnector struct{}
 
-func (c *MockConnector) Init(meter *models.Meter, namespace string) error {
+func (c *MockConnector) CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error {
 	return nil
 }
 
-func (c *MockConnector) GetValues(meter *models.Meter, params *streaming.GetValuesParams, namespace string) ([]*models.MeterValue, error) {
+func (c *MockConnector) DeleteMeter(ctx context.Context, namespace string, meterSlug string) error {
+	return nil
+}
+
+func (c *MockConnector) QueryMeter(ctx context.Context, namespace string, meter *models.Meter, params *streaming.GetValuesParams) ([]*models.MeterValue, error) {
 	return meter.AggregateMeterValues(values, params.WindowSize)
 }
 
@@ -147,7 +152,16 @@ func TestRoutes(t *testing.T) {
 				},
 			},
 			res: testResponse{
-				status: http.StatusNotImplemented,
+				status: http.StatusOK,
+				body: &models.Meter{
+					Slug:          "meter3",
+					Description:   "API Network Traffic",
+					ValueProperty: "$.bytes",
+					EventType:     "api-calls",
+					Aggregation:   models.MeterAggregationSum,
+					GroupBy:       map[string]string{"path": "$.path", "method": "$.method"},
+					WindowSize:    models.WindowSizeHour,
+				},
 			},
 		},
 		{
@@ -165,10 +179,10 @@ func TestRoutes(t *testing.T) {
 			name: "delete meter",
 			req: testRequest{
 				method: http.MethodDelete,
-				path:   "/api/v1/meters/" + meters[0].ID,
+				path:   "/api/v1/meters/" + meters[0].Slug,
 			},
 			res: testResponse{
-				status: http.StatusNotImplemented,
+				status: http.StatusOK,
 			},
 		},
 		{

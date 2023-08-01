@@ -45,9 +45,10 @@ func NewClickhouseConnector(config ClickhouseConnectorConfig) (*ClickhouseConnec
 	return connector, nil
 }
 
-func (c *ClickhouseConnector) Init(meter *models.Meter, namespace string) error {
-	// TODO: pass context to Init, also consider renaming it to CreateMeter
-	ctx := context.TODO()
+func (c *ClickhouseConnector) CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error {
+	if namespace == "" {
+		return fmt.Errorf("namespace is required")
+	}
 
 	err := c.createMeterView(ctx, namespace, meter)
 	if err != nil {
@@ -57,9 +58,26 @@ func (c *ClickhouseConnector) Init(meter *models.Meter, namespace string) error 
 	return nil
 }
 
-func (c *ClickhouseConnector) GetValues(meter *models.Meter, params *streaming.GetValuesParams, namespace string) ([]*models.MeterValue, error) {
-	// TODO: pass context to GetValues, also consider renaming it to QueryMeter
-	ctx := context.TODO()
+func (c *ClickhouseConnector) DeleteMeter(ctx context.Context, namespace string, meterSlug string) error {
+	if namespace == "" {
+		return fmt.Errorf("namespace is required")
+	}
+	if meterSlug == "" {
+		return fmt.Errorf("slug is required")
+	}
+
+	err := c.deleteMeterView(ctx, namespace, meterSlug)
+	if err != nil {
+		return fmt.Errorf("delete meter view: %w", err)
+	}
+
+	return nil
+}
+
+func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, meter *models.Meter, params *streaming.GetValuesParams) ([]*models.MeterValue, error) {
+	if namespace == "" {
+		return nil, fmt.Errorf("namespace is required")
+	}
 
 	values, err := c.queryMeterView(ctx, namespace, meter, params)
 	if err != nil {
@@ -72,7 +90,7 @@ func (c *ClickhouseConnector) GetValues(meter *models.Meter, params *streaming.G
 
 func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace string) error {
 	if namespace == "" {
-		return fmt.Errorf("namespace is empty")
+		return fmt.Errorf("namespace is required")
 	}
 
 	err := c.createEventsTable(ctx, namespace)
@@ -115,6 +133,22 @@ func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace str
 	err = c.config.ClickHouse.Exec(ctx, query)
 	if err != nil {
 		return fmt.Errorf("create meter view: %w", err)
+	}
+
+	return nil
+}
+
+func (c *ClickhouseConnector) deleteMeterView(ctx context.Context, namespace string, meterSlug string) error {
+	query, err := streaming.TemplateQuery(deleteMeterViewTemplate, deleteMeterViewData{
+		Database:      c.config.Database,
+		MeterViewName: getMeterViewNameBySlug(namespace, meterSlug),
+	})
+	if err != nil {
+		return err
+	}
+	err = c.config.ClickHouse.Exec(ctx, query)
+	if err != nil {
+		return fmt.Errorf("delete meter view: %w", err)
 	}
 
 	return nil
@@ -211,5 +245,9 @@ func getEventsTableName(namespace string) string {
 }
 
 func getMeterViewName(namespace string, meter *models.Meter) string {
-	return fmt.Sprintf("%s_%s_%s", prefix, namespace, meter.Slug)
+	return getMeterViewNameBySlug(namespace, meter.Slug)
+}
+
+func getMeterViewNameBySlug(namespace string, meterSlug string) string {
+	return fmt.Sprintf("%s_%s_%s", prefix, namespace, meterSlug)
 }
