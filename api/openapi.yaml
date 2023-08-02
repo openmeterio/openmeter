@@ -17,7 +17,7 @@ paths:
       description: Ingest events
       operationId: ingestEvents
       parameters:
-        - $ref: "#/components/parameters/namespaceParam"
+        - $ref: "#/components/parameters/namespaceInput"
       requestBody:
         required: true
         content:
@@ -38,7 +38,7 @@ paths:
       description: List meters
       operationId: listMeters
       parameters:
-        - $ref: "#/components/parameters/namespaceParam"
+        - $ref: "#/components/parameters/namespaceInput"
       tags:
         - Meters
       responses:
@@ -56,7 +56,7 @@ paths:
       description: Create meter
       operationId: createMeter
       parameters:
-        - $ref: "#/components/parameters/namespaceParam"
+        - $ref: "#/components/parameters/namespaceInput"
       tags:
         - Meters
       requestBody:
@@ -83,7 +83,7 @@ paths:
       description: Get meter by slugs
       operationId: getMeter
       parameters:
-        - $ref: "#/components/parameters/namespaceParam"
+        - $ref: "#/components/parameters/namespaceInput"
         - $ref: "#/components/parameters/meterSlug"
       tags:
         - Meters
@@ -102,7 +102,7 @@ paths:
       description: Delete meter by slug
       operationId: deleteMeter
       parameters:
-        - $ref: "#/components/parameters/namespaceParam"
+        - $ref: "#/components/parameters/namespaceInput"
         - $ref: "#/components/parameters/meterSlug"
       tags:
         - Meters
@@ -122,7 +122,7 @@ paths:
       tags:
         - Meters
       parameters:
-        - $ref: "#/components/parameters/namespaceParam"
+        - $ref: "#/components/parameters/namespaceInput"
         - $ref: "#/components/parameters/meterSlug"
         - name: subject
           in: query
@@ -431,7 +431,7 @@ components:
         pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
         minLength: 1
         maxLength: 63
-    namespaceParam:
+    namespaceInput:
       name: OM-Namespace
       description: Optional namespace
       default: default
