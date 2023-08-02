@@ -114,7 +114,7 @@ func TestQueryMeterView(t *testing.T) {
 				GroupBy:       []string{"group1", "group2"},
 				WindowSize:    &windowSize,
 			},
-			want: "SELECT windowstart, windowend, subject, sumMerge(value) AS value, group1, group2 FROM openmeter.meter_meter1 WHERE subject = 'subject1' AND windowstart >= toDateTime(1672531200001) AND windowend <= toDateTime(1672617600000)GROUP BY windowstart, windowend, subject, group1, group2;",
+			want: "SELECT windowstart, windowend, subject, sumMerge(value) AS value, group1, group2 FROM openmeter.meter_meter1 WHERE subject = 'subject1' AND windowstart >= toDateTime(1672531200001) AND windowend <= toDateTime(1672617600000)GROUP BY windowstart, windowend, subject, group1, group2 ORDER BY windowstart;",
 		},
 	}
 
