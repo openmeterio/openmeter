@@ -467,8 +467,9 @@ func initClickHouseStreaming(config configuration, logger *slog.Logger) (*clickh
 	}
 
 	streamingConnector, err := clickhouse_connector.NewClickhouseConnector(clickhouse_connector.ClickhouseConnectorConfig{
-		Logger:       logger,
-		KafkaConnect: kafkaConnect,
+		Logger:              logger,
+		KafkaConnect:        kafkaConnect,
+		KafkaConnectEnabled: config.Sink.KafkaConnect.Enabled,
 		SinkConfig: clickhouse_connector.SinkConfig{
 			Hostname: config.Sink.KafkaConnect.ClickHouse.Hostname,
 			Port:     config.Sink.KafkaConnect.ClickHouse.Port,

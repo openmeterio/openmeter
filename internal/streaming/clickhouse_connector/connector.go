@@ -30,11 +30,12 @@ type ClickhouseConnector struct {
 }
 
 type ClickhouseConnectorConfig struct {
-	Logger       *slog.Logger
-	KafkaConnect sink.KafkaConnect
-	ClickHouse   clickhouse.Conn
-	Database     string
-	SinkConfig   SinkConfig
+	Logger              *slog.Logger
+	KafkaConnect        sink.KafkaConnect
+	KafkaConnectEnabled bool
+	ClickHouse          clickhouse.Conn
+	Database            string
+	SinkConfig          SinkConfig
 }
 
 func NewClickhouseConnector(config ClickhouseConnectorConfig) (*ClickhouseConnector, error) {
@@ -98,9 +99,11 @@ func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace str
 		return fmt.Errorf("create namespace in clickhouse: %w", err)
 	}
 
-	err = c.createSinkConnector(ctx, namespace)
-	if err != nil {
-		return fmt.Errorf("create namespace in clickhouse: %w", err)
+	if c.config.KafkaConnectEnabled {
+		err = c.createSinkConnector(ctx, namespace)
+		if err != nil {
+			return fmt.Errorf("create namespace in clickhouse: %w", err)
+		}
 	}
 
 	return nil
