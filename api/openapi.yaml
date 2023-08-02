@@ -78,13 +78,13 @@ paths:
           $ref: "#/components/responses/NotImplementedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
-  /api/v1/meters/{meterIdOrSlug}:
+  /api/v1/meters/{meterSlug}:
     get:
       description: Get meter by slugs
       operationId: getMeter
       parameters:
         - $ref: "#/components/parameters/namespaceParam"
-        - $ref: "#/components/parameters/meterIdOrSlug"
+        - $ref: "#/components/parameters/meterSlug"
       tags:
         - Meters
       responses:
@@ -103,7 +103,7 @@ paths:
       operationId: deleteMeter
       parameters:
         - $ref: "#/components/parameters/namespaceParam"
-        - $ref: "#/components/parameters/meterIdOrSlug"
+        - $ref: "#/components/parameters/meterSlug"
       tags:
         - Meters
       responses:
@@ -115,7 +115,7 @@ paths:
           $ref: "#/components/responses/NotImplementedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
-  /api/v1/meters/{meterIdOrSlug}/values:
+  /api/v1/meters/{meterSlug}/values:
     get:
       description: Get meter values
       operationId: getMeterValues
@@ -123,7 +123,7 @@ paths:
         - Meters
       parameters:
         - $ref: "#/components/parameters/namespaceParam"
-        - $ref: "#/components/parameters/meterIdOrSlug"
+        - $ref: "#/components/parameters/meterSlug"
         - name: subject
           in: query
           required: false
@@ -405,18 +405,6 @@ components:
           type: object
           additionalProperties:
             type: string
-    IdOrSlug:
-      type: string
-      oneOf:
-        # id
-        - type: string
-          minLength: 26
-          maxLength: 26
-        # slug
-        - type: string
-          pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
-          minLength: 1
-          maxLength: 63
     Namespace:
       type: object
       x-go-name: Namespace
@@ -432,19 +420,24 @@ components:
           example: my-namesapce
 
   parameters:
-    meterIdOrSlug:
-      name: meterIdOrSlug
+    meterSlug:
+      name: meterSlug
       description: A unique identifier for the meter.
       in: path
+      x-go-type: string
       required: true
       schema:
-        $ref: "#/components/schemas/IdOrSlug"
+        type: string
+        pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
+        minLength: 1
+        maxLength: 63
     namespaceParam:
       name: OM-Namespace
       description: Optional namespace
       default: default
       in: header
       x-go-name: NamespaceInput
+      x-go-type: string
       schema:
         type: string
         pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
