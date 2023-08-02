@@ -447,7 +447,7 @@ components:
       x-go-name: NamespaceInput
       schema:
         type: string
-        pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
+        pattern: "^[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*$"
 
   responses:
     BadRequestProblemResponse:
