@@ -493,6 +493,7 @@ func initDedupeRedis(config configuration, logger *slog.Logger, collector ingest
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     config.Dedupe.Redis.Address,
 		Password: config.Dedupe.Redis.Password,
+		Username: config.Dedupe.Redis.Username,
 		DB:       config.Dedupe.Redis.Database,
 	})
 
