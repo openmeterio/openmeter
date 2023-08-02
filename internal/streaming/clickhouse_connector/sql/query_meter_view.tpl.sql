@@ -26,4 +26,5 @@ WHERE
     {{ $where | join " AND " }}
 {{- end -}}
 GROUP BY
-    {{ $groupBy | join ", " }};
+    {{ $groupBy | join ", " }}
+ORDER BY windowstart;
