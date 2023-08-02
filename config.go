@@ -311,6 +311,7 @@ type dedupeRedisConfiguration struct {
 	Enabled    bool
 	Address    string
 	Database   int
+	Username   string
 	Password   string
 	Expiration time.Duration
 }
@@ -438,6 +439,7 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("dedupe.redis", false)
 	v.SetDefault("dedupe.redis.address", "127.0.0.1:6379")
 	v.SetDefault("dedupe.redis.database", 0)
+	v.SetDefault("dedupe.redis.username", "")
 	v.SetDefault("dedupe.redis.password", "")
 	v.SetDefault("dedupe.redis.expiration", "24h")
 
