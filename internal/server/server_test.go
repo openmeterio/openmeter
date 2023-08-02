@@ -11,7 +11,6 @@ import (
 
 	cloudevents "github.com/cloudevents/sdk-go/v2/event"
 	"github.com/go-chi/chi/v5"
-	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/api"
@@ -22,8 +21,8 @@ import (
 )
 
 var meters = []*models.Meter{
-	{ID: ulid.Make().String(), Slug: "meter1", WindowSize: models.WindowSizeMinute, Aggregation: models.MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
-	{ID: ulid.Make().String(), Slug: "meter2", WindowSize: models.WindowSizeMinute, Aggregation: models.MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
+	{Slug: "meter1", WindowSize: models.WindowSizeMinute, Aggregation: models.MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
+	{Slug: "meter2", WindowSize: models.WindowSizeMinute, Aggregation: models.MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
 }
 
 var values = []*models.MeterValue{
@@ -168,7 +167,7 @@ func TestRoutes(t *testing.T) {
 			name: "get meter",
 			req: testRequest{
 				method: http.MethodGet,
-				path:   "/api/v1/meters/" + meters[0].ID,
+				path:   "/api/v1/meters/" + meters[0].Slug,
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -189,7 +188,7 @@ func TestRoutes(t *testing.T) {
 			name: "get meter values",
 			req: testRequest{
 				method: http.MethodGet,
-				path:   "/api/v1/meters/" + meters[0].ID + "/values",
+				path:   "/api/v1/meters/" + meters[0].Slug + "/values",
 			},
 			res: testResponse{
 				status: http.StatusOK,

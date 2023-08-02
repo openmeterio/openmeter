@@ -26,9 +26,6 @@ import (
 // Event CloudEvents Specification JSON Schema
 type Event = event.Event
 
-// IdOrSlug defines model for IdOrSlug.
-type IdOrSlug = string
-
 // Meter defines model for Meter.
 type Meter = models.Meter
 
@@ -47,8 +44,8 @@ type Problem = models.Problem
 // WindowSize defines model for WindowSize.
 type WindowSize = models.WindowSize
 
-// MeterIdOrSlug defines model for meterIdOrSlug.
-type MeterIdOrSlug = IdOrSlug
+// MeterSlug defines model for meterSlug.
+type MeterSlug = string
 
 // NamespaceInput defines model for namespaceParam.
 type NamespaceInput = string
@@ -200,13 +197,13 @@ type ClientInterface interface {
 	CreateMeter(ctx context.Context, params *CreateMeterParams, body CreateMeterJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteMeter request
-	DeleteMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *DeleteMeterParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	DeleteMeter(ctx context.Context, meterSlug MeterSlug, params *DeleteMeterParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetMeter request
-	GetMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *GetMeterParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetMeter(ctx context.Context, meterSlug MeterSlug, params *GetMeterParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetMeterValues request
-	GetMeterValues(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *GetMeterValuesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetMeterValues(ctx context.Context, meterSlug MeterSlug, params *GetMeterValuesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CreateNamespace request with any body
 	CreateNamespaceWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -274,8 +271,8 @@ func (c *Client) CreateMeter(ctx context.Context, params *CreateMeterParams, bod
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *DeleteMeterParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteMeterRequest(c.Server, meterIdOrSlug, params)
+func (c *Client) DeleteMeter(ctx context.Context, meterSlug MeterSlug, params *DeleteMeterParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteMeterRequest(c.Server, meterSlug, params)
 	if err != nil {
 		return nil, err
 	}
@@ -286,8 +283,8 @@ func (c *Client) DeleteMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, p
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *GetMeterParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetMeterRequest(c.Server, meterIdOrSlug, params)
+func (c *Client) GetMeter(ctx context.Context, meterSlug MeterSlug, params *GetMeterParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetMeterRequest(c.Server, meterSlug, params)
 	if err != nil {
 		return nil, err
 	}
@@ -298,8 +295,8 @@ func (c *Client) GetMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, para
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetMeterValues(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *GetMeterValuesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetMeterValuesRequest(c.Server, meterIdOrSlug, params)
+func (c *Client) GetMeterValues(ctx context.Context, meterSlug MeterSlug, params *GetMeterValuesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetMeterValuesRequest(c.Server, meterSlug, params)
 	if err != nil {
 		return nil, err
 	}
@@ -475,12 +472,12 @@ func NewCreateMeterRequestWithBody(server string, params *CreateMeterParams, con
 }
 
 // NewDeleteMeterRequest generates requests for DeleteMeter
-func NewDeleteMeterRequest(server string, meterIdOrSlug MeterIdOrSlug, params *DeleteMeterParams) (*http.Request, error) {
+func NewDeleteMeterRequest(server string, meterSlug MeterSlug, params *DeleteMeterParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "meterIdOrSlug", runtime.ParamLocationPath, meterIdOrSlug)
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "meterSlug", runtime.ParamLocationPath, meterSlug)
 	if err != nil {
 		return nil, err
 	}
@@ -520,12 +517,12 @@ func NewDeleteMeterRequest(server string, meterIdOrSlug MeterIdOrSlug, params *D
 }
 
 // NewGetMeterRequest generates requests for GetMeter
-func NewGetMeterRequest(server string, meterIdOrSlug MeterIdOrSlug, params *GetMeterParams) (*http.Request, error) {
+func NewGetMeterRequest(server string, meterSlug MeterSlug, params *GetMeterParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "meterIdOrSlug", runtime.ParamLocationPath, meterIdOrSlug)
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "meterSlug", runtime.ParamLocationPath, meterSlug)
 	if err != nil {
 		return nil, err
 	}
@@ -565,12 +562,12 @@ func NewGetMeterRequest(server string, meterIdOrSlug MeterIdOrSlug, params *GetM
 }
 
 // NewGetMeterValuesRequest generates requests for GetMeterValues
-func NewGetMeterValuesRequest(server string, meterIdOrSlug MeterIdOrSlug, params *GetMeterValuesParams) (*http.Request, error) {
+func NewGetMeterValuesRequest(server string, meterSlug MeterSlug, params *GetMeterValuesParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "meterIdOrSlug", runtime.ParamLocationPath, meterIdOrSlug)
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "meterSlug", runtime.ParamLocationPath, meterSlug)
 	if err != nil {
 		return nil, err
 	}
@@ -774,13 +771,13 @@ type ClientWithResponsesInterface interface {
 	CreateMeterWithResponse(ctx context.Context, params *CreateMeterParams, body CreateMeterJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateMeterResponse, error)
 
 	// DeleteMeter request
-	DeleteMeterWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *DeleteMeterParams, reqEditors ...RequestEditorFn) (*DeleteMeterResponse, error)
+	DeleteMeterWithResponse(ctx context.Context, meterSlug MeterSlug, params *DeleteMeterParams, reqEditors ...RequestEditorFn) (*DeleteMeterResponse, error)
 
 	// GetMeter request
-	GetMeterWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *GetMeterParams, reqEditors ...RequestEditorFn) (*GetMeterResponse, error)
+	GetMeterWithResponse(ctx context.Context, meterSlug MeterSlug, params *GetMeterParams, reqEditors ...RequestEditorFn) (*GetMeterResponse, error)
 
 	// GetMeterValues request
-	GetMeterValuesWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *GetMeterValuesParams, reqEditors ...RequestEditorFn) (*GetMeterValuesResponse, error)
+	GetMeterValuesWithResponse(ctx context.Context, meterSlug MeterSlug, params *GetMeterValuesParams, reqEditors ...RequestEditorFn) (*GetMeterValuesResponse, error)
 
 	// CreateNamespace request with any body
 	CreateNamespaceWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateNamespaceResponse, error)
@@ -1001,8 +998,8 @@ func (c *ClientWithResponses) CreateMeterWithResponse(ctx context.Context, param
 }
 
 // DeleteMeterWithResponse request returning *DeleteMeterResponse
-func (c *ClientWithResponses) DeleteMeterWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *DeleteMeterParams, reqEditors ...RequestEditorFn) (*DeleteMeterResponse, error) {
-	rsp, err := c.DeleteMeter(ctx, meterIdOrSlug, params, reqEditors...)
+func (c *ClientWithResponses) DeleteMeterWithResponse(ctx context.Context, meterSlug MeterSlug, params *DeleteMeterParams, reqEditors ...RequestEditorFn) (*DeleteMeterResponse, error) {
+	rsp, err := c.DeleteMeter(ctx, meterSlug, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -1010,8 +1007,8 @@ func (c *ClientWithResponses) DeleteMeterWithResponse(ctx context.Context, meter
 }
 
 // GetMeterWithResponse request returning *GetMeterResponse
-func (c *ClientWithResponses) GetMeterWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *GetMeterParams, reqEditors ...RequestEditorFn) (*GetMeterResponse, error) {
-	rsp, err := c.GetMeter(ctx, meterIdOrSlug, params, reqEditors...)
+func (c *ClientWithResponses) GetMeterWithResponse(ctx context.Context, meterSlug MeterSlug, params *GetMeterParams, reqEditors ...RequestEditorFn) (*GetMeterResponse, error) {
+	rsp, err := c.GetMeter(ctx, meterSlug, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -1019,8 +1016,8 @@ func (c *ClientWithResponses) GetMeterWithResponse(ctx context.Context, meterIdO
 }
 
 // GetMeterValuesWithResponse request returning *GetMeterValuesResponse
-func (c *ClientWithResponses) GetMeterValuesWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *GetMeterValuesParams, reqEditors ...RequestEditorFn) (*GetMeterValuesResponse, error) {
-	rsp, err := c.GetMeterValues(ctx, meterIdOrSlug, params, reqEditors...)
+func (c *ClientWithResponses) GetMeterValuesWithResponse(ctx context.Context, meterSlug MeterSlug, params *GetMeterValuesParams, reqEditors ...RequestEditorFn) (*GetMeterValuesResponse, error) {
+	rsp, err := c.GetMeterValues(ctx, meterSlug, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -1316,48 +1313,47 @@ func ParseCreateNamespaceResponse(rsp *http.Response) (*CreateNamespaceResponse,
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/8xaaXPbNt7/Khg8edE+JSVKjp1ab3YUx0nU1sfGdrpt5M3A5F8iWhJgANC26tF338HB",
-	"m7LlxkmayXgo4vr97wO8wyFPM86AKYkndzgjgqSgQJhf5mkWnYizJF/qFxHIUNBMUc7wBE9RzuinHBCN",
-	"gCm6oCDQggukYkBm6QB7mOqZGVEx9jAjKeBJa1sPC/iUUwERniiRg4dlGENK9HnPBCzwBP/fsEI5tKNy",
-	"WG6wXtudZUZCONUEWKgLkicKT8onrwX/xDyQBJWLC7gxkAhEBfjkyD+uzanwZUQpEHrJfz9M/d+J/1fg",
-	"71/+8N2/Jh/rv7///2fYw2qV6c2kEpQt8drDt/6S++6Icv8Zy3JlaBIgM84kGFG8JNE7+JSDVKeCXyWQ",
-	"vnOjejDkTAFT+pFkWUJDoikbZnbmD39ITe/dlnx1++O1xtDk2EsSIYdC4z/m6jXPWfQNER1zhQwGh2eW",
-	"ZgmkwBR8a1Q1JBrbBYPbDMJvi6sCgUAILoyauXV628PrAkUUUWscp4JnIBTVWrggiYT2ngcJzyOzUKKz",
-	"DEK6cPDRT2cnx+jMYvZwVtvoDkdEkc0HWTfQPOc8BgT6GJSRVcJJpJ0L3BLNZjzBd3OG0BxHuTCHf0zl",
-	"HE/QHI/Gc+zZMe2E7MthDEnC53jO1nNWWSa/+gNCo9kanhOKHWu7vgM7iPQo4gvj8vQidE2SHAboKJcK",
-	"kSgGAUhx9O71ARoHz/e0e0yJMtBZnuLJh4bAjaAv62R1Rj2cUvYLsKWK8WTkYZYnCbnScy3TOk5Go6oU",
-	"p0nFrPDb0hBgpyEVE2WJsQRIpLhGbLHjCc4FfTwOGj14vhFvU6y74ShYkAj8UbgP/vNoL/R/HL/Y9cPd",
-	"cbiz92JnFO2EHSydsyXPRQgPnm8kfqsQZegmpmGMCHMqF5MsAwYtnZMgrmkIcuge/KDFJV/AAgQwEzUe",
-	"wphBeA1CUmvrXeV3g4W21e1ONuzOYi8ZinIJsgl8NAi2AJRbc+iAeWV+XRVKY6cVsOyRlDUY2hjLBI/y",
-	"EAT6rkwbInS1QlZI3zeRhrlUPAXxkUYPI1Y07RHyOU1BKpJmGsZNDBYaD8NcGNFUwu2z2p2dnf0mpHEw",
-	"3vGDkR+MzoPRxPwfBMHo97rsI6LAN3AebSf9/qbJ88LrWIYKSIh26YpbygRdUkYUZcsalU0aSEY/ChfI",
-	"OxjW9YzsAzacdxbUVFO3slKVy7YrdTmOe2nt2waZ2ohP04wL5fKpGE/wkqo4vxqEPB2GWs3NQjmU0Z/+",
-	"kg+vx0PzwiCtZ6ecwckCTz7c4ZTcFjwf7zVEoH+2ed6Yv7fTFlk9yWtkePemd5c9sj3Sia+hsxEMyXIp",
-	"YEmUM/37grvZYVqb347x3Ry99rswxDI5rzTiaIXM3uhVbfkW6mokcd6rs1XENvqqOCoIfYw2engpeJ69",
-	"XG1OF+56ol4zHyMpRCYfOSUqRnCbCZBahXVoQ3CrBAmV4Yw5S3sjE8clWgie1nyXjorb5R3PBo1XnRTk",
-	"2cA+b0xB+uLlVgVXhS0Yvdnb/f3F7u709a/Tn98ejsbHvwUH/95//dYUXSQ6Yclqo2Tl36/5Kgjpyjdv",
-	"8d81Iw8bSThxr7qAeqTaFqrZ4WFRNkTWh+SGsojfnNG/4CEz/bWa2Xan0ta8dZuvW1Gb3sapD/jXlEeQ",
-	"yMGRY/h2DpZnwIyIKK+eh9mfy6HdzhDQcTu9xl6jqTT5XEKPfrjc9+ziCHv44OTi+Bx7ePr+Dfbw0exY",
-	"/53+B3c86GZqpw1uPjXh77VEum777/iljplvzLLOu7mVQegqjI2WUjuW5ekViEpzD5nxKb1ZyiZlV8Ty",
-	"b5tF6+3V07L0SUVVdWg6kmL1obY/q3d/Go7LDJAshAdTpGqLTRba7vL0s6Z3+PM5U3QEHlVvT5Fbhl6B",
-	"IjSRyFKEvtNp8Ysfgxff9wVCjdhGuFywietgGDomVyTyXZgvA6KiKnHza82lclgqonITUZ8HgXsXGTh2",
-	"jW3UIVeN+9qDophIlFeNDuv85/N5o5a+TRP9qjyIMqkIC2vQHdJJwkOSDH86OklCJX9+/6Mf6H+jKnK3",
-	"GhsGXZ+exXlKmK/Drk6odLhKCLPOsqjfbApPZb06cbbvONmMWJ9Lfp/dF5zoI+Hi3QyVJa3tE9BWC6Gg",
-	"ZEsKtuB0t/PQTVWMmvT70Lfn56fITkAhjwAtgYEwBdPVqlYwIV3El8nM1jLQelnho0ztjHXNR25pqmPc",
-	"7v6+KSfsLzPZoadMwdJ6Z2MEffwmSMZcKK+tOzJPUyJWLVwm5jbZW2/Ybl1rGjXSpTuhTCJipN4n683H",
-	"3mf6D4qz5VtdiWl5VIraKwxtu5So8IBP6lZ/baSDRU5zNDu+OD/EHn57cvEOe/jV9LctM5nafk+Ic21s",
-	"esH1BgkNwbWcXUCaZiSMAY1NQygXiXYqSmWT4fDm5mZAzOiAi+XQLZXDX2YHh8dnh/54EAxilSY1BcYn",
-	"GTBbRU5PZzqVLfpZeDQIBoFPkiwmg7FeotGSjOIJ3hkEgx1bH8TGhocko8PrkS3y7a0Ulz0Z0owtQSrk",
-	"ppktbfo+i8rRw2KwfrH1oT95r6YMW9dJuph36vuSR6t7Wva1dsUj2/aHrqWxbt+HtW+CxkHQ5cXJz5qp",
-	"z+1Q3zHlFsPNN0mmbna3Zg/tsvk+w6SBZKn5jB37L/W7QqzV9eISeqT6C5UKuTltmeqxo2LoCSTa5eoG",
-	"sXZFSRWkcqtuTS3tJ0KQVd/FjCUKiS8nCce2y7W3wZoOBBDlaowO4+3gUVnJfxVbepz9OF5vYz+jL3Fo",
-	"HzejpzHKXYv4/h3uv/z8ggrVMe3hXeOCf211LQHV29fW711le7VCrjvS1D476Wm0z3twRfPrhB5H8bxL",
-	"xjEvknAr8edbyav38vwfL2+v32+/AdUUY9d9vwH1jxFi8OV9QBGTP08ZvpnZDm0LfGOgrgTuJm4S9/ti",
-	"+CsL3buzX/N8ykGsqo95io5b/TueTgnSJtb0wVDZ+0KUlbeDxZ3+nJnrwytAJKFLBhG6ocrew9peGpL0",
-	"LxjM2YyFSS7ptX4uvjhqYVwInjYAbtd+a6M+ZNHXw6z4EyCeLRDjqmgjQOTpGpiyZQIol2RZ9Zg1wCTR",
-	"yAWoXGjoRZtZF6kCVFkel5uhTBdKdiKQMC77q4RF9uZnM3U39eJsO8fQuAT4XA/U//nM9lmobbh2UtEn",
-	"utQweDql+D0+8R9Wp/R5xdL/3FOCuqS53kLuS5zrfd0vkftW+3/l/Ld18MYc+EnEta5JrMfTZZwyJetf",
-	"Q1DTAqBsWfUInDW7urTXY3b3KatRt9ppy/py/b8AAAD//+ggZUc/KwAA",
+	"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",
+	"T1V5utVOW9YX6/8FAAD//9+/h6MiKgAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

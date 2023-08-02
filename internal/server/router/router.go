@@ -109,12 +109,12 @@ func (a *Router) CreateMeter(w http.ResponseWriter, r *http.Request, params api.
 	_ = render.Render(w, r, meter)
 }
 
-func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.DeleteMeterParams) {
+func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterSlug string, params api.DeleteMeterParams) {
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 	if params.NamespaceInput != nil {
 		namespace = *params.NamespaceInput
 	}
-	err := a.config.StreamingConnector.DeleteMeter(r.Context(), namespace, meterIdOrSlug)
+	err := a.config.StreamingConnector.DeleteMeter(r.Context(), namespace, meterSlug)
 	if err != nil {
 		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
 		return
@@ -123,15 +123,15 @@ func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSl
 	w.WriteHeader(http.StatusOK)
 }
 
-func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.GetMeterParams) {
+func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterSlug string, params api.GetMeterParams) {
 	for _, meter := range a.config.Meters {
-		if meter.ID == meterIdOrSlug || meter.Slug == meterIdOrSlug {
+		if meter.ID == meterSlug || meter.Slug == meterSlug {
 			_ = render.Render(w, r, meter)
 			return
 		}
 	}
 
-	models.NewStatusProblem(r.Context(), fmt.Errorf("meter is not found with ID or slug %s", meterIdOrSlug), http.StatusNotFound).Respond(w, r)
+	models.NewStatusProblem(r.Context(), fmt.Errorf("meter is not found with ID or slug %s", meterSlug), http.StatusNotFound).Respond(w, r)
 }
 
 type GetMeterValuesResponse struct {
@@ -173,14 +173,14 @@ func ValidateGetMeterValuesParams(meter *models.Meter, params api.GetMeterValues
 	return nil
 }
 
-func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.GetMeterValuesParams) {
+func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterSlug string, params api.GetMeterValuesParams) {
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 	if params.NamespaceInput != nil {
 		namespace = *params.NamespaceInput
 	}
 
 	for _, meter := range a.config.Meters {
-		if meter.ID == meterIdOrSlug || meter.Slug == meterIdOrSlug {
+		if meter.ID == meterSlug || meter.Slug == meterSlug {
 			if err := ValidateGetMeterValuesParams(meter, params); err != nil {
 				models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
 				return
@@ -214,5 +214,5 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 		}
 	}
 
-	models.NewStatusProblem(r.Context(), fmt.Errorf("meter is not found with ID or slug %s", meterIdOrSlug), http.StatusNotFound).Respond(w, r)
+	models.NewStatusProblem(r.Context(), fmt.Errorf("meter is not found with ID or slug %s", meterSlug), http.StatusNotFound).Respond(w, r)
 }
