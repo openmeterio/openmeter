@@ -102,10 +102,6 @@ func (c configuration) Validate() error {
 		return errors.New("telemetry http server address is required")
 	}
 
-	if len(c.Meters) == 0 {
-		return errors.New("at least one meter is required")
-	}
-
 	for _, m := range c.Meters {
 		// set default window size
 		if m.WindowSize == "" {
