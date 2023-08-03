@@ -99,8 +99,6 @@ func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, 
 		return values, fmt.Errorf("get values: %w", err)
 	}
 
-	fmt.Println(values)
-
 	// TODO: aggregate windows in query
 	return models.AggregateMeterValues(values, *params.Aggregation, params.WindowSize)
 }
