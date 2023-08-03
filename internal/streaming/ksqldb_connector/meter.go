@@ -18,7 +18,7 @@ import (
 var jsonPathRe = regexp.MustCompile(`([$][._\[\]0-9a-zA-Z]+)+`)
 var aggregationRe = regexp.MustCompile(`(COUNT|MIN|MAX|SUM|DISTINCT_COUNT)\(`)
 
-// TODO: support ` charachter and replace .{1} with `
+// TODO: support ` character and replace .{1} with `
 var groupByRe = regexp.MustCompile(`AS_VALUE\(COALESCE\(EXTRACTJSONFIELD\([A-Za-z_0-1.]*` + "`" + `data` + "`" + `, '([$][._\[\]0-9a-zA-Z]+)'\), ''\)\) ?A?S? ` + "`" + `([A-Za-z0-9_-]+)` + "`" + `,?`)
 var windowSizeRe = regexp.MustCompile(`SIZE (?:\d+ [DAY|HOUR|MINUTE|SECOND|MILLISECOND]{1,})`)
 var windowRetentionRe = regexp.MustCompile(`RETENTION (?:\d+ [DAY|HOUR]{1,})`)
