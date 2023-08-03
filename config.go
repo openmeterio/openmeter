@@ -304,12 +304,14 @@ func (c kafkaSinkClickhouseConfiguration) Validate() error {
 
 // Dedupe redis configuration
 type dedupeRedisConfiguration struct {
-	Enabled    bool
-	Address    string
-	Database   int
-	Username   string
-	Password   string
-	Expiration time.Duration
+	Enabled     bool
+	Address     string
+	Database    int
+	Username    string
+	Password    string
+	Expiration  time.Duration
+	UseSentinel bool
+	MasterName  string
 }
 
 func (c dedupeRedisConfiguration) Validate() error {
@@ -319,6 +321,12 @@ func (c dedupeRedisConfiguration) Validate() error {
 
 	if c.Address == "" {
 		return errors.New("dedupe redis address is required")
+	}
+
+	if c.UseSentinel {
+		if c.MasterName == "" {
+			return errors.New("dedupe redis master name is required")
+		}
 	}
 
 	return nil
@@ -438,6 +446,8 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("dedupe.redis.username", "")
 	v.SetDefault("dedupe.redis.password", "")
 	v.SetDefault("dedupe.redis.expiration", "24h")
+	v.SetDefault("dedupe.redis.useSentintel", false)
+	v.SetDefault("dedupe.redis.masterName", "")
 
 	// Dedupe Memory configuration
 	v.SetDefault("dedupe.memory", false)
