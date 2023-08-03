@@ -143,7 +143,7 @@ func (rd *GetMeterValuesResponse) Render(w http.ResponseWriter, r *http.Request)
 	return nil
 }
 
-func ValidateGetMeterValuesParams(windowSizeIn models.WindowSize, params api.GetMeterValuesParams) error {
+func ValidateGetMeterValuesParams(windowSizeStorage models.WindowSize, params api.GetMeterValuesParams) error {
 	if params.From != nil && params.To != nil && params.From.After(*params.To) {
 		return errors.New("from must be before to")
 	}
@@ -156,17 +156,17 @@ func ValidateGetMeterValuesParams(windowSizeIn models.WindowSize, params api.Get
 		if params.To != nil && params.To.Truncate(windowDuration) != *params.To {
 			return errors.New("to must be aligned to window size")
 		}
-		if (windowSizeIn == models.WindowSizeDay && *params.WindowSize != models.WindowSizeDay) ||
-			(windowSizeIn == models.WindowSizeHour && *params.WindowSize == models.WindowSizeMinute) {
-			return fmt.Errorf("expected window size to be less than or equal to %s, but got %s", windowSizeIn, *params.WindowSize)
+		if (windowSizeStorage == models.WindowSizeDay && *params.WindowSize != models.WindowSizeDay) ||
+			(windowSizeStorage == models.WindowSizeHour && *params.WindowSize == models.WindowSizeMinute) {
+			return fmt.Errorf("expected window size to be less than or equal to %s, but got %s", windowSizeStorage, *params.WindowSize)
 		}
 	} else {
-		windowDuration := windowSizeIn.Duration()
+		windowDuration := windowSizeStorage.Duration()
 		if params.From != nil && params.From.Truncate(windowDuration) != *params.From {
-			return fmt.Errorf("from must be aligned to the meter's window size of %s", windowSizeIn)
+			return fmt.Errorf("from must be aligned to the meter's window size of %s", windowSizeStorage)
 		}
 		if params.To != nil && params.To.Truncate(windowDuration) != *params.To {
-			return fmt.Errorf("to must be aligned to the meter's window size of %s", windowSizeIn)
+			return fmt.Errorf("to must be aligned to the meter's window size of %s", windowSizeStorage)
 		}
 	}
 
@@ -179,17 +179,19 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 		namespace = *params.NamespaceInput
 	}
 
-	windowSizeIn := models.WindowSizeMinute
+	// We allow querying meters not available in static config
+	// For these we default to minute window size as the granularity stored
+	windowSizeStorage := models.WindowSizeMinute
 
 	// Set default window size if meter exists in confing
 	for _, meter := range a.config.Meters {
 		if meter.ID == meterIdOrSlug || meter.Slug == meterIdOrSlug {
-			windowSizeIn = meter.WindowSize
+			windowSizeStorage = meter.WindowSize
 		}
 	}
 
 	// Validate parameters
-	if err := ValidateGetMeterValuesParams(windowSizeIn, params); err != nil {
+	if err := ValidateGetMeterValuesParams(windowSizeStorage, params); err != nil {
 		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
 		return
 	}

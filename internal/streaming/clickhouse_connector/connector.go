@@ -85,10 +85,6 @@ func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, 
 
 	meterView, err := c.describeMeterView(ctx, namespace, meterSlug)
 	if err != nil {
-		if strings.Contains(err.Error(), "code: 60") {
-			return nil, &models.MeterNotFoundError{MeterSlug: meterSlug}
-		}
-
 		return nil, err
 	}
 
@@ -179,6 +175,10 @@ func (c *ClickhouseConnector) describeMeterView(ctx context.Context, namespace s
 	}
 	rows, err := c.config.ClickHouse.Query(ctx, query)
 	if err != nil {
+		if strings.Contains(err.Error(), "code: 60") {
+			return nil, &models.MeterNotFoundError{MeterSlug: meterSlug}
+		}
+
 		return nil, fmt.Errorf("describe meter view: %w", err)
 	}
 

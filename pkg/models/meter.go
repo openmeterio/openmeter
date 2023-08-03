@@ -228,19 +228,19 @@ func (m *MeterValue) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func AggregateMeterValues(values []*MeterValue, aggregation MeterAggregation, inWindowSize WindowSize, outWindowSize *WindowSize) ([]*MeterValue, error) {
-	if outWindowSize != nil {
+func AggregateMeterValues(values []*MeterValue, aggregation MeterAggregation, windowSizeStorage WindowSize, windowSizeOut *WindowSize) ([]*MeterValue, error) {
+	if windowSizeOut != nil {
 		// no need to aggregate
-		if *outWindowSize == inWindowSize {
+		if *windowSizeOut == windowSizeStorage {
 			return values, nil
 		}
 
 		// cannot aggregate with a lower resolution
-		if inWindowSize == WindowSizeDay && *outWindowSize != WindowSizeDay {
-			return nil, fmt.Errorf("invalid aggregation: expected window size of %s, but got %s", WindowSizeDay, *outWindowSize)
+		if windowSizeStorage == WindowSizeDay && *windowSizeOut != WindowSizeDay {
+			return nil, fmt.Errorf("invalid aggregation: expected window size of %s, but got %s", WindowSizeDay, *windowSizeOut)
 		}
-		if inWindowSize == WindowSizeHour && *outWindowSize == WindowSizeMinute {
-			return nil, fmt.Errorf("invalid aggregation: expected window size of %s or %s, but got %s", WindowSizeHour, WindowSizeDay, *outWindowSize)
+		if windowSizeStorage == WindowSizeHour && *windowSizeOut == WindowSizeMinute {
+			return nil, fmt.Errorf("invalid aggregation: expected window size of %s or %s, but got %s", WindowSizeHour, WindowSizeDay, *windowSizeOut)
 		}
 	}
 
@@ -267,8 +267,8 @@ func AggregateMeterValues(values []*MeterValue, aggregation MeterAggregation, in
 			GroupBy: fmt.Sprint(value.GroupBy),
 		}
 
-		if outWindowSize != nil {
-			windowDuration := outWindowSize.Duration()
+		if windowSizeOut != nil {
+			windowDuration := windowSizeOut.Duration()
 			key.WindowStart = value.WindowStart.UTC().Truncate(windowDuration)
 			key.WindowEnd = key.WindowStart.Add(windowDuration)
 		}
@@ -310,7 +310,7 @@ func AggregateMeterValues(values []*MeterValue, aggregation MeterAggregation, in
 	v := make([]*MeterValue, 0, len(groupBy))
 	for _, value := range groupBy {
 		// set full window if window size is not set
-		if outWindowSize == nil {
+		if windowSizeOut == nil {
 			key := key{
 				Subject: value.Subject,
 				GroupBy: fmt.Sprint(value.GroupBy),
