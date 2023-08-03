@@ -116,6 +116,11 @@ func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSl
 	}
 	err := a.config.StreamingConnector.DeleteMeter(r.Context(), namespace, meterIdOrSlug)
 	if err != nil {
+		if _, ok := err.(*models.MeterNotFoundError); ok {
+			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
+			return
+		}
+
 		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
 		return
 	}
