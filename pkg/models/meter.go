@@ -36,6 +36,18 @@ func (MeterAggregation) Values() (kinds []string) {
 	return
 }
 
+func (MeterAggregation) IsValid(input string) bool {
+	m := MeterAggregation("")
+
+	for _, v := range m.Values() {
+		if v == input {
+			return true
+		}
+	}
+
+	return false
+}
+
 type MeterFilterOperator string
 
 const (
@@ -232,6 +244,10 @@ func (m *Meter) AggregateMeterValues(values []*MeterValue, windowSize *WindowSiz
 		}
 	}
 
+	return AggregateMeterValues(values, m.Aggregation, windowSize)
+}
+
+func AggregateMeterValues(values []*MeterValue, aggregation MeterAggregation, windowSize *WindowSize) ([]*MeterValue, error) {
 	if len(values) == 0 {
 		return values, nil
 	}
@@ -273,12 +289,12 @@ func (m *Meter) AggregateMeterValues(values []*MeterValue, windowSize *WindowSiz
 			groupBy[key] = value
 			groupBy[key].WindowStart = key.WindowStart
 			groupBy[key].WindowEnd = key.WindowEnd
-			if m.Aggregation == MeterAggregationAvg {
+			if aggregation == MeterAggregationAvg {
 				avgCount[key] = 1
 			}
 		} else {
 			// update value
-			switch m.Aggregation {
+			switch aggregation {
 			case MeterAggregationCount:
 				groupBy[key].Value += value.Value
 			case MeterAggregationSum:

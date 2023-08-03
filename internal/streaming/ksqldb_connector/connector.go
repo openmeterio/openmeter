@@ -132,25 +132,27 @@ func (c *KsqlDBConnector) MeterAssert(ctx context.Context, data meterTableQueryD
 	return nil
 }
 
-func (c *KsqlDBConnector) QueryMeter(ctx context.Context, namespace string, meter *models.Meter, params *streaming.GetValuesParams) ([]*models.MeterValue, error) {
-	q, err := GetTableValuesQuery(meter, params, namespace)
-	if err != nil {
-		return nil, err
-	}
-	slog.Debug("detectedEventsTableQuery", "query", q)
+func (c *KsqlDBConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.GetValuesParams) ([]*models.MeterValue, error) {
+	// q, err := GetTableValuesQuery(meter, params, namespace)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// slog.Debug("detectedEventsTableQuery", "query", q)
 
-	header, payload, err := c.ksqlDBClient.Pull(ctx, ksqldb.QueryOptions{
-		Sql: q,
-	})
-	if err != nil {
-		return nil, err
-	}
+	// header, payload, err := c.ksqlDBClient.Pull(ctx, ksqldb.QueryOptions{
+	// 	Sql: q,
+	// })
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	c.logger.Debug("ksqlDB response", "header", header, "payload", payload)
-	values, err := NewMeterValues(header, payload)
-	if err != nil {
-		return nil, fmt.Errorf("get meter values: %w", err)
-	}
+	// c.logger.Debug("ksqlDB response", "header", header, "payload", payload)
+	// values, err := NewMeterValues(header, payload)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("get meter values: %w", err)
+	// }
 
-	return meter.AggregateMeterValues(values, params.WindowSize)
+	// return meter.AggregateMeterValues(values, params.WindowSize)
+
+	return nil, fmt.Errorf("not implemented")
 }

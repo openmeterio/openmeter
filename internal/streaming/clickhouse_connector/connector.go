@@ -3,6 +3,8 @@ package clickhouse_connector
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"golang.org/x/exp/slog"
@@ -75,18 +77,27 @@ func (c *ClickhouseConnector) DeleteMeter(ctx context.Context, namespace string,
 	return nil
 }
 
-func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, meter *models.Meter, params *streaming.GetValuesParams) ([]*models.MeterValue, error) {
+func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.GetValuesParams) ([]*models.MeterValue, error) {
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
 
-	values, err := c.queryMeterView(ctx, namespace, meter, params)
+	meterView, err := c.describeMeterView(ctx, namespace, meterSlug)
+	if err != nil {
+		if strings.Contains(err.Error(), "code: 60") {
+			return nil, &models.MeterNotFoundError{MeterSlug: meterSlug}
+		}
+
+		return nil, err
+	}
+
+	values, err := c.queryMeterView(ctx, namespace, meterView, params)
 	if err != nil {
 		return values, fmt.Errorf("get values: %w", err)
 	}
 
 	// TODO: aggregate windows in query
-	return meter.AggregateMeterValues(values, params.WindowSize)
+	return models.AggregateMeterValues(values, meterView.Aggregation, params.WindowSize)
 }
 
 func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace string) error {
@@ -126,7 +137,7 @@ func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace str
 		Database:        c.config.Database,
 		EventsTableName: getEventsTableName(namespace),
 		EventType:       meter.EventType,
-		MeterViewName:   getMeterViewName(namespace, meter),
+		MeterViewName:   getMeterViewNameBySlug(namespace, meter.Slug),
 		ValueProperty:   meter.ValueProperty,
 		GroupBy:         meter.GroupBy,
 	})
@@ -157,21 +168,70 @@ func (c *ClickhouseConnector) deleteMeterView(ctx context.Context, namespace str
 	return nil
 }
 
-func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace string, meter *models.Meter, params *streaming.GetValuesParams) ([]*models.MeterValue, error) {
-	values := []*models.MeterValue{}
-
-	groupBy := make([]string, 0, len(meter.GroupBy))
-	for key := range meter.GroupBy {
-		groupBy = append(groupBy, key)
+func (c *ClickhouseConnector) describeMeterView(ctx context.Context, namespace string, meterSlug string) (*MeterView, error) {
+	query, err := streaming.TemplateQuery(describeMeterViewTemplate, describeMeterViewData{
+		Database:      c.config.Database,
+		MeterViewName: getMeterViewNameBySlug(namespace, meterSlug),
+	})
+	if err != nil {
+		return nil, err
 	}
+	rows, err := c.config.ClickHouse.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("describe meter view: %w", err)
+	}
+
+	aggregationRegexp := regexp.MustCompile(`^AggregateFunction\(([sum|min|max|count]+), Float64\)$`)
+
+	// get columns and types
+	meterView := &MeterView{
+		Slug: meterSlug,
+	}
+	for rows.Next() {
+		var (
+			colName string
+			colType string
+			ignore  string
+		)
+
+		if err = rows.Scan(&colName, &colType, &ignore, &ignore, &ignore, &ignore, &ignore); err != nil {
+			return nil, err
+		}
+
+		if colName == "value" {
+			// Parse aggregation type
+			tmp := aggregationRegexp.FindStringSubmatch(colType)
+			if len(tmp) != 2 || tmp[1] == "" {
+				// This should never happen, if it happens it means the view changed fundamanetally
+				return nil, fmt.Errorf("aggregation type not found in regex: %s", colType)
+			}
+
+			// Validate aggregation type
+			aggregationStr := strings.ToUpper(tmp[1])
+			if ok := models.MeterAggregation("").IsValid(aggregationStr); !ok {
+				return nil, fmt.Errorf("invalid aggregation type: %s", aggregationStr)
+			}
+			meterView.Aggregation = models.MeterAggregation(aggregationStr)
+		}
+
+		if colName != "windowstart" && colName != "windowend" && colName != "subject" && colName != "value" {
+			meterView.GroupBy = append(meterView.GroupBy, colName)
+		}
+	}
+
+	return meterView, nil
+}
+
+func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace string, meterView *MeterView, params *streaming.GetValuesParams) ([]*models.MeterValue, error) {
+	values := []*models.MeterValue{}
 
 	query, err := streaming.TemplateQuery(queryMeterViewTemplate, queryMeterViewData{
 		Database:      c.config.Database,
-		MeterViewName: getMeterViewName(namespace, meter),
+		MeterViewName: getMeterViewNameBySlug(namespace, meterView.Slug),
 		Subject:       params.Subject,
 		From:          params.From,
 		To:            params.To,
-		GroupBy:       groupBy,
+		GroupBy:       meterView.GroupBy,
 		// TODO: implement window size
 		WindowSize: params.WindowSize,
 	})
@@ -189,7 +249,7 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		}
 		args := []interface{}{&value.WindowStart, &value.WindowEnd, &value.Subject, &value.Value}
 		// TODO: do this next part without interface magic
-		for range groupBy {
+		for range meterView.GroupBy {
 			tmp := ""
 			args = append(args, &tmp)
 		}
@@ -198,7 +258,7 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 			return values, fmt.Errorf("query meter view row scan: %w", err)
 		}
 
-		for i, key := range groupBy {
+		for i, key := range meterView.GroupBy {
 			if s, ok := args[i+4].(*string); ok {
 				value.GroupBy[key] = *s
 			}
@@ -245,10 +305,6 @@ func (c *ClickhouseConnector) createSinkConnector(ctx context.Context, namespace
 
 func getEventsTableName(namespace string) string {
 	return fmt.Sprintf("%s_%s_%s", prefix, namespace, eventsTableName)
-}
-
-func getMeterViewName(namespace string, meter *models.Meter) string {
-	return getMeterViewNameBySlug(namespace, meter.Slug)
 }
 
 func getMeterViewNameBySlug(namespace string, meterSlug string) string {

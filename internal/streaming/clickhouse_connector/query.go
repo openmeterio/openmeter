@@ -35,6 +35,14 @@ type deleteMeterViewData struct {
 	MeterViewName string
 }
 
+//go:embed sql/describe_meter_view.tpl.sql
+var describeMeterViewTemplate string
+
+type describeMeterViewData struct {
+	Database      string
+	MeterViewName string
+}
+
 //go:embed sql/query_meter_view.tpl.sql
 var queryMeterViewTemplate string
 

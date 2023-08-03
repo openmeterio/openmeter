@@ -17,6 +17,6 @@ type GetValuesParams struct {
 type Connector interface {
 	CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error
 	DeleteMeter(ctx context.Context, namespace string, meterSlug string) error
-	QueryMeter(ctx context.Context, namespace string, meter *models.Meter, params *GetValuesParams) ([]*models.MeterValue, error)
+	QueryMeter(ctx context.Context, namespace string, meterSlug string, params *GetValuesParams) ([]*models.MeterValue, error)
 	// Add more methods as needed ...
 }
