@@ -1,6 +1,6 @@
 {{- $select := list "`subject`" "`value`" "windowstart as `windowstart`" "windowend as `windowend`" -}}
 
-{{- range $groupByKey, $groupByValue := .GroupBy -}}
+{{- range $groupByKey := .GroupBy -}}
 {{- $select = printf "`%s`" $groupByKey | append $select -}}
 {{- end -}}
 

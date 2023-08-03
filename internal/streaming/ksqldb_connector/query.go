@@ -49,8 +49,8 @@ var meterValuesTemplate string
 type meterValuesData struct {
 	Namespace string
 	Slug      string
-	GroupBy   map[string]string
-	*GetValuesParams
+	GroupBy   []string
+	*QueryParams
 }
 
 type meterTableDescribeQueryData struct {

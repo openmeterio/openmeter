@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
@@ -148,31 +149,17 @@ func (rd *GetMeterValuesResponse) Render(w http.ResponseWriter, r *http.Request)
 	return nil
 }
 
-func ValidateGetMeterValuesParams(windowSizeStorage models.WindowSize, params api.GetMeterValuesParams) error {
+func ValidateGetMeterValuesParams(params api.GetMeterValuesParams) error {
 	if params.From != nil && params.To != nil && params.From.After(*params.To) {
 		return errors.New("from must be before to")
 	}
 
-	if params.WindowSize != nil {
-		windowDuration := params.WindowSize.Duration()
-		if params.From != nil && params.From.Truncate(windowDuration) != *params.From {
-			return errors.New("from must be aligned to window size")
-		}
-		if params.To != nil && params.To.Truncate(windowDuration) != *params.To {
-			return errors.New("to must be aligned to window size")
-		}
-		if (windowSizeStorage == models.WindowSizeDay && *params.WindowSize != models.WindowSizeDay) ||
-			(windowSizeStorage == models.WindowSizeHour && *params.WindowSize == models.WindowSizeMinute) {
-			return fmt.Errorf("expected window size to be less than or equal to %s, but got %s", windowSizeStorage, *params.WindowSize)
-		}
-	} else {
-		windowDuration := windowSizeStorage.Duration()
-		if params.From != nil && params.From.Truncate(windowDuration) != *params.From {
-			return fmt.Errorf("from must be aligned to the meter's window size of %s", windowSizeStorage)
-		}
-		if params.To != nil && params.To.Truncate(windowDuration) != *params.To {
-			return fmt.Errorf("to must be aligned to the meter's window size of %s", windowSizeStorage)
-		}
+	windowDuration := params.WindowSize.Duration()
+	if params.From != nil && params.From.Truncate(windowDuration) != *params.From {
+		return errors.New("from must be aligned to window size")
+	}
+	if params.To != nil && params.To.Truncate(windowDuration) != *params.To {
+		return errors.New("to must be aligned to window size")
 	}
 
 	return nil
@@ -184,32 +171,43 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 		namespace = *params.NamespaceInput
 	}
 
-	// We allow querying meters not available in static config
-	// For these we default to minute window size as the granularity stored
-	windowSizeStorage := models.WindowSizeMinute
-
-	// Set default window size if meter exists in confing
+	// Set defaults if meter is found in static config and params are not set
 	for _, meter := range a.config.Meters {
 		if meter.ID == meterIdOrSlug || meter.Slug == meterIdOrSlug {
-			windowSizeStorage = meter.WindowSize
+			if params.Aggregation == nil {
+				params.Aggregation = &meter.Aggregation
+			}
+
+			if params.WindowSize == nil {
+				params.WindowSize = &meter.WindowSize
+			}
 		}
 	}
 
 	// Validate parameters
-	if err := ValidateGetMeterValuesParams(windowSizeStorage, params); err != nil {
+	if err := ValidateGetMeterValuesParams(params); err != nil {
 		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
 		return
+	}
+
+	// TODO: if we change OpenAPI type to array of strings it doesn't parse correctly
+	var groupBy *[]string
+	if params.GroupBy != nil {
+		tmp := strings.Split(*params.GroupBy, ",")
+		groupBy = &tmp
 	}
 
 	values, err := a.config.StreamingConnector.QueryMeter(
 		r.Context(),
 		namespace,
 		meterIdOrSlug,
-		&streaming.GetValuesParams{
-			From:       params.From,
-			To:         params.To,
-			Subject:    params.Subject,
-			WindowSize: params.WindowSize,
+		&streaming.QueryParams{
+			From:        params.From,
+			To:          params.To,
+			Subject:     params.Subject,
+			GroupBy:     groupBy,
+			Aggregation: params.Aggregation,
+			WindowSize:  params.WindowSize,
 		},
 	)
 	if err != nil {

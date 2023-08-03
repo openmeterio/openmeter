@@ -78,23 +78,31 @@ func (c *ClickhouseConnector) DeleteMeter(ctx context.Context, namespace string,
 	return nil
 }
 
-func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.GetValuesParams) ([]*models.MeterValue, error) {
+func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]*models.MeterValue, error) {
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
 
-	meterView, err := c.describeMeterView(ctx, namespace, meterSlug)
-	if err != nil {
-		return nil, err
+	// ClickHouse connector requires aggregation type to be set
+	// If we don't have it we inspect the meter view in ClickHouse
+	if params.Aggregation == nil {
+		meterView, err := c.describeMeterView(ctx, namespace, meterSlug)
+		if err != nil {
+			return nil, err
+		}
+
+		params.Aggregation = &meterView.Aggregation
 	}
 
-	values, err := c.queryMeterView(ctx, namespace, meterView, params)
+	values, err := c.queryMeterView(ctx, namespace, meterSlug, params)
 	if err != nil {
 		return values, fmt.Errorf("get values: %w", err)
 	}
 
+	fmt.Println(values)
+
 	// TODO: aggregate windows in query
-	return models.AggregateMeterValues(values, meterView.Aggregation, models.WindowSizeMinute, params.WindowSize)
+	return models.AggregateMeterValues(values, *params.Aggregation, params.WindowSize)
 }
 
 func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace string) error {
@@ -225,16 +233,21 @@ func (c *ClickhouseConnector) describeMeterView(ctx context.Context, namespace s
 	return meterView, nil
 }
 
-func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace string, meterView *MeterView, params *streaming.GetValuesParams) ([]*models.MeterValue, error) {
+func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]*models.MeterValue, error) {
 	values := []*models.MeterValue{}
+
+	groupBy := []string{}
+	if params.GroupBy != nil {
+		groupBy = *params.GroupBy
+	}
 
 	query, err := streaming.TemplateQuery(queryMeterViewTemplate, queryMeterViewData{
 		Database:      c.config.Database,
-		MeterViewName: getMeterViewNameBySlug(namespace, meterView.Slug),
+		MeterViewName: getMeterViewNameBySlug(namespace, meterSlug),
 		Subject:       params.Subject,
 		From:          params.From,
 		To:            params.To,
-		GroupBy:       meterView.GroupBy,
+		GroupBy:       groupBy,
 		// TODO: implement window size
 		WindowSize: params.WindowSize,
 	})
@@ -252,7 +265,7 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		}
 		args := []interface{}{&value.WindowStart, &value.WindowEnd, &value.Subject, &value.Value}
 		// TODO: do this next part without interface magic
-		for range meterView.GroupBy {
+		for range groupBy {
 			tmp := ""
 			args = append(args, &tmp)
 		}
@@ -261,7 +274,7 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 			return values, fmt.Errorf("query meter view row scan: %w", err)
 		}
 
-		for i, key := range meterView.GroupBy {
+		for i, key := range groupBy {
 			if s, ok := args[i+4].(*string); ok {
 				value.GroupBy[key] = *s
 			}

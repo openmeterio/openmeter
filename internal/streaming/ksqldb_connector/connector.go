@@ -132,13 +132,24 @@ func (c *KsqlDBConnector) MeterAssert(ctx context.Context, data meterTableQueryD
 	return nil
 }
 
-func (c *KsqlDBConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.GetValuesParams) ([]*models.MeterValue, error) {
-	meterTable, err := c.getMeterTable(ctx, namespace, meterSlug)
-	if err != nil {
-		return nil, err
+func (c *KsqlDBConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]*models.MeterValue, error) {
+	// Inspect table if aggregation is not provided
+	if params.Aggregation == nil {
+		meterTable, err := c.getMeterTable(ctx, namespace, meterSlug)
+		if err != nil {
+			return nil, err
+		}
+		params.Aggregation = &meterTable.Aggregation
 	}
 
-	q, err := GetTableValuesQuery(namespace, meterSlug, meterTable.GroupBy, params)
+	// Set default group by
+	groupBy := []string{}
+	if params.GroupBy != nil {
+		groupBy = *params.GroupBy
+	}
+
+	// ksqlDB always requires
+	q, err := GetTableValuesQuery(namespace, meterSlug, groupBy, params)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +168,7 @@ func (c *KsqlDBConnector) QueryMeter(ctx context.Context, namespace string, mete
 		return nil, fmt.Errorf("get meter values: %w", err)
 	}
 
-	return models.AggregateMeterValues(values, meterTable.Aggregation, meterTable.WindowSize, params.WindowSize)
+	return models.AggregateMeterValues(values, *params.Aggregation, params.WindowSize)
 }
 
 func (c *KsqlDBConnector) getMeterTable(ctx context.Context, namespace string, meterSlug string) (*MeterTable, error) {

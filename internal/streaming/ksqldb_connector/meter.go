@@ -46,12 +46,12 @@ func DeleteTableQuery(data deleteMeterTableQueryData) (string, error) {
 	return streaming.TemplateQuery(deleteMeterTableQueryTemplate, data)
 }
 
-func GetTableValuesQuery(namespace string, meterSlug string, groupBy map[string]string, params *streaming.GetValuesParams) (string, error) {
+func GetTableValuesQuery(namespace string, meterSlug string, groupBy []string, params *streaming.QueryParams) (string, error) {
 	return streaming.TemplateQuery(meterValuesTemplate, meterValuesData{
-		Namespace:       namespace,
-		Slug:            meterSlug,
-		GroupBy:         groupBy,
-		GetValuesParams: params,
+		Namespace:   namespace,
+		Slug:        meterSlug,
+		GroupBy:     groupBy,
+		QueryParams: params,
 	})
 }
 
