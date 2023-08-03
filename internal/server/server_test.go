@@ -42,7 +42,7 @@ func (c *MockConnector) DeleteMeter(ctx context.Context, namespace string, meter
 }
 
 func (c *MockConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.GetValuesParams) ([]*models.MeterValue, error) {
-	return models.AggregateMeterValues(values, models.MeterAggregationSum, params.WindowSize)
+	return models.AggregateMeterValues(values, meters[0].Aggregation, meters[0].WindowSize, params.WindowSize)
 }
 
 type MockHandler struct{}

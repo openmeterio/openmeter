@@ -68,13 +68,13 @@ func TestAggregateMeterValues(t *testing.T) {
 			meter:       &Meter{Slug: "meter1", WindowSize: WindowSizeDay, Aggregation: MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
 			meterValues: []*MeterValue{},
 			windowSize:  windowSizePtr(WindowSizeHour),
-			wantErr:     "invalid aggregation: expected window size of DAY for meter with slug meter1, but got HOUR",
+			wantErr:     "invalid aggregation: expected window size of DAY, but got HOUR",
 		},
 		{
 			meter:       &Meter{Slug: "meter2", WindowSize: WindowSizeHour, Aggregation: MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
 			meterValues: []*MeterValue{},
 			windowSize:  windowSizePtr(WindowSizeMinute),
-			wantErr:     "invalid aggregation: expected window size of HOUR or DAY for meter with slug meter2, but got MINUTE",
+			wantErr:     "invalid aggregation: expected window size of HOUR or DAY, but got MINUTE",
 		},
 		// same resolution
 		{
@@ -280,7 +280,7 @@ func TestAggregateMeterValues(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			got, err := tt.meter.AggregateMeterValues(tt.meterValues, tt.windowSize)
+			got, err := AggregateMeterValues(tt.meterValues, tt.meter.Aggregation, tt.meter.WindowSize, tt.windowSize)
 			if err != nil {
 				assert.Equal(t, tt.wantErr, err.Error())
 				return

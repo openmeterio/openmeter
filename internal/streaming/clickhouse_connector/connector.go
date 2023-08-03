@@ -16,6 +16,7 @@ import (
 
 var prefix = "om"
 var eventsTableName = "events"
+var aggregationRegexp = regexp.MustCompile(`^AggregateFunction\((sum|min|max|count), Float64\)$`)
 
 type SinkConfig struct {
 	Database string
@@ -97,7 +98,7 @@ func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, 
 	}
 
 	// TODO: aggregate windows in query
-	return models.AggregateMeterValues(values, meterView.Aggregation, params.WindowSize)
+	return models.AggregateMeterValues(values, meterView.Aggregation, models.WindowSizeMinute, params.WindowSize)
 }
 
 func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace string) error {
@@ -180,8 +181,6 @@ func (c *ClickhouseConnector) describeMeterView(ctx context.Context, namespace s
 	if err != nil {
 		return nil, fmt.Errorf("describe meter view: %w", err)
 	}
-
-	aggregationRegexp := regexp.MustCompile(`^AggregateFunction\(([sum|min|max|count]+), Float64\)$`)
 
 	// get columns and types
 	meterView := &MeterView{

@@ -235,9 +235,8 @@ func TestValuesSelectQuery(t *testing.T) {
 		{
 			data: meterValuesData{
 				Namespace: "default",
-				Meter: &models.Meter{
-					Slug: "meter1",
-				},
+				Slug:      "meter1",
+				GroupBy:   map[string]string{},
 				GetValuesParams: &GetValuesParams{
 					Subject: &subject,
 				},
@@ -247,9 +246,8 @@ func TestValuesSelectQuery(t *testing.T) {
 		{
 			data: meterValuesData{
 				Namespace: "default",
-				Meter: &models.Meter{
-					Slug: "meter2",
-				},
+				Slug:      "meter2",
+				GroupBy:   map[string]string{},
 				GetValuesParams: &GetValuesParams{
 					Subject: &subject,
 					From:    &from,
@@ -259,10 +257,9 @@ func TestValuesSelectQuery(t *testing.T) {
 		},
 		{
 			data: meterValuesData{
-				Namespace: "default",
-				Meter: &models.Meter{
-					Slug: "meter3",
-				},
+				Namespace:       "default",
+				Slug:            "meter3",
+				GroupBy:         map[string]string{},
 				GetValuesParams: &GetValuesParams{},
 			},
 			want: "SELECT `subject`, `value`, windowstart as `windowstart`, windowend as `windowend` FROM `OM_DEFAULT_METER_METER3`;",
@@ -270,9 +267,7 @@ func TestValuesSelectQuery(t *testing.T) {
 		{
 			data: meterValuesData{
 				Namespace: "default",
-				Meter: &models.Meter{
-					Slug: "meter4",
-				},
+				Slug:      "meter4",
 				GetValuesParams: &GetValuesParams{
 					Subject: &subject,
 					To:      &to,
@@ -283,9 +278,8 @@ func TestValuesSelectQuery(t *testing.T) {
 		{
 			data: meterValuesData{
 				Namespace: "default",
-				Meter: &models.Meter{
-					Slug: "meter5",
-				},
+				Slug:      "meter5",
+				GroupBy:   map[string]string{},
 				GetValuesParams: &GetValuesParams{
 					Subject: &subject,
 					From:    &from,

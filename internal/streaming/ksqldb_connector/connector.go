@@ -93,7 +93,7 @@ func (c *KsqlDBConnector) DeleteMeter(ctx context.Context, namespace string, met
 
 // MeterAssert ensures meter table immutability by checking that existing meter table is the same as new
 func (c *KsqlDBConnector) MeterAssert(ctx context.Context, data meterTableQueryData) error {
-	q, err := GetTableDescribeQuery(data.Meter, data.Namespace)
+	q, err := GetTableDescribeQuery(data.Namespace, data.Meter.Slug)
 	if err != nil {
 		return fmt.Errorf("get table describe query: %w", err)
 	}
@@ -133,26 +133,63 @@ func (c *KsqlDBConnector) MeterAssert(ctx context.Context, data meterTableQueryD
 }
 
 func (c *KsqlDBConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.GetValuesParams) ([]*models.MeterValue, error) {
-	// q, err := GetTableValuesQuery(meter, params, namespace)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// slog.Debug("detectedEventsTableQuery", "query", q)
+	meterTable, err := c.getMeterTable(ctx, namespace, meterSlug)
+	if err != nil {
+		return nil, err
+	}
 
-	// header, payload, err := c.ksqlDBClient.Pull(ctx, ksqldb.QueryOptions{
-	// 	Sql: q,
-	// })
-	// if err != nil {
-	// 	return nil, err
-	// }
+	q, err := GetTableValuesQuery(namespace, meterSlug, meterTable.GroupBy, params)
+	if err != nil {
+		return nil, err
+	}
+	slog.Debug("detectedEventsTableQuery", "query", q)
 
-	// c.logger.Debug("ksqlDB response", "header", header, "payload", payload)
-	// values, err := NewMeterValues(header, payload)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("get meter values: %w", err)
-	// }
+	header, payload, err := c.ksqlDBClient.Pull(ctx, ksqldb.QueryOptions{
+		Sql: q,
+	})
+	if err != nil {
+		return nil, err
+	}
 
-	// return meter.AggregateMeterValues(values, params.WindowSize)
+	c.logger.Debug("ksqlDB response", "header", header, "payload", payload)
+	values, err := NewMeterValues(header, payload)
+	if err != nil {
+		return nil, fmt.Errorf("get meter values: %w", err)
+	}
 
-	return nil, fmt.Errorf("not implemented")
+	return models.AggregateMeterValues(values, meterTable.Aggregation, meterTable.WindowSize, params.WindowSize)
+}
+
+func (c *KsqlDBConnector) getMeterTable(ctx context.Context, namespace string, meterSlug string) (*MeterTable, error) {
+	q, err := GetTableDescribeQuery(namespace, meterSlug)
+	if err != nil {
+		return nil, fmt.Errorf("get table describe query: %w", err)
+	}
+
+	resp, err := c.ksqlDBClient.Execute(ctx, ksqldb.ExecOptions{
+		KSql: q,
+	})
+	if err != nil {
+		// It's not an issue if the table doesn't exist yet
+		// If the table we want to describe does not exist yet ksqldb returns a 40001 error code (bad statement)
+		// which is not specific enough to check here.
+		if strings.HasPrefix(err.Error(), "Could not find") {
+			return nil, &models.MeterNotFoundError{MeterSlug: meterSlug}
+		}
+
+		return nil, fmt.Errorf("describe table: %w", err)
+	}
+
+	sourceDescription := (*resp)[0]
+
+	if len(sourceDescription.SourceDescription.WriteQueries) == 0 {
+		return nil, &models.MeterNotFoundError{MeterSlug: meterSlug}
+	}
+	query := sourceDescription.SourceDescription.WriteQueries[0].QueryString
+
+	meterTable, err := ParseMeterTable(query)
+	if err != nil {
+		return nil, err
+	}
+	return meterTable, nil
 }

@@ -228,26 +228,22 @@ func (m *MeterValue) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (m *Meter) AggregateMeterValues(values []*MeterValue, windowSize *WindowSize) ([]*MeterValue, error) {
-	if windowSize != nil {
+func AggregateMeterValues(values []*MeterValue, aggregation MeterAggregation, inWindowSize WindowSize, outWindowSize *WindowSize) ([]*MeterValue, error) {
+	if outWindowSize != nil {
 		// no need to aggregate
-		if *windowSize == m.WindowSize {
+		if *outWindowSize == inWindowSize {
 			return values, nil
 		}
 
 		// cannot aggregate with a lower resolution
-		if m.WindowSize == WindowSizeDay && *windowSize != WindowSizeDay {
-			return nil, fmt.Errorf("invalid aggregation: expected window size of %s for meter with slug %s, but got %s", WindowSizeDay, m.Slug, *windowSize)
+		if inWindowSize == WindowSizeDay && *outWindowSize != WindowSizeDay {
+			return nil, fmt.Errorf("invalid aggregation: expected window size of %s, but got %s", WindowSizeDay, *outWindowSize)
 		}
-		if m.WindowSize == WindowSizeHour && *windowSize == WindowSizeMinute {
-			return nil, fmt.Errorf("invalid aggregation: expected window size of %s or %s for meter with slug %s, but got %s", WindowSizeHour, WindowSizeDay, m.Slug, *windowSize)
+		if inWindowSize == WindowSizeHour && *outWindowSize == WindowSizeMinute {
+			return nil, fmt.Errorf("invalid aggregation: expected window size of %s or %s, but got %s", WindowSizeHour, WindowSizeDay, *outWindowSize)
 		}
 	}
 
-	return AggregateMeterValues(values, m.Aggregation, windowSize)
-}
-
-func AggregateMeterValues(values []*MeterValue, aggregation MeterAggregation, windowSize *WindowSize) ([]*MeterValue, error) {
 	if len(values) == 0 {
 		return values, nil
 	}
@@ -271,8 +267,8 @@ func AggregateMeterValues(values []*MeterValue, aggregation MeterAggregation, wi
 			GroupBy: fmt.Sprint(value.GroupBy),
 		}
 
-		if windowSize != nil {
-			windowDuration := windowSize.Duration()
+		if outWindowSize != nil {
+			windowDuration := outWindowSize.Duration()
 			key.WindowStart = value.WindowStart.UTC().Truncate(windowDuration)
 			key.WindowEnd = key.WindowStart.Add(windowDuration)
 		}
@@ -314,7 +310,7 @@ func AggregateMeterValues(values []*MeterValue, aggregation MeterAggregation, wi
 	v := make([]*MeterValue, 0, len(groupBy))
 	for _, value := range groupBy {
 		// set full window if window size is not set
-		if windowSize == nil {
+		if outWindowSize == nil {
 			key := key{
 				Subject: value.Subject,
 				GroupBy: fmt.Sprint(value.GroupBy),
