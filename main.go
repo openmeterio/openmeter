@@ -491,12 +491,26 @@ func initClickHouseStreaming(config configuration, logger *slog.Logger) (*clickh
 // initDedupe initializes the dedupe based on the configuration.
 func initDedupeRedis(config configuration, logger *slog.Logger, collector ingest.Collector) (*redisdedupe.Collector, error) {
 	// Initialize Redis
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:     config.Dedupe.Redis.Address,
-		Password: config.Dedupe.Redis.Password,
-		Username: config.Dedupe.Redis.Username,
-		DB:       config.Dedupe.Redis.Database,
-	})
+	var redisClient *redis.Client
+
+	if config.Dedupe.Redis.UseSentinel {
+		redisClient = redis.NewFailoverClient(&redis.FailoverOptions{
+			MasterName:    config.Dedupe.Redis.MasterName,
+			SentinelAddrs: []string{config.Dedupe.Redis.Address},
+			// RouteByLatency:          false,
+			// RouteRandomly:           false,
+			Password: config.Dedupe.Redis.Password,
+			Username: config.Dedupe.Redis.Username,
+			DB:       config.Dedupe.Redis.Database,
+		})
+	} else {
+		redisClient = redis.NewClient(&redis.Options{
+			Addr:     config.Dedupe.Redis.Address,
+			Password: config.Dedupe.Redis.Password,
+			Username: config.Dedupe.Redis.Username,
+			DB:       config.Dedupe.Redis.Database,
+		})
+	}
 
 	dedupeRedis, err := redisdedupe.NewCollector(redisdedupe.CollectorConfig{
 		Logger:     logger,
