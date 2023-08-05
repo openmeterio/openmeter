@@ -72,6 +72,10 @@ func (c *ClickhouseConnector) DeleteMeter(ctx context.Context, namespace string,
 
 	err := c.deleteMeterView(ctx, namespace, meterSlug)
 	if err != nil {
+		if _, ok := err.(*models.MeterNotFoundError); ok {
+			return err
+		}
+
 		return fmt.Errorf("delete meter view: %w", err)
 	}
 
@@ -94,8 +98,17 @@ func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, 
 		params.Aggregation = &meterView.Aggregation
 	}
 
+	if params.WindowSize == nil {
+		windowSize := models.WindowSizeMinute
+		params.WindowSize = &windowSize
+	}
+
 	values, err := c.queryMeterView(ctx, namespace, meterSlug, params)
 	if err != nil {
+		if _, ok := err.(*models.MeterNotFoundError); ok {
+			return nil, err
+		}
+
 		return values, fmt.Errorf("get values: %w", err)
 	}
 
@@ -249,11 +262,16 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		// TODO: implement window size
 		WindowSize: params.WindowSize,
 	})
+	fmt.Println(query)
 	if err != nil {
 		return values, err
 	}
 	rows, err := c.config.ClickHouse.Query(ctx, query)
 	if err != nil {
+		if strings.Contains(err.Error(), "code: 60") {
+			return nil, &models.MeterNotFoundError{MeterSlug: meterSlug}
+		}
+
 		return values, fmt.Errorf("query meter view query: %w", err)
 	}
 

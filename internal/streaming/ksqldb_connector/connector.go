@@ -134,12 +134,17 @@ func (c *KsqlDBConnector) MeterAssert(ctx context.Context, data meterTableQueryD
 
 func (c *KsqlDBConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]*models.MeterValue, error) {
 	// Inspect table if aggregation is not provided
-	if params.Aggregation == nil {
+	if params.Aggregation == nil || params.WindowSize == nil {
 		meterTable, err := c.getMeterTable(ctx, namespace, meterSlug)
 		if err != nil {
 			return nil, err
 		}
-		params.Aggregation = &meterTable.Aggregation
+		if params.Aggregation == nil {
+			params.Aggregation = &meterTable.Aggregation
+		}
+		if params.WindowSize == nil {
+			params.WindowSize = &meterTable.WindowSize
+		}
 	}
 
 	// Set default group by

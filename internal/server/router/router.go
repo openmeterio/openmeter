@@ -154,12 +154,14 @@ func ValidateGetMeterValuesParams(params api.GetMeterValuesParams) error {
 		return errors.New("from must be before to")
 	}
 
-	windowDuration := params.WindowSize.Duration()
-	if params.From != nil && params.From.Truncate(windowDuration) != *params.From {
-		return errors.New("from must be aligned to window size")
-	}
-	if params.To != nil && params.To.Truncate(windowDuration) != *params.To {
-		return errors.New("to must be aligned to window size")
+	if params.WindowSize != nil {
+		windowDuration := params.WindowSize.Duration()
+		if params.From != nil && params.From.Truncate(windowDuration) != *params.From {
+			return errors.New("from must be aligned to window size")
+		}
+		if params.To != nil && params.To.Truncate(windowDuration) != *params.To {
+			return errors.New("to must be aligned to window size")
+		}
 	}
 
 	return nil
