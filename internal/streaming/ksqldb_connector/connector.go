@@ -93,7 +93,7 @@ func (c *KsqlDBConnector) DeleteMeter(ctx context.Context, namespace string, met
 
 // MeterAssert ensures meter table immutability by checking that existing meter table is the same as new
 func (c *KsqlDBConnector) MeterAssert(ctx context.Context, data meterTableQueryData) error {
-	q, err := GetTableDescribeQuery(data.Meter, data.Namespace)
+	q, err := GetTableDescribeQuery(data.Namespace, data.Meter.Slug)
 	if err != nil {
 		return fmt.Errorf("get table describe query: %w", err)
 	}
@@ -132,8 +132,29 @@ func (c *KsqlDBConnector) MeterAssert(ctx context.Context, data meterTableQueryD
 	return nil
 }
 
-func (c *KsqlDBConnector) QueryMeter(ctx context.Context, namespace string, meter *models.Meter, params *streaming.GetValuesParams) ([]*models.MeterValue, error) {
-	q, err := GetTableValuesQuery(meter, params, namespace)
+func (c *KsqlDBConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]*models.MeterValue, error) {
+	// Inspect table if aggregation is not provided
+	if params.Aggregation == nil || params.WindowSize == nil {
+		meterTable, err := c.getMeterTable(ctx, namespace, meterSlug)
+		if err != nil {
+			return nil, err
+		}
+		if params.Aggregation == nil {
+			params.Aggregation = &meterTable.Aggregation
+		}
+		if params.WindowSize == nil {
+			params.WindowSize = &meterTable.WindowSize
+		}
+	}
+
+	// Set default group by
+	groupBy := []string{}
+	if params.GroupBy != nil {
+		groupBy = *params.GroupBy
+	}
+
+	// ksqlDB always requires
+	q, err := GetTableValuesQuery(namespace, meterSlug, groupBy, params)
 	if err != nil {
 		return nil, err
 	}
@@ -152,5 +173,39 @@ func (c *KsqlDBConnector) QueryMeter(ctx context.Context, namespace string, mete
 		return nil, fmt.Errorf("get meter values: %w", err)
 	}
 
-	return meter.AggregateMeterValues(values, params.WindowSize)
+	return models.AggregateMeterValues(values, *params.Aggregation, params.WindowSize)
+}
+
+func (c *KsqlDBConnector) getMeterTable(ctx context.Context, namespace string, meterSlug string) (*MeterTable, error) {
+	q, err := GetTableDescribeQuery(namespace, meterSlug)
+	if err != nil {
+		return nil, fmt.Errorf("get table describe query: %w", err)
+	}
+
+	resp, err := c.ksqlDBClient.Execute(ctx, ksqldb.ExecOptions{
+		KSql: q,
+	})
+	if err != nil {
+		// It's not an issue if the table doesn't exist yet
+		// If the table we want to describe does not exist yet ksqldb returns a 40001 error code (bad statement)
+		// which is not specific enough to check here.
+		if strings.HasPrefix(err.Error(), "Could not find") {
+			return nil, &models.MeterNotFoundError{MeterSlug: meterSlug}
+		}
+
+		return nil, fmt.Errorf("describe table: %w", err)
+	}
+
+	sourceDescription := (*resp)[0]
+
+	if len(sourceDescription.SourceDescription.WriteQueries) == 0 {
+		return nil, &models.MeterNotFoundError{MeterSlug: meterSlug}
+	}
+	query := sourceDescription.SourceDescription.WriteQueries[0].QueryString
+
+	meterTable, err := ParseMeterTable(query)
+	if err != nil {
+		return nil, err
+	}
+	return meterTable, nil
 }

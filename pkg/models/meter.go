@@ -36,6 +36,18 @@ func (MeterAggregation) Values() (kinds []string) {
 	return
 }
 
+func (MeterAggregation) IsValid(input string) bool {
+	m := MeterAggregation("")
+
+	for _, v := range m.Values() {
+		if v == input {
+			return true
+		}
+	}
+
+	return false
+}
+
 type MeterFilterOperator string
 
 const (
@@ -107,6 +119,19 @@ func (w WindowSize) Duration() time.Duration {
 	}
 
 	return windowDuration
+}
+
+func WindowSizeFromDuration(duration time.Duration) (WindowSize, error) {
+	switch duration.Minutes() {
+	case time.Minute.Minutes():
+		return WindowSizeMinute, nil
+	case time.Hour.Minutes():
+		return WindowSizeHour, nil
+	case 24 * time.Hour.Minutes():
+		return WindowSizeDay, nil
+	default:
+		return "", fmt.Errorf("invalid window size duration: %s", duration)
+	}
 }
 
 type Meter struct {
@@ -216,24 +241,32 @@ func (m *MeterValue) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (m *Meter) AggregateMeterValues(values []*MeterValue, windowSize *WindowSize) ([]*MeterValue, error) {
-	if windowSize != nil {
+func AggregateMeterValues(values []*MeterValue, aggregation MeterAggregation, windowSizeOut *WindowSize) ([]*MeterValue, error) {
+	if len(values) == 0 {
+		return values, nil
+	}
+
+	// Determinate window size returned by storage
+	var windowSizeStorage WindowSize
+	duration := values[0].WindowEnd.Sub(values[0].WindowStart)
+	windowSizeStorage, err := WindowSizeFromDuration(duration)
+	if err != nil {
+		return nil, err
+	}
+
+	if windowSizeOut != nil {
 		// no need to aggregate
-		if *windowSize == m.WindowSize {
+		if *windowSizeOut == windowSizeStorage {
 			return values, nil
 		}
 
 		// cannot aggregate with a lower resolution
-		if m.WindowSize == WindowSizeDay && *windowSize != WindowSizeDay {
-			return nil, fmt.Errorf("invalid aggregation: expected window size of %s for meter with slug %s, but got %s", WindowSizeDay, m.Slug, *windowSize)
+		if windowSizeStorage == WindowSizeDay && *windowSizeOut != WindowSizeDay {
+			return nil, fmt.Errorf("invalid aggregation: expected window size of %s, but got %s", WindowSizeDay, *windowSizeOut)
 		}
-		if m.WindowSize == WindowSizeHour && *windowSize == WindowSizeMinute {
-			return nil, fmt.Errorf("invalid aggregation: expected window size of %s or %s for meter with slug %s, but got %s", WindowSizeHour, WindowSizeDay, m.Slug, *windowSize)
+		if windowSizeStorage == WindowSizeHour && *windowSizeOut == WindowSizeMinute {
+			return nil, fmt.Errorf("invalid aggregation: expected window size of %s or %s, but got %s", WindowSizeHour, WindowSizeDay, *windowSizeOut)
 		}
-	}
-
-	if len(values) == 0 {
-		return values, nil
 	}
 
 	// key by subject, group by and window
@@ -255,8 +288,8 @@ func (m *Meter) AggregateMeterValues(values []*MeterValue, windowSize *WindowSiz
 			GroupBy: fmt.Sprint(value.GroupBy),
 		}
 
-		if windowSize != nil {
-			windowDuration := windowSize.Duration()
+		if windowSizeOut != nil {
+			windowDuration := windowSizeOut.Duration()
 			key.WindowStart = value.WindowStart.UTC().Truncate(windowDuration)
 			key.WindowEnd = key.WindowStart.Add(windowDuration)
 		}
@@ -273,12 +306,12 @@ func (m *Meter) AggregateMeterValues(values []*MeterValue, windowSize *WindowSiz
 			groupBy[key] = value
 			groupBy[key].WindowStart = key.WindowStart
 			groupBy[key].WindowEnd = key.WindowEnd
-			if m.Aggregation == MeterAggregationAvg {
+			if aggregation == MeterAggregationAvg {
 				avgCount[key] = 1
 			}
 		} else {
 			// update value
-			switch m.Aggregation {
+			switch aggregation {
 			case MeterAggregationCount:
 				groupBy[key].Value += value.Value
 			case MeterAggregationSum:
@@ -298,7 +331,7 @@ func (m *Meter) AggregateMeterValues(values []*MeterValue, windowSize *WindowSiz
 	v := make([]*MeterValue, 0, len(groupBy))
 	for _, value := range groupBy {
 		// set full window if window size is not set
-		if windowSize == nil {
+		if windowSizeOut == nil {
 			key := key{
 				Subject: value.Subject,
 				GroupBy: fmt.Sprint(value.GroupBy),

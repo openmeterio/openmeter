@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -68,13 +69,13 @@ func TestAggregateMeterValues(t *testing.T) {
 			meter:       &Meter{Slug: "meter1", WindowSize: WindowSizeDay, Aggregation: MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
 			meterValues: []*MeterValue{},
 			windowSize:  windowSizePtr(WindowSizeHour),
-			wantErr:     "invalid aggregation: expected window size of DAY for meter with slug meter1, but got HOUR",
+			wantErr:     "invalid aggregation: expected window size of DAY, but got HOUR",
 		},
 		{
 			meter:       &Meter{Slug: "meter2", WindowSize: WindowSizeHour, Aggregation: MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
 			meterValues: []*MeterValue{},
 			windowSize:  windowSizePtr(WindowSizeMinute),
-			wantErr:     "invalid aggregation: expected window size of HOUR or DAY for meter with slug meter2, but got MINUTE",
+			wantErr:     "invalid aggregation: expected window size of HOUR or DAY, but got MINUTE",
 		},
 		// same resolution
 		{
@@ -280,13 +281,58 @@ func TestAggregateMeterValues(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			got, err := tt.meter.AggregateMeterValues(tt.meterValues, tt.windowSize)
+			got, err := AggregateMeterValues(tt.meterValues, tt.meter.Aggregation, tt.windowSize)
 			if err != nil {
 				assert.Equal(t, tt.wantErr, err.Error())
 				return
 			}
 
 			assertMeterValuesEqual(t, tt.want, got)
+		})
+	}
+}
+
+func TestWindowSizeFromDuration(t *testing.T) {
+	tests := []struct {
+		input time.Duration
+		want  WindowSize
+		error error
+	}{
+		{
+			input: time.Minute,
+			want:  WindowSizeMinute,
+			error: nil,
+		},
+		{
+			input: time.Hour,
+			want:  WindowSizeHour,
+			error: nil,
+		},
+		{
+			input: 24 * time.Hour,
+			want:  WindowSizeDay,
+			error: nil,
+		},
+		{
+			input: 2 * time.Minute,
+			want:  "",
+			error: fmt.Errorf("invalid window size duration: %s", 2*time.Minute),
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run("", func(t *testing.T) {
+			got, err := WindowSizeFromDuration(tt.input)
+			if err != nil {
+				if tt.error == nil {
+					t.Error(err)
+				}
+
+				assert.Equal(t, tt.error, err)
+			}
+
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

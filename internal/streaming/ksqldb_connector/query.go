@@ -48,13 +48,14 @@ var meterValuesTemplate string
 
 type meterValuesData struct {
 	Namespace string
-	*models.Meter
-	*GetValuesParams
+	Slug      string
+	GroupBy   []string
+	*QueryParams
 }
 
 type meterTableDescribeQueryData struct {
 	Namespace string
-	*models.Meter
+	Slug      string
 }
 
 //go:embed sql/meter_table.tpl.sql

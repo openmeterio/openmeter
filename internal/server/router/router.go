@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
@@ -116,6 +117,11 @@ func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSl
 	}
 	err := a.config.StreamingConnector.DeleteMeter(r.Context(), namespace, meterIdOrSlug)
 	if err != nil {
+		if _, ok := err.(*models.MeterNotFoundError); ok {
+			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
+			return
+		}
+
 		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
 		return
 	}
@@ -143,7 +149,7 @@ func (rd *GetMeterValuesResponse) Render(w http.ResponseWriter, r *http.Request)
 	return nil
 }
 
-func ValidateGetMeterValuesParams(meter *models.Meter, params api.GetMeterValuesParams) error {
+func ValidateGetMeterValuesParams(params api.GetMeterValuesParams) error {
 	if params.From != nil && params.To != nil && params.From.After(*params.To) {
 		return errors.New("from must be before to")
 	}
@@ -156,18 +162,6 @@ func ValidateGetMeterValuesParams(meter *models.Meter, params api.GetMeterValues
 		if params.To != nil && params.To.Truncate(windowDuration) != *params.To {
 			return errors.New("to must be aligned to window size")
 		}
-		if (meter.WindowSize == models.WindowSizeDay && *params.WindowSize != models.WindowSizeDay) ||
-			(meter.WindowSize == models.WindowSizeHour && *params.WindowSize == models.WindowSizeMinute) {
-			return fmt.Errorf("expected window size to be less than or equal to %s, but got %s", meter.WindowSize, *params.WindowSize)
-		}
-	} else {
-		windowDuration := meter.WindowSize.Duration()
-		if params.From != nil && params.From.Truncate(windowDuration) != *params.From {
-			return fmt.Errorf("from must be aligned to the meter's window size of %s", meter.WindowSize)
-		}
-		if params.To != nil && params.To.Truncate(windowDuration) != *params.To {
-			return fmt.Errorf("to must be aligned to the meter's window size of %s", meter.WindowSize)
-		}
 	}
 
 	return nil
@@ -179,40 +173,60 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 		namespace = *params.NamespaceInput
 	}
 
+	// Set defaults if meter is found in static config and params are not set
 	for _, meter := range a.config.Meters {
 		if meter.ID == meterIdOrSlug || meter.Slug == meterIdOrSlug {
-			if err := ValidateGetMeterValuesParams(meter, params); err != nil {
-				models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
-				return
+			if params.Aggregation == nil {
+				params.Aggregation = &meter.Aggregation
 			}
 
-			values, err := a.config.StreamingConnector.QueryMeter(
-				r.Context(),
-				namespace,
-				meter,
-				&streaming.GetValuesParams{
-					From:       params.From,
-					To:         params.To,
-					Subject:    params.Subject,
-					WindowSize: params.WindowSize,
-				},
-			)
-			if err != nil {
-				slog.Error("error getting values", "err", err)
-				models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
-				return
+			if params.WindowSize == nil {
+				params.WindowSize = &meter.WindowSize
 			}
-
-			windowSize := params.WindowSize
-			resp := &GetMeterValuesResponse{
-				WindowSize: windowSize,
-				Data:       values,
-			}
-
-			_ = render.Render(w, r, resp)
-			return
 		}
 	}
 
-	models.NewStatusProblem(r.Context(), fmt.Errorf("meter is not found with ID or slug %s", meterIdOrSlug), http.StatusNotFound).Respond(w, r)
+	// Validate parameters
+	if err := ValidateGetMeterValuesParams(params); err != nil {
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		return
+	}
+
+	// TODO: if we change OpenAPI type to array of strings it doesn't parse correctly
+	var groupBy *[]string
+	if params.GroupBy != nil {
+		tmp := strings.Split(*params.GroupBy, ",")
+		groupBy = &tmp
+	}
+
+	values, err := a.config.StreamingConnector.QueryMeter(
+		r.Context(),
+		namespace,
+		meterIdOrSlug,
+		&streaming.QueryParams{
+			From:        params.From,
+			To:          params.To,
+			Subject:     params.Subject,
+			GroupBy:     groupBy,
+			Aggregation: params.Aggregation,
+			WindowSize:  params.WindowSize,
+		},
+	)
+	if err != nil {
+		if _, ok := err.(*models.MeterNotFoundError); ok {
+			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
+			return
+		}
+
+		slog.Error("error getting values", "err", err)
+		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+		return
+	}
+
+	resp := &GetMeterValuesResponse{
+		WindowSize: params.WindowSize,
+		Data:       values,
+	}
+
+	_ = render.Render(w, r, resp)
 }
