@@ -234,7 +234,7 @@ type MeterValue struct {
 	WindowStart time.Time         `json:"windowStart"`
 	WindowEnd   time.Time         `json:"windowEnd"`
 	Value       float64           `json:"value"`
-	GroupBy     map[string]string `json:"groupBy"`
+	GroupBy     map[string]string `json:"groupBy,omitempty"`
 }
 
 func (m *MeterValue) Render(w http.ResponseWriter, r *http.Request) error {
