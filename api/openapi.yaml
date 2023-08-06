@@ -408,7 +408,6 @@ components:
       properties:
         subject:
           type: string
-          nullable: true
           description: The subject of the meter value.
         windowStart:
           type: string
