@@ -257,6 +257,7 @@ func main() {
 			StreamingConnector: streamingConnector,
 			IngestHandler:      ingestHandler,
 			Meters:             config.Meters,
+			Stateless:          config.Stateless,
 		},
 		RouterHook: func(r chi.Router) {
 			r.Use(func(h http.Handler) http.Handler {
@@ -294,14 +295,21 @@ func main() {
 		})
 	})
 
-	for _, meter := range config.Meters {
-		err := streamingConnector.CreateMeter(ctx, namespaceManager.GetDefaultNamespace(), meter)
-		if err != nil {
-			slog.Warn("failed to initialize meter", "error", err)
-			os.Exit(1)
+	if !config.Stateless {
+		slog.Info("starting in stateless mode")
+		if len(config.Meters) > 0 {
+			slog.Warn("static meter configs are ignored in stateless mode", "count", len(config.Meters))
 		}
+	} else {
+		for _, meter := range config.Meters {
+			err := streamingConnector.CreateMeter(ctx, namespaceManager.GetDefaultNamespace(), meter)
+			if err != nil {
+				slog.Warn("failed to initialize meter", "error", err)
+				os.Exit(1)
+			}
+		}
+		slog.Info("meters successfully created", "count", len(config.Meters))
 	}
-	slog.Info("meters successfully created", "count", len(config.Meters))
 
 	// Set up telemetry server
 	{
@@ -527,9 +535,8 @@ func initDedupeRedis(config configuration, logger *slog.Logger, collector ingest
 
 func initNamespace(config configuration, namespaces ...namespace.Handler) (*namespace.Manager, error) {
 	namespaceManager, err := namespace.NewManager(namespace.ManagerConfig{
-		Handlers:          namespaces,
-		DefaultNamespace:  config.Namespace.Default,
-		DisableManagement: config.Namespace.DisableManagement,
+		Handlers:         namespaces,
+		DefaultNamespace: config.Namespace.Default,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create namespace manager: %v", err)

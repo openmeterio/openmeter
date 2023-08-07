@@ -29,6 +29,9 @@ type configuration struct {
 		Address string
 	}
 
+	// Stateless configuration
+	Stateless bool
+
 	// Namespace configuration
 	Namespace namespaceConfiguration
 
@@ -118,8 +121,7 @@ func (c configuration) Validate() error {
 
 // Namespace configuration
 type namespaceConfiguration struct {
-	Default           string
-	DisableManagement bool
+	Default string
 }
 
 func (c namespaceConfiguration) Validate() error {
@@ -390,7 +392,10 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	// Log configuration
 	v.SetDefault("log.format", "json")
 	v.SetDefault("log.level", "info")
-	//
+
+	// Stateless
+	v.SetDefault("stateless", false)
+
 	// Telemetry configuration
 	flags.String("telemetry-address", ":10000", "Telemetry HTTP server address")
 	_ = v.BindPFlag("telemetry.address", flags.Lookup("telemetry-address"))
@@ -398,7 +403,6 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 
 	// Namespace configuration
 	v.SetDefault("namespace.default", "default")
-	v.SetDefault("namespace.disableManagement", false)
 
 	// Ingest configuration
 	v.SetDefault("ingest.kafka.broker", "127.0.0.1:29092")

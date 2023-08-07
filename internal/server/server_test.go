@@ -70,6 +70,7 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 			StreamingConnector: &MockConnector{},
 			IngestHandler:      MockHandler{},
 			NamespaceManager:   namespaceManager,
+			Stateless:          true,
 		},
 		RouterHook: func(r chi.Router) {},
 	})
