@@ -295,7 +295,7 @@ func main() {
 		})
 	})
 
-	if !config.Stateless {
+	if config.Stateless {
 		slog.Info("starting in stateless mode")
 		if len(config.Meters) > 0 {
 			slog.Warn("static meter configs are ignored in stateless mode", "count", len(config.Meters))
