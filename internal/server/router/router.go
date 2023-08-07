@@ -199,7 +199,7 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 		groupBy = &tmp
 	}
 
-	values, err := a.config.StreamingConnector.QueryMeter(
+	values, windowSize, err := a.config.StreamingConnector.QueryMeter(
 		r.Context(),
 		namespace,
 		meterIdOrSlug,
@@ -224,7 +224,7 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 	}
 
 	resp := &GetMeterValuesResponse{
-		WindowSize: params.WindowSize,
+		WindowSize: windowSize,
 		Data:       values,
 	}
 

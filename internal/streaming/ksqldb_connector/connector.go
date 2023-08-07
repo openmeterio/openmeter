@@ -132,12 +132,12 @@ func (c *KsqlDBConnector) MeterAssert(ctx context.Context, data meterTableQueryD
 	return nil
 }
 
-func (c *KsqlDBConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]*models.MeterValue, error) {
+func (c *KsqlDBConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]*models.MeterValue, *models.WindowSize, error) {
 	// Inspect table if aggregation is not provided
 	if params.Aggregation == nil || params.WindowSize == nil {
 		meterTable, err := c.getMeterTable(ctx, namespace, meterSlug)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if params.Aggregation == nil {
 			params.Aggregation = &meterTable.Aggregation
@@ -156,7 +156,7 @@ func (c *KsqlDBConnector) QueryMeter(ctx context.Context, namespace string, mete
 	// ksqlDB always requires
 	q, err := GetTableValuesQuery(namespace, meterSlug, groupBy, params)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	slog.Debug("detectedEventsTableQuery", "query", q)
 
@@ -164,16 +164,21 @@ func (c *KsqlDBConnector) QueryMeter(ctx context.Context, namespace string, mete
 		Sql: q,
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	c.logger.Debug("ksqlDB response", "header", header, "payload", payload)
 	values, err := NewMeterValues(header, payload)
 	if err != nil {
-		return nil, fmt.Errorf("get meter values: %w", err)
+		return nil, nil, fmt.Errorf("get meter values: %w", err)
 	}
 
-	return models.AggregateMeterValues(values, *params.Aggregation, params.WindowSize)
+	aggValues, err := models.AggregateMeterValues(values, *params.Aggregation, params.WindowSize)
+	if err != nil {
+		return nil, nil, fmt.Errorf("aggregate meter values: %w", err)
+	}
+
+	return aggValues, params.WindowSize, nil
 }
 
 func (c *KsqlDBConnector) getMeterTable(ctx context.Context, namespace string, meterSlug string) (*MeterTable, error) {

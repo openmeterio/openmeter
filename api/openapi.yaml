@@ -419,6 +419,7 @@ components:
           type: number
         groupBy:
           type: object
+          nullable: true
           additionalProperties:
             type: string
     IdOrSlug:
