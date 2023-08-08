@@ -3,6 +3,7 @@ package clickhouse_connector
 import (
 	_ "embed"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/huandu/go-sqlbuilder"
@@ -15,8 +16,13 @@ type createEventsTable struct {
 	EventsTableName string
 }
 
+type column struct {
+	Name string
+	Type string
+}
+
 func (d createEventsTable) toSQL() string {
-	tableName := fmt.Sprintf("%s.%s", d.Database, d.EventsTableName)
+	tableName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.EventsTableName))
 
 	sb := sqlbuilder.ClickHouse.NewCreateTableBuilder()
 	sb.CreateTable(tableName)
@@ -35,10 +41,7 @@ func (d createEventsTable) toSQL() string {
 	return sql
 }
 
-//go:embed sql/create_meter_view.tpl.sql
-var createMeterViewTemplate string
-
-type createMeterViewData struct {
+type createMeterView struct {
 	Database        string
 	EventsTableName string
 	MeterViewName   string
@@ -47,26 +50,72 @@ type createMeterViewData struct {
 	GroupBy         map[string]string
 }
 
-//go:embed sql/delete_meter_view.tpl.sql
-var deleteMeterViewTemplate string
+func (d createMeterView) toSQL() string {
+	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
+	eventsTableName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.EventsTableName))
+	columns := []column{
+		{Name: "subject", Type: "String"},
+		{Name: "windowstart", Type: "DateTime"},
+		{Name: "windowend", Type: "DateTime"},
+		{Name: "value", Type: "AggregateFunction(sum, Float64)"},
+	}
+	asSelects := []string{
+		"subject",
+		"tumbleStart(time, toIntervalMinute(1)) AS windowstart",
+		"tumbleEnd(time, toIntervalMinute(1)) AS windowend",
+		"sumState(cast(JSON_VALUE(data, '$.duration_ms'), 'Float64')) AS value",
+	}
+	orderBy := []string{"windowstart", "windowend", "subject"}
+	for k, v := range d.GroupBy {
+		columnName := sqlbuilder.Escape(k)
+		orderBy = append(orderBy, sqlbuilder.Escape(columnName))
+		columns = append(columns, column{Name: columnName, Type: "String"})
+		asSelects = append(asSelects, fmt.Sprintf("JSON_VALUE(data, '%s') as %s", sqlbuilder.Escape(v), sqlbuilder.Escape(k)))
+	}
 
-type deleteMeterViewData struct {
+	sb := sqlbuilder.ClickHouse.NewCreateTableBuilder()
+	sb.CreateTable(viewName)
+	sb.IfNotExists()
+	for _, column := range columns {
+		sb.Define(column.Name, column.Type)
+	}
+	sb.SQL("ENGINE = AggregatingMergeTree()")
+	sb.SQL(fmt.Sprintf("ORDER BY (%s)", strings.Join(orderBy, ", ")))
+	sb.SQL("AS")
+
+	sbAs := sqlbuilder.ClickHouse.NewSelectBuilder()
+	sbAs.Select(asSelects...)
+	sbAs.From(eventsTableName)
+	sbAs.Where(fmt.Sprintf("type = '%s'", sqlbuilder.Escape(d.EventType)))
+	sbAs.GroupBy(orderBy...)
+	sb.SQL(sbAs.String())
+	sql, _ := sb.Build()
+
+	// TODO: can we do it differently?
+	return strings.Replace(sql, "CREATE TABLE", "CREATE MATERIALIZED VIEW", 1)
+}
+
+type deleteMeterView struct {
 	Database      string
 	MeterViewName string
 }
 
-//go:embed sql/describe_meter_view.tpl.sql
-var describeMeterViewTemplate string
+func (d deleteMeterView) toSQL() (string, []interface{}) {
+	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
+	return fmt.Sprintf("DROP VIEW %s", viewName), []interface{}{}
+}
 
-type describeMeterViewData struct {
+type describeMeterView struct {
 	Database      string
 	MeterViewName string
 }
 
-//go:embed sql/query_meter_view.tpl.sql
-var queryMeterViewTemplate string
+func (d describeMeterView) toSQL() (string, []interface{}) {
+	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
+	return fmt.Sprintf("DESCRIBE %s", viewName), []interface{}{}
+}
 
-type queryMeterViewData struct {
+type queryMeterView struct {
 	Database      string
 	MeterViewName string
 	Subject       *string
@@ -74,4 +123,39 @@ type queryMeterViewData struct {
 	To            *time.Time
 	GroupBy       []string
 	WindowSize    *models.WindowSize
+}
+
+func (d queryMeterView) toSQL() (string, []interface{}) {
+	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
+	selectColumns := []string{"windowstart", "windowend", "subject", "sumMerge(value) AS value"}
+	groupByColumns := []string{"windowstart", "windowend", "subject"}
+	where := []string{}
+
+	for _, column := range d.GroupBy {
+		selectColumns = append(selectColumns, sqlbuilder.Escape(column))
+		groupByColumns = append(groupByColumns, sqlbuilder.Escape(column))
+	}
+
+	queryView := sqlbuilder.ClickHouse.NewSelectBuilder()
+	queryView.Select(selectColumns...)
+	queryView.From(viewName)
+
+	if d.Subject != nil {
+		where = append(where, fmt.Sprintf("subject = '%s'", sqlbuilder.Escape(*d.Subject)))
+	}
+	if d.From != nil {
+		where = append(where, fmt.Sprintf("windowstart >= toDateTime(%d)", d.From.UnixMilli()))
+	}
+	if d.To != nil {
+		where = append(where, fmt.Sprintf("windowend <= toDateTime(%d)", d.To.UnixMilli()))
+	}
+	if len(where) > 0 {
+		queryView.Where(strings.Join(where, " AND "))
+	}
+
+	queryView.GroupBy(groupByColumns...)
+	queryView.OrderBy("windowstart")
+
+	sql, args := queryView.Build()
+	return sql, args
 }

@@ -147,22 +147,24 @@ func (c *ClickhouseConnector) createEventsTable(ctx context.Context, namespace s
 		EventsTableName: getEventsTableName(namespace),
 	}
 
-	return c.config.ClickHouse.Exec(ctx, table.toSQL())
+	err := c.config.ClickHouse.Exec(ctx, table.toSQL())
+	if err != nil {
+		return fmt.Errorf("create events table: %w", err)
+	}
+
+	return nil
 }
 
 func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace string, meter *models.Meter) error {
-	query, err := streaming.TemplateQuery(createMeterViewTemplate, createMeterViewData{
+	view := createMeterView{
 		Database:        c.config.Database,
 		EventsTableName: getEventsTableName(namespace),
 		EventType:       meter.EventType,
 		MeterViewName:   getMeterViewNameBySlug(namespace, meter.Slug),
 		ValueProperty:   meter.ValueProperty,
 		GroupBy:         meter.GroupBy,
-	})
-	if err != nil {
-		return err
 	}
-	err = c.config.ClickHouse.Exec(ctx, query)
+	err := c.config.ClickHouse.Exec(ctx, view.toSQL())
 	if err != nil {
 		return fmt.Errorf("create meter view: %w", err)
 	}
@@ -171,18 +173,12 @@ func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace str
 }
 
 func (c *ClickhouseConnector) deleteMeterView(ctx context.Context, namespace string, meterSlug string) error {
-	query, err := streaming.TemplateQuery(deleteMeterViewTemplate, deleteMeterViewData{
+	query := deleteMeterView{
 		Database:      c.config.Database,
 		MeterViewName: getMeterViewNameBySlug(namespace, meterSlug),
-	})
-	if err != nil {
-		if strings.Contains(err.Error(), "code: 60") {
-			return &models.MeterNotFoundError{MeterSlug: meterSlug}
-		}
-
-		return err
 	}
-	err = c.config.ClickHouse.Exec(ctx, query)
+	sql, args := query.toSQL()
+	err := c.config.ClickHouse.Exec(ctx, sql, args...)
 	if err != nil {
 		return fmt.Errorf("delete meter view: %w", err)
 	}
@@ -191,14 +187,12 @@ func (c *ClickhouseConnector) deleteMeterView(ctx context.Context, namespace str
 }
 
 func (c *ClickhouseConnector) describeMeterView(ctx context.Context, namespace string, meterSlug string) (*MeterView, error) {
-	query, err := streaming.TemplateQuery(describeMeterViewTemplate, describeMeterViewData{
+	query := describeMeterView{
 		Database:      c.config.Database,
 		MeterViewName: getMeterViewNameBySlug(namespace, meterSlug),
-	})
-	if err != nil {
-		return nil, err
 	}
-	rows, err := c.config.ClickHouse.Query(ctx, query)
+	sql, args := query.toSQL()
+	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
 			return nil, &models.MeterNotFoundError{MeterSlug: meterSlug}
@@ -254,7 +248,7 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		groupBy = *params.GroupBy
 	}
 
-	query, err := streaming.TemplateQuery(queryMeterViewTemplate, queryMeterViewData{
+	queryMeter := queryMeterView{
 		Database:      c.config.Database,
 		MeterViewName: getMeterViewNameBySlug(namespace, meterSlug),
 		Subject:       params.Subject,
@@ -263,12 +257,10 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		GroupBy:       groupBy,
 		// TODO: implement window size
 		WindowSize: params.WindowSize,
-	})
-	fmt.Println(query)
-	if err != nil {
-		return values, err
 	}
-	rows, err := c.config.ClickHouse.Query(ctx, query)
+	sql, args := queryMeter.toSQL()
+
+	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
 			return nil, &models.MeterNotFoundError{MeterSlug: meterSlug}
