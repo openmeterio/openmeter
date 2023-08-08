@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -162,11 +163,16 @@ func main() {
 	}
 
 	logger.Info("starting OpenMeter server", "config", map[string]string{
-		"address":              config.Address,
-		"telemetry.address":    config.Telemetry.Address,
-		"ingest.kafka.broker":  config.Ingest.Kafka.Broker,
-		"processor.ksqldb.url": config.Processor.KSQLDB.URL,
-		"schemaRegistry.url":   config.SchemaRegistry.URL,
+		"server.address":                config.Server.Address,
+		"telemetry.address":             config.Telemetry.Address,
+		"processor.ksqldb.enabled":      strconv.FormatBool(config.Processor.KSQLDB.Enabled),
+		"processor.ksqldb.url":          config.Processor.KSQLDB.URL,
+		"processor.clickhouse.enabled":  strconv.FormatBool(config.Processor.ClickHouse.Enabled),
+		"processor.clickhouse.address,": config.Processor.ClickHouse.Address,
+		"schemaRegistry.enabled":        strconv.FormatBool(config.SchemaRegistry.Enabled),
+		"schemaRegistry.address,":       config.SchemaRegistry.URL,
+		"dedupe.redis.enabled":          strconv.FormatBool(config.Dedupe.Redis.Enabled),
+		"dedupe.redis.address":          config.Dedupe.Redis.Address,
 	})
 
 	var group run.Group
@@ -253,11 +259,14 @@ func main() {
 
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{
-			NamespaceManager:   namespaceManager,
-			StreamingConnector: streamingConnector,
-			IngestHandler:      ingestHandler,
-			Meters:             config.Meters,
-			Stateless:          config.Stateless,
+			NamespaceManager:      namespaceManager,
+			StreamingConnector:    streamingConnector,
+			IngestHandler:         ingestHandler,
+			Meters:                config.Meters,
+			EnableNamespaceCreate: config.Server.EnableNamespaceCreate,
+			EnableNamespaceDelete: config.Server.EnableNamespaceDelete,
+			EnableMeterCreate:     config.Server.EnableMeterCreate,
+			EnableMeterDelete:     config.Server.EnableMeterDelete,
 		},
 		RouterHook: func(r chi.Router) {
 			r.Use(func(h http.Handler) http.Handler {
@@ -328,7 +337,7 @@ func main() {
 	// Set up server
 	{
 		server := &http.Server{
-			Addr:    config.Address,
+			Addr:    config.Server.Address,
 			Handler: s,
 		}
 		defer server.Close()
@@ -386,7 +395,7 @@ func initKafkaIngest(ctx context.Context, config configuration, logger *slog.Log
 // initSerializer initializes the serializer based on the configuration.
 func initSerializer(config configuration) (serializer.Serializer, error) {
 	// Initialize JSON_SR with Schema Registry
-	if config.SchemaRegistry.URL != "" {
+	if config.SchemaRegistry.Enabled {
 		schemaRegistryConfig := schemaregistry.NewConfig(config.SchemaRegistry.URL)
 		if config.SchemaRegistry.Username != "" || config.SchemaRegistry.Password != "" {
 			schemaRegistryConfig.BasicAuthCredentialsSource = "USER_INFO"
@@ -398,10 +407,10 @@ func initSerializer(config configuration) (serializer.Serializer, error) {
 		}
 
 		return serializer.NewJSONSchemaSerializer(schemaRegistry)
-	} else {
-		// Initialize JSON without Schema Registry
-		return serializer.NewJSONSerializer(), nil
 	}
+
+	// Initialize JSON without Schema Registry
+	return serializer.NewJSONSerializer(), nil
 }
 
 func initKsqlDBStreaming(config configuration, logger *slog.Logger, serializer serializer.Serializer, healthChecker health.Health) (*ksqldb_connector.KsqlDBConnector, *ksqldb_connector.NamespaceHandler, error) {

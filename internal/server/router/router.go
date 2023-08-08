@@ -37,11 +37,14 @@ type IngestHandler interface {
 }
 
 type Config struct {
-	NamespaceManager   *namespace.Manager
-	StreamingConnector streaming.Connector
-	IngestHandler      IngestHandler
-	Meters             []*models.Meter
-	Stateless          bool
+	NamespaceManager      *namespace.Manager
+	StreamingConnector    streaming.Connector
+	IngestHandler         IngestHandler
+	Meters                []*models.Meter
+	EnableNamespaceCreate bool
+	EnableNamespaceDelete bool
+	EnableMeterCreate     bool
+	EnableMeterDelete     bool
 }
 
 type Router struct {
@@ -58,13 +61,13 @@ func NewRouter(config Config) (*Router, error) {
 }
 
 func (a *Router) CreateNamespace(w http.ResponseWriter, r *http.Request) {
-	namespace := &models.Namespace{}
-
-	if !a.config.Stateless {
-		models.NewStatusProblem(r.Context(), errors.New("namespace management is only allowed in stateless mode"), http.StatusForbidden).Respond(w, r)
+	if !a.config.EnableNamespaceCreate {
+		models.NewStatusProblem(r.Context(), errors.New("namespace create is disabled"), http.StatusForbidden).Respond(w, r)
 		return
 	}
 
+	// Parse body
+	namespace := &models.Namespace{}
 	if err := render.DecodeJSON(r.Body, namespace); err != nil {
 		models.NewStatusProblem(r.Context(), fmt.Errorf("cannot parse request body"), http.StatusBadRequest).Respond(w, r)
 	}
@@ -92,8 +95,8 @@ func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request, params api.L
 }
 
 func (a *Router) CreateMeter(w http.ResponseWriter, r *http.Request, params api.CreateMeterParams) {
-	if !a.config.Stateless {
-		models.NewStatusProblem(r.Context(), errors.New("meter create is only allowed in stateless mode"), http.StatusForbidden).Respond(w, r)
+	if !a.config.EnableMeterCreate {
+		models.NewStatusProblem(r.Context(), errors.New("meter create is disabled"), http.StatusForbidden).Respond(w, r)
 		return
 	}
 
@@ -117,8 +120,8 @@ func (a *Router) CreateMeter(w http.ResponseWriter, r *http.Request, params api.
 }
 
 func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.DeleteMeterParams) {
-	if !a.config.Stateless {
-		models.NewStatusProblem(r.Context(), errors.New("meter delete is only allowed in stateless mode"), http.StatusForbidden).Respond(w, r)
+	if !a.config.EnableMeterDelete {
+		models.NewStatusProblem(r.Context(), errors.New("meter delete is disabled"), http.StatusForbidden).Respond(w, r)
 		return
 	}
 

@@ -115,6 +115,19 @@ Run linters:
 make lint
 ```
 
+## Modes
+
+OpenMeter has two modes, the config driven stateful (default, recommended) and stateless.
+
+### Stateful (config driven)
+
+Stateful is the default and recommended mode in OpenMeter. In stateful mode you can define meters via the `config.yaml`.
+As the state is defined via config, namespace and meter management HTTP endpoints are disabled by default.
+
+### Stateless
+
+You can enable stateless mode via `stateless: true` in the config. In this mode meters defined in the `config.yaml` are ignored. In stateless mode you can define namespaces and meters via the HTTP API but these states are not persisted and after restarting OpenMeter will be lost. Resources created by OpenMeter like Kafka topics, KSQL tables etc. will remain.
+
 ## Roadmap
 
 Visit our website at [https://openmeter.io](https://openmeter.io#roadmap) for our public roadmap.

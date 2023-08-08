@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/thmeitz/ksqldb-go/net"
 	"golang.org/x/exp/slices"
+	"golang.org/x/exp/slog"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -19,9 +20,10 @@ import (
 // is necessary for running the application.
 // TODO: improve configuration options
 type configuration struct {
-	Address string
-
 	Log logConfiguration
+
+	// Server configuration
+	Server serverConfiguration
 
 	// Telemetry configuration
 	Telemetry struct {
@@ -48,6 +50,7 @@ type configuration struct {
 
 	// SchemaRegistry configuration
 	SchemaRegistry struct {
+		Enabled  bool
 		URL      string
 		Username string
 		Password string
@@ -69,8 +72,17 @@ type configuration struct {
 
 // Validate validates the configuration.
 func (c configuration) Validate() error {
-	if c.Address == "" {
-		return errors.New("server address is required")
+	if !c.Stateless {
+		slog.Info("disable namespace and meter managements in stateful mode")
+
+		c.Server.EnableNamespaceCreate = false
+		c.Server.EnableNamespaceDelete = false
+		c.Server.EnableMeterCreate = false
+		c.Server.EnableMeterDelete = false
+	}
+
+	if err := c.Server.Validate(); err != nil {
+		return err
 	}
 
 	if err := c.Namespace.Validate(); err != nil {
@@ -141,6 +153,23 @@ type ingestKafkaConfiguration struct {
 	SaslPassword        string
 	Partitions          int
 	EventsTopicTemplate string
+}
+
+// Server configuration
+type serverConfiguration struct {
+	Address               string
+	EnableNamespaceCreate bool
+	EnableNamespaceDelete bool
+	EnableMeterCreate     bool
+	EnableMeterDelete     bool
+}
+
+func (c serverConfiguration) Validate() error {
+	if c.Address == "" {
+		return errors.New("server address is required")
+	}
+
+	return nil
 }
 
 // CreateKafkaConfig creates a Kafka config map.
@@ -385,9 +414,13 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	v.AutomaticEnv()
 
 	// Server configuration
-	flags.String("address", ":8888", "Server address")
-	_ = v.BindPFlag("address", flags.Lookup("address"))
-	v.SetDefault("address", ":8888")
+	flags.String("server.address", ":8888", "Server address")
+	_ = v.BindPFlag("server.address", flags.Lookup("address"))
+	v.SetDefault("server.address", ":8888")
+	v.SetDefault("server.disableNamespaceCreate", false)
+	v.SetDefault("server.disableNamespaceDelete", false)
+	v.SetDefault("server.disableMeterCreate", false)
+	v.SetDefault("server.disableMeterDelete", false)
 
 	// Log configuration
 	v.SetDefault("log.format", "json")
@@ -414,6 +447,7 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("ingest.kafka.eventsTopicTemplate", "om_%s_events")
 
 	// Schema Registry configuration
+	v.SetDefault("schemaRegistry.enabled", false)
 	v.SetDefault("schemaRegistry.url", "")
 	v.SetDefault("schemaRegistry.username", "")
 	v.SetDefault("schemaRegistry.password", "")
