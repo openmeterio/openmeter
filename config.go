@@ -73,12 +73,12 @@ type configuration struct {
 // Validate validates the configuration.
 func (c configuration) Validate() error {
 	if !c.Stateless {
-		slog.Info("disable namespace and meter managements in stateful mode")
+		slog.Info("disable namespace and meter managements in config mode")
 
-		c.Server.EnableNamespaceCreate = false
-		c.Server.EnableNamespaceDelete = false
-		c.Server.EnableMeterCreate = false
-		c.Server.EnableMeterDelete = false
+		c.Server.DisableNamespaceCreate = true
+		c.Server.DisableNamespaceDelete = true
+		c.Server.DisableMeterCreate = true
+		c.Server.DisableMeterDelete = true
 	}
 
 	if err := c.Server.Validate(); err != nil {
@@ -157,11 +157,11 @@ type ingestKafkaConfiguration struct {
 
 // Server configuration
 type serverConfiguration struct {
-	Address               string
-	EnableNamespaceCreate bool
-	EnableNamespaceDelete bool
-	EnableMeterCreate     bool
-	EnableMeterDelete     bool
+	Address                string
+	DisableNamespaceCreate bool
+	DisableNamespaceDelete bool
+	DisableMeterCreate     bool
+	DisableMeterDelete     bool
 }
 
 func (c serverConfiguration) Validate() error {

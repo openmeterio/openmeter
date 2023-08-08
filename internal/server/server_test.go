@@ -66,14 +66,10 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 
 	server, _ := NewServer(&Config{
 		RouterConfig: router.Config{
-			Meters:                meters,
-			StreamingConnector:    &MockConnector{},
-			IngestHandler:         MockHandler{},
-			NamespaceManager:      namespaceManager,
-			EnableNamespaceCreate: true,
-			EnableNamespaceDelete: true,
-			EnableMeterCreate:     true,
-			EnableMeterDelete:     true,
+			Meters:             meters,
+			StreamingConnector: &MockConnector{},
+			IngestHandler:      MockHandler{},
+			NamespaceManager:   namespaceManager,
 		},
 		RouterHook: func(r chi.Router) {},
 	})

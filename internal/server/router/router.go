@@ -37,14 +37,14 @@ type IngestHandler interface {
 }
 
 type Config struct {
-	NamespaceManager      *namespace.Manager
-	StreamingConnector    streaming.Connector
-	IngestHandler         IngestHandler
-	Meters                []*models.Meter
-	EnableNamespaceCreate bool
-	EnableNamespaceDelete bool
-	EnableMeterCreate     bool
-	EnableMeterDelete     bool
+	NamespaceManager       *namespace.Manager
+	StreamingConnector     streaming.Connector
+	IngestHandler          IngestHandler
+	Meters                 []*models.Meter
+	DisableNamespaceCreate bool
+	DisableNamespaceDelete bool
+	DisableMeterCreate     bool
+	DisableMeterDelete     bool
 }
 
 type Router struct {
@@ -61,7 +61,7 @@ func NewRouter(config Config) (*Router, error) {
 }
 
 func (a *Router) CreateNamespace(w http.ResponseWriter, r *http.Request) {
-	if !a.config.EnableNamespaceCreate {
+	if a.config.DisableNamespaceCreate {
 		models.NewStatusProblem(r.Context(), errors.New("namespace create is disabled"), http.StatusForbidden).Respond(w, r)
 		return
 	}
@@ -95,7 +95,7 @@ func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request, params api.L
 }
 
 func (a *Router) CreateMeter(w http.ResponseWriter, r *http.Request, params api.CreateMeterParams) {
-	if !a.config.EnableMeterCreate {
+	if a.config.DisableMeterCreate {
 		models.NewStatusProblem(r.Context(), errors.New("meter create is disabled"), http.StatusForbidden).Respond(w, r)
 		return
 	}
@@ -120,7 +120,7 @@ func (a *Router) CreateMeter(w http.ResponseWriter, r *http.Request, params api.
 }
 
 func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.DeleteMeterParams) {
-	if !a.config.EnableMeterDelete {
+	if a.config.DisableMeterDelete {
 		models.NewStatusProblem(r.Context(), errors.New("meter delete is disabled"), http.StatusForbidden).Respond(w, r)
 		return
 	}
