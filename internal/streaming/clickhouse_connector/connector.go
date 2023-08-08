@@ -142,15 +142,12 @@ func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace str
 }
 
 func (c *ClickhouseConnector) createEventsTable(ctx context.Context, namespace string) error {
-	query, err := streaming.TemplateQuery(createEventsTableTemplate, createEventsTableData{
+	table := createEventsTable{
 		Database:        c.config.Database,
 		EventsTableName: getEventsTableName(namespace),
-	})
-	if err != nil {
-		return fmt.Errorf("create events table: %w", err)
 	}
 
-	return c.config.ClickHouse.Exec(ctx, query)
+	return c.config.ClickHouse.Exec(ctx, table.toSQL())
 }
 
 func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace string, meter *models.Meter) error {

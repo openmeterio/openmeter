@@ -2,17 +2,37 @@ package clickhouse_connector
 
 import (
 	_ "embed"
+	"fmt"
 	"time"
 
+	"github.com/huandu/go-sqlbuilder"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-//go:embed sql/create_events_table.tpl.sql
-var createEventsTableTemplate string
-
-type createEventsTableData struct {
+// Create Events Table
+type createEventsTable struct {
 	Database        string
 	EventsTableName string
+}
+
+func (d createEventsTable) toSQL() string {
+	tableName := fmt.Sprintf("%s.%s", d.Database, d.EventsTableName)
+
+	sb := sqlbuilder.ClickHouse.NewCreateTableBuilder()
+	sb.CreateTable(tableName)
+	sb.IfNotExists()
+	sb.Define("id", "String")
+	sb.Define("type", "LowCardinality(String)")
+	sb.Define("subject", "String")
+	sb.Define("source", "String")
+	sb.Define("time", "DateTime")
+	sb.Define("data", "String")
+	sb.SQL("ENGINE = MergeTree")
+	sb.SQL("PARTITION BY toYYYYMM(time)")
+	sb.SQL("ORDER BY (time, type, subject)")
+
+	sql, _ := sb.Build()
+	return sql
 }
 
 //go:embed sql/create_meter_view.tpl.sql

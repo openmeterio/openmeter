@@ -12,26 +12,22 @@ import (
 
 func TestCreateEventsTable(t *testing.T) {
 	tests := []struct {
-		data createEventsTableData
+		data createEventsTable
 		want string
 	}{
 		{
-			data: createEventsTableData{
+			data: createEventsTable{
 				Database:        "openmeter",
 				EventsTableName: "meter_events",
 			},
-			want: "CREATE TABLE IF NOT EXISTS openmeter.meter_events ( id String, type LowCardinality(String), subject String, source String, time DateTime, data String ) ENGINE = MergeTree PARTITION BY toYYYYMM(time) ORDER BY (time, type, subject);",
+			want: "CREATE TABLE IF NOT EXISTS openmeter.meter_events (id String, type LowCardinality(String), subject String, source String, time DateTime, data String) ENGINE = MergeTree PARTITION BY toYYYYMM(time) ORDER BY (time, type, subject)",
 		},
 	}
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run("", func(t *testing.T) {
-			got, err := streaming.TemplateQuery(createEventsTableTemplate, tt.data)
-			if err != nil {
-				t.Error(err)
-			}
-
+			got := tt.data.toSQL()
 			assert.Equal(t, tt.want, got)
 		})
 	}
