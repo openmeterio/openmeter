@@ -10,6 +10,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+// TODO: use arguments instead of Escape where possible
+
 // Create Events Table
 type createEventsTable struct {
 	Database        string
