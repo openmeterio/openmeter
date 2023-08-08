@@ -259,14 +259,14 @@ func main() {
 
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{
-			NamespaceManager:      namespaceManager,
-			StreamingConnector:    streamingConnector,
-			IngestHandler:         ingestHandler,
-			Meters:                config.Meters,
-			EnableNamespaceCreate: config.Server.EnableNamespaceCreate,
-			EnableNamespaceDelete: config.Server.EnableNamespaceDelete,
-			EnableMeterCreate:     config.Server.EnableMeterCreate,
-			EnableMeterDelete:     config.Server.EnableMeterDelete,
+			NamespaceManager:       namespaceManager,
+			StreamingConnector:     streamingConnector,
+			IngestHandler:          ingestHandler,
+			Meters:                 config.Meters,
+			DisableNamespaceCreate: config.Server.DisableNamespaceCreate,
+			DisableNamespaceDelete: config.Server.DisableNamespaceDelete,
+			DisableMeterCreate:     config.Server.DisableMeterCreate,
+			DisableMeterDelete:     config.Server.DisableMeterDelete,
 		},
 		RouterHook: func(r chi.Router) {
 			r.Use(func(h http.Handler) http.Handler {
