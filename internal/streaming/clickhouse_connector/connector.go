@@ -16,7 +16,9 @@ import (
 
 var prefix = "om"
 var eventsTableName = "events"
-var aggregationRegexp = regexp.MustCompile(`^AggregateFunction\((sum|min|max|count), Float64\)$`)
+
+// List of accepted aggregate functions: https://clickhouse.com/docs/en/sql-reference/aggregate-functions/reference
+var aggregationRegexp = regexp.MustCompile(`^AggregateFunction\((avg|sum|min|max|count), Float64\)$`)
 
 type SinkConfig struct {
 	Database string
@@ -142,30 +144,34 @@ func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace str
 }
 
 func (c *ClickhouseConnector) createEventsTable(ctx context.Context, namespace string) error {
-	query, err := streaming.TemplateQuery(createEventsTableTemplate, createEventsTableData{
+	table := createEventsTable{
 		Database:        c.config.Database,
 		EventsTableName: getEventsTableName(namespace),
-	})
+	}
+
+	err := c.config.ClickHouse.Exec(ctx, table.toSQL())
 	if err != nil {
 		return fmt.Errorf("create events table: %w", err)
 	}
 
-	return c.config.ClickHouse.Exec(ctx, query)
+	return nil
 }
 
 func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace string, meter *models.Meter) error {
-	query, err := streaming.TemplateQuery(createMeterViewTemplate, createMeterViewData{
+	view := createMeterView{
 		Database:        c.config.Database,
 		EventsTableName: getEventsTableName(namespace),
+		Aggregation:     meter.Aggregation,
 		EventType:       meter.EventType,
 		MeterViewName:   getMeterViewNameBySlug(namespace, meter.Slug),
 		ValueProperty:   meter.ValueProperty,
 		GroupBy:         meter.GroupBy,
-	})
-	if err != nil {
-		return err
 	}
-	err = c.config.ClickHouse.Exec(ctx, query)
+	sql, args, err := view.toSQL()
+	if err != nil {
+		return fmt.Errorf("create meter view: %w", err)
+	}
+	err = c.config.ClickHouse.Exec(ctx, sql, args...)
 	if err != nil {
 		return fmt.Errorf("create meter view: %w", err)
 	}
@@ -174,18 +180,12 @@ func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace str
 }
 
 func (c *ClickhouseConnector) deleteMeterView(ctx context.Context, namespace string, meterSlug string) error {
-	query, err := streaming.TemplateQuery(deleteMeterViewTemplate, deleteMeterViewData{
+	query := deleteMeterView{
 		Database:      c.config.Database,
 		MeterViewName: getMeterViewNameBySlug(namespace, meterSlug),
-	})
-	if err != nil {
-		if strings.Contains(err.Error(), "code: 60") {
-			return &models.MeterNotFoundError{MeterSlug: meterSlug}
-		}
-
-		return err
 	}
-	err = c.config.ClickHouse.Exec(ctx, query)
+	sql, args := query.toSQL()
+	err := c.config.ClickHouse.Exec(ctx, sql, args...)
 	if err != nil {
 		return fmt.Errorf("delete meter view: %w", err)
 	}
@@ -194,14 +194,12 @@ func (c *ClickhouseConnector) deleteMeterView(ctx context.Context, namespace str
 }
 
 func (c *ClickhouseConnector) describeMeterView(ctx context.Context, namespace string, meterSlug string) (*MeterView, error) {
-	query, err := streaming.TemplateQuery(describeMeterViewTemplate, describeMeterViewData{
+	query := describeMeterView{
 		Database:      c.config.Database,
 		MeterViewName: getMeterViewNameBySlug(namespace, meterSlug),
-	})
-	if err != nil {
-		return nil, err
 	}
-	rows, err := c.config.ClickHouse.Query(ctx, query)
+	sql, args := query.toSQL()
+	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
 			return nil, &models.MeterNotFoundError{MeterSlug: meterSlug}
@@ -250,6 +248,10 @@ func (c *ClickhouseConnector) describeMeterView(ctx context.Context, namespace s
 }
 
 func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]*models.MeterValue, error) {
+	if params.Aggregation == nil {
+		return nil, fmt.Errorf("aggregation is required")
+	}
+
 	values := []*models.MeterValue{}
 
 	groupBy := []string{}
@@ -257,21 +259,23 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		groupBy = *params.GroupBy
 	}
 
-	query, err := streaming.TemplateQuery(queryMeterViewTemplate, queryMeterViewData{
+	queryMeter := queryMeterView{
 		Database:      c.config.Database,
 		MeterViewName: getMeterViewNameBySlug(namespace, meterSlug),
+		Aggregation:   *params.Aggregation,
 		Subject:       params.Subject,
 		From:          params.From,
 		To:            params.To,
 		GroupBy:       groupBy,
-		// TODO: implement window size
+		// TODO: implement window size based aggregation in ClickHouse query, instead of aggregating in Go
 		WindowSize: params.WindowSize,
-	})
-	fmt.Println(query)
-	if err != nil {
-		return values, err
 	}
-	rows, err := c.config.ClickHouse.Query(ctx, query)
+	sql, args, err := queryMeter.toSQL()
+	if err != nil {
+		return values, fmt.Errorf("query meter view: %w", err)
+	}
+
+	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
 			return nil, &models.MeterNotFoundError{MeterSlug: meterSlug}

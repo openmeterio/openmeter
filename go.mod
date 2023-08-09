@@ -29,6 +29,8 @@ require (
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
 )
 
+require github.com/huandu/go-sqlbuilder v1.22.0
+
 require (
 	github.com/ClickHouse/ch-go v0.52.1 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
