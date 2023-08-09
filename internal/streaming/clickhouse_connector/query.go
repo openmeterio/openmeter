@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/huandu/go-sqlbuilder"
+
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
