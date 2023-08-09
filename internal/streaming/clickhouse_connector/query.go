@@ -3,6 +3,7 @@ package clickhouse_connector
 import (
 	_ "embed"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -95,7 +96,9 @@ func (d createMeterView) toSQL() (string, []interface{}, error) {
 
 	// Group by
 	orderBy := []string{"windowstart", "windowend", "subject"}
-	for k, v := range d.GroupBy {
+	sortedGroupBy := sortedKeys(d.GroupBy)
+	for _, k := range sortedGroupBy {
+		v := d.GroupBy[k]
 		columnName := sqlbuilder.Escape(k)
 		orderBy = append(orderBy, sqlbuilder.Escape(columnName))
 		columns = append(columns, column{Name: columnName, Type: "String"})
@@ -208,4 +211,15 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 
 	sql, args := queryView.Build()
 	return sql, args, nil
+}
+
+func sortedKeys(m map[string]string) []string {
+	keys := make([]string, len(m))
+	i := 0
+	for k := range m {
+		keys[i] = k
+		i++
+	}
+	sort.Strings(keys)
+	return keys
 }
