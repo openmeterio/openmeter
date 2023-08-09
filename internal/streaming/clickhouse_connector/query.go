@@ -11,8 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// TODO: use arguments instead of Escape where possible
-
 // Create Events Table
 type createEventsTable struct {
 	Database        string
@@ -105,7 +103,7 @@ type deleteMeterView struct {
 
 func (d deleteMeterView) toSQL() (string, []interface{}) {
 	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
-	return fmt.Sprintf("DROP VIEW %s", viewName), []interface{}{}
+	return fmt.Sprintf("DROP VIEW %s", viewName), nil
 }
 
 type describeMeterView struct {
@@ -115,7 +113,7 @@ type describeMeterView struct {
 
 func (d describeMeterView) toSQL() (string, []interface{}) {
 	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
-	return fmt.Sprintf("DESCRIBE %s", viewName), []interface{}{}
+	return fmt.Sprintf("DESCRIBE %s", viewName), nil
 }
 
 type queryMeterView struct {
@@ -135,8 +133,9 @@ func (d queryMeterView) toSQL() (string, []interface{}) {
 	where := []string{}
 
 	for _, column := range d.GroupBy {
-		selectColumns = append(selectColumns, sqlbuilder.Escape(column))
-		groupByColumns = append(groupByColumns, sqlbuilder.Escape(column))
+		c := sqlbuilder.Escape(column)
+		selectColumns = append(selectColumns, c)
+		groupByColumns = append(groupByColumns, c)
 	}
 
 	queryView := sqlbuilder.ClickHouse.NewSelectBuilder()
@@ -144,16 +143,18 @@ func (d queryMeterView) toSQL() (string, []interface{}) {
 	queryView.From(viewName)
 
 	if d.Subject != nil {
-		where = append(where, fmt.Sprintf("subject = '%s'", sqlbuilder.Escape(*d.Subject)))
+		where = append(where, queryView.Equal("subject", *d.Subject))
 	}
 	if d.From != nil {
-		where = append(where, fmt.Sprintf("windowstart >= toDateTime(%d)", d.From.UnixMilli()))
+		from := fmt.Sprintf("toDateTime(%d)", d.From.UnixMilli())
+		where = append(where, queryView.GreaterEqualThan("windowstart", from))
 	}
 	if d.To != nil {
-		where = append(where, fmt.Sprintf("windowend <= toDateTime(%d)", d.To.UnixMilli()))
+		to := fmt.Sprintf("toDateTime(%d)", d.To.UnixMilli())
+		where = append(where, queryView.LessEqualThan("windowend", to))
 	}
 	if len(where) > 0 {
-		queryView.Where(strings.Join(where, " AND "))
+		queryView.Where(where...)
 	}
 
 	queryView.GroupBy(groupByColumns...)
