@@ -161,6 +161,7 @@ func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace str
 	view := createMeterView{
 		Database:        c.config.Database,
 		EventsTableName: getEventsTableName(namespace),
+		Aggregation:     meter.Aggregation,
 		EventType:       meter.EventType,
 		MeterViewName:   getMeterViewNameBySlug(namespace, meter.Slug),
 		ValueProperty:   meter.ValueProperty,
