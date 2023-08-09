@@ -34,27 +34,49 @@ func TestCreateEventsTable(t *testing.T) {
 
 func TestCreateMeterView(t *testing.T) {
 	tests := []struct {
-		data createMeterView
-		want string
+		query    createMeterView
+		wantSQL  string
+		wantArgs []interface{}
 	}{
 		{
-			data: createMeterView{
+			query: createMeterView{
 				Database:        "openmeter",
 				EventsTableName: "meter_events",
+				Aggregation:     models.MeterAggregationSum,
 				EventType:       "myevent",
 				MeterViewName:   "meter_meter1",
 				ValueProperty:   "$.duration_ms",
 				GroupBy:         map[string]string{"group1": "$.group1", "group2": "$.group2"},
 			},
-			want: "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(sum, Float64), group1 String, group2 String) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject, group1, group2) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, sumState(cast(JSON_VALUE(data, '$.duration_ms'), 'Float64')) AS value, JSON_VALUE(data, '$.group1') as group1, JSON_VALUE(data, '$.group2') as group2 FROM openmeter.meter_events WHERE type = 'myevent' GROUP BY windowstart, windowend, subject, group1, group2",
+			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(sum, Float64), group1 String, group2 String) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject, group1, group2) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, sumState(cast(JSON_VALUE(data, '$.duration_ms'), 'Float64')) AS value, JSON_VALUE(data, '$.group1') as group1, JSON_VALUE(data, '$.group2') as group2 FROM openmeter.meter_events WHERE type = 'myevent' GROUP BY windowstart, windowend, subject, group1, group2",
+			wantArgs: nil,
+		},
+		{
+			query: createMeterView{
+				Database:        "openmeter",
+				EventsTableName: "meter_events",
+				Aggregation:     models.MeterAggregationAvg,
+				EventType:       "myevent",
+				MeterViewName:   "meter_meter1",
+				ValueProperty:   "$.token_count",
+				GroupBy:         map[string]string{},
+			},
+			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(avg, Float64)) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, avgState(cast(JSON_VALUE(data, '$.token_count'), 'Float64')) AS value FROM openmeter.meter_events WHERE type = 'myevent' GROUP BY windowstart, windowend, subject",
+			wantArgs: nil,
 		},
 	}
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run("", func(t *testing.T) {
-			got := tt.data.toSQL()
-			assert.Equal(t, tt.want, got)
+			gotSql, gotArgs, err := tt.query.toSQL()
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
+			assert.Equal(t, tt.wantSQL, gotSql)
+			assert.Equal(t, tt.wantArgs, gotArgs)
 		})
 	}
 }
@@ -120,14 +142,15 @@ func TestQueryMeterView(t *testing.T) {
 	windowSize := models.WindowSizeHour
 
 	tests := []struct {
-		data     queryMeterView
+		query    queryMeterView
 		wantSQL  string
 		wantArgs []interface{}
 	}{
 		{
-			data: queryMeterView{
+			query: queryMeterView{
 				Database:      "openmeter",
 				MeterViewName: "meter_meter1",
+				Aggregation:   models.MeterAggregationSum,
 				Subject:       &subject,
 				From:          &from,
 				To:            &to,
@@ -142,7 +165,11 @@ func TestQueryMeterView(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run("", func(t *testing.T) {
-			gotSql, gotArgs := tt.data.toSQL()
+			gotSql, gotArgs, err := tt.query.toSQL()
+			if err != nil {
+				t.Error(err)
+				return
+			}
 
 			assert.Equal(t, tt.wantSQL, gotSql)
 			assert.Equal(t, tt.wantArgs, gotArgs)

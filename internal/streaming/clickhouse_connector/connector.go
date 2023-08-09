@@ -16,7 +16,9 @@ import (
 
 var prefix = "om"
 var eventsTableName = "events"
-var aggregationRegexp = regexp.MustCompile(`^AggregateFunction\((sum|min|max|count), Float64\)$`)
+
+// List of accepted aggregate functions: https://clickhouse.com/docs/en/sql-reference/aggregate-functions/reference
+var aggregationRegexp = regexp.MustCompile(`^AggregateFunction\((avg|sum|min|max|count), Float64\)$`)
 
 type SinkConfig struct {
 	Database string
@@ -164,7 +166,11 @@ func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace str
 		ValueProperty:   meter.ValueProperty,
 		GroupBy:         meter.GroupBy,
 	}
-	err := c.config.ClickHouse.Exec(ctx, view.toSQL())
+	sql, args, err := view.toSQL()
+	if err != nil {
+		return fmt.Errorf("create meter view: %w", err)
+	}
+	err = c.config.ClickHouse.Exec(ctx, sql, args...)
 	if err != nil {
 		return fmt.Errorf("create meter view: %w", err)
 	}
@@ -241,6 +247,10 @@ func (c *ClickhouseConnector) describeMeterView(ctx context.Context, namespace s
 }
 
 func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]*models.MeterValue, error) {
+	if params.Aggregation == nil {
+		return nil, fmt.Errorf("aggregation is required")
+	}
+
 	values := []*models.MeterValue{}
 
 	groupBy := []string{}
@@ -251,14 +261,18 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 	queryMeter := queryMeterView{
 		Database:      c.config.Database,
 		MeterViewName: getMeterViewNameBySlug(namespace, meterSlug),
+		Aggregation:   *params.Aggregation,
 		Subject:       params.Subject,
 		From:          params.From,
 		To:            params.To,
 		GroupBy:       groupBy,
-		// TODO: implement window size
+		// TODO: implement window size based aggregation in ClickHouse query, instead of aggregating in Go
 		WindowSize: params.WindowSize,
 	}
-	sql, args := queryMeter.toSQL()
+	sql, args, err := queryMeter.toSQL()
+	if err != nil {
+		return values, fmt.Errorf("query meter view: %w", err)
+	}
 
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {

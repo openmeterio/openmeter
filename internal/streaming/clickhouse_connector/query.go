@@ -44,6 +44,7 @@ func (d createEventsTable) toSQL() string {
 
 type createMeterView struct {
 	Database        string
+	Aggregation     models.MeterAggregation
 	EventsTableName string
 	MeterViewName   string
 	EventType       string
@@ -51,21 +52,48 @@ type createMeterView struct {
 	GroupBy         map[string]string
 }
 
-func (d createMeterView) toSQL() string {
+func (d createMeterView) toSQL() (string, []interface{}, error) {
 	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
 	eventsTableName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.EventsTableName))
 	columns := []column{
 		{Name: "subject", Type: "String"},
 		{Name: "windowstart", Type: "DateTime"},
 		{Name: "windowend", Type: "DateTime"},
-		{Name: "value", Type: "AggregateFunction(sum, Float64)"},
 	}
 	asSelects := []string{
 		"subject",
 		"tumbleStart(time, toIntervalMinute(1)) AS windowstart",
 		"tumbleEnd(time, toIntervalMinute(1)) AS windowend",
-		"sumState(cast(JSON_VALUE(data, '$.duration_ms'), 'Float64')) AS value",
 	}
+
+	// Value
+	agg := ""
+	aggStateFn := ""
+
+	switch d.Aggregation {
+	case models.MeterAggregationSum:
+		agg = "sum"
+		aggStateFn = "sumState"
+	case models.MeterAggregationAvg:
+		agg = "avg"
+		aggStateFn = "avgState"
+	case models.MeterAggregationMin:
+		agg = "min"
+		aggStateFn = "minState"
+	case models.MeterAggregationMax:
+		agg = "max"
+		aggStateFn = "maxState"
+	case models.MeterAggregationCount:
+		agg = "count"
+		aggStateFn = "countState"
+	default:
+		return "", nil, fmt.Errorf("invalid aggregation type: %s", d.Aggregation)
+	}
+
+	columns = append(columns, column{Name: "value", Type: fmt.Sprintf("AggregateFunction(%s, Float64)", agg)})
+	asSelects = append(asSelects, fmt.Sprintf("%s(cast(JSON_VALUE(data, '%s'), 'Float64')) AS value", aggStateFn, sqlbuilder.Escape(d.ValueProperty)))
+
+	// Group by
 	orderBy := []string{"windowstart", "windowend", "subject"}
 	for k, v := range d.GroupBy {
 		columnName := sqlbuilder.Escape(k)
@@ -90,10 +118,12 @@ func (d createMeterView) toSQL() string {
 	sbAs.Where(fmt.Sprintf("type = '%s'", sqlbuilder.Escape(d.EventType)))
 	sbAs.GroupBy(orderBy...)
 	sb.SQL(sbAs.String())
-	sql, _ := sb.Build()
+	sql, args := sb.Build()
 
 	// TODO: can we do it differently?
-	return strings.Replace(sql, "CREATE TABLE", "CREATE MATERIALIZED VIEW", 1)
+	sql = strings.Replace(sql, "CREATE TABLE", "CREATE MATERIALIZED VIEW", 1)
+
+	return sql, args, nil
 }
 
 type deleteMeterView struct {
@@ -119,6 +149,7 @@ func (d describeMeterView) toSQL() (string, []interface{}) {
 type queryMeterView struct {
 	Database      string
 	MeterViewName string
+	Aggregation   models.MeterAggregation
 	Subject       *string
 	From          *time.Time
 	To            *time.Time
@@ -126,9 +157,24 @@ type queryMeterView struct {
 	WindowSize    *models.WindowSize
 }
 
-func (d queryMeterView) toSQL() (string, []interface{}) {
+func (d queryMeterView) toSQL() (string, []interface{}, error) {
 	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
-	selectColumns := []string{"windowstart", "windowend", "subject", "sumMerge(value) AS value"}
+	selectColumns := []string{"windowstart", "windowend", "subject"}
+	switch d.Aggregation {
+	case models.MeterAggregationSum:
+		selectColumns = append(selectColumns, "sumMerge(value) AS value")
+	case models.MeterAggregationAvg:
+		selectColumns = append(selectColumns, "avgMerge(value) AS value")
+	case models.MeterAggregationMin:
+		selectColumns = append(selectColumns, "minMerge(value) AS value")
+	case models.MeterAggregationMax:
+		selectColumns = append(selectColumns, "maxMerge(value) AS value")
+	case models.MeterAggregationCount:
+		selectColumns = append(selectColumns, "countMerge(value) AS value")
+	default:
+		return "", nil, fmt.Errorf("invalid aggregation type: %s", d.Aggregation)
+	}
+
 	groupByColumns := []string{"windowstart", "windowend", "subject"}
 	where := []string{}
 
@@ -161,5 +207,5 @@ func (d queryMeterView) toSQL() (string, []interface{}) {
 	queryView.OrderBy("windowstart")
 
 	sql, args := queryView.Build()
-	return sql, args
+	return sql, args, nil
 }
