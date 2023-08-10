@@ -1,4 +1,5 @@
 import { NodeHttpRequest } from './generated/core/NodeHttpRequest.js'
+export { NodeHttpRequest } from './generated/core/NodeHttpRequest.js'
 import { HttpService } from './generated/HttpService.js'
 import {
 	DefaultService,
@@ -15,6 +16,12 @@ export type HttpRequestConstructor = new (
 
 export type ClientConfig = {
 	baseUrl: string
+	credentials?: OpenAPIConfig['CREDENTIALS']
+	withCredentials?: OpenAPIConfig['WITH_CREDENTIALS']
+	token?: OpenAPIConfig['TOKEN']
+	username?: OpenAPIConfig['USERNAME']
+	password?: OpenAPIConfig['PASSWORD']
+	headers?: OpenAPIConfig['HEADERS']
 }
 
 export class OpenMeter extends HttpService {
@@ -30,8 +37,12 @@ export class OpenMeter extends HttpService {
 		const openAPIConfig: OpenAPIConfig = {
 			BASE: config.baseUrl,
 			VERSION: '1.0.0',
-			CREDENTIALS: 'include',
-			WITH_CREDENTIALS: false,
+			CREDENTIALS: config.credentials ?? 'include',
+			WITH_CREDENTIALS: config.withCredentials ?? false,
+			TOKEN: config.token,
+			USERNAME: config.username,
+			PASSWORD: config.password,
+			HEADERS: config.headers,
 		}
 		super(openAPIConfig, HttpRequest)
 		this.request = new HttpRequest(openAPIConfig)
