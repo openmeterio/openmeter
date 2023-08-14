@@ -7,12 +7,29 @@ import (
 	"github.com/cloudevents/sdk-go/v2/event"
 )
 
+// Deduplicator checks if an event is unique.
 type Deduplicator interface {
+	// IsUnique checks if an event is unique AND adds it to the deduplication index.
 	IsUnique(ctx context.Context, namespace string, ev event.Event) (bool, error)
-	Set(ctx context.Context, namespace string, ev event.Event) (bool, error)
 }
 
-// CloudEvents are unique based on the source and id
-func GetEventKey(namespace string, ev event.Event) string {
-	return fmt.Sprintf("%s-%s-%s", namespace, ev.Source(), ev.ID())
+// DeduplicatingCollector implements event deduplication at event ingestion.
+type DeduplicatingCollector struct {
+	Collector
+
+	Deduplicator Deduplicator
+}
+
+// Ingest implements the {Collector} interface wrapping an existing {Collector} and deduplicating events.
+func (d DeduplicatingCollector) Ingest(ev event.Event, namespace string) error {
+	isUnique, err := d.Deduplicator.IsUnique(context.TODO(), namespace, ev)
+	if err != nil {
+		return fmt.Errorf("checking event uniqueness: %w", err)
+	}
+
+	if isUnique {
+		return d.Collector.Ingest(ev, namespace)
+	}
+
+	return nil
 }
