@@ -405,6 +405,10 @@ components:
       x-go-type: models.MeterValue
       x-go-type-import:
         path: github.com/openmeterio/openmeter/pkg/models
+      required:
+        - windowStart
+        - windowEnd
+        - value
       properties:
         subject:
           type: string
