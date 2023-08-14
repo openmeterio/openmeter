@@ -73,7 +73,7 @@ const meter = await openmeter.meters.getMeter('m1')
 #### getMeterValues
 
 ```ts
-import { type WindowSize } from '@openmeter/sdk'
+import { WindowSize } from '@openmeter/sdk'
 
 const meterSlug = 'm2'
 const namespace = undefined
