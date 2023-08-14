@@ -1,3 +1,4 @@
+// Package ingest implements event ingestion.
 package ingest
 
 import "github.com/cloudevents/sdk-go/v2/event"
