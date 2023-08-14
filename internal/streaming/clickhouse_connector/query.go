@@ -195,12 +195,10 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 		where = append(where, queryView.Equal("subject", *d.Subject))
 	}
 	if d.From != nil {
-		from := fmt.Sprintf("toDateTime(%d)", d.From.UnixMilli())
-		where = append(where, queryView.GreaterEqualThan("windowstart", from))
+		where = append(where, queryView.GreaterEqualThan("windowstart", d.From.UnixMilli()))
 	}
 	if d.To != nil {
-		to := fmt.Sprintf("toDateTime(%d)", d.To.UnixMilli())
-		where = append(where, queryView.LessEqualThan("windowend", to))
+		where = append(where, queryView.LessEqualThan("windowend", d.To.UnixMilli()))
 	}
 	if len(where) > 0 {
 		queryView.Where(where...)
