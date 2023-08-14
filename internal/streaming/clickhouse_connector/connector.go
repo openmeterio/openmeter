@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"golang.org/x/exp/slog"
@@ -275,6 +276,7 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		return values, fmt.Errorf("query meter view: %w", err)
 	}
 
+	start := time.Now()
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
@@ -283,6 +285,8 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 
 		return values, fmt.Errorf("query meter view query: %w", err)
 	}
+	elapsed := time.Since(start)
+	slog.Debug("query meter view", "elapsed", elapsed.String(), "sql", sql, "args", args)
 
 	for rows.Next() {
 		value := &models.MeterValue{
