@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
@@ -169,7 +168,6 @@ func ValidateGetMeterValuesParams(params api.GetMeterValuesParams) error {
 }
 
 func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.GetMeterValuesParams) {
-	start := time.Now()
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 	if params.NamespaceInput != nil {
 		namespace = *params.NamespaceInput
@@ -231,7 +229,4 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 	}
 
 	_ = render.Render(w, r, resp)
-
-	elapsed := time.Since(start)
-	slog.Debug("get meter values", "elapsed", elapsed.String(), "params", params)
 }
