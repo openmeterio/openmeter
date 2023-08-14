@@ -3,7 +3,7 @@
 ## Install
 
 ```sh
-npm install --save @openmeter/sdk
+npm install --save @openmeter/sdk@alpha
 ```
 
 ## Example
@@ -15,15 +15,15 @@ const openmeter = new OpenMeter({ baseUrl: 'http://localhost:8888' })
 
 // Ingesting an event
 const event: Event = {
-	specversion: '1.0',
-	id: 'id-1',
-	source: 'my-app',
-	type: 'my-type',
-	subject: 'my-awesome-user-id',
-	time: new Date().toISOString(),
-	data: {
-		api_calls: 1,
-	},
+ specversion: '1.0',
+ id: 'id-1',
+ source: 'my-app',
+ type: 'my-type',
+ subject: 'my-awesome-user-id',
+ time: new Date().toISOString(),
+ data: {
+ api_calls: 1,
+ },
 }
 await openmeter.events.ingestEvents(event)
 
@@ -39,7 +39,7 @@ The OpenMeter SDK uses [openapi-typescript-codegen](https://www.npmjs.com/packag
 
 #### ingestEvents
 
-```js
+```ts
 import { type Event } from '@openmeter/sdk'
 
 const event: Event = {
@@ -60,25 +60,33 @@ await openmeter.events.ingestEvents(event)
 
 #### listMeters
 
-```js
+```ts
 const meters = await openmeter.meters.listMeters()
 ```
 
 #### getMeter
 
-```js
+```ts
 const meter = await openmeter.meters.getMeter('m1')
 ```
 
 #### getMeterValues
 
-```js
+```ts
 import { type WindowSize } from '@openmeter/sdk'
 
 const meterSlug = 'm2'
+const namespace = undefined
 const subject = 'user-1'
 const from = new Date('2021-01-01').toISOString()
 const to = new Date('2021-01-02').toISOString()
 const windowSize = WindowSize.HOUR
-const values = await openmeter.meters.getMeterValues(meterSlug, subject, from, to, windowSize)
+const values = await openmeter.meters.getMeterValues(
+ meterSlug,
+ namespace,
+ subject,
+ from,
+ to,
+ windowSize
+)
 ```

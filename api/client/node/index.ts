@@ -1,5 +1,6 @@
 import { NodeHttpRequest } from './generated/core/NodeHttpRequest.js'
 export { NodeHttpRequest } from './generated/core/NodeHttpRequest.js'
+import { OpenAPI, type OpenAPIConfig } from './generated/core/OpenAPI.js'
 import { HttpService } from './generated/HttpService.js'
 import {
 	DefaultService,
@@ -7,7 +8,6 @@ import {
 	MetersService,
 } from './generated/index.js'
 import type { BaseHttpRequest } from './generated/core/BaseHttpRequest.js'
-import type { OpenAPIConfig } from './generated/core/OpenAPI.js'
 export * from './generated/index.js'
 
 export type HttpRequestConstructor = new (
@@ -36,9 +36,9 @@ export class OpenMeter extends HttpService {
 	) {
 		const openAPIConfig: OpenAPIConfig = {
 			BASE: config.baseUrl,
-			VERSION: '1.0.0',
-			CREDENTIALS: config.credentials ?? 'include',
-			WITH_CREDENTIALS: config.withCredentials ?? false,
+			VERSION: OpenAPI.VERSION,
+			CREDENTIALS: config.credentials ?? OpenAPI.CREDENTIALS,
+			WITH_CREDENTIALS: config.withCredentials ?? OpenAPI.WITH_CREDENTIALS,
 			TOKEN: config.token,
 			USERNAME: config.username,
 			PASSWORD: config.password,

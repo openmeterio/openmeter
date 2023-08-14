@@ -1,6 +1,6 @@
 {
 	"name": "@openmeter/sdk",
-	"version": "1.0.0-alpha.3",
+	"version": "1.0.0-alpha.4",
 	"description": "Client for OpenMeter: Real-Time and Scalable Usage Metering",
 	"license": "Apache 2.0",
 	"homepage": "https://openmeter.io",
@@ -13,25 +13,25 @@
 	"types": "./dist/index.d.ts",
 	"type": "module",
 	"engines": {
-		"node": "^18.16.1"
+		"node": ">=18.16.1"
 	},
 	"scripts": {
 		"lint": "eslint . --ext .ts --format=pretty",
 		"format": "prettier --write .",
 		"build": "rimraf ./dist && tsc --build",
 		"generate": "rimraf ./generated && openapi -i ../../openapi.yaml -o ./generated --exportSchemas true --name HttpService --client node",
-		"postgenerate": "ts-node-esm scripts/postgenerate.ts && eslint ./generated --ext .ts --format=pretty --fix && prettier --write ./generated",
+		"postgenerate": "node scripts/postgenerate.js && eslint ./generated --ext .ts --format=pretty --fix && prettier --write ./generated",
 		"pretest": "npm run build",
 		"test": "vitest --run --threads=false",
 		"test:watch": "vitest --watch --threads=false",
 		"prepublishOnly": "npm run generate && npm run build && npm run test && npm run lint"
 	},
 	"devDependencies": {
-		"@types/node": "^20.4.9",
+		"@types/node": "^20.5.0",
 		"@types/node-fetch": "^2.6.4",
-		"@typescript-eslint/eslint-plugin": "^6.3.0",
-		"@typescript-eslint/parser": "^6.3.0",
-		"eslint": "^8.46.0",
+		"@typescript-eslint/eslint-plugin": "^6.4.0",
+		"@typescript-eslint/parser": "^6.4.0",
+		"eslint": "^8.47.0",
 		"eslint-config-prettier": "^9.0.0",
 		"eslint-formatter-pretty": "^5.0.0",
 		"eslint-import-resolver-typescript": "^3.6.0",
@@ -43,7 +43,6 @@
 		"openapi-typescript-codegen": "^0.25.0",
 		"prettier": "^3.0.1",
 		"rimraf": "^5.0.1",
-		"ts-node": "^10.9.1",
 		"typescript": "^5.1.6",
 		"vitest": "^0.34.1"
 	},

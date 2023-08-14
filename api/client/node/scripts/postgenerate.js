@@ -3,7 +3,6 @@ For all generated files, remove the ignore headers.
 See related issue: https://github.com/ferdikoomen/openapi-typescript-codegen/issues/1539
 */
 
-import { PathLike } from 'fs'
 import fs from 'fs/promises'
 import path from 'path'
 
@@ -16,7 +15,11 @@ const removeComments = [
 	'// @ts-ignore',
 ]
 
-async function walk(dir: PathLike) {
+/**
+ *
+ * @param {import('fs').PathLike} dir
+ */
+async function walk(dir) {
 	const dirents = await fs.readdir(dir, { withFileTypes: true })
 	for (const dirent of dirents) {
 		const p = path.join(dir.toString(), dirent.name).replace('file:', '')
