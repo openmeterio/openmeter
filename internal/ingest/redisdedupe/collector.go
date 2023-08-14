@@ -9,6 +9,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/exp/slog"
 
+	"github.com/openmeterio/openmeter/internal/dedupe"
 	"github.com/openmeterio/openmeter/internal/ingest"
 )
 
@@ -56,7 +57,7 @@ func (c Collector) Close() {
 
 // IsUnique checks if the entry is unique based on the key and sets it in store
 func (c *Collector) isUnique(ctx context.Context, namespace string, ev event.Event) (bool, error) {
-	status, err := c.config.Redis.SetArgs(ctx, ingest.GetEventKey(namespace, ev), "", redis.SetArgs{
+	status, err := c.config.Redis.SetArgs(ctx, dedupe.GetEventKey(namespace, ev), "", redis.SetArgs{
 		TTL:  c.config.Expiration,
 		Mode: "nx",
 	}).Result()

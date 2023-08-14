@@ -7,6 +7,7 @@ import (
 	"github.com/cloudevents/sdk-go/v2/event"
 	lru "github.com/hashicorp/golang-lru/v2"
 
+	"github.com/openmeterio/openmeter/internal/dedupe"
 	"github.com/openmeterio/openmeter/internal/ingest"
 )
 
@@ -62,6 +63,6 @@ func (c Collector) Close() {
 }
 
 func (c Collector) IsUnique(ctx context.Context, namespace string, ev event.Event) (bool, error) {
-	isContained, _ := c.store.ContainsOrAdd(ingest.GetEventKey(namespace, ev), nil)
+	isContained, _ := c.store.ContainsOrAdd(dedupe.GetEventKey(namespace, ev), nil)
 	return !isContained, nil
 }
