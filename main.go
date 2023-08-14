@@ -35,12 +35,12 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/exp/slog"
 
+	"github.com/openmeterio/openmeter/internal/dedupe/memorydedupe"
+	"github.com/openmeterio/openmeter/internal/dedupe/redisdedupe"
 	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/ingest/httpingest"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
-	"github.com/openmeterio/openmeter/internal/ingest/memorydedupe"
-	"github.com/openmeterio/openmeter/internal/ingest/redisdedupe"
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/server"
 	"github.com/openmeterio/openmeter/internal/server/router"
@@ -219,24 +219,37 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Initialize Memory Dedupe
-	if config.Dedupe.Memory.Enabled {
-		ingestCollector, err = memorydedupe.NewCollector(memorydedupe.CollectorConfig{
-			Collector: ingestCollector,
-			Size:      config.Dedupe.Memory.Size,
-		})
-		if err != nil {
-			logger.Error("failed to initialize memory dedupe", "error", err)
+	// Initialize deduplication
+	if config.Dedupe.Memory.Enabled || config.Dedupe.Redis.Enabled {
+		var deduplicator ingest.Deduplicator
+		var err error
+
+		// Initialize Memory Dedupe
+		if config.Dedupe.Memory.Enabled {
+			deduplicator, err = memorydedupe.NewDeduplicator(config.Dedupe.Memory.Size)
+			if err != nil {
+				logger.Error("failed to initialize memory dedupe", "error", err)
+				os.Exit(1)
+			}
+		}
+
+		// Initialize Redis Dedupe
+		if config.Dedupe.Redis.Enabled {
+			deduplicator = initDedupeRedis(config)
+			if err != nil {
+				logger.Error("failed to initialize redis dedupe", "error", err)
+				os.Exit(1)
+			}
+		}
+
+		if deduplicator == nil {
+			logger.Error("failed to initialize deduplicator")
 			os.Exit(1)
 		}
-	}
 
-	// Initialize Redis Dedupe
-	if config.Dedupe.Redis.Enabled {
-		ingestCollector, err = initDedupeRedis(config, logger, ingestCollector)
-		if err != nil {
-			logger.Error("failed to initialize redis dedupe", "error", err)
-			os.Exit(1)
+		ingestCollector = ingest.DeduplicatingCollector{
+			Collector:    ingestCollector,
+			Deduplicator: deduplicator,
 		}
 	}
 
@@ -489,7 +502,7 @@ func initClickHouseStreaming(config configuration, logger *slog.Logger) (*clickh
 }
 
 // initDedupe initializes the dedupe based on the configuration.
-func initDedupeRedis(config configuration, logger *slog.Logger, collector ingest.Collector) (*redisdedupe.Collector, error) {
+func initDedupeRedis(config configuration) redisdedupe.Deduplicator {
 	// Initialize Redis
 	var redisClient *redis.Client
 
@@ -512,17 +525,10 @@ func initDedupeRedis(config configuration, logger *slog.Logger, collector ingest
 		})
 	}
 
-	dedupeRedis, err := redisdedupe.NewCollector(redisdedupe.CollectorConfig{
-		Logger:     logger,
+	return redisdedupe.Deduplicator{
 		Redis:      redisClient,
 		Expiration: config.Dedupe.Redis.Expiration,
-		Collector:  collector,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("init redis dedupe: %w", err)
 	}
-
-	return dedupeRedis, nil
 }
 
 func initNamespace(config configuration, namespaces ...namespace.Handler) (*namespace.Manager, error) {

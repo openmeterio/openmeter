@@ -90,6 +90,10 @@ func (c configuration) Validate() error {
 		return err
 	}
 
+	if c.Dedupe.Memory.Enabled && c.Dedupe.Redis.Enabled {
+		return errors.New("redis and in-memory deduplication cannot be enabled at the same time")
+	}
+
 	if err := c.Dedupe.Redis.Validate(); err != nil {
 		return err
 	}
