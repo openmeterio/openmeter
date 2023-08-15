@@ -195,10 +195,10 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 		where = append(where, queryView.Equal("subject", *d.Subject))
 	}
 	if d.From != nil {
-		where = append(where, queryView.GreaterEqualThan("windowstart", d.From.UnixMilli()))
+		where = append(where, queryView.GreaterEqualThan("windowstart", d.From.Unix()))
 	}
 	if d.To != nil {
-		where = append(where, queryView.LessEqualThan("windowend", d.To.UnixMilli()))
+		where = append(where, queryView.LessEqualThan("windowend", d.To.Unix()))
 	}
 	if len(where) > 0 {
 		queryView.Where(where...)
