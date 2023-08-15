@@ -1,4 +1,5 @@
 import { IncomingHttpHeaders } from 'http'
+import { Dispatcher, request } from 'undici'
 import { components } from '../schemas/openapi.js'
 
 export type OpenMeterConfig = {
@@ -15,11 +16,82 @@ export type RequestOptions = {
 
 export type Problem = components['schemas']['Problem']
 
+type UndiciRequestOptions = { dispatcher?: Dispatcher } & Omit<Dispatcher.RequestOptions, 'origin' | 'path' | 'method'> & Partial<Pick<Dispatcher.RequestOptions, 'method'>>
+
 export class BaseClient {
     protected config: OpenMeterConfig
 
     constructor(config: OpenMeterConfig) {
         this.config = config
+    }
+
+    protected async request<T>({
+        path,
+        method,
+        searchParams,
+        headers,
+        body,
+        options
+    }: {
+        path: string
+        method: Dispatcher.HttpMethod,
+        searchParams?: URLSearchParams,
+        headers?: IncomingHttpHeaders,
+        body?: string | Buffer | Uint8Array,
+        options?: RequestOptions
+    }): Promise<T> {
+        // Building URL
+        let qs = searchParams ? searchParams.toString() : ''
+        qs = qs.length > 0 ? `?${qs}` : ''
+        const url = new URL(`${path}${qs}`, this.config.baseUrl)
+
+        // Request options
+        const reqHeaders: IncomingHttpHeaders = {
+            Accept: 'application/json',
+            ...headers,
+            ...this.authHeaders(),
+            ...this.config.headers,
+            ...options?.headers,
+        }
+        const reqOpts: UndiciRequestOptions = {
+            method,
+            headers: reqHeaders
+        }
+
+        // Optional body
+        if (body) {
+            if (!reqHeaders['Content-Type'] && !reqHeaders['content-type']) {
+                throw new Error('Content Type is required with body')
+            }
+
+            reqOpts.body = body
+        }
+
+        const resp = await request(url, reqOpts)
+        if (resp.statusCode > 399) {
+            const problem = (await resp.body.json()) as Problem
+
+            throw new HttpError({
+                statusCode: resp.statusCode,
+                problem,
+            })
+        }
+
+        if (resp.statusCode === 204) {
+            return undefined as unknown as T
+        }
+        if (resp.headers['content-type'] === 'application/json') {
+            return await resp.body.json() as T
+        }
+        if (resp.headers['content-type'] === 'application/problem+json') {
+            const problem = await resp.body.json() as Problem
+            throw new HttpError({
+                statusCode: resp.statusCode,
+                problem,
+            })
+        }
+
+        throw new Error('Unknown content type')
     }
 
     protected authHeaders(): IncomingHttpHeaders {

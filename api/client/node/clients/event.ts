@@ -1,8 +1,6 @@
 import crypto from 'crypto'
-import { RequestOptions } from 'http'
-import { request } from 'undici'
 import { components } from '../schemas/openapi.js'
-import { BaseClient, HttpError, OpenMeterConfig, Problem } from './client.js'
+import { RequestOptions, BaseClient, OpenMeterConfig } from './client.js'
 
 // We export Event instead
 type CloudEvents = components['schemas']['Event']
@@ -69,12 +67,16 @@ export class EventsClient extends BaseClient {
         super(config)
     }
 
+    /**
+     * Ingest usage event in a CloudEvents format
+     * @see https://cloudevents.io
+     */
     public async ingest(
         usageEvent: Event,
         options?: RequestOptions
     ): Promise<void> {
         // We default where we can to lower the barrier to use CloudEvents
-        const payload: CloudEvents = {
+        const body: CloudEvents = {
             specversion: usageEvent.specversion ?? '1.0',
             id: usageEvent.id ?? crypto.randomUUID(),
             source: usageEvent.source ?? '@openmeter/sdk',
@@ -84,13 +86,13 @@ export class EventsClient extends BaseClient {
 
         // Optional fields
         if (usageEvent.time) {
-            payload.time = usageEvent.time.toISOString()
+            body.time = usageEvent.time.toISOString()
         }
         if (usageEvent.data) {
-            payload.data = usageEvent.data
+            body.data = usageEvent.data
         }
         if (usageEvent.dataschema) {
-            payload.dataschema = usageEvent.dataschema
+            body.dataschema = usageEvent.dataschema
         }
         if (usageEvent.datacontenttype) {
             if (usageEvent.datacontenttype !== 'application/json') {
@@ -99,30 +101,19 @@ export class EventsClient extends BaseClient {
                 )
             }
 
-            payload.datacontenttype = usageEvent.datacontenttype
+            body.datacontenttype = usageEvent.datacontenttype
         }
 
         // Making Request
-        const url = new URL('/api/v1/events', this.config.baseUrl)
-        const resp = await request(url, {
+        return await this.request({
+            path: '/api/v1/events',
             method: 'POST',
-            body: JSON.stringify(payload),
+            body: JSON.stringify(body),
             headers: {
-                Accept: 'application/json',
                 'Content-Type': 'application/cloudevents+json',
-                ...this.authHeaders(),
-                ...this.config.headers,
-                ...options?.headers,
             },
+            options
         })
-        if (resp.statusCode > 399) {
-            const problem = (await resp.body.json()) as Problem
-
-            throw new HttpError({
-                statusCode: resp.statusCode,
-                problem,
-            })
-        }
     }
 }
 

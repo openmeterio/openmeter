@@ -24,7 +24,7 @@ client.intercept({
         },
     })
 })
-    .reply(201);
+    .reply(204);
 
 client.intercept({
     path: '/api/v1/events',
@@ -44,7 +44,7 @@ client.intercept({
         },
     })
 })
-    .reply(201)
+    .reply(204)
 
 client.intercept({
     path: '/api/v1/meters',
@@ -53,7 +53,11 @@ client.intercept({
         'Accept': 'application/json'
     }
 })
-    .reply(200, [mockMeter]);
+    .reply(200, [mockMeter], {
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
 
 client.intercept({
     path: `/api/v1/meters/${mockMeter.slug}`,
@@ -62,7 +66,11 @@ client.intercept({
         'Accept': 'application/json'
     }
 })
-    .reply(200, mockMeter);
+    .reply(200, mockMeter, {
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
 
 client.intercept({
     path: `/api/v1/meters/${mockMeter.slug}/values`,
@@ -75,6 +83,10 @@ client.intercept({
     .reply(200, {
         windowSize: 'HOUR',
         data: [mockMeterValue]
+    }, {
+        headers: {
+            'Content-Type': 'application/json'
+        }
     });
 
 client.intercept({
@@ -93,4 +105,8 @@ client.intercept({
     .reply(200, {
         windowSize: 'HOUR',
         data: [mockMeterValue]
+    }, {
+        headers: {
+            'Content-Type': 'application/json'
+        }
     });

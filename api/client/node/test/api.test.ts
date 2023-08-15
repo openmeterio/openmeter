@@ -2,7 +2,7 @@ import crypto from 'crypto'
 import { setGlobalDispatcher } from 'undici'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 // test built version
-import { OpenMeter, type Event } from '../dist/index.js'
+import { OpenMeter, type Event, WindowSize } from '../dist/index.js'
 import { mockAgent } from './agent.js'
 import { mockMeter, mockMeterValue } from './mocks.js'
 
@@ -73,10 +73,10 @@ describe('sdk', () => {
             })
         })
 
-        describe('query', () => {
+        describe('values', () => {
             it('should get meter values', async ({ openmeter }) => {
-                const { windowSize, data } = await openmeter.meters.query(mockMeter.slug)
-                expect(windowSize).toBe('HOUR')
+                const { windowSize, data } = await openmeter.meters.values(mockMeter.slug)
+                expect(windowSize).toBe(WindowSize.HOUR)
                 expect(data).toEqual([mockMeterValue])
             })
 
@@ -84,16 +84,16 @@ describe('sdk', () => {
                 const subject = 'user-1'
                 const from = new Date('2021-01-01')
                 const to = new Date('2021-01-02')
-                const windowSize = 'HOUR'
+                const windowSize = WindowSize.HOUR
 
-                const data = await openmeter.meters.query(mockMeter.slug, {
+                const data = await openmeter.meters.values(mockMeter.slug, {
                     subject,
                     from,
                     to,
                     windowSize
                 })
 
-                expect(data.windowSize).toBe('HOUR')
+                expect(data.windowSize).toBe(WindowSize.HOUR)
                 expect(data.data).toEqual([mockMeterValue])
             })
         })

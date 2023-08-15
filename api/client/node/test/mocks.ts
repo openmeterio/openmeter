@@ -1,11 +1,11 @@
-import { Meter } from "../index.js";
+import { Meter, WindowSize } from "../index.js";
 
 export const mockMeter: Meter = {
     slug: "m1",
     aggregation: "SUM",
     eventType: "api_requests",
     valueProperty: "$.duration_ms",
-    windowSize: "MINUTE",
+    windowSize: WindowSize.HOUR,
     groupBy: {
         method: '$.method',
         path: '$.path',
