@@ -263,7 +263,7 @@ export interface operations {
     };
     responses: {
       /** @description OK */
-      200: {
+      204: {
         content: never;
       };
       400: components["responses"]["BadRequestProblemResponse"];

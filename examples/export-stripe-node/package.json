@@ -1,28 +1,28 @@
 {
-	"name": "openmeter-example-stripe",
-	"version": "1.0.0",
-	"description": "OpenMeter example for Stripe",
-	"main": "app.ts",
-	"type": "module",
-	"scripts": {
-		"start": "TZ=utc ts-node app.ts",
-		"setup": "ts-node setup.ts",
-		"lint": "prettier --write .",
-		"test": "echo \"Error: no test specified\" && exit 1"
-	},
-	"dependencies": {
-		"@openmeter/sdk": "1.0.0-alpha.1",
-		"dotenv": "^16.1.4",
-		"moment": "^2.29.4",
-		"stripe": "^12.8.0",
-		"ts-node": "^10.9.1",
-		"typescript": "^5.0.4"
-	},
-	"devDependencies": {
-		"@types/body-parser": "^1.19.2",
-		"@types/express": "^4.17.17",
-		"@types/node-cron": "^3.0.7",
-		"openapi-client-axios-typegen": "^7.2.0",
-		"prettier": "^2.8.8"
-	}
+    "name": "openmeter-example-stripe",
+    "version": "1.0.0",
+    "description": "OpenMeter example for Stripe",
+    "main": "app.ts",
+    "type": "module",
+    "scripts": {
+        "start": "TZ=utc ts-node app.ts",
+        "setup": "ts-node setup.ts",
+        "lint": "prettier --write .",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "dependencies": {
+        "@openmeter/sdk": "1.0.0-beta.4",
+        "dotenv": "^16.1.4",
+        "moment": "^2.29.4",
+        "stripe": "^12.8.0",
+        "ts-node": "^10.9.1",
+        "typescript": "^5.0.4"
+    },
+    "devDependencies": {
+        "@types/body-parser": "^1.19.2",
+        "@types/express": "^4.17.17",
+        "@types/node-cron": "^3.0.7",
+        "openapi-client-axios-typegen": "^7.2.0",
+        "prettier": "^2.8.8"
+    }
 }
