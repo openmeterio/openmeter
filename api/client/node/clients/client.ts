@@ -41,15 +41,13 @@ export class BaseClient {
         options?: RequestOptions
     }): Promise<T> {
         // Building URL
-        let qs = searchParams ? searchParams.toString() : ''
-        qs = qs.length > 0 ? `?${qs}` : ''
-        const url = new URL(`${path}${qs}`, this.config.baseUrl)
+        const url = this.getUrl(path, searchParams)
 
         // Request options
         const reqHeaders: IncomingHttpHeaders = {
             Accept: 'application/json',
             ...headers,
-            ...this.authHeaders(),
+            ...this.getAuthHeaders(),
             ...this.config.headers,
             ...options?.headers,
         }
@@ -68,33 +66,45 @@ export class BaseClient {
         }
 
         const resp = await request(url, reqOpts)
-        if (resp.statusCode > 399) {
-            const problem = (await resp.body.json()) as Problem
 
+        // Error handling
+        if (resp.statusCode > 399) {
+            if (resp.headers['content-type'] === 'application/problem+json') {
+                const problem = await resp.body.json() as Problem
+                throw new HttpError({
+                    statusCode: resp.statusCode,
+                    problem,
+                })
+            }
+
+            // Requests can fail before API, in this case we only have a status code
             throw new HttpError({
                 statusCode: resp.statusCode,
-                problem,
             })
         }
 
+        // Response parsing
         if (resp.statusCode === 204) {
             return undefined as unknown as T
         }
         if (resp.headers['content-type'] === 'application/json') {
             return await resp.body.json() as T
         }
-        if (resp.headers['content-type'] === 'application/problem+json') {
-            const problem = await resp.body.json() as Problem
-            throw new HttpError({
-                statusCode: resp.statusCode,
-                problem,
-            })
+        if (!resp.headers['content-type']) {
+            throw new Error('Missing content type')
         }
 
-        throw new Error('Unknown content type')
+        throw new Error(`Unknown content type: ${resp.headers['content-type']}`)
     }
 
-    protected authHeaders(): IncomingHttpHeaders {
+    protected getUrl(path: string, searchParams?: URLSearchParams) {
+        let qs = searchParams ? searchParams.toString() : ''
+        qs = qs.length > 0 ? `?${qs}` : ''
+        const url = new URL(`${path}${qs}`, this.config.baseUrl)
+        return url
+    }
+
+    protected getAuthHeaders(): IncomingHttpHeaders {
         if (this.config.token) {
             return {
                 authorization: `Bearer ${this.config.token} `,
