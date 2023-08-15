@@ -83,6 +83,6 @@ const values = await openmeter.meters.values('my-meter-slug', {
     subject: 'user-1',
     from: new Date('2021-01-01'),
     to: new Date('2021-01-02'),
-    windowSize: WindowSize.HOUR
+    windowSize: WindowSize.HOUR,
 })
 ```
