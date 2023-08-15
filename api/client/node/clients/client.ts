@@ -122,6 +122,22 @@ export class BaseClient {
 
         return {}
     }
+
+    static toURLSearchParams(params: Record<string, string | number | Date | string[]>): URLSearchParams {
+        const searchParams = new URLSearchParams()
+
+        for (const [key, value] of Object.entries(params)) {
+            if (Array.isArray(value)) {
+                searchParams.append(key, value.join(','))
+            } else if (value instanceof Date) {
+                searchParams.append(key, value.toISOString())
+            } else {
+                searchParams.append(key, value.toString())
+            }
+        }
+
+        return searchParams
+    }
 }
 
 export class HttpError extends Error {

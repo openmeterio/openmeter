@@ -72,23 +72,7 @@ export class MetersClient extends BaseClient {
      * Get aggregated values of a meter
      */
     public async values(slug: string, params?: MeterQueryParams, options?: RequestOptions): Promise<MeterQueryResponse> {
-        // Making Request
-        const searchParams = new URLSearchParams()
-        if (params && params.from) {
-            searchParams.append('from', params.from.toISOString())
-        }
-        if (params && params.to) {
-            searchParams.append('to', params.to.toISOString())
-        }
-        if (params && params.subject) {
-            searchParams.append('subject', params.subject)
-        }
-        if (params && params.groupBy) {
-            searchParams.append('groupBy', params.groupBy.join(','))
-        }
-        if (params && params.windowSize) {
-            searchParams.append('windowSize', params.windowSize)
-        }
+        const searchParams = params ? BaseClient.toURLSearchParams(params) : undefined
         return this.request<MeterQueryResponse>({
             method: 'GET',
             path: `/api/v1/meters/${slug}/values`,
