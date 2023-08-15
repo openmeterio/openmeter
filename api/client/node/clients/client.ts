@@ -123,7 +123,7 @@ export class BaseClient {
         return {}
     }
 
-    static toURLSearchParams(params: Record<string, string | number | Date | string[]>): URLSearchParams {
+    protected static toURLSearchParams(params: Record<string, string | number | Date | string[]>): URLSearchParams {
         const searchParams = new URLSearchParams()
 
         for (const [key, value] of Object.entries(params)) {
