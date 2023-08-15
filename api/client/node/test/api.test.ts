@@ -34,7 +34,7 @@ describe('api', () => {
                     api_calls: 1,
                 },
             }
-            const data = await openmeter.ingestEvents(event)
+            const data = await openmeter.events.ingest(event)
             expect(data).toBeUndefined()
         })
 
@@ -51,28 +51,28 @@ describe('api', () => {
                 },
             }
 
-            const data = await openmeter.ingestEvents(event)
+            const data = await openmeter.events.ingest(event)
             expect(data).toBeUndefined()
         })
     })
 
     describe('listMeters', () => {
         it('should list meters', async ({ openmeter }) => {
-            const meters = await openmeter.listMeters()
+            const meters = await openmeter.meters.list()
             expect(meters).toEqual([mockMeter])
         })
     })
 
     describe('retrieveMeter', () => {
         it('should get meter', async ({ openmeter }) => {
-            const meters = await openmeter.retrieveMeter(mockMeter.slug)
+            const meters = await openmeter.meters.retreive(mockMeter.slug)
             expect(meters).toEqual(mockMeter)
         })
     })
 
     describe('queryMeter', () => {
         it('should get meter values', async ({ openmeter }) => {
-            const { windowSize, data } = await openmeter.queryMeter(mockMeter.slug)
+            const { windowSize, data } = await openmeter.meters.query(mockMeter.slug)
             expect(windowSize).toBe('HOUR')
             expect(data).toEqual([mockMeterValue])
         })
@@ -83,7 +83,7 @@ describe('api', () => {
             const to = new Date('2021-01-02')
             const windowSize = 'HOUR'
 
-            const data = await openmeter.queryMeter(mockMeter.slug, {
+            const data = await openmeter.meters.query(mockMeter.slug, {
                 subject,
                 from,
                 to,
