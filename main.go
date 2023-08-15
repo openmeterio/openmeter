@@ -22,7 +22,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/redis/go-redis/v9"
+	"github.com/sagikazarmark/mapstructurex"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/thmeitz/ksqldb-go"
@@ -35,8 +35,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/exp/slog"
 
-	"github.com/openmeterio/openmeter/internal/dedupe/memorydedupe"
-	"github.com/openmeterio/openmeter/internal/dedupe/redisdedupe"
 	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/ingest/httpingest"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
@@ -80,6 +78,7 @@ func main() {
 
 	var config configuration
 	err = v.Unmarshal(&config, viper.DecodeHook(mapstructure.ComposeDecodeHookFunc(
+		mapstructurex.MapDecoderHookFunc(),
 		mapstructure.TextUnmarshallerHookFunc(),
 		mapstructure.StringToTimeDurationHookFunc(),
 		mapstructure.StringToSliceHookFunc(","),
@@ -204,30 +203,10 @@ func main() {
 	}
 
 	// Initialize deduplication
-	if config.Dedupe.Memory.Enabled || config.Dedupe.Redis.Enabled {
-		var deduplicator ingest.Deduplicator
-		var err error
-
-		// Initialize Memory Dedupe
-		if config.Dedupe.Memory.Enabled {
-			deduplicator, err = memorydedupe.NewDeduplicator(config.Dedupe.Memory.Size)
-			if err != nil {
-				logger.Error("failed to initialize memory dedupe", "error", err)
-				os.Exit(1)
-			}
-		}
-
-		// Initialize Redis Dedupe
-		if config.Dedupe.Redis.Enabled {
-			deduplicator = initDedupeRedis(config)
-			if err != nil {
-				logger.Error("failed to initialize redis dedupe", "error", err)
-				os.Exit(1)
-			}
-		}
-
-		if deduplicator == nil {
-			logger.Error("failed to initialize deduplicator")
+	if config.Dedupe.Enabled {
+		deduplicator, err := config.Dedupe.NewDeduplicator()
+		if err != nil {
+			logger.Error("failed to initialize deduplicator", "error", err)
 			os.Exit(1)
 		}
 
@@ -483,36 +462,6 @@ func initClickHouseStreaming(config configuration, logger *slog.Logger) (*clickh
 	}
 
 	return streamingConnector, nil
-}
-
-// initDedupe initializes the dedupe based on the configuration.
-func initDedupeRedis(config configuration) redisdedupe.Deduplicator {
-	// Initialize Redis
-	var redisClient *redis.Client
-
-	if config.Dedupe.Redis.UseSentinel {
-		redisClient = redis.NewFailoverClient(&redis.FailoverOptions{
-			MasterName:    config.Dedupe.Redis.MasterName,
-			SentinelAddrs: []string{config.Dedupe.Redis.Address},
-			// RouteByLatency:          false,
-			// RouteRandomly:           false,
-			Password: config.Dedupe.Redis.Password,
-			Username: config.Dedupe.Redis.Username,
-			DB:       config.Dedupe.Redis.Database,
-		})
-	} else {
-		redisClient = redis.NewClient(&redis.Options{
-			Addr:     config.Dedupe.Redis.Address,
-			Password: config.Dedupe.Redis.Password,
-			Username: config.Dedupe.Redis.Username,
-			DB:       config.Dedupe.Redis.Database,
-		})
-	}
-
-	return redisdedupe.Deduplicator{
-		Redis:      redisClient,
-		Expiration: config.Dedupe.Redis.Expiration,
-	}
 }
 
 func initNamespace(config configuration, namespaces ...namespace.Handler) (*namespace.Manager, error) {
