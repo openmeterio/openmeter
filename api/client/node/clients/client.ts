@@ -123,10 +123,14 @@ export class BaseClient {
         return {}
     }
 
-    protected static toURLSearchParams(params: Record<string, string | number | Date | string[]>): URLSearchParams {
+    protected static toURLSearchParams(params: Record<string, string | number | Date | string[] | undefined>): URLSearchParams {
         const searchParams = new URLSearchParams()
 
         for (const [key, value] of Object.entries(params)) {
+            if (value === undefined) {
+                continue
+            }
+
             if (Array.isArray(value)) {
                 searchParams.append(key, value.join(','))
             } else if (value instanceof Date) {

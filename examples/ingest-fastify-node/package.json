@@ -1,25 +1,25 @@
 {
-	"name": "openmeter-example-fastify",
-	"version": "1.0.0",
-	"description": "OpenMeter example for Fastify server",
-	"main": "app.ts",
-	"type": "module",
-	"scripts": {
-		"lint": "prettier --write .",
-		"start": "TZ=utc ts-node app.ts",
-		"dev": "nodemon app.ts",
-		"test": "echo \"Error: no test specified\" && exit 1"
-	},
-	"dependencies": {
-		"@fastify/cookie": "^8.3.0",
-		"@fastify/session": "^10.4.0",
-		"@openmeter/sdk": "1.0.0-alpha.2",
-		"fastify": "^4.20.0",
-		"ts-node": "^10.9.1",
-		"typescript": "^5.0.4"
-	},
-	"devDependencies": {
-		"nodemon": "^3.0.1",
-		"prettier": "^3.0.0"
-	}
+    "name": "openmeter-example-fastify",
+    "version": "1.0.0",
+    "description": "OpenMeter example for Fastify server",
+    "main": "app.ts",
+    "type": "module",
+    "scripts": {
+        "lint": "prettier --write .",
+        "start": "TZ=utc ts-node app.ts",
+        "dev": "nodemon app.ts",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "dependencies": {
+        "@fastify/cookie": "^8.3.0",
+        "@fastify/session": "^10.4.0",
+        "@openmeter/sdk": "1.0.0-beta.4",
+        "fastify": "^4.20.0",
+        "ts-node": "^10.9.1",
+        "typescript": "^5.0.4"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.1",
+        "prettier": "^3.0.0"
+    }
 }
