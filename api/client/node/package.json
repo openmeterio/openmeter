@@ -49,9 +49,6 @@
         "current node"
     ],
     "dependencies": {
-        "abort-controller": "^3.0.0",
-        "form-data": "^4.0.0",
-        "node-fetch": "^3.3.2",
         "undici": "^5.23.0"
     }
 }
