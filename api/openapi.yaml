@@ -463,7 +463,6 @@ components:
     namespaceParam:
       name: OM-Namespace
       description: Optional namespace
-      default: default
       in: header
       x-go-name: NamespaceInput
       schema:
