@@ -81,7 +81,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, params api.In
 
 	logger.DebugCtx(r.Context(), "event forwarded to downstream collector")
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h Handler) getLogger() *slog.Logger {

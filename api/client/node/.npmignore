@@ -19,7 +19,8 @@ node_modules
 !.vscode/*.code-snippets
 
 # source
-generated/
+clients/
+schemas/
 scripts/
 test/
 vitest.config.ts

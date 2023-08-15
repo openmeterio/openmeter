@@ -27,7 +27,7 @@ paths:
       tags:
         - Events
       responses:
-        "200":
+        "204":
           description: OK
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"

@@ -84,7 +84,7 @@ export class BaseClient {
         }
 
         // Response parsing
-        if (resp.statusCode === 204) {
+        if (resp.statusCode === 204 || resp.headers['content-length'] === '0') {
             return undefined as unknown as T
         }
         if (resp.headers['content-type'] === 'application/json') {
