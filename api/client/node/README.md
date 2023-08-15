@@ -3,7 +3,7 @@
 ## Install
 
 ```sh
-npm install --save @openmeter/sdk@alpha
+npm install --save @openmeter/sdk@beta
 ```
 
 ## Example
