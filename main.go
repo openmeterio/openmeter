@@ -19,7 +19,7 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/lmittmann/tint"
+	"github.com/mitchellh/mapstructure"
 	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
@@ -79,7 +79,11 @@ func main() {
 	}
 
 	var config configuration
-	err = v.Unmarshal(&config)
+	err = v.Unmarshal(&config, viper.DecodeHook(mapstructure.ComposeDecodeHookFunc(
+		mapstructure.TextUnmarshallerHookFunc(),
+		mapstructure.StringToTimeDurationHookFunc(),
+		mapstructure.StringToSliceHookFunc(","),
+	)))
 	if err != nil {
 		panic(err)
 	}
@@ -89,27 +93,7 @@ func main() {
 		panic(err)
 	}
 
-	var logger *slog.Logger
-	var slogLevel slog.Level
-
-	err = slogLevel.UnmarshalText([]byte(config.Log.Level))
-	if err != nil {
-		slogLevel = slog.LevelInfo
-	}
-
-	switch config.Log.Format {
-	case "json":
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slogLevel}))
-
-	case "text":
-		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slogLevel}))
-
-	case "tint":
-		logger = slog.New(tint.NewHandler(os.Stdout, &tint.Options{Level: slog.LevelDebug}))
-
-	default:
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slogLevel}))
-	}
+	logger := slog.New(config.Log.NewHandler(os.Stdout))
 
 	slog.SetDefault(logger)
 
