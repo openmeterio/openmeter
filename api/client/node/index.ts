@@ -98,7 +98,9 @@ export type Problem = components['schemas']['Problem']
 export type MeterAggregation = components['schemas']['MeterAggregation']
 export type WindowSize = components['schemas']['WindowSize']
 export type MeterValue = components['schemas']['MeterValue']
+export type Meter = components['schemas']['Meter']
 
+// We export Event instead
 type CloudEvents = components['schemas']['Event']
 
 export class OpenMeter {
@@ -164,6 +166,52 @@ export class OpenMeter {
         }
     }
 
+    public async retrieveMeter(slug: string, options?: RequestOptions): Promise<Meter> {
+        const url = new URL(`/api/v1/meters/${slug}`, this.config.baseUrl)
+        const resp = await request(url, {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                ...this.authHeaders(),
+                ...this.config.headers,
+                ...options?.headers,
+            },
+        })
+        if (resp.statusCode > 299) {
+            const problem = (await resp.body.json()) as Problem
+
+            throw new HttpError('unexpected status code', {
+                statusCode: resp.statusCode,
+                problem,
+            })
+        }
+        const body = await resp.body.json() as Meter
+        return body
+    }
+
+    public async listMeters(options?: RequestOptions): Promise<Meter[]> {
+        const url = new URL('/api/v1/meters', this.config.baseUrl)
+        const resp = await request(url, {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                ...this.authHeaders(),
+                ...this.config.headers,
+                ...options?.headers,
+            },
+        })
+        if (resp.statusCode > 299) {
+            const problem = (await resp.body.json()) as Problem
+
+            throw new HttpError('unexpected status code', {
+                statusCode: resp.statusCode,
+                problem,
+            })
+        }
+        const body = await resp.body.json() as Meter[]
+        return body
+    }
+
     public async queryMeter(slug: string, params?: MeterQueryParams, options?: RequestOptions): Promise<MeterQueryResponse> {
         // Making Request
         const searchParams = new URLSearchParams()
@@ -182,12 +230,13 @@ export class OpenMeter {
         if (params && params.windowSize) {
             searchParams.append('windowSize', params.windowSize)
         }
-        const url = new URL(`/api/v1/meters/${slug}/values${searchParams.toString()}`, this.config.baseUrl)
+        let qs = searchParams.toString()
+        qs = qs.length > 0 ? `?${qs}` : ''
+        const url = new URL(`/api/v1/meters/${slug}/values${qs}`, this.config.baseUrl)
         const resp = await request(url, {
             method: 'GET',
             headers: {
                 Accept: 'application/json',
-                'Content-Type': 'application/cloudevents+json',
                 ...this.authHeaders(),
                 ...this.config.headers,
                 ...options?.headers,

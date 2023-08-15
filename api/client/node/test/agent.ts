@@ -1,4 +1,5 @@
 import { MockAgent } from 'undici';
+import { mockMeter, mockMeterValue } from './mocks.js';
 
 export const mockAgent = new MockAgent()
 mockAgent.disableNetConnect()
@@ -24,6 +25,7 @@ client.intercept({
     })
 })
     .reply(201);
+
 client.intercept({
     path: '/api/v1/events',
     method: 'POST',
@@ -45,7 +47,26 @@ client.intercept({
     .reply(201)
 
 client.intercept({
-    path: '/api/v1/meters/m1/values',
+    path: '/api/v1/meters',
+    method: 'GET',
+    headers: {
+        'Accept': 'application/json'
+    }
+})
+    .reply(200, [mockMeter]);
+
+client.intercept({
+    path: `/api/v1/meters/${mockMeter.slug}`,
+    method: 'GET',
+    headers: {
+        'Accept': 'application/json'
+    }
+})
+    .reply(200, mockMeter);
+
+client.intercept({
+    path: `/api/v1/meters/${mockMeter.slug}/values`,
+    query: {},
     method: 'GET',
     headers: {
         'Accept': 'application/json'
@@ -53,15 +74,23 @@ client.intercept({
 })
     .reply(200, {
         windowSize: 'HOUR',
-        data: [
-            {
-                subject: 'customer-1',
-                windowStart: '2023-01-01T01:00:00.001Z',
-                windowEnd: '2023-01-01T01:00:00.001Z',
-                value: 1,
-                groupBy: {
-                    method: 'GET'
-                }
-            }
-        ]
+        data: [mockMeterValue]
+    });
+
+client.intercept({
+    path: `/api/v1/meters/${mockMeter.slug}/values`,
+    query: {
+        subject: 'user-1',
+        from: new Date('2021-01-01').toISOString(),
+        to: new Date('2021-01-02').toISOString(),
+        windowSize: 'HOUR'
+    },
+    method: 'GET',
+    headers: {
+        'Accept': 'application/json'
+    }
+})
+    .reply(200, {
+        windowSize: 'HOUR',
+        data: [mockMeterValue]
     });

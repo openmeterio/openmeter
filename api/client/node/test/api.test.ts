@@ -4,6 +4,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 // test built version
 import { OpenMeter, type Event } from '../dist/index.js'
 import { mockAgent } from './agent.js'
+import { mockMeter, mockMeterValue } from './mocks.js'
 
 declare module 'vitest' {
     export interface TestContext {
@@ -55,86 +56,42 @@ describe('api', () => {
         })
     })
 
-    // describe('listMeters', () => {
-    // 	it('should list meters', async ({ openmeter }) => {
-    // 		await openmeter.meters.listMeters()
+    describe('listMeters', () => {
+        it('should list meters', async ({ openmeter }) => {
+            const meters = await openmeter.listMeters()
+            expect(meters).toEqual([mockMeter])
+        })
+    })
 
-    // 		expect(fetch).toHaveBeenCalledOnce()
-    // 		expect(fetch).toHaveBeenCalledWith(
-    // 			'http://127.0.0.1:8888/api/v1/meters',
-    // 			expect.objectContaining({
-    // 				method: 'GET',
-    // 				headers: new Headers({
-    // 					Accept: 'application/json',
-    // 				}),
-    // 			})
-    // 		)
-    // 	})
-    // })
-
-    // describe('getMeter', () => {
-    // 	it('should get meter', async ({ openmeter }) => {
-    // 		const meterSlug = 'm1'
-    // 		await openmeter.meters.getMeter(meterSlug)
-
-    // 		expect(fetch).toHaveBeenCalledOnce()
-    // 		expect(fetch).toHaveBeenCalledWith(
-    // 			'http://127.0.0.1:8888/api/v1/meters/m1',
-    // 			expect.objectContaining({
-    // 				method: 'GET',
-    // 				headers: new Headers({
-    // 					Accept: 'application/json',
-    // 				}),
-    // 			})
-    // 		)
-    // 	})
-    // })
+    describe('retrieveMeter', () => {
+        it('should get meter', async ({ openmeter }) => {
+            const meters = await openmeter.retrieveMeter(mockMeter.slug)
+            expect(meters).toEqual(mockMeter)
+        })
+    })
 
     describe('queryMeter', () => {
         it('should get meter values', async ({ openmeter }) => {
-            const meterSlug = 'm1'
-            const { windowSize, data } = await openmeter.queryMeter(meterSlug)
+            const { windowSize, data } = await openmeter.queryMeter(mockMeter.slug)
             expect(windowSize).toBe('HOUR')
-            expect(data).toEqual([
-                {
-                    subject: 'customer-1',
-                    windowStart: '2023-01-01T01:00:00.001Z',
-                    windowEnd: '2023-01-01T01:00:00.001Z',
-                    value: 1,
-                    groupBy: {
-                        method: 'GET'
-                    }
-                }
-            ])
+            expect(data).toEqual([mockMeterValue])
         })
 
+        it('should get meter values (with params)', async ({ openmeter }) => {
+            const subject = 'user-1'
+            const from = new Date('2021-01-01')
+            const to = new Date('2021-01-02')
+            const windowSize = 'HOUR'
 
-        // 	it('should get meter values (with params)', async ({ openmeter }) => {
-        // 		const meterSlug = 'm2'
-        // 		const subject = 'user-1'
-        // 		const from = new Date('2021-01-01')
-        // 		const to = new Date('2021-01-02')
-        // 		const windowSize = WindowSize.HOUR
-        // 		await openmeter.meters.getMeterValues(
-        // 			meterSlug,
-        // 			undefined,
-        // 			subject,
-        // 			from,
-        // 			to,
-        // 			windowSize
-        // 		)
+            const data = await openmeter.queryMeter(mockMeter.slug, {
+                subject,
+                from,
+                to,
+                windowSize
+            })
 
-        // 		expect(fetch).toHaveBeenCalledOnce()
-        // 		expect(fetch).toHaveBeenCalledWith(
-        // 			'http://127.0.0.1:8888/api/v1/meters/m2/values?subject=user-1&from=2021-01-01T00%3A00%3A00.000Z&to=2021-01-02T00%3A00%3A00.000Z&windowSize=HOUR',
-        // 			expect.objectContaining({
-        // 				method: 'GET',
-        // 				headers: new Headers({
-        // 					Accept: 'application/json',
-        // 				}),
-        // 			})
-        // 		)
-        // 	})
-        // })
+            expect(data.windowSize).toBe('HOUR')
+            expect(data.data).toEqual([mockMeterValue])
+        })
     })
 })
