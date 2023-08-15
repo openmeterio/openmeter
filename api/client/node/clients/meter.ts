@@ -29,7 +29,6 @@ export type WindowSize = components['schemas']['WindowSize']
 export type MeterValue = components['schemas']['MeterValue']
 export type Meter = components['schemas']['Meter']
 
-
 export class MetersClient extends BaseClient {
     constructor(config: OpenMeterConfig) {
         super(config)
@@ -46,7 +45,7 @@ export class MetersClient extends BaseClient {
                 ...options?.headers,
             },
         })
-        if (resp.statusCode > 299) {
+        if (resp.statusCode > 399) {
             const problem = (await resp.body.json()) as Problem
 
             throw new HttpError({
@@ -69,7 +68,7 @@ export class MetersClient extends BaseClient {
                 ...options?.headers,
             },
         })
-        if (resp.statusCode > 299) {
+        if (resp.statusCode > 399) {
             const problem = (await resp.body.json()) as Problem
 
             throw new HttpError({
@@ -111,7 +110,7 @@ export class MetersClient extends BaseClient {
                 ...options?.headers,
             },
         })
-        if (resp.statusCode > 299) {
+        if (resp.statusCode > 399) {
             const problem = (await resp.body.json()) as Problem
 
             throw new HttpError({

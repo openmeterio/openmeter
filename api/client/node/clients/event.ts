@@ -115,7 +115,7 @@ export class EventsClient extends BaseClient {
                 ...options?.headers,
             },
         })
-        if (resp.statusCode > 299) {
+        if (resp.statusCode > 399) {
             const problem = (await resp.body.json()) as Problem
 
             throw new HttpError({
