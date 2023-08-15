@@ -15,15 +15,15 @@ const openmeter = new OpenMeter({ baseUrl: 'http://localhost:8888' })
 
 // Ingesting an event
 const event: Event = {
-    specversion: '1.0',
-    id: 'id-1',
-    source: 'my-app',
-    type: 'my-type',
-    subject: 'my-awesome-user-id',
-    time: new Date(),
-    data: {
-        api_calls: 1,
-    },
+  specversion: '1.0',
+  id: 'id-1',
+  source: 'my-app',
+  type: 'my-type',
+  subject: 'my-awesome-user-id',
+  time: new Date(),
+  data: {
+    api_calls: 1,
+  },
 }
 await openmeter.events.ingest(event)
 
@@ -41,15 +41,15 @@ const meter = await openmeter.meters.get('m1')
 import { type Event } from '@openmeter/sdk'
 
 const event: Event = {
-    specversion: '1.0',
-    id: 'id-1',
-    source: 'my-app',
-    type: 'my-type',
-    subject: 'my-awesome-user-id',
-    time: new Date(),
-    data: {
-        api_calls: 1,
-    },
+  specversion: '1.0',
+  id: 'id-1',
+  source: 'my-app',
+  type: 'my-type',
+  subject: 'my-awesome-user-id',
+  time: new Date(),
+  data: {
+    api_calls: 1,
+  },
 }
 await openmeter.events.ingest(event)
 ```
@@ -80,9 +80,9 @@ Get back meter values.
 import { WindowSize } from '@openmeter/sdk'
 
 const values = await openmeter.meters.values('my-meter-slug', {
-    subject: 'user-1',
-    from: new Date('2021-01-01'),
-    to: new Date('2021-01-02'),
-    windowSize: WindowSize.HOUR,
+  subject: 'user-1',
+  from: new Date('2021-01-01'),
+  to: new Date('2021-01-02'),
+  windowSize: WindowSize.HOUR,
 })
 ```
