@@ -44,13 +44,10 @@ export class BaseClient {
 
 export class HttpError extends Error {
     public statusCode: number
-    public problem: Problem
+    public problem?: Problem
 
-    constructor(
-        message: string,
-        { statusCode, problem }: { statusCode: number; problem: Problem }
-    ) {
-        super(message)
+    constructor({ statusCode, problem }: { statusCode: number; problem?: Problem }) {
+        super(problem?.type || 'unexpected status code')
         this.name = 'HttpError'
         this.statusCode = statusCode
         this.problem = problem

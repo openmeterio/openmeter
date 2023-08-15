@@ -35,7 +35,7 @@ export class MetersClient extends BaseClient {
         super(config)
     }
 
-    public async retreive(slug: string, options?: RequestOptions): Promise<Meter> {
+    public async get(slug: string, options?: RequestOptions): Promise<Meter> {
         const url = new URL(`/api/v1/meters/${slug}`, this.config.baseUrl)
         const resp = await request(url, {
             method: 'GET',
@@ -49,7 +49,7 @@ export class MetersClient extends BaseClient {
         if (resp.statusCode > 299) {
             const problem = (await resp.body.json()) as Problem
 
-            throw new HttpError('unexpected status code', {
+            throw new HttpError({
                 statusCode: resp.statusCode,
                 problem,
             })
@@ -72,7 +72,7 @@ export class MetersClient extends BaseClient {
         if (resp.statusCode > 299) {
             const problem = (await resp.body.json()) as Problem
 
-            throw new HttpError('unexpected status code', {
+            throw new HttpError({
                 statusCode: resp.statusCode,
                 problem,
             })
@@ -114,7 +114,7 @@ export class MetersClient extends BaseClient {
         if (resp.statusCode > 299) {
             const problem = (await resp.body.json()) as Problem
 
-            throw new HttpError('unexpected status code', {
+            throw new HttpError({
                 statusCode: resp.statusCode,
                 problem,
             })

@@ -118,7 +118,7 @@ export class EventsClient extends BaseClient {
         if (resp.statusCode > 299) {
             const problem = (await resp.body.json()) as Problem
 
-            throw new HttpError('unexpected status code', {
+            throw new HttpError({
                 statusCode: resp.statusCode,
                 problem,
             })
