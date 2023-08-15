@@ -75,6 +75,12 @@ export class EventsClient extends BaseClient {
         usageEvent: Event,
         options?: RequestOptions
     ): Promise<void> {
+        if (usageEvent.datacontenttype && usageEvent.datacontenttype !== 'application/json') {
+            throw new TypeError(
+                `Unsupported datacontenttype: ${usageEvent.datacontenttype}`
+            )
+        }
+
         // We default where we can to lower the barrier to use CloudEvents
         const body: CloudEvents = {
             specversion: usageEvent.specversion ?? '1.0',
@@ -82,26 +88,10 @@ export class EventsClient extends BaseClient {
             source: usageEvent.source ?? '@openmeter/sdk',
             type: usageEvent.type,
             subject: usageEvent.subject,
-        }
-
-        // Optional fields
-        if (usageEvent.time) {
-            body.time = usageEvent.time.toISOString()
-        }
-        if (usageEvent.data) {
-            body.data = usageEvent.data
-        }
-        if (usageEvent.dataschema) {
-            body.dataschema = usageEvent.dataschema
-        }
-        if (usageEvent.datacontenttype) {
-            if (usageEvent.datacontenttype !== 'application/json') {
-                throw new TypeError(
-                    `Unsupported datacontenttype: ${usageEvent.datacontenttype}`
-                )
-            }
-
-            body.datacontenttype = usageEvent.datacontenttype
+            time: usageEvent.time?.toISOString(),
+            datacontenttype: usageEvent.datacontenttype,
+            dataschema: usageEvent.dataschema,
+            data: usageEvent.data
         }
 
         // Making Request
