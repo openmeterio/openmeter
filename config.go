@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,8 +17,12 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/thmeitz/ksqldb-go/net"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"golang.org/x/exp/slices"
 	"golang.org/x/exp/slog"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/openmeterio/openmeter/internal/dedupe/memorydedupe"
 	"github.com/openmeterio/openmeter/internal/dedupe/redisdedupe"
@@ -30,13 +36,12 @@ import (
 type configuration struct {
 	Address string
 
+	Environment string
+
 	Log logConfiguration
 
 	// Telemetry configuration
-	Telemetry struct {
-		// Telemetry HTTP server address
-		Address string
-	}
+	Telemetry telemetryConfig
 
 	// Namespace configuration
 	Namespace namespaceConfiguration
@@ -100,12 +105,12 @@ func (c configuration) Validate() error {
 		return err
 	}
 
-	if err := c.Log.Validate(); err != nil {
+	if err := c.Telemetry.Validate(); err != nil {
 		return err
 	}
 
-	if c.Telemetry.Address == "" {
-		return errors.New("telemetry http server address is required")
+	if err := c.Log.Validate(); err != nil {
+		return err
 	}
 
 	for _, m := range c.Meters {
@@ -497,7 +502,6 @@ func (c logConfiguration) Validate() error {
 	return nil
 }
 
-// NewHandler creates a new [slog.Handler].
 func (c logConfiguration) NewHandler(w io.Writer) slog.Handler {
 	switch c.Format {
 	case "json":
@@ -511,6 +515,107 @@ func (c logConfiguration) NewHandler(w io.Writer) slog.Handler {
 	}
 
 	return slog.NewJSONHandler(w, &slog.HandlerOptions{Level: c.Level})
+}
+
+type telemetryConfig struct {
+	// Telemetry HTTP server address
+	Address string
+
+	Trace traceTelemetryConfig
+}
+
+// Validate validates the configuration.
+func (c telemetryConfig) Validate() error {
+	if c.Address == "" {
+		return errors.New("telemetry: http server address is required")
+	}
+
+	if err := c.Trace.Validate(); err != nil {
+		return fmt.Errorf("telemetry: %w", err)
+	}
+
+	return nil
+}
+
+type traceTelemetryConfig struct {
+	Exporter exporterTraceTelemetryConfig
+	Sampler  string
+}
+
+// Validate validates the configuration.
+func (c traceTelemetryConfig) Validate() error {
+	if _, err := strconv.ParseFloat(c.Sampler, 64); err != nil && !slices.Contains([]string{"always", "never"}, c.Sampler) {
+		return fmt.Errorf("trace: sampler either needs to be always|never or a ration, got: %s", c.Sampler)
+	}
+
+	if err := c.Exporter.Validate(); err != nil {
+		return fmt.Errorf("trace: %w", err)
+	}
+
+	return nil
+}
+
+func (c traceTelemetryConfig) GetSampler() sdktrace.Sampler {
+	switch c.Sampler {
+	case "always":
+		return sdktrace.AlwaysSample()
+
+	case "never":
+		return sdktrace.NeverSample()
+
+	default:
+		ratio, err := strconv.ParseFloat(c.Sampler, 64)
+		if err != nil {
+			panic(fmt.Errorf("trace: invalid ratio: %w", err))
+		}
+
+		return sdktrace.TraceIDRatioBased(ratio)
+	}
+}
+
+type exporterTraceTelemetryConfig struct {
+	Enabled bool
+	Address string
+}
+
+// Validate validates the configuration.
+func (c exporterTraceTelemetryConfig) Validate() error {
+	if !c.Enabled {
+		return nil
+	}
+
+	if c.Address == "" {
+		return errors.New("exporter: address is required")
+	}
+
+	return nil
+}
+
+func (c exporterTraceTelemetryConfig) GetExporter() (sdktrace.SpanExporter, error) {
+	if !c.Enabled {
+		return nil, errors.New("telemetry: trace: exporter: disabled")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	conn, err := grpc.DialContext(
+		ctx,
+		c.Address,
+		// Note the use of insecure transport here. TLS is recommended in production.
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("telemetry: trace: exporter: %w", err)
+	}
+
+	exporter, err := otlptracegrpc.New(context.Background(), otlptracegrpc.WithGRPCConn(conn))
+	if err != nil {
+		return nil, fmt.Errorf("telemetry: trace: exporter: failed to create: %w", err)
+	}
+
+	return exporter, nil
 }
 
 // configure configures some defaults in the Viper instance.
@@ -528,14 +633,19 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	_ = v.BindPFlag("address", flags.Lookup("address"))
 	v.SetDefault("address", ":8888")
 
+	// Environment used for identifying the service environment
+	v.SetDefault("environment", "unknown")
+
 	// Log configuration
 	v.SetDefault("log.format", "json")
 	v.SetDefault("log.level", "info")
-	//
+
 	// Telemetry configuration
 	flags.String("telemetry-address", ":10000", "Telemetry HTTP server address")
 	_ = v.BindPFlag("telemetry.address", flags.Lookup("telemetry-address"))
 	v.SetDefault("telemetry.address", ":10000")
+
+	v.SetDefault("telemetry.trace.sampler", "never")
 
 	// Namespace configuration
 	v.SetDefault("namespace.default", "default")
