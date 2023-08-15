@@ -74,7 +74,7 @@ func TestHandler(t *testing.T) {
 	resp, err := client.Post(server.URL, "", &buf)
 	require.NoError(t, err)
 
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 
 	require.Len(t, collector.events, 1)
 
