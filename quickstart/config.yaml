@@ -10,7 +10,9 @@ telemetry:
 ingest:
   kafka:
     broker: broker:29092
-    schemaRegistry: http://schema-registry:8081
+
+schemaRegistry:
+  url: http://schema-registry:8081
 
 processor:
   ksqldb:

@@ -23,7 +23,6 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/thmeitz/ksqldb-go"
-	"github.com/thmeitz/ksqldb-go/net"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/prometheus"
@@ -41,20 +40,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	"github.com/openmeterio/openmeter/pkg/gosundheit/ksqldbcheck"
 )
-
-// TODO: inject logger in main
-func init() {
-	var logger *slog.Logger
-	// TODO NO_COLOR
-	if os.Getenv("LOG_FORMAT") == "json" {
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	} else {
-		logger = slog.New(tint.NewHandler(os.Stdout, &tint.Options{
-			Level: slog.LevelDebug,
-		}))
-	}
-	slog.SetDefault(logger)
-}
 
 func main() {
 	v, flags := viper.New(), pflag.NewFlagSet("Open Meter", pflag.ExitOnError)
@@ -164,21 +149,28 @@ func main() {
 		telemetryRouter.Handle("/healthz/ready", handler)
 	}
 
-	logger.Info("starting OpenMeter server", "config", config)
+	logger.Info("starting OpenMeter server", "config", map[string]string{
+		"address":              config.Address,
+		"telemetry.address":    config.Telemetry.Address,
+		"ingest.kafka.broker":  config.Ingest.Kafka.Broker,
+		"processor.ksqldb.url": config.Processor.KSQLDB.URL,
+		"schemaRegistry.url":   config.SchemaRegistry.URL,
+	})
 
-	const topic = "om_events"
-
-	// Initialize schema
-	schemaRegistry, err := schemaregistry.NewClient(schemaregistry.NewConfig(config.Ingest.Kafka.SchemaRegistry))
+	// Initialize Schema Registry
+	schemaRegistryConfig := schemaregistry.NewConfig(config.SchemaRegistry.URL)
+	if config.SchemaRegistry.Username != "" || config.SchemaRegistry.Password != "" {
+		schemaRegistryConfig.BasicAuthCredentialsSource = "USER_INFO"
+		schemaRegistryConfig.BasicAuthUserInfo = fmt.Sprintf("%s:%s", config.SchemaRegistry.Username, config.SchemaRegistry.Password)
+	}
+	schemaRegistry, err := schemaregistry.NewClient(schemaRegistryConfig)
 	if err != nil {
 		logger.Error("init schema registry client: %v", err)
 		os.Exit(1)
 	}
 
 	// Initialize Kafka Producer
-	producer, err := kafka.NewProducer(&kafka.ConfigMap{
-		"bootstrap.servers": config.Ingest.Kafka.Broker,
-	})
+	producer, err := kafka.NewProducer(config.Ingest.Kafka.CreateKafkaConfig())
 	if err != nil {
 		logger.Error("init Kafka producer: %v", err)
 		os.Exit(1)
@@ -189,7 +181,9 @@ func main() {
 
 	slog.Debug("connected to Kafka")
 
-	schema, keySchemaID, valueSchemaID, err := kafkaingest.NewSchema(schemaRegistry, topic)
+	// Initialize events topic
+	const topic = "om_events"
+	schema, keySchemaID, valueSchemaID, err := kafkaingest.NewSchema(schemaRegistry)
 	if err != nil {
 		logger.Error("init schema: %v", err)
 		os.Exit(1)
@@ -201,10 +195,8 @@ func main() {
 		Schema:   schema,
 	}
 
-	ksqldbClient, err := ksqldb.NewClientWithOptions(net.Options{
-		BaseUrl:   config.Processor.KSQLDB.URL,
-		AllowHTTP: true,
-	})
+	// Initialize ksqlDB Client
+	ksqldbClient, err := ksqldb.NewClientWithOptions(config.Processor.KSQLDB.CreateKSQLDBConfig())
 	if err != nil {
 		logger.Error("init ksqldb client: %w", err)
 		os.Exit(1)
@@ -270,7 +262,6 @@ func main() {
 			})
 		},
 	})
-
 	if err != nil {
 		slog.Error("failed to create server", "error", err)
 		os.Exit(1)

@@ -15,7 +15,9 @@ data:
     ingest:
       kafka:
         broker: PLAINTEXT://{{ .Values.kafka.name }}-kafka-bootstrap:9092
-        schemaRegistry: http://{{ .Values.schemaregistry.fullnameOverride }}:8081
+
+    schemaRegistry:
+      url: http://{{ .Values.schemaregistry.fullnameOverride }}:8081
 
     processor:
       ksqldb:

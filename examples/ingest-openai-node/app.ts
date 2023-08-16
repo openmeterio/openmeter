@@ -1,8 +1,9 @@
 import assert from 'assert'
 
 import 'dotenv/config'
-import { OpenMeter } from '@openmeter/sdk'
+import { OpenMeter, WindowSize } from '@openmeter/sdk'
 import { Configuration, OpenAIApi } from 'openai'
+import dayjs from 'dayjs'
 
 // Environment variables
 assert.ok(
@@ -58,6 +59,48 @@ async function main() {
     }
 }
 
+// Query Example
+// we can query usage by meter id, subject, time range on varios window sizes
+async function query() {
+    const from = dayjs().startOf('day')
+    const to = dayjs(from).add(1, 'day')
+    const { data } = await openmeter.getValuesByMeterId('m2', 'my-awesome-user-id', from.toISOString(), to.toISOString(), WindowSize.DAY)
+    console.log(data);
+    // Will print similar to:
+    // [
+    //     {
+    //         subject: 'my-awesome-user-id',
+    //         windowStart: '2023-07-25T00:00:00Z',
+    //         windowEnd: '2023-07-26T00:00:00Z',
+    //         value: 71,
+    //         groupBy: { '$.model': 'gpt-3.5-turbo-0613' }
+    //     }
+    // ]
+
+    // Calling with multiple models will lead to:
+    // [
+    //     {
+    //       subject: 'my-awesome-user-id',
+    //       windowStart: '2023-07-25T00:00:00Z',
+    //       windowEnd: '2023-07-26T00:00:00Z',
+    //       value: 19,
+    //       groupBy: { '$.model': 'gpt-3.5-turbo-0301' }
+    //     },
+    //     {
+    //       subject: 'my-awesome-user-id',
+    //       windowStart: '2023-07-25T00:00:00Z',
+    //       windowEnd: '2023-07-26T00:00:00Z',
+    //       value: 89,
+    //       groupBy: { '$.model': 'gpt-3.5-turbo-0613' }
+    //     }
+    // ]
+
+    // If you need the total across all models, you can use the following:
+    const total = data.reduce((total, { value }) => total + (value || 0), 0)
+    console.log(`Total token usage across all models: ${total}`)
+}
+
 main()
+    .then(() => query())
     .then(() => console.log('done'))
     .catch((err) => console.error(err))

@@ -22,7 +22,8 @@ Check out the [quickstart guide](/quickstart) for a 5-minute overview and demo o
 ## Links
 
 - [Examples](/examples)
-- [Demo Video](https://www.loom.com/share/bc1cfa1b7ed94e65bd3a82f9f0334d04)
+- [Demo Video](https://www.loom.com/share/c965e56f1df9450492e687dfb3c18b49)
+- [Stripe UBP Demo](https://www.loom.com/share/bc1cfa1b7ed94e65bd3a82f9f0334d04)
 - [Decisions](/docs/decisions)
 
 ## Examples
