@@ -1,0 +1,34 @@
+version: '3.9'
+
+services:
+  # Container to generate demo logs
+  demologs:
+    image: ubuntu:23.10
+    container_name: demologs
+    command: |
+      bash -c '
+      while true; do
+        printf "{\
+      \"level\":\"info\",\
+      \"msg\":\"http request\",\
+      \"user\":\"customer-%d\",\
+      \"method\":\"GET\",\
+      \"path\":\"/api/demo\",\
+      \"response_time\":1\
+      }\n" $((RANDOM % 10 + 1));
+        sleep 1;
+      done'
+  vector:
+    image: timberio/vector:0.32.X-alpine
+    hostname: vector
+    container_name: vector
+    command: --config /etc/vector/vector.yaml
+    volumes:
+      - ./vector.yaml:/etc/vector/vector.yaml
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - quickstart
+networks:
+  quickstart:
+    name: quickstart_default
+    external: true
