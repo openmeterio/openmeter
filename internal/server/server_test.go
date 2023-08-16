@@ -121,12 +121,12 @@ func TestRoutes(t *testing.T) {
 				method:      http.MethodPost,
 				path:        "/api/v1/namespaces",
 				contentType: "application/json",
-				body: &models.Namespace{
+				body: api.Namespace{
 					Namespace: "test",
 				},
 			},
 			res: testResponse{
-				status: http.StatusOK,
+				status: http.StatusCreated,
 			},
 		},
 		{

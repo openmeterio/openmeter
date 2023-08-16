@@ -3,14 +3,18 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/lmittmann/tint"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/thmeitz/ksqldb-go/net"
 	"golang.org/x/exp/slices"
+	"golang.org/x/exp/slog"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -88,6 +92,10 @@ func (c configuration) Validate() error {
 
 	if err := c.Sink.KafkaConnect.Validate(); err != nil {
 		return err
+	}
+
+	if c.Dedupe.Memory.Enabled && c.Dedupe.Redis.Enabled {
+		return errors.New("redis and in-memory deduplication cannot be enabled at the same time")
 	}
 
 	if err := c.Dedupe.Redis.Validate(); err != nil {
@@ -356,20 +364,38 @@ type logConfiguration struct {
 	Format string
 
 	// Level is the minimum log level that should appear on the output.
-	Level string
+	//
+	// Requires [mapstructure.TextUnmarshallerHookFunc] to be high up in the decode hook chain.
+	Level slog.Level
 }
 
 // Validate validates the configuration.
 func (c logConfiguration) Validate() error {
 	if !slices.Contains([]string{"json", "text", "tint"}, c.Format) {
-		return fmt.Errorf("invalid format: %q", c.Format)
+		return fmt.Errorf("log: invalid format: %q", c.Format)
 	}
 
-	if !slices.Contains([]string{"debug", "info", "warn", "error"}, c.Level) {
-		return fmt.Errorf("invalid format: %q", c.Level)
+	if !slices.Contains([]slog.Level{slog.LevelDebug, slog.LevelInfo, slog.LevelWarn, slog.LevelError}, c.Level) {
+		return fmt.Errorf("log: invalid level: %q", c.Level)
 	}
 
 	return nil
+}
+
+// NewHandler creates a new [slog.Handler].
+func (c logConfiguration) NewHandler(w io.Writer) slog.Handler {
+	switch c.Format {
+	case "json":
+		return slog.NewJSONHandler(w, &slog.HandlerOptions{Level: c.Level})
+
+	case "text":
+		return slog.NewTextHandler(w, &slog.HandlerOptions{Level: c.Level})
+
+	case "tint":
+		return tint.NewHandler(os.Stdout, &tint.Options{Level: c.Level})
+	}
+
+	return slog.NewJSONHandler(w, &slog.HandlerOptions{Level: c.Level})
 }
 
 // configure configures some defaults in the Viper instance.

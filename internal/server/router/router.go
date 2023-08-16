@@ -56,25 +56,30 @@ func NewRouter(config Config) (*Router, error) {
 	}, nil
 }
 
+// CreateNamespace handles the HTTP request for creating a new namespace.
 func (a *Router) CreateNamespace(w http.ResponseWriter, r *http.Request) {
-	namespace := &models.Namespace{}
-
 	if a.config.NamespaceManager.IsManagementDisabled() {
 		models.NewStatusProblem(r.Context(), errors.New("namespace management is disabled"), http.StatusForbidden).Respond(w, r)
+
 		return
 	}
 
-	if err := render.DecodeJSON(r.Body, namespace); err != nil {
+	var namespace api.Namespace
+
+	if err := render.DecodeJSON(r.Body, &namespace); err != nil {
 		models.NewStatusProblem(r.Context(), fmt.Errorf("cannot parse request body"), http.StatusBadRequest).Respond(w, r)
+
+		return
 	}
 
 	err := a.config.NamespaceManager.CreateNamespace(r.Context(), namespace.Namespace)
 	if err != nil {
 		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+
 		return
 	}
 
-	_ = render.Render(w, r, namespace)
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (a *Router) IngestEvents(w http.ResponseWriter, r *http.Request, params api.IngestEventsParams) {
