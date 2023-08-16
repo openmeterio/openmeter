@@ -115,13 +115,7 @@ func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, 
 		return nil, nil, fmt.Errorf("get values: %w", err)
 	}
 
-	// TODO: aggregate windows in query
-	valuesAgg, err := models.AggregateMeterValues(values, *params.Aggregation, params.WindowSize)
-	if err != nil {
-		return nil, nil, fmt.Errorf("aggregate values: %w", err)
-	}
-
-	return valuesAgg, params.WindowSize, nil
+	return values, params.WindowSize, nil
 }
 
 func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace string) error {
@@ -268,8 +262,7 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		From:          params.From,
 		To:            params.To,
 		GroupBy:       groupBy,
-		// TODO: implement window size based aggregation in ClickHouse query, instead of aggregating in Go
-		WindowSize: params.WindowSize,
+		WindowSize:    params.WindowSize,
 	}
 	sql, args, err := queryMeter.toSQL()
 	if err != nil {
