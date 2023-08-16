@@ -58,6 +58,6 @@ sinks:
     method: post
     request:
       headers:
-        Content-Type: application/cloudevents+json
+        Content-Type: application/cloudevents-batch+json
     encoding:
       codec: json
