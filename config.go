@@ -10,12 +10,17 @@ import (
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/lmittmann/tint"
+	"github.com/mitchellh/mapstructure"
+	"github.com/redis/go-redis/v9"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/thmeitz/ksqldb-go/net"
 	"golang.org/x/exp/slices"
 	"golang.org/x/exp/slog"
 
+	"github.com/openmeterio/openmeter/internal/dedupe/memorydedupe"
+	"github.com/openmeterio/openmeter/internal/dedupe/redisdedupe"
+	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -42,10 +47,7 @@ type configuration struct {
 	}
 
 	// Dedupe configuration
-	Dedupe struct {
-		Redis  dedupeRedisConfiguration
-		Memory dedupeMemoryConfiguration
-	}
+	Dedupe dedupeConfiguration
 
 	// SchemaRegistry configuration
 	SchemaRegistry struct {
@@ -94,11 +96,7 @@ func (c configuration) Validate() error {
 		return err
 	}
 
-	if c.Dedupe.Memory.Enabled && c.Dedupe.Redis.Enabled {
-		return errors.New("redis and in-memory deduplication cannot be enabled at the same time")
-	}
-
-	if err := c.Dedupe.Redis.Validate(); err != nil {
+	if err := c.Dedupe.Validate(); err != nil {
 		return err
 	}
 
@@ -310,9 +308,118 @@ func (c kafkaSinkClickhouseConfiguration) Validate() error {
 	return nil
 }
 
-// Dedupe redis configuration
-type dedupeRedisConfiguration struct {
-	Enabled     bool
+// Requires [mapstructurex.MapDecoderHookFunc] to be high up in the decode hook chain.
+type dedupeConfiguration struct {
+	Enabled bool
+
+	dedupeDriverConfiguration
+}
+
+func (c dedupeConfiguration) NewDeduplicator() (ingest.Deduplicator, error) {
+	if !c.Enabled {
+		return nil, errors.New("dedupe: disabled")
+	}
+
+	if c.dedupeDriverConfiguration == nil {
+		return nil, errors.New("dedupe: missing driver configuration")
+	}
+
+	return c.dedupeDriverConfiguration.NewDeduplicator()
+}
+
+func (c dedupeConfiguration) Validate() error {
+	if !c.Enabled {
+		return nil
+	}
+
+	if c.dedupeDriverConfiguration == nil {
+		return errors.New("dedupe: missing driver configuration")
+	}
+
+	if err := c.dedupeDriverConfiguration.Validate(); err != nil {
+		return fmt.Errorf("dedupe: %w", err)
+	}
+
+	return nil
+}
+
+type rawDedupeConfiguration struct {
+	Enabled bool
+	Driver  string
+	Config  map[string]any
+}
+
+func (c *dedupeConfiguration) DecodeMap(v map[string]any) error {
+	var rawConfig rawDedupeConfiguration
+
+	err := mapstructure.Decode(v, &rawConfig)
+	if err != nil {
+		return err
+	}
+
+	c.Enabled = rawConfig.Enabled
+
+	// Deduplication is disabled and not configured, so skip further decoding
+	if !c.Enabled && rawConfig.Driver == "" {
+		return nil
+	}
+
+	switch rawConfig.Driver {
+	case "memory":
+		var driverConfig dedupeDriverMemoryConfiguration
+
+		err := mapstructure.Decode(rawConfig.Config, &driverConfig)
+		if err != nil {
+			return fmt.Errorf("dedupe: decoding memory driver config: %w", err)
+		}
+
+		c.dedupeDriverConfiguration = driverConfig
+
+	case "redis":
+		var driverConfig dedupeDriverRedisConfiguration
+
+		err := mapstructure.Decode(rawConfig.Config, &driverConfig)
+		if err != nil {
+			return fmt.Errorf("dedupe: decoding redis driver config: %w", err)
+		}
+
+		c.dedupeDriverConfiguration = driverConfig
+
+	case "":
+		return errors.New("dedupe: missing driver")
+
+	default:
+		return fmt.Errorf("dedupe: unknown driver: %s", rawConfig.Driver)
+	}
+
+	return nil
+}
+
+type dedupeDriverConfiguration interface {
+	NewDeduplicator() (ingest.Deduplicator, error)
+	Validate() error
+}
+
+// Dedupe memory driver configuration
+type dedupeDriverMemoryConfiguration struct {
+	Enabled bool
+	Size    int
+}
+
+func (c dedupeDriverMemoryConfiguration) NewDeduplicator() (ingest.Deduplicator, error) {
+	return memorydedupe.NewDeduplicator(c.Size)
+}
+
+func (c dedupeDriverMemoryConfiguration) Validate() error {
+	if c.Size == 0 {
+		return errors.New("memory: size is required")
+	}
+
+	return nil
+}
+
+// Dedupe redis driver configuration
+type dedupeDriverRedisConfiguration struct {
 	Address     string
 	Database    int
 	Username    string
@@ -322,37 +429,45 @@ type dedupeRedisConfiguration struct {
 	MasterName  string
 }
 
-func (c dedupeRedisConfiguration) Validate() error {
-	if !c.Enabled {
-		return nil
+func (c dedupeDriverRedisConfiguration) NewDeduplicator() (ingest.Deduplicator, error) {
+	var redisClient *redis.Client
+
+	if c.UseSentinel {
+		redisClient = redis.NewFailoverClient(&redis.FailoverOptions{
+			MasterName:    c.MasterName,
+			SentinelAddrs: []string{c.Address},
+			// RouteByLatency:          false,
+			// RouteRandomly:           false,
+			Password: c.Password,
+			Username: c.Username,
+			DB:       c.Database,
+		})
+	} else {
+		redisClient = redis.NewClient(&redis.Options{
+			Addr:     c.Address,
+			Password: c.Password,
+			Username: c.Username,
+			DB:       c.Database,
+		})
 	}
 
+	// TODO: close redis client when shutting down
+	// TODO: register health check for redis
+	return redisdedupe.Deduplicator{
+		Redis:      redisClient,
+		Expiration: c.Expiration,
+	}, nil
+}
+
+func (c dedupeDriverRedisConfiguration) Validate() error {
 	if c.Address == "" {
-		return errors.New("dedupe redis address is required")
+		return errors.New("redis: address is required")
 	}
 
 	if c.UseSentinel {
 		if c.MasterName == "" {
-			return errors.New("dedupe redis master name is required")
+			return errors.New("redis: master name is required")
 		}
-	}
-
-	return nil
-}
-
-// Dedupe memory configuration
-type dedupeMemoryConfiguration struct {
-	Enabled bool
-	Size    int
-}
-
-func (c dedupeMemoryConfiguration) Validate() error {
-	if !c.Enabled {
-		return nil
-	}
-
-	if c.Size == 0 {
-		return errors.New("dedupe memory size is required")
 	}
 
 	return nil
@@ -465,17 +580,18 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("sink.kafkaConnect.clickhouse.username", "default")
 	v.SetDefault("sink.kafkaConnect.clickhouse.password", "")
 
-	// Dedupe Redis configuration
-	v.SetDefault("dedupe.redis", false)
-	v.SetDefault("dedupe.redis.address", "127.0.0.1:6379")
-	v.SetDefault("dedupe.redis.database", 0)
-	v.SetDefault("dedupe.redis.username", "")
-	v.SetDefault("dedupe.redis.password", "")
-	v.SetDefault("dedupe.redis.expiration", "24h")
-	v.SetDefault("dedupe.redis.useSentintel", false)
-	v.SetDefault("dedupe.redis.masterName", "")
+	v.SetDefault("dedupe.enabled", false)
+	v.SetDefault("dedupe.driver", "memory")
 
 	// Dedupe Memory configuration
-	v.SetDefault("dedupe.memory", false)
-	v.SetDefault("dedupe.memory.size", 128)
+	v.SetDefault("dedupe.config.size", 128)
+
+	// Dedupe Redis configuration
+	v.SetDefault("dedupe.config.address", "127.0.0.1:6379")
+	v.SetDefault("dedupe.config.database", 0)
+	v.SetDefault("dedupe.config.username", "")
+	v.SetDefault("dedupe.config.password", "")
+	v.SetDefault("dedupe.config.expiration", "24h")
+	v.SetDefault("dedupe.config.useSentintel", false)
+	v.SetDefault("dedupe.config.masterName", "")
 }
