@@ -40,7 +40,6 @@
               golangci-lint
               goreleaser
               air
-              oapi-codegen
 
               curl
               jq

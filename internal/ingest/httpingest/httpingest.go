@@ -38,7 +38,8 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "application/cloudevents-batch+json":
 		err = h.processBatchRequest(w, r)
 	default:
-		_ = render.Render(w, r, api.ErrUnsupportedMediaType(errors.New("content type must be application/cloudevents+json or application/cloudevents-batch+json")))
+		// this should never happen
+		err = errors.New("invalid content type: " + contentType)
 	}
 
 	if err != nil {
@@ -51,7 +52,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) processBatchRequest(w http.ResponseWriter, r *http.Request) error {
-	var events []event.Event
+	var events api.IngestEventsApplicationCloudeventsBatchPlusJSONBody
 
 	err := json.NewDecoder(r.Body).Decode(&events)
 	if err != nil {
@@ -69,7 +70,7 @@ func (h Handler) processBatchRequest(w http.ResponseWriter, r *http.Request) err
 }
 
 func (h Handler) processSingleRequest(w http.ResponseWriter, r *http.Request) error {
-	var event event.Event
+	var event api.IngestEventsApplicationCloudeventsPlusJSONRequestBody
 
 	err := json.NewDecoder(r.Body).Decode(&event)
 	if err != nil {

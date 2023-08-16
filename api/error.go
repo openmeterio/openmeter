@@ -52,12 +52,3 @@ func ErrUnprocessableEntity(err error) render.Renderer {
 		Message:    err.Error(),
 	}
 }
-
-func ErrUnsupportedMediaType(err error) render.Renderer {
-	return &ErrResponse{
-		Err:        err,
-		StatusCode: 415,
-		StatusText: http.StatusText(415),
-		Message:    err.Error(),
-	}
-}

@@ -75,6 +75,8 @@ func TestBatchHandler(t *testing.T) {
 	server := httptest.NewServer(handler)
 	client := server.Client()
 
+	now := time.Date(2023, 06, 15, 14, 33, 00, 00, time.UTC)
+
 	var events []event.Event
 	for i := 1; i <= 10; i++ {
 		id := strconv.Itoa(i)
@@ -83,11 +85,11 @@ func TestBatchHandler(t *testing.T) {
 		event.SetID(fmt.Sprintf("id%s", id))
 		event.SetSubject(fmt.Sprintf("sub%s", id))
 		event.SetSource(fmt.Sprintf("test%s", id))
+		event.SetTime(now.Add(time.Duration(i) * time.Second))
 		events = append(events, event)
 	}
 
 	var buf bytes.Buffer
-
 	err := json.NewEncoder(&buf).Encode(events)
 	require.NoError(t, err)
 
@@ -97,12 +99,11 @@ func TestBatchHandler(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 	require.Len(t, collector.events, 10)
-
-	lastRecivedEvent := collector.events[len(collector.events)-1]
-	comperableEvent := collector.events[len(collector.events)-2]
-
-	assert.Equal(t, "id10", lastRecivedEvent.ID())
-	assert.Equal(t, "sub10", lastRecivedEvent.Subject())
-	assert.Equal(t, "test10", lastRecivedEvent.Source())
-	assert.NotEqual(t, comperableEvent.Time(), lastRecivedEvent.Time())
+	for i, event := range collector.events {
+		event := event
+		assert.Equal(t, events[i].ID(), event.ID())
+		assert.Equal(t, events[i].Subject(), event.Subject())
+		assert.Equal(t, events[i].Source(), event.Source())
+		assert.Equal(t, event.Time(), events[i].Time())
+	}
 }
