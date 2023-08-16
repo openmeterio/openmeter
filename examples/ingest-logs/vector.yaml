@@ -32,6 +32,7 @@ transforms:
       .cloudevent.specversion = "1.0"
       .cloudevent.id = .timestamp
       .cloudevent.source = .container_id
+      .cloudevent.type = "api-calls"
       .cloudevent.subject = .message.user
       .cloudevent.time = .timestamp
       response_time, err = to_string(.message.response_time)
@@ -54,7 +55,7 @@ sinks:
     type: http
     inputs:
       - cloudevents
-    uri: http://openmeter:8888/api/v1/events
+    uri: http://openmeter:8888/api/v1alpha1/events
     method: post
     request:
       headers:
