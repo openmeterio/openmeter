@@ -157,7 +157,7 @@ func TestQueryMeterView(t *testing.T) {
 				GroupBy:       []string{"group1", "group2"},
 				WindowSize:    &windowSize,
 			},
-			wantSQL:  "SELECT windowstart, windowend, subject, sumMerge(value) AS value, group1, group2 FROM openmeter.meter_meter1 WHERE subject = ? AND windowstart >= ? AND windowend <= ? GROUP BY windowstart, windowend, subject, group1, group2 ORDER BY windowstart",
+			wantSQL:  "SELECT tumbleStart(windowstart, toIntervalHour(1)) AS windowstart, tumbleEnd(windowstart, toIntervalHour(1)) AS windowend, subject, sumMerge(value) AS value, group1, group2 FROM openmeter.meter_meter1 WHERE subject = ? AND windowstart >= ? AND windowend <= ? GROUP BY windowstart, windowend, subject, group1, group2 ORDER BY windowstart",
 			wantArgs: []interface{}{"subject1", int64(1672531200), int64(1672617600)},
 		},
 	}

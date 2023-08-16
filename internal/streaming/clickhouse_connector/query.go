@@ -162,7 +162,33 @@ type queryMeterView struct {
 
 func (d queryMeterView) toSQL() (string, []interface{}, error) {
 	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
-	selectColumns := []string{"windowstart", "windowend", "subject"}
+	selectColumns := []string{}
+
+	switch *d.WindowSize {
+	case models.WindowSizeMinute:
+		selectColumns = append(
+			selectColumns,
+			"tumbleStart(windowstart, toIntervalMinute(1)) AS windowstart",
+			"tumbleEnd(windowstart, toIntervalMinute(1)) AS windowend",
+		)
+	case models.WindowSizeHour:
+		selectColumns = append(
+			selectColumns,
+			"tumbleStart(windowstart, toIntervalHour(1)) AS windowstart",
+			"tumbleEnd(windowstart, toIntervalHour(1)) AS windowend",
+		)
+	case models.WindowSizeDay:
+		selectColumns = append(
+			selectColumns,
+			"tumbleStart(windowstart, toIntervalDay(1)) AS windowstart",
+			"tumbleEnd(windowstart, toIntervalDay(1)) AS windowend",
+		)
+	default:
+		return "", nil, fmt.Errorf("invalid window size type: %s", d.Aggregation)
+	}
+
+	selectColumns = append(selectColumns, "subject")
+
 	switch d.Aggregation {
 	case models.MeterAggregationSum:
 		selectColumns = append(selectColumns, "sumMerge(value) AS value")
