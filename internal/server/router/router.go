@@ -19,6 +19,7 @@ import (
 func init() {
 	// See https://github.com/getkin/kin-openapi/issues/640
 	openapi3filter.RegisterBodyDecoder("application/cloudevents+json", jsonBodyDecoder)
+	openapi3filter.RegisterBodyDecoder("application/cloudevents-batch+json", jsonBodyDecoder)
 }
 
 func jsonBodyDecoder(body io.Reader, header http.Header, schema *openapi3.SchemaRef, encFn openapi3filter.EncodingFn) (interface{}, error) {
