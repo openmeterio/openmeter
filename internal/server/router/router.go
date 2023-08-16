@@ -58,15 +58,18 @@ func NewRouter(config Config) (*Router, error) {
 
 // CreateNamespace handles the HTTP request for creating a new namespace.
 func (a *Router) CreateNamespace(w http.ResponseWriter, r *http.Request) {
+	logger := slog.With("operation", "createNamespace")
+
 	if a.config.NamespaceManager.IsManagementDisabled() {
+		logger.Warn("namespace management is disabled")
 		models.NewStatusProblem(r.Context(), errors.New("namespace management is disabled"), http.StatusForbidden).Respond(w, r)
 
 		return
 	}
 
 	var namespace api.Namespace
-
 	if err := render.DecodeJSON(r.Body, &namespace); err != nil {
+		logger.Warn("cannot parse request body", "error", err)
 		models.NewStatusProblem(r.Context(), fmt.Errorf("cannot parse request body"), http.StatusBadRequest).Respond(w, r)
 
 		return
@@ -74,6 +77,7 @@ func (a *Router) CreateNamespace(w http.ResponseWriter, r *http.Request) {
 
 	err := a.config.NamespaceManager.CreateNamespace(r.Context(), namespace.Namespace)
 	if err != nil {
+		logger.Error("connector", "error", err)
 		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
 
 		return
@@ -96,6 +100,8 @@ func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request, params api.L
 }
 
 func (a *Router) CreateMeter(w http.ResponseWriter, r *http.Request, params api.CreateMeterParams) {
+	logger := slog.With("operation", "createMeter")
+
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 	if params.NamespaceInput != nil {
 		namespace = *params.NamespaceInput
@@ -103,11 +109,13 @@ func (a *Router) CreateMeter(w http.ResponseWriter, r *http.Request, params api.
 	meter := &models.Meter{}
 
 	if err := render.DecodeJSON(r.Body, meter); err != nil {
+		logger.Warn("cannot parse request body", "error", err)
 		models.NewStatusProblem(r.Context(), fmt.Errorf("cannot parse request body"), http.StatusBadRequest).Respond(w, r)
 	}
 
 	err := a.config.StreamingConnector.CreateMeter(r.Context(), namespace, meter)
 	if err != nil {
+		logger.Error("connector", "error", err)
 		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
 		return
 	}
@@ -116,6 +124,8 @@ func (a *Router) CreateMeter(w http.ResponseWriter, r *http.Request, params api.
 }
 
 func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.DeleteMeterParams) {
+	logger := slog.With("operation", "deleteMeter", "id", meterIdOrSlug, "params", params)
+
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 	if params.NamespaceInput != nil {
 		namespace = *params.NamespaceInput
@@ -123,18 +133,22 @@ func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSl
 	err := a.config.StreamingConnector.DeleteMeter(r.Context(), namespace, meterIdOrSlug)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
+			logger.Warn("meter not found")
 			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
 			return
 		}
 
+		logger.Error("connector", "error", err)
 		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.GetMeterParams) {
+	logger := slog.With("operation", "getMeter", "id", meterIdOrSlug, "params", params)
+
 	for _, meter := range a.config.Meters {
 		if meter.ID == meterIdOrSlug || meter.Slug == meterIdOrSlug {
 			_ = render.Render(w, r, meter)
@@ -142,6 +156,7 @@ func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug 
 		}
 	}
 
+	logger.Warn("meter not found")
 	models.NewStatusProblem(r.Context(), fmt.Errorf("meter is not found with ID or slug %s", meterIdOrSlug), http.StatusNotFound).Respond(w, r)
 }
 
@@ -173,6 +188,8 @@ func ValidateGetMeterValuesParams(params api.GetMeterValuesParams) error {
 }
 
 func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.GetMeterValuesParams) {
+	logger := slog.With("operation", "getMeterValues", "id", meterIdOrSlug, "params", params)
+
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 	if params.NamespaceInput != nil {
 		namespace = *params.NamespaceInput
@@ -193,6 +210,7 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 
 	// Validate parameters
 	if err := ValidateGetMeterValuesParams(params); err != nil {
+		logger.Warn("invalid parameters", "error", err)
 		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
 		return
 	}
@@ -219,11 +237,12 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 	)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
+			logger.Warn("meter not found", "error", err)
 			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
 			return
 		}
 
-		slog.Error("error getting values", "err", err)
+		logger.Error("connector", "error", err)
 		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
 		return
 	}
