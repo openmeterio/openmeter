@@ -187,7 +187,7 @@ func TestRoutes(t *testing.T) {
 				path:   "/api/v1/meters/" + meters[0].Slug,
 			},
 			res: testResponse{
-				status: http.StatusOK,
+				status: http.StatusNoContent,
 			},
 		},
 		{
