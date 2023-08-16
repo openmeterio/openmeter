@@ -50,7 +50,11 @@ type StatusProblem struct {
 }
 
 func (p *StatusProblem) Error() string {
-	return p.Err.Error()
+	if p.Err == nil {
+		return fmt.Sprintf("[%s] %s", p.Title, p.Detail)
+	}
+
+	return fmt.Sprintf("[%s] %s - %s", p.Title, p.Err.Error(), p.Detail)
 }
 
 func (p *StatusProblem) ProblemType() ProblemType {

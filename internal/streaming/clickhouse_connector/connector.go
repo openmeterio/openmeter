@@ -182,6 +182,10 @@ func (c *ClickhouseConnector) deleteMeterView(ctx context.Context, namespace str
 	sql, args := query.toSQL()
 	err := c.config.ClickHouse.Exec(ctx, sql, args...)
 	if err != nil {
+		if strings.Contains(err.Error(), "code: 60") {
+			return &models.MeterNotFoundError{MeterSlug: meterSlug}
+		}
+
 		return fmt.Errorf("delete meter view: %w", err)
 	}
 
