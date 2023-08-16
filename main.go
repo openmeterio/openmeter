@@ -154,7 +154,7 @@ func main() {
 	traceProvider := sdktrace.NewTracerProvider(traceProviderOptions...)
 	defer func() {
 		if err := traceProvider.Shutdown(ctx); err != nil {
-			logger.Error("shutting down trace provider: %v", err)
+			logger.Error("shutting down trace provider", "error", err)
 		}
 	}()
 
