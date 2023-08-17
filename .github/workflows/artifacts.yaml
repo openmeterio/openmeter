@@ -73,10 +73,13 @@ jobs:
             type=ref,event=pr,prefix=pr-,suffix=-${{ matrix.target }}
             type=semver,pattern={{raw}},suffix=-${{ matrix.target }}
             type=raw,value=latest,suffix=-${{ matrix.target }},enable={{is_default_branch}}
+            type=ref,event=branch,suffix=-${{ matrix.target }}-{{sha}}-{{date 'X'}},enable={{is_default_branch}}
+
             type=ref,event=branch,enable=${{ matrix.target == 'alpine' }}
             type=ref,event=pr,prefix=pr-,enable=${{ matrix.target == 'alpine' }}
             type=semver,pattern={{raw}},enable=${{ matrix.target == 'alpine' }}
             type=raw,value=latest,enable=${{ github.ref_name == github.event.repository.default_branch && matrix.target == 'alpine' }}
+            type=ref,event=branch,suffix=-{{sha}}-{{date 'X'}},enable=${{ github.ref_name == github.event.repository.default_branch && matrix.target == 'alpine' }}
 
       # Multiple exporters are not supported yet
       # See https://github.com/moby/buildkit/pull/2760
