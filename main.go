@@ -28,9 +28,12 @@ import (
 	"github.com/thmeitz/ksqldb-go"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/prometheus"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/exp/slog"
@@ -104,6 +107,8 @@ func main() {
 		resource.WithContainer(),
 		resource.WithAttributes(
 			semconv.ServiceName("openmeter"),
+			semconv.ServiceVersion(version),
+			attribute.String("environment", config.Environment),
 		),
 	)
 	res, _ := resource.Merge(
@@ -130,6 +135,31 @@ func main() {
 	otel.SetMeterProvider(meterProvider)
 
 	telemetryRouter.Handle("/metrics", promhttp.Handler())
+
+	traceProviderOptions := []sdktrace.TracerProviderOption{
+		sdktrace.WithResource(res),
+		sdktrace.WithSampler(config.Telemetry.Trace.GetSampler()),
+	}
+
+	if config.Telemetry.Trace.Exporter.Enabled {
+		exporter, err := config.Telemetry.Trace.Exporter.GetExporter()
+		if err != nil {
+			logger.Error(err.Error())
+			os.Exit(1)
+		}
+
+		traceProviderOptions = append(traceProviderOptions, sdktrace.WithBatcher(exporter))
+	}
+
+	traceProvider := sdktrace.NewTracerProvider(traceProviderOptions...)
+	defer func() {
+		if err := traceProvider.Shutdown(ctx); err != nil {
+			logger.Error("shutting down trace provider", "error", err)
+		}
+	}()
+
+	otel.SetTracerProvider(traceProvider)
+	otel.SetTextMapPropagator(propagation.TraceContext{})
 
 	// Configure health checker
 	healthChecker := health.New(health.WithCheckListeners(gosundheit.NewLogger(logger.With(slog.String("component", "healthcheck")))))
@@ -253,6 +283,7 @@ func main() {
 					}),
 					"",
 					otelhttp.WithMeterProvider(meterProvider),
+					otelhttp.WithTracerProvider(traceProvider),
 				)
 			})
 		},
