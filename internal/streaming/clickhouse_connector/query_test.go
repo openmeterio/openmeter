@@ -64,6 +64,32 @@ func TestCreateMeterView(t *testing.T) {
 			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(avg, Float64)) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, avgState(cast(JSON_VALUE(data, '$.token_count'), 'Float64')) AS value FROM openmeter.meter_events WHERE type = 'myevent' GROUP BY windowstart, windowend, subject",
 			wantArgs: nil,
 		},
+		{
+			query: createMeterView{
+				Database:        "openmeter",
+				EventsTableName: "meter_events",
+				Aggregation:     models.MeterAggregationCount,
+				EventType:       "myevent",
+				MeterViewName:   "meter_meter1",
+				ValueProperty:   "",
+				GroupBy:         map[string]string{},
+			},
+			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(count, Float64)) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, countState(*) AS value FROM openmeter.meter_events WHERE type = 'myevent' GROUP BY windowstart, windowend, subject",
+			wantArgs: nil,
+		},
+		{
+			query: createMeterView{
+				Database:        "openmeter",
+				EventsTableName: "meter_events",
+				Aggregation:     models.MeterAggregationCount,
+				EventType:       "myevent",
+				MeterViewName:   "meter_meter1",
+				ValueProperty:   "",
+				GroupBy:         map[string]string{},
+			},
+			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(count, Float64)) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, countState(*) AS value FROM openmeter.meter_events WHERE type = 'myevent' GROUP BY windowstart, windowend, subject",
+			wantArgs: nil,
+		},
 	}
 
 	for _, tt := range tests {
