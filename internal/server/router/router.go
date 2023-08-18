@@ -106,21 +106,27 @@ func (a *Router) CreateMeter(w http.ResponseWriter, r *http.Request, params api.
 	if params.NamespaceInput != nil {
 		namespace = *params.NamespaceInput
 	}
-	meter := &models.Meter{}
 
-	if err := render.DecodeJSON(r.Body, meter); err != nil {
+	var meter models.Meter
+	if err := render.DecodeJSON(r.Body, &meter); err != nil {
 		logger.Warn("cannot parse request body", "error", err)
 		models.NewStatusProblem(r.Context(), fmt.Errorf("cannot parse request body"), http.StatusBadRequest).Respond(w, r)
 	}
 
-	err := a.config.StreamingConnector.CreateMeter(r.Context(), namespace, meter)
+	if err := meter.Validate(); err != nil {
+		logger.Warn("invalid meter", "error", err)
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		return
+	}
+
+	err := a.config.StreamingConnector.CreateMeter(r.Context(), namespace, &meter)
 	if err != nil {
 		logger.Error("connector", "error", err)
 		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
 		return
 	}
 
-	_ = render.Render(w, r, meter)
+	_ = render.Render(w, r, &meter)
 }
 
 func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.DeleteMeterParams) {

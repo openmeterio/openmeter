@@ -92,7 +92,11 @@ func (d createMeterView) toSQL() (string, []interface{}, error) {
 	}
 
 	columns = append(columns, column{Name: "value", Type: fmt.Sprintf("AggregateFunction(%s, Float64)", agg)})
-	asSelects = append(asSelects, fmt.Sprintf("%s(cast(JSON_VALUE(data, '%s'), 'Float64')) AS value", aggStateFn, sqlbuilder.Escape(d.ValueProperty)))
+	if d.ValueProperty == "" && d.Aggregation == models.MeterAggregationCount {
+		asSelects = append(asSelects, fmt.Sprintf("%s(*) AS value", aggStateFn))
+	} else {
+		asSelects = append(asSelects, fmt.Sprintf("%s(cast(JSON_VALUE(data, '%s'), 'Float64')) AS value", aggStateFn, sqlbuilder.Escape(d.ValueProperty)))
+	}
 
 	// Group by
 	orderBy := []string{"windowstart", "windowend", "subject"}
