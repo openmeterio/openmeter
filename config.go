@@ -383,7 +383,19 @@ func (c *dedupeConfiguration) DecodeMap(v map[string]any) error {
 	case "redis":
 		var driverConfig dedupeDriverRedisConfiguration
 
-		err := mapstructure.Decode(rawConfig.Config, &driverConfig)
+		decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+			Metadata:         nil,
+			Result:           &driverConfig,
+			WeaklyTypedInput: true,
+			DecodeHook: mapstructure.ComposeDecodeHookFunc(
+				mapstructure.StringToTimeDurationHookFunc(),
+			),
+		})
+		if err != nil {
+			return fmt.Errorf("dedupe: creating decoder: %w", err)
+		}
+
+		err = decoder.Decode(rawConfig.Config)
 		if err != nil {
 			return fmt.Errorf("dedupe: decoding redis driver config: %w", err)
 		}
