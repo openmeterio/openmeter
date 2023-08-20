@@ -1,0 +1,64 @@
+---
+sources:
+  # Read logs from Docker container(s)
+  docker_logs:
+    type: docker_logs
+    docker_host: unix:///var/run/docker.sock
+    include_containers:
+      - demologs
+
+transforms:
+  # Parse JSON logs
+  parse:
+    type: remap
+    inputs:
+      - docker_logs
+    source: |
+      msg, err = parse_json(.message)
+      if err != null { log(err, level: "error") }
+      .message = msg
+  # Filter for specific logs
+  filter_requests:
+    type: filter
+    inputs:
+      - parse
+    condition: .message.msg == "http request"
+  # Turn log into CloudEvents
+  cloudevents:
+    type: remap
+    inputs:
+      - filter_requests
+    source: |
+      .cloudevent.specversion = "1.0"
+      .cloudevent.id = .timestamp
+      .cloudevent.source = .container_id
+      .cloudevent.type = "api-calls"
+      .cloudevent.subject = .message.user
+      .cloudevent.time = .timestamp
+      response_time, err = to_string(.message.response_time)
+      if err != null { log(err, level: "error") }
+      .cloudevent.data.duration_ms = response_time
+      .cloudevent.data.method = .message.method
+      .cloudevent.data.path = .message.path
+      . = .cloudevent
+
+sinks:
+  # Log CloudEvents to console, only for debugging
+  console_sink:
+    type: console
+    inputs:
+      - cloudevents
+    encoding:
+      codec: json
+  # Send CloudEvents to OpenMeter ingestion API
+  openmeter:
+    type: http
+    inputs:
+      - cloudevents
+    uri: http://openmeter:8888/api/v1alpha1/events
+    method: post
+    request:
+      headers:
+        Content-Type: application/cloudevents-batch+json
+    encoding:
+      codec: json
