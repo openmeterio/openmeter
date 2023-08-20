@@ -9,23 +9,19 @@ services:
     restart: always
     pull_policy: always
     depends_on:
-      ksqldb-server-healthcheck:
+      storage-healthcheck:
         condition: service_healthy
     ports:
       - "8888:8888"
     volumes:
       - ./config.yaml:/etc/openmeter/config.yaml
 
-  ksqldb-server-healthcheck:
-    profiles:
-      - ksqldb
-    image: alpine/curl:3.14
+  storage-healthcheck:
+    image: curlimages/curl:8.2.1
     entrypoint: /bin/sh
     tty: true
-    depends_on:
-      - ksqldb-server
     healthcheck:
-      test: curl --fail http://ksqldb-server:8088/healthcheck
+      test: curl --fail http://ksqldb-server:8088/healthcheck || curl --fail http://clickhouse:8123/ping
       interval: 5s
       timeout: 5s
       retries: 100
