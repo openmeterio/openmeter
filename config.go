@@ -714,6 +714,6 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("dedupe.config.username", "")
 	v.SetDefault("dedupe.config.password", "")
 	v.SetDefault("dedupe.config.expiration", "24h")
-	v.SetDefault("dedupe.config.useSentintel", false)
+	v.SetDefault("dedupe.config.useSentinel", false)
 	v.SetDefault("dedupe.config.masterName", "")
 }
