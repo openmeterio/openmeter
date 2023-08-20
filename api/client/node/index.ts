@@ -4,14 +4,19 @@ import { MetersClient } from './clients/meter.js'
 
 export { OpenMeterConfig, RequestOptions } from './clients/client.js'
 export { Event } from './clients/event.js'
-export { Meter, MeterValue, MeterAggregation, WindowSize } from './clients/meter.js'
+export {
+  Meter,
+  MeterValue,
+  MeterAggregation,
+  WindowSize,
+} from './clients/meter.js'
 
 export class OpenMeter {
-    public events: EventsClient
-    public meters: MetersClient
+  public events: EventsClient
+  public meters: MetersClient
 
-    constructor(config: OpenMeterConfig) {
-        this.events = new EventsClient(config)
-        this.meters = new MetersClient(config)
-    }
+  constructor(config: OpenMeterConfig) {
+    this.events = new EventsClient(config)
+    this.meters = new MetersClient(config)
+  }
 }
