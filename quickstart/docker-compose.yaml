@@ -17,6 +17,8 @@ services:
       - ./config.yaml:/etc/openmeter/config.yaml
 
   ksqldb-server-healthcheck:
+    profiles:
+      - ksqldb
     image: alpine/curl:3.14
     entrypoint: /bin/sh
     tty: true
