@@ -25,6 +25,17 @@
             pre-commit.hooks = {
               nixpkgs-fmt.enable = true;
               commitizen.enable = true;
+
+              commitizen-branch = {
+                enable = true;
+                name = "commitizen-branch check";
+                description = ''
+                  Check whether commit messages on the current HEAD follows committing rules.
+                '';
+                entry = "${pkgs.commitizen}/bin/cz check --allow-abort --rev-range origin/HEAD..HEAD";
+                pass_filenames = false;
+                stages = [ "manual" ];
+              };
             };
 
             packages = with pkgs; [
