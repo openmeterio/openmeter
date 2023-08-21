@@ -56,6 +56,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          fetch-depth: 0
 
       - name: Set up Nix
         uses: cachix/install-nix-action@6ed004b9ccb68dbc28e7c85bee15fa93dbd214ac # v22
@@ -68,6 +70,9 @@ jobs:
 
       - name: Lint
         run: nix develop --impure .#ci -c make lint
+
+      - name: Check commit messages
+        run: nix develop --impure .#ci -c pre-commit run --hook-stage manual
 
   artifacts:
     name: Artifacts
