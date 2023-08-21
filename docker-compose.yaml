@@ -126,6 +126,11 @@ services:
       - "8123:8123"
       - "9000:9000"
       - "9009:9009"
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: default
+      CLICKHOUSE_DB: openmeter
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
     ulimits:
       nofile:
         soft: 262144

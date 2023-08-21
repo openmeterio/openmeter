@@ -120,6 +120,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
 
+      - name: Configure OpenMeter
+        run: cp config.${{ matrix.profile }}.yaml config.yaml
+        working-directory: quickstart
+
       - name: Launch Docker Compose
         run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml --profile ${{ matrix.profile }} up -d
         working-directory: quickstart

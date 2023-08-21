@@ -1,0 +1,40 @@
+address: 0.0.0.0:8888
+
+log:
+  format: json
+  level: info
+
+telemetry:
+  address: 0.0.0.0:10000
+
+ingest:
+  kafka:
+    broker: broker:29092
+
+schemaRegistry:
+  url: http://schema-registry:8081
+
+processor:
+  clickhouse:
+    enabled: true
+    address: clickhouse:9440
+    database: openmeter
+    username: default
+    password: default
+
+meters:
+  - slug: m1
+    description: API calls
+    eventType: api-calls
+    valueProperty: $.duration_ms
+    aggregation: SUM
+    groupBy:
+      method: $.method
+      path: $.path
+  - slug: m2
+    description: Open AI Tokens
+    eventType: openai
+    valueProperty: $.total_tokens
+    aggregation: SUM
+    groupBy:
+      model: $.model
