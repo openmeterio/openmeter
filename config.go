@@ -153,9 +153,12 @@ type ingestKafkaConfiguration struct {
 }
 
 // CreateKafkaConfig creates a Kafka config map.
-func (c ingestKafkaConfiguration) CreateKafkaConfig() *kafka.ConfigMap {
+func (c ingestKafkaConfiguration) CreateKafkaConfig() kafka.ConfigMap {
 	config := kafka.ConfigMap{
 		"bootstrap.servers": c.Broker,
+
+		// Required for logging
+		"go.logs.channel.enable": true,
 	}
 
 	if c.SecurityProtocol != "" {
@@ -174,7 +177,7 @@ func (c ingestKafkaConfiguration) CreateKafkaConfig() *kafka.ConfigMap {
 		config["sasl.password"] = c.SaslPassword
 	}
 
-	return &config
+	return config
 }
 
 // Validate validates the configuration.
