@@ -21,7 +21,7 @@ services:
     entrypoint: /bin/sh
     tty: true
     healthcheck:
-      test: curl --fail --connect-timeout 5 http://clickhouse:8123/ping
+      test: sh -c "curl --fail --connect-timeout 5 http://ksqldb-server:8088/healthcheck || curl --fail --connect-timeout 5 http://clickhouse:8123/ping"
       interval: 5s
       timeout: 5s
       retries: 100
