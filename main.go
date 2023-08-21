@@ -51,6 +51,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/streaming/ksqldb_connector"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	"github.com/openmeterio/openmeter/pkg/gosundheit/ksqldbcheck"
+	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
 func main() {
@@ -352,7 +353,27 @@ func main() {
 func initKafkaIngest(ctx context.Context, config configuration, logger *slog.Logger, serializer serializer.Serializer, group run.Group) (*kafkaingest.Collector, *kafkaingest.NamespaceHandler, error) {
 	// Initialize Kafka Admin Client
 	kafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
-	kafkaAdminClient, err := kafka.NewAdminClient(kafkaConfig)
+
+	// Initialize Kafka Producer
+	producer, err := kafka.NewProducer(&kafkaConfig)
+	if err != nil {
+		return nil, nil, fmt.Errorf("init kafka ingest: %w", err)
+	}
+
+	// TODO: move kafkaingest.KafkaProducerGroup to pkg/kafka
+	group.Add(kafkaingest.KafkaProducerGroup(ctx, producer, logger))
+
+	go pkgkafka.ConsumeLogChannel(producer, logger.WithGroup("kafka").WithGroup("producer"))
+
+	slog.Debug("connected to Kafka")
+
+	collector := &kafkaingest.Collector{
+		Producer:                producer,
+		NamespacedTopicTemplate: config.Ingest.Kafka.EventsTopicTemplate,
+		Serializer:              serializer,
+	}
+
+	kafkaAdminClient, err := kafka.NewAdminClientFromProducer(producer)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -362,21 +383,6 @@ func initKafkaIngest(ctx context.Context, config configuration, logger *slog.Log
 		NamespacedTopicTemplate: config.Ingest.Kafka.EventsTopicTemplate,
 		Partitions:              config.Ingest.Kafka.Partitions,
 		Logger:                  logger,
-	}
-
-	// Initialize Kafka Producer
-	producer, err := kafka.NewProducer(kafkaConfig)
-	if err != nil {
-		return nil, namespaceHandler, fmt.Errorf("init kafka ingest: %w", err)
-	}
-	group.Add(kafkaingest.KafkaProducerGroup(ctx, producer, logger))
-
-	slog.Debug("connected to Kafka")
-
-	collector := &kafkaingest.Collector{
-		Producer:                producer,
-		NamespacedTopicTemplate: config.Ingest.Kafka.EventsTopicTemplate,
-		Serializer:              serializer,
 	}
 
 	return collector, namespaceHandler, nil
