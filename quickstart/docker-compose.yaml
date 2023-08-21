@@ -56,11 +56,6 @@ services:
     extends:
       file: ../docker-compose.yaml
       service: ksqldb-server
-    # healthcheck:
-    #   test: curl --fail http://localhost:8088/healthcheck
-    #   interval: 5s
-    #   timeout: 3s
-    #   retries: 100
 
   ksqldb-healthcheck:
     profiles:
