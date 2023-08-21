@@ -71,6 +71,9 @@ jobs:
       - name: Lint
         run: nix develop --impure .#ci -c make lint
 
+      - name: Pre-commit hooks
+        run: nix develop --impure .#ci -c pre-commit run -a
+
       - name: Check commit messages
         run: nix develop --impure .#ci -c pre-commit run --hook-stage manual
 
