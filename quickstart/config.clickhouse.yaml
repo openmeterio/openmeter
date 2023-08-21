@@ -17,7 +17,7 @@ schemaRegistry:
 processor:
   clickhouse:
     enabled: true
-    address: clickhouse:9440
+    address: clickhouse:9000
     database: openmeter
     username: default
     password: default
