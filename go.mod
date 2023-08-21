@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/AppsFlyer/go-sundheit v0.5.0
-	github.com/ClickHouse/clickhouse-go/v2 v2.12.0
+	github.com/ClickHouse/clickhouse-go/v2 v2.13.2
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/cloudevents/sdk-go/v2 v2.14.0
 	github.com/confluentinc/confluent-kafka-go/v2 v2.2.0
@@ -42,7 +42,7 @@ require (
 )
 
 require (
-	github.com/ClickHouse/ch-go v0.52.1 // indirect
+	github.com/ClickHouse/ch-go v0.58.2 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/log-go v1.0.0 // indirect
 	github.com/Masterminds/semver/v3 v3.2.0 // indirect
@@ -52,7 +52,7 @@ require (
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bytedance/sonic v1.10.0-rc3 // indirect
-	github.com/cenkalti/backoff/v4 v4.2.0 // indirect
+	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
 	github.com/chenzhuoyu/iasm v0.9.0 // indirect
@@ -103,10 +103,10 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
-	github.com/paulmach/orb v0.9.0 // indirect
+	github.com/paulmach/orb v0.10.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.9 // indirect
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
-	github.com/pierrec/lz4/v4 v4.1.17 // indirect
+	github.com/pierrec/lz4/v4 v4.1.18 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.4.0 // indirect
