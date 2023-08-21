@@ -9,7 +9,9 @@ services:
     restart: always
     pull_policy: always
     depends_on:
-      ksqldb-healthcheck:
+      schema:
+        condition: service_healthy
+      ksqldb-server:
         condition: service_healthy
         required: false
       clickhouse:
@@ -41,6 +43,11 @@ services:
     extends:
       file: ../docker-compose.yaml
       service: schema
+    healthcheck:
+      test: curl --fail http://schema-registry:8081/subjects
+      interval: 5s
+      timeout: 3s
+      retries: 100
 
   kafka-connect-01:
     depends_on:
@@ -56,15 +63,6 @@ services:
     extends:
       file: ../docker-compose.yaml
       service: ksqldb-server
-
-  ksqldb-healthcheck:
-    profiles:
-      - ksqldb
-    depends_on:
-      - ksqldb-server
-    image: curlimages/curl:8.2.1
-    entrypoint: /bin/sh
-    tty: true
     healthcheck:
       test: curl --fail http://ksqldb-server:8088/healthcheck
       interval: 5s
