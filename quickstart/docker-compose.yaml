@@ -9,24 +9,19 @@ services:
     restart: always
     pull_policy: always
     depends_on:
-      ksqldb-server-healthcheck:
+      schema:
         condition: service_healthy
+      ksqldb-server:
+        condition: service_healthy
+        required: false
+      clickhouse:
+        condition: service_healthy
+        required: false
     ports:
       - "8888:8888"
     volumes:
       - ./config.yaml:/etc/openmeter/config.yaml
 
-  ksqldb-server-healthcheck:
-    image: alpine/curl:3.14
-    entrypoint: /bin/sh
-    tty: true
-    depends_on:
-      - ksqldb-server
-    healthcheck:
-      test: curl --fail http://ksqldb-server:8088/healthcheck
-      interval: 5s
-      timeout: 5s
-      retries: 100
 
   zookeeper:
     extends:
@@ -48,6 +43,11 @@ services:
     extends:
       file: ../docker-compose.yaml
       service: schema
+    healthcheck:
+      test: curl --fail http://schema-registry:8081/subjects
+      interval: 5s
+      timeout: 3s
+      retries: 100
 
   kafka-connect-01:
     depends_on:
@@ -63,12 +63,22 @@ services:
     extends:
       file: ../docker-compose.yaml
       service: ksqldb-server
+    healthcheck:
+      test: curl --fail http://ksqldb-server:8088/healthcheck
+      interval: 5s
+      timeout: 3s
+      retries: 100
 
   # Profile: clickhouse
   clickhouse:
     extends:
       file: ../docker-compose.yaml
       service: clickhouse
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
+      interval: 5s
+      timeout: 3s
+      retries: 100
 
   # Profile: dedupe-redis
   redis:
