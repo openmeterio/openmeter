@@ -11,9 +11,6 @@ ingest:
   kafka:
     broker: broker:29092
 
-schemaRegistry:
-  url: http://schema-registry:8081
-
 processor:
   ksqldb:
     enabled: false
@@ -23,6 +20,17 @@ processor:
     database: openmeter
     username: default
     password: default
+
+sink:
+  kafkaConnect:
+    enabled: true
+    url: http://kafka-connect-01:8083
+    clickhouse:
+      hostname: clickhouse
+      port: 8123
+      username: default
+      password: default
+      database: openmeter
 
 meters:
   - slug: m1
