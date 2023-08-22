@@ -9,7 +9,7 @@ telemetry:
 
 ingest:
   kafka:
-    broker: broker:29092
+    broker: kafka:29092
 
 processor:
   ksqldb:

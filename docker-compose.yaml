@@ -3,27 +3,21 @@ version: '3.9'
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.0
-    hostname: zookeeper
-    container_name: zookeeper
-    ports:
-      - "2181:2181"
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
 
-  broker:
+  kafka:
     image: confluentinc/cp-kafka:7.4.0
-    hostname: broker
-    container_name: broker
     depends_on:
       - zookeeper
     ports:
-      - "29092:29092"
+      - 127.0.0.1:29092:29092
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
@@ -35,12 +29,12 @@ services:
     hostname: schema-registry
     container_name: schema-registry
     depends_on:
-      - broker
+      - kafka
     ports:
       - "8081:8081"
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:9092'
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:9092
       SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
 
   kafka-connect-01:
@@ -50,11 +44,11 @@ services:
     hostname: kafka-connect-01
     container_name: kafka-connect-01
     depends_on:
-      - broker
+      - kafka
     ports:
       - 8083:8083
     environment:
-      CONNECT_BOOTSTRAP_SERVERS: "broker:9092"
+      CONNECT_BOOTSTRAP_SERVERS: kafka:9092
       CONNECT_REST_ADVERTISED_HOST_NAME: "kafka-connect-01"
       CONNECT_REST_PORT: 8083
       CONNECT_GROUP_ID: kafka-connect-01
@@ -81,12 +75,12 @@ services:
     hostname: ksqldb-server
     container_name: ksqldb-server
     depends_on:
-      - broker
+      - kafka
     ports:
       - "8088:8088"
     environment:
       KSQL_LISTENERS: http://ksqldb-server:8088
-      KSQL_BOOTSTRAP_SERVERS: broker:9092
+      KSQL_BOOTSTRAP_SERVERS: kafka:9092
       KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
       KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
       KSQL_KSQL_SCHEMA_REGISTRY_URL: http://schema-registry:8081
@@ -99,7 +93,7 @@ services:
     image: confluentinc/cp-ksqldb-cli:7.4.0
     container_name: ksqldb-cli
     depends_on:
-      - broker
+      - kafka
       - ksqldb-server
     entrypoint: /bin/sh
     tty: true
@@ -109,7 +103,7 @@ services:
     ports:
       - "9999:80"
     depends_on:
-      - broker
+      - kafka
     environment:
       KMAGIC_ALLOW_TOPIC_DELETE: "true"
       KMAGIC_ALLOW_SCHEMA_DELETE: "true"
@@ -155,8 +149,8 @@ services:
     ports:
       - "8084:8080"
     depends_on:
-      - broker
+      - kafka
     environment:
-      KAFKA_BROKERS: broker:9092
+      KAFKA_BROKERS: kafka:9092
       KAFKA_SCHEMAREGISTRY_ENABLED: true
       KAFKA_SCHEMAREGISTRY_URLS: http://schema-registry:8081
