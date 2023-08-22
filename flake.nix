@@ -2,7 +2,8 @@
   description = "OpenMeter streamlines real-time metering data collection and accurate aggregation";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    # nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/master";
     flake-parts.url = "github:hercules-ci/flake-parts";
     devenv.url = "github:cachix/devenv";
   };
@@ -20,6 +21,7 @@
           default = {
             languages = {
               go.enable = true;
+              go.package = pkgs.go_1_21;
             };
 
             pre-commit.hooks = {
