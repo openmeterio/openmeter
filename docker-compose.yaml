@@ -103,15 +103,14 @@ services:
       CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: false
 
-  # Api Dedupe
+  # Deduplication
+  # docker compose --profile dedupe-redis up
   redis:
     profiles:
       - dedupe-redis
-    image: redis:6-alpine
-    hostname: redis
-    container_name: redis
+    image: redis:7.0.12-alpine
     ports:
-      - '6379:6379'
+      - 127.0.0.1:6379:6379
 
   # Debug Profile
   # docker compose --profile dev up
