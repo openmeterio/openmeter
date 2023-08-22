@@ -13,12 +13,30 @@ git clone git@github.com:openmeterio/openmeter.git
 cd openmeter/quickstart
 ```
 
+## 1. Decide which processor to use
+
+OpenMeter supports [KSQLDB](https://ksqldb.io/) and [ClickHouse](https://clickhouse.com/) as processor and storage.
+
+Choose the processor you want to use:
+
+```sh
+export OM_PROCESSOR=ksqldb
+# OR
+export OM_PROCESSOR=clickhouse
+```
+
+Copy the relevant configuration:
+
+```sh
+cp config.${OM_PROCESSOR}.yaml
+```
+
 ## 1. Launch OpenMeter
 
 Launch OpenMeter and its dependencies via:
 
 ```sh
-docker-compose --profile ksqldb up
+docker-compose --profile $OM_PROCESSOR up
 ```
 
 ## 2. Ingest usage event(s)
