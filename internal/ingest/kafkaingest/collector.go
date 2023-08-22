@@ -3,10 +3,10 @@ package kafkaingest
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"golang.org/x/exp/slog"
 
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
 )

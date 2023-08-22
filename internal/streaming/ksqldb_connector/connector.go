@@ -3,10 +3,10 @@ package ksqldb_connector
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/thmeitz/ksqldb-go"
-	"golang.org/x/exp/slog"
 
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"

@@ -1,6 +1,8 @@
 module github.com/openmeterio/openmeter
 
-go 1.20
+go 1.21
+
+// toolchain go1.21.0
 
 require (
 	github.com/AppsFlyer/go-sundheit v0.5.0
@@ -14,7 +16,7 @@ require (
 	github.com/go-chi/render v1.0.3
 	github.com/hashicorp/golang-lru/v2 v2.0.5
 	github.com/huandu/go-sqlbuilder v1.22.0
-	github.com/lmittmann/tint v0.3.4
+	github.com/lmittmann/tint v1.0.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oklog/run v1.1.0
 	github.com/oklog/ulid/v2 v2.1.0

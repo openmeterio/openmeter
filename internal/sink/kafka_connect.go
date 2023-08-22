@@ -6,9 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
-
-	"golang.org/x/exp/slog"
 )
 
 type KafkaConnect struct {
