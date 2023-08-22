@@ -1,11 +1,9 @@
-version: '3.9'
+version: "3.9"
 
 services:
   openmeter:
-    image: ghcr.io/openmeterio/openmeter
+    image: ghcr.io/openmeterio/openmeter:latest
     command: openmeter --config /etc/openmeter/config.yaml
-    hostname: openmeter
-    container_name: openmeter
     restart: always
     pull_policy: always
     depends_on:
@@ -23,7 +21,7 @@ services:
         condition: service_healthy
         required: false
     ports:
-      - "8888:8888"
+      - 127.0.0.1:8888:8888
     volumes:
       - ./config.yaml:/etc/openmeter/config.yaml
 

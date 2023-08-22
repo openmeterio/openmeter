@@ -1,4 +1,4 @@
-version: '3.9'
+version: "3.9"
 
 services:
   zookeeper:
@@ -35,12 +35,12 @@ services:
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:9092
       SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
 
-  # KsqlDB Profile
+  # KsqlDB
   # docker compose --profile ksqldb up
   ksqldb-server:
+    image: confluentinc/cp-ksqldb-server:7.4.0
     profiles:
       - ksqldb
-    image: confluentinc/cp-ksqldb-server:7.4.0
     depends_on:
       - kafka
     ports:
@@ -54,12 +54,12 @@ services:
       KSQL_KSQL_STREAMS_PROCESSING_GUARANTEE: exactly_once_v2
       KSQL_KSQL_STREAMS_CONSUMER_ISOLATION_LEVEL: read_committed
 
-  # ClickHouse Profile
+  # ClickHouse
   # docker compose --profile clickhouse up
   clickhouse:
+    image: clickhouse/clickhouse-server:23.3.9.55-alpine
     profiles:
       - clickhouse
-    image: clickhouse/clickhouse-server:23.3.9.55-alpine
     ports:
       - 127.0.0.1:8123:8123
       - 127.0.0.1:9000:9000
@@ -75,10 +75,10 @@ services:
         hard: 262144
 
   kafka-connect:
-    profiles:
-      - clickhouse
     build:
       context: etc/kafka-connect/
+    profiles:
+      - clickhouse
     depends_on:
       - kafka
     ports:
@@ -110,12 +110,12 @@ services:
     ports:
       - 127.0.0.1:6379:6379
 
-  # Debug Profile
+  # Development
   # docker compose --profile dev up
   redpanda:
+    image: docker.redpanda.com/redpandadata/console:v2.3.1
     profiles:
       - dev
-    image: docker.redpanda.com/redpandadata/console:v2.3.1
     depends_on:
       - kafka
     ports:
