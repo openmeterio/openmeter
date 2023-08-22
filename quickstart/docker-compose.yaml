@@ -3,7 +3,7 @@ version: "3.9"
 services:
   openmeter:
     image: ghcr.io/openmeterio/openmeter:latest
-    command: openmeter --config /etc/openmeter/config.yaml
+    command: openmeter --address 0.0.0.0:8888 --config /etc/openmeter/config.yaml
     restart: always
     pull_policy: always
     depends_on:
