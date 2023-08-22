@@ -24,16 +24,14 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_CONFLUENT_SCHEMA_REGISTRY_URL: http://schema-registry:8081
 
-  schema:
+  schema-registry:
     image: confluentinc/cp-schema-registry:7.4.0
-    hostname: schema-registry
-    container_name: schema-registry
     depends_on:
       - kafka
     ports:
-      - "8081:8081"
+      - 127.0.0.1:8081:8081
     environment:
-      SCHEMA_REGISTRY_HOST_NAME: schema
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:9092
       SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
 
