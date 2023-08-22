@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -447,9 +448,21 @@ type dedupeDriverRedisConfiguration struct {
 	Expiration  time.Duration
 	UseSentinel bool
 	MasterName  string
+	TLS         struct {
+		Enabled            bool
+		InsecureSkipVerify bool
+	}
 }
 
 func (c dedupeDriverRedisConfiguration) NewDeduplicator() (ingest.Deduplicator, error) {
+	var tlsConfig *tls.Config
+
+	if c.TLS.Enabled {
+		tlsConfig = &tls.Config{
+			InsecureSkipVerify: c.TLS.InsecureSkipVerify,
+		}
+	}
+
 	var redisClient *redis.Client
 
 	if c.UseSentinel {
@@ -458,16 +471,18 @@ func (c dedupeDriverRedisConfiguration) NewDeduplicator() (ingest.Deduplicator, 
 			SentinelAddrs: []string{c.Address},
 			// RouteByLatency:          false,
 			// RouteRandomly:           false,
-			Password: c.Password,
-			Username: c.Username,
-			DB:       c.Database,
+			Password:  c.Password,
+			Username:  c.Username,
+			DB:        c.Database,
+			TLSConfig: tlsConfig,
 		})
 	} else {
 		redisClient = redis.NewClient(&redis.Options{
-			Addr:     c.Address,
-			Password: c.Password,
-			Username: c.Username,
-			DB:       c.Database,
+			Addr:      c.Address,
+			Password:  c.Password,
+			Username:  c.Username,
+			DB:        c.Database,
+			TLSConfig: tlsConfig,
 		})
 	}
 
@@ -719,4 +734,6 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("dedupe.config.expiration", "24h")
 	v.SetDefault("dedupe.config.useSentinel", false)
 	v.SetDefault("dedupe.config.masterName", "")
+	v.SetDefault("dedupe.config.tls.enabled", false)
+	v.SetDefault("dedupe.config.tls.insecureSkipVerify", false)
 }
