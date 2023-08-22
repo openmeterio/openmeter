@@ -19,6 +19,9 @@ services:
       clickhouse:
         condition: service_healthy
         required: false
+      kafka-connect:
+        condition: service_healthy
+        required: false
     ports:
       - "8888:8888"
     volumes:
@@ -51,10 +54,6 @@ services:
       timeout: 3s
       retries: 100
 
-  kafka-connect-01:
-    extends:
-      file: ../docker-compose.yaml
-      service: kafka-connect-01
 
   # Profile: ksqldb
   ksqldb-server:
@@ -77,6 +76,11 @@ services:
       interval: 5s
       timeout: 3s
       retries: 100
+
+  kafka-connect:
+    extends:
+      file: ../docker-compose.yaml
+      service: kafka-connect
 
   # Profile: dedupe-redis
   redis:

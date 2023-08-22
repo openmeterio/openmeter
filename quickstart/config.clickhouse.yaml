@@ -24,7 +24,7 @@ processor:
 sink:
   kafkaConnect:
     enabled: true
-    url: http://kafka-connect-01:8083
+    url: http://kafka-connect:8083
     clickhouse:
       hostname: clickhouse
       port: 8123
