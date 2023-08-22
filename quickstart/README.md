@@ -28,10 +28,10 @@ export OM_PROCESSOR=clickhouse
 Copy the relevant configuration:
 
 ```sh
-cp config.${OM_PROCESSOR}.yaml
+cp config.${OM_PROCESSOR}.yaml config.yaml
 ```
 
-## 1. Launch OpenMeter
+## 2. Launch OpenMeter
 
 Launch OpenMeter and its dependencies via:
 
@@ -39,7 +39,7 @@ Launch OpenMeter and its dependencies via:
 docker-compose --profile $OM_PROCESSOR up
 ```
 
-## 2. Ingest usage event(s)
+## 3. Ingest usage event(s)
 
 Ingest usage events in [CloudEvents](https://cloudevents.io/) format:
 
@@ -110,7 +110,7 @@ curl -X POST http://localhost:8888/api/v1/events \
 '
 ```
 
-## 3. Query Usage
+## 4. Query Usage
 
 Query the usage hourly:
 
@@ -145,7 +145,7 @@ curl http://localhost:8888/api/v1/meters/m1/values?windowSize=HOUR | jq
 }
 ```
 
-## 4. Configure additional meter(s) _(optional)_
+## 5. Configure additional meter(s) _(optional)_
 
 Configure how OpenMeter should process your usage events.
 In this example we will meter the execution duration per API invocation, groupped by method and path.
