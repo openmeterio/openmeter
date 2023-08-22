@@ -13,6 +13,7 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/lmittmann/tint"
 	"github.com/mitchellh/mapstructure"
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -469,6 +470,18 @@ func (c dedupeDriverRedisConfiguration) NewDeduplicator() (ingest.Deduplicator, 
 			Username: c.Username,
 			DB:       c.Database,
 		})
+	}
+
+	// Enable tracing
+	// TODO: use configured tracer provider
+	if err := redisotel.InstrumentTracing(redisClient); err != nil {
+		return nil, err
+	}
+
+	// Enable metrics
+	// TODO: use configured tracer provider
+	if err := redisotel.InstrumentMetrics(redisClient); err != nil {
+		return nil, err
 	}
 
 	// TODO: close redis client when shutting down
