@@ -41,12 +41,10 @@ services:
     profiles:
       - ksqldb
     image: confluentinc/cp-ksqldb-server:7.4.0
-    hostname: ksqldb-server
-    container_name: ksqldb-server
     depends_on:
       - kafka
     ports:
-      - "8088:8088"
+      - 127.0.0.1:8088:8088
     environment:
       KSQL_LISTENERS: http://ksqldb-server:8088
       KSQL_BOOTSTRAP_SERVERS: kafka:9092
