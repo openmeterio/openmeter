@@ -56,27 +56,6 @@ services:
       KSQL_KSQL_STREAMS_PROCESSING_GUARANTEE: exactly_once_v2
       KSQL_KSQL_STREAMS_CONSUMER_ISOLATION_LEVEL: read_committed
 
-  ksqldb-cli:
-    profiles:
-      - ksqldb
-    image: confluentinc/cp-ksqldb-cli:7.4.0
-    container_name: ksqldb-cli
-    depends_on:
-      - kafka
-      - ksqldb-server
-    entrypoint: /bin/sh
-    tty: true
-
-  magic:
-    image: digitsy/kafka-magic
-    ports:
-      - "9999:80"
-    depends_on:
-      - kafka
-    environment:
-      KMAGIC_ALLOW_TOPIC_DELETE: "true"
-      KMAGIC_ALLOW_SCHEMA_DELETE: "true"
-
   # ClickHouse Profile
   # docker compose --profile clickhouse up
   clickhouse:
@@ -135,15 +114,15 @@ services:
       - '6379:6379'
 
   # Debug Profile
-  # docker compose --profile ksqldb --profile debug up
+  # docker compose --profile dev up
   redpanda:
     profiles:
-      - debug
-    image: docker.redpanda.com/redpandadata/console
-    ports:
-      - "8084:8080"
+      - dev
+    image: docker.redpanda.com/redpandadata/console:v2.3.1
     depends_on:
       - kafka
+    ports:
+      - 127.0.0.1:8084:8080
     environment:
       KAFKA_BROKERS: kafka:9092
       KAFKA_SCHEMAREGISTRY_ENABLED: true

@@ -47,6 +47,7 @@
               rdkafka # https://github.com/confluentinc/confluent-kafka-go#librdkafka
               cyrus_sasl
               pkg-config
+              # confluent-platform
 
               golangci-lint
               goreleaser
