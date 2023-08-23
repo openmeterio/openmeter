@@ -2,11 +2,11 @@ package server
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
-	"golang.org/x/exp/slog"
 )
 
 type StructuredLoggerOptions struct {

@@ -2,9 +2,9 @@ package kafka
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"golang.org/x/exp/slog"
 )
 
 // LogEmitter emits logs from a [kafka.Consumer] or [kafka.Producer].

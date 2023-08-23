@@ -3,12 +3,12 @@ package clickhouse_connector
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
-	"golang.org/x/exp/slog"
 
 	"github.com/openmeterio/openmeter/internal/sink"
 	"github.com/openmeterio/openmeter/internal/streaming"
