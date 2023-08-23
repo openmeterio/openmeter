@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/thmeitz/ksqldb-go/net"
@@ -29,9 +28,7 @@ type Configuration struct {
 	Namespace NamespaceConfiguration
 
 	// Ingest configuration
-	Ingest struct {
-		Kafka IngestKafkaConfiguration
-	}
+	Ingest IngestConfiguration
 
 	// Dedupe configuration
 	Dedupe DedupeConfiguration
@@ -67,8 +64,8 @@ func (c Configuration) Validate() error {
 		return err
 	}
 
-	if err := c.Ingest.Kafka.Validate(); err != nil {
-		return err
+	if err := c.Ingest.Validate(); err != nil {
+		return fmt.Errorf("ingest: %w", err)
 	}
 
 	if err := c.Processor.KSQLDB.Validate(); err != nil {
@@ -114,58 +111,6 @@ type NamespaceConfiguration struct {
 func (c NamespaceConfiguration) Validate() error {
 	if c.Default == "" {
 		return errors.New("default namespace is required")
-	}
-
-	return nil
-}
-
-// Ingest Kafka configuration
-type IngestKafkaConfiguration struct {
-	Broker              string
-	SecurityProtocol    string
-	SaslMechanisms      string
-	SaslUsername        string
-	SaslPassword        string
-	Partitions          int
-	EventsTopicTemplate string
-}
-
-// CreateKafkaConfig creates a Kafka config map.
-func (c IngestKafkaConfiguration) CreateKafkaConfig() kafka.ConfigMap {
-	config := kafka.ConfigMap{
-		"bootstrap.servers": c.Broker,
-
-		// Required for logging
-		"go.logs.channel.enable": true,
-	}
-
-	if c.SecurityProtocol != "" {
-		config["security.protocol"] = c.SecurityProtocol
-	}
-
-	if c.SaslMechanisms != "" {
-		config["sasl.mechanism"] = c.SaslMechanisms
-	}
-
-	if c.SaslUsername != "" {
-		config["sasl.username"] = c.SaslUsername
-	}
-
-	if c.SaslPassword != "" {
-		config["sasl.password"] = c.SaslPassword
-	}
-
-	return config
-}
-
-// Validate validates the configuration.
-func (c IngestKafkaConfiguration) Validate() error {
-	if c.Broker == "" {
-		return errors.New("kafka broker is required")
-	}
-
-	if c.EventsTopicTemplate == "" {
-		return errors.New("events topic template is required")
 	}
 
 	return nil
@@ -318,14 +263,7 @@ func Configure(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("namespace.default", "default")
 	v.SetDefault("namespace.disableManagement", false)
 
-	// Ingest configuration
-	v.SetDefault("ingest.kafka.broker", "127.0.0.1:29092")
-	v.SetDefault("ingest.kafka.securityProtocol", "")
-	v.SetDefault("ingest.kafka.saslMechanisms", "")
-	v.SetDefault("ingest.kafka.saslUsername", "")
-	v.SetDefault("ingest.kafka.saslPassword", "")
-	v.SetDefault("ingest.kafka.partitions", 1)
-	v.SetDefault("ingest.kafka.eventsTopicTemplate", "om_%s_events")
+	configureIngest(v)
 
 	// Schema Registry configuration
 	v.SetDefault("schemaRegistry.url", "")
