@@ -26,6 +26,16 @@ Check out the [quickstart guide](/quickstart) for a 5-minute overview and demo o
 - [Stripe UBP Demo](https://www.loom.com/share/bc1cfa1b7ed94e65bd3a82f9f0334d04)
 - [Decisions](/docs/decisions)
 
+## Community
+
+To engage with our community, you can use the following resources:
+
+- [Discord](https://discord.gg/nYH3ZQ3Xzq) - Get support or discuss the project.
+- [Contributing to OpenMeter](CONTRIBUTING.md) - Start here if you want to contribute.
+- [Code of Conduct](CODE_OF_CONDUCT.md) - Our community guidelines.
+- [Adopters](ADOPTERS.md) - Companies already using OpenMeter.
+- [Blog](https://openmeter.io/blog/) - Stay up-to-date.
+
 ## Examples
 
 See our examples to learn about common OpenMeter use-cases.
