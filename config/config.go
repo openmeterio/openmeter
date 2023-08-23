@@ -14,32 +14,18 @@ import (
 
 // Configuration holds any kind of Configuration that comes from the outside world and
 // is necessary for running the application.
-// TODO: improve Configuration options
 type Configuration struct {
-	Address string
-
+	Address     string
 	Environment string
 
-	// Telemetry configuration
 	Telemetry TelemetryConfig
 
-	// Namespace configuration
-	Namespace NamespaceConfiguration
-
-	// Ingest configuration
-	Ingest IngestConfiguration
-
-	// Processor configuration
-	Processor ProcessorConfiguration
-
-	// Dedupe configuration
-	Dedupe DedupeConfiguration
-
-	// SchemaRegistry configuration
+	Namespace      NamespaceConfiguration
+	Ingest         IngestConfiguration
 	SchemaRegistry SchemaRegistryConfiguration
-
-	// Sink configuration
-	Sink SinkConfiguration
+	Processor      ProcessorConfiguration
+	Sink           SinkConfiguration
+	Dedupe         DedupeConfiguration
 
 	Meters []*models.Meter
 }
@@ -48,6 +34,10 @@ type Configuration struct {
 func (c Configuration) Validate() error {
 	if c.Address == "" {
 		return errors.New("server address is required")
+	}
+
+	if err := c.Telemetry.Validate(); err != nil {
+		return fmt.Errorf("telemetry: %w", err)
 	}
 
 	if err := c.Namespace.Validate(); err != nil {
@@ -68,10 +58,6 @@ func (c Configuration) Validate() error {
 
 	if err := c.Dedupe.Validate(); err != nil {
 		return fmt.Errorf("dedupe: %w", err)
-	}
-
-	if err := c.Telemetry.Validate(); err != nil {
-		return fmt.Errorf("telemetry: %w", err)
 	}
 
 	for _, m := range c.Meters {
@@ -107,6 +93,7 @@ func Configure(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("environment", "unknown")
 
 	configureTelemetry(v, flags)
+
 	configureNamespace(v)
 	configureIngest(v)
 	configureSchemaRegistry(v)
