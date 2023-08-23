@@ -96,8 +96,7 @@ func main() {
 		panic(err)
 	}
 
-	logger := slog.New(config.Log.NewHandler(os.Stdout))
-
+	logger := slog.New(config.Telemetry.Log.NewHandler(os.Stdout))
 	slog.SetDefault(logger)
 
 	telemetryRouter := chi.NewRouter()
