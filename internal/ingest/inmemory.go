@@ -1,6 +1,7 @@
 package ingest
 
 import (
+	"context"
 	"sync"
 
 	"github.com/cloudevents/sdk-go/v2/event"
@@ -27,7 +28,7 @@ func (c *InMemoryCollector) init() {
 }
 
 // Ingest implements the {Collector} interface.
-func (c *InMemoryCollector) Ingest(ev event.Event, namespace string) error {
+func (c *InMemoryCollector) Ingest(_ context.Context, namespace string, ev event.Event) error {
 	c.init()
 
 	c.mu.Lock()

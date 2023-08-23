@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
-	"sync"
 	"testing"
 	"time"
 
@@ -16,25 +15,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/namespace"
 )
-
-type inMemoryCollector struct {
-	events []event.Event
-
-	mu sync.Mutex
-}
-
-func (s *inMemoryCollector) Ingest(event event.Event, namespace string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	s.events = append(s.events, event)
-
-	return nil
-}
-
-func (s *inMemoryCollector) Close() {}
 
 // Wrap the handler so we can set the namespace with `httptest“
 type MockHandler struct {
@@ -47,7 +30,7 @@ func (h MockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestHandler(t *testing.T) {
-	collector := &inMemoryCollector{}
+	collector := ingest.NewInMemoryCollector()
 	httpHandler, err := NewHandler(HandlerConfig{
 		Collector:        collector,
 		NamespaceManager: &namespace.Manager{},
@@ -78,9 +61,11 @@ func TestHandler(t *testing.T) {
 
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 
-	require.Len(t, collector.events, 1)
+	events := collector.Events("test")
 
-	receivedEvent := collector.events[0]
+	require.Len(t, events, 1)
+
+	receivedEvent := events[0]
 
 	assert.Equal(t, ev.ID(), receivedEvent.ID())
 	assert.Equal(t, ev.Subject(), receivedEvent.Subject())
@@ -89,7 +74,7 @@ func TestHandler(t *testing.T) {
 }
 
 func TestBatchHandler(t *testing.T) {
-	collector := &inMemoryCollector{}
+	collector := ingest.NewInMemoryCollector()
 	httpHandler, err := NewHandler(HandlerConfig{
 		Collector:        collector,
 		NamespaceManager: &namespace.Manager{},
@@ -125,8 +110,10 @@ func TestBatchHandler(t *testing.T) {
 
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 
-	require.Len(t, collector.events, 10)
-	for i, event := range collector.events {
+	collectedEvents := collector.Events("test")
+
+	require.Len(t, collectedEvents, 10)
+	for i, event := range collectedEvents {
 		event := event
 		assert.Equal(t, events[i].ID(), event.ID())
 		assert.Equal(t, events[i].Subject(), event.Subject())
