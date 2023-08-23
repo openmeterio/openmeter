@@ -1,15 +1,6 @@
-address: 0.0.0.0:8888
-
-log:
-  format: json
-  level: info
-
-telemetry:
-  address: 0.0.0.0:10000
-
 ingest:
   kafka:
-    broker: broker:29092
+    broker: kafka:29092
 
 processor:
   ksqldb:
@@ -24,7 +15,7 @@ processor:
 sink:
   kafkaConnect:
     enabled: true
-    url: http://kafka-connect-01:8083
+    url: http://kafka-connect:8083
     clickhouse:
       hostname: clickhouse
       port: 8123

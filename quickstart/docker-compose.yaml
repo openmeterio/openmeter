@@ -1,15 +1,15 @@
-version: '3.9'
+version: "3.9"
 
 services:
   openmeter:
-    image: ghcr.io/openmeterio/openmeter
-    command: openmeter --config /etc/openmeter/config.yaml
-    hostname: openmeter
-    container_name: openmeter
+    image: ghcr.io/openmeterio/openmeter:latest
+    command: openmeter --address 0.0.0.0:8888 --config /etc/openmeter/config.yaml
     restart: always
     pull_policy: always
     depends_on:
-      schema:
+      kafka:
+        condition: service_healthy
+      schema-registry:
         condition: service_healthy
       ksqldb-server:
         condition: service_healthy
@@ -17,49 +17,44 @@ services:
       clickhouse:
         condition: service_healthy
         required: false
+      kafka-connect:
+        condition: service_healthy
+        required: false
     ports:
-      - "8888:8888"
+      - 127.0.0.1:8888:8888
     volumes:
       - ./config.yaml:/etc/openmeter/config.yaml
-
 
   zookeeper:
     extends:
       file: ../docker-compose.yaml
       service: zookeeper
 
-  broker:
-    depends_on:
-      - zookeeper
+  kafka:
     extends:
       file: ../docker-compose.yaml
-      service: broker
+      service: kafka
     environment:
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_HOST://broker:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://kafka:29092
+    healthcheck:
+      test: kafka-topics --bootstrap-server kafka:9092 --list
+      interval: 5s
+      timeout: 3s
+      retries: 100
 
-  schema:
-    depends_on:
-      - broker
+  schema-registry:
     extends:
       file: ../docker-compose.yaml
-      service: schema
+      service: schema-registry
     healthcheck:
       test: curl --fail http://schema-registry:8081/subjects
       interval: 5s
       timeout: 3s
       retries: 100
 
-  kafka-connect-01:
-    depends_on:
-      - broker
-    extends:
-      file: ../docker-compose.yaml
-      service: kafka-connect-01
 
   # Profile: ksqldb
   ksqldb-server:
-    depends_on:
-      - broker
     extends:
       file: ../docker-compose.yaml
       service: ksqldb-server
@@ -75,10 +70,15 @@ services:
       file: ../docker-compose.yaml
       service: clickhouse
     healthcheck:
-      test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
+      test: wget --no-verbose --tries=1 --spider http://clickhouse:8123/ping || exit 1
       interval: 5s
       timeout: 3s
       retries: 100
+
+  kafka-connect:
+    extends:
+      file: ../docker-compose.yaml
+      service: kafka-connect
 
   # Profile: dedupe-redis
   redis:

@@ -1,22 +1,27 @@
-address: 0.0.0.0:8888
-
-log:
-  format: json
-  level: info
-
-telemetry:
-  address: 0.0.0.0:10000
-
 ingest:
   kafka:
-    broker: broker:29092
-
-schemaRegistry:
-  url: http://schema-registry:8081
+    broker: kafka:29092
 
 processor:
   ksqldb:
-    url: http://ksqldb-server:8088
+    enabled: false
+  clickhouse:
+    enabled: true
+    address: clickhouse:9000
+    database: openmeter
+    username: default
+    password: default
+
+sink:
+  kafkaConnect:
+    enabled: true
+    url: http://kafka-connect:8083
+    clickhouse:
+      hostname: clickhouse
+      port: 8123
+      username: default
+      password: default
+      database: openmeter
 
 meters:
   - slug: m1

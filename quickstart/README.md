@@ -18,7 +18,7 @@ cd openmeter/quickstart
 Launch OpenMeter and its dependencies via:
 
 ```sh
-docker-compose --profile ksqldb up
+docker-compose --profile clickhouse up -d
 ```
 
 ## 2. Ingest usage event(s)
@@ -145,4 +145,37 @@ meters:
     groupBy:
       method: $.method
       path: $.path
+```
+
+## 5. Try KSQLDB processor _(optional)_
+
+OpenMeter supports ClickHouse and KSQLDB as data processor and storage solution.
+Although we generally prefer using ClickHouse, you can give KSQLDB a try if you want to.
+
+First, stop any currently running instance:
+
+```sh
+docker compose --profile clickhouse down -v
+```
+
+Copy the KSQLDB configuration to `config.yaml`:
+
+```sh
+cp config.ksqldb.yaml config.yaml
+```
+
+Finally, launch OpenMeter with KSQLDB:
+
+```sh
+docker compose --profile ksqldb up -d
+```
+
+Repeat steps from 2 to 4.
+
+## Cleanup
+
+Once you are done, stop any running instances:
+
+```sh
+docker-compose --profile clickhouse --profile ksqldb down -v
 ```

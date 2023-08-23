@@ -1,15 +1,6 @@
-address: 0.0.0.0:8888
-
-log:
-  format: json
-  level: info
-
-telemetry:
-  address: 0.0.0.0:10000
-
 ingest:
   kafka:
-    broker: broker:29092
+    broker: kafka:29092
 
 schemaRegistry:
   url: http://schema-registry:8081
