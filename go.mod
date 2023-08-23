@@ -1,10 +1,12 @@
 module github.com/openmeterio/openmeter
 
-go 1.20
+go 1.21
+
+// toolchain go1.21.0
 
 require (
 	github.com/AppsFlyer/go-sundheit v0.5.0
-	github.com/ClickHouse/clickhouse-go/v2 v2.13.2
+	github.com/ClickHouse/clickhouse-go/v2 v2.13.3
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/cloudevents/sdk-go/v2 v2.14.0
 	github.com/confluentinc/confluent-kafka-go/v2 v2.2.0
@@ -14,7 +16,7 @@ require (
 	github.com/go-chi/render v1.0.3
 	github.com/hashicorp/golang-lru/v2 v2.0.5
 	github.com/huandu/go-sqlbuilder v1.22.0
-	github.com/lmittmann/tint v0.3.4
+	github.com/lmittmann/tint v1.0.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oklog/run v1.1.0
 	github.com/oklog/ulid/v2 v2.1.0
@@ -70,7 +72,7 @@ require (
 	github.com/go-playground/validator/v10 v10.14.1 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/google/uuid v1.3.0 // indirect
+	github.com/google/uuid v1.3.1 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.11.3 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect

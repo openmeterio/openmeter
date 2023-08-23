@@ -9,13 +9,12 @@ import (
 	"os"
 
 	"dagger.io/dagger"
-
 	"github.com/magefile/mage/mg"
 )
 
 const (
-	goVersion           = "1.20.4"
-	golangciLintVersion = "1.52.2"
+	goVersion           = "1.21.0"
+	golangciLintVersion = "1.54.2"
 )
 
 // Run tests

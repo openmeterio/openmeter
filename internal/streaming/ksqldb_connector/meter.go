@@ -2,12 +2,12 @@ package ksqldb_connector
 
 import (
 	"fmt"
+	"log/slog"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/thmeitz/ksqldb-go"
-	"golang.org/x/exp/slog"
 
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"

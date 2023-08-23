@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/cloudevents/sdk-go/v2/event"
-	"golang.org/x/exp/slog"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/ingest"
@@ -60,7 +60,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, params api.In
 	}
 
 	if err != nil {
-		logger.ErrorCtx(r.Context(), "unable to process request", "error", err)
+		logger.ErrorContext(r.Context(), "unable to process request", "error", err)
 
 		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
 
@@ -114,7 +114,7 @@ func (h Handler) processEvent(ctx context.Context, event event.Event, params api
 	)
 
 	if event.Time().IsZero() {
-		logger.DebugCtx(ctx, "event does not have a timestamp")
+		logger.DebugContext(ctx, "event does not have a timestamp")
 		event.SetTime(time.Now().UTC())
 	}
 
@@ -126,12 +126,12 @@ func (h Handler) processEvent(ctx context.Context, event event.Event, params api
 	err := h.config.Collector.Ingest(event, namespace)
 	if err != nil {
 		// TODO: attach context to error and log at a higher level
-		logger.ErrorCtx(ctx, "unable to forward event to collector", "error", err)
+		logger.ErrorContext(ctx, "unable to forward event to collector", "error", err)
 
 		return fmt.Errorf("forwarding event to collector: %w", err)
 	}
 
-	logger.DebugCtx(ctx, "event forwarded to downstream collector")
+	logger.DebugContext(ctx, "event forwarded to downstream collector")
 
 	return nil
 }

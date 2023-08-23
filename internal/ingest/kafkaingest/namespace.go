@@ -3,9 +3,9 @@ package kafkaingest
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"golang.org/x/exp/slog"
 )
 
 // NamespaceHandler is a namespace handler for Kafka ingest topics.

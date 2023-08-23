@@ -1,8 +1,9 @@
 package gosundheit
 
 import (
+	"log/slog"
+
 	health "github.com/AppsFlyer/go-sundheit"
-	"golang.org/x/exp/slog"
 )
 
 type checkListener struct {
