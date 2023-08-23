@@ -57,7 +57,7 @@ func (c Configuration) Validate() error {
 	}
 
 	if err := c.Namespace.Validate(); err != nil {
-		return err
+		return fmt.Errorf("namespace: %w", err)
 	}
 
 	if err := c.Ingest.Validate(); err != nil {
@@ -89,20 +89,6 @@ func (c Configuration) Validate() error {
 		if err := m.Validate(); err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-// Namespace configuration
-type NamespaceConfiguration struct {
-	Default           string
-	DisableManagement bool
-}
-
-func (c NamespaceConfiguration) Validate() error {
-	if c.Default == "" {
-		return errors.New("default namespace is required")
 	}
 
 	return nil
@@ -181,11 +167,7 @@ func Configure(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("environment", "unknown")
 
 	configureTelemetry(v, flags)
-
-	// Namespace configuration
-	v.SetDefault("namespace.default", "default")
-	v.SetDefault("namespace.disableManagement", false)
-
+	configureNamespace(v)
 	configureIngest(v)
 
 	// Schema Registry configuration
