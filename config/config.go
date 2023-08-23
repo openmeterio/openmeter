@@ -39,9 +39,7 @@ type Configuration struct {
 	SchemaRegistry SchemaRegistryConfiguration
 
 	// Sink configuration
-	Sink struct {
-		KafkaConnect SinkKafkaConnectConfiguration
-	}
+	Sink SinkConfiguration
 
 	Meters []*models.Meter
 }
@@ -64,8 +62,8 @@ func (c Configuration) Validate() error {
 		return fmt.Errorf("processor: %w", err)
 	}
 
-	if err := c.Sink.KafkaConnect.Validate(); err != nil {
-		return err
+	if err := c.Sink.Validate(); err != nil {
+		return fmt.Errorf("sink: %w", err)
 	}
 
 	if err := c.Dedupe.Validate(); err != nil {
@@ -85,60 +83,6 @@ func (c Configuration) Validate() error {
 		if err := m.Validate(); err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-// Sink configuration
-type SinkKafkaConnectConfiguration struct {
-	Enabled    bool
-	URL        string
-	ClickHouse KafkaSinkClickhouseConfiguration
-}
-
-func (c SinkKafkaConnectConfiguration) Validate() error {
-	if !c.Enabled {
-		return nil
-	}
-
-	if c.URL == "" {
-		return errors.New("kafka connect url is required")
-	}
-
-	if err := c.ClickHouse.Validate(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// Clickhouse configuration
-// This may feel repetative but clikhouse sink and processor configs can be different,
-// for example Kafka Connect ClickHouse plugin uses 8123 HTTP port while client uses native protocol's 9000 port.
-// Hostname can be also different, as Kafka Connect and ClickHouse communicates inside the docker compose network.
-// This why we default hostname in config to `clickhouse`.
-type KafkaSinkClickhouseConfiguration struct {
-	Hostname string
-	Port     int
-	SSL      bool
-	Database string
-	Username string
-	Password string
-}
-
-func (c KafkaSinkClickhouseConfiguration) Validate() error {
-	if c.Hostname == "" {
-		return errors.New("kafka sink clickhouse hostname is required")
-	}
-	if c.Port == 0 {
-		return errors.New("kafka sink clickhouse port is required")
-	}
-	if c.Database == "" {
-		return errors.New("kafka sink clickhouse database is required")
-	}
-	if c.Username == "" {
-		return errors.New("kafka sink clickhouse username is required")
 	}
 
 	return nil
@@ -167,16 +111,6 @@ func Configure(v *viper.Viper, flags *pflag.FlagSet) {
 	configureIngest(v)
 	configureSchemaRegistry(v)
 	configureProcessor(v)
-
-	// Sink Kafka Connect configuration
-	v.SetDefault("sink.kafkaConnect.enabled", false)
-	v.SetDefault("sink.kafkaConnect.url", "http://127.0.0.1:8083")
-	v.SetDefault("sink.kafkaConnect.clickhouse.hostname", "clickhouse")
-	v.SetDefault("sink.kafkaConnect.clickhouse.port", 8123)
-	v.SetDefault("sink.kafkaConnect.clickhouse.ssl", false)
-	v.SetDefault("sink.kafkaConnect.clickhouse.database", "default")
-	v.SetDefault("sink.kafkaConnect.clickhouse.username", "default")
-	v.SetDefault("sink.kafkaConnect.clickhouse.password", "")
-
+	configureSink(v)
 	configureDedupe(v)
 }
