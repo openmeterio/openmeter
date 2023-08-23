@@ -38,6 +38,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/ingest/httpingest"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
@@ -55,10 +56,10 @@ import (
 )
 
 func main() {
-	v, flags := viper.New(), pflag.NewFlagSet("Open Meter", pflag.ExitOnError)
+	v, flags := viper.New(), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
 	ctx := context.Background()
 
-	configure(v, flags)
+	config.Configure(v, flags)
 
 	flags.String("config", "", "Configuration file")
 	flags.Bool("version", false, "Show version information")
@@ -80,7 +81,7 @@ func main() {
 		panic(err)
 	}
 
-	var config configuration
+	var config config.Configuration
 	err = v.Unmarshal(&config, viper.DecodeHook(mapstructure.ComposeDecodeHookFunc(
 		mapstructurex.MapDecoderHookFunc(),
 		mapstructure.TextUnmarshallerHookFunc(),
@@ -349,7 +350,7 @@ func main() {
 	}
 }
 
-func initKafkaIngest(ctx context.Context, config configuration, logger *slog.Logger, serializer serializer.Serializer, group run.Group) (*kafkaingest.Collector, *kafkaingest.NamespaceHandler, error) {
+func initKafkaIngest(ctx context.Context, config config.Configuration, logger *slog.Logger, serializer serializer.Serializer, group run.Group) (*kafkaingest.Collector, *kafkaingest.NamespaceHandler, error) {
 	// Initialize Kafka Admin Client
 	kafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
 
@@ -388,7 +389,7 @@ func initKafkaIngest(ctx context.Context, config configuration, logger *slog.Log
 }
 
 // initSerializer initializes the serializer based on the configuration.
-func initSerializer(config configuration) (serializer.Serializer, error) {
+func initSerializer(config config.Configuration) (serializer.Serializer, error) {
 	// Initialize JSON_SR with Schema Registry
 	if config.SchemaRegistry.URL != "" {
 		schemaRegistryConfig := schemaregistry.NewConfig(config.SchemaRegistry.URL)
@@ -408,7 +409,7 @@ func initSerializer(config configuration) (serializer.Serializer, error) {
 	}
 }
 
-func initKsqlDBStreaming(config configuration, logger *slog.Logger, serializer serializer.Serializer, healthChecker health.Health) (*ksqldb_connector.KsqlDBConnector, *ksqldb_connector.NamespaceHandler, error) {
+func initKsqlDBStreaming(config config.Configuration, logger *slog.Logger, serializer serializer.Serializer, healthChecker health.Health) (*ksqldb_connector.KsqlDBConnector, *ksqldb_connector.NamespaceHandler, error) {
 	// Initialize ksqlDB Client
 	ksqldbClient, err := ksqldb.NewClientWithOptions(config.Processor.KSQLDB.CreateKSQLDBConfig())
 	if err != nil {
@@ -443,7 +444,7 @@ func initKsqlDBStreaming(config configuration, logger *slog.Logger, serializer s
 	return connector, namespaceHandler, nil
 }
 
-func initClickHouseStreaming(config configuration, logger *slog.Logger) (*clickhouse_connector.ClickhouseConnector, error) {
+func initClickHouseStreaming(config config.Configuration, logger *slog.Logger) (*clickhouse_connector.ClickhouseConnector, error) {
 	options := &clickhouse.Options{
 		Addr: []string{config.Processor.ClickHouse.Address},
 		Auth: clickhouse.Auth{
@@ -500,7 +501,7 @@ func initClickHouseStreaming(config configuration, logger *slog.Logger) (*clickh
 	return streamingConnector, nil
 }
 
-func initNamespace(config configuration, namespaces ...namespace.Handler) (*namespace.Manager, error) {
+func initNamespace(config config.Configuration, namespaces ...namespace.Handler) (*namespace.Manager, error) {
 	namespaceManager, err := namespace.NewManager(namespace.ManagerConfig{
 		Handlers:          namespaces,
 		DefaultNamespace:  config.Namespace.Default,

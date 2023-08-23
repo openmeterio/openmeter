@@ -1,4 +1,5 @@
-package main
+// Package config loads application configuration.
+package config
 
 import (
 	"context"
@@ -32,27 +33,27 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// configuration holds any kind of configuration that comes from the outside world and
+// Configuration holds any kind of Configuration that comes from the outside world and
 // is necessary for running the application.
-// TODO: improve configuration options
-type configuration struct {
+// TODO: improve Configuration options
+type Configuration struct {
 	Address string
 
 	Environment string
 
 	// Telemetry configuration
-	Telemetry telemetryConfig
+	Telemetry TelemetryConfig
 
 	// Namespace configuration
-	Namespace namespaceConfiguration
+	Namespace NamespaceConfiguration
 
 	// Ingest configuration
 	Ingest struct {
-		Kafka ingestKafkaConfiguration
+		Kafka IngestKafkaConfiguration
 	}
 
 	// Dedupe configuration
-	Dedupe dedupeConfiguration
+	Dedupe DedupeConfiguration
 
 	// SchemaRegistry configuration
 	SchemaRegistry struct {
@@ -63,20 +64,20 @@ type configuration struct {
 
 	// Processor configuration
 	Processor struct {
-		KSQLDB     processorKSQLDBConfiguration
-		ClickHouse processorClickhouseConfiguration
+		KSQLDB     ProcessorKSQLDBConfiguration
+		ClickHouse ProcessorClickhouseConfiguration
 	}
 
 	// Sink configuration
 	Sink struct {
-		KafkaConnect sinkKafkaConnectConfiguration
+		KafkaConnect SinkKafkaConnectConfiguration
 	}
 
 	Meters []*models.Meter
 }
 
 // Validate validates the configuration.
-func (c configuration) Validate() error {
+func (c Configuration) Validate() error {
 	if c.Address == "" {
 		return errors.New("server address is required")
 	}
@@ -124,12 +125,12 @@ func (c configuration) Validate() error {
 }
 
 // Namespace configuration
-type namespaceConfiguration struct {
+type NamespaceConfiguration struct {
 	Default           string
 	DisableManagement bool
 }
 
-func (c namespaceConfiguration) Validate() error {
+func (c NamespaceConfiguration) Validate() error {
 	if c.Default == "" {
 		return errors.New("default namespace is required")
 	}
@@ -138,7 +139,7 @@ func (c namespaceConfiguration) Validate() error {
 }
 
 // Ingest Kafka configuration
-type ingestKafkaConfiguration struct {
+type IngestKafkaConfiguration struct {
 	Broker              string
 	SecurityProtocol    string
 	SaslMechanisms      string
@@ -149,7 +150,7 @@ type ingestKafkaConfiguration struct {
 }
 
 // CreateKafkaConfig creates a Kafka config map.
-func (c ingestKafkaConfiguration) CreateKafkaConfig() kafka.ConfigMap {
+func (c IngestKafkaConfiguration) CreateKafkaConfig() kafka.ConfigMap {
 	config := kafka.ConfigMap{
 		"bootstrap.servers": c.Broker,
 
@@ -177,7 +178,7 @@ func (c ingestKafkaConfiguration) CreateKafkaConfig() kafka.ConfigMap {
 }
 
 // Validate validates the configuration.
-func (c ingestKafkaConfiguration) Validate() error {
+func (c IngestKafkaConfiguration) Validate() error {
 	if c.Broker == "" {
 		return errors.New("kafka broker is required")
 	}
@@ -190,7 +191,7 @@ func (c ingestKafkaConfiguration) Validate() error {
 }
 
 // KSQLDB Processor configuration
-type processorKSQLDBConfiguration struct {
+type ProcessorKSQLDBConfiguration struct {
 	Enabled                     bool
 	URL                         string
 	Username                    string
@@ -199,7 +200,7 @@ type processorKSQLDBConfiguration struct {
 }
 
 // CreateKafkaConfig creates a Kafka config map.
-func (c processorKSQLDBConfiguration) CreateKSQLDBConfig() net.Options {
+func (c ProcessorKSQLDBConfiguration) CreateKSQLDBConfig() net.Options {
 	config := net.Options{
 		BaseUrl:   c.URL,
 		AllowHTTP: true,
@@ -220,7 +221,7 @@ func (c processorKSQLDBConfiguration) CreateKSQLDBConfig() net.Options {
 }
 
 // Validate validates the configuration.
-func (c processorKSQLDBConfiguration) Validate() error {
+func (c ProcessorKSQLDBConfiguration) Validate() error {
 	if !c.Enabled {
 		return nil
 	}
@@ -237,7 +238,7 @@ func (c processorKSQLDBConfiguration) Validate() error {
 }
 
 // Clickhouse configuration
-type processorClickhouseConfiguration struct {
+type ProcessorClickhouseConfiguration struct {
 	Enabled  bool
 	Address  string
 	TLS      bool
@@ -246,7 +247,7 @@ type processorClickhouseConfiguration struct {
 	Password string
 }
 
-func (c processorClickhouseConfiguration) Validate() error {
+func (c ProcessorClickhouseConfiguration) Validate() error {
 	if !c.Enabled {
 		return nil
 	}
@@ -259,13 +260,13 @@ func (c processorClickhouseConfiguration) Validate() error {
 }
 
 // Sink configuration
-type sinkKafkaConnectConfiguration struct {
+type SinkKafkaConnectConfiguration struct {
 	Enabled    bool
 	URL        string
-	ClickHouse kafkaSinkClickhouseConfiguration
+	ClickHouse KafkaSinkClickhouseConfiguration
 }
 
-func (c sinkKafkaConnectConfiguration) Validate() error {
+func (c SinkKafkaConnectConfiguration) Validate() error {
 	if !c.Enabled {
 		return nil
 	}
@@ -286,7 +287,7 @@ func (c sinkKafkaConnectConfiguration) Validate() error {
 // for example Kafka Connect ClickHouse plugin uses 8123 HTTP port while client uses native protocol's 9000 port.
 // Hostname can be also different, as Kafka Connect and ClickHouse communicates inside the docker compose network.
 // This why we default hostname in config to `clickhouse`.
-type kafkaSinkClickhouseConfiguration struct {
+type KafkaSinkClickhouseConfiguration struct {
 	Hostname string
 	Port     int
 	SSL      bool
@@ -295,7 +296,7 @@ type kafkaSinkClickhouseConfiguration struct {
 	Password string
 }
 
-func (c kafkaSinkClickhouseConfiguration) Validate() error {
+func (c KafkaSinkClickhouseConfiguration) Validate() error {
 	if c.Hostname == "" {
 		return errors.New("kafka sink clickhouse hostname is required")
 	}
@@ -313,34 +314,34 @@ func (c kafkaSinkClickhouseConfiguration) Validate() error {
 }
 
 // Requires [mapstructurex.MapDecoderHookFunc] to be high up in the decode hook chain.
-type dedupeConfiguration struct {
+type DedupeConfiguration struct {
 	Enabled bool
 
-	dedupeDriverConfiguration
+	DedupeDriverConfiguration
 }
 
-func (c dedupeConfiguration) NewDeduplicator() (ingest.Deduplicator, error) {
+func (c DedupeConfiguration) NewDeduplicator() (ingest.Deduplicator, error) {
 	if !c.Enabled {
 		return nil, errors.New("dedupe: disabled")
 	}
 
-	if c.dedupeDriverConfiguration == nil {
+	if c.DedupeDriverConfiguration == nil {
 		return nil, errors.New("dedupe: missing driver configuration")
 	}
 
-	return c.dedupeDriverConfiguration.NewDeduplicator()
+	return c.DedupeDriverConfiguration.NewDeduplicator()
 }
 
-func (c dedupeConfiguration) Validate() error {
+func (c DedupeConfiguration) Validate() error {
 	if !c.Enabled {
 		return nil
 	}
 
-	if c.dedupeDriverConfiguration == nil {
+	if c.DedupeDriverConfiguration == nil {
 		return errors.New("dedupe: missing driver configuration")
 	}
 
-	if err := c.dedupeDriverConfiguration.Validate(); err != nil {
+	if err := c.DedupeDriverConfiguration.Validate(); err != nil {
 		return fmt.Errorf("dedupe: %w", err)
 	}
 
@@ -353,7 +354,7 @@ type rawDedupeConfiguration struct {
 	Config  map[string]any
 }
 
-func (c *dedupeConfiguration) DecodeMap(v map[string]any) error {
+func (c *DedupeConfiguration) DecodeMap(v map[string]any) error {
 	var rawConfig rawDedupeConfiguration
 
 	err := mapstructure.Decode(v, &rawConfig)
@@ -370,17 +371,17 @@ func (c *dedupeConfiguration) DecodeMap(v map[string]any) error {
 
 	switch rawConfig.Driver {
 	case "memory":
-		var driverConfig dedupeDriverMemoryConfiguration
+		var driverConfig DedupeDriverMemoryConfiguration
 
 		err := mapstructure.Decode(rawConfig.Config, &driverConfig)
 		if err != nil {
 			return fmt.Errorf("dedupe: decoding memory driver config: %w", err)
 		}
 
-		c.dedupeDriverConfiguration = driverConfig
+		c.DedupeDriverConfiguration = driverConfig
 
 	case "redis":
-		var driverConfig dedupeDriverRedisConfiguration
+		var driverConfig DedupeDriverRedisConfiguration
 
 		decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 			Metadata:         nil,
@@ -399,7 +400,7 @@ func (c *dedupeConfiguration) DecodeMap(v map[string]any) error {
 			return fmt.Errorf("dedupe: decoding redis driver config: %w", err)
 		}
 
-		c.dedupeDriverConfiguration = driverConfig
+		c.DedupeDriverConfiguration = driverConfig
 
 	case "":
 		return errors.New("dedupe: missing driver")
@@ -411,22 +412,22 @@ func (c *dedupeConfiguration) DecodeMap(v map[string]any) error {
 	return nil
 }
 
-type dedupeDriverConfiguration interface {
+type DedupeDriverConfiguration interface {
 	NewDeduplicator() (ingest.Deduplicator, error)
 	Validate() error
 }
 
 // Dedupe memory driver configuration
-type dedupeDriverMemoryConfiguration struct {
+type DedupeDriverMemoryConfiguration struct {
 	Enabled bool
 	Size    int
 }
 
-func (c dedupeDriverMemoryConfiguration) NewDeduplicator() (ingest.Deduplicator, error) {
+func (c DedupeDriverMemoryConfiguration) NewDeduplicator() (ingest.Deduplicator, error) {
 	return memorydedupe.NewDeduplicator(c.Size)
 }
 
-func (c dedupeDriverMemoryConfiguration) Validate() error {
+func (c DedupeDriverMemoryConfiguration) Validate() error {
 	if c.Size == 0 {
 		return errors.New("memory: size is required")
 	}
@@ -435,7 +436,7 @@ func (c dedupeDriverMemoryConfiguration) Validate() error {
 }
 
 // Dedupe redis driver configuration
-type dedupeDriverRedisConfiguration struct {
+type DedupeDriverRedisConfiguration struct {
 	Address    string
 	Database   int
 	Username   string
@@ -451,7 +452,7 @@ type dedupeDriverRedisConfiguration struct {
 	}
 }
 
-func (c dedupeDriverRedisConfiguration) NewDeduplicator() (ingest.Deduplicator, error) {
+func (c DedupeDriverRedisConfiguration) NewDeduplicator() (ingest.Deduplicator, error) {
 	var tlsConfig *tls.Config
 
 	if c.TLS.Enabled {
@@ -501,7 +502,7 @@ func (c dedupeDriverRedisConfiguration) NewDeduplicator() (ingest.Deduplicator, 
 	}, nil
 }
 
-func (c dedupeDriverRedisConfiguration) Validate() error {
+func (c DedupeDriverRedisConfiguration) Validate() error {
 	if c.Address == "" {
 		return errors.New("redis: address is required")
 	}
@@ -515,17 +516,17 @@ func (c dedupeDriverRedisConfiguration) Validate() error {
 	return nil
 }
 
-type telemetryConfig struct {
+type TelemetryConfig struct {
 	// Telemetry HTTP server address
 	Address string
 
-	Trace traceTelemetryConfig
+	Trace TraceTelemetryConfig
 
-	Log logTelemetryConfiguration
+	Log LogTelemetryConfiguration
 }
 
 // Validate validates the configuration.
-func (c telemetryConfig) Validate() error {
+func (c TelemetryConfig) Validate() error {
 	if c.Address == "" {
 		return errors.New("telemetry: http server address is required")
 	}
@@ -541,13 +542,13 @@ func (c telemetryConfig) Validate() error {
 	return nil
 }
 
-type traceTelemetryConfig struct {
-	Exporter exporterTraceTelemetryConfig
+type TraceTelemetryConfig struct {
+	Exporter ExporterTraceTelemetryConfig
 	Sampler  string
 }
 
 // Validate validates the configuration.
-func (c traceTelemetryConfig) Validate() error {
+func (c TraceTelemetryConfig) Validate() error {
 	if _, err := strconv.ParseFloat(c.Sampler, 64); err != nil && !slices.Contains([]string{"always", "never"}, c.Sampler) {
 		return fmt.Errorf("trace: sampler either needs to be always|never or a ration, got: %s", c.Sampler)
 	}
@@ -559,7 +560,7 @@ func (c traceTelemetryConfig) Validate() error {
 	return nil
 }
 
-func (c traceTelemetryConfig) GetSampler() sdktrace.Sampler {
+func (c TraceTelemetryConfig) GetSampler() sdktrace.Sampler {
 	switch c.Sampler {
 	case "always":
 		return sdktrace.AlwaysSample()
@@ -577,13 +578,13 @@ func (c traceTelemetryConfig) GetSampler() sdktrace.Sampler {
 	}
 }
 
-type exporterTraceTelemetryConfig struct {
+type ExporterTraceTelemetryConfig struct {
 	Enabled bool
 	Address string
 }
 
 // Validate validates the configuration.
-func (c exporterTraceTelemetryConfig) Validate() error {
+func (c ExporterTraceTelemetryConfig) Validate() error {
 	if !c.Enabled {
 		return nil
 	}
@@ -595,7 +596,7 @@ func (c exporterTraceTelemetryConfig) Validate() error {
 	return nil
 }
 
-func (c exporterTraceTelemetryConfig) GetExporter() (sdktrace.SpanExporter, error) {
+func (c ExporterTraceTelemetryConfig) GetExporter() (sdktrace.SpanExporter, error) {
 	if !c.Enabled {
 		return nil, errors.New("telemetry: trace: exporter: disabled")
 	}
@@ -622,7 +623,7 @@ func (c exporterTraceTelemetryConfig) GetExporter() (sdktrace.SpanExporter, erro
 	return exporter, nil
 }
 
-type logTelemetryConfiguration struct {
+type LogTelemetryConfiguration struct {
 	// Format specifies the output log format.
 	// Accepted values are: json, text
 	Format string
@@ -634,7 +635,7 @@ type logTelemetryConfiguration struct {
 }
 
 // Validate validates the configuration.
-func (c logTelemetryConfiguration) Validate() error {
+func (c LogTelemetryConfiguration) Validate() error {
 	if !slices.Contains([]string{"json", "text", "tint"}, c.Format) {
 		return fmt.Errorf("log: invalid format: %q", c.Format)
 	}
@@ -646,7 +647,7 @@ func (c logTelemetryConfiguration) Validate() error {
 	return nil
 }
 
-func (c logTelemetryConfiguration) NewHandler(w io.Writer) slog.Handler {
+func (c LogTelemetryConfiguration) NewHandler(w io.Writer) slog.Handler {
 	switch c.Format {
 	case "json":
 		return slog.NewJSONHandler(w, &slog.HandlerOptions{Level: c.Level})
@@ -661,8 +662,8 @@ func (c logTelemetryConfiguration) NewHandler(w io.Writer) slog.Handler {
 	return slog.NewJSONHandler(w, &slog.HandlerOptions{Level: c.Level})
 }
 
-// configure configures some defaults in the Viper instance.
-func configure(v *viper.Viper, flags *pflag.FlagSet) {
+// Configure configures some defaults in the Viper instance.
+func Configure(v *viper.Viper, flags *pflag.FlagSet) {
 	// Viper settings
 	v.AddConfigPath(".")
 
