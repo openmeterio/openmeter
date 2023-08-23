@@ -40,8 +40,6 @@ type configuration struct {
 
 	Environment string
 
-	Log logConfiguration
-
 	// Telemetry configuration
 	Telemetry telemetryConfig
 
@@ -108,10 +106,6 @@ func (c configuration) Validate() error {
 	}
 
 	if err := c.Telemetry.Validate(); err != nil {
-		return err
-	}
-
-	if err := c.Log.Validate(); err != nil {
 		return err
 	}
 
@@ -521,50 +515,13 @@ func (c dedupeDriverRedisConfiguration) Validate() error {
 	return nil
 }
 
-type logConfiguration struct {
-	// Format specifies the output log format.
-	// Accepted values are: json, text
-	Format string
-
-	// Level is the minimum log level that should appear on the output.
-	//
-	// Requires [mapstructure.TextUnmarshallerHookFunc] to be high up in the decode hook chain.
-	Level slog.Level
-}
-
-// Validate validates the configuration.
-func (c logConfiguration) Validate() error {
-	if !slices.Contains([]string{"json", "text", "tint"}, c.Format) {
-		return fmt.Errorf("log: invalid format: %q", c.Format)
-	}
-
-	if !slices.Contains([]slog.Level{slog.LevelDebug, slog.LevelInfo, slog.LevelWarn, slog.LevelError}, c.Level) {
-		return fmt.Errorf("log: invalid level: %q", c.Level)
-	}
-
-	return nil
-}
-
-func (c logConfiguration) NewHandler(w io.Writer) slog.Handler {
-	switch c.Format {
-	case "json":
-		return slog.NewJSONHandler(w, &slog.HandlerOptions{Level: c.Level})
-
-	case "text":
-		return slog.NewTextHandler(w, &slog.HandlerOptions{Level: c.Level})
-
-	case "tint":
-		return tint.NewHandler(os.Stdout, &tint.Options{Level: c.Level})
-	}
-
-	return slog.NewJSONHandler(w, &slog.HandlerOptions{Level: c.Level})
-}
-
 type telemetryConfig struct {
 	// Telemetry HTTP server address
 	Address string
 
 	Trace traceTelemetryConfig
+
+	Log logTelemetryConfiguration
 }
 
 // Validate validates the configuration.
@@ -574,6 +531,10 @@ func (c telemetryConfig) Validate() error {
 	}
 
 	if err := c.Trace.Validate(); err != nil {
+		return fmt.Errorf("telemetry: %w", err)
+	}
+
+	if err := c.Log.Validate(); err != nil {
 		return fmt.Errorf("telemetry: %w", err)
 	}
 
@@ -661,6 +622,45 @@ func (c exporterTraceTelemetryConfig) GetExporter() (sdktrace.SpanExporter, erro
 	return exporter, nil
 }
 
+type logTelemetryConfiguration struct {
+	// Format specifies the output log format.
+	// Accepted values are: json, text
+	Format string
+
+	// Level is the minimum log level that should appear on the output.
+	//
+	// Requires [mapstructure.TextUnmarshallerHookFunc] to be high up in the decode hook chain.
+	Level slog.Level
+}
+
+// Validate validates the configuration.
+func (c logTelemetryConfiguration) Validate() error {
+	if !slices.Contains([]string{"json", "text", "tint"}, c.Format) {
+		return fmt.Errorf("log: invalid format: %q", c.Format)
+	}
+
+	if !slices.Contains([]slog.Level{slog.LevelDebug, slog.LevelInfo, slog.LevelWarn, slog.LevelError}, c.Level) {
+		return fmt.Errorf("log: invalid level: %q", c.Level)
+	}
+
+	return nil
+}
+
+func (c logTelemetryConfiguration) NewHandler(w io.Writer) slog.Handler {
+	switch c.Format {
+	case "json":
+		return slog.NewJSONHandler(w, &slog.HandlerOptions{Level: c.Level})
+
+	case "text":
+		return slog.NewTextHandler(w, &slog.HandlerOptions{Level: c.Level})
+
+	case "tint":
+		return tint.NewHandler(os.Stdout, &tint.Options{Level: c.Level})
+	}
+
+	return slog.NewJSONHandler(w, &slog.HandlerOptions{Level: c.Level})
+}
+
 // configure configures some defaults in the Viper instance.
 func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	// Viper settings
@@ -679,16 +679,17 @@ func configure(v *viper.Viper, flags *pflag.FlagSet) {
 	// Environment used for identifying the service environment
 	v.SetDefault("environment", "unknown")
 
-	// Log configuration
-	v.SetDefault("log.format", "json")
-	v.SetDefault("log.level", "info")
-
 	// Telemetry configuration
 	flags.String("telemetry-address", ":10000", "Telemetry HTTP server address")
 	_ = v.BindPFlag("telemetry.address", flags.Lookup("telemetry-address"))
 	v.SetDefault("telemetry.address", ":10000")
 
 	v.SetDefault("telemetry.trace.sampler", "never")
+	v.SetDefault("telemetry.trace.exporter.enabled", false)
+	v.SetDefault("telemetry.trace.exporter.address", "")
+
+	v.SetDefault("telemetry.log.format", "json")
+	v.SetDefault("telemetry.log.level", "info")
 
 	// Namespace configuration
 	v.SetDefault("namespace.default", "default")
