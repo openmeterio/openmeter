@@ -36,11 +36,7 @@ type Configuration struct {
 	Dedupe DedupeConfiguration
 
 	// SchemaRegistry configuration
-	SchemaRegistry struct {
-		URL      string
-		Username string
-		Password string
-	}
+	SchemaRegistry SchemaRegistryConfiguration
 
 	// Sink configuration
 	Sink struct {
@@ -169,12 +165,7 @@ func Configure(v *viper.Viper, flags *pflag.FlagSet) {
 	configureTelemetry(v, flags)
 	configureNamespace(v)
 	configureIngest(v)
-
-	// Schema Registry configuration
-	v.SetDefault("schemaRegistry.url", "")
-	v.SetDefault("schemaRegistry.username", "")
-	v.SetDefault("schemaRegistry.password", "")
-
+	configureSchemaRegistry(v)
 	configureProcessor(v)
 
 	// Sink Kafka Connect configuration
