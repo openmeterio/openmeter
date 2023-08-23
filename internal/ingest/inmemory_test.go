@@ -1,6 +1,7 @@
 package ingest_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/cloudevents/sdk-go/v2/event"
@@ -15,10 +16,11 @@ func TestInMemoryCollector(t *testing.T) {
 
 	const namespace = "default"
 
-	// TODO: expand event fields
 	ev := event.New()
+	ev.SetID("id")
+	ev.SetSource("source")
 
-	err := collector.Ingest(ev, namespace)
+	err := collector.Ingest(context.Background(), namespace, ev)
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{namespace}, collector.Namespaces())

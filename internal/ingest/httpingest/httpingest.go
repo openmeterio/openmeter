@@ -123,7 +123,7 @@ func (h Handler) processEvent(ctx context.Context, event event.Event, params api
 		namespace = *params.NamespaceInput
 	}
 
-	err := h.config.Collector.Ingest(event, namespace)
+	err := h.config.Collector.Ingest(ctx, namespace, event)
 	if err != nil {
 		// TODO: attach context to error and log at a higher level
 		logger.ErrorContext(ctx, "unable to forward event to collector", "error", err)

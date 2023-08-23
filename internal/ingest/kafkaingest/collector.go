@@ -13,15 +13,16 @@ import (
 
 // Collector is a receiver of events that handles sending those events to a downstream Kafka broker.
 type Collector struct {
-	Producer *kafka.Producer
+	Producer   *kafka.Producer
+	Serializer serializer.Serializer
+
 	// NamespacedTopicTemplate needs to contain at least one string parameter passed to fmt.Sprintf.
 	// For example: "om_%s_events"
 	NamespacedTopicTemplate string
-	Serializer              serializer.Serializer
 }
 
 // Ingest produces an event to a Kafka topic.
-func (s Collector) Ingest(ev event.Event, namespace string) error {
+func (s Collector) Ingest(_ context.Context, namespace string, ev event.Event) error {
 	topic := fmt.Sprintf(s.NamespacedTopicTemplate, namespace)
 	key, err := s.Serializer.SerializeKey(topic, ev)
 	if err != nil {
@@ -49,6 +50,12 @@ func (s Collector) Ingest(ev event.Event, namespace string) error {
 	}
 
 	return nil
+}
+
+// Close closes the underlying producer.
+func (s Collector) Close() {
+	s.Producer.Flush(30 * 1000)
+	s.Producer.Close()
 }
 
 func KafkaProducerGroup(ctx context.Context, producer *kafka.Producer, logger *slog.Logger) (execute func() error, interrupt func(error)) {
@@ -87,9 +94,4 @@ func KafkaProducerGroup(ctx context.Context, producer *kafka.Producer, logger *s
 		func(error) {
 			cancel()
 		}
-}
-
-func (s Collector) Close() {
-	s.Producer.Flush(30 * 1000)
-	s.Producer.Close()
 }
