@@ -105,11 +105,10 @@ func (c *DedupeConfiguration) DecodeMap(v map[string]any) error {
 
 		c.DedupeDriverConfiguration = driverConfig
 
-	case "":
-		return errors.New("dedupe: missing driver")
-
 	default:
-		return fmt.Errorf("dedupe: unknown driver: %s", rawConfig.Driver)
+		c.DedupeDriverConfiguration = unknownDriverConfiguration{
+			name: rawConfig.Driver,
+		}
 	}
 
 	return nil
@@ -121,13 +120,29 @@ type DedupeDriverConfiguration interface {
 	Validate() error
 }
 
+type unknownDriverConfiguration struct {
+	name string
+}
+
+func (c unknownDriverConfiguration) DriverName() string {
+	return c.name
+}
+
+func (c unknownDriverConfiguration) NewDeduplicator() (ingest.Deduplicator, error) {
+	return nil, errors.New("dedupe: unknown driver")
+}
+
+func (c unknownDriverConfiguration) Validate() error {
+	return errors.New("unknown driver")
+}
+
 // Dedupe memory driver configuration
 type DedupeDriverMemoryConfiguration struct {
 	Enabled bool
 	Size    int
 }
 
-func (c DedupeDriverMemoryConfiguration) DriverName() string {
+func (DedupeDriverMemoryConfiguration) DriverName() string {
 	return "memory"
 }
 
@@ -160,7 +175,7 @@ type DedupeDriverRedisConfiguration struct {
 	}
 }
 
-func (c DedupeDriverRedisConfiguration) DriverName() string {
+func (DedupeDriverRedisConfiguration) DriverName() string {
 	return "redis"
 }
 

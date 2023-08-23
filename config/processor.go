@@ -77,9 +77,9 @@ type ClickHouseProcessorConfiguration struct {
 	Enabled  bool
 	Address  string
 	TLS      bool
-	Database string
 	Username string
 	Password string
+	Database string
 }
 
 func (c ClickHouseProcessorConfiguration) Validate() error {

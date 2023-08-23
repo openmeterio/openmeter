@@ -50,23 +50,26 @@ type ClickHouseKafkaConnectSinkConfiguration struct {
 	Hostname string
 	Port     int
 	SSL      bool
-	Database string
 	Username string
 	Password string
+	Database string
 }
 
 func (c ClickHouseKafkaConnectSinkConfiguration) Validate() error {
 	if c.Hostname == "" {
 		return errors.New("hostname is required")
 	}
+
 	if c.Port == 0 {
 		return errors.New("port is required")
 	}
-	if c.Database == "" {
-		return errors.New("database is required")
-	}
+
 	if c.Username == "" {
 		return errors.New("username is required")
+	}
+
+	if c.Database == "" {
+		return errors.New("database is required")
 	}
 
 	return nil
