@@ -77,6 +77,10 @@ jobs:
       - name: Check commit messages
         run: nix develop --impure .#ci -c pre-commit run --hook-stage manual
 
+      - name: Check quickstart config
+        run: |
+          diff quickstart/config.yaml quickstart/config.clickhouse.yaml || (echo "quickstart configuration drift: please run cp quickstart/config.clickhouse.yaml quickstart/config.yaml" && exit 1)
+
   artifacts:
     name: Artifacts
     uses: ./.github/workflows/artifacts.yaml

@@ -1,0 +1,41 @@
+ingest:
+  kafka:
+    broker: kafka:29092
+
+processor:
+  ksqldb:
+    enabled: false
+  clickhouse:
+    enabled: true
+    address: clickhouse:9000
+    database: openmeter
+    username: default
+    password: default
+
+sink:
+  kafkaConnect:
+    enabled: true
+    url: http://kafka-connect:8083
+    clickhouse:
+      hostname: clickhouse
+      port: 8123
+      username: default
+      password: default
+      database: openmeter
+
+meters:
+  - slug: m1
+    description: API calls
+    eventType: api-calls
+    valueProperty: $.duration_ms
+    aggregation: SUM
+    groupBy:
+      method: $.method
+      path: $.path
+  - slug: m2
+    description: Open AI Tokens
+    eventType: openai
+    valueProperty: $.total_tokens
+    aggregation: SUM
+    groupBy:
+      model: $.model

@@ -13,33 +13,15 @@ git clone git@github.com:openmeterio/openmeter.git
 cd openmeter/quickstart
 ```
 
-## 1. Decide which processor to use
-
-OpenMeter supports [KSQLDB](https://ksqldb.io/) and [ClickHouse](https://clickhouse.com/) as processor and storage.
-
-Choose the processor you want to use:
-
-```sh
-export OM_PROCESSOR=ksqldb
-# OR
-export OM_PROCESSOR=clickhouse
-```
-
-Copy the relevant configuration:
-
-```sh
-cp config.${OM_PROCESSOR}.yaml config.yaml
-```
-
-## 2. Launch OpenMeter
+## 1. Launch OpenMeter
 
 Launch OpenMeter and its dependencies via:
 
 ```sh
-docker-compose --profile $OM_PROCESSOR up
+docker-compose --profile clickhouse up -d
 ```
 
-## 3. Ingest usage event(s)
+## 2. Ingest usage event(s)
 
 Ingest usage events in [CloudEvents](https://cloudevents.io/) format:
 
@@ -110,7 +92,7 @@ curl -X POST http://localhost:8888/api/v1/events \
 '
 ```
 
-## 4. Query Usage
+## 3. Query Usage
 
 Query the usage hourly:
 
@@ -145,7 +127,7 @@ curl http://localhost:8888/api/v1/meters/m1/values?windowSize=HOUR | jq
 }
 ```
 
-## 5. Configure additional meter(s) _(optional)_
+## 4. Configure additional meter(s) _(optional)_
 
 Configure how OpenMeter should process your usage events.
 In this example we will meter the execution duration per API invocation, groupped by method and path.
@@ -163,4 +145,37 @@ meters:
     groupBy:
       method: $.method
       path: $.path
+```
+
+## 5. Try KSQLDB processor _(optional)_
+
+OpenMeter supports ClickHouse and KSQLDB as data processor and storage solution.
+Although we generally prefer using ClickHouse, you can give KSQLDB a try if you want to.
+
+First, stop any currently running instance:
+
+```sh
+docker compose --profile clickhouse down -v
+```
+
+Copy the KSQLDB configuration to `config.yaml`:
+
+```sh
+cp config.ksqldb.yaml config.yaml
+```
+
+Finally, launch OpenMeter with KSQLDB:
+
+```sh
+docker compose --profile ksqldb up -d
+```
+
+Repeat steps from 2 to 4.
+
+## Cleanup
+
+Once you are done, stop any running instances:
+
+```sh
+docker-compose --profile clickhouse --profile ksqldb down -v
 ```
