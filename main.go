@@ -20,10 +20,8 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/mitchellh/mapstructure"
 	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sagikazarmark/mapstructurex"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/thmeitz/ksqldb-go"
@@ -38,6 +36,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/ingest/httpingest"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
@@ -55,10 +54,10 @@ import (
 )
 
 func main() {
-	v, flags := viper.New(), pflag.NewFlagSet("Open Meter", pflag.ExitOnError)
+	v, flags := viper.New(), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
 	ctx := context.Background()
 
-	configure(v, flags)
+	config.Configure(v, flags)
 
 	flags.String("config", "", "Configuration file")
 	flags.Bool("version", false, "Show version information")
@@ -80,23 +79,18 @@ func main() {
 		panic(err)
 	}
 
-	var config configuration
-	err = v.Unmarshal(&config, viper.DecodeHook(mapstructure.ComposeDecodeHookFunc(
-		mapstructurex.MapDecoderHookFunc(),
-		mapstructure.TextUnmarshallerHookFunc(),
-		mapstructure.StringToTimeDurationHookFunc(),
-		mapstructure.StringToSliceHookFunc(","),
-	)))
+	var conf config.Configuration
+	err = v.Unmarshal(&conf, viper.DecodeHook(config.DecodeHook()))
 	if err != nil {
 		panic(err)
 	}
 
-	err = config.Validate()
+	err = conf.Validate()
 	if err != nil {
 		panic(err)
 	}
 
-	logger := slog.New(config.Telemetry.Log.NewHandler(os.Stdout))
+	logger := slog.New(conf.Telemetry.Log.NewHandler(os.Stdout))
 	slog.SetDefault(logger)
 
 	telemetryRouter := chi.NewRouter()
@@ -108,7 +102,7 @@ func main() {
 		resource.WithAttributes(
 			semconv.ServiceName("openmeter"),
 			semconv.ServiceVersion(version),
-			attribute.String("environment", config.Environment),
+			attribute.String("environment", conf.Environment),
 		),
 	)
 	res, _ := resource.Merge(
@@ -138,11 +132,11 @@ func main() {
 
 	traceProviderOptions := []sdktrace.TracerProviderOption{
 		sdktrace.WithResource(res),
-		sdktrace.WithSampler(config.Telemetry.Trace.GetSampler()),
+		sdktrace.WithSampler(conf.Telemetry.Trace.GetSampler()),
 	}
 
-	if config.Telemetry.Trace.Exporter.Enabled {
-		exporter, err := config.Telemetry.Trace.Exporter.GetExporter()
+	if conf.Telemetry.Trace.Exporter.Enabled {
+		exporter, err := conf.Telemetry.Trace.Exporter.GetExporter()
 		if err != nil {
 			logger.Error(err.Error())
 			os.Exit(1)
@@ -175,11 +169,11 @@ func main() {
 	}
 
 	logger.Info("starting OpenMeter server", "config", map[string]string{
-		"address":              config.Address,
-		"telemetry.address":    config.Telemetry.Address,
-		"ingest.kafka.broker":  config.Ingest.Kafka.Broker,
-		"processor.ksqldb.url": config.Processor.KSQLDB.URL,
-		"schemaRegistry.url":   config.SchemaRegistry.URL,
+		"address":              conf.Address,
+		"telemetry.address":    conf.Telemetry.Address,
+		"ingest.kafka.broker":  conf.Ingest.Kafka.Broker,
+		"processor.ksqldb.url": conf.Processor.KSQLDB.URL,
+		"schemaRegistry.url":   conf.SchemaRegistry.URL,
 	})
 
 	var group run.Group
@@ -188,14 +182,14 @@ func main() {
 	var namespaceHandlers []namespace.Handler
 
 	// Initialize serializer
-	eventSerializer, err := initSerializer(config)
+	eventSerializer, err := initSerializer(conf)
 	if err != nil {
 		logger.Error("failed to initialize serializer", "error", err)
 		os.Exit(1)
 	}
 
 	// Initialize Kafka Ingest
-	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(ctx, config, logger, eventSerializer, group)
+	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(ctx, conf, logger, eventSerializer, group)
 	if err != nil {
 		logger.Error("failed to initialize kafka ingest", "error", err)
 		os.Exit(1)
@@ -204,8 +198,8 @@ func main() {
 	defer ingestCollector.Close()
 
 	// Initialize ksqlDB Streaming Processor
-	if config.Processor.KSQLDB.Enabled {
-		ksqlDBStreamingConnector, ksqlDBNamespaceHandler, err := initKsqlDBStreaming(config, logger, eventSerializer, healthChecker)
+	if conf.Processor.KSQLDB.Enabled {
+		ksqlDBStreamingConnector, ksqlDBNamespaceHandler, err := initKsqlDBStreaming(conf, logger, eventSerializer, healthChecker)
 		if err != nil {
 			logger.Error("failed to initialize ksqldb streaming processor", "error", err)
 			os.Exit(1)
@@ -215,8 +209,8 @@ func main() {
 	}
 
 	// Initialize ClickHouse Streaming Processor
-	if config.Processor.ClickHouse.Enabled {
-		clickhouseStreamingConnector, err := initClickHouseStreaming(config, logger)
+	if conf.Processor.ClickHouse.Enabled {
+		clickhouseStreamingConnector, err := initClickHouseStreaming(conf, logger)
 		if err != nil {
 			logger.Error("failed to initialize clickhouse streaming processor", "error", err)
 			os.Exit(1)
@@ -226,15 +220,15 @@ func main() {
 	}
 
 	// Initialize Namespace
-	namespaceManager, err := initNamespace(config, namespaceHandlers...)
+	namespaceManager, err := initNamespace(conf, namespaceHandlers...)
 	if err != nil {
 		logger.Error("failed to initialize namespace", "error", err)
 		os.Exit(1)
 	}
 
 	// Initialize deduplication
-	if config.Dedupe.Enabled {
-		deduplicator, err := config.Dedupe.NewDeduplicator()
+	if conf.Dedupe.Enabled {
+		deduplicator, err := conf.Dedupe.NewDeduplicator()
 		if err != nil {
 			logger.Error("failed to initialize deduplicator", "error", err)
 			os.Exit(1)
@@ -262,7 +256,7 @@ func main() {
 			NamespaceManager:   namespaceManager,
 			StreamingConnector: streamingConnector,
 			IngestHandler:      ingestHandler,
-			Meters:             config.Meters,
+			Meters:             conf.Meters,
 		},
 		RouterHook: func(r chi.Router) {
 			r.Use(func(h http.Handler) http.Handler {
@@ -301,19 +295,19 @@ func main() {
 		})
 	})
 
-	for _, meter := range config.Meters {
+	for _, meter := range conf.Meters {
 		err := streamingConnector.CreateMeter(ctx, namespaceManager.GetDefaultNamespace(), meter)
 		if err != nil {
 			slog.Warn("failed to initialize meter", "error", err)
 			os.Exit(1)
 		}
 	}
-	slog.Info("meters successfully created", "count", len(config.Meters))
+	slog.Info("meters successfully created", "count", len(conf.Meters))
 
 	// Set up telemetry server
 	{
 		server := &http.Server{
-			Addr:    config.Telemetry.Address,
+			Addr:    conf.Telemetry.Address,
 			Handler: telemetryRouter,
 		}
 		defer server.Close()
@@ -327,7 +321,7 @@ func main() {
 	// Set up server
 	{
 		server := &http.Server{
-			Addr:    config.Address,
+			Addr:    conf.Address,
 			Handler: s,
 		}
 		defer server.Close()
@@ -349,7 +343,7 @@ func main() {
 	}
 }
 
-func initKafkaIngest(ctx context.Context, config configuration, logger *slog.Logger, serializer serializer.Serializer, group run.Group) (*kafkaingest.Collector, *kafkaingest.NamespaceHandler, error) {
+func initKafkaIngest(ctx context.Context, config config.Configuration, logger *slog.Logger, serializer serializer.Serializer, group run.Group) (*kafkaingest.Collector, *kafkaingest.NamespaceHandler, error) {
 	// Initialize Kafka Admin Client
 	kafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
 
@@ -388,7 +382,7 @@ func initKafkaIngest(ctx context.Context, config configuration, logger *slog.Log
 }
 
 // initSerializer initializes the serializer based on the configuration.
-func initSerializer(config configuration) (serializer.Serializer, error) {
+func initSerializer(config config.Configuration) (serializer.Serializer, error) {
 	// Initialize JSON_SR with Schema Registry
 	if config.SchemaRegistry.URL != "" {
 		schemaRegistryConfig := schemaregistry.NewConfig(config.SchemaRegistry.URL)
@@ -408,7 +402,7 @@ func initSerializer(config configuration) (serializer.Serializer, error) {
 	}
 }
 
-func initKsqlDBStreaming(config configuration, logger *slog.Logger, serializer serializer.Serializer, healthChecker health.Health) (*ksqldb_connector.KsqlDBConnector, *ksqldb_connector.NamespaceHandler, error) {
+func initKsqlDBStreaming(config config.Configuration, logger *slog.Logger, serializer serializer.Serializer, healthChecker health.Health) (*ksqldb_connector.KsqlDBConnector, *ksqldb_connector.NamespaceHandler, error) {
 	// Initialize ksqlDB Client
 	ksqldbClient, err := ksqldb.NewClientWithOptions(config.Processor.KSQLDB.CreateKSQLDBConfig())
 	if err != nil {
@@ -443,7 +437,7 @@ func initKsqlDBStreaming(config configuration, logger *slog.Logger, serializer s
 	return connector, namespaceHandler, nil
 }
 
-func initClickHouseStreaming(config configuration, logger *slog.Logger) (*clickhouse_connector.ClickhouseConnector, error) {
+func initClickHouseStreaming(config config.Configuration, logger *slog.Logger) (*clickhouse_connector.ClickhouseConnector, error) {
 	options := &clickhouse.Options{
 		Addr: []string{config.Processor.ClickHouse.Address},
 		Auth: clickhouse.Auth{
@@ -500,7 +494,7 @@ func initClickHouseStreaming(config configuration, logger *slog.Logger) (*clickh
 	return streamingConnector, nil
 }
 
-func initNamespace(config configuration, namespaces ...namespace.Handler) (*namespace.Manager, error) {
+func initNamespace(config config.Configuration, namespaces ...namespace.Handler) (*namespace.Manager, error) {
 	namespaceManager, err := namespace.NewManager(namespace.ManagerConfig{
 		Handlers:          namespaces,
 		DefaultNamespace:  config.Namespace.Default,

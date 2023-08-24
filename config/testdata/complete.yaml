@@ -1,0 +1,77 @@
+address: 127.0.0.1:8888
+
+environment: local
+
+telemetry:
+  address: 127.0.0.1:10000
+
+  trace:
+    exporter:
+      enabled: true
+      address: 127.0.0.1:4317
+    sampler: always
+
+  log:
+    format: json
+    level: info
+
+namespace:
+  default: default
+
+ingest:
+  kafka:
+    broker: 127.0.0.1:9092
+    securityProtocol: SASL_SSL
+    saslMechanisms: PLAIN
+    saslUsername: user
+    saslPassword: pass
+    partitions: 1
+
+schemaRegistry:
+  url: http://127.0.0.1:8081
+  username: user
+  password: pass
+
+processor:
+  ksqldb:
+    enabled: false
+  clickhouse:
+    enabled: true
+    address: 127.0.0.1:9440
+    tls: true
+    username: default
+    password: default
+    database: openmeter
+
+sink:
+  kafkaConnect:
+    enabled: true
+    url: http://127.0.0.1:8083
+    clickhouse:
+      hostname: 127.0.0.1
+      port: 8123
+      ssl: true
+      username: default
+      password: default
+      database: openmeter
+
+dedupe:
+  enabled: true
+  driver: redis
+  config:
+    expiration: 768h # 32d
+    database: 0
+    address: 127.0.0.1:6379
+    username: default
+    password: pass
+    tls:
+      enabled: true
+
+meters:
+  - slug: m1
+    eventType: api-calls
+    valueProperty: $.duration_ms
+    aggregation: SUM
+    groupBy:
+      method: $.method
+      path: $.path
