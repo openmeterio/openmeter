@@ -103,6 +103,7 @@ func main() {
 			semconv.ServiceName("openmeter"),
 			semconv.ServiceVersion(version),
 			attribute.String("environment", conf.Environment),
+			attribute.String("env", conf.Environment), // Datadog specific
 		),
 	)
 	res, _ := resource.Merge(
