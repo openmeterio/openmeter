@@ -23,9 +23,11 @@ RUN go mod download
 
 COPY . .
 
+ARG VERSION
+
 # See https://github.com/confluentinc/confluent-kafka-go#librdkafka
 # See https://github.com/confluentinc/confluent-kafka-go#static-builds-on-linux
-RUN go build -ldflags '-linkmode external -extldflags "-static"' -tags musl -o /usr/local/bin/openmeter .
+RUN go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter .
 RUN xx-verify /usr/local/bin/openmeter
 
 FROM gcr.io/distroless/base-debian11:latest@sha256:73deaaf6a207c1a33850257ba74e0f196bc418636cada9943a03d7abea980d6d AS distroless
