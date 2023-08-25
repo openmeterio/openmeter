@@ -105,6 +105,8 @@ jobs:
         with:
           context: .
           target: ${{ matrix.target }}
+          build-args: |
+            VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
           platforms: linux/amd64,linux/arm64 # The confluent library and UBI8 don't support ARMv7
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
