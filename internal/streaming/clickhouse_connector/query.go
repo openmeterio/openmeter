@@ -168,7 +168,8 @@ type queryMeterView struct {
 
 func (d queryMeterView) toSQL() (string, []interface{}, error) {
 	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
-	selectColumns := []string{}
+
+	var selectColumns, groupByColumns, where []string
 
 	switch *d.WindowSize {
 	case models.WindowSizeMinute:
@@ -216,13 +217,11 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 		return "", nil, fmt.Errorf("invalid aggregation type: %s", d.Aggregation)
 	}
 
-	groupByColumns := []string{"windowstart", "windowend"}
+	groupByColumns = append(groupByColumns, "windowstart", "windowend")
 
 	if groupBySubject {
 		groupByColumns = append(groupByColumns, "subject")
 	}
-
-	where := []string{}
 
 	for _, column := range d.GroupBy {
 		c := sqlbuilder.Escape(column)
