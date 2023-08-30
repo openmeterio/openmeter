@@ -15,8 +15,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var prefix = "om"
-var eventsTableName = "events"
+var (
+	prefix          = "om"
+	eventsTableName = "events"
+)
 
 // List of accepted aggregate functions: https://clickhouse.com/docs/en/sql-reference/aggregate-functions/reference
 var aggregationRegexp = regexp.MustCompile(`^AggregateFunction\((avg|sum|min|max|count), Float64\)$`)
