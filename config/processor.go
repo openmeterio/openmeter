@@ -106,7 +106,7 @@ func configureProcessor(v *viper.Viper) {
 	v.SetDefault("processor.clickhouse.enabled", false)
 	v.SetDefault("processor.clickhouse.address", "127.0.0.1:9000")
 	v.SetDefault("processor.clickhouse.tls", false)
-	v.SetDefault("processor.clickhouse.database", "default")
+	v.SetDefault("processor.clickhouse.database", "openmeter")
 	v.SetDefault("processor.clickhouse.username", "default")
-	v.SetDefault("processor.clickhouse.password", "")
+	v.SetDefault("processor.clickhouse.password", "default")
 }
