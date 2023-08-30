@@ -283,7 +283,23 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		value := &models.MeterValue{
 			GroupBy: map[string]string{},
 		}
-		args := []interface{}{&value.WindowStart, &value.WindowEnd, &value.Subject, &value.Value}
+
+		args := []interface{}{}
+		var argCount int
+
+		if params.WindowSize != nil {
+			args = append(args, &value.WindowStart, &value.WindowEnd)
+			argCount += 2
+		}
+
+		if len(params.Subject) > 0 || params.GroupBySubject {
+			args = append(args, &value.Subject)
+			argCount++
+		}
+
+		args = append(args, &value.Value)
+		argCount++
+
 		// TODO: do this next part without interface magic
 		for range queryMeter.GroupBy {
 			tmp := ""
@@ -295,7 +311,7 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		}
 
 		for i, key := range queryMeter.GroupBy {
-			if s, ok := args[i+4].(*string); ok {
+			if s, ok := args[i+argCount].(*string); ok {
 				value.GroupBy[key] = *s
 			}
 		}
