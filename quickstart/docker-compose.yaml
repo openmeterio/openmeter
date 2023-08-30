@@ -9,8 +9,6 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
-      schema-registry:
-        condition: service_healthy
       clickhouse:
         condition: service_healthy
         required: false
@@ -35,16 +33,6 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://kafka:29092
     healthcheck:
       test: kafka-topics --bootstrap-server kafka:9092 --list
-      interval: 5s
-      timeout: 3s
-      retries: 100
-
-  schema-registry:
-    extends:
-      file: ../docker-compose.yaml
-      service: schema-registry
-    healthcheck:
-      test: curl --fail http://schema-registry:8081/subjects
       interval: 5s
       timeout: 3s
       retries: 100

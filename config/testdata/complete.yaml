@@ -27,11 +27,6 @@ ingest:
     saslPassword: pass
     partitions: 1
 
-schemaRegistry:
-  url: http://127.0.0.1:8081
-  username: user
-  password: pass
-
 processor:
   clickhouse:
     enabled: true

@@ -68,11 +68,6 @@ func TestComplete(t *testing.T) {
 				EventsTopicTemplate: "om_%s_events",
 			},
 		},
-		SchemaRegistry: SchemaRegistryConfiguration{
-			URL:      "http://127.0.0.1:8081",
-			Username: "user",
-			Password: "pass",
-		},
 		Processor: ProcessorConfiguration{
 			ClickHouse: ClickHouseProcessorConfiguration{
 				Enabled:  true,

@@ -17,7 +17,6 @@ import (
 	healthhttp "github.com/AppsFlyer/go-sundheit/http"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/oklog/run"
@@ -170,7 +169,6 @@ func main() {
 		"address":             conf.Address,
 		"telemetry.address":   conf.Telemetry.Address,
 		"ingest.kafka.broker": conf.Ingest.Kafka.Broker,
-		"schemaRegistry.url":  conf.SchemaRegistry.URL,
 	})
 
 	var group run.Group
@@ -178,15 +176,8 @@ func main() {
 	var streamingConnector streaming.Connector
 	var namespaceHandlers []namespace.Handler
 
-	// Initialize serializer
-	eventSerializer, err := initSerializer(conf)
-	if err != nil {
-		logger.Error("failed to initialize serializer", "error", err)
-		os.Exit(1)
-	}
-
 	// Initialize Kafka Ingest
-	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(ctx, conf, logger, eventSerializer, group)
+	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(ctx, conf, logger, serializer.NewJSONSerializer(), group)
 	if err != nil {
 		logger.Error("failed to initialize kafka ingest", "error", err)
 		os.Exit(1)
@@ -365,27 +356,6 @@ func initKafkaIngest(ctx context.Context, config config.Configuration, logger *s
 	}
 
 	return collector, namespaceHandler, nil
-}
-
-// initSerializer initializes the serializer based on the configuration.
-func initSerializer(config config.Configuration) (serializer.Serializer, error) {
-	// Initialize JSON_SR with Schema Registry
-	if config.SchemaRegistry.URL != "" {
-		schemaRegistryConfig := schemaregistry.NewConfig(config.SchemaRegistry.URL)
-		if config.SchemaRegistry.Username != "" || config.SchemaRegistry.Password != "" {
-			schemaRegistryConfig.BasicAuthCredentialsSource = "USER_INFO"
-			schemaRegistryConfig.BasicAuthUserInfo = fmt.Sprintf("%s:%s", config.SchemaRegistry.Username, config.SchemaRegistry.Password)
-		}
-		schemaRegistry, err := schemaregistry.NewClient(schemaRegistryConfig)
-		if err != nil {
-			return nil, fmt.Errorf("init serializer: %w", err)
-		}
-
-		return serializer.NewJSONSchemaSerializer(schemaRegistry)
-	} else {
-		// Initialize JSON without Schema Registry
-		return serializer.NewJSONSerializer(), nil
-	}
 }
 
 func initClickHouseStreaming(config config.Configuration, logger *slog.Logger) (*clickhouse_connector.ClickhouseConnector, error) {
