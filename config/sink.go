@@ -79,7 +79,7 @@ func (c ClickHouseKafkaConnectSinkConfiguration) Validate() error {
 func configureSink(v *viper.Viper) {
 	v.SetDefault("sink.kafkaConnect.enabled", false)
 	v.SetDefault("sink.kafkaConnect.url", "http://127.0.0.1:8083")
-	v.SetDefault("sink.kafkaConnect.clickhouse.hostname", "clickhouse")
+	v.SetDefault("sink.kafkaConnect.clickhouse.hostname", "127.0.0.1")
 	v.SetDefault("sink.kafkaConnect.clickhouse.port", 8123)
 	v.SetDefault("sink.kafkaConnect.clickhouse.ssl", false)
 	v.SetDefault("sink.kafkaConnect.clickhouse.database", "openmeter")

@@ -17,14 +17,12 @@ import (
 	healthhttp "github.com/AppsFlyer/go-sundheit/http"
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"github.com/confluentinc/confluent-kafka-go/v2/schemaregistry"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"github.com/thmeitz/ksqldb-go"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -47,9 +45,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/sink"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
-	"github.com/openmeterio/openmeter/internal/streaming/ksqldb_connector"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
-	"github.com/openmeterio/openmeter/pkg/gosundheit/ksqldbcheck"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
@@ -170,11 +166,9 @@ func main() {
 	}
 
 	logger.Info("starting OpenMeter server", "config", map[string]string{
-		"address":              conf.Address,
-		"telemetry.address":    conf.Telemetry.Address,
-		"ingest.kafka.broker":  conf.Ingest.Kafka.Broker,
-		"processor.ksqldb.url": conf.Processor.KSQLDB.URL,
-		"schemaRegistry.url":   conf.SchemaRegistry.URL,
+		"address":             conf.Address,
+		"telemetry.address":   conf.Telemetry.Address,
+		"ingest.kafka.broker": conf.Ingest.Kafka.Broker,
 	})
 
 	var group run.Group
@@ -182,32 +176,14 @@ func main() {
 	var streamingConnector streaming.Connector
 	var namespaceHandlers []namespace.Handler
 
-	// Initialize serializer
-	eventSerializer, err := initSerializer(conf)
-	if err != nil {
-		logger.Error("failed to initialize serializer", "error", err)
-		os.Exit(1)
-	}
-
 	// Initialize Kafka Ingest
-	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(ctx, conf, logger, eventSerializer, group)
+	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(ctx, conf, logger, serializer.NewJSONSerializer(), group)
 	if err != nil {
 		logger.Error("failed to initialize kafka ingest", "error", err)
 		os.Exit(1)
 	}
 	namespaceHandlers = append(namespaceHandlers, kafkaIngestNamespaceHandler)
 	defer ingestCollector.Close()
-
-	// Initialize ksqlDB Streaming Processor
-	if conf.Processor.KSQLDB.Enabled {
-		ksqlDBStreamingConnector, ksqlDBNamespaceHandler, err := initKsqlDBStreaming(conf, logger, eventSerializer, healthChecker)
-		if err != nil {
-			logger.Error("failed to initialize ksqldb streaming processor", "error", err)
-			os.Exit(1)
-		}
-		streamingConnector = ksqlDBStreamingConnector
-		namespaceHandlers = append(namespaceHandlers, ksqlDBNamespaceHandler)
-	}
 
 	// Initialize ClickHouse Streaming Processor
 	if conf.Processor.ClickHouse.Enabled {
@@ -380,62 +356,6 @@ func initKafkaIngest(ctx context.Context, config config.Configuration, logger *s
 	}
 
 	return collector, namespaceHandler, nil
-}
-
-// initSerializer initializes the serializer based on the configuration.
-func initSerializer(config config.Configuration) (serializer.Serializer, error) {
-	// Initialize JSON_SR with Schema Registry
-	if config.SchemaRegistry.URL != "" {
-		schemaRegistryConfig := schemaregistry.NewConfig(config.SchemaRegistry.URL)
-		if config.SchemaRegistry.Username != "" || config.SchemaRegistry.Password != "" {
-			schemaRegistryConfig.BasicAuthCredentialsSource = "USER_INFO"
-			schemaRegistryConfig.BasicAuthUserInfo = fmt.Sprintf("%s:%s", config.SchemaRegistry.Username, config.SchemaRegistry.Password)
-		}
-		schemaRegistry, err := schemaregistry.NewClient(schemaRegistryConfig)
-		if err != nil {
-			return nil, fmt.Errorf("init serializer: %w", err)
-		}
-
-		return serializer.NewJSONSchemaSerializer(schemaRegistry)
-	} else {
-		// Initialize JSON without Schema Registry
-		return serializer.NewJSONSerializer(), nil
-	}
-}
-
-func initKsqlDBStreaming(config config.Configuration, logger *slog.Logger, serializer serializer.Serializer, healthChecker health.Health) (*ksqldb_connector.KsqlDBConnector, *ksqldb_connector.NamespaceHandler, error) {
-	// Initialize ksqlDB Client
-	ksqldbClient, err := ksqldb.NewClientWithOptions(config.Processor.KSQLDB.CreateKSQLDBConfig())
-	if err != nil {
-		return nil, nil, fmt.Errorf("init ksqldb streaming: %w", err)
-	}
-	defer ksqldbClient.Close()
-
-	// Register KSQLDB health check
-	err = healthChecker.RegisterCheck(
-		ksqldbcheck.NewCheck("ksqldb", ksqldbClient),
-		health.ExecutionPeriod(5*time.Second),
-	)
-	if err != nil {
-		return nil, nil, fmt.Errorf("init ksqldb streaming: %w", err)
-	}
-
-	namespaceHandler := &ksqldb_connector.NamespaceHandler{
-		KsqlDBClient:                          &ksqldbClient,
-		NamespacedEventsTopicTemplate:         config.Ingest.Kafka.EventsTopicTemplate,
-		NamespacedDetectedEventsTopicTemplate: config.Processor.KSQLDB.DetectedEventsTopicTemplate,
-		Format:                                serializer.GetFormat(),
-		KeySchemaID:                           serializer.GetKeySchemaId(),
-		ValueSchemaID:                         serializer.GetValueSchemaId(),
-		Partitions:                            config.Ingest.Kafka.Partitions,
-	}
-
-	connector, err := ksqldb_connector.NewKsqlDBConnector(&ksqldbClient, config.Ingest.Kafka.Partitions, serializer.GetFormat(), logger)
-	if err != nil {
-		return nil, nil, fmt.Errorf("init ksqldb streaming: %w", err)
-	}
-
-	return connector, namespaceHandler, nil
 }
 
 func initClickHouseStreaming(config config.Configuration, logger *slog.Logger) (*clickhouse_connector.ClickhouseConnector, error) {

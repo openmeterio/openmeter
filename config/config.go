@@ -20,12 +20,11 @@ type Configuration struct {
 
 	Telemetry TelemetryConfig
 
-	Namespace      NamespaceConfiguration
-	Ingest         IngestConfiguration
-	SchemaRegistry SchemaRegistryConfiguration
-	Processor      ProcessorConfiguration
-	Sink           SinkConfiguration
-	Dedupe         DedupeConfiguration
+	Namespace NamespaceConfiguration
+	Ingest    IngestConfiguration
+	Processor ProcessorConfiguration
+	Sink      SinkConfiguration
+	Dedupe    DedupeConfiguration
 
 	Meters []*models.Meter
 }
@@ -96,7 +95,6 @@ func Configure(v *viper.Viper, flags *pflag.FlagSet) {
 
 	configureNamespace(v)
 	configureIngest(v)
-	configureSchemaRegistry(v)
 	configureProcessor(v)
 	configureSink(v)
 	configureDedupe(v)
