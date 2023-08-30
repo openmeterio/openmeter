@@ -3,14 +3,8 @@ ingest:
     broker: kafka:29092
 
 processor:
-  ksqldb:
-    enabled: false
   clickhouse:
-    enabled: true
     address: clickhouse:9000
-    database: openmeter
-    username: default
-    password: default
 
 sink:
   kafkaConnect:
@@ -18,10 +12,6 @@ sink:
     url: http://kafka-connect:8083
     clickhouse:
       hostname: clickhouse
-      port: 8123
-      username: default
-      password: default
-      database: openmeter
 
 meters:
   - slug: m1

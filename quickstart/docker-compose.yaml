@@ -11,9 +11,6 @@ services:
         condition: service_healthy
       schema-registry:
         condition: service_healthy
-      ksqldb-server:
-        condition: service_healthy
-        required: false
       clickhouse:
         condition: service_healthy
         required: false
@@ -52,19 +49,6 @@ services:
       timeout: 3s
       retries: 100
 
-
-  # Profile: ksqldb
-  ksqldb-server:
-    extends:
-      file: ../docker-compose.yaml
-      service: ksqldb-server
-    healthcheck:
-      test: curl --fail http://ksqldb-server:8088/healthcheck
-      interval: 5s
-      timeout: 3s
-      retries: 100
-
-  # Profile: clickhouse
   clickhouse:
     extends:
       file: ../docker-compose.yaml

@@ -33,8 +33,6 @@ schemaRegistry:
   password: pass
 
 processor:
-  ksqldb:
-    enabled: false
   clickhouse:
     enabled: true
     address: 127.0.0.1:9440

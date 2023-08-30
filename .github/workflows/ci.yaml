@@ -77,10 +77,6 @@ jobs:
       - name: Check commit messages
         run: nix develop --impure .#ci -c pre-commit run --hook-stage manual
 
-      - name: Check quickstart config
-        run: |
-          diff quickstart/config.yaml quickstart/config.clickhouse.yaml || (echo "quickstart configuration drift: please run cp quickstart/config.clickhouse.yaml quickstart/config.yaml" && exit 1)
-
   artifacts:
     name: Artifacts
     uses: ./.github/workflows/artifacts.yaml
@@ -123,21 +119,12 @@ jobs:
     name: Quickstart
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-      matrix:
-        profile: [ksqldb, clickhouse]
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
-      - name: Configure OpenMeter
-        run: cp config.${{ matrix.profile }}.yaml config.yaml
-        working-directory: quickstart
-
       - name: Launch Docker Compose
-        run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml --profile ${{ matrix.profile }} up -d
+        run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml up -d
         working-directory: quickstart
 
       - name: Wait for OpenMeter to become ready
@@ -155,6 +142,6 @@ jobs:
         working-directory: quickstart
 
       - name: Cleanup Docker Compose
-        run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml --profile ${{ matrix.profile }} down -v
+        run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml down -v
         working-directory: quickstart
         if: always()

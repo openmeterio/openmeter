@@ -35,31 +35,8 @@ services:
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:9092
       SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
 
-  # KsqlDB
-  # docker compose --profile ksqldb up
-  ksqldb-server:
-    image: confluentinc/cp-ksqldb-server:7.4.0
-    profiles:
-      - ksqldb
-    depends_on:
-      - kafka
-    ports:
-      - 127.0.0.1:8088:8088
-    environment:
-      KSQL_LISTENERS: http://ksqldb-server:8088
-      KSQL_BOOTSTRAP_SERVERS: kafka:9092
-      KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
-      KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
-      KSQL_KSQL_SCHEMA_REGISTRY_URL: http://schema-registry:8081
-      KSQL_KSQL_STREAMS_PROCESSING_GUARANTEE: exactly_once_v2
-      KSQL_KSQL_STREAMS_CONSUMER_ISOLATION_LEVEL: read_committed
-
-  # ClickHouse
-  # docker compose --profile clickhouse up
   clickhouse:
     image: clickhouse/clickhouse-server:23.3.9.55-alpine
-    profiles:
-      - clickhouse
     ports:
       - 127.0.0.1:8123:8123
       - 127.0.0.1:9000:9000
@@ -77,8 +54,6 @@ services:
   kafka-connect:
     build:
       context: etc/kafka-connect/
-    profiles:
-      - clickhouse
     depends_on:
       - kafka
     ports:
