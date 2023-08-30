@@ -261,14 +261,15 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 	}
 
 	queryMeter := queryMeterView{
-		Database:      c.config.Database,
-		MeterViewName: getMeterViewNameBySlug(namespace, meterSlug),
-		Aggregation:   *params.Aggregation,
-		Subject:       params.Subject,
-		From:          params.From,
-		To:            params.To,
-		GroupBy:       groupBy,
-		WindowSize:    params.WindowSize,
+		Database:       c.config.Database,
+		MeterViewName:  getMeterViewNameBySlug(namespace, meterSlug),
+		Aggregation:    *params.Aggregation,
+		Subject:        params.Subject,
+		From:           params.From,
+		To:             params.To,
+		GroupBy:        groupBy,
+		GroupBySubject: true,
+		WindowSize:     params.WindowSize,
 	}
 	sql, args, err := queryMeter.toSQL()
 	if err != nil {

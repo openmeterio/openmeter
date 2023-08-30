@@ -154,14 +154,15 @@ func (d describeMeterView) toSQL() (string, []interface{}) {
 }
 
 type queryMeterView struct {
-	Database      string
-	MeterViewName string
-	Aggregation   models.MeterAggregation
-	Subject       *string
-	From          *time.Time
-	To            *time.Time
-	GroupBy       []string
-	WindowSize    *models.WindowSize
+	Database       string
+	MeterViewName  string
+	Aggregation    models.MeterAggregation
+	Subject        *string
+	From           *time.Time
+	To             *time.Time
+	GroupBy        []string
+	GroupBySubject bool
+	WindowSize     *models.WindowSize
 }
 
 func (d queryMeterView) toSQL() (string, []interface{}, error) {
@@ -191,7 +192,13 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 		return "", nil, fmt.Errorf("invalid window size type: %s", d.Aggregation)
 	}
 
-	selectColumns = append(selectColumns, "subject")
+	// Grouping by subject is required when filtering for a subject
+	// It is also a default grouping requirement in certain queries (eg. meter values)
+	groupBySubject := d.GroupBySubject || d.Subject != nil
+
+	if groupBySubject {
+		selectColumns = append(selectColumns, "subject")
+	}
 
 	switch d.Aggregation {
 	case models.MeterAggregationSum:
@@ -208,7 +215,12 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 		return "", nil, fmt.Errorf("invalid aggregation type: %s", d.Aggregation)
 	}
 
-	groupByColumns := []string{"windowstart", "windowend", "subject"}
+	groupByColumns := []string{"windowstart", "windowend"}
+
+	if groupBySubject {
+		groupByColumns = append(groupByColumns, "subject")
+	}
+
 	where := []string{}
 
 	for _, column := range d.GroupBy {
