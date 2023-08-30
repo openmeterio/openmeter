@@ -255,6 +255,12 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 
 	values := []*models.MeterValue{}
 
+	var subject []string
+
+	if params.Subject != nil {
+		subject = append(subject, *params.Subject)
+	}
+
 	groupBy := []string{}
 	if params.GroupBy != nil {
 		groupBy = *params.GroupBy
@@ -264,7 +270,7 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		Database:       c.config.Database,
 		MeterViewName:  getMeterViewNameBySlug(namespace, meterSlug),
 		Aggregation:    *params.Aggregation,
-		Subject:        params.Subject,
+		Subject:        subject,
 		From:           params.From,
 		To:             params.To,
 		GroupBy:        groupBy,

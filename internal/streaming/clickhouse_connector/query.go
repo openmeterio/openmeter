@@ -10,6 +10,7 @@ import (
 	"github.com/huandu/go-sqlbuilder"
 
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 // Create Events Table
@@ -157,7 +158,7 @@ type queryMeterView struct {
 	Database       string
 	MeterViewName  string
 	Aggregation    models.MeterAggregation
-	Subject        *string
+	Subject        []string
 	From           *time.Time
 	To             *time.Time
 	GroupBy        []string
@@ -194,7 +195,7 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 
 	// Grouping by subject is required when filtering for a subject
 	// It is also a default grouping requirement in certain queries (eg. meter values)
-	groupBySubject := d.GroupBySubject || d.Subject != nil
+	groupBySubject := d.GroupBySubject || len(d.Subject) > 0
 
 	if groupBySubject {
 		selectColumns = append(selectColumns, "subject")
@@ -233,9 +234,14 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 	queryView.Select(selectColumns...)
 	queryView.From(viewName)
 
-	if d.Subject != nil {
-		where = append(where, queryView.Equal("subject", *d.Subject))
+	if len(d.Subject) > 0 {
+		mapFunc := func(subject string) string {
+			return queryView.Equal("subject", subject)
+		}
+
+		where = append(where, queryView.Or(slicesx.Map(d.Subject, mapFunc)...))
 	}
+
 	if d.From != nil {
 		where = append(where, queryView.GreaterEqualThan("windowstart", d.From.Unix()))
 	}
