@@ -82,7 +82,7 @@ func configureSink(v *viper.Viper) {
 	v.SetDefault("sink.kafkaConnect.clickhouse.hostname", "clickhouse")
 	v.SetDefault("sink.kafkaConnect.clickhouse.port", 8123)
 	v.SetDefault("sink.kafkaConnect.clickhouse.ssl", false)
-	v.SetDefault("sink.kafkaConnect.clickhouse.database", "default")
+	v.SetDefault("sink.kafkaConnect.clickhouse.database", "openmeter")
 	v.SetDefault("sink.kafkaConnect.clickhouse.username", "default")
-	v.SetDefault("sink.kafkaConnect.clickhouse.password", "")
+	v.SetDefault("sink.kafkaConnect.clickhouse.password", "default")
 }
