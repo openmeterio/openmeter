@@ -222,26 +222,32 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 		return
 	}
 
-	// TODO: if we change OpenAPI type to array of strings it doesn't parse correctly
-	var groupBy *[]string
-	if params.GroupBy != nil {
-		tmp := strings.Split(*params.GroupBy, ",")
-		groupBy = &tmp
+	queryParams := &streaming.QueryParams{
+		From:           params.From,
+		To:             params.To,
+		Aggregation:    params.Aggregation,
+		WindowSize:     params.WindowSize,
+		GroupBySubject: true,
 	}
 
-	values, windowSize, err := a.config.StreamingConnector.QueryMeter(
-		r.Context(),
-		namespace,
-		meterIdOrSlug,
-		&streaming.QueryParams{
-			From:        params.From,
-			To:          params.To,
-			Subject:     params.Subject,
-			GroupBy:     groupBy,
-			Aggregation: params.Aggregation,
-			WindowSize:  params.WindowSize,
-		},
-	)
+	// Moved here to preserve backward compatibility
+	// We now allow aggregating data without grouping by window size,
+	// but this endpoint currently returns data groupped by window size even if none is passed.
+	if params.WindowSize == nil {
+		windowSize := models.WindowSizeMinute
+		params.WindowSize = &windowSize
+	}
+
+	if params.Subject != nil {
+		queryParams.Subject = append(queryParams.Subject, *params.Subject)
+	}
+
+	// TODO: if we change OpenAPI type to array of strings it doesn't parse correctly
+	if params.GroupBy != nil {
+		queryParams.GroupBy = strings.Split(*params.GroupBy, ",")
+	}
+
+	values, windowSize, err := a.config.StreamingConnector.QueryMeter(r.Context(), namespace, meterIdOrSlug, queryParams)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
 			logger.Warn("meter not found", "error", err)

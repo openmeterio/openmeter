@@ -8,12 +8,13 @@ import (
 )
 
 type QueryParams struct {
-	From        *time.Time
-	To          *time.Time
-	Subject     *string
-	GroupBy     *[]string
-	Aggregation *models.MeterAggregation
-	WindowSize  *models.WindowSize
+	From           *time.Time
+	To             *time.Time
+	Subject        []string
+	GroupBySubject bool
+	GroupBy        []string
+	Aggregation    *models.MeterAggregation
+	WindowSize     *models.WindowSize
 }
 
 type Connector interface {

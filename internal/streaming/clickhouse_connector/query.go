@@ -10,6 +10,7 @@ import (
 	"github.com/huandu/go-sqlbuilder"
 
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 // Create Events Table
@@ -154,44 +155,63 @@ func (d describeMeterView) toSQL() (string, []interface{}) {
 }
 
 type queryMeterView struct {
-	Database      string
-	MeterViewName string
-	Aggregation   models.MeterAggregation
-	Subject       *string
-	From          *time.Time
-	To            *time.Time
-	GroupBy       []string
-	WindowSize    *models.WindowSize
+	Database       string
+	MeterViewName  string
+	Aggregation    models.MeterAggregation
+	Subject        []string
+	From           *time.Time
+	To             *time.Time
+	GroupBy        []string
+	GroupBySubject bool
+	WindowSize     *models.WindowSize
 }
 
 func (d queryMeterView) toSQL() (string, []interface{}, error) {
 	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
-	selectColumns := []string{}
 
-	switch *d.WindowSize {
-	case models.WindowSizeMinute:
-		selectColumns = append(
-			selectColumns,
-			"tumbleStart(windowstart, toIntervalMinute(1)) AS windowstart",
-			"tumbleEnd(windowstart, toIntervalMinute(1)) AS windowend",
-		)
-	case models.WindowSizeHour:
-		selectColumns = append(
-			selectColumns,
-			"tumbleStart(windowstart, toIntervalHour(1)) AS windowstart",
-			"tumbleEnd(windowstart, toIntervalHour(1)) AS windowend",
-		)
-	case models.WindowSizeDay:
-		selectColumns = append(
-			selectColumns,
-			"tumbleStart(windowstart, toIntervalDay(1)) AS windowstart",
-			"tumbleEnd(windowstart, toIntervalDay(1)) AS windowend",
-		)
-	default:
-		return "", nil, fmt.Errorf("invalid window size type: %s", d.Aggregation)
+	var selectColumns, groupByColumns, where []string
+
+	groupByWindowSize := d.WindowSize != nil
+
+	if groupByWindowSize {
+		switch *d.WindowSize {
+		case models.WindowSizeMinute:
+			selectColumns = append(
+				selectColumns,
+				"tumbleStart(windowstart, toIntervalMinute(1)) AS windowstart",
+				"tumbleEnd(windowstart, toIntervalMinute(1)) AS windowend",
+			)
+
+		case models.WindowSizeHour:
+			selectColumns = append(
+				selectColumns,
+				"tumbleStart(windowstart, toIntervalHour(1)) AS windowstart",
+				"tumbleEnd(windowstart, toIntervalHour(1)) AS windowend",
+			)
+
+		case models.WindowSizeDay:
+			selectColumns = append(
+				selectColumns,
+				"tumbleStart(windowstart, toIntervalDay(1)) AS windowstart",
+				"tumbleEnd(windowstart, toIntervalDay(1)) AS windowend",
+			)
+
+		default:
+			return "", nil, fmt.Errorf("invalid window size type: %s", *d.WindowSize)
+		}
 	}
 
-	selectColumns = append(selectColumns, "subject")
+	if groupByWindowSize {
+		groupByColumns = append(groupByColumns, "windowstart", "windowend")
+	}
+
+	// Grouping by subject is required when filtering for a subject
+	// It is also a default grouping requirement in certain queries (eg. meter values)
+	groupBySubject := d.GroupBySubject || len(d.Subject) > 0
+
+	if groupBySubject {
+		selectColumns = append(selectColumns, "subject")
+	}
 
 	switch d.Aggregation {
 	case models.MeterAggregationSum:
@@ -208,8 +228,9 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 		return "", nil, fmt.Errorf("invalid aggregation type: %s", d.Aggregation)
 	}
 
-	groupByColumns := []string{"windowstart", "windowend", "subject"}
-	where := []string{}
+	if groupBySubject {
+		groupByColumns = append(groupByColumns, "subject")
+	}
 
 	for _, column := range d.GroupBy {
 		c := sqlbuilder.Escape(column)
@@ -221,21 +242,31 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 	queryView.Select(selectColumns...)
 	queryView.From(viewName)
 
-	if d.Subject != nil {
-		where = append(where, queryView.Equal("subject", *d.Subject))
+	if len(d.Subject) > 0 {
+		mapFunc := func(subject string) string {
+			return queryView.Equal("subject", subject)
+		}
+
+		where = append(where, queryView.Or(slicesx.Map(d.Subject, mapFunc)...))
 	}
+
 	if d.From != nil {
 		where = append(where, queryView.GreaterEqualThan("windowstart", d.From.Unix()))
 	}
+
 	if d.To != nil {
 		where = append(where, queryView.LessEqualThan("windowend", d.To.Unix()))
 	}
+
 	if len(where) > 0 {
 		queryView.Where(where...)
 	}
 
 	queryView.GroupBy(groupByColumns...)
-	queryView.OrderBy("windowstart")
+
+	if groupByWindowSize {
+		queryView.OrderBy("windowstart")
+	}
 
 	sql, args := queryView.Build()
 	return sql, args, nil
