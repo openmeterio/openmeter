@@ -248,30 +248,20 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		return nil, fmt.Errorf("aggregation is required")
 	}
 
-	values := []*models.MeterValue{}
-
-	var subject []string
-
-	if params.Subject != nil {
-		subject = append(subject, *params.Subject)
-	}
-
-	groupBy := []string{}
-	if params.GroupBy != nil {
-		groupBy = *params.GroupBy
-	}
-
 	queryMeter := queryMeterView{
 		Database:       c.config.Database,
 		MeterViewName:  getMeterViewNameBySlug(namespace, meterSlug),
 		Aggregation:    *params.Aggregation,
-		Subject:        subject,
 		From:           params.From,
 		To:             params.To,
-		GroupBy:        groupBy,
-		GroupBySubject: true,
+		Subject:        params.Subject,
+		GroupBySubject: params.GroupBySubject,
+		GroupBy:        params.GroupBy,
 		WindowSize:     params.WindowSize,
 	}
+
+	values := []*models.MeterValue{}
+
 	sql, args, err := queryMeter.toSQL()
 	if err != nil {
 		return values, fmt.Errorf("query meter view: %w", err)
@@ -295,7 +285,7 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		}
 		args := []interface{}{&value.WindowStart, &value.WindowEnd, &value.Subject, &value.Value}
 		// TODO: do this next part without interface magic
-		for range groupBy {
+		for range queryMeter.GroupBy {
 			tmp := ""
 			args = append(args, &tmp)
 		}
@@ -304,7 +294,7 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 			return values, fmt.Errorf("query meter view row scan: %w", err)
 		}
 
-		for i, key := range groupBy {
+		for i, key := range queryMeter.GroupBy {
 			if s, ok := args[i+4].(*string); ok {
 				value.GroupBy[key] = *s
 			}
