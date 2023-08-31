@@ -15,13 +15,18 @@ services:
       - 127.0.0.1:29092:29092
     environment:
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: kafka-topics --bootstrap-server kafka:9092 --list
+      interval: 5s
+      timeout: 3s
+      retries: 100
 
   clickhouse:
     image: clickhouse/clickhouse-server:23.3.9.55-alpine
@@ -38,12 +43,20 @@ services:
       nofile:
         soft: 262144
         hard: 262144
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://clickhouse:8123/ping || exit 1
+      interval: 5s
+      timeout: 3s
+      retries: 100
 
   kafka-connect:
     build:
       context: etc/kafka-connect/
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
     ports:
       - 127.0.0.1:8083:8083
     environment:
