@@ -384,3 +384,28 @@ type QueryMeterResponse struct {
 func (resp QueryMeterResponse) Render(_ http.ResponseWriter, _ *http.Request) error {
 	return nil
 }
+
+// ListMeterSubjects lists the subjects of a meter.
+func (a *Router) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meterIDOrSlug string, params api.ListMeterSubjectsParams) {
+	logger := slog.With("operation", "listMeterSubjects", "id", meterIDOrSlug, "params", params)
+
+	namespace := a.config.NamespaceManager.GetDefaultNamespace()
+	if params.NamespaceInput != nil {
+		namespace = *params.NamespaceInput
+	}
+
+	subjects, err := a.config.StreamingConnector.ListMeterSubjects(r.Context(), namespace, meterIDOrSlug)
+	if err != nil {
+		if _, ok := err.(*models.MeterNotFoundError); ok {
+			logger.Warn("meter not found", "error", err)
+			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
+			return
+		}
+
+		logger.Error("connector", "error", err)
+		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+		return
+	}
+
+	render.JSON(w, r, subjects)
+}

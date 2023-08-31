@@ -282,3 +282,20 @@ func sortedKeys(m map[string]string) []string {
 	sort.Strings(keys)
 	return keys
 }
+
+type listMeterViewSubjects struct {
+	Database      string
+	MeterViewName string
+}
+
+func (d listMeterViewSubjects) toSQL() (string, []interface{}, error) {
+	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
+
+	sb := sqlbuilder.ClickHouse.NewSelectBuilder()
+	sb.Select("DISTINCT subject")
+	sb.From(viewName)
+	sb.OrderBy("subject")
+
+	sql, args := sb.Build()
+	return sql, args, nil
+}

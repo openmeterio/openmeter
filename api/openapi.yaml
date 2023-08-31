@@ -138,7 +138,7 @@ paths:
           in: query
           required: false
           description: |
-            Start date-time in RFC 3339 format.
+            Start date-time in RFC 3339 format in UTC timezone.
             Must be aligned with the window size.
             Inclusive.
           schema:
@@ -148,7 +148,7 @@ paths:
           in: query
           required: false
           description: |
-            End date-time in RFC 3339 format.
+            End date-time in RFC 3339 format in UTC timezone.
             Must be aligned with the window size.
             Inclusive.
           schema:
@@ -210,7 +210,7 @@ paths:
           in: query
           required: false
           description: |
-            Start date-time in RFC 3339 format.
+            Start date-time in RFC 3339 format in UTC timezone.
             Must be aligned with the window size.
             Inclusive.
           schema:
@@ -220,7 +220,7 @@ paths:
           in: query
           required: false
           description: |
-            End date-time in RFC 3339 format.
+            End date-time in RFC 3339 format in UTC timezone.
             Must be aligned with the window size.
             Inclusive.
           schema:
@@ -268,13 +268,11 @@ paths:
                 type: object
                 properties:
                   from:
-                    schema:
-                      type: string
-                      format: date-time
+                    type: string
+                    format: date-time
                   to:
-                    schema:
-                      type: string
-                      format: date-time
+                    type: string
+                    format: date-time
                   windowSize:
                     $ref: "#/components/schemas/WindowSize"
                   data:
@@ -283,6 +281,28 @@ paths:
                       $ref: "#/components/schemas/MeterQueryRow"
                 required:
                   - data
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+  /api/v1/meters/{meterIdOrSlug}/subjects:
+    get:
+      description: List meter subjects
+      operationId: listMeterSubjects
+      tags:
+        - Meters
+      parameters:
+        - $ref: "#/components/parameters/namespaceParam"
+        - $ref: "#/components/parameters/meterIdOrSlug"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         default:
