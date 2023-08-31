@@ -355,3 +355,17 @@ func AggregateMeterValues(values []*MeterValue, aggregation MeterAggregation, wi
 
 	return v, nil
 }
+
+// MeterQueryRow returns a single row from the meter dataset.
+type MeterQueryRow struct {
+	Value       float64           `json:"value"`
+	WindowStart *time.Time        `json:"windowStart"`
+	WindowEnd   *time.Time        `json:"windowEnd"`
+	Subject     *string           `json:"subject"`
+	GroupBy     map[string]string `json:"groupBy,omitempty"`
+}
+
+// Render implements the chi renderer interface.
+func (m *MeterQueryRow) Render(_ http.ResponseWriter, _ *http.Request) error {
+	return nil
+}

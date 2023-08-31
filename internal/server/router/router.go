@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
@@ -17,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 func init() {
@@ -266,4 +268,119 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 	}
 
 	_ = render.Render(w, r, resp)
+}
+
+// QueryMeter queries the values stored for a meter.
+func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlug string, params api.QueryMeterParams) {
+	logger := slog.With("operation", "queryMeter", "id", meterIDOrSlug, "params", params)
+
+	namespace := a.config.NamespaceManager.GetDefaultNamespace()
+	if params.NamespaceInput != nil {
+		namespace = *params.NamespaceInput
+	}
+
+	// Set defaults if meter is found in static config and params are not set
+	for _, meter := range a.config.Meters {
+		if meter.ID == meterIDOrSlug || meter.Slug == meterIDOrSlug {
+			if params.Aggregation == nil {
+				params.Aggregation = &meter.Aggregation
+			}
+		}
+	}
+
+	// Validate parameters
+	if err := validateQueryMeterParams(params); err != nil {
+		logger.Warn("invalid parameters", "error", err)
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		return
+	}
+
+	queryParams := &streaming.QueryParams{
+		From:        params.From,
+		To:          params.To,
+		Aggregation: params.Aggregation,
+		WindowSize:  params.WindowSize,
+	}
+
+	if params.Subject != nil {
+		queryParams.Subject = *params.Subject
+	}
+
+	if params.GroupBy != nil {
+		queryParams.GroupBy = *params.GroupBy
+	}
+
+	values, windowSize, err := a.config.StreamingConnector.QueryMeter(r.Context(), namespace, meterIDOrSlug, queryParams)
+	if err != nil {
+		if _, ok := err.(*models.MeterNotFoundError); ok {
+			logger.Warn("meter not found", "error", err)
+			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
+			return
+		}
+
+		logger.Error("connector", "error", err)
+		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+		return
+	}
+
+	_ = values
+
+	resp := &QueryMeterResponse{
+		WindowSize: windowSize,
+		From:       params.From,
+		To:         params.To,
+		Data: slicesx.Map(values, func(val *models.MeterValue) models.MeterQueryRow {
+			row := models.MeterQueryRow{
+				Value:   val.Value,
+				GroupBy: val.GroupBy,
+			}
+
+			if val.Subject != "" {
+				row.Subject = &val.Subject
+			}
+
+			if !val.WindowStart.IsZero() {
+				row.WindowStart = &val.WindowStart
+			}
+
+			if !val.WindowEnd.IsZero() {
+				row.WindowEnd = &val.WindowEnd
+			}
+
+			return row
+		}),
+	}
+
+	_ = render.Render(w, r, resp)
+}
+
+func validateQueryMeterParams(params api.QueryMeterParams) error {
+	if params.From != nil && params.To != nil && params.From.After(*params.To) {
+		return errors.New("from must be before to")
+	}
+
+	if params.WindowSize != nil {
+		windowDuration := params.WindowSize.Duration()
+		if params.From != nil && params.From.Truncate(windowDuration) != *params.From {
+			return errors.New("from must be aligned to window size")
+		}
+		if params.To != nil && params.To.Truncate(windowDuration) != *params.To {
+			return errors.New("to must be aligned to window size")
+		}
+	}
+
+	return nil
+}
+
+// QueryMeterResponse is returned by the QueryMeter endpoint.
+type QueryMeterResponse struct {
+	WindowSize *models.WindowSize     `json:"windowSize,omitempty"`
+	From       *time.Time             `json:"from,omitempty"`
+	To         *time.Time             `json:"to,omitempty"`
+	Data       []models.MeterQueryRow `json:"data"`
+}
+
+// Render implements the chi renderer interface.
+func (resp QueryMeterResponse) Render(_ http.ResponseWriter, _ *http.Request) error {
+	return nil
 }
