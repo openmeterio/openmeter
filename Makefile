@@ -49,6 +49,11 @@ mod: ## go mod tidy
 	$(call print-target)
 	go mod tidy
 
+.PHONY: seed
+seed: ## Seed OpenMeter with test data
+	$(call print-target)
+	benthos -c etc/seed/seed.yaml
+
 .PHONY: help
 .DEFAULT_GOAL := help
 help:

@@ -58,6 +58,8 @@
               curl
               jq
               minikube
+
+              benthos
             ] ++ [
               self'.packages.licensei
               self'.packages.golangci-lint
