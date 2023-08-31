@@ -103,11 +103,6 @@ func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, 
 		params.Aggregation = &meterView.Aggregation
 	}
 
-	if params.WindowSize == nil {
-		windowSize := models.WindowSizeMinute
-		params.WindowSize = &windowSize
-	}
-
 	values, err := c.queryMeterView(ctx, namespace, meterSlug, params)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
