@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -48,6 +49,10 @@ func (c *MockConnector) QueryMeter(ctx context.Context, namespace string, meterS
 	}
 
 	return values, params.WindowSize, nil
+}
+
+func (c *MockConnector) ListMeterSubjects(ctx context.Context, namespace string, meterSlug string) ([]string, error) {
+	return []string{"s1"}, nil
 }
 
 type MockHandler struct{}
@@ -207,6 +212,17 @@ func TestRoutes(t *testing.T) {
 						{Subject: "s1", WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
 					},
 				},
+			},
+		},
+		{
+			name: "list meter subjects",
+			req: testRequest{
+				method: http.MethodGet,
+				path:   fmt.Sprintf("/api/v1/meters/%s/subjects", meters[0].Slug),
+			},
+			res: testResponse{
+				status: http.StatusOK,
+				body:   []string{"s1"},
 			},
 		},
 	}

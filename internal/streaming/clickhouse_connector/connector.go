@@ -115,6 +115,26 @@ func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, 
 	return values, params.WindowSize, nil
 }
 
+func (c *ClickhouseConnector) ListMeterSubjects(ctx context.Context, namespace string, meterSlug string) ([]string, error) {
+	if namespace == "" {
+		return nil, fmt.Errorf("namespace is required")
+	}
+	if meterSlug == "" {
+		return nil, fmt.Errorf("slug is required")
+	}
+
+	subjects, err := c.listMeterViewSubjects(ctx, namespace, meterSlug)
+	if err != nil {
+		if _, ok := err.(*models.MeterNotFoundError); ok {
+			return nil, err
+		}
+
+		return nil, fmt.Errorf("list meter subjects: %w", err)
+	}
+
+	return subjects, nil
+}
+
 func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace string) error {
 	if namespace == "" {
 		return fmt.Errorf("namespace is required")
@@ -325,6 +345,39 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 	}
 
 	return values, nil
+}
+
+func (c *ClickhouseConnector) listMeterViewSubjects(ctx context.Context, namespace string, meterSlug string) ([]string, error) {
+	query := listMeterViewSubjects{
+		Database:      c.config.Database,
+		MeterViewName: getMeterViewNameBySlug(namespace, meterSlug),
+	}
+
+	sql, args, err := query.toSQL()
+	if err != nil {
+		return nil, fmt.Errorf("list meter view subjects: %w", err)
+	}
+
+	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
+	if err != nil {
+		if strings.Contains(err.Error(), "code: 60") {
+			return nil, &models.MeterNotFoundError{MeterSlug: meterSlug}
+		}
+
+		return nil, fmt.Errorf("list meter view subjects: %w", err)
+	}
+
+	subjects := []string{}
+	for rows.Next() {
+		var subject string
+		if err = rows.Scan(&subject); err != nil {
+			return nil, err
+		}
+
+		subjects = append(subjects, subject)
+	}
+
+	return subjects, nil
 }
 
 func (c *ClickhouseConnector) createSinkConnector(ctx context.Context, namespace string) error {
