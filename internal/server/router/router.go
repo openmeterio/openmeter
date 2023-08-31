@@ -231,7 +231,7 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 	}
 
 	// Moved here to preserve backward compatibility
-	// We know allow aggregating data without grouping by window size,
+	// We now allow aggregating data without grouping by window size,
 	// but this endpoint currently returns data groupped by window size even if none is passed.
 	if params.WindowSize == nil {
 		windowSize := models.WindowSizeMinute
