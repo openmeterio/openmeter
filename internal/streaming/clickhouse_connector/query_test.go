@@ -186,6 +186,79 @@ func TestQueryMeterView(t *testing.T) {
 			wantSQL:  "SELECT tumbleStart(windowstart, toIntervalHour(1)) AS windowstart, tumbleEnd(windowstart, toIntervalHour(1)) AS windowend, subject, sumMerge(value) AS value, group1, group2 FROM openmeter.meter_meter1 WHERE (subject = ?) AND windowstart >= ? AND windowend <= ? GROUP BY windowstart, windowend, subject, group1, group2 ORDER BY windowstart",
 			wantArgs: []interface{}{"subject1", int64(1672531200), int64(1672617600)},
 		},
+		{ // Aggregate all available data
+			query: queryMeterView{
+				Database:      "openmeter",
+				MeterViewName: "meter_meter1",
+				Aggregation:   models.MeterAggregationSum,
+			},
+			wantSQL:  "SELECT sumMerge(value) AS value FROM openmeter.meter_meter1",
+			wantArgs: nil,
+		},
+		{ // Aggregate data from start
+			query: queryMeterView{
+				Database:      "openmeter",
+				MeterViewName: "meter_meter1",
+				Aggregation:   models.MeterAggregationSum,
+				From:          &from,
+			},
+			wantSQL:  "SELECT sumMerge(value) AS value FROM openmeter.meter_meter1 WHERE windowstart >= ?",
+			wantArgs: []interface{}{int64(1672531200)},
+		},
+		{ // Aggregate data between interval
+			query: queryMeterView{
+				Database:      "openmeter",
+				MeterViewName: "meter_meter1",
+				Aggregation:   models.MeterAggregationSum,
+				From:          &from,
+				To:            &to,
+			},
+			wantSQL:  "SELECT sumMerge(value) AS value FROM openmeter.meter_meter1 WHERE windowstart >= ? AND windowend <= ?",
+			wantArgs: []interface{}{int64(1672531200), int64(1672617600)},
+		},
+		{ // Aggregate data between interval, groupped by window size
+			query: queryMeterView{
+				Database:      "openmeter",
+				MeterViewName: "meter_meter1",
+				Aggregation:   models.MeterAggregationSum,
+				From:          &from,
+				To:            &to,
+				WindowSize:    &windowSize,
+			},
+			wantSQL:  "SELECT tumbleStart(windowstart, toIntervalHour(1)) AS windowstart, tumbleEnd(windowstart, toIntervalHour(1)) AS windowend, sumMerge(value) AS value FROM openmeter.meter_meter1 WHERE windowstart >= ? AND windowend <= ? GROUP BY windowstart, windowend ORDER BY windowstart",
+			wantArgs: []interface{}{int64(1672531200), int64(1672617600)},
+		},
+		{ // Aggregate data for a single subject
+			query: queryMeterView{
+				Database:      "openmeter",
+				MeterViewName: "meter_meter1",
+				Aggregation:   models.MeterAggregationSum,
+				Subject:       []string{subject},
+			},
+			wantSQL:  "SELECT subject, sumMerge(value) AS value FROM openmeter.meter_meter1 WHERE (subject = ?) GROUP BY subject",
+			wantArgs: []interface{}{"subject1"},
+		},
+		{ // Aggregate data for a single subject and group by additional fields
+			query: queryMeterView{
+				Database:      "openmeter",
+				MeterViewName: "meter_meter1",
+				Aggregation:   models.MeterAggregationSum,
+				Subject:       []string{subject},
+				GroupBy:       []string{"group1", "group2"},
+			},
+			wantSQL:  "SELECT subject, sumMerge(value) AS value, group1, group2 FROM openmeter.meter_meter1 WHERE (subject = ?) GROUP BY subject, group1, group2",
+			wantArgs: []interface{}{"subject1"},
+		},
+		{ // Aggregate data for a multiple subjects
+			query: queryMeterView{
+				Database:      "openmeter",
+				MeterViewName: "meter_meter1",
+				Aggregation:   models.MeterAggregationSum,
+				Subject:       []string{subject, "subject2"},
+			},
+			wantSQL:  "SELECT subject, sumMerge(value) AS value FROM openmeter.meter_meter1 WHERE (subject = ? OR subject = ?) GROUP BY subject",
+			wantArgs: []interface{}{"subject1", "subject2"},
+		},
 	}
 
 	for _, tt := range tests {
