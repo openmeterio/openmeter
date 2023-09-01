@@ -24,12 +24,15 @@ var (
 var aggregationRegexp = regexp.MustCompile(`^AggregateFunction\((avg|sum|min|max|count), Float64\)$`)
 
 type SinkConfig struct {
-	Database string
-	Hostname string
-	Port     int
-	SSL      bool
-	Username string
-	Password string
+	DeadLetterQueueTopicName         string
+	DeadLetterQueueReplicationFactor int
+	DeadLetterQueueContextHeaders    bool
+	Database                         string
+	Hostname                         string
+	Port                             int
+	SSL                              bool
+	Username                         string
+	Password                         string
 }
 
 // ClickhouseConnector implements `ingest.Connector“ and `namespace.Handler interfaces.
@@ -384,19 +387,23 @@ func (c *ClickhouseConnector) createSinkConnector(ctx context.Context, namespace
 	connector := sink.Connector{
 		Name: "clickhouse",
 		Config: map[string]string{
-			"connector.class":                "com.clickhouse.kafka.connect.ClickHouseSinkConnector",
-			"database":                       c.config.SinkConfig.Database,
-			"errors.retry.timeout":           "30",
-			"hostname":                       c.config.SinkConfig.Hostname,
-			"port":                           fmt.Sprint(c.config.SinkConfig.Port),
-			"ssl":                            fmt.Sprint(c.config.SinkConfig.SSL),
-			"username":                       c.config.SinkConfig.Username,
-			"password":                       c.config.SinkConfig.Password,
-			"key.converter":                  "org.apache.kafka.connect.storage.StringConverter",
-			"value.converter":                "org.apache.kafka.connect.json.JsonConverter",
-			"value.converter.schemas.enable": "false",
-			"schemas.enable":                 "false",
-			"topics.regex":                   "^om_[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_events$",
+			"connector.class":                   "com.clickhouse.kafka.connect.ClickHouseSinkConnector",
+			"database":                          c.config.SinkConfig.Database,
+			"errors.retry.timeout":              "30",
+			"hostname":                          c.config.SinkConfig.Hostname,
+			"port":                              fmt.Sprint(c.config.SinkConfig.Port),
+			"ssl":                               fmt.Sprint(c.config.SinkConfig.SSL),
+			"username":                          c.config.SinkConfig.Username,
+			"password":                          c.config.SinkConfig.Password,
+			"key.converter":                     "org.apache.kafka.connect.storage.StringConverter",
+			"value.converter":                   "org.apache.kafka.connect.json.JsonConverter",
+			"value.converter.schemas.enable":    "false",
+			"schemas.enable":                    "false",
+			"topics.regex":                      "^om_[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_events$",
+			"errors.tolerance":                  "all",
+			"errors.deadletterqueue.topic.name": c.config.SinkConfig.DeadLetterQueueTopicName,
+			"errors.deadletterqueue.topic.replication.factor": fmt.Sprint(c.config.SinkConfig.DeadLetterQueueReplicationFactor),
+			"errors.deadletterqueue.context.headers.enable":   fmt.Sprint(c.config.SinkConfig.DeadLetterQueueContextHeaders),
 		},
 	}
 

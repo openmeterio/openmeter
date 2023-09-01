@@ -38,6 +38,7 @@ func (s Collector) Ingest(_ context.Context, namespace string, ev event.Event) e
 		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
 		Timestamp:      ev.Time(),
 		Headers: []kafka.Header{
+			{Key: "namespace", Value: []byte(namespace)},
 			{Key: "specversion", Value: []byte(ev.SpecVersion())},
 		},
 		Key:   key,

@@ -82,6 +82,11 @@ func TestComplete(t *testing.T) {
 			KafkaConnect: KafkaConnectSinkConfiguration{
 				Enabled: true,
 				URL:     "http://127.0.0.1:8083",
+				DeadLetterQueue: DeadLetterQueueKafkaConnectSinkConfiguration{
+					TopicName:         "om_deadletterqueue",
+					ReplicationFactor: 1,
+					ContextHeaders:    true,
+				},
 				ClickHouse: ClickHouseKafkaConnectSinkConfiguration{
 					Hostname: "127.0.0.1",
 					Port:     8123,
