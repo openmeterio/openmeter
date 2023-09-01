@@ -84,7 +84,7 @@ func TestComplete(t *testing.T) {
 				URL:     "http://127.0.0.1:8083",
 				DeadLetterQueue: DeadLetterQueueKafkaConnectSinkConfiguration{
 					TopicName:         "om_deadletterqueue",
-					ReplicationFactor: 3,
+					ReplicationFactor: 1,
 					ContextHeaders:    true,
 				},
 				ClickHouse: ClickHouseKafkaConnectSinkConfiguration{
