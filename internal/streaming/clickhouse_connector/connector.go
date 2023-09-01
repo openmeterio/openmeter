@@ -24,12 +24,15 @@ var (
 var aggregationRegexp = regexp.MustCompile(`^AggregateFunction\((avg|sum|min|max|count), Float64\)$`)
 
 type SinkConfig struct {
-	Database string
-	Hostname string
-	Port     int
-	SSL      bool
-	Username string
-	Password string
+	DeadLetterQueueTopicName         string
+	DeadLetterQueueReplicationFactor int
+	DeadLetterQueueContextHeaders    bool
+	Database                         string
+	Hostname                         string
+	Port                             int
+	SSL                              bool
+	Username                         string
+	Password                         string
 }
 
 // ClickhouseConnector implements `ingest.Connector“ and `namespace.Handler interfaces.
@@ -398,7 +401,9 @@ func (c *ClickhouseConnector) createSinkConnector(ctx context.Context, namespace
 			"schemas.enable":                    "false",
 			"topics.regex":                      "^om_[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_events$",
 			"errors.tolerance":                  "all",
-			"errors.deadletterqueue.topic.name": "om_deadletterqueue",
+			"errors.deadletterqueue.topic.name": c.config.SinkConfig.DeadLetterQueueTopicName,
+			"errors.deadletterqueue.topic.replication.factor": fmt.Sprint(c.config.SinkConfig.DeadLetterQueueReplicationFactor),
+			"errors.deadletterqueue.context.headers.enable":   fmt.Sprint(c.config.SinkConfig.DeadLetterQueueContextHeaders),
 		},
 	}
 

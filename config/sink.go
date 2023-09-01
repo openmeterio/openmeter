@@ -20,9 +20,10 @@ func (c SinkConfiguration) Validate() error {
 }
 
 type KafkaConnectSinkConfiguration struct {
-	Enabled    bool
-	URL        string
-	ClickHouse ClickHouseKafkaConnectSinkConfiguration
+	Enabled         bool
+	URL             string
+	DeadLetterQueue DeadLetterQueueKafkaConnectSinkConfiguration
+	ClickHouse      ClickHouseKafkaConnectSinkConfiguration
 }
 
 func (c KafkaConnectSinkConfiguration) Validate() error {
@@ -34,8 +35,28 @@ func (c KafkaConnectSinkConfiguration) Validate() error {
 		return errors.New("url is required")
 	}
 
+	if err := c.DeadLetterQueue.Validate(); err != nil {
+		return fmt.Errorf("deadletterqueue: %w", err)
+	}
+
 	if err := c.ClickHouse.Validate(); err != nil {
 		return fmt.Errorf("clickhouse: %w", err)
+	}
+
+	return nil
+}
+
+// Clickhouse configuration
+// See: https://docs.confluent.io/platform/current/installation/configuration/connect/sink-connect-configs.html
+type DeadLetterQueueKafkaConnectSinkConfiguration struct {
+	TopicName         string
+	ReplicationFactor int
+	ContextHeaders    bool
+}
+
+func (c DeadLetterQueueKafkaConnectSinkConfiguration) Validate() error {
+	if c.TopicName == "" {
+		return errors.New("dead letter queue topic is required")
 	}
 
 	return nil
@@ -79,6 +100,9 @@ func (c ClickHouseKafkaConnectSinkConfiguration) Validate() error {
 func configureSink(v *viper.Viper) {
 	v.SetDefault("sink.kafkaConnect.enabled", false)
 	v.SetDefault("sink.kafkaConnect.url", "http://127.0.0.1:8083")
+	v.SetDefault("sink.kafkaConnect.deadLetterQueue.topicName", "om_deadletterqueue")
+	v.SetDefault("sink.kafkaConnect.deadLetterQueue.replicationFactor", 3)
+	v.SetDefault("sink.kafkaConnect.deadLetterQueue.contextHeaders", true)
 	v.SetDefault("sink.kafkaConnect.clickhouse.hostname", "127.0.0.1")
 	v.SetDefault("sink.kafkaConnect.clickhouse.port", 8123)
 	v.SetDefault("sink.kafkaConnect.clickhouse.ssl", false)
