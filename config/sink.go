@@ -59,6 +59,10 @@ func (c DeadLetterQueueKafkaConnectSinkConfiguration) Validate() error {
 		return errors.New("dead letter queue topic is required")
 	}
 
+	if c.ReplicationFactor < 1 {
+		return errors.New("dead letter queue replication factor is required")
+	}
+
 	return nil
 }
 
@@ -101,7 +105,8 @@ func configureSink(v *viper.Viper) {
 	v.SetDefault("sink.kafkaConnect.enabled", false)
 	v.SetDefault("sink.kafkaConnect.url", "http://127.0.0.1:8083")
 	v.SetDefault("sink.kafkaConnect.deadLetterQueue.topicName", "om_deadletterqueue")
-	v.SetDefault("sink.kafkaConnect.deadLetterQueue.replicationFactor", 3)
+	// Change to 3 for production
+	v.SetDefault("sink.kafkaConnect.deadLetterQueue.replicationFactor", 1)
 	v.SetDefault("sink.kafkaConnect.deadLetterQueue.contextHeaders", true)
 	v.SetDefault("sink.kafkaConnect.clickhouse.hostname", "127.0.0.1")
 	v.SetDefault("sink.kafkaConnect.clickhouse.port", 8123)
