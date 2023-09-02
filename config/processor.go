@@ -21,7 +21,6 @@ func (c ProcessorConfiguration) Validate() error {
 }
 
 type ClickHouseProcessorConfiguration struct {
-	Enabled  bool
 	Address  string
 	TLS      bool
 	Username string
@@ -30,10 +29,6 @@ type ClickHouseProcessorConfiguration struct {
 }
 
 func (c ClickHouseProcessorConfiguration) Validate() error {
-	if !c.Enabled {
-		return nil
-	}
-
 	if c.Address == "" {
 		return errors.New("address is required")
 	}
@@ -43,7 +38,6 @@ func (c ClickHouseProcessorConfiguration) Validate() error {
 
 // configureProcessor configures some defaults in the Viper instance.
 func configureProcessor(v *viper.Viper) {
-	v.SetDefault("processor.clickhouse.enabled", true)
 	v.SetDefault("processor.clickhouse.address", "127.0.0.1:9000")
 	v.SetDefault("processor.clickhouse.tls", false)
 	v.SetDefault("processor.clickhouse.database", "openmeter")

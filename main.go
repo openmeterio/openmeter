@@ -186,15 +186,14 @@ func main() {
 	defer ingestCollector.Close()
 
 	// Initialize ClickHouse Streaming Processor
-	if conf.Processor.ClickHouse.Enabled {
-		clickhouseStreamingConnector, err := initClickHouseStreaming(conf, logger)
-		if err != nil {
-			logger.Error("failed to initialize clickhouse streaming processor", "error", err)
-			os.Exit(1)
-		}
-		streamingConnector = clickhouseStreamingConnector
-		namespaceHandlers = append(namespaceHandlers, clickhouseStreamingConnector)
+	clickhouseStreamingConnector, err := initClickHouseStreaming(conf, logger)
+	if err != nil {
+		logger.Error("failed to initialize clickhouse streaming processor", "error", err)
+		os.Exit(1)
 	}
+
+	streamingConnector = clickhouseStreamingConnector
+	namespaceHandlers = append(namespaceHandlers, clickhouseStreamingConnector)
 
 	// Initialize Namespace
 	namespaceManager, err := initNamespace(conf, namespaceHandlers...)
