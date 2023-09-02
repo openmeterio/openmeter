@@ -41,8 +41,8 @@ func (c ClickHouseProcessorConfiguration) Validate() error {
 	return nil
 }
 
-// configureProcessor configures some defaults in the Viper instance.
-func configureProcessor(v *viper.Viper) {
+// ConfigureProcessor configures some defaults in the Viper instance.
+func ConfigureProcessor(v *viper.Viper) {
 	v.SetDefault("processor.clickhouse.enabled", true)
 	v.SetDefault("processor.clickhouse.address", "127.0.0.1:9000")
 	v.SetDefault("processor.clickhouse.tls", false)

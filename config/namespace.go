@@ -20,8 +20,8 @@ func (c NamespaceConfiguration) Validate() error {
 	return nil
 }
 
-// configureNamespace configures some defaults in the Viper instance.
-func configureNamespace(v *viper.Viper) {
+// ConfigureNamespace configures some defaults in the Viper instance.
+func ConfigureNamespace(v *viper.Viper) {
 	v.SetDefault("namespace.default", "default")
 	v.SetDefault("namespace.disableManagement", false)
 }

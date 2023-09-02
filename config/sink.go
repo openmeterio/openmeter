@@ -101,7 +101,7 @@ func (c ClickHouseKafkaConnectSinkConfiguration) Validate() error {
 }
 
 // Configure configures some defaults in the Viper instance.
-func configureSink(v *viper.Viper) {
+func ConfigureSink(v *viper.Viper) {
 	v.SetDefault("sink.kafkaConnect.enabled", false)
 	v.SetDefault("sink.kafkaConnect.url", "http://127.0.0.1:8083")
 	v.SetDefault("sink.kafkaConnect.deadLetterQueue.topicName", "om_deadletterqueue")

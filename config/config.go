@@ -91,11 +91,11 @@ func Configure(v *viper.Viper, flags *pflag.FlagSet) {
 	// Environment used for identifying the service environment
 	v.SetDefault("environment", "unknown")
 
-	configureTelemetry(v, flags)
+	ConfigureTelemetry(v, flags)
 
-	configureNamespace(v)
-	configureIngest(v)
-	configureProcessor(v)
-	configureSink(v)
-	configureDedupe(v)
+	ConfigureNamespace(v)
+	ConfigureIngest(v)
+	ConfigureProcessor(v)
+	ConfigureSink(v)
+	ConfigureDedupe(v)
 }
