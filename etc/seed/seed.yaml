@@ -1,0 +1,59 @@
+input:
+  generate:
+    count: ${SEEDER_COUNT:0}
+    interval: "${SEEDER_INTERVAL:50ms}"
+    # batch_size: 1
+    mapping: |
+      let max_subjects = ${SEEDER_MAX_SUBJECTS:100}
+
+      let event_type = "api-calls"
+      let methods = ["GET", "POST"]
+      let paths = ["/", "/about", "/contact", "/pricing", "/docs"]
+      let regions = ["us-east-1", "us-west-1", "us-east-2", "us-west-2"]
+      let zoneSuffixes = ["a", "b", "c", "d"]
+
+      let region = $regions.index(random_int() % $regions.length())
+      let zone = "%s%s".format($region, $zoneSuffixes.index(random_int() % $zoneSuffixes.length()))
+
+      root.id = uuid_v4()
+      root = {
+        "id": uuid_v4(),
+        "type": $event_type,
+        "subject": "customer-%d".format(random_int() % $max_subjects),
+        "time": (now().ts_sub_iso8601("P3D").ts_unix() + random_int(min: 60, max: 60 * 60 * 24 * 3)).ts_format(),
+        # "time": "2023-11-10T23:00:00Z"
+        "data": {
+          "method": $methods.index(random_int() % $methods.length()),
+          "path": $paths.index(random_int() % $paths.length()),
+          "region": $region,
+          "zone": $zone,
+          "duration_ms": random_int(max: 1000),
+        },
+      }
+
+pipeline:
+  processors:
+    - bloblang: |
+        root = this
+
+        root.specversion = "1.0"
+        root.source = "api-gateway"
+
+output:
+  switch:
+    cases:
+      - check: ""
+        continue: true
+        output:
+          http_client:
+            url: ${OPENMETER_BASE_URL:http://127.0.0.1:8888}/api/v1/events
+            verb: POST
+            headers:
+              Content-Type: application/cloudevents+json
+              Authorization: "Bearer ${OPENMETER_TOKEN:}"
+            max_in_flight: 64
+
+      - check: '"${SEEDER_LOG:false}" == "true"'
+        output:
+          stdout:
+            codec: lines
