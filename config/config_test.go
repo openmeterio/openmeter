@@ -70,7 +70,6 @@ func TestComplete(t *testing.T) {
 		},
 		Processor: ProcessorConfiguration{
 			ClickHouse: ClickHouseProcessorConfiguration{
-				Enabled:  true,
 				Address:  "127.0.0.1:9440",
 				TLS:      true,
 				Username: "default",

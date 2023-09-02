@@ -29,7 +29,6 @@ ingest:
 
 processor:
   clickhouse:
-    enabled: true
     address: 127.0.0.1:9440
     tls: true
     username: default
