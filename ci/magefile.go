@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
@@ -99,13 +100,18 @@ func process(ctx context.Context, container *dagger.Container) error {
 		return err
 	}
 
-	exit, err := container.ExitCode(ctx)
+	_, err = container.Sync(ctx)
 	if err != nil {
 		return err
 	}
 
-	if exit > 0 {
-		return mg.Fatal(exit)
+	var e *dagger.ExecError
+	if errors.As(err, &e) {
+		if e.ExitCode > 0 {
+			return mg.Fatal(e.ExitCode)
+		}
+	} else if err != nil {
+		return err
 	}
 
 	return nil
