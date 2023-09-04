@@ -1,70 +1,87 @@
 package sink
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+
+	"github.com/openmeterio/openmeter/pkg/kafkaconnect"
 )
 
+// KafkaConnect configures a connector.
 type KafkaConnect struct {
-	config KafkaConnectConfig
+	Client *kafkaconnect.Client
+	Logger *slog.Logger
 }
 
-type KafkaConnectConfig struct {
-	URL        string
-	HttpClient *http.Client
-	Logger     *slog.Logger
+// Config configures a ClickHouse connector.
+type Config struct {
+	DeadLetterQueueTopicName         string
+	DeadLetterQueueReplicationFactor int
+	DeadLetterQueueContextHeaders    bool
+	Database                         string
+	Hostname                         string
+	Port                             int
+	SSL                              bool
+	Username                         string
+	Password                         string
 }
 
-type Connector struct {
-	Name   string            `json:"name"`
-	Config map[string]string `json:"config"`
-}
+// ConfigureConnector configures a connector.
+func (k *KafkaConnect) ConfigureConnector(ctx context.Context, config Config) error {
+	name := "clickhouse"
 
-func NewKafkaConnect(config KafkaConnectConfig) (KafkaConnect, error) {
-	if config.HttpClient == nil {
-		config.HttpClient = http.DefaultClient
+	req := kafkaconnect.CreateConnectorRequest{
+		Name: &name,
+		Config: &map[string]string{
+			"connector.class":                   "com.clickhouse.kafka.connect.ClickHouseSinkConnector",
+			"database":                          config.Database,
+			"errors.retry.timeout":              "30",
+			"hostname":                          config.Hostname,
+			"port":                              fmt.Sprint(config.Port),
+			"ssl":                               fmt.Sprint(config.SSL),
+			"username":                          config.Username,
+			"password":                          config.Password,
+			"key.converter":                     "org.apache.kafka.connect.storage.StringConverter",
+			"value.converter":                   "org.apache.kafka.connect.json.JsonConverter",
+			"value.converter.schemas.enable":    "false",
+			"schemas.enable":                    "false",
+			"topics.regex":                      "^om_[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_events$",
+			"errors.tolerance":                  "all",
+			"errors.deadletterqueue.topic.name": config.DeadLetterQueueTopicName,
+			"errors.deadletterqueue.topic.replication.factor": fmt.Sprint(config.DeadLetterQueueReplicationFactor),
+			"errors.deadletterqueue.context.headers.enable":   fmt.Sprint(config.DeadLetterQueueContextHeaders),
+		},
 	}
 
-	return KafkaConnect{
-		config: config,
-	}, nil
-}
-
-func (k *KafkaConnect) CreateConnector(ctx context.Context, connector Connector) error {
-	endpoint := fmt.Sprintf("%s/connectors", k.config.URL)
-
-	jsonData, err := json.Marshal(connector)
+	resp, err := k.Client.CreateConnector(ctx, req)
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
-	request, err := http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return err
-	}
-	request.Header.Set("Content-Type", "application/json; charset=UTF-8")
+	if resp.StatusCode == http.StatusCreated {
+		k.Logger.Debug("connector created", slog.String("name", name))
 
-	response, err := k.config.HttpClient.Do(request)
-	if err != nil {
-		return err
-	}
-	defer response.Body.Close()
-
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		return fmt.Errorf("unable to parse body: %w", err)
-	}
-
-	if response.StatusCode == 201 || response.StatusCode == 409 {
 		return nil
 	}
 
-	// TODO: only log error not the whole body
-	k.config.Logger.Error("unexpected status code at connector create", "status_code", response.StatusCode, "body", string(body))
-	return fmt.Errorf("unexpected status code at connector create: %d", response.StatusCode)
+	if resp.StatusCode == http.StatusConflict {
+		k.Logger.Debug("connector already exists or rebalancing is in progress", slog.String("name", name))
+
+		return nil
+	}
+
+	if resp.StatusCode >= http.StatusBadRequest {
+		body, _ := io.ReadAll(resp.Body)
+
+		// TODO: only log error not the whole body
+		k.Logger.Error("unexpected status code at connector create", "status_code", resp.StatusCode, "body", string(body))
+
+		return fmt.Errorf("unexpected status code at connector create: %d", resp.StatusCode)
+	}
+
+	return nil
 }
