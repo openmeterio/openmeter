@@ -47,6 +47,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
+	"github.com/openmeterio/openmeter/pkg/kafkaconnect"
 )
 
 func main() {
@@ -184,6 +185,15 @@ func main() {
 	}
 	namespaceHandlers = append(namespaceHandlers, kafkaIngestNamespaceHandler)
 	defer ingestCollector.Close()
+
+	// Initialize Kafka Connect sink
+	if conf.Sink.KafkaConnect.Enabled {
+		err := initKafkaConnect(conf.Sink.KafkaConnect, logger)
+		if err != nil {
+			logger.Error("failed to initialize kafka connect sink", "error", err)
+			os.Exit(1)
+		}
+	}
 
 	// Initialize ClickHouse Streaming Processor
 	if conf.Processor.ClickHouse.Enabled {
@@ -385,29 +395,8 @@ func initClickHouseStreaming(config config.Configuration, logger *slog.Logger) (
 		return nil, fmt.Errorf("init clickhouse client: %w", err)
 	}
 
-	kafkaConnect, err := sink.NewKafkaConnect(sink.KafkaConnectConfig{
-		Logger: logger,
-		URL:    config.Sink.KafkaConnect.URL,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("init kafka connect: %w", err)
-	}
-
 	streamingConnector, err := clickhouse_connector.NewClickhouseConnector(clickhouse_connector.ClickhouseConnectorConfig{
-		Logger:              logger,
-		KafkaConnect:        kafkaConnect,
-		KafkaConnectEnabled: config.Sink.KafkaConnect.Enabled,
-		SinkConfig: clickhouse_connector.SinkConfig{
-			DeadLetterQueueTopicName:         config.Sink.KafkaConnect.DeadLetterQueue.TopicName,
-			DeadLetterQueueReplicationFactor: config.Sink.KafkaConnect.DeadLetterQueue.ReplicationFactor,
-			DeadLetterQueueContextHeaders:    config.Sink.KafkaConnect.DeadLetterQueue.ContextHeaders,
-			Hostname:                         config.Sink.KafkaConnect.ClickHouse.Hostname,
-			Port:                             config.Sink.KafkaConnect.ClickHouse.Port,
-			SSL:                              config.Sink.KafkaConnect.ClickHouse.SSL,
-			Username:                         config.Sink.KafkaConnect.ClickHouse.Username,
-			Password:                         config.Sink.KafkaConnect.ClickHouse.Password,
-			Database:                         config.Sink.KafkaConnect.ClickHouse.Database,
-		},
+		Logger:     logger,
 		ClickHouse: clickHouseClient,
 		Database:   config.Processor.ClickHouse.Database,
 	})
@@ -416,6 +405,37 @@ func initClickHouseStreaming(config config.Configuration, logger *slog.Logger) (
 	}
 
 	return streamingConnector, nil
+}
+
+func initKafkaConnect(config config.KafkaConnectSinkConfiguration, logger *slog.Logger) error {
+	client, err := kafkaconnect.NewClient(config.URL)
+	if err != nil {
+		return fmt.Errorf("init kafka connect client: %w", err)
+	}
+
+	kafkaConnectSink := sink.KafkaConnect{
+		Client: client,
+		Logger: logger.With(slog.String("subsystem", "sink.kafkaconnect")),
+	}
+
+	sinkConfig := sink.Config{
+		DeadLetterQueueTopicName:         config.DeadLetterQueue.TopicName,
+		DeadLetterQueueReplicationFactor: config.DeadLetterQueue.ReplicationFactor,
+		DeadLetterQueueContextHeaders:    config.DeadLetterQueue.ContextHeaders,
+		Hostname:                         config.ClickHouse.Hostname,
+		Port:                             config.ClickHouse.Port,
+		SSL:                              config.ClickHouse.SSL,
+		Username:                         config.ClickHouse.Username,
+		Password:                         config.ClickHouse.Password,
+		Database:                         config.ClickHouse.Database,
+	}
+
+	err = kafkaConnectSink.ConfigureConnector(context.Background(), sinkConfig)
+	if err != nil {
+		return fmt.Errorf("init kafka connect: %w", err)
+	}
+
+	return nil
 }
 
 func initNamespace(config config.Configuration, namespaces ...namespace.Handler) (*namespace.Manager, error) {

@@ -10,7 +10,6 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 
-	"github.com/openmeterio/openmeter/internal/sink"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -23,30 +22,15 @@ var (
 // List of accepted aggregate functions: https://clickhouse.com/docs/en/sql-reference/aggregate-functions/reference
 var aggregationRegexp = regexp.MustCompile(`^AggregateFunction\((avg|sum|min|max|count), Float64\)$`)
 
-type SinkConfig struct {
-	DeadLetterQueueTopicName         string
-	DeadLetterQueueReplicationFactor int
-	DeadLetterQueueContextHeaders    bool
-	Database                         string
-	Hostname                         string
-	Port                             int
-	SSL                              bool
-	Username                         string
-	Password                         string
-}
-
 // ClickhouseConnector implements `ingest.Connector“ and `namespace.Handler interfaces.
 type ClickhouseConnector struct {
 	config ClickhouseConnectorConfig
 }
 
 type ClickhouseConnectorConfig struct {
-	Logger              *slog.Logger
-	KafkaConnect        sink.KafkaConnect
-	KafkaConnectEnabled bool
-	ClickHouse          clickhouse.Conn
-	Database            string
-	SinkConfig          SinkConfig
+	Logger     *slog.Logger
+	ClickHouse clickhouse.Conn
+	Database   string
 }
 
 func NewClickhouseConnector(config ClickhouseConnectorConfig) (*ClickhouseConnector, error) {
@@ -146,13 +130,6 @@ func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace str
 	err := c.createEventsTable(ctx, namespace)
 	if err != nil {
 		return fmt.Errorf("create namespace in clickhouse: %w", err)
-	}
-
-	if c.config.KafkaConnectEnabled {
-		err = c.createSinkConnector(ctx, namespace)
-		if err != nil {
-			return fmt.Errorf("create namespace in clickhouse: %w", err)
-		}
 	}
 
 	return nil
@@ -381,38 +358,6 @@ func (c *ClickhouseConnector) listMeterViewSubjects(ctx context.Context, namespa
 	}
 
 	return subjects, nil
-}
-
-func (c *ClickhouseConnector) createSinkConnector(ctx context.Context, namespace string) error {
-	connector := sink.Connector{
-		Name: "clickhouse",
-		Config: map[string]string{
-			"connector.class":                   "com.clickhouse.kafka.connect.ClickHouseSinkConnector",
-			"database":                          c.config.SinkConfig.Database,
-			"errors.retry.timeout":              "30",
-			"hostname":                          c.config.SinkConfig.Hostname,
-			"port":                              fmt.Sprint(c.config.SinkConfig.Port),
-			"ssl":                               fmt.Sprint(c.config.SinkConfig.SSL),
-			"username":                          c.config.SinkConfig.Username,
-			"password":                          c.config.SinkConfig.Password,
-			"key.converter":                     "org.apache.kafka.connect.storage.StringConverter",
-			"value.converter":                   "org.apache.kafka.connect.json.JsonConverter",
-			"value.converter.schemas.enable":    "false",
-			"schemas.enable":                    "false",
-			"topics.regex":                      "^om_[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_events$",
-			"errors.tolerance":                  "all",
-			"errors.deadletterqueue.topic.name": c.config.SinkConfig.DeadLetterQueueTopicName,
-			"errors.deadletterqueue.topic.replication.factor": fmt.Sprint(c.config.SinkConfig.DeadLetterQueueReplicationFactor),
-			"errors.deadletterqueue.context.headers.enable":   fmt.Sprint(c.config.SinkConfig.DeadLetterQueueContextHeaders),
-		},
-	}
-
-	err := c.config.KafkaConnect.CreateConnector(ctx, connector)
-	if err != nil {
-		return fmt.Errorf("create sink connector: %w", err)
-	}
-
-	return nil
 }
 
 func getEventsTableName(namespace string) string {
