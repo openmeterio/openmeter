@@ -64,11 +64,10 @@ async function main() {
 async function query() {
   const from = dayjs().startOf('day').toDate()
   const to = dayjs(from).add(1, 'day').toDate()
-  const { data: values } = await openmeter.meters.values('m2', {
-    subject: 'my-awesome-user-id',
+  const { data: values } = await openmeter.meters.query('m2', {
+    subject: ['my-awesome-user-id'],
     from,
     to,
-    windowSize: WindowSize.DAY
   })
 
   console.log('Collected meter values:')
@@ -101,13 +100,6 @@ async function query() {
   //       groupBy: { 'model': 'gpt-3.5-turbo-0613' }
   //     }
   // ]
-
-  // If you need the total across all models, you can use the following:
-  const total = values.reduce(
-    (total: number, { value }) => total + (value || 0),
-    0
-  )
-  console.log(`Total token usage across all models: ${total}`)
 }
 
 main()
