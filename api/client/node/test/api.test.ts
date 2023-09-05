@@ -99,5 +99,45 @@ describe('sdk', () => {
         expect(data.data).toEqual([mockMeterValue])
       })
     })
+
+    describe('query', () => {
+      it('should query meter', async ({ openmeter }) => {
+        const { windowSize, data, from, to } = await openmeter.meters.query(
+          mockMeter.slug
+        )
+        expect(from).toBe(mockMeterValue.windowStart)
+        expect(to).toBe(mockMeterValue.windowEnd)
+        expect(windowSize).toBe(WindowSize.HOUR)
+        expect(data).toEqual([mockMeterValue])
+      })
+
+      it('should query meter (with params)', async ({ openmeter }) => {
+        const subject = ['user-1']
+        const groupBy = ['a', 'b']
+        const from = new Date('2021-01-01')
+        const to = new Date('2021-01-02')
+        const windowSize = WindowSize.HOUR
+
+        const data = await openmeter.meters.query(mockMeter.slug, {
+          subject,
+          groupBy,
+          from,
+          to,
+          windowSize,
+        })
+
+        expect(data.from).toBe(mockMeterValue.windowStart)
+        expect(data.to).toBe(mockMeterValue.windowEnd)
+        expect(data.windowSize).toBe(WindowSize.HOUR)
+        expect(data.data).toEqual([mockMeterValue])
+      })
+    })
+
+    describe('subjects', () => {
+      it('should get meter subjects', async ({ openmeter }) => {
+        const subjects = await openmeter.meters.subjects(mockMeter.slug)
+        expect(subjects).toEqual([mockMeterValue.subject])
+      })
+    })
   })
 })

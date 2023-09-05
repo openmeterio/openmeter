@@ -3,7 +3,7 @@
 ## Install
 
 ```sh
-npm install --save @openmeter/sdk@beta
+npm install --save @openmeter/sdk
 ```
 
 ## Example
@@ -72,17 +72,26 @@ Get one meter by slug.
 const meter = await openmeter.meters.get('m1')
 ```
 
-#### values
+#### query
 
-Get back meter values.
+Query meter values.
 
 ```ts
 import { WindowSize } from '@openmeter/sdk'
 
-const values = await openmeter.meters.values('my-meter-slug', {
-  subject: 'user-1',
+const values = await openmeter.meters.query('my-meter-slug', {
+  subject: ['user-1'],
+  groupBy: ['method', 'path'],
   from: new Date('2021-01-01'),
   to: new Date('2021-01-02'),
   windowSize: WindowSize.HOUR,
 })
+```
+
+#### subjects
+
+List meter subjects.
+
+```ts
+const subjects = await openmeter.meters.subjects('my-meter-slug')
 ```
