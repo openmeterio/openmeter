@@ -24,6 +24,14 @@ export interface paths {
     /** @description Get meter values */
     get: operations['getMeterValues']
   }
+  '/api/v1/meters/{meterIdOrSlug}/query': {
+    /** @description Query meter */
+    get: operations['queryMeter']
+  }
+  '/api/v1/meters/{meterIdOrSlug}/subjects': {
+    /** @description List meter subjects */
+    get: operations['listMeterSubjects']
+  }
   '/api/v1/namespaces': {
     /** @description Create namespace */
     post: operations['createNamespace']
@@ -157,7 +165,7 @@ export interface components {
        * @description JSONPath expression to extract the value from the event data.
        * @example $.duration_ms
        */
-      valueProperty: string
+      valueProperty?: string
       /**
        * @description Named JSONPath expressions to extract the group by values from the event data.
        * @example {
@@ -185,6 +193,18 @@ export interface components {
       /** Format: date-time */
       windowEnd: string
       value: number
+      groupBy?: {
+        [key: string]: string
+      } | null
+    }
+    MeterQueryRow: {
+      value: number
+      /** Format: date-time */
+      windowStart: string | null
+      /** Format: date-time */
+      windowEnd: string | null
+      /** @description The subject of the meter value. */
+      subject?: string | null
       groupBy?: {
         [key: string]: string
       } | null
@@ -254,6 +274,7 @@ export interface operations {
     requestBody: {
       content: {
         'application/cloudevents+json': components['schemas']['Event']
+        'application/cloudevents-batch+json': components['schemas']['Event'][]
       }
     }
     responses: {
@@ -353,13 +374,13 @@ export interface operations {
       query?: {
         subject?: string
         /**
-         * @description Start date-time in RFC 3339 format.
+         * @description Start date-time in RFC 3339 format in UTC timezone.
          * Must be aligned with the window size.
          * Inclusive.
          */
         from?: string
         /**
-         * @description End date-time in RFC 3339 format.
+         * @description End date-time in RFC 3339 format in UTC timezone.
          * Must be aligned with the window size.
          * Inclusive.
          */
@@ -396,6 +417,81 @@ export interface operations {
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
+  /** @description Query meter */
+  queryMeter: {
+    parameters: {
+      query?: {
+        /**
+         * @description Start date-time in RFC 3339 format in UTC timezone.
+         * Must be aligned with the window size.
+         * Inclusive.
+         */
+        from?: string
+        /**
+         * @description End date-time in RFC 3339 format in UTC timezone.
+         * Must be aligned with the window size.
+         * Inclusive.
+         */
+        to?: string
+        /** @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group. */
+        windowSize?: components['schemas']['WindowSize']
+        /**
+         * @deprecated
+         * @description If not specified, OpenMeter will use the default aggregation type.
+         * As OpenMeter stores aggregates defined by meter config, passing a different aggregate can lead to inaccurate results.
+         * For example getting the MIN of SUMs.
+         */
+        aggregation?: components['schemas']['MeterAggregation']
+        subject?: string[]
+        /** @description If not specified a single aggregate will be returned for each subject and time window. */
+        groupBy?: string[]
+      }
+      header?: {
+        'OM-Namespace'?: components['parameters']['namespaceParam']
+      }
+      path: {
+        meterIdOrSlug: components['parameters']['meterIdOrSlug']
+      }
+    }
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          'application/json': {
+            /** Format: date-time */
+            from?: string
+            /** Format: date-time */
+            to?: string
+            windowSize?: components['schemas']['WindowSize']
+            data: components['schemas']['MeterQueryRow'][]
+          }
+        }
+      }
+      400: components['responses']['BadRequestProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /** @description List meter subjects */
+  listMeterSubjects: {
+    parameters: {
+      header?: {
+        'OM-Namespace'?: components['parameters']['namespaceParam']
+      }
+      path: {
+        meterIdOrSlug: components['parameters']['meterIdOrSlug']
+      }
+    }
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          'application/json': string[]
+        }
+      }
+      400: components['responses']['BadRequestProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
   /** @description Create namespace */
   createNamespace: {
     requestBody: {
@@ -406,9 +502,7 @@ export interface operations {
     responses: {
       /** @description Created */
       201: {
-        content: {
-          'application/json': components['schemas']['Namespace']
-        }
+        content: never
       }
       default: components['responses']['UnexpectedProblemResponse']
     }

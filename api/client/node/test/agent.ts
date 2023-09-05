@@ -76,6 +76,7 @@ client
     },
   })
 
+/** Meter Values */
 client
   .intercept({
     path: `/api/v1/meters/${mockMeter.slug}/values`,
@@ -124,3 +125,73 @@ client
       },
     }
   )
+
+/** Meter Query */
+client
+  .intercept({
+    path: `/api/v1/meters/${mockMeter.slug}/query`,
+    query: {},
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(
+    200,
+    {
+      from: mockMeterValue.windowStart,
+      to: mockMeterValue.windowEnd,
+      windowSize: 'HOUR',
+      data: [mockMeterValue],
+    },
+    {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  )
+
+client
+  .intercept({
+    path: `/api/v1/meters/${mockMeter.slug}/query`,
+    query: {
+      subject: 'user-1',
+      groupBy: 'a,b',
+      from: new Date('2021-01-01').toISOString(),
+      to: new Date('2021-01-02').toISOString(),
+      windowSize: 'HOUR',
+    },
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(
+    200,
+    {
+      from: mockMeterValue.windowStart,
+      to: mockMeterValue.windowEnd,
+      windowSize: 'HOUR',
+      data: [mockMeterValue],
+    },
+    {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  )
+
+/** Meter Subjects */
+client
+  .intercept({
+    path: `/api/v1/meters/${mockMeter.slug}/subjects`,
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(200, [mockMeterValue.subject], {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
