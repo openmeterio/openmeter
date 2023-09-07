@@ -417,21 +417,16 @@ func initKafkaConnect(config config.KafkaConnectSinkConfiguration, logger *slog.
 		Logger: logger.With(slog.String("subsystem", "sink.kafkaconnect")),
 	}
 
-	sinkConfig := sink.Config{
-		DeadLetterQueueTopicName:         config.DeadLetterQueue.TopicName,
-		DeadLetterQueueReplicationFactor: config.DeadLetterQueue.ReplicationFactor,
-		DeadLetterQueueContextHeaders:    config.DeadLetterQueue.ContextHeaders,
-		Hostname:                         config.ClickHouse.Hostname,
-		Port:                             config.ClickHouse.Port,
-		SSL:                              config.ClickHouse.SSL,
-		Username:                         config.ClickHouse.Username,
-		Password:                         config.ClickHouse.Password,
-		Database:                         config.ClickHouse.Database,
-	}
+	for _, connector := range config.Connectors {
+		connectorConfig, err := connector.ConnectorConfig()
+		if err != nil {
+			return fmt.Errorf("create kafka connector config %q: %w", connector.Name, err)
+		}
 
-	err = kafkaConnectSink.ConfigureConnector(context.Background(), sinkConfig)
-	if err != nil {
-		return fmt.Errorf("init kafka connect: %w", err)
+		err = kafkaConnectSink.ConfigureConnector(context.Background(), connector.Name, connectorConfig)
+		if err != nil {
+			return fmt.Errorf("init kafka connector %q: %w", connector.Name, err)
+		}
 	}
 
 	return nil
