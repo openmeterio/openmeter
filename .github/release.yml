@@ -5,8 +5,8 @@ changelog:
   categories:
     - title: Exciting New Features 🎉
       labels:
-        - kind/enhancement
-        - release-note/enhancement
+        - kind/feature
+        - release-note/feature
     - title: Bug Fixes 🐛
       labels:
         - kind/bug
