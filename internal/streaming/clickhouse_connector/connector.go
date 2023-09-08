@@ -287,13 +287,8 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 			GroupBy: map[string]string{},
 		}
 
-		args := []interface{}{}
-		var argCount int
-
-		if params.WindowSize != nil {
-			args = append(args, &value.WindowStart, &value.WindowEnd)
-			argCount += 2
-		}
+		args := []interface{}{&value.WindowStart, &value.WindowEnd}
+		argCount := 2
 
 		if len(params.Subject) > 0 || params.GroupBySubject {
 			args = append(args, &value.Subject)
@@ -317,6 +312,11 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 			if s, ok := args[i+argCount].(*string); ok {
 				value.GroupBy[key] = *s
 			}
+		}
+
+		// an empty row is returned when there are no values for the meter
+		if value.WindowStart.IsZero() && value.WindowEnd.IsZero() && value.Value == 0 {
+			continue
 		}
 
 		values = append(values, value)

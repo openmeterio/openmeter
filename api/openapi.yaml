@@ -553,11 +553,9 @@ components:
         windowStart:
           type: string
           format: date-time
-          nullable: true
         windowEnd:
           type: string
           format: date-time
-          nullable: true
         subject:
           type: string
           nullable: true

@@ -359,8 +359,8 @@ func AggregateMeterValues(values []*MeterValue, aggregation MeterAggregation, wi
 // MeterQueryRow returns a single row from the meter dataset.
 type MeterQueryRow struct {
 	Value       float64           `json:"value"`
-	WindowStart *time.Time        `json:"windowStart"`
-	WindowEnd   *time.Time        `json:"windowEnd"`
+	WindowStart time.Time         `json:"windowStart"`
+	WindowEnd   time.Time         `json:"windowEnd"`
 	Subject     *string           `json:"subject"`
 	GroupBy     map[string]string `json:"groupBy,omitempty"`
 }
