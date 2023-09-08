@@ -2,15 +2,6 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-meters:
-  - slug: m1
-    eventType: api-calls
-    valueProperty: $.duration_ms
-    aggregation: SUM
-    groupBy:
-      method: $.method
-      path: $.path
-
 replicaCount: 1
 
 image:
@@ -87,36 +78,21 @@ tolerations: []
 
 affinity: {}
 
-kafka:
-  enabled: true
-  name: "openmeter"
-
-schemaregistry:
-  enabled: true
-  fullnameOverride: "openmeter-schema-registry"
-  imageTag: "7.4.0"
-  kafka:
-    bootstrapServers: "PLAINTEXT://openmeter-kafka-bootstrap:9092"
-  prometheus:
-    jmx:
-      enabled: false
-  # https://github.com/confluentinc/cp-helm-charts/issues/548
-  securityContext:
-    runAsUser: 1000
-    runAsGroup: 1000
-    fsGroup: 1000
-    runAsNonRoot: true
-
-ksql:
-  enabled: true
-  fullnameOverride: "openmeter-ksql"
-  imageTag: "7.4.0"
-  ksql:
-    headless: false
-  kafka:
-    bootstrapServers: "PLAINTEXT://openmeter-kafka-bootstrap:9092"
-  cp-schema-registry:
-    url: "http://openmeter-schema-registry:8081"
-  prometheus:
-    jmx:
-      enabled: false
+# config is a subset of OpenMeter's config.yaml file
+config:
+  meters:
+    - slug: m1
+      description: API calls
+      eventType: api-calls
+      valueProperty: $.duration_ms
+      aggregation: SUM
+      groupBy:
+        method: $.method
+        path: $.path
+    - slug: m2
+      description: Open AI Tokens
+      eventType: openai
+      valueProperty: $.total_tokens
+      aggregation: SUM
+      groupBy:
+        model: $.model

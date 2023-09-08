@@ -1,3 +1,0 @@
-[submodule "deploy/charts/cp-helm-charts"]
-	path = deploy/charts/cp-helm-charts
-	url = https://github.com/confluentinc/cp-helm-charts.git
