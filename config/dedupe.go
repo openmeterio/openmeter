@@ -106,7 +106,7 @@ func (c *DedupeConfiguration) DecodeMap(v map[string]any) error {
 		c.DedupeDriverConfiguration = driverConfig
 
 	default:
-		c.DedupeDriverConfiguration = unknownDriverConfiguration{
+		c.DedupeDriverConfiguration = unknownDedupeDriverConfiguration{
 			name: rawConfig.Driver,
 		}
 	}
@@ -120,19 +120,19 @@ type DedupeDriverConfiguration interface {
 	Validate() error
 }
 
-type unknownDriverConfiguration struct {
+type unknownDedupeDriverConfiguration struct {
 	name string
 }
 
-func (c unknownDriverConfiguration) DriverName() string {
+func (c unknownDedupeDriverConfiguration) DriverName() string {
 	return c.name
 }
 
-func (c unknownDriverConfiguration) NewDeduplicator() (ingest.Deduplicator, error) {
+func (c unknownDedupeDriverConfiguration) NewDeduplicator() (ingest.Deduplicator, error) {
 	return nil, errors.New("dedupe: unknown driver")
 }
 
-func (c unknownDriverConfiguration) Validate() error {
+func (c unknownDedupeDriverConfiguration) Validate() error {
 	return errors.New("unknown driver")
 }
 
