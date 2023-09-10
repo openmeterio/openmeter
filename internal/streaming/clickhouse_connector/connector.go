@@ -74,9 +74,9 @@ func (c *ClickhouseConnector) DeleteMeter(ctx context.Context, namespace string,
 	return nil
 }
 
-func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]*models.MeterValue, *models.WindowSize, error) {
+func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) (*streaming.QueryResult, error) {
 	if namespace == "" {
-		return nil, nil, fmt.Errorf("namespace is required")
+		return nil, fmt.Errorf("namespace is required")
 	}
 
 	// ClickHouse connector requires aggregation type to be set
@@ -84,7 +84,7 @@ func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, 
 	if params.Aggregation == nil {
 		meterView, err := c.describeMeterView(ctx, namespace, meterSlug)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		params.Aggregation = &meterView.Aggregation
@@ -93,13 +93,16 @@ func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, 
 	values, err := c.queryMeterView(ctx, namespace, meterSlug, params)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
-			return nil, nil, err
+			return nil, err
 		}
 
-		return nil, nil, fmt.Errorf("get values: %w", err)
+		return nil, fmt.Errorf("get values: %w", err)
 	}
 
-	return values, params.WindowSize, nil
+	return &streaming.QueryResult{
+		WindowSize: params.WindowSize,
+		Values:     values,
+	}, nil
 }
 
 func (c *ClickhouseConnector) ListMeterSubjects(ctx context.Context, namespace string, meterSlug string) ([]string, error) {
