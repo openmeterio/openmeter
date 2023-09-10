@@ -73,7 +73,7 @@ func (c KafkaIngestConfiguration) Validate() error {
 }
 
 // Configure configures some defaults in the Viper instance.
-func configureIngest(v *viper.Viper) {
+func ConfigureIngest(v *viper.Viper) {
 	v.SetDefault("ingest.kafka.broker", "127.0.0.1:29092")
 	v.SetDefault("ingest.kafka.securityProtocol", "")
 	v.SetDefault("ingest.kafka.saslMechanisms", "")

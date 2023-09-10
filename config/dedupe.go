@@ -243,8 +243,8 @@ func (c DedupeDriverRedisConfiguration) Validate() error {
 	return nil
 }
 
-// configureDedupe configures some defaults in the Viper instance.
-func configureDedupe(v *viper.Viper) {
+// ConfigureDedupe configures some defaults in the Viper instance.
+func ConfigureDedupe(v *viper.Viper) {
 	v.SetDefault("dedupe.enabled", false)
 	v.SetDefault("dedupe.driver", "memory")
 
