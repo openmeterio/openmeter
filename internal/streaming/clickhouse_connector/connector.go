@@ -10,6 +10,7 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 
+	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -31,6 +32,7 @@ type ClickhouseConnectorConfig struct {
 	Logger     *slog.Logger
 	ClickHouse clickhouse.Conn
 	Database   string
+	Meters     meter.Repository
 }
 
 func NewClickhouseConnector(config ClickhouseConnectorConfig) (*ClickhouseConnector, error) {
@@ -79,8 +81,16 @@ func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, 
 		return nil, nil, fmt.Errorf("namespace is required")
 	}
 
+	meter, err := c.config.Meters.GetMeterBySlug(ctx, namespace, meterSlug)
+	if err == nil { // TODO: do proper error handling
+		if params.Aggregation == nil {
+			params.Aggregation = &meter.Aggregation
+		}
+	}
+
 	// ClickHouse connector requires aggregation type to be set
 	// If we don't have it we inspect the meter view in ClickHouse
+	// TODO: remove this once we have a proper meter store
 	if params.Aggregation == nil {
 		meterView, err := c.describeMeterView(ctx, namespace, meterSlug)
 		if err != nil {
