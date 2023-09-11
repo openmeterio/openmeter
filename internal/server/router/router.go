@@ -329,20 +329,14 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 		To:         params.To,
 		Data: slicesx.Map(result.Values, func(val *models.MeterValue) models.MeterQueryRow {
 			row := models.MeterQueryRow{
-				Value:   val.Value,
-				GroupBy: val.GroupBy,
+				Value:       val.Value,
+				WindowStart: val.WindowStart,
+				WindowEnd:   val.WindowEnd,
+				GroupBy:     val.GroupBy,
 			}
 
 			if val.Subject != "" {
 				row.Subject = &val.Subject
-			}
-
-			if !val.WindowStart.IsZero() {
-				row.WindowStart = &val.WindowStart
-			}
-
-			if !val.WindowEnd.IsZero() {
-				row.WindowEnd = &val.WindowEnd
 			}
 
 			return row

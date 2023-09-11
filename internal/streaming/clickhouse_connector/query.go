@@ -199,10 +199,10 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 		default:
 			return "", nil, fmt.Errorf("invalid window size type: %s", *d.WindowSize)
 		}
-	}
 
-	if groupByWindowSize {
 		groupByColumns = append(groupByColumns, "windowstart", "windowend")
+	} else {
+		selectColumns = append(selectColumns, "min(windowstart)", "max(windowend)")
 	}
 
 	// Grouping by subject is required when filtering for a subject
