@@ -93,9 +93,9 @@ func Configure(v *viper.Viper, flags *pflag.FlagSet) {
 
 	configureTelemetry(v, flags)
 
-	configureNamespace(v)
-	configureIngest(v)
-	configureProcessor(v)
+	ConfigureNamespace(v)
+	ConfigureIngest(v)
+	ConfigureProcessor(v)
 	configureSink(v)
-	configureDedupe(v)
+	ConfigureDedupe(v)
 }
