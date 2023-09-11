@@ -249,7 +249,7 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 		queryParams.GroupBy = strings.Split(*params.GroupBy, ",")
 	}
 
-	values, windowSize, err := a.config.StreamingConnector.QueryMeter(r.Context(), namespace, meterIdOrSlug, queryParams)
+	result, err := a.config.StreamingConnector.QueryMeter(r.Context(), namespace, meterIdOrSlug, queryParams)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
 			logger.Warn("meter not found", "error", err)
@@ -263,8 +263,8 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 	}
 
 	resp := &GetMeterValuesResponse{
-		WindowSize: windowSize,
-		Data:       values,
+		WindowSize: result.WindowSize,
+		Data:       result.Values,
 	}
 
 	_ = render.Render(w, r, resp)
@@ -310,7 +310,7 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 		queryParams.GroupBy = *params.GroupBy
 	}
 
-	values, windowSize, err := a.config.StreamingConnector.QueryMeter(r.Context(), namespace, meterIDOrSlug, queryParams)
+	result, err := a.config.StreamingConnector.QueryMeter(r.Context(), namespace, meterIDOrSlug, queryParams)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
 			logger.Warn("meter not found", "error", err)
@@ -323,13 +323,11 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 		return
 	}
 
-	_ = values
-
 	resp := &QueryMeterResponse{
-		WindowSize: windowSize,
+		WindowSize: result.WindowSize,
 		From:       params.From,
 		To:         params.To,
-		Data: slicesx.Map(values, func(val *models.MeterValue) models.MeterQueryRow {
+		Data: slicesx.Map(result.Values, func(val *models.MeterValue) models.MeterQueryRow {
 			row := models.MeterQueryRow{
 				Value:   val.Value,
 				GroupBy: val.GroupBy,
