@@ -16,13 +16,14 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/server/router"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var meters = []*models.Meter{
+var meters = []models.Meter{
 	{ID: ulid.Make().String(), Slug: "meter1", WindowSize: models.WindowSizeMinute, Aggregation: models.MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
 	{ID: ulid.Make().String(), Slug: "meter2", WindowSize: models.WindowSizeMinute, Aggregation: models.MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
 }
@@ -74,7 +75,7 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 
 	server, _ := NewServer(&Config{
 		RouterConfig: router.Config{
-			Meters:             meters,
+			Meters:             meter.NewInMemoryRepository(meters),
 			StreamingConnector: &MockConnector{},
 			IngestHandler:      MockHandler{},
 			NamespaceManager:   namespaceManager,

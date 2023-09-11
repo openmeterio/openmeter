@@ -249,7 +249,7 @@ func main() {
 			NamespaceManager:   namespaceManager,
 			StreamingConnector: streamingConnector,
 			IngestHandler:      ingestHandler,
-			Meters:             conf.Meters,
+			Meters:             meterRepository,
 		},
 		RouterHook: func(r chi.Router) {
 			r.Use(func(h http.Handler) http.Handler {

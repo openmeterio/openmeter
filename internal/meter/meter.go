@@ -8,6 +8,9 @@ import (
 
 // Repository is an interface to the meter store.
 type Repository interface {
-	// GetMeterBySlug returns a meter from the meter store by slug.
-	GetMeterBySlug(ctx context.Context, namespace string, slug string) (models.Meter, error)
+	// ListMeters returns a list of meters.
+	ListMeters(ctx context.Context, namespace string) ([]models.Meter, error)
+
+	// GetMeterByIDOrSlug returns a meter from the meter store by ID or slug.
+	GetMeterByIDOrSlug(ctx context.Context, namespace string, idOrSlug string) (models.Meter, error)
 }

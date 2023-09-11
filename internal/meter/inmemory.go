@@ -2,6 +2,7 @@ package meter
 
 import (
 	"context"
+	"slices"
 	"sync"
 
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -9,9 +10,8 @@ import (
 
 // InMemoryRepository is an in-memory meter repository.
 type InMemoryRepository struct {
-	meters map[string]models.Meter
+	meters []models.Meter
 
-	mu       sync.Mutex
 	initOnce sync.Once
 }
 
@@ -20,32 +20,37 @@ func NewInMemoryRepository(meters []models.Meter) *InMemoryRepository {
 	repository := &InMemoryRepository{}
 	repository.init()
 
-	for _, meter := range meters {
-		repository.meters[meter.Slug] = meter
-	}
+	repository.meters = slices.Clone(meters)
 
 	return repository
 }
 
 func (c *InMemoryRepository) init() {
 	c.initOnce.Do(func() {
-		c.meters = make(map[string]models.Meter)
+		if c.meters == nil {
+			c.meters = make([]models.Meter, 0)
+		}
 	})
 }
 
-// GetMeterBySlug implements the [Repository] interface.
-func (c *InMemoryRepository) GetMeterBySlug(_ context.Context, namespace string, slug string) (models.Meter, error) {
+// ListMeters implements the [Repository] interface.
+func (c *InMemoryRepository) ListMeters(_ context.Context, namespace string) ([]models.Meter, error) {
 	c.init()
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	return slices.Clone(c.meters), nil
+}
 
-	meter, ok := c.meters[slug]
-	if !ok {
-		return models.Meter{}, &models.MeterNotFoundError{
-			MeterSlug: slug,
+// GetMeterByIDOrSlug implements the [Repository] interface.
+func (c *InMemoryRepository) GetMeterByIDOrSlug(_ context.Context, namespace string, idOrSlug string) (models.Meter, error) {
+	c.init()
+
+	for _, meter := range c.meters {
+		if meter.ID == idOrSlug || meter.Slug == idOrSlug {
+			return meter, nil
 		}
 	}
 
-	return meter, nil
+	return models.Meter{}, &models.MeterNotFoundError{
+		MeterSlug: idOrSlug,
+	}
 }
