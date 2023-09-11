@@ -15,6 +15,7 @@ import (
 	"github.com/go-chi/render"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -43,7 +44,7 @@ type Config struct {
 	NamespaceManager   *namespace.Manager
 	StreamingConnector streaming.Connector
 	IngestHandler      IngestHandler
-	Meters             []*models.Meter
+	Meters             meter.Repository
 }
 
 type Router struct {
@@ -94,10 +95,26 @@ func (a *Router) IngestEvents(w http.ResponseWriter, r *http.Request, params api
 }
 
 func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request, params api.ListMetersParams) {
-	list := make([]render.Renderer, 0, len(a.config.Meters))
-	for _, m := range a.config.Meters {
-		list = append(list, m)
+	logger := slog.With("operation", "listMeters")
+
+	namespace := a.config.NamespaceManager.GetDefaultNamespace()
+	if params.NamespaceInput != nil {
+		namespace = *params.NamespaceInput
 	}
+
+	meters, err := a.config.Meters.ListMeters(r.Context(), namespace)
+	if err != nil {
+		logger.Error("listing meters", "error", err)
+
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+
+		return
+	}
+
+	// TODO: remove once meter model pointer is removed
+	list := slicesx.Map[models.Meter, render.Renderer](meters, func(meter models.Meter) render.Renderer {
+		return &meter
+	})
 
 	_ = render.RenderList(w, r, list)
 }
@@ -156,17 +173,33 @@ func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSl
 }
 
 func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.GetMeterParams) {
-	logger := slog.With("operation", "getMeter", "id", meterIdOrSlug, "params", params)
-
-	for _, meter := range a.config.Meters {
-		if meter.ID == meterIdOrSlug || meter.Slug == meterIdOrSlug {
-			_ = render.Render(w, r, meter)
-			return
-		}
+	namespace := a.config.NamespaceManager.GetDefaultNamespace()
+	if params.NamespaceInput != nil {
+		namespace = *params.NamespaceInput
 	}
 
-	logger.Warn("meter not found")
-	models.NewStatusProblem(r.Context(), fmt.Errorf("meter is not found with ID or slug %s", meterIdOrSlug), http.StatusNotFound).Respond(w, r)
+	logger := slog.With("operation", "getMeter", "id", meterIdOrSlug, "namespace", namespace)
+
+	meter, err := a.config.Meters.GetMeterByIDOrSlug(r.Context(), namespace, meterIdOrSlug)
+
+	// TODO: remove once meter model pointer is removed
+	if e := (&models.MeterNotFoundError{}); errors.As(err, &e) {
+		logger.Debug("meter not found")
+
+		// TODO: add meter id or slug as detail
+		models.NewStatusProblem(r.Context(), errors.New("meter not found"), http.StatusNotFound).Respond(w, r)
+
+		return
+	} else if err != nil {
+		logger.Error("getting meter", slog.Any("error", err))
+
+		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+
+		return
+	}
+
+	// TODO: remove once meter model pointer is removed
+	_ = render.Render(w, r, &meter)
 }
 
 type GetMeterValuesResponse struct {
@@ -205,15 +238,14 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 	}
 
 	// Set defaults if meter is found in static config and params are not set
-	for _, meter := range a.config.Meters {
-		if meter.ID == meterIdOrSlug || meter.Slug == meterIdOrSlug {
-			if params.Aggregation == nil {
-				params.Aggregation = &meter.Aggregation
-			}
+	meter, err := a.config.Meters.GetMeterByIDOrSlug(r.Context(), namespace, meterIdOrSlug)
+	if err != nil { // TODO: proper error handling
+		if params.Aggregation == nil {
+			params.Aggregation = &meter.Aggregation
+		}
 
-			if params.WindowSize == nil {
-				params.WindowSize = &meter.WindowSize
-			}
+		if params.WindowSize == nil {
+			params.WindowSize = &meter.WindowSize
 		}
 	}
 
@@ -280,11 +312,10 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 	}
 
 	// Set defaults if meter is found in static config and params are not set
-	for _, meter := range a.config.Meters {
-		if meter.ID == meterIDOrSlug || meter.Slug == meterIDOrSlug {
-			if params.Aggregation == nil {
-				params.Aggregation = &meter.Aggregation
-			}
+	meter, err := a.config.Meters.GetMeterByIDOrSlug(r.Context(), namespace, meterIDOrSlug)
+	if err != nil { // TODO: proper error handling
+		if params.Aggregation == nil {
+			params.Aggregation = &meter.Aggregation
 		}
 	}
 
