@@ -81,7 +81,7 @@ func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, 
 		return nil, fmt.Errorf("namespace is required")
 	}
 
-	meter, err := c.config.Meters.GetMeterBySlug(ctx, namespace, meterSlug)
+	meter, err := c.config.Meters.GetMeterByIDOrSlug(ctx, namespace, meterSlug)
 	if err == nil { // TODO: do proper error handling
 		if params.Aggregation == nil {
 			params.Aggregation = &meter.Aggregation
