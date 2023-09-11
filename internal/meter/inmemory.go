@@ -33,6 +33,13 @@ func (c *InMemoryRepository) init() {
 	})
 }
 
+// ListMeters implements the [Repository] interface.
+func (c *InMemoryRepository) ListMeters(_ context.Context, namespace string) ([]models.Meter, error) {
+	c.init()
+
+	return slices.Clone(c.meters), nil
+}
+
 // GetMeterByIDOrSlug implements the [Repository] interface.
 func (c *InMemoryRepository) GetMeterByIDOrSlug(_ context.Context, namespace string, idOrSlug string) (models.Meter, error) {
 	c.init()
