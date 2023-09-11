@@ -39,6 +39,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/ingest/httpingest"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
+	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/server"
 	"github.com/openmeterio/openmeter/internal/server/router"
@@ -48,6 +49,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	"github.com/openmeterio/openmeter/pkg/kafkaconnect"
+	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 func main() {
@@ -186,6 +189,10 @@ func main() {
 	namespaceHandlers = append(namespaceHandlers, kafkaIngestNamespaceHandler)
 	defer ingestCollector.Close()
 
+	meterRepository := meter.NewInMemoryRepository(slicesx.Map(conf.Meters, func(meter *models.Meter) models.Meter {
+		return *meter
+	}))
+
 	// Initialize Kafka Connect sink
 	if conf.Sink.KafkaConnect.Enabled {
 		err := initKafkaConnect(conf.Sink.KafkaConnect, logger)
@@ -196,7 +203,7 @@ func main() {
 	}
 
 	// Initialize ClickHouse Streaming Processor
-	clickhouseStreamingConnector, err := initClickHouseStreaming(conf, logger)
+	clickhouseStreamingConnector, err := initClickHouseStreaming(conf, meterRepository, logger)
 	if err != nil {
 		logger.Error("failed to initialize clickhouse streaming processor", "error", err)
 		os.Exit(1)
@@ -367,7 +374,7 @@ func initKafkaIngest(ctx context.Context, config config.Configuration, logger *s
 	return collector, namespaceHandler, nil
 }
 
-func initClickHouseStreaming(config config.Configuration, logger *slog.Logger) (*clickhouse_connector.ClickhouseConnector, error) {
+func initClickHouseStreaming(config config.Configuration, meterRepository meter.Repository, logger *slog.Logger) (*clickhouse_connector.ClickhouseConnector, error) {
 	options := &clickhouse.Options{
 		Addr: []string{config.Processor.ClickHouse.Address},
 		Auth: clickhouse.Auth{
@@ -398,6 +405,7 @@ func initClickHouseStreaming(config config.Configuration, logger *slog.Logger) (
 		Logger:     logger,
 		ClickHouse: clickHouseClient,
 		Database:   config.Processor.ClickHouse.Database,
+		Meters:     meterRepository,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("init clickhouse streaming: %w", err)
