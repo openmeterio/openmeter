@@ -211,8 +211,9 @@ func TestRoutes(t *testing.T) {
 		{
 			name: "query meter",
 			req: testRequest{
-				method: http.MethodGet,
-				path:   "/api/v1/meters/" + mockMeters[0].ID + "/query?windowSize=HOUR",
+				method:      http.MethodGet,
+				contentType: "application/json",
+				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?windowSize=HOUR",
 			},
 			res: testResponse{
 				status: http.StatusOK,
