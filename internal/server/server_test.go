@@ -230,9 +230,10 @@ func TestRoutes(t *testing.T) {
 		{
 			name: "query meter as csv",
 			req: testRequest{
-				accept: "text/csv",
-				method: http.MethodGet,
-				path:   "/api/v1/meters/" + mockMeters[0].ID + "/query?windowSize=HOUR",
+				accept:      "text/csv",
+				contentType: "text/csv",
+				method:      http.MethodGet,
+				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?windowSize=HOUR",
 			},
 			res: testResponse{
 				status: http.StatusOK,
