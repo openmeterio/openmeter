@@ -2,7 +2,7 @@ ingest:
   kafka:
     broker: kafka:29092
 
-processor:
+aggregation:
   clickhouse:
     address: clickhouse:9000
 

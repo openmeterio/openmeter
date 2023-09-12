@@ -124,7 +124,7 @@ func (c *ConnectorKafkaConnectSinkConfiguration) DecodeMap(v map[string]any) err
 	return nil
 }
 
-// This may feel repetative but clikhouse sink and processor configs can be different,
+// This may feel repetative but clikhouse sink and aggregation configs can be different,
 // for example Kafka Connect ClickHouse plugin uses 8123 HTTP port while client uses native protocol's 9000 port.
 // Hostname can be also different, as Kafka Connect and ClickHouse communicates inside the docker compose network.
 type ClickHouseConnectorTypeKafkaConnectSinkConfiguration struct {

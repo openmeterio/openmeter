@@ -20,11 +20,11 @@ type Configuration struct {
 
 	Telemetry TelemetryConfig
 
-	Namespace NamespaceConfiguration
-	Ingest    IngestConfiguration
-	Processor ProcessorConfiguration
-	Sink      SinkConfiguration
-	Dedupe    DedupeConfiguration
+	Namespace   NamespaceConfiguration
+	Ingest      IngestConfiguration
+	Aggregation AggregationConfiguration
+	Sink        SinkConfiguration
+	Dedupe      DedupeConfiguration
 
 	Meters []*models.Meter
 }
@@ -47,8 +47,8 @@ func (c Configuration) Validate() error {
 		return fmt.Errorf("ingest: %w", err)
 	}
 
-	if err := c.Processor.Validate(); err != nil {
-		return fmt.Errorf("processor: %w", err)
+	if err := c.Aggregation.Validate(); err != nil {
+		return fmt.Errorf("aggregation: %w", err)
 	}
 
 	if err := c.Sink.Validate(); err != nil {
@@ -95,7 +95,7 @@ func Configure(v *viper.Viper, flags *pflag.FlagSet) {
 
 	ConfigureNamespace(v)
 	ConfigureIngest(v)
-	ConfigureProcessor(v)
+	ConfigureAggregation(v)
 	configureSink(v)
 	ConfigureDedupe(v)
 }

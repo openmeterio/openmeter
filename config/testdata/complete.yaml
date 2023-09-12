@@ -27,7 +27,7 @@ ingest:
     saslPassword: pass
     partitions: 1
 
-processor:
+aggregation:
   clickhouse:
     address: 127.0.0.1:9440
     tls: true

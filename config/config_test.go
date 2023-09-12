@@ -68,8 +68,8 @@ func TestComplete(t *testing.T) {
 				EventsTopicTemplate: "om_%s_events",
 			},
 		},
-		Processor: ProcessorConfiguration{
-			ClickHouse: ClickHouseProcessorConfiguration{
+		Aggregation: AggregationConfiguration{
+			ClickHouse: ClickHouseAggregationConfiguration{
 				Address:  "127.0.0.1:9440",
 				TLS:      true,
 				Username: "default",
