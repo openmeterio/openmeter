@@ -202,10 +202,10 @@ func main() {
 		}
 	}
 
-	// Initialize ClickHouse Streaming Processor
+	// Initialize ClickHouse Aggregation
 	clickhouseStreamingConnector, err := initClickHouseStreaming(conf, meterRepository, logger)
 	if err != nil {
-		logger.Error("failed to initialize clickhouse streaming processor", "error", err)
+		logger.Error("failed to initialize clickhouse aggregation", "error", err)
 		os.Exit(1)
 	}
 
@@ -376,11 +376,11 @@ func initKafkaIngest(ctx context.Context, config config.Configuration, logger *s
 
 func initClickHouseStreaming(config config.Configuration, meterRepository meter.Repository, logger *slog.Logger) (*clickhouse_connector.ClickhouseConnector, error) {
 	options := &clickhouse.Options{
-		Addr: []string{config.Processor.ClickHouse.Address},
+		Addr: []string{config.Aggregation.ClickHouse.Address},
 		Auth: clickhouse.Auth{
-			Database: config.Processor.ClickHouse.Database,
-			Username: config.Processor.ClickHouse.Username,
-			Password: config.Processor.ClickHouse.Password,
+			Database: config.Aggregation.ClickHouse.Database,
+			Username: config.Aggregation.ClickHouse.Username,
+			Password: config.Aggregation.ClickHouse.Password,
 		},
 		DialTimeout:      time.Duration(10) * time.Second,
 		MaxOpenConns:     5,
@@ -391,7 +391,7 @@ func initClickHouseStreaming(config config.Configuration, meterRepository meter.
 	}
 	// This minimal TLS.Config is normally sufficient to connect to the secure native port (normally 9440) on a ClickHouse server.
 	// See: https://clickhouse.com/docs/en/integrations/go#using-tls
-	if config.Processor.ClickHouse.TLS {
+	if config.Aggregation.ClickHouse.TLS {
 		options.TLS = &tls.Config{}
 	}
 
@@ -404,7 +404,7 @@ func initClickHouseStreaming(config config.Configuration, meterRepository meter.
 	streamingConnector, err := clickhouse_connector.NewClickhouseConnector(clickhouse_connector.ClickhouseConnectorConfig{
 		Logger:     logger,
 		ClickHouse: clickHouseClient,
-		Database:   config.Processor.ClickHouse.Database,
+		Database:   config.Aggregation.ClickHouse.Database,
 		Meters:     meterRepository,
 	})
 	if err != nil {
