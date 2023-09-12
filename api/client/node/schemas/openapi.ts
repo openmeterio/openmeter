@@ -22,7 +22,11 @@ export interface paths {
     delete: operations["deleteMeter"];
   };
   "/api/v1/meters/{meterIdOrSlug}/values": {
-    /** @description Get meter values */
+    /**
+     * @deprecated
+     * @description Get meter values
+     * Deprecated: use /api/v1/meters/{meter}/query instead.
+     */
     get: operations["getMeterValues"];
   };
   "/api/v1/meters/{meterIdOrSlug}/query": {
@@ -201,9 +205,9 @@ export interface components {
     MeterQueryRow: {
       value: number;
       /** Format: date-time */
-      windowStart: string | null;
+      windowStart: string;
       /** Format: date-time */
-      windowEnd: string | null;
+      windowEnd: string;
       /** @description The subject of the meter value. */
       subject?: string | null;
       groupBy?: {
@@ -370,7 +374,11 @@ export interface operations {
       default: components["responses"]["UnexpectedProblemResponse"];
     };
   };
-  /** @description Get meter values */
+  /**
+   * @deprecated
+   * @description Get meter values
+   * Deprecated: use /api/v1/meters/{meter}/query instead.
+   */
   getMeterValues: {
     parameters: {
       query?: {
