@@ -97,7 +97,7 @@ curl -X POST http://localhost:8888/api/v1/events \
 Query the usage hourly:
 
 ```sh
-curl http://localhost:8888/api/v1/meters/m1/values?windowSize=HOUR | jq
+curl http://localhost:8888/api/v1/meters/m1/query?windowSize=HOUR | jq
 ```
 
 ```json

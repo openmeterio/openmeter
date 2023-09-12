@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,12 +24,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var meters = []models.Meter{
+var mockMeters = []models.Meter{
 	{ID: ulid.Make().String(), Slug: "meter1", WindowSize: models.WindowSizeMinute, Aggregation: models.MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
 	{ID: ulid.Make().String(), Slug: "meter2", WindowSize: models.WindowSizeMinute, Aggregation: models.MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
 }
 
-var values = []*models.MeterValue{
+var mockValues = []models.MeterValue{
 	{Subject: "s1", WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 0, 1, 0, 0, time.UTC), Value: 100},
 	{Subject: "s1", WindowStart: time.Date(2021, 1, 1, 0, 1, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 0, 2, 0, 0, time.UTC), Value: 200},
 }
@@ -44,7 +45,14 @@ func (c *MockConnector) DeleteMeter(ctx context.Context, namespace string, meter
 }
 
 func (c *MockConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) (*streaming.QueryResult, error) {
-	values, err := models.AggregateMeterValues(values, meters[0].Aggregation, params.WindowSize)
+	// Clone mockValues to avoid side effects between tests caused by the AggregateMeterValues
+	inputValues := []*models.MeterValue{}
+	for _, v := range mockValues {
+		v := v
+		inputValues = append(inputValues, &v)
+	}
+
+	values, err := models.AggregateMeterValues(inputValues, mockMeters[0].Aggregation, params.WindowSize)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +83,7 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 
 	server, _ := NewServer(&Config{
 		RouterConfig: router.Config{
-			Meters:             meter.NewInMemoryRepository(meters),
+			Meters:             meter.NewInMemoryRepository(mockMeters),
 			StreamingConnector: &MockConnector{},
 			IngestHandler:      MockHandler{},
 			NamespaceManager:   namespaceManager,
@@ -90,6 +98,7 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 type testRequest struct {
 	method      string
 	path        string
+	accept      string
 	contentType string
 	body        interface{}
 }
@@ -146,7 +155,7 @@ func TestRoutes(t *testing.T) {
 			},
 			res: testResponse{
 				status: http.StatusOK,
-				body:   meters,
+				body:   mockMeters,
 			},
 		},
 		{
@@ -182,28 +191,65 @@ func TestRoutes(t *testing.T) {
 			name: "get meter",
 			req: testRequest{
 				method: http.MethodGet,
-				path:   "/api/v1/meters/" + meters[0].ID,
+				path:   "/api/v1/meters/" + mockMeters[0].ID,
 			},
 			res: testResponse{
 				status: http.StatusOK,
-				body:   meters[0],
+				body:   mockMeters[0],
 			},
 		},
 		{
 			name: "delete meter",
 			req: testRequest{
 				method: http.MethodDelete,
-				path:   "/api/v1/meters/" + meters[0].Slug,
+				path:   "/api/v1/meters/" + mockMeters[0].Slug,
 			},
 			res: testResponse{
 				status: http.StatusNoContent,
 			},
 		},
 		{
+			name: "query meter",
+			req: testRequest{
+				method: http.MethodGet,
+				path:   "/api/v1/meters/" + mockMeters[0].ID + "/query?windowSize=HOUR",
+			},
+			res: testResponse{
+				status: http.StatusOK,
+				body: struct {
+					WindowSize models.WindowSize    `json:"windowSize"`
+					Data       []*models.MeterValue `json:"data"`
+				}{
+					WindowSize: models.WindowSizeHour,
+					Data: []*models.MeterValue{
+						{Subject: "s1", WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
+					},
+				},
+			},
+		},
+		{
+			name: "query meter as csv",
+			req: testRequest{
+				accept: "text/csv",
+				method: http.MethodGet,
+				path:   "/api/v1/meters/" + mockMeters[0].ID + "/query?windowSize=HOUR",
+			},
+			res: testResponse{
+				status: http.StatusOK,
+				body: strings.Join(
+					[]string{
+						"window_start,window_end,subject,value",
+						"2021-01-01T00:00:00Z,2021-01-01T01:00:00Z,s1,300.000000",
+					},
+					"\n",
+				),
+			},
+		},
+		{
 			name: "get meter values",
 			req: testRequest{
 				method: http.MethodGet,
-				path:   "/api/v1/meters/" + meters[0].ID + "/values?windowSize=HOUR",
+				path:   "/api/v1/meters/" + mockMeters[0].ID + "/values?windowSize=HOUR",
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -222,7 +268,7 @@ func TestRoutes(t *testing.T) {
 			name: "list meter subjects",
 			req: testRequest{
 				method: http.MethodGet,
-				path:   fmt.Sprintf("/api/v1/meters/%s/subjects", meters[0].Slug),
+				path:   fmt.Sprintf("/api/v1/meters/%s/subjects", mockMeters[0].Slug),
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -239,6 +285,9 @@ func TestRoutes(t *testing.T) {
 				reqBody, _ = json.Marshal(tt.req.body)
 			}
 			req := httptest.NewRequest(tt.req.method, tt.req.path, bytes.NewReader(reqBody))
+			if tt.req.accept != "" {
+				req.Header.Set("Accept", tt.req.accept)
+			}
 			if tt.req.contentType != "" {
 				req.Header.Set("Content-Type", tt.req.contentType)
 			}
@@ -254,8 +303,14 @@ func TestRoutes(t *testing.T) {
 				return
 			}
 
-			resBody, _ := json.Marshal(tt.res.body)
-			assert.JSONEq(t, string(resBody), w.Body.String())
+			switch tt.req.accept {
+			case "text/csv":
+				assert.Equal(t, tt.res.body, w.Body.String())
+			default:
+				// Handle default as "application/json"
+				resBody, _ := json.Marshal(tt.res.body)
+				assert.JSONEq(t, string(resBody), w.Body.String())
+			}
 		})
 	}
 }
