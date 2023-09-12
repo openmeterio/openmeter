@@ -122,8 +122,11 @@ paths:
           $ref: "#/components/responses/UnexpectedProblemResponse"
   /api/v1/meters/{meterIdOrSlug}/values:
     get:
-      description: Get meter values
+      description: |
+        Get meter values
+        Deprecated: use /api/v1/meters/{meter}/query instead.
       operationId: getMeterValues
+      deprecated: true
       tags:
         - Meters
       parameters:
