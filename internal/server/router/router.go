@@ -377,7 +377,11 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 	}
 
 	// Parse media type
-	mediatype, _, err := mime.ParseMediaType(r.Header.Get("Accept"))
+	accept := r.Header.Get("Accept")
+	if accept == "" {
+		accept = "application/json"
+	}
+	mediatype, _, err := mime.ParseMediaType(accept)
 	if err != nil {
 		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
 		return
@@ -448,7 +452,10 @@ func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request,
 
 	// Write response
 	writer := csv.NewWriter(w)
-	writer.WriteAll(records)
+	err := writer.WriteAll(records)
+	if err != nil {
+		slog.Error("writing record to csv", "error", err)
+	}
 
 	if err := writer.Error(); err != nil {
 		slog.Error("writing csv", "error", err)
