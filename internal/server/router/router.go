@@ -1,11 +1,13 @@
 package router
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
+	"mime"
 	"net/http"
 	"strings"
 	"time"
@@ -374,7 +376,22 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 		}),
 	}
 
-	_ = render.Render(w, r, resp)
+	// Parse media type
+	accept := r.Header.Get("Accept")
+	if accept == "" {
+		accept = "application/json"
+	}
+	mediatype, _, err := mime.ParseMediaType(accept)
+	if err != nil {
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		return
+	}
+
+	if mediatype == "text/csv" {
+		resp.RenderCSV(w, r, queryParams.GroupBy, meterIDOrSlug)
+	} else {
+		_ = render.Render(w, r, resp)
+	}
 }
 
 func validateQueryMeterParams(params api.QueryMeterParams) error {
@@ -406,6 +423,48 @@ type QueryMeterResponse struct {
 // Render implements the chi renderer interface.
 func (resp QueryMeterResponse) Render(_ http.ResponseWriter, _ *http.Request) error {
 	return nil
+}
+
+// RenderCSV renders the response as CSV.
+func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request, groupByKeys []string, meterIDOrSlug string) {
+	records := [][]string{}
+
+	// CSV headers
+	headers := []string{"window_start", "window_end", "subject"}
+	if len(groupByKeys) > 0 {
+		headers = append(headers, groupByKeys...)
+	}
+	headers = append(headers, "value")
+	records = append(records, headers)
+
+	// CSV data
+	for _, row := range resp.Data {
+		data := []string{row.WindowStart.Format(time.RFC3339), row.WindowEnd.Format(time.RFC3339)}
+		if row.Subject != nil {
+			data = append(data, *row.Subject)
+		} else {
+			data = append(data, "")
+		}
+		for _, k := range groupByKeys {
+			data = append(data, row.GroupBy[k])
+		}
+		data = append(data, fmt.Sprintf("%f", row.Value))
+		records = append(records, data)
+	}
+
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", meterIDOrSlug))
+
+	// Write response
+	writer := csv.NewWriter(w)
+	err := writer.WriteAll(records)
+	if err != nil {
+		slog.Error("writing record to csv", "error", err)
+	}
+
+	if err := writer.Error(); err != nil {
+		slog.Error("writing csv", "error", err)
+	}
 }
 
 // ListMeterSubjects lists the subjects of a meter.

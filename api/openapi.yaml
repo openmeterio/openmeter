@@ -284,6 +284,15 @@ paths:
                       $ref: "#/components/schemas/MeterQueryRow"
                 required:
                   - data
+            text/csv:
+              schema:
+                type: string
+              example: |-
+                window_start,window_end,subject,method,path,value
+                2023-01-01T00:00:00.001Z,2023-01-02T00:00:00.001Z,customer_1,get,/hello,12
+                2023-01-01T00:00:00.001Z,2023-01-02T00:00:00.001Z,customer_1,get,/world,20
+                2023-01-01T00:00:00.001Z,2023-01-02T00:00:00.001Z,customer_2,get,/hello,4
+
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         default:
