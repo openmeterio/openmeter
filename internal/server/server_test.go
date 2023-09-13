@@ -29,9 +29,11 @@ var mockMeters = []models.Meter{
 	{ID: ulid.Make().String(), Slug: "meter2", WindowSize: models.WindowSizeMinute, Aggregation: models.MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
 }
 
-var mockValues = []models.MeterValue{
-	{Subject: "s1", WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 0, 1, 0, 0, time.UTC), Value: 100},
-	{Subject: "s1", WindowStart: time.Date(2021, 1, 1, 0, 1, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 0, 2, 0, 0, time.UTC), Value: 200},
+var mockQueryValue = models.MeterValue{
+	Subject:     "s1",
+	WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+	WindowEnd:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+	Value:       300,
 }
 
 type MockConnector struct{}
@@ -45,21 +47,17 @@ func (c *MockConnector) DeleteMeter(ctx context.Context, namespace string, meter
 }
 
 func (c *MockConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) (*streaming.QueryResult, error) {
-	// Clone mockValues to avoid side effects between tests caused by the AggregateMeterValues
-	inputValues := []*models.MeterValue{}
-	for _, v := range mockValues {
-		v := v
-		inputValues = append(inputValues, &v)
+	value := mockQueryValue
+
+	if params.Subject == nil {
+		value.Subject = ""
 	}
 
-	values, err := models.AggregateMeterValues(inputValues, mockMeters[0].Aggregation, params.WindowSize)
-	if err != nil {
-		return nil, err
-	}
+	ws := models.WindowSizeHour
 
 	return &streaming.QueryResult{
-		Values:     values,
-		WindowSize: params.WindowSize,
+		Values:     []*models.MeterValue{&value},
+		WindowSize: &ws,
 	}, nil
 }
 
@@ -213,17 +211,37 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodGet,
 				contentType: "application/json",
-				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?windowSize=HOUR",
+				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query",
 			},
 			res: testResponse{
 				status: http.StatusOK,
 				body: struct {
-					WindowSize models.WindowSize    `json:"windowSize"`
-					Data       []*models.MeterValue `json:"data"`
+					WindowSize models.WindowSize       `json:"windowSize"`
+					Data       []*models.MeterQueryRow `json:"data"`
 				}{
 					WindowSize: models.WindowSizeHour,
-					Data: []*models.MeterValue{
-						{Subject: "s1", WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
+					Data: []*models.MeterQueryRow{
+						{Subject: nil, WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
+					},
+				},
+			},
+		},
+		{
+			name: "query meter with subject",
+			req: testRequest{
+				method:      http.MethodGet,
+				contentType: "application/json",
+				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?subject=s1",
+			},
+			res: testResponse{
+				status: http.StatusOK,
+				body: struct {
+					WindowSize models.WindowSize       `json:"windowSize"`
+					Data       []*models.MeterQueryRow `json:"data"`
+				}{
+					WindowSize: models.WindowSizeHour,
+					Data: []*models.MeterQueryRow{
+						{Subject: &mockQueryValue.Subject, WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
 					},
 				},
 			},
@@ -234,7 +252,27 @@ func TestRoutes(t *testing.T) {
 				accept:      "text/csv",
 				contentType: "text/csv",
 				method:      http.MethodGet,
-				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?windowSize=HOUR",
+				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query",
+			},
+			res: testResponse{
+				status: http.StatusOK,
+				body: strings.Join(
+					[]string{
+						"window_start,window_end,subject,value",
+						"2021-01-01T00:00:00Z,2021-01-01T01:00:00Z,,300.000000",
+						"",
+					},
+					"\n",
+				),
+			},
+		},
+		{
+			name: "query meter as csv with subject",
+			req: testRequest{
+				accept:      "text/csv",
+				contentType: "text/csv",
+				method:      http.MethodGet,
+				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?subject=s1",
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -252,7 +290,7 @@ func TestRoutes(t *testing.T) {
 			name: "get meter values",
 			req: testRequest{
 				method: http.MethodGet,
-				path:   "/api/v1/meters/" + mockMeters[0].ID + "/values?windowSize=HOUR",
+				path:   "/api/v1/meters/" + mockMeters[0].ID + "/values?windowSize=HOUR&subject=s1",
 			},
 			res: testResponse{
 				status: http.StatusOK,
