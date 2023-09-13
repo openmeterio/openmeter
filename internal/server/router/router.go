@@ -439,7 +439,12 @@ func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request,
 
 	// CSV data
 	for _, row := range resp.Data {
-		data := []string{row.WindowStart.Format(time.RFC3339), row.WindowEnd.Format(time.RFC3339), *row.Subject}
+		data := []string{row.WindowStart.Format(time.RFC3339), row.WindowEnd.Format(time.RFC3339)}
+		if row.Subject != nil {
+			data = append(data, *row.Subject)
+		} else {
+			data = append(data, "")
+		}
 		for _, k := range groupByKeys {
 			data = append(data, row.GroupBy[k])
 		}
