@@ -123,7 +123,8 @@ func (d createMeterView) toSQL() (string, []interface{}, error) {
 	sbAs := sqlbuilder.ClickHouse.NewSelectBuilder()
 	sbAs.Select(asSelects...)
 	sbAs.From(eventsTableName)
-	sbAs.Where(fmt.Sprintf("type = '%s'", sqlbuilder.Escape(d.EventType)))
+	// We use absolute path for type to avoid shadowing in the case the materialized view have a `type` column due to group by
+	sbAs.Where(fmt.Sprintf("%s.type = '%s'", eventsTableName, sqlbuilder.Escape(d.EventType)))
 	sbAs.GroupBy(orderBy...)
 	sb.SQL(sbAs.String())
 	sql, args := sb.Build()
