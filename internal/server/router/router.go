@@ -1,11 +1,13 @@
 package router
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
+	"mime"
 	"net/http"
 	"strings"
 	"time"
@@ -374,7 +376,14 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 		}),
 	}
 
-	if r.Header.Get("Accept") == "text/csv" {
+	// Parse media type
+	mediatype, _, err := mime.ParseMediaType(r.Header.Get("Accept"))
+	if err != nil {
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		return
+	}
+
+	if mediatype == "text/csv" {
 		resp.RenderCSV(w, r, queryParams.GroupBy, meterIDOrSlug)
 	} else {
 		_ = render.Render(w, r, resp)
@@ -414,7 +423,7 @@ func (resp QueryMeterResponse) Render(_ http.ResponseWriter, _ *http.Request) er
 
 // RenderCSV renders the response as CSV.
 func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request, groupByKeys []string, meterIDOrSlug string) {
-	out := make([]string, 0, len(resp.Data)+1)
+	records := [][]string{}
 
 	// CSV headers
 	headers := []string{"window_start", "window_end", "subject"}
@@ -422,7 +431,7 @@ func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request,
 		headers = append(headers, groupByKeys...)
 	}
 	headers = append(headers, "value")
-	out = append(out, strings.Join(headers, ","))
+	records = append(records, headers)
 
 	// CSV data
 	for _, row := range resp.Data {
@@ -431,14 +440,19 @@ func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request,
 			data = append(data, row.GroupBy[k])
 		}
 		data = append(data, fmt.Sprintf("%f", row.Value))
-		out = append(out, strings.Join(data, ","))
+		records = append(records, data)
 	}
-
-	csvContent := strings.Join(out, "\n")
 
 	w.Header().Set("Content-Type", "text/csv")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", meterIDOrSlug))
-	w.Write([]byte(csvContent))
+
+	// Write response
+	writer := csv.NewWriter(w)
+	writer.WriteAll(records)
+
+	if err := writer.Error(); err != nil {
+		slog.Error("writing csv", "error", err)
+	}
 }
 
 // ListMeterSubjects lists the subjects of a meter.
