@@ -19,6 +19,7 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-slog/otelslog"
 	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
@@ -90,7 +91,7 @@ func main() {
 		panic(err)
 	}
 
-	logger := slog.New(conf.Telemetry.Log.NewHandler(os.Stdout))
+	logger := slog.New(otelslog.NewHandler(conf.Telemetry.Log.NewHandler(os.Stdout)))
 	slog.SetDefault(logger)
 
 	telemetryRouter := chi.NewRouter()
