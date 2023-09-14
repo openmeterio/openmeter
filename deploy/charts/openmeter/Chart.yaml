@@ -11,7 +11,7 @@ sources:
   - https://github.com/openmeterio/openmeter
 type: application
 version: 1.0.0-beta
-appVersion: "v1.0.0-beta.6"
+appVersion: "v1.0.0-beta.8"
 dependencies:
   - name: strimzi-kafka-operator
     version: "0.37.0"
