@@ -91,18 +91,6 @@ func main() {
 		panic(err)
 	}
 
-	logger := slog.New(otelslog.NewHandler(conf.Telemetry.Log.NewHandler(os.Stdout)))
-	logger = logger.With(
-		slog.String("service.name", "openmeter"),
-		slog.String("service.version", version),
-		slog.String("environment", conf.Environment),
-	)
-
-	slog.SetDefault(logger)
-
-	telemetryRouter := chi.NewRouter()
-	telemetryRouter.Mount("/debug", middleware.Profiler())
-
 	extraResources, _ := resource.New(
 		ctx,
 		resource.WithContainer(),
@@ -116,6 +104,14 @@ func main() {
 		resource.Default(),
 		extraResources,
 	)
+
+	logger := slog.New(otelslog.NewHandler(conf.Telemetry.Log.NewHandler(os.Stdout)))
+	logger = otelslog.WithResource(logger, res)
+
+	slog.SetDefault(logger)
+
+	telemetryRouter := chi.NewRouter()
+	telemetryRouter.Mount("/debug", middleware.Profiler())
 
 	exporter, err := prometheus.New()
 	if err != nil {

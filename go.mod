@@ -13,7 +13,7 @@ require (
 	github.com/getkin/kin-openapi v0.118.0
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/go-chi/render v1.0.3
-	github.com/go-slog/otelslog v0.0.1
+	github.com/go-slog/otelslog v0.1.0
 	github.com/hashicorp/golang-lru/v2 v2.0.5
 	github.com/huandu/go-sqlbuilder v1.22.0
 	github.com/lmittmann/tint v1.0.0
