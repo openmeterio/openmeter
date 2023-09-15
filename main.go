@@ -27,11 +27,8 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 	"go.opentelemetry.io/otel/trace"
 
@@ -92,7 +89,7 @@ func main() {
 	}
 
 	extraResources, _ := resource.New(
-		ctx,
+		context.Background(),
 		resource.WithContainer(),
 		resource.WithAttributes(
 			semconv.ServiceName("openmeter"),
@@ -113,49 +110,35 @@ func main() {
 	telemetryRouter := chi.NewRouter()
 	telemetryRouter.Mount("/debug", middleware.Profiler())
 
-	exporter, err := prometheus.New()
+	meterProvider, err := conf.Telemetry.Metrics.NewMeterProvider(context.Background(), res)
 	if err != nil {
-		logger.Error("initializing prometheus exporter: %v", err)
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
-
-	meterProvider := metric.NewMeterProvider(
-		metric.WithReader(exporter),
-		metric.WithResource(res),
-	)
 	defer func() {
-		if err := meterProvider.Shutdown(ctx); err != nil {
+		if err := meterProvider.Shutdown(context.Background()); err != nil {
 			logger.Error("shutting down meter provider: %v", err)
 		}
 	}()
 
 	otel.SetMeterProvider(meterProvider)
 
-	telemetryRouter.Handle("/metrics", promhttp.Handler())
-
-	traceProviderOptions := []sdktrace.TracerProviderOption{
-		sdktrace.WithResource(res),
-		sdktrace.WithSampler(conf.Telemetry.Trace.GetSampler()),
+	if conf.Telemetry.Metrics.Exporters.Prometheus.Enabled {
+		telemetryRouter.Handle("/metrics", promhttp.Handler())
 	}
 
-	if conf.Telemetry.Trace.Exporter.Enabled {
-		exporter, err := conf.Telemetry.Trace.Exporter.GetExporter()
-		if err != nil {
-			logger.Error(err.Error())
-			os.Exit(1)
-		}
-
-		traceProviderOptions = append(traceProviderOptions, sdktrace.WithBatcher(exporter))
+	tracerProvider, err := conf.Telemetry.Trace.NewTracerProvider(context.Background(), res)
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
 	}
-
-	traceProvider := sdktrace.NewTracerProvider(traceProviderOptions...)
 	defer func() {
-		if err := traceProvider.Shutdown(ctx); err != nil {
-			logger.Error("shutting down trace provider", "error", err)
+		if err := tracerProvider.Shutdown(context.Background()); err != nil {
+			logger.Error("shutting down tracer provider", "error", err)
 		}
 	}()
 
-	otel.SetTracerProvider(traceProvider)
+	otel.SetTracerProvider(tracerProvider)
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 
 	// Configure health checker
@@ -272,7 +255,7 @@ func main() {
 					}),
 					"",
 					otelhttp.WithMeterProvider(meterProvider),
-					otelhttp.WithTracerProvider(traceProvider),
+					otelhttp.WithTracerProvider(tracerProvider),
 				)
 			})
 		},
