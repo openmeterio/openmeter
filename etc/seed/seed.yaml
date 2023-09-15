@@ -19,7 +19,7 @@ input:
       let path = $paths.index(random_int(seed: timestamp_unix_nano()) % $paths.length())
       let region = $regions.index(random_int(seed: timestamp_unix_nano()) % $regions.length())
       let zone = "%s%s".format($region, $zoneSuffixes.index(random_int(seed: timestamp_unix_nano()) % $zoneSuffixes.length()))
-      let duration = random_int(seed:timestamp_unix_nano()) % 1000
+      let duration = random_int(seed: timestamp_unix_nano(), max: 1000)
 
       root.id = uuid_v4()
       root = {
