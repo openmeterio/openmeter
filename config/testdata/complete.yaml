@@ -6,10 +6,19 @@ telemetry:
   address: 127.0.0.1:10000
 
   trace:
-    exporter:
-      enabled: true
-      address: 127.0.0.1:4317
     sampler: always
+    exporters:
+      otlp:
+        enabled: true
+        address: 127.0.0.1:4317
+
+  metrics:
+    exporters:
+      prometheus:
+        enabled: true
+      otlp:
+        enabled: true
+        address: 127.0.0.1:4317
 
   log:
     format: json

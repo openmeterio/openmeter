@@ -14,17 +14,51 @@ import (
 	"github.com/lmittmann/tint"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/prometheus"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
+
+type OTLPExporterTelemetryConfig struct {
+	Address string
+}
+
+// Validate validates the configuration.
+func (c OTLPExporterTelemetryConfig) Validate() error {
+	if c.Address == "" {
+		return errors.New("address is required")
+	}
+
+	return nil
+}
+
+func (c OTLPExporterTelemetryConfig) DialExporter(ctx context.Context) (*grpc.ClientConn, error) {
+	conn, err := grpc.DialContext(
+		ctx,
+		c.Address,
+		// Note the use of insecure transport here. TLS is recommended in production.
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("connecting to collector: %w", err)
+	}
+
+	return conn, nil
+}
 
 type TelemetryConfig struct {
 	// Telemetry HTTP server address
 	Address string
 
 	Trace TraceTelemetryConfig
+
+	Metrics MetricsTelemetryConfig
 
 	Log LogTelemetryConfiguration
 }
@@ -39,6 +73,10 @@ func (c TelemetryConfig) Validate() error {
 		return fmt.Errorf("trace: %w", err)
 	}
 
+	if err := c.Metrics.Validate(); err != nil {
+		return fmt.Errorf("metrics: %w", err)
+	}
+
 	if err := c.Log.Validate(); err != nil {
 		return fmt.Errorf("log: %w", err)
 	}
@@ -47,8 +85,8 @@ func (c TelemetryConfig) Validate() error {
 }
 
 type TraceTelemetryConfig struct {
-	Exporter ExporterTraceTelemetryConfig
-	Sampler  string
+	Sampler   string
+	Exporters ExportersTraceTelemetryConfig
 }
 
 // Validate validates the configuration.
@@ -57,7 +95,7 @@ func (c TraceTelemetryConfig) Validate() error {
 		return fmt.Errorf("sampler either needs to be always|never or a ration, got: %s", c.Sampler)
 	}
 
-	if err := c.Exporter.Validate(); err != nil {
+	if err := c.Exporters.Validate(); err != nil {
 		return fmt.Errorf("exporter: %w", err)
 	}
 
@@ -82,49 +120,191 @@ func (c TraceTelemetryConfig) GetSampler() sdktrace.Sampler {
 	}
 }
 
-type ExporterTraceTelemetryConfig struct {
-	Enabled bool
-	Address string
+func (c TraceTelemetryConfig) NewTracerProvider(ctx context.Context, res *resource.Resource) (*sdktrace.TracerProvider, error) {
+	options := []sdktrace.TracerProviderOption{
+		sdktrace.WithResource(res),
+		sdktrace.WithSampler(c.GetSampler()),
+	}
+
+	if c.Exporters.OTLP.Enabled {
+		exporter, err := c.Exporters.OTLP.NewExporter(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		options = append(options, sdktrace.WithBatcher(exporter))
+	}
+
+	return sdktrace.NewTracerProvider(options...), nil
+}
+
+type ExportersTraceTelemetryConfig struct {
+	OTLP OTLPExportersTraceTelemetryConfig
 }
 
 // Validate validates the configuration.
-func (c ExporterTraceTelemetryConfig) Validate() error {
-	if !c.Enabled {
-		return nil
-	}
-
-	if c.Address == "" {
-		return errors.New("address is required")
+func (c ExportersTraceTelemetryConfig) Validate() error {
+	if err := c.OTLP.Validate(); err != nil {
+		return fmt.Errorf("otlp: %w", err)
 	}
 
 	return nil
 }
 
-func (c ExporterTraceTelemetryConfig) GetExporter() (sdktrace.SpanExporter, error) {
+type OTLPExportersTraceTelemetryConfig struct {
+	Enabled bool
+
+	OTLPExporterTelemetryConfig `mapstructure:",squash"`
+}
+
+// Validate validates the configuration.
+func (c OTLPExportersTraceTelemetryConfig) Validate() error {
 	if !c.Enabled {
-		return nil, errors.New("telemetry: trace: exporter: disabled")
+		return nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	return c.OTLPExporterTelemetryConfig.Validate()
+}
+
+// NewExporter creates a new [sdktrace.SpanExporter].
+func (c OTLPExportersTraceTelemetryConfig) NewExporter(ctx context.Context) (sdktrace.SpanExporter, error) {
+	if !c.Enabled {
+		return nil, errors.New("telemetry: trace: exporter: otlp: disabled")
+	}
+
+	// TODO: make this configurable
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 
-	conn, err := grpc.DialContext(
-		ctx,
-		c.Address,
-		// Note the use of insecure transport here. TLS is recommended in production.
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-	)
+	conn, err := c.DialExporter(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("telemetry: trace: exporter: %w", err)
+		return nil, fmt.Errorf("telemetry: trace: exporter: otlp: %w", err)
 	}
 
-	exporter, err := otlptracegrpc.New(context.Background(), otlptracegrpc.WithGRPCConn(conn))
+	exporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithGRPCConn(conn))
 	if err != nil {
-		return nil, fmt.Errorf("telemetry: trace: exporter: failed to create: %w", err)
+		return nil, fmt.Errorf("telemetry: trace: exporter: otlp: initializing exporter: %w", err)
 	}
 
 	return exporter, nil
+}
+
+type MetricsTelemetryConfig struct {
+	Exporters ExportersMetricsTelemetryConfig
+}
+
+// Validate validates the configuration.
+func (c MetricsTelemetryConfig) Validate() error {
+	if err := c.Exporters.Validate(); err != nil {
+		return fmt.Errorf("exporter: %w", err)
+	}
+
+	return nil
+}
+
+func (c MetricsTelemetryConfig) NewMeterProvider(ctx context.Context, res *resource.Resource) (*sdkmetric.MeterProvider, error) {
+	options := []sdkmetric.Option{
+		sdkmetric.WithResource(res),
+	}
+
+	if c.Exporters.Prometheus.Enabled {
+		exporter, err := c.Exporters.Prometheus.NewExporter()
+		if err != nil {
+			return nil, err
+		}
+
+		options = append(options, sdkmetric.WithReader(exporter))
+	}
+
+	if c.Exporters.OTLP.Enabled {
+		exporter, err := c.Exporters.OTLP.NewExporter(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		options = append(options, sdkmetric.WithReader(exporter))
+	}
+
+	return sdkmetric.NewMeterProvider(options...), nil
+}
+
+type ExportersMetricsTelemetryConfig struct {
+	Prometheus PrometheusExportersMetricsTelemetryConfig
+	OTLP       OTLPExportersMetricsTelemetryConfig
+}
+
+// Validate validates the configuration.
+func (c ExportersMetricsTelemetryConfig) Validate() error {
+	if err := c.Prometheus.Validate(); err != nil {
+		return fmt.Errorf("prometheus: %w", err)
+	}
+
+	if err := c.OTLP.Validate(); err != nil {
+		return fmt.Errorf("otlp: %w", err)
+	}
+
+	return nil
+}
+
+type PrometheusExportersMetricsTelemetryConfig struct {
+	Enabled bool
+}
+
+// Validate validates the configuration.
+func (c PrometheusExportersMetricsTelemetryConfig) Validate() error {
+	return nil
+}
+
+// NewExporter creates a new [sdkmetric.Reader].
+func (c PrometheusExportersMetricsTelemetryConfig) NewExporter() (sdkmetric.Reader, error) {
+	if !c.Enabled {
+		return nil, errors.New("telemetry: metrics: exporter: prometheus: disabled")
+	}
+
+	exporter, err := prometheus.New()
+	if err != nil {
+		return nil, fmt.Errorf("telemetry: metrics: exporter: prometheus: initializing exporter: %w", err)
+	}
+
+	return exporter, nil
+}
+
+type OTLPExportersMetricsTelemetryConfig struct {
+	Enabled bool
+
+	OTLPExporterTelemetryConfig `mapstructure:",squash"`
+}
+
+// Validate validates the configuration.
+func (c OTLPExportersMetricsTelemetryConfig) Validate() error {
+	if !c.Enabled {
+		return nil
+	}
+
+	return c.OTLPExporterTelemetryConfig.Validate()
+}
+
+// NewExporter creates a new [sdkmetric.Reader].
+func (c OTLPExportersMetricsTelemetryConfig) NewExporter(ctx context.Context) (sdkmetric.Reader, error) {
+	if !c.Enabled {
+		return nil, errors.New("telemetry: metrics: exporter: otlp: disabled")
+	}
+
+	// TODO: make this configurable
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
+	conn, err := c.DialExporter(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("telemetry: metrics: exporter: otlp: %w", err)
+	}
+
+	exporter, err := otlpmetricgrpc.New(ctx, otlpmetricgrpc.WithGRPCConn(conn))
+	if err != nil {
+		return nil, fmt.Errorf("telemetry: metrics: exporter: otlp: initializing exporter: %w", err)
+	}
+
+	return sdkmetric.NewPeriodicReader(exporter), nil
 }
 
 type LogTelemetryConfiguration struct {
@@ -174,8 +354,12 @@ func configureTelemetry(v *viper.Viper, flags *pflag.FlagSet) {
 	v.SetDefault("telemetry.address", ":10000")
 
 	v.SetDefault("telemetry.trace.sampler", "never")
-	v.SetDefault("telemetry.trace.exporter.enabled", false)
-	v.SetDefault("telemetry.trace.exporter.address", "")
+	v.SetDefault("telemetry.trace.exporters.otlp.enabled", false)
+	v.SetDefault("telemetry.trace.exporters.otlp.address", "")
+
+	v.SetDefault("telemetry.metrics.exporters.prometheus.enabled", false)
+	v.SetDefault("telemetry.metrics.exporters.otlp.enabled", false)
+	v.SetDefault("telemetry.metrics.exporters.otlp.address", "")
 
 	v.SetDefault("telemetry.log.format", "json")
 	v.SetDefault("telemetry.log.level", "info")

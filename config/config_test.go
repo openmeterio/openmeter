@@ -42,11 +42,28 @@ func TestComplete(t *testing.T) {
 		Telemetry: TelemetryConfig{
 			Address: "127.0.0.1:10000",
 			Trace: TraceTelemetryConfig{
-				Exporter: ExporterTraceTelemetryConfig{
-					Enabled: true,
-					Address: "127.0.0.1:4317",
-				},
 				Sampler: "always",
+				Exporters: ExportersTraceTelemetryConfig{
+					OTLP: OTLPExportersTraceTelemetryConfig{
+						Enabled: true,
+						OTLPExporterTelemetryConfig: OTLPExporterTelemetryConfig{
+							Address: "127.0.0.1:4317",
+						},
+					},
+				},
+			},
+			Metrics: MetricsTelemetryConfig{
+				Exporters: ExportersMetricsTelemetryConfig{
+					Prometheus: PrometheusExportersMetricsTelemetryConfig{
+						Enabled: true,
+					},
+					OTLP: OTLPExportersMetricsTelemetryConfig{
+						Enabled: true,
+						OTLPExporterTelemetryConfig: OTLPExporterTelemetryConfig{
+							Address: "127.0.0.1:4317",
+						},
+					},
+				},
 			},
 			Log: LogTelemetryConfiguration{
 				Format: "json",
