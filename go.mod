@@ -16,7 +16,7 @@ require (
 	github.com/go-slog/otelslog v0.1.0
 	github.com/hashicorp/golang-lru/v2 v2.0.5
 	github.com/huandu/go-sqlbuilder v1.22.0
-	github.com/lmittmann/tint v1.0.0
+	github.com/lmittmann/tint v1.0.2
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oklog/run v1.1.0
 	github.com/oklog/ulid/v2 v2.1.0
