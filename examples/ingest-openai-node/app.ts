@@ -2,59 +2,49 @@ import assert from 'assert'
 
 import 'dotenv/config'
 import { OpenMeter, WindowSize } from '@openmeter/sdk'
-import { Configuration, OpenAIApi } from 'openai'
+import OpenAI from 'openai'
 import dayjs from 'dayjs'
 
-// Environment variables
-assert.ok(
-  process.env.OPENAI_ORG,
-  'OPENAI_ORG environment variables is required'
-)
-assert.ok(
-  process.env.OPENAI_API_KEY,
-  'OPENAI_API_KEY environment variables is required'
-)
+const apiKey = process.env.OPENAI_API_KEY
 
-const configuration = new Configuration({
-  organization: process.env.OPENAI_ORG,
-  apiKey: process.env.OPENAI_API_KEY,
-})
-const openai = new OpenAIApi(configuration)
+// Environment variables
+assert.ok(apiKey, 'OPENAI_API_KEY environment variables is required')
+
+const openai = new OpenAI({ apiKey })
 const openmeter = new OpenMeter({ baseUrl: 'http://localhost:8888' })
 
 async function main() {
-  const { data } = await openai.createChatCompletion({
-    model: 'gpt-3.5-turbo',
-    messages: [{ role: 'user', content: 'Hello world' }],
+  const model = 'gpt-3.5-turbo'
+  const completion = await await openai.chat.completions.create({
+    model,
+    messages: [{ role: 'user', content: 'Say Hello OpenMeter!' }],
   })
 
-  if (data.usage) {
+  if (completion.usage) {
     await openmeter.events.ingest({
       specversion: '1.0',
       // We use Open AI response ID as idempotent key
-      id: data.id,
+      id: completion.id,
       source: 'my-app',
       type: 'openai',
       subject: 'my-awesome-user-id',
       // We get date from Open AI response
-      time: new Date(data.created * 1000),
+      time: new Date(completion.created * 1000),
       // We report usage with model
       data: {
-        total_tokens: data.usage.total_tokens,
-        prompt_tokens: data.usage.prompt_tokens,
-        completion_tokens: data.usage.completion_tokens,
-        model: data.model,
+        total_tokens: completion.usage.total_tokens,
+        model,
       },
     })
 
     // Debug logs
     console.debug(
-      `input: Hello world, output: ${data.choices
+      `input: Hello world, output: ${completion.choices
         .map(({ message }) => message?.content)
         .join(' ')}`
     )
     console.debug(
-      `total_tokens: ${data.usage.total_tokens}, subject: my-awesome-user-id`
+      `total_tokens: ${completion.usage.total_tokens}, subject: my-awesome-user-id`
     )
   }
 }
@@ -64,14 +54,15 @@ async function main() {
 async function query() {
   const from = dayjs().startOf('day').toDate()
   const to = dayjs(from).add(1, 'day').toDate()
-  const { data: values } = await openmeter.meters.values('m2', {
-    subject: 'my-awesome-user-id',
+  const { data: values } = await openmeter.meters.query('m2', {
+    subject: ['my-awesome-user-id'],
+    groupBy: ['model'],
     from,
     to,
-    windowSize: WindowSize.DAY
+    windowSize: WindowSize.DAY,
   })
 
-  console.log('Collected meter values:')
+  console.log('Query meter:')
   console.log(JSON.stringify(values, null, 2))
   // Will print similar to:
   // [
@@ -80,7 +71,7 @@ async function query() {
   //         windowStart: '2023-07-25T00:00:00Z',
   //         windowEnd: '2023-07-26T00:00:00Z',
   //         value: 71,
-  //         groupBy: { 'model': 'gpt-3.5-turbo-0613' }
+  //         groupBy: { 'model': 'gpt-3.5-turbo' }
   //     }
   // ]
 
@@ -91,14 +82,14 @@ async function query() {
   //       windowStart: '2023-07-25T00:00:00Z',
   //       windowEnd: '2023-07-26T00:00:00Z',
   //       value: 19,
-  //       groupBy: { 'model': 'gpt-3.5-turbo-0301' }
+  //       groupBy: { 'model': 'gpt-3.5-turbo' }
   //     },
   //     {
   //       subject: 'my-awesome-user-id',
   //       windowStart: '2023-07-25T00:00:00Z',
   //       windowEnd: '2023-07-26T00:00:00Z',
   //       value: 89,
-  //       groupBy: { 'model': 'gpt-3.5-turbo-0613' }
+  //       groupBy: { 'model': 'gpt-4' }
   //     }
   // ]
 
