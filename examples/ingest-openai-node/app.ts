@@ -33,6 +33,8 @@ async function main() {
       // We report usage with model
       data: {
         total_tokens: completion.usage.total_tokens,
+        prompt_tokens: completion.usage.prompt_tokens,
+        completion_tokens: completion.usage.completion_tokens,
         model,
       },
     })
