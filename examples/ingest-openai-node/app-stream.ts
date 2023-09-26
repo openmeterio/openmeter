@@ -26,7 +26,7 @@ async function main() {
   let completionTokens = 0;
 
   // Create a stream of chat completions
-  const stream = await await openai.chat.completions.create({
+  const stream = await openai.chat.completions.create({
     model,
     messages,
     stream: true,
