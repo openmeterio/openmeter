@@ -1,0 +1,11 @@
+# python
+.python-version
+__pycache__/
+*.pyc
+build
+dist
+pydo.egg-info
+.venv
+
+# generate
+openapi.yaml

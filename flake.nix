@@ -22,6 +22,8 @@
             languages = {
               go.enable = true;
               go.package = pkgs.go_1_21;
+              python.enable = true;
+              python.package = pkgs.python39;
             };
 
             pre-commit.hooks = {
@@ -60,6 +62,9 @@
               minikube
 
               benthos
+
+              # python
+              poetry
             ] ++ [
               self'.packages.licensei
               self'.packages.golangci-lint
