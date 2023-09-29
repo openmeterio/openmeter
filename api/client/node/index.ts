@@ -11,6 +11,8 @@ export {
   WindowSize,
 } from './clients/meter.js'
 
+export { createOpenAIStreamCallback } from './next.js'
+
 export class OpenMeter {
   public events: EventsClient
   public meters: MetersClient

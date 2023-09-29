@@ -49,6 +49,10 @@
     "current node"
   ],
   "dependencies": {
+    "ai": "^2.2.13",
     "undici": "^5.24.0"
+  },
+  "optionalDependencies": {
+    "js-tiktoken": "^1.0.7"
   }
 }
