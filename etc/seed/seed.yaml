@@ -7,6 +7,7 @@ input:
       let max_subjects = ${SEEDER_MAX_SUBJECTS:100}
 
       let event_type = "api-calls"
+      let source = "api-gateway"
       let methods = ["GET", "POST"]
       let paths = ["/", "/about", "/contact", "/pricing", "/docs"]
       let regions = ["us-east-1", "us-west-1", "us-east-2", "us-west-2"]
@@ -24,7 +25,9 @@ input:
       root.id = uuid_v4()
       root = {
         "id": uuid_v4(),
+        "specversion": "1.0",
         "type": $event_type,
+        "source": $source,
         "subject": $subject,
         "time": $time,
         "data": {
@@ -35,14 +38,6 @@ input:
           "duration_ms": $duration,
         },
       }
-
-pipeline:
-  processors:
-    - bloblang: |
-        root = this
-
-        root.specversion = "1.0"
-        root.source = "api-gateway"
 
 output:
   switch:
