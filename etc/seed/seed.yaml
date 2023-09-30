@@ -22,7 +22,6 @@ input:
       let zone = "%s%s".format($region, $zoneSuffixes.index(random_int(seed: timestamp_unix_nano()) % $zoneSuffixes.length()))
       let duration = random_int(seed: timestamp_unix_nano(), max: 1000)
 
-      root.id = uuid_v4()
       root = {
         "id": uuid_v4(),
         "specversion": "1.0",
