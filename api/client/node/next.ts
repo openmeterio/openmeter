@@ -47,7 +47,7 @@ export function createOpenAIStreamCallback(
         return openAIStreamCallbacks.onStart()
       }
     },
-    onToken: (content) => {
+    onToken(content) {
       // To test tokenizaton see: https://platform.openai.com/tokenizer
       const tokens = enc.encode(content)
       completionTokens += tokens.length

@@ -27,12 +27,10 @@ describe('next', () => {
           }
         )
 
-        streamCallbacks.onStart && streamCallbacks.onStart()
-        streamCallbacks.onToken && streamCallbacks.onToken('Hello ')
-        streamCallbacks.onToken && streamCallbacks.onToken(' World!')
-        streamCallbacks.onFinal && streamCallbacks.onFinal('Hello World!')
-
-        expect(true).toBe(true)
+        streamCallbacks.onStart!()
+        streamCallbacks.onToken!('Hello ')
+        streamCallbacks.onToken!(' World!')
+        streamCallbacks.onFinal!('Hello World!')
       }))
 
     it('should call methods', () =>
@@ -62,14 +60,11 @@ describe('next', () => {
           callbacks
         )
 
-        streamCallbacks.onStart && streamCallbacks.onStart()
-        streamCallbacks.onToken && streamCallbacks.onToken('Hello ')
-        streamCallbacks.onToken && streamCallbacks.onToken(' World!')
-        streamCallbacks.onCompletion &&
-          streamCallbacks.onCompletion('Hello World!')
-        streamCallbacks.onFinal && streamCallbacks.onFinal('Hello World!')
-
-        expect(true).toBe(true)
+        streamCallbacks.onStart!()
+        streamCallbacks.onToken!('Hello ')
+        streamCallbacks.onToken!(' World!')
+        streamCallbacks.onCompletion!('Hello World!')
+        streamCallbacks.onFinal!('Hello World!')
       }))
   })
 })
