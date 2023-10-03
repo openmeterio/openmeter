@@ -6,7 +6,11 @@ Python version: >= 3.9
 
 ## Install
 
-TODO
+> The Python SDK is in preview mode.
+
+```sh
+pip install -e "git+https://github.com/openmeterio/openmeter.git@main#egg=openmeter&subdirectory=api/client/python"
+```
 
 ## Quickstart
 
