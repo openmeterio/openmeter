@@ -46,9 +46,9 @@ describe('sdk', () => {
       })
     })
 
-    describe('query', () => {
-      it('should query events', async ({ openmeter }) => {
-        const events = await openmeter.events.query()
+    describe('list', () => {
+      it('should list events', async ({ openmeter }) => {
+        const events = await openmeter.events.list()
         const expected = {
           ...mockEvent,
           time: mockEvent.time?.toISOString(),

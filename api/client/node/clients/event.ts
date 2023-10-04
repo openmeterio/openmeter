@@ -118,9 +118,9 @@ export class EventsClient extends BaseClient {
   }
 
   /**
-   * Query events
+   * List raw events
    */
-  public async query(
+  public async list(
     params?: EventsQueryParams,
     options?: RequestOptions
   ): Promise<CloudEvents[]> {

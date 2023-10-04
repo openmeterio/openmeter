@@ -9,7 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type QueryEventsParams struct {
+type ListEventsParams struct {
 	Limit int
 }
 
@@ -29,7 +29,7 @@ type QueryResult struct {
 }
 
 type Connector interface {
-	QueryEvents(ctx context.Context, namespace string, params QueryEventsParams) ([]event.Event, error)
+	ListEvents(ctx context.Context, namespace string, params ListEventsParams) ([]event.Event, error)
 	CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error
 	DeleteMeter(ctx context.Context, namespace string, meterSlug string) error
 	QueryMeter(ctx context.Context, namespace string, meterSlug string, params *QueryParams) (*QueryResult, error)

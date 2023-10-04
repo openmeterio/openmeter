@@ -45,7 +45,7 @@ func NewClickhouseConnector(config ClickhouseConnectorConfig) (*ClickhouseConnec
 	return connector, nil
 }
 
-func (c *ClickhouseConnector) QueryEvents(ctx context.Context, namespace string, params streaming.QueryEventsParams) ([]event.Event, error) {
+func (c *ClickhouseConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]event.Event, error) {
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
@@ -181,7 +181,7 @@ func (c *ClickhouseConnector) createEventsTable(ctx context.Context, namespace s
 	return nil
 }
 
-func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace string, params streaming.QueryEventsParams) ([]event.Event, error) {
+func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]event.Event, error) {
 	table := queryEventsTable{
 		Database:        c.config.Database,
 		EventsTableName: getEventsTableName(namespace),
