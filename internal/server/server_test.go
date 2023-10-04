@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cloudevents/sdk-go/v2/event"
 	cloudevents "github.com/cloudevents/sdk-go/v2/event"
 	"github.com/go-chi/chi/v5"
 	"github.com/oklog/ulid/v2"
@@ -23,6 +24,8 @@ import (
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
+
+var mockEvent = event.New()
 
 var mockMeters = []models.Meter{
 	{ID: ulid.Make().String(), Slug: "meter1", WindowSize: models.WindowSizeMinute, Aggregation: models.MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
@@ -37,6 +40,11 @@ var mockQueryValue = models.MeterValue{
 }
 
 type MockConnector struct{}
+
+func (c *MockConnector) QueryEvents(ctx context.Context, namespace string, params streaming.QueryEventsParams) ([]event.Event, error) {
+	events := []event.Event{mockEvent}
+	return events, nil
+}
 
 func (c *MockConnector) CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error {
 	return nil
@@ -129,6 +137,18 @@ func TestRoutes(t *testing.T) {
 			},
 			res: testResponse{
 				status: http.StatusOK,
+			},
+		},
+		{
+			name: "query events",
+			req: testRequest{
+				method:      http.MethodGet,
+				path:        "/api/v1/events",
+				contentType: "application/json",
+			},
+			res: testResponse{
+				status: http.StatusOK,
+				body:   []cloudevents.Event{mockEvent},
 			},
 		},
 		{

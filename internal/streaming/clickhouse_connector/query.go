@@ -13,15 +13,15 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
+type column struct {
+	Name string
+	Type string
+}
+
 // Create Events Table
 type createEventsTable struct {
 	Database        string
 	EventsTableName string
-}
-
-type column struct {
-	Name string
-	Type string
 }
 
 func (d createEventsTable) toSQL() string {
@@ -42,6 +42,25 @@ func (d createEventsTable) toSQL() string {
 
 	sql, _ := sb.Build()
 	return sql
+}
+
+type queryEventsTable struct {
+	Database        string
+	EventsTableName string
+	Limit           int
+}
+
+func (d queryEventsTable) toSQL() (string, []interface{}, error) {
+	tableName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.EventsTableName))
+
+	query := sqlbuilder.ClickHouse.NewSelectBuilder()
+	query.Select("id", "type", "subject", "source", "time", "data")
+	query.From(tableName)
+	query.Desc().OrderBy("time")
+	query.Limit(d.Limit)
+
+	sql, args := query.Build()
+	return sql, args, nil
 }
 
 type createMeterView struct {

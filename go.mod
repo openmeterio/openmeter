@@ -18,6 +18,7 @@ require (
 	github.com/huandu/go-sqlbuilder v1.22.0
 	github.com/lmittmann/tint v1.0.2
 	github.com/mitchellh/mapstructure v1.5.0
+	github.com/oapi-codegen/runtime v1.0.0
 	github.com/oklog/run v1.1.0
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/prometheus/client_golang v1.17.0
