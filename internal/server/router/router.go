@@ -108,6 +108,12 @@ func (a *Router) QueryEvents(w http.ResponseWriter, r *http.Request, params api.
 	if params.Limit != nil {
 		limit = *params.Limit
 	}
+	if limit > 100 {
+		err := errors.New("limit must be less than or equal to 100")
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		return
+	}
+
 	queryParams := streaming.QueryEventsParams{
 		Limit: limit,
 	}
@@ -115,7 +121,7 @@ func (a *Router) QueryEvents(w http.ResponseWriter, r *http.Request, params api.
 	events, err := a.config.StreamingConnector.QueryEvents(r.Context(), namespace, queryParams)
 	if err != nil {
 		if _, ok := err.(*models.NamespaceNotFoundError); ok {
-			logger.Warn("namespace not found")
+			logger.Warn("namespace not found", "error", err)
 			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
 			return
 		}
@@ -194,7 +200,7 @@ func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSl
 	err := a.config.StreamingConnector.DeleteMeter(r.Context(), namespace, meterIdOrSlug)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
-			logger.Warn("meter not found")
+			logger.Warn("meter not found", "error", err)
 			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
 			return
 		}
