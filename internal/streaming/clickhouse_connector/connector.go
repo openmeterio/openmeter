@@ -50,7 +50,7 @@ func (c *ClickhouseConnector) QueryEvents(ctx context.Context, namespace string,
 		return nil, fmt.Errorf("namespace is required")
 	}
 
-	subjects, err := c.queryEventsTable(ctx, namespace, params)
+	events, err := c.queryEventsTable(ctx, namespace, params)
 	if err != nil {
 		if _, ok := err.(*models.NamespaceNotFoundError); ok {
 			return nil, err
@@ -59,7 +59,7 @@ func (c *ClickhouseConnector) QueryEvents(ctx context.Context, namespace string,
 		return nil, fmt.Errorf("query events: %w", err)
 	}
 
-	return subjects, nil
+	return events, nil
 }
 
 func (c *ClickhouseConnector) CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error {
@@ -209,15 +209,15 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 		var subject string
 		var source string
 		var time time.Time
-		var data string
+		var dataStr string
 
-		if err = rows.Scan(&id, &eventType, &subject, &source, &time, &data); err != nil {
+		if err = rows.Scan(&id, &eventType, &subject, &source, &time, &dataStr); err != nil {
 			return nil, err
 		}
 
 		// Parse data
-		var jsonData interface{}
-		err := json.Unmarshal([]byte(data), &jsonData)
+		var data interface{}
+		err := json.Unmarshal([]byte(dataStr), &data)
 		if err != nil {
 			return nil, fmt.Errorf("query events parse data: %w", err)
 		}
@@ -229,7 +229,7 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 		event.SetSource(source)
 		event.SetTime(time)
 		event.SetDataContentType("application/json")
-		event.SetData("application/json", jsonData)
+		event.SetData("application/json", data)
 
 		events = append(events, event)
 	}
