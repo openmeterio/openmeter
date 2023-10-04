@@ -228,8 +228,10 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 		event.SetSubject(subject)
 		event.SetSource(source)
 		event.SetTime(time)
-		event.SetDataContentType("application/json")
-		event.SetData("application/json", data)
+		err = event.SetData("application/json", data)
+		if err != nil {
+			return nil, fmt.Errorf("query events set data: %w", err)
+		}
 
 		events = append(events, event)
 	}
