@@ -1,5 +1,5 @@
 import { MockAgent } from 'undici'
-import { mockMeter, mockMeterValue } from './mocks.js'
+import { mockEvent, mockMeter, mockMeterValue } from './mocks.js'
 
 export const mockAgent = new MockAgent()
 mockAgent.disableNetConnect()
@@ -26,6 +26,20 @@ client
     }),
   })
   .reply(204)
+
+client
+  .intercept({
+    path: `/api/v1/events`,
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(200, [mockEvent], {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
 
 client
   .intercept({

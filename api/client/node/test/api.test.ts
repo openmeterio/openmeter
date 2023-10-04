@@ -4,7 +4,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 // test built version
 import { OpenMeter, type Event, WindowSize } from '../dist/index.js'
 import { mockAgent } from './agent.js'
-import { mockMeter, mockMeterValue } from './mocks.js'
+import { mockEvent, mockMeter, mockMeterValue } from './mocks.js'
 
 declare module 'vitest' {
   export interface TestContext {
@@ -24,18 +24,7 @@ describe('sdk', () => {
   describe('events', () => {
     describe('ingest', () => {
       it('should ingest event', async ({ openmeter }) => {
-        const event: Event = {
-          specversion: '1.0',
-          id: 'id-1',
-          source: 'my-app',
-          type: 'my-type',
-          subject: 'my-awesome-user-id',
-          time: new Date('2023-01-01'),
-          data: {
-            api_calls: 1,
-          },
-        }
-        const data = await openmeter.events.ingest(event)
+        const data = await openmeter.events.ingest(mockEvent)
         expect(data).toBeUndefined()
       })
 
@@ -54,6 +43,17 @@ describe('sdk', () => {
 
         const data = await openmeter.events.ingest(event)
         expect(data).toBeUndefined()
+      })
+    })
+
+    describe('query', () => {
+      it('should query events', async ({ openmeter }) => {
+        const events = await openmeter.events.query()
+        const expected = {
+          ...mockEvent,
+          time: mockEvent.time?.toISOString(),
+        }
+        expect(events).toEqual([expected])
       })
     })
   })

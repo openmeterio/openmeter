@@ -95,3 +95,13 @@ List meter subjects.
 ```ts
 const subjects = await openmeter.meters.subjects('my-meter-slug')
 ```
+
+### Raw Events
+
+#### query events
+
+Query latest raw events. Useful for debugging.
+
+```ts
+const events = await openmeter.events.query()
+```
