@@ -39,8 +39,8 @@ paths:
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
     get:
-      description: Query latest events.
-      operationId: queryEvents
+      description: Retrieve latest raw events.
+      operationId: listEvents
       parameters:
         - $ref: "#/components/parameters/namespaceParam"
         - name: limit

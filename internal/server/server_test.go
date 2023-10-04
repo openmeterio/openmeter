@@ -41,7 +41,7 @@ var mockQueryValue = models.MeterValue{
 
 type MockConnector struct{}
 
-func (c *MockConnector) QueryEvents(ctx context.Context, namespace string, params streaming.QueryEventsParams) ([]event.Event, error) {
+func (c *MockConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]event.Event, error) {
 	events := []event.Event{mockEvent}
 	return events, nil
 }

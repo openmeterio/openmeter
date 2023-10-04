@@ -98,10 +98,10 @@ const subjects = await openmeter.meters.subjects('my-meter-slug')
 
 ### Raw Events
 
-#### query events
+#### list events
 
-Query latest raw events. Useful for debugging.
+Retrieve latest raw events. Useful for debugging.
 
 ```ts
-const events = await openmeter.events.query()
+const events = await openmeter.events.list()
 ```

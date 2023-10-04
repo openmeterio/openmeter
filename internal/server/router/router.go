@@ -96,7 +96,7 @@ func (a *Router) IngestEvents(w http.ResponseWriter, r *http.Request, params api
 	a.config.IngestHandler.ServeHTTP(w, r, params)
 }
 
-func (a *Router) QueryEvents(w http.ResponseWriter, r *http.Request, params api.QueryEventsParams) {
+func (a *Router) ListEvents(w http.ResponseWriter, r *http.Request, params api.ListEventsParams) {
 	logger := slog.With("operation", "queryEvents")
 
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
@@ -119,11 +119,11 @@ func (a *Router) QueryEvents(w http.ResponseWriter, r *http.Request, params api.
 		return
 	}
 
-	queryParams := streaming.QueryEventsParams{
+	queryParams := streaming.ListEventsParams{
 		Limit: limit,
 	}
 
-	events, err := a.config.StreamingConnector.QueryEvents(r.Context(), namespace, queryParams)
+	events, err := a.config.StreamingConnector.ListEvents(r.Context(), namespace, queryParams)
 	if err != nil {
 		if _, ok := err.(*models.NamespaceNotFoundError); ok {
 			logger.Warn("namespace not found", "error", err)
