@@ -96,6 +96,50 @@ func (a *Router) IngestEvents(w http.ResponseWriter, r *http.Request, params api
 	a.config.IngestHandler.ServeHTTP(w, r, params)
 }
 
+func (a *Router) QueryEvents(w http.ResponseWriter, r *http.Request, params api.QueryEventsParams) {
+	logger := slog.With("operation", "queryEvents")
+
+	namespace := a.config.NamespaceManager.GetDefaultNamespace()
+	if params.NamespaceInput != nil {
+		namespace = *params.NamespaceInput
+	}
+
+	limit := 100
+	if params.Limit != nil {
+		limit = *params.Limit
+	}
+	if limit < 1 {
+		err := errors.New("limit must be greater than or equal to 1")
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		return
+	}
+	if limit > 100 {
+		err := errors.New("limit must be less than or equal to 100")
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		return
+	}
+
+	queryParams := streaming.QueryEventsParams{
+		Limit: limit,
+	}
+
+	events, err := a.config.StreamingConnector.QueryEvents(r.Context(), namespace, queryParams)
+	if err != nil {
+		if _, ok := err.(*models.NamespaceNotFoundError); ok {
+			logger.Warn("namespace not found", "error", err)
+			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
+			return
+		}
+
+		logger.Error("query events", "error", err)
+		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+		return
+
+	}
+
+	render.JSON(w, r, events)
+}
+
 func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request, params api.ListMetersParams) {
 	logger := slog.With("operation", "listMeters")
 
@@ -161,7 +205,7 @@ func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSl
 	err := a.config.StreamingConnector.DeleteMeter(r.Context(), namespace, meterIdOrSlug)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
-			logger.Warn("meter not found")
+			logger.Warn("meter not found", "error", err)
 			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
 			return
 		}

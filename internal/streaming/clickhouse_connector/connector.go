@@ -2,6 +2,7 @@ package clickhouse_connector
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"regexp"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/cloudevents/sdk-go/v2/event"
 
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/streaming"
@@ -41,6 +43,23 @@ func NewClickhouseConnector(config ClickhouseConnectorConfig) (*ClickhouseConnec
 	}
 
 	return connector, nil
+}
+
+func (c *ClickhouseConnector) QueryEvents(ctx context.Context, namespace string, params streaming.QueryEventsParams) ([]event.Event, error) {
+	if namespace == "" {
+		return nil, fmt.Errorf("namespace is required")
+	}
+
+	events, err := c.queryEventsTable(ctx, namespace, params)
+	if err != nil {
+		if _, ok := err.(*models.NamespaceNotFoundError); ok {
+			return nil, err
+		}
+
+		return nil, fmt.Errorf("query events: %w", err)
+	}
+
+	return events, nil
 }
 
 func (c *ClickhouseConnector) CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error {
@@ -160,6 +179,64 @@ func (c *ClickhouseConnector) createEventsTable(ctx context.Context, namespace s
 	}
 
 	return nil
+}
+
+func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace string, params streaming.QueryEventsParams) ([]event.Event, error) {
+	table := queryEventsTable{
+		Database:        c.config.Database,
+		EventsTableName: getEventsTableName(namespace),
+		Limit:           params.Limit,
+	}
+
+	sql, _, err := table.toSQL()
+	if err != nil {
+		return nil, fmt.Errorf("query events table to sql: %w", err)
+	}
+	rows, err := c.config.ClickHouse.Query(ctx, sql)
+	if err != nil {
+		if strings.Contains(err.Error(), "code: 60") {
+			return nil, &models.NamespaceNotFoundError{Namespace: namespace}
+		}
+
+		return nil, fmt.Errorf("query events table query: %w", err)
+	}
+
+	events := []event.Event{}
+
+	for rows.Next() {
+		var id string
+		var eventType string
+		var subject string
+		var source string
+		var time time.Time
+		var dataStr string
+
+		if err = rows.Scan(&id, &eventType, &subject, &source, &time, &dataStr); err != nil {
+			return nil, err
+		}
+
+		// Parse data
+		var data interface{}
+		err := json.Unmarshal([]byte(dataStr), &data)
+		if err != nil {
+			return nil, fmt.Errorf("query events parse data: %w", err)
+		}
+
+		event := event.New()
+		event.SetID(id)
+		event.SetType(eventType)
+		event.SetSubject(subject)
+		event.SetSource(source)
+		event.SetTime(time)
+		err = event.SetData("application/json", data)
+		if err != nil {
+			return nil, fmt.Errorf("query events set data: %w", err)
+		}
+
+		events = append(events, event)
+	}
+
+	return events, nil
 }
 
 func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace string, meter *models.Meter) error {

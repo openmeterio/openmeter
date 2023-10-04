@@ -32,6 +32,38 @@ func TestCreateEventsTable(t *testing.T) {
 	}
 }
 
+func TestQueryEventsTable(t *testing.T) {
+	tests := []struct {
+		query    queryEventsTable
+		wantSQL  string
+		wantArgs []interface{}
+	}{
+		{
+			query: queryEventsTable{
+				Database:        "openmeter",
+				EventsTableName: "meter_events",
+				Limit:           100,
+			},
+			wantSQL:  "SELECT id, type, subject, source, time, data FROM openmeter.meter_events ORDER BY time DESC LIMIT 100",
+			wantArgs: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run("", func(t *testing.T) {
+			gotSql, gotArgs, err := tt.query.toSQL()
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
+			assert.Equal(t, tt.wantArgs, gotArgs)
+			assert.Equal(t, tt.wantSQL, gotSql)
+		})
+	}
+}
+
 func TestCreateMeterView(t *testing.T) {
 	tests := []struct {
 		query    createMeterView

@@ -38,6 +38,35 @@ paths:
           $ref: "#/components/responses/BadRequestProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
+    get:
+      description: Query latest events.
+      operationId: queryEvents
+      parameters:
+        - $ref: "#/components/parameters/namespaceParam"
+        - name: limit
+          in: query
+          required: false
+          description: Number of events to return.
+          schema:
+            type: integer
+            min: 1
+            max: 100
+      tags:
+        - Events
+      responses:
+        "200":
+          description: Events response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Event"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+
   /api/v1/meters:
     get:
       description: List meters
