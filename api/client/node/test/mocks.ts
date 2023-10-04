@@ -1,4 +1,16 @@
-import { Meter, WindowSize } from '../index.js'
+import { Event, Meter, WindowSize } from '../index.js'
+
+export const mockEvent: Event = {
+  specversion: '1.0',
+  id: 'id-1',
+  source: 'my-app',
+  type: 'my-type',
+  subject: 'my-awesome-user-id',
+  time: new Date('2023-01-01'),
+  data: {
+    api_calls: 1,
+  },
+}
 
 export const mockMeter: Meter = {
   slug: 'm1',

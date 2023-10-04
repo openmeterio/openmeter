@@ -5,6 +5,8 @@
 
 export interface paths {
   '/api/v1/events': {
+    /** @description Query latest events. */
+    get: operations['queryEvents']
     /** @description Ingest events */
     post: operations['ingestEvents']
   }
@@ -270,6 +272,28 @@ export type $defs = Record<string, never>
 export type external = Record<string, never>
 
 export interface operations {
+  /** @description Query latest events. */
+  queryEvents: {
+    parameters: {
+      query?: {
+        /** @description Number of events to return. */
+        limit?: number
+      }
+      header?: {
+        'OM-Namespace'?: components['parameters']['namespaceParam']
+      }
+    }
+    responses: {
+      /** @description Events response */
+      200: {
+        content: {
+          'application/json': components['schemas']['Event'][]
+        }
+      }
+      400: components['responses']['BadRequestProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
   /** @description Ingest events */
   ingestEvents: {
     parameters: {
