@@ -30,7 +30,7 @@ ARG VERSION
 RUN go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter .
 RUN xx-verify /usr/local/bin/openmeter
 
-FROM gcr.io/distroless/base-debian11:latest@sha256:46c5b9bd3e3efff512e28350766b54355fce6337a0b44ba3f822ab918eca4520 AS distroless
+FROM gcr.io/distroless/base-debian11:latest@sha256:a35b6525fde5572656e24109064dd147fbaedc26e5a7ccd147ff3ed3a4308c21 AS distroless
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
