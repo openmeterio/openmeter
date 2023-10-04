@@ -49,7 +49,7 @@ paths:
           description: Number of events to return.
           schema:
             type: integer
-            min: 0
+            min: 1
             max: 100
       tags:
         - Events

@@ -108,6 +108,11 @@ func (a *Router) QueryEvents(w http.ResponseWriter, r *http.Request, params api.
 	if params.Limit != nil {
 		limit = *params.Limit
 	}
+	if limit < 1 {
+		err := errors.New("limit must be greater than or equal to 1")
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		return
+	}
 	if limit > 100 {
 		err := errors.New("limit must be less than or equal to 100")
 		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
