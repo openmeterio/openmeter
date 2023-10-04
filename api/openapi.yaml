@@ -62,6 +62,8 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Event"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
 
