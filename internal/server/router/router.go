@@ -114,6 +114,12 @@ func (a *Router) QueryEvents(w http.ResponseWriter, r *http.Request, params api.
 
 	events, err := a.config.StreamingConnector.QueryEvents(r.Context(), namespace, queryParams)
 	if err != nil {
+		if _, ok := err.(*models.NamespaceNotFoundError); ok {
+			logger.Warn("namespace not found")
+			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
+			return
+		}
+
 		logger.Error("query events", "error", err)
 		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
 		return
