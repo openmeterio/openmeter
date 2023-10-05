@@ -147,7 +147,7 @@ export async function POST(req: Request) {
               model,
             },
           })
-        } catch(err) {
+        } catch (err) {
           console.error('failed to ingest usage', err)
         }
       },
