@@ -10,10 +10,10 @@ type OpenAIUsage = {
 }
 
 type OpenAIStreamCallbacksWithUsage = OpenAIStreamCallbacks & {
-  onUsage?: (usage: OpenAIUsage) => void
+  onUsage?: (usage: OpenAIUsage) => Promise<void> | void
 }
 
-export function createOpenAIStreamCallback(
+export async function createOpenAIStreamCallback(
   {
     model,
     prompts,
@@ -23,10 +23,9 @@ export function createOpenAIStreamCallback(
   },
   openAIStreamCallbacks: OpenAIStreamCallbacksWithUsage
 ) {
-  // Tiktoken is an optional dependency, so we require it conditionally
+  // Tiktoken is an optional dependency, so we import it conditionally
   if (!encodingForModel) {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { encodingForModel: encodingForModel_ } = require('js-tiktoken')
+    const { encodingForModel: encodingForModel_ } = await import('js-tiktoken')
     encodingForModel = encodingForModel_
   }
 
@@ -37,7 +36,7 @@ export function createOpenAIStreamCallback(
   const streamCallbacks: OpenAIStreamCallbacks = {
     ...openAIStreamCallbacks,
 
-    onStart() {
+    async onStart() {
       for (const content of prompts) {
         const tokens = enc.encode(content)
         promptTokens += tokens.length
@@ -47,7 +46,7 @@ export function createOpenAIStreamCallback(
         return openAIStreamCallbacks.onStart()
       }
     },
-    onToken(content) {
+    async onToken(content) {
       // To test tokenizaton see: https://platform.openai.com/tokenizer
       const tokens = enc.encode(content)
       completionTokens += tokens.length
@@ -56,7 +55,7 @@ export function createOpenAIStreamCallback(
         return openAIStreamCallbacks.onToken(content)
       }
     },
-    onFinal(completion: string) {
+    async onFinal(completion: string) {
       // Mimicking OpenAI usage metadata API
       const usage: OpenAIUsage = {
         total_tokens: promptTokens + completionTokens,
@@ -65,7 +64,7 @@ export function createOpenAIStreamCallback(
       }
 
       if (typeof openAIStreamCallbacks?.onUsage === 'function') {
-        openAIStreamCallbacks.onUsage(usage)
+        await openAIStreamCallbacks.onUsage(usage)
       }
 
       if (typeof openAIStreamCallbacks?.onFinal === 'function') {

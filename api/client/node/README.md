@@ -127,7 +127,7 @@ export async function POST(req: Request) {
     stream: true,
   })
 
-  const streamCallbacks = createOpenAIStreamCallback(
+  const streamCallbacks = await createOpenAIStreamCallback(
     {
       model,
       prompts: messages.map(({ content }) => content),
@@ -135,9 +135,9 @@ export async function POST(req: Request) {
     {
       // onToken() => {...}
       // onFinal() => {...}
-      onUsage: (usage) => {
-        openmeter.events
-          .ingest({
+      async onUsage(usage) {
+        try {
+          await openmeter.events.ingest({
             source: 'my-app',
             type: 'my-event-type',
             subject: 'my-customer-id',
@@ -147,10 +147,13 @@ export async function POST(req: Request) {
               model,
             },
           })
-          .catch((err) => console.error(err))
+        } catch(err) {
+          console.error('failed to ingest usage', err)
+        }
       },
     }
   )
+
   const stream = OpenAIStream(response, streamCallbacks)
   return new StreamingTextResponse(stream)
 }
