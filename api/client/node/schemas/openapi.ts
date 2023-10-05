@@ -5,8 +5,8 @@
 
 export interface paths {
   '/api/v1/events': {
-    /** @description Query latest events. */
-    get: operations['queryEvents']
+    /** @description Retrieve latest raw events. */
+    get: operations['listEvents']
     /** @description Ingest events */
     post: operations['ingestEvents']
   }
@@ -272,8 +272,8 @@ export type $defs = Record<string, never>
 export type external = Record<string, never>
 
 export interface operations {
-  /** @description Query latest events. */
-  queryEvents: {
+  /** @description Retrieve latest raw events. */
+  listEvents: {
     parameters: {
       query?: {
         /** @description Number of events to return. */
