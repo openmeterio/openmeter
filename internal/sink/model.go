@@ -11,6 +11,7 @@ const (
 	DROP       ProcessingControl = 1
 	DEADLETTER ProcessingControl = 2
 	RETRY      ProcessingControl = 3
+	FATAL      ProcessingControl = 4
 )
 
 type ProcessingError struct {

@@ -96,36 +96,18 @@ func (s *Sink) flush() error {
 
 	// 2. Sink to Storage
 	if len(s.state.buffer) > 0 {
-		err := s.config.Storage.BatchInsert(s.config.Context, dedupedBuffer)
-		if err != nil {
-			// TODO: check if this is a network error and retry or it is a bad request and drop
-			// Altough we validate events before we sink them to storage
-			// we can still get a bad request error if for example namespace gots dropped in the meantime or meter modified
-			// We probably want to handle in ClickHouse (https://github.com/ClickHouse/ClickHouse/blob/master/src/Common/ErrorCodes.cpp)
-			// Couple of code we want to deadletter instead of retry:
-			// 6 CANNOT_PARSE_TEXT
-			// 8 THERE_IS_NO_COLUMN
-			// 16 NO_SUCH_COLUMN_IN_TABLE
-			// 25 CANNOT_PARSE_ESCAPE_SEQUENCE
-			// 26 CANNOT_PARSE_QUOTED_STRING
-			// 27 CANNOT_PARSE_INPUT_ASSERTION_FAILED
-			// 38 CANNOT_PARSE_DATE
-			// 41 CANNOT_PARSE_DATETIME
-			// 53 TYPE_MISMATCH
-			// 60 UNKNOWN_TABLE
-			// 69 ARGUMENT_OUT_OF_BOUND
-			// 70 CANNOT_CONVERT_TYPE
-			// 72 CANNOT_PARSE_NUMBER
-			// 85 FORMAT_IS_NOT_SUITABLE_FOR_INPUT
-			// 131 TOO_LARGE_STRING_SIZE
-			// 158 TOO_MANY_ROWS
-			// 201 QUOTA_EXCEEDED
-			// 246 CORRUPTED_DATA
-
+		// TODO: should we insert per namespace?
+		// Check out how https://github.com/ClickHouse/clickhouse-kafka-connect does
+		insertErr := s.config.Storage.BatchInsert(s.config.Context, "TODO", dedupedBuffer)
+		if insertErr != nil {
+			switch insertErr.ProcessingControl {
+			case DEADLETTER:
+				// TODO dead letter
+			}
 			// Note: a single error in batch will make the whole batch fail
 
 			// Throwing and error means we will retry the whole batch again
-			return fmt.Errorf("failed to sink to storage: %s", err)
+			return fmt.Errorf("failed to sink to storage: %s", insertErr)
 		}
 		logger.Debug("succeeded to sink to storage", "buffer size", len(dedupedBuffer))
 	}
