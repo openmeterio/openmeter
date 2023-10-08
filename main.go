@@ -22,6 +22,7 @@ import (
 	"github.com/go-slog/otelslog"
 	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/redis/go-redis/v9"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -46,7 +47,6 @@ import (
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
-	"github.com/openmeterio/openmeter/pkg/kafkaconnect"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -178,15 +178,6 @@ func main() {
 		return *meter
 	}))
 
-	// Initialize Kafka Connect sink
-	if conf.Sink.KafkaConnect.Enabled {
-		err := initKafkaConnect(conf.Sink.KafkaConnect, logger)
-		if err != nil {
-			logger.Error("failed to initialize kafka connect sink", "error", err)
-			os.Exit(1)
-		}
-	}
-
 	// Initialize ClickHouse Aggregation
 	clickhouseStreamingConnector, err := initClickHouseStreaming(conf, meterRepository, logger)
 	if err != nil {
@@ -216,6 +207,13 @@ func main() {
 			Collector:    ingestCollector,
 			Deduplicator: deduplicator,
 		}
+	}
+
+	// Initialize sink worker
+	err = initSink(conf, logger)
+	if err != nil {
+		logger.Error("failed to initialize sink worker", "error", err)
+		os.Exit(1)
 	}
 
 	// Initialize HTTP Ingest handler
@@ -359,7 +357,7 @@ func initKafkaIngest(ctx context.Context, config config.Configuration, logger *s
 	return collector, namespaceHandler, nil
 }
 
-func initClickHouseStreaming(config config.Configuration, meterRepository meter.Repository, logger *slog.Logger) (*clickhouse_connector.ClickhouseConnector, error) {
+func initClickHouseClient(config config.Configuration) (clickhouse.Conn, error) {
 	options := &clickhouse.Options{
 		Addr: []string{config.Aggregation.ClickHouse.Address},
 		Auth: clickhouse.Auth{
@@ -386,6 +384,15 @@ func initClickHouseStreaming(config config.Configuration, meterRepository meter.
 		return nil, fmt.Errorf("init clickhouse client: %w", err)
 	}
 
+	return clickHouseClient, nil
+}
+
+func initClickHouseStreaming(config config.Configuration, meterRepository meter.Repository, logger *slog.Logger) (*clickhouse_connector.ClickhouseConnector, error) {
+	clickHouseClient, err := initClickHouseClient(config)
+	if err != nil {
+		return nil, fmt.Errorf("init clickhouse client: %w", err)
+	}
+
 	streamingConnector, err := clickhouse_connector.NewClickhouseConnector(clickhouse_connector.ClickhouseConnectorConfig{
 		Logger:     logger,
 		ClickHouse: clickHouseClient,
@@ -397,32 +404,6 @@ func initClickHouseStreaming(config config.Configuration, meterRepository meter.
 	}
 
 	return streamingConnector, nil
-}
-
-func initKafkaConnect(config config.KafkaConnectSinkConfiguration, logger *slog.Logger) error {
-	client, err := kafkaconnect.NewClient(config.URL)
-	if err != nil {
-		return fmt.Errorf("init kafka connect client: %w", err)
-	}
-
-	kafkaConnectSink := sink.KafkaConnect{
-		Client: client,
-		Logger: logger.With(slog.String("subsystem", "sink.kafkaconnect")),
-	}
-
-	for _, connector := range config.Connectors {
-		connectorConfig, err := connector.ConnectorConfig()
-		if err != nil {
-			return fmt.Errorf("create kafka connector config %q: %w", connector.Name, err)
-		}
-
-		err = kafkaConnectSink.ConfigureConnector(context.Background(), connector.Name, connectorConfig)
-		if err != nil {
-			return fmt.Errorf("init kafka connector %q: %w", connector.Name, err)
-		}
-	}
-
-	return nil
 }
 
 func initNamespace(config config.Configuration, namespaces ...namespace.Handler) (*namespace.Manager, error) {
@@ -442,4 +423,60 @@ func initNamespace(config config.Configuration, namespaces ...namespace.Handler)
 	}
 	slog.Info("default namespace created")
 	return namespaceManager, nil
+}
+
+func initSink(config config.Configuration, logger *slog.Logger) error {
+	clickhouseClient, err := initClickHouseClient(config)
+	if err != nil {
+		return fmt.Errorf("init clickhouse client: %w", err)
+	}
+
+	dedupe := sink.NewDedupe(&sink.DedupeConfig{
+		Redis: redis.NewClient(&redis.Options{
+			Addr:     "127.0.0.1:6379",
+			DB:       0,
+			Username: "",
+			Password: "",
+		}),
+	})
+
+	storage := sink.NewClickhouseStorage(
+		sink.ClickHouseStorageConfig{
+			ClickHouse: clickhouseClient,
+			Database:   config.Aggregation.ClickHouse.Database,
+		},
+	)
+
+	// TODO: update this to use the new namespace manager
+	namespaces := map[string]*sink.NamespaceStore{}
+	namespaces[config.Namespace.Default] = &sink.NamespaceStore{
+		Meters: config.Meters,
+	}
+
+	sinkConfig := sink.SinkConfig{
+		Context:        context.Background(),
+		Logger:         logger,
+		Storage:        storage,
+		Dedupe:         dedupe,
+		KafkaConfig:    config.Ingest.Kafka.CreateKafkaConfig(),
+		Namespaces:     namespaces,
+		MinCommitCount: 1,
+		MaxCommitWait:  time.Second * 5,
+	}
+
+	sink, err := sink.NewSink(&sinkConfig)
+	if err != nil {
+		return fmt.Errorf("create sink: %v", err)
+	}
+
+	go func() {
+		err = sink.Run()
+		defer sink.Close()
+		if err != nil {
+			slog.Error("sink error", "error", err)
+			os.Exit(1)
+		}
+	}()
+
+	return nil
 }

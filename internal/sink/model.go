@@ -7,11 +7,8 @@ import (
 type ProcessingControl int32
 
 const (
-	CONTINUE   ProcessingControl = 0
-	DROP       ProcessingControl = 1
-	DEADLETTER ProcessingControl = 2
-	RETRY      ProcessingControl = 3
-	FATAL      ProcessingControl = 4
+	DROP       ProcessingControl = 0
+	DEADLETTER ProcessingControl = 1
 )
 
 type ProcessingError struct {

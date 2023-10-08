@@ -15,7 +15,7 @@ import (
 var codeRegexp = regexp.MustCompile(`code: (0-9]+)`)
 
 type Storage interface {
-	BatchInsert(ctx context.Context, namespace string, events []serializer.CloudEventsKafkaPayload) *ProcessingError
+	BatchInsert(ctx context.Context, namespace string, events []*serializer.CloudEventsKafkaPayload) error
 }
 
 type ClickHouseStorageConfig struct {
@@ -23,18 +23,25 @@ type ClickHouseStorageConfig struct {
 	Database   string
 }
 
+func NewClickhouseStorage(config ClickHouseStorageConfig) *ClickHouseStorage {
+	return &ClickHouseStorage{
+		config: config,
+	}
+}
+
 type ClickHouseStorage struct {
 	config ClickHouseStorageConfig
 }
 
-func (c *ClickHouseStorage) BatchInsert(ctx context.Context, namespace string, events []serializer.CloudEventsKafkaPayload) *ProcessingError {
+func (c *ClickHouseStorage) BatchInsert(ctx context.Context, namespace string, events []*serializer.CloudEventsKafkaPayload) error {
 	query := insertEventsQuery{
 		Database:        c.config.Database,
 		EventsTableName: clickhouse_connector.GetEventsTableName(namespace),
+		Events:          events,
 	}
 	sql, args, err := query.toSQL()
 	if err != nil {
-		return NewProcessingError(fmt.Sprintf("insert events query: %w", err), FATAL)
+		return err
 	}
 
 	err = c.config.ClickHouse.Exec(ctx, sql, args...)
@@ -68,7 +75,7 @@ func (c *ClickHouseStorage) BatchInsert(ctx context.Context, namespace string, e
 			return NewProcessingError(fmt.Sprintf("insert events malformed event: %w", err), DEADLETTER)
 		}
 
-		return NewProcessingError(fmt.Sprintf("insert events: %w", err), RETRY)
+		return err
 	}
 
 	return nil
@@ -77,7 +84,7 @@ func (c *ClickHouseStorage) BatchInsert(ctx context.Context, namespace string, e
 type insertEventsQuery struct {
 	Database        string
 	EventsTableName string
-	Events          []serializer.CloudEventsKafkaPayload
+	Events          []*serializer.CloudEventsKafkaPayload
 }
 
 func (q insertEventsQuery) toSQL() (string, []interface{}, error) {

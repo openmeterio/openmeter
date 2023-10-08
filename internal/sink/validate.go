@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/oliveagle/jsonpath"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
@@ -12,15 +13,19 @@ import (
 )
 
 type NamespaceStore struct {
-	meters []models.Meter
+	Meters []*models.Meter
 }
 
-type SinkStore struct {
-	namespaces map[string]*NamespaceStore
+type SinkState struct {
+	running      bool
+	messageCount int
+	buffer       []SinkMessage
+	lastSink     time.Time
+	namespaces   map[string]*NamespaceStore
 }
 
 // validateEvent validates a single event by matching it with the corresponding meter if any
-func (a *SinkStore) validateEvent(ctx context.Context, event serializer.CloudEventsKafkaPayload, namespace string) *ProcessingError {
+func (a *SinkState) validateEvent(ctx context.Context, event serializer.CloudEventsKafkaPayload, namespace string) error {
 	namespaceStore := a.namespaces[namespace]
 	if namespaceStore == nil {
 		// We drop events from unknown org
@@ -29,7 +34,7 @@ func (a *SinkStore) validateEvent(ctx context.Context, event serializer.CloudEve
 
 	// Validate a single event against multiple meters
 	found := 0
-	for _, meter := range namespaceStore.meters {
+	for _, meter := range namespaceStore.Meters {
 		if meter.EventType == event.Type {
 			found++
 			err := validateEventWithMeter(meter, event)
@@ -49,7 +54,7 @@ func (a *SinkStore) validateEvent(ctx context.Context, event serializer.CloudEve
 }
 
 // validateEventWithMeter validates a single event against a single meter
-func validateEventWithMeter(meter models.Meter, ev serializer.CloudEventsKafkaPayload) *ProcessingError {
+func validateEventWithMeter(meter *models.Meter, ev serializer.CloudEventsKafkaPayload) *ProcessingError {
 	// We can skip count events with no group bys
 	if meter.Aggregation != models.MeterAggregationCount && len(meter.GroupBy) == 0 {
 		return nil
@@ -59,17 +64,17 @@ func validateEventWithMeter(meter models.Meter, ev serializer.CloudEventsKafkaPa
 	var data interface{}
 	err := json.Unmarshal([]byte(ev.Data), &data)
 	if err != nil {
-		return NewProcessingError(fmt.Sprintf("cannot unmarshal event data as json: %w", err), DEADLETTER)
+		return NewProcessingError("cannot unmarshal event data as json", DEADLETTER)
 	}
 
 	// Parse value
 	if meter.Aggregation != models.MeterAggregationCount {
 		valueRaw, err := jsonpath.JsonPathLookup(data, meter.ValueProperty)
 		if err != nil {
-			return NewProcessingError(fmt.Sprintf("event data is missing value property at %s: %w", meter.ValueProperty, err), DEADLETTER)
+			return NewProcessingError(fmt.Sprintf("event data is missing value property at %s", meter.ValueProperty), DEADLETTER)
 		}
 		if valueRaw == nil {
-			return NewProcessingError(fmt.Sprintf("event data value cannot be null"), DEADLETTER)
+			return NewProcessingError("event data value cannot be null", DEADLETTER)
 		}
 
 		if valueStr, ok := valueRaw.(string); ok {
@@ -80,7 +85,7 @@ func validateEventWithMeter(meter models.Meter, ev serializer.CloudEventsKafkaPa
 		} else if _, ok := valueRaw.(float64); ok {
 
 		} else {
-			return NewProcessingError(fmt.Sprintf("event data value property cannot be parsed: %w", err), DEADLETTER)
+			return NewProcessingError("event data value property cannot be parsed", DEADLETTER)
 		}
 	}
 
@@ -88,7 +93,7 @@ func validateEventWithMeter(meter models.Meter, ev serializer.CloudEventsKafkaPa
 	for _, groupByJsonPath := range meter.GroupBy {
 		groupByValue, err := jsonpath.JsonPathLookup(data, groupByJsonPath)
 		if err != nil {
-			return NewProcessingError(fmt.Sprintf("event data is missing the group by property at %s: %w", groupByJsonPath, err), DEADLETTER)
+			return NewProcessingError(fmt.Sprintf("event data is missing the group by property at %s", groupByJsonPath), DEADLETTER)
 		}
 		if groupByValue == nil {
 			return NewProcessingError(fmt.Sprintf("event data group by property is nil at %s", groupByJsonPath), DEADLETTER)

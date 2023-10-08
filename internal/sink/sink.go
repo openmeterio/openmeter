@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"regexp"
@@ -14,37 +15,34 @@ import (
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"golang.org/x/exp/slog"
 
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var namespaceTopicRegexp = regexp.MustCompile(`^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$`)
 
+type SinkMessage struct {
+	Namespace    string
+	KafkaMessage *kafka.Message
+	Serialized   *serializer.CloudEventsKafkaPayload
+	Error        *ProcessingError
+}
+
 type Sink struct {
 	consumer *kafka.Consumer
 	config   *SinkConfig
-	state    *SinkState
-}
-
-type SinkState struct {
-	running      bool
-	messageCount int
-	buffer       []serializer.CloudEventsKafkaPayload
-	lastSink     time.Time
+	state    SinkState
 }
 
 type SinkConfig struct {
 	Context        context.Context
-	SinkStore      SinkStore
+	Logger         *slog.Logger
 	Storage        Storage
-	Dedupe         Dedupe
+	Namespaces     map[string]*NamespaceStore
+	Dedupe         *Dedupe
 	KafkaConfig    kafka.ConfigMap
 	MinCommitCount int
 	MaxCommitWait  time.Duration
-	EventsTopics   []string
-	Meters         []*models.Meter
 }
 
 func NewSink(config *SinkConfig) (*Sink, error) {
@@ -59,7 +57,7 @@ func NewSink(config *SinkConfig) (*Sink, error) {
 
 	consumer, err := kafka.NewConsumer(&config.KafkaConfig)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create consumer: %s", err)
 	}
 
 	if config.MinCommitCount == 0 {
@@ -72,10 +70,11 @@ func NewSink(config *SinkConfig) (*Sink, error) {
 	sink := &Sink{
 		consumer: consumer,
 		config:   config,
-		state: &SinkState{
+		state: SinkState{
 			messageCount: 0,
-			buffer:       []serializer.CloudEventsKafkaPayload{},
+			buffer:       []SinkMessage{},
 			lastSink:     time.Now(),
+			namespaces:   config.Namespaces,
 		},
 	}
 
@@ -83,7 +82,7 @@ func NewSink(config *SinkConfig) (*Sink, error) {
 }
 
 func (s *Sink) flush() error {
-	logger := slog.With("sink", "operation", "flush")
+	logger := s.config.Logger.With("sink", "flush")
 	logger.Debug("started to flush", "buffer size", len(s.state.buffer))
 
 	// Stop polling new messages from Kafka until we finalize batch
@@ -95,21 +94,61 @@ func (s *Sink) flush() error {
 	dedupedBuffer := dedupeEventList(s.state.buffer)
 
 	// 2. Sink to Storage
-	if len(s.state.buffer) > 0 {
-		// TODO: should we insert per namespace?
-		// Check out how https://github.com/ClickHouse/clickhouse-kafka-connect does
-		insertErr := s.config.Storage.BatchInsert(s.config.Context, "TODO", dedupedBuffer)
-		if insertErr != nil {
-			switch insertErr.ProcessingControl {
-			case DEADLETTER:
-				// TODO dead letter
-			}
-			// Note: a single error in batch will make the whole batch fail
+	if len(dedupedBuffer) > 0 {
+		batchesPerNamespace := map[string][]SinkMessage{}
+		deadletterMessages := []*kafka.Message{}
 
-			// Throwing and error means we will retry the whole batch again
-			return fmt.Errorf("failed to sink to storage: %s", insertErr)
+		// Insert per namespace
+		for _, message := range dedupedBuffer {
+			if message.Error != nil {
+				switch message.Error.ProcessingControl {
+				case DEADLETTER:
+					logger.Debug("deadlettering message", "error", message.Error, "message", string(message.KafkaMessage.Value), "namespace", message.Namespace)
+					deadletterMessages = append(deadletterMessages, message.KafkaMessage)
+					continue
+				case DROP:
+					// Do nothing
+					logger.Debug("dropping message", "error", message.Error, "message", string(message.KafkaMessage.Value), "namespace", message.Namespace)
+					continue
+				default:
+					return fmt.Errorf("unknown error type: %s", message.Error)
+				}
+			}
+
+			batchesPerNamespace[message.Namespace] = append(batchesPerNamespace[message.Namespace], message)
 		}
-		logger.Debug("succeeded to sink to storage", "buffer size", len(dedupedBuffer))
+
+		for namespace, batch := range batchesPerNamespace {
+			list := []*serializer.CloudEventsKafkaPayload{}
+			for _, message := range batch {
+				list = append(list, message.Serialized)
+			}
+
+			err := s.config.Storage.BatchInsert(s.config.Context, namespace, list)
+			if err != nil {
+				// Note: a single error in batch will make the whole batch fail
+				if perr, ok := err.(*ProcessingError); ok {
+					switch perr.ProcessingControl {
+					case DEADLETTER:
+						for _, message := range batch {
+							deadletterMessages = append(deadletterMessages, message.KafkaMessage)
+						}
+					case DROP:
+						continue
+					default:
+						return fmt.Errorf("unknown error type: %s", err)
+					}
+				}
+
+				// Throwing and error means we will retry the whole batch again
+				return fmt.Errorf("failed to sink to storage: %s", err)
+			}
+			logger.Debug("succeeded to sink to storage", "buffer size", len(dedupedBuffer))
+		}
+
+		if len(deadletterMessages) > 0 {
+			s.deadLetter(deadletterMessages...)
+		}
 	}
 
 	// 3. Commit Offset to Kafka
@@ -127,17 +166,22 @@ func (s *Sink) flush() error {
 	// Least once guarantee, if Redis write fails we will accept messages with same idempotency key in future and
 	// we have to relay on ClickHouse's deduplication.
 	if len(dedupedBuffer) > 0 {
-		err := s.config.Dedupe.Set(s.config.Context, dedupedBuffer...)
+		serializedList := []*serializer.CloudEventsKafkaPayload{}
+		for _, message := range dedupedBuffer {
+			serializedList = append(serializedList, message.Serialized)
+		}
+
+		err := s.config.Dedupe.Set(s.config.Context, serializedList...)
 		if err != nil {
 			logger.Error("failed to sink to redis", "err", err, "rows", dedupedBuffer)
-			return NewProcessingError(fmt.Sprintf("failed to sink to redis: %s", err), RETRY)
+			return fmt.Errorf("failed to sink to redis: %s", err)
 		}
 		logger.Debug("succeeded to sink to redis", "buffer size", len(dedupedBuffer))
 	}
 
 	// 5. Reset states for next batch
 	s.state.lastSink = time.Now()
-	s.state.buffer = []serializer.CloudEventsKafkaPayload{}
+	s.state.buffer = []SinkMessage{}
 	s.state.messageCount = 0
 	s.state.running = true
 
@@ -147,22 +191,30 @@ func (s *Sink) flush() error {
 }
 
 // deadLetter sends a message to the dead letter queue, useful permanent non-recoverable errors like json parsing
-func (s *Sink) deadLetter(message string) error {
+func (s *Sink) deadLetter(messages ...*kafka.Message) error {
+	logger := s.config.Logger.With("sink", "deadLetter")
+
 	// TODO: implement
-	slog.Debug("todo: dead letter", "message", message)
+	logger.Debug("TODO: dead letter", "messages", len(messages))
 	return nil
 }
 
 // Run starts the Kafka consumer and sinks the events to Clickhouse
 func (s *Sink) Run() error {
-	logger := slog.With("sink", "run")
+	logger := s.config.Logger.With("sink", "run")
 
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
-	err := s.consumer.SubscribeTopics(s.config.EventsTopics, nil)
+	topics := []string{}
+	for namespace := range s.state.namespaces {
+		topic := fmt.Sprintf("om_%s_events", namespace)
+		topics = append(topics, topic)
+	}
+
+	err := s.consumer.SubscribeTopics(topics, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to subscribe to topics: %s", err)
 	}
 
 	s.state.lastSink = time.Now()
@@ -181,53 +233,24 @@ func (s *Sink) Run() error {
 
 			switch e := ev.(type) {
 			case *kafka.Message:
-				kafkaMessage := string(e.Value)
 				s.state.messageCount++
 
-				// Parse Kafka Event
-				var kafkaCloudEvent serializer.CloudEventsKafkaPayload
-				err := json.Unmarshal(e.Value, &kafkaCloudEvent)
+				sinkMessage := SinkMessage{
+					KafkaMessage: e,
+				}
+				namespace, kafkaCloudEvent, err := s.ParseMessage(e)
 				if err != nil {
-					logger.Error("faield to json parse kafka message", "err", err, "message", kafkaMessage)
-					err := s.deadLetter(kafkaMessage)
-					if err != nil {
-						logger.Error("failed to dead letter message", "err", err, "message", kafkaMessage)
-						// Stop processing, non-recoverable error
-						return err
-					}
-				} else {
-					// Dedupe, this stores key in store which means if sink fails and restarts it will not process the same message again
-					isUnique, err := s.config.Dedupe.IsUnique(s.config.Context, kafkaCloudEvent)
-					if err != nil {
-						logger.Error("failed to check uniqueness of kafka message", "err", err, "kafkaCloudEvent", kafkaCloudEvent)
-						// Stop processing, non-recoverable error
-						return err
-					}
-					if !isUnique {
-						logger.Debug("skipping non unique message", "kafkaCloudEvent", kafkaCloudEvent)
+					if perr, ok := err.(*ProcessingError); ok {
+						sinkMessage.Error = perr
 					} else {
-						namespace, err := getNamespace(*e.TopicPartition.Topic)
-						if err != nil {
-							return NewProcessingError(fmt.Sprintf("failed to get namespace from topic: %s", *e.TopicPartition.Topic), DROP)
-						}
-						validateErr := s.config.SinkStore.validateEvent(s.config.Context, kafkaCloudEvent, namespace)
-						if validateErr != nil {
-							switch validateErr.ProcessingControl {
-							case DEADLETTER:
-								logger.Error("failed to parse kafka message to sink entry", "err", err, "kafkaCloudEvent", kafkaCloudEvent)
-								err := s.deadLetter(kafkaMessage)
-								if err != nil {
-									logger.Error("faield to dead letter message", "err", err, "message", kafkaMessage)
-									// Stop processing, non-recoverable error
-									return err
-								}
-							}
-						}
-
-						s.state.buffer = append(s.state.buffer, kafkaCloudEvent)
-						logger.Debug("event added to buffer", "event", kafkaCloudEvent)
+						return fmt.Errorf("failed to parse message: %w", err)
 					}
 				}
+				sinkMessage.Namespace = namespace
+				sinkMessage.Serialized = kafkaCloudEvent
+
+				s.state.buffer = append(s.state.buffer, sinkMessage)
+				logger.Debug("event added to buffer", "event", kafkaCloudEvent)
 
 				// TODO: currently we relay on `enable.auto.offset.store` to store offsets for commit
 				// As we already manage commit manually it would be ideal to manage what goes into offset store to
@@ -235,7 +258,7 @@ func (s *Sink) Run() error {
 				// // Store message, this won't commit offset immediately just store it for the next manual commit
 				// _, err = s.consumer.StoreMessage(e)
 				// if err != nil {
-				// 	slog.Error("cannot store kafka message for upcoming offset commit", "err", err, "event", ev)
+				// 	logger.Error("cannot store kafka message for upcoming offset commit", "err", err, "event", ev)
 				// 	// Stop processing, non-recoverable error
 				// 	return err
 				// }
@@ -244,19 +267,19 @@ func (s *Sink) Run() error {
 				if s.state.messageCount >= s.config.MinCommitCount {
 					err = s.flush()
 					if err != nil {
-						slog.Error("faield to flush", "err", err)
+						logger.Error("faield to flush", "err", err)
 						// Stop processing, non-recoverable error
 						return err
 					}
 				}
 			case kafka.AssignedPartitions:
-				slog.Info("kafka assigned partitions", "event", e)
+				logger.Info("kafka assigned partitions", "event", e)
 				err := s.consumer.Assign(e.Partitions)
 				if err != nil {
 					return err
 				}
 			case kafka.RevokedPartitions:
-				slog.Info("kafka revoked partitions", "event", e)
+				logger.Info("kafka revoked partitions", "event", e)
 				err := s.consumer.Unassign()
 				if err != nil {
 					return err
@@ -265,7 +288,7 @@ func (s *Sink) Run() error {
 				// Errors should generally be considered
 				// informational, the client will try to
 				// automatically recover.
-				slog.Error("kafka error", "code", e.Code(), "event", e)
+				logger.Error("kafka error", "code", e.Code(), "event", e)
 
 				// But in this example we choose to terminate
 				// the application if all brokers are down.
@@ -275,14 +298,43 @@ func (s *Sink) Run() error {
 				}
 			case kafka.OffsetsCommitted:
 				// do nothing, this is an ack of the periodic offset commit
-				slog.Debug("kafka offset committed", "offset", e.Offsets)
+				logger.Debug("kafka offset committed", "offset", e.Offsets)
 			default:
-				slog.Debug("kafka ignored event", "event", e)
+				logger.Debug("kafka ignored event", "event", e)
 			}
 		}
 	}
 
 	return s.Close()
+}
+
+func (s *Sink) ParseMessage(e *kafka.Message) (string, *serializer.CloudEventsKafkaPayload, error) {
+	// Get Namespace
+	namespace, err := getNamespace(*e.TopicPartition.Topic)
+	if err != nil {
+		return "", nil, NewProcessingError(fmt.Sprintf("failed to get namespace from topic: %s, %s", *e.TopicPartition.Topic, err), DROP)
+	}
+
+	// Parse Kafka Event
+	var kafkaCloudEvent serializer.CloudEventsKafkaPayload
+	err = json.Unmarshal(e.Value, &kafkaCloudEvent)
+	if err != nil {
+		return namespace, &kafkaCloudEvent, NewProcessingError(fmt.Sprintf("failed to json parse kafka message: %s", err), DEADLETTER)
+	}
+
+	// Dedupe, this stores key in store which means if sink fails and restarts it will not process the same message again
+	isUnique, err := s.config.Dedupe.IsUnique(s.config.Context, kafkaCloudEvent)
+	if err != nil {
+		// Stop processing, non-recoverable error
+		return namespace, &kafkaCloudEvent, fmt.Errorf("failed to check uniqueness of kafka message: %w", err)
+	}
+	if !isUnique {
+		return namespace, &kafkaCloudEvent, NewProcessingError("skipping non unique message", DROP)
+	}
+
+	// Validation
+	err = s.state.validateEvent(s.config.Context, kafkaCloudEvent, namespace)
+	return namespace, &kafkaCloudEvent, err
 }
 
 func (s *Sink) Close() error {
@@ -299,12 +351,12 @@ func getNamespace(topic string) (string, error) {
 }
 
 // dedupeEventList removes duplicates from a list of events
-func dedupeEventList(events []serializer.CloudEventsKafkaPayload) []serializer.CloudEventsKafkaPayload {
+func dedupeEventList(events []SinkMessage) []SinkMessage {
 	keys := make(map[string]bool)
-	list := []serializer.CloudEventsKafkaPayload{}
+	list := []SinkMessage{}
 
 	for _, event := range events {
-		key := event.GetKey()
+		key := event.Serialized.GetKey()
 		if _, value := keys[key]; !value {
 			keys[key] = true
 			list = append(list, event)

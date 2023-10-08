@@ -37,7 +37,7 @@ func (d *Dedupe) IsUnique(ctx context.Context, event serializer.CloudEventsKafka
 }
 
 // Set sets events into redis
-func (d *Dedupe) Set(ctx context.Context, events ...serializer.CloudEventsKafkaPayload) error {
+func (d *Dedupe) Set(ctx context.Context, events ...*serializer.CloudEventsKafkaPayload) error {
 	for _, event := range events {
 		// TODO: do it in batches if possible
 		err := d.config.Redis.SetNX(ctx, event.GetKey(), "", d.config.Expiration).Err()
