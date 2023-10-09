@@ -6,7 +6,7 @@ go 1.21
 
 require (
 	github.com/AppsFlyer/go-sundheit v0.5.0
-	github.com/ClickHouse/clickhouse-go/v2 v2.14.1
+	github.com/ClickHouse/clickhouse-go/v2 v2.14.2
 	github.com/cloudevents/sdk-go/v2 v2.14.0
 	github.com/confluentinc/confluent-kafka-go/v2 v2.2.0
 	github.com/deepmap/oapi-codegen v1.15.0
