@@ -30,19 +30,21 @@ type SinkMessage struct {
 }
 
 type Sink struct {
-	consumer *kafka.Consumer
-	config   *SinkConfig
-	state    SinkState
+	consumer         *kafka.Consumer
+	config           *SinkConfig
+	state            SinkState
+	namespaceRefetch *time.Timer
 }
 
 type SinkConfig struct {
-	Context        context.Context
-	Logger         *slog.Logger
-	Storage        Storage
-	Dedupe         *Dedupe
-	KafkaConfig    kafka.ConfigMap
-	MinCommitCount int
-	MaxCommitWait  time.Duration
+	Context          context.Context
+	Logger           *slog.Logger
+	Storage          Storage
+	Dedupe           *Dedupe
+	KafkaConfig      kafka.ConfigMap
+	MinCommitCount   int
+	MaxCommitWait    time.Duration
+	NamespaceRefetch time.Duration
 }
 
 func NewSink(config *SinkConfig) (*Sink, error) {
@@ -65,6 +67,9 @@ func NewSink(config *SinkConfig) (*Sink, error) {
 	}
 	if config.MaxCommitWait == 0 {
 		config.MaxCommitWait = 1 * time.Second
+	}
+	if config.NamespaceRefetch == 0 {
+		config.NamespaceRefetch = 15 * time.Second
 	}
 
 	sink := &Sink{
@@ -219,6 +224,26 @@ func (s *Sink) getNamespaces() (map[string]*NamespaceStore, error) {
 	return namespaces, nil
 }
 
+func (s *Sink) subscribeToNamespaces() error {
+	namespaces, err := s.getNamespaces()
+	if err != nil {
+		return fmt.Errorf("failed to get namespaces: %s", err)
+	}
+	s.state.namespaces = namespaces
+
+	// We always subscribe to all namespaces as consumer.SubscribeTopics replaces the current subscription.
+	topics := getTopics(namespaces)
+	err = s.consumer.SubscribeTopics(topics, nil)
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to topics: %s", err)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to subscribe to topics: %s", err)
+	}
+
+	return nil
+}
+
 // Run starts the Kafka consumer and sinks the events to Clickhouse
 func (s *Sink) Run() error {
 	logger := s.config.Logger.With("sink", "run")
@@ -226,19 +251,24 @@ func (s *Sink) Run() error {
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
-	// TODO: get namespaces periodically and update topic subscription
-	namespaces, err := s.getNamespaces()
+	// Fetch namespaces and meters and subscribe to them
+	err := s.subscribeToNamespaces()
 	if err != nil {
-		return fmt.Errorf("failed to get namespaces: %s", err)
-	}
-	s.state.namespaces = namespaces
-
-	topics := getTopics(namespaces)
-	err = s.consumer.SubscribeTopics(topics, nil)
-	if err != nil {
-		return fmt.Errorf("failed to subscribe to topics: %s", err)
+		return fmt.Errorf("failed to subscribe to namespaces: %s", err)
 	}
 
+	// Periodically refetch namespaces and meters
+	var refetch func()
+	refetch = func() {
+		err := s.subscribeToNamespaces()
+		if err != nil {
+			logger.Error("failed to subscribe to namespaces", "err", err)
+		}
+		s.namespaceRefetch = time.AfterFunc(s.config.NamespaceRefetch, refetch)
+	}
+	s.namespaceRefetch = time.AfterFunc(s.config.NamespaceRefetch, refetch)
+
+	// Reset state
 	s.state.lastSink = time.Now()
 	s.state.running = true
 
@@ -360,6 +390,9 @@ func (s *Sink) ParseMessage(e *kafka.Message) (string, *serializer.CloudEventsKa
 }
 
 func (s *Sink) Close() error {
+	if s.namespaceRefetch != nil {
+		s.namespaceRefetch.Stop()
+	}
 	return s.consumer.Close()
 }
 
