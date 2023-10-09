@@ -21,6 +21,7 @@ import (
 )
 
 var namespaceTopicRegexp = regexp.MustCompile(`^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$`)
+var defaultDeadletterTopicTemplate = "om_%s_events_deadletter"
 
 type SinkMessage struct {
 	Namespace    string
@@ -31,35 +32,40 @@ type SinkMessage struct {
 
 type Sink struct {
 	consumer         *kafka.Consumer
+	producer         *kafka.Producer
 	config           *SinkConfig
 	state            SinkState
 	namespaceRefetch *time.Timer
 }
 
 type SinkConfig struct {
-	Context          context.Context
-	Logger           *slog.Logger
-	Storage          Storage
-	Dedupe           *Dedupe
-	KafkaConfig      kafka.ConfigMap
-	MinCommitCount   int
-	MaxCommitWait    time.Duration
-	NamespaceRefetch time.Duration
+	Context                 context.Context
+	Logger                  *slog.Logger
+	Storage                 Storage
+	Dedupe                  *Dedupe
+	ConsumerKafkaConfig     kafka.ConfigMap
+	ProducerKafkaConfig     kafka.ConfigMap
+	MinCommitCount          int
+	MaxCommitWait           time.Duration
+	NamespaceRefetch        time.Duration
+	DeadletterTopicTemplate string
 }
 
 func NewSink(config *SinkConfig) (*Sink, error) {
-	// TODO: where to set these?
 	// These are Kafka configs but also related to sink logic
-	_ = config.KafkaConfig.SetKey("group.id", "om-ch-sink-v1")
-	_ = config.KafkaConfig.SetKey("session.timeout.ms", 6000)
-	_ = config.KafkaConfig.SetKey("auto.offset.reset", "latest")
-	_ = config.KafkaConfig.SetKey("enable.auto.commit", false)
-	_ = config.KafkaConfig.SetKey("enable.auto.offset.store", true)
-	_ = config.KafkaConfig.SetKey("go.application.rebalance.enable", true)
+	_ = config.ConsumerKafkaConfig.SetKey("session.timeout.ms", 6000)
+	_ = config.ConsumerKafkaConfig.SetKey("enable.auto.commit", false)
+	_ = config.ConsumerKafkaConfig.SetKey("enable.auto.offset.store", true)
+	_ = config.ConsumerKafkaConfig.SetKey("go.application.rebalance.enable", true)
 
-	consumer, err := kafka.NewConsumer(&config.KafkaConfig)
+	consumer, err := kafka.NewConsumer(&config.ConsumerKafkaConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create consumer: %s", err)
+	}
+
+	producer, err := kafka.NewProducer(&config.ProducerKafkaConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create producer: %w", err)
 	}
 
 	if config.MinCommitCount == 0 {
@@ -71,9 +77,13 @@ func NewSink(config *SinkConfig) (*Sink, error) {
 	if config.NamespaceRefetch == 0 {
 		config.NamespaceRefetch = 15 * time.Second
 	}
+	if config.DeadletterTopicTemplate == "" {
+		config.DeadletterTopicTemplate = defaultDeadletterTopicTemplate
+	}
 
 	sink := &Sink{
 		consumer: consumer,
+		producer: producer,
 		config:   config,
 		state: SinkState{
 			messageCount: 0,
@@ -101,7 +111,7 @@ func (s *Sink) flush() error {
 	// 2. Sink to Storage
 	if len(dedupedBuffer) > 0 {
 		batchesPerNamespace := map[string][]SinkMessage{}
-		deadletterMessages := []*kafka.Message{}
+		deadletterMessages := []SinkMessage{}
 
 		// Insert per namespace
 		for _, message := range dedupedBuffer {
@@ -109,7 +119,7 @@ func (s *Sink) flush() error {
 				switch message.Error.ProcessingControl {
 				case DEADLETTER:
 					logger.Debug("deadlettering message", "error", message.Error, "message", string(message.KafkaMessage.Value), "namespace", message.Namespace)
-					deadletterMessages = append(deadletterMessages, message.KafkaMessage)
+					deadletterMessages = append(deadletterMessages, message)
 					continue
 				case DROP:
 					// Do nothing
@@ -135,9 +145,7 @@ func (s *Sink) flush() error {
 				if perr, ok := err.(*ProcessingError); ok {
 					switch perr.ProcessingControl {
 					case DEADLETTER:
-						for _, message := range batch {
-							deadletterMessages = append(deadletterMessages, message.KafkaMessage)
-						}
+						deadletterMessages = append(deadletterMessages, batch...)
 					case DROP:
 						continue
 					default:
@@ -196,8 +204,27 @@ func (s *Sink) flush() error {
 }
 
 // deadLetter sends a message to the dead letter queue, useful permanent non-recoverable errors like json parsing
-func (s *Sink) deadLetter(messages ...*kafka.Message) error {
+func (s *Sink) deadLetter(messages ...SinkMessage) error {
 	logger := s.config.Logger.With("sink", "deadLetter")
+
+	for _, message := range messages {
+		topic := fmt.Sprintf(s.config.DeadletterTopicTemplate, message.Namespace)
+		headers := message.KafkaMessage.Headers
+		headers = append(headers, kafka.Header{Key: "error", Value: []byte(message.Error.Error())})
+
+		msg := &kafka.Message{
+			TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
+			Timestamp:      message.KafkaMessage.Timestamp,
+			Headers:        headers,
+			Key:            message.KafkaMessage.Key,
+			Value:          message.KafkaMessage.Value,
+		}
+
+		err := s.producer.Produce(msg, nil)
+		if err != nil {
+			return fmt.Errorf("producing kafka message to deadletter topic: %w", err)
+		}
+	}
 
 	// TODO: implement
 	logger.Debug("TODO: dead letter", "messages", len(messages))
@@ -371,7 +398,8 @@ func (s *Sink) ParseMessage(e *kafka.Message) (string, *serializer.CloudEventsKa
 	var kafkaCloudEvent serializer.CloudEventsKafkaPayload
 	err = json.Unmarshal(e.Value, &kafkaCloudEvent)
 	if err != nil {
-		return namespace, &kafkaCloudEvent, NewProcessingError(fmt.Sprintf("failed to json parse kafka message: %s", err), DEADLETTER)
+		// We should never have events we can't json parse, so we drop them
+		return namespace, &kafkaCloudEvent, NewProcessingError(fmt.Sprintf("failed to json parse kafka message: %s", err), DROP)
 	}
 
 	// Dedupe, this stores key in store which means if sink fails and restarts it will not process the same message again

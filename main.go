@@ -447,14 +447,21 @@ func initSink(config config.Configuration, logger *slog.Logger) error {
 		},
 	)
 
+	consumerKafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
+	_ = consumerKafkaConfig.SetKey("group.id", "om-ch-sink-v1")
+
+	producerKafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
+	_ = producerKafkaConfig.SetKey("group.id", "om-sink-deadletter")
+
 	sinkConfig := sink.SinkConfig{
-		Context:        context.Background(),
-		Logger:         logger,
-		Storage:        storage,
-		Dedupe:         dedupe,
-		KafkaConfig:    config.Ingest.Kafka.CreateKafkaConfig(),
-		MinCommitCount: 1,
-		MaxCommitWait:  time.Second * 5,
+		Context:             context.Background(),
+		Logger:              logger,
+		Storage:             storage,
+		Dedupe:              dedupe,
+		ConsumerKafkaConfig: consumerKafkaConfig,
+		ProducerKafkaConfig: producerKafkaConfig,
+		MinCommitCount:      1,
+		MaxCommitWait:       time.Second * 5,
 	}
 
 	sink, err := sink.NewSink(&sinkConfig)
