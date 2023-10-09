@@ -17,6 +17,7 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var namespaceTopicRegexp = regexp.MustCompile(`^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$`)
@@ -38,7 +39,6 @@ type SinkConfig struct {
 	Context        context.Context
 	Logger         *slog.Logger
 	Storage        Storage
-	Namespaces     map[string]*NamespaceStore
 	Dedupe         *Dedupe
 	KafkaConfig    kafka.ConfigMap
 	MinCommitCount int
@@ -74,7 +74,7 @@ func NewSink(config *SinkConfig) (*Sink, error) {
 			messageCount: 0,
 			buffer:       []SinkMessage{},
 			lastSink:     time.Now(),
-			namespaces:   config.Namespaces,
+			namespaces:   map[string]*NamespaceStore{},
 		},
 	}
 
@@ -199,6 +199,26 @@ func (s *Sink) deadLetter(messages ...*kafka.Message) error {
 	return nil
 }
 
+func (s *Sink) getNamespaces() (map[string]*NamespaceStore, error) {
+	meters, err := s.config.Storage.GetMeters(s.config.Context)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get meters: %s", err)
+	}
+
+	namespaces := map[string]*NamespaceStore{}
+	for _, meter := range meters {
+		if namespaces[meter.Namespace] == nil {
+			namespaces[meter.Namespace] = &NamespaceStore{
+				Meters: []*models.Meter{meter},
+			}
+		} else {
+			namespaces[meter.Namespace].Meters = append(namespaces[meter.Namespace].Meters, meter)
+		}
+	}
+
+	return namespaces, nil
+}
+
 // Run starts the Kafka consumer and sinks the events to Clickhouse
 func (s *Sink) Run() error {
 	logger := s.config.Logger.With("sink", "run")
@@ -206,13 +226,15 @@ func (s *Sink) Run() error {
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
-	topics := []string{}
-	for namespace := range s.state.namespaces {
-		topic := fmt.Sprintf("om_%s_events", namespace)
-		topics = append(topics, topic)
+	// TODO: get namespaces periodically and update topic subscription
+	namespaces, err := s.getNamespaces()
+	if err != nil {
+		return fmt.Errorf("failed to get namespaces: %s", err)
 	}
+	s.state.namespaces = namespaces
 
-	err := s.consumer.SubscribeTopics(topics, nil)
+	topics := getTopics(namespaces)
+	err = s.consumer.SubscribeTopics(topics, nil)
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to topics: %s", err)
 	}
@@ -363,4 +385,15 @@ func dedupeEventList(events []SinkMessage) []SinkMessage {
 		}
 	}
 	return list
+}
+
+// getTopics return topics from namespaces
+func getTopics(namespaces map[string]*NamespaceStore) []string {
+	topics := []string{}
+	for namespace := range namespaces {
+		topic := fmt.Sprintf("om_%s_events", namespace)
+		topics = append(topics, topic)
+	}
+
+	return topics
 }

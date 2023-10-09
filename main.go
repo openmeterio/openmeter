@@ -447,19 +447,12 @@ func initSink(config config.Configuration, logger *slog.Logger) error {
 		},
 	)
 
-	// TODO: update this to use the new namespace manager
-	namespaces := map[string]*sink.NamespaceStore{}
-	namespaces[config.Namespace.Default] = &sink.NamespaceStore{
-		Meters: config.Meters,
-	}
-
 	sinkConfig := sink.SinkConfig{
 		Context:        context.Background(),
 		Logger:         logger,
 		Storage:        storage,
 		Dedupe:         dedupe,
 		KafkaConfig:    config.Ingest.Kafka.CreateKafkaConfig(),
-		Namespaces:     namespaces,
 		MinCommitCount: 1,
 		MaxCommitWait:  time.Second * 5,
 	}
