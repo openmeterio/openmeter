@@ -11,9 +11,9 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 
+	"github.com/openmeterio/openmeter/internal/dedupe"
 	"github.com/openmeterio/openmeter/internal/dedupe/memorydedupe"
 	"github.com/openmeterio/openmeter/internal/dedupe/redisdedupe"
-	"github.com/openmeterio/openmeter/internal/ingest"
 )
 
 // Requires [mapstructurex.MapDecoderHookFunc] to be high up in the decode hook chain.
@@ -23,7 +23,7 @@ type DedupeConfiguration struct {
 	DedupeDriverConfiguration
 }
 
-func (c DedupeConfiguration) NewDeduplicator() (ingest.Deduplicator, error) {
+func (c DedupeConfiguration) NewDeduplicator() (dedupe.Deduplicator, error) {
 	if !c.Enabled {
 		return nil, errors.New("dedupe: disabled")
 	}
@@ -116,7 +116,7 @@ func (c *DedupeConfiguration) DecodeMap(v map[string]any) error {
 
 type DedupeDriverConfiguration interface {
 	DriverName() string
-	NewDeduplicator() (ingest.Deduplicator, error)
+	NewDeduplicator() (dedupe.Deduplicator, error)
 	Validate() error
 }
 
@@ -128,7 +128,7 @@ func (c unknownDedupeDriverConfiguration) DriverName() string {
 	return c.name
 }
 
-func (c unknownDedupeDriverConfiguration) NewDeduplicator() (ingest.Deduplicator, error) {
+func (c unknownDedupeDriverConfiguration) NewDeduplicator() (dedupe.Deduplicator, error) {
 	return nil, errors.New("dedupe: unknown driver")
 }
 
@@ -146,7 +146,7 @@ func (DedupeDriverMemoryConfiguration) DriverName() string {
 	return "memory"
 }
 
-func (c DedupeDriverMemoryConfiguration) NewDeduplicator() (ingest.Deduplicator, error) {
+func (c DedupeDriverMemoryConfiguration) NewDeduplicator() (dedupe.Deduplicator, error) {
 	return memorydedupe.NewDeduplicator(c.Size)
 }
 
@@ -179,7 +179,7 @@ func (DedupeDriverRedisConfiguration) DriverName() string {
 	return "redis"
 }
 
-func (c DedupeDriverRedisConfiguration) NewDeduplicator() (ingest.Deduplicator, error) {
+func (c DedupeDriverRedisConfiguration) NewDeduplicator() (dedupe.Deduplicator, error) {
 	var tlsConfig *tls.Config
 
 	if c.TLS.Enabled {

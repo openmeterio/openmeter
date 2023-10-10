@@ -2,12 +2,22 @@
 package dedupe
 
 import (
+	"context"
 	"fmt"
-
-	"github.com/cloudevents/sdk-go/v2/event"
 )
 
-// GetEventKey creates a unique key from an event.
-func GetEventKey(namespace string, ev event.Event) string {
-	return fmt.Sprintf("%s-%s-%s", namespace, ev.Source(), ev.ID())
+// Deduplicator checks if an event is unique.
+type Deduplicator interface {
+	IsUnique(ctx context.Context, item Item) (bool, error)
+	Set(ctx context.Context, events ...Item) error
+}
+
+type Item struct {
+	Namespace string
+	ID        string
+	Source    string
+}
+
+func (i Item) Key() string {
+	return fmt.Sprintf("%s-%s-%s", i.Namespace, i.Source, i.ID)
 }

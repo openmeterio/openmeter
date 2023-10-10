@@ -4,7 +4,6 @@ package memorydedupe
 import (
 	"context"
 
-	"github.com/cloudevents/sdk-go/v2/event"
 	lru "github.com/hashicorp/golang-lru/v2"
 
 	"github.com/openmeterio/openmeter/internal/dedupe"
@@ -33,8 +32,16 @@ func NewDeduplicator(size int) (*Deduplicator, error) {
 	}, nil
 }
 
-func (d *Deduplicator) IsUnique(ctx context.Context, namespace string, ev event.Event) (bool, error) {
-	isContained, _ := d.store.ContainsOrAdd(dedupe.GetEventKey(namespace, ev), nil)
+func (d *Deduplicator) IsUnique(ctx context.Context, item dedupe.Item) (bool, error) {
+	isContained := d.store.Contains(item.Key())
 
 	return !isContained, nil
+}
+
+func (d *Deduplicator) Set(ctx context.Context, items ...dedupe.Item) error {
+	for _, item := range items {
+		_ = d.store.Add(item.Key(), nil)
+	}
+
+	return nil
 }

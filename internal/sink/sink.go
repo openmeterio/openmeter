@@ -16,6 +16,7 @@ import (
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 
+	"github.com/openmeterio/openmeter/internal/dedupe"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -42,7 +43,7 @@ type SinkConfig struct {
 	Context                 context.Context
 	Logger                  *slog.Logger
 	Storage                 Storage
-	Dedupe                  *Dedupe
+	Deduplicator            dedupe.Deduplicator
 	ConsumerKafkaConfig     kafka.ConfigMap
 	ProducerKafkaConfig     kafka.ConfigMap
 	MinCommitCount          int
@@ -179,12 +180,16 @@ func (s *Sink) flush() error {
 	// Least once guarantee, if Redis write fails we will accept messages with same idempotency key in future and
 	// we have to relay on ClickHouse's deduplication.
 	if len(dedupedBuffer) > 0 {
-		serializedList := []*serializer.CloudEventsKafkaPayload{}
+		dedupeItems := []dedupe.Item{}
 		for _, message := range dedupedBuffer {
-			serializedList = append(serializedList, message.Serialized)
+			dedupeItems = append(dedupeItems, dedupe.Item{
+				Namespace: message.Namespace,
+				ID:        message.Serialized.Id,
+				Source:    message.Serialized.Source,
+			})
 		}
 
-		err := s.config.Dedupe.Set(s.config.Context, serializedList...)
+		err := s.config.Deduplicator.Set(s.config.Context, dedupeItems...)
 		if err != nil {
 			logger.Error("failed to sink to redis", "err", err, "rows", dedupedBuffer)
 			return fmt.Errorf("failed to sink to redis: %s", err)
@@ -403,7 +408,11 @@ func (s *Sink) ParseMessage(e *kafka.Message) (string, *serializer.CloudEventsKa
 	}
 
 	// Dedupe, this stores key in store which means if sink fails and restarts it will not process the same message again
-	isUnique, err := s.config.Dedupe.IsUnique(s.config.Context, kafkaCloudEvent)
+	isUnique, err := s.config.Deduplicator.IsUnique(s.config.Context, dedupe.Item{
+		Namespace: namespace,
+		ID:        kafkaCloudEvent.Id,
+		Source:    kafkaCloudEvent.Source,
+	})
 	if err != nil {
 		// Stop processing, non-recoverable error
 		return namespace, &kafkaCloudEvent, fmt.Errorf("failed to check uniqueness of kafka message: %w", err)
@@ -439,7 +448,11 @@ func dedupeEventList(events []SinkMessage) []SinkMessage {
 	list := []SinkMessage{}
 
 	for _, event := range events {
-		key := event.Serialized.GetKey()
+		key := dedupe.Item{
+			Namespace: event.Namespace,
+			ID:        event.Serialized.Id,
+			Source:    event.Serialized.Source,
+		}.Key()
 		if _, value := keys[key]; !value {
 			keys[key] = true
 			list = append(list, event)

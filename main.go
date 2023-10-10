@@ -22,7 +22,6 @@ import (
 	"github.com/go-slog/otelslog"
 	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/redis/go-redis/v9"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -193,20 +192,6 @@ func main() {
 	if err != nil {
 		logger.Error("failed to initialize namespace", "error", err)
 		os.Exit(1)
-	}
-
-	// Initialize deduplication
-	if conf.Dedupe.Enabled {
-		deduplicator, err := conf.Dedupe.NewDeduplicator()
-		if err != nil {
-			logger.Error("failed to initialize deduplicator", "error", err)
-			os.Exit(1)
-		}
-
-		ingestCollector = ingest.DeduplicatingCollector{
-			Collector:    ingestCollector,
-			Deduplicator: deduplicator,
-		}
 	}
 
 	// Initialize sink worker
@@ -431,14 +416,10 @@ func initSink(config config.Configuration, logger *slog.Logger) error {
 		return fmt.Errorf("init clickhouse client: %w", err)
 	}
 
-	dedupe := sink.NewDedupe(&sink.DedupeConfig{
-		Redis: redis.NewClient(&redis.Options{
-			Addr:     "127.0.0.1:6379",
-			DB:       0,
-			Username: "",
-			Password: "",
-		}),
-	})
+	deduplicator, err := config.Dedupe.NewDeduplicator()
+	if err != nil {
+		return fmt.Errorf("failed to initialize deduplicator: %w", err)
+	}
 
 	storage := sink.NewClickhouseStorage(
 		sink.ClickHouseStorageConfig{
@@ -457,7 +438,7 @@ func initSink(config config.Configuration, logger *slog.Logger) error {
 		Context:             context.Background(),
 		Logger:              logger,
 		Storage:             storage,
-		Dedupe:              dedupe,
+		Deduplicator:        deduplicator,
 		ConsumerKafkaConfig: consumerKafkaConfig,
 		ProducerKafkaConfig: producerKafkaConfig,
 		MinCommitCount:      1,

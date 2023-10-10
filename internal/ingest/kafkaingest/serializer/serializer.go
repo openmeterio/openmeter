@@ -3,7 +3,6 @@ package serializer
 import (
 	_ "embed"
 	"encoding/json"
-	"fmt"
 
 	"github.com/cloudevents/sdk-go/v2/event"
 )
@@ -24,10 +23,6 @@ type CloudEventsKafkaPayload struct {
 	// Note: By converting to unix timestamp we loose timezone information.
 	Time int64  `json:"time"`
 	Data string `json:"data"`
-}
-
-func (p *CloudEventsKafkaPayload) GetKey() string {
-	return fmt.Sprintf("%s:%s", p.Id, p.Source)
 }
 
 func toCloudEventsKafkaPayload(ev event.Event) (CloudEventsKafkaPayload, error) {
