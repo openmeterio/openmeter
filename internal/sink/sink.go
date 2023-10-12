@@ -56,7 +56,7 @@ func NewSink(config *SinkConfig) (*Sink, error) {
 	// These are Kafka configs but also related to sink logic
 	_ = config.ConsumerKafkaConfig.SetKey("session.timeout.ms", 6000)
 	_ = config.ConsumerKafkaConfig.SetKey("enable.auto.commit", false)
-	_ = config.ConsumerKafkaConfig.SetKey("enable.auto.offset.store", true)
+	_ = config.ConsumerKafkaConfig.SetKey("enable.auto.offset.store", false)
 	_ = config.ConsumerKafkaConfig.SetKey("go.application.rebalance.enable", true)
 
 	consumer, err := kafka.NewConsumer(&config.ConsumerKafkaConfig)
@@ -336,37 +336,32 @@ func (s *Sink) Run() error {
 				s.state.buffer = append(s.state.buffer, sinkMessage)
 				logger.Debug("event added to buffer", "event", kafkaCloudEvent)
 
-				// TODO: currently we relay on `enable.auto.offset.store` to store offsets for commit
-				// As we already manage commit manually it would be ideal to manage what goes into offset store to
-				// This code should work in theory but at commit we get `Local: No offset stored` which means it is not stored
-				// // Store message, this won't commit offset immediately just store it for the next manual commit
-				// _, err = s.consumer.StoreMessage(e)
-				// if err != nil {
-				// 	logger.Error("cannot store kafka message for upcoming offset commit", "err", err, "event", ev)
-				// 	// Stop processing, non-recoverable error
-				// 	return err
-				// }
+				// Store message, this won't commit offset immediately just store it for the next manual commit
+				_, err = s.consumer.StoreMessage(e)
+				if err != nil {
+					// Stop processing, non-recoverable error
+					return fmt.Errorf("failed to store kafka message for upcoming offset commit: %w", err)
+				}
 
 				// Flush buffer and commit messages
 				if s.state.messageCount >= s.config.MinCommitCount {
 					err = s.flush()
 					if err != nil {
-						logger.Error("faield to flush", "err", err)
 						// Stop processing, non-recoverable error
-						return err
+						return fmt.Errorf("failed to flush: %w", err)
 					}
 				}
 			case kafka.AssignedPartitions:
 				logger.Info("kafka assigned partitions", "event", e)
 				err := s.consumer.Assign(e.Partitions)
 				if err != nil {
-					return err
+					return fmt.Errorf("failed to assign partitions: %w", err)
 				}
 			case kafka.RevokedPartitions:
 				logger.Info("kafka revoked partitions", "event", e)
 				err := s.consumer.Unassign()
 				if err != nil {
-					return err
+					return fmt.Errorf("failed to unassign partitions: %w", err)
 				}
 			case kafka.Error:
 				// Errors should generally be considered
