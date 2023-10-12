@@ -5,27 +5,38 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/oliveagle/jsonpath"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type NamespaceStore struct {
+type MeterStore struct {
 	Meters []*models.Meter
 }
 
-type SinkState struct {
-	running      bool
-	messageCount int
-	buffer       []SinkMessage
-	lastSink     time.Time
-	namespaces   map[string]*NamespaceStore
+type NamespaceStore struct {
+	namespaces map[string]*MeterStore
+}
+
+func NewNamespaceStore() *NamespaceStore {
+	return &NamespaceStore{
+		namespaces: make(map[string]*MeterStore),
+	}
+}
+
+func (n *NamespaceStore) AddMeter(namespace string, meter *models.Meter) {
+	if n.namespaces[meter.Namespace] == nil {
+		n.namespaces[meter.Namespace] = &MeterStore{
+			Meters: []*models.Meter{meter},
+		}
+	} else {
+		n.namespaces[meter.Namespace].Meters = append(n.namespaces[meter.Namespace].Meters, meter)
+	}
 }
 
 // validateEvent validates a single event by matching it with the corresponding meter if any
-func (a *SinkState) validateEvent(ctx context.Context, event serializer.CloudEventsKafkaPayload, namespace string) error {
+func (a *NamespaceStore) validateEvent(ctx context.Context, event serializer.CloudEventsKafkaPayload, namespace string) error {
 	namespaceStore := a.namespaces[namespace]
 	if namespaceStore == nil {
 		// We drop events from unknown org

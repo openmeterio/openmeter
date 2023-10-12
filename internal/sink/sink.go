@@ -1,8 +1,5 @@
 package sink
 
-// TODO: make thread safe: buffer, messageCount, running, lastSink
-// TODO: flush after MaxCommitWait time selapsed even if MinCommitCount threshold not reached yet
-
 import (
 	"context"
 	"encoding/json"
@@ -18,7 +15,6 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/dedupe"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var namespaceTopicRegexp = regexp.MustCompile(`^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$`)
@@ -35,7 +31,10 @@ type Sink struct {
 	consumer         *kafka.Consumer
 	producer         *kafka.Producer
 	config           *SinkConfig
-	state            SinkState
+	running          bool
+	buffer           SinkBuffer
+	flushTimer       *time.Timer
+	namespaceStore   *NamespaceStore
 	namespaceRefetch *time.Timer
 }
 
@@ -83,15 +82,11 @@ func NewSink(config *SinkConfig) (*Sink, error) {
 	}
 
 	sink := &Sink{
-		consumer: consumer,
-		producer: producer,
-		config:   config,
-		state: SinkState{
-			messageCount: 0,
-			buffer:       []SinkMessage{},
-			lastSink:     time.Now(),
-			namespaces:   map[string]*NamespaceStore{},
-		},
+		consumer:       consumer,
+		producer:       producer,
+		config:         config,
+		buffer:         NewSinkBuffer(),
+		namespaceStore: NewNamespaceStore(),
 	}
 
 	return sink, nil
@@ -99,23 +94,23 @@ func NewSink(config *SinkConfig) (*Sink, error) {
 
 func (s *Sink) flush() error {
 	logger := s.config.Logger.With("sink", "flush")
-	logger.Debug("started to flush", "buffer size", len(s.state.buffer))
+	messages := s.buffer.Dequeue()
 
 	// Stop polling new messages from Kafka until we finalize batch
-	s.state.running = false
+	s.clearFlushTimer()
 
-	// 1. Dedupe inside bufffer
-	// We filter out duplicates in the case the same batch had multiple messages for the same key.
-	// This is needed as although we check Redis for every single Kafka poll we only write to Redis in batches at the end of processing.
-	dedupedBuffer := dedupeEventList(s.state.buffer)
+	// Dedupe messages so if we have multiple messages in the same batch
+	dedupedMessages := dedupeSinkMessages(messages)
 
-	// 2. Sink to Storage
-	if len(dedupedBuffer) > 0 {
-		batchesPerNamespace := map[string][]SinkMessage{}
+	// 1. Sink to Storage
+	if len(dedupedMessages) > 0 {
+		logger.Debug("started to flush", "buffer size", len(dedupedMessages))
+
 		deadletterMessages := []SinkMessage{}
+		batchesPerNamespace := map[string][]SinkMessage{}
 
 		// Insert per namespace
-		for _, message := range dedupedBuffer {
+		for _, message := range dedupedMessages {
 			if message.Error != nil {
 				switch message.Error.ProcessingControl {
 				case DEADLETTER:
@@ -157,7 +152,7 @@ func (s *Sink) flush() error {
 				// Throwing and error means we will retry the whole batch again
 				return fmt.Errorf("failed to sink to storage: %s", err)
 			}
-			logger.Debug("succeeded to sink to storage", "buffer size", len(dedupedBuffer))
+			logger.Debug("succeeded to sink to storage", "buffer size", len(messages))
 		}
 
 		if len(deadletterMessages) > 0 {
@@ -165,23 +160,27 @@ func (s *Sink) flush() error {
 		}
 	}
 
-	// 3. Commit Offset to Kafka
+	// 2. Commit Offset to Kafka
 	// Least once guarantee, if offset commit fails we will potentially process the same messages again as they are not committed yet
 	// If Redis write succeeds but Kafka commit fails we will reprocess messages without side effect as they will be dropped at duplicate check
 	// If Redis write fails we will double write them to ClickHouse and we have to relay on ClickHouse's deduplication
-	commitedOffsets, err := s.consumer.Commit()
+	var offsets []kafka.TopicPartition
+	for _, message := range messages {
+		offsets = append(offsets, message.KafkaMessage.TopicPartition)
+	}
+	commitedOffsets, err := s.consumer.CommitOffsets(offsets)
 	if err != nil {
 		logger.Error("failed to commit offset to kafka", "err", err)
 		// do not return error here as we want to write Redis even if commit fails as we already saved them in ClickHouse
 	}
 	logger.Debug("succeeded to commit offset to kafka", "offsets", commitedOffsets)
 
-	// 4. Sink to Redis
+	// 3. Sink to Redis
 	// Least once guarantee, if Redis write fails we will accept messages with same idempotency key in future and
 	// we have to relay on ClickHouse's deduplication.
-	if len(dedupedBuffer) > 0 {
+	if len(dedupedMessages) > 0 {
 		dedupeItems := []dedupe.Item{}
-		for _, message := range dedupedBuffer {
+		for _, message := range dedupedMessages {
 			dedupeItems = append(dedupeItems, dedupe.Item{
 				Namespace: message.Namespace,
 				ID:        message.Serialized.Id,
@@ -191,19 +190,16 @@ func (s *Sink) flush() error {
 
 		err := s.config.Deduplicator.Set(s.config.Context, dedupeItems...)
 		if err != nil {
-			logger.Error("failed to sink to redis", "err", err, "rows", dedupedBuffer)
+			logger.Error("failed to sink to redis", "err", err)
 			return fmt.Errorf("failed to sink to redis: %s", err)
 		}
-		logger.Debug("succeeded to sink to redis", "buffer size", len(dedupedBuffer))
+		logger.Debug("succeeded to sink to redis", "buffer size", len(messages))
 	}
 
-	// 5. Reset states for next batch
-	s.state.lastSink = time.Now()
-	s.state.buffer = []SinkMessage{}
-	s.state.messageCount = 0
-	s.state.running = true
+	// 4. Reset states for next batch
+	s.setFlushTimer()
 
-	logger.Debug("succeeded to flush", "buffer size", len(dedupedBuffer))
+	logger.Debug("succeeded to flush", "buffer size", len(messages))
 
 	return nil
 }
@@ -235,35 +231,29 @@ func (s *Sink) deadLetter(messages ...SinkMessage) error {
 	return nil
 }
 
-func (s *Sink) getNamespaces() (map[string]*NamespaceStore, error) {
+func (s *Sink) getNamespaces() (*NamespaceStore, error) {
 	meters, err := s.config.Storage.GetMeters(s.config.Context)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get meters: %s", err)
 	}
 
-	namespaces := map[string]*NamespaceStore{}
+	namespaceStore := NewNamespaceStore()
 	for _, meter := range meters {
-		if namespaces[meter.Namespace] == nil {
-			namespaces[meter.Namespace] = &NamespaceStore{
-				Meters: []*models.Meter{meter},
-			}
-		} else {
-			namespaces[meter.Namespace].Meters = append(namespaces[meter.Namespace].Meters, meter)
-		}
+		namespaceStore.AddMeter(meter.Namespace, meter)
 	}
 
-	return namespaces, nil
+	return namespaceStore, nil
 }
 
 func (s *Sink) subscribeToNamespaces() error {
-	namespaces, err := s.getNamespaces()
+	ns, err := s.getNamespaces()
 	if err != nil {
 		return fmt.Errorf("failed to get namespaces: %s", err)
 	}
-	s.state.namespaces = namespaces
+	s.namespaceStore = ns
 
 	// We always subscribe to all namespaces as consumer.SubscribeTopics replaces the current subscription.
-	topics := getTopics(namespaces)
+	topics := getTopics(*s.namespaceStore)
 	err = s.consumer.SubscribeTopics(topics, nil)
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to topics: %s", err)
@@ -273,6 +263,32 @@ func (s *Sink) subscribeToNamespaces() error {
 	}
 
 	return nil
+}
+
+// Periodically flush even if MinCommitCount threshold not reached yet but MaxCommitWait time elapsed
+func (s *Sink) setFlushTimer() {
+	logger := s.config.Logger.With("sink", "flush timer")
+
+	flush := func() {
+		logger.Debug("flush timer elapsed", "buffer size", s.buffer.Size())
+
+		if s.buffer.Size() > 0 {
+			err := s.flush()
+			if err != nil {
+				// TODO: should we panic?
+				logger.Error("failed to flush", "err", err)
+			}
+		}
+	}
+
+	// Schedule flush
+	s.flushTimer = time.AfterFunc(s.config.MaxCommitWait, flush)
+}
+
+func (s *Sink) clearFlushTimer() {
+	if s.flushTimer != nil {
+		s.flushTimer.Stop()
+	}
 }
 
 // Run starts the Kafka consumer and sinks the events to Clickhouse
@@ -293,6 +309,7 @@ func (s *Sink) Run() error {
 	refetch = func() {
 		err := s.subscribeToNamespaces()
 		if err != nil {
+			// TODO: should we panic?
 			logger.Error("failed to subscribe to namespaces", "err", err)
 		}
 		s.namespaceRefetch = time.AfterFunc(s.config.NamespaceRefetch, refetch)
@@ -300,14 +317,14 @@ func (s *Sink) Run() error {
 	s.namespaceRefetch = time.AfterFunc(s.config.NamespaceRefetch, refetch)
 
 	// Reset state
-	s.state.lastSink = time.Now()
-	s.state.running = true
+	s.running = true
+	s.setFlushTimer()
 
-	for s.state.running {
+	for s.running {
 		select {
 		case sig := <-sigchan:
 			logger.Error("caught signal", "sig", sig)
-			s.state.running = false
+			s.running = false
 		default:
 			ev := s.consumer.Poll(100)
 			if ev == nil {
@@ -316,8 +333,6 @@ func (s *Sink) Run() error {
 
 			switch e := ev.(type) {
 			case *kafka.Message:
-				s.state.messageCount++
-
 				sinkMessage := SinkMessage{
 					KafkaMessage: e,
 				}
@@ -332,7 +347,7 @@ func (s *Sink) Run() error {
 				sinkMessage.Namespace = namespace
 				sinkMessage.Serialized = kafkaCloudEvent
 
-				s.state.buffer = append(s.state.buffer, sinkMessage)
+				s.buffer.Add(sinkMessage)
 				logger.Debug("event added to buffer", "event", kafkaCloudEvent)
 
 				// Store message, this won't commit offset immediately just store it for the next manual commit
@@ -343,13 +358,14 @@ func (s *Sink) Run() error {
 				}
 
 				// Flush buffer and commit messages
-				if s.state.messageCount >= s.config.MinCommitCount {
+				if s.buffer.Size() >= s.config.MinCommitCount {
 					err = s.flush()
 					if err != nil {
 						// Stop processing, non-recoverable error
 						return fmt.Errorf("failed to flush: %w", err)
 					}
 				}
+
 			case kafka.AssignedPartitions:
 				logger.Info("kafka assigned partitions", "event", e)
 				err := s.consumer.Assign(e.Partitions)
@@ -372,7 +388,7 @@ func (s *Sink) Run() error {
 				// the application if all brokers are down.
 				if e.Code() == kafka.ErrAllBrokersDown {
 					// TODO: should we panic? or what will restart polling?
-					s.state.running = false
+					s.running = false
 				}
 			case kafka.OffsetsCommitted:
 				// do nothing, this is an ack of the periodic offset commit
@@ -383,7 +399,7 @@ func (s *Sink) Run() error {
 		}
 	}
 
-	return s.Close()
+	return nil
 }
 
 func (s *Sink) ParseMessage(e *kafka.Message) (string, *serializer.CloudEventsKafkaPayload, error) {
@@ -416,13 +432,16 @@ func (s *Sink) ParseMessage(e *kafka.Message) (string, *serializer.CloudEventsKa
 	}
 
 	// Validation
-	err = s.state.validateEvent(s.config.Context, kafkaCloudEvent, namespace)
+	err = s.namespaceStore.validateEvent(s.config.Context, kafkaCloudEvent, namespace)
 	return namespace, &kafkaCloudEvent, err
 }
 
 func (s *Sink) Close() error {
 	if s.namespaceRefetch != nil {
 		s.namespaceRefetch.Stop()
+	}
+	if s.flushTimer != nil {
+		s.flushTimer.Stop()
 	}
 	return s.consumer.Close()
 }
@@ -436,8 +455,19 @@ func getNamespace(topic string) (string, error) {
 	return tmp[1], nil
 }
 
-// dedupeEventList removes duplicates from a list of events
-func dedupeEventList(events []SinkMessage) []SinkMessage {
+// getTopics return topics from namespaces
+func getTopics(ns NamespaceStore) []string {
+	topics := []string{}
+	for namespace := range ns.namespaces {
+		topic := fmt.Sprintf("om_%s_events", namespace)
+		topics = append(topics, topic)
+	}
+
+	return topics
+}
+
+// dedupeSinkMessages removes duplicates from a list of events
+func dedupeSinkMessages(events []SinkMessage) []SinkMessage {
 	keys := make(map[string]bool)
 	list := []SinkMessage{}
 
@@ -453,15 +483,4 @@ func dedupeEventList(events []SinkMessage) []SinkMessage {
 		}
 	}
 	return list
-}
-
-// getTopics return topics from namespaces
-func getTopics(namespaces map[string]*NamespaceStore) []string {
-	topics := []string{}
-	for namespace := range namespaces {
-		topic := fmt.Sprintf("om_%s_events", namespace)
-		topics = append(topics, topic)
-	}
-
-	return topics
 }

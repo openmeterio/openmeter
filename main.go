@@ -441,7 +441,7 @@ func initSink(config config.Configuration, logger *slog.Logger) error {
 		Deduplicator:        deduplicator,
 		ConsumerKafkaConfig: consumerKafkaConfig,
 		ProducerKafkaConfig: producerKafkaConfig,
-		MinCommitCount:      1,
+		MinCommitCount:      1000,
 		MaxCommitWait:       time.Second * 5,
 	}
 
@@ -452,7 +452,6 @@ func initSink(config config.Configuration, logger *slog.Logger) error {
 
 	go func() {
 		err = sink.Run()
-		defer sink.Close()
 		if err != nil {
 			slog.Error("sink error", "error", err)
 			os.Exit(1)
