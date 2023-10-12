@@ -231,8 +231,7 @@ func (s *Sink) deadLetter(messages ...SinkMessage) error {
 		}
 	}
 
-	// TODO: implement
-	logger.Debug("TODO: dead letter", "messages", len(messages))
+	logger.Debug("succeeded to deadletter", "messages", len(messages))
 	return nil
 }
 
