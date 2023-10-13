@@ -50,8 +50,7 @@ services:
       retries: 100
 
   kafka-connect:
-    build:
-      context: etc/kafka-connect/
+    image: ghcr.io/openmeterio/kafka-connect-dev:7.5.1
     depends_on:
       kafka:
         condition: service_healthy
