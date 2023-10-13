@@ -168,12 +168,14 @@ func (s *Sink) flush() error {
 	for _, message := range messages {
 		offsets = append(offsets, message.KafkaMessage.TopicPartition)
 	}
-	commitedOffsets, err := s.consumer.CommitOffsets(offsets)
-	if err != nil {
-		logger.Error("failed to commit offset to kafka", "err", err)
-		// do not return error here as we want to write Redis even if commit fails as we already saved them in ClickHouse
+	if len(offsets) > 0 {
+		commitedOffsets, err := s.consumer.CommitOffsets(offsets)
+		if err != nil {
+			logger.Error("failed to commit offset to kafka", "err", err)
+			// do not return error here as we want to write Redis even if commit fails as we already saved them in ClickHouse
+		}
+		logger.Debug("succeeded to commit offset to kafka", "offsets", commitedOffsets)
 	}
-	logger.Debug("succeeded to commit offset to kafka", "offsets", commitedOffsets)
 
 	// 3. Sink to Redis
 	// Least once guarantee, if Redis write fails we will accept messages with same idempotency key in future and
@@ -246,20 +248,39 @@ func (s *Sink) getNamespaces() (*NamespaceStore, error) {
 }
 
 func (s *Sink) subscribeToNamespaces() error {
+	logger := s.config.Logger.With("sink", "subscribeToNamespaces")
 	ns, err := s.getNamespaces()
 	if err != nil {
 		return fmt.Errorf("failed to get namespaces: %s", err)
 	}
+
+	// Identify if we have a new namespace
+	isNewNamespace := len(ns.namespaces) != len(s.namespaceStore.namespaces)
+	if !isNewNamespace {
+		for key := range ns.namespaces {
+			if s.namespaceStore.namespaces[key] == nil {
+				isNewNamespace = true
+				break
+			}
+		}
+	}
+
+	// We always replace store to ensure we have latest meter changes
 	s.namespaceStore = ns
 
-	// We always subscribe to all namespaces as consumer.SubscribeTopics replaces the current subscription.
-	topics := getTopics(*s.namespaceStore)
-	err = s.consumer.SubscribeTopics(topics, nil)
-	if err != nil {
-		return fmt.Errorf("failed to subscribe to topics: %s", err)
-	}
-	if err != nil {
-		return fmt.Errorf("failed to subscribe to topics: %s", err)
+	// We only subscribe to topics if we have a new namespace
+	if isNewNamespace {
+		// We always subscribe to all namespaces as consumer.SubscribeTopics replaces the current subscription.
+		topics := getTopics(*s.namespaceStore)
+		logger.Info("new namespaces detected, subscribing to topics", "topics", topics)
+
+		err = s.consumer.SubscribeTopics(topics, s.rebalanceCallback)
+		if err != nil {
+			return fmt.Errorf("failed to subscribe to topics: %s", err)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to subscribe to topics: %s", err)
+		}
 	}
 
 	return nil
@@ -323,7 +344,7 @@ func (s *Sink) Run() error {
 	for s.running {
 		select {
 		case sig := <-sigchan:
-			logger.Error("caught signal", "sig", sig)
+			logger.Error("caught signal, terminating", "sig", sig)
 			s.running = false
 		default:
 			ev := s.consumer.Poll(100)
@@ -365,31 +386,11 @@ func (s *Sink) Run() error {
 						return fmt.Errorf("failed to flush: %w", err)
 					}
 				}
-
-			case kafka.AssignedPartitions:
-				logger.Info("kafka assigned partitions", "event", e)
-				err := s.consumer.Assign(e.Partitions)
-				if err != nil {
-					return fmt.Errorf("failed to assign partitions: %w", err)
-				}
-			case kafka.RevokedPartitions:
-				logger.Info("kafka revoked partitions", "event", e)
-				err := s.consumer.Unassign()
-				if err != nil {
-					return fmt.Errorf("failed to unassign partitions: %w", err)
-				}
 			case kafka.Error:
 				// Errors should generally be considered
 				// informational, the client will try to
 				// automatically recover.
 				logger.Error("kafka error", "code", e.Code(), "event", e)
-
-				// But in this example we choose to terminate
-				// the application if all brokers are down.
-				if e.Code() == kafka.ErrAllBrokersDown {
-					// TODO: should we panic? or what will restart polling?
-					s.running = false
-				}
 			case kafka.OffsetsCommitted:
 				// do nothing, this is an ack of the periodic offset commit
 				logger.Debug("kafka offset committed", "offset", e.Offsets)
@@ -397,6 +398,52 @@ func (s *Sink) Run() error {
 				logger.Debug("kafka ignored event", "event", e)
 			}
 		}
+	}
+
+	logger.Info("closing sink")
+	return s.Close()
+}
+
+func (s *Sink) rebalanceCallback(c *kafka.Consumer, event kafka.Event) error {
+	logger := s.config.Logger.With("sink", "rebalance")
+
+	switch e := event.(type) {
+	case kafka.AssignedPartitions:
+		logger.Info("kafka assigned partitions", "partitions", e.Partitions)
+		err := s.consumer.Assign(e.Partitions)
+		if err != nil {
+			return fmt.Errorf("failed to assign partitions: %w", err)
+		}
+	case kafka.RevokedPartitions:
+		logger.Info("kafka revoked partitions", "partitions", e.Partitions)
+
+		// Usually, the rebalance callback for `RevokedPartitions` is called
+		// just before the partitions are revoked. We can be certain that a
+		// partition being revoked is not yet owned by any other consumer.
+		// This way, logic like storing any pending offsets or committing
+		// offsets can be handled.
+		// However, there can be cases where the assignment is lost
+		// involuntarily. In this case, the partition might already be owned
+		// by another consumer, and operations including committing
+		// offsets may not work.
+		if s.consumer.AssignmentLost() {
+			// Our consumer has been kicked out of the group and the
+			// entire assignment is thus lost.
+			logger.Warn("assignment lost involuntarily, commit may fail")
+		}
+
+		err := s.flush()
+		if err != nil {
+			// Stop processing, non-recoverable error
+			return fmt.Errorf("failed to flush: %w", err)
+		}
+
+		err = s.consumer.Unassign()
+		if err != nil {
+			return fmt.Errorf("failed to unassign partitions: %w", err)
+		}
+	default:
+		logger.Error("unxpected event type", "event", e)
 	}
 
 	return nil
@@ -437,6 +484,7 @@ func (s *Sink) ParseMessage(e *kafka.Message) (string, *serializer.CloudEventsKa
 }
 
 func (s *Sink) Close() error {
+	s.running = false
 	if s.namespaceRefetch != nil {
 		s.namespaceRefetch.Stop()
 	}

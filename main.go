@@ -429,10 +429,18 @@ func initSink(config config.Configuration, logger *slog.Logger) error {
 	)
 
 	consumerKafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
-	_ = consumerKafkaConfig.SetKey("group.id", "om-ch-sink-v1")
+	_ = consumerKafkaConfig.SetKey("group.id", "om-sink")
 
 	producerKafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
 	_ = producerKafkaConfig.SetKey("group.id", "om-sink-deadletter")
+
+	// Avoid connecting to IPv6 brokers:
+	// This is needed for the ErrAllBrokersDown show-case below
+	// when using localhost brokers on OSX, since the OSX resolver
+	// will return the IPv6 addresses first.
+	// You typically don't need to specify this configuration property.
+	_ = consumerKafkaConfig.SetKey("broker.address.family", "v4")
+	_ = producerKafkaConfig.SetKey("broker.address.family", "v4")
 
 	sinkConfig := sink.SinkConfig{
 		Context:             context.Background(),
