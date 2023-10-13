@@ -31,12 +31,12 @@ OpenMeter currently supports the [JSON format](https://github.com/cloudevents/sp
 The `data` property can contain any valid JSON object, and when configuring meters using [JsonPath](https://github.com/json-path/JsonPath), individual values can be extracted.
 
 CloudEvents is adopted by many Cloud Native solutions, making it effortless to extract usage data from infrastructure solutions.
-SDKs are available for common programming languages, simplifying the creation, validation, and reporting of usage events to OpenMeter
+SDKs are available for common programming languages, simplifying the creation, validation, and reporting of usage events to OpenMeter.
 
 ## Event Processing
 
 OpenMeter continuously processes usage events, allowing you to update meters in real-time. Once an event is ingested, OpenMeter aggregates the data based on your defined meters.
-For example, you can define meters called "Parallel jobs", and OpenMeter will aggregate the maximum number of jobs by each customer over a given time period.
+For example, you can define a meter called "Parallel jobs", and OpenMeter will aggregate the maximum number of jobs by each customer over a given time period.
 
 Using an example, let’s dive into how OpenMeter’s event processing works.
 Imagine you want to track serverless execution duration by endpoint and you defined the following meter:
@@ -51,8 +51,8 @@ meters:
       path: $.path
 ```
 
-The meter config above tells OpenMeter that expect CloudEvents with `type=api-calls` where the usage value is stored in the `data.duration` and we need to sum them by `data.path`.
-OpenMeter will track the usage value for every time window when least one event was reported and tracks it for every `subject` and `groupBy` permutation.
+The meter config above tells OpenMeter to expect CloudEvents with `type=api-calls` where the usage value is stored in `data.duration` and we need to sum them by `data.path`.
+OpenMeter will track the usage value for every time window when at least one event was reported and tracks it for every `subject` and `groupBy` permutation.
 
 Note that `$.path` is a [JsonPath](https://github.com/json-path/JsonPath) expression to access the `data.path` property, providing powerful capabilities to extract values from nested data properties.
 
@@ -73,7 +73,7 @@ For example, when you send your first event:
 }
 ```
 
-OpenMeter will track the usage value for the time window and cusomer as:
+OpenMeter will track the usage value for the time window and customer as:
 
 ```sh
 windowstart   = "2023-01-01T00:00"
