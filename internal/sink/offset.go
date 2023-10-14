@@ -2,6 +2,7 @@ package sink
 
 import "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 
+// OffsetStore helps to determinate the next offset to commit
 type OffsetStore struct {
 	topics map[string]*PartitionOffsets
 }
@@ -33,6 +34,7 @@ func (o *OffsetStore) Add(topicPartition kafka.TopicPartition) {
 	if o.topics[topic].partitions[partition] == nil {
 		o.topics[topic].partitions[partition] = &Offset{Offset: offset}
 	}
+
 	if o.topics[topic].partitions[partition].Offset < offset {
 		o.topics[topic].partitions[partition] = &Offset{Offset: offset}
 	}
@@ -47,7 +49,8 @@ func (o *OffsetStore) Get() []kafka.TopicPartition {
 				Topic:     &topic,
 				Partition: partition,
 				Metadata:  &metadata,
-				Offset:    kafka.Offset(p.Offset + 1),
+				// We increase latest offset by one
+				Offset: kafka.Offset(p.Offset + 1),
 			})
 		}
 	}
