@@ -195,102 +195,105 @@ func main() {
 	}
 
 	// Initialize sink worker
-	err = initSink(conf, logger)
-	if err != nil {
-		logger.Error("failed to initialize sink worker", "error", err)
-		os.Exit(1)
-	}
-
-	// Initialize HTTP Ingest handler
-	ingestHandler, err := httpingest.NewHandler(httpingest.HandlerConfig{
-		Collector:        ingestCollector,
-		NamespaceManager: namespaceManager,
-		Logger:           logger,
-	})
-	if err != nil {
-		logger.Error("failed to initialize http ingest handler", "error", err)
-		os.Exit(1)
-	}
-
-	s, err := server.NewServer(&server.Config{
-		RouterConfig: router.Config{
-			NamespaceManager:   namespaceManager,
-			StreamingConnector: streamingConnector,
-			IngestHandler:      ingestHandler,
-			Meters:             meterRepository,
-		},
-		RouterHook: func(r chi.Router) {
-			r.Use(func(h http.Handler) http.Handler {
-				return otelhttp.NewHandler(
-					http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						h.ServeHTTP(w, r)
-
-						routePattern := chi.RouteContext(r.Context()).RoutePattern()
-
-						span := trace.SpanFromContext(r.Context())
-						span.SetName(routePattern)
-						span.SetAttributes(semconv.HTTPTarget(r.URL.String()), semconv.HTTPRoute(routePattern))
-
-						labeler, ok := otelhttp.LabelerFromContext(r.Context())
-						if ok {
-							labeler.Add(semconv.HTTPRoute(routePattern))
-						}
-					}),
-					"",
-					otelhttp.WithMeterProvider(meterProvider),
-					otelhttp.WithTracerProvider(tracerProvider),
-				)
-			})
-		},
-	})
-	if err != nil {
-		logger.Error("failed to create server", "error", err)
-		os.Exit(1)
-	}
-
-	s.Get("/version", func(w http.ResponseWriter, r *http.Request) {
-		_ = json.NewEncoder(w).Encode(map[string]string{
-			"version": version,
-			"os":      runtime.GOOS,
-			"arch":    runtime.GOARCH,
-		})
-	})
-
-	for _, meter := range conf.Meters {
-		err := streamingConnector.CreateMeter(ctx, namespaceManager.GetDefaultNamespace(), meter)
+	if os.Getenv("WORKER") != "" {
+		err = initSink(conf, logger)
 		if err != nil {
-			slog.Warn("failed to initialize meter", "error", err)
+			logger.Error("failed to initialize sink worker", "error", err)
 			os.Exit(1)
 		}
-	}
-	slog.Info("meters successfully created", "count", len(conf.Meters))
+	} else {
 
-	// Set up telemetry server
-	{
-		server := &http.Server{
-			Addr:    conf.Telemetry.Address,
-			Handler: telemetryRouter,
+		// Initialize HTTP Ingest handler
+		ingestHandler, err := httpingest.NewHandler(httpingest.HandlerConfig{
+			Collector:        ingestCollector,
+			NamespaceManager: namespaceManager,
+			Logger:           logger,
+		})
+		if err != nil {
+			logger.Error("failed to initialize http ingest handler", "error", err)
+			os.Exit(1)
 		}
-		defer server.Close()
 
-		group.Add(
-			func() error { return server.ListenAndServe() },
-			func(err error) { _ = server.Shutdown(ctx) },
-		)
-	}
+		s, err := server.NewServer(&server.Config{
+			RouterConfig: router.Config{
+				NamespaceManager:   namespaceManager,
+				StreamingConnector: streamingConnector,
+				IngestHandler:      ingestHandler,
+				Meters:             meterRepository,
+			},
+			RouterHook: func(r chi.Router) {
+				r.Use(func(h http.Handler) http.Handler {
+					return otelhttp.NewHandler(
+						http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+							h.ServeHTTP(w, r)
 
-	// Set up server
-	{
-		server := &http.Server{
-			Addr:    conf.Address,
-			Handler: s,
+							routePattern := chi.RouteContext(r.Context()).RoutePattern()
+
+							span := trace.SpanFromContext(r.Context())
+							span.SetName(routePattern)
+							span.SetAttributes(semconv.HTTPTarget(r.URL.String()), semconv.HTTPRoute(routePattern))
+
+							labeler, ok := otelhttp.LabelerFromContext(r.Context())
+							if ok {
+								labeler.Add(semconv.HTTPRoute(routePattern))
+							}
+						}),
+						"",
+						otelhttp.WithMeterProvider(meterProvider),
+						otelhttp.WithTracerProvider(tracerProvider),
+					)
+				})
+			},
+		})
+		if err != nil {
+			logger.Error("failed to create server", "error", err)
+			os.Exit(1)
 		}
-		defer server.Close()
 
-		group.Add(
-			func() error { return server.ListenAndServe() },
-			func(err error) { _ = server.Shutdown(ctx) }, // TODO: context deadline
-		)
+		s.Get("/version", func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"version": version,
+				"os":      runtime.GOOS,
+				"arch":    runtime.GOARCH,
+			})
+		})
+
+		for _, meter := range conf.Meters {
+			err := streamingConnector.CreateMeter(ctx, namespaceManager.GetDefaultNamespace(), meter)
+			if err != nil {
+				slog.Warn("failed to initialize meter", "error", err)
+				os.Exit(1)
+			}
+		}
+		slog.Info("meters successfully created", "count", len(conf.Meters))
+
+		// Set up telemetry server
+		{
+			server := &http.Server{
+				Addr:    conf.Telemetry.Address,
+				Handler: telemetryRouter,
+			}
+			defer server.Close()
+
+			group.Add(
+				func() error { return server.ListenAndServe() },
+				func(err error) { _ = server.Shutdown(ctx) },
+			)
+		}
+
+		// Set up server
+		{
+			server := &http.Server{
+				Addr:    conf.Address,
+				Handler: s,
+			}
+			defer server.Close()
+
+			group.Add(
+				func() error { return server.ListenAndServe() },
+				func(err error) { _ = server.Shutdown(ctx) }, // TODO: context deadline
+			)
+		}
 	}
 
 	// Setup signal handler
@@ -450,7 +453,7 @@ func initSink(config config.Configuration, logger *slog.Logger) error {
 		ConsumerKafkaConfig: consumerKafkaConfig,
 		ProducerKafkaConfig: producerKafkaConfig,
 		MinCommitCount:      1000,
-		MaxCommitWait:       time.Second * 5,
+		MaxCommitWait:       time.Second * 2,
 	}
 
 	sink, err := sink.NewSink(&sinkConfig)

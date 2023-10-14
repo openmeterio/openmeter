@@ -98,6 +98,7 @@ func (s *Sink) flush() error {
 
 	// Stop polling new messages from Kafka until we finalize batch
 	s.clearFlushTimer()
+	defer s.setFlushTimer()
 
 	// Dedupe messages so if we have multiple messages in the same batch
 	dedupedMessages := dedupeSinkMessages(messages)
@@ -164,10 +165,11 @@ func (s *Sink) flush() error {
 	// Least once guarantee, if offset commit fails we will potentially process the same messages again as they are not committed yet
 	// If Redis write succeeds but Kafka commit fails we will reprocess messages without side effect as they will be dropped at duplicate check
 	// If Redis write fails we will double write them to ClickHouse and we have to relay on ClickHouse's deduplication
-	var offsets []kafka.TopicPartition
+	offsetStore := NewOffsetStore()
 	for _, message := range messages {
-		offsets = append(offsets, message.KafkaMessage.TopicPartition)
+		offsetStore.Add(message.KafkaMessage.TopicPartition)
 	}
+	offsets := offsetStore.Get()
 	if len(offsets) > 0 {
 		commitedOffsets, err := s.consumer.CommitOffsets(offsets)
 		if err != nil {
@@ -198,10 +200,9 @@ func (s *Sink) flush() error {
 		logger.Debug("succeeded to sink to redis", "buffer size", len(messages))
 	}
 
-	// 4. Reset states for next batch
-	s.setFlushTimer()
-
-	logger.Debug("succeeded to flush", "buffer size", len(messages))
+	if len(messages) > 0 {
+		logger.Debug("succeeded to flush", "buffer size", len(messages))
+	}
 
 	return nil
 }
@@ -291,14 +292,10 @@ func (s *Sink) setFlushTimer() {
 	logger := s.config.Logger.With("sink", "flush timer")
 
 	flush := func() {
-		logger.Debug("flush timer elapsed", "buffer size", s.buffer.Size())
-
-		if s.buffer.Size() > 0 {
-			err := s.flush()
-			if err != nil {
-				// TODO: should we panic?
-				logger.Error("failed to flush", "err", err)
-			}
+		err := s.flush()
+		if err != nil {
+			// TODO: should we panic?
+			logger.Error("failed to flush", "err", err)
 		}
 	}
 
@@ -369,7 +366,7 @@ func (s *Sink) Run() error {
 				sinkMessage.Serialized = kafkaCloudEvent
 
 				s.buffer.Add(sinkMessage)
-				logger.Debug("event added to buffer", "event", kafkaCloudEvent)
+				logger.Debug("event added to buffer", "partition", e.TopicPartition.Partition, "offset", e.TopicPartition.Offset, "event", kafkaCloudEvent)
 
 				// Store message, this won't commit offset immediately just store it for the next manual commit
 				_, err = s.consumer.StoreMessage(e)
