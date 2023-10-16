@@ -216,8 +216,9 @@ func initSink(config config.Configuration, logger *slog.Logger) (*sink.Sink, err
 		Deduplicator:        deduplicator,
 		ConsumerKafkaConfig: consumerKafkaConfig,
 		ProducerKafkaConfig: producerKafkaConfig,
-		MinCommitCount:      1000,
-		MaxCommitWait:       time.Second * 2,
+		MinCommitCount:      config.Sink.MinCommitCount,
+		MaxCommitWait:       config.Sink.MaxCommitWait,
+		NamespaceRefetch:    config.Sink.NamespaceRefetch,
 	}
 
 	return sink.NewSink(&sinkConfig)

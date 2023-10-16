@@ -12,6 +12,10 @@ dedupe:
   config:
     address: redis:6379
 
+sink:
+  minCommitCount: 1
+  namespaceRefetch: 1s
+
 meters:
   - slug: m1
     description: API calls
