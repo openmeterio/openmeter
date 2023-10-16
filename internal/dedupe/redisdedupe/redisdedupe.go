@@ -5,8 +5,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/openmeterio/openmeter/internal/dedupe"
 	"github.com/redis/go-redis/v9"
+
+	"github.com/openmeterio/openmeter/internal/dedupe"
 )
 
 // Deduplicator implements event deduplication using Redis.

@@ -148,16 +148,19 @@ func (s *Sink) flush() error {
 					default:
 						return fmt.Errorf("unknown error type: %s", err)
 					}
+				} else {
+					// Throwing and error means we will retry the whole batch again
+					return fmt.Errorf("failed to sink to storage: %s", err)
 				}
-
-				// Throwing and error means we will retry the whole batch again
-				return fmt.Errorf("failed to sink to storage: %s", err)
 			}
 			logger.Debug("succeeded to sink to storage", "buffer size", len(messages))
 		}
 
 		if len(deadletterMessages) > 0 {
-			s.deadLetter(deadletterMessages...)
+			err := s.deadLetter(deadletterMessages...)
+			if err != nil {
+				return fmt.Errorf("failed to deadletter messages: %s", err)
+			}
 		}
 	}
 

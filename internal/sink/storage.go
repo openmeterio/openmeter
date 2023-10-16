@@ -9,6 +9,7 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/huandu/go-sqlbuilder"
+
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -54,7 +55,7 @@ func (c *ClickHouseStorage) BatchInsert(ctx context.Context, namespace string, e
 	if err != nil {
 		code := getCode(err)
 
-		// Altough we validate events before we sink them to storage
+		// Although we validate events before we sink them to storage
 		// we can still get a bad request error if for example namespace gots dropped in the meantime or meter modified
 		// We probably want to handle in ClickHouse (https://github.com/ClickHouse/ClickHouse/blob/master/src/Common/ErrorCodes.cpp)
 		// Couple of code we want to deadletter instead of retry:

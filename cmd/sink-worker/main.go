@@ -11,14 +11,10 @@ import (
 
 	health "github.com/AppsFlyer/go-sundheit"
 	healthhttp "github.com/AppsFlyer/go-sundheit/http"
-
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-slog/otelslog"
-	"github.com/openmeterio/openmeter/config"
-	"github.com/openmeterio/openmeter/internal/sink"
-	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sagikazarmark/slog-shim"
 	"github.com/spf13/pflag"
@@ -28,6 +24,10 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+
+	"github.com/openmeterio/openmeter/config"
+	"github.com/openmeterio/openmeter/internal/sink"
+	"github.com/openmeterio/openmeter/pkg/gosundheit"
 )
 
 func main() {

@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/oliveagle/jsonpath"
+
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
