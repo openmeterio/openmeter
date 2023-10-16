@@ -45,23 +45,9 @@ aggregation:
     database: openmeter
 
 sink:
-  kafkaConnect:
-    enabled: true
-    url: http://127.0.0.1:8083
-    connectors:
-      - name: clickhouse
-        type: clickhouse
-        config:
-          hostname: 127.0.0.1
-          port: 8123
-          ssl: true
-          database: openmeter
-          username: default
-          password: default
-          deadLetterQueue:
-            topicName: om_deadletterqueue
-            replicationFactor: 1
-            contextHeaders: true
+  minCommitCount: 500
+  maxCommitWait: 30s
+  namespaceRefetch: 15s
 
 dedupe:
   enabled: true

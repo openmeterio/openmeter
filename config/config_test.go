@@ -94,7 +94,11 @@ func TestComplete(t *testing.T) {
 				Database: "openmeter",
 			},
 		},
-		Sink: SinkConfiguration{},
+		Sink: SinkConfiguration{
+			MinCommitCount:   500,
+			MaxCommitWait:    30 * time.Second,
+			NamespaceRefetch: 15 * time.Second,
+		},
 		Dedupe: DedupeConfiguration{
 			Enabled: true,
 			DedupeDriverConfiguration: DedupeDriverRedisConfiguration{
