@@ -12,11 +12,21 @@ services:
       clickhouse:
         condition: service_healthy
         required: false
-      kafka-connect:
-        condition: service_healthy
-        required: false
     ports:
       - 127.0.0.1:8888:8888
+    volumes:
+      - ./config.yaml:/etc/openmeter/config.yaml
+  sink-worker:
+    image: ghcr.io/openmeterio/openmeter-sink-worker:latest
+    command: openmeter --config /etc/openmeter/config.yaml
+    restart: always
+    pull_policy: always
+    depends_on:
+      kafka:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+        required: false
     volumes:
       - ./config.yaml:/etc/openmeter/config.yaml
 
@@ -46,11 +56,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 100
-
-  kafka-connect:
-    extends:
-      file: ../docker-compose.yaml
-      service: kafka-connect
 
   # Profile: dedupe-redis
   redis:
