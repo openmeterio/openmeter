@@ -26,6 +26,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 
 	"github.com/openmeterio/openmeter/config"
+	"github.com/openmeterio/openmeter/internal/dedupe"
 	"github.com/openmeterio/openmeter/internal/sink"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 )
@@ -191,9 +192,12 @@ func initSink(config config.Configuration, logger *slog.Logger) (*sink.Sink, err
 		return nil, fmt.Errorf("init clickhouse client: %w", err)
 	}
 
-	deduplicator, err := config.Dedupe.NewDeduplicator()
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize deduplicator: %w", err)
+	var deduplicator dedupe.Deduplicator
+	if config.Dedupe.Enabled {
+		deduplicator, err = config.Dedupe.NewDeduplicator()
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize deduplicator: %w", err)
+		}
 	}
 
 	storage := sink.NewClickhouseStorage(

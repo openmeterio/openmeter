@@ -20,6 +20,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 100
+
   sink-worker:
     image: ghcr.io/openmeterio/openmeter-sink-worker:latest
     command: openmeter --config /etc/openmeter/config.yaml

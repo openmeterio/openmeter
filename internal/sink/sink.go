@@ -52,6 +52,10 @@ type SinkConfig struct {
 }
 
 func NewSink(config *SinkConfig) (*Sink, error) {
+	if config.Deduplicator == nil {
+		config.Logger.Warn("deduplicator is not set, deduplication will be disabled")
+	}
+
 	// These are Kafka configs but also related to sink logic
 	_ = config.ConsumerKafkaConfig.SetKey("session.timeout.ms", 6000)
 	_ = config.ConsumerKafkaConfig.SetKey("enable.auto.commit", false)
@@ -185,7 +189,8 @@ func (s *Sink) flush() error {
 	// 3. Sink to Redis
 	// Least once guarantee, if Redis write fails we will accept messages with same idempotency key in future and
 	// we have to relay on ClickHouse's deduplication.
-	if len(dedupedMessages) > 0 {
+	// Deduplicator is an optional dependency so we check if it's set
+	if s.config.Deduplicator != nil && len(dedupedMessages) > 0 {
 		dedupeItems := []dedupe.Item{}
 		for _, message := range dedupedMessages {
 			dedupeItems = append(dedupeItems, dedupe.Item{
@@ -466,17 +471,21 @@ func (s *Sink) ParseMessage(e *kafka.Message) (string, *serializer.CloudEventsKa
 	}
 
 	// Dedupe, this stores key in store which means if sink fails and restarts it will not process the same message again
-	isUnique, err := s.config.Deduplicator.IsUnique(s.config.Context, dedupe.Item{
-		Namespace: namespace,
-		ID:        kafkaCloudEvent.Id,
-		Source:    kafkaCloudEvent.Source,
-	})
-	if err != nil {
-		// Stop processing, non-recoverable error
-		return namespace, &kafkaCloudEvent, fmt.Errorf("failed to check uniqueness of kafka message: %w", err)
-	}
-	if !isUnique {
-		return namespace, &kafkaCloudEvent, NewProcessingError("skipping non unique message", DROP)
+	// Dedupe is an optional dependency so we check if it's set
+	if s.config.Deduplicator != nil {
+		isUnique, err := s.config.Deduplicator.IsUnique(s.config.Context, dedupe.Item{
+			Namespace: namespace,
+			ID:        kafkaCloudEvent.Id,
+			Source:    kafkaCloudEvent.Source,
+		})
+		if err != nil {
+			// Stop processing, non-recoverable error
+			return namespace, &kafkaCloudEvent, fmt.Errorf("failed to check uniqueness of kafka message: %w", err)
+		}
+
+		if !isUnique {
+			return namespace, &kafkaCloudEvent, NewProcessingError("skipping non unique message", DROP)
+		}
 	}
 
 	// Validation

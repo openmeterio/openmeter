@@ -6,12 +6,6 @@ aggregation:
   clickhouse:
     address: clickhouse:9000
 
-dedupe:
-  enabled: true
-  driver: redis
-  config:
-    address: redis:6379
-
 sink:
   minCommitCount: 1
   namespaceRefetch: 1s
