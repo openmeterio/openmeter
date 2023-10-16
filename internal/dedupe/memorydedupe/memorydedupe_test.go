@@ -22,7 +22,9 @@ func TestDeduplicator(t *testing.T) {
 	}
 
 	isUnique, err := deduplicator.IsUnique(context.Background(), item)
+	errSet := deduplicator.Set(context.Background(), item)
 	isUnique2, err2 := deduplicator.IsUnique(context.Background(), item)
+	require.NoError(t, errSet)
 	require.NoError(t, err)
 	require.NoError(t, err2)
 
