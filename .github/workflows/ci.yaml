@@ -29,8 +29,11 @@ jobs:
       - name: Prepare Nix shell
         run: nix develop --impure .#ci
 
-      - name: Build
-        run: nix develop --impure .#ci -c make build
+      - name: Build Server
+        run: nix develop --impure .#ci -c make build-server
+
+      - name: Build Sink Worker
+        run: nix develop --impure .#ci -c make build-sink-worker
 
   test:
     name: Test

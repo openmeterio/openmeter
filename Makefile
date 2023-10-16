@@ -15,10 +15,15 @@ generate: ## Generate code
 	$(call print-target)
 	go generate ./...
 
-.PHONY: build
-build: ## Build binary
+.PHONY: build-server
+build-server: ## Build server binary
 	$(call print-target)
-	go build -tags dynamic -o build/ .
+	go build -tags dynamic -o build/server ./cmd/server
+
+.PHONY: build-sink-worker
+build-sink-worker: ## Build binary
+	$(call print-target)
+	go build -tags dynamic -o build/sink-worker ./cmd/sink-worker
 
 config.yaml:
 	cp config.example.yaml config.yaml

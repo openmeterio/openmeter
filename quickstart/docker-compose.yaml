@@ -11,11 +11,15 @@ services:
         condition: service_healthy
       clickhouse:
         condition: service_healthy
-        required: false
     ports:
       - 127.0.0.1:8888:8888
     volumes:
       - ./config.yaml:/etc/openmeter/config.yaml
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://openmeter:8888/api/v1/meters/m1/query || exit 1
+      interval: 5s
+      timeout: 3s
+      retries: 100
   sink-worker:
     image: ghcr.io/openmeterio/openmeter-sink-worker:latest
     command: openmeter --config /etc/openmeter/config.yaml
@@ -26,7 +30,8 @@ services:
         condition: service_healthy
       clickhouse:
         condition: service_healthy
-        required: false
+      openmeter:
+        condition: service_healthy
     volumes:
       - ./config.yaml:/etc/openmeter/config.yaml
 
