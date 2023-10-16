@@ -35,7 +35,7 @@ FROM gcr.io/distroless/base-debian11:latest@sha256:b31a6e02605827e77b7ebb82a0ac9
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 COPY --from=builder /usr/local/bin/openmeter-server /usr/local/bin/
-COPY --from=builder /usr/local/src/openmeter-server/go.* /usr/local/src/openmeter-server/
+COPY --from=builder /usr/local/src/openmeter/go.* /usr/local/src/openmeter/
 
 CMD openmeter-server
 
@@ -44,7 +44,7 @@ FROM redhat/ubi8-micro:8.8-7@sha256:6fa456671239c7ac791dac2537425d1ba5612df36355
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 COPY --from=builder /usr/local/bin/openmeter-server /usr/local/bin/
-COPY --from=builder /usr/local/src/openmeter-server/go.* /usr/local/src/openmeter-server/
+COPY --from=builder /usr/local/src/openmeter/go.* /usr/local/src/openmeter/
 
 CMD openmeter-server
 
@@ -55,6 +55,6 @@ RUN apk add --update --no-cache ca-certificates tzdata bash
 SHELL ["/bin/bash", "-c"]
 
 COPY --from=builder /usr/local/bin/openmeter-server /usr/local/bin/
-COPY --from=builder /usr/local/src/openmeter-server/go.* /usr/local/src/openmeter-server/
+COPY --from=builder /usr/local/src/openmeter/go.* /usr/local/src/openmeter/
 
 CMD openmeter-server
