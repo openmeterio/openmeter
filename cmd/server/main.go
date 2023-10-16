@@ -41,7 +41,6 @@ import (
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/server"
 	"github.com/openmeterio/openmeter/internal/server/router"
-	"github.com/openmeterio/openmeter/internal/sink"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
@@ -194,106 +193,96 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Initialize sink worker
-	if os.Getenv("WORKER") != "" {
-		err = initSink(conf, logger)
-		if err != nil {
-			logger.Error("failed to initialize sink worker", "error", err)
-			os.Exit(1)
-		}
-	} else {
+	// Initialize HTTP Ingest handler
+	ingestHandler, err := httpingest.NewHandler(httpingest.HandlerConfig{
+		Collector:        ingestCollector,
+		NamespaceManager: namespaceManager,
+		Logger:           logger,
+	})
+	if err != nil {
+		logger.Error("failed to initialize http ingest handler", "error", err)
+		os.Exit(1)
+	}
 
-		// Initialize HTTP Ingest handler
-		ingestHandler, err := httpingest.NewHandler(httpingest.HandlerConfig{
-			Collector:        ingestCollector,
-			NamespaceManager: namespaceManager,
-			Logger:           logger,
-		})
-		if err != nil {
-			logger.Error("failed to initialize http ingest handler", "error", err)
-			os.Exit(1)
-		}
+	s, err := server.NewServer(&server.Config{
+		RouterConfig: router.Config{
+			NamespaceManager:   namespaceManager,
+			StreamingConnector: streamingConnector,
+			IngestHandler:      ingestHandler,
+			Meters:             meterRepository,
+		},
+		RouterHook: func(r chi.Router) {
+			r.Use(func(h http.Handler) http.Handler {
+				return otelhttp.NewHandler(
+					http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						h.ServeHTTP(w, r)
 
-		s, err := server.NewServer(&server.Config{
-			RouterConfig: router.Config{
-				NamespaceManager:   namespaceManager,
-				StreamingConnector: streamingConnector,
-				IngestHandler:      ingestHandler,
-				Meters:             meterRepository,
-			},
-			RouterHook: func(r chi.Router) {
-				r.Use(func(h http.Handler) http.Handler {
-					return otelhttp.NewHandler(
-						http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-							h.ServeHTTP(w, r)
+						routePattern := chi.RouteContext(r.Context()).RoutePattern()
 
-							routePattern := chi.RouteContext(r.Context()).RoutePattern()
+						span := trace.SpanFromContext(r.Context())
+						span.SetName(routePattern)
+						span.SetAttributes(semconv.HTTPTarget(r.URL.String()), semconv.HTTPRoute(routePattern))
 
-							span := trace.SpanFromContext(r.Context())
-							span.SetName(routePattern)
-							span.SetAttributes(semconv.HTTPTarget(r.URL.String()), semconv.HTTPRoute(routePattern))
-
-							labeler, ok := otelhttp.LabelerFromContext(r.Context())
-							if ok {
-								labeler.Add(semconv.HTTPRoute(routePattern))
-							}
-						}),
-						"",
-						otelhttp.WithMeterProvider(meterProvider),
-						otelhttp.WithTracerProvider(tracerProvider),
-					)
-				})
-			},
-		})
-		if err != nil {
-			logger.Error("failed to create server", "error", err)
-			os.Exit(1)
-		}
-
-		s.Get("/version", func(w http.ResponseWriter, r *http.Request) {
-			_ = json.NewEncoder(w).Encode(map[string]string{
-				"version": version,
-				"os":      runtime.GOOS,
-				"arch":    runtime.GOARCH,
+						labeler, ok := otelhttp.LabelerFromContext(r.Context())
+						if ok {
+							labeler.Add(semconv.HTTPRoute(routePattern))
+						}
+					}),
+					"",
+					otelhttp.WithMeterProvider(meterProvider),
+					otelhttp.WithTracerProvider(tracerProvider),
+				)
 			})
+		},
+	})
+	if err != nil {
+		logger.Error("failed to create server", "error", err)
+		os.Exit(1)
+	}
+
+	s.Get("/version", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"version": version,
+			"os":      runtime.GOOS,
+			"arch":    runtime.GOARCH,
 		})
+	})
 
-		for _, meter := range conf.Meters {
-			err := streamingConnector.CreateMeter(ctx, namespaceManager.GetDefaultNamespace(), meter)
-			if err != nil {
-				slog.Warn("failed to initialize meter", "error", err)
-				os.Exit(1)
-			}
+	for _, meter := range conf.Meters {
+		err := streamingConnector.CreateMeter(ctx, namespaceManager.GetDefaultNamespace(), meter)
+		if err != nil {
+			slog.Warn("failed to initialize meter", "error", err)
+			os.Exit(1)
 		}
-		slog.Info("meters successfully created", "count", len(conf.Meters))
+	}
+	slog.Info("meters successfully created", "count", len(conf.Meters))
 
-		// Set up telemetry server
-		{
-			server := &http.Server{
-				Addr:    conf.Telemetry.Address,
-				Handler: telemetryRouter,
-			}
-			defer server.Close()
-
-			group.Add(
-				func() error { return server.ListenAndServe() },
-				func(err error) { _ = server.Shutdown(ctx) },
-			)
+	// Set up telemetry server
+	{
+		server := &http.Server{
+			Addr:    conf.Telemetry.Address,
+			Handler: telemetryRouter,
 		}
+		defer server.Close()
 
-		// Set up server
-		{
-			server := &http.Server{
-				Addr:    conf.Address,
-				Handler: s,
-			}
-			defer server.Close()
+		group.Add(
+			func() error { return server.ListenAndServe() },
+			func(err error) { _ = server.Shutdown(ctx) },
+		)
+	}
 
-			group.Add(
-				func() error { return server.ListenAndServe() },
-				func(err error) { _ = server.Shutdown(ctx) }, // TODO: context deadline
-			)
+	// Set up server
+	{
+		server := &http.Server{
+			Addr:    conf.Address,
+			Handler: s,
 		}
+		defer server.Close()
+
+		group.Add(
+			func() error { return server.ListenAndServe() },
+			func(err error) { _ = server.Shutdown(ctx) }, // TODO: context deadline
+		)
 	}
 
 	// Setup signal handler
@@ -411,63 +400,4 @@ func initNamespace(config config.Configuration, namespaces ...namespace.Handler)
 	}
 	slog.Info("default namespace created")
 	return namespaceManager, nil
-}
-
-func initSink(config config.Configuration, logger *slog.Logger) error {
-	clickhouseClient, err := initClickHouseClient(config)
-	if err != nil {
-		return fmt.Errorf("init clickhouse client: %w", err)
-	}
-
-	deduplicator, err := config.Dedupe.NewDeduplicator()
-	if err != nil {
-		return fmt.Errorf("failed to initialize deduplicator: %w", err)
-	}
-
-	storage := sink.NewClickhouseStorage(
-		sink.ClickHouseStorageConfig{
-			ClickHouse: clickhouseClient,
-			Database:   config.Aggregation.ClickHouse.Database,
-		},
-	)
-
-	consumerKafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
-	_ = consumerKafkaConfig.SetKey("group.id", "om-sink")
-
-	producerKafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
-	_ = producerKafkaConfig.SetKey("group.id", "om-sink-deadletter")
-
-	// Avoid connecting to IPv6 brokers:
-	// This is needed for the ErrAllBrokersDown show-case below
-	// when using localhost brokers on OSX, since the OSX resolver
-	// will return the IPv6 addresses first.
-	// You typically don't need to specify this configuration property.
-	_ = consumerKafkaConfig.SetKey("broker.address.family", "v4")
-	_ = producerKafkaConfig.SetKey("broker.address.family", "v4")
-
-	sinkConfig := sink.SinkConfig{
-		Context:             context.Background(),
-		Logger:              logger,
-		Storage:             storage,
-		Deduplicator:        deduplicator,
-		ConsumerKafkaConfig: consumerKafkaConfig,
-		ProducerKafkaConfig: producerKafkaConfig,
-		MinCommitCount:      1000,
-		MaxCommitWait:       time.Second * 2,
-	}
-
-	sink, err := sink.NewSink(&sinkConfig)
-	if err != nil {
-		return fmt.Errorf("create sink: %v", err)
-	}
-
-	go func() {
-		err = sink.Run()
-		if err != nil {
-			slog.Error("sink error", "error", err)
-			os.Exit(1)
-		}
-	}()
-
-	return nil
 }

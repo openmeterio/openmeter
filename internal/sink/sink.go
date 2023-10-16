@@ -312,6 +312,7 @@ func (s *Sink) clearFlushTimer() {
 // Run starts the Kafka consumer and sinks the events to Clickhouse
 func (s *Sink) Run() error {
 	logger := s.config.Logger.With("sink", "run")
+	logger.Info("starting sink")
 
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)

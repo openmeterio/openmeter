@@ -23,11 +23,17 @@ build: ## Build binary
 config.yaml:
 	cp config.example.yaml config.yaml
 
-run: config.yaml
-run: ## Run OpenMeter
+.PHONY: server
+server: ## Run sink-worker
 	@ if [ config.yaml -ot config.example.yaml ]; then diff -u config.yaml config.example.yaml || (echo "!!! The configuration example changed. Please update your config.yaml file accordingly (or at least touch it). !!!" && false); fi
 	$(call print-target)
-	air
+	air -c ./cmd/server/.air.toml
+
+.PHONY: sink-worker
+sink-worker: ## Run sink-worker
+	@ if [ config.yaml -ot config.example.yaml ]; then diff -u config.yaml config.example.yaml || (echo "!!! The configuration example changed. Please update your config.yaml file accordingly (or at least touch it). !!!" && false); fi
+	$(call print-target)
+	air -c ./cmd/sink-worker/.air.toml
 
 .PHONY: test
 test: ## Run tests
