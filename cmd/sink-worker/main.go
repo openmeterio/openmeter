@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"syscall"
 	"time"
 
 	health "github.com/AppsFlyer/go-sundheit"
@@ -15,6 +16,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-slog/otelslog"
+	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sagikazarmark/slog-shim"
 	"github.com/spf13/pflag"
@@ -33,6 +35,7 @@ import (
 
 func main() {
 	v, flags := viper.New(), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
+	ctx := context.Background()
 
 	config.Configure(v, flags)
 
@@ -145,14 +148,40 @@ func main() {
 		os.Exit(1)
 	}
 
+	var group run.Group
+
+	// Set up telemetry server
+	{
+		server := &http.Server{
+			Addr:    conf.Telemetry.Address,
+			Handler: telemetryRouter,
+		}
+		defer server.Close()
+
+		group.Add(
+			func() error { return server.ListenAndServe() },
+			func(err error) { _ = server.Shutdown(ctx) },
+		)
+	}
+
 	// Starting sink worker
 	{
-		logger.Info("sink worker started")
-		err = sink.Run()
-		if err != nil {
-			slog.Error("sink error", "error", err)
-			os.Exit(1)
-		}
+		defer sink.Close()
+
+		group.Add(
+			func() error { return sink.Run() },
+			func(err error) { _ = sink.Close() },
+		)
+	}
+
+	// Setup signal handler
+	group.Add(run.SignalHandler(ctx, syscall.SIGINT, syscall.SIGTERM))
+
+	err = group.Run()
+	if e := (run.SignalError{}); errors.As(err, &e) {
+		slog.Info("received signal; shutting down", slog.String("signal", e.Signal.String()))
+	} else if !errors.Is(err, http.ErrServerClosed) {
+		logger.Error("application stopped due to error", slog.String("error", err.Error()))
 	}
 }
 

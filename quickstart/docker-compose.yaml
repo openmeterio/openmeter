@@ -33,6 +33,8 @@ services:
         condition: service_healthy
       openmeter:
         condition: service_healthy
+    ports:
+      - 127.0.0.1:10000:10000
     volumes:
       - ./config.yaml:/etc/openmeter/config.yaml
 
