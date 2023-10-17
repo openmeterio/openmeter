@@ -45,6 +45,7 @@ aggregation:
     database: openmeter
 
 sink:
+  groupId: openmeter-sink-worker
   minCommitCount: 500
   maxCommitWait: 30s
   namespaceRefetch: 15s
