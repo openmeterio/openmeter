@@ -8,6 +8,7 @@ import (
 )
 
 type SinkConfiguration struct {
+	GroupId          string
 	Dedupe           DedupeConfiguration
 	MinCommitCount   int
 	MaxCommitWait    time.Duration
@@ -51,6 +52,7 @@ func configureSink(v *viper.Viper) {
 	v.SetDefault("sink.dedupe.config.tls.insecureSkipVerify", false)
 
 	// Sink
+	v.SetDefault("sink.groupId", "openmeter-sink-worker")
 	v.SetDefault("sink.minCommitCount", 500)
 	v.SetDefault("sink.maxCommitWait", "5s")
 	v.SetDefault("sink.namespaceRefetch", "15s")

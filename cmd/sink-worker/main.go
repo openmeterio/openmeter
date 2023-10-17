@@ -244,10 +244,9 @@ func initSink(config config.Configuration, logger *slog.Logger, meterRepository 
 	)
 
 	consumerKafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
-	_ = consumerKafkaConfig.SetKey("group.id", "om-sink")
+	_ = consumerKafkaConfig.SetKey("group.id", config.Sink.GroupId)
 
 	producerKafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
-	_ = producerKafkaConfig.SetKey("group.id", "om-sink-deadletter")
 
 	sinkConfig := sink.SinkConfig{
 		Logger:              logger,
