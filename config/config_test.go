@@ -136,6 +136,7 @@ func TestComplete(t *testing.T) {
 		},
 		Meters: []*models.Meter{
 			{
+				Namespace:     "default",
 				Slug:          "m1",
 				Description:   "",
 				Aggregation:   "SUM",
