@@ -211,7 +211,6 @@ func (s *Sink) flush() error {
 
 		err := s.config.Deduplicator.Set(ctx, dedupeItems...)
 		if err != nil {
-			logger.Error("failed to sink to redis", "err", err)
 			return fmt.Errorf("failed to sink to redis: %s", err)
 		}
 		logger.Debug("succeeded to sink to redis", "buffer size", len(messages))

@@ -67,11 +67,6 @@ func (a *NamespaceStore) validateEvent(ctx context.Context, event serializer.Clo
 
 // validateEventWithMeter validates a single event against a single meter
 func validateEventWithMeter(meter *models.Meter, ev serializer.CloudEventsKafkaPayload) *ProcessingError {
-	// We can skip count events with no group bys
-	if meter.Aggregation != models.MeterAggregationCount && len(meter.GroupBy) == 0 {
-		return nil
-	}
-
 	// Parse CloudEvents data as JSON, currently we only support JSON encoding
 	var data interface{}
 	err := json.Unmarshal([]byte(ev.Data), &data)
@@ -79,29 +74,7 @@ func validateEventWithMeter(meter *models.Meter, ev serializer.CloudEventsKafkaP
 		return NewProcessingError("cannot unmarshal event data as json", DEADLETTER)
 	}
 
-	// Parse value
-	if meter.Aggregation != models.MeterAggregationCount {
-		valueRaw, err := jsonpath.JsonPathLookup(data, meter.ValueProperty)
-		if err != nil {
-			return NewProcessingError(fmt.Sprintf("event data is missing value property at %s", meter.ValueProperty), DEADLETTER)
-		}
-		if valueRaw == nil {
-			return NewProcessingError("event data value cannot be null", DEADLETTER)
-		}
-
-		if valueStr, ok := valueRaw.(string); ok {
-			_, err = strconv.ParseFloat(valueStr, 64)
-			if err != nil {
-				return NewProcessingError(fmt.Sprintf("event data value cannot be parsed as float64: %s", valueStr), DEADLETTER)
-			}
-		} else if _, ok := valueRaw.(float64); ok {
-
-		} else {
-			return NewProcessingError("event data value property cannot be parsed", DEADLETTER)
-		}
-	}
-
-	// Parse group bys
+	// Parse and validate group bys
 	for _, groupByJsonPath := range meter.GroupBy {
 		groupByValue, err := jsonpath.JsonPathLookup(data, groupByJsonPath)
 		if err != nil {
@@ -110,6 +83,31 @@ func validateEventWithMeter(meter *models.Meter, ev serializer.CloudEventsKafkaP
 		if groupByValue == nil {
 			return NewProcessingError(fmt.Sprintf("event data group by property is nil at %s", groupByJsonPath), DEADLETTER)
 		}
+	}
+
+	// We can skip count events as they don't have value property
+	if meter.Aggregation == models.MeterAggregationCount {
+		return nil
+	}
+
+	// Parse and validate value
+	valueRaw, err := jsonpath.JsonPathLookup(data, meter.ValueProperty)
+	if err != nil {
+		return NewProcessingError(fmt.Sprintf("event data is missing value property at %s", meter.ValueProperty), DEADLETTER)
+	}
+	if valueRaw == nil {
+		return NewProcessingError("event data value cannot be null", DEADLETTER)
+	}
+
+	if valueStr, ok := valueRaw.(string); ok {
+		_, err = strconv.ParseFloat(valueStr, 64)
+		if err != nil {
+			return NewProcessingError(fmt.Sprintf("event data value cannot be parsed as float64: %s", valueStr), DEADLETTER)
+		}
+	} else if _, ok := valueRaw.(float64); ok {
+
+	} else {
+		return NewProcessingError("event data value property cannot be parsed", DEADLETTER)
 	}
 
 	return nil
