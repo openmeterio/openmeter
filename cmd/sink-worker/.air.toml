@@ -3,7 +3,7 @@ testdata_dir = "testdata"
 tmp_dir = "tmp"
 
 [build]
-  args_bin = ["--config", "./config.yaml"]
+  args_bin = ["--config", "./config.yaml", "--telemetry-address", ":1001"]
   bin = "./tmp/openmeter-sink-worker"
   cmd = "go build -o ./tmp/openmeter-sink-worker ./cmd/sink-worker"
   delay = 0
