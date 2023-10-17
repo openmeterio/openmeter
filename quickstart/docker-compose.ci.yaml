@@ -2,11 +2,10 @@ version: "3.9"
 
 services:
   openmeter:
-    image: "local-server"
+    image: "local"
     build: ..
 
   sink-worker:
-    image: "local-sink-worker"
-    build:
-      context: ..
-      dockerfile: Dockerfile.sink-worker
+    image: "local"
+    build: ..
+    command: ["openmeter-sink-worker"]
