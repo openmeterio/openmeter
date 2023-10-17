@@ -45,10 +45,10 @@ func (a *NamespaceStore) validateEvent(ctx context.Context, event serializer.Clo
 	}
 
 	// Validate a single event against multiple meters
-	found := 0
+	var foundMeter bool
 	for _, meter := range namespaceStore.Meters {
 		if meter.EventType == event.Type {
-			found++
+			foundMeter = true
 			err := validateEventWithMeter(meter, event)
 			if err != nil {
 				return err
@@ -57,7 +57,7 @@ func (a *NamespaceStore) validateEvent(ctx context.Context, event serializer.Clo
 		}
 	}
 
-	if found == 0 {
+	if !foundMeter {
 		// Send to dead letter queue so we can show it to the user
 		return NewProcessingError(fmt.Sprintf("no meter found for event type: %s", event.Type), DEADLETTER)
 	}

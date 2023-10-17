@@ -9,8 +9,8 @@ type SinkBuffer struct {
 	data map[string]SinkMessage
 }
 
-func NewSinkBuffer() SinkBuffer {
-	return SinkBuffer{
+func NewSinkBuffer() *SinkBuffer {
+	return &SinkBuffer{
 		data: map[string]SinkMessage{},
 	}
 }

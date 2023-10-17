@@ -30,28 +30,35 @@ type SinkMessage struct {
 type Sink struct {
 	consumer         *kafka.Consumer
 	producer         *kafka.Producer
-	config           *SinkConfig
+	config           SinkConfig
 	running          bool
-	buffer           SinkBuffer
+	buffer           *SinkBuffer
 	flushTimer       *time.Timer
 	namespaceStore   *NamespaceStore
 	namespaceRefetch *time.Timer
 }
 
 type SinkConfig struct {
-	Context                 context.Context
-	Logger                  *slog.Logger
-	Storage                 Storage
-	Deduplicator            dedupe.Deduplicator
-	ConsumerKafkaConfig     kafka.ConfigMap
-	ProducerKafkaConfig     kafka.ConfigMap
-	MinCommitCount          int
-	MaxCommitWait           time.Duration
-	NamespaceRefetch        time.Duration
+	Logger              *slog.Logger
+	Storage             Storage
+	Deduplicator        dedupe.Deduplicator
+	ConsumerKafkaConfig kafka.ConfigMap
+	ProducerKafkaConfig kafka.ConfigMap
+	// MinCommitCount is the minimum number of messages to wait before flushing the buffer.
+	// Whichever happens earlier MinCommitCount or MaxCommitWait will trigger a flush.
+	MinCommitCount int
+	// MaxCommitWait is the maximum time to wait before flushing the buffer
+	MaxCommitWait time.Duration
+	// NamespaceRefetch is the interval to refetch exsisting namespaces and meters
+	// this information is used to configure which topics the consumer subscribes and
+	// the meter configs used in event validation.
+	NamespaceRefetch time.Duration
+	// DeadletterTopicTemplate is the template used to create the deadletter topic name per namespace.
+	// It is a sprintf template with the namespace as the only argument.
 	DeadletterTopicTemplate string
 }
 
-func NewSink(config *SinkConfig) (*Sink, error) {
+func NewSink(config SinkConfig) (*Sink, error) {
 	if config.Deduplicator == nil {
 		config.Logger.Warn("deduplicator is not set, deduplication will be disabled")
 	}
@@ -97,7 +104,9 @@ func NewSink(config *SinkConfig) (*Sink, error) {
 }
 
 func (s *Sink) flush() error {
-	logger := s.config.Logger.With("sink", "flush")
+	ctx := context.TODO()
+
+	logger := s.config.Logger.With("operation", "flush")
 	messages := s.buffer.Dequeue()
 
 	// Stop polling new messages from Kafka until we finalize batch
@@ -140,7 +149,7 @@ func (s *Sink) flush() error {
 				list = append(list, message.Serialized)
 			}
 
-			err := s.config.Storage.BatchInsert(s.config.Context, namespace, list)
+			err := s.config.Storage.BatchInsert(ctx, namespace, list)
 			if err != nil {
 				// Note: a single error in batch will make the whole batch fail
 				if perr, ok := err.(*ProcessingError); ok {
@@ -171,7 +180,7 @@ func (s *Sink) flush() error {
 	// 2. Commit Offset to Kafka
 	// Least once guarantee, if offset commit fails we will potentially process the same messages again as they are not committed yet
 	// If Redis write succeeds but Kafka commit fails we will reprocess messages without side effect as they will be dropped at duplicate check
-	// If Redis write fails we will double write them to ClickHouse and we have to relay on ClickHouse's deduplication
+	// If Redis write fails we will double write them to ClickHouse and we have to rely on ClickHouse's deduplication
 	offsetStore := NewOffsetStore()
 	for _, message := range messages {
 		offsetStore.Add(message.KafkaMessage.TopicPartition)
@@ -188,7 +197,7 @@ func (s *Sink) flush() error {
 
 	// 3. Sink to Redis
 	// Least once guarantee, if Redis write fails we will accept messages with same idempotency key in future and
-	// we have to relay on ClickHouse's deduplication.
+	// we have to rely on ClickHouse's deduplication.
 	// Deduplicator is an optional dependency so we check if it's set
 	if s.config.Deduplicator != nil && len(dedupedMessages) > 0 {
 		dedupeItems := []dedupe.Item{}
@@ -200,7 +209,7 @@ func (s *Sink) flush() error {
 			})
 		}
 
-		err := s.config.Deduplicator.Set(s.config.Context, dedupeItems...)
+		err := s.config.Deduplicator.Set(ctx, dedupeItems...)
 		if err != nil {
 			logger.Error("failed to sink to redis", "err", err)
 			return fmt.Errorf("failed to sink to redis: %s", err)
@@ -217,7 +226,7 @@ func (s *Sink) flush() error {
 
 // deadLetter sends a message to the dead letter queue, useful permanent non-recoverable errors like json parsing
 func (s *Sink) deadLetter(messages ...SinkMessage) error {
-	logger := s.config.Logger.With("sink", "deadLetter")
+	logger := s.config.Logger.With("operation", "deadLetter")
 
 	for _, message := range messages {
 		topic := fmt.Sprintf(s.config.DeadletterTopicTemplate, message.Namespace)
@@ -243,7 +252,8 @@ func (s *Sink) deadLetter(messages ...SinkMessage) error {
 }
 
 func (s *Sink) getNamespaces() (*NamespaceStore, error) {
-	meters, err := s.config.Storage.GetMeters(s.config.Context)
+	ctx := context.TODO()
+	meters, err := s.config.Storage.GetMeters(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get meters: %s", err)
 	}
@@ -257,7 +267,7 @@ func (s *Sink) getNamespaces() (*NamespaceStore, error) {
 }
 
 func (s *Sink) subscribeToNamespaces() error {
-	logger := s.config.Logger.With("sink", "subscribeToNamespaces")
+	logger := s.config.Logger.With("operation", "subscribeToNamespaces")
 	ns, err := s.getNamespaces()
 	if err != nil {
 		return fmt.Errorf("failed to get namespaces: %s", err)
@@ -283,7 +293,7 @@ func (s *Sink) subscribeToNamespaces() error {
 		topics := getTopics(*s.namespaceStore)
 		logger.Info("new namespaces detected, subscribing to topics", "topics", topics)
 
-		err = s.consumer.SubscribeTopics(topics, s.rebalanceCallback)
+		err = s.consumer.SubscribeTopics(topics, s.rebalance)
 		if err != nil {
 			return fmt.Errorf("failed to subscribe to topics: %s", err)
 		}
@@ -297,7 +307,7 @@ func (s *Sink) subscribeToNamespaces() error {
 
 // Periodically flush even if MinCommitCount threshold not reached yet but MaxCommitWait time elapsed
 func (s *Sink) setFlushTimer() {
-	logger := s.config.Logger.With("sink", "flush timer")
+	logger := s.config.Logger.With("operation", "setFlushTimer")
 
 	flush := func() {
 		err := s.flush()
@@ -319,7 +329,7 @@ func (s *Sink) clearFlushTimer() {
 
 // Run starts the Kafka consumer and sinks the events to Clickhouse
 func (s *Sink) Run() error {
-	logger := s.config.Logger.With("sink", "run")
+	logger := s.config.Logger.With("operation", "run")
 	logger.Info("starting sink")
 
 	sigchan := make(chan os.Signal, 1)
@@ -410,8 +420,8 @@ func (s *Sink) Run() error {
 	return s.Close()
 }
 
-func (s *Sink) rebalanceCallback(c *kafka.Consumer, event kafka.Event) error {
-	logger := s.config.Logger.With("sink", "rebalance")
+func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
+	logger := s.config.Logger.With("operation", "rebalance")
 
 	switch e := event.(type) {
 	case kafka.AssignedPartitions:
@@ -456,6 +466,8 @@ func (s *Sink) rebalanceCallback(c *kafka.Consumer, event kafka.Event) error {
 }
 
 func (s *Sink) ParseMessage(e *kafka.Message) (string, *serializer.CloudEventsKafkaPayload, error) {
+	ctx := context.TODO()
+
 	// Get Namespace
 	namespace, err := getNamespace(*e.TopicPartition.Topic)
 	if err != nil {
@@ -473,7 +485,7 @@ func (s *Sink) ParseMessage(e *kafka.Message) (string, *serializer.CloudEventsKa
 	// Dedupe, this stores key in store which means if sink fails and restarts it will not process the same message again
 	// Dedupe is an optional dependency so we check if it's set
 	if s.config.Deduplicator != nil {
-		isUnique, err := s.config.Deduplicator.IsUnique(s.config.Context, dedupe.Item{
+		isUnique, err := s.config.Deduplicator.IsUnique(ctx, dedupe.Item{
 			Namespace: namespace,
 			ID:        kafkaCloudEvent.Id,
 			Source:    kafkaCloudEvent.Source,
@@ -489,7 +501,7 @@ func (s *Sink) ParseMessage(e *kafka.Message) (string, *serializer.CloudEventsKa
 	}
 
 	// Validation
-	err = s.namespaceStore.validateEvent(s.config.Context, kafkaCloudEvent, namespace)
+	err = s.namespaceStore.validateEvent(ctx, kafkaCloudEvent, namespace)
 	return namespace, &kafkaCloudEvent, err
 }
 

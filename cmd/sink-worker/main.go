@@ -74,7 +74,7 @@ func main() {
 		context.Background(),
 		resource.WithContainer(),
 		resource.WithAttributes(
-			semconv.ServiceName("openmeter"),
+			semconv.ServiceName("openmeter-sink-worker"),
 			semconv.ServiceVersion(version),
 			attribute.String("environment", conf.Environment),
 		),
@@ -243,7 +243,6 @@ func initSink(config config.Configuration, logger *slog.Logger) (*sink.Sink, err
 	_ = producerKafkaConfig.SetKey("group.id", "om-sink-deadletter")
 
 	sinkConfig := sink.SinkConfig{
-		Context:             context.Background(),
 		Logger:              logger,
 		Storage:             storage,
 		Deduplicator:        deduplicator,
@@ -254,5 +253,5 @@ func initSink(config config.Configuration, logger *slog.Logger) (*sink.Sink, err
 		NamespaceRefetch:    config.Sink.NamespaceRefetch,
 	}
 
-	return sink.NewSink(&sinkConfig)
+	return sink.NewSink(sinkConfig)
 }

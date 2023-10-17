@@ -1,7 +1,5 @@
 package main
 
-// TODO: consolidate between ../version.go
-
 import "runtime/debug"
 
 // Provisioned by ldflags.
