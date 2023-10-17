@@ -98,6 +98,22 @@ func TestComplete(t *testing.T) {
 			MinCommitCount:   500,
 			MaxCommitWait:    30 * time.Second,
 			NamespaceRefetch: 15 * time.Second,
+			Dedupe: DedupeConfiguration{
+				Enabled: true,
+				DedupeDriverConfiguration: DedupeDriverRedisConfiguration{
+					Address:    "127.0.0.1:6379",
+					Database:   0,
+					Username:   "default",
+					Password:   "pass",
+					Expiration: 768 * time.Hour,
+					TLS: struct {
+						Enabled            bool
+						InsecureSkipVerify bool
+					}{
+						Enabled: true,
+					},
+				},
+			},
 		},
 		Dedupe: DedupeConfiguration{
 			Enabled: true,

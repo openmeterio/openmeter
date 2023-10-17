@@ -48,6 +48,17 @@ sink:
   minCommitCount: 500
   maxCommitWait: 30s
   namespaceRefetch: 15s
+  dedupe:
+    enabled: true
+    driver: redis
+    config:
+      expiration: 768h # 32d
+      database: 0
+      address: 127.0.0.1:6379
+      username: default
+      password: pass
+      tls:
+        enabled: true
 
 dedupe:
   enabled: true

@@ -485,7 +485,7 @@ func (s *Sink) ParseMessage(e *kafka.Message) (string, *serializer.CloudEventsKa
 	// Dedupe, this stores key in store which means if sink fails and restarts it will not process the same message again
 	// Dedupe is an optional dependency so we check if it's set
 	if s.config.Deduplicator != nil {
-		isUnique, err := s.config.Deduplicator.IsUnique(ctx, dedupe.Item{
+		isUnique, err := s.config.Deduplicator.CheckUnique(ctx, dedupe.Item{
 			Namespace: namespace,
 			ID:        kafkaCloudEvent.Id,
 			Source:    kafkaCloudEvent.Source,
