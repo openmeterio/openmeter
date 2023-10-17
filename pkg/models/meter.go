@@ -135,6 +135,7 @@ func WindowSizeFromDuration(duration time.Duration) (WindowSize, error) {
 }
 
 type Meter struct {
+	Namespace     string            `json:"-" yaml:"namespace"`
 	ID            string            `json:"id,omitempty" yaml:"id,omitempty"`
 	Slug          string            `json:"slug" yaml:"slug"`
 	Description   string            `json:"description,omitempty" yaml:"description,omitempty"`

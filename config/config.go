@@ -60,6 +60,10 @@ func (c Configuration) Validate() error {
 	}
 
 	for _, m := range c.Meters {
+		if m.Namespace == "" {
+			m.Namespace = c.Namespace.Default
+		}
+
 		// set default window size
 		if m.WindowSize == "" {
 			m.WindowSize = models.WindowSizeMinute
