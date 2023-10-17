@@ -29,8 +29,11 @@ import (
 
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/internal/dedupe"
+	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/sink"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
+	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 func main() {
@@ -141,8 +144,12 @@ func main() {
 		"ingest.kafka.broker": conf.Ingest.Kafka.Broker,
 	})
 
+	meterRepository := meter.NewInMemoryRepository(slicesx.Map(conf.Meters, func(meter *models.Meter) models.Meter {
+		return *meter
+	}))
+
 	// Initialize sink worker
-	sink, err := initSink(conf, logger)
+	sink, err := initSink(conf, logger, meterRepository)
 	if err != nil {
 		logger.Error("failed to initialize sink worker", "error", err)
 		os.Exit(1)
@@ -215,7 +222,7 @@ func initClickHouseClient(config config.Configuration) (clickhouse.Conn, error) 
 	return clickHouseClient, nil
 }
 
-func initSink(config config.Configuration, logger *slog.Logger) (*sink.Sink, error) {
+func initSink(config config.Configuration, logger *slog.Logger, meterRepository meter.Repository) (*sink.Sink, error) {
 	clickhouseClient, err := initClickHouseClient(config)
 	if err != nil {
 		return nil, fmt.Errorf("init clickhouse client: %w", err)
@@ -244,6 +251,7 @@ func initSink(config config.Configuration, logger *slog.Logger) (*sink.Sink, err
 
 	sinkConfig := sink.SinkConfig{
 		Logger:              logger,
+		MeterRepository:     meterRepository,
 		Storage:             storage,
 		Deduplicator:        deduplicator,
 		ConsumerKafkaConfig: consumerKafkaConfig,

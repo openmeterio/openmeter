@@ -13,7 +13,7 @@ import (
 )
 
 type MeterStore struct {
-	Meters []*models.Meter
+	Meters []models.Meter
 }
 
 type NamespaceStore struct {
@@ -26,10 +26,10 @@ func NewNamespaceStore() *NamespaceStore {
 	}
 }
 
-func (n *NamespaceStore) AddMeter(namespace string, meter *models.Meter) {
+func (n *NamespaceStore) AddMeter(namespace string, meter models.Meter) {
 	if n.namespaces[meter.Namespace] == nil {
 		n.namespaces[meter.Namespace] = &MeterStore{
-			Meters: []*models.Meter{meter},
+			Meters: []models.Meter{meter},
 		}
 	} else {
 		n.namespaces[meter.Namespace].Meters = append(n.namespaces[meter.Namespace].Meters, meter)
@@ -66,7 +66,7 @@ func (a *NamespaceStore) validateEvent(ctx context.Context, event serializer.Clo
 }
 
 // validateEventWithMeter validates a single event against a single meter
-func validateEventWithMeter(meter *models.Meter, ev serializer.CloudEventsKafkaPayload) *ProcessingError {
+func validateEventWithMeter(meter models.Meter, ev serializer.CloudEventsKafkaPayload) *ProcessingError {
 	// Parse CloudEvents data as JSON, currently we only support JSON encoding
 	var data interface{}
 	err := json.Unmarshal([]byte(ev.Data), &data)

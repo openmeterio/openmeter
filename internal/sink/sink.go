@@ -15,6 +15,7 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/dedupe"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
+	"github.com/openmeterio/openmeter/internal/meter"
 )
 
 var namespaceTopicRegexp = regexp.MustCompile(`^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$`)
@@ -40,6 +41,7 @@ type Sink struct {
 
 type SinkConfig struct {
 	Logger              *slog.Logger
+	MeterRepository     meter.Repository
 	Storage             Storage
 	Deduplicator        dedupe.Deduplicator
 	ConsumerKafkaConfig kafka.ConfigMap
@@ -252,7 +254,8 @@ func (s *Sink) deadLetter(messages ...SinkMessage) error {
 
 func (s *Sink) getNamespaces() (*NamespaceStore, error) {
 	ctx := context.TODO()
-	meters, err := s.config.Storage.GetMeters(ctx)
+
+	meters, err := s.config.MeterRepository.ListAllMeters(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get meters: %s", err)
 	}
