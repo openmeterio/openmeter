@@ -135,7 +135,8 @@ func WindowSizeFromDuration(duration time.Duration) (WindowSize, error) {
 }
 
 type Meter struct {
-	Namespace     string            `json:"-" yaml:"namespace"`
+	// We don't accept namespace via config, it's set by the `namespace.default`.`
+	Namespace     string            `json:"-" yaml:"-"`
 	ID            string            `json:"id,omitempty" yaml:"id,omitempty"`
 	Slug          string            `json:"slug" yaml:"slug"`
 	Description   string            `json:"description,omitempty" yaml:"description,omitempty"`
