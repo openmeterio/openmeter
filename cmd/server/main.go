@@ -193,6 +193,20 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Initialize deduplication
+	if conf.Dedupe.Enabled {
+		deduplicator, err := conf.Dedupe.NewDeduplicator()
+		if err != nil {
+			logger.Error("failed to initialize deduplicator", "error", err)
+			os.Exit(1)
+		}
+
+		ingestCollector = ingest.DeduplicatingCollector{
+			Collector:    ingestCollector,
+			Deduplicator: deduplicator,
+		}
+	}
+
 	// Initialize HTTP Ingest handler
 	ingestHandler, err := httpingest.NewHandler(httpingest.HandlerConfig{
 		Collector:        ingestCollector,

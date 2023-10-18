@@ -323,6 +323,7 @@ func (s *Sink) setFlushTimer() {
 	s.flushTimer = time.AfterFunc(s.config.MaxCommitWait, flush)
 }
 
+// Clear flush timer, as there are no parallel flushes there is no need to be thread safe
 func (s *Sink) clearFlushTimer() {
 	if s.flushTimer != nil {
 		s.flushTimer.Stop()
@@ -357,6 +358,8 @@ func (s *Sink) Run() error {
 
 	// Reset state
 	s.running = true
+
+	// Start flush timer, this will be cleared and restarted by flush
 	s.setFlushTimer()
 
 	for s.running {
