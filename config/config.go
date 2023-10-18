@@ -99,6 +99,6 @@ func Configure(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureNamespace(v)
 	ConfigureIngest(v)
 	ConfigureAggregation(v)
-	configureSink(v)
+	ConfigureSink(v)
 	ConfigureDedupe(v)
 }
