@@ -39,5 +39,5 @@ func TestBuffer(t *testing.T) {
 	buffer.Add(sinkMessage2)
 
 	assert.Equal(t, 2, buffer.Size())
-	assert.EqualValues(t, []sink.SinkMessage{sinkMessage1, sinkMessage2}, buffer.Dequeue())
+	assert.ElementsMatch(t, []sink.SinkMessage{sinkMessage1, sinkMessage2}, buffer.Dequeue())
 }

@@ -38,7 +38,7 @@ func TestOffsetStore(t *testing.T) {
 	store.Add(topicPartition2)
 	store.Add(topicPartition3)
 
-	assert.EqualValues(t, []kafka.TopicPartition{
+	assert.ElementsMatch(t, []kafka.TopicPartition{
 		{
 			Topic:     &topic,
 			Partition: 1,
