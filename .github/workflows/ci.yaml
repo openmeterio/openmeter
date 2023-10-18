@@ -29,8 +29,11 @@ jobs:
       - name: Prepare Nix shell
         run: nix develop --impure .#ci
 
-      - name: Build
-        run: nix develop --impure .#ci -c make build
+      - name: Build Server
+        run: nix develop --impure .#ci -c make build-server
+
+      - name: Build Sink Worker
+        run: nix develop --impure .#ci -c make build-sink-worker
 
   test:
     name: Test
@@ -159,8 +162,12 @@ jobs:
         run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml up -d
         working-directory: quickstart
 
-      - name: Wait for OpenMeter to become ready
-        run: curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:8888/version
+      - name: Wait for worker to become ready
+        run: curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:10000/healthz
+
+      # This is probably overkill but it can happen that OpenMeter creates namespaces slower
+      - name: Wait to pickup namespace
+        run: sleep 5
 
       - name: Ingest sample data
         run: ./ingest.sh

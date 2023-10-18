@@ -1,6 +1,0 @@
-package: kafkaconnect
-generate:
-  client: true
-  models: true
-  embedded-spec: true
-output: ./client.gen.go

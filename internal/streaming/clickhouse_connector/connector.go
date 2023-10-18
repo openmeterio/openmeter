@@ -170,7 +170,7 @@ func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace str
 func (c *ClickhouseConnector) createEventsTable(ctx context.Context, namespace string) error {
 	table := createEventsTable{
 		Database:        c.config.Database,
-		EventsTableName: getEventsTableName(namespace),
+		EventsTableName: GetEventsTableName(namespace),
 	}
 
 	err := c.config.ClickHouse.Exec(ctx, table.toSQL())
@@ -184,7 +184,7 @@ func (c *ClickhouseConnector) createEventsTable(ctx context.Context, namespace s
 func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]event.Event, error) {
 	table := queryEventsTable{
 		Database:        c.config.Database,
-		EventsTableName: getEventsTableName(namespace),
+		EventsTableName: GetEventsTableName(namespace),
 		Limit:           params.Limit,
 	}
 
@@ -242,7 +242,7 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace string, meter *models.Meter) error {
 	view := createMeterView{
 		Database:        c.config.Database,
-		EventsTableName: getEventsTableName(namespace),
+		EventsTableName: GetEventsTableName(namespace),
 		Aggregation:     meter.Aggregation,
 		EventType:       meter.EventType,
 		MeterViewName:   getMeterViewNameBySlug(namespace, meter.Slug),
@@ -450,7 +450,7 @@ func (c *ClickhouseConnector) listMeterViewSubjects(ctx context.Context, namespa
 	return subjects, nil
 }
 
-func getEventsTableName(namespace string) string {
+func GetEventsTableName(namespace string) string {
 	return fmt.Sprintf("%s_%s_%s", prefix, namespace, eventsTableName)
 }
 

@@ -1,11 +1,8 @@
 package ingest
 
 import (
-	"github.com/openmeterio/openmeter/internal/ingest"
+	"github.com/openmeterio/openmeter/internal/dedupe"
 )
 
 // Deduplicator checks if an event is unique.
-type Deduplicator = ingest.Deduplicator
-
-// DeduplicatingCollector implements event deduplication at event ingestion.
-type DeduplicatingCollector = ingest.DeduplicatingCollector
+type Deduplicator = dedupe.Deduplicator

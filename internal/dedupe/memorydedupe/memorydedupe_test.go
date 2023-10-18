@@ -8,10 +8,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/openmeterio/openmeter/internal/dedupe"
 	"github.com/openmeterio/openmeter/internal/dedupe/memorydedupe"
 )
 
-func TestDeduplicator(t *testing.T) {
+func TestIsUniqueDeduplicator(t *testing.T) {
 	deduplicator, err := memorydedupe.NewDeduplicator(1024)
 	require.NoError(t, err)
 
@@ -23,6 +24,27 @@ func TestDeduplicator(t *testing.T) {
 
 	isUnique, err := deduplicator.IsUnique(context.Background(), namespace, ev)
 	isUnique2, err2 := deduplicator.IsUnique(context.Background(), namespace, ev)
+	require.NoError(t, err)
+	require.NoError(t, err2)
+
+	assert.True(t, isUnique)
+	assert.False(t, isUnique2)
+}
+
+func TestDeduplicator(t *testing.T) {
+	deduplicator, err := memorydedupe.NewDeduplicator(1024)
+	require.NoError(t, err)
+
+	item := dedupe.Item{
+		Namespace: "default",
+		ID:        "id",
+		Source:    "source",
+	}
+
+	isUnique, err := deduplicator.CheckUnique(context.Background(), item)
+	errSet := deduplicator.Set(context.Background(), item)
+	isUnique2, err2 := deduplicator.CheckUnique(context.Background(), item)
+	require.NoError(t, errSet)
 	require.NoError(t, err)
 	require.NoError(t, err2)
 

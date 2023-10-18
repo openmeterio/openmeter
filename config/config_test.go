@@ -95,25 +95,23 @@ func TestComplete(t *testing.T) {
 			},
 		},
 		Sink: SinkConfiguration{
-			KafkaConnect: KafkaConnectSinkConfiguration{
+			GroupId:          "openmeter-sink-worker",
+			MinCommitCount:   500,
+			MaxCommitWait:    30 * time.Second,
+			NamespaceRefetch: 15 * time.Second,
+			Dedupe: DedupeConfiguration{
 				Enabled: true,
-				URL:     "http://127.0.0.1:8083",
-				Connectors: []ConnectorKafkaConnectSinkConfiguration{
-					{
-						Name: "clickhouse",
-						ConnectorTypeKafkaConnectSinkConfiguration: ClickHouseConnectorTypeKafkaConnectSinkConfiguration{
-							Hostname: "127.0.0.1",
-							Port:     8123,
-							SSL:      true,
-							Username: "default",
-							Password: "default",
-							Database: "openmeter",
-							DeadLetterQueue: DeadLetterQueueKafkaConnectSinkConfiguration{
-								TopicName:         "om_deadletterqueue",
-								ReplicationFactor: 1,
-								ContextHeaders:    true,
-							},
-						},
+				DedupeDriverConfiguration: DedupeDriverRedisConfiguration{
+					Address:    "127.0.0.1:6379",
+					Database:   0,
+					Username:   "default",
+					Password:   "pass",
+					Expiration: 768 * time.Hour,
+					TLS: struct {
+						Enabled            bool
+						InsecureSkipVerify bool
+					}{
+						Enabled: true,
 					},
 				},
 			},

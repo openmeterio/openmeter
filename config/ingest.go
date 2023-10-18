@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/spf13/viper"
@@ -38,6 +39,13 @@ func (c KafkaIngestConfiguration) CreateKafkaConfig() kafka.ConfigMap {
 
 		// Required for logging
 		"go.logs.channel.enable": true,
+	}
+
+	// This is needed when using localhost brokers on OSX,
+	// since the OSX resolver will return the IPv6 addresses first.
+	// See: https://github.com/openmeterio/openmeter/issues/321
+	if strings.Contains(c.Broker, "localhost") || strings.Contains(c.Broker, "127.0.0.1") {
+		config["broker.address.family"] = "v4"
 	}
 
 	if c.SecurityProtocol != "" {

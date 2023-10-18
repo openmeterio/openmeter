@@ -41,12 +41,10 @@ import (
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/server"
 	"github.com/openmeterio/openmeter/internal/server/router"
-	"github.com/openmeterio/openmeter/internal/sink"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
-	"github.com/openmeterio/openmeter/pkg/kafkaconnect"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -177,15 +175,6 @@ func main() {
 	meterRepository := meter.NewInMemoryRepository(slicesx.Map(conf.Meters, func(meter *models.Meter) models.Meter {
 		return *meter
 	}))
-
-	// Initialize Kafka Connect sink
-	if conf.Sink.KafkaConnect.Enabled {
-		err := initKafkaConnect(conf.Sink.KafkaConnect, logger)
-		if err != nil {
-			logger.Error("failed to initialize kafka connect sink", "error", err)
-			os.Exit(1)
-		}
-	}
 
 	// Initialize ClickHouse Aggregation
 	clickhouseStreamingConnector, err := initClickHouseStreaming(conf, meterRepository, logger)
@@ -359,7 +348,7 @@ func initKafkaIngest(ctx context.Context, config config.Configuration, logger *s
 	return collector, namespaceHandler, nil
 }
 
-func initClickHouseStreaming(config config.Configuration, meterRepository meter.Repository, logger *slog.Logger) (*clickhouse_connector.ClickhouseConnector, error) {
+func initClickHouseClient(config config.Configuration) (clickhouse.Conn, error) {
 	options := &clickhouse.Options{
 		Addr: []string{config.Aggregation.ClickHouse.Address},
 		Auth: clickhouse.Auth{
@@ -386,6 +375,15 @@ func initClickHouseStreaming(config config.Configuration, meterRepository meter.
 		return nil, fmt.Errorf("init clickhouse client: %w", err)
 	}
 
+	return clickHouseClient, nil
+}
+
+func initClickHouseStreaming(config config.Configuration, meterRepository meter.Repository, logger *slog.Logger) (*clickhouse_connector.ClickhouseConnector, error) {
+	clickHouseClient, err := initClickHouseClient(config)
+	if err != nil {
+		return nil, fmt.Errorf("init clickhouse client: %w", err)
+	}
+
 	streamingConnector, err := clickhouse_connector.NewClickhouseConnector(clickhouse_connector.ClickhouseConnectorConfig{
 		Logger:     logger,
 		ClickHouse: clickHouseClient,
@@ -397,32 +395,6 @@ func initClickHouseStreaming(config config.Configuration, meterRepository meter.
 	}
 
 	return streamingConnector, nil
-}
-
-func initKafkaConnect(config config.KafkaConnectSinkConfiguration, logger *slog.Logger) error {
-	client, err := kafkaconnect.NewClient(config.URL)
-	if err != nil {
-		return fmt.Errorf("init kafka connect client: %w", err)
-	}
-
-	kafkaConnectSink := sink.KafkaConnect{
-		Client: client,
-		Logger: logger.With(slog.String("subsystem", "sink.kafkaconnect")),
-	}
-
-	for _, connector := range config.Connectors {
-		connectorConfig, err := connector.ConnectorConfig()
-		if err != nil {
-			return fmt.Errorf("create kafka connector config %q: %w", connector.Name, err)
-		}
-
-		err = kafkaConnectSink.ConfigureConnector(context.Background(), connector.Name, connectorConfig)
-		if err != nil {
-			return fmt.Errorf("init kafka connector %q: %w", connector.Name, err)
-		}
-	}
-
-	return nil
 }
 
 func initNamespace(config config.Configuration, namespaces ...namespace.Handler) (*namespace.Manager, error) {

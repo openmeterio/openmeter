@@ -27,14 +27,20 @@ ARG VERSION
 
 # See https://github.com/confluentinc/confluent-kafka-go#librdkafka
 # See https://github.com/confluentinc/confluent-kafka-go#static-builds-on-linux
-RUN go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter .
+# Build server binary (default)
+RUN go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter ./cmd/server
 RUN xx-verify /usr/local/bin/openmeter
+
+# Build sink-worker binary
+RUN go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter-sink-worker ./cmd/sink-worker
+RUN xx-verify /usr/local/bin/openmeter-sink-worker
 
 FROM gcr.io/distroless/base-debian11:latest@sha256:b31a6e02605827e77b7ebb82a0ac9669ec51091edd62c2c076175e05556f4ab9 AS distroless
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 COPY --from=builder /usr/local/bin/openmeter /usr/local/bin/
+COPY --from=builder /usr/local/bin/openmeter-sink-worker /usr/local/bin/
 COPY --from=builder /usr/local/src/openmeter/go.* /usr/local/src/openmeter/
 
 CMD openmeter
@@ -44,6 +50,7 @@ FROM redhat/ubi8-micro:8.8-7@sha256:6fa456671239c7ac791dac2537425d1ba5612df36355
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 COPY --from=builder /usr/local/bin/openmeter /usr/local/bin/
+COPY --from=builder /usr/local/bin/openmeter-sink-worker /usr/local/bin/
 COPY --from=builder /usr/local/src/openmeter/go.* /usr/local/src/openmeter/
 
 CMD openmeter
@@ -55,6 +62,7 @@ RUN apk add --update --no-cache ca-certificates tzdata bash
 SHELL ["/bin/bash", "-c"]
 
 COPY --from=builder /usr/local/bin/openmeter /usr/local/bin/
+COPY --from=builder /usr/local/bin/openmeter-sink-worker /usr/local/bin/
 COPY --from=builder /usr/local/src/openmeter/go.* /usr/local/src/openmeter/
 
 CMD openmeter
