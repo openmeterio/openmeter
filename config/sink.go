@@ -32,7 +32,7 @@ func (c SinkConfiguration) Validate() error {
 }
 
 // Configure configures some defaults in the Viper instance.
-func configureSink(v *viper.Viper) {
+func ConfigureSink(v *viper.Viper) {
 	// Sink Dedupe
 	v.SetDefault("sink.dedupe.enabled", false)
 	v.SetDefault("sink.dedupe.driver", "memory")
