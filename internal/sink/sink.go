@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 
 	"github.com/openmeterio/openmeter/internal/dedupe"
@@ -188,13 +189,28 @@ func (s *Sink) flush() error {
 		offsetStore.Add(message.KafkaMessage.TopicPartition)
 	}
 	offsets := offsetStore.Get()
+	var offsetCommitFailure bool
 	if len(offsets) > 0 {
-		commitedOffsets, err := s.consumer.CommitOffsets(offsets)
+		// We retry with exponential backoff as it's critical that either step #2 or #3 succeeds.
+		err := retry.Do(
+			func() error {
+				commitedOffsets, err := s.consumer.CommitOffsets(offsets)
+				if err != nil {
+					return err
+				}
+				logger.Debug("succeeded to commit offset to kafka", "offsets", commitedOffsets)
+				return nil
+			},
+			retry.Context(ctx),
+			retry.OnRetry(func(n uint, err error) {
+				logger.Warn("failed to commit kafka offset, will retry", "err", err, "retry", n)
+			}),
+		)
 		if err != nil {
 			logger.Error("failed to commit offset to kafka", "err", err)
+			offsetCommitFailure = true
 			// do not return error here as we want to write Redis even if commit fails as we already saved them in ClickHouse
 		}
-		logger.Debug("succeeded to commit offset to kafka", "offsets", commitedOffsets)
 	}
 
 	// 3. Sink to Redis
@@ -211,8 +227,21 @@ func (s *Sink) flush() error {
 			})
 		}
 
-		err := s.config.Deduplicator.Set(ctx, dedupeItems...)
+		// We retry with exponential backoff as it's critical that either step #2 or #3 succeeds.
+		err := retry.Do(
+			func() error {
+				return s.config.Deduplicator.Set(ctx, dedupeItems...)
+			},
+			retry.Context(ctx),
+			retry.OnRetry(func(n uint, err error) {
+				logger.Warn("failed to sink to redis, will retry", "err", err, "retry", n)
+			}),
+		)
 		if err != nil {
+			// When both offset commit and dedupe sink fails we need to reconcile the state based on logs
+			if offsetCommitFailure {
+				logger.Error("consistency failure", "err", err, "messages", messages)
+			}
 			return fmt.Errorf("failed to sink to redis: %s", err)
 		}
 		logger.Debug("succeeded to sink to redis", "buffer size", len(messages))
