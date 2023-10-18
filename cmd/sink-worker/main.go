@@ -229,7 +229,7 @@ func initSink(config config.Configuration, logger *slog.Logger, meterRepository 
 	}
 
 	var deduplicator dedupe.Deduplicator
-	if config.Dedupe.Enabled {
+	if config.Sink.Dedupe.Enabled {
 		deduplicator, err = config.Sink.Dedupe.NewDeduplicator()
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize deduplicator: %w", err)
