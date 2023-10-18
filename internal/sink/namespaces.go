@@ -26,7 +26,7 @@ func NewNamespaceStore() *NamespaceStore {
 	}
 }
 
-func (n *NamespaceStore) AddMeter(namespace string, meter models.Meter) {
+func (n *NamespaceStore) AddMeter(meter models.Meter) {
 	if n.namespaces[meter.Namespace] == nil {
 		n.namespaces[meter.Namespace] = &MeterStore{
 			Meters: []models.Meter{meter},
@@ -36,8 +36,8 @@ func (n *NamespaceStore) AddMeter(namespace string, meter models.Meter) {
 	}
 }
 
-// validateEvent validates a single event by matching it with the corresponding meter if any
-func (a *NamespaceStore) validateEvent(ctx context.Context, event serializer.CloudEventsKafkaPayload, namespace string) error {
+// ValidateEvent validates a single event by matching it with the corresponding meter if any
+func (a *NamespaceStore) ValidateEvent(ctx context.Context, event serializer.CloudEventsKafkaPayload, namespace string) error {
 	namespaceStore := a.namespaces[namespace]
 	if namespaceStore == nil {
 		// We drop events from unknown org

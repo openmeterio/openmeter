@@ -262,7 +262,7 @@ func (s *Sink) getNamespaces() (*NamespaceStore, error) {
 
 	namespaceStore := NewNamespaceStore()
 	for _, meter := range meters {
-		namespaceStore.AddMeter(meter.Namespace, meter)
+		namespaceStore.AddMeter(meter)
 	}
 
 	return namespaceStore, nil
@@ -503,7 +503,7 @@ func (s *Sink) ParseMessage(e *kafka.Message) (string, *serializer.CloudEventsKa
 	}
 
 	// Validation
-	err = s.namespaceStore.validateEvent(ctx, kafkaCloudEvent, namespace)
+	err = s.namespaceStore.ValidateEvent(ctx, kafkaCloudEvent, namespace)
 	return namespace, &kafkaCloudEvent, err
 }
 
