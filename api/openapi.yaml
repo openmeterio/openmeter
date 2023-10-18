@@ -369,7 +369,7 @@ components:
     Problem:
       type: object
       description: A Problem Details object (RFC 7807)
-      x-go-type: models.Problem
+      x-go-type: models.StatusProblem
       x-go-type-import:
         path: github.com/openmeterio/openmeter/pkg/models
       additionalProperties: true
