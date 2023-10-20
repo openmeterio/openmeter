@@ -13,6 +13,11 @@ import (
 
 	"github.com/avast/retry-go/v4"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	otelMetric "go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/internal/dedupe"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
@@ -21,6 +26,12 @@ import (
 
 var namespaceTopicRegexp = regexp.MustCompile(`^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$`)
 var defaultDeadletterTopicTemplate = "om_%s_events_deadletter"
+
+var (
+	tracer            = otel.Tracer("sink")
+	metric            = otel.Meter("sink")
+	flushEventCounter otelMetric.Int64Counter
+)
 
 type SinkMessage struct {
 	Namespace    string
@@ -82,6 +93,7 @@ func NewSink(config SinkConfig) (*Sink, error) {
 		return nil, fmt.Errorf("failed to create producer: %w", err)
 	}
 
+	// Defaults
 	if config.MinCommitCount == 0 {
 		config.MinCommitCount = 1
 	}
@@ -93,6 +105,16 @@ func NewSink(config SinkConfig) (*Sink, error) {
 	}
 	if config.DeadletterTopicTemplate == "" {
 		config.DeadletterTopicTemplate = defaultDeadletterTopicTemplate
+	}
+
+	// Initialize OTel metrics
+	flushEventCounter, err = metric.Int64Counter(
+		"sink.flush.events",
+		otelMetric.WithDescription("The number of events processed"),
+		otelMetric.WithUnit("{event}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create event counter: %w", err)
 	}
 
 	sink := &Sink{
@@ -108,6 +130,8 @@ func NewSink(config SinkConfig) (*Sink, error) {
 
 func (s *Sink) flush() error {
 	ctx := context.TODO()
+	ctx, flushSpan := tracer.Start(ctx, "flush")
+	defer flushSpan.End()
 
 	logger := s.config.Logger.With("operation", "flush")
 	messages := s.buffer.Dequeue()
@@ -126,7 +150,7 @@ func (s *Sink) flush() error {
 		deadletterMessages := []SinkMessage{}
 		batchesPerNamespace := map[string][]SinkMessage{}
 
-		// Insert per namespace
+		// Filter out deadletter and drop messages
 		for _, message := range dedupedMessages {
 			if message.Error != nil {
 				switch message.Error.ProcessingControl {
@@ -146,7 +170,14 @@ func (s *Sink) flush() error {
 			batchesPerNamespace[message.Namespace] = append(batchesPerNamespace[message.Namespace], message)
 		}
 
+		// Insert per namespace
 		for namespace, batch := range batchesPerNamespace {
+			// Start otel span for storage batch insert
+			_, storageSpan := tracer.Start(ctx, "storage-batch-insert")
+			storageSpan.SetAttributes(
+				attribute.String("namespace", namespace),
+			)
+
 			list := []*serializer.CloudEventsKafkaPayload{}
 			for _, message := range batch {
 				list = append(list, message.Serialized)
@@ -158,24 +189,40 @@ func (s *Sink) flush() error {
 				if perr, ok := err.(*ProcessingError); ok {
 					switch perr.ProcessingControl {
 					case DEADLETTER:
+						flushSpan.SetStatus(codes.Error, "deadletter")
 						deadletterMessages = append(deadletterMessages, batch...)
 					case DROP:
+						flushSpan.SetStatus(codes.Error, "drop")
 						continue
 					default:
+						storageSpan.SetStatus(codes.Error, "unknown processing error type")
+						storageSpan.RecordError(err)
+						storageSpan.End()
 						return fmt.Errorf("unknown error type: %s", err)
 					}
 				} else {
 					// Throwing and error means we will retry the whole batch again
+					storageSpan.SetStatus(codes.Error, "failure")
+					storageSpan.RecordError(err)
+					storageSpan.End()
 					return fmt.Errorf("failed to sink to storage: %s", err)
 				}
 			}
 			logger.Debug("succeeded to sink to storage", "buffer size", len(messages))
+			storageSpan.End()
 		}
 
 		if len(deadletterMessages) > 0 {
+			_, deadletterSpan := tracer.Start(ctx, "deadletter")
+
 			err := s.deadLetter(deadletterMessages...)
 			if err != nil {
+				deadletterSpan.SetStatus(codes.Error, "deadletter failure")
+				deadletterSpan.RecordError(err)
+				deadletterSpan.End()
 				return fmt.Errorf("failed to deadletter messages: %s", err)
+			} else {
+				deadletterSpan.End()
 			}
 		}
 	}
@@ -191,6 +238,9 @@ func (s *Sink) flush() error {
 	offsets := offsetStore.Get()
 	var offsetCommitFailure bool
 	if len(offsets) > 0 {
+		// Start otel span for offset commit
+		_, offsetSpan := tracer.Start(ctx, "offset-commit")
+
 		// We retry with exponential backoff as it's critical that either step #2 or #3 succeeds.
 		err := retry.Do(
 			func() error {
@@ -203,14 +253,19 @@ func (s *Sink) flush() error {
 			},
 			retry.Context(ctx),
 			retry.OnRetry(func(n uint, err error) {
+				offsetSpan.AddEvent("retry", trace.WithAttributes(attribute.Int("count", int(n))))
 				logger.Warn("failed to commit kafka offset, will retry", "err", err, "retry", n)
 			}),
 		)
 		if err != nil {
+			offsetSpan.SetStatus(codes.Error, "offset commit failure")
+			offsetSpan.RecordError(err)
 			logger.Error("failed to commit offset to kafka", "err", err)
 			offsetCommitFailure = true
 			// do not return error here as we want to write Redis even if commit fails as we already saved them in ClickHouse
 		}
+
+		offsetSpan.End()
 	}
 
 	// 3. Sink to Redis
@@ -218,6 +273,9 @@ func (s *Sink) flush() error {
 	// we have to rely on ClickHouse's deduplication.
 	// Deduplicator is an optional dependency so we check if it's set
 	if s.config.Deduplicator != nil && len(dedupedMessages) > 0 {
+		// Start otel span for offset commit
+		_, dedupeSet := tracer.Start(ctx, "dedupe-set")
+
 		dedupeItems := []dedupe.Item{}
 		for _, message := range dedupedMessages {
 			dedupeItems = append(dedupeItems, dedupe.Item{
@@ -238,17 +296,30 @@ func (s *Sink) flush() error {
 			}),
 		)
 		if err != nil {
+			dedupeSet.SetStatus(codes.Error, "dedupe set failure")
+			dedupeSet.RecordError(err)
+			dedupeSet.End()
+
 			// When both offset commit and dedupe sink fails we need to reconcile the state based on logs
 			if offsetCommitFailure {
 				logger.Error("consistency failure", "err", err, "messages", messages)
 			}
 			return fmt.Errorf("failed to sink to redis: %s", err)
+		} else {
+			dedupeSet.End()
 		}
 		logger.Debug("succeeded to sink to redis", "buffer size", len(messages))
 	}
 
 	if len(messages) > 0 {
 		logger.Debug("succeeded to flush", "buffer size", len(messages))
+
+		err := reportFlushMetrics(ctx, messages)
+		if err != nil {
+			flushSpan.SetStatus(codes.Error, "failed to report flush metrics")
+			flushSpan.RecordError(err)
+			return fmt.Errorf("failed to report flush metrics: %w", err)
+		}
 	}
 
 	return nil
@@ -587,4 +658,26 @@ func dedupeSinkMessages(events []SinkMessage) []SinkMessage {
 		}
 	}
 	return list
+}
+
+// reportFlushMetrics reports metrics to OTel
+func reportFlushMetrics(ctx context.Context, messages []SinkMessage) error {
+	for _, message := range messages {
+		namespaceAttr := attribute.String("namespace", message.Namespace)
+		statusAttr := attribute.String("status", "success")
+
+		if message.Error != nil {
+			switch message.Error.ProcessingControl {
+			case DEADLETTER:
+				statusAttr = attribute.String("status", "deadletter")
+			case DROP:
+				statusAttr = attribute.String("status", "drop")
+			default:
+				return fmt.Errorf("unknown error type: %s", message.Error)
+			}
+		}
+		flushEventCounter.Add(ctx, 1, otelMetric.WithAttributes(namespaceAttr, statusAttr))
+	}
+
+	return nil
 }
