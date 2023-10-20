@@ -146,7 +146,7 @@ func (s *Sink) flush() error {
 	}
 
 	// Start tracing
-	ctx, flushSpan := tracer.Start(ctx, "flush")
+	ctx, flushSpan := tracer.Start(ctx, "flush", trace.WithSpanKind(trace.SpanKindConsumer), trace.WithAttributes(attribute.Int("size", len(messages))))
 	defer flushSpan.End()
 
 	// Dedupe messages so if we have multiple messages in the same batch
