@@ -6,11 +6,11 @@ import (
 	"log/slog"
 	"net/http"
 
-	oapimiddleware "github.com/deepmap/oapi-codegen/pkg/chi-middleware"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
+	oapimiddleware "github.com/oapi-codegen/nethttp-middleware"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/server/router"
