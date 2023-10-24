@@ -9,7 +9,7 @@ require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.14.3
 	github.com/cloudevents/sdk-go/v2 v2.14.0
 	github.com/confluentinc/confluent-kafka-go/v2 v2.2.0
-	github.com/deepmap/oapi-codegen v1.15.0
+	github.com/deepmap/oapi-codegen v1.16.2
 	github.com/getkin/kin-openapi v0.120.0
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/go-chi/render v1.0.3
@@ -18,6 +18,7 @@ require (
 	github.com/huandu/go-sqlbuilder v1.22.0
 	github.com/lmittmann/tint v1.0.2
 	github.com/mitchellh/mapstructure v1.5.0
+	github.com/oapi-codegen/nethttp-middleware v1.0.1
 	github.com/oapi-codegen/runtime v1.0.0
 	github.com/oklog/run v1.1.0
 	github.com/oklog/ulid/v2 v2.1.0
@@ -39,7 +40,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.19.0
 	go.opentelemetry.io/otel/trace v1.19.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
-	google.golang.org/grpc v1.58.3
+	google.golang.org/grpc v1.59.0
 )
 
 require (
