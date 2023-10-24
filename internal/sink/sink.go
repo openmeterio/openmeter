@@ -13,10 +13,9 @@ import (
 
 	"github.com/avast/retry-go/v4"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	otelMetric "go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/internal/dedupe"
@@ -27,12 +26,6 @@ import (
 var namespaceTopicRegexp = regexp.MustCompile(`^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$`)
 var defaultDeadletterTopicTemplate = "om_%s_events_deadletter"
 
-var (
-	tracer            = otel.Tracer("sink")
-	metric            = otel.Meter("sink")
-	flushEventCounter otelMetric.Int64Counter
-)
-
 type SinkMessage struct {
 	Namespace    string
 	KafkaMessage *kafka.Message
@@ -41,18 +34,22 @@ type SinkMessage struct {
 }
 
 type Sink struct {
-	consumer         *kafka.Consumer
-	producer         *kafka.Producer
-	config           SinkConfig
-	running          bool
-	buffer           *SinkBuffer
-	flushTimer       *time.Timer
-	namespaceStore   *NamespaceStore
-	namespaceRefetch *time.Timer
+	consumer          *kafka.Consumer
+	producer          *kafka.Producer
+	config            SinkConfig
+	running           bool
+	buffer            *SinkBuffer
+	flushTimer        *time.Timer
+	flushEventCounter metric.Int64Counter
+	messageCounter    metric.Int64Counter
+	namespaceStore    *NamespaceStore
+	namespaceRefetch  *time.Timer
 }
 
 type SinkConfig struct {
 	Logger              *slog.Logger
+	Tracer              trace.Tracer
+	MetricMeter         metric.Meter
 	MeterRepository     meter.Repository
 	Storage             Storage
 	Deduplicator        dedupe.Deduplicator
@@ -108,21 +105,32 @@ func NewSink(config SinkConfig) (*Sink, error) {
 	}
 
 	// Initialize OTel metrics
-	flushEventCounter, err = metric.Int64Counter(
-		"sink.flush.events",
-		otelMetric.WithDescription("The number of events processed"),
-		otelMetric.WithUnit("{event}"),
+	messageCounter, err := config.MetricMeter.Int64Counter(
+		"sink.kafka.messages",
+		metric.WithDescription("The number of messages received from Kafka"),
+		metric.WithUnit("{message}"),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create event counter: %w", err)
+		return nil, fmt.Errorf("failed to create messages counter: %w", err)
+	}
+
+	flushEventCounter, err := config.MetricMeter.Int64Counter(
+		"sink.flush.events",
+		metric.WithDescription("The number of events processed"),
+		metric.WithUnit("{event}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create events counter: %w", err)
 	}
 
 	sink := &Sink{
-		consumer:       consumer,
-		producer:       producer,
-		config:         config,
-		buffer:         NewSinkBuffer(),
-		namespaceStore: NewNamespaceStore(),
+		consumer:          consumer,
+		producer:          producer,
+		config:            config,
+		buffer:            NewSinkBuffer(),
+		namespaceStore:    NewNamespaceStore(),
+		flushEventCounter: flushEventCounter,
+		messageCounter:    messageCounter,
 	}
 
 	return sink, nil
@@ -146,7 +154,7 @@ func (s *Sink) flush() error {
 	}
 
 	// Start tracing
-	ctx, flushSpan := tracer.Start(ctx, "flush", trace.WithSpanKind(trace.SpanKindConsumer), trace.WithAttributes(attribute.Int("size", len(messages))))
+	ctx, flushSpan := s.config.Tracer.Start(ctx, "flush", trace.WithSpanKind(trace.SpanKindConsumer), trace.WithAttributes(attribute.Int("size", len(messages))))
 	defer flushSpan.End()
 
 	// Dedupe messages so if we have multiple messages in the same batch
@@ -199,7 +207,7 @@ func (s *Sink) flush() error {
 
 	// Metrics and logs
 	logger.Debug("succeeded to flush", "buffer size", len(messages))
-	err = reportFlushMetrics(ctx, messages)
+	err = s.reportFlushMetrics(ctx, messages)
 	if err != nil {
 		flushSpan.SetStatus(codes.Error, "failed to report flush metrics")
 		flushSpan.RecordError(err)
@@ -209,10 +217,32 @@ func (s *Sink) flush() error {
 	return nil
 }
 
+// reportFlushMetrics reports metrics to OTel
+func (s *Sink) reportFlushMetrics(ctx context.Context, messages []SinkMessage) error {
+	for _, message := range messages {
+		namespaceAttr := attribute.String("namespace", message.Namespace)
+		statusAttr := attribute.String("status", "success")
+
+		if message.Error != nil {
+			switch message.Error.ProcessingControl {
+			case DEADLETTER:
+				statusAttr = attribute.String("status", "deadletter")
+			case DROP:
+				statusAttr = attribute.String("status", "drop")
+			default:
+				return fmt.Errorf("unknown error type: %s", message.Error)
+			}
+		}
+		s.flushEventCounter.Add(ctx, 1, metric.WithAttributes(namespaceAttr, statusAttr))
+	}
+
+	return nil
+}
+
 // persist persists a batch of messages to storage or deadletters
 func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) ([]SinkMessage, error) {
 	logger := s.config.Logger.With("operation", "persistToStorage")
-	persistCtx, persistSpan := tracer.Start(ctx, "persist")
+	persistCtx, persistSpan := s.config.Tracer.Start(ctx, "persist")
 	defer persistSpan.End()
 
 	deadletterMessages := []SinkMessage{}
@@ -241,7 +271,7 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) ([]
 	// Insert into permanent storage per namespace
 	for namespace, batch := range batchesPerNamespace {
 		// Start otel span for storage batch insert
-		storageCtx, storageSpan := tracer.Start(persistCtx, "storage-batch-insert")
+		storageCtx, storageSpan := s.config.Tracer.Start(persistCtx, "storage-batch-insert")
 		storageSpan.SetAttributes(
 			attribute.String("namespace", namespace),
 			attribute.Int("size", len(batch)),
@@ -287,7 +317,7 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) ([]
 // deadLetter sends a message to the dead letter queue, useful permanent non-recoverable errors like json parsing
 func (s *Sink) deadLetter(ctx context.Context, messages ...SinkMessage) error {
 	logger := s.config.Logger.With("operation", "deadLetter")
-	_, deadletterSpan := tracer.Start(ctx, "deadletter")
+	_, deadletterSpan := s.config.Tracer.Start(ctx, "deadletter")
 
 	for _, message := range messages {
 		topic := fmt.Sprintf(s.config.DeadletterTopicTemplate, message.Namespace)
@@ -324,7 +354,7 @@ func (s *Sink) deadLetter(ctx context.Context, messages ...SinkMessage) error {
 // offsetCommit commits the offset to Kafka with retry
 func (s *Sink) offsetCommit(ctx context.Context, messages []SinkMessage) error {
 	logger := s.config.Logger.With("operation", "offsetCommit")
-	offsetCtx, offsetSpan := tracer.Start(ctx, "offset-commit")
+	offsetCtx, offsetSpan := s.config.Tracer.Start(ctx, "offset-commit")
 
 	offsetStore := NewOffsetStore()
 	for _, message := range messages {
@@ -362,7 +392,7 @@ func (s *Sink) offsetCommit(ctx context.Context, messages []SinkMessage) error {
 // dedupeSet sets the dedupe keys in Deduplicator with retry
 func (s *Sink) dedupeSet(ctx context.Context, messages []SinkMessage) error {
 	logger := s.config.Logger.With("operation", "dedupeSet")
-	dedupeCtx, dedupeSet := tracer.Start(ctx, "dedupe-set")
+	dedupeCtx, dedupeSet := s.config.Tracer.Start(ctx, "dedupe-set")
 	dedupeSet.SetAttributes(
 		attribute.Int("size", len(messages)),
 	)
@@ -478,6 +508,7 @@ func (s *Sink) clearFlushTimer() {
 
 // Run starts the Kafka consumer and sinks the events to Clickhouse
 func (s *Sink) Run() error {
+	ctx := context.TODO()
 	logger := s.config.Logger.With("operation", "run")
 	logger.Info("starting sink")
 
@@ -534,6 +565,10 @@ func (s *Sink) Run() error {
 				}
 				sinkMessage.Namespace = namespace
 				sinkMessage.Serialized = kafkaCloudEvent
+
+				// Message counter
+				namespaceAttr := attribute.String("namespace", namespace)
+				s.messageCounter.Add(ctx, 1, metric.WithAttributes(namespaceAttr))
 
 				s.buffer.Add(sinkMessage)
 				logger.Debug("event added to buffer", "partition", e.TopicPartition.Partition, "offset", e.TopicPartition.Offset, "event", kafkaCloudEvent)
@@ -704,26 +739,4 @@ func dedupeSinkMessages(events []SinkMessage) []SinkMessage {
 		}
 	}
 	return list
-}
-
-// reportFlushMetrics reports metrics to OTel
-func reportFlushMetrics(ctx context.Context, messages []SinkMessage) error {
-	for _, message := range messages {
-		namespaceAttr := attribute.String("namespace", message.Namespace)
-		statusAttr := attribute.String("status", "success")
-
-		if message.Error != nil {
-			switch message.Error.ProcessingControl {
-			case DEADLETTER:
-				statusAttr = attribute.String("status", "deadletter")
-			case DROP:
-				statusAttr = attribute.String("status", "drop")
-			default:
-				return fmt.Errorf("unknown error type: %s", message.Error)
-			}
-		}
-		flushEventCounter.Add(ctx, 1, otelMetric.WithAttributes(namespaceAttr, statusAttr))
-	}
-
-	return nil
 }

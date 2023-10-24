@@ -23,9 +23,11 @@ import (
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/internal/dedupe"
@@ -35,6 +37,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
+
+var otelName string = "openmeter.io/sink-worker"
 
 func main() {
 	v, flags := viper.New(), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
@@ -95,36 +99,39 @@ func main() {
 	telemetryRouter := chi.NewRouter()
 	telemetryRouter.Mount("/debug", middleware.Profiler())
 
-	meterProvider, err := conf.Telemetry.Metrics.NewMeterProvider(context.Background(), res)
+	// Initialize OTel Metrics
+	otelMeterProvider, err := conf.Telemetry.Metrics.NewMeterProvider(context.Background(), res)
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
 	}
 	defer func() {
-		if err := meterProvider.Shutdown(context.Background()); err != nil {
+		if err := otelMeterProvider.Shutdown(context.Background()); err != nil {
 			logger.Error("shutting down meter provider: %v", err)
 		}
 	}()
-
-	otel.SetMeterProvider(meterProvider)
+	otel.SetMeterProvider(otelMeterProvider)
+	metricMeter := otelMeterProvider.Meter(otelName)
 
 	if conf.Telemetry.Metrics.Exporters.Prometheus.Enabled {
 		telemetryRouter.Handle("/metrics", promhttp.Handler())
 	}
 
-	tracerProvider, err := conf.Telemetry.Trace.NewTracerProvider(context.Background(), res)
+	// Initialize OTel Tracer
+	otelTracerProvider, err := conf.Telemetry.Trace.NewTracerProvider(context.Background(), res)
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
 	}
 	defer func() {
-		if err := tracerProvider.Shutdown(context.Background()); err != nil {
+		if err := otelTracerProvider.Shutdown(context.Background()); err != nil {
 			logger.Error("shutting down tracer provider", "error", err)
 		}
 	}()
 
-	otel.SetTracerProvider(tracerProvider)
+	otel.SetTracerProvider(otelTracerProvider)
 	otel.SetTextMapPropagator(propagation.TraceContext{})
+	tracer := otelTracerProvider.Tracer(otelName)
 
 	// Configure health checker
 	healthChecker := health.New(health.WithCheckListeners(gosundheit.NewLogger(logger.With(slog.String("component", "healthcheck")))))
@@ -144,12 +151,13 @@ func main() {
 		"ingest.kafka.broker": conf.Ingest.Kafka.Broker,
 	})
 
+	// Initialize meter repository
 	meterRepository := meter.NewInMemoryRepository(slicesx.Map(conf.Meters, func(meter *models.Meter) models.Meter {
 		return *meter
 	}))
 
 	// Initialize sink worker
-	sink, err := initSink(conf, logger, meterRepository)
+	sink, err := initSink(conf, logger, metricMeter, tracer, meterRepository)
 	if err != nil {
 		logger.Error("failed to initialize sink worker", "error", err)
 		os.Exit(1)
@@ -222,7 +230,7 @@ func initClickHouseClient(config config.Configuration) (clickhouse.Conn, error) 
 	return clickHouseClient, nil
 }
 
-func initSink(config config.Configuration, logger *slog.Logger, meterRepository meter.Repository) (*sink.Sink, error) {
+func initSink(config config.Configuration, logger *slog.Logger, metricMeter metric.Meter, tracer trace.Tracer, meterRepository meter.Repository) (*sink.Sink, error) {
 	clickhouseClient, err := initClickHouseClient(config)
 	if err != nil {
 		return nil, fmt.Errorf("init clickhouse client: %w", err)
@@ -250,6 +258,8 @@ func initSink(config config.Configuration, logger *slog.Logger, meterRepository 
 
 	sinkConfig := sink.SinkConfig{
 		Logger:              logger,
+		Tracer:              tracer,
+		MetricMeter:         metricMeter,
 		MeterRepository:     meterRepository,
 		Storage:             storage,
 		Deduplicator:        deduplicator,
