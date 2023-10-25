@@ -430,7 +430,7 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 	// If that happens, default to JSON
 	if err != nil {
 		logger.Debug("invalid media type, default to json", "error", err)
-		accept = "application/json"
+		mediatype = "application/json"
 	}
 
 	if mediatype == "text/csv" {
