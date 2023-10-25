@@ -426,9 +426,11 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 		accept = "application/json"
 	}
 	mediatype, _, err := mime.ParseMediaType(accept)
+	// Browser can send back media type Go marks as invalid
+	// If that happens, default to JSON
 	if err != nil {
-		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
-		return
+		logger.Debug("invalid media type, default to json", "error", err)
+		accept = "application/json"
 	}
 
 	if mediatype == "text/csv" {
