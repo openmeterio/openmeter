@@ -51,7 +51,7 @@ await openmeter.ingestEvents({
 ```
 
 Note how we report the Open AI `model` version to OpenMeter.
-This is useful as Open AI charges differently for varios models so you may want to group by them in OpenMeter.
+This is useful as Open AI charges differently for various models so you may want to group them in OpenMeter.
 
 Check out the full source code in the [app.ts](./app.ts).
 You can run this example as:
