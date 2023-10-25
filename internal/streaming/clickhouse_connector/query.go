@@ -243,7 +243,7 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 	case models.MeterAggregationMax:
 		selectColumns = append(selectColumns, "maxMerge(value) AS value")
 	case models.MeterAggregationCount:
-		selectColumns = append(selectColumns, "countMerge(value) AS value")
+		selectColumns = append(selectColumns, "toFloat64(countMerge(value)) AS value")
 	default:
 		return "", nil, fmt.Errorf("invalid aggregation type: %s", d.Aggregation)
 	}

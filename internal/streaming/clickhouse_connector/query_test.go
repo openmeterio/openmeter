@@ -227,6 +227,15 @@ func TestQueryMeterView(t *testing.T) {
 			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.meter_meter1",
 			wantArgs: nil,
 		},
+		{ // Aggregate with count aggregation
+			query: queryMeterView{
+				Database:      "openmeter",
+				MeterViewName: "meter_meter1",
+				Aggregation:   models.MeterAggregationCount,
+			},
+			wantSQL:  "SELECT min(windowstart), max(windowend), toFloat64(countMerge(value)) AS value FROM openmeter.meter_meter1",
+			wantArgs: nil,
+		},
 		{ // Aggregate data from start
 			query: queryMeterView{
 				Database:      "openmeter",
