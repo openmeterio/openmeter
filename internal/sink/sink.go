@@ -13,6 +13,10 @@ import (
 
 	"github.com/avast/retry-go/v4"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/internal/dedupe"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
@@ -30,18 +34,22 @@ type SinkMessage struct {
 }
 
 type Sink struct {
-	consumer         *kafka.Consumer
-	producer         *kafka.Producer
-	config           SinkConfig
-	running          bool
-	buffer           *SinkBuffer
-	flushTimer       *time.Timer
-	namespaceStore   *NamespaceStore
-	namespaceRefetch *time.Timer
+	consumer          *kafka.Consumer
+	producer          *kafka.Producer
+	config            SinkConfig
+	running           bool
+	buffer            *SinkBuffer
+	flushTimer        *time.Timer
+	flushEventCounter metric.Int64Counter
+	messageCounter    metric.Int64Counter
+	namespaceStore    *NamespaceStore
+	namespaceRefetch  *time.Timer
 }
 
 type SinkConfig struct {
 	Logger              *slog.Logger
+	Tracer              trace.Tracer
+	MetricMeter         metric.Meter
 	MeterRepository     meter.Repository
 	Storage             Storage
 	Deduplicator        dedupe.Deduplicator
@@ -82,6 +90,7 @@ func NewSink(config SinkConfig) (*Sink, error) {
 		return nil, fmt.Errorf("failed to create producer: %w", err)
 	}
 
+	// Defaults
 	if config.MinCommitCount == 0 {
 		config.MinCommitCount = 1
 	}
@@ -95,85 +104,73 @@ func NewSink(config SinkConfig) (*Sink, error) {
 		config.DeadletterTopicTemplate = defaultDeadletterTopicTemplate
 	}
 
+	// Initialize OTel metrics
+	messageCounter, err := config.MetricMeter.Int64Counter(
+		"sink.kafka.messages",
+		metric.WithDescription("The number of messages received from Kafka"),
+		metric.WithUnit("{message}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create messages counter: %w", err)
+	}
+
+	flushEventCounter, err := config.MetricMeter.Int64Counter(
+		"sink.flush.events",
+		metric.WithDescription("The number of events processed"),
+		metric.WithUnit("{event}"),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create events counter: %w", err)
+	}
+
 	sink := &Sink{
-		consumer:       consumer,
-		producer:       producer,
-		config:         config,
-		buffer:         NewSinkBuffer(),
-		namespaceStore: NewNamespaceStore(),
+		consumer:          consumer,
+		producer:          producer,
+		config:            config,
+		buffer:            NewSinkBuffer(),
+		namespaceStore:    NewNamespaceStore(),
+		flushEventCounter: flushEventCounter,
+		messageCounter:    messageCounter,
 	}
 
 	return sink, nil
 }
 
+// flush flushes the 1. buffer to storage, 2. sets dedupe and 3. commits the offset to Kafka
+// called when max wait time or min commit count reached
 func (s *Sink) flush() error {
 	ctx := context.TODO()
-
 	logger := s.config.Logger.With("operation", "flush")
-	messages := s.buffer.Dequeue()
 
 	// Stop polling new messages from Kafka until we finalize batch
 	s.clearFlushTimer()
 	defer s.setFlushTimer()
 
+	messages := s.buffer.Dequeue()
+
+	// Nothing to flush
+	if len(messages) == 0 {
+		return nil
+	}
+
+	// Start tracing
+	ctx, flushSpan := s.config.Tracer.Start(ctx, "flush", trace.WithSpanKind(trace.SpanKindConsumer), trace.WithAttributes(attribute.Int("size", len(messages))))
+	defer flushSpan.End()
+
 	// Dedupe messages so if we have multiple messages in the same batch
 	dedupedMessages := dedupeSinkMessages(messages)
 
-	// 1. Sink to Storage
+	// 1. Persist to storage or deadletter
 	if len(dedupedMessages) > 0 {
-		logger.Debug("started to flush", "buffer size", len(dedupedMessages))
-
-		deadletterMessages := []SinkMessage{}
-		batchesPerNamespace := map[string][]SinkMessage{}
-
-		// Insert per namespace
-		for _, message := range dedupedMessages {
-			if message.Error != nil {
-				switch message.Error.ProcessingControl {
-				case DEADLETTER:
-					logger.Debug("deadlettering message", "error", message.Error, "message", string(message.KafkaMessage.Value), "namespace", message.Namespace)
-					deadletterMessages = append(deadletterMessages, message)
-					continue
-				case DROP:
-					// Do nothing
-					logger.Debug("dropping message", "error", message.Error, "message", string(message.KafkaMessage.Value), "namespace", message.Namespace)
-					continue
-				default:
-					return fmt.Errorf("unknown error type: %s", message.Error)
-				}
-			}
-
-			batchesPerNamespace[message.Namespace] = append(batchesPerNamespace[message.Namespace], message)
+		// Persist events to permanent storage
+		deadletterMessages, err := s.persistToStorage(ctx, messages)
+		if err != nil {
+			return fmt.Errorf("failed to persist: %w", err)
 		}
 
-		for namespace, batch := range batchesPerNamespace {
-			list := []*serializer.CloudEventsKafkaPayload{}
-			for _, message := range batch {
-				list = append(list, message.Serialized)
-			}
-
-			err := s.config.Storage.BatchInsert(ctx, namespace, list)
-			if err != nil {
-				// Note: a single error in batch will make the whole batch fail
-				if perr, ok := err.(*ProcessingError); ok {
-					switch perr.ProcessingControl {
-					case DEADLETTER:
-						deadletterMessages = append(deadletterMessages, batch...)
-					case DROP:
-						continue
-					default:
-						return fmt.Errorf("unknown error type: %s", err)
-					}
-				} else {
-					// Throwing and error means we will retry the whole batch again
-					return fmt.Errorf("failed to sink to storage: %s", err)
-				}
-			}
-			logger.Debug("succeeded to sink to storage", "buffer size", len(messages))
-		}
-
+		// Deadletter failed messages if any
 		if len(deadletterMessages) > 0 {
-			err := s.deadLetter(deadletterMessages...)
+			err := s.deadLetter(ctx, deadletterMessages...)
 			if err != nil {
 				return fmt.Errorf("failed to deadletter messages: %s", err)
 			}
@@ -184,33 +181,12 @@ func (s *Sink) flush() error {
 	// Least once guarantee, if offset commit fails we will potentially process the same messages again as they are not committed yet
 	// If Redis write succeeds but Kafka commit fails we will reprocess messages without side effect as they will be dropped at duplicate check
 	// If Redis write fails we will double write them to ClickHouse and we have to rely on ClickHouse's deduplication
-	offsetStore := NewOffsetStore()
-	for _, message := range messages {
-		offsetStore.Add(message.KafkaMessage.TopicPartition)
-	}
-	offsets := offsetStore.Get()
-	var offsetCommitFailure bool
-	if len(offsets) > 0 {
-		// We retry with exponential backoff as it's critical that either step #2 or #3 succeeds.
-		err := retry.Do(
-			func() error {
-				commitedOffsets, err := s.consumer.CommitOffsets(offsets)
-				if err != nil {
-					return err
-				}
-				logger.Debug("succeeded to commit offset to kafka", "offsets", commitedOffsets)
-				return nil
-			},
-			retry.Context(ctx),
-			retry.OnRetry(func(n uint, err error) {
-				logger.Warn("failed to commit kafka offset, will retry", "err", err, "retry", n)
-			}),
-		)
-		if err != nil {
-			logger.Error("failed to commit offset to kafka", "err", err)
-			offsetCommitFailure = true
-			// do not return error here as we want to write Redis even if commit fails as we already saved them in ClickHouse
-		}
+	offsetCommitFailure := false
+	err := s.offsetCommit(ctx, messages)
+	if err != nil {
+		logger.Error("failed to commit offset to kafka", "err", err)
+		offsetCommitFailure = true
+		// do not return error here as we want to write Redis even if commit fails as we already saved them in ClickHouse
 	}
 
 	// 3. Sink to Redis
@@ -218,45 +194,130 @@ func (s *Sink) flush() error {
 	// we have to rely on ClickHouse's deduplication.
 	// Deduplicator is an optional dependency so we check if it's set
 	if s.config.Deduplicator != nil && len(dedupedMessages) > 0 {
-		dedupeItems := []dedupe.Item{}
-		for _, message := range dedupedMessages {
-			dedupeItems = append(dedupeItems, dedupe.Item{
-				Namespace: message.Namespace,
-				ID:        message.Serialized.Id,
-				Source:    message.Serialized.Source,
-			})
-		}
-
-		// We retry with exponential backoff as it's critical that either step #2 or #3 succeeds.
-		err := retry.Do(
-			func() error {
-				return s.config.Deduplicator.Set(ctx, dedupeItems...)
-			},
-			retry.Context(ctx),
-			retry.OnRetry(func(n uint, err error) {
-				logger.Warn("failed to sink to redis, will retry", "err", err, "retry", n)
-			}),
-		)
+		err := s.dedupeSet(ctx, dedupedMessages)
 		if err != nil {
 			// When both offset commit and dedupe sink fails we need to reconcile the state based on logs
 			if offsetCommitFailure {
 				logger.Error("consistency failure", "err", err, "messages", messages)
 			}
+
 			return fmt.Errorf("failed to sink to redis: %s", err)
 		}
-		logger.Debug("succeeded to sink to redis", "buffer size", len(messages))
 	}
 
-	if len(messages) > 0 {
-		logger.Debug("succeeded to flush", "buffer size", len(messages))
+	// Metrics and logs
+	logger.Debug("succeeded to flush", "buffer size", len(messages))
+	err = s.reportFlushMetrics(ctx, messages)
+	if err != nil {
+		flushSpan.SetStatus(codes.Error, "failed to report flush metrics")
+		flushSpan.RecordError(err)
+		return fmt.Errorf("failed to report flush metrics: %w", err)
 	}
 
 	return nil
 }
 
+// reportFlushMetrics reports metrics to OTel
+func (s *Sink) reportFlushMetrics(ctx context.Context, messages []SinkMessage) error {
+	for _, message := range messages {
+		namespaceAttr := attribute.String("namespace", message.Namespace)
+		statusAttr := attribute.String("status", "success")
+
+		if message.Error != nil {
+			switch message.Error.ProcessingControl {
+			case DEADLETTER:
+				statusAttr = attribute.String("status", "deadletter")
+			case DROP:
+				statusAttr = attribute.String("status", "drop")
+			default:
+				return fmt.Errorf("unknown error type: %s", message.Error)
+			}
+		}
+		s.flushEventCounter.Add(ctx, 1, metric.WithAttributes(namespaceAttr, statusAttr))
+	}
+
+	return nil
+}
+
+// persist persists a batch of messages to storage or deadletters
+func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) ([]SinkMessage, error) {
+	logger := s.config.Logger.With("operation", "persistToStorage")
+	persistCtx, persistSpan := s.config.Tracer.Start(ctx, "persist")
+	defer persistSpan.End()
+
+	deadletterMessages := []SinkMessage{}
+	batchesPerNamespace := map[string][]SinkMessage{}
+
+	// Group messages per namespaces and filter out deadletter and drop messages
+	for _, message := range messages {
+		if message.Error != nil {
+			switch message.Error.ProcessingControl {
+			case DEADLETTER:
+				logger.Debug("deadlettering message", "error", message.Error, "message", string(message.KafkaMessage.Value), "namespace", message.Namespace)
+				deadletterMessages = append(deadletterMessages, message)
+				continue
+			case DROP:
+				// Do nothing
+				logger.Debug("dropping message", "error", message.Error, "message", string(message.KafkaMessage.Value), "namespace", message.Namespace)
+				continue
+			default:
+				return deadletterMessages, fmt.Errorf("unknown error type: %s", message.Error)
+			}
+		}
+
+		batchesPerNamespace[message.Namespace] = append(batchesPerNamespace[message.Namespace], message)
+	}
+
+	// Insert into permanent storage per namespace
+	for namespace, batch := range batchesPerNamespace {
+		// Start otel span for storage batch insert
+		storageCtx, storageSpan := s.config.Tracer.Start(persistCtx, "storage-batch-insert")
+		storageSpan.SetAttributes(
+			attribute.String("namespace", namespace),
+			attribute.Int("size", len(batch)),
+		)
+
+		list := []*serializer.CloudEventsKafkaPayload{}
+		for _, message := range batch {
+			list = append(list, message.Serialized)
+		}
+
+		err := s.config.Storage.BatchInsert(storageCtx, namespace, list)
+		if err != nil {
+			// Note: a single error in batch will make the whole batch fail
+			if perr, ok := err.(*ProcessingError); ok {
+				switch perr.ProcessingControl {
+				case DEADLETTER:
+					storageSpan.SetStatus(codes.Error, "deadletter")
+					deadletterMessages = append(deadletterMessages, batch...)
+				case DROP:
+					storageSpan.SetStatus(codes.Error, "drop")
+					continue
+				default:
+					storageSpan.SetStatus(codes.Error, "unknown processing error type")
+					storageSpan.RecordError(err)
+					storageSpan.End()
+					return deadletterMessages, fmt.Errorf("unknown error type: %s", err)
+				}
+			} else {
+				// Throwing and error means we will retry the whole batch again
+				storageSpan.SetStatus(codes.Error, "failure")
+				storageSpan.RecordError(err)
+				storageSpan.End()
+				return deadletterMessages, fmt.Errorf("failed to sink to storage: %s", err)
+			}
+		}
+		logger.Debug("succeeded to sink to storage", "buffer size", len(messages))
+		storageSpan.End()
+	}
+
+	return deadletterMessages, nil
+}
+
 // deadLetter sends a message to the dead letter queue, useful permanent non-recoverable errors like json parsing
-func (s *Sink) deadLetter(messages ...SinkMessage) error {
+func (s *Sink) deadLetter(ctx context.Context, messages ...SinkMessage) error {
 	logger := s.config.Logger.With("operation", "deadLetter")
+	_, deadletterSpan := s.config.Tracer.Start(ctx, "deadletter")
 
 	for _, message := range messages {
 		topic := fmt.Sprintf(s.config.DeadletterTopicTemplate, message.Namespace)
@@ -273,11 +334,97 @@ func (s *Sink) deadLetter(messages ...SinkMessage) error {
 
 		err := s.producer.Produce(msg, nil)
 		if err != nil {
+			deadletterSpan.SetStatus(codes.Error, "deadletter failure")
+			deadletterSpan.RecordError(err)
+			deadletterSpan.End()
+
 			return fmt.Errorf("producing kafka message to deadletter topic: %w", err)
 		}
+		deadletterSpan.AddEvent(
+			"deadletter",
+			trace.WithAttributes(attribute.String("namespace", message.Namespace)),
+		)
 	}
 
 	logger.Debug("succeeded to deadletter", "messages", len(messages))
+	deadletterSpan.End()
+	return nil
+}
+
+// offsetCommit commits the offset to Kafka with retry
+func (s *Sink) offsetCommit(ctx context.Context, messages []SinkMessage) error {
+	logger := s.config.Logger.With("operation", "offsetCommit")
+	offsetCtx, offsetSpan := s.config.Tracer.Start(ctx, "offset-commit")
+
+	offsetStore := NewOffsetStore()
+	for _, message := range messages {
+		offsetStore.Add(message.KafkaMessage.TopicPartition)
+	}
+	offsets := offsetStore.Get()
+
+	// We retry with exponential backoff as it's critical that either step #2 or #3 succeeds.
+	err := retry.Do(
+		func() error {
+			commitedOffsets, err := s.consumer.CommitOffsets(offsets)
+			if err != nil {
+				return err
+			}
+			logger.Debug("succeeded to commit offset to kafka", "offsets", commitedOffsets)
+			return nil
+		},
+		retry.Context(offsetCtx),
+		retry.OnRetry(func(n uint, err error) {
+			offsetSpan.AddEvent("retry", trace.WithAttributes(attribute.Int("count", int(n))))
+			logger.Warn("failed to commit kafka offset, will retry", "err", err, "retry", n)
+		}),
+	)
+	if err != nil {
+		offsetSpan.SetStatus(codes.Error, "offset commit failure")
+		offsetSpan.RecordError(err)
+		offsetSpan.End()
+		return fmt.Errorf("failed to commit offset to kafka: %w", err)
+	}
+
+	offsetSpan.End()
+	return nil
+}
+
+// dedupeSet sets the dedupe keys in Deduplicator with retry
+func (s *Sink) dedupeSet(ctx context.Context, messages []SinkMessage) error {
+	logger := s.config.Logger.With("operation", "dedupeSet")
+	dedupeCtx, dedupeSet := s.config.Tracer.Start(ctx, "dedupe-set")
+	dedupeSet.SetAttributes(
+		attribute.Int("size", len(messages)),
+	)
+
+	dedupeItems := []dedupe.Item{}
+	for _, message := range messages {
+		dedupeItems = append(dedupeItems, dedupe.Item{
+			Namespace: message.Namespace,
+			ID:        message.Serialized.Id,
+			Source:    message.Serialized.Source,
+		})
+	}
+
+	// We retry with exponential backoff as it's critical that either step #2 or #3 succeeds.
+	err := retry.Do(
+		func() error {
+			return s.config.Deduplicator.Set(dedupeCtx, dedupeItems...)
+		},
+		retry.Context(dedupeCtx),
+		retry.OnRetry(func(n uint, err error) {
+			dedupeSet.AddEvent("retry", trace.WithAttributes(attribute.Int("count", int(n))))
+			logger.Warn("failed to sink to redis, will retry", "err", err, "retry", n)
+		}),
+	)
+	if err != nil {
+		dedupeSet.SetStatus(codes.Error, "dedupe set failure")
+		dedupeSet.RecordError(err)
+		dedupeSet.End()
+		return fmt.Errorf("failed to sink to redis: %s", err)
+	}
+	dedupeSet.End()
+	logger.Debug("succeeded to sink to redis", "buffer size", len(messages))
 	return nil
 }
 
@@ -361,6 +508,7 @@ func (s *Sink) clearFlushTimer() {
 
 // Run starts the Kafka consumer and sinks the events to Clickhouse
 func (s *Sink) Run() error {
+	ctx := context.TODO()
 	logger := s.config.Logger.With("operation", "run")
 	logger.Info("starting sink")
 
@@ -417,6 +565,10 @@ func (s *Sink) Run() error {
 				}
 				sinkMessage.Namespace = namespace
 				sinkMessage.Serialized = kafkaCloudEvent
+
+				// Message counter
+				namespaceAttr := attribute.String("namespace", namespace)
+				s.messageCounter.Add(ctx, 1, metric.WithAttributes(namespaceAttr))
 
 				s.buffer.Add(sinkMessage)
 				logger.Debug("event added to buffer", "partition", e.TopicPartition.Partition, "offset", e.TopicPartition.Offset, "event", kafkaCloudEvent)
