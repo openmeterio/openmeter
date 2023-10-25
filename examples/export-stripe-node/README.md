@@ -7,7 +7,7 @@ You can read more about Stripe's Usage-Based Pricing features [here](https://str
 
 ## Our Example
 
-In this example, we integrate usage reporting with Stripe for an imaginary AI product that need to attribute Chat GPT token usage to their users.
+In this example, we integrate usage reporting with Stripe for an imaginary AI product that needs to attribute Chat GPT token usage to its users.
 To report usage, Stripe recommends a [periodic usage reporting](https://stripe.com/docs/billing/subscriptions/usage-based#report).
 In this example we will report usage when `npm start` is executed. In a real app you want to report usage periodically via cron or workflow management.
 
@@ -20,7 +20,7 @@ Run the setup code in this repo with your [Stripe key](https://dashboard.stripe.
 STRIPE_KEY=sk_test_... npm run setup
 ```
 
-This will create product, price, customer and subscription entities in your Stripe test account and print out the links to the them:
+This will create product, price, customer and subscription entities in your Stripe test account and print out the links to them:
 
 ```text
 Stripe product created: https://dashboard.stripe.com/test/products/prod_xxx
@@ -51,7 +51,7 @@ If you visit the subscription on the Stripe dashboard, you should see usage repo
 Check out the sample code's `app.ts` file in this repo to see how to report usage to Stripe.
 
 > **Note** OpenMeter collects usage in windows. The default window duration is hourly. In this example we round start and end dates to the closest OpenMeter windows.
-> For example if a subscription's billing period ends at 1:45 PM, we will only reported at 1 PM so usage occuring after 1PM will slip into the next billing cycle.
+> For example if a subscription's billing period ends at 1:45 PM, we will only report at 1 PM so usage occurring after 1PM will slip into the next billing cycle.
 > It depends on your use-case what window size makes sense for your application. In OpenMeter you can configure window sizes per meter.
 
 > **Note** In the sample code, we call Stripe's report API with `action=set` We do this to ensure idempotency so that no double reporting can happen.
