@@ -9,11 +9,11 @@ Key considerations are:
 - Event replays may be necessary for failure and recovery scenarios.
 - CloudEvents are unique by ID + Source properties.
 
-Neither Kafka nor ksqlDB natively support message idempotency.
+Neither Kafka nor ksqlDB natively supports message idempotency.
 
 ## Considered Options
 
-To achive idempotency we discovered event deduplication options both on producer (API Server) and consumer (ksqlDB) side:
+To achieve idempotency we discovered event deduplication options both on producer (API Server) and consumer (ksqlDB) side:
 
 1. Redis with key expiration
 1. Redis with bloom filter
