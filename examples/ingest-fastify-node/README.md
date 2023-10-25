@@ -1,17 +1,17 @@
 # Fastify Example
 
-In this example we will meter API call with Fastify.
+In this example we will meter API calls with Fastify.
 This is useful if you are building a web server and want to charge for certain API calls.
 
 Language: Node.js, TypeScript
 
 ## Example
 
-Fastify is a powerful Node.js web server which provides lifecycle hooks, useful to handle metering.
+Fastify is a powerful Node.js web server that provides lifecycle hooks, useful to handle metering.
 Checkout `app.ts` file and observe the flow of the request:
 
 1. We set user on session
-1. We server `GET /api` request
+1. We serve `GET /api` request
 1. We meter request after it's served
 
 ### Run The Example
@@ -24,9 +24,9 @@ npm start
 ```
 
 Visit the metered `http://localhost:3000/api` in your browser couple of times to generate usage.
-Observe meter changes on `http://localhost:3000`. (should see updates in 1-2 second)
+Observe meter changes on `http://localhost:3000`. (should see updates in 1-2 seconds)
 
-You should see your metered usage groupped by path, method in an hourly resolution:
+You should see your metered usage group by path, method in an hourly resolution:
 
 ```json
 {
