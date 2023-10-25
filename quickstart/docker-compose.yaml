@@ -22,7 +22,7 @@ services:
       retries: 100
 
   sink-worker:
-    image: ghcr.io/openmeterio/openmeter-sink-worker:latest
+    image: ghcr.io/openmeterio/openmeter:latest
     command: openmeter-sink-worker --config /etc/openmeter/config.yaml
     restart: always
     pull_policy: always
