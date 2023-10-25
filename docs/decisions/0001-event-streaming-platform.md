@@ -9,7 +9,7 @@ Balancing scale, accuracy, latency, and cost poses challenges:
 
 - Monitoring systems fall short in terms of accuracy and consistency necessary for billing
 - Scaling databases to handle large volumes of writes and real-time queries can be expensive
-- Warehouses processing leads to stale usage data and longer feedback cycles
+- Warehouse processing leads to stale usage data and longer feedback cycles
 
 ## Considered Options
 
@@ -24,7 +24,7 @@ We have chosen Kafka with ksqlDB.
 - Kafka for event streaming.
 - ksqlDB for stream processing.
 
-To make OpenMeter adoptable to alternative streaming platforms we keep the interfaces generic.
+To make OpenMeter adaptable to alternative streaming platforms we keep the interfaces generic.
 
 ### Consequences
 
