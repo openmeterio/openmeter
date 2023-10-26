@@ -2,6 +2,7 @@ package clickhouse_connector
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"regexp"
@@ -9,7 +10,9 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/cloudevents/sdk-go/v2/event"
 
+	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -31,6 +34,7 @@ type ClickhouseConnectorConfig struct {
 	Logger     *slog.Logger
 	ClickHouse clickhouse.Conn
 	Database   string
+	Meters     meter.Repository
 }
 
 func NewClickhouseConnector(config ClickhouseConnectorConfig) (*ClickhouseConnector, error) {
@@ -39,6 +43,23 @@ func NewClickhouseConnector(config ClickhouseConnectorConfig) (*ClickhouseConnec
 	}
 
 	return connector, nil
+}
+
+func (c *ClickhouseConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]event.Event, error) {
+	if namespace == "" {
+		return nil, fmt.Errorf("namespace is required")
+	}
+
+	events, err := c.queryEventsTable(ctx, namespace, params)
+	if err != nil {
+		if _, ok := err.(*models.NamespaceNotFoundError); ok {
+			return nil, err
+		}
+
+		return nil, fmt.Errorf("query events: %w", err)
+	}
+
+	return events, nil
 }
 
 func (c *ClickhouseConnector) CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error {
@@ -74,17 +95,25 @@ func (c *ClickhouseConnector) DeleteMeter(ctx context.Context, namespace string,
 	return nil
 }
 
-func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]*models.MeterValue, *models.WindowSize, error) {
+func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) (*streaming.QueryResult, error) {
 	if namespace == "" {
-		return nil, nil, fmt.Errorf("namespace is required")
+		return nil, fmt.Errorf("namespace is required")
+	}
+
+	meter, err := c.config.Meters.GetMeterByIDOrSlug(ctx, namespace, meterSlug)
+	if err == nil { // TODO: do proper error handling
+		if params.Aggregation == nil {
+			params.Aggregation = &meter.Aggregation
+		}
 	}
 
 	// ClickHouse connector requires aggregation type to be set
 	// If we don't have it we inspect the meter view in ClickHouse
+	// TODO: remove this once we have a proper meter store
 	if params.Aggregation == nil {
 		meterView, err := c.describeMeterView(ctx, namespace, meterSlug)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		params.Aggregation = &meterView.Aggregation
@@ -93,13 +122,16 @@ func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, 
 	values, err := c.queryMeterView(ctx, namespace, meterSlug, params)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
-			return nil, nil, err
+			return nil, err
 		}
 
-		return nil, nil, fmt.Errorf("get values: %w", err)
+		return nil, fmt.Errorf("get values: %w", err)
 	}
 
-	return values, params.WindowSize, nil
+	return &streaming.QueryResult{
+		WindowSize: params.WindowSize,
+		Values:     values,
+	}, nil
 }
 
 func (c *ClickhouseConnector) ListMeterSubjects(ctx context.Context, namespace string, meterSlug string) ([]string, error) {
@@ -138,7 +170,7 @@ func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace str
 func (c *ClickhouseConnector) createEventsTable(ctx context.Context, namespace string) error {
 	table := createEventsTable{
 		Database:        c.config.Database,
-		EventsTableName: getEventsTableName(namespace),
+		EventsTableName: GetEventsTableName(namespace),
 	}
 
 	err := c.config.ClickHouse.Exec(ctx, table.toSQL())
@@ -149,10 +181,68 @@ func (c *ClickhouseConnector) createEventsTable(ctx context.Context, namespace s
 	return nil
 }
 
+func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]event.Event, error) {
+	table := queryEventsTable{
+		Database:        c.config.Database,
+		EventsTableName: GetEventsTableName(namespace),
+		Limit:           params.Limit,
+	}
+
+	sql, _, err := table.toSQL()
+	if err != nil {
+		return nil, fmt.Errorf("query events table to sql: %w", err)
+	}
+	rows, err := c.config.ClickHouse.Query(ctx, sql)
+	if err != nil {
+		if strings.Contains(err.Error(), "code: 60") {
+			return nil, &models.NamespaceNotFoundError{Namespace: namespace}
+		}
+
+		return nil, fmt.Errorf("query events table query: %w", err)
+	}
+
+	events := []event.Event{}
+
+	for rows.Next() {
+		var id string
+		var eventType string
+		var subject string
+		var source string
+		var time time.Time
+		var dataStr string
+
+		if err = rows.Scan(&id, &eventType, &subject, &source, &time, &dataStr); err != nil {
+			return nil, err
+		}
+
+		// Parse data
+		var data interface{}
+		err := json.Unmarshal([]byte(dataStr), &data)
+		if err != nil {
+			return nil, fmt.Errorf("query events parse data: %w", err)
+		}
+
+		event := event.New()
+		event.SetID(id)
+		event.SetType(eventType)
+		event.SetSubject(subject)
+		event.SetSource(source)
+		event.SetTime(time)
+		err = event.SetData("application/json", data)
+		if err != nil {
+			return nil, fmt.Errorf("query events set data: %w", err)
+		}
+
+		events = append(events, event)
+	}
+
+	return events, nil
+}
+
 func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace string, meter *models.Meter) error {
 	view := createMeterView{
 		Database:        c.config.Database,
-		EventsTableName: getEventsTableName(namespace),
+		EventsTableName: GetEventsTableName(namespace),
 		Aggregation:     meter.Aggregation,
 		EventType:       meter.EventType,
 		MeterViewName:   getMeterViewNameBySlug(namespace, meter.Slug),
@@ -284,13 +374,8 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 			GroupBy: map[string]string{},
 		}
 
-		args := []interface{}{}
-		var argCount int
-
-		if params.WindowSize != nil {
-			args = append(args, &value.WindowStart, &value.WindowEnd)
-			argCount += 2
-		}
+		args := []interface{}{&value.WindowStart, &value.WindowEnd}
+		argCount := 2
 
 		if len(params.Subject) > 0 || params.GroupBySubject {
 			args = append(args, &value.Subject)
@@ -314,6 +399,11 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 			if s, ok := args[i+argCount].(*string); ok {
 				value.GroupBy[key] = *s
 			}
+		}
+
+		// an empty row is returned when there are no values for the meter
+		if value.WindowStart.IsZero() && value.WindowEnd.IsZero() && value.Value == 0 {
+			continue
 		}
 
 		values = append(values, value)
@@ -360,7 +450,7 @@ func (c *ClickhouseConnector) listMeterViewSubjects(ctx context.Context, namespa
 	return subjects, nil
 }
 
-func getEventsTableName(namespace string) string {
+func GetEventsTableName(namespace string) string {
 	return fmt.Sprintf("%s_%s_%s", prefix, namespace, eventsTableName)
 }
 

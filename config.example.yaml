@@ -1,11 +1,16 @@
 address: 127.0.0.1:8888
 
-log:
-  format: json
-  level: info
-
 telemetry:
-  address: 127.0.0.1:10000
+  log:
+    level: debug
+
+# dedupe:
+#   enabled: true
+#   driver: redis
+#   config:
+#     address: 127.0.0.1:6379
+#     database: 0
+#     expiration: 768h # 32d
 
 meters:
   - slug: m1

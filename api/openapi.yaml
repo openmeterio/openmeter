@@ -38,6 +38,35 @@ paths:
           $ref: "#/components/responses/BadRequestProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
+    get:
+      description: Retrieve latest raw events.
+      operationId: listEvents
+      parameters:
+        - $ref: "#/components/parameters/namespaceParam"
+        - name: limit
+          in: query
+          required: false
+          description: Number of events to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      tags:
+        - Events
+      responses:
+        "200":
+          description: Events response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Event"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+
   /api/v1/meters:
     get:
       description: List meters
@@ -122,8 +151,11 @@ paths:
           $ref: "#/components/responses/UnexpectedProblemResponse"
   /api/v1/meters/{meterIdOrSlug}/values:
     get:
-      description: Get meter values
+      description: |
+        Get meter values
+        Deprecated: use /api/v1/meters/{meter}/query instead.
       operationId: getMeterValues
+      deprecated: true
       tags:
         - Meters
       parameters:
@@ -281,6 +313,15 @@ paths:
                       $ref: "#/components/schemas/MeterQueryRow"
                 required:
                   - data
+            text/csv:
+              schema:
+                type: string
+              example: |-
+                window_start,window_end,subject,method,path,value
+                2023-01-01T00:00:00.001Z,2023-01-02T00:00:00.001Z,customer_1,get,/hello,12
+                2023-01-01T00:00:00.001Z,2023-01-02T00:00:00.001Z,customer_1,get,/world,20
+                2023-01-01T00:00:00.001Z,2023-01-02T00:00:00.001Z,customer_2,get,/hello,4
+
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         default:
@@ -328,7 +369,7 @@ components:
     Problem:
       type: object
       description: A Problem Details object (RFC 7807)
-      x-go-type: models.Problem
+      x-go-type: models.StatusProblem
       x-go-type-import:
         path: github.com/openmeterio/openmeter/pkg/models
       additionalProperties: true
@@ -553,11 +594,9 @@ components:
         windowStart:
           type: string
           format: date-time
-          nullable: true
         windowEnd:
           type: string
           format: date-time
-          nullable: true
         subject:
           type: string
           nullable: true

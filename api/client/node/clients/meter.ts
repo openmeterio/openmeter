@@ -16,6 +16,10 @@ export enum MeterAggregation {
 }
 
 export type MeterValuesParams = {
+  /**
+   * @description Subject(s) to filter by.
+   * @example ["customer-1", "customer-2"]
+   */
   subject?: string
   /**
    * @description Start date.
@@ -43,6 +47,10 @@ export type MeterValuesParams = {
 }
 
 export type MeterQueryParams = {
+  /**
+   * @description Subject(s) to filter by.
+   * @example ["customer-1", "customer-2"]
+   */
   subject?: string[]
   /**
    * @description Start date.

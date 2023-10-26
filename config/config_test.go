@@ -42,11 +42,28 @@ func TestComplete(t *testing.T) {
 		Telemetry: TelemetryConfig{
 			Address: "127.0.0.1:10000",
 			Trace: TraceTelemetryConfig{
-				Exporter: ExporterTraceTelemetryConfig{
-					Enabled: true,
-					Address: "127.0.0.1:4317",
-				},
 				Sampler: "always",
+				Exporters: ExportersTraceTelemetryConfig{
+					OTLP: OTLPExportersTraceTelemetryConfig{
+						Enabled: true,
+						OTLPExporterTelemetryConfig: OTLPExporterTelemetryConfig{
+							Address: "127.0.0.1:4317",
+						},
+					},
+				},
+			},
+			Metrics: MetricsTelemetryConfig{
+				Exporters: ExportersMetricsTelemetryConfig{
+					Prometheus: PrometheusExportersMetricsTelemetryConfig{
+						Enabled: true,
+					},
+					OTLP: OTLPExportersMetricsTelemetryConfig{
+						Enabled: true,
+						OTLPExporterTelemetryConfig: OTLPExporterTelemetryConfig{
+							Address: "127.0.0.1:4317",
+						},
+					},
+				},
 			},
 			Log: LogTelemetryConfiguration{
 				Format: "json",
@@ -68,8 +85,8 @@ func TestComplete(t *testing.T) {
 				EventsTopicTemplate: "om_%s_events",
 			},
 		},
-		Processor: ProcessorConfiguration{
-			ClickHouse: ClickHouseProcessorConfiguration{
+		Aggregation: AggregationConfiguration{
+			ClickHouse: ClickHouseAggregationConfiguration{
 				Address:  "127.0.0.1:9440",
 				TLS:      true,
 				Username: "default",
@@ -78,21 +95,24 @@ func TestComplete(t *testing.T) {
 			},
 		},
 		Sink: SinkConfiguration{
-			KafkaConnect: KafkaConnectSinkConfiguration{
+			GroupId:          "openmeter-sink-worker",
+			MinCommitCount:   500,
+			MaxCommitWait:    30 * time.Second,
+			NamespaceRefetch: 15 * time.Second,
+			Dedupe: DedupeConfiguration{
 				Enabled: true,
-				URL:     "http://127.0.0.1:8083",
-				DeadLetterQueue: DeadLetterQueueKafkaConnectSinkConfiguration{
-					TopicName:         "om_deadletterqueue",
-					ReplicationFactor: 1,
-					ContextHeaders:    true,
-				},
-				ClickHouse: ClickHouseKafkaConnectSinkConfiguration{
-					Hostname: "127.0.0.1",
-					Port:     8123,
-					SSL:      true,
-					Username: "default",
-					Password: "default",
-					Database: "openmeter",
+				DedupeDriverConfiguration: DedupeDriverRedisConfiguration{
+					Address:    "127.0.0.1:6379",
+					Database:   0,
+					Username:   "default",
+					Password:   "pass",
+					Expiration: 768 * time.Hour,
+					TLS: struct {
+						Enabled            bool
+						InsecureSkipVerify bool
+					}{
+						Enabled: true,
+					},
 				},
 			},
 		},
@@ -114,6 +134,7 @@ func TestComplete(t *testing.T) {
 		},
 		Meters: []*models.Meter{
 			{
+				Namespace:     "default",
 				Slug:          "m1",
 				Description:   "",
 				Aggregation:   "SUM",

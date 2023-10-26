@@ -13,15 +13,15 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
+type column struct {
+	Name string
+	Type string
+}
+
 // Create Events Table
 type createEventsTable struct {
 	Database        string
 	EventsTableName string
-}
-
-type column struct {
-	Name string
-	Type string
 }
 
 func (d createEventsTable) toSQL() string {
@@ -42,6 +42,25 @@ func (d createEventsTable) toSQL() string {
 
 	sql, _ := sb.Build()
 	return sql
+}
+
+type queryEventsTable struct {
+	Database        string
+	EventsTableName string
+	Limit           int
+}
+
+func (d queryEventsTable) toSQL() (string, []interface{}, error) {
+	tableName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.EventsTableName))
+
+	query := sqlbuilder.ClickHouse.NewSelectBuilder()
+	query.Select("id", "type", "subject", "source", "time", "data")
+	query.From(tableName)
+	query.Desc().OrderBy("time")
+	query.Limit(d.Limit)
+
+	sql, args := query.Build()
+	return sql, args, nil
 }
 
 type createMeterView struct {
@@ -123,7 +142,8 @@ func (d createMeterView) toSQL() (string, []interface{}, error) {
 	sbAs := sqlbuilder.ClickHouse.NewSelectBuilder()
 	sbAs.Select(asSelects...)
 	sbAs.From(eventsTableName)
-	sbAs.Where(fmt.Sprintf("type = '%s'", sqlbuilder.Escape(d.EventType)))
+	// We use absolute path for type to avoid shadowing in the case the materialized view have a `type` column due to group by
+	sbAs.Where(fmt.Sprintf("%s.type = '%s'", eventsTableName, sqlbuilder.Escape(d.EventType)))
 	sbAs.GroupBy(orderBy...)
 	sb.SQL(sbAs.String())
 	sql, args := sb.Build()
@@ -199,10 +219,10 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 		default:
 			return "", nil, fmt.Errorf("invalid window size type: %s", *d.WindowSize)
 		}
-	}
 
-	if groupByWindowSize {
 		groupByColumns = append(groupByColumns, "windowstart", "windowend")
+	} else {
+		selectColumns = append(selectColumns, "min(windowstart)", "max(windowend)")
 	}
 
 	// Grouping by subject is required when filtering for a subject
@@ -223,7 +243,7 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 	case models.MeterAggregationMax:
 		selectColumns = append(selectColumns, "maxMerge(value) AS value")
 	case models.MeterAggregationCount:
-		selectColumns = append(selectColumns, "countMerge(value) AS value")
+		selectColumns = append(selectColumns, "toFloat64(countMerge(value)) AS value")
 	default:
 		return "", nil, fmt.Errorf("invalid aggregation type: %s", d.Aggregation)
 	}

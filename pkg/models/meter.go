@@ -135,6 +135,8 @@ func WindowSizeFromDuration(duration time.Duration) (WindowSize, error) {
 }
 
 type Meter struct {
+	// We don't accept namespace via config, it's set by the `namespace.default`.`
+	Namespace     string            `json:"-" yaml:"-"`
 	ID            string            `json:"id,omitempty" yaml:"id,omitempty"`
 	Slug          string            `json:"slug" yaml:"slug"`
 	Description   string            `json:"description,omitempty" yaml:"description,omitempty"`
@@ -359,8 +361,8 @@ func AggregateMeterValues(values []*MeterValue, aggregation MeterAggregation, wi
 // MeterQueryRow returns a single row from the meter dataset.
 type MeterQueryRow struct {
 	Value       float64           `json:"value"`
-	WindowStart *time.Time        `json:"windowStart"`
-	WindowEnd   *time.Time        `json:"windowEnd"`
+	WindowStart time.Time         `json:"windowStart"`
+	WindowEnd   time.Time         `json:"windowEnd"`
 	Subject     *string           `json:"subject"`
 	GroupBy     map[string]string `json:"groupBy,omitempty"`
 }

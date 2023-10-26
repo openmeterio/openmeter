@@ -34,7 +34,26 @@ func NewDeduplicator(size int) (*Deduplicator, error) {
 }
 
 func (d *Deduplicator) IsUnique(ctx context.Context, namespace string, ev event.Event) (bool, error) {
-	isContained, _ := d.store.ContainsOrAdd(dedupe.GetEventKey(namespace, ev), nil)
+	item := dedupe.Item{
+		Namespace: namespace,
+		ID:        ev.ID(),
+		Source:    ev.Source(),
+	}
+	isContained, _ := d.store.ContainsOrAdd(item.Key(), nil)
 
 	return !isContained, nil
+}
+
+func (d *Deduplicator) CheckUnique(ctx context.Context, item dedupe.Item) (bool, error) {
+	isContained := d.store.Contains(item.Key())
+
+	return !isContained, nil
+}
+
+func (d *Deduplicator) Set(ctx context.Context, items ...dedupe.Item) error {
+	for _, item := range items {
+		_ = d.store.Add(item.Key(), nil)
+	}
+
+	return nil
 }

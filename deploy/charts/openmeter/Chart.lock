@@ -1,12 +1,9 @@
 dependencies:
 - name: strimzi-kafka-operator
   repository: https://strimzi.io/charts/
-  version: 0.35.1
-- name: cp-schema-registry
-  repository: file://../cp-helm-charts/charts/cp-schema-registry
-  version: 0.1.0
-- name: cp-ksql-server
-  repository: file://../cp-helm-charts/charts/cp-ksql-server
-  version: 0.1.0
-digest: sha256:4115c24014f772e654435d3915cabf28edc79bb787ab737f17c31fd3f9d18633
-generated: "2023-08-02T19:26:45.204429907-04:00"
+  version: 0.37.0
+- name: altinity-clickhouse-operator
+  repository: https://docs.altinity.com/clickhouse-operator/
+  version: 0.21.3
+digest: sha256:6fb4e3432f06bfdb50ac150b457ca1b031ae204af4f402c62f7f697759ccdaa4
+generated: "2023-09-08T20:52:02.691381+02:00"

@@ -32,6 +32,38 @@ func TestCreateEventsTable(t *testing.T) {
 	}
 }
 
+func TestQueryEventsTable(t *testing.T) {
+	tests := []struct {
+		query    queryEventsTable
+		wantSQL  string
+		wantArgs []interface{}
+	}{
+		{
+			query: queryEventsTable{
+				Database:        "openmeter",
+				EventsTableName: "meter_events",
+				Limit:           100,
+			},
+			wantSQL:  "SELECT id, type, subject, source, time, data FROM openmeter.meter_events ORDER BY time DESC LIMIT 100",
+			wantArgs: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run("", func(t *testing.T) {
+			gotSql, gotArgs, err := tt.query.toSQL()
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
+			assert.Equal(t, tt.wantArgs, gotArgs)
+			assert.Equal(t, tt.wantSQL, gotSql)
+		})
+	}
+}
+
 func TestCreateMeterView(t *testing.T) {
 	tests := []struct {
 		query    createMeterView
@@ -48,7 +80,7 @@ func TestCreateMeterView(t *testing.T) {
 				ValueProperty:   "$.duration_ms",
 				GroupBy:         map[string]string{"group1": "$.group1", "group2": "$.group2"},
 			},
-			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(sum, Float64), group1 String, group2 String) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject, group1, group2) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, sumState(cast(JSON_VALUE(data, '$.duration_ms'), 'Float64')) AS value, JSON_VALUE(data, '$.group1') as group1, JSON_VALUE(data, '$.group2') as group2 FROM openmeter.meter_events WHERE type = 'myevent' GROUP BY windowstart, windowend, subject, group1, group2",
+			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(sum, Float64), group1 String, group2 String) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject, group1, group2) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, sumState(cast(JSON_VALUE(data, '$.duration_ms'), 'Float64')) AS value, JSON_VALUE(data, '$.group1') as group1, JSON_VALUE(data, '$.group2') as group2 FROM openmeter.meter_events WHERE openmeter.meter_events.type = 'myevent' GROUP BY windowstart, windowend, subject, group1, group2",
 			wantArgs: nil,
 		},
 		{
@@ -61,7 +93,7 @@ func TestCreateMeterView(t *testing.T) {
 				ValueProperty:   "$.token_count",
 				GroupBy:         map[string]string{},
 			},
-			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(avg, Float64)) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, avgState(cast(JSON_VALUE(data, '$.token_count'), 'Float64')) AS value FROM openmeter.meter_events WHERE type = 'myevent' GROUP BY windowstart, windowend, subject",
+			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(avg, Float64)) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, avgState(cast(JSON_VALUE(data, '$.token_count'), 'Float64')) AS value FROM openmeter.meter_events WHERE openmeter.meter_events.type = 'myevent' GROUP BY windowstart, windowend, subject",
 			wantArgs: nil,
 		},
 		{
@@ -74,7 +106,7 @@ func TestCreateMeterView(t *testing.T) {
 				ValueProperty:   "",
 				GroupBy:         map[string]string{},
 			},
-			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(count, Float64)) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, countState(*) AS value FROM openmeter.meter_events WHERE type = 'myevent' GROUP BY windowstart, windowend, subject",
+			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(count, Float64)) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, countState(*) AS value FROM openmeter.meter_events WHERE openmeter.meter_events.type = 'myevent' GROUP BY windowstart, windowend, subject",
 			wantArgs: nil,
 		},
 		{
@@ -87,7 +119,7 @@ func TestCreateMeterView(t *testing.T) {
 				ValueProperty:   "",
 				GroupBy:         map[string]string{},
 			},
-			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(count, Float64)) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, countState(*) AS value FROM openmeter.meter_events WHERE type = 'myevent' GROUP BY windowstart, windowend, subject",
+			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(count, Float64)) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, countState(*) AS value FROM openmeter.meter_events WHERE openmeter.meter_events.type = 'myevent' GROUP BY windowstart, windowend, subject",
 			wantArgs: nil,
 		},
 	}
@@ -192,7 +224,16 @@ func TestQueryMeterView(t *testing.T) {
 				MeterViewName: "meter_meter1",
 				Aggregation:   models.MeterAggregationSum,
 			},
-			wantSQL:  "SELECT sumMerge(value) AS value FROM openmeter.meter_meter1",
+			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.meter_meter1",
+			wantArgs: nil,
+		},
+		{ // Aggregate with count aggregation
+			query: queryMeterView{
+				Database:      "openmeter",
+				MeterViewName: "meter_meter1",
+				Aggregation:   models.MeterAggregationCount,
+			},
+			wantSQL:  "SELECT min(windowstart), max(windowend), toFloat64(countMerge(value)) AS value FROM openmeter.meter_meter1",
 			wantArgs: nil,
 		},
 		{ // Aggregate data from start
@@ -202,7 +243,7 @@ func TestQueryMeterView(t *testing.T) {
 				Aggregation:   models.MeterAggregationSum,
 				From:          &from,
 			},
-			wantSQL:  "SELECT sumMerge(value) AS value FROM openmeter.meter_meter1 WHERE windowstart >= ?",
+			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.meter_meter1 WHERE windowstart >= ?",
 			wantArgs: []interface{}{int64(1672531200)},
 		},
 		{ // Aggregate data between interval
@@ -213,7 +254,7 @@ func TestQueryMeterView(t *testing.T) {
 				From:          &from,
 				To:            &to,
 			},
-			wantSQL:  "SELECT sumMerge(value) AS value FROM openmeter.meter_meter1 WHERE windowstart >= ? AND windowend <= ?",
+			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.meter_meter1 WHERE windowstart >= ? AND windowend <= ?",
 			wantArgs: []interface{}{int64(1672531200), int64(1672617600)},
 		},
 		{ // Aggregate data between interval, groupped by window size
@@ -235,7 +276,7 @@ func TestQueryMeterView(t *testing.T) {
 				Aggregation:   models.MeterAggregationSum,
 				Subject:       []string{subject},
 			},
-			wantSQL:  "SELECT subject, sumMerge(value) AS value FROM openmeter.meter_meter1 WHERE (subject = ?) GROUP BY subject",
+			wantSQL:  "SELECT min(windowstart), max(windowend), subject, sumMerge(value) AS value FROM openmeter.meter_meter1 WHERE (subject = ?) GROUP BY subject",
 			wantArgs: []interface{}{"subject1"},
 		},
 		{ // Aggregate data for a single subject and group by additional fields
@@ -246,7 +287,7 @@ func TestQueryMeterView(t *testing.T) {
 				Subject:       []string{subject},
 				GroupBy:       []string{"group1", "group2"},
 			},
-			wantSQL:  "SELECT subject, sumMerge(value) AS value, group1, group2 FROM openmeter.meter_meter1 WHERE (subject = ?) GROUP BY subject, group1, group2",
+			wantSQL:  "SELECT min(windowstart), max(windowend), subject, sumMerge(value) AS value, group1, group2 FROM openmeter.meter_meter1 WHERE (subject = ?) GROUP BY subject, group1, group2",
 			wantArgs: []interface{}{"subject1"},
 		},
 		{ // Aggregate data for a multiple subjects
@@ -256,7 +297,7 @@ func TestQueryMeterView(t *testing.T) {
 				Aggregation:   models.MeterAggregationSum,
 				Subject:       []string{subject, "subject2"},
 			},
-			wantSQL:  "SELECT subject, sumMerge(value) AS value FROM openmeter.meter_meter1 WHERE (subject = ? OR subject = ?) GROUP BY subject",
+			wantSQL:  "SELECT min(windowstart), max(windowend), subject, sumMerge(value) AS value FROM openmeter.meter_meter1 WHERE (subject = ? OR subject = ?) GROUP BY subject",
 			wantArgs: []interface{}{"subject1", "subject2"},
 		},
 	}

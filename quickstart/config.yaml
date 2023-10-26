@@ -2,16 +2,13 @@ ingest:
   kafka:
     broker: kafka:29092
 
-processor:
+aggregation:
   clickhouse:
     address: clickhouse:9000
 
 sink:
-  kafkaConnect:
-    enabled: true
-    url: http://kafka-connect:8083
-    clickhouse:
-      hostname: clickhouse
+  minCommitCount: 1
+  namespaceRefetch: 1s
 
 meters:
   - slug: m1

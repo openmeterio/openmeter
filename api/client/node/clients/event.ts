@@ -5,6 +5,14 @@ import { RequestOptions, BaseClient, OpenMeterConfig } from './client.js'
 // We export Event instead
 type CloudEvents = components['schemas']['Event']
 
+export type EventsQueryParams = {
+  /**
+   * @description Limit number of results. Max: 100
+   * @example 25
+   */
+  limit?: number
+}
+
 /**
  * Usage Event
  */
@@ -105,6 +113,24 @@ export class EventsClient extends BaseClient {
       headers: {
         'Content-Type': 'application/cloudevents+json',
       },
+      options,
+    })
+  }
+
+  /**
+   * List raw events
+   */
+  public async list(
+    params?: EventsQueryParams,
+    options?: RequestOptions
+  ): Promise<CloudEvents[]> {
+    const searchParams = params
+      ? BaseClient.toURLSearchParams(params)
+      : undefined
+    return this.request<CloudEvents[]>({
+      method: 'GET',
+      path: `/api/v1/events`,
+      searchParams,
       options,
     })
   }

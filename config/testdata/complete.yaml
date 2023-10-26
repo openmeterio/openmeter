@@ -6,10 +6,19 @@ telemetry:
   address: 127.0.0.1:10000
 
   trace:
-    exporter:
-      enabled: true
-      address: 127.0.0.1:4317
     sampler: always
+    exporters:
+      otlp:
+        enabled: true
+        address: 127.0.0.1:4317
+
+  metrics:
+    exporters:
+      prometheus:
+        enabled: true
+      otlp:
+        enabled: true
+        address: 127.0.0.1:4317
 
   log:
     format: json
@@ -27,7 +36,7 @@ ingest:
     saslPassword: pass
     partitions: 1
 
-processor:
+aggregation:
   clickhouse:
     address: 127.0.0.1:9440
     tls: true
@@ -36,16 +45,21 @@ processor:
     database: openmeter
 
 sink:
-  kafkaConnect:
+  groupId: openmeter-sink-worker
+  minCommitCount: 500
+  maxCommitWait: 30s
+  namespaceRefetch: 15s
+  dedupe:
     enabled: true
-    url: http://127.0.0.1:8083
-    clickhouse:
-      hostname: 127.0.0.1
-      port: 8123
-      ssl: true
+    driver: redis
+    config:
+      expiration: 768h # 32d
+      database: 0
+      address: 127.0.0.1:6379
       username: default
-      password: default
-      database: openmeter
+      password: pass
+      tls:
+        enabled: true
 
 dedupe:
   enabled: true

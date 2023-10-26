@@ -1,11 +1,13 @@
 package router
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
+	"mime"
 	"net/http"
 	"strings"
 	"time"
@@ -15,6 +17,7 @@ import (
 	"github.com/go-chi/render"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -43,7 +46,7 @@ type Config struct {
 	NamespaceManager   *namespace.Manager
 	StreamingConnector streaming.Connector
 	IngestHandler      IngestHandler
-	Meters             []*models.Meter
+	Meters             meter.Repository
 }
 
 type Router struct {
@@ -93,11 +96,71 @@ func (a *Router) IngestEvents(w http.ResponseWriter, r *http.Request, params api
 	a.config.IngestHandler.ServeHTTP(w, r, params)
 }
 
-func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request, params api.ListMetersParams) {
-	list := make([]render.Renderer, 0, len(a.config.Meters))
-	for _, m := range a.config.Meters {
-		list = append(list, m)
+func (a *Router) ListEvents(w http.ResponseWriter, r *http.Request, params api.ListEventsParams) {
+	logger := slog.With("operation", "queryEvents")
+
+	namespace := a.config.NamespaceManager.GetDefaultNamespace()
+	if params.NamespaceInput != nil {
+		namespace = *params.NamespaceInput
 	}
+
+	limit := 100
+	if params.Limit != nil {
+		limit = *params.Limit
+	}
+	if limit < 1 {
+		err := errors.New("limit must be greater than or equal to 1")
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		return
+	}
+	if limit > 100 {
+		err := errors.New("limit must be less than or equal to 100")
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		return
+	}
+
+	queryParams := streaming.ListEventsParams{
+		Limit: limit,
+	}
+
+	events, err := a.config.StreamingConnector.ListEvents(r.Context(), namespace, queryParams)
+	if err != nil {
+		if _, ok := err.(*models.NamespaceNotFoundError); ok {
+			logger.Warn("namespace not found", "error", err)
+			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
+			return
+		}
+
+		logger.Error("query events", "error", err)
+		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+		return
+
+	}
+
+	render.JSON(w, r, events)
+}
+
+func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request, params api.ListMetersParams) {
+	logger := slog.With("operation", "listMeters")
+
+	namespace := a.config.NamespaceManager.GetDefaultNamespace()
+	if params.NamespaceInput != nil {
+		namespace = *params.NamespaceInput
+	}
+
+	meters, err := a.config.Meters.ListMeters(r.Context(), namespace)
+	if err != nil {
+		logger.Error("listing meters", "error", err)
+
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+
+		return
+	}
+
+	// TODO: remove once meter model pointer is removed
+	list := slicesx.Map[models.Meter, render.Renderer](meters, func(meter models.Meter) render.Renderer {
+		return &meter
+	})
 
 	_ = render.RenderList(w, r, list)
 }
@@ -142,7 +205,7 @@ func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSl
 	err := a.config.StreamingConnector.DeleteMeter(r.Context(), namespace, meterIdOrSlug)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
-			logger.Warn("meter not found")
+			logger.Warn("meter not found", "error", err)
 			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
 			return
 		}
@@ -156,17 +219,33 @@ func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSl
 }
 
 func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.GetMeterParams) {
-	logger := slog.With("operation", "getMeter", "id", meterIdOrSlug, "params", params)
-
-	for _, meter := range a.config.Meters {
-		if meter.ID == meterIdOrSlug || meter.Slug == meterIdOrSlug {
-			_ = render.Render(w, r, meter)
-			return
-		}
+	namespace := a.config.NamespaceManager.GetDefaultNamespace()
+	if params.NamespaceInput != nil {
+		namespace = *params.NamespaceInput
 	}
 
-	logger.Warn("meter not found")
-	models.NewStatusProblem(r.Context(), fmt.Errorf("meter is not found with ID or slug %s", meterIdOrSlug), http.StatusNotFound).Respond(w, r)
+	logger := slog.With("operation", "getMeter", "id", meterIdOrSlug, "namespace", namespace)
+
+	meter, err := a.config.Meters.GetMeterByIDOrSlug(r.Context(), namespace, meterIdOrSlug)
+
+	// TODO: remove once meter model pointer is removed
+	if e := (&models.MeterNotFoundError{}); errors.As(err, &e) {
+		logger.Debug("meter not found")
+
+		// TODO: add meter id or slug as detail
+		models.NewStatusProblem(r.Context(), errors.New("meter not found"), http.StatusNotFound).Respond(w, r)
+
+		return
+	} else if err != nil {
+		logger.Error("getting meter", slog.Any("error", err))
+
+		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+
+		return
+	}
+
+	// TODO: remove once meter model pointer is removed
+	_ = render.Render(w, r, &meter)
 }
 
 type GetMeterValuesResponse struct {
@@ -205,15 +284,14 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 	}
 
 	// Set defaults if meter is found in static config and params are not set
-	for _, meter := range a.config.Meters {
-		if meter.ID == meterIdOrSlug || meter.Slug == meterIdOrSlug {
-			if params.Aggregation == nil {
-				params.Aggregation = &meter.Aggregation
-			}
+	meter, err := a.config.Meters.GetMeterByIDOrSlug(r.Context(), namespace, meterIdOrSlug)
+	if err != nil { // TODO: proper error handling
+		if params.Aggregation == nil {
+			params.Aggregation = &meter.Aggregation
+		}
 
-			if params.WindowSize == nil {
-				params.WindowSize = &meter.WindowSize
-			}
+		if params.WindowSize == nil {
+			params.WindowSize = &meter.WindowSize
 		}
 	}
 
@@ -249,7 +327,7 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 		queryParams.GroupBy = strings.Split(*params.GroupBy, ",")
 	}
 
-	values, windowSize, err := a.config.StreamingConnector.QueryMeter(r.Context(), namespace, meterIdOrSlug, queryParams)
+	result, err := a.config.StreamingConnector.QueryMeter(r.Context(), namespace, meterIdOrSlug, queryParams)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
 			logger.Warn("meter not found", "error", err)
@@ -263,8 +341,8 @@ func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdO
 	}
 
 	resp := &GetMeterValuesResponse{
-		WindowSize: windowSize,
-		Data:       values,
+		WindowSize: result.WindowSize,
+		Data:       result.Values,
 	}
 
 	_ = render.Render(w, r, resp)
@@ -280,11 +358,10 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 	}
 
 	// Set defaults if meter is found in static config and params are not set
-	for _, meter := range a.config.Meters {
-		if meter.ID == meterIDOrSlug || meter.Slug == meterIDOrSlug {
-			if params.Aggregation == nil {
-				params.Aggregation = &meter.Aggregation
-			}
+	meter, err := a.config.Meters.GetMeterByIDOrSlug(r.Context(), namespace, meterIDOrSlug)
+	if err != nil { // TODO: proper error handling
+		if params.Aggregation == nil {
+			params.Aggregation = &meter.Aggregation
 		}
 	}
 
@@ -310,7 +387,7 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 		queryParams.GroupBy = *params.GroupBy
 	}
 
-	values, windowSize, err := a.config.StreamingConnector.QueryMeter(r.Context(), namespace, meterIDOrSlug, queryParams)
+	result, err := a.config.StreamingConnector.QueryMeter(r.Context(), namespace, meterIDOrSlug, queryParams)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
 			logger.Warn("meter not found", "error", err)
@@ -323,35 +400,44 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 		return
 	}
 
-	_ = values
-
 	resp := &QueryMeterResponse{
-		WindowSize: windowSize,
+		WindowSize: result.WindowSize,
 		From:       params.From,
 		To:         params.To,
-		Data: slicesx.Map(values, func(val *models.MeterValue) models.MeterQueryRow {
+		Data: slicesx.Map(result.Values, func(val *models.MeterValue) models.MeterQueryRow {
 			row := models.MeterQueryRow{
-				Value:   val.Value,
-				GroupBy: val.GroupBy,
+				Value:       val.Value,
+				WindowStart: val.WindowStart,
+				WindowEnd:   val.WindowEnd,
+				GroupBy:     val.GroupBy,
 			}
 
 			if val.Subject != "" {
 				row.Subject = &val.Subject
 			}
 
-			if !val.WindowStart.IsZero() {
-				row.WindowStart = &val.WindowStart
-			}
-
-			if !val.WindowEnd.IsZero() {
-				row.WindowEnd = &val.WindowEnd
-			}
-
 			return row
 		}),
 	}
 
-	_ = render.Render(w, r, resp)
+	// Parse media type
+	accept := r.Header.Get("Accept")
+	if accept == "" {
+		accept = "application/json"
+	}
+	mediatype, _, err := mime.ParseMediaType(accept)
+	// Browser can send back media type Go marks as invalid
+	// If that happens, default to JSON
+	if err != nil {
+		logger.Debug("invalid media type, default to json", "error", err)
+		mediatype = "application/json"
+	}
+
+	if mediatype == "text/csv" {
+		resp.RenderCSV(w, r, queryParams.GroupBy, meterIDOrSlug)
+	} else {
+		_ = render.Render(w, r, resp)
+	}
 }
 
 func validateQueryMeterParams(params api.QueryMeterParams) error {
@@ -383,6 +469,48 @@ type QueryMeterResponse struct {
 // Render implements the chi renderer interface.
 func (resp QueryMeterResponse) Render(_ http.ResponseWriter, _ *http.Request) error {
 	return nil
+}
+
+// RenderCSV renders the response as CSV.
+func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request, groupByKeys []string, meterIDOrSlug string) {
+	records := [][]string{}
+
+	// CSV headers
+	headers := []string{"window_start", "window_end", "subject"}
+	if len(groupByKeys) > 0 {
+		headers = append(headers, groupByKeys...)
+	}
+	headers = append(headers, "value")
+	records = append(records, headers)
+
+	// CSV data
+	for _, row := range resp.Data {
+		data := []string{row.WindowStart.Format(time.RFC3339), row.WindowEnd.Format(time.RFC3339)}
+		if row.Subject != nil {
+			data = append(data, *row.Subject)
+		} else {
+			data = append(data, "")
+		}
+		for _, k := range groupByKeys {
+			data = append(data, row.GroupBy[k])
+		}
+		data = append(data, fmt.Sprintf("%f", row.Value))
+		records = append(records, data)
+	}
+
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", meterIDOrSlug))
+
+	// Write response
+	writer := csv.NewWriter(w)
+	err := writer.WriteAll(records)
+	if err != nil {
+		slog.Error("writing record to csv", "error", err)
+	}
+
+	if err := writer.Error(); err != nil {
+		slog.Error("writing csv", "error", err)
+	}
 }
 
 // ListMeterSubjects lists the subjects of a meter.

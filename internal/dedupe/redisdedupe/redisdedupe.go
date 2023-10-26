@@ -19,12 +19,19 @@ type Deduplicator struct {
 	Expiration time.Duration
 }
 
+// IsUnique checks if an event is unique AND adds it to the deduplication index.
 func (d Deduplicator) IsUnique(ctx context.Context, namespace string, ev event.Event) (bool, error) {
 	if d.Redis == nil {
 		return false, errors.New("redis client not initialized")
 	}
 
-	status, err := d.Redis.SetArgs(ctx, dedupe.GetEventKey(namespace, ev), "", redis.SetArgs{
+	item := dedupe.Item{
+		Namespace: namespace,
+		ID:        ev.ID(),
+		Source:    ev.Source(),
+	}
+
+	status, err := d.Redis.SetArgs(ctx, item.Key(), "", redis.SetArgs{
 		TTL:  d.Expiration,
 		Mode: "nx",
 	}).Result()
@@ -46,3 +53,36 @@ func (d Deduplicator) IsUnique(ctx context.Context, namespace string, ev event.E
 
 	return false, fmt.Errorf("unknown status")
 }
+
+// CheckUnique checks if the event is unique based on the key
+func (d Deduplicator) CheckUnique(ctx context.Context, item dedupe.Item) (bool, error) {
+	isSet, err := d.Redis.Exists(ctx, item.Key()).Result()
+	if err != nil {
+		return false, err
+	}
+	return isSet == 0, nil
+}
+
+// Set sets events into redis
+func (d Deduplicator) Set(ctx context.Context, items ...dedupe.Item) error {
+	keys := make([]string, len(items))
+	for _, item := range items {
+		keys = append(keys, item.Key())
+	}
+
+	// We use a lua script to set multiple keys at once, this is more efficient than calling redis one by one
+	err := setMultiple.Run(ctx, d.Redis, keys, d.Expiration.Seconds()).Err()
+	if err != nil && err != redis.Nil {
+		return fmt.Errorf("failed to set multiple keys in redis: %w", err)
+	}
+
+	return nil
+}
+
+var setMultiple = redis.NewScript(`
+local expiration = tonumber(ARGV[1])
+
+for _, key in ipairs(KEYS) do
+  redis.call("SET", key, "", "EX", expiration)
+end
+`)

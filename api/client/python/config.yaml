@@ -1,0 +1,39 @@
+title: OpenMeterClient
+namespace: openmeter
+python: true
+black: true
+input-file: ./openapi.yaml
+output-folder: ./src
+clear-output-folder: true
+verbose: true
+trace: true
+version-tolerant: true
+override-client-name: Client
+
+use: ["@autorest/modelerfour@4.26.2", "@autorest/python@6.9.4"]
+directive:
+  - from: openapi-document
+    where: "$.components.parameters[*]"
+    transform: >
+      $["x-ms-parameter-location"] = "method";
+
+  - from: openapi-document
+    where: "$.components.responses.BadRequestProblemResponse"
+    transform: >
+      $["x-ms-error-response"] = true;
+  - from: openapi-document
+    where: "$.components.responses.MethodNotAllowedProblemResponse"
+    transform: >
+      $["x-ms-error-response"] = true;
+  - from: openapi-document
+    where: "$.components.responses.NotFoundProblemResponse"
+    transform: >
+      $["x-ms-error-response"] = true;
+  - from: openapi-document
+    where: "$.components.responses.NotImplementedProblemResponse"
+    transform: >
+      $["x-ms-error-response"] = true;
+  - from: openapi-document
+    where: "$.components.responses.UnexpectedProblemResponse"
+    transform: >
+      $["x-ms-error-response"] = true;

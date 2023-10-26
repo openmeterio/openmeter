@@ -1,9 +1,10 @@
 # OpenAI Example
 
-In this example we will track our customer's OpenAI token consumption.
-This is useful if you are building top of the Open AI API like Chat GPT and want to meter your customers usage for reporting or billing purposes.
+In this example, we will track our customers' OpenAI token consumption.
+This is useful if you are building on top of the OpenAI API, like ChatGPT,
+and want to meter your customers' usage for reporting or billing purposes.
 
-Language: Node.js, TypeScript
+Language: `Node.js`, `TypeScript`
 
 ## Example
 
@@ -12,7 +13,7 @@ For idempotency we use the OpenAI API response `id` and for time we use response
 
 Check out the [quickstart guide](/quickstart) to see how to run OpenMeter.
 
-Open AI response:
+The Open AI response:
 
 ```json
 {
@@ -28,34 +29,46 @@ Open AI response:
 }
 ```
 
-Report usage to OpenMeter:
+You can report usage to OpenMeter as:
 
 ```javascript
 await openmeter.ingestEvents({
-	specversion: '1.0',
-	// We use Open AI response ID as idempotent key
-	id: data.id,
-	source: 'my-app',
-	type: 'openai',
-	subject: 'my-awesome-user-id',
-	// We use Open AI response date as event date
-	time: new Date(data.created * 1000).toISOString(),
-	data: {
-		total_tokens: data.usage.total_tokens,
-		prompt_tokens: data.usage.prompt_tokens,
-		completion_tokens: data.usage.completion_tokens,
-		model: data.model,
-	},
+  specversion: '1.0',
+  // We use Open AI response ID as idempotent key
+  id: completion.id,
+  source: 'my-app',
+  type: 'openai',
+  subject: 'my-awesome-user-id',
+  // We use Open AI response date as event date
+  time: new Date(completion.created * 1000).toISOString(),
+  data: {
+    total_tokens: completion.usage.total_tokens,
+    prompt_tokens: completion.usage.prompt_tokens,
+    completion_tokens: completion.usage.completion_tokens,
+    model: completion.model,
+  },
 })
 ```
 
-Note how we also collect the Open AI `model` version.
+Note how we report the Open AI `model` version to OpenMeter.
 This is useful as Open AI charges differently for varios models so you may want to group by them in OpenMeter.
 
-Check out the full source code in the `app.ts`.
-You can also run it as:
+Check out the full source code in the [app.ts](./app.ts).
+You can run this example as:
 
 ```sh
 npm install
-OPENAI_ORG=org-.. OPENAI_API_KEY=sk-... npm start
+OPENAI_API_KEY=sk-... npm start
 ```
+
+## Stream Example
+
+Modern applications thrive on being responsive and fluid. With Large Language Models (LLMs) like ChatGPT,
+generating extensive outputs can take a while. Stream APIs allow for processing responses as soon as they become available.
+OpenAI's data-only stream API makes this possible, but it doesn’t return token usage metadata,
+which is by default included in OpenAI’s blocking API call response.
+
+To fill the gap and enable accurate usage metering with stream APIs,
+we implemented an example in `app-stream.ts` that tokenizes messages as they become available.
+
+Check out the full source code in the [app-stream.ts](./app-stream.ts).

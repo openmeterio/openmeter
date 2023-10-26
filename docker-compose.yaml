@@ -49,34 +49,6 @@ services:
       timeout: 3s
       retries: 100
 
-  kafka-connect:
-    build:
-      context: etc/kafka-connect/
-    depends_on:
-      kafka:
-        condition: service_healthy
-      clickhouse:
-        condition: service_healthy
-    ports:
-      - 127.0.0.1:8083:8083
-    environment:
-      CONNECT_BOOTSTRAP_SERVERS: kafka:9092
-      CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
-      CONNECT_REST_PORT: 8083
-      CONNECT_GROUP_ID: kafka-connect
-      CONNECT_CONFIG_STORAGE_TOPIC: _kafka-connect-configs
-      CONNECT_OFFSET_STORAGE_TOPIC: _kafka-connect-offsets
-      CONNECT_STATUS_STORAGE_TOPIC: _kafka-connect-status
-      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "1"
-      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "1"
-      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "1"
-      CONNECT_LOG4J_ROOT_LOGLEVEL: "INFO"
-      CONNECT_LOG4J_LOGGERS: "org.apache.kafka.connect.runtime.rest=WARN,org.reflections=ERROR"
-      CONNECT_LOG4J_APPENDER_STDOUT_LAYOUT_CONVERSIONPATTERN: "[%d] %p %X{connector.context}%m (%c:%L)%n"
-      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
-      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: false
-
   # Deduplication
   # docker compose --profile dedupe-redis up
   redis:

@@ -10,22 +10,12 @@ keywords:
 sources:
   - https://github.com/openmeterio/openmeter
 type: application
-# Versions are expected to follow Semantic Versioning (https://semver.org/)
-version: 0.1.0
-# TODO (tothandras): update on release
-appVersion: "latest"
+version: 1.0.0-beta
+appVersion: "v1.0.0-beta.8"
 dependencies:
   - name: strimzi-kafka-operator
-    version: "0.35.1"
+    version: "0.37.0"
     repository: "https://strimzi.io/charts/"
-    condition: kafka.enabled
-  - name: cp-schema-registry
-    alias: schemaregistry
-    version: "*"
-    repository: "file://../cp-helm-charts/charts/cp-schema-registry"
-    condition: schemaregistry.enabled
-  - name: cp-ksql-server
-    alias: ksql
-    version: "*"
-    repository: "file://../cp-helm-charts/charts/cp-ksql-server"
-    condition: ksql.enabled
+  - name: altinity-clickhouse-operator
+    version: "0.21.3"
+    repository: "https://docs.altinity.com/clickhouse-operator/"
