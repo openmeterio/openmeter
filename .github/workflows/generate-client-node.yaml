@@ -41,7 +41,7 @@ jobs:
         working-directory: ./api/client/node
       - name: Bump Version
         run: |
-          npm version patch -m "chore(api): bump Node.js client version to %s"
+          npm version prerelease --preid=beta -m "chore(api): bump Node.js client version to %s"
         working-directory: ./api/client/node
       - name: Commit and push changes
         run: |
