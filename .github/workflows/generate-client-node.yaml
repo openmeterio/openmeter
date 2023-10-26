@@ -53,24 +53,15 @@ jobs:
         run: |
           npm version prerelease --preid=beta -m "chore(api): bump Node.js client version to %s"
         working-directory: ./api/client/node
-      - name: Commit and push changes
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "${{ vars.BOT_APP_ID }}+github-actions[bot]@users.noreply.github.com"
-          git add .
-          git commit -m "chore(api): generate node client"
-          git push origin ${{ env.NEW_BRANCH }}
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-      - name: Open PR
-        run: |
-          gh pr create \
-            --title "[bot] Re-generate Node.js client" \
-            --body "This PR was automatically generated." \
-            --base main \
-            --head ${{ env.NEW_BRANCH }} \
-            --repo ${{ github.repository }} \
-            --label "area/api" \
-            --label "release-note/misc"
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+      - name: Open Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          branch: ${{ env.NEW_BRANCH }}
+          delete-branch: true
+          commit-message: "chore(api): generate node client"
+          title: "[bot] Re-generate Node.js client"
+          body: "This PR was automatically generated."
+          labels: |
+            area/api
+            release-note/misc
+          token: ${{ steps.app-token.outputs.token }}
