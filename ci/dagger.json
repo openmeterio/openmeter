@@ -1,0 +1,10 @@
+{
+  "name": "ci",
+  "root": "..",
+  "exclude": [
+    ".devenv",
+    ".direnv",
+    "api/client/node/node_modules"
+  ],
+  "sdk": "go"
+}
