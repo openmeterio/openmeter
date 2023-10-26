@@ -254,7 +254,7 @@ export type external = Record<string, never>
 export interface operations {
   /** @description Retrieve latest raw events. */
   listEvents: {
-    parameters?: {
+    parameters: {
       query?: {
         /** @description Number of events to return. */
         limit?: number
@@ -276,7 +276,7 @@ export interface operations {
   }
   /** @description Ingest events */
   ingestEvents: {
-    parameters?: {
+    parameters: {
       header?: {
         'OM-Namespace'?: components['parameters']['namespaceParam']
       }
@@ -298,7 +298,7 @@ export interface operations {
   }
   /** @description List meters */
   listMeters: {
-    parameters?: {
+    parameters: {
       header?: {
         'OM-Namespace'?: components['parameters']['namespaceParam']
       }
@@ -315,7 +315,7 @@ export interface operations {
   }
   /** @description Create meter */
   createMeter: {
-    parameters?: {
+    parameters: {
       header?: {
         'OM-Namespace'?: components['parameters']['namespaceParam']
       }
