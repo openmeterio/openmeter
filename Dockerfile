@@ -45,7 +45,7 @@ COPY --from=builder /usr/local/src/openmeter/go.* /usr/local/src/openmeter/
 
 CMD openmeter
 
-FROM redhat/ubi8-micro:8.8-7@sha256:6fa456671239c7ac791dac2537425d1ba5612df36355deb0269824b6863b88ef AS ubi8
+FROM redhat/ubi8-micro:8.8-7.1696517612@sha256:2c15d47056a573b30e608c4df43d20f79b064a8c10cb8b0c020912edf00c2399 AS ubi8
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
