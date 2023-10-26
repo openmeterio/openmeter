@@ -25,6 +25,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ vars.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
       - name: Checkout new Branch
         run: git checkout -b ${{ env.NEW_BRANCH }}
       - name: Install Node.js
@@ -46,12 +51,12 @@ jobs:
       - name: Commit and push changes
         run: |
           git config --global user.email "github-actions[bot]"
-          git config --global user.name "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "${{ vars.BOT_APP_ID }}+github-actions[bot]@users.noreply.github.com"
           git add .
           git commit -m "chore(api): generate node client"
           git push origin ${{ env.NEW_BRANCH }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
       - name: Open PR
         run: |
           gh pr create \
@@ -59,6 +64,8 @@ jobs:
             --body "This PR was automatically generated." \
             --base main \
             --head ${{ env.NEW_BRANCH }} \
-            --repo ${{ github.repository }}
+            --repo ${{ github.repository }} \
+            --label "area/api" \
+            --label "release-note/misc"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
