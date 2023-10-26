@@ -3,6 +3,8 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     devenv.url = "github:cachix/devenv";
+    dagger.url = "github:sagikazarmark/dagger-flake";
+    dagger.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs@{ flake-parts, ... }:
@@ -42,7 +44,6 @@
 
             packages = with pkgs; [
               gnumake
-              dagger
               mage
 
               # Kafka build dependencies
@@ -70,7 +71,12 @@
               poetry
             ] ++ [
               self'.packages.licensei
+              inputs'.dagger.packages.dagger
             ];
+
+            env = {
+              DAGGER_MODULE = "ci";
+            };
 
             # https://github.com/cachix/devenv/issues/528#issuecomment-1556108767
             containers = pkgs.lib.mkForce { };

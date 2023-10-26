@@ -43,12 +43,12 @@ sink-worker: ## Run sink-worker
 .PHONY: test
 test: ## Run tests
 	$(call print-target)
-	dagger run mage -d ci -w . test
+	dagger call test
 
 .PHONY: lint
 lint: ## Run linters
 	$(call print-target)
-	dagger run mage -d ci -w . lint
+	dagger call lint
 
 .PHONY: fmt
 fmt: ## Format code
