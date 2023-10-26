@@ -52,7 +52,7 @@ meters:
 ```
 
 The meter config above tells OpenMeter to expect CloudEvents with `type=api-calls` where the usage value is stored in `data.duration` and we need to sum them by `data.path`.
-OpenMeter will track the usage value for every time window when at least one event was reported and tracks it for every `subject` and `groupBy` permutation.
+OpenMeter will track the usage value for every time window when at least one event was reported and track it for every `subject` and `groupBy` permutation.
 
 Note that `$.path` is a [JsonPath](https://github.com/json-path/JsonPath) expression to access the `data.path` property, providing powerful capabilities to extract values from nested data properties.
 

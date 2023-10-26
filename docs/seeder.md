@@ -22,7 +22,7 @@ In some cases, you might want to fine tune the total number of events and at wha
 make SEEDER_COUNT=100 SEEDER_INTERVAL=1s seed
 ```
 
-This tells Benthos to ingest a 100 events at 1 event/s rate.
+This tells Benthos to ingest 100 events at 1 event/s rate.
 (By default Benthos will ingest 1 event / 50ms until the process is stopped)
 
 Finally, you can configure the maximum number of subjects you would like to see:

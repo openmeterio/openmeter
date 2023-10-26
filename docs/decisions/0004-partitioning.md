@@ -10,7 +10,7 @@ We need to address the following challenges related to partitioning:
 
 - Defining partitioning key for producers, tables, and streams
 - Ensuring co-partitioning for certain ksqlDB operations like joins.
-- Making usage data retreivable by subject and group by properties
+- Making usage data retrievable by subject and group by properties
 - Determining the default number of partitions
 
 ## Decision Outcome
