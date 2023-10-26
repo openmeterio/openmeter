@@ -57,6 +57,12 @@ jobs:
 
       - name: Test
         run: nix develop --impure .#ci -c make test
+        env:
+          DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+
+      - name: Stop Engine
+        run: docker stop -t 300 $(docker ps --filter name="dagger-engine-*" -q)
+        if: always()
 
   lint:
     name: Lint
@@ -82,12 +88,18 @@ jobs:
 
       - name: Lint
         run: nix develop --impure .#ci -c make lint
+        env:
+          DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
 
       - name: Pre-commit hooks
         run: nix develop --impure .#ci -c pre-commit run -a
 
       - name: Check commit messages
         run: nix develop --impure .#ci -c pre-commit run --hook-stage manual
+
+      - name: Stop Engine
+        run: docker stop -t 300 $(docker ps --filter name="dagger-engine-*" -q)
+        if: always()
 
   dev:
     name: Developer environment
