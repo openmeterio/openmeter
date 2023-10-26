@@ -51,7 +51,8 @@ jobs:
       - name: Open Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
-          branch: openapi-${GITHUB_SHA::7}/node-client
+          branch: openapi/node-client
+          branch-suffix: short-commit-hash
           delete-branch: true
           commit-message: "chore(api): generate node client"
           title: "[bot] Re-generate Node.js client"
