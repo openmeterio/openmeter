@@ -30,8 +30,8 @@ server.get('/', {
       Querystring: { subject?: string; from?: string; to?: string, windowSize?: WindowSize }
     }>
   ) => {
-    const values = await openmeter.meters.values('m1', {
-      subject: req.query.subject,
+    const values = await openmeter.meters.query('m1', {
+      subject: req.query.subject ? [req.query.subject] : undefined,
       from: req.query.from ? new Date(req.query.from) : undefined,
       to: req.query.to ? new Date(req.query.to) : undefined,
       windowSize: req.query.windowSize

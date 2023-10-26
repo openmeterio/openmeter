@@ -79,11 +79,10 @@ async function reportUsage(
 
     // Query usage from OpenMeter for billing period
     // Change window size if you want to report hourly
-    const resp = await openmeter.meters.values(meterSlug, {
-      subject,
+    const resp = await openmeter.meters.query(meterSlug, {
+      subject: [subject],
       from,
       to,
-      windowSize: WindowSize.DAY
     })
 
     // We asked for the whole day with window daily size so we will have only one usage record which is the total for that day

@@ -94,13 +94,6 @@ async function query() {
   //       groupBy: { 'model': 'gpt-4' }
   //     }
   // ]
-
-  // If you need the total across all models, you can use the following:
-  const total = values.reduce(
-    (total: number, { value }) => total + (value || 0),
-    0
-  )
-  console.log(`Total token usage across all models: ${total}`)
 }
 
 main()
