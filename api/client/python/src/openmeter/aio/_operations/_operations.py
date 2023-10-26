@@ -27,7 +27,6 @@ from ..._operations._operations import (
     build_create_namespace_request,
     build_delete_meter_request,
     build_get_meter_request,
-    build_get_meter_values_request,
     build_ingest_events_request,
     build_list_events_request,
     build_list_meter_subjects_request,
@@ -729,126 +728,6 @@ class ClientOperationsMixin(ClientMixinABC):
 
         if cls:
             return cls(pipeline_response, None, {})  # type: ignore
-
-    @distributed_trace_async
-    async def get_meter_values(
-        self,
-        meter_id_or_slug: str,
-        *,
-        om_namespace: Optional[str] = None,
-        subject: Optional[str] = None,
-        from_parameter: Optional[datetime.datetime] = None,
-        to: Optional[datetime.datetime] = None,
-        window_size: Optional[str] = None,
-        aggregation: Optional[str] = None,
-        group_by: Optional[str] = None,
-        **kwargs: Any
-    ) -> JSON:
-        """Get meter values
-        Deprecated: use /api/v1/meters/{meter}/query instead.
-
-        :param meter_id_or_slug: A unique identifier for the meter. Required.
-        :type meter_id_or_slug: str
-        :keyword om_namespace: Optional namespace. Default value is None.
-        :paramtype om_namespace: str
-        :keyword subject: Default value is None.
-        :paramtype subject: str
-        :keyword from_parameter: Start date-time in RFC 3339 format in UTC timezone.
-         Must be aligned with the window size.
-         Inclusive. Default value is None.
-        :paramtype from_parameter: ~datetime.datetime
-        :keyword to: End date-time in RFC 3339 format in UTC timezone.
-         Must be aligned with the window size.
-         Inclusive. Default value is None.
-        :paramtype to: ~datetime.datetime
-        :keyword window_size: If not specified, a single usage aggregate will be returned for the
-         entirety of the specified period for each subject and group. Known values are: "MINUTE",
-         "HOUR", and "DAY". Default value is None.
-        :paramtype window_size: str
-        :keyword aggregation: If not specified, OpenMeter will use the default aggregation type.
-         As OpenMeter stores aggregates defined by meter config, passing a different aggregate can lead
-         to inaccurate results.
-         For example getting the MIN of SUMs. Known values are: "SUM", "COUNT", "AVG", "MIN", and
-         "MAX". Default value is None.
-        :paramtype aggregation: str
-        :keyword group_by: If not specified a single aggregate will be returned for each subject and
-         time window. Default value is None.
-        :paramtype group_by: str
-        :return: JSON object
-        :rtype: JSON
-        :raises ~azure.core.exceptions.HttpResponseError:
-
-        Example:
-            .. code-block:: python
-
-                # response body for status code(s): 200
-                response == {
-                    "data": [
-                        {
-                            "value": 0.0,  # Required.
-                            "windowEnd": "2020-02-20 00:00:00",  # Required.
-                            "windowStart": "2020-02-20 00:00:00",  # Required.
-                            "groupBy": {
-                                "str": "str"  # Optional. Dictionary of
-                                  :code:`<string>`.
-                            },
-                            "subject": "str"  # Optional. The subject of the meter value.
-                        }
-                    ],
-                    "windowSize": "str"  # Optional. Known values are: "MINUTE", "HOUR", and
-                      "DAY".
-                }
-        """
-        error_map = {
-            401: ClientAuthenticationError,
-            404: ResourceNotFoundError,
-            409: ResourceExistsError,
-            304: ResourceNotModifiedError,
-            400: HttpResponseError,
-        }
-        error_map.update(kwargs.pop("error_map", {}) or {})
-
-        _headers = kwargs.pop("headers", {}) or {}
-        _params = kwargs.pop("params", {}) or {}
-
-        cls: ClsType[JSON] = kwargs.pop("cls", None)
-
-        _request = build_get_meter_values_request(
-            meter_id_or_slug=meter_id_or_slug,
-            om_namespace=om_namespace,
-            subject=subject,
-            from_parameter=from_parameter,
-            to=to,
-            window_size=window_size,
-            aggregation=aggregation,
-            group_by=group_by,
-            headers=_headers,
-            params=_params,
-        )
-        _request.url = self._client.format_url(_request.url)
-
-        _stream = False
-        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
-            _request, stream=_stream, **kwargs
-        )
-
-        response = pipeline_response.http_response
-
-        if response.status_code not in [200]:
-            if _stream:
-                await response.read()  # Load the body in memory and close the socket
-            map_error(status_code=response.status_code, response=response, error_map=error_map)
-            raise HttpResponseError(response=response)
-
-        if response.content:
-            deserialized = response.json()
-        else:
-            deserialized = None
-
-        if cls:
-            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
-
-        return cast(JSON, deserialized)  # type: ignore
 
     @distributed_trace_async
     async def query_meter(
