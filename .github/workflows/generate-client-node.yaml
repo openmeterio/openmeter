@@ -17,9 +17,6 @@ on:
       - api/openapi.yaml
       - ".github/workflows/generate-client-node.yaml"
 
-env:
-  NEW_BRANCH: openapi-${GITHUB_SHA::7}/node-clientgen
-
 jobs:
   generate:
     runs-on: ubuntu-latest
@@ -35,8 +32,6 @@ jobs:
           ref: ${{ github.head_ref }}
           # Make sure the value of GITHUB_TOKEN will not be persisted in repo's config
           persist-credentials: false
-      - name: Checkout new Branch
-        run: git checkout -b ${{ env.NEW_BRANCH }}
       - name: Install Node.js
         uses: actions/setup-node@v3
         with:
@@ -56,7 +51,7 @@ jobs:
       - name: Open Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
-          branch: ${{ env.NEW_BRANCH }}
+          branch: openapi-${GITHUB_SHA::7}/node-client
           delete-branch: true
           commit-message: "chore(api): generate node client"
           title: "[bot] Re-generate Node.js client"
