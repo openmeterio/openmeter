@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -246,106 +245,6 @@ func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug 
 
 	// TODO: remove once meter model pointer is removed
 	_ = render.Render(w, r, &meter)
-}
-
-type GetMeterValuesResponse struct {
-	WindowSize *models.WindowSize   `json:"windowSize"`
-	Data       []*models.MeterValue `json:"data"`
-}
-
-func (rd *GetMeterValuesResponse) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
-}
-
-func ValidateGetMeterValuesParams(params api.GetMeterValuesParams) error {
-	if params.From != nil && params.To != nil && params.From.After(*params.To) {
-		return errors.New("from must be before to")
-	}
-
-	if params.WindowSize != nil {
-		windowDuration := params.WindowSize.Duration()
-		if params.From != nil && params.From.Truncate(windowDuration) != *params.From {
-			return errors.New("from must be aligned to window size")
-		}
-		if params.To != nil && params.To.Truncate(windowDuration) != *params.To {
-			return errors.New("to must be aligned to window size")
-		}
-	}
-
-	return nil
-}
-
-func (a *Router) GetMeterValues(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.GetMeterValuesParams) {
-	logger := slog.With("operation", "getMeterValues", "id", meterIdOrSlug, "params", params)
-
-	namespace := a.config.NamespaceManager.GetDefaultNamespace()
-	if params.NamespaceInput != nil {
-		namespace = *params.NamespaceInput
-	}
-
-	// Set defaults if meter is found in static config and params are not set
-	meter, err := a.config.Meters.GetMeterByIDOrSlug(r.Context(), namespace, meterIdOrSlug)
-	if err != nil { // TODO: proper error handling
-		if params.Aggregation == nil {
-			params.Aggregation = &meter.Aggregation
-		}
-
-		if params.WindowSize == nil {
-			params.WindowSize = &meter.WindowSize
-		}
-	}
-
-	// Validate parameters
-	if err := ValidateGetMeterValuesParams(params); err != nil {
-		logger.Warn("invalid parameters", "error", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
-		return
-	}
-
-	queryParams := &streaming.QueryParams{
-		From:           params.From,
-		To:             params.To,
-		Aggregation:    params.Aggregation,
-		WindowSize:     params.WindowSize,
-		GroupBySubject: true,
-	}
-
-	// Moved here to preserve backward compatibility
-	// We now allow aggregating data without grouping by window size,
-	// but this endpoint currently returns data groupped by window size even if none is passed.
-	if params.WindowSize == nil {
-		windowSize := models.WindowSizeMinute
-		params.WindowSize = &windowSize
-	}
-
-	if params.Subject != nil {
-		queryParams.Subject = append(queryParams.Subject, *params.Subject)
-	}
-
-	// TODO: if we change OpenAPI type to array of strings it doesn't parse correctly
-	if params.GroupBy != nil {
-		queryParams.GroupBy = strings.Split(*params.GroupBy, ",")
-	}
-
-	result, err := a.config.StreamingConnector.QueryMeter(r.Context(), namespace, meterIdOrSlug, queryParams)
-	if err != nil {
-		if _, ok := err.(*models.MeterNotFoundError); ok {
-			logger.Warn("meter not found", "error", err)
-			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
-			return
-		}
-
-		logger.Error("connector", "error", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
-		return
-	}
-
-	resp := &GetMeterValuesResponse{
-		WindowSize: result.WindowSize,
-		Data:       result.Values,
-	}
-
-	_ = render.Render(w, r, resp)
 }
 
 // QueryMeter queries the values stored for a meter.
