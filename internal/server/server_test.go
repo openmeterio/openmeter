@@ -307,25 +307,6 @@ func TestRoutes(t *testing.T) {
 			},
 		},
 		{
-			name: "get meter values",
-			req: testRequest{
-				method: http.MethodGet,
-				path:   "/api/v1/meters/" + mockMeters[0].ID + "/values?windowSize=HOUR&subject=s1",
-			},
-			res: testResponse{
-				status: http.StatusOK,
-				body: struct {
-					WindowSize models.WindowSize    `json:"windowSize"`
-					Data       []*models.MeterValue `json:"data"`
-				}{
-					WindowSize: models.WindowSizeHour,
-					Data: []*models.MeterValue{
-						{Subject: "s1", WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
-					},
-				},
-			},
-		},
-		{
 			name: "list meter subjects",
 			req: testRequest{
 				method: http.MethodGet,

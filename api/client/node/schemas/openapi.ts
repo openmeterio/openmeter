@@ -22,14 +22,6 @@ export interface paths {
     /** @description Delete meter by slug */
     delete: operations['deleteMeter']
   }
-  '/api/v1/meters/{meterIdOrSlug}/values': {
-    /**
-     * @deprecated
-     * @description Get meter values
-     * Deprecated: use /api/v1/meters/{meter}/query instead.
-     */
-    get: operations['getMeterValues']
-  }
   '/api/v1/meters/{meterIdOrSlug}/query': {
     /** @description Query meter */
     get: operations['queryMeter']
@@ -191,18 +183,6 @@ export interface components {
     MeterAggregation: 'SUM' | 'COUNT' | 'AVG' | 'MIN' | 'MAX'
     /** @enum {string} */
     WindowSize: 'MINUTE' | 'HOUR' | 'DAY'
-    MeterValue: {
-      /** @description The subject of the meter value. */
-      subject?: string
-      /** Format: date-time */
-      windowStart: string
-      /** Format: date-time */
-      windowEnd: string
-      value: number
-      groupBy?: {
-        [key: string]: string
-      } | null
-    }
     MeterQueryRow: {
       value: number
       /** Format: date-time */
@@ -274,7 +254,7 @@ export type external = Record<string, never>
 export interface operations {
   /** @description Retrieve latest raw events. */
   listEvents: {
-    parameters: {
+    parameters?: {
       query?: {
         /** @description Number of events to return. */
         limit?: number
@@ -296,7 +276,7 @@ export interface operations {
   }
   /** @description Ingest events */
   ingestEvents: {
-    parameters: {
+    parameters?: {
       header?: {
         'OM-Namespace'?: components['parameters']['namespaceParam']
       }
@@ -318,7 +298,7 @@ export interface operations {
   }
   /** @description List meters */
   listMeters: {
-    parameters: {
+    parameters?: {
       header?: {
         'OM-Namespace'?: components['parameters']['namespaceParam']
       }
@@ -335,7 +315,7 @@ export interface operations {
   }
   /** @description Create meter */
   createMeter: {
-    parameters: {
+    parameters?: {
       header?: {
         'OM-Namespace'?: components['parameters']['namespaceParam']
       }
@@ -395,59 +375,6 @@ export interface operations {
       }
       404: components['responses']['NotFoundProblemResponse']
       501: components['responses']['NotImplementedProblemResponse']
-      default: components['responses']['UnexpectedProblemResponse']
-    }
-  }
-  /**
-   * @deprecated
-   * @description Get meter values
-   * Deprecated: use /api/v1/meters/{meter}/query instead.
-   */
-  getMeterValues: {
-    parameters: {
-      query?: {
-        subject?: string
-        /**
-         * @description Start date-time in RFC 3339 format in UTC timezone.
-         * Must be aligned with the window size.
-         * Inclusive.
-         */
-        from?: string
-        /**
-         * @description End date-time in RFC 3339 format in UTC timezone.
-         * Must be aligned with the window size.
-         * Inclusive.
-         */
-        to?: string
-        /** @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group. */
-        windowSize?: components['schemas']['WindowSize']
-        /**
-         * @description If not specified, OpenMeter will use the default aggregation type.
-         * As OpenMeter stores aggregates defined by meter config, passing a different aggregate can lead to inaccurate results.
-         * For example getting the MIN of SUMs.
-         */
-        aggregation?: components['schemas']['MeterAggregation']
-        /** @description If not specified a single aggregate will be returned for each subject and time window. */
-        groupBy?: string
-      }
-      header?: {
-        'OM-Namespace'?: components['parameters']['namespaceParam']
-      }
-      path: {
-        meterIdOrSlug: components['parameters']['meterIdOrSlug']
-      }
-    }
-    responses: {
-      /** @description OK */
-      200: {
-        content: {
-          'application/json': {
-            windowSize?: components['schemas']['WindowSize']
-            data: components['schemas']['MeterValue'][]
-          }
-        }
-      }
-      400: components['responses']['BadRequestProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }

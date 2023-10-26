@@ -38,9 +38,6 @@ type MeterAggregation = models.MeterAggregation
 // MeterQueryRow defines model for MeterQueryRow.
 type MeterQueryRow = models.MeterQueryRow
 
-// MeterValue defines model for MeterValue.
-type MeterValue = models.MeterValue
-
 // Namespace defines model for Namespace.
 type Namespace struct {
 	// Namespace A namespace
@@ -143,35 +140,6 @@ type QueryMeterParams struct {
 
 // ListMeterSubjectsParams defines parameters for ListMeterSubjects.
 type ListMeterSubjectsParams struct {
-	// OMNamespace Optional namespace
-	NamespaceInput *NamespaceInput `json:"OM-Namespace,omitempty"`
-}
-
-// GetMeterValuesParams defines parameters for GetMeterValues.
-type GetMeterValuesParams struct {
-	Subject *string `form:"subject,omitempty" json:"subject,omitempty"`
-
-	// From Start date-time in RFC 3339 format in UTC timezone.
-	// Must be aligned with the window size.
-	// Inclusive.
-	From *time.Time `form:"from,omitempty" json:"from,omitempty"`
-
-	// To End date-time in RFC 3339 format in UTC timezone.
-	// Must be aligned with the window size.
-	// Inclusive.
-	To *time.Time `form:"to,omitempty" json:"to,omitempty"`
-
-	// WindowSize If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
-	WindowSize *WindowSize `form:"windowSize,omitempty" json:"windowSize,omitempty"`
-
-	// Aggregation If not specified, OpenMeter will use the default aggregation type.
-	// As OpenMeter stores aggregates defined by meter config, passing a different aggregate can lead to inaccurate results.
-	// For example getting the MIN of SUMs.
-	Aggregation *MeterAggregation `form:"aggregation,omitempty" json:"aggregation,omitempty"`
-
-	// GroupBy If not specified a single aggregate will be returned for each subject and time window.
-	GroupBy *string `form:"groupBy,omitempty" json:"groupBy,omitempty"`
-
 	// OMNamespace Optional namespace
 	NamespaceInput *NamespaceInput `json:"OM-Namespace,omitempty"`
 }
@@ -290,9 +258,6 @@ type ClientInterface interface {
 
 	// ListMeterSubjects request
 	ListMeterSubjects(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *ListMeterSubjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetMeterValues request
-	GetMeterValues(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *GetMeterValuesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CreateNamespaceWithBody request with any body
 	CreateNamespaceWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -422,18 +387,6 @@ func (c *Client) QueryMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, pa
 
 func (c *Client) ListMeterSubjects(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *ListMeterSubjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListMeterSubjectsRequest(c.Server, meterIdOrSlug, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetMeterValues(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *GetMeterValuesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetMeterValuesRequest(c.Server, meterIdOrSlug, params)
 	if err != nil {
 		return nil, err
 	}
@@ -993,157 +946,6 @@ func NewListMeterSubjectsRequest(server string, meterIdOrSlug MeterIdOrSlug, par
 	return req, nil
 }
 
-// NewGetMeterValuesRequest generates requests for GetMeterValues
-func NewGetMeterValuesRequest(server string, meterIdOrSlug MeterIdOrSlug, params *GetMeterValuesParams) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "meterIdOrSlug", runtime.ParamLocationPath, meterIdOrSlug)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/meters/%s/values", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.Subject != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "subject", runtime.ParamLocationQuery, *params.Subject); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.From != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, *params.From); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.To != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "to", runtime.ParamLocationQuery, *params.To); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.WindowSize != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "windowSize", runtime.ParamLocationQuery, *params.WindowSize); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Aggregation != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "aggregation", runtime.ParamLocationQuery, *params.Aggregation); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.GroupBy != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "groupBy", runtime.ParamLocationQuery, *params.GroupBy); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-
-		if params.NamespaceInput != nil {
-			var headerParam0 string
-
-			headerParam0, err = runtime.StyleParamWithLocation("simple", false, "OM-Namespace", runtime.ParamLocationHeader, *params.NamespaceInput)
-			if err != nil {
-				return nil, err
-			}
-
-			req.Header.Set("OM-Namespace", headerParam0)
-		}
-
-	}
-
-	return req, nil
-}
-
 // NewCreateNamespaceRequest calls the generic CreateNamespace builder with application/json body
 func NewCreateNamespaceRequest(server string, body CreateNamespaceJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -1256,9 +1058,6 @@ type ClientWithResponsesInterface interface {
 
 	// ListMeterSubjectsWithResponse request
 	ListMeterSubjectsWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *ListMeterSubjectsParams, reqEditors ...RequestEditorFn) (*ListMeterSubjectsResponse, error)
-
-	// GetMeterValuesWithResponse request
-	GetMeterValuesWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *GetMeterValuesParams, reqEditors ...RequestEditorFn) (*GetMeterValuesResponse, error)
 
 	// CreateNamespaceWithBodyWithResponse request with any body
 	CreateNamespaceWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateNamespaceResponse, error)
@@ -1462,33 +1261,6 @@ func (r ListMeterSubjectsResponse) StatusCode() int {
 	return 0
 }
 
-type GetMeterValuesResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *struct {
-		Data       []MeterValue `json:"data"`
-		WindowSize *WindowSize  `json:"windowSize,omitempty"`
-	}
-	ApplicationproblemJSON400     *BadRequestProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r GetMeterValuesResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetMeterValuesResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 type CreateNamespaceResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
@@ -1605,15 +1377,6 @@ func (c *ClientWithResponses) ListMeterSubjectsWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseListMeterSubjectsResponse(rsp)
-}
-
-// GetMeterValuesWithResponse request returning *GetMeterValuesResponse
-func (c *ClientWithResponses) GetMeterValuesWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, params *GetMeterValuesParams, reqEditors ...RequestEditorFn) (*GetMeterValuesResponse, error) {
-	rsp, err := c.GetMeterValues(ctx, meterIdOrSlug, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetMeterValuesResponse(rsp)
 }
 
 // CreateNamespaceWithBodyWithResponse request with arbitrary body returning *CreateNamespaceResponse
@@ -1954,49 +1717,6 @@ func ParseListMeterSubjectsResponse(rsp *http.Response) (*ListMeterSubjectsRespo
 	return response, nil
 }
 
-// ParseGetMeterValuesResponse parses an HTTP response from a GetMeterValuesWithResponse call
-func ParseGetMeterValuesResponse(rsp *http.Response) (*GetMeterValuesResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetMeterValuesResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			Data       []MeterValue `json:"data"`
-			WindowSize *WindowSize  `json:"windowSize,omitempty"`
-		}
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
 // ParseCreateNamespaceResponse parses an HTTP response from a CreateNamespaceWithResponse call
 func ParseCreateNamespaceResponse(rsp *http.Response) (*CreateNamespaceResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -2026,56 +1746,54 @@ func ParseCreateNamespaceResponse(rsp *http.Response) (*CreateNamespaceResponse,
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

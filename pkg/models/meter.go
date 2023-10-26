@@ -3,9 +3,7 @@ package models
 import (
 	"errors"
 	"fmt"
-	"math"
 	"net/http"
-	"sort"
 	"strings"
 	"time"
 
@@ -231,131 +229,13 @@ func (m *Meter) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// TODO: replace this model with something else in the clickhouse connector
 type MeterValue struct {
 	Subject     string            `json:"subject"`
 	WindowStart time.Time         `json:"windowStart"`
 	WindowEnd   time.Time         `json:"windowEnd"`
 	Value       float64           `json:"value"`
 	GroupBy     map[string]string `json:"groupBy,omitempty"`
-}
-
-func (m *MeterValue) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
-}
-
-func AggregateMeterValues(values []*MeterValue, aggregation MeterAggregation, windowSizeOut *WindowSize) ([]*MeterValue, error) {
-	if len(values) == 0 {
-		return values, nil
-	}
-
-	// Determinate window size returned by storage
-	var windowSizeStorage WindowSize
-	duration := values[0].WindowEnd.Sub(values[0].WindowStart)
-	windowSizeStorage, err := WindowSizeFromDuration(duration)
-	if err != nil {
-		return nil, err
-	}
-
-	if windowSizeOut != nil {
-		// no need to aggregate
-		if *windowSizeOut == windowSizeStorage {
-			return values, nil
-		}
-
-		// cannot aggregate with a lower resolution
-		if windowSizeStorage == WindowSizeDay && *windowSizeOut != WindowSizeDay {
-			return nil, fmt.Errorf("invalid aggregation: expected window size of %s, but got %s", WindowSizeDay, *windowSizeOut)
-		}
-		if windowSizeStorage == WindowSizeHour && *windowSizeOut == WindowSizeMinute {
-			return nil, fmt.Errorf("invalid aggregation: expected window size of %s or %s, but got %s", WindowSizeHour, WindowSizeDay, *windowSizeOut)
-		}
-	}
-
-	// key by subject, group by and window
-	type key struct {
-		Subject     string
-		GroupBy     string
-		WindowStart time.Time
-		WindowEnd   time.Time
-	}
-
-	groupBy := make(map[key]*MeterValue)
-	avgCount := make(map[key]int)
-	fullWindowStart := make(map[key]time.Time)
-	fullWindowEnd := make(map[key]time.Time)
-
-	for _, value := range values {
-		key := key{
-			Subject: value.Subject,
-			GroupBy: fmt.Sprint(value.GroupBy),
-		}
-
-		if windowSizeOut != nil {
-			windowDuration := windowSizeOut.Duration()
-			key.WindowStart = value.WindowStart.UTC().Truncate(windowDuration)
-			key.WindowEnd = key.WindowStart.Add(windowDuration)
-		}
-
-		// set full window
-		if fullWindowStart[key].IsZero() || value.WindowStart.Before(fullWindowStart[key]) {
-			fullWindowStart[key] = value.WindowStart
-		}
-		if fullWindowEnd[key].IsZero() || value.WindowEnd.After(fullWindowEnd[key]) {
-			fullWindowEnd[key] = value.WindowEnd
-		}
-
-		if _, ok := groupBy[key]; !ok {
-			groupBy[key] = value
-			groupBy[key].WindowStart = key.WindowStart
-			groupBy[key].WindowEnd = key.WindowEnd
-			if aggregation == MeterAggregationAvg {
-				avgCount[key] = 1
-			}
-		} else {
-			// update value
-			switch aggregation {
-			case MeterAggregationCount:
-				groupBy[key].Value += value.Value
-			case MeterAggregationSum:
-				groupBy[key].Value += value.Value
-			case MeterAggregationMax:
-				groupBy[key].Value = math.Max(groupBy[key].Value, value.Value)
-			case MeterAggregationMin:
-				groupBy[key].Value = math.Min(groupBy[key].Value, value.Value)
-			case MeterAggregationAvg:
-				avgCount[key]++
-				n := float64(avgCount[key])
-				groupBy[key].Value = (groupBy[key].Value*(n-1) + value.Value) / n
-			}
-		}
-	}
-
-	v := make([]*MeterValue, 0, len(groupBy))
-	for _, value := range groupBy {
-		// set full window if window size is not set
-		if windowSizeOut == nil {
-			key := key{
-				Subject: value.Subject,
-				GroupBy: fmt.Sprint(value.GroupBy),
-			}
-
-			value.WindowStart = fullWindowStart[key]
-			value.WindowEnd = fullWindowEnd[key]
-		}
-
-		v = append(v, value)
-	}
-
-	// sort by subject and window start
-	sort.Slice(v, func(i, j int) bool {
-		if v[i].Subject == v[j].Subject {
-			return v[i].WindowStart.Before(v[j].WindowStart)
-		}
-
-		return v[i].Subject < v[j].Subject
-	})
-
-	return v, nil
 }
 
 // MeterQueryRow returns a single row from the meter dataset.
