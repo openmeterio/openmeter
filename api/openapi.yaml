@@ -324,14 +324,12 @@ components:
         - title
         - status
         - detail
-      example: |
-        {
-          "type": "urn:problem-type:bad-request",
-          "title": "Bad Request",
-          "status": 400,
-          "detail": "header Content-Type has unexpected value \"application/xml\"",
-          "instance": "urn:request:local/JMOlctsKV8-000001"
-        }
+      example:
+        type: "urn:problem-type:bad-request"
+        title: "Bad Request"
+        status: 400
+        detail: 'header Content-Type has unexpected value "application/xml"'
+        instance: "urn:request:local/JMOlctsKV8-000001"
     Event:
       description: CloudEvents Specification JSON Schema
       x-go-type: event.Event
@@ -391,11 +389,9 @@ components:
           description: The event payload.
           type: object
           additionalProperties: true
-          example: |
-            {
-              "duration_ms": "12",
-              "path": "/hello"
-            }
+          example:
+            duration_ms: "12"
+            path: "/hello"
       required:
         - id
         - source
@@ -419,7 +415,7 @@ components:
           pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
           minLength: 1
           maxLength: 63
-          example: my-meter
+          example: my_meter
         description:
           type: string
           description: A description of the meter.
@@ -440,11 +436,9 @@ components:
           additionalProperties:
             type: string
           description: Named JSONPath expressions to extract the group by values from the event data.
-          example: |
-            {
-              "duration_ms": "$.duration_ms",
-              "path": "$.path"
-            }
+          example:
+            method: "$.method"
+            path: "$.path"
         windowSize:
           $ref: "#/components/schemas/WindowSize"
       required:
