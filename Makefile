@@ -48,7 +48,7 @@ test: ## Run tests
 .PHONY: lint
 lint: ## Run linters
 	$(call print-target)
-	dagger call lint
+	dagger call lint all
 
 .PHONY: fmt
 fmt: ## Format code

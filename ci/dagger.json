@@ -1,10 +1,13 @@
 {
   "name": "ci",
   "root": "..",
+  "sdk": "go",
   "exclude": [
     ".devenv",
     ".direnv",
     "api/client/node/node_modules"
   ],
-  "sdk": "go"
+  "dependencies": [
+    "github.com/sagikazarmark/daggerverse/spectral@43acf5baf8f04bee099d45073d821c0e92b69710"
+  ]
 }
