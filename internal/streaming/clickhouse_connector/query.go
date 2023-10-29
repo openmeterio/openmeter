@@ -306,14 +306,30 @@ func sortedKeys(m map[string]string) []string {
 type listMeterViewSubjects struct {
 	Database      string
 	MeterViewName string
+	From          *time.Time
+	To            *time.Time
 }
 
 func (d listMeterViewSubjects) toSQL() (string, []interface{}, error) {
 	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
 
+	var where []string
 	sb := sqlbuilder.ClickHouse.NewSelectBuilder()
 	sb.Select("DISTINCT subject")
 	sb.From(viewName)
+
+	if d.From != nil {
+		where = append(where, sb.GreaterEqualThan("windowstart", d.From.Unix()))
+	}
+
+	if d.To != nil {
+		where = append(where, sb.LessEqualThan("windowend", d.To.Unix()))
+	}
+
+	if len(where) > 0 {
+		sb.Where(where...)
+	}
+
 	sb.OrderBy("subject")
 
 	sql, args := sb.Build()

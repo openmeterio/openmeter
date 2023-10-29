@@ -216,7 +216,7 @@ func TestQueryMeterView(t *testing.T) {
 				WindowSize:    &windowSize,
 			},
 			wantSQL:  "SELECT tumbleStart(windowstart, toIntervalHour(1)) AS windowstart, tumbleEnd(windowstart, toIntervalHour(1)) AS windowend, subject, sumMerge(value) AS value, group1, group2 FROM openmeter.meter_meter1 WHERE (subject = ?) AND windowstart >= ? AND windowend <= ? GROUP BY windowstart, windowend, subject, group1, group2 ORDER BY windowstart",
-			wantArgs: []interface{}{"subject1", int64(1672531200), int64(1672617600)},
+			wantArgs: []interface{}{"subject1", from.Unix(), to.Unix()},
 		},
 		{ // Aggregate all available data
 			query: queryMeterView{
@@ -244,7 +244,7 @@ func TestQueryMeterView(t *testing.T) {
 				From:          &from,
 			},
 			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.meter_meter1 WHERE windowstart >= ?",
-			wantArgs: []interface{}{int64(1672531200)},
+			wantArgs: []interface{}{from.Unix()},
 		},
 		{ // Aggregate data between interval
 			query: queryMeterView{
@@ -255,7 +255,7 @@ func TestQueryMeterView(t *testing.T) {
 				To:            &to,
 			},
 			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.meter_meter1 WHERE windowstart >= ? AND windowend <= ?",
-			wantArgs: []interface{}{int64(1672531200), int64(1672617600)},
+			wantArgs: []interface{}{from.Unix(), to.Unix()},
 		},
 		{ // Aggregate data between interval, groupped by window size
 			query: queryMeterView{
@@ -267,7 +267,7 @@ func TestQueryMeterView(t *testing.T) {
 				WindowSize:    &windowSize,
 			},
 			wantSQL:  "SELECT tumbleStart(windowstart, toIntervalHour(1)) AS windowstart, tumbleEnd(windowstart, toIntervalHour(1)) AS windowend, sumMerge(value) AS value FROM openmeter.meter_meter1 WHERE windowstart >= ? AND windowend <= ? GROUP BY windowstart, windowend ORDER BY windowstart",
-			wantArgs: []interface{}{int64(1672531200), int64(1672617600)},
+			wantArgs: []interface{}{from.Unix(), to.Unix()},
 		},
 		{ // Aggregate data for a single subject
 			query: queryMeterView{
@@ -313,6 +313,59 @@ func TestQueryMeterView(t *testing.T) {
 
 			assert.Equal(t, tt.wantSQL, gotSql)
 			assert.Equal(t, tt.wantArgs, gotArgs)
+		})
+	}
+}
+
+func TestListMeterViewSubjects(t *testing.T) {
+	from, _ := time.Parse(time.RFC3339, "2023-01-01T00:00:00.001Z")
+	to, _ := time.Parse(time.RFC3339, "2023-01-02T00:00:00Z")
+
+	tests := []struct {
+		query    listMeterViewSubjects
+		wantSQL  string
+		wantArgs []interface{}
+	}{
+		{
+			query: listMeterViewSubjects{
+				Database:      "openmeter",
+				MeterViewName: "meter_meter1",
+			},
+			wantSQL:  "SELECT DISTINCT subject FROM openmeter.meter_meter1 ORDER BY subject",
+			wantArgs: nil,
+		},
+		{
+			query: listMeterViewSubjects{
+				Database:      "openmeter",
+				MeterViewName: "meter_meter1",
+				From:          &from,
+			},
+			wantSQL:  "SELECT DISTINCT subject FROM openmeter.meter_meter1 WHERE windowstart >= ? ORDER BY subject",
+			wantArgs: []interface{}{from.Unix()},
+		},
+		{
+			query: listMeterViewSubjects{
+				Database:      "openmeter",
+				MeterViewName: "meter_meter1",
+				From:          &from,
+				To:            &to,
+			},
+			wantSQL:  "SELECT DISTINCT subject FROM openmeter.meter_meter1 WHERE windowstart >= ? AND windowend <= ? ORDER BY subject",
+			wantArgs: []interface{}{from.Unix(), to.Unix()},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run("", func(t *testing.T) {
+			gotSql, gotArgs, err := tt.query.toSQL()
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
+			assert.Equal(t, tt.wantArgs, gotArgs)
+			assert.Equal(t, tt.wantSQL, gotSql)
 		})
 	}
 }

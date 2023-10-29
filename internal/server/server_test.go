@@ -69,7 +69,7 @@ func (c *MockConnector) QueryMeter(ctx context.Context, namespace string, meterS
 	}, nil
 }
 
-func (c *MockConnector) ListMeterSubjects(ctx context.Context, namespace string, meterSlug string) ([]string, error) {
+func (c *MockConnector) ListMeterSubjects(ctx context.Context, namespace string, meterSlug string, from *time.Time, to *time.Time) ([]string, error) {
 	return []string{"s1"}, nil
 }
 
