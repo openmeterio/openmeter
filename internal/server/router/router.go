@@ -421,7 +421,7 @@ func (a *Router) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meter
 		namespace = *params.NamespaceInput
 	}
 
-	subjects, err := a.config.StreamingConnector.ListMeterSubjects(r.Context(), namespace, meterIDOrSlug)
+	subjects, err := a.config.StreamingConnector.ListMeterSubjects(r.Context(), namespace, meterIDOrSlug, nil, nil)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
 			logger.Warn("meter not found", "error", err)

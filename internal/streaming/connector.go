@@ -33,6 +33,6 @@ type Connector interface {
 	CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error
 	DeleteMeter(ctx context.Context, namespace string, meterSlug string) error
 	QueryMeter(ctx context.Context, namespace string, meterSlug string, params *QueryParams) (*QueryResult, error)
-	ListMeterSubjects(ctx context.Context, namespace string, meterSlug string) ([]string, error)
+	ListMeterSubjects(ctx context.Context, namespace string, meterSlug string, from *time.Time, to *time.Time) ([]string, error)
 	// Add more methods as needed ...
 }

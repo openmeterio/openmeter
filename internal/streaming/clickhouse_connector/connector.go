@@ -134,7 +134,7 @@ func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, 
 	}, nil
 }
 
-func (c *ClickhouseConnector) ListMeterSubjects(ctx context.Context, namespace string, meterSlug string) ([]string, error) {
+func (c *ClickhouseConnector) ListMeterSubjects(ctx context.Context, namespace string, meterSlug string, from *time.Time, to *time.Time) ([]string, error) {
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
@@ -142,7 +142,7 @@ func (c *ClickhouseConnector) ListMeterSubjects(ctx context.Context, namespace s
 		return nil, fmt.Errorf("slug is required")
 	}
 
-	subjects, err := c.listMeterViewSubjects(ctx, namespace, meterSlug)
+	subjects, err := c.listMeterViewSubjects(ctx, namespace, meterSlug, from, to)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
 			return nil, err
@@ -417,10 +417,12 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 	return values, nil
 }
 
-func (c *ClickhouseConnector) listMeterViewSubjects(ctx context.Context, namespace string, meterSlug string) ([]string, error) {
+func (c *ClickhouseConnector) listMeterViewSubjects(ctx context.Context, namespace string, meterSlug string, from *time.Time, to *time.Time) ([]string, error) {
 	query := listMeterViewSubjects{
 		Database:      c.config.Database,
 		MeterViewName: getMeterViewNameBySlug(namespace, meterSlug),
+		From:          from,
+		To:            to,
 	}
 
 	sql, args, err := query.toSQL()
