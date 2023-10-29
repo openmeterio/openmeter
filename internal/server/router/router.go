@@ -38,7 +38,7 @@ func jsonBodyDecoder(body io.Reader, header http.Header, schema *openapi3.Schema
 }
 
 type IngestHandler interface {
-	ServeHTTP(w http.ResponseWriter, r *http.Request, params api.IngestEventsParams)
+	ServeHTTP(w http.ResponseWriter, r *http.Request, namespace string)
 }
 
 type Config struct {
@@ -61,47 +61,14 @@ func NewRouter(config Config) (*Router, error) {
 	}, nil
 }
 
-// CreateNamespace handles the HTTP request for creating a new namespace.
-func (a *Router) CreateNamespace(w http.ResponseWriter, r *http.Request) {
-	logger := slog.With("operation", "createNamespace")
-
-	if a.config.NamespaceManager.IsManagementDisabled() {
-		logger.Warn("namespace management is disabled")
-		models.NewStatusProblem(r.Context(), errors.New("namespace management is disabled"), http.StatusForbidden).Respond(w, r)
-
-		return
-	}
-
-	var namespace api.Namespace
-	if err := render.DecodeJSON(r.Body, &namespace); err != nil {
-		logger.Warn("cannot parse request body", "error", err)
-		models.NewStatusProblem(r.Context(), fmt.Errorf("cannot parse request body"), http.StatusBadRequest).Respond(w, r)
-
-		return
-	}
-
-	err := a.config.NamespaceManager.CreateNamespace(r.Context(), namespace.Namespace)
-	if err != nil {
-		logger.Error("connector", "error", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
-
-		return
-	}
-
-	w.WriteHeader(http.StatusCreated)
-}
-
-func (a *Router) IngestEvents(w http.ResponseWriter, r *http.Request, params api.IngestEventsParams) {
-	a.config.IngestHandler.ServeHTTP(w, r, params)
+func (a *Router) IngestEvents(w http.ResponseWriter, r *http.Request) {
+	namespace := a.config.NamespaceManager.GetDefaultNamespace()
+	a.config.IngestHandler.ServeHTTP(w, r, namespace)
 }
 
 func (a *Router) ListEvents(w http.ResponseWriter, r *http.Request, params api.ListEventsParams) {
 	logger := slog.With("operation", "queryEvents")
-
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
-	if params.NamespaceInput != nil {
-		namespace = *params.NamespaceInput
-	}
 
 	limit := 100
 	if params.Limit != nil {
@@ -124,12 +91,6 @@ func (a *Router) ListEvents(w http.ResponseWriter, r *http.Request, params api.L
 
 	events, err := a.config.StreamingConnector.ListEvents(r.Context(), namespace, queryParams)
 	if err != nil {
-		if _, ok := err.(*models.NamespaceNotFoundError); ok {
-			logger.Warn("namespace not found", "error", err)
-			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
-			return
-		}
-
 		logger.Error("query events", "error", err)
 		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
 		return
@@ -139,13 +100,9 @@ func (a *Router) ListEvents(w http.ResponseWriter, r *http.Request, params api.L
 	render.JSON(w, r, events)
 }
 
-func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request, params api.ListMetersParams) {
+func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request) {
 	logger := slog.With("operation", "listMeters")
-
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
-	if params.NamespaceInput != nil {
-		namespace = *params.NamespaceInput
-	}
 
 	meters, err := a.config.Meters.ListMeters(r.Context(), namespace)
 	if err != nil {
@@ -164,66 +121,19 @@ func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request, params api.L
 	_ = render.RenderList(w, r, list)
 }
 
-func (a *Router) CreateMeter(w http.ResponseWriter, r *http.Request, params api.CreateMeterParams) {
-	logger := slog.With("operation", "createMeter")
-
-	namespace := a.config.NamespaceManager.GetDefaultNamespace()
-	if params.NamespaceInput != nil {
-		namespace = *params.NamespaceInput
-	}
-
-	var meter models.Meter
-	if err := render.DecodeJSON(r.Body, &meter); err != nil {
-		logger.Warn("cannot parse request body", "error", err)
-		models.NewStatusProblem(r.Context(), fmt.Errorf("cannot parse request body"), http.StatusBadRequest).Respond(w, r)
-	}
-
-	if err := meter.Validate(); err != nil {
-		logger.Warn("invalid meter", "error", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
-		return
-	}
-
-	err := a.config.StreamingConnector.CreateMeter(r.Context(), namespace, &meter)
-	if err != nil {
-		logger.Error("connector", "error", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
-		return
-	}
-
-	_ = render.Render(w, r, &meter)
+func (a *Router) CreateMeter(w http.ResponseWriter, r *http.Request) {
+	err := fmt.Errorf("not implemented: manage meters via config or checkout OpenMeter Cloud")
+	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(w, r)
 }
 
-func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.DeleteMeterParams) {
-	logger := slog.With("operation", "deleteMeter", "id", meterIdOrSlug, "params", params)
-
-	namespace := a.config.NamespaceManager.GetDefaultNamespace()
-	if params.NamespaceInput != nil {
-		namespace = *params.NamespaceInput
-	}
-	err := a.config.StreamingConnector.DeleteMeter(r.Context(), namespace, meterIdOrSlug)
-	if err != nil {
-		if _, ok := err.(*models.MeterNotFoundError); ok {
-			logger.Warn("meter not found", "error", err)
-			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
-			return
-		}
-
-		logger.Error("connector", "error", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
+func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string) {
+	err := fmt.Errorf("not implemented: manage meters via config or checkout OpenMeter Cloud")
+	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(w, r)
 }
 
-func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string, params api.GetMeterParams) {
+func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string) {
+	logger := slog.With("operation", "getMeter", "id", meterIdOrSlug)
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
-	if params.NamespaceInput != nil {
-		namespace = *params.NamespaceInput
-	}
-
-	logger := slog.With("operation", "getMeter", "id", meterIdOrSlug, "namespace", namespace)
 
 	meter, err := a.config.Meters.GetMeterByIDOrSlug(r.Context(), namespace, meterIdOrSlug)
 
@@ -250,11 +160,7 @@ func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug 
 // QueryMeter queries the values stored for a meter.
 func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlug string, params api.QueryMeterParams) {
 	logger := slog.With("operation", "queryMeter", "id", meterIDOrSlug, "params", params)
-
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
-	if params.NamespaceInput != nil {
-		namespace = *params.NamespaceInput
-	}
 
 	// Set defaults if meter is found in static config and params are not set
 	meter, err := a.config.Meters.GetMeterByIDOrSlug(r.Context(), namespace, meterIDOrSlug)
@@ -413,13 +319,9 @@ func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request,
 }
 
 // ListMeterSubjects lists the subjects of a meter.
-func (a *Router) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meterIDOrSlug string, params api.ListMeterSubjectsParams) {
-	logger := slog.With("operation", "listMeterSubjects", "id", meterIDOrSlug, "params", params)
-
+func (a *Router) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meterIDOrSlug string) {
+	logger := slog.With("operation", "listMeterSubjects", "id", meterIDOrSlug)
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
-	if params.NamespaceInput != nil {
-		namespace = *params.NamespaceInput
-	}
 
 	subjects, err := a.config.StreamingConnector.ListMeterSubjects(r.Context(), namespace, meterIDOrSlug, nil, nil)
 	if err != nil {

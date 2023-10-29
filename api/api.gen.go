@@ -36,12 +36,6 @@ type MeterAggregation = models.MeterAggregation
 // MeterQueryRow defines model for MeterQueryRow.
 type MeterQueryRow = models.MeterQueryRow
 
-// Namespace defines model for Namespace.
-type Namespace struct {
-	// Namespace A namespace
-	Namespace string `json:"namespace"`
-}
-
 // Problem A Problem Details object (RFC 7807)
 type Problem = models.StatusProblem
 
@@ -50,9 +44,6 @@ type WindowSize = models.WindowSize
 
 // MeterIdOrSlug defines model for meterIdOrSlug.
 type MeterIdOrSlug = IdOrSlug
-
-// NamespaceInput defines model for namespaceParam.
-type NamespaceInput = string
 
 // BadRequestProblemResponse A Problem Details object (RFC 7807)
 type BadRequestProblemResponse = Problem
@@ -70,43 +61,10 @@ type UnexpectedProblemResponse = Problem
 type ListEventsParams struct {
 	// Limit Number of events to return.
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
-
-	// OMNamespace Optional namespace
-	NamespaceInput *NamespaceInput `json:"OM-Namespace,omitempty"`
 }
 
 // IngestEventsApplicationCloudeventsBatchPlusJSONBody defines parameters for IngestEvents.
 type IngestEventsApplicationCloudeventsBatchPlusJSONBody = []Event
-
-// IngestEventsParams defines parameters for IngestEvents.
-type IngestEventsParams struct {
-	// OMNamespace Optional namespace
-	NamespaceInput *NamespaceInput `json:"OM-Namespace,omitempty"`
-}
-
-// ListMetersParams defines parameters for ListMeters.
-type ListMetersParams struct {
-	// OMNamespace Optional namespace
-	NamespaceInput *NamespaceInput `json:"OM-Namespace,omitempty"`
-}
-
-// CreateMeterParams defines parameters for CreateMeter.
-type CreateMeterParams struct {
-	// OMNamespace Optional namespace
-	NamespaceInput *NamespaceInput `json:"OM-Namespace,omitempty"`
-}
-
-// DeleteMeterParams defines parameters for DeleteMeter.
-type DeleteMeterParams struct {
-	// OMNamespace Optional namespace
-	NamespaceInput *NamespaceInput `json:"OM-Namespace,omitempty"`
-}
-
-// GetMeterParams defines parameters for GetMeter.
-type GetMeterParams struct {
-	// OMNamespace Optional namespace
-	NamespaceInput *NamespaceInput `json:"OM-Namespace,omitempty"`
-}
 
 // QueryMeterParams defines parameters for QueryMeter.
 type QueryMeterParams struct {
@@ -131,15 +89,6 @@ type QueryMeterParams struct {
 
 	// GroupBy If not specified a single aggregate will be returned for each subject and time window.
 	GroupBy *[]string `form:"groupBy,omitempty" json:"groupBy,omitempty"`
-
-	// OMNamespace Optional namespace
-	NamespaceInput *NamespaceInput `json:"OM-Namespace,omitempty"`
-}
-
-// ListMeterSubjectsParams defines parameters for ListMeterSubjects.
-type ListMeterSubjectsParams struct {
-	// OMNamespace Optional namespace
-	NamespaceInput *NamespaceInput `json:"OM-Namespace,omitempty"`
 }
 
 // IngestEventsApplicationCloudeventsPlusJSONRequestBody defines body for IngestEvents for application/cloudevents+json ContentType.
@@ -151,9 +100,6 @@ type IngestEventsApplicationCloudeventsBatchPlusJSONRequestBody = IngestEventsAp
 // CreateMeterJSONRequestBody defines body for CreateMeter for application/json ContentType.
 type CreateMeterJSONRequestBody = Meter
 
-// CreateNamespaceJSONRequestBody defines body for CreateNamespace for application/json ContentType.
-type CreateNamespaceJSONRequestBody = Namespace
-
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
@@ -161,28 +107,25 @@ type ServerInterface interface {
 	ListEvents(w http.ResponseWriter, r *http.Request, params ListEventsParams)
 
 	// (POST /api/v1/events)
-	IngestEvents(w http.ResponseWriter, r *http.Request, params IngestEventsParams)
+	IngestEvents(w http.ResponseWriter, r *http.Request)
 
 	// (GET /api/v1/meters)
-	ListMeters(w http.ResponseWriter, r *http.Request, params ListMetersParams)
+	ListMeters(w http.ResponseWriter, r *http.Request)
 
 	// (POST /api/v1/meters)
-	CreateMeter(w http.ResponseWriter, r *http.Request, params CreateMeterParams)
+	CreateMeter(w http.ResponseWriter, r *http.Request)
 
 	// (DELETE /api/v1/meters/{meterIdOrSlug})
-	DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug, params DeleteMeterParams)
+	DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug)
 
 	// (GET /api/v1/meters/{meterIdOrSlug})
-	GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug, params GetMeterParams)
+	GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug)
 
 	// (GET /api/v1/meters/{meterIdOrSlug}/query)
 	QueryMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug, params QueryMeterParams)
 
 	// (GET /api/v1/meters/{meterIdOrSlug}/subjects)
-	ListMeterSubjects(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug, params ListMeterSubjectsParams)
-
-	// (POST /api/v1/namespaces)
-	CreateNamespace(w http.ResponseWriter, r *http.Request)
+	ListMeterSubjects(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -195,27 +138,27 @@ func (_ Unimplemented) ListEvents(w http.ResponseWriter, r *http.Request, params
 }
 
 // (POST /api/v1/events)
-func (_ Unimplemented) IngestEvents(w http.ResponseWriter, r *http.Request, params IngestEventsParams) {
+func (_ Unimplemented) IngestEvents(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // (GET /api/v1/meters)
-func (_ Unimplemented) ListMeters(w http.ResponseWriter, r *http.Request, params ListMetersParams) {
+func (_ Unimplemented) ListMeters(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // (POST /api/v1/meters)
-func (_ Unimplemented) CreateMeter(w http.ResponseWriter, r *http.Request, params CreateMeterParams) {
+func (_ Unimplemented) CreateMeter(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // (DELETE /api/v1/meters/{meterIdOrSlug})
-func (_ Unimplemented) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug, params DeleteMeterParams) {
+func (_ Unimplemented) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
 // (GET /api/v1/meters/{meterIdOrSlug})
-func (_ Unimplemented) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug, params GetMeterParams) {
+func (_ Unimplemented) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -225,12 +168,7 @@ func (_ Unimplemented) QueryMeter(w http.ResponseWriter, r *http.Request, meterI
 }
 
 // (GET /api/v1/meters/{meterIdOrSlug}/subjects)
-func (_ Unimplemented) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug, params ListMeterSubjectsParams) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// (POST /api/v1/namespaces)
-func (_ Unimplemented) CreateNamespace(w http.ResponseWriter, r *http.Request) {
+func (_ Unimplemented) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -260,27 +198,6 @@ func (siw *ServerInterfaceWrapper) ListEvents(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	headers := r.Header
-
-	// ------------- Optional header parameter "OM-Namespace" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("OM-Namespace")]; found {
-		var NamespaceInput NamespaceInput
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "OM-Namespace", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithLocation("simple", false, "OM-Namespace", runtime.ParamLocationHeader, valueList[0], &NamespaceInput)
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "OM-Namespace", Err: err})
-			return
-		}
-
-		params.NamespaceInput = &NamespaceInput
-
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListEvents(w, r, params)
 	}))
@@ -296,34 +213,8 @@ func (siw *ServerInterfaceWrapper) ListEvents(w http.ResponseWriter, r *http.Req
 func (siw *ServerInterfaceWrapper) IngestEvents(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	var err error
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params IngestEventsParams
-
-	headers := r.Header
-
-	// ------------- Optional header parameter "OM-Namespace" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("OM-Namespace")]; found {
-		var NamespaceInput NamespaceInput
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "OM-Namespace", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithLocation("simple", false, "OM-Namespace", runtime.ParamLocationHeader, valueList[0], &NamespaceInput)
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "OM-Namespace", Err: err})
-			return
-		}
-
-		params.NamespaceInput = &NamespaceInput
-
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.IngestEvents(w, r, params)
+		siw.Handler.IngestEvents(w, r)
 	}))
 
 	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
@@ -337,34 +228,8 @@ func (siw *ServerInterfaceWrapper) IngestEvents(w http.ResponseWriter, r *http.R
 func (siw *ServerInterfaceWrapper) ListMeters(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	var err error
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params ListMetersParams
-
-	headers := r.Header
-
-	// ------------- Optional header parameter "OM-Namespace" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("OM-Namespace")]; found {
-		var NamespaceInput NamespaceInput
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "OM-Namespace", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithLocation("simple", false, "OM-Namespace", runtime.ParamLocationHeader, valueList[0], &NamespaceInput)
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "OM-Namespace", Err: err})
-			return
-		}
-
-		params.NamespaceInput = &NamespaceInput
-
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ListMeters(w, r, params)
+		siw.Handler.ListMeters(w, r)
 	}))
 
 	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
@@ -378,34 +243,8 @@ func (siw *ServerInterfaceWrapper) ListMeters(w http.ResponseWriter, r *http.Req
 func (siw *ServerInterfaceWrapper) CreateMeter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	var err error
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params CreateMeterParams
-
-	headers := r.Header
-
-	// ------------- Optional header parameter "OM-Namespace" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("OM-Namespace")]; found {
-		var NamespaceInput NamespaceInput
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "OM-Namespace", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithLocation("simple", false, "OM-Namespace", runtime.ParamLocationHeader, valueList[0], &NamespaceInput)
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "OM-Namespace", Err: err})
-			return
-		}
-
-		params.NamespaceInput = &NamespaceInput
-
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateMeter(w, r, params)
+		siw.Handler.CreateMeter(w, r)
 	}))
 
 	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
@@ -430,32 +269,8 @@ func (siw *ServerInterfaceWrapper) DeleteMeter(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params DeleteMeterParams
-
-	headers := r.Header
-
-	// ------------- Optional header parameter "OM-Namespace" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("OM-Namespace")]; found {
-		var NamespaceInput NamespaceInput
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "OM-Namespace", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithLocation("simple", false, "OM-Namespace", runtime.ParamLocationHeader, valueList[0], &NamespaceInput)
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "OM-Namespace", Err: err})
-			return
-		}
-
-		params.NamespaceInput = &NamespaceInput
-
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.DeleteMeter(w, r, meterIdOrSlug, params)
+		siw.Handler.DeleteMeter(w, r, meterIdOrSlug)
 	}))
 
 	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
@@ -480,32 +295,8 @@ func (siw *ServerInterfaceWrapper) GetMeter(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params GetMeterParams
-
-	headers := r.Header
-
-	// ------------- Optional header parameter "OM-Namespace" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("OM-Namespace")]; found {
-		var NamespaceInput NamespaceInput
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "OM-Namespace", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithLocation("simple", false, "OM-Namespace", runtime.ParamLocationHeader, valueList[0], &NamespaceInput)
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "OM-Namespace", Err: err})
-			return
-		}
-
-		params.NamespaceInput = &NamespaceInput
-
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetMeter(w, r, meterIdOrSlug, params)
+		siw.Handler.GetMeter(w, r, meterIdOrSlug)
 	}))
 
 	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
@@ -581,27 +372,6 @@ func (siw *ServerInterfaceWrapper) QueryMeter(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	headers := r.Header
-
-	// ------------- Optional header parameter "OM-Namespace" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("OM-Namespace")]; found {
-		var NamespaceInput NamespaceInput
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "OM-Namespace", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithLocation("simple", false, "OM-Namespace", runtime.ParamLocationHeader, valueList[0], &NamespaceInput)
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "OM-Namespace", Err: err})
-			return
-		}
-
-		params.NamespaceInput = &NamespaceInput
-
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.QueryMeter(w, r, meterIdOrSlug, params)
 	}))
@@ -628,47 +398,8 @@ func (siw *ServerInterfaceWrapper) ListMeterSubjects(w http.ResponseWriter, r *h
 		return
 	}
 
-	// Parameter object where we will unmarshal all parameters from the context
-	var params ListMeterSubjectsParams
-
-	headers := r.Header
-
-	// ------------- Optional header parameter "OM-Namespace" -------------
-	if valueList, found := headers[http.CanonicalHeaderKey("OM-Namespace")]; found {
-		var NamespaceInput NamespaceInput
-		n := len(valueList)
-		if n != 1 {
-			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "OM-Namespace", Count: n})
-			return
-		}
-
-		err = runtime.BindStyledParameterWithLocation("simple", false, "OM-Namespace", runtime.ParamLocationHeader, valueList[0], &NamespaceInput)
-		if err != nil {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "OM-Namespace", Err: err})
-			return
-		}
-
-		params.NamespaceInput = &NamespaceInput
-
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.ListMeterSubjects(w, r, meterIdOrSlug, params)
-	}))
-
-	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
-		handler = siw.HandlerMiddlewares[i](handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
-// CreateNamespace operation middleware
-func (siw *ServerInterfaceWrapper) CreateNamespace(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.CreateNamespace(w, r)
+		siw.Handler.ListMeterSubjects(w, r, meterIdOrSlug)
 	}))
 
 	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
@@ -814,9 +545,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v1/meters/{meterIdOrSlug}/subjects", wrapper.ListMeterSubjects)
-	})
-	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/v1/namespaces", wrapper.CreateNamespace)
 	})
 
 	return r

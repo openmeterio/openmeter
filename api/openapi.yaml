@@ -16,8 +16,6 @@ paths:
     post:
       description: Ingest events
       operationId: ingestEvents
-      parameters:
-        - $ref: "#/components/parameters/namespaceParam"
       requestBody:
         required: true
         content:
@@ -42,7 +40,6 @@ paths:
       description: Retrieve latest raw events.
       operationId: listEvents
       parameters:
-        - $ref: "#/components/parameters/namespaceParam"
         - name: limit
           in: query
           required: false
@@ -71,8 +68,6 @@ paths:
     get:
       description: List meters
       operationId: listMeters
-      parameters:
-        - $ref: "#/components/parameters/namespaceParam"
       tags:
         - Meters
       responses:
@@ -89,8 +84,6 @@ paths:
     post:
       description: Create meter
       operationId: createMeter
-      parameters:
-        - $ref: "#/components/parameters/namespaceParam"
       tags:
         - Meters
       requestBody:
@@ -117,7 +110,6 @@ paths:
       description: Get meter by slugs
       operationId: getMeter
       parameters:
-        - $ref: "#/components/parameters/namespaceParam"
         - $ref: "#/components/parameters/meterIdOrSlug"
       tags:
         - Meters
@@ -136,7 +128,6 @@ paths:
       description: Delete meter by slug
       operationId: deleteMeter
       parameters:
-        - $ref: "#/components/parameters/namespaceParam"
         - $ref: "#/components/parameters/meterIdOrSlug"
       tags:
         - Meters
@@ -156,7 +147,6 @@ paths:
       tags:
         - Meters
       parameters:
-        - $ref: "#/components/parameters/namespaceParam"
         - $ref: "#/components/parameters/meterIdOrSlug"
         - name: from
           in: query
@@ -253,7 +243,6 @@ paths:
       tags:
         - Meters
       parameters:
-        - $ref: "#/components/parameters/namespaceParam"
         - $ref: "#/components/parameters/meterIdOrSlug"
       responses:
         "200":
@@ -266,21 +255,6 @@ paths:
                   type: string
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
-        default:
-          $ref: "#/components/responses/UnexpectedProblemResponse"
-  /api/v1/namespaces:
-    post:
-      description: Create namespace
-      operationId: createNamespace
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Namespace"
-      responses:
-        "201":
-          description: Created
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
 
@@ -506,15 +480,6 @@ components:
           pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
           minLength: 1
           maxLength: 63
-    Namespace:
-      type: object
-      required:
-        - namespace
-      properties:
-        namespace:
-          type: string
-          description: A namespace
-          example: my-namesapce
 
   parameters:
     meterIdOrSlug:
@@ -524,14 +489,6 @@ components:
       required: true
       schema:
         $ref: "#/components/schemas/IdOrSlug"
-    namespaceParam:
-      name: OM-Namespace
-      description: Optional namespace
-      in: header
-      x-go-name: NamespaceInput
-      schema:
-        type: string
-        pattern: "^[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*$"
 
   responses:
     BadRequestProblemResponse:

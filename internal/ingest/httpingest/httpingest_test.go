@@ -14,10 +14,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/namespace"
 )
+
+var namespaceManager, _ = namespace.NewManager(namespace.ManagerConfig{
+	DefaultNamespace: "test",
+})
 
 // Wrap the handler so we can set the namespace with `httptest“
 type MockHandler struct {
@@ -25,15 +28,14 @@ type MockHandler struct {
 }
 
 func (h MockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	namespace := "test"
-	h.handler.ServeHTTP(w, r, api.IngestEventsParams{NamespaceInput: &namespace})
+	h.handler.ServeHTTP(w, r, namespaceManager.GetDefaultNamespace())
 }
 
 func TestHandler(t *testing.T) {
 	collector := ingest.NewInMemoryCollector()
 	httpHandler, err := NewHandler(HandlerConfig{
 		Collector:        collector,
-		NamespaceManager: &namespace.Manager{},
+		NamespaceManager: namespaceManager,
 	})
 	require.NoError(t, err)
 	handler := MockHandler{
@@ -77,7 +79,7 @@ func TestBatchHandler(t *testing.T) {
 	collector := ingest.NewInMemoryCollector()
 	httpHandler, err := NewHandler(HandlerConfig{
 		Collector:        collector,
-		NamespaceManager: &namespace.Manager{},
+		NamespaceManager: namespaceManager,
 	})
 	require.NoError(t, err)
 

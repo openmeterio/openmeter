@@ -43,7 +43,7 @@ func NewHandler(config HandlerConfig) (*Handler, error) {
 	return &handler, nil
 }
 
-func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, params api.IngestEventsParams) {
+func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, namespace string) {
 	logger := h.getLogger()
 
 	contentType := r.Header.Get("Content-Type")
@@ -51,9 +51,9 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, params api.In
 	var err error
 	switch contentType {
 	case "application/cloudevents+json":
-		err = h.processSingleRequest(w, r, params)
+		err = h.processSingleRequest(w, r, namespace)
 	case "application/cloudevents-batch+json":
-		err = h.processBatchRequest(w, r, params)
+		err = h.processBatchRequest(w, r, namespace)
 	default:
 		// this should never happen
 		err = errors.New("invalid content type: " + contentType)
@@ -70,7 +70,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, params api.In
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h Handler) processBatchRequest(w http.ResponseWriter, r *http.Request, params api.IngestEventsParams) error {
+func (h Handler) processBatchRequest(w http.ResponseWriter, r *http.Request, namespace string) error {
 	var events api.IngestEventsApplicationCloudeventsBatchPlusJSONBody
 
 	err := json.NewDecoder(r.Body).Decode(&events)
@@ -79,7 +79,7 @@ func (h Handler) processBatchRequest(w http.ResponseWriter, r *http.Request, par
 	}
 
 	for _, event := range events {
-		err = h.processEvent(r.Context(), event, params)
+		err = h.processEvent(r.Context(), event, namespace)
 		if err != nil {
 			return err
 		}
@@ -88,7 +88,7 @@ func (h Handler) processBatchRequest(w http.ResponseWriter, r *http.Request, par
 	return nil
 }
 
-func (h Handler) processSingleRequest(w http.ResponseWriter, r *http.Request, params api.IngestEventsParams) error {
+func (h Handler) processSingleRequest(w http.ResponseWriter, r *http.Request, namespace string) error {
 	var event api.IngestEventsApplicationCloudeventsPlusJSONRequestBody
 
 	err := json.NewDecoder(r.Body).Decode(&event)
@@ -96,7 +96,7 @@ func (h Handler) processSingleRequest(w http.ResponseWriter, r *http.Request, pa
 		return fmt.Errorf("parsing event: %w", err)
 	}
 
-	err = h.processEvent(r.Context(), event, params)
+	err = h.processEvent(r.Context(), event, namespace)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func (h Handler) processSingleRequest(w http.ResponseWriter, r *http.Request, pa
 	return nil
 }
 
-func (h Handler) processEvent(ctx context.Context, event event.Event, params api.IngestEventsParams) error {
+func (h Handler) processEvent(ctx context.Context, event event.Event, namespace string) error {
 	logger := h.getLogger()
 
 	logger = logger.With(
@@ -116,11 +116,6 @@ func (h Handler) processEvent(ctx context.Context, event event.Event, params api
 	if event.Time().IsZero() {
 		logger.DebugContext(ctx, "event does not have a timestamp")
 		event.SetTime(time.Now().UTC())
-	}
-
-	namespace := h.config.NamespaceManager.GetDefaultNamespace()
-	if params.NamespaceInput != nil {
-		namespace = *params.NamespaceInput
 	}
 
 	err := h.config.Collector.Ingest(ctx, namespace, event)
