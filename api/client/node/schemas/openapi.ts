@@ -145,7 +145,7 @@ export interface components {
       id?: string
       /**
        * @description A unique identifier for the meter.
-       * @example my-meter
+       * @example my_meter
        */
       slug: string
       /**
@@ -167,7 +167,7 @@ export interface components {
       /**
        * @description Named JSONPath expressions to extract the group by values from the event data.
        * @example {
-       *   "duration_ms": "$.duration_ms",
+       *   "method": "$.method",
        *   "path": "$.path"
        * }
        */
