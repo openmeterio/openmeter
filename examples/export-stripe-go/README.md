@@ -57,6 +57,6 @@ If you visit the subscription on the Stripe dashboard, you should see usage repo
 Check out the sample code's `app.ts` file in this repo to see how to report usage to Stripe.
 
 > **Note** OpenMeter collects usage in windows. The default window duration is hourly. In this example we round start and end dates to the closest OpenMeter windows.
-> For example if a subscription's billing period ends at 1:45 PM, we will only reported at 1 PM so usage occuring after 1PM will slip into the next billing cycle.
+> For example if a subscription's billing period ends at 1:45 PM, we will only report at 1 PM so usage occurring after 1PM will slip into the next billing cycle.
 > It depends on your use-case what window size makes sense for your application. In OpenMeter you can configure window sizes per meter.
 > **Note** In the sample code, we call Stripe's report API with `action=set` We do this to ensure idempotency so that no double reporting can happen.

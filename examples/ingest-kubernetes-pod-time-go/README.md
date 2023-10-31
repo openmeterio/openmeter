@@ -14,7 +14,7 @@ kubectl create clusterrolebinding default-view --clusterrole=view --serviceaccou
 ```
 
 If you plan to utilize this example in a production environment, it is crucial to ensure that only one instance of this code is running and that overreporting is avoided.
-Additionally, if your Kubernetes cluster runs a a large scale of pods, consider transforming this code into a `DaemonSet` where each instance runs on a single Kubernetes Node and manages Pods exclusively from that node to distribute load.
+Additionally, if your Kubernetes cluster runs a large scale of pods, consider transforming this code into a `DaemonSet` where each instance runs on a single Kubernetes Node and manages Pods exclusively from that node to distribute the load.
 
 ## Trying out locally
 
