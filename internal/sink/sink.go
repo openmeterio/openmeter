@@ -67,6 +67,8 @@ type SinkConfig struct {
 	// DeadletterTopicTemplate is the template used to create the deadletter topic name per namespace.
 	// It is a sprintf template with the namespace as the only argument.
 	DeadletterTopicTemplate string
+	// OnFlushSuccess is an optional lifecycle hook
+	OnFlushSuccess func(string, int64)
 }
 
 func NewSink(config SinkConfig) (*Sink, error) {
@@ -219,9 +221,14 @@ func (s *Sink) flush() error {
 
 // reportFlushMetrics reports metrics to OTel
 func (s *Sink) reportFlushMetrics(ctx context.Context, messages []SinkMessage) error {
+	namespacesReport := map[string]int64{}
+
 	for _, message := range messages {
 		namespaceAttr := attribute.String("namespace", message.Namespace)
 		statusAttr := attribute.String("status", "success")
+
+		// Count events per namespace
+		namespacesReport[message.Namespace]++
 
 		if message.Error != nil {
 			switch message.Error.ProcessingControl {
@@ -234,6 +241,12 @@ func (s *Sink) reportFlushMetrics(ctx context.Context, messages []SinkMessage) e
 			}
 		}
 		s.flushEventCounter.Add(ctx, 1, metric.WithAttributes(namespaceAttr, statusAttr))
+	}
+
+	if s.config.OnFlushSuccess != nil {
+		for namespace, count := range namespacesReport {
+			s.config.OnFlushSuccess(namespace, count)
+		}
 	}
 
 	return nil
