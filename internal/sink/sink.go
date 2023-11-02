@@ -67,7 +67,7 @@ type SinkConfig struct {
 	// DeadletterTopicTemplate is the template used to create the deadletter topic name per namespace.
 	// It is a sprintf template with the namespace as the only argument.
 	DeadletterTopicTemplate string
-	// Optional, Lifecycle Events Hooks
+	// OnFlushSuccess is an optional lifecycle hook
 	OnFlushSuccess func(string, int64)
 }
 
