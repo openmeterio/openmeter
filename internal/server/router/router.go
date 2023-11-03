@@ -198,14 +198,9 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 		queryParams.GroupBy = *params.GroupBy
 	}
 
+	// Query connector
 	result, err := a.config.StreamingConnector.QueryMeter(r.Context(), namespace, meterIDOrSlug, queryParams)
 	if err != nil {
-		if _, ok := err.(*models.MeterNotFoundError); ok {
-			logger.Warn("meter not found", "error", err)
-			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
-			return
-		}
-
 		logger.Error("connector", "error", err)
 		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
 		return
