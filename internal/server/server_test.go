@@ -12,12 +12,10 @@ import (
 	"time"
 
 	"github.com/cloudevents/sdk-go/v2/event"
-	cloudevents "github.com/cloudevents/sdk-go/v2/event"
 	"github.com/go-chi/chi/v5"
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/server/router"
@@ -75,7 +73,7 @@ func (c *MockConnector) ListMeterSubjects(ctx context.Context, namespace string,
 
 type MockHandler struct{}
 
-func (h MockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, params api.IngestEventsParams) {
+func (h MockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, namespace string) {
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -126,8 +124,8 @@ func TestRoutes(t *testing.T) {
 				method:      http.MethodPost,
 				path:        "/api/v1/events",
 				contentType: "application/cloudevents+json",
-				body: func() *cloudevents.Event {
-					e := cloudevents.New()
+				body: func() *event.Event {
+					e := event.New()
 					e.SetID("test-1")
 					e.SetType("type")
 					e.SetSubject("subject")
@@ -148,21 +146,7 @@ func TestRoutes(t *testing.T) {
 			},
 			res: testResponse{
 				status: http.StatusOK,
-				body:   []cloudevents.Event{mockEvent},
-			},
-		},
-		{
-			name: "create namespace",
-			req: testRequest{
-				method:      http.MethodPost,
-				path:        "/api/v1/namespaces",
-				contentType: "application/json",
-				body: api.Namespace{
-					Namespace: "test",
-				},
-			},
-			res: testResponse{
-				status: http.StatusCreated,
+				body:   []event.Event{mockEvent},
 			},
 		},
 		{
@@ -193,16 +177,7 @@ func TestRoutes(t *testing.T) {
 				},
 			},
 			res: testResponse{
-				status: http.StatusOK,
-				body: &models.Meter{
-					Slug:          "meter3",
-					Description:   "API Network Traffic",
-					ValueProperty: "$.bytes",
-					EventType:     "api-calls",
-					Aggregation:   models.MeterAggregationSum,
-					GroupBy:       map[string]string{"path": "$.path", "method": "$.method"},
-					WindowSize:    models.WindowSizeHour,
-				},
+				status: http.StatusNotImplemented,
 			},
 		},
 		{
@@ -223,7 +198,7 @@ func TestRoutes(t *testing.T) {
 				path:   "/api/v1/meters/" + mockMeters[0].Slug,
 			},
 			res: testResponse{
-				status: http.StatusNoContent,
+				status: http.StatusNotImplemented,
 			},
 		},
 		{
