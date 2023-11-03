@@ -164,16 +164,6 @@ func (d deleteMeterView) toSQL() (string, []interface{}) {
 	return fmt.Sprintf("DROP VIEW %s", viewName), nil
 }
 
-type describeMeterView struct {
-	Database      string
-	MeterViewName string
-}
-
-func (d describeMeterView) toSQL() (string, []interface{}) {
-	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
-	return fmt.Sprintf("DESCRIBE %s", viewName), nil
-}
-
 type queryMeterView struct {
 	Database       string
 	MeterViewName  string

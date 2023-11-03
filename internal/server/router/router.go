@@ -162,26 +162,31 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 	logger := slog.With("operation", "queryMeter", "id", meterIDOrSlug, "params", params)
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
-	// Set defaults if meter is found in static config and params are not set
+	// Get meter
 	meter, err := a.config.Meters.GetMeterByIDOrSlug(r.Context(), namespace, meterIDOrSlug)
-	if err != nil { // TODO: proper error handling
-		if params.Aggregation == nil {
-			params.Aggregation = &meter.Aggregation
+	if err != nil {
+		if _, ok := err.(*models.MeterNotFoundError); ok {
+			logger.Warn("meter not found", "error", err)
+			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
+			return
 		}
-	}
 
-	// Validate parameters
-	if err := validateQueryMeterParams(params); err != nil {
-		logger.Warn("invalid parameters", "error", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		logger.Error("get meter", "error", err)
+		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
 		return
 	}
 
+	a.QueryMeterWithMeter(w, r, logger, meter, params)
+}
+
+// QueryMeter queries the values stored for a meter.
+func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, logger *slog.Logger, meter models.Meter, params api.QueryMeterParams) {
+	// Query Params
 	queryParams := &streaming.QueryParams{
 		From:        params.From,
 		To:          params.To,
-		Aggregation: params.Aggregation,
 		WindowSize:  params.WindowSize,
+		Aggregation: meter.Aggregation,
 	}
 
 	if params.Subject != nil {
@@ -192,14 +197,15 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 		queryParams.GroupBy = *params.GroupBy
 	}
 
-	result, err := a.config.StreamingConnector.QueryMeter(r.Context(), namespace, meterIDOrSlug, queryParams)
-	if err != nil {
-		if _, ok := err.(*models.MeterNotFoundError); ok {
-			logger.Warn("meter not found", "error", err)
-			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
-			return
-		}
+	if err := queryParams.Validate(); err != nil {
+		logger.Warn("invalid parameters", "error", err)
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		return
+	}
 
+	// Query connector
+	result, err := a.config.StreamingConnector.QueryMeter(r.Context(), meter.Namespace, meter.Slug, queryParams)
+	if err != nil {
 		logger.Error("connector", "error", err)
 		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
 		return
@@ -239,28 +245,10 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 	}
 
 	if mediatype == "text/csv" {
-		resp.RenderCSV(w, r, queryParams.GroupBy, meterIDOrSlug)
+		resp.RenderCSV(w, r, queryParams.GroupBy, meter.Slug)
 	} else {
 		_ = render.Render(w, r, resp)
 	}
-}
-
-func validateQueryMeterParams(params api.QueryMeterParams) error {
-	if params.From != nil && params.To != nil && params.From.After(*params.To) {
-		return errors.New("from must be before to")
-	}
-
-	if params.WindowSize != nil {
-		windowDuration := params.WindowSize.Duration()
-		if params.From != nil && params.From.Truncate(windowDuration) != *params.From {
-			return errors.New("from must be aligned to window size")
-		}
-		if params.To != nil && params.To.Truncate(windowDuration) != *params.To {
-			return errors.New("to must be aligned to window size")
-		}
-	}
-
-	return nil
 }
 
 // QueryMeterResponse is returned by the QueryMeter endpoint.
