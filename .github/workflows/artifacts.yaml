@@ -28,7 +28,7 @@ permissions:
 jobs:
   container-image:
     name: Container image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
 
     strategy:
       fail-fast: false
