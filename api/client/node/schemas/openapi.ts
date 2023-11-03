@@ -30,10 +30,6 @@ export interface paths {
     /** @description List meter subjects */
     get: operations['listMeterSubjects']
   }
-  '/api/v1/namespaces': {
-    /** @description Create namespace */
-    post: operations['createNamespace']
-  }
 }
 
 export type webhooks = Record<string, never>
@@ -196,13 +192,6 @@ export interface components {
       } | null
     }
     IdOrSlug: string
-    Namespace: {
-      /**
-       * @description A namespace
-       * @example my-namesapce
-       */
-      namespace: string
-    }
   }
   responses: {
     /** @description Bad Request */
@@ -239,8 +228,6 @@ export interface components {
   parameters: {
     /** @description A unique identifier for the meter. */
     meterIdOrSlug: components['schemas']['IdOrSlug']
-    /** @description Optional namespace */
-    namespaceParam?: string
   }
   requestBodies: never
   headers: never
@@ -259,9 +246,6 @@ export interface operations {
         /** @description Number of events to return. */
         limit?: number
       }
-      header?: {
-        'OM-Namespace'?: components['parameters']['namespaceParam']
-      }
     }
     responses: {
       /** @description Events response */
@@ -276,11 +260,6 @@ export interface operations {
   }
   /** @description Ingest events */
   ingestEvents: {
-    parameters: {
-      header?: {
-        'OM-Namespace'?: components['parameters']['namespaceParam']
-      }
-    }
     requestBody: {
       content: {
         'application/cloudevents+json': components['schemas']['Event']
@@ -298,11 +277,6 @@ export interface operations {
   }
   /** @description List meters */
   listMeters: {
-    parameters: {
-      header?: {
-        'OM-Namespace'?: components['parameters']['namespaceParam']
-      }
-    }
     responses: {
       /** @description Meters response */
       200: {
@@ -315,11 +289,6 @@ export interface operations {
   }
   /** @description Create meter */
   createMeter: {
-    parameters: {
-      header?: {
-        'OM-Namespace'?: components['parameters']['namespaceParam']
-      }
-    }
     requestBody: {
       content: {
         'application/json': components['schemas']['Meter']
@@ -340,9 +309,6 @@ export interface operations {
   /** @description Get meter by slugs */
   getMeter: {
     parameters: {
-      header?: {
-        'OM-Namespace'?: components['parameters']['namespaceParam']
-      }
       path: {
         meterIdOrSlug: components['parameters']['meterIdOrSlug']
       }
@@ -361,9 +327,6 @@ export interface operations {
   /** @description Delete meter by slug */
   deleteMeter: {
     parameters: {
-      header?: {
-        'OM-Namespace'?: components['parameters']['namespaceParam']
-      }
       path: {
         meterIdOrSlug: components['parameters']['meterIdOrSlug']
       }
@@ -407,9 +370,6 @@ export interface operations {
         /** @description If not specified a single aggregate will be returned for each subject and time window. */
         groupBy?: string[]
       }
-      header?: {
-        'OM-Namespace'?: components['parameters']['namespaceParam']
-      }
       path: {
         meterIdOrSlug: components['parameters']['meterIdOrSlug']
       }
@@ -436,9 +396,6 @@ export interface operations {
   /** @description List meter subjects */
   listMeterSubjects: {
     parameters: {
-      header?: {
-        'OM-Namespace'?: components['parameters']['namespaceParam']
-      }
       path: {
         meterIdOrSlug: components['parameters']['meterIdOrSlug']
       }
@@ -451,21 +408,6 @@ export interface operations {
         }
       }
       400: components['responses']['BadRequestProblemResponse']
-      default: components['responses']['UnexpectedProblemResponse']
-    }
-  }
-  /** @description Create namespace */
-  createNamespace: {
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['Namespace']
-      }
-    }
-    responses: {
-      /** @description Created */
-      201: {
-        content: never
-      }
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
