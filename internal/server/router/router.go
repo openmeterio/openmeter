@@ -162,12 +162,18 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 	logger := slog.With("operation", "queryMeter", "id", meterIDOrSlug, "params", params)
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
-	// Set defaults if meter is found in static config and params are not set
+	// Get meter
 	meter, err := a.config.Meters.GetMeterByIDOrSlug(r.Context(), namespace, meterIDOrSlug)
-	if err != nil { // TODO: proper error handling
-		if params.Aggregation == nil {
-			params.Aggregation = &meter.Aggregation
+	if err != nil {
+		if _, ok := err.(*models.MeterNotFoundError); ok {
+			logger.Warn("meter not found", "error", err)
+			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
+			return
 		}
+
+		logger.Error("get meter", "error", err)
+		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+		return
 	}
 
 	// Validate parameters
@@ -180,8 +186,8 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 	queryParams := &streaming.QueryParams{
 		From:        params.From,
 		To:          params.To,
-		Aggregation: params.Aggregation,
 		WindowSize:  params.WindowSize,
+		Aggregation: meter.Aggregation,
 	}
 
 	if params.Subject != nil {

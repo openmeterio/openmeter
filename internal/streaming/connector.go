@@ -19,7 +19,7 @@ type QueryParams struct {
 	Subject        []string
 	GroupBySubject bool
 	GroupBy        []string
-	Aggregation    *models.MeterAggregation
+	Aggregation    models.MeterAggregation
 	WindowSize     *models.WindowSize
 }
 

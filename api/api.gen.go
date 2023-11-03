@@ -45,6 +45,27 @@ type WindowSize = models.WindowSize
 // MeterIdOrSlug defines model for meterIdOrSlug.
 type MeterIdOrSlug = IdOrSlug
 
+<<<<<<< HEAD
+=======
+// NamespaceInput defines model for namespaceParam.
+type NamespaceInput = string
+
+// QueryFrom defines model for queryFrom.
+type QueryFrom = time.Time
+
+// QueryGroupBy defines model for queryGroupBy.
+type QueryGroupBy = []string
+
+// QuerySubject defines model for querySubject.
+type QuerySubject = []string
+
+// QueryTo defines model for queryTo.
+type QueryTo = time.Time
+
+// QueryWindowSize defines model for queryWindowSize.
+type QueryWindowSize = WindowSize
+
+>>>>>>> 4d10cc1 (feat(api): remove aggregation from query)
 // BadRequestProblemResponse A Problem Details object (RFC 7807)
 type BadRequestProblemResponse = Problem
 
@@ -71,24 +92,32 @@ type QueryMeterParams struct {
 	// From Start date-time in RFC 3339 format in UTC timezone.
 	// Must be aligned with the window size.
 	// Inclusive.
-	From *time.Time `form:"from,omitempty" json:"from,omitempty"`
+	From *QueryFrom `form:"from,omitempty" json:"from,omitempty"`
 
 	// To End date-time in RFC 3339 format in UTC timezone.
 	// Must be aligned with the window size.
 	// Inclusive.
-	To *time.Time `form:"to,omitempty" json:"to,omitempty"`
+	To *QueryTo `form:"to,omitempty" json:"to,omitempty"`
 
 	// WindowSize If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
-	WindowSize *WindowSize `form:"windowSize,omitempty" json:"windowSize,omitempty"`
-
-	// Aggregation If not specified, OpenMeter will use the default aggregation type.
-	// As OpenMeter stores aggregates defined by meter config, passing a different aggregate can lead to inaccurate results.
-	// For example getting the MIN of SUMs.
-	Aggregation *MeterAggregation `form:"aggregation,omitempty" json:"aggregation,omitempty"`
-	Subject     *[]string         `form:"subject,omitempty" json:"subject,omitempty"`
+	WindowSize *QueryWindowSize `form:"windowSize,omitempty" json:"windowSize,omitempty"`
+	Subject    *QuerySubject    `form:"subject,omitempty" json:"subject,omitempty"`
 
 	// GroupBy If not specified a single aggregate will be returned for each subject and time window.
+<<<<<<< HEAD
 	GroupBy *[]string `form:"groupBy,omitempty" json:"groupBy,omitempty"`
+=======
+	GroupBy *QueryGroupBy `form:"groupBy,omitempty" json:"groupBy,omitempty"`
+
+	// OMNamespace Optional namespace
+	NamespaceInput *NamespaceInput `json:"OM-Namespace,omitempty"`
+}
+
+// ListMeterSubjectsParams defines parameters for ListMeterSubjects.
+type ListMeterSubjectsParams struct {
+	// OMNamespace Optional namespace
+	NamespaceInput *NamespaceInput `json:"OM-Namespace,omitempty"`
+>>>>>>> 4d10cc1 (feat(api): remove aggregation from query)
 }
 
 // IngestEventsApplicationCloudeventsPlusJSONRequestBody defines body for IngestEvents for application/cloudevents+json ContentType.
@@ -345,14 +374,6 @@ func (siw *ServerInterfaceWrapper) QueryMeter(w http.ResponseWriter, r *http.Req
 	err = runtime.BindQueryParameter("form", true, false, "windowSize", r.URL.Query(), &params.WindowSize)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "windowSize", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "aggregation" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "aggregation", r.URL.Query(), &params.Aggregation)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "aggregation", Err: err})
 		return
 	}
 

@@ -100,25 +100,6 @@ func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, 
 		return nil, fmt.Errorf("namespace is required")
 	}
 
-	meter, err := c.config.Meters.GetMeterByIDOrSlug(ctx, namespace, meterSlug)
-	if err == nil { // TODO: do proper error handling
-		if params.Aggregation == nil {
-			params.Aggregation = &meter.Aggregation
-		}
-	}
-
-	// ClickHouse connector requires aggregation type to be set
-	// If we don't have it we inspect the meter view in ClickHouse
-	// TODO: remove this once we have a proper meter store
-	if params.Aggregation == nil {
-		meterView, err := c.describeMeterView(ctx, namespace, meterSlug)
-		if err != nil {
-			return nil, err
-		}
-
-		params.Aggregation = &meterView.Aggregation
-	}
-
 	values, err := c.queryMeterView(ctx, namespace, meterSlug, params)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
@@ -334,14 +315,10 @@ func (c *ClickhouseConnector) describeMeterView(ctx context.Context, namespace s
 }
 
 func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]*models.MeterValue, error) {
-	if params.Aggregation == nil {
-		return nil, fmt.Errorf("aggregation is required")
-	}
-
 	queryMeter := queryMeterView{
 		Database:       c.config.Database,
 		MeterViewName:  getMeterViewNameBySlug(namespace, meterSlug),
-		Aggregation:    *params.Aggregation,
+		Aggregation:    params.Aggregation,
 		From:           params.From,
 		To:             params.To,
 		Subject:        params.Subject,
