@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"regexp"
 	"strings"
 	"time"
 
@@ -21,9 +20,6 @@ var (
 	prefix          = "om"
 	eventsTableName = "events"
 )
-
-// List of accepted aggregate functions: https://clickhouse.com/docs/en/sql-reference/aggregate-functions/reference
-var aggregationRegexp = regexp.MustCompile(`^AggregateFunction\((avg|sum|min|max|count), Float64\)$`)
 
 // ClickhouseConnector implements `ingest.Connector“ and `namespace.Handler interfaces.
 type ClickhouseConnector struct {
@@ -258,60 +254,6 @@ func (c *ClickhouseConnector) deleteMeterView(ctx context.Context, namespace str
 	}
 
 	return nil
-}
-
-func (c *ClickhouseConnector) describeMeterView(ctx context.Context, namespace string, meterSlug string) (*MeterView, error) {
-	query := describeMeterView{
-		Database:      c.config.Database,
-		MeterViewName: getMeterViewNameBySlug(namespace, meterSlug),
-	}
-	sql, args := query.toSQL()
-	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
-	if err != nil {
-		if strings.Contains(err.Error(), "code: 60") {
-			return nil, &models.MeterNotFoundError{MeterSlug: meterSlug}
-		}
-
-		return nil, fmt.Errorf("describe meter view: %w", err)
-	}
-
-	// get columns and types
-	meterView := &MeterView{
-		Slug: meterSlug,
-	}
-	for rows.Next() {
-		var (
-			colName string
-			colType string
-			ignore  string
-		)
-
-		if err = rows.Scan(&colName, &colType, &ignore, &ignore, &ignore, &ignore, &ignore); err != nil {
-			return nil, err
-		}
-
-		if colName == "value" {
-			// Parse aggregation type
-			tmp := aggregationRegexp.FindStringSubmatch(colType)
-			if len(tmp) != 2 || tmp[1] == "" {
-				// This should never happen, if it happens it means the view changed fundamanetally
-				return nil, fmt.Errorf("aggregation type not found in regex: %s", colType)
-			}
-
-			// Validate aggregation type
-			aggregationStr := strings.ToUpper(tmp[1])
-			if ok := models.MeterAggregation("").IsValid(aggregationStr); !ok {
-				return nil, fmt.Errorf("invalid aggregation type: %s", aggregationStr)
-			}
-			meterView.Aggregation = models.MeterAggregation(aggregationStr)
-		}
-
-		if colName != "windowstart" && colName != "windowend" && colName != "subject" && colName != "value" {
-			meterView.GroupBy = append(meterView.GroupBy, colName)
-		}
-	}
-
-	return meterView, nil
 }
 
 func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]*models.MeterValue, error) {

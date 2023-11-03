@@ -166,33 +166,6 @@ func TestDeleteMeterView(t *testing.T) {
 	}
 }
 
-func TestDescribeMeterView(t *testing.T) {
-	tests := []struct {
-		data     describeMeterView
-		wantSQL  string
-		wantArgs []interface{}
-	}{
-		{
-			data: describeMeterView{
-				Database:      "openmeter",
-				MeterViewName: "meter_meter1",
-			},
-			wantSQL:  "DESCRIBE openmeter.meter_meter1",
-			wantArgs: nil,
-		},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-		t.Run("", func(t *testing.T) {
-			gotSql, gotArgs := tt.data.toSQL()
-
-			assert.Equal(t, tt.wantSQL, gotSql)
-			assert.Equal(t, tt.wantArgs, gotArgs)
-		})
-	}
-}
-
 func TestQueryMeterView(t *testing.T) {
 	subject := "subject1"
 	from, _ := time.Parse(time.RFC3339, "2023-01-01T00:00:00.001Z")
