@@ -176,13 +176,12 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 		return
 	}
 
-	// Validate parameters
-	if err := validateQueryMeterParams(params); err != nil {
-		logger.Warn("invalid parameters", "error", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
-		return
-	}
+	a.QueryMeterWithMeter(w, r, logger, meter, params)
+}
 
+// QueryMeter queries the values stored for a meter.
+func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, logger *slog.Logger, meter models.Meter, params api.QueryMeterParams) {
+	// Query Params
 	queryParams := &streaming.QueryParams{
 		From:        params.From,
 		To:          params.To,
@@ -198,8 +197,14 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 		queryParams.GroupBy = *params.GroupBy
 	}
 
+	if err := queryParams.Validate(); err != nil {
+		logger.Warn("invalid parameters", "error", err)
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		return
+	}
+
 	// Query connector
-	result, err := a.config.StreamingConnector.QueryMeter(r.Context(), namespace, meterIDOrSlug, queryParams)
+	result, err := a.config.StreamingConnector.QueryMeter(r.Context(), meter.Namespace, meter.Slug, queryParams)
 	if err != nil {
 		logger.Error("connector", "error", err)
 		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
@@ -240,28 +245,10 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 	}
 
 	if mediatype == "text/csv" {
-		resp.RenderCSV(w, r, queryParams.GroupBy, meterIDOrSlug)
+		resp.RenderCSV(w, r, queryParams.GroupBy, meter.Slug)
 	} else {
 		_ = render.Render(w, r, resp)
 	}
-}
-
-func validateQueryMeterParams(params api.QueryMeterParams) error {
-	if params.From != nil && params.To != nil && params.From.After(*params.To) {
-		return errors.New("from must be before to")
-	}
-
-	if params.WindowSize != nil {
-		windowDuration := params.WindowSize.Duration()
-		if params.From != nil && params.From.Truncate(windowDuration) != *params.From {
-			return errors.New("from must be aligned to window size")
-		}
-		if params.To != nil && params.To.Truncate(windowDuration) != *params.To {
-			return errors.New("to must be aligned to window size")
-		}
-	}
-
-	return nil
 }
 
 // QueryMeterResponse is returned by the QueryMeter endpoint.
