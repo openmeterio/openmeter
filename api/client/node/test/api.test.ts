@@ -73,33 +73,6 @@ describe('sdk', () => {
       })
     })
 
-    describe('values', () => {
-      it('should get meter values', async ({ openmeter }) => {
-        const { windowSize, data } = await openmeter.meters.values(
-          mockMeter.slug
-        )
-        expect(windowSize).toBe(WindowSize.HOUR)
-        expect(data).toEqual([mockMeterValue])
-      })
-
-      it('should get meter values (with params)', async ({ openmeter }) => {
-        const subject = 'user-1'
-        const from = new Date('2021-01-01')
-        const to = new Date('2021-01-02')
-        const windowSize = WindowSize.HOUR
-
-        const data = await openmeter.meters.values(mockMeter.slug, {
-          subject,
-          from,
-          to,
-          windowSize,
-        })
-
-        expect(data.windowSize).toBe(WindowSize.HOUR)
-        expect(data.data).toEqual([mockMeterValue])
-      })
-    })
-
     describe('query', () => {
       it('should query meter', async ({ openmeter }) => {
         const { windowSize, data, from, to } = await openmeter.meters.query(

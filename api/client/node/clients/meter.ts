@@ -77,13 +77,9 @@ export type MeterQueryParams = {
   groupBy?: string[]
 }
 
-export type MeterValuesResponse =
-  paths['/api/v1/meters/{meterIdOrSlug}/values']['get']['responses']['200']['content']['application/json']
-
 export type MeterQueryResponse =
   paths['/api/v1/meters/{meterIdOrSlug}/query']['get']['responses']['200']['content']['application/json']
 
-export type MeterValue = components['schemas']['MeterValue']
 export type Meter = components['schemas']['Meter']
 export type WindowSizeType = components['schemas']['WindowSize']
 
@@ -115,26 +111,6 @@ export class MetersClient extends BaseClient {
   }
 
   /**
-   * Get aggregated values of a meter
-   * @deprecated Use `meters.query` instead
-   */
-  public async values(
-    slug: string,
-    params?: MeterValuesParams,
-    options?: RequestOptions
-  ): Promise<MeterValuesResponse> {
-    const searchParams = params
-      ? BaseClient.toURLSearchParams(params)
-      : undefined
-    return this.request<MeterValuesResponse>({
-      method: 'GET',
-      path: `/api/v1/meters/${slug}/values`,
-      searchParams,
-      options,
-    })
-  }
-
-  /**
    * Query a meter
    */
   public async query(
@@ -145,7 +121,7 @@ export class MetersClient extends BaseClient {
     const searchParams = params
       ? BaseClient.toURLSearchParams(params)
       : undefined
-    return this.request<MeterValuesResponse>({
+    return this.request<MeterQueryResponse>({
       method: 'GET',
       path: `/api/v1/meters/${slug}/query`,
       searchParams,
