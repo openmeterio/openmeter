@@ -1235,8 +1235,8 @@ github.com/heetch/avro v0.4.4/go.mod h1:c0whqijPh/C+RwnXzAHFit01tdtf7gMeEHYSbICx
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
 github.com/huandu/go-assert v1.1.5 h1:fjemmA7sSfYHJD7CUqs9qTwwfdNAx7/j2/ZlHXzNB3c=
 github.com/huandu/go-assert v1.1.5/go.mod h1:yOLvuqZwmcHIC5rIzrBhT7D3Q9c3GFnd0JrPVhn/06U=
-github.com/huandu/go-sqlbuilder v1.22.0 h1:69SpvXvhAoeb7y5uERUCB0/Ck09DwQ6ccYovejm1zHA=
-github.com/huandu/go-sqlbuilder v1.22.0/go.mod h1:nUVmMitjOmn/zacMLXT0d3Yd3RHoO2K+vy906JzqxMI=
+github.com/huandu/go-sqlbuilder v1.23.0 h1:7QAKFefUy2vOG8fbqdx/FNLz87JC0fVGtblb2xztd4s=
+github.com/huandu/go-sqlbuilder v1.23.0/go.mod h1:nUVmMitjOmn/zacMLXT0d3Yd3RHoO2K+vy906JzqxMI=
 github.com/huandu/xstrings v1.3.2 h1:L18LIDzqlW6xN2rEkpdV8+oL/IXWJ1APd+vsdYy4Wdw=
 github.com/huandu/xstrings v1.3.2/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq4ovT0aE=
 github.com/iancoleman/orderedmap v0.0.0-20190318233801-ac98e3ecb4b0/go.mod h1:N0Wam8K1arqPXNWjMo21EXnBPOPp36vB07FNRdD2geA=
