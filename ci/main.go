@@ -80,7 +80,7 @@ func (m *Lint) Go() *Container {
 
 func (m *Lint) Openapi() *Container {
 	return dag.Spectral().
-		WithVersion(spectralVersion).
+		FromVersion(spectralVersion).
 		WithSource(projectDir()).
 		Lint("api/openapi.yaml")
 }
