@@ -8,6 +8,8 @@
     "api/client/node/node_modules"
   ],
   "dependencies": [
-    "github.com/sagikazarmark/daggerverse/spectral@43acf5baf8f04bee099d45073d821c0e92b69710"
+    "github.com/sagikazarmark/daggerverse/go@8eef9c0086e4e32223f6386aabb70516730f1048",
+    "github.com/sagikazarmark/daggerverse/golangci-lint@864aba8b1a39e804860b603d733f7fd97f5fe8d8",
+    "github.com/sagikazarmark/daggerverse/spectral@93e56d3af8e970a95b877992d7ce2f6ae6c664c8"
   ]
 }
