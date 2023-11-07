@@ -196,6 +196,9 @@ func (m *Meter) Validate() error {
 	if m.Slug == "" {
 		return errors.New("meter slug is required")
 	}
+	if len(m.Slug) > 63 {
+		return errors.New("meter slug must be less than 64 characters")
+	}
 	if m.EventType == "" {
 		return errors.New("meter event type is required")
 	}

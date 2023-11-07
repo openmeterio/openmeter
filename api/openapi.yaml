@@ -425,8 +425,8 @@ components:
       oneOf:
         # id
         - type: string
-          minLength: 26
-          maxLength: 26
+          pattern: "^[0-9ABCDEFGHJKMNPQRSTVWXYZ]{26}$"
+          description: "ULID (Universally Unique Lexicographically Sortable Identifier)"
         # slug
         - type: string
           pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
