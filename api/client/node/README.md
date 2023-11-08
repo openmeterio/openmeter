@@ -104,6 +104,25 @@ List meter subjects.
 const subjects = await openmeter.meters.subjects('my-meter-slug')
 ```
 
+### Portal
+
+#### createToken
+
+Create subject specific tokens.
+Useful to build consumer dashboards.
+
+```ts
+const token = await openmeter.portal.createToken({ subject: 'customer-1' })
+```
+
+#### invalidateTokens
+
+Invalidate portal tokens for all or specific subjects.
+
+```ts
+await openmeter.portal.invalidateTokens()
+```
+
 ## Helpers
 
 ### Vercel AI SDK / Next.js

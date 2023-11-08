@@ -112,5 +112,15 @@ describe('sdk', () => {
         expect(subjects).toEqual([mockMeterValue.subject])
       })
     })
+
+    describe('portal', () => {
+      it('should create token', async ({ openmeter }) => {
+        const token = await openmeter.portal.createToken({ subject: 'customer-1' })
+        expect(token).toEqual({
+          subject: 'customer-1',
+          expiresAt: new Date('2023-01-01').toISOString(),
+        })
+      })
+    })
   })
 })
