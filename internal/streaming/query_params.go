@@ -26,16 +26,14 @@ func (p *QueryParams) Validate(meterWindowSize models.WindowSize) error {
 		}
 	}
 
+	// Check if times are UTC
 	if p.From != nil {
-		name, _ := p.From.Zone()
-		if name != time.UTC.String() {
+		if p.From.Location() != time.UTC {
 			return fmt.Errorf("from must be in utc")
 		}
 	}
-
 	if p.To != nil {
-		name, _ := p.To.Zone()
-		if name != time.UTC.String() {
+		if p.To.Location() != time.UTC {
 			return fmt.Errorf("to must be in utc")
 		}
 	}
