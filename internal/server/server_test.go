@@ -16,6 +16,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/server/router"
@@ -118,6 +119,7 @@ func TestRoutes(t *testing.T) {
 		req  testRequest
 		res  testResponse
 	}{
+		// Events
 		{
 			name: "ingest event",
 			req: testRequest{
@@ -149,6 +151,7 @@ func TestRoutes(t *testing.T) {
 				body:   []event.Event{mockEvent},
 			},
 		},
+		// Meters
 		{
 			name: "list meters",
 			req: testRequest{
@@ -290,6 +293,32 @@ func TestRoutes(t *testing.T) {
 			res: testResponse{
 				status: http.StatusOK,
 				body:   []string{"s1"},
+			},
+		},
+		// Portal
+		{
+			name: "create portal token",
+			req: testRequest{
+				method:      http.MethodPost,
+				path:        "/api/v1/portal/tokens",
+				contentType: "application/json",
+				body: api.PortalToken{
+					Subject: "customer-1",
+				},
+			},
+			res: testResponse{
+				status: http.StatusNotImplemented,
+			},
+		},
+		{
+			name: "create portal token",
+			req: testRequest{
+				method:      http.MethodPost,
+				path:        "/api/v1/portal/tokens/invalidate",
+				contentType: "application/json",
+			},
+			res: testResponse{
+				status: http.StatusNotImplemented,
 			},
 		},
 	}

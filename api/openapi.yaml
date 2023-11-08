@@ -209,6 +209,48 @@ paths:
           $ref: "#/components/responses/BadRequestProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
+  # Portal
+  /api/v1/portal/tokens:
+    post:
+      operationId: createPortalToken
+      tags:
+        - Portal
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PortalToken"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortalToken"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+  /api/v1/portal/tokens/invalidate:
+    post:
+      operationId: invalidatePortalTokens
+      tags:
+        - Portal
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subject:
+                  type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
 
 components:
   schemas:
@@ -419,6 +461,29 @@ components:
           type: object
           nullable: true
           additionalProperties:
+            type: string
+    PortalToken:
+      type: object
+      required:
+        - subject
+        - expiresAt
+        - token
+      properties:
+        subject:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+          readOnly: true
+        token:
+          type: string
+          readOnly: true
+        # Optional, if defined only the specified meters will be allowed
+        allowedMeterSlugs:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
             type: string
     IdOrSlug:
       type: string

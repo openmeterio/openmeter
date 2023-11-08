@@ -5,6 +5,8 @@ export const mockAgent = new MockAgent()
 mockAgent.disableNetConnect()
 
 const client = mockAgent.get('http://127.0.0.1:8888')
+
+/** Event */
 client
   .intercept({
     path: '/api/v1/events',
@@ -62,6 +64,7 @@ client
   })
   .reply(204)
 
+/** Portal */
 client
   .intercept({
     path: '/api/v1/meters',
@@ -89,56 +92,6 @@ client
       'Content-Type': 'application/json',
     },
   })
-
-/** Meter Values */
-client
-  .intercept({
-    path: `/api/v1/meters/${mockMeter.slug}/values`,
-    query: {},
-    method: 'GET',
-    headers: {
-      Accept: 'application/json',
-    },
-  })
-  .reply(
-    200,
-    {
-      windowSize: 'HOUR',
-      data: [mockMeterValue],
-    },
-    {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    }
-  )
-
-client
-  .intercept({
-    path: `/api/v1/meters/${mockMeter.slug}/values`,
-    query: {
-      subject: 'user-1',
-      from: new Date('2021-01-01').toISOString(),
-      to: new Date('2021-01-02').toISOString(),
-      windowSize: 'HOUR',
-    },
-    method: 'GET',
-    headers: {
-      Accept: 'application/json',
-    },
-  })
-  .reply(
-    200,
-    {
-      windowSize: 'HOUR',
-      data: [mockMeterValue],
-    },
-    {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    }
-  )
 
 /** Meter Query */
 client
@@ -209,3 +162,41 @@ client
       'Content-Type': 'application/json',
     },
   })
+
+/** Portal */
+client
+  .intercept({
+    path: '/api/v1/portal/tokens',
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      subject: 'customer-1',
+    }),
+  })
+  .reply(
+    201,
+    {
+      subject: 'customer-1',
+      expiresAt: new Date('2023-01-01'),
+    },
+    {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  )
+
+client
+  .intercept({
+    path: '/api/v1/portal/tokens/invalidate',
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({}),
+  })
+  .reply(204)
