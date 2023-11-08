@@ -21,11 +21,8 @@ type QueryParams struct {
 // Validate validates query params focusing on `from` and `to` being aligned with query and meter window sizes
 func (p *QueryParams) Validate(meterWindowSize models.WindowSize) error {
 	if p.From != nil && p.To != nil {
-		if p.From.After(*p.To) {
-			return errors.New("from must be before to")
-		}
-		if p.From.Equal(*p.To) {
-			return errors.New("from cannot be equal with to")
+		if !p.To.After(*p.From) {
+			return errors.New("to must be after from")
 		}
 	}
 

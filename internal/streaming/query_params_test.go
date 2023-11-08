@@ -29,7 +29,7 @@ func TestQueryParamsValidate(t *testing.T) {
 			paramTo:         "2023-01-01T00:00:00Z",
 			paramWindowSize: &queryWindowSizeMinute,
 			meterWindowSize: models.WindowSizeMinute,
-			want:            fmt.Errorf("from cannot be equal with to"),
+			want:            fmt.Errorf("to must be after from"),
 		},
 		{
 			name:            "should fail when from is before to",
@@ -37,7 +37,7 @@ func TestQueryParamsValidate(t *testing.T) {
 			paramTo:         "2023-01-01T00:00:00Z",
 			paramWindowSize: &queryWindowSizeMinute,
 			meterWindowSize: models.WindowSizeMinute,
-			want:            fmt.Errorf("from must be before to"),
+			want:            fmt.Errorf("to must be after from"),
 		},
 		{
 			name:            "should fail when from is not utc",
