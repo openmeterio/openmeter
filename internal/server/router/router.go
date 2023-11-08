@@ -187,7 +187,7 @@ func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, log
 		queryParams.GroupBy = *params.GroupBy
 	}
 
-	if err := queryParams.Validate(); err != nil {
+	if err := queryParams.Validate(meter.WindowSize); err != nil {
 		logger.Warn("invalid parameters", "error", err)
 		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
 		return
