@@ -173,10 +173,18 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, logger *slog.Logger, meter models.Meter, params api.QueryMeterParams) {
 	// Query Params
 	queryParams := &streaming.QueryParams{
-		From:        params.From,
-		To:          params.To,
 		WindowSize:  params.WindowSize,
 		Aggregation: meter.Aggregation,
+	}
+
+	if params.From != nil {
+		from := params.From.UTC()
+		queryParams.From = &from
+	}
+
+	if params.To != nil {
+		to := params.To.UTC()
+		queryParams.To = &to
 	}
 
 	if params.Subject != nil {

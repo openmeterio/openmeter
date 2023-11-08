@@ -40,6 +40,22 @@ func TestQueryParamsValidate(t *testing.T) {
 			want:            fmt.Errorf("from must be before to"),
 		},
 		{
+			name:            "should fail when from is not utc",
+			paramFrom:       "2023-01-01T00:00:00+01:00",
+			paramTo:         "2023-01-02T00:00:00Z",
+			paramWindowSize: &queryWindowSizeMinute,
+			meterWindowSize: models.WindowSizeMinute,
+			want:            fmt.Errorf("from must be in utc"),
+		},
+		{
+			name:            "should fail when to is not utc",
+			paramFrom:       "2023-01-01T00:00:00Z",
+			paramTo:         "2023-01-02T00:00:00+01:00",
+			paramWindowSize: &queryWindowSizeMinute,
+			meterWindowSize: models.WindowSizeMinute,
+			want:            fmt.Errorf("to must be in utc"),
+		},
+		{
 			name:            "should fail when querying on minute but meter is hour",
 			paramFrom:       "2023-01-01T00:00:00Z",
 			paramTo:         "2023-01-01T00:01:00Z",
