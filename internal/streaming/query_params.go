@@ -32,14 +32,26 @@ func (p *QueryParams) Validate(meterWindowSize models.WindowSize) error {
 	if p.WindowSize != nil {
 		err := isRoundedToWindowSize(*p.WindowSize, p.From, p.To)
 		if err != nil {
-			return fmt.Errorf("cannot query with %s: %w", *p.WindowSize, err)
+			return fmt.Errorf("cannot query with %s window size: %w", *p.WindowSize, err)
+		}
+
+		// Ensure query param window size is not smaller than meter window size
+		switch meterWindowSize {
+		case models.WindowSizeHour:
+			if p.WindowSize != nil && *p.WindowSize == models.WindowSizeMinute {
+				return fmt.Errorf("cannot query meter with window size %s on window size %s", meterWindowSize, *p.WindowSize)
+			}
+		case models.WindowSizeDay:
+			if p.WindowSize != nil && (*p.WindowSize == models.WindowSizeMinute || *p.WindowSize == models.WindowSizeHour) {
+				return fmt.Errorf("cannot query meter with window size %s on window size %s", meterWindowSize, *p.WindowSize)
+			}
 		}
 	}
 
 	// Ensure `from` and `to` aligns with meter aggregation window size
 	err := isRoundedToWindowSize(meterWindowSize, p.From, p.To)
 	if err != nil {
-		return fmt.Errorf("cannot query meter aggregating on %s: %w", meterWindowSize, err)
+		return fmt.Errorf("cannot query meter aggregating on %s window size: %w", meterWindowSize, err)
 	}
 
 	return nil
