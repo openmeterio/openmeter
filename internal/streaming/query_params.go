@@ -26,18 +26,6 @@ func (p *QueryParams) Validate(meterWindowSize models.WindowSize) error {
 		}
 	}
 
-	// Check if times are UTC
-	if p.From != nil {
-		if p.From.Location() != time.UTC {
-			return fmt.Errorf("from must be in utc")
-		}
-	}
-	if p.To != nil {
-		if p.To.Location() != time.UTC {
-			return fmt.Errorf("to must be in utc")
-		}
-	}
-
 	// Ensure `from` and `to` aligns with query param window size if any
 	if p.WindowSize != nil {
 		err := isRoundedToWindowSize(*p.WindowSize, p.From, p.To)
