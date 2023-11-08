@@ -202,6 +202,40 @@ def build_list_meter_subjects_request(meter_id_or_slug: str, **kwargs: Any) -> H
     return HttpRequest(method="GET", url=_url, headers=_headers, **kwargs)
 
 
+def build_create_portal_token_request(**kwargs: Any) -> HttpRequest:
+    _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+
+    content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+    accept = _headers.pop("Accept", "application/json, application/problem+json")
+
+    # Construct URL
+    _url = "/api/v1/portal/tokens"
+
+    # Construct headers
+    if content_type is not None:
+        _headers["Content-Type"] = _SERIALIZER.header("content_type", content_type, "str")
+    _headers["Accept"] = _SERIALIZER.header("accept", accept, "str")
+
+    return HttpRequest(method="POST", url=_url, headers=_headers, **kwargs)
+
+
+def build_invalidate_portal_tokens_request(**kwargs: Any) -> HttpRequest:
+    _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+
+    content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+    accept = _headers.pop("Accept", "application/problem+json")
+
+    # Construct URL
+    _url = "/api/v1/portal/tokens/invalidate"
+
+    # Construct headers
+    if content_type is not None:
+        _headers["Content-Type"] = _SERIALIZER.header("content_type", content_type, "str")
+    _headers["Accept"] = _SERIALIZER.header("accept", accept, "str")
+
+    return HttpRequest(method="POST", url=_url, headers=_headers, **kwargs)
+
+
 class ClientOperationsMixin(ClientMixinABC):
     @overload
     def ingest_events(  # pylint: disable=inconsistent-return-statements
@@ -1022,3 +1056,279 @@ class ClientOperationsMixin(ClientMixinABC):
             return cls(pipeline_response, cast(List[str], deserialized), {})  # type: ignore
 
         return cast(List[str], deserialized)  # type: ignore
+
+    @overload
+    def create_portal_token(
+        self, body: Optional[JSON] = None, *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        """create_portal_token.
+
+        :param body: Default value is None.
+        :type body: JSON
+        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "expiresAt": "2020-02-20 00:00:00",  # Required.
+                    "subject": "str",  # Required.
+                    "token": "str",  # Required.
+                    "allowedMeterSlugs": [
+                        "str"  # Optional.
+                    ]
+                }
+
+                # response body for status code(s): 200
+                response == {
+                    "expiresAt": "2020-02-20 00:00:00",  # Required.
+                    "subject": "str",  # Required.
+                    "token": "str",  # Required.
+                    "allowedMeterSlugs": [
+                        "str"  # Optional.
+                    ]
+                }
+        """
+
+    @overload
+    def create_portal_token(
+        self, body: Optional[IO] = None, *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        """create_portal_token.
+
+        :param body: Default value is None.
+        :type body: IO
+        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == {
+                    "expiresAt": "2020-02-20 00:00:00",  # Required.
+                    "subject": "str",  # Required.
+                    "token": "str",  # Required.
+                    "allowedMeterSlugs": [
+                        "str"  # Optional.
+                    ]
+                }
+        """
+
+    @distributed_trace
+    def create_portal_token(self, body: Optional[Union[JSON, IO]] = None, **kwargs: Any) -> JSON:
+        """create_portal_token.
+
+        :param body: Is either a JSON type or a IO type. Default value is None.
+        :type body: JSON or IO
+        :keyword content_type: Body Parameter content-type. Known values are: 'application/json'.
+         Default value is None.
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "expiresAt": "2020-02-20 00:00:00",  # Required.
+                    "subject": "str",  # Required.
+                    "token": "str",  # Required.
+                    "allowedMeterSlugs": [
+                        "str"  # Optional.
+                    ]
+                }
+
+                # response body for status code(s): 200
+                response == {
+                    "expiresAt": "2020-02-20 00:00:00",  # Required.
+                    "subject": "str",  # Required.
+                    "token": "str",  # Required.
+                    "allowedMeterSlugs": [
+                        "str"  # Optional.
+                    ]
+                }
+        """
+        error_map = {
+            401: ClientAuthenticationError,
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _params = kwargs.pop("params", {}) or {}
+
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        content_type = content_type or "application/json"
+        _json = None
+        _content = None
+        if isinstance(body, (IOBase, bytes)):
+            _content = body
+        else:
+            if body is not None:
+                _json = body
+            else:
+                _json = None
+
+        _request = build_create_portal_token_request(
+            content_type=content_type,
+            json=_json,
+            content=_content,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = self._client._pipeline.run(  # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @overload
+    def invalidate_portal_tokens(  # pylint: disable=inconsistent-return-statements
+        self, body: Optional[JSON] = None, *, content_type: str = "application/json", **kwargs: Any
+    ) -> None:
+        """invalidate_portal_tokens.
+
+        :param body: Default value is None.
+        :type body: JSON
+        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: None
+        :rtype: None
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "subject": "str"  # Optional.
+                }
+        """
+
+    @overload
+    def invalidate_portal_tokens(  # pylint: disable=inconsistent-return-statements
+        self, body: Optional[IO] = None, *, content_type: str = "application/json", **kwargs: Any
+    ) -> None:
+        """invalidate_portal_tokens.
+
+        :param body: Default value is None.
+        :type body: IO
+        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: None
+        :rtype: None
+        :raises ~azure.core.exceptions.HttpResponseError:
+        """
+
+    @distributed_trace
+    def invalidate_portal_tokens(  # pylint: disable=inconsistent-return-statements
+        self, body: Optional[Union[JSON, IO]] = None, **kwargs: Any
+    ) -> None:
+        """invalidate_portal_tokens.
+
+        :param body: Is either a JSON type or a IO type. Default value is None.
+        :type body: JSON or IO
+        :keyword content_type: Body Parameter content-type. Known values are: 'application/json'.
+         Default value is None.
+        :paramtype content_type: str
+        :return: None
+        :rtype: None
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "subject": "str"  # Optional.
+                }
+        """
+        error_map = {
+            401: ClientAuthenticationError,
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _params = kwargs.pop("params", {}) or {}
+
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[None] = kwargs.pop("cls", None)
+
+        content_type = content_type or "application/json"
+        _json = None
+        _content = None
+        if isinstance(body, (IOBase, bytes)):
+            _content = body
+        else:
+            if body is not None:
+                _json = body
+            else:
+                _json = None
+
+        _request = build_invalidate_portal_tokens_request(
+            content_type=content_type,
+            json=_json,
+            content=_content,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = self._client._pipeline.run(  # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [204]:
+            if _stream:
+                response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            raise HttpResponseError(response=response)
+
+        if cls:
+            return cls(pipeline_response, None, {})  # type: ignore
