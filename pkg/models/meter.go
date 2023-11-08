@@ -196,6 +196,11 @@ func (m *Meter) Validate() error {
 	if m.Slug == "" {
 		return errors.New("meter slug is required")
 	}
+	// FIXME: prefix materialized views to allow `events` as a meter slug
+	// `events` is a restricted name as it conflicts with the events table
+	if m.Slug == "events" {
+		return errors.New("meter slug cannot be `events`")
+	}
 	if len(m.Slug) > 63 {
 		return errors.New("meter slug must be less than 64 characters")
 	}
