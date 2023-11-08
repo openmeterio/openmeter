@@ -117,7 +117,7 @@ func TestQueryParamsValidate(t *testing.T) {
 			paramTo:         "2023-01-01T00:01:00Z",
 			paramWindowSize: &queryWindowSizeMinute,
 			meterWindowSize: models.WindowSizeMinute,
-			want:            fmt.Errorf("cannot query with MINUTE window size: from must be rounded to MINUTE like XX:XX:00"),
+			want:            fmt.Errorf("cannot query with MINUTE window size: from must be rounded to MINUTE like YYYY-MM-DDTHH:mm:00"),
 		},
 		{
 			name:            "should fail with not rounded to minute",
@@ -125,7 +125,7 @@ func TestQueryParamsValidate(t *testing.T) {
 			paramTo:         "2023-01-01T00:01:00Z",
 			paramWindowSize: nil,
 			meterWindowSize: models.WindowSizeMinute,
-			want:            fmt.Errorf("cannot query meter aggregating on MINUTE window size: from must be rounded to MINUTE like XX:XX:00"),
+			want:            fmt.Errorf("cannot query meter aggregating on MINUTE window size: from must be rounded to MINUTE like YYYY-MM-DDTHH:mm:00"),
 		},
 		{
 			name:            "should fail with not rounded to hour",
@@ -133,7 +133,7 @@ func TestQueryParamsValidate(t *testing.T) {
 			paramTo:         "2023-01-01T01:01:00Z",
 			paramWindowSize: &queryWindowSizeHour,
 			meterWindowSize: models.WindowSizeHour,
-			want:            fmt.Errorf("cannot query with HOUR window size: to must be rounded to HOUR like XX:00:00"),
+			want:            fmt.Errorf("cannot query with HOUR window size: to must be rounded to HOUR like YYYY-MM-DDTHH:00:00"),
 		},
 		{
 			name:            "should fail with not rounded to hour",
@@ -141,7 +141,7 @@ func TestQueryParamsValidate(t *testing.T) {
 			paramTo:         "2023-01-01T01:01:00Z",
 			paramWindowSize: nil,
 			meterWindowSize: models.WindowSizeHour,
-			want:            fmt.Errorf("cannot query meter aggregating on HOUR window size: to must be rounded to HOUR like XX:00:00"),
+			want:            fmt.Errorf("cannot query meter aggregating on HOUR window size: to must be rounded to HOUR like YYYY-MM-DDTHH:00:00"),
 		},
 		{
 			name:            "should fail with not rounded to day",
@@ -149,7 +149,7 @@ func TestQueryParamsValidate(t *testing.T) {
 			paramTo:         "2023-01-01T01:00:00Z",
 			paramWindowSize: &queryWindowSizeDay,
 			meterWindowSize: models.WindowSizeDay,
-			want:            fmt.Errorf("cannot query with DAY window size: to must be rounded to DAY like 00:00:00"),
+			want:            fmt.Errorf("cannot query with DAY window size: to must be rounded to DAY like YYYY-MM-DDT00:00:00"),
 		},
 		{
 			name:            "should fail with not rounded to day",
@@ -157,7 +157,7 @@ func TestQueryParamsValidate(t *testing.T) {
 			paramTo:         "2023-01-01T01:00:00Z",
 			paramWindowSize: nil,
 			meterWindowSize: models.WindowSizeDay,
-			want:            fmt.Errorf("cannot query meter aggregating on DAY window size: to must be rounded to DAY like 00:00:00"),
+			want:            fmt.Errorf("cannot query meter aggregating on DAY window size: to must be rounded to DAY like YYYY-MM-DDT00:00:00"),
 		},
 	}
 

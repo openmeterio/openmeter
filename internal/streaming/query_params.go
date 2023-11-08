@@ -18,6 +18,7 @@ type QueryParams struct {
 	WindowSize     *models.WindowSize
 }
 
+// Validate validates query params focusing on `from` and `to` being aligned with query and meter window sizes
 func (p *QueryParams) Validate(meterWindowSize models.WindowSize) error {
 	if p.From != nil && p.To != nil {
 		if p.From.After(*p.To) {
@@ -57,28 +58,29 @@ func (p *QueryParams) Validate(meterWindowSize models.WindowSize) error {
 	return nil
 }
 
+// Checks if `from` and `to` are rounded to window size
 func isRoundedToWindowSize(windowSize models.WindowSize, from *time.Time, to *time.Time) error {
 	switch windowSize {
 	case models.WindowSizeMinute:
 		if from != nil && !isMinuteRounded(*from) {
-			return fmt.Errorf("from must be rounded to MINUTE like XX:XX:00")
+			return fmt.Errorf("from must be rounded to MINUTE like YYYY-MM-DDTHH:mm:00")
 		}
 		if to != nil && !isMinuteRounded(*to) {
-			return fmt.Errorf("to must be rounded to MINUTE like XX:XX:00")
+			return fmt.Errorf("to must be rounded to MINUTE like YYYY-MM-DDTHH:mm:00")
 		}
 	case models.WindowSizeHour:
 		if from != nil && !isHourRounded(*from) {
-			return fmt.Errorf("from must be rounded to HOUR like XX:00:00")
+			return fmt.Errorf("from must be rounded to HOUR like YYYY-MM-DDTHH:00:00")
 		}
 		if to != nil && !isHourRounded(*to) {
-			return fmt.Errorf("to must be rounded to HOUR like XX:00:00")
+			return fmt.Errorf("to must be rounded to HOUR like YYYY-MM-DDTHH:00:00")
 		}
 	case models.WindowSizeDay:
 		if from != nil && !isDayRounded(*from) {
-			return fmt.Errorf("from must be rounded to DAY like 00:00:00")
+			return fmt.Errorf("from must be rounded to DAY like YYYY-MM-DDT00:00:00")
 		}
 		if to != nil && !isDayRounded(*to) {
-			return fmt.Errorf("to must be rounded to DAY like 00:00:00")
+			return fmt.Errorf("to must be rounded to DAY like YYYY-MM-DDT00:00:00")
 		}
 	default:
 		return fmt.Errorf("unknown window size %s", windowSize)
@@ -87,14 +89,17 @@ func isRoundedToWindowSize(windowSize models.WindowSize, from *time.Time, to *ti
 	return nil
 }
 
+// Is rounded to minute like YYYY-MM-DDTHH:mm:00
 func isMinuteRounded(t time.Time) bool {
 	return t.Second() == 0
 }
 
+// Is rounded to hour like YYYY-MM-DDTHH:00:00
 func isHourRounded(t time.Time) bool {
-	return isMinuteRounded(t) && t.Minute() == 0
+	return t.Second() == 0 && t.Minute() == 0
 }
 
+// Is rounded to day like YYYY-MM-DDT00:00:00
 func isDayRounded(t time.Time) bool {
-	return isMinuteRounded(t) && isHourRounded(t) && t.Hour() == 0
+	return t.Second() == 0 && t.Minute() == 0 && t.Hour() == 0
 }
