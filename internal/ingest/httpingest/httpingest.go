@@ -116,6 +116,8 @@ func (h Handler) processEvent(ctx context.Context, event event.Event, namespace 
 	if event.Time().IsZero() {
 		logger.DebugContext(ctx, "event does not have a timestamp")
 		event.SetTime(time.Now().UTC())
+	} else {
+		event.SetTime(event.Time().UTC())
 	}
 
 	err := h.config.Collector.Ingest(ctx, namespace, event)

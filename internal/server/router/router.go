@@ -173,10 +173,18 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, logger *slog.Logger, meter models.Meter, params api.QueryMeterParams) {
 	// Query Params
 	queryParams := &streaming.QueryParams{
-		From:        params.From,
-		To:          params.To,
 		WindowSize:  params.WindowSize,
 		Aggregation: meter.Aggregation,
+	}
+
+	if params.From != nil {
+		from := params.From.UTC()
+		queryParams.From = &from
+	}
+
+	if params.To != nil {
+		to := params.To.UTC()
+		queryParams.To = &to
 	}
 
 	if params.Subject != nil {
@@ -187,7 +195,7 @@ func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, log
 		queryParams.GroupBy = *params.GroupBy
 	}
 
-	if err := queryParams.Validate(); err != nil {
+	if err := queryParams.Validate(meter.WindowSize); err != nil {
 		logger.Warn("invalid parameters", "error", err)
 		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
 		return
