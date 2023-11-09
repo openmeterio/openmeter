@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "openmeter"
-version = "0.1.0"
+version = "1.0.0-beta.19"
 description = "Client for OpenMeter: Real-Time and Scalable Usage Metering"
 authors = ["Andras Toth <4157749+tothandras@users.noreply.github.com>"]
 license = "Apache-2.0"

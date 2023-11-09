@@ -1,5 +1,7 @@
 # OpenMeter Python SDK
 
+[https://pypi.org/project/openmeter](On PyPI)
+
 ## Prerequisites
 
 Python version: >= 3.9
@@ -52,4 +54,14 @@ event = CloudEvent(
 )
 
 resp = client.ingest_events(to_dict(event))
+```
+
+## Publish
+
+Update version number in `pyproject.toml`.
+Run the following commands:
+
+```sh
+poetry config pypi-token.pypi {your_pypi_api_token}
+poetry publish --build
 ```
