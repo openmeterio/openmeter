@@ -1,5 +1,7 @@
 # OpenMeter Python SDK
 
+[https://pypi.org/project/openmeter](On PyPI)
+
 ## Prerequisites
 
 Python version: >= 3.9
@@ -9,7 +11,7 @@ Python version: >= 3.9
 > The Python SDK is in preview mode.
 
 ```sh
-pip install -e "git+https://github.com/openmeterio/openmeter.git@main#egg=openmeter&subdirectory=api/client/python"
+pip install openmeter
 ```
 
 ## Quickstart
@@ -52,4 +54,14 @@ event = CloudEvent(
 )
 
 resp = client.ingest_events(to_dict(event))
+```
+
+## Publish
+
+Update version number in `pyproject.toml`.
+Run the following commands:
+
+```sh
+poetry config pypi-token.pypi {your_pypi_api_token}
+poetry publish --build
 ```
