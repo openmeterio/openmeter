@@ -8,17 +8,23 @@ import (
 )
 
 func NewAuthClientWithResponses(server string, apiSecret string, opts ...ClientOption) (*ClientWithResponses, error) {
-	return NewClientWithResponses("${host}", WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
+	o := []ClientOption{WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiSecret))
 		return nil
-	}))
+	})}
+	o = append(opts, o...)
+
+	return NewClientWithResponses(server, o...)
 }
 
-func NewAuthClient(server string, apiSecret string, opts ...ClientOption) (*ClientWithResponses, error) {
-	return NewClientWithResponses("${host}", WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
+func NewAuthClient(server string, apiSecret string, opts ...ClientOption) (*Client, error) {
+	o := []ClientOption{WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiSecret))
 		return nil
-	}))
+	})}
+	o = append(opts, o...)
+
+	return NewClient(server, o...)
 }
 
 // IngestEvents is a wrapper around generated client's IngestEventsWithApplicationCloudeventsPlusJSONBody
