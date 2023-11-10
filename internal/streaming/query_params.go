@@ -28,11 +28,6 @@ func (p *QueryParams) Validate(meterWindowSize models.WindowSize) error {
 
 	// Ensure `from` and `to` aligns with query param window size if any
 	if p.WindowSize != nil {
-		err := isRoundedToWindowSize(*p.WindowSize, p.From, p.To)
-		if err != nil {
-			return fmt.Errorf("cannot query with %s window size: %w", *p.WindowSize, err)
-		}
-
 		// Ensure query param window size is not smaller than meter window size
 		switch meterWindowSize {
 		case models.WindowSizeHour:
