@@ -267,6 +267,7 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		GroupBySubject: params.GroupBySubject,
 		GroupBy:        params.GroupBy,
 		WindowSize:     params.WindowSize,
+		WindowTimeZone: params.WindowTimeZone,
 	}
 
 	values := []*models.MeterValue{}

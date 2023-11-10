@@ -16,12 +16,13 @@ func TestQueryParamsValidate(t *testing.T) {
 	queryWindowSizeDay := models.WindowSizeDay
 
 	tests := []struct {
-		name            string
-		paramFrom       string
-		paramTo         string
-		paramWindowSize *models.WindowSize
-		meterWindowSize models.WindowSize
-		want            error
+		name                string
+		paramFrom           string
+		paramTo             string
+		paramWindowTimeZone string
+		paramWindowSize     *models.WindowSize
+		meterWindowSize     models.WindowSize
+		want                error
 	}{
 		{
 			name:            "should fail when from and to are equal",

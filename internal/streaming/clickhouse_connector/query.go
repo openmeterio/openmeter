@@ -174,6 +174,7 @@ type queryMeterView struct {
 	GroupBy        []string
 	GroupBySubject bool
 	WindowSize     *models.WindowSize
+	WindowTimeZone *time.Location
 }
 
 func (d queryMeterView) toSQL() (string, []interface{}, error) {
@@ -183,27 +184,32 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 
 	groupByWindowSize := d.WindowSize != nil
 
+	tz := "UTC"
+	if d.WindowTimeZone != nil {
+		tz = d.WindowTimeZone.String()
+	}
+
 	if groupByWindowSize {
 		switch *d.WindowSize {
 		case models.WindowSizeMinute:
 			selectColumns = append(
 				selectColumns,
-				"tumbleStart(windowstart, toIntervalMinute(1)) AS windowstart",
-				"tumbleEnd(windowstart, toIntervalMinute(1)) AS windowend",
+				fmt.Sprintf("tumbleStart(windowstart, toIntervalMinute(1), '%s') AS windowstart", tz),
+				fmt.Sprintf("tumbleEnd(windowstart, toIntervalMinute(1), '%s') AS windowend", tz),
 			)
 
 		case models.WindowSizeHour:
 			selectColumns = append(
 				selectColumns,
-				"tumbleStart(windowstart, toIntervalHour(1)) AS windowstart",
-				"tumbleEnd(windowstart, toIntervalHour(1)) AS windowend",
+				fmt.Sprintf("tumbleStart(windowstart, toIntervalHour(1), '%s') AS windowstart", tz),
+				fmt.Sprintf("tumbleEnd(windowstart, toIntervalHour(1), '%s') AS windowend", tz),
 			)
 
 		case models.WindowSizeDay:
 			selectColumns = append(
 				selectColumns,
-				"tumbleStart(windowstart, toIntervalDay(1)) AS windowstart",
-				"tumbleEnd(windowstart, toIntervalDay(1)) AS windowend",
+				fmt.Sprintf("tumbleStart(windowstart, toIntervalDay(1), '%s') AS windowstart", tz),
+				fmt.Sprintf("tumbleEnd(windowstart, toIntervalDay(1), '%s') AS windowend", tz),
 			)
 
 		default:
