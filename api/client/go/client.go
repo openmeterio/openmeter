@@ -3,8 +3,23 @@ package openmeter
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 )
+
+func NewAuthClientWithResponses(server string, apiSecret string, opts ...ClientOption) (*ClientWithResponses, error) {
+	return NewClientWithResponses("${host}", WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiSecret))
+		return nil
+	}))
+}
+
+func NewAuthClient(server string, apiSecret string, opts ...ClientOption) (*ClientWithResponses, error) {
+	return NewClientWithResponses("${host}", WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiSecret))
+		return nil
+	}))
+}
 
 // IngestEvents is a wrapper around generated client's IngestEventsWithApplicationCloudeventsPlusJSONBody
 func (c *Client) IngestEvent(ctx context.Context, event Event, reqEditors ...RequestEditorFn) (*http.Response, error) {
