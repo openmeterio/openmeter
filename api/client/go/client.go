@@ -33,7 +33,7 @@ func (c *Client) IngestEvent(ctx context.Context, event Event, reqEditors ...Req
 }
 
 // IngestEvents is a wrapper around generated client's IngestEventsWithApplicationCloudeventsBatchPlusJSONBody
-func (c *Client) IngestEventBatchWithResponse(ctx context.Context, events []Event, reqEditors ...RequestEditorFn) (*http.Response, error) {
+func (c *Client) IngestEventBatch(ctx context.Context, events []Event, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	return c.IngestEventsWithApplicationCloudeventsBatchPlusJSONBody(ctx, events, reqEditors...)
 }
 
