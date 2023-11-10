@@ -18,7 +18,7 @@ import (
 
 func main() {
   // Initialize OpenMeter client
-  om, err := openmeter.NewClient("http://localhost:8888")
+  om, err := openmeter.NewClientWithResponses("http://localhost:8888")
   if err != nil {
       panic(err.Error())
   }
@@ -44,7 +44,7 @@ e.SetData("application/json", map[string]string{
   "model": "gpt-4",
 })
 
-_, err := client.IngestEvent(ctx, e)
+_, err := client.IngestEventWithResponse(ctx, e)
 ```
 
 ### Query Meter
@@ -56,10 +56,10 @@ slug := "token-usage"
 subject := []string{"user-id"}
 from, _ := time.Parse(time.RFC3339, "2023-01-01T00:00:00Z")
 to, _ := time.Parse(time.RFC3339, "2023-01-02T00:00:00Z")
-resp, _ := client.QueryMeter(ctx, slug, &om.QueryMeterParams{
+resp, _ := client.QueryMeterWithResponse(ctx, slug, &om.QueryMeterParams{
     Subject: &subject,
     From:    &from,
     To:      &to,
 })
-payload, _ := om.ParseQueryMeterResponse(resp)
+// resp.JSON200.Data
 ```
