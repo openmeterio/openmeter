@@ -194,22 +194,22 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 		case models.WindowSizeMinute:
 			selectColumns = append(
 				selectColumns,
-				fmt.Sprintf("tumbleStart(windowstart, toIntervalMinute(1), '%s') AS windowstart", tz),
-				fmt.Sprintf("tumbleEnd(windowstart, toIntervalMinute(1), '%s') AS windowend", tz),
+				fmt.Sprintf("tumbleStart(windowstart, toIntervalMinute(1), '%s') AS windowstart", sqlbuilder.Escape(tz)),
+				fmt.Sprintf("tumbleEnd(windowstart, toIntervalMinute(1), '%s') AS windowend", sqlbuilder.Escape(tz)),
 			)
 
 		case models.WindowSizeHour:
 			selectColumns = append(
 				selectColumns,
-				fmt.Sprintf("tumbleStart(windowstart, toIntervalHour(1), '%s') AS windowstart", tz),
-				fmt.Sprintf("tumbleEnd(windowstart, toIntervalHour(1), '%s') AS windowend", tz),
+				fmt.Sprintf("tumbleStart(windowstart, toIntervalHour(1), '%s') AS windowstart", sqlbuilder.Escape(tz)),
+				fmt.Sprintf("tumbleEnd(windowstart, toIntervalHour(1), '%s') AS windowend", sqlbuilder.Escape(tz)),
 			)
 
 		case models.WindowSizeDay:
 			selectColumns = append(
 				selectColumns,
-				fmt.Sprintf("tumbleStart(windowstart, toIntervalDay(1), '%s') AS windowstart", tz),
-				fmt.Sprintf("tumbleEnd(windowstart, toIntervalDay(1), '%s') AS windowend", tz),
+				fmt.Sprintf("tumbleStart(windowstart, toIntervalDay(1), '%s') AS windowstart", sqlbuilder.Escape(tz)),
+				fmt.Sprintf("tumbleEnd(windowstart, toIntervalDay(1), '%s') AS windowend", sqlbuilder.Escape(tz)),
 			)
 
 		default:
