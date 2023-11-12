@@ -151,6 +151,7 @@ paths:
         - $ref: "#/components/parameters/queryFrom"
         - $ref: "#/components/parameters/queryTo"
         - $ref: "#/components/parameters/queryWindowSize"
+        - $ref: "#/components/parameters/queryWindowTimeZone"
         - $ref: "#/components/parameters/querySubject"
         - $ref: "#/components/parameters/queryGroupBy"
       responses:
@@ -391,6 +392,8 @@ components:
           example: My Meter Description
         aggregation:
           $ref: "#/components/schemas/MeterAggregation"
+        windowSize:
+          $ref: "#/components/schemas/WindowSize"
         eventType:
           type: string
           description: The event type to aggregate.
@@ -407,8 +410,6 @@ components:
           example:
             method: "$.method"
             path: "$.path"
-        windowSize:
-          $ref: "#/components/schemas/WindowSize"
       required:
         - slug
         - aggregation
@@ -428,6 +429,7 @@ components:
       description: The aggregation type to use for the meter.
     WindowSize:
       type: string
+      description: Aggregation window size.
       x-go-type: models.WindowSize
       x-go-type-import:
         path: github.com/openmeterio/openmeter/pkg/models
@@ -511,8 +513,7 @@ components:
       in: query
       required: false
       description: |
-        Start date-time in RFC 3339 format in UTC timezone.
-        Must be aligned with the window size.
+        Start date-time in RFC 3339 format.
         Inclusive.
       schema:
         type: string
@@ -522,8 +523,7 @@ components:
       in: query
       required: false
       description: |
-        End date-time in RFC 3339 format in UTC timezone.
-        Must be aligned with the window size.
+        End date-time in RFC 3339 format.
         Inclusive.
       schema:
         type: string
@@ -536,6 +536,17 @@ components:
         If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
       schema:
         $ref: "#/components/schemas/WindowSize"
+    queryWindowTimeZone:
+      name: windowTimeZone
+      in: query
+      required: false
+      description: |
+        The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+        If not specified, the UTC timezone will be used.
+      schema:
+        type: string
+        default: UTC
+        example: "America/New_York"
     querySubject:
       name: subject
       in: query

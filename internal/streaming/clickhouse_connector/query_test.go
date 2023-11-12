@@ -170,6 +170,7 @@ func TestQueryMeterView(t *testing.T) {
 	subject := "subject1"
 	from, _ := time.Parse(time.RFC3339, "2023-01-01T00:00:00.001Z")
 	to, _ := time.Parse(time.RFC3339, "2023-01-02T00:00:00Z")
+	tz, _ := time.LoadLocation("Asia/Shanghai")
 	windowSize := models.WindowSizeHour
 
 	tests := []struct {
@@ -188,7 +189,7 @@ func TestQueryMeterView(t *testing.T) {
 				GroupBy:       []string{"group1", "group2"},
 				WindowSize:    &windowSize,
 			},
-			wantSQL:  "SELECT tumbleStart(windowstart, toIntervalHour(1)) AS windowstart, tumbleEnd(windowstart, toIntervalHour(1)) AS windowend, subject, sumMerge(value) AS value, group1, group2 FROM openmeter.meter_meter1 WHERE (subject = ?) AND windowstart >= ? AND windowend <= ? GROUP BY windowstart, windowend, subject, group1, group2 ORDER BY windowstart",
+			wantSQL:  "SELECT tumbleStart(windowstart, toIntervalHour(1), 'UTC') AS windowstart, tumbleEnd(windowstart, toIntervalHour(1), 'UTC') AS windowend, subject, sumMerge(value) AS value, group1, group2 FROM openmeter.meter_meter1 WHERE (subject = ?) AND windowstart >= ? AND windowend <= ? GROUP BY windowstart, windowend, subject, group1, group2 ORDER BY windowstart",
 			wantArgs: []interface{}{"subject1", from.Unix(), to.Unix()},
 		},
 		{ // Aggregate all available data
@@ -219,7 +220,7 @@ func TestQueryMeterView(t *testing.T) {
 			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.meter_meter1 WHERE windowstart >= ?",
 			wantArgs: []interface{}{from.Unix()},
 		},
-		{ // Aggregate data between interval
+		{ // Aggregate data between period
 			query: queryMeterView{
 				Database:      "openmeter",
 				MeterViewName: "meter_meter1",
@@ -230,7 +231,7 @@ func TestQueryMeterView(t *testing.T) {
 			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.meter_meter1 WHERE windowstart >= ? AND windowend <= ?",
 			wantArgs: []interface{}{from.Unix(), to.Unix()},
 		},
-		{ // Aggregate data between interval, groupped by window size
+		{ // Aggregate data between period, groupped by window size
 			query: queryMeterView{
 				Database:      "openmeter",
 				MeterViewName: "meter_meter1",
@@ -239,7 +240,20 @@ func TestQueryMeterView(t *testing.T) {
 				To:            &to,
 				WindowSize:    &windowSize,
 			},
-			wantSQL:  "SELECT tumbleStart(windowstart, toIntervalHour(1)) AS windowstart, tumbleEnd(windowstart, toIntervalHour(1)) AS windowend, sumMerge(value) AS value FROM openmeter.meter_meter1 WHERE windowstart >= ? AND windowend <= ? GROUP BY windowstart, windowend ORDER BY windowstart",
+			wantSQL:  "SELECT tumbleStart(windowstart, toIntervalHour(1), 'UTC') AS windowstart, tumbleEnd(windowstart, toIntervalHour(1), 'UTC') AS windowend, sumMerge(value) AS value FROM openmeter.meter_meter1 WHERE windowstart >= ? AND windowend <= ? GROUP BY windowstart, windowend ORDER BY windowstart",
+			wantArgs: []interface{}{from.Unix(), to.Unix()},
+		},
+		{ // Aggregate data between period in a different timezone, groupped by window size
+			query: queryMeterView{
+				Database:       "openmeter",
+				MeterViewName:  "meter_meter1",
+				Aggregation:    models.MeterAggregationSum,
+				From:           &from,
+				To:             &to,
+				WindowSize:     &windowSize,
+				WindowTimeZone: tz,
+			},
+			wantSQL:  "SELECT tumbleStart(windowstart, toIntervalHour(1), 'Asia/Shanghai') AS windowstart, tumbleEnd(windowstart, toIntervalHour(1), 'Asia/Shanghai') AS windowend, sumMerge(value) AS value FROM openmeter.meter_meter1 WHERE windowstart >= ? AND windowend <= ? GROUP BY windowstart, windowend ORDER BY windowstart",
 			wantArgs: []interface{}{from.Unix(), to.Unix()},
 		},
 		{ // Aggregate data for a single subject
