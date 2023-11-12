@@ -351,6 +351,7 @@ func (s *Sink) deadLetter(ctx context.Context, messages ...SinkMessage) error {
 			if kerr, ok := err.(kafka.Error); ok {
 				// Create topic if doesn't exist yet and retry
 				if kerr.Code() == kafka.ErrUnknownTopic {
+					logger.Debug("deadletter topic is missing", "topic", topic)
 					err := s.createDeadletterTopic(ctx, topic)
 					if err != nil {
 						deadletterSpan.SetStatus(codes.Error, "deadletter failure")
@@ -359,7 +360,11 @@ func (s *Sink) deadLetter(ctx context.Context, messages ...SinkMessage) error {
 
 						return fmt.Errorf("failed to create deadletter topic: %w", err)
 					}
-					return s.deadLetter(ctx, messages...)
+					logger.Debug("succeeded to create deadletter topic", "topic", topic)
+					err = s.producer.Produce(msg, nil)
+					if err != nil {
+						return fmt.Errorf("failed to produce message to deadletter topic: %w", err)
+					}
 				}
 			}
 

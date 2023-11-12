@@ -313,6 +313,8 @@ func main() {
 func initKafkaIngest(ctx context.Context, config config.Configuration, logger *slog.Logger, serializer serializer.Serializer, group run.Group) (*kafkaingest.Collector, *kafkaingest.NamespaceHandler, error) {
 	// Initialize Kafka Admin Client
 	kafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
+	// Required for logging
+	_ = kafkaConfig.SetKey("go.logs.channel.enable", true)
 
 	// Initialize Kafka Producer
 	producer, err := kafka.NewProducer(&kafkaConfig)

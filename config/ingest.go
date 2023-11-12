@@ -36,9 +36,6 @@ type KafkaIngestConfiguration struct {
 func (c KafkaIngestConfiguration) CreateKafkaConfig() kafka.ConfigMap {
 	config := kafka.ConfigMap{
 		"bootstrap.servers": c.Broker,
-
-		// Required for logging
-		"go.logs.channel.enable": true,
 	}
 
 	// This is needed when using localhost brokers on OSX,
