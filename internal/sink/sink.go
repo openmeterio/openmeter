@@ -53,6 +53,7 @@ type SinkConfig struct {
 	MeterRepository     meter.Repository
 	Storage             Storage
 	Deduplicator        dedupe.Deduplicator
+	KafkaAdminClient    *kafka.AdminClient
 	ConsumerKafkaConfig kafka.ConfigMap
 	ProducerKafkaConfig kafka.ConfigMap
 	// MinCommitCount is the minimum number of messages to wait before flushing the buffer.
@@ -347,6 +348,21 @@ func (s *Sink) deadLetter(ctx context.Context, messages ...SinkMessage) error {
 
 		err := s.producer.Produce(msg, nil)
 		if err != nil {
+			if kerr, ok := err.(kafka.Error); ok {
+				// Create topic if doesn't exist yet and retry
+				if kerr.Code() == kafka.ErrUnknownTopic {
+					err := s.createDeadletterTopic(ctx, topic)
+					if err != nil {
+						deadletterSpan.SetStatus(codes.Error, "deadletter failure")
+						deadletterSpan.RecordError(err)
+						deadletterSpan.End()
+
+						return fmt.Errorf("failed to create deadletter topic: %w", err)
+					}
+					return s.deadLetter(ctx, messages...)
+				}
+			}
+
 			deadletterSpan.SetStatus(codes.Error, "deadletter failure")
 			deadletterSpan.RecordError(err)
 			deadletterSpan.End()
@@ -361,6 +377,31 @@ func (s *Sink) deadLetter(ctx context.Context, messages ...SinkMessage) error {
 
 	logger.Debug("succeeded to deadletter", "messages", len(messages))
 	deadletterSpan.End()
+	return nil
+}
+
+// createDeadletterTopic creates a deadletter topic if it doesn't exist yet
+func (s *Sink) createDeadletterTopic(ctx context.Context, topic string) error {
+	result, err := s.config.KafkaAdminClient.CreateTopics(ctx, []kafka.TopicSpecification{
+		{
+			Topic:         topic,
+			NumPartitions: 1,
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, r := range result {
+		code := r.Error.Code()
+
+		if code == kafka.ErrTopicAlreadyExists {
+			s.config.Logger.Debug("topic already exists", slog.String("topic", topic))
+		} else if code != kafka.ErrNoError {
+			return r.Error
+		}
+	}
+
 	return nil
 }
 

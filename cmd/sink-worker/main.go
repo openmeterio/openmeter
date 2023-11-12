@@ -13,6 +13,7 @@ import (
 	health "github.com/AppsFlyer/go-sundheit"
 	healthhttp "github.com/AppsFlyer/go-sundheit/http"
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-slog/otelslog"
@@ -251,6 +252,12 @@ func initSink(config config.Configuration, logger *slog.Logger, metricMeter metr
 		},
 	)
 
+	kafkaAdminConfig := config.Ingest.Kafka.CreateKafkaConfig()
+	kafkaAdminClient, err := kafka.NewAdminClient(&kafkaAdminConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize kafka admin client: %w", err)
+	}
+
 	consumerKafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
 	_ = consumerKafkaConfig.SetKey("group.id", config.Sink.GroupId)
 
@@ -263,6 +270,7 @@ func initSink(config config.Configuration, logger *slog.Logger, metricMeter metr
 		MeterRepository:     meterRepository,
 		Storage:             storage,
 		Deduplicator:        deduplicator,
+		KafkaAdminClient:    kafkaAdminClient,
 		ConsumerKafkaConfig: consumerKafkaConfig,
 		ProducerKafkaConfig: producerKafkaConfig,
 		MinCommitCount:      config.Sink.MinCommitCount,
