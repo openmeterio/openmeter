@@ -28,10 +28,12 @@ type ClickhouseConnector struct {
 }
 
 type ClickhouseConnectorConfig struct {
-	Logger     *slog.Logger
-	ClickHouse clickhouse.Conn
-	Database   string
-	Meters     meter.Repository
+	Logger               *slog.Logger
+	ClickHouse           clickhouse.Conn
+	Database             string
+	Meters               meter.Repository
+	CreateOrReplaceMeter bool
+	PopulateMeter        bool
 }
 
 func NewClickhouseConnector(config ClickhouseConnectorConfig) (*ClickhouseConnector, error) {
@@ -235,7 +237,17 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 }
 
 func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace string, meter *models.Meter) error {
+	// CreateOrReplace is used to force the recreation of the materialized view
+	// This is not safe to use in production as it will drop the existing views
+	if c.config.CreateOrReplaceMeter {
+		err := c.deleteMeterView(ctx, namespace, meter.Slug)
+		if err != nil {
+			return fmt.Errorf("drop meter view: %w", err)
+		}
+	}
+
 	view := createMeterView{
+		Populate:      c.config.PopulateMeter,
 		Database:      c.config.Database,
 		Namespace:     namespace,
 		MeterSlug:     meter.Slug,

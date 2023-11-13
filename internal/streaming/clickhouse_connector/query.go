@@ -95,6 +95,9 @@ type createMeterView struct {
 	EventType     string
 	ValueProperty string
 	GroupBy       map[string]string
+	// Populate creates the materialized view with data from the events table
+	// This is not safe to use in production as requires to stop ingestion
+	Populate bool
 }
 
 func (d createMeterView) toSQL() (string, []interface{}, error) {
@@ -142,6 +145,9 @@ func (d createMeterView) toSQL() (string, []interface{}, error) {
 	}
 	sb.SQL("ENGINE = AggregatingMergeTree()")
 	sb.SQL(fmt.Sprintf("ORDER BY (%s)", strings.Join(orderBy, ", ")))
+	if d.Populate {
+		sb.SQL("POPULATE")
+	}
 	sb.SQL("AS")
 
 	selectQuery, err := d.toSelectSQL()
