@@ -14,24 +14,29 @@ func TestInsertEventsQuery(t *testing.T) {
 	now := time.Now()
 
 	query := sink.InsertEventsQuery{
-		Database:  "database",
-		Namespace: "my_namespace",
-		Events: []*serializer.CloudEventsKafkaPayload{
+		Database: "database",
+		Messages: []sink.SinkMessage{
 			{
-				Id:      "1",
-				Source:  "source",
-				Subject: "subject-1",
-				Time:    now.UnixMilli(),
-				Type:    "api-calls",
-				Data:    `{"duration_ms": 100, "method": "GET", "path": "/api/v1"}`,
+				Namespace: "my_namespace",
+				Serialized: &serializer.CloudEventsKafkaPayload{
+					Id:      "1",
+					Source:  "source",
+					Subject: "subject-1",
+					Time:    now.UnixMilli(),
+					Type:    "api-calls",
+					Data:    `{"duration_ms": 100, "method": "GET", "path": "/api/v1"}`,
+				},
 			},
 			{
-				Id:      "2",
-				Source:  "source",
-				Subject: "subject-2",
-				Time:    now.UnixMilli(),
-				Type:    "api-calls",
-				Data:    `{"duration_ms": 80, "method": "GET", "path": "/api/v1"}`,
+				Namespace: "my_namespace",
+				Serialized: &serializer.CloudEventsKafkaPayload{
+					Id:      "2",
+					Source:  "source",
+					Subject: "subject-2",
+					Time:    now.UnixMilli(),
+					Type:    "api-calls",
+					Data:    `{"duration_ms": 80, "method": "GET", "path": "/api/v1"}`,
+				},
 			},
 		},
 	}

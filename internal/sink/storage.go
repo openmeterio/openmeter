@@ -9,14 +9,13 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/huandu/go-sqlbuilder"
 
-	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 )
 
 var codeRegexp = regexp.MustCompile(`code: (0-9]+)`)
 
 type Storage interface {
-	BatchInsert(ctx context.Context, namespace string, events []*serializer.CloudEventsKafkaPayload) error
+	BatchInsert(ctx context.Context, messages []SinkMessage) error
 	BatchInsertInvalid(ctx context.Context, messages []SinkMessage) error
 }
 
@@ -35,13 +34,10 @@ type ClickHouseStorage struct {
 	config ClickHouseStorageConfig
 }
 
-// TODO: we could insert for all namespaces in one query but that would increase error blast radius
-// consider this approach and tradeoffs
-func (c *ClickHouseStorage) BatchInsert(ctx context.Context, namespace string, events []*serializer.CloudEventsKafkaPayload) error {
+func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []SinkMessage) error {
 	query := InsertEventsQuery{
-		Database:  c.config.Database,
-		Namespace: namespace,
-		Events:    events,
+		Database: c.config.Database,
+		Messages: messages,
 	}
 	sql, args, err := query.ToSQL()
 	if err != nil {
@@ -104,9 +100,8 @@ func (c *ClickHouseStorage) BatchInsertInvalid(ctx context.Context, messages []S
 }
 
 type InsertEventsQuery struct {
-	Database  string
-	Namespace string
-	Events    []*serializer.CloudEventsKafkaPayload
+	Database string
+	Messages []SinkMessage
 }
 
 func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
@@ -116,8 +111,16 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
 	query.InsertInto(tableName)
 	query.Cols("namespace", "id", "type", "source", "subject", "time", "data")
 
-	for _, event := range q.Events {
-		query.Values(q.Namespace, event.Id, event.Type, event.Source, event.Subject, event.Time, event.Data)
+	for _, message := range q.Messages {
+		query.Values(
+			message.Namespace,
+			message.Serialized.Id,
+			message.Serialized.Type,
+			message.Serialized.Source,
+			message.Serialized.Subject,
+			message.Serialized.Time,
+			message.Serialized.Data,
+		)
 	}
 
 	sql, args := query.Build()

@@ -231,9 +231,9 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) ([]
 	defer persistSpan.End()
 
 	deadletterMessages := []SinkMessage{}
-	batchesPerNamespace := map[string][]SinkMessage{}
+	batch := []SinkMessage{}
 
-	// Group messages per namespaces and filter out deadletter and drop messages
+	// Flter out deadletter and drop messages
 	for _, message := range messages {
 		if message.Error != nil {
 			switch message.Error.ProcessingControl {
@@ -249,25 +249,13 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) ([]
 				return deadletterMessages, fmt.Errorf("unknown error type: %s", message.Error)
 			}
 		}
-
-		batchesPerNamespace[message.Namespace] = append(batchesPerNamespace[message.Namespace], message)
+		batch = append(batch, message)
 	}
 
-	// Insert into permanent storage per namespace
-	for namespace, batch := range batchesPerNamespace {
-		// Start otel span for storage batch insert
+	// Storage Batch insert
+	if len(batch) > 0 {
 		storageCtx, storageSpan := s.config.Tracer.Start(persistCtx, "storage-batch-insert")
-		storageSpan.SetAttributes(
-			attribute.String("namespace", namespace),
-			attribute.Int("size", len(batch)),
-		)
-
-		list := []*serializer.CloudEventsKafkaPayload{}
-		for _, message := range batch {
-			list = append(list, message.Serialized)
-		}
-
-		err := s.config.Storage.BatchInsert(storageCtx, namespace, list)
+		err := s.config.Storage.BatchInsert(storageCtx, batch)
 		if err != nil {
 			// Note: a single error in batch will make the whole batch fail
 			if perr, ok := err.(*ProcessingError); ok {
@@ -277,7 +265,6 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) ([]
 					deadletterMessages = append(deadletterMessages, batch...)
 				case DROP:
 					storageSpan.SetStatus(codes.Error, "drop")
-					continue
 				default:
 					storageSpan.SetStatus(codes.Error, "unknown processing error type")
 					storageSpan.RecordError(err)
@@ -293,7 +280,6 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) ([]
 			}
 		}
 		logger.Debug("succeeded to sink to storage", "buffer size", len(messages))
-		storageSpan.End()
 	}
 
 	return deadletterMessages, nil
