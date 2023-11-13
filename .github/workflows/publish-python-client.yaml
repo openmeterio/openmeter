@@ -1,0 +1,39 @@
+name: Publish Python client
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-dev.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install poetry
+        run: pipx install poetry
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "pypy3.10"
+          cache: "poetry"
+          cache-dependency-path: "./api/client/python/poetry.lock"
+      - name: Install dependencies
+        run: poetry install
+        working-directory: ./api/client/python
+      - name: Bump version
+        run: poetry version ${{ github.ref }}
+        working-directory: ./api/client/python
+      - name: Publish to PyPI
+        run: |
+          poetry config pypi-token.pypi "$PYPI_TOKEN"
+          poetry publish --build
+        working-directory: ./api/client/python
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
