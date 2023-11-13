@@ -25,7 +25,7 @@ type createEventsTable struct {
 }
 
 func (d createEventsTable) toSQL() string {
-	tableName := fmt.Sprintf("%s.%s_%s", sqlbuilder.Escape(d.Database), prefix, EventsTableName)
+	tableName := GetEventsTableName(d.Database)
 
 	sb := sqlbuilder.ClickHouse.NewCreateTableBuilder()
 	sb.CreateTable(tableName)
@@ -51,7 +51,7 @@ type createInvalidEventsTable struct {
 }
 
 func (d createInvalidEventsTable) toSQL() string {
-	tableName := fmt.Sprintf("%s.%s_%s", sqlbuilder.Escape(d.Database), prefix, InvalidEventsTableName)
+	tableName := GetInvalidEventsTableName(d.Database)
 
 	sb := sqlbuilder.ClickHouse.NewCreateTableBuilder()
 	sb.CreateTable(tableName)
@@ -75,7 +75,7 @@ type queryEventsTable struct {
 }
 
 func (d queryEventsTable) toSQL() (string, []interface{}, error) {
-	tableName := fmt.Sprintf("%s.%s_%s", sqlbuilder.Escape(d.Database), prefix, EventsTableName)
+	tableName := GetEventsTableName(d.Database)
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
 	query.Select("id", "type", "subject", "source", "time", "data")
@@ -92,15 +92,15 @@ type createMeterView struct {
 	Database      string
 	Aggregation   models.MeterAggregation
 	Namespace     string
-	MeterViewName string
+	MeterSlug     string
 	EventType     string
 	ValueProperty string
 	GroupBy       map[string]string
 }
 
 func (d createMeterView) toSQL() (string, []interface{}, error) {
-	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
-	eventsTableName := fmt.Sprintf("%s.%s_%s", sqlbuilder.Escape(d.Database), prefix, EventsTableName)
+	viewName := GetMeterViewName(d.Database, d.Namespace, d.MeterSlug)
+	eventsTableName := GetEventsTableName(d.Database)
 	columns := []column{
 		{Name: "subject", Type: "String"},
 		{Name: "windowstart", Type: "DateTime"},
@@ -181,18 +181,20 @@ func (d createMeterView) toSQL() (string, []interface{}, error) {
 }
 
 type deleteMeterView struct {
-	Database      string
-	MeterViewName string
+	Database  string
+	Namespace string
+	MeterSlug string
 }
 
 func (d deleteMeterView) toSQL() (string, []interface{}) {
-	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
+	viewName := GetMeterViewName(d.Database, d.Namespace, d.MeterSlug)
 	return fmt.Sprintf("DROP VIEW %s", viewName), nil
 }
 
 type queryMeterView struct {
 	Database       string
-	MeterViewName  string
+	Namespace      string
+	MeterSlug      string
 	Aggregation    models.MeterAggregation
 	Subject        []string
 	From           *time.Time
@@ -204,7 +206,7 @@ type queryMeterView struct {
 }
 
 func (d queryMeterView) toSQL() (string, []interface{}, error) {
-	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
+	viewName := GetMeterViewName(d.Database, d.Namespace, d.MeterSlug)
 
 	var selectColumns, groupByColumns, where []string
 
@@ -326,14 +328,15 @@ func sortedKeys(m map[string]string) []string {
 }
 
 type listMeterViewSubjects struct {
-	Database      string
-	MeterViewName string
-	From          *time.Time
-	To            *time.Time
+	Database  string
+	Namespace string
+	MeterSlug string
+	From      *time.Time
+	To        *time.Time
 }
 
 func (d listMeterViewSubjects) toSQL() (string, []interface{}, error) {
-	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
+	viewName := GetMeterViewName(d.Database, d.Namespace, d.MeterSlug)
 
 	var where []string
 	sb := sqlbuilder.ClickHouse.NewSelectBuilder()
@@ -356,4 +359,17 @@ func (d listMeterViewSubjects) toSQL() (string, []interface{}, error) {
 
 	sql, args := sb.Build()
 	return sql, args, nil
+}
+
+func GetEventsTableName(database string) string {
+	return fmt.Sprintf("%s.%s_%s", sqlbuilder.Escape(database), TablePrefix, EventsTableName)
+}
+
+func GetInvalidEventsTableName(database string) string {
+	return fmt.Sprintf("%s.%s_%s", sqlbuilder.Escape(database), TablePrefix, InvalidEventsTableName)
+}
+
+func GetMeterViewName(database string, namespace string, meterSlug string) string {
+	meterViewName := fmt.Sprintf("%s_%s_%s", TablePrefix, namespace, meterSlug)
+	return fmt.Sprintf("%s.%s", sqlbuilder.Escape(database), sqlbuilder.Escape(meterViewName))
 }

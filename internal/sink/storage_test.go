@@ -14,8 +14,8 @@ func TestInsertEventsQuery(t *testing.T) {
 	now := time.Now()
 
 	query := sink.InsertEventsQuery{
-		Database:        "database",
-		EventsTableName: "events_table",
+		Database:  "database",
+		Namespace: "my_namespace",
 		Events: []*serializer.CloudEventsKafkaPayload{
 			{
 				Id:      "1",
@@ -39,9 +39,9 @@ func TestInsertEventsQuery(t *testing.T) {
 	sql, args, err := query.ToSQL()
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{
-		"1", "api-calls", "source", "subject-1", now.UnixMilli(), `{"duration_ms": 100, "method": "GET", "path": "/api/v1"}`,
-		"2", "api-calls", "source", "subject-2", now.UnixMilli(), `{"duration_ms": 80, "method": "GET", "path": "/api/v1"}`,
+		"my_namespace", "1", "api-calls", "source", "subject-1", now.UnixMilli(), `{"duration_ms": 100, "method": "GET", "path": "/api/v1"}`,
+		"my_namespace", "2", "api-calls", "source", "subject-2", now.UnixMilli(), `{"duration_ms": 80, "method": "GET", "path": "/api/v1"}`,
 	})
-	assert.Equal(t, `INSERT INTO database.events_table (id, type, source, subject, time, data) VALUES (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)`, sql)
+	assert.Equal(t, `INSERT INTO database.om_events (namespace, id, type, source, subject, time, data) VALUES (?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?)`, sql)
 
 }

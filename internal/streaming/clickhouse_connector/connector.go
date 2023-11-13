@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	prefix                 = "om"
+	TablePrefix            = "om"
 	EventsTableName        = "events"
 	InvalidEventsTableName = "invalid_events"
 )
@@ -238,9 +238,9 @@ func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace str
 	view := createMeterView{
 		Database:      c.config.Database,
 		Namespace:     namespace,
+		MeterSlug:     meter.Slug,
 		Aggregation:   meter.Aggregation,
 		EventType:     meter.EventType,
-		MeterViewName: getMeterViewNameBySlug(namespace, meter.Slug),
 		ValueProperty: meter.ValueProperty,
 		GroupBy:       meter.GroupBy,
 	}
@@ -258,8 +258,9 @@ func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace str
 
 func (c *ClickhouseConnector) deleteMeterView(ctx context.Context, namespace string, meterSlug string) error {
 	query := deleteMeterView{
-		Database:      c.config.Database,
-		MeterViewName: getMeterViewNameBySlug(namespace, meterSlug),
+		Database:  c.config.Database,
+		Namespace: namespace,
+		MeterSlug: meterSlug,
 	}
 	sql, args := query.toSQL()
 	err := c.config.ClickHouse.Exec(ctx, sql, args...)
@@ -277,7 +278,8 @@ func (c *ClickhouseConnector) deleteMeterView(ctx context.Context, namespace str
 func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]*models.MeterValue, error) {
 	queryMeter := queryMeterView{
 		Database:       c.config.Database,
-		MeterViewName:  getMeterViewNameBySlug(namespace, meterSlug),
+		Namespace:      namespace,
+		MeterSlug:      meterSlug,
 		Aggregation:    params.Aggregation,
 		From:           params.From,
 		To:             params.To,
@@ -357,10 +359,11 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 
 func (c *ClickhouseConnector) listMeterViewSubjects(ctx context.Context, namespace string, meterSlug string, from *time.Time, to *time.Time) ([]string, error) {
 	query := listMeterViewSubjects{
-		Database:      c.config.Database,
-		MeterViewName: getMeterViewNameBySlug(namespace, meterSlug),
-		From:          from,
-		To:            to,
+		Database:  c.config.Database,
+		Namespace: namespace,
+		MeterSlug: meterSlug,
+		From:      from,
+		To:        to,
 	}
 
 	sql, args, err := query.toSQL()
@@ -388,8 +391,4 @@ func (c *ClickhouseConnector) listMeterViewSubjects(ctx context.Context, namespa
 	}
 
 	return subjects, nil
-}
-
-func getMeterViewNameBySlug(namespace string, meterSlug string) string {
-	return fmt.Sprintf("%s_%s_%s", prefix, namespace, meterSlug)
 }

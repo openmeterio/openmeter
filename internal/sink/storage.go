@@ -35,10 +35,13 @@ type ClickHouseStorage struct {
 	config ClickHouseStorageConfig
 }
 
+// TODO: we could insert for all namespaces in one query but that would increase error blast radius
+// consider this approach and tradeoffs
 func (c *ClickHouseStorage) BatchInsert(ctx context.Context, namespace string, events []*serializer.CloudEventsKafkaPayload) error {
 	query := InsertEventsQuery{
-		Database: c.config.Database,
-		Events:   events,
+		Database:  c.config.Database,
+		Namespace: namespace,
+		Events:    events,
 	}
 	sql, args, err := query.ToSQL()
 	if err != nil {
@@ -101,20 +104,20 @@ func (c *ClickHouseStorage) BatchInsertInvalid(ctx context.Context, messages []S
 }
 
 type InsertEventsQuery struct {
-	Database        string
-	EventsTableName string
-	Events          []*serializer.CloudEventsKafkaPayload
+	Database  string
+	Namespace string
+	Events    []*serializer.CloudEventsKafkaPayload
 }
 
 func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
-	tableName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(q.Database), sqlbuilder.Escape(q.EventsTableName))
+	tableName := clickhouse_connector.GetEventsTableName(q.Database)
 
 	query := sqlbuilder.ClickHouse.NewInsertBuilder()
 	query.InsertInto(tableName)
-	query.Cols("id", "type", "source", "subject", "time", "data")
+	query.Cols("namespace", "id", "type", "source", "subject", "time", "data")
 
 	for _, event := range q.Events {
-		query.Values(event.Id, event.Type, event.Source, event.Subject, event.Time, event.Data)
+		query.Values(q.Namespace, event.Id, event.Type, event.Source, event.Subject, event.Time, event.Data)
 	}
 
 	sql, args := query.Build()
@@ -127,7 +130,7 @@ type InsertInvalidQuery struct {
 }
 
 func (q InsertInvalidQuery) ToSQL() (string, []interface{}, error) {
-	tableName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(q.Database), clickhouse_connector.InvalidEventsTableName)
+	tableName := fmt.Sprintf("%s.%s_%s", sqlbuilder.Escape(q.Database), clickhouse_connector.TablePrefix, clickhouse_connector.InvalidEventsTableName)
 
 	query := sqlbuilder.ClickHouse.NewInsertBuilder()
 	query.InsertInto(tableName)
