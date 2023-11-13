@@ -15,37 +15,6 @@ export enum MeterAggregation {
   MAX = 'MAX',
 }
 
-export type MeterValuesParams = {
-  /**
-   * @description Subject(s) to filter by.
-   * @example ["customer-1", "customer-2"]
-   */
-  subject?: string
-  /**
-   * @description Start date.
-   * Must be aligned with the window size.
-   * Inclusive.
-   */
-  from?: Date
-  /**
-   * @description End date.
-   * Must be aligned with the window size.
-   * Inclusive.
-   */
-  to?: Date
-  /**
-   * @description Window Size
-   * If not specified, a single usage aggregate will be returned for the entirety of
-   * the specified period for each subject and group.
-   */
-  windowSize?: WindowSizeType
-  /**
-   * @description Group By
-   * If not specified a single aggregate will be returned for each subject and time window.
-   */
-  groupBy?: string[]
-}
-
 export type MeterQueryParams = {
   /**
    * @description Subject(s) to filter by.
@@ -70,6 +39,11 @@ export type MeterQueryParams = {
    * the specified period for each subject and group.
    */
   windowSize?: WindowSizeType
+  /**
+   * @description The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+   * If not specified, the UTC timezone will be used.
+   */
+  windowTimeZone?: string
   /**
    * @description Group By
    * If not specified a single aggregate will be returned for each subject and time window.
