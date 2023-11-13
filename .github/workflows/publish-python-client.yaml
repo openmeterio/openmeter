@@ -28,7 +28,7 @@ jobs:
         run: poetry install
         working-directory: ./api/client/python
       - name: Bump version
-        run: poetry version ${{ github.ref }}
+        run: poetry version ${{ github.ref_name }}
         working-directory: ./api/client/python
       - name: Publish to PyPI
         run: |

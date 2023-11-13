@@ -156,6 +156,7 @@ export interface components {
        */
       description?: string | null
       aggregation: components['schemas']['MeterAggregation']
+      windowSize: components['schemas']['WindowSize']
       /**
        * @description The event type to aggregate.
        * @example api_request
@@ -176,14 +177,16 @@ export interface components {
       groupBy?: {
         [key: string]: string
       }
-      windowSize: components['schemas']['WindowSize']
     }
     /**
      * @description The aggregation type to use for the meter.
      * @enum {string}
      */
     MeterAggregation: 'SUM' | 'COUNT' | 'AVG' | 'MIN' | 'MAX'
-    /** @enum {string} */
+    /**
+     * @description Aggregation window size.
+     * @enum {string}
+     */
     WindowSize: 'MINUTE' | 'HOUR' | 'DAY'
     MeterQueryRow: {
       value: number
@@ -242,19 +245,22 @@ export interface components {
     /** @description A unique identifier for the meter. */
     meterIdOrSlug: components['schemas']['IdOrSlug']
     /**
-     * @description Start date-time in RFC 3339 format in UTC timezone.
-     * Must be aligned with the window size.
+     * @description Start date-time in RFC 3339 format.
      * Inclusive.
      */
     queryFrom?: string
     /**
-     * @description End date-time in RFC 3339 format in UTC timezone.
-     * Must be aligned with the window size.
+     * @description End date-time in RFC 3339 format.
      * Inclusive.
      */
     queryTo?: string
     /** @description If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group. */
     queryWindowSize?: components['schemas']['WindowSize']
+    /**
+     * @description The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+     * If not specified, the UTC timezone will be used.
+     */
+    queryWindowTimeZone?: string
     querySubject?: string[]
     /** @description If not specified a single aggregate will be returned for each subject and time window. */
     queryGroupBy?: string[]
@@ -378,6 +384,7 @@ export interface operations {
         from?: components['parameters']['queryFrom']
         to?: components['parameters']['queryTo']
         windowSize?: components['parameters']['queryWindowSize']
+        windowTimeZone?: components['parameters']['queryWindowTimeZone']
         subject?: components['parameters']['querySubject']
         groupBy?: components['parameters']['queryGroupBy']
       }
