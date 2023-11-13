@@ -20,16 +20,16 @@ type column struct {
 
 // Create Events Table
 type createEventsTable struct {
-	Database        string
-	EventsTableName string
+	Database string
 }
 
 func (d createEventsTable) toSQL() string {
-	tableName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.EventsTableName))
+	tableName := GetEventsTableName(d.Database)
 
 	sb := sqlbuilder.ClickHouse.NewCreateTableBuilder()
 	sb.CreateTable(tableName)
 	sb.IfNotExists()
+	sb.Define("namespace", "String")
 	sb.Define("id", "String")
 	sb.Define("type", "LowCardinality(String)")
 	sb.Define("subject", "String")
@@ -38,24 +38,48 @@ func (d createEventsTable) toSQL() string {
 	sb.Define("data", "String")
 	sb.SQL("ENGINE = MergeTree")
 	sb.SQL("PARTITION BY toYYYYMM(time)")
-	sb.SQL("ORDER BY (time, type, subject)")
+	sb.SQL("ORDER BY (namespace, time, type, subject)")
+
+	sql, _ := sb.Build()
+	return sql
+}
+
+// Create Invalid Events Table
+type createInvalidEventsTable struct {
+	Database string
+}
+
+func (d createInvalidEventsTable) toSQL() string {
+	tableName := GetInvalidEventsTableName(d.Database)
+
+	sb := sqlbuilder.ClickHouse.NewCreateTableBuilder()
+	sb.CreateTable(tableName)
+	sb.IfNotExists()
+	sb.Define("namespace", "String")
+	sb.Define("time", "DateTime")
+	sb.Define("error", "String")
+	sb.Define("event", "String")
+	sb.SQL("ENGINE = MergeTree")
+	sb.SQL("PARTITION BY toYYYYMM(time)")
+	sb.SQL("ORDER BY (namespace, time)")
 
 	sql, _ := sb.Build()
 	return sql
 }
 
 type queryEventsTable struct {
-	Database        string
-	EventsTableName string
-	Limit           int
+	Database  string
+	Namespace string
+	Limit     int
 }
 
 func (d queryEventsTable) toSQL() (string, []interface{}, error) {
-	tableName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.EventsTableName))
+	tableName := GetEventsTableName(d.Database)
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
 	query.Select("id", "type", "subject", "source", "time", "data")
 	query.From(tableName)
+	query.Where(query.Equal("namespace", d.Namespace))
 	query.Desc().OrderBy("time")
 	query.Limit(d.Limit)
 
@@ -64,69 +88,53 @@ func (d queryEventsTable) toSQL() (string, []interface{}, error) {
 }
 
 type createMeterView struct {
-	Database        string
-	Aggregation     models.MeterAggregation
-	EventsTableName string
-	MeterViewName   string
-	EventType       string
-	ValueProperty   string
-	GroupBy         map[string]string
+	Database      string
+	Aggregation   models.MeterAggregation
+	Namespace     string
+	MeterSlug     string
+	EventType     string
+	ValueProperty string
+	GroupBy       map[string]string
+	// Populate creates the materialized view with data from the events table
+	// This is not safe to use in production as requires to stop ingestion
+	Populate bool
 }
 
 func (d createMeterView) toSQL() (string, []interface{}, error) {
-	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
-	eventsTableName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.EventsTableName))
+	viewName := GetMeterViewName(d.Database, d.Namespace, d.MeterSlug)
 	columns := []column{
 		{Name: "subject", Type: "String"},
 		{Name: "windowstart", Type: "DateTime"},
 		{Name: "windowend", Type: "DateTime"},
 	}
-	asSelects := []string{
-		"subject",
-		"tumbleStart(time, toIntervalMinute(1)) AS windowstart",
-		"tumbleEnd(time, toIntervalMinute(1)) AS windowend",
-	}
 
 	// Value
 	agg := ""
-	aggStateFn := ""
 
 	switch d.Aggregation {
 	case models.MeterAggregationSum:
 		agg = "sum"
-		aggStateFn = "sumState"
 	case models.MeterAggregationAvg:
 		agg = "avg"
-		aggStateFn = "avgState"
 	case models.MeterAggregationMin:
 		agg = "min"
-		aggStateFn = "minState"
 	case models.MeterAggregationMax:
 		agg = "max"
-		aggStateFn = "maxState"
 	case models.MeterAggregationCount:
 		agg = "count"
-		aggStateFn = "countState"
 	default:
 		return "", nil, fmt.Errorf("invalid aggregation type: %s", d.Aggregation)
 	}
 
 	columns = append(columns, column{Name: "value", Type: fmt.Sprintf("AggregateFunction(%s, Float64)", agg)})
-	if d.ValueProperty == "" && d.Aggregation == models.MeterAggregationCount {
-		asSelects = append(asSelects, fmt.Sprintf("%s(*) AS value", aggStateFn))
-	} else {
-		asSelects = append(asSelects, fmt.Sprintf("%s(cast(JSON_VALUE(data, '%s'), 'Float64')) AS value", aggStateFn, sqlbuilder.Escape(d.ValueProperty)))
-	}
 
 	// Group by
 	orderBy := []string{"windowstart", "windowend", "subject"}
 	sortedGroupBy := sortedKeys(d.GroupBy)
 	for _, k := range sortedGroupBy {
-		v := d.GroupBy[k]
 		columnName := sqlbuilder.Escape(k)
 		orderBy = append(orderBy, sqlbuilder.Escape(columnName))
 		columns = append(columns, column{Name: columnName, Type: "String"})
-		asSelects = append(asSelects, fmt.Sprintf("JSON_VALUE(data, '%s') as %s", sqlbuilder.Escape(v), sqlbuilder.Escape(k)))
 	}
 
 	sb := sqlbuilder.ClickHouse.NewCreateTableBuilder()
@@ -137,15 +145,17 @@ func (d createMeterView) toSQL() (string, []interface{}, error) {
 	}
 	sb.SQL("ENGINE = AggregatingMergeTree()")
 	sb.SQL(fmt.Sprintf("ORDER BY (%s)", strings.Join(orderBy, ", ")))
+	if d.Populate {
+		sb.SQL("POPULATE")
+	}
 	sb.SQL("AS")
 
-	sbAs := sqlbuilder.ClickHouse.NewSelectBuilder()
-	sbAs.Select(asSelects...)
-	sbAs.From(eventsTableName)
-	// We use absolute path for type to avoid shadowing in the case the materialized view have a `type` column due to group by
-	sbAs.Where(fmt.Sprintf("%s.type = '%s'", eventsTableName, sqlbuilder.Escape(d.EventType)))
-	sbAs.GroupBy(orderBy...)
-	sb.SQL(sbAs.String())
+	selectQuery, err := d.toSelectSQL()
+	if err != nil {
+		return "", nil, err
+	}
+
+	sb.SQL(selectQuery)
 	sql, args := sb.Build()
 
 	// TODO: can we do it differently?
@@ -154,19 +164,73 @@ func (d createMeterView) toSQL() (string, []interface{}, error) {
 	return sql, args, nil
 }
 
+func (d createMeterView) toSelectSQL() (string, error) {
+	eventsTableName := GetEventsTableName(d.Database)
+
+	aggStateFn := ""
+	switch d.Aggregation {
+	case models.MeterAggregationSum:
+		aggStateFn = "sumState"
+	case models.MeterAggregationAvg:
+		aggStateFn = "avgState"
+	case models.MeterAggregationMin:
+		aggStateFn = "minState"
+	case models.MeterAggregationMax:
+		aggStateFn = "maxState"
+	case models.MeterAggregationCount:
+		aggStateFn = "countState"
+	default:
+		return "", fmt.Errorf("invalid aggregation type: %s", d.Aggregation)
+	}
+
+	// Selects
+	selects := []string{
+		"subject",
+		"tumbleStart(time, toIntervalMinute(1)) AS windowstart",
+		"tumbleEnd(time, toIntervalMinute(1)) AS windowend",
+	}
+	if d.ValueProperty == "" && d.Aggregation == models.MeterAggregationCount {
+		selects = append(selects, fmt.Sprintf("%s(*) AS value", aggStateFn))
+	} else {
+		selects = append(selects, fmt.Sprintf("%s(cast(JSON_VALUE(data, '%s'), 'Float64')) AS value", aggStateFn, sqlbuilder.Escape(d.ValueProperty)))
+	}
+
+	// Group by
+	orderBy := []string{"windowstart", "windowend", "subject"}
+	sortedGroupBy := sortedKeys(d.GroupBy)
+	for _, k := range sortedGroupBy {
+		v := d.GroupBy[k]
+		columnName := sqlbuilder.Escape(k)
+		orderBy = append(orderBy, sqlbuilder.Escape(columnName))
+		selects = append(selects, fmt.Sprintf("JSON_VALUE(data, '%s') as %s", sqlbuilder.Escape(v), sqlbuilder.Escape(k)))
+	}
+
+	query := sqlbuilder.ClickHouse.NewSelectBuilder()
+	query.Select(selects...)
+	query.From(eventsTableName)
+	// We use absolute path for type to avoid shadowing in the case the materialized view have a `type` column due to group by
+	query.Where(fmt.Sprintf("namespace = '%s'", sqlbuilder.Escape(d.Namespace)))
+	query.Where(fmt.Sprintf("%s.type = '%s'", eventsTableName, sqlbuilder.Escape(d.EventType)))
+	query.GroupBy(orderBy...)
+
+	return query.String(), nil
+}
+
 type deleteMeterView struct {
-	Database      string
-	MeterViewName string
+	Database  string
+	Namespace string
+	MeterSlug string
 }
 
 func (d deleteMeterView) toSQL() (string, []interface{}) {
-	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
+	viewName := GetMeterViewName(d.Database, d.Namespace, d.MeterSlug)
 	return fmt.Sprintf("DROP VIEW %s", viewName), nil
 }
 
 type queryMeterView struct {
 	Database       string
-	MeterViewName  string
+	Namespace      string
+	MeterSlug      string
 	Aggregation    models.MeterAggregation
 	Subject        []string
 	From           *time.Time
@@ -178,7 +242,7 @@ type queryMeterView struct {
 }
 
 func (d queryMeterView) toSQL() (string, []interface{}, error) {
-	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
+	viewName := GetMeterViewName(d.Database, d.Namespace, d.MeterSlug)
 
 	var selectColumns, groupByColumns, where []string
 
@@ -300,14 +364,15 @@ func sortedKeys(m map[string]string) []string {
 }
 
 type listMeterViewSubjects struct {
-	Database      string
-	MeterViewName string
-	From          *time.Time
-	To            *time.Time
+	Database  string
+	Namespace string
+	MeterSlug string
+	From      *time.Time
+	To        *time.Time
 }
 
 func (d listMeterViewSubjects) toSQL() (string, []interface{}, error) {
-	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
+	viewName := GetMeterViewName(d.Database, d.Namespace, d.MeterSlug)
 
 	var where []string
 	sb := sqlbuilder.ClickHouse.NewSelectBuilder()
@@ -330,4 +395,17 @@ func (d listMeterViewSubjects) toSQL() (string, []interface{}, error) {
 
 	sql, args := sb.Build()
 	return sql, args, nil
+}
+
+func GetEventsTableName(database string) string {
+	return fmt.Sprintf("%s.%s%s", sqlbuilder.Escape(database), tablePrefix, EventsTableName)
+}
+
+func GetInvalidEventsTableName(database string) string {
+	return fmt.Sprintf("%s.%s%s", sqlbuilder.Escape(database), tablePrefix, InvalidEventsTableName)
+}
+
+func GetMeterViewName(database string, namespace string, meterSlug string) string {
+	meterViewName := fmt.Sprintf("%s%s_%s", tablePrefix, namespace, meterSlug)
+	return fmt.Sprintf("%s.%s", sqlbuilder.Escape(database), sqlbuilder.Escape(meterViewName))
 }

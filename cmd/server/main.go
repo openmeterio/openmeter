@@ -385,10 +385,12 @@ func initClickHouseStreaming(config config.Configuration, meterRepository meter.
 	}
 
 	streamingConnector, err := clickhouse_connector.NewClickhouseConnector(clickhouse_connector.ClickhouseConnectorConfig{
-		Logger:     logger,
-		ClickHouse: clickHouseClient,
-		Database:   config.Aggregation.ClickHouse.Database,
-		Meters:     meterRepository,
+		Logger:               logger,
+		ClickHouse:           clickHouseClient,
+		Database:             config.Aggregation.ClickHouse.Database,
+		Meters:               meterRepository,
+		CreateOrReplaceMeter: config.Aggregation.CreateOrReplaceMeter,
+		PopulateMeter:        config.Aggregation.PopulateMeter,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("init clickhouse streaming: %w", err)
