@@ -208,8 +208,9 @@ func (d createMeterView) toSelectSQL() (string, error) {
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
 	query.Select(selects...)
 	query.From(eventsTableName)
-	// We use absolute path for type to avoid shadowing in the case the materialized view have a `type` column due to group by
-	query.Where(fmt.Sprintf("namespace = '%s'", sqlbuilder.Escape(d.Namespace)))
+	// We use absolute path for type to avoid shadowing
+	// in the case the materialized view have a `namespace` or `type` group by
+	query.Where(fmt.Sprintf("%s.namespace = '%s'", eventsTableName, sqlbuilder.Escape(d.Namespace)))
 	query.Where(fmt.Sprintf("%s.type = '%s'", eventsTableName, sqlbuilder.Escape(d.EventType)))
 	query.GroupBy(orderBy...)
 
