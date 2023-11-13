@@ -159,16 +159,6 @@ func (d createMeterView) toSQL() (string, []interface{}, error) {
 	return sql, args, nil
 }
 
-func (d createMeterView) updateQuery() (string, error) {
-	viewName := GetMeterViewName(d.Database, d.Namespace, d.MeterSlug)
-	selectQuery, err := d.toSelectSQL()
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("ALTER TABLE %s MODIFY QUERY %s", viewName, selectQuery), nil
-}
-
 func (d createMeterView) toSelectSQL() (string, error) {
 	eventsTableName := GetEventsTableName(d.Database)
 
