@@ -314,8 +314,8 @@ class ClientOperationsMixin(ClientMixinABC):
                           Required. Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
                         "eventType": "str",  # The event type to aggregate. Required.
                         "slug": "str",  # A unique identifier for the meter. Required.
-                        "windowSize": "str",  # Required. Known values are: "MINUTE", "HOUR",
-                          and "DAY".
+                        "windowSize": "str",  # Aggregation window size. Required. Known
+                          values are: "MINUTE", "HOUR", and "DAY".
                         "description": "str",  # Optional. A description of the meter.
                         "groupBy": {
                             "str": "str"  # Optional. Named JSONPath expressions to
@@ -391,8 +391,8 @@ class ClientOperationsMixin(ClientMixinABC):
                       Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
                     "slug": "str",  # A unique identifier for the meter. Required.
-                    "windowSize": "str",  # Required. Known values are: "MINUTE", "HOUR", and
-                      "DAY".
+                    "windowSize": "str",  # Aggregation window size. Required. Known values are:
+                      "MINUTE", "HOUR", and "DAY".
                     "description": "str",  # Optional. A description of the meter.
                     "groupBy": {
                         "str": "str"  # Optional. Named JSONPath expressions to extract the
@@ -409,8 +409,8 @@ class ClientOperationsMixin(ClientMixinABC):
                       Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
                     "slug": "str",  # A unique identifier for the meter. Required.
-                    "windowSize": "str",  # Required. Known values are: "MINUTE", "HOUR", and
-                      "DAY".
+                    "windowSize": "str",  # Aggregation window size. Required. Known values are:
+                      "MINUTE", "HOUR", and "DAY".
                     "description": "str",  # Optional. A description of the meter.
                     "groupBy": {
                         "str": "str"  # Optional. Named JSONPath expressions to extract the
@@ -444,8 +444,8 @@ class ClientOperationsMixin(ClientMixinABC):
                       Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
                     "slug": "str",  # A unique identifier for the meter. Required.
-                    "windowSize": "str",  # Required. Known values are: "MINUTE", "HOUR", and
-                      "DAY".
+                    "windowSize": "str",  # Aggregation window size. Required. Known values are:
+                      "MINUTE", "HOUR", and "DAY".
                     "description": "str",  # Optional. A description of the meter.
                     "groupBy": {
                         "str": "str"  # Optional. Named JSONPath expressions to extract the
@@ -479,8 +479,8 @@ class ClientOperationsMixin(ClientMixinABC):
                       Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
                     "slug": "str",  # A unique identifier for the meter. Required.
-                    "windowSize": "str",  # Required. Known values are: "MINUTE", "HOUR", and
-                      "DAY".
+                    "windowSize": "str",  # Aggregation window size. Required. Known values are:
+                      "MINUTE", "HOUR", and "DAY".
                     "description": "str",  # Optional. A description of the meter.
                     "groupBy": {
                         "str": "str"  # Optional. Named JSONPath expressions to extract the
@@ -497,8 +497,8 @@ class ClientOperationsMixin(ClientMixinABC):
                       Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
                     "slug": "str",  # A unique identifier for the meter. Required.
-                    "windowSize": "str",  # Required. Known values are: "MINUTE", "HOUR", and
-                      "DAY".
+                    "windowSize": "str",  # Aggregation window size. Required. Known values are:
+                      "MINUTE", "HOUR", and "DAY".
                     "description": "str",  # Optional. A description of the meter.
                     "groupBy": {
                         "str": "str"  # Optional. Named JSONPath expressions to extract the
@@ -584,8 +584,8 @@ class ClientOperationsMixin(ClientMixinABC):
                       Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
                     "slug": "str",  # A unique identifier for the meter. Required.
-                    "windowSize": "str",  # Required. Known values are: "MINUTE", "HOUR", and
-                      "DAY".
+                    "windowSize": "str",  # Aggregation window size. Required. Known values are:
+                      "MINUTE", "HOUR", and "DAY".
                     "description": "str",  # Optional. A description of the meter.
                     "groupBy": {
                         "str": "str"  # Optional. Named JSONPath expressions to extract the
@@ -696,6 +696,7 @@ class ClientOperationsMixin(ClientMixinABC):
         from_parameter: Optional[datetime.datetime] = None,
         to: Optional[datetime.datetime] = None,
         window_size: Optional[str] = None,
+        window_time_zone: str = "UTC",
         subject: Optional[List[str]] = None,
         group_by: Optional[List[str]] = None,
         **kwargs: Any
@@ -704,18 +705,20 @@ class ClientOperationsMixin(ClientMixinABC):
 
         :param meter_id_or_slug: A unique identifier for the meter. Required.
         :type meter_id_or_slug: str
-        :keyword from_parameter: Start date-time in RFC 3339 format in UTC timezone.
-         Must be aligned with the window size.
+        :keyword from_parameter: Start date-time in RFC 3339 format.
          Inclusive. Default value is None.
         :paramtype from_parameter: ~datetime.datetime
-        :keyword to: End date-time in RFC 3339 format in UTC timezone.
-         Must be aligned with the window size.
+        :keyword to: End date-time in RFC 3339 format.
          Inclusive. Default value is None.
         :paramtype to: ~datetime.datetime
         :keyword window_size: If not specified, a single usage aggregate will be returned for the
          entirety of the specified period for each subject and group. Known values are: "MINUTE",
          "HOUR", and "DAY". Default value is None.
         :paramtype window_size: str
+        :keyword window_time_zone: The value is the name of the time zone as defined in the IANA Time
+         Zone Database (http://www.iana.org/time-zones).
+         If not specified, the UTC timezone will be used. Default value is "UTC".
+        :paramtype window_time_zone: str
         :keyword subject: Default value is None.
         :paramtype subject: list[str]
         :keyword group_by: If not specified a single aggregate will be returned for each subject and
@@ -744,8 +747,8 @@ class ClientOperationsMixin(ClientMixinABC):
                     ],
                     "from": "2020-02-20 00:00:00",  # Optional.
                     "to": "2020-02-20 00:00:00",  # Optional.
-                    "windowSize": "str"  # Optional. Known values are: "MINUTE", "HOUR", and
-                      "DAY".
+                    "windowSize": "str"  # Optional. Aggregation window size. Known values are:
+                      "MINUTE", "HOUR", and "DAY".
                 }
         """
         error_map = {
@@ -767,6 +770,7 @@ class ClientOperationsMixin(ClientMixinABC):
             from_parameter=from_parameter,
             to=to,
             window_size=window_size,
+            window_time_zone=window_time_zone,
             subject=subject,
             group_by=group_by,
             headers=_headers,
