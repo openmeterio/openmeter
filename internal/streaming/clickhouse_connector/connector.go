@@ -185,11 +185,11 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 		Limit:     params.Limit,
 	}
 
-	sql, _, err := table.toSQL()
+	sql, args, err := table.toSQL()
 	if err != nil {
 		return nil, fmt.Errorf("query events table to sql: %w", err)
 	}
-	rows, err := c.config.ClickHouse.Query(ctx, sql)
+	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
 			return nil, &models.NamespaceNotFoundError{Namespace: namespace}
