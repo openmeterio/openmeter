@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	tablePrefix            = "om"
+	tablePrefix            = "om_"
 	EventsTableName        = "events"
 	InvalidEventsTableName = "invalid_events"
 )
