@@ -37,9 +37,8 @@ type ClickHouseStorage struct {
 
 func (c *ClickHouseStorage) BatchInsert(ctx context.Context, namespace string, events []*serializer.CloudEventsKafkaPayload) error {
 	query := InsertEventsQuery{
-		Database:        c.config.Database,
-		EventsTableName: clickhouse_connector.GetEventsTableName(namespace),
-		Events:          events,
+		Database: c.config.Database,
+		Events:   events,
 	}
 	sql, args, err := query.ToSQL()
 	if err != nil {

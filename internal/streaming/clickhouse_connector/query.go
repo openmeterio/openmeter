@@ -20,16 +20,17 @@ type column struct {
 
 // Create Events Table
 type createEventsTable struct {
-	Database        string
-	EventsTableName string
+	Database    string
+	TablePrefix string
 }
 
 func (d createEventsTable) toSQL() string {
-	tableName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.EventsTableName))
+	tableName := fmt.Sprintf("%s.%s_%s", sqlbuilder.Escape(d.Database), prefix, EventsTableName)
 
 	sb := sqlbuilder.ClickHouse.NewCreateTableBuilder()
 	sb.CreateTable(tableName)
 	sb.IfNotExists()
+	sb.Define("namespace", "String")
 	sb.Define("id", "String")
 	sb.Define("type", "LowCardinality(String)")
 	sb.Define("subject", "String")
@@ -38,7 +39,7 @@ func (d createEventsTable) toSQL() string {
 	sb.Define("data", "String")
 	sb.SQL("ENGINE = MergeTree")
 	sb.SQL("PARTITION BY toYYYYMM(time)")
-	sb.SQL("ORDER BY (time, type, subject)")
+	sb.SQL("ORDER BY (namespace, time, type, subject)")
 
 	sql, _ := sb.Build()
 	return sql
@@ -46,12 +47,11 @@ func (d createEventsTable) toSQL() string {
 
 // Create Invalid Events Table
 type createInvalidEventsTable struct {
-	Database  string
-	TableName string
+	Database string
 }
 
 func (d createInvalidEventsTable) toSQL() string {
-	tableName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.TableName))
+	tableName := fmt.Sprintf("%s.%s_%s", sqlbuilder.Escape(d.Database), prefix, InvalidEventsTableName)
 
 	sb := sqlbuilder.ClickHouse.NewCreateTableBuilder()
 	sb.CreateTable(tableName)
@@ -69,17 +69,18 @@ func (d createInvalidEventsTable) toSQL() string {
 }
 
 type queryEventsTable struct {
-	Database        string
-	EventsTableName string
-	Limit           int
+	Database  string
+	Namespace string
+	Limit     int
 }
 
 func (d queryEventsTable) toSQL() (string, []interface{}, error) {
-	tableName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.EventsTableName))
+	tableName := fmt.Sprintf("%s.%s_%s", sqlbuilder.Escape(d.Database), prefix, EventsTableName)
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
 	query.Select("id", "type", "subject", "source", "time", "data")
 	query.From(tableName)
+	query.Where(query.Equal("namespace", d.Namespace))
 	query.Desc().OrderBy("time")
 	query.Limit(d.Limit)
 
@@ -88,18 +89,18 @@ func (d queryEventsTable) toSQL() (string, []interface{}, error) {
 }
 
 type createMeterView struct {
-	Database        string
-	Aggregation     models.MeterAggregation
-	EventsTableName string
-	MeterViewName   string
-	EventType       string
-	ValueProperty   string
-	GroupBy         map[string]string
+	Database      string
+	Aggregation   models.MeterAggregation
+	Namespace     string
+	MeterViewName string
+	EventType     string
+	ValueProperty string
+	GroupBy       map[string]string
 }
 
 func (d createMeterView) toSQL() (string, []interface{}, error) {
 	viewName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.MeterViewName))
-	eventsTableName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.EventsTableName))
+	eventsTableName := fmt.Sprintf("%s.%s_%s", sqlbuilder.Escape(d.Database), prefix, EventsTableName)
 	columns := []column{
 		{Name: "subject", Type: "String"},
 		{Name: "windowstart", Type: "DateTime"},
@@ -167,6 +168,7 @@ func (d createMeterView) toSQL() (string, []interface{}, error) {
 	sbAs.Select(asSelects...)
 	sbAs.From(eventsTableName)
 	// We use absolute path for type to avoid shadowing in the case the materialized view have a `type` column due to group by
+	sbAs.Where(fmt.Sprintf("namespace = '%s'", sqlbuilder.Escape(d.Namespace)))
 	sbAs.Where(fmt.Sprintf("%s.type = '%s'", eventsTableName, sqlbuilder.Escape(d.EventType)))
 	sbAs.GroupBy(orderBy...)
 	sb.SQL(sbAs.String())

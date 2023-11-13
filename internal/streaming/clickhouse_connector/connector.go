@@ -18,7 +18,7 @@ import (
 
 var (
 	prefix                 = "om"
-	eventsTableName        = "events"
+	EventsTableName        = "events"
 	InvalidEventsTableName = "invalid_events"
 )
 
@@ -152,8 +152,7 @@ func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace str
 
 func (c *ClickhouseConnector) createEventsTable(ctx context.Context, namespace string) error {
 	table := createEventsTable{
-		Database:        c.config.Database,
-		EventsTableName: GetEventsTableName(namespace),
+		Database: c.config.Database,
 	}
 
 	err := c.config.ClickHouse.Exec(ctx, table.toSQL())
@@ -166,8 +165,7 @@ func (c *ClickhouseConnector) createEventsTable(ctx context.Context, namespace s
 
 func (c *ClickhouseConnector) createInvalidEventsTable(ctx context.Context) error {
 	table := createInvalidEventsTable{
-		Database:  c.config.Database,
-		TableName: InvalidEventsTableName,
+		Database: c.config.Database,
 	}
 
 	err := c.config.ClickHouse.Exec(ctx, table.toSQL())
@@ -180,9 +178,9 @@ func (c *ClickhouseConnector) createInvalidEventsTable(ctx context.Context) erro
 
 func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]event.Event, error) {
 	table := queryEventsTable{
-		Database:        c.config.Database,
-		EventsTableName: GetEventsTableName(namespace),
-		Limit:           params.Limit,
+		Database:  c.config.Database,
+		Namespace: namespace,
+		Limit:     params.Limit,
 	}
 
 	sql, _, err := table.toSQL()
@@ -238,13 +236,13 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 
 func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace string, meter *models.Meter) error {
 	view := createMeterView{
-		Database:        c.config.Database,
-		EventsTableName: GetEventsTableName(namespace),
-		Aggregation:     meter.Aggregation,
-		EventType:       meter.EventType,
-		MeterViewName:   getMeterViewNameBySlug(namespace, meter.Slug),
-		ValueProperty:   meter.ValueProperty,
-		GroupBy:         meter.GroupBy,
+		Database:      c.config.Database,
+		Namespace:     namespace,
+		Aggregation:   meter.Aggregation,
+		EventType:     meter.EventType,
+		MeterViewName: getMeterViewNameBySlug(namespace, meter.Slug),
+		ValueProperty: meter.ValueProperty,
+		GroupBy:       meter.GroupBy,
 	}
 	sql, args, err := view.toSQL()
 	if err != nil {
@@ -390,10 +388,6 @@ func (c *ClickhouseConnector) listMeterViewSubjects(ctx context.Context, namespa
 	}
 
 	return subjects, nil
-}
-
-func GetEventsTableName(namespace string) string {
-	return fmt.Sprintf("%s_%s_%s", prefix, namespace, eventsTableName)
 }
 
 func getMeterViewNameBySlug(namespace string, meterSlug string) string {

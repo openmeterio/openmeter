@@ -16,10 +16,9 @@ func TestCreateEventsTable(t *testing.T) {
 	}{
 		{
 			data: createEventsTable{
-				Database:        "openmeter",
-				EventsTableName: "meter_events",
+				Database: "openmeter",
 			},
-			want: "CREATE TABLE IF NOT EXISTS openmeter.meter_events (id String, type LowCardinality(String), subject String, source String, time DateTime, data String) ENGINE = MergeTree PARTITION BY toYYYYMM(time) ORDER BY (time, type, subject)",
+			want: "CREATE TABLE IF NOT EXISTS openmeter.om_events (namespace String, id String, type LowCardinality(String), subject String, source String, time DateTime, data String) ENGINE = MergeTree PARTITION BY toYYYYMM(time) ORDER BY (namespace, time, type, subject)",
 		},
 	}
 
@@ -40,12 +39,12 @@ func TestQueryEventsTable(t *testing.T) {
 	}{
 		{
 			query: queryEventsTable{
-				Database:        "openmeter",
-				EventsTableName: "meter_events",
-				Limit:           100,
+				Database:  "openmeter",
+				Namespace: "my_namespace",
+				Limit:     100,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data FROM openmeter.meter_events ORDER BY time DESC LIMIT 100",
-			wantArgs: nil,
+			wantSQL:  "SELECT id, type, subject, source, time, data FROM openmeter.om_events WHERE namespace = ? ORDER BY time DESC LIMIT 100",
+			wantArgs: []interface{}{"my_namespace"},
 		},
 	}
 
@@ -72,54 +71,54 @@ func TestCreateMeterView(t *testing.T) {
 	}{
 		{
 			query: createMeterView{
-				Database:        "openmeter",
-				EventsTableName: "meter_events",
-				Aggregation:     models.MeterAggregationSum,
-				EventType:       "myevent",
-				MeterViewName:   "meter_meter1",
-				ValueProperty:   "$.duration_ms",
-				GroupBy:         map[string]string{"group1": "$.group1", "group2": "$.group2"},
+				Database:      "openmeter",
+				Namespace:     "my_namespace",
+				Aggregation:   models.MeterAggregationSum,
+				EventType:     "myevent",
+				MeterViewName: "meter_meter1",
+				ValueProperty: "$.duration_ms",
+				GroupBy:       map[string]string{"group1": "$.group1", "group2": "$.group2"},
 			},
-			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(sum, Float64), group1 String, group2 String) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject, group1, group2) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, sumState(cast(JSON_VALUE(data, '$.duration_ms'), 'Float64')) AS value, JSON_VALUE(data, '$.group1') as group1, JSON_VALUE(data, '$.group2') as group2 FROM openmeter.meter_events WHERE openmeter.meter_events.type = 'myevent' GROUP BY windowstart, windowend, subject, group1, group2",
+			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(sum, Float64), group1 String, group2 String) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject, group1, group2) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, sumState(cast(JSON_VALUE(data, '$.duration_ms'), 'Float64')) AS value, JSON_VALUE(data, '$.group1') as group1, JSON_VALUE(data, '$.group2') as group2 FROM openmeter.om_events WHERE namespace = 'my_namespace' AND openmeter.om_events.type = 'myevent' GROUP BY windowstart, windowend, subject, group1, group2",
 			wantArgs: nil,
 		},
 		{
 			query: createMeterView{
-				Database:        "openmeter",
-				EventsTableName: "meter_events",
-				Aggregation:     models.MeterAggregationAvg,
-				EventType:       "myevent",
-				MeterViewName:   "meter_meter1",
-				ValueProperty:   "$.token_count",
-				GroupBy:         map[string]string{},
+				Database:      "openmeter",
+				Namespace:     "my_namespace",
+				Aggregation:   models.MeterAggregationAvg,
+				EventType:     "myevent",
+				MeterViewName: "meter_meter1",
+				ValueProperty: "$.token_count",
+				GroupBy:       map[string]string{},
 			},
-			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(avg, Float64)) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, avgState(cast(JSON_VALUE(data, '$.token_count'), 'Float64')) AS value FROM openmeter.meter_events WHERE openmeter.meter_events.type = 'myevent' GROUP BY windowstart, windowend, subject",
+			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(avg, Float64)) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, avgState(cast(JSON_VALUE(data, '$.token_count'), 'Float64')) AS value FROM openmeter.om_events WHERE namespace = 'my_namespace' AND openmeter.om_events.type = 'myevent' GROUP BY windowstart, windowend, subject",
 			wantArgs: nil,
 		},
 		{
 			query: createMeterView{
-				Database:        "openmeter",
-				EventsTableName: "meter_events",
-				Aggregation:     models.MeterAggregationCount,
-				EventType:       "myevent",
-				MeterViewName:   "meter_meter1",
-				ValueProperty:   "",
-				GroupBy:         map[string]string{},
+				Database:      "openmeter",
+				Namespace:     "my_namespace",
+				Aggregation:   models.MeterAggregationCount,
+				EventType:     "myevent",
+				MeterViewName: "meter_meter1",
+				ValueProperty: "",
+				GroupBy:       map[string]string{},
 			},
-			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(count, Float64)) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, countState(*) AS value FROM openmeter.meter_events WHERE openmeter.meter_events.type = 'myevent' GROUP BY windowstart, windowend, subject",
+			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(count, Float64)) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, countState(*) AS value FROM openmeter.om_events WHERE namespace = 'my_namespace' AND openmeter.om_events.type = 'myevent' GROUP BY windowstart, windowend, subject",
 			wantArgs: nil,
 		},
 		{
 			query: createMeterView{
-				Database:        "openmeter",
-				EventsTableName: "meter_events",
-				Aggregation:     models.MeterAggregationCount,
-				EventType:       "myevent",
-				MeterViewName:   "meter_meter1",
-				ValueProperty:   "",
-				GroupBy:         map[string]string{},
+				Database:      "openmeter",
+				Namespace:     "my_namespace",
+				Aggregation:   models.MeterAggregationCount,
+				EventType:     "myevent",
+				MeterViewName: "meter_meter1",
+				ValueProperty: "",
+				GroupBy:       map[string]string{},
 			},
-			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(count, Float64)) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, countState(*) AS value FROM openmeter.meter_events WHERE openmeter.meter_events.type = 'myevent' GROUP BY windowstart, windowend, subject",
+			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.meter_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(count, Float64)) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, countState(*) AS value FROM openmeter.om_events WHERE namespace = 'my_namespace' AND openmeter.om_events.type = 'myevent' GROUP BY windowstart, windowend, subject",
 			wantArgs: nil,
 		},
 	}
