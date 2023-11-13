@@ -17,6 +17,7 @@ var codeRegexp = regexp.MustCompile(`code: (0-9]+)`)
 
 type Storage interface {
 	BatchInsert(ctx context.Context, namespace string, events []*serializer.CloudEventsKafkaPayload) error
+	BatchInsertInvalid(ctx context.Context, messages []SinkMessage) error
 }
 
 type ClickHouseStorageConfig struct {
@@ -82,6 +83,24 @@ func (c *ClickHouseStorage) BatchInsert(ctx context.Context, namespace string, e
 	return nil
 }
 
+func (c *ClickHouseStorage) BatchInsertInvalid(ctx context.Context, messages []SinkMessage) error {
+	query := InsertInvalidQuery{
+		Database: c.config.Database,
+		Messages: messages,
+	}
+	sql, args, err := query.ToSQL()
+	if err != nil {
+		return err
+	}
+
+	err = c.config.ClickHouse.Exec(ctx, sql, args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type InsertEventsQuery struct {
 	Database        string
 	EventsTableName string
@@ -97,6 +116,26 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
 
 	for _, event := range q.Events {
 		query.Values(event.Id, event.Type, event.Source, event.Subject, event.Time, event.Data)
+	}
+
+	sql, args := query.Build()
+	return sql, args, nil
+}
+
+type InsertInvalidQuery struct {
+	Database string
+	Messages []SinkMessage
+}
+
+func (q InsertInvalidQuery) ToSQL() (string, []interface{}, error) {
+	tableName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(q.Database), clickhouse_connector.InvalidEventsTableName)
+
+	query := sqlbuilder.ClickHouse.NewInsertBuilder()
+	query.InsertInto(tableName)
+	query.Cols("namespace", "time", "error", "event")
+
+	for _, message := range q.Messages {
+		query.Values(message.Namespace, message.KafkaMessage.Timestamp, message.Error.Message, string(message.KafkaMessage.Value))
 	}
 
 	sql, args := query.Build()

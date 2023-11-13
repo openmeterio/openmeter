@@ -44,6 +44,30 @@ func (d createEventsTable) toSQL() string {
 	return sql
 }
 
+// Create Invalid Events Table
+type createInvalidEventsTable struct {
+	Database  string
+	TableName string
+}
+
+func (d createInvalidEventsTable) toSQL() string {
+	tableName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(d.Database), sqlbuilder.Escape(d.TableName))
+
+	sb := sqlbuilder.ClickHouse.NewCreateTableBuilder()
+	sb.CreateTable(tableName)
+	sb.IfNotExists()
+	sb.Define("namespace", "String")
+	sb.Define("time", "DateTime")
+	sb.Define("error", "String")
+	sb.Define("event", "String")
+	sb.SQL("ENGINE = MergeTree")
+	sb.SQL("PARTITION BY toYYYYMM(time)")
+	sb.SQL("ORDER BY (namespace, time)")
+
+	sql, _ := sb.Build()
+	return sql
+}
+
 type queryEventsTable struct {
 	Database        string
 	EventsTableName string
