@@ -20,8 +20,7 @@ type column struct {
 
 // Create Events Table
 type createEventsTable struct {
-	Database    string
-	TablePrefix string
+	Database string
 }
 
 func (d createEventsTable) toSQL() string {
