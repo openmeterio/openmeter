@@ -161,15 +161,7 @@ func (d createMeterView) toSQL() (string, []interface{}, error) {
 func (d createMeterView) toSelectSQL() (string, error) {
 	eventsTableName := GetEventsTableName(d.Database)
 
-	asSelects := []string{
-		"subject",
-		"tumbleStart(time, toIntervalMinute(1)) AS windowstart",
-		"tumbleEnd(time, toIntervalMinute(1)) AS windowend",
-	}
-
-	// Value
 	aggStateFn := ""
-
 	switch d.Aggregation {
 	case models.MeterAggregationSum:
 		aggStateFn = "sumState"
@@ -185,10 +177,16 @@ func (d createMeterView) toSelectSQL() (string, error) {
 		return "", fmt.Errorf("invalid aggregation type: %s", d.Aggregation)
 	}
 
+	// Selects
+	selects := []string{
+		"subject",
+		"tumbleStart(time, toIntervalMinute(1)) AS windowstart",
+		"tumbleEnd(time, toIntervalMinute(1)) AS windowend",
+	}
 	if d.ValueProperty == "" && d.Aggregation == models.MeterAggregationCount {
-		asSelects = append(asSelects, fmt.Sprintf("%s(*) AS value", aggStateFn))
+		selects = append(selects, fmt.Sprintf("%s(*) AS value", aggStateFn))
 	} else {
-		asSelects = append(asSelects, fmt.Sprintf("%s(cast(JSON_VALUE(data, '%s'), 'Float64')) AS value", aggStateFn, sqlbuilder.Escape(d.ValueProperty)))
+		selects = append(selects, fmt.Sprintf("%s(cast(JSON_VALUE(data, '%s'), 'Float64')) AS value", aggStateFn, sqlbuilder.Escape(d.ValueProperty)))
 	}
 
 	// Group by
@@ -198,11 +196,11 @@ func (d createMeterView) toSelectSQL() (string, error) {
 		v := d.GroupBy[k]
 		columnName := sqlbuilder.Escape(k)
 		orderBy = append(orderBy, sqlbuilder.Escape(columnName))
-		asSelects = append(asSelects, fmt.Sprintf("JSON_VALUE(data, '%s') as %s", sqlbuilder.Escape(v), sqlbuilder.Escape(k)))
+		selects = append(selects, fmt.Sprintf("JSON_VALUE(data, '%s') as %s", sqlbuilder.Escape(v), sqlbuilder.Escape(k)))
 	}
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
-	query.Select(asSelects...)
+	query.Select(selects...)
 	query.From(eventsTableName)
 	// We use absolute path for type to avoid shadowing in the case the materialized view have a `type` column due to group by
 	query.Where(fmt.Sprintf("namespace = '%s'", sqlbuilder.Escape(d.Namespace)))
