@@ -133,7 +133,7 @@ type InsertInvalidQuery struct {
 }
 
 func (q InsertInvalidQuery) ToSQL() (string, []interface{}, error) {
-	tableName := fmt.Sprintf("%s.%s_%s", sqlbuilder.Escape(q.Database), clickhouse_connector.TablePrefix, clickhouse_connector.InvalidEventsTableName)
+	tableName := clickhouse_connector.GetInvalidEventsTableName(q.Database)
 
 	query := sqlbuilder.ClickHouse.NewInsertBuilder()
 	query.InsertInto(tableName)

@@ -395,14 +395,14 @@ func (d listMeterViewSubjects) toSQL() (string, []interface{}, error) {
 }
 
 func GetEventsTableName(database string) string {
-	return fmt.Sprintf("%s.%s_%s", sqlbuilder.Escape(database), TablePrefix, EventsTableName)
+	return fmt.Sprintf("%s.%s_%s", sqlbuilder.Escape(database), tablePrefix, EventsTableName)
 }
 
 func GetInvalidEventsTableName(database string) string {
-	return fmt.Sprintf("%s.%s_%s", sqlbuilder.Escape(database), TablePrefix, InvalidEventsTableName)
+	return fmt.Sprintf("%s.%s_%s", sqlbuilder.Escape(database), tablePrefix, InvalidEventsTableName)
 }
 
 func GetMeterViewName(database string, namespace string, meterSlug string) string {
-	meterViewName := fmt.Sprintf("%s_%s_%s", TablePrefix, namespace, meterSlug)
+	meterViewName := fmt.Sprintf("%s_%s_%s", tablePrefix, namespace, meterSlug)
 	return fmt.Sprintf("%s.%s", sqlbuilder.Escape(database), sqlbuilder.Escape(meterViewName))
 }
