@@ -652,7 +652,7 @@ func (s *Sink) Close() error {
 	if s.flushTimer != nil {
 		s.flushTimer.Stop()
 	}
-	return s.config.Consumer.Close()
+	return nil
 }
 
 // getNamespace from topic
