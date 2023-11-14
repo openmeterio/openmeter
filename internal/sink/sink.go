@@ -645,6 +645,8 @@ func (s *Sink) ParseMessage(e *kafka.Message) (string, *serializer.CloudEventsKa
 }
 
 func (s *Sink) Close() error {
+	s.config.Logger.Info("closing sink")
+
 	s.running = false
 	if s.namespaceRefetch != nil {
 		s.namespaceRefetch.Stop()
@@ -652,7 +654,8 @@ func (s *Sink) Close() error {
 	if s.flushTimer != nil {
 		s.flushTimer.Stop()
 	}
-	return s.config.Consumer.Close()
+
+	return nil
 }
 
 // getNamespace from topic
