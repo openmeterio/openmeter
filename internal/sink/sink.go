@@ -645,7 +645,7 @@ func (s *Sink) ParseMessage(e *kafka.Message) (string, *serializer.CloudEventsKa
 }
 
 func (s *Sink) Close() error {
-	s.config.Logger.Debug("closing sink")
+	s.config.Logger.Info("closing sink")
 
 	s.running = false
 	if s.namespaceRefetch != nil {
