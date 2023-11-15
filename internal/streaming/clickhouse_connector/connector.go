@@ -17,8 +17,9 @@ import (
 )
 
 var (
-	prefix          = "om"
-	eventsTableName = "events"
+	tablePrefix            = "om_"
+	EventsTableName        = "events"
+	InvalidEventsTableName = "invalid_events"
 )
 
 // ClickhouseConnector implements `ingest.Connector“ and `namespace.Handler interfaces.
@@ -27,10 +28,12 @@ type ClickhouseConnector struct {
 }
 
 type ClickhouseConnectorConfig struct {
-	Logger     *slog.Logger
-	ClickHouse clickhouse.Conn
-	Database   string
-	Meters     meter.Repository
+	Logger               *slog.Logger
+	ClickHouse           clickhouse.Conn
+	Database             string
+	Meters               meter.Repository
+	CreateOrReplaceMeter bool
+	PopulateMeter        bool
 }
 
 func NewClickhouseConnector(config ClickhouseConnectorConfig) (*ClickhouseConnector, error) {
@@ -141,13 +144,17 @@ func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace str
 		return fmt.Errorf("create namespace in clickhouse: %w", err)
 	}
 
+	err = c.createInvalidEventsTable(ctx)
+	if err != nil {
+		return fmt.Errorf("create namespace in clickhouse: %w", err)
+	}
+
 	return nil
 }
 
 func (c *ClickhouseConnector) createEventsTable(ctx context.Context, namespace string) error {
 	table := createEventsTable{
-		Database:        c.config.Database,
-		EventsTableName: GetEventsTableName(namespace),
+		Database: c.config.Database,
 	}
 
 	err := c.config.ClickHouse.Exec(ctx, table.toSQL())
@@ -158,18 +165,31 @@ func (c *ClickhouseConnector) createEventsTable(ctx context.Context, namespace s
 	return nil
 }
 
-func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]event.Event, error) {
-	table := queryEventsTable{
-		Database:        c.config.Database,
-		EventsTableName: GetEventsTableName(namespace),
-		Limit:           params.Limit,
+func (c *ClickhouseConnector) createInvalidEventsTable(ctx context.Context) error {
+	table := createInvalidEventsTable{
+		Database: c.config.Database,
 	}
 
-	sql, _, err := table.toSQL()
+	err := c.config.ClickHouse.Exec(ctx, table.toSQL())
+	if err != nil {
+		return fmt.Errorf("create invalid events table: %w", err)
+	}
+
+	return nil
+}
+
+func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]event.Event, error) {
+	table := queryEventsTable{
+		Database:  c.config.Database,
+		Namespace: namespace,
+		Limit:     params.Limit,
+	}
+
+	sql, args, err := table.toSQL()
 	if err != nil {
 		return nil, fmt.Errorf("query events table to sql: %w", err)
 	}
-	rows, err := c.config.ClickHouse.Query(ctx, sql)
+	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
 			return nil, &models.NamespaceNotFoundError{Namespace: namespace}
@@ -217,14 +237,24 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 }
 
 func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace string, meter *models.Meter) error {
+	// CreateOrReplace is used to force the recreation of the materialized view
+	// This is not safe to use in production as it will drop the existing views
+	if c.config.CreateOrReplaceMeter {
+		err := c.deleteMeterView(ctx, namespace, meter.Slug)
+		if err != nil {
+			return fmt.Errorf("drop meter view: %w", err)
+		}
+	}
+
 	view := createMeterView{
-		Database:        c.config.Database,
-		EventsTableName: GetEventsTableName(namespace),
-		Aggregation:     meter.Aggregation,
-		EventType:       meter.EventType,
-		MeterViewName:   getMeterViewNameBySlug(namespace, meter.Slug),
-		ValueProperty:   meter.ValueProperty,
-		GroupBy:         meter.GroupBy,
+		Populate:      c.config.PopulateMeter,
+		Database:      c.config.Database,
+		Namespace:     namespace,
+		MeterSlug:     meter.Slug,
+		Aggregation:   meter.Aggregation,
+		EventType:     meter.EventType,
+		ValueProperty: meter.ValueProperty,
+		GroupBy:       meter.GroupBy,
 	}
 	sql, args, err := view.toSQL()
 	if err != nil {
@@ -240,8 +270,9 @@ func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace str
 
 func (c *ClickhouseConnector) deleteMeterView(ctx context.Context, namespace string, meterSlug string) error {
 	query := deleteMeterView{
-		Database:      c.config.Database,
-		MeterViewName: getMeterViewNameBySlug(namespace, meterSlug),
+		Database:  c.config.Database,
+		Namespace: namespace,
+		MeterSlug: meterSlug,
 	}
 	sql, args := query.toSQL()
 	err := c.config.ClickHouse.Exec(ctx, sql, args...)
@@ -259,7 +290,8 @@ func (c *ClickhouseConnector) deleteMeterView(ctx context.Context, namespace str
 func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]*models.MeterValue, error) {
 	queryMeter := queryMeterView{
 		Database:       c.config.Database,
-		MeterViewName:  getMeterViewNameBySlug(namespace, meterSlug),
+		Namespace:      namespace,
+		MeterSlug:      meterSlug,
 		Aggregation:    params.Aggregation,
 		From:           params.From,
 		To:             params.To,
@@ -339,10 +371,11 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 
 func (c *ClickhouseConnector) listMeterViewSubjects(ctx context.Context, namespace string, meterSlug string, from *time.Time, to *time.Time) ([]string, error) {
 	query := listMeterViewSubjects{
-		Database:      c.config.Database,
-		MeterViewName: getMeterViewNameBySlug(namespace, meterSlug),
-		From:          from,
-		To:            to,
+		Database:  c.config.Database,
+		Namespace: namespace,
+		MeterSlug: meterSlug,
+		From:      from,
+		To:        to,
 	}
 
 	sql, args, err := query.toSQL()
@@ -370,12 +403,4 @@ func (c *ClickhouseConnector) listMeterViewSubjects(ctx context.Context, namespa
 	}
 
 	return subjects, nil
-}
-
-func GetEventsTableName(namespace string) string {
-	return fmt.Sprintf("%s_%s_%s", prefix, namespace, eventsTableName)
-}
-
-func getMeterViewNameBySlug(namespace string, meterSlug string) string {
-	return fmt.Sprintf("%s_%s_%s", prefix, namespace, meterSlug)
 }

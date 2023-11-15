@@ -9,14 +9,14 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/huandu/go-sqlbuilder"
 
-	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 )
 
 var codeRegexp = regexp.MustCompile(`code: (0-9]+)`)
 
 type Storage interface {
-	BatchInsert(ctx context.Context, namespace string, events []*serializer.CloudEventsKafkaPayload) error
+	BatchInsert(ctx context.Context, messages []SinkMessage) error
+	BatchInsertInvalid(ctx context.Context, messages []SinkMessage) error
 }
 
 type ClickHouseStorageConfig struct {
@@ -34,11 +34,10 @@ type ClickHouseStorage struct {
 	config ClickHouseStorageConfig
 }
 
-func (c *ClickHouseStorage) BatchInsert(ctx context.Context, namespace string, events []*serializer.CloudEventsKafkaPayload) error {
+func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []SinkMessage) error {
 	query := InsertEventsQuery{
-		Database:        c.config.Database,
-		EventsTableName: clickhouse_connector.GetEventsTableName(namespace),
-		Events:          events,
+		Database: c.config.Database,
+		Messages: messages,
 	}
 	sql, args, err := query.ToSQL()
 	if err != nil {
@@ -82,21 +81,66 @@ func (c *ClickHouseStorage) BatchInsert(ctx context.Context, namespace string, e
 	return nil
 }
 
+func (c *ClickHouseStorage) BatchInsertInvalid(ctx context.Context, messages []SinkMessage) error {
+	query := InsertInvalidQuery{
+		Database: c.config.Database,
+		Messages: messages,
+	}
+	sql, args, err := query.ToSQL()
+	if err != nil {
+		return err
+	}
+
+	err = c.config.ClickHouse.Exec(ctx, sql, args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type InsertEventsQuery struct {
-	Database        string
-	EventsTableName string
-	Events          []*serializer.CloudEventsKafkaPayload
+	Database string
+	Messages []SinkMessage
 }
 
 func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
-	tableName := fmt.Sprintf("%s.%s", sqlbuilder.Escape(q.Database), sqlbuilder.Escape(q.EventsTableName))
+	tableName := clickhouse_connector.GetEventsTableName(q.Database)
 
 	query := sqlbuilder.ClickHouse.NewInsertBuilder()
 	query.InsertInto(tableName)
-	query.Cols("id", "type", "source", "subject", "time", "data")
+	query.Cols("namespace", "id", "type", "source", "subject", "time", "data")
 
-	for _, event := range q.Events {
-		query.Values(event.Id, event.Type, event.Source, event.Subject, event.Time, event.Data)
+	for _, message := range q.Messages {
+		query.Values(
+			message.Namespace,
+			message.Serialized.Id,
+			message.Serialized.Type,
+			message.Serialized.Source,
+			message.Serialized.Subject,
+			message.Serialized.Time,
+			message.Serialized.Data,
+		)
+	}
+
+	sql, args := query.Build()
+	return sql, args, nil
+}
+
+type InsertInvalidQuery struct {
+	Database string
+	Messages []SinkMessage
+}
+
+func (q InsertInvalidQuery) ToSQL() (string, []interface{}, error) {
+	tableName := clickhouse_connector.GetInvalidEventsTableName(q.Database)
+
+	query := sqlbuilder.ClickHouse.NewInsertBuilder()
+	query.InsertInto(tableName)
+	query.Cols("namespace", "time", "error", "event")
+
+	for _, message := range q.Messages {
+		query.Values(message.Namespace, message.KafkaMessage.Timestamp, message.Error.Message, string(message.KafkaMessage.Value))
 	}
 
 	sql, args := query.Build()

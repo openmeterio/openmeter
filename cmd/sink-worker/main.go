@@ -13,6 +13,7 @@ import (
 	health "github.com/AppsFlyer/go-sundheit"
 	healthhttp "github.com/AppsFlyer/go-sundheit/http"
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-slog/otelslog"
@@ -253,21 +254,27 @@ func initSink(config config.Configuration, logger *slog.Logger, metricMeter metr
 
 	consumerKafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
 	_ = consumerKafkaConfig.SetKey("group.id", config.Sink.GroupId)
+	_ = consumerKafkaConfig.SetKey("session.timeout.ms", 6000)
+	_ = consumerKafkaConfig.SetKey("enable.auto.commit", false)
+	_ = consumerKafkaConfig.SetKey("enable.auto.offset.store", false)
+	_ = consumerKafkaConfig.SetKey("go.application.rebalance.enable", true)
 
-	producerKafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
+	consumer, err := kafka.NewConsumer(&consumerKafkaConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize kafka consumer: %s", err)
+	}
 
 	sinkConfig := sink.SinkConfig{
-		Logger:              logger,
-		Tracer:              tracer,
-		MetricMeter:         metricMeter,
-		MeterRepository:     meterRepository,
-		Storage:             storage,
-		Deduplicator:        deduplicator,
-		ConsumerKafkaConfig: consumerKafkaConfig,
-		ProducerKafkaConfig: producerKafkaConfig,
-		MinCommitCount:      config.Sink.MinCommitCount,
-		MaxCommitWait:       config.Sink.MaxCommitWait,
-		NamespaceRefetch:    config.Sink.NamespaceRefetch,
+		Logger:           logger,
+		Tracer:           tracer,
+		MetricMeter:      metricMeter,
+		MeterRepository:  meterRepository,
+		Storage:          storage,
+		Deduplicator:     deduplicator,
+		Consumer:         consumer,
+		MinCommitCount:   config.Sink.MinCommitCount,
+		MaxCommitWait:    config.Sink.MaxCommitWait,
+		NamespaceRefetch: config.Sink.NamespaceRefetch,
 	}
 
 	return sink.NewSink(sinkConfig)

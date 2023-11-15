@@ -24,7 +24,6 @@ import (
 )
 
 var namespaceTopicRegexp = regexp.MustCompile(`^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$`)
-var defaultDeadletterTopicTemplate = "om_%s_events_deadletter"
 
 type SinkMessage struct {
 	Namespace    string
@@ -34,8 +33,6 @@ type SinkMessage struct {
 }
 
 type Sink struct {
-	consumer          *kafka.Consumer
-	producer          *kafka.Producer
 	config            SinkConfig
 	running           bool
 	buffer            *SinkBuffer
@@ -47,14 +44,13 @@ type Sink struct {
 }
 
 type SinkConfig struct {
-	Logger              *slog.Logger
-	Tracer              trace.Tracer
-	MetricMeter         metric.Meter
-	MeterRepository     meter.Repository
-	Storage             Storage
-	Deduplicator        dedupe.Deduplicator
-	ConsumerKafkaConfig kafka.ConfigMap
-	ProducerKafkaConfig kafka.ConfigMap
+	Logger          *slog.Logger
+	Tracer          trace.Tracer
+	MetricMeter     metric.Meter
+	MeterRepository meter.Repository
+	Storage         Storage
+	Deduplicator    dedupe.Deduplicator
+	Consumer        *kafka.Consumer
 	// MinCommitCount is the minimum number of messages to wait before flushing the buffer.
 	// Whichever happens earlier MinCommitCount or MaxCommitWait will trigger a flush.
 	MinCommitCount int
@@ -64,9 +60,6 @@ type SinkConfig struct {
 	// this information is used to configure which topics the consumer subscribes and
 	// the meter configs used in event validation.
 	NamespaceRefetch time.Duration
-	// DeadletterTopicTemplate is the template used to create the deadletter topic name per namespace.
-	// It is a sprintf template with the namespace as the only argument.
-	DeadletterTopicTemplate string
 	// OnFlushSuccess is an optional lifecycle hook
 	OnFlushSuccess func(string, int64)
 }
@@ -74,22 +67,6 @@ type SinkConfig struct {
 func NewSink(config SinkConfig) (*Sink, error) {
 	if config.Deduplicator == nil {
 		config.Logger.Warn("deduplicator is not set, deduplication will be disabled")
-	}
-
-	// These are Kafka configs but also related to sink logic
-	_ = config.ConsumerKafkaConfig.SetKey("session.timeout.ms", 6000)
-	_ = config.ConsumerKafkaConfig.SetKey("enable.auto.commit", false)
-	_ = config.ConsumerKafkaConfig.SetKey("enable.auto.offset.store", false)
-	_ = config.ConsumerKafkaConfig.SetKey("go.application.rebalance.enable", true)
-
-	consumer, err := kafka.NewConsumer(&config.ConsumerKafkaConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create consumer: %s", err)
-	}
-
-	producer, err := kafka.NewProducer(&config.ProducerKafkaConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create producer: %w", err)
 	}
 
 	// Defaults
@@ -101,9 +78,6 @@ func NewSink(config SinkConfig) (*Sink, error) {
 	}
 	if config.NamespaceRefetch == 0 {
 		config.NamespaceRefetch = 15 * time.Second
-	}
-	if config.DeadletterTopicTemplate == "" {
-		config.DeadletterTopicTemplate = defaultDeadletterTopicTemplate
 	}
 
 	// Initialize OTel metrics
@@ -126,8 +100,6 @@ func NewSink(config SinkConfig) (*Sink, error) {
 	}
 
 	sink := &Sink{
-		consumer:          consumer,
-		producer:          producer,
 		config:            config,
 		buffer:            NewSinkBuffer(),
 		namespaceStore:    NewNamespaceStore(),
@@ -259,9 +231,9 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) ([]
 	defer persistSpan.End()
 
 	deadletterMessages := []SinkMessage{}
-	batchesPerNamespace := map[string][]SinkMessage{}
+	batch := []SinkMessage{}
 
-	// Group messages per namespaces and filter out deadletter and drop messages
+	// Flter out deadletter and drop messages
 	for _, message := range messages {
 		if message.Error != nil {
 			switch message.Error.ProcessingControl {
@@ -277,25 +249,13 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) ([]
 				return deadletterMessages, fmt.Errorf("unknown error type: %s", message.Error)
 			}
 		}
-
-		batchesPerNamespace[message.Namespace] = append(batchesPerNamespace[message.Namespace], message)
+		batch = append(batch, message)
 	}
 
-	// Insert into permanent storage per namespace
-	for namespace, batch := range batchesPerNamespace {
-		// Start otel span for storage batch insert
+	// Storage Batch insert
+	if len(batch) > 0 {
 		storageCtx, storageSpan := s.config.Tracer.Start(persistCtx, "storage-batch-insert")
-		storageSpan.SetAttributes(
-			attribute.String("namespace", namespace),
-			attribute.Int("size", len(batch)),
-		)
-
-		list := []*serializer.CloudEventsKafkaPayload{}
-		for _, message := range batch {
-			list = append(list, message.Serialized)
-		}
-
-		err := s.config.Storage.BatchInsert(storageCtx, namespace, list)
+		err := s.config.Storage.BatchInsert(storageCtx, batch)
 		if err != nil {
 			// Note: a single error in batch will make the whole batch fail
 			if perr, ok := err.(*ProcessingError); ok {
@@ -305,7 +265,6 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) ([]
 					deadletterMessages = append(deadletterMessages, batch...)
 				case DROP:
 					storageSpan.SetStatus(codes.Error, "drop")
-					continue
 				default:
 					storageSpan.SetStatus(codes.Error, "unknown processing error type")
 					storageSpan.RecordError(err)
@@ -321,45 +280,26 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) ([]
 			}
 		}
 		logger.Debug("succeeded to sink to storage", "buffer size", len(messages))
-		storageSpan.End()
 	}
 
 	return deadletterMessages, nil
 }
 
-// deadLetter sends a message to the dead letter queue, useful permanent non-recoverable errors like json parsing
+// deadLetter stores invalid message, useful permanent non-recoverable errors like json parsing
 func (s *Sink) deadLetter(ctx context.Context, messages ...SinkMessage) error {
 	logger := s.config.Logger.With("operation", "deadLetter")
 	_, deadletterSpan := s.config.Tracer.Start(ctx, "deadletter")
 
-	for _, message := range messages {
-		topic := fmt.Sprintf(s.config.DeadletterTopicTemplate, message.Namespace)
-		headers := message.KafkaMessage.Headers
-		headers = append(headers, kafka.Header{Key: "error", Value: []byte(message.Error.Error())})
+	err := s.config.Storage.BatchInsertInvalid(ctx, messages)
+	if err != nil {
+		deadletterSpan.SetStatus(codes.Error, "deadletter failure")
+		deadletterSpan.RecordError(err)
+		deadletterSpan.End()
 
-		msg := &kafka.Message{
-			TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-			Timestamp:      message.KafkaMessage.Timestamp,
-			Headers:        headers,
-			Key:            message.KafkaMessage.Key,
-			Value:          message.KafkaMessage.Value,
-		}
-
-		err := s.producer.Produce(msg, nil)
-		if err != nil {
-			deadletterSpan.SetStatus(codes.Error, "deadletter failure")
-			deadletterSpan.RecordError(err)
-			deadletterSpan.End()
-
-			return fmt.Errorf("producing kafka message to deadletter topic: %w", err)
-		}
-		deadletterSpan.AddEvent(
-			"deadletter",
-			trace.WithAttributes(attribute.String("namespace", message.Namespace)),
-		)
+		return fmt.Errorf("storing invalid messages: %w", err)
 	}
 
-	logger.Debug("succeeded to deadletter", "messages", len(messages))
+	logger.Debug("succeeded to store invalid", "messages", len(messages))
 	deadletterSpan.End()
 	return nil
 }
@@ -378,7 +318,7 @@ func (s *Sink) offsetCommit(ctx context.Context, messages []SinkMessage) error {
 	// We retry with exponential backoff as it's critical that either step #2 or #3 succeeds.
 	err := retry.Do(
 		func() error {
-			commitedOffsets, err := s.consumer.CommitOffsets(offsets)
+			commitedOffsets, err := s.config.Consumer.CommitOffsets(offsets)
 			if err != nil {
 				return err
 			}
@@ -484,7 +424,7 @@ func (s *Sink) subscribeToNamespaces() error {
 		topics := getTopics(*s.namespaceStore)
 		logger.Info("new namespaces detected, subscribing to topics", "topics", topics)
 
-		err = s.consumer.SubscribeTopics(topics, s.rebalance)
+		err = s.config.Consumer.SubscribeTopics(topics, s.rebalance)
 		if err != nil {
 			return fmt.Errorf("failed to subscribe to topics: %s", err)
 		}
@@ -558,7 +498,7 @@ func (s *Sink) Run() error {
 			logger.Error("caught signal, terminating", "sig", sig)
 			s.running = false
 		default:
-			ev := s.consumer.Poll(100)
+			ev := s.config.Consumer.Poll(100)
 			if ev == nil {
 				continue
 			}
@@ -587,7 +527,7 @@ func (s *Sink) Run() error {
 				logger.Debug("event added to buffer", "partition", e.TopicPartition.Partition, "offset", e.TopicPartition.Offset, "event", kafkaCloudEvent)
 
 				// Store message, this won't commit offset immediately just store it for the next manual commit
-				_, err = s.consumer.StoreMessage(e)
+				_, err = s.config.Consumer.StoreMessage(e)
 				if err != nil {
 					// Stop processing, non-recoverable error
 					return fmt.Errorf("failed to store kafka message for upcoming offset commit: %w", err)
@@ -625,7 +565,7 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 	switch e := event.(type) {
 	case kafka.AssignedPartitions:
 		logger.Info("kafka assigned partitions", "partitions", e.Partitions)
-		err := s.consumer.Assign(e.Partitions)
+		err := s.config.Consumer.Assign(e.Partitions)
 		if err != nil {
 			return fmt.Errorf("failed to assign partitions: %w", err)
 		}
@@ -641,7 +581,7 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 		// involuntarily. In this case, the partition might already be owned
 		// by another consumer, and operations including committing
 		// offsets may not work.
-		if s.consumer.AssignmentLost() {
+		if s.config.Consumer.AssignmentLost() {
 			// Our consumer has been kicked out of the group and the
 			// entire assignment is thus lost.
 			logger.Warn("assignment lost involuntarily, commit may fail")
@@ -653,7 +593,7 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 			return fmt.Errorf("failed to flush: %w", err)
 		}
 
-		err = s.consumer.Unassign()
+		err = s.config.Consumer.Unassign()
 		if err != nil {
 			return fmt.Errorf("failed to unassign partitions: %w", err)
 		}
@@ -705,6 +645,8 @@ func (s *Sink) ParseMessage(e *kafka.Message) (string, *serializer.CloudEventsKa
 }
 
 func (s *Sink) Close() error {
+	s.config.Logger.Info("closing sink")
+
 	s.running = false
 	if s.namespaceRefetch != nil {
 		s.namespaceRefetch.Stop()
@@ -712,7 +654,8 @@ func (s *Sink) Close() error {
 	if s.flushTimer != nil {
 		s.flushTimer.Stop()
 	}
-	return s.consumer.Close()
+
+	return nil
 }
 
 // getNamespace from topic

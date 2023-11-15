@@ -40,10 +40,6 @@ jobs:
       - name: Generate Client
         run: npm run generate
         working-directory: ./api/client/node
-      - name: Bump Version
-        run: |
-          npm version prerelease --preid=beta -m "chore(api): bump Node.js client version to %s"
-        working-directory: ./api/client/node
       - name: Open Pull Request
         uses: peter-evans/create-pull-request@v5
         with:

@@ -9,6 +9,12 @@ import (
 
 type AggregationConfiguration struct {
 	ClickHouse ClickHouseAggregationConfiguration
+	// Populate creates the materialized view with data from the events table
+	// This is not safe to use in production as requires to stop ingestion
+	PopulateMeter bool
+	// CreateOrReplace is used to force the recreation of the materialized view
+	// This is not safe to use in production as it will drop the existing views
+	CreateOrReplaceMeter bool
 }
 
 // Validate validates the configuration.
