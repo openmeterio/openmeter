@@ -28,17 +28,20 @@ jobs:
           ref: ${{ github.head_ref }}
           # Make sure the value of GITHUB_TOKEN will not be persisted in repo's config
           persist-credentials: false
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
-          cache-dependency-path: "./api/client/node/package-lock.json"
+          cache: "pnpm"
+          cache-dependency-path: "./api/client/node/pnpm-lock.yaml"
       - name: Install Dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
         working-directory: ./api/client/node
       - name: Generate Client
-        run: npm run generate
+        run: pnpm run generate
         working-directory: ./api/client/node
       - name: Open Pull Request
         uses: peter-evans/create-pull-request@v5
