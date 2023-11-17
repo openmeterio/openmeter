@@ -30,6 +30,7 @@ func (d createEventsTable) toSQL() string {
 	sb.CreateTable(tableName)
 	sb.IfNotExists()
 	sb.Define("namespace", "String")
+	sb.Define("validation_error", "String")
 	sb.Define("id", "String")
 	sb.Define("type", "LowCardinality(String)")
 	sb.Define("subject", "String")
@@ -44,42 +45,31 @@ func (d createEventsTable) toSQL() string {
 	return sql
 }
 
-// Create Invalid Events Table
-type createInvalidEventsTable struct {
-	Database string
-}
-
-func (d createInvalidEventsTable) toSQL() string {
-	tableName := GetInvalidEventsTableName(d.Database)
-
-	sb := sqlbuilder.ClickHouse.NewCreateTableBuilder()
-	sb.CreateTable(tableName)
-	sb.IfNotExists()
-	sb.Define("namespace", "String")
-	sb.Define("time", "DateTime")
-	sb.Define("error", "String")
-	sb.Define("event", "String")
-	sb.SQL("ENGINE = MergeTree")
-	sb.SQL("PARTITION BY toYYYYMM(time)")
-	sb.SQL("ORDER BY (namespace, time)")
-
-	sql, _ := sb.Build()
-	return sql
-}
-
 type queryEventsTable struct {
 	Database  string
 	Namespace string
+	From      *time.Time
+	To        *time.Time
 	Limit     int
 }
 
 func (d queryEventsTable) toSQL() (string, []interface{}, error) {
 	tableName := GetEventsTableName(d.Database)
+	where := []string{}
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
-	query.Select("id", "type", "subject", "source", "time", "data")
+	query.Select("id", "type", "subject", "source", "time", "data", "validation_error")
 	query.From(tableName)
-	query.Where(query.Equal("namespace", d.Namespace))
+
+	where = append(where, query.Equal("namespace", d.Namespace))
+	if d.From != nil {
+		where = append(where, query.GreaterEqualThan("windowstart", d.From.Unix()))
+	}
+	if d.To != nil {
+		where = append(where, query.LessEqualThan("windowend", d.To.Unix()))
+	}
+	query.Where(where...)
+
 	query.Desc().OrderBy("time")
 	query.Limit(d.Limit)
 
@@ -210,6 +200,7 @@ func (d createMeterView) toSelectSQL() (string, error) {
 	query.From(eventsTableName)
 	// We use absolute paths to avoid shadowing in the case the materialized view have a `namespace` or `type` group by
 	query.Where(fmt.Sprintf("%s.namespace = '%s'", eventsTableName, sqlbuilder.Escape(d.Namespace)))
+	query.Where(fmt.Sprintf("empty(%s.validation_error) = 1", eventsTableName))
 	query.Where(fmt.Sprintf("%s.type = '%s'", eventsTableName, sqlbuilder.Escape(d.EventType)))
 	query.GroupBy(orderBy...)
 
@@ -399,10 +390,6 @@ func (d listMeterViewSubjects) toSQL() (string, []interface{}, error) {
 
 func GetEventsTableName(database string) string {
 	return fmt.Sprintf("%s.%s%s", sqlbuilder.Escape(database), tablePrefix, EventsTableName)
-}
-
-func GetInvalidEventsTableName(database string) string {
-	return fmt.Sprintf("%s.%s%s", sqlbuilder.Escape(database), tablePrefix, InvalidEventsTableName)
 }
 
 func GetMeterViewName(database string, namespace string, meterSlug string) string {

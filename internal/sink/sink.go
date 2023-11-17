@@ -134,20 +134,12 @@ func (s *Sink) flush() error {
 	// Dedupe messages so if we have multiple messages in the same batch
 	dedupedMessages := dedupeSinkMessages(messages)
 
-	// 1. Persist to storage or deadletter
+	// 1. Persist to storage
 	if len(dedupedMessages) > 0 {
 		// Persist events to permanent storage
-		deadletterMessages, err := s.persistToStorage(ctx, messages)
+		err := s.persistToStorage(ctx, dedupedMessages)
 		if err != nil {
 			return fmt.Errorf("failed to persist: %w", err)
-		}
-
-		// Deadletter failed messages if any
-		if len(deadletterMessages) > 0 {
-			err := s.deadLetter(ctx, deadletterMessages...)
-			if err != nil {
-				return fmt.Errorf("failed to deadletter messages: %s", err)
-			}
 		}
 	}
 
@@ -204,8 +196,8 @@ func (s *Sink) reportFlushMetrics(ctx context.Context, messages []SinkMessage) e
 
 		if message.Error != nil {
 			switch message.Error.ProcessingControl {
-			case DEADLETTER:
-				statusAttr = attribute.String("status", "deadletter")
+			case INVALID:
+				statusAttr = attribute.String("status", "invalid")
 			case DROP:
 				statusAttr = attribute.String("status", "drop")
 			default:
@@ -225,28 +217,25 @@ func (s *Sink) reportFlushMetrics(ctx context.Context, messages []SinkMessage) e
 }
 
 // persist persists a batch of messages to storage or deadletters
-func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) ([]SinkMessage, error) {
+func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) error {
 	logger := s.config.Logger.With("operation", "persistToStorage")
 	persistCtx, persistSpan := s.config.Tracer.Start(ctx, "persist")
 	defer persistSpan.End()
 
-	deadletterMessages := []SinkMessage{}
 	batch := []SinkMessage{}
 
-	// Flter out deadletter and drop messages
+	// Flter out dropped messages
 	for _, message := range messages {
 		if message.Error != nil {
 			switch message.Error.ProcessingControl {
-			case DEADLETTER:
-				logger.Debug("deadlettering message", "error", message.Error, "message", string(message.KafkaMessage.Value), "namespace", message.Namespace)
-				deadletterMessages = append(deadletterMessages, message)
-				continue
+			case INVALID:
+				// Do nothing: include in batch
 			case DROP:
-				// Do nothing
+				// Skip message from batch
 				logger.Debug("dropping message", "error", message.Error, "message", string(message.KafkaMessage.Value), "namespace", message.Namespace)
 				continue
 			default:
-				return deadletterMessages, fmt.Errorf("unknown error type: %s", message.Error)
+				return fmt.Errorf("unknown error type: %s", message.Error)
 			}
 		}
 		batch = append(batch, message)
@@ -257,50 +246,15 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) ([]
 		storageCtx, storageSpan := s.config.Tracer.Start(persistCtx, "storage-batch-insert")
 		err := s.config.Storage.BatchInsert(storageCtx, batch)
 		if err != nil {
-			// Note: a single error in batch will make the whole batch fail
-			if perr, ok := err.(*ProcessingError); ok {
-				switch perr.ProcessingControl {
-				case DEADLETTER:
-					storageSpan.SetStatus(codes.Error, "deadletter")
-					deadletterMessages = append(deadletterMessages, batch...)
-				case DROP:
-					storageSpan.SetStatus(codes.Error, "drop")
-				default:
-					storageSpan.SetStatus(codes.Error, "unknown processing error type")
-					storageSpan.RecordError(err)
-					storageSpan.End()
-					return deadletterMessages, fmt.Errorf("unknown error type: %s", err)
-				}
-			} else {
-				// Throwing and error means we will retry the whole batch again
-				storageSpan.SetStatus(codes.Error, "failure")
-				storageSpan.RecordError(err)
-				storageSpan.End()
-				return deadletterMessages, fmt.Errorf("failed to sink to storage: %s", err)
-			}
+			// Returning and error means we will retry the whole batch again
+			storageSpan.SetStatus(codes.Error, "failure")
+			storageSpan.RecordError(err)
+			storageSpan.End()
+			return fmt.Errorf("failed to sink to storage: %s", err)
 		}
 		logger.Debug("succeeded to sink to storage", "buffer size", len(messages))
 	}
 
-	return deadletterMessages, nil
-}
-
-// deadLetter stores invalid message, useful permanent non-recoverable errors like json parsing
-func (s *Sink) deadLetter(ctx context.Context, messages ...SinkMessage) error {
-	logger := s.config.Logger.With("operation", "deadLetter")
-	_, deadletterSpan := s.config.Tracer.Start(ctx, "deadletter")
-
-	err := s.config.Storage.BatchInsertInvalid(ctx, messages)
-	if err != nil {
-		deadletterSpan.SetStatus(codes.Error, "deadletter failure")
-		deadletterSpan.RecordError(err)
-		deadletterSpan.End()
-
-		return fmt.Errorf("storing invalid messages: %w", err)
-	}
-
-	logger.Debug("succeeded to store invalid", "messages", len(messages))
-	deadletterSpan.End()
 	return nil
 }
 

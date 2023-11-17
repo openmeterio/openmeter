@@ -11,15 +11,15 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/cloudevents/sdk-go/v2/event"
 
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var (
-	tablePrefix            = "om_"
-	EventsTableName        = "events"
-	InvalidEventsTableName = "invalid_events"
+	tablePrefix     = "om_"
+	EventsTableName = "events"
 )
 
 // ClickhouseConnector implements `ingest.Connector“ and `namespace.Handler interfaces.
@@ -44,7 +44,7 @@ func NewClickhouseConnector(config ClickhouseConnectorConfig) (*ClickhouseConnec
 	return connector, nil
 }
 
-func (c *ClickhouseConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]event.Event, error) {
+func (c *ClickhouseConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
@@ -141,11 +141,6 @@ func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace str
 		return fmt.Errorf("create namespace in clickhouse: %w", err)
 	}
 
-	err = c.createInvalidEventsTable(ctx)
-	if err != nil {
-		return fmt.Errorf("create namespace in clickhouse: %w", err)
-	}
-
 	return nil
 }
 
@@ -162,23 +157,12 @@ func (c *ClickhouseConnector) createEventsTable(ctx context.Context, namespace s
 	return nil
 }
 
-func (c *ClickhouseConnector) createInvalidEventsTable(ctx context.Context) error {
-	table := createInvalidEventsTable{
-		Database: c.config.Database,
-	}
-
-	err := c.config.ClickHouse.Exec(ctx, table.toSQL())
-	if err != nil {
-		return fmt.Errorf("create invalid events table: %w", err)
-	}
-
-	return nil
-}
-
-func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]event.Event, error) {
+func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
 	table := queryEventsTable{
 		Database:  c.config.Database,
 		Namespace: namespace,
+		From:      params.From,
+		To:        params.To,
 		Limit:     params.Limit,
 	}
 
@@ -195,7 +179,7 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 		return nil, fmt.Errorf("query events table query: %w", err)
 	}
 
-	events := []event.Event{}
+	events := []api.IngestedEvent{}
 
 	for rows.Next() {
 		var id string
@@ -204,8 +188,9 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 		var source string
 		var time time.Time
 		var dataStr string
+		var validationError string
 
-		if err = rows.Scan(&id, &eventType, &subject, &source, &time, &dataStr); err != nil {
+		if err = rows.Scan(&id, &eventType, &subject, &source, &time, &dataStr, &validationError); err != nil {
 			return nil, err
 		}
 
@@ -227,7 +212,15 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 			return nil, fmt.Errorf("query events set data: %w", err)
 		}
 
-		events = append(events, event)
+		ingestedEvent := api.IngestedEvent{
+			Event: event,
+		}
+
+		if validationError != "" {
+			ingestedEvent.ValidationError = &validationError
+		}
+
+		events = append(events, ingestedEvent)
 	}
 
 	return events, nil

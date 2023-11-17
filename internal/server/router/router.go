@@ -61,35 +61,6 @@ func NewRouter(config Config) (*Router, error) {
 	}, nil
 }
 
-func (a *Router) IngestEvents(w http.ResponseWriter, r *http.Request) {
-	namespace := a.config.NamespaceManager.GetDefaultNamespace()
-	a.config.IngestHandler.ServeHTTP(w, r, namespace)
-}
-
-func (a *Router) ListEvents(w http.ResponseWriter, r *http.Request, params api.ListEventsParams) {
-	logger := slog.With("operation", "queryEvents")
-	namespace := a.config.NamespaceManager.GetDefaultNamespace()
-
-	limit := 100
-	if params.Limit != nil {
-		limit = *params.Limit
-	}
-
-	queryParams := streaming.ListEventsParams{
-		Limit: limit,
-	}
-
-	events, err := a.config.StreamingConnector.ListEvents(r.Context(), namespace, queryParams)
-	if err != nil {
-		logger.Error("query events", "error", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
-		return
-
-	}
-
-	render.JSON(w, r, events)
-}
-
 func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request) {
 	logger := slog.With("operation", "listMeters")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
