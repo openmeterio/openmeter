@@ -3,15 +3,12 @@ package sink
 import (
 	"context"
 	"fmt"
-	"regexp"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/huandu/go-sqlbuilder"
 
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 )
-
-var codeRegexp = regexp.MustCompile(`code: (0-9]+)`)
 
 type Storage interface {
 	BatchInsert(ctx context.Context, messages []SinkMessage) error
