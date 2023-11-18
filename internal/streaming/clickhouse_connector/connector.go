@@ -94,7 +94,7 @@ func (c *ClickhouseConnector) DeleteMeter(ctx context.Context, namespace string,
 	return nil
 }
 
-func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) (*streaming.QueryResult, error) {
+func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
@@ -108,10 +108,7 @@ func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, 
 		return nil, fmt.Errorf("get values: %w", err)
 	}
 
-	return &streaming.QueryResult{
-		WindowSize: params.WindowSize,
-		Values:     values,
-	}, nil
+	return values, nil
 }
 
 func (c *ClickhouseConnector) ListMeterSubjects(ctx context.Context, namespace string, meterSlug string, from *time.Time, to *time.Time) ([]string, error) {
@@ -287,7 +284,7 @@ func (c *ClickhouseConnector) deleteMeterView(ctx context.Context, namespace str
 	return nil
 }
 
-func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]*models.MeterValue, error) {
+func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	queryMeter := queryMeterView{
 		Database:       c.config.Database,
 		Namespace:      namespace,
@@ -302,7 +299,7 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		WindowTimeZone: params.WindowTimeZone,
 	}
 
-	values := []*models.MeterValue{}
+	values := []models.MeterQueryRow{}
 
 	sql, args, err := queryMeter.toSQL()
 	if err != nil {
@@ -322,8 +319,8 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 	slog.Debug("query meter view", "elapsed", elapsed.String(), "sql", sql, "args", args)
 
 	for rows.Next() {
-		value := &models.MeterValue{
-			GroupBy: map[string]string{},
+		value := models.MeterQueryRow{
+			GroupBy: map[string]*string{},
 		}
 
 		args := []interface{}{&value.WindowStart, &value.WindowEnd}
@@ -347,9 +344,20 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 			return values, fmt.Errorf("query meter view row scan: %w", err)
 		}
 
+		// We treat empty subject as nil
+		// We store empty string in the database to allow for null values
+		if value.Subject != nil && *value.Subject == "" {
+			value.Subject = nil
+		}
+
 		for i, key := range queryMeter.GroupBy {
 			if s, ok := args[i+argCount].(*string); ok {
-				value.GroupBy[key] = *s
+				// We treat empty string as nil
+				if s != nil && *s == "" {
+					value.GroupBy[key] = nil
+				} else {
+					value.GroupBy[key] = s
+				}
 			}
 		}
 

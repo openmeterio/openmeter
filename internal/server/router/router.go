@@ -204,7 +204,7 @@ func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, log
 	}
 
 	// Query connector
-	result, err := a.config.StreamingConnector.QueryMeter(r.Context(), meter.Namespace, meter.Slug, queryParams)
+	data, err := a.config.StreamingConnector.QueryMeter(r.Context(), meter.Namespace, meter.Slug, queryParams)
 	if err != nil {
 		logger.Error("connector", "error", err)
 		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
@@ -212,23 +212,10 @@ func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, log
 	}
 
 	resp := &QueryMeterResponse{
-		WindowSize: result.WindowSize,
+		WindowSize: params.WindowSize,
 		From:       params.From,
 		To:         params.To,
-		Data: slicesx.Map(result.Values, func(val *models.MeterValue) models.MeterQueryRow {
-			row := models.MeterQueryRow{
-				Value:       val.Value,
-				WindowStart: val.WindowStart,
-				WindowEnd:   val.WindowEnd,
-				GroupBy:     val.GroupBy,
-			}
-
-			if val.Subject != "" {
-				row.Subject = &val.Subject
-			}
-
-			return row
-		}),
+		Data:       data,
 	}
 
 	// Parse media type
@@ -285,7 +272,12 @@ func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request,
 			data = append(data, "")
 		}
 		for _, k := range groupByKeys {
-			data = append(data, row.GroupBy[k])
+			var groupByValue string
+
+			if row.GroupBy[k] != nil {
+				groupByValue = *row.GroupBy[k]
+			}
+			data = append(data, groupByValue)
 		}
 		data = append(data, fmt.Sprintf("%f", row.Value))
 		records = append(records, data)

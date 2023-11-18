@@ -73,7 +73,7 @@ func (r *Report) reportUsage(subscription *stripe.Subscription) error {
 		}
 
 		// Query usage from OpenMeter for billing period
-		resp, err := r.openmeter.GetMeterValues(r.ctx, meterSlug, &openmeter.GetMeterValuesParams{
+		resp, err := r.openmeter.QueryMeter(r.ctx, meterSlug, &openmeter.QueryMeterParams{
 			// If you don't report usage events via Stripe Customer ID you need to map Stripe IDs to your internal ID
 			Subject: &subscription.Customer.ID,
 			From:    &r.from,
@@ -82,7 +82,7 @@ func (r *Report) reportUsage(subscription *stripe.Subscription) error {
 		if err != nil {
 			return err
 		}
-		payload, err := openmeter.ParseGetMeterValuesResponse(resp)
+		payload, err := openmeter.ParseQueryMeterResponse(resp)
 		if err != nil {
 			return err
 		}
