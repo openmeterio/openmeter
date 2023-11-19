@@ -345,7 +345,7 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		}
 
 		// We treat empty subject as nil
-		// We store empty string in the database to allow for null values
+		// Query returns subject as empty string when we don't group by subject
 		if value.Subject != nil && *value.Subject == "" {
 			value.Subject = nil
 		}
