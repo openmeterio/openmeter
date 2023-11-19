@@ -50,12 +50,6 @@ paths:
             type: integer
             minimum: 1
             maximum: 100
-        - name: withInvalid
-          in: query
-          required: false
-          description: Include invalid events.
-          schema:
-            type: boolean
       tags:
         - Events
       responses:
