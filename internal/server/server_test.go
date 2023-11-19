@@ -41,8 +41,12 @@ var mockQueryValue = models.MeterQueryRow{
 
 type MockConnector struct{}
 
-func (c *MockConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]event.Event, error) {
-	events := []event.Event{mockEvent}
+func (c *MockConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
+	events := []api.IngestedEvent{
+		{
+			Event: mockEvent,
+		},
+	}
 	return events, nil
 }
 
@@ -122,7 +126,7 @@ func TestRoutes(t *testing.T) {
 				method:      http.MethodPost,
 				path:        "/api/v1/events",
 				contentType: "application/cloudevents+json",
-				body: func() *event.Event {
+				body: func() *api.Event {
 					e := event.New()
 					e.SetID("test-1")
 					e.SetType("type")
@@ -144,7 +148,9 @@ func TestRoutes(t *testing.T) {
 			},
 			res: testResponse{
 				status: http.StatusOK,
-				body:   []event.Event{mockEvent},
+				body: []api.IngestedEvent{
+					{Event: mockEvent},
+				},
 			},
 		},
 		// Meters

@@ -49,7 +49,7 @@ func TestNamespaStore(t *testing.T) {
 			event: serializer.CloudEventsKafkaPayload{
 				Type: "non-existing-event-type",
 			},
-			want: sink.NewProcessingError("no meter found for event type: non-existing-event-type", sink.DEADLETTER),
+			want: sink.NewProcessingError("no meter found for event type: non-existing-event-type", sink.INVALID),
 		},
 		{
 			description: "should return error with invalid json",
@@ -58,7 +58,7 @@ func TestNamespaStore(t *testing.T) {
 				Type: "api-calls",
 				Data: `{`,
 			},
-			want: sink.NewProcessingError("cannot unmarshal event data as json", sink.DEADLETTER),
+			want: sink.NewProcessingError("cannot unmarshal event data as json", sink.INVALID),
 		},
 		{
 			description: "should return error with value property not found",
@@ -67,7 +67,7 @@ func TestNamespaStore(t *testing.T) {
 				Type: "api-calls",
 				Data: `{"method": "GET", "path": "/api/v1"}`,
 			},
-			want: sink.NewProcessingError("event data is missing value property at $.duration_ms", sink.DEADLETTER),
+			want: sink.NewProcessingError("event data is missing value property at $.duration_ms", sink.INVALID),
 		},
 		{
 			description: "should return error when value property is null",
@@ -76,7 +76,7 @@ func TestNamespaStore(t *testing.T) {
 				Type: "api-calls",
 				Data: `{"duration_ms": null, "method": "GET", "path": "/api/v1"}`,
 			},
-			want: sink.NewProcessingError("event data value cannot be null", sink.DEADLETTER),
+			want: sink.NewProcessingError("event data value cannot be null", sink.INVALID),
 		},
 		{
 			description: "should return error when value property cannot be parsed as number",
@@ -85,7 +85,7 @@ func TestNamespaStore(t *testing.T) {
 				Type: "api-calls",
 				Data: `{"duration_ms": "not a number", "method": "GET", "path": "/api/v1"}`,
 			},
-			want: sink.NewProcessingError("event data value cannot be parsed as float64: not a number", sink.DEADLETTER),
+			want: sink.NewProcessingError("event data value cannot be parsed as float64: not a number", sink.INVALID),
 		},
 		{
 			description: "should pass with valid event",

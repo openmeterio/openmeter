@@ -40,6 +40,8 @@ paths:
       description: Retrieve latest raw events.
       operationId: listEvents
       parameters:
+        - $ref: "#/components/parameters/queryFrom"
+        - $ref: "#/components/parameters/queryTo"
         - name: limit
           in: query
           required: false
@@ -58,7 +60,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Event"
+                  $ref: "#/components/schemas/IngestedEvent"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         default:
@@ -367,6 +369,17 @@ components:
         - specversion
         - type
         - subject
+    IngestedEvent:
+      type: object
+      additionalProperties: false
+      required:
+        - event
+      properties:
+        event:
+          $ref: '#/components/schemas/Event'
+        validationError:
+          type: string
+          readOnly: true
     Meter:
       type: object
       x-go-type: models.Meter

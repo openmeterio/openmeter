@@ -58,8 +58,8 @@ func (a *NamespaceStore) ValidateEvent(ctx context.Context, event serializer.Clo
 	}
 
 	if !foundMeter {
-		// Send to dead letter queue so we can show it to the user
-		return NewProcessingError(fmt.Sprintf("no meter found for event type: %s", event.Type), DEADLETTER)
+		// Mark as invalid so we can show it to the user
+		return NewProcessingError(fmt.Sprintf("no meter found for event type: %s", event.Type), INVALID)
 	}
 
 	return nil
@@ -71,7 +71,7 @@ func validateEventWithMeter(meter models.Meter, ev serializer.CloudEventsKafkaPa
 	var data interface{}
 	err := json.Unmarshal([]byte(ev.Data), &data)
 	if err != nil {
-		return NewProcessingError("cannot unmarshal event data as json", DEADLETTER)
+		return NewProcessingError("cannot unmarshal event data as json", INVALID)
 	}
 
 	// We can skip count events as they don't have value property
@@ -82,21 +82,21 @@ func validateEventWithMeter(meter models.Meter, ev serializer.CloudEventsKafkaPa
 	// Parse and validate value
 	valueRaw, err := jsonpath.JsonPathLookup(data, meter.ValueProperty)
 	if err != nil {
-		return NewProcessingError(fmt.Sprintf("event data is missing value property at %s", meter.ValueProperty), DEADLETTER)
+		return NewProcessingError(fmt.Sprintf("event data is missing value property at %s", meter.ValueProperty), INVALID)
 	}
 	if valueRaw == nil {
-		return NewProcessingError("event data value cannot be null", DEADLETTER)
+		return NewProcessingError("event data value cannot be null", INVALID)
 	}
 
 	if valueStr, ok := valueRaw.(string); ok {
 		_, err = strconv.ParseFloat(valueStr, 64)
 		if err != nil {
-			return NewProcessingError(fmt.Sprintf("event data value cannot be parsed as float64: %s", valueStr), DEADLETTER)
+			return NewProcessingError(fmt.Sprintf("event data value cannot be parsed as float64: %s", valueStr), INVALID)
 		}
 	} else if _, ok := valueRaw.(float64); ok {
 
 	} else {
-		return NewProcessingError("event data value property cannot be parsed", DEADLETTER)
+		return NewProcessingError("event data value property cannot be parsed", INVALID)
 	}
 
 	return nil
