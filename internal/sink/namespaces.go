@@ -74,17 +74,6 @@ func validateEventWithMeter(meter models.Meter, ev serializer.CloudEventsKafkaPa
 		return NewProcessingError("cannot unmarshal event data as json", DEADLETTER)
 	}
 
-	// Parse and validate group bys
-	for _, groupByJsonPath := range meter.GroupBy {
-		groupByValue, err := jsonpath.JsonPathLookup(data, groupByJsonPath)
-		if err != nil {
-			return NewProcessingError(fmt.Sprintf("event data is missing the group by property at %s", groupByJsonPath), DEADLETTER)
-		}
-		if groupByValue == nil {
-			return NewProcessingError(fmt.Sprintf("event data group by property is nil at %s", groupByJsonPath), DEADLETTER)
-		}
-	}
-
 	// We can skip count events as they don't have value property
 	if meter.Aggregation == models.MeterAggregationCount {
 		return nil

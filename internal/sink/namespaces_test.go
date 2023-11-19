@@ -88,24 +88,6 @@ func TestNamespaStore(t *testing.T) {
 			want: sink.NewProcessingError("event data value cannot be parsed as float64: not a number", sink.DEADLETTER),
 		},
 		{
-			description: "should return error with group by property not found",
-			namespace:   "default",
-			event: serializer.CloudEventsKafkaPayload{
-				Type: "api-calls",
-				Data: `{"duration_ms": 100, "path": "/api/v1"}`,
-			},
-			want: sink.NewProcessingError("event data is missing the group by property at $.method", sink.DEADLETTER),
-		},
-		{
-			description: "should return error when group by property is null",
-			namespace:   "default",
-			event: serializer.CloudEventsKafkaPayload{
-				Type: "api-calls",
-				Data: `{"duration_ms": 100, "method": null, "path": "/api/v1"}`,
-			},
-			want: sink.NewProcessingError("event data group by property is nil at $.method", sink.DEADLETTER),
-		},
-		{
 			description: "should pass with valid event",
 			namespace:   "default",
 			event: serializer.CloudEventsKafkaPayload{

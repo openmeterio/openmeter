@@ -31,8 +31,9 @@ var mockMeters = []models.Meter{
 	{ID: ulid.Make().String(), Slug: "meter2", WindowSize: models.WindowSizeMinute, Aggregation: models.MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
 }
 
-var mockQueryValue = models.MeterValue{
-	Subject:     "s1",
+var mockSubject = "s1"
+var mockQueryValue = models.MeterQueryRow{
+	Subject:     &mockSubject,
 	WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 	WindowEnd:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
 	Value:       300,
@@ -53,19 +54,14 @@ func (c *MockConnector) DeleteMeter(ctx context.Context, namespace string, meter
 	return nil
 }
 
-func (c *MockConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) (*streaming.QueryResult, error) {
+func (c *MockConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	value := mockQueryValue
 
 	if params.Subject == nil {
-		value.Subject = ""
+		value.Subject = nil
 	}
 
-	ws := models.WindowSizeHour
-
-	return &streaming.QueryResult{
-		Values:     []*models.MeterValue{&value},
-		WindowSize: &ws,
-	}, nil
+	return []models.MeterQueryRow{value}, nil
 }
 
 func (c *MockConnector) ListMeterSubjects(ctx context.Context, namespace string, meterSlug string, from *time.Time, to *time.Time) ([]string, error) {
@@ -214,11 +210,9 @@ func TestRoutes(t *testing.T) {
 			res: testResponse{
 				status: http.StatusOK,
 				body: struct {
-					WindowSize models.WindowSize       `json:"windowSize"`
-					Data       []*models.MeterQueryRow `json:"data"`
+					Data []models.MeterQueryRow `json:"data"`
 				}{
-					WindowSize: models.WindowSizeHour,
-					Data: []*models.MeterQueryRow{
+					Data: []models.MeterQueryRow{
 						{Subject: nil, WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
 					},
 				},
@@ -234,12 +228,10 @@ func TestRoutes(t *testing.T) {
 			res: testResponse{
 				status: http.StatusOK,
 				body: struct {
-					WindowSize models.WindowSize       `json:"windowSize"`
-					Data       []*models.MeterQueryRow `json:"data"`
+					Data []models.MeterQueryRow `json:"data"`
 				}{
-					WindowSize: models.WindowSizeHour,
-					Data: []*models.MeterQueryRow{
-						{Subject: &mockQueryValue.Subject, WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
+					Data: []models.MeterQueryRow{
+						{Subject: mockQueryValue.Subject, WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
 					},
 				},
 			},
