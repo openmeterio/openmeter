@@ -139,6 +139,10 @@ export interface components {
         [key: string]: unknown
       }
     }
+    IngestedEvent: {
+      event: components['schemas']['Event']
+      validationError?: string
+    }
     Meter: {
       /**
        * @description A unique identifier for the meter.
@@ -279,6 +283,8 @@ export interface operations {
   listEvents: {
     parameters: {
       query?: {
+        from?: components['parameters']['queryFrom']
+        to?: components['parameters']['queryTo']
         /** @description Number of events to return. */
         limit?: number
       }
@@ -287,7 +293,7 @@ export interface operations {
       /** @description Events response */
       200: {
         content: {
-          'application/json': components['schemas']['Event'][]
+          'application/json': components['schemas']['IngestedEvent'][]
         }
       }
       400: components['responses']['BadRequestProblemResponse']

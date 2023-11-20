@@ -4,6 +4,7 @@ import { RequestOptions, BaseClient, OpenMeterConfig } from './client.js'
 
 // We export Event instead
 type CloudEvents = components['schemas']['Event']
+export type IngestedEvent = components['schemas']['IngestedEvent']
 
 export type EventsQueryParams = {
   /**

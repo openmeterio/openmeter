@@ -4,7 +4,7 @@ import { MetersClient } from './clients/meter.js'
 import { PortalClient } from './clients/portal.js'
 
 export { OpenMeterConfig, RequestOptions } from './clients/client.js'
-export { Event } from './clients/event.js'
+export { Event, IngestedEvent } from './clients/event.js'
 export { Meter, MeterAggregation, WindowSize } from './clients/meter.js'
 
 export { createOpenAIStreamCallback } from './next.js'
