@@ -2,7 +2,7 @@ import crypto from 'crypto'
 import { setGlobalDispatcher } from 'undici'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 // test built version
-import { OpenMeter, type Event, WindowSize } from '../dist/index.js'
+import { OpenMeter, type Event, IngestedEvent, WindowSize } from '../dist/index.js'
 import { mockAgent } from './agent.js'
 import { mockEvent, mockMeter, mockMeterValue } from './mocks.js'
 
@@ -49,9 +49,11 @@ describe('sdk', () => {
     describe('list', () => {
       it('should list events', async ({ openmeter }) => {
         const events = await openmeter.events.list()
-        const expected = {
-          ...mockEvent,
-          time: mockEvent.time?.toISOString(),
+        const expected: IngestedEvent = {
+          event: {
+            ...mockEvent,
+            time: mockEvent.time?.toISOString(),
+          }
         }
         expect(events).toEqual([expected])
       })

@@ -37,7 +37,11 @@ client
       Accept: 'application/json',
     },
   })
-  .reply(200, [mockEvent], {
+  .reply(200, [
+    {
+      event: mockEvent
+    }
+  ], {
     headers: {
       'Content-Type': 'application/json',
     },
