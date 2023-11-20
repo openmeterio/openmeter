@@ -237,22 +237,13 @@ func (m *Meter) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// TODO: replace this model with something else in the clickhouse connector
-type MeterValue struct {
-	Subject     string            `json:"subject"`
-	WindowStart time.Time         `json:"windowStart"`
-	WindowEnd   time.Time         `json:"windowEnd"`
-	Value       float64           `json:"value"`
-	GroupBy     map[string]string `json:"groupBy,omitempty"`
-}
-
 // MeterQueryRow returns a single row from the meter dataset.
 type MeterQueryRow struct {
-	Value       float64           `json:"value"`
-	WindowStart time.Time         `json:"windowStart"`
-	WindowEnd   time.Time         `json:"windowEnd"`
-	Subject     *string           `json:"subject"`
-	GroupBy     map[string]string `json:"groupBy,omitempty"`
+	Value       float64            `json:"value"`
+	WindowStart time.Time          `json:"windowStart"`
+	WindowEnd   time.Time          `json:"windowEnd"`
+	Subject     *string            `json:"subject"`
+	GroupBy     map[string]*string `json:"groupBy"`
 }
 
 // Render implements the chi renderer interface.

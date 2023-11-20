@@ -61,35 +61,6 @@ func NewRouter(config Config) (*Router, error) {
 	}, nil
 }
 
-func (a *Router) IngestEvents(w http.ResponseWriter, r *http.Request) {
-	namespace := a.config.NamespaceManager.GetDefaultNamespace()
-	a.config.IngestHandler.ServeHTTP(w, r, namespace)
-}
-
-func (a *Router) ListEvents(w http.ResponseWriter, r *http.Request, params api.ListEventsParams) {
-	logger := slog.With("operation", "queryEvents")
-	namespace := a.config.NamespaceManager.GetDefaultNamespace()
-
-	limit := 100
-	if params.Limit != nil {
-		limit = *params.Limit
-	}
-
-	queryParams := streaming.ListEventsParams{
-		Limit: limit,
-	}
-
-	events, err := a.config.StreamingConnector.ListEvents(r.Context(), namespace, queryParams)
-	if err != nil {
-		logger.Error("query events", "error", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
-		return
-
-	}
-
-	render.JSON(w, r, events)
-}
-
 func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request) {
 	logger := slog.With("operation", "listMeters")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
@@ -204,7 +175,7 @@ func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, log
 	}
 
 	// Query connector
-	result, err := a.config.StreamingConnector.QueryMeter(r.Context(), meter.Namespace, meter.Slug, queryParams)
+	data, err := a.config.StreamingConnector.QueryMeter(r.Context(), meter.Namespace, meter.Slug, queryParams)
 	if err != nil {
 		logger.Error("connector", "error", err)
 		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
@@ -212,23 +183,10 @@ func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, log
 	}
 
 	resp := &QueryMeterResponse{
-		WindowSize: result.WindowSize,
+		WindowSize: params.WindowSize,
 		From:       params.From,
 		To:         params.To,
-		Data: slicesx.Map(result.Values, func(val *models.MeterValue) models.MeterQueryRow {
-			row := models.MeterQueryRow{
-				Value:       val.Value,
-				WindowStart: val.WindowStart,
-				WindowEnd:   val.WindowEnd,
-				GroupBy:     val.GroupBy,
-			}
-
-			if val.Subject != "" {
-				row.Subject = &val.Subject
-			}
-
-			return row
-		}),
+		Data:       data,
 	}
 
 	// Parse media type
@@ -285,7 +243,12 @@ func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request,
 			data = append(data, "")
 		}
 		for _, k := range groupByKeys {
-			data = append(data, row.GroupBy[k])
+			var groupByValue string
+
+			if row.GroupBy[k] != nil {
+				groupByValue = *row.GroupBy[k]
+			}
+			data = append(data, groupByValue)
 		}
 		data = append(data, fmt.Sprintf("%f", row.Value))
 		records = append(records, data)

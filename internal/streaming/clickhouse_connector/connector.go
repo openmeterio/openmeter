@@ -11,15 +11,15 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/cloudevents/sdk-go/v2/event"
 
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var (
-	tablePrefix            = "om_"
-	EventsTableName        = "events"
-	InvalidEventsTableName = "invalid_events"
+	tablePrefix     = "om_"
+	EventsTableName = "events"
 )
 
 // ClickhouseConnector implements `ingest.Connector“ and `namespace.Handler interfaces.
@@ -44,7 +44,7 @@ func NewClickhouseConnector(config ClickhouseConnectorConfig) (*ClickhouseConnec
 	return connector, nil
 }
 
-func (c *ClickhouseConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]event.Event, error) {
+func (c *ClickhouseConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
@@ -94,7 +94,7 @@ func (c *ClickhouseConnector) DeleteMeter(ctx context.Context, namespace string,
 	return nil
 }
 
-func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) (*streaming.QueryResult, error) {
+func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace is required")
 	}
@@ -108,10 +108,7 @@ func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, 
 		return nil, fmt.Errorf("get values: %w", err)
 	}
 
-	return &streaming.QueryResult{
-		WindowSize: params.WindowSize,
-		Values:     values,
-	}, nil
+	return values, nil
 }
 
 func (c *ClickhouseConnector) ListMeterSubjects(ctx context.Context, namespace string, meterSlug string, from *time.Time, to *time.Time) ([]string, error) {
@@ -144,11 +141,6 @@ func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace str
 		return fmt.Errorf("create namespace in clickhouse: %w", err)
 	}
 
-	err = c.createInvalidEventsTable(ctx)
-	if err != nil {
-		return fmt.Errorf("create namespace in clickhouse: %w", err)
-	}
-
 	return nil
 }
 
@@ -165,23 +157,12 @@ func (c *ClickhouseConnector) createEventsTable(ctx context.Context, namespace s
 	return nil
 }
 
-func (c *ClickhouseConnector) createInvalidEventsTable(ctx context.Context) error {
-	table := createInvalidEventsTable{
-		Database: c.config.Database,
-	}
-
-	err := c.config.ClickHouse.Exec(ctx, table.toSQL())
-	if err != nil {
-		return fmt.Errorf("create invalid events table: %w", err)
-	}
-
-	return nil
-}
-
-func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]event.Event, error) {
+func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
 	table := queryEventsTable{
 		Database:  c.config.Database,
 		Namespace: namespace,
+		From:      params.From,
+		To:        params.To,
 		Limit:     params.Limit,
 	}
 
@@ -198,7 +179,7 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 		return nil, fmt.Errorf("query events table query: %w", err)
 	}
 
-	events := []event.Event{}
+	events := []api.IngestedEvent{}
 
 	for rows.Next() {
 		var id string
@@ -207,8 +188,9 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 		var source string
 		var time time.Time
 		var dataStr string
+		var validationError string
 
-		if err = rows.Scan(&id, &eventType, &subject, &source, &time, &dataStr); err != nil {
+		if err = rows.Scan(&id, &eventType, &subject, &source, &time, &dataStr, &validationError); err != nil {
 			return nil, err
 		}
 
@@ -230,7 +212,15 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 			return nil, fmt.Errorf("query events set data: %w", err)
 		}
 
-		events = append(events, event)
+		ingestedEvent := api.IngestedEvent{
+			Event: event,
+		}
+
+		if validationError != "" {
+			ingestedEvent.ValidationError = &validationError
+		}
+
+		events = append(events, ingestedEvent)
 	}
 
 	return events, nil
@@ -287,7 +277,7 @@ func (c *ClickhouseConnector) deleteMeterView(ctx context.Context, namespace str
 	return nil
 }
 
-func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]*models.MeterValue, error) {
+func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	queryMeter := queryMeterView{
 		Database:       c.config.Database,
 		Namespace:      namespace,
@@ -302,7 +292,7 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		WindowTimeZone: params.WindowTimeZone,
 	}
 
-	values := []*models.MeterValue{}
+	values := []models.MeterQueryRow{}
 
 	sql, args, err := queryMeter.toSQL()
 	if err != nil {
@@ -322,8 +312,8 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 	slog.Debug("query meter view", "elapsed", elapsed.String(), "sql", sql, "args", args)
 
 	for rows.Next() {
-		value := &models.MeterValue{
-			GroupBy: map[string]string{},
+		value := models.MeterQueryRow{
+			GroupBy: map[string]*string{},
 		}
 
 		args := []interface{}{&value.WindowStart, &value.WindowEnd}
@@ -347,9 +337,20 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 			return values, fmt.Errorf("query meter view row scan: %w", err)
 		}
 
+		// We treat empty subject as nil
+		// Query returns subject as empty string when we don't group by subject
+		if value.Subject != nil && *value.Subject == "" {
+			value.Subject = nil
+		}
+
 		for i, key := range queryMeter.GroupBy {
 			if s, ok := args[i+argCount].(*string); ok {
-				value.GroupBy[key] = *s
+				// We treat empty string as nil
+				if s != nil && *s == "" {
+					value.GroupBy[key] = nil
+				} else {
+					value.GroupBy[key] = s
+				}
 			}
 		}
 
