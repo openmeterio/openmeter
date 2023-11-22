@@ -27,8 +27,23 @@ import (
 var mockEvent = event.New()
 
 var mockMeters = []models.Meter{
-	{ID: ulid.Make().String(), Slug: "meter1", WindowSize: models.WindowSizeMinute, Aggregation: models.MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
-	{ID: ulid.Make().String(), Slug: "meter2", WindowSize: models.WindowSizeMinute, Aggregation: models.MeterAggregationSum, EventType: "event", ValueProperty: "$.value"},
+	{
+		ID:            ulid.Make().String(),
+		Slug:          "meter1",
+		WindowSize:    models.WindowSizeMinute,
+		Aggregation:   models.MeterAggregationSum,
+		EventType:     "event",
+		ValueProperty: "$.value",
+		GroupBy:       map[string]string{"path": "$.path", "method": "$.method"},
+	},
+	{
+		ID:            ulid.Make().String(),
+		Slug:          "meter2",
+		WindowSize:    models.WindowSizeMinute,
+		Aggregation:   models.MeterAggregationSum,
+		EventType:     "event",
+		ValueProperty: "$.value",
+	},
 }
 
 var mockSubject = "s1"
@@ -222,6 +237,53 @@ func TestRoutes(t *testing.T) {
 						{Subject: nil, WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
 					},
 				},
+			},
+		},
+		{
+			name: "query meter with valid group by",
+			req: testRequest{
+				method:      http.MethodGet,
+				contentType: "application/json",
+				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?groupBy=path&groupBy=method",
+			},
+			res: testResponse{
+				status: http.StatusOK,
+				body: struct {
+					Data []models.MeterQueryRow `json:"data"`
+				}{
+					Data: []models.MeterQueryRow{
+						{Subject: nil, WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
+					},
+				},
+			},
+		},
+		{
+			name: "query meter with subject group by",
+			req: testRequest{
+				method:      http.MethodGet,
+				contentType: "application/json",
+				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?groupBy=subject",
+			},
+			res: testResponse{
+				status: http.StatusOK,
+				body: struct {
+					Data []models.MeterQueryRow `json:"data"`
+				}{
+					Data: []models.MeterQueryRow{
+						{Subject: nil, WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
+					},
+				},
+			},
+		},
+		{
+			name: "query meter with invalid group by",
+			req: testRequest{
+				method:      http.MethodGet,
+				contentType: "application/json",
+				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?groupBy=foo",
+			},
+			res: testResponse{
+				status: http.StatusBadRequest,
 			},
 		},
 		{
