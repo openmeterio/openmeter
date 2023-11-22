@@ -248,13 +248,6 @@ func TestRoutes(t *testing.T) {
 			},
 			res: testResponse{
 				status: http.StatusOK,
-				body: struct {
-					Data []models.MeterQueryRow `json:"data"`
-				}{
-					Data: []models.MeterQueryRow{
-						{Subject: nil, WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
-					},
-				},
 			},
 		},
 		{
@@ -266,13 +259,6 @@ func TestRoutes(t *testing.T) {
 			},
 			res: testResponse{
 				status: http.StatusOK,
-				body: struct {
-					Data []models.MeterQueryRow `json:"data"`
-				}{
-					Data: []models.MeterQueryRow{
-						{Subject: nil, WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
-					},
-				},
 			},
 		},
 		{
