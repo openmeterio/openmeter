@@ -740,7 +740,8 @@ class ClientOperationsMixin(ClientMixinABC):
         :keyword subject: Default value is None.
         :paramtype subject: list[str]
         :keyword group_by: If not specified a single aggregate will be returned for each subject and
-         time window. Default value is None.
+         time window.
+         ``subject`` is a reserved group by value. Default value is None.
         :paramtype group_by: list[str]
         :return: JSON object or str
         :rtype: JSON or str
