@@ -155,7 +155,23 @@ func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, log
 	}
 
 	if params.GroupBy != nil {
-		queryParams.GroupBy = *params.GroupBy
+		for _, groupBy := range *params.GroupBy {
+			// Subject is a special group by
+			if groupBy == "subject" {
+				queryParams.GroupBySubject = true
+				continue
+			}
+
+			// Validate group by
+			if ok := meter.GroupBy[groupBy] != ""; !ok {
+				err := fmt.Errorf("invalid group by: %s", groupBy)
+				logger.Warn("invalid group by", "error", err)
+				models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+				return
+			}
+
+			queryParams.GroupBy = append(queryParams.GroupBy, groupBy)
+		}
 	}
 
 	if params.WindowTimeZone != nil {
