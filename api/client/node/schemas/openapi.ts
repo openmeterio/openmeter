@@ -210,8 +210,8 @@ export interface components {
     PortalToken: {
       subject: string
       /** Format: date-time */
-      expiresAt?: string
-      token?: string
+      expiresAt: string
+      token: string
       allowedMeterSlugs?: string[]
     }
     IdOrSlug: string

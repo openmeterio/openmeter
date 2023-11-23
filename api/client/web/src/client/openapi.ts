@@ -210,8 +210,8 @@ export interface components {
     PortalToken: {
       subject: string
       /** Format: date-time */
-      expiresAt?: string
-      token?: string
+      expiresAt: string
+      token: string
       allowedMeterSlugs?: string[]
     }
     IdOrSlug: string
@@ -275,7 +275,10 @@ export interface components {
      */
     queryWindowTimeZone?: string
     querySubject?: string[]
-    /** @description If not specified a single aggregate will be returned for each subject and time window. */
+    /**
+     * @description If not specified a single aggregate will be returned for each subject and time window.
+     * `subject` is a reserved group by value.
+     */
     queryGroupBy?: string[]
   }
   requestBodies: never

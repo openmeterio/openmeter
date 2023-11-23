@@ -432,7 +432,7 @@ components:
         - event
       properties:
         event:
-          $ref: '#/components/schemas/Event'
+          $ref: "#/components/schemas/Event"
         validationError:
           type: string
           readOnly: true
@@ -537,8 +537,8 @@ components:
       type: object
       required:
         - subject
-        # - expiresAt
-        # - token
+        - expiresAt
+        - token
       properties:
         subject:
           type: string
