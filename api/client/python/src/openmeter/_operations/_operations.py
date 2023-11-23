@@ -249,6 +249,47 @@ def build_invalidate_portal_tokens_request(**kwargs: Any) -> HttpRequest:
     return HttpRequest(method="POST", url=_url, headers=_headers, **kwargs)
 
 
+def build_query_portal_meter_request(
+    meter_slug: str,
+    *,
+    from_parameter: Optional[datetime.datetime] = None,
+    to: Optional[datetime.datetime] = None,
+    window_size: Optional[str] = None,
+    window_time_zone: str = "UTC",
+    group_by: Optional[List[str]] = None,
+    **kwargs: Any
+) -> HttpRequest:
+    _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+    _params = case_insensitive_dict(kwargs.pop("params", {}) or {})
+
+    accept = _headers.pop("Accept", "application/json, text/csv, application/problem+json")
+
+    # Construct URL
+    _url = "/api/v1/portal/meters/{meterSlug}/query"
+    path_format_arguments = {
+        "meterSlug": _SERIALIZER.url("meter_slug", meter_slug, "str"),
+    }
+
+    _url: str = _url.format(**path_format_arguments)  # type: ignore
+
+    # Construct parameters
+    if from_parameter is not None:
+        _params["from"] = _SERIALIZER.query("from_parameter", from_parameter, "iso-8601")
+    if to is not None:
+        _params["to"] = _SERIALIZER.query("to", to, "iso-8601")
+    if window_size is not None:
+        _params["windowSize"] = _SERIALIZER.query("window_size", window_size, "str")
+    if window_time_zone is not None:
+        _params["windowTimeZone"] = _SERIALIZER.query("window_time_zone", window_time_zone, "str")
+    if group_by is not None:
+        _params["groupBy"] = _SERIALIZER.query("group_by", group_by, "[str]")
+
+    # Construct headers
+    _headers["Accept"] = _SERIALIZER.header("accept", accept, "str")
+
+    return HttpRequest(method="GET", url=_url, params=_params, headers=_headers, **kwargs)
+
+
 class ClientOperationsMixin(ClientMixinABC):
     @overload
     def ingest_events(  # pylint: disable=inconsistent-return-statements
@@ -1368,3 +1409,139 @@ class ClientOperationsMixin(ClientMixinABC):
 
         if cls:
             return cls(pipeline_response, None, {})  # type: ignore
+
+    @distributed_trace
+    def query_portal_meter(
+        self,
+        meter_slug: str,
+        *,
+        from_parameter: Optional[datetime.datetime] = None,
+        to: Optional[datetime.datetime] = None,
+        window_size: Optional[str] = None,
+        window_time_zone: str = "UTC",
+        group_by: Optional[List[str]] = None,
+        **kwargs: Any
+    ) -> Union[JSON, str]:
+        """query_portal_meter.
+
+        :param meter_slug: Required.
+        :type meter_slug: str
+        :keyword from_parameter: Start date-time in RFC 3339 format.
+         Inclusive. Default value is None.
+        :paramtype from_parameter: ~datetime.datetime
+        :keyword to: End date-time in RFC 3339 format.
+         Inclusive. Default value is None.
+        :paramtype to: ~datetime.datetime
+        :keyword window_size: If not specified, a single usage aggregate will be returned for the
+         entirety of the specified period for each subject and group. Known values are: "MINUTE",
+         "HOUR", and "DAY". Default value is None.
+        :paramtype window_size: str
+        :keyword window_time_zone: The value is the name of the time zone as defined in the IANA Time
+         Zone Database (http://www.iana.org/time-zones).
+         If not specified, the UTC timezone will be used. Default value is "UTC".
+        :paramtype window_time_zone: str
+        :keyword group_by: If not specified a single aggregate will be returned for each subject and
+         time window.
+         ``subject`` is a reserved group by value. Default value is None.
+        :paramtype group_by: list[str]
+        :return: JSON object or str
+        :rtype: JSON or str
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == {
+                    "data": [
+                        {
+                            "value": 0.0,  # Required.
+                            "windowEnd": "2020-02-20 00:00:00",  # Required.
+                            "windowStart": "2020-02-20 00:00:00",  # Required.
+                            "groupBy": {
+                                "str": "str"  # Optional. Dictionary of
+                                  :code:`<string>`.
+                            },
+                            "subject": "str"  # Optional. The subject of the meter value.
+                        }
+                    ],
+                    "from": "2020-02-20 00:00:00",  # Optional.
+                    "to": "2020-02-20 00:00:00",  # Optional.
+                    "windowSize": "str"  # Optional. Aggregation window size. Known values are:
+                      "MINUTE", "HOUR", and "DAY".
+                }
+                # response body for status code(s): 401
+                response == {
+                    "detail": "str",  # A human-readable explanation specific to this occurrence
+                      of the problem. Required.
+                    "status": 0,  # The HTTP status code generated by the origin server for this
+                      occurrence of the problem. Required.
+                    "title": "str",  # A a short, human-readable summary of the problem type.
+                      Required.
+                    "type": "str",  # Type contains a URI that identifies the problem type.
+                      Required.
+                    "instance": "str"  # Optional. A URI reference that identifies the specific
+                      occurrence of the problem.
+                }
+        """
+        error_map = {
+            401: ClientAuthenticationError,
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[Union[JSON, str]] = kwargs.pop("cls", None)
+
+        _request = build_query_portal_meter_request(
+            meter_slug=meter_slug,
+            from_parameter=from_parameter,
+            to=to,
+            window_size=window_size,
+            window_time_zone=window_time_zone,
+            group_by=group_by,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = self._client._pipeline.run(  # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200, 200, 401]:
+            if _stream:
+                response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            raise HttpResponseError(response=response)
+
+        if response.status_code == 200:
+            if response.content:
+                deserialized = response.json()
+            else:
+                deserialized = None
+
+        if response.status_code == 200:
+            if response.content:
+                deserialized = response.json()
+            else:
+                deserialized = None
+
+        if response.status_code == 401:
+            if response.content:
+                deserialized = response.json()
+            else:
+                deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(Union[JSON, str], deserialized), {})  # type: ignore
+
+        return cast(Union[JSON, str], deserialized)  # type: ignore
