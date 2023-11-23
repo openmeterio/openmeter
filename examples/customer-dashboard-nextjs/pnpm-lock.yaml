@@ -6,8 +6,11 @@ settings:
 
 dependencies:
   '@openmeter/sdk':
-    specifier: 1.0.0-beta.26
-    version: 1.0.0-beta.26(react@18.2.0)(solid-js@1.8.5)(svelte@4.2.7)(vue@3.3.8)
+    specifier: 1.0.0-beta.29
+    version: 1.0.0-beta.29(react@18.2.0)(solid-js@1.8.6)(svelte@4.2.7)(vue@3.3.8)
+  '@openmeter/web':
+    specifier: 1.0.0-beta.29
+    version: 1.0.0-beta.29(react@18.2.0)
   '@tanstack/query-persist-client-core':
     specifier: 5.8.3
     version: 5.8.3
@@ -337,11 +340,11 @@ packages:
       fastq: 1.15.0
     dev: true
 
-  /@openmeter/sdk@1.0.0-beta.26(react@18.2.0)(solid-js@1.8.5)(svelte@4.2.7)(vue@3.3.8):
-    resolution: {integrity: sha512-z4zxeEgifdFZeGJr8UVJDQc+1ZEBY7NQFyJA2jeE1SS38c3xRWUBOMBZv3nIqiitv31nRfDarNHFCtUsAiLdsw==}
+  /@openmeter/sdk@1.0.0-beta.29(react@18.2.0)(solid-js@1.8.6)(svelte@4.2.7)(vue@3.3.8):
+    resolution: {integrity: sha512-E2aq8a/3i7WO3c/6IZ/LPXe3V9JxQhvugPcnKzLk08ayueqUsTFmyIjrrLOyNQXJy/0c3FqF1SmLfEAVjJhtKQ==}
     engines: {node: '>=18.16.1'}
     dependencies:
-      ai: 2.2.25(react@18.2.0)(solid-js@1.8.5)(svelte@4.2.7)(vue@3.3.8)
+      ai: 2.2.25(react@18.2.0)(solid-js@1.8.6)(svelte@4.2.7)(vue@3.3.8)
       undici: 5.27.2
     optionalDependencies:
       js-tiktoken: 1.0.8
@@ -350,6 +353,16 @@ packages:
       - solid-js
       - svelte
       - vue
+    dev: false
+
+  /@openmeter/web@1.0.0-beta.29(react@18.2.0):
+    resolution: {integrity: sha512-uDWG/1Ep85kR/oJHUH42Dswud59wIOSSStUPqlvykq86OoRa94WQvcF2/kPiYbKYJwddiLXxXGjmBC5b7NOtLg==}
+    engines: {node: '>=18.16.1'}
+    peerDependencies:
+      react: ^18.0.0
+    dependencies:
+      openapi-typescript-fetch: 1.1.3
+      react: 18.2.0
     dev: false
 
   /@rushstack/eslint-patch@1.6.0:
@@ -605,7 +618,7 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
-  /ai@2.2.25(react@18.2.0)(solid-js@1.8.5)(svelte@4.2.7)(vue@3.3.8):
+  /ai@2.2.25(react@18.2.0)(solid-js@1.8.6)(svelte@4.2.7)(vue@3.3.8):
     resolution: {integrity: sha512-iXu3pzPpDPBGDir8hz86FAJmJTynMfBH4V/DXyR3GGeaHOfjdrErlcMm862CSalR6PDMwDOSCQVwJqtdnvIncQ==}
     engines: {node: '>=14.6'}
     peerDependencies:
@@ -626,8 +639,8 @@ packages:
       eventsource-parser: 1.0.0
       nanoid: 3.3.6
       react: 18.2.0
-      solid-js: 1.8.5
-      solid-swr-store: 0.10.7(solid-js@1.8.5)(swr-store@0.10.6)
+      solid-js: 1.8.6
+      solid-swr-store: 0.10.7(solid-js@1.8.6)(swr-store@0.10.6)
       sswr: 2.0.0(svelte@4.2.7)
       svelte: 4.2.7
       swr: 2.2.0(react@18.2.0)
@@ -2387,6 +2400,11 @@ packages:
       wrappy: 1.0.2
     dev: true
 
+  /openapi-typescript-fetch@1.1.3:
+    resolution: {integrity: sha512-smLZPck4OkKMNExcw8jMgrMOGgVGx2N/s6DbKL2ftNl77g5HfoGpZGFy79RBzU/EkaO0OZpwBnslfdBfh7ZcWg==}
+    engines: {node: '>= 12.0.0', npm: '>= 7.0.0'}
+    dev: false
+
   /optionator@0.9.3:
     resolution: {integrity: sha512-JjCoypp+jKn1ttEFExxhetCKeJt9zhAgAve5FXHixTvFDW/5aEktX9bufBKLRRMdU7bNtpLfcGu94B3cdEJgjg==}
     engines: {node: '>= 0.8.0'}
@@ -2718,8 +2736,8 @@ packages:
       lru-cache: 6.0.0
     dev: true
 
-  /seroval@0.12.4:
-    resolution: {integrity: sha512-JIsZHp98o+okpYN8HEPyI9Blr0gxAUPIGvg3waXrEMFjPz9obiLYMz0uFiUGezKiCK8loosYbn8WsqO8WtAJUA==}
+  /seroval@0.14.1:
+    resolution: {integrity: sha512-ZlC9y1KVDhZFdEHLYZup1RjKDutyX1tt3ffOauqRbRURa2vRr2NU/bHuVEuNEqR3zE2uCU3WM6LqH6Oinc3tWg==}
     engines: {node: '>=10'}
     dev: false
 
@@ -2767,21 +2785,21 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
-  /solid-js@1.8.5:
-    resolution: {integrity: sha512-xvtJvzJzWbsn35oKFhW9kNwaxG1Z/YLMsDp4tLVcYZTMPzvzQ8vEZuyDQ6nt7xDArVgZJ7TUFrJUwrui/oq53A==}
+  /solid-js@1.8.6:
+    resolution: {integrity: sha512-yiH6ZfBBZ3xj/aU/PBpVKB+8r8WWp100NGF7k/Z0IrK9Y8Lv0jwvFiJY1cHdc6Tj7GqXArKnMBabM0m1k+LzkA==}
     dependencies:
       csstype: 3.1.2
-      seroval: 0.12.4
+      seroval: 0.14.1
     dev: false
 
-  /solid-swr-store@0.10.7(solid-js@1.8.5)(swr-store@0.10.6):
+  /solid-swr-store@0.10.7(solid-js@1.8.6)(swr-store@0.10.6):
     resolution: {integrity: sha512-A6d68aJmRP471aWqKKPE2tpgOiR5fH4qXQNfKIec+Vap+MGQm3tvXlT8n0I8UgJSlNAsSAUuw2VTviH2h3Vv5g==}
     engines: {node: '>=10'}
     peerDependencies:
       solid-js: ^1.2
       swr-store: ^0.10
     dependencies:
-      solid-js: 1.8.5
+      solid-js: 1.8.6
       swr-store: 0.10.6
     dev: false
 
