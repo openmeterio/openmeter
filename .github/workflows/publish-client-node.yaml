@@ -33,7 +33,7 @@ jobs:
         run: pnpm version ${{ github.ref_name }} --no-git-tag-version
         working-directory: ./api/client/node
       - name: Publish
-        run: pnpm publish
+        run: pnpm publish --no-git-checks
         working-directory: ./api/client/node
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
