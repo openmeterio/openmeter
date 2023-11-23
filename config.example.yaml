@@ -12,6 +12,11 @@ telemetry:
 #     database: 0
 #     expiration: 768h # 32d
 
+# Consumer portal
+# portal:
+#   enabled: true
+#   tokenSecret: this-isnt-secure
+
 meters:
   - slug: m1
     eventType: api-calls

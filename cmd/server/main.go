@@ -40,6 +40,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/server"
+	"github.com/openmeterio/openmeter/internal/server/authenticator"
 	"github.com/openmeterio/openmeter/internal/server/router"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
@@ -218,12 +219,24 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Initialize portal
+	var portalTokenStrategy *authenticator.PortalTokenStrategy
+	if conf.Portal.Enabled {
+		portalTokenStrategy, err = authenticator.NewPortalTokenStrategy(conf.Portal.TokenSecret, conf.Portal.TokenExpiration)
+		if err != nil {
+			logger.Error("failed to initialize portal token strategy", "error", err)
+			os.Exit(1)
+		}
+	}
+
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{
-			NamespaceManager:   namespaceManager,
-			StreamingConnector: streamingConnector,
-			IngestHandler:      ingestHandler,
-			Meters:             meterRepository,
+			NamespaceManager:    namespaceManager,
+			StreamingConnector:  streamingConnector,
+			IngestHandler:       ingestHandler,
+			Meters:              meterRepository,
+			PortalTokenStrategy: portalTokenStrategy,
+			PortalCORSEnabled:   conf.Portal.CORS.Enabled,
 		},
 		RouterHook: func(r chi.Router) {
 			r.Use(func(h http.Handler) http.Handler {

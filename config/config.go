@@ -25,6 +25,7 @@ type Configuration struct {
 	Aggregation AggregationConfiguration
 	Sink        SinkConfiguration
 	Dedupe      DedupeConfiguration
+	Portal      PortalConfiguration
 
 	Meters []*models.Meter
 }
@@ -57,6 +58,10 @@ func (c Configuration) Validate() error {
 
 	if err := c.Dedupe.Validate(); err != nil {
 		return fmt.Errorf("dedupe: %w", err)
+	}
+
+	if err := c.Portal.Validate(); err != nil {
+		return fmt.Errorf("portal: %w", err)
 	}
 
 	for _, m := range c.Meters {
@@ -101,4 +106,5 @@ func Configure(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureAggregation(v)
 	ConfigureSink(v)
 	ConfigureDedupe(v)
+	ConfigurePortal(v)
 }

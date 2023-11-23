@@ -132,6 +132,13 @@ func TestComplete(t *testing.T) {
 				},
 			},
 		},
+		Portal: PortalConfiguration{
+			Enabled: false,
+			CORS: PortalCORSConfiguration{
+				Enabled: true,
+			},
+			TokenExpiration: time.Hour,
+		},
 		Meters: []*models.Meter{
 			{
 				Namespace:     "default",

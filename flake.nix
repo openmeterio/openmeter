@@ -19,11 +19,20 @@
         devenv.shells = {
           default = {
             languages = {
-              go.enable = true;
-              go.package = pkgs.go_1_21;
+              go = {
+                enable = true;
+                package = pkgs.go_1_21;
+              };
 
-              python.enable = true;
-              python.package = pkgs.python39;
+              python = {
+                enable = true;
+                package = pkgs.python39;
+              };
+
+              javascript = {
+                enable = true;
+                package = pkgs.nodejs_20;
+              };
             };
 
             pre-commit.hooks = {
@@ -66,6 +75,9 @@
               minikube
 
               benthos
+
+              # node
+              nodePackages.pnpm
 
               # python
               poetry

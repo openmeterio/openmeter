@@ -26,3 +26,7 @@ meters:
     aggregation: SUM
     groupBy:
       model: $.model
+
+portal:
+  enabled: true
+  tokenSecret: this-isnt-secure

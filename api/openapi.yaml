@@ -11,6 +11,8 @@ tags:
     description: Endpoints related to ingesting events
   - name: Meters
     description: Endpoints related to meters
+  - name: Portal
+    description: Endpoints related to the portal
 paths:
   /api/v1/events:
     post:
@@ -254,6 +256,60 @@ paths:
           $ref: "#/components/responses/BadRequestProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
+  /api/v1/portal/meters/{meterSlug}/query:
+    get:
+      operationId: queryPortalMeter
+      tags:
+        - Portal
+      security:
+        - portalToken: []
+      parameters:
+        - name: meterSlug
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/queryFrom"
+        - $ref: "#/components/parameters/queryTo"
+        - $ref: "#/components/parameters/queryWindowSize"
+        - $ref: "#/components/parameters/queryWindowTimeZone"
+        - $ref: "#/components/parameters/queryGroupBy"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  from:
+                    type: string
+                    format: date-time
+                  to:
+                    type: string
+                    format: date-time
+                  windowSize:
+                    $ref: "#/components/schemas/WindowSize"
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MeterQueryRow"
+                required:
+                  - data
+            text/csv:
+              schema:
+                type: string
+              example: |-
+                window_start,window_end,subject,method,path,value
+                2023-01-01T00:00:00.001Z,2023-01-02T00:00:00.001Z,customer_1,get,/hello,12
+                2023-01-01T00:00:00.001Z,2023-01-02T00:00:00.001Z,customer_1,get,/world,20
+                2023-01-01T00:00:00.001Z,2023-01-02T00:00:00.001Z,customer_2,get,/hello,4
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
 
 components:
   schemas:
@@ -376,7 +432,7 @@ components:
         - event
       properties:
         event:
-          $ref: '#/components/schemas/Event'
+          $ref: "#/components/schemas/Event"
         validationError:
           type: string
           readOnly: true
@@ -587,6 +643,12 @@ components:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/Problem"
+    UnauthorizedProblemResponse:
+      description: Unauthorized
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/Problem"
     MethodNotAllowedProblemResponse:
       description: Method not allowed, feature not supported
       content:
@@ -611,3 +673,9 @@ components:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/Problem"
+
+  securitySchemes:
+    portalToken:
+      type: http
+      scheme: bearer
+      bearerFormat: jwt
