@@ -1,0 +1,5 @@
+.env*
+.next/
+.npmrc
+pnpm-lock.yaml
+favicon.ico
