@@ -26,6 +26,7 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: "./api/client/web/pnpm-lock.yaml"
           registry-url: "https://registry.npmjs.org"
+          scope: "@openmeter"
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
         working-directory: ./api/client/web
@@ -33,7 +34,7 @@ jobs:
         run: pnpm version ${{ github.ref_name }} --no-git-tag-version
         working-directory: ./api/client/web
       - name: Publish
-        run: pnpm publish --no-git-checks
+        run: pnpm publish --access=public --no-git-checks
         working-directory: ./api/client/web
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
