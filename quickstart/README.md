@@ -18,7 +18,7 @@ cd openmeter/quickstart
 Launch OpenMeter and its dependencies via:
 
 ```sh
-docker-compose up -d
+docker compose up -d
 ```
 
 ## 2. Ingest usage event(s)
@@ -27,7 +27,6 @@ Ingest usage events in [CloudEvents](https://cloudevents.io/) format:
 
 ```sh
 curl -X POST http://localhost:8888/api/v1/events \
--H "Expect:" \
 -H 'Content-Type: application/cloudevents+json' \
 --data-raw '
 {
@@ -50,7 +49,6 @@ Note how ID is different:
 
 ```sh
 curl -X POST http://localhost:8888/api/v1/events \
--H "Expect:" \
 -H 'Content-Type: application/cloudevents+json' \
 --data-raw '
 {
@@ -73,7 +71,6 @@ Note how ID and time are different:
 
 ```sh
 curl -X POST http://localhost:8888/api/v1/events \
--H "Expect:" \
 -H 'Content-Type: application/cloudevents+json' \
 --data-raw '
 {
@@ -97,31 +94,52 @@ curl -X POST http://localhost:8888/api/v1/events \
 Query the usage hourly:
 
 ```sh
-curl http://localhost:8888/api/v1/meters/m1/query?windowSize=HOUR | jq
+curl 'http://localhost:8888/api/v1/meters/m1/query?windowSize=HOUR&groupBy=method&groupBy=path' | jq
 ```
 
 ```json
 {
-  "values": [
+  "windowSize": "HOUR",
+  "data": [
     {
-      "subject": "customer-1",
+      "value": 2,
       "windowStart": "2023-01-01T00:00:00Z",
       "windowEnd": "2023-01-01T01:00:00Z",
-      "value": 2,
+      "subject": null,
       "groupBy": {
         "method": "GET",
         "path": "/hello"
       }
     },
     {
-      "subject": "customer-1",
+      "value": 1,
       "windowStart": "2023-01-02T00:00:00Z",
       "windowEnd": "2023-01-02T01:00:00Z",
-      "value": 1,
+      "subject": null,
       "groupBy": {
         "method": "GET",
         "path": "/hello"
       }
+    }
+  ]
+}
+```
+
+Query the total usage for `customer-1`:
+
+```sh
+curl 'http://localhost:8888/api/v1/meters/m1/query?subject=customer-1' | jq
+```
+
+```json
+{
+  "data": [
+    {
+      "value": 3,
+      "windowStart": "2023-01-01T00:00:00Z",
+      "windowEnd": "2023-01-02T00:01:00Z",
+      "subject": "customer-1",
+      "groupBy": {}
     }
   ]
 }
@@ -138,8 +156,7 @@ You can think about it how AWS Lambda [charges](https://aws.amazon.com/lambda/pr
 
 meters:
   - slug: m1
-    description: API calls
-    type: api-calls
+    eventType: api-calls
     valueProperty: $.duration_ms
     aggregation: SUM
     groupBy:
@@ -152,5 +169,5 @@ meters:
 Once you are done, stop any running instances:
 
 ```sh
-docker-compose down -v
+docker compose down -v
 ```

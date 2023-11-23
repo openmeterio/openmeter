@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
+	"github.com/openmeterio/openmeter/internal/server/authenticator"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -42,10 +43,12 @@ type IngestHandler interface {
 }
 
 type Config struct {
-	NamespaceManager   *namespace.Manager
-	StreamingConnector streaming.Connector
-	IngestHandler      IngestHandler
-	Meters             meter.Repository
+	NamespaceManager    *namespace.Manager
+	StreamingConnector  streaming.Connector
+	IngestHandler       IngestHandler
+	Meters              meter.Repository
+	PortalCORSEnabled   bool
+	PortalTokenStrategy *authenticator.PortalTokenStrategy
 }
 
 type Router struct {

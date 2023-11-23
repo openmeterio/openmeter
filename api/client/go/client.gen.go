@@ -23,6 +23,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+const (
+	PortalTokenScopes = "portalToken.Scopes"
+)
+
 // Event CloudEvents Specification JSON Schema
 type Event = event.Event
 
@@ -89,6 +93,9 @@ type NotFoundProblemResponse = Problem
 // NotImplementedProblemResponse A Problem Details object (RFC 7807)
 type NotImplementedProblemResponse = Problem
 
+// UnauthorizedProblemResponse A Problem Details object (RFC 7807)
+type UnauthorizedProblemResponse = Problem
+
 // UnexpectedProblemResponse A Problem Details object (RFC 7807)
 type UnexpectedProblemResponse = Problem
 
@@ -126,6 +133,27 @@ type QueryMeterParams struct {
 	// If not specified, the UTC timezone will be used.
 	WindowTimeZone *QueryWindowTimeZone `form:"windowTimeZone,omitempty" json:"windowTimeZone,omitempty"`
 	Subject        *QuerySubject        `form:"subject,omitempty" json:"subject,omitempty"`
+
+	// GroupBy If not specified a single aggregate will be returned for each subject and time window.
+	GroupBy *QueryGroupBy `form:"groupBy,omitempty" json:"groupBy,omitempty"`
+}
+
+// QueryPortalMeterParams defines parameters for QueryPortalMeter.
+type QueryPortalMeterParams struct {
+	// From Start date-time in RFC 3339 format.
+	// Inclusive.
+	From *QueryFrom `form:"from,omitempty" json:"from,omitempty"`
+
+	// To End date-time in RFC 3339 format.
+	// Inclusive.
+	To *QueryTo `form:"to,omitempty" json:"to,omitempty"`
+
+	// WindowSize If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
+	WindowSize *QueryWindowSize `form:"windowSize,omitempty" json:"windowSize,omitempty"`
+
+	// WindowTimeZone The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+	// If not specified, the UTC timezone will be used.
+	WindowTimeZone *QueryWindowTimeZone `form:"windowTimeZone,omitempty" json:"windowTimeZone,omitempty"`
 
 	// GroupBy If not specified a single aggregate will be returned for each subject and time window.
 	GroupBy *QueryGroupBy `form:"groupBy,omitempty" json:"groupBy,omitempty"`
@@ -253,6 +281,9 @@ type ClientInterface interface {
 
 	// ListMeterSubjects request
 	ListMeterSubjects(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// QueryPortalMeter request
+	QueryPortalMeter(ctx context.Context, meterSlug string, params *QueryPortalMeterParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CreatePortalTokenWithBody request with any body
 	CreatePortalTokenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -387,6 +418,18 @@ func (c *Client) QueryMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, pa
 
 func (c *Client) ListMeterSubjects(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListMeterSubjectsRequest(c.Server, meterIdOrSlug)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) QueryPortalMeter(ctx context.Context, meterSlug string, params *QueryPortalMeterParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewQueryPortalMeterRequest(c.Server, meterSlug, params)
 	if err != nil {
 		return nil, err
 	}
@@ -882,6 +925,126 @@ func NewListMeterSubjectsRequest(server string, meterIdOrSlug MeterIdOrSlug) (*h
 	return req, nil
 }
 
+// NewQueryPortalMeterRequest generates requests for QueryPortalMeter
+func NewQueryPortalMeterRequest(server string, meterSlug string, params *QueryPortalMeterParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "meterSlug", runtime.ParamLocationPath, meterSlug)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/portal/meters/%s/query", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.From != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, *params.From); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.To != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "to", runtime.ParamLocationQuery, *params.To); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.WindowSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "windowSize", runtime.ParamLocationQuery, *params.WindowSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.WindowTimeZone != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "windowTimeZone", runtime.ParamLocationQuery, *params.WindowTimeZone); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.GroupBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "groupBy", runtime.ParamLocationQuery, *params.GroupBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewCreatePortalTokenRequest calls the generic CreatePortalToken builder with application/json body
 func NewCreatePortalTokenRequest(server string, body CreatePortalTokenJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -1034,6 +1197,9 @@ type ClientWithResponsesInterface interface {
 
 	// ListMeterSubjectsWithResponse request
 	ListMeterSubjectsWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*ListMeterSubjectsResponse, error)
+
+	// QueryPortalMeterWithResponse request
+	QueryPortalMeterWithResponse(ctx context.Context, meterSlug string, params *QueryPortalMeterParams, reqEditors ...RequestEditorFn) (*QueryPortalMeterResponse, error)
 
 	// CreatePortalTokenWithBodyWithResponse request with any body
 	CreatePortalTokenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreatePortalTokenResponse, error)
@@ -1244,6 +1410,38 @@ func (r ListMeterSubjectsResponse) StatusCode() int {
 	return 0
 }
 
+type QueryPortalMeterResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		Data []MeterQueryRow `json:"data"`
+		From *time.Time      `json:"from,omitempty"`
+		To   *time.Time      `json:"to,omitempty"`
+
+		// WindowSize Aggregation window size.
+		WindowSize *WindowSize `json:"windowSize,omitempty"`
+	}
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r QueryPortalMeterResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r QueryPortalMeterResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type CreatePortalTokenResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
@@ -1385,6 +1583,15 @@ func (c *ClientWithResponses) ListMeterSubjectsWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseListMeterSubjectsResponse(rsp)
+}
+
+// QueryPortalMeterWithResponse request returning *QueryPortalMeterResponse
+func (c *ClientWithResponses) QueryPortalMeterWithResponse(ctx context.Context, meterSlug string, params *QueryPortalMeterParams, reqEditors ...RequestEditorFn) (*QueryPortalMeterResponse, error) {
+	rsp, err := c.QueryPortalMeter(ctx, meterSlug, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseQueryPortalMeterResponse(rsp)
 }
 
 // CreatePortalTokenWithBodyWithResponse request with arbitrary body returning *CreatePortalTokenResponse
@@ -1744,6 +1951,63 @@ func ParseListMeterSubjectsResponse(rsp *http.Response) (*ListMeterSubjectsRespo
 	return response, nil
 }
 
+// ParseQueryPortalMeterResponse parses an HTTP response from a QueryPortalMeterWithResponse call
+func ParseQueryPortalMeterResponse(rsp *http.Response) (*QueryPortalMeterResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &QueryPortalMeterResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			Data []MeterQueryRow `json:"data"`
+			From *time.Time      `json:"from,omitempty"`
+			To   *time.Time      `json:"to,omitempty"`
+
+			// WindowSize Aggregation window size.
+			WindowSize *WindowSize `json:"windowSize,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/csv) unsupported
+
+	}
+
+	return response, nil
+}
+
 // ParseCreatePortalTokenResponse parses an HTTP response from a CreatePortalTokenWithResponse call
 func ParseCreatePortalTokenResponse(rsp *http.Response) (*CreatePortalTokenResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -1820,57 +2084,59 @@ func ParseInvalidatePortalTokensResponse(rsp *http.Response) (*InvalidatePortalT
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/9Rba3PTOL//KhodXsBZJ3FSCkvenAltgSz0sm26PEB7Oqr9T6LFlowkNw2dfPdndPEt",
-	"dloX2mF3h9lJotvvf79IvcEBjxPOgCmJhzc4IYLEoECYb+bTODwUJ1E60z+EIANBE0U5w0M8Qimj31JA",
-	"NASm6JSCQFMukJoDMku72MNUz0yImmMPMxIDHq5t62EB31IqIMRDJVLwsAzmEBN93hMBUzzE/9MrUPbs",
-	"qOzlG6xWHv6Wgli+ETyuozxRRCgUEgUdRWNAlKHjNztoa2vrlUYbE9U9Y2MWRKmkV9A9Yxlos2eBeqp3",
-	"L4Ozi/EQ53tjD6tloidLJSgrQXsreJq8XtbRjaeIcYVkAoFmYIgIkpTNIkBkNhMwIwrQgkYRugQkQKWC",
-	"QWiYDCSYI5le/g2BQoSFyBC3oCzki81EzByOMh1UQWzEvYY9J4YIQZYFLSf2ULO04QiH6aeOmPA6p/ZY",
-	"+ABSVPyHZfjR8PaEfoe7xegVckwlmd0pTW0y2oYEqCXiU/O90IkEBOUbxG4kupneRQG6rWGV6FyjfUJj",
-	"+MxZA/2TOaArEmlfIA14fXxGiBHYd84AEYlCmFJNNWVmbDw6GCG9L9Ibo12iyCWRgJ7OlUqGvd5isehS",
-	"wkiXi1lPb9TRG8lnWto1nusNTyc75kBzXsbrVEJ4F49y4sp8CmFK0kgryOlkB3sYrkmcRHrRKAZBA9I7",
-	"gMXFJy6+NujNSrs2mXAmwSj/axIew7cUpDoS/DKC+NiN6sGAMwXMWBVJkogGRLO2l9iZv/0tNZ9vWorQ",
-	"7W8xVCX1moTIodD2d8DVG56y8BciOuAKGQwOz1hzOAam4FejKiHR2E4ZXCcQ/FpcBQgEQnBhbNSt09vu",
-	"XWUowpDqNSQ6EjwBoajWwimJJKzvuRPxNDQLJTqx5mThoz9ODg/QicXs4aS00Y12mWTzQTaU170E6GNQ",
-	"QpYRJ2G3bFI3OEyFOfZCBwvcH+gjdeYwxL05RBEvBQxug4xmD1HEMd+OrfumHTuI9GjmkvQi67C6aD+V",
-	"CpFwDgKQ4iasDPznL7KwoiGyNMbDLxXBGoGelz1CbdTDMWUfgM00CX0PszSKyKWea5lTC4YaVdn3VCJM",
-	"lmNZ/2qnITUnyhJjCZBIcY04j2upoPfHQcM7zzdirIgPbwd9f0pC6PSDV9B5Hr4IOr8PXm53gu1BsPXi",
-	"5VY/3ApqWGpnS56KAO4830j8WukwspjTYI4Ic6o1J0kCDKq6hSWIKxqA7LkPHX+NSx0BUxDAAmiBMYHg",
-	"CoSk1qYbQqEdzLStbF+yYl8We85QHahkFXi/67cAVKRkVTC75ttlpjQub3Cw7JEuEGcMrYwlgodpAAI9",
-	"zVP8EF0ukRXSsyrSIJWKxyAuaHg3YpNq1XlHY5CKxImGsZiDhcaDIBVGNIVwm6xWJ4NVSAN/sNXx+x2/",
-	"P/H7Q/Ov6/v9z2XZlzO/e9pJs7+p8jzzOpahAiKiXbfiljJBZ5QRRdmsRGWVBpLQC+ECdlNuWlRPX7Dh",
-	"vLOgqpq6lYWqnK+7Ug9fd2a843609m2DSWmkQ+OEC2VLReOZZ1TN08tuwONeoNXcLJQ9GX7tzHjvatAz",
-	"Pxik5UqSMzic4uGXdeadfhjvoqenjGrgJIqW6NTWmB/gmgZ8Jkgyp4EZOOFCafGg3DWIZzZiKBB6r///",
-	"4ndejV7v7O69efvuj/f7B0d/Hp9M/vr4n0+fz28GL1ZP6vz0bnBMrjMdeLG1rhLlzUnnu995df7b0/8b",
-	"XuRfnv1vw67nDbozZjOQCsJ28boaeSFbc1sOYTdeefiKRDQ07mbPJAzDGyyAhIcsWm7Q7DWtssedN8Te",
-	"fV3JG2Wo4MuKHecfb0NpdhiV5q8nPPWmQ+l75q3ybkNhNvtLZPZGu6XlLWzaEDtpNOwifTFGrXhR1d3D",
-	"ZL28CN8o9IY6eS05JTGEJjk7ImqO4DoRILWd6/iP4FoJEijDGXOWdtkm2ZFoKnhccvA6dVhLwmJQcx7i",
-	"IX7SdR/zLOxJ13xoysKaUoZW/aGCa37/7Yvtzy+3t0dvPo7ev9vrDw4++Tt/vnrzzvSIbtVYD8sfb1EV",
-	"EOLlhflVh4KHdwPGFFNwkm5oBjUIdF2etsi+S4r4SbecSzcgWVSaGfdoB5Qdg7T9u7K5lw2ocsod8Sbm",
-	"IUSyu++43y7g8ASYkRflxede8nXWs9sZwDUP02jXJRpy604lNCiLqwVOTvexh3cOTw8m2MOjv95iD++P",
-	"D/T/R//BNY+/mdpRhXsPTfifKYjlMV/UnfSPeKEN3rNwAxsT0Uk9/TSgXRHWxjObmSVYLI0vQRTKvMfC",
-	"ti29XDMVsSxu2QcsK7+FU92pDOUeCp8L6UHlf6Tzo2jCvwJrCNFRxBcQmuN1TiZvb9PGlI3tYH+tZ+th",
-	"62HdsJadjqLXCRUgR5uZe7dDL1SpnnhnRN0vkSla0wW+bLOm9CZrw9yryTFCbhnaBUVoJJHdED3VNcrL",
-	"3/2Xz9a6HmYaHuI5kBAEcv2KjvahaE4kSouWj3X/Z5Vew3UcnWHT2pSK6PpV17Ns6BKQYcQDEvX+2D+M",
-	"AiXf//V7x9f/9XUpoIhKJR4+931dkCkTOcr9wZwlej/XyTLKObwkYUcUXcS1xpAjqB6M52lMWEcLzSTu",
-	"cJ1EhFmnm9XFtjSislz1OYfhEFQjXXumndXZdmYYV+9/5Jysk3B6PEZ5q8D2X+haayajpCUF7YS11tGp",
-	"m4sTZpPjfTeZHCE7AQU8BDQDBsIUopfLUiGKJIirPENqLQOjPzk+ytTWwCZQNNaxcvvVK+NA7DerbBY9",
-	"ZQpm1oU79avzmyA550J567oj0zgmYrmGy8TuKnsbFfquGt6oUcCZIpRJRIzUm2S9+dhbTeYuca75LVe6",
-	"Wx7lovYyQ2sXaU7MqsylPWikue1mrJTeuNtJJOl3KKdS++OD08ke9vC7w9Nj7OHd0aeWCdTH8u3WgxG0",
-	"Mi5gau4gIxqA6/C726JRQoI5oIHpy6XCOO7iroqYUXNb5ZbK3ofxzt7ByV5n0PW7cxVHJX3HhwkwW6eO",
-	"jsbYw3lbEfe7ftfvkCiZk+5AL9FoSULxEG91/e6WK8uMyfdIQntXfdtrsdkdNCRhx6AEhStAEVEgFRJk",
-	"YSsI03PULtzIaayrvw9UKtuyNAcVzwK+NJcLxZRecRm/8tpNnnAzda3INfld3jszpa29NO1uuMiLaEyr",
-	"F8+5E+prt5M7oX7dBa3O127rBr5/y71O/T4nT55ufbRQ6frU779rlb7rGmfI9JLnFljTMTkBvc13jeYI",
-	"d6t51y6bb7w0UkV02vjFYcTnOhHgskHvLNVOjDVNs6O5rjkf+ZqHy1v4X+o13vNubS/vR27Yr3NJVDD/",
-	"7QclfItkq+9cVjV9e17n3OH7f7bEV17ue4pnQ42+R/sT5OY0+Zr9bOjxjdA2GVoYn8VUMb4HZqSjerPp",
-	"7AggytXKNb7Zwaxn0s5w7mcsjlVttLf/GIc2MSN8GJPYtohv3+H25wiPqA81w+rdVJ7NrayqRKAab6D0",
-	"767BcrlErk9XVR47KVOe+0X46gu+htDZ4MoOeFakWfk9b8X9xscp/3jpec0+8C2oqlDqrvAtqEcSif/4",
-	"9plFq58T7S8zKZuLboxgpku3wRObsQcRnPd46XWbqeVu/72W5M/n2i7LnpG2nZ89of1p1W5+xdQ+c8i7",
-	"tbUMwrOPhFs3oRW/d8P65y5sDLH1TqeGAteqF8grc72cNzHsoRdSEaE89wVY6LlGqmcvCD1dh3qmy3bG",
-	"yk8u/KH5Z55cePnAYG0gfzfS92agPPvUy+sPHmKvBRdR6A38n9prUMb1vFJfNjz5/Fck8Pdwik7WbTJ7",
-	"lM/dmOGfFDN+aXxr/SL93yzRxNwA9cwFh/3zDldjNJUR5euixykmyies6s+jHzJFWTvqXyJDi/oWGfYo",
-	"c695YLM4x/mcEhfkT8i0GjA338vV34U0CblFafCPFUvxY8NfpySc2lZd/sSPms4WZbOi9eU6la6BUm96",
-	"Nu6Tt03camfrq/PVfwMAAP//QaekRMA1AAA=",
+	"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",
+	"2nSU7RWyHdyVbi9u/xsAAP//Y+Zn2S88AAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

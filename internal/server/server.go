@@ -9,10 +9,12 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/go-chi/render"
 	oapimiddleware "github.com/oapi-codegen/nethttp-middleware"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/internal/server/authenticator"
 	"github.com/openmeterio/openmeter/internal/server/router"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -56,6 +58,21 @@ func NewServer(config *Config) (*Server, error) {
 	r.Use(middleware.RequestID)
 	r.Use(NewStructuredLogger(slog.Default().Handler(), nil))
 	r.Use(middleware.Recoverer)
+	if config.RouterConfig.PortalCORSEnabled && config.RouterConfig.PortalTokenStrategy != nil {
+		// Enable CORS for portal requests
+		r.Use(corsHandler(corsOptions{
+			AllowedPaths: []string{"/api/v1/portal/meters"},
+			Options: cors.Options{
+				AllowOriginFunc: func(r *http.Request, origin string) bool {
+					return true
+				},
+				AllowedMethods:   []string{http.MethodGet, http.MethodOptions},
+				AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+				AllowCredentials: true,
+				MaxAge:           1728000,
+			},
+		}))
+	}
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		models.NewStatusProblem(r.Context(), nil, http.StatusNotFound).Respond(w, r)
@@ -73,11 +90,13 @@ func NewServer(config *Config) (*Server, error) {
 	_ = api.HandlerWithOptions(impl, api.ChiServerOptions{
 		BaseRouter: r,
 		Middlewares: []api.MiddlewareFunc{
+			authenticator.NewAuthenticator(config.RouterConfig.PortalTokenStrategy).NewAuthenticatorMiddlewareFunc(swagger),
 			oapimiddleware.OapiRequestValidatorWithOptions(swagger, &oapimiddleware.Options{
 				ErrorHandler: func(w http.ResponseWriter, message string, statusCode int) {
 					models.NewStatusProblem(context.Background(), errors.New(message), statusCode).Respond(w, nil)
 				},
 				Options: openapi3filter.Options{
+					// Unfortunately, the OpenAPI 3 filter library doesn't support context changes
 					AuthenticationFunc:  openapi3filter.NoopAuthenticationFunc,
 					SkipSettingDefaults: true,
 				},
