@@ -2,7 +2,12 @@ import crypto from 'crypto'
 import { setGlobalDispatcher } from 'undici'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 // test built version
-import { OpenMeter, type Event, IngestedEvent, WindowSize } from '../dist/index.js'
+import {
+  OpenMeter,
+  type Event,
+  IngestedEvent,
+  WindowSize,
+} from '../dist/index.js'
 import { mockAgent } from './agent.js'
 import { mockEvent, mockMeter, mockMeterValue } from './mocks.js'
 
@@ -53,7 +58,7 @@ describe('sdk', () => {
           event: {
             ...mockEvent,
             time: mockEvent.time?.toISOString(),
-          }
+          },
         }
         expect(events).toEqual([expected])
       })
@@ -117,7 +122,9 @@ describe('sdk', () => {
 
     describe('portal', () => {
       it('should create token', async ({ openmeter }) => {
-        const token = await openmeter.portal.createToken({ subject: 'customer-1' })
+        const token = await openmeter.portal.createToken({
+          subject: 'customer-1',
+        })
         expect(token).toEqual({
           subject: 'customer-1',
           expiresAt: new Date('2023-01-01').toISOString(),

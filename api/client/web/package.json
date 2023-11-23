@@ -1,13 +1,30 @@
 {
-  "name": "@openmeter/sdk",
+  "name": "@openmeter/web",
   "version": "0.0.0",
-  "description": "Client for OpenMeter: Real-Time and Scalable Usage Metering",
+  "description": "Web & React client for OpenMeter: Real-Time and Scalable Usage Metering",
   "license": "Apache 2.0",
   "homepage": "https://openmeter.io",
   "repository": {
     "type": "git",
     "url": "https://github.com/openmeterio/openmeter.git",
-    "directory": "api/client/node"
+    "directory": "api/client/web"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js"
+    },
+    "./*.js": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js"
+    }
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,42 +34,40 @@
   },
   "scripts": {
     "lint": "eslint . --ext .ts --format=pretty",
-    "format": "prettier --write .",
+    "format": "prettier --list-different --find-config-path --write .",
     "build": "rimraf ./dist && tsc --build",
-    "generate": "rimraf ./schemas && openapi-typescript '../../openapi.yaml' --output schemas/openapi.ts && prettier --write schemas/",
+    "generate": "openapi-typescript '../../openapi.yaml' --output src/client/openapi.ts && prettier --write src/client/openapi.ts",
     "pretest": "pnpm run build",
     "test": "vitest --run --threads=false",
     "test:watch": "vitest --watch --threads=false",
-    "prepublishOnly": "pnpm run generate && pnpm run build && pnpm run test && pnpm run lint"
+    "prepublishOnly": "pnpm run generate && pnpm run build && pnpm run lint && pnpm run test"
   },
   "devDependencies": {
+    "@testing-library/react": "^14.1.2",
     "@types/node": "^20.8.9",
-    "@types/node-fetch": "2.6.7",
+    "@types/react": "^18.2.37",
     "@typescript-eslint/eslint-plugin": "6.9.0",
     "@typescript-eslint/parser": "6.9.0",
     "eslint": "8.52.0",
     "eslint-config-prettier": "9.0.0",
     "eslint-formatter-pretty": "5.0.0",
     "eslint-import-resolver-typescript": "3.6.1",
-    "eslint-plugin-compat": "4.2.0",
     "eslint-plugin-import": "2.29.0",
-    "eslint-plugin-require-extensions": "0.1.3",
     "eslint-plugin-unused-imports": "3.0.0",
-    "eslint-plugin-vitest": "0.3.2",
+    "eslint-plugin-vitest": "^0.3.10",
+    "jsdom": "^22.1.0",
     "openapi-typescript": "6.7.0",
     "prettier": "3.0.3",
+    "react": "18.2.0",
     "rimraf": "5.0.5",
     "typescript": "5.2.2",
-    "vitest": "0.34.6"
+    "undici": "^5.27.2",
+    "vitest": "^0.34.6"
   },
-  "browserslist": [
-    "current node"
-  ],
   "dependencies": {
-    "ai": "^2.2.19",
-    "undici": "^5.27.0"
+    "openapi-typescript-fetch": "^1.1.3"
   },
-  "optionalDependencies": {
-    "js-tiktoken": "^1.0.7"
+  "peerDependencies": {
+    "react": "^18.0.0"
   }
 }

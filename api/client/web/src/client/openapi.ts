@@ -275,10 +275,7 @@ export interface components {
      */
     queryWindowTimeZone?: string
     querySubject?: string[]
-    /**
-     * @description If not specified a single aggregate will be returned for each subject and time window.
-     * `subject` is a reserved group by value.
-     */
+    /** @description If not specified a single aggregate will be returned for each subject and time window. */
     queryGroupBy?: string[]
   }
   requestBodies: never
