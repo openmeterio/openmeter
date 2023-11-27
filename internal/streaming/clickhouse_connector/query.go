@@ -224,6 +224,7 @@ type queryMeterView struct {
 	MeterSlug      string
 	Aggregation    models.MeterAggregation
 	Subject        []string
+	FilterGroupBy  map[string][]string
 	From           *time.Time
 	To             *time.Time
 	GroupBy        []string
@@ -319,6 +320,27 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 		}
 
 		where = append(where, queryView.Or(slicesx.Map(d.Subject, mapFunc)...))
+	}
+
+	if len(d.FilterGroupBy) > 0 {
+		// We sort the columns to ensure the query is deterministic
+		columns := make([]string, 0, len(d.FilterGroupBy))
+		for k := range d.FilterGroupBy {
+			columns = append(columns, k)
+		}
+		sort.Strings(columns)
+
+		for _, column := range columns {
+			values := d.FilterGroupBy[column]
+			if len(values) == 0 {
+				return "", nil, fmt.Errorf("empty filter for group by: %s", column)
+			}
+			mapFunc := func(value string) string {
+				return queryView.Equal(sqlbuilder.Escape(column), value)
+			}
+
+			where = append(where, queryView.Or(slicesx.Map(values, mapFunc)...))
+		}
 	}
 
 	if d.From != nil {
