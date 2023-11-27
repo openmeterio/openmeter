@@ -323,7 +323,15 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 	}
 
 	if len(d.FilterGroupBy) > 0 {
-		for column, values := range d.FilterGroupBy {
+		// We sort the columns to ensure the query is deterministic
+		columns := make([]string, 0, len(d.FilterGroupBy))
+		for k := range d.FilterGroupBy {
+			columns = append(columns, k)
+		}
+		sort.Strings(columns)
+
+		for _, column := range columns {
+			values := d.FilterGroupBy[column]
 			if len(values) == 0 {
 				return "", nil, fmt.Errorf("empty filter for group by: %s", column)
 			}
