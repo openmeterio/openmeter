@@ -293,7 +293,6 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 	}
 
 	// Grouping by subject is required when filtering for a subject
-	// It is also a default grouping requirement in certain queries (eg. meter values)
 	if len(d.Subject) > 0 && !slices.Contains(d.GroupBy, "subject") {
 		d.GroupBy = append([]string{"subject"}, d.GroupBy...)
 	}
