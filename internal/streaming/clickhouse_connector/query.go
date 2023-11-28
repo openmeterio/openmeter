@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/huandu/go-sqlbuilder"
+	"golang.org/x/exp/slices"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -228,7 +229,6 @@ type queryMeterView struct {
 	From           *time.Time
 	To             *time.Time
 	GroupBy        []string
-	GroupBySubject bool
 	WindowSize     *models.WindowSize
 	WindowTimeZone *time.Location
 }
@@ -277,14 +277,6 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 		selectColumns = append(selectColumns, "min(windowstart)", "max(windowend)")
 	}
 
-	// Grouping by subject is required when filtering for a subject
-	// It is also a default grouping requirement in certain queries (eg. meter values)
-	groupBySubject := d.GroupBySubject || len(d.Subject) > 0
-
-	if groupBySubject {
-		selectColumns = append(selectColumns, "subject")
-	}
-
 	switch d.Aggregation {
 	case models.MeterAggregationSum:
 		selectColumns = append(selectColumns, "sumMerge(value) AS value")
@@ -300,8 +292,9 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 		return "", nil, fmt.Errorf("invalid aggregation type: %s", d.Aggregation)
 	}
 
-	if groupBySubject {
-		groupByColumns = append(groupByColumns, "subject")
+	// Grouping by subject is required when filtering for a subject
+	if len(d.Subject) > 0 && !slices.Contains(d.GroupBy, "subject") {
+		d.GroupBy = append([]string{"subject"}, d.GroupBy...)
 	}
 
 	for _, column := range d.GroupBy {

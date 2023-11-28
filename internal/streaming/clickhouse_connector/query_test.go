@@ -190,7 +190,7 @@ func TestQueryMeterView(t *testing.T) {
 				GroupBy:     []string{"group1", "group2"},
 				WindowSize:  &windowSize,
 			},
-			wantSQL:  "SELECT tumbleStart(windowstart, toIntervalHour(1), 'UTC') AS windowstart, tumbleEnd(windowstart, toIntervalHour(1), 'UTC') AS windowend, subject, sumMerge(value) AS value, group1, group2 FROM openmeter.om_my_namespace_meter1 WHERE (subject = ?) AND windowstart >= ? AND windowend <= ? GROUP BY windowstart, windowend, subject, group1, group2 ORDER BY windowstart",
+			wantSQL:  "SELECT tumbleStart(windowstart, toIntervalHour(1), 'UTC') AS windowstart, tumbleEnd(windowstart, toIntervalHour(1), 'UTC') AS windowend, sumMerge(value) AS value, subject, group1, group2 FROM openmeter.om_my_namespace_meter1 WHERE (subject = ?) AND windowstart >= ? AND windowend <= ? GROUP BY windowstart, windowend, subject, group1, group2 ORDER BY windowstart",
 			wantArgs: []interface{}{"subject1", from.Unix(), to.Unix()},
 		},
 		{ // Aggregate all available data
@@ -271,7 +271,7 @@ func TestQueryMeterView(t *testing.T) {
 				Aggregation: models.MeterAggregationSum,
 				Subject:     []string{subject},
 			},
-			wantSQL:  "SELECT min(windowstart), max(windowend), subject, sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 WHERE (subject = ?) GROUP BY subject",
+			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value, subject FROM openmeter.om_my_namespace_meter1 WHERE (subject = ?) GROUP BY subject",
 			wantArgs: []interface{}{"subject1"},
 		},
 		{ // Aggregate data for a single subject and group by additional fields
@@ -283,7 +283,7 @@ func TestQueryMeterView(t *testing.T) {
 				Subject:     []string{subject},
 				GroupBy:     []string{"group1", "group2"},
 			},
-			wantSQL:  "SELECT min(windowstart), max(windowend), subject, sumMerge(value) AS value, group1, group2 FROM openmeter.om_my_namespace_meter1 WHERE (subject = ?) GROUP BY subject, group1, group2",
+			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value, subject, group1, group2 FROM openmeter.om_my_namespace_meter1 WHERE (subject = ?) GROUP BY subject, group1, group2",
 			wantArgs: []interface{}{"subject1"},
 		},
 		{ // Aggregate data for a multiple subjects
@@ -294,7 +294,7 @@ func TestQueryMeterView(t *testing.T) {
 				Aggregation: models.MeterAggregationSum,
 				Subject:     []string{subject, "subject2"},
 			},
-			wantSQL:  "SELECT min(windowstart), max(windowend), subject, sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 WHERE (subject = ? OR subject = ?) GROUP BY subject",
+			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value, subject FROM openmeter.om_my_namespace_meter1 WHERE (subject = ? OR subject = ?) GROUP BY subject",
 			wantArgs: []interface{}{"subject1", "subject2"},
 		},
 		{ // Aggregate data with filtering for a single group and single value

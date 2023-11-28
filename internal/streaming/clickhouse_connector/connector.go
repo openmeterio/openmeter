@@ -10,6 +10,7 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/cloudevents/sdk-go/v2/event"
+	"golang.org/x/exp/slices"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/meter"
@@ -287,7 +288,6 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		To:             params.To,
 		Subject:        params.Subject,
 		FilterGroupBy:  params.FilterGroupBy,
-		GroupBySubject: params.GroupBySubject,
 		GroupBy:        params.GroupBy,
 		WindowSize:     params.WindowSize,
 		WindowTimeZone: params.WindowTimeZone,
@@ -317,18 +317,15 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 			GroupBy: map[string]*string{},
 		}
 
-		args := []interface{}{&value.WindowStart, &value.WindowEnd}
-		argCount := 2
+		args := []interface{}{&value.WindowStart, &value.WindowEnd, &value.Value}
+		argCount := len(args)
 
-		if len(params.Subject) > 0 || params.GroupBySubject {
+		// Grouping by subject is required when filtering for a subject
+		if len(queryMeter.Subject) > 0 && !slices.Contains(queryMeter.GroupBy, "subject") {
 			args = append(args, &value.Subject)
 			argCount++
 		}
 
-		args = append(args, &value.Value)
-		argCount++
-
-		// TODO: do this next part without interface magic
 		for range queryMeter.GroupBy {
 			tmp := ""
 			args = append(args, &tmp)
@@ -338,14 +335,13 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 			return values, fmt.Errorf("query meter view row scan: %w", err)
 		}
 
-		// We treat empty subject as nil
-		// Query returns subject as empty string when we don't group by subject
-		if value.Subject != nil && *value.Subject == "" {
-			value.Subject = nil
-		}
-
 		for i, key := range queryMeter.GroupBy {
 			if s, ok := args[i+argCount].(*string); ok {
+				if key == "subject" {
+					value.Subject = s
+					continue
+				}
+
 				// We treat empty string as nil
 				if s != nil && *s == "" {
 					value.GroupBy[key] = nil
