@@ -13,7 +13,6 @@ type QueryParams struct {
 	To             *time.Time
 	Subject        []string
 	FilterGroupBy  map[string][]string
-	GroupBySubject bool
 	GroupBy        []string
 	Aggregation    models.MeterAggregation
 	WindowSize     *models.WindowSize

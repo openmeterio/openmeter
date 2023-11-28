@@ -287,7 +287,6 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		To:             params.To,
 		Subject:        params.Subject,
 		FilterGroupBy:  params.FilterGroupBy,
-		GroupBySubject: params.GroupBySubject,
 		GroupBy:        params.GroupBy,
 		WindowSize:     params.WindowSize,
 		WindowTimeZone: params.WindowTimeZone,
@@ -319,11 +318,6 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 
 		args := []interface{}{&value.WindowStart, &value.WindowEnd}
 		argCount := 2
-
-		if len(params.Subject) > 0 || params.GroupBySubject {
-			args = append(args, &value.Subject)
-			argCount++
-		}
 
 		args = append(args, &value.Value)
 		argCount++
