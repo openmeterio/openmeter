@@ -208,6 +208,18 @@ func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, log
 		Data:       data,
 	}
 
+	// If total data is queried for a period, replace the window start and end with the period for each row
+	if params.WindowSize == nil {
+		for i := range resp.Data {
+			if params.From != nil {
+				resp.Data[i].WindowStart = *params.From
+			}
+			if params.To != nil {
+				resp.Data[i].WindowEnd = *params.To
+			}
+		}
+	}
+
 	// Parse media type
 	accept := r.Header.Get("Accept")
 	if accept == "" {
