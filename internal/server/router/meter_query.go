@@ -42,7 +42,7 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 	}
 
 	// Render response
-	err = resp.RenderByAcceptHeader(w, r, logger)
+	err = QueryMeterRenderByAcceptHeader(w, r, logger, resp)
 	if err != nil {
 		logger.Error("rendering response", "error", err)
 	}
@@ -132,7 +132,7 @@ type QueryMeterResponse struct {
 }
 
 // Render renders content based on the Accept header.
-func (resp QueryMeterResponse) RenderByAcceptHeader(w http.ResponseWriter, r *http.Request, logger *slog.Logger) error {
+func QueryMeterRenderByAcceptHeader(w http.ResponseWriter, r *http.Request, logger *slog.Logger, resp *QueryMeterResponse) error {
 	// Parse media type
 	accept := r.Header.Get("Accept")
 	if accept == "" {
