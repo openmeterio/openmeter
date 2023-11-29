@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"encoding/csv"
 	"fmt"
 	"log/slog"
@@ -9,7 +10,6 @@ import (
 	"time"
 
 	"github.com/go-chi/render"
-
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -34,11 +34,22 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 		return
 	}
 
-	a.QueryMeterWithMeter(w, r, logger, meter, params)
+	// Query meter
+	resp, problem := a.QueryMeterWithMeter(r.Context(), logger, meter, params)
+	if problem != nil {
+		problem.Respond(w, r)
+		return
+	}
+
+	// Render response
+	err = resp.RenderByAcceptHeader(w, r, logger)
+	if err != nil {
+		logger.Error("rendering response", "error", err)
+	}
 }
 
 // QueryMeter queries the values stored for a meter.
-func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, logger *slog.Logger, meter models.Meter, params api.QueryMeterParams) {
+func (a *Router) QueryMeterWithMeter(ctx context.Context, logger *slog.Logger, meter models.Meter, params api.QueryMeterParams) (*QueryMeterResponse, models.Problem) {
 	// Query Params
 	queryParams := &streaming.QueryParams{
 		From:        params.From,
@@ -57,8 +68,7 @@ func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, log
 			if ok := groupBy == "subject" || meter.GroupBy[groupBy] != ""; !ok {
 				err := fmt.Errorf("invalid group by: %s", groupBy)
 				logger.Warn("invalid group by", "error", err)
-				models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
-				return
+				return nil, models.NewStatusProblem(ctx, err, http.StatusBadRequest)
 			}
 
 			queryParams.GroupBy = append(queryParams.GroupBy, groupBy)
@@ -69,24 +79,21 @@ func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, log
 		tz, err := time.LoadLocation(*params.WindowTimeZone)
 		if err != nil {
 			logger.Warn("invalid time zone", "error", err)
-			models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
-			return
+			return nil, models.NewStatusProblem(ctx, err, http.StatusBadRequest)
 		}
 		queryParams.WindowTimeZone = tz
 	}
 
 	if err := queryParams.Validate(meter.WindowSize); err != nil {
 		logger.Warn("invalid parameters", "error", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
-		return
+		return nil, models.NewStatusProblem(ctx, err, http.StatusBadRequest)
 	}
 
 	// Query connector
-	data, err := a.config.StreamingConnector.QueryMeter(r.Context(), meter.Namespace, meter.Slug, queryParams)
+	data, err := a.config.StreamingConnector.QueryMeter(ctx, meter.Namespace, meter.Slug, queryParams)
 	if err != nil {
 		logger.Error("connector", "error", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
-		return
+		return nil, models.NewStatusProblem(ctx, err, http.StatusInternalServerError)
 	}
 
 	resp := &QueryMeterResponse{
@@ -94,6 +101,9 @@ func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, log
 		From:       params.From,
 		To:         params.To,
 		Data:       data,
+		// Fields Required for CSV Render but not present in response
+		meterSlug:   meter.Slug,
+		groupByKeys: queryParams.GroupBy,
 	}
 
 	// If total data is queried for a period, replace the window start and end with the period for each row
@@ -108,6 +118,21 @@ func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, log
 		}
 	}
 
+	return resp, nil
+}
+
+// QueryMeterResponse is returned by the QueryMeter endpoint.
+type QueryMeterResponse struct {
+	WindowSize  *models.WindowSize     `json:"windowSize,omitempty"`
+	From        *time.Time             `json:"from,omitempty"`
+	To          *time.Time             `json:"to,omitempty"`
+	Data        []models.MeterQueryRow `json:"data"`
+	meterSlug   string                 `json:"-"`
+	groupByKeys []string               `json:"-"`
+}
+
+// Render renders content based on the Accept header.
+func (resp QueryMeterResponse) RenderByAcceptHeader(w http.ResponseWriter, r *http.Request, logger *slog.Logger) error {
 	// Parse media type
 	accept := r.Header.Get("Accept")
 	if accept == "" {
@@ -122,33 +147,25 @@ func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, log
 	}
 
 	if mediatype == "text/csv" {
-		resp.RenderCSV(w, r, queryParams.GroupBy, meter.Slug)
-	} else {
-		_ = render.Render(w, r, resp)
+		resp.RenderCSV(w, r)
+		return nil
 	}
-}
-
-// QueryMeterResponse is returned by the QueryMeter endpoint.
-type QueryMeterResponse struct {
-	WindowSize *models.WindowSize     `json:"windowSize,omitempty"`
-	From       *time.Time             `json:"from,omitempty"`
-	To         *time.Time             `json:"to,omitempty"`
-	Data       []models.MeterQueryRow `json:"data"`
+	return render.Render(w, r, resp)
 }
 
 // Render implements the chi renderer interface.
-func (resp QueryMeterResponse) Render(_ http.ResponseWriter, _ *http.Request) error {
+func (resp QueryMeterResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
 // RenderCSV renders the response as CSV.
-func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request, groupByKeys []string, meterIDOrSlug string) {
+func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request) {
 	records := [][]string{}
 
 	// CSV headers
 	headers := []string{"window_start", "window_end", "subject"}
-	if len(groupByKeys) > 0 {
-		headers = append(headers, groupByKeys...)
+	if len(resp.groupByKeys) > 0 {
+		headers = append(headers, resp.groupByKeys...)
 	}
 	headers = append(headers, "value")
 	records = append(records, headers)
@@ -161,7 +178,7 @@ func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request,
 		} else {
 			data = append(data, "")
 		}
-		for _, k := range groupByKeys {
+		for _, k := range resp.groupByKeys {
 			var groupByValue string
 
 			if row.GroupBy[k] != nil {
@@ -174,7 +191,7 @@ func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request,
 	}
 
 	w.Header().Set("Content-Type", "text/csv")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", meterIDOrSlug))
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", resp.meterSlug))
 
 	// Write response
 	writer := csv.NewWriter(w)
