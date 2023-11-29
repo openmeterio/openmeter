@@ -6,6 +6,8 @@ import (
 
 type IngestHandler = router.IngestHandler
 
+type QueryMeterResponse = router.QueryMeterResponse
+
 type Config = router.Config
 
 type Router = router.Router
