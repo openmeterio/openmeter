@@ -150,12 +150,17 @@ func (resp QueryMeterResponse) RenderByAcceptHeader(w http.ResponseWriter, r *ht
 		resp.RenderCSV(w, r)
 		return nil
 	}
-	return render.Render(w, r, resp)
+	return resp.RenderJSON(w, r)
 }
 
 // Render implements the chi renderer interface.
 func (resp QueryMeterResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
+}
+
+// RenderJSON renders the response as CSV.
+func (resp QueryMeterResponse) RenderJSON(w http.ResponseWriter, r *http.Request) error {
+	return render.Render(w, r, resp)
 }
 
 // RenderCSV renders the response as CSV.
