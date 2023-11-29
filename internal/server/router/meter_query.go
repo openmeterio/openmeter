@@ -121,6 +121,12 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, logger *slog.Logger, m
 	return resp, nil
 }
 
+type IQueryMeterResponse interface {
+	RenderCSV(w http.ResponseWriter, r *http.Request)
+	RenderJSON(w http.ResponseWriter, r *http.Request) error
+	Render(w http.ResponseWriter, r *http.Request) error
+}
+
 // QueryMeterResponse is returned by the QueryMeter endpoint.
 type QueryMeterResponse struct {
 	WindowSize  *models.WindowSize     `json:"windowSize,omitempty"`
@@ -132,7 +138,7 @@ type QueryMeterResponse struct {
 }
 
 // Render renders content based on the Accept header.
-func (a *Router) QueryMeterRenderByAcceptHeader(w http.ResponseWriter, r *http.Request, logger *slog.Logger, resp *QueryMeterResponse) error {
+func (a *Router) QueryMeterRenderByAcceptHeader(w http.ResponseWriter, r *http.Request, logger *slog.Logger, resp IQueryMeterResponse) error {
 	// Parse media type
 	accept := r.Header.Get("Accept")
 	if accept == "" {
