@@ -19,13 +19,13 @@ kind create cluster --config ./kind.yaml
 Then, we're able to install OpenMeter and its dependencies via Helm to the local cluster.
 
 ```sh
-helm upgrade --install --dependency-update openmeter ./charts/openmeter
+helm upgrade --install --dependency-update -f ./charts/openmeter/values.example.yaml openmeter ./charts/openmeter
 ```
 
 Once the `openmeter` pod is ready, we can use `port-forward` to access the API.
 
 ```sh
-kubectl port-forward svc/openmeter 8888
+kubectl port-forward svc/openmeter-api 8888:80
 ```
 
 See the available values in `./charts/openmeter/values.yaml`.

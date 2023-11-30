@@ -1,26 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "openmeter.fullname" . }}
-  namespace: "{{ .Release.Namespace }}"
+  name: {{ include "openmeter.componentName" (list . "api") }}
   labels:
-    {{- include "openmeter.labels" . | nindent 4 }}
+    {{- include "openmeter.componentLabels" (list . "api") | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
+  replicas: {{ .Values.api.replicaCount }}
   selector:
     matchLabels:
-      {{- include "openmeter.selectorLabels" . | nindent 6 }}
+    {{- include "openmeter.componentSelectorLabels" (list . "api") | nindent 6 }}
   template:
     metadata:
       annotations:
-      {{- with .Values.podAnnotations }}
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- with .Values.podAnnotations }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
       labels:
-        {{- include "openmeter.selectorLabels" . | nindent 8 }}
+        {{- include "openmeter.componentLabels" (list . "api") | nindent 8 }}
+        {{- with .Values.podLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -35,10 +35,10 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command: ["openmeter", "--config", "/etc/config/config.yaml"]
+          command: ["openmeter", "--address", "0.0.0.0:80", "--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
           ports:
             - name: http
-              containerPort: {{ .Values.service.port }}
+              containerPort: 80
               protocol: TCP
             - name: telemetry-http
               containerPort: 10000
@@ -55,7 +55,80 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - name: config
-              mountPath: /etc/config
+              mountPath: /etc/openmeter
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "openmeter.fullname" . }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "openmeter.componentName" (list . "sink-worker") }}
+  labels:
+    {{- include "openmeter.componentLabels" (list . "sink-worker") | nindent 4 }}
+spec:
+  replicas: {{ .Values.sinkWorker.replicaCount }}
+  selector:
+    matchLabels:
+    {{- include "openmeter.componentSelectorLabels" (list . "sink-worker") | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- with .Values.podAnnotations }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "openmeter.componentLabels" (list . "sink-worker") | nindent 8 }}
+        {{- with .Values.podLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "openmeter.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["openmeter-sink-worker", "--telemetry-address", "0.0.0.0:10000", "--config", "/etc/openmeter/config.yaml"]
+          ports:
+            - name: telemetry-http
+              containerPort: 10000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz/live
+              port: telemetry-http
+          readinessProbe:
+            httpGet:
+              path: /healthz/ready
+              port: telemetry-http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/openmeter
       volumes:
         - name: config
           configMap:

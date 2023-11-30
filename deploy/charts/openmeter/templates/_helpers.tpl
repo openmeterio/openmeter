@@ -60,3 +60,40 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Create a default fully qualified component name from the full app name and a component name.
+We truncate the full name at 63 - 1 (last dash) - len(component name) chars because some Kubernetes name fields are limited to this (by the DNS naming spec)
+and we want to make sure that the component is included in the name.
+
+Usage: {{ include "openmeter.componentName" (list . "component") }}
+*/}}
+{{- define "openmeter.componentName" -}}
+{{- $global := index . 0 -}}
+{{- $component := index . 1 | trimPrefix "-" -}}
+{{- printf "%s-%s" (include "openmeter.fullname" $global | trunc (sub 62 (len $component) | int) | trimSuffix "-" ) $component | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+Common labels with component name
+
+Usage: {{ include "openmeter.componentLabels" (list . "component") }}
+*/}}
+{{- define "openmeter.componentLabels" -}}
+{{- $global := index . 0 -}}
+{{- $component := index . 1 | trimPrefix "-" -}}
+{{ include "openmeter.labels" $global }}
+app.kubernetes.io/component: {{ $component }}
+{{- end }}
+
+{{/*
+Selector labels with component name
+
+Usage: {{ include "openmeter.componentSelectorLabels" (list . "component") }}
+*/}}
+{{- define "openmeter.componentSelectorLabels" -}}
+{{- $global := index . 0 -}}
+{{- $component := index . 1 | trimPrefix "-" -}}
+{{ include "openmeter.selectorLabels" $global }}
+app.kubernetes.io/component: {{ $component }}
+{{- end }}

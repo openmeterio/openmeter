@@ -1,13 +1,13 @@
+{{- if .Values.kafka.enabled -}}
 apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:
   name: {{ include "openmeter.fullname" . }}
-  namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "openmeter.labels" . | nindent 4 }}
+    {{- include "openmeter.componentLabels" (list . "kafka") | nindent 4 }}
 spec:
   kafka:
-    version: 3.4.0
+    version: 3.6.0
     replicas: 1
     listeners:
       - name: plain
@@ -24,7 +24,7 @@ spec:
       transaction.state.log.min.isr: 1
       default.replication.factor: 1
       min.insync.replicas: 1
-      inter.broker.protocol.version: "3.4"
+      inter.broker.protocol.version: "3.6"
     storage:
       type: jbod
       volumes:
@@ -44,69 +44,4 @@ spec:
   entityOperator:
     topicOperator: {}
     userOperator: {}
----
-apiVersion: kafka.strimzi.io/v1beta2
-kind: KafkaConnect
-metadata:
-  name: {{ include "openmeter.fullname" . }}
-  namespace: {{ .Release.Namespace }}
-  labels:
-    {{- include "openmeter.labels" . | nindent 4 }}
-  annotations:
-    strimzi.io/use-connector-resources: "true"
-spec:
-  # TODO: build a custom image with the clickhouse-kafka-connect plugin
-  # image: .../clickhouse-kafka-connect
-  replicas: 1
-  bootstrapServers: {{ include "openmeter.fullname" . }}-kafka-bootstrap:9092
-  config:
-    group.id: {{ include "openmeter.fullname" . }}-kafka-connect
-    offset.storage.topic: _{{ include "openmeter.fullname" . }}-kafka-connect-configs
-    config.storage.topic: _{{ include "openmeter.fullname" . }}-kafka-connect-offsets
-    status.storage.topic: _{{ include "openmeter.fullname" . }}-kafka-connect-status
-    key.converter: org.apache.kafka.connect.storage.StringConverter
-    value.converter: org.apache.kafka.connect.json.JsonConverter
-    key.converter.schemas.enable: false
-    value.converter.schemas.enable: false
-    schemas.enable: false
-    config.storage.replication.factor: 1
-    offset.storage.replication.factor: 1
-    status.storage.replication.factor: 1
-  build:
-    output:
-      type: docker
-      # This image will last only for 24 hours and might be overwritten by other users
-      # Strimzi will use this tag to push the image. But it will use the digest to pull
-      # the container image to make sure it pulls exactly the image we just built. So
-      # it should not happen that you pull someone else's container image. However, we
-      # recommend changing this to your own container registry or using a different
-      # image name for any other than demo purposes.
-      image: ttl.sh/clickhouse-kafka-connect:24h
-    plugins:
-      - name: clickhouse-kafka-connect
-        artifacts:
-          - type: zip
-            url: https://github.com/ClickHouse/clickhouse-kafka-connect/releases/download/v1.0.0/clickhouse-kafka-connect-v1.0.0.zip
-            sha512sum: ee8ea54e2c02b1629a5af89bc549b0527b572f717f3181dcb2059d7ac18b7036903eacfe3bd4b20021cae3da431c5fead48687b82149e5cd6063b21c9173dace
----
-apiVersion: kafka.strimzi.io/v1beta2
-kind: KafkaConnector
-metadata:
-  name: {{ include "openmeter.fullname" . }}
-  labels:
-    strimzi.io/cluster: {{ include "openmeter.fullname" . }}
-spec:
-  class: com.clickhouse.kafka.connect.ClickHouseSinkConnector
-  tasksMax: 2
-  config:
-    hostname: clickhouse-{{ include "openmeter.fullname" . }}
-    port: 8123
-    ssl: false
-    username: default
-    password: ""
-    database: default
-    errors.retry.timeout: 30
-    topics.regex: "^om_[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_events$"
-    errors.deadletterqueue.topic.name: om_deadletterqueue
-    errors.deadletterqueue.topic.replication.factor: 1
-    errors.deadletterqueue.context.headers.enable: true
+{{- end }}

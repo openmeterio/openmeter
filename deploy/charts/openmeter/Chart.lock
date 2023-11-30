@@ -1,9 +1,9 @@
 dependencies:
 - name: strimzi-kafka-operator
   repository: https://strimzi.io/charts/
-  version: 0.37.0
+  version: 0.38.0
 - name: altinity-clickhouse-operator
   repository: https://docs.altinity.com/clickhouse-operator/
-  version: 0.21.3
-digest: sha256:6fb4e3432f06bfdb50ac150b457ca1b031ae204af4f402c62f7f697759ccdaa4
-generated: "2023-09-08T20:52:02.691381+02:00"
+  version: 0.22.1
+digest: sha256:9c6713a8407c8fbd75d83dd576b0efa2ac87432d55f369ef02937425ab65da78
+generated: "2023-11-30T22:13:47.840924+01:00"

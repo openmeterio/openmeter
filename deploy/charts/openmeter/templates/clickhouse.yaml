@@ -1,8 +1,10 @@
+{{- if .Values.clickhouse.enabled -}}
 apiVersion: clickhouse.altinity.com/v1
 kind: ClickHouseInstallation
 metadata:
   name: {{ include "openmeter.fullname" . }}
-  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "openmeter.componentLabels" (list . "clickhouse") | nindent 4 }}
 spec:
   defaults:
     templates:
@@ -49,3 +51,4 @@ spec:
           resources:
             requests:
               storage: 1Gi
+{{- end }}

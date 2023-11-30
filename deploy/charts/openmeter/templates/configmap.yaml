@@ -1,31 +1,32 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: "{{ include "openmeter.fullname" . }}"
-  namespace: "{{ .Release.Namespace }}"
+  name: {{ include "openmeter.fullname" . }}
   labels:
     {{- include "openmeter.labels" . | nindent 4 }}
 data:
   config.yaml: |
-    address: 0.0.0.0:{{ .Values.service.port }}
-
-    telemetry:
-      address: 0.0.0.0:10000
+    {{- $config := .Values.config -}}
+    {{- if .Values.kafka.enabled -}}
+    {{- $config := omit $config "ingest" }}
 
     ingest:
       kafka:
         broker: PLAINTEXT://{{ include "openmeter.fullname" . }}-kafka-bootstrap:9092
+    {{- end }}
 
-    processor:
+    {{- if .Values.clickhouse.enabled -}}
+    {{- $config := omit $config "aggregation" }}
+
+    aggregation:
       clickhouse:
         address: clickhouse-{{ include "openmeter.fullname" . }}:9000
         username: default
         password: ""
         database: default
+    {{- end }}
 
-    log:
-      format: json
-      level: debug
 
-    meters:
-      {{ .Values.config.meters | toYaml | nindent 6 }}
+    {{- if .Values.config -}}
+    {{ .Values.config | toYaml | nindent 4 }}
+    {{- end }}

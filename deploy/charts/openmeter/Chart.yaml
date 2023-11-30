@@ -1,21 +1,23 @@
 apiVersion: v2
+type: application
 name: openmeter
-description: A Helm chart for OpenMeter
-home: https://openmeter.io
+version: 1.0.0-beta.32
+appVersion: "v1.0.0-beta.32"
+description: "Usage Metering for AI, DevOps, and Billing. Built for engineers to collect and aggregate millions of events in real-time."
 keywords:
   - metering
   - usage
   - billing
   - aggregation
+home: https://openmeter.io
 sources:
   - https://github.com/openmeterio/openmeter
-type: application
-version: 1.0.0-beta
-appVersion: "v1.0.0-beta.8"
 dependencies:
   - name: strimzi-kafka-operator
-    version: "0.37.0"
+    version: "0.38.0"
     repository: "https://strimzi.io/charts/"
+    condition: kafka.operator.install
   - name: altinity-clickhouse-operator
-    version: "0.21.3"
+    version: "0.22.1"
     repository: "https://docs.altinity.com/clickhouse-operator/"
+    condition: clickhouse.operator.install
