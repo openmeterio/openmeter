@@ -15,6 +15,7 @@ require (
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/go-chi/cors v1.2.1
 	github.com/go-chi/render v1.0.3
+	github.com/go-faker/faker/v4 v4.2.0
 	github.com/go-slog/otelslog v0.1.0
 	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
