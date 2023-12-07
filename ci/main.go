@@ -102,6 +102,7 @@ func (m *Ci) Etoe() *Container {
 
 	sinkWorker := image.
 		WithServiceBinding("redis", redis()).
+		WithServiceBinding("api", api). // Make sure api is up before starting sink worker
 		WithExec([]string{"openmeter-sink-worker", "--config", "/etc/openmeter/config.yaml"}).
 		AsService()
 
@@ -125,6 +126,8 @@ func clickhouse() *Service {
 		WithEnvVariable("CLICKHOUSE_PASSWORD", "default").
 		WithEnvVariable("CLICKHOUSE_DB", "openmeter").
 		WithExposedPort(9000).
+		WithExposedPort(9009).
+		WithExposedPort(8123).
 		AsService()
 }
 

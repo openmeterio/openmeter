@@ -30,15 +30,27 @@ func initClient(t *testing.T) *api.ClientWithResponses {
 	return client
 }
 
+func TestMain(m *testing.M) {
+	// Make sure OpenMeter is ready
+	// TODO: replace this with some sort of health check
+	time.Sleep(15 * time.Second)
+
+	os.Exit(m.Run())
+}
+
 func TestIngest(t *testing.T) {
 	client := initClient(t)
 
-	timestamp, _ := time.Parse(time.RFC3339, "2023-12-04T08:37:23.151Z")
+	// Make clickhouse's job easier by sending events within a fix time range
+	now := time.Now()
+
 	var sum int
 
 	for i := 0; i < 1000; i++ {
-		timestamp := timestamp.Add(time.Second)
-		duration := i + 1
+		// Make clickhouse's job easier by sending events within a fix time range
+		timestamp := gofakeit.DateRange(now.Add(-30*24*time.Hour), now.Add(30*24*time.Hour))
+		duration := gofakeit.Number(1, 100)
+
 		sum += duration
 
 		ev := cloudevents.New()
@@ -57,7 +69,7 @@ func TestIngest(t *testing.T) {
 	}
 
 	// Wait for events to be processed
-	time.Sleep(15 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	resp, err := client.QueryMeterWithResponse(context.Background(), "ingest", nil)
 	require.NoError(t, err)
@@ -70,14 +82,18 @@ func TestIngest(t *testing.T) {
 func TestBatchIngest(t *testing.T) {
 	client := initClient(t)
 
-	timestamp, _ := time.Parse(time.RFC3339, "2023-12-04T08:37:23.151Z")
+	// Make clickhouse's job easier by sending events within a fix time range
+	now := time.Now()
+
 	var sum int
 
 	var events []cloudevents.Event
 
 	for i := 0; i < 1000; i++ {
-		timestamp := timestamp.Add(time.Second)
-		duration := i + 1
+		// Make clickhouse's job easier by sending events within a fix time range
+		timestamp := gofakeit.DateRange(now.Add(-30*24*time.Hour), now.Add(30*24*time.Hour))
+		duration := gofakeit.Number(1, 1000)
+
 		sum += duration
 
 		ev := cloudevents.New()
@@ -100,7 +116,7 @@ func TestBatchIngest(t *testing.T) {
 	}
 
 	// Wait for events to be processed
-	time.Sleep(15 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	resp, err := client.QueryMeterWithResponse(context.Background(), "batchingest", nil)
 	require.NoError(t, err)
@@ -113,13 +129,19 @@ func TestBatchIngest(t *testing.T) {
 func TestDedupe(t *testing.T) {
 	client := initClient(t)
 
-	timestamp, _ := time.Parse(time.RFC3339, "2023-12-04T08:37:23.151Z")
-	var sum int
+	// Make clickhouse's job easier by sending events within a fix time range
+	now := time.Now()
+
+	var firstDuration int
 
 	for i := 0; i < 1000; i++ {
-		timestamp := timestamp.Add(time.Second)
-		duration := i + 1
-		sum += duration
+		// Make clickhouse's job easier by sending events within a fix time range
+		timestamp := gofakeit.DateRange(now.Add(-30*24*time.Hour), now.Add(30*24*time.Hour))
+		duration := gofakeit.Number(1, 1000)
+
+		if firstDuration == 0 {
+			firstDuration = duration
+		}
 
 		ev := cloudevents.New()
 		ev.SetID("52f44f66-020f-4fa9-a733-102a8ef6f515")
@@ -137,12 +159,12 @@ func TestDedupe(t *testing.T) {
 	}
 
 	// Wait for events to be processed
-	time.Sleep(15 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	resp, err := client.QueryMeterWithResponse(context.Background(), "dedupe", nil)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode())
 
 	require.Len(t, resp.JSON200.Data, 1)
-	assert.Equal(t, float64(1), resp.JSON200.Data[0].Value)
+	assert.Equal(t, float64(firstDuration), resp.JSON200.Data[0].Value)
 }
