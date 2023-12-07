@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/brianvoe/gofakeit/v6"
 	cloudevents "github.com/cloudevents/sdk-go/v2/event"
-	"github.com/go-faker/faker/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -42,7 +42,7 @@ func TestIngest(t *testing.T) {
 		sum += duration
 
 		ev := cloudevents.New()
-		ev.SetID(faker.UUIDHyphenated())
+		ev.SetID(gofakeit.UUID())
 		ev.SetSource("my-app")
 		ev.SetType("ingest")
 		ev.SetSubject("customer-1")
@@ -81,7 +81,7 @@ func TestBatchIngest(t *testing.T) {
 		sum += duration
 
 		ev := cloudevents.New()
-		ev.SetID(faker.UUIDHyphenated())
+		ev.SetID(gofakeit.UUID())
 		ev.SetSource("my-app")
 		ev.SetType("batchingest")
 		ev.SetSubject("customer-1")

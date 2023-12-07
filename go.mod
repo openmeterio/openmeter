@@ -8,6 +8,7 @@ require (
 	github.com/AppsFlyer/go-sundheit v0.5.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.16.0
 	github.com/avast/retry-go/v4 v4.5.0
+	github.com/brianvoe/gofakeit/v6 v6.26.0
 	github.com/cloudevents/sdk-go/v2 v2.14.0
 	github.com/confluentinc/confluent-kafka-go/v2 v2.2.0
 	github.com/deepmap/oapi-codegen/v2 v2.0.0
@@ -15,7 +16,6 @@ require (
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/go-chi/cors v1.2.1
 	github.com/go-chi/render v1.0.3
-	github.com/go-faker/faker/v4 v4.2.0
 	github.com/go-slog/otelslog v0.1.0
 	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
