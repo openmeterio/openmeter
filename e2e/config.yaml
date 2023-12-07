@@ -30,6 +30,11 @@ meters:
     eventType: ingest
     valueProperty: $.duration_ms
     aggregation: SUM
+  - slug: batchingest
+    description: Meter for testing batch ingestion
+    eventType: batchingest
+    valueProperty: $.duration_ms
+    aggregation: SUM
   - slug: dedupe
     description: Meter for testing deduplication
     eventType: dedupe

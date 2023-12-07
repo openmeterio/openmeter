@@ -67,6 +67,49 @@ func TestIngest(t *testing.T) {
 	assert.Equal(t, float64(sum), resp.JSON200.Data[0].Value)
 }
 
+func TestBatchIngest(t *testing.T) {
+	client := initClient(t)
+
+	timestamp, _ := time.Parse(time.RFC3339, "2023-12-04T08:37:23.151Z")
+	var sum int
+
+	var events []cloudevents.Event
+
+	for i := 0; i < 1000; i++ {
+		timestamp := timestamp.Add(time.Second)
+		duration := i + 1
+		sum += duration
+
+		ev := cloudevents.New()
+		ev.SetID(faker.UUIDHyphenated())
+		ev.SetSource("my-app")
+		ev.SetType("batchingest")
+		ev.SetSubject("customer-1")
+		ev.SetTime(timestamp)
+		_ = ev.SetData("application/json", map[string]string{
+			"duration_ms": fmt.Sprintf("%d", duration),
+		})
+
+		events = append(events, ev)
+	}
+
+	{
+		resp, err := client.IngestEventBatchWithResponse(context.Background(), events)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, resp.StatusCode())
+	}
+
+	// Wait for events to be processed
+	time.Sleep(15 * time.Second)
+
+	resp, err := client.QueryMeterWithResponse(context.Background(), "batchingest", nil)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode())
+
+	require.Len(t, resp.JSON200.Data, 1)
+	assert.Equal(t, float64(sum), resp.JSON200.Data[0].Value)
+}
+
 func TestDedupe(t *testing.T) {
 	client := initClient(t)
 
