@@ -75,9 +75,9 @@ func (m *Binary) All(ctx context.Context) error {
 }
 
 func (m *Binary) Api() *File {
-	return projectDir().DockerBuild().File("/usr/local/bin/openmeter")
+	return buildDir().DockerBuild().File("/usr/local/bin/openmeter")
 }
 
 func (m *Binary) SinkWorker() *File {
-	return projectDir().DockerBuild().File("/usr/local/bin/openmeter-sink-worker")
+	return buildDir().DockerBuild().File("/usr/local/bin/openmeter-sink-worker")
 }
