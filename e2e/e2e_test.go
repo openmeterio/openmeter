@@ -16,7 +16,9 @@ import (
 	api "github.com/openmeterio/openmeter/api/client/go"
 )
 
-func TestIngest(t *testing.T) {
+func initClient(t *testing.T) *api.ClientWithResponses {
+	t.Helper()
+
 	address := os.Getenv("OPENMETER_ADDRESS")
 	if address == "" {
 		t.Skip("OPENMETER_ADDRESS not set")
@@ -24,6 +26,12 @@ func TestIngest(t *testing.T) {
 
 	client, err := api.NewClientWithResponses(address)
 	require.NoError(t, err)
+
+	return client
+}
+
+func TestIngest(t *testing.T) {
+	client := initClient(t)
 
 	timestamp, _ := time.Parse(time.RFC3339, "2023-12-04T08:37:23.151Z")
 	var sum int
@@ -60,13 +68,7 @@ func TestIngest(t *testing.T) {
 }
 
 func TestDedupe(t *testing.T) {
-	address := os.Getenv("OPENMETER_ADDRESS")
-	if address == "" {
-		t.Skip("OPENMETER_ADDRESS not set")
-	}
-
-	client, err := api.NewClientWithResponses(address)
-	require.NoError(t, err)
+	client := initClient(t)
 
 	timestamp, _ := time.Parse(time.RFC3339, "2023-12-04T08:37:23.151Z")
 	var sum int
