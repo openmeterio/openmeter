@@ -88,7 +88,7 @@ func (m *Lint) Openapi() *Container {
 		Lint("api/openapi.yaml")
 }
 
-func (m *Ci) Etoe() *Container {
+func (m *Ci) Etoe(test Optional[string]) *Container {
 	image := m.Build().ContainerImage().
 		WithExposedPort(10000).
 		WithMountedFile("/etc/openmeter/config.yaml", dag.Host().File(path.Join(root(), "e2e", "config.yaml"))).
@@ -106,6 +106,14 @@ func (m *Ci) Etoe() *Container {
 		WithExec([]string{"openmeter-sink-worker", "--config", "/etc/openmeter/config.yaml"}).
 		AsService()
 
+	args := []string{"go", "test", "-v"}
+
+	if t, ok := test.Get(); ok {
+		args = append(args, "-run", fmt.Sprintf("Test%s", t))
+	}
+
+	args = append(args, "./e2e/...")
+
 	return dag.Go().
 		FromContainer(
 			dag.Go().
@@ -116,7 +124,7 @@ func (m *Ci) Etoe() *Container {
 				WithServiceBinding("sink-worker", sinkWorker).
 				WithEnvVariable("OPENMETER_ADDRESS", "http://api:8080"),
 		).
-		Exec([]string{"go", "test", "-v", "./e2e/..."})
+		Exec(args)
 }
 
 func clickhouse() *Service {

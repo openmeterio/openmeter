@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func initClient(t *testing.T) *api.ClientWithResponses {
@@ -167,4 +168,290 @@ func TestDedupe(t *testing.T) {
 
 	require.Len(t, resp.JSON200.Data, 1)
 	assert.Equal(t, float64(firstDuration), resp.JSON200.Data[0].Value)
+}
+
+func TestQuery(t *testing.T) {
+	client := initClient(t)
+
+	// Reproducible random data
+	faker := gofakeit.New(8675309)
+
+	paths := []string{"/", "/about", "/users", "/contact"}
+
+	timestamp := faker.DateRange(time.Date(2023, time.May, 6, 0, 0, 0, 0, time.UTC), faker.FutureDate().UTC()).UTC().Truncate(time.Second)
+
+	const customerCount = 5
+
+	var events []cloudevents.Event
+
+	newEvents := func(fn func(ev *cloudevents.Event)) []cloudevents.Event {
+		var events []cloudevents.Event
+
+		for i := 0; i < customerCount; i++ {
+			ev := cloudevents.New()
+
+			ev.SetID(faker.UUID())
+			ev.SetSource("my-app")
+			ev.SetType("query")
+			ev.SetSubject(fmt.Sprintf("customer-%d", i+1))
+
+			fn(&ev)
+
+			events = append(events, ev)
+		}
+
+		return events
+	}
+
+	newTimedEvents := func(timestamp time.Time) []cloudevents.Event {
+		method := faker.HTTPMethod()
+		path := paths[faker.Number(0, len(paths)-1)]
+
+		return newEvents(func(ev *cloudevents.Event) {
+			ev.SetTime(timestamp)
+			_ = ev.SetData("application/json", map[string]string{
+				"duration_ms": "100",
+				"method":      method,
+				"path":        path,
+			})
+		})
+	}
+
+	// First event
+	{
+		events = append(events, newTimedEvents(timestamp)...)
+	}
+
+	// Plus one minute
+	{
+		events = append(events, newTimedEvents(timestamp.Add(time.Minute))...)
+	}
+
+	// Plus one hour
+	{
+		events = append(events, newTimedEvents(timestamp.Add(time.Hour))...)
+	}
+
+	// Plus one day
+	{
+		events = append(events, newTimedEvents(timestamp.Add(24*time.Hour))...)
+	}
+
+	{
+		resp, err := client.IngestEventBatchWithResponse(context.Background(), events)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, resp.StatusCode())
+	}
+
+	// Wait for events to be processed
+	time.Sleep(10 * time.Second)
+
+	t.Run("Total", func(t *testing.T) {
+		t.Parallel()
+
+		resp, err := client.QueryMeterWithResponse(context.Background(), "query", nil)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+
+		expected := &api.MeterQueryResult{
+			Data: []models.MeterQueryRow{
+				{
+					Value:       customerCount * 4 * 100,
+					WindowStart: timestamp.Truncate(time.Minute),
+					WindowEnd:   timestamp.Add(24 * time.Hour).Truncate(time.Minute).Add(time.Minute),
+					GroupBy:     map[string]*string{},
+				},
+			},
+		}
+
+		assert.Equal(t, expected, resp.JSON200)
+	})
+
+	t.Run("WindowSize", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("Minute", func(t *testing.T) {
+			t.Parallel()
+
+			windowSize := models.WindowSizeMinute
+
+			resp, err := client.QueryMeterWithResponse(context.Background(), "query", &api.QueryMeterParams{
+				WindowSize: &windowSize,
+			})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode())
+
+			expected := &api.MeterQueryResult{
+				Data: []models.MeterQueryRow{
+					{
+						Value:       customerCount * 100,
+						WindowStart: timestamp.Truncate(time.Minute),
+						WindowEnd:   timestamp.Truncate(time.Minute).Add(time.Minute),
+						GroupBy:     map[string]*string{},
+					},
+					{
+						Value:       customerCount * 100,
+						WindowStart: timestamp.Add(time.Minute).Truncate(time.Minute),
+						WindowEnd:   timestamp.Add(time.Minute).Truncate(time.Minute).Add(time.Minute),
+						GroupBy:     map[string]*string{},
+					},
+					{
+						Value:       customerCount * 100,
+						WindowStart: timestamp.Add(time.Hour).Truncate(time.Minute),
+						WindowEnd:   timestamp.Add(time.Hour).Truncate(time.Minute).Add(time.Minute),
+						GroupBy:     map[string]*string{},
+					},
+					{
+						Value:       customerCount * 100,
+						WindowStart: timestamp.Add(24 * time.Hour).Truncate(time.Minute),
+						WindowEnd:   timestamp.Add(24 * time.Hour).Truncate(time.Minute).Add(time.Minute),
+						GroupBy:     map[string]*string{},
+					},
+				},
+				WindowSize: &windowSize,
+			}
+
+			assert.Equal(t, expected, resp.JSON200)
+		})
+
+		t.Run("Hour", func(t *testing.T) {
+			t.Parallel()
+
+			windowSize := models.WindowSizeHour
+
+			resp, err := client.QueryMeterWithResponse(context.Background(), "query", &api.QueryMeterParams{
+				WindowSize: &windowSize,
+			})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode())
+
+			expected := &api.MeterQueryResult{
+				Data: []models.MeterQueryRow{
+					{
+						Value:       customerCount * 2 * 100,
+						WindowStart: timestamp.Truncate(time.Hour),
+						WindowEnd:   timestamp.Truncate(time.Hour).Add(time.Hour),
+						GroupBy:     map[string]*string{},
+					},
+					{
+						Value:       customerCount * 100,
+						WindowStart: timestamp.Add(time.Hour).Truncate(time.Hour),
+						WindowEnd:   timestamp.Add(time.Hour).Truncate(time.Hour).Add(time.Hour),
+						GroupBy:     map[string]*string{},
+					},
+					{
+						Value:       customerCount * 100,
+						WindowStart: timestamp.Add(24 * time.Hour).Truncate(time.Hour),
+						WindowEnd:   timestamp.Add(24 * time.Hour).Truncate(time.Hour).Add(time.Hour),
+						GroupBy:     map[string]*string{},
+					},
+				},
+				WindowSize: &windowSize,
+			}
+
+			assert.Equal(t, expected, resp.JSON200)
+		})
+
+		t.Run("Day", func(t *testing.T) {
+			t.Parallel()
+
+			windowSize := models.WindowSizeDay
+
+			resp, err := client.QueryMeterWithResponse(context.Background(), "query", &api.QueryMeterParams{
+				WindowSize: &windowSize,
+			})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode())
+
+			expected := &api.MeterQueryResult{
+				Data: []models.MeterQueryRow{
+					{
+						Value:       customerCount * 3 * 100,
+						WindowStart: timestamp.Truncate(24 * time.Hour),
+						WindowEnd:   timestamp.Truncate(24 * time.Hour).Add(24 * time.Hour),
+						GroupBy:     map[string]*string{},
+					},
+					{
+						Value:       customerCount * 100,
+						WindowStart: timestamp.Add(24 * time.Hour).Truncate(24 * time.Hour),
+						WindowEnd:   timestamp.Add(24 * time.Hour).Truncate(24 * time.Hour).Add(24 * time.Hour),
+						GroupBy:     map[string]*string{},
+					},
+				},
+				WindowSize: &windowSize,
+			}
+
+			assert.Equal(t, expected, resp.JSON200)
+		})
+	})
+
+	t.Run("Subject", func(t *testing.T) {
+		t.Parallel()
+
+		// TODO: randomize?
+		// TODO: make sure we have enough subject
+		subject := []string{"customer-1", "customer-2"}
+
+		resp, err := client.QueryMeterWithResponse(context.Background(), "query", &api.QueryMeterParams{
+			Subject: &subject,
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+
+		expected := &api.MeterQueryResult{
+			Data: []models.MeterQueryRow{
+				{
+					Value:       4 * 100,
+					WindowStart: timestamp.Truncate(time.Minute),
+					WindowEnd:   timestamp.Truncate(time.Minute).Add(24*time.Hour + time.Minute),
+					Subject:     &subject[1],
+					GroupBy:     map[string]*string{},
+				},
+				{
+					Value:       4 * 100,
+					WindowStart: timestamp.Truncate(time.Minute),
+					WindowEnd:   timestamp.Truncate(time.Minute).Add(24*time.Hour + time.Minute),
+					Subject:     &subject[0],
+					GroupBy:     map[string]*string{},
+				},
+			},
+		}
+
+		assert.Equal(t, expected, resp.JSON200)
+	})
+
+	// TODO: improve group by tests by adding more than one parameter
+	//
+	// Note: this test breaks if any of the randomization parameters are changed
+	// TODO: Fix query ordering first
+	// t.Run("GroupBy", func(t *testing.T) {
+	// 	t.Parallel()
+	//
+	// 	resp, err := client.QueryMeterWithResponse(context.Background(), "query", &api.QueryMeterParams{
+	// 		GroupBy: &[]string{"method"},
+	// 	})
+	// 	require.NoError(t, err)
+	// 	require.Equal(t, http.StatusOK, resp.StatusCode())
+	//
+	// 	expected := &api.MeterQueryResult{
+	// 		Data: []models.MeterQueryRow{
+	// 			{
+	// 				Value:       4 * 100,
+	// 				WindowStart: timestamp.Truncate(time.Minute),
+	// 				WindowEnd:   timestamp.Truncate(time.Minute).Add(24*time.Hour + time.Minute),
+	// 				GroupBy:     map[string]*string{},
+	// 			},
+	// 			{
+	// 				Value:       4 * 100,
+	// 				WindowStart: timestamp.Truncate(time.Minute),
+	// 				WindowEnd:   timestamp.Truncate(time.Minute).Add(24*time.Hour + time.Minute),
+	// 				GroupBy:     map[string]*string{},
+	// 			},
+	// 		},
+	// 	}
+	//
+	// 	assert.Equal(t, expected, resp.JSON200)
+	// })
+
+	// TODO: add tests for group by and subject
 }
