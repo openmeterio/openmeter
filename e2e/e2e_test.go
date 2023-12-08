@@ -70,14 +70,14 @@ func TestIngest(t *testing.T) {
 	}
 
 	// Wait for events to be processed
-	time.Sleep(10 * time.Second)
+	assert.EventuallyWithT(t, func(t *assert.CollectT) {
+		resp, err := client.QueryMeterWithResponse(context.Background(), "ingest", nil)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
 
-	resp, err := client.QueryMeterWithResponse(context.Background(), "ingest", nil)
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, resp.StatusCode())
-
-	require.Len(t, resp.JSON200.Data, 1)
-	assert.Equal(t, float64(sum), resp.JSON200.Data[0].Value)
+		require.Len(t, resp.JSON200.Data, 1)
+		assert.Equal(t, float64(sum), resp.JSON200.Data[0].Value)
+	}, 30*time.Second, time.Second)
 }
 
 func TestBatchIngest(t *testing.T) {
@@ -110,21 +110,19 @@ func TestBatchIngest(t *testing.T) {
 		events = append(events, ev)
 	}
 
-	{
-		resp, err := client.IngestEventBatchWithResponse(context.Background(), events)
-		require.NoError(t, err)
-		require.Equal(t, http.StatusNoContent, resp.StatusCode())
-	}
+	resp, err := client.IngestEventBatchWithResponse(context.Background(), events)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode())
 
 	// Wait for events to be processed
-	time.Sleep(10 * time.Second)
+	assert.EventuallyWithT(t, func(t *assert.CollectT) {
+		resp, err := client.QueryMeterWithResponse(context.Background(), "batchingest", nil)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
 
-	resp, err := client.QueryMeterWithResponse(context.Background(), "batchingest", nil)
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, resp.StatusCode())
-
-	require.Len(t, resp.JSON200.Data, 1)
-	assert.Equal(t, float64(sum), resp.JSON200.Data[0].Value)
+		require.Len(t, resp.JSON200.Data, 1)
+		assert.Equal(t, float64(sum), resp.JSON200.Data[0].Value)
+	}, 30*time.Second, time.Second)
 }
 
 func TestDedupe(t *testing.T) {
@@ -160,14 +158,14 @@ func TestDedupe(t *testing.T) {
 	}
 
 	// Wait for events to be processed
-	time.Sleep(10 * time.Second)
+	assert.EventuallyWithT(t, func(t *assert.CollectT) {
+		resp, err := client.QueryMeterWithResponse(context.Background(), "dedupe", nil)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
 
-	resp, err := client.QueryMeterWithResponse(context.Background(), "dedupe", nil)
-	require.NoError(t, err)
-	require.Equal(t, http.StatusOK, resp.StatusCode())
-
-	require.Len(t, resp.JSON200.Data, 1)
-	assert.Equal(t, float64(firstDuration), resp.JSON200.Data[0].Value)
+		require.Len(t, resp.JSON200.Data, 1)
+		assert.Equal(t, float64(firstDuration), resp.JSON200.Data[0].Value)
+	}, 30*time.Second, time.Second)
 }
 
 func TestQuery(t *testing.T) {
@@ -249,22 +247,25 @@ func TestQuery(t *testing.T) {
 	t.Run("Total", func(t *testing.T) {
 		t.Parallel()
 
-		resp, err := client.QueryMeterWithResponse(context.Background(), "query", nil)
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, resp.StatusCode())
+		// Wait for events to be processed
+		assert.EventuallyWithT(t, func(t *assert.CollectT) {
+			resp, err := client.QueryMeterWithResponse(context.Background(), "query", nil)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode())
 
-		expected := &api.MeterQueryResult{
-			Data: []models.MeterQueryRow{
-				{
-					Value:       customerCount * 4 * 100,
-					WindowStart: timestamp.Truncate(time.Minute),
-					WindowEnd:   timestamp.Add(24 * time.Hour).Truncate(time.Minute).Add(time.Minute),
-					GroupBy:     map[string]*string{},
+			expected := &api.MeterQueryResult{
+				Data: []models.MeterQueryRow{
+					{
+						Value:       customerCount * 4 * 100,
+						WindowStart: timestamp.Truncate(time.Minute),
+						WindowEnd:   timestamp.Add(24 * time.Hour).Truncate(time.Minute).Add(time.Minute),
+						GroupBy:     map[string]*string{},
+					},
 				},
-			},
-		}
+			}
 
-		assert.Equal(t, expected, resp.JSON200)
+			assert.Equal(t, expected, resp.JSON200)
+		}, 30*time.Second, time.Second)
 	})
 
 	t.Run("WindowSize", func(t *testing.T) {
@@ -275,43 +276,46 @@ func TestQuery(t *testing.T) {
 
 			windowSize := models.WindowSizeMinute
 
-			resp, err := client.QueryMeterWithResponse(context.Background(), "query", &api.QueryMeterParams{
-				WindowSize: &windowSize,
-			})
-			require.NoError(t, err)
-			require.Equal(t, http.StatusOK, resp.StatusCode())
+			// Wait for events to be processed
+			assert.EventuallyWithT(t, func(t *assert.CollectT) {
+				resp, err := client.QueryMeterWithResponse(context.Background(), "query", &api.QueryMeterParams{
+					WindowSize: &windowSize,
+				})
+				require.NoError(t, err)
+				require.Equal(t, http.StatusOK, resp.StatusCode())
 
-			expected := &api.MeterQueryResult{
-				Data: []models.MeterQueryRow{
-					{
-						Value:       customerCount * 100,
-						WindowStart: timestamp.Truncate(time.Minute),
-						WindowEnd:   timestamp.Truncate(time.Minute).Add(time.Minute),
-						GroupBy:     map[string]*string{},
+				expected := &api.MeterQueryResult{
+					Data: []models.MeterQueryRow{
+						{
+							Value:       customerCount * 100,
+							WindowStart: timestamp.Truncate(time.Minute),
+							WindowEnd:   timestamp.Truncate(time.Minute).Add(time.Minute),
+							GroupBy:     map[string]*string{},
+						},
+						{
+							Value:       customerCount * 100,
+							WindowStart: timestamp.Add(time.Minute).Truncate(time.Minute),
+							WindowEnd:   timestamp.Add(time.Minute).Truncate(time.Minute).Add(time.Minute),
+							GroupBy:     map[string]*string{},
+						},
+						{
+							Value:       customerCount * 100,
+							WindowStart: timestamp.Add(time.Hour).Truncate(time.Minute),
+							WindowEnd:   timestamp.Add(time.Hour).Truncate(time.Minute).Add(time.Minute),
+							GroupBy:     map[string]*string{},
+						},
+						{
+							Value:       customerCount * 100,
+							WindowStart: timestamp.Add(24 * time.Hour).Truncate(time.Minute),
+							WindowEnd:   timestamp.Add(24 * time.Hour).Truncate(time.Minute).Add(time.Minute),
+							GroupBy:     map[string]*string{},
+						},
 					},
-					{
-						Value:       customerCount * 100,
-						WindowStart: timestamp.Add(time.Minute).Truncate(time.Minute),
-						WindowEnd:   timestamp.Add(time.Minute).Truncate(time.Minute).Add(time.Minute),
-						GroupBy:     map[string]*string{},
-					},
-					{
-						Value:       customerCount * 100,
-						WindowStart: timestamp.Add(time.Hour).Truncate(time.Minute),
-						WindowEnd:   timestamp.Add(time.Hour).Truncate(time.Minute).Add(time.Minute),
-						GroupBy:     map[string]*string{},
-					},
-					{
-						Value:       customerCount * 100,
-						WindowStart: timestamp.Add(24 * time.Hour).Truncate(time.Minute),
-						WindowEnd:   timestamp.Add(24 * time.Hour).Truncate(time.Minute).Add(time.Minute),
-						GroupBy:     map[string]*string{},
-					},
-				},
-				WindowSize: &windowSize,
-			}
+					WindowSize: &windowSize,
+				}
 
-			assert.Equal(t, expected, resp.JSON200)
+				assert.Equal(t, expected, resp.JSON200)
+			}, 30*time.Second, time.Second)
 		})
 
 		t.Run("Hour", func(t *testing.T) {
@@ -319,37 +323,40 @@ func TestQuery(t *testing.T) {
 
 			windowSize := models.WindowSizeHour
 
-			resp, err := client.QueryMeterWithResponse(context.Background(), "query", &api.QueryMeterParams{
-				WindowSize: &windowSize,
-			})
-			require.NoError(t, err)
-			require.Equal(t, http.StatusOK, resp.StatusCode())
+			// Wait for events to be processed
+			assert.EventuallyWithT(t, func(t *assert.CollectT) {
+				resp, err := client.QueryMeterWithResponse(context.Background(), "query", &api.QueryMeterParams{
+					WindowSize: &windowSize,
+				})
+				require.NoError(t, err)
+				require.Equal(t, http.StatusOK, resp.StatusCode())
 
-			expected := &api.MeterQueryResult{
-				Data: []models.MeterQueryRow{
-					{
-						Value:       customerCount * 2 * 100,
-						WindowStart: timestamp.Truncate(time.Hour),
-						WindowEnd:   timestamp.Truncate(time.Hour).Add(time.Hour),
-						GroupBy:     map[string]*string{},
+				expected := &api.MeterQueryResult{
+					Data: []models.MeterQueryRow{
+						{
+							Value:       customerCount * 2 * 100,
+							WindowStart: timestamp.Truncate(time.Hour),
+							WindowEnd:   timestamp.Truncate(time.Hour).Add(time.Hour),
+							GroupBy:     map[string]*string{},
+						},
+						{
+							Value:       customerCount * 100,
+							WindowStart: timestamp.Add(time.Hour).Truncate(time.Hour),
+							WindowEnd:   timestamp.Add(time.Hour).Truncate(time.Hour).Add(time.Hour),
+							GroupBy:     map[string]*string{},
+						},
+						{
+							Value:       customerCount * 100,
+							WindowStart: timestamp.Add(24 * time.Hour).Truncate(time.Hour),
+							WindowEnd:   timestamp.Add(24 * time.Hour).Truncate(time.Hour).Add(time.Hour),
+							GroupBy:     map[string]*string{},
+						},
 					},
-					{
-						Value:       customerCount * 100,
-						WindowStart: timestamp.Add(time.Hour).Truncate(time.Hour),
-						WindowEnd:   timestamp.Add(time.Hour).Truncate(time.Hour).Add(time.Hour),
-						GroupBy:     map[string]*string{},
-					},
-					{
-						Value:       customerCount * 100,
-						WindowStart: timestamp.Add(24 * time.Hour).Truncate(time.Hour),
-						WindowEnd:   timestamp.Add(24 * time.Hour).Truncate(time.Hour).Add(time.Hour),
-						GroupBy:     map[string]*string{},
-					},
-				},
-				WindowSize: &windowSize,
-			}
+					WindowSize: &windowSize,
+				}
 
-			assert.Equal(t, expected, resp.JSON200)
+				assert.Equal(t, expected, resp.JSON200)
+			}, 30*time.Second, time.Second)
 		})
 
 		t.Run("Day", func(t *testing.T) {
@@ -357,31 +364,34 @@ func TestQuery(t *testing.T) {
 
 			windowSize := models.WindowSizeDay
 
-			resp, err := client.QueryMeterWithResponse(context.Background(), "query", &api.QueryMeterParams{
-				WindowSize: &windowSize,
-			})
-			require.NoError(t, err)
-			require.Equal(t, http.StatusOK, resp.StatusCode())
+			// Wait for events to be processed
+			assert.EventuallyWithT(t, func(t *assert.CollectT) {
+				resp, err := client.QueryMeterWithResponse(context.Background(), "query", &api.QueryMeterParams{
+					WindowSize: &windowSize,
+				})
+				require.NoError(t, err)
+				require.Equal(t, http.StatusOK, resp.StatusCode())
 
-			expected := &api.MeterQueryResult{
-				Data: []models.MeterQueryRow{
-					{
-						Value:       customerCount * 3 * 100,
-						WindowStart: timestamp.Truncate(24 * time.Hour),
-						WindowEnd:   timestamp.Truncate(24 * time.Hour).Add(24 * time.Hour),
-						GroupBy:     map[string]*string{},
+				expected := &api.MeterQueryResult{
+					Data: []models.MeterQueryRow{
+						{
+							Value:       customerCount * 3 * 100,
+							WindowStart: timestamp.Truncate(24 * time.Hour),
+							WindowEnd:   timestamp.Truncate(24 * time.Hour).Add(24 * time.Hour),
+							GroupBy:     map[string]*string{},
+						},
+						{
+							Value:       customerCount * 100,
+							WindowStart: timestamp.Add(24 * time.Hour).Truncate(24 * time.Hour),
+							WindowEnd:   timestamp.Add(24 * time.Hour).Truncate(24 * time.Hour).Add(24 * time.Hour),
+							GroupBy:     map[string]*string{},
+						},
 					},
-					{
-						Value:       customerCount * 100,
-						WindowStart: timestamp.Add(24 * time.Hour).Truncate(24 * time.Hour),
-						WindowEnd:   timestamp.Add(24 * time.Hour).Truncate(24 * time.Hour).Add(24 * time.Hour),
-						GroupBy:     map[string]*string{},
-					},
-				},
-				WindowSize: &windowSize,
-			}
+					WindowSize: &windowSize,
+				}
 
-			assert.Equal(t, expected, resp.JSON200)
+				assert.Equal(t, expected, resp.JSON200)
+			}, 30*time.Second, time.Second)
 		})
 	})
 
@@ -392,32 +402,35 @@ func TestQuery(t *testing.T) {
 		// TODO: make sure we have enough subject
 		subject := []string{"customer-1", "customer-2"}
 
-		resp, err := client.QueryMeterWithResponse(context.Background(), "query", &api.QueryMeterParams{
-			Subject: &subject,
-		})
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, resp.StatusCode())
+		// Wait for events to be processed
+		assert.EventuallyWithT(t, func(t *assert.CollectT) {
+			resp, err := client.QueryMeterWithResponse(context.Background(), "query", &api.QueryMeterParams{
+				Subject: &subject,
+			})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode())
 
-		expected := &api.MeterQueryResult{
-			Data: []models.MeterQueryRow{
-				{
-					Value:       4 * 100,
-					WindowStart: timestamp.Truncate(time.Minute),
-					WindowEnd:   timestamp.Truncate(time.Minute).Add(24*time.Hour + time.Minute),
-					Subject:     &subject[1],
-					GroupBy:     map[string]*string{},
+			expected := &api.MeterQueryResult{
+				Data: []models.MeterQueryRow{
+					{
+						Value:       4 * 100,
+						WindowStart: timestamp.Truncate(time.Minute),
+						WindowEnd:   timestamp.Truncate(time.Minute).Add(24*time.Hour + time.Minute),
+						Subject:     &subject[1],
+						GroupBy:     map[string]*string{},
+					},
+					{
+						Value:       4 * 100,
+						WindowStart: timestamp.Truncate(time.Minute),
+						WindowEnd:   timestamp.Truncate(time.Minute).Add(24*time.Hour + time.Minute),
+						Subject:     &subject[0],
+						GroupBy:     map[string]*string{},
+					},
 				},
-				{
-					Value:       4 * 100,
-					WindowStart: timestamp.Truncate(time.Minute),
-					WindowEnd:   timestamp.Truncate(time.Minute).Add(24*time.Hour + time.Minute),
-					Subject:     &subject[0],
-					GroupBy:     map[string]*string{},
-				},
-			},
-		}
+			}
 
-		assert.Equal(t, expected, resp.JSON200)
+			assert.Equal(t, expected, resp.JSON200)
+		}, 30*time.Second, time.Second)
 	})
 
 	// TODO: improve group by tests by adding more than one parameter
