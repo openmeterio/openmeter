@@ -1,0 +1,5 @@
+redirectURL: http://host.docker.internal:8888
+port: 19090
+monitorPort: 19091
+webSocketPort: 19092
+contract: /usr/local/src/openmeter/api/openapi.yaml
