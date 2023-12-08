@@ -1,0 +1,18 @@
+default-group: local
+groups:
+  local:
+    generators:
+      - name: fernapi/fern-typescript-node-sdk
+        version: 0.7.2
+        output:
+          location: local-file-system
+          path: ../generated/sdk/typescript
+      - name: fernapi/fern-go-sdk
+        version: 0.9.2
+        config:
+          # module:
+          #   path: github.com/openmeterio/openmeter
+          importPath: github.com/openmeterio/openmeter/generated/go
+        output:
+          location: local-file-system
+          path: ../generated/sdk/go
