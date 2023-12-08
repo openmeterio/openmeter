@@ -301,7 +301,7 @@ export type external = Record<string, never>
 export interface operations {
   /** @description Retrieve latest raw events. */
   listEvents: {
-    parameters?: {
+    parameters: {
       query?: {
         from?: components['parameters']['queryFrom']
         to?: components['parameters']['queryTo']
