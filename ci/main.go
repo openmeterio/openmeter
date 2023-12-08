@@ -2,16 +2,19 @@ package main
 
 import (
 	"context"
-	"os"
-	"path/filepath"
+	"fmt"
+	"path"
 
 	"golang.org/x/sync/errgroup"
 )
 
 const (
-	goVersion           = "1.21.0"
+	goVersion           = "1.21.5"
 	golangciLintVersion = "v1.54.2"
 	spectralVersion     = "6.11"
+	kafkaVersion        = "3.6"
+	clickhouseVersion   = "23.3.9.55"
+	redisVersion        = "7.0.12"
 )
 
 type Ci struct{}
@@ -85,20 +88,60 @@ func (m *Lint) Openapi() *Container {
 		Lint("api/openapi.yaml")
 }
 
-func root() string {
-	wd, err := os.Getwd()
-	if err != nil {
-		panic(err)
+func (m *Ci) Etoe(test Optional[string]) *Container {
+	image := m.Build().ContainerImage().
+		WithExposedPort(10000).
+		WithMountedFile("/etc/openmeter/config.yaml", dag.Host().File(path.Join(root(), "e2e", "config.yaml"))).
+		WithServiceBinding("kafka", dag.Kafka().FromVersion(kafkaVersion).Service()).
+		WithServiceBinding("clickhouse", clickhouse())
+
+	api := image.
+		WithExposedPort(8080).
+		WithExec([]string{"openmeter", "--config", "/etc/openmeter/config.yaml"}).
+		AsService()
+
+	sinkWorker := image.
+		WithServiceBinding("redis", redis()).
+		WithServiceBinding("api", api). // Make sure api is up before starting sink worker
+		WithExec([]string{"openmeter-sink-worker", "--config", "/etc/openmeter/config.yaml"}).
+		AsService()
+
+	args := []string{"go", "test", "-v"}
+
+	if t, ok := test.Get(); ok {
+		args = append(args, "-run", fmt.Sprintf("Test%s", t))
 	}
-	return filepath.Join(wd, "..")
+
+	args = append(args, "./e2e/...")
+
+	return dag.Go().
+		FromContainer(
+			dag.Go().
+				FromVersion(goVersion).
+				WithSource(projectDir()).
+				Container().
+				WithServiceBinding("api", api).
+				WithServiceBinding("sink-worker", sinkWorker).
+				WithEnvVariable("OPENMETER_ADDRESS", "http://api:8080"),
+		).
+		Exec(args)
 }
 
-func projectDir() *Directory {
-	return dag.Host().Directory(root(), HostDirectoryOpts{
-		Exclude: []string{
-			".direnv",
-			".devenv",
-			"api/client/node/node_modules",
-		},
-	})
+func clickhouse() *Service {
+	return dag.Container().
+		From(fmt.Sprintf("clickhouse/clickhouse-server:%s-alpine", clickhouseVersion)).
+		WithEnvVariable("CLICKHOUSE_USER", "default").
+		WithEnvVariable("CLICKHOUSE_PASSWORD", "default").
+		WithEnvVariable("CLICKHOUSE_DB", "openmeter").
+		WithExposedPort(9000).
+		WithExposedPort(9009).
+		WithExposedPort(8123).
+		AsService()
+}
+
+func redis() *Service {
+	return dag.Container().
+		From(fmt.Sprintf("redis:%s-alpine", redisVersion)).
+		WithExposedPort(6379).
+		AsService()
 }

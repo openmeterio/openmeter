@@ -1,0 +1,50 @@
+address: 0.0.0.0:8080
+
+telemetry:
+  address: 0.0.0.0:10000
+  # log:
+  #   level: debug
+
+ingest:
+  kafka:
+    broker: kafka:9092
+
+aggregation:
+  clickhouse:
+    address: clickhouse:9000
+
+sink:
+  minCommitCount: 1
+  namespaceRefetch: 1s
+  dedupe:
+    enabled: true
+    driver: redis
+    config:
+      expiration: 768h # 32d
+      database: 1
+      address: redis:6379
+
+meters:
+  - slug: ingest
+    description: Meter for testing ingestion
+    eventType: ingest
+    valueProperty: $.duration_ms
+    aggregation: SUM
+  - slug: batchingest
+    description: Meter for testing batch ingestion
+    eventType: batchingest
+    valueProperty: $.duration_ms
+    aggregation: SUM
+  - slug: dedupe
+    description: Meter for testing deduplication
+    eventType: dedupe
+    valueProperty: $.duration_ms
+    aggregation: SUM
+  - slug: query
+    description: Meter for testing querying
+    eventType: query
+    valueProperty: $.duration_ms
+    aggregation: SUM
+    groupBy:
+      method: $.method
+      path: $.path
