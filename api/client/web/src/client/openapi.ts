@@ -195,6 +195,14 @@ export interface components {
      * @enum {string}
      */
     WindowSize: 'MINUTE' | 'HOUR' | 'DAY'
+    MeterQueryResult: {
+      /** Format: date-time */
+      from?: string
+      /** Format: date-time */
+      to?: string
+      windowSize?: components['schemas']['WindowSize']
+      data: components['schemas']['MeterQueryRow'][]
+    }
     MeterQueryRow: {
       value: number
       /** Format: date-time */
@@ -414,14 +422,7 @@ export interface operations {
       /** @description OK */
       200: {
         content: {
-          'application/json': {
-            /** Format: date-time */
-            from?: string
-            /** Format: date-time */
-            to?: string
-            windowSize?: components['schemas']['WindowSize']
-            data: components['schemas']['MeterQueryRow'][]
-          }
+          'application/json': components['schemas']['MeterQueryResult']
           'text/csv': string
         }
       }
@@ -498,14 +499,7 @@ export interface operations {
       /** @description OK */
       200: {
         content: {
-          'application/json': {
-            /** Format: date-time */
-            from?: string
-            /** Format: date-time */
-            to?: string
-            windowSize?: components['schemas']['WindowSize']
-            data: components['schemas']['MeterQueryRow'][]
-          }
+          'application/json': components['schemas']['MeterQueryResult']
           'text/csv': string
         }
       }
