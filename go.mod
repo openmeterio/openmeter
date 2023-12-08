@@ -47,6 +47,9 @@ require (
 	google.golang.org/grpc v1.59.0
 )
 
+// Until https://github.com/deepmap/oapi-codegen/pull/1364 is released
+replace github.com/getkin/kin-openapi => github.com/getkin/kin-openapi v0.120.0
+
 require (
 	github.com/ClickHouse/ch-go v0.58.2 // indirect
 	github.com/ajg/form v1.5.1 // indirect
