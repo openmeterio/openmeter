@@ -164,22 +164,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  from:
-                    type: string
-                    format: date-time
-                  to:
-                    type: string
-                    format: date-time
-                  windowSize:
-                    $ref: "#/components/schemas/WindowSize"
-                  data:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/MeterQueryRow"
-                required:
-                  - data
+                $ref: "#/components/schemas/MeterQueryResult"
             text/csv:
               schema:
                 type: string
@@ -280,22 +265,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  from:
-                    type: string
-                    format: date-time
-                  to:
-                    type: string
-                    format: date-time
-                  windowSize:
-                    $ref: "#/components/schemas/WindowSize"
-                  data:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/MeterQueryRow"
-                required:
-                  - data
+                $ref: "#/components/schemas/MeterQueryResult"
             text/csv:
               schema:
                 type: string
@@ -506,6 +476,23 @@ components:
         - MINUTE
         - HOUR
         - DAY
+    MeterQueryResult:
+      type: object
+      required:
+        - data
+      properties:
+        from:
+          type: string
+          format: date-time
+        to:
+          type: string
+          format: date-time
+        windowSize:
+          $ref: "#/components/schemas/WindowSize"
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/MeterQueryRow"
     MeterQueryRow:
       type: object
       x-go-type: models.MeterQueryRow
