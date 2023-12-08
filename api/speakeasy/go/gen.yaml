@@ -1,0 +1,32 @@
+configVersion: 1.0.0
+generation:
+  comments: {}
+  sdkClassName: SDK
+  maintainOpenAPIOrder: true
+  usageSnippets:
+    optionalPropertyRendering: withExample
+features:
+  go:
+    additionalProperties: 0.1.2
+    constsAndDefaults: 0.1.2
+    core: 3.1.5
+    flattening: 2.81.1
+    globalSecurity: 2.82.2
+    globalServerURLs: 2.82.1
+    inputOutputModels: 2.82.0
+go:
+  version: 0.0.1
+  clientServerStatusCodesAsErrors: true
+  flattenGlobalSecurity: true
+  imports:
+    option: openapi
+    paths:
+      callbacks: models/callbacks
+      errors: models/sdkerrors
+      operations: models/operations
+      shared: models/components
+      webhooks: models/webhooks
+  inputModelSuffix: input
+  maxMethodParams: 4
+  outputModelSuffix: output
+  packageName: openapi

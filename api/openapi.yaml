@@ -6,6 +6,11 @@ info:
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://openmeter.cloud
+    description: Production server
 tags:
   - name: Events
     description: Endpoints related to ingesting events
