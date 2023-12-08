@@ -70,3 +70,16 @@ services:
       - 127.0.0.1:8084:8080
     environment:
       KAFKA_BROKERS: kafka:9092
+
+  wiretap:
+    image: pb33f/wiretap:v0.0.49
+    profiles:
+      - dev
+    command: --config /usr/local/src/openmeter/etc/wiretap/config.docker.yaml
+    ports:
+      - 127.0.0.1:19090:19090
+      - 127.0.0.1:19091:19091
+      - 127.0.0.1:19092:19092
+    volumes:
+      - ./api:/usr/local/src/openmeter/api
+      - ./etc:/usr/local/src/openmeter/etc
