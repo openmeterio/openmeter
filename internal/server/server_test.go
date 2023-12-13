@@ -367,6 +367,16 @@ func TestRoutes(t *testing.T) {
 				status: http.StatusNotImplemented,
 			},
 		},
+		{
+			name: "list portal tokens",
+			req: testRequest{
+				method: http.MethodGet,
+				path:   "/api/v1/portal/tokens",
+			},
+			res: testResponse{
+				status: http.StatusNotImplemented,
+			},
+		},
 	}
 
 	for _, tt := range tests {

@@ -40,6 +40,11 @@ func (a *Router) CreatePortalToken(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (a *Router) ListPortalTokens(w http.ResponseWriter, r *http.Request, params api.ListPortalTokensParams) {
+	err := fmt.Errorf("not implemented: portal token listing is an OpenMeter Cloud only feature")
+	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(w, r)
+}
+
 func (a *Router) InvalidatePortalTokens(w http.ResponseWriter, r *http.Request) {
 	err := fmt.Errorf("not implemented: portal token invalidation is an OpenMeter Cloud only feature")
 	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(w, r)

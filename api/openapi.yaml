@@ -221,6 +221,32 @@ paths:
           $ref: "#/components/responses/BadRequestProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
+    get:
+      operationId: listPortalTokens
+      tags:
+        - Portal
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Number of events to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PortalToken"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
   /api/v1/portal/tokens/invalidate:
     post:
       operationId: invalidatePortalTokens
