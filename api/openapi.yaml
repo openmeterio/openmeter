@@ -549,13 +549,22 @@ components:
     PortalToken:
       type: object
       required:
+        - id
         - subject
         - expiresAt
+        - createdAt
         - token
       properties:
+        id:
+          type: string
+          readOnly: true
         subject:
           type: string
         expiresAt:
+          type: string
+          format: date-time
+          readOnly: true
+        createdAt:
           type: string
           format: date-time
           readOnly: true
