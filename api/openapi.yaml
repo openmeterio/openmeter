@@ -229,7 +229,7 @@ paths:
         - name: limit
           in: query
           required: false
-          description: Number of events to return.
+          description: Number of portal tokens to return. Default is 25.
           schema:
             type: integer
             minimum: 1
