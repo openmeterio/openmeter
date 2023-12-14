@@ -33,6 +33,7 @@ func (a *Router) CreatePortalToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.JSON(w, r, api.PortalToken{
+		Id:                t.Id,
 		Token:             t.Token,
 		ExpiresAt:         t.ExpiresAt,
 		Subject:           t.Subject,

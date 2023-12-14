@@ -257,9 +257,14 @@ paths:
           application/json:
             schema:
               type: object
+              description: If none of id or subject are specified, all tokens will be invalidated.
               properties:
+                id:
+                  type: string
+                  description: Optional portal token ID to invalidate one token by.
                 subject:
                   type: string
+                  description: Optional subject to invalidate all tokens for subject.
       responses:
         "204":
           description: No Content
