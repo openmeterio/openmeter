@@ -558,7 +558,6 @@ components:
         - subject
         - expiresAt
         - createdAt
-        - token
       properties:
         id:
           type: string
@@ -577,10 +576,11 @@ components:
           format: date-time
           readOnly: true
         token:
+          description: The token is only returned at creation.
           type: string
           readOnly: true
-        # Optional, if defined only the specified meters will be allowed
         allowedMeterSlugs:
+          description: Optional, if defined only the specified meters will be allowed
           type: array
           minItems: 1
           uniqueItems: true
