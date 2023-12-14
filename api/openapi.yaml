@@ -234,6 +234,7 @@ paths:
             type: integer
             minimum: 1
             maximum: 100
+            default: 25
       responses:
         "200":
           description: OK
@@ -257,7 +258,7 @@ paths:
           application/json:
             schema:
               type: object
-              description: If none of id or subject are specified, all tokens will be invalidated.
+              description: If no id or subject is specified, all tokens will be invalidated.
               properties:
                 id:
                   type: string
