@@ -7,9 +7,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/openmeterio/openmeter/internal/meter"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func newFakeHandler() *fakeHandler {
@@ -33,7 +30,7 @@ func (h *fakeHandler) CreateNamespace(_ context.Context, name string) error {
 	return nil
 }
 
-func (h *fakeHandler) DeleteNamespace(_ context.Context, name string, meters []models.Meter) error {
+func (h *fakeHandler) DeleteNamespace(_ context.Context, name string) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -46,7 +43,6 @@ func TestManager_CreateNamespce(t *testing.T) {
 	handler := newFakeHandler()
 
 	manager, err := NewManager(ManagerConfig{
-		MeterRepository:  &meter.InMemoryRepository{},
 		Handlers:         []Handler{handler},
 		DefaultNamespace: "default",
 	})
@@ -64,7 +60,6 @@ func TestManager_CreateDefaultNamespce(t *testing.T) {
 	handler := newFakeHandler()
 
 	manager, err := NewManager(ManagerConfig{
-		MeterRepository:  &meter.InMemoryRepository{},
 		Handlers:         []Handler{handler},
 		DefaultNamespace: "default",
 	})
@@ -80,7 +75,6 @@ func TestManager_DeleteNamespce(t *testing.T) {
 	handler := newFakeHandler()
 
 	manager, err := NewManager(ManagerConfig{
-		MeterRepository:  &meter.InMemoryRepository{},
 		Handlers:         []Handler{handler},
 		DefaultNamespace: "default",
 	})

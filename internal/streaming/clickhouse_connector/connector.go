@@ -141,8 +141,8 @@ func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace str
 	return nil
 }
 
-func (c *ClickhouseConnector) DeleteNamespace(ctx context.Context, namespace string, meters []models.Meter) error {
-	err := c.deleteNamespace(ctx, namespace, meters)
+func (c *ClickhouseConnector) DeleteNamespace(ctx context.Context, namespace string) error {
+	err := c.deleteNamespace(ctx, namespace)
 	if err != nil {
 		return fmt.Errorf("delete namespace in clickhouse: %w", err)
 	}
@@ -152,7 +152,13 @@ func (c *ClickhouseConnector) DeleteNamespace(ctx context.Context, namespace str
 // DeleteNamespace deletes the namespace related resources from Clickhouse
 // We don't delete the events table as it it reused between namespaces
 // We only delete the materialized views for the meters
-func (c *ClickhouseConnector) deleteNamespace(ctx context.Context, namespace string, meters []models.Meter) error {
+func (c *ClickhouseConnector) deleteNamespace(ctx context.Context, namespace string) error {
+	// Retrieve meters belonging to the namespace
+	meters, err := c.config.Meters.ListMeters(ctx, namespace)
+	if err != nil {
+		return fmt.Errorf("failed to list meters: %w", err)
+	}
+
 	for _, meter := range meters {
 		err := c.deleteMeterView(ctx, namespace, meter.Slug)
 		if err != nil {
