@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 var PortalTokenIssuer = "openmeter"
@@ -12,6 +13,9 @@ var PortalTokenIssuer = "openmeter"
 // PortalTokenClaims is the claims struct for the portal token.
 type PortalTokenClaims struct {
 	jwt.RegisteredClaims
+
+	// Id is the unique identifier of the token.
+	Id string `json:"id"`
 
 	// AllowedMeterSlugs is a list of meter slugs that the token allows access to.
 	AllowedMeterSlugs []string `json:"allowed_meter_slugs,omitempty"`
@@ -23,6 +27,7 @@ func (c *PortalTokenClaims) GetAllowedMeterSlugs() ([]string, error) {
 }
 
 type PortalToken struct {
+	Id                *string    `json:"id"`
 	AllowedMeterSlugs *[]string  `json:"allowedMeterSlugs,omitempty"`
 	ExpiresAt         *time.Time `json:"expiresAt,omitempty"`
 	Subject           string     `json:"subject"`
@@ -50,6 +55,8 @@ func NewPortalTokenStrategy(secret string, expire time.Duration) (*PortalTokenSt
 }
 
 func (t *PortalTokenStrategy) Generate(subject string, allowedMeterSlugs *[]string, expiresAt *time.Time) (*PortalToken, error) {
+	id := uuid.New().String()
+
 	// set the default expiration time
 	if expiresAt == nil {
 		e := time.Now().Add(t.expire)
@@ -60,6 +67,7 @@ func (t *PortalTokenStrategy) Generate(subject string, allowedMeterSlugs *[]stri
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		PortalTokenClaims{
+			Id: id,
 			RegisteredClaims: jwt.RegisteredClaims{
 				Subject:   subject,
 				ExpiresAt: jwt.NewNumericDate(*expiresAt),
@@ -75,6 +83,7 @@ func (t *PortalTokenStrategy) Generate(subject string, allowedMeterSlugs *[]stri
 	}
 
 	return &PortalToken{
+		Id:                &id,
 		AllowedMeterSlugs: allowedMeterSlugs,
 		ExpiresAt:         expiresAt,
 		Subject:           subject,
