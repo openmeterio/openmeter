@@ -95,6 +95,7 @@ func (h MockHandler) ServeHTTP(w http.ResponseWriter, r *http.Request, namespace
 
 func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 	namespaceManager, err := namespace.NewManager(namespace.ManagerConfig{
+		MeterRepository:  &meter.InMemoryRepository{},
 		DefaultNamespace: "test",
 	})
 	if err != nil {

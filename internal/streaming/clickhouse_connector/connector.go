@@ -133,13 +133,35 @@ func (c *ClickhouseConnector) ListMeterSubjects(ctx context.Context, namespace s
 }
 
 func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace string) error {
-	if namespace == "" {
-		return fmt.Errorf("namespace is required")
-	}
-
 	err := c.createEventsTable(ctx, namespace)
 	if err != nil {
 		return fmt.Errorf("create namespace in clickhouse: %w", err)
+	}
+
+	return nil
+}
+
+func (c *ClickhouseConnector) DeleteNamespace(ctx context.Context, namespace string, meters []models.Meter) error {
+	err := c.deleteNamespace(ctx, namespace, meters)
+	if err != nil {
+		return fmt.Errorf("delete namespace in clickhouse: %w", err)
+	}
+	return nil
+}
+
+// DeleteNamespace deletes the namespace related resources from Clickhouse
+// We don't delete the events table as it it reused between namespaces
+// We only delete the materialized views for the meters
+func (c *ClickhouseConnector) deleteNamespace(ctx context.Context, namespace string, meters []models.Meter) error {
+	for _, meter := range meters {
+		err := c.deleteMeterView(ctx, namespace, meter.Slug)
+		if err != nil {
+			// If the meter view does not exist, we ignore the error
+			if _, ok := err.(*models.MeterNotFoundError); ok {
+				return nil
+			}
+			return fmt.Errorf("delete meter view: %w", err)
+		}
 	}
 
 	return nil

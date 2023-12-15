@@ -4,6 +4,10 @@ package namespace
 import (
 	"context"
 	"errors"
+	"fmt"
+
+	"github.com/openmeterio/openmeter/internal/meter"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Manager is responsible for managing namespaces in different components.
@@ -12,12 +16,16 @@ type Manager struct {
 }
 
 type ManagerConfig struct {
+	MeterRepository   meter.Repository
 	DefaultNamespace  string
 	DisableManagement bool
 	Handlers          []Handler
 }
 
 func NewManager(config ManagerConfig) (*Manager, error) {
+	if config.MeterRepository == nil {
+		return nil, errors.New("meter repository is required")
+	}
 	if config.DefaultNamespace == "" {
 		return nil, errors.New("default namespace is required")
 	}
@@ -37,13 +45,29 @@ func NewManager(config ManagerConfig) (*Manager, error) {
 // The behavior for trying to create a namespace that already exists is unspecified at the moment.
 type Handler interface {
 	CreateNamespace(ctx context.Context, name string) error
+	DeleteNamespace(ctx context.Context, name string, meters []models.Meter) error
 }
 
 // CreateNamespace orchestrates namespace creation across different components.
 func (m Manager) CreateNamespace(ctx context.Context, name string) error {
-	// TODO: validate name
+	if name == "" {
+		return errors.New("cannot create empty namespace")
+	}
 
 	return m.createNamespace(ctx, name)
+}
+
+// DeleteNamespace orchestrates namespace creation across different components.
+func (m Manager) DeleteNamespace(ctx context.Context, name string) error {
+	if name == "" {
+		return errors.New("cannot delete empty namespace")
+	}
+
+	if name == m.config.DefaultNamespace {
+		return errors.New("cannot delete default namespace")
+	}
+
+	return m.deleteNamespace(ctx, name)
 }
 
 // CreateDefaultNamespace orchestrates the creation of a default namespace.
@@ -67,6 +91,26 @@ func (m Manager) createNamespace(ctx context.Context, name string) error {
 
 	for _, handler := range m.config.Handlers {
 		err := handler.CreateNamespace(ctx, name)
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
+// TODO: introduce some resiliency (eg. retries or rollbacks in case a component fails to delete a namespace).
+func (m Manager) deleteNamespace(ctx context.Context, name string) error {
+	var errs []error
+
+	// Retrieve meters belonging to the namespace
+	meters, err := m.config.MeterRepository.ListMeters(ctx, name)
+	if err != nil {
+		return fmt.Errorf("failed to list meters: %w", err)
+	}
+
+	for _, handler := range m.config.Handlers {
+		err := handler.DeleteNamespace(ctx, name, meters)
 		if err != nil {
 			errs = append(errs, err)
 		}

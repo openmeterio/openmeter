@@ -188,7 +188,7 @@ func main() {
 	namespaceHandlers = append(namespaceHandlers, clickhouseStreamingConnector)
 
 	// Initialize Namespace
-	namespaceManager, err := initNamespace(conf, namespaceHandlers...)
+	namespaceManager, err := initNamespace(conf, meterRepository, namespaceHandlers)
 	if err != nil {
 		logger.Error("failed to initialize namespace", "error", err)
 		os.Exit(1)
@@ -412,8 +412,9 @@ func initClickHouseStreaming(config config.Configuration, meterRepository meter.
 	return streamingConnector, nil
 }
 
-func initNamespace(config config.Configuration, namespaces ...namespace.Handler) (*namespace.Manager, error) {
+func initNamespace(config config.Configuration, meterRepository meter.Repository, namespaces []namespace.Handler) (*namespace.Manager, error) {
 	namespaceManager, err := namespace.NewManager(namespace.ManagerConfig{
+		MeterRepository:   meterRepository,
 		Handlers:          namespaces,
 		DefaultNamespace:  config.Namespace.Default,
 		DisableManagement: config.Namespace.DisableManagement,

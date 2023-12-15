@@ -7,6 +7,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/openmeterio/openmeter/internal/meter"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func newFakeHandler() *fakeHandler {
@@ -30,10 +33,20 @@ func (h *fakeHandler) CreateNamespace(_ context.Context, name string) error {
 	return nil
 }
 
+func (h *fakeHandler) DeleteNamespace(_ context.Context, name string, meters []models.Meter) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	delete(h.namespaces, name)
+
+	return nil
+}
+
 func TestManager_CreateNamespce(t *testing.T) {
 	handler := newFakeHandler()
 
 	manager, err := NewManager(ManagerConfig{
+		MeterRepository:  &meter.InMemoryRepository{},
 		Handlers:         []Handler{handler},
 		DefaultNamespace: "default",
 	})
@@ -51,6 +64,7 @@ func TestManager_CreateDefaultNamespce(t *testing.T) {
 	handler := newFakeHandler()
 
 	manager, err := NewManager(ManagerConfig{
+		MeterRepository:  &meter.InMemoryRepository{},
 		Handlers:         []Handler{handler},
 		DefaultNamespace: "default",
 	})
@@ -60,4 +74,27 @@ func TestManager_CreateDefaultNamespce(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, handler.namespaces["default"])
+}
+
+func TestManager_DeleteNamespce(t *testing.T) {
+	handler := newFakeHandler()
+
+	manager, err := NewManager(ManagerConfig{
+		MeterRepository:  &meter.InMemoryRepository{},
+		Handlers:         []Handler{handler},
+		DefaultNamespace: "default",
+	})
+	require.NoError(t, err)
+
+	const namespace = "my-namespace"
+
+	err = manager.CreateNamespace(context.Background(), namespace)
+	require.NoError(t, err)
+
+	assert.True(t, handler.namespaces[namespace])
+
+	err = manager.DeleteNamespace(context.Background(), namespace)
+	require.NoError(t, err)
+
+	assert.False(t, handler.namespaces[namespace])
 }

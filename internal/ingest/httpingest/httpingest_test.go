@@ -15,10 +15,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/internal/ingest"
+	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
 )
 
 var namespaceManager, _ = namespace.NewManager(namespace.ManagerConfig{
+	MeterRepository:  &meter.InMemoryRepository{},
 	DefaultNamespace: "test",
 })
 
