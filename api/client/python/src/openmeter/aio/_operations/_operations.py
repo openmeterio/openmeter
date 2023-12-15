@@ -32,6 +32,7 @@ from ..._operations._operations import (
     build_list_events_request,
     build_list_meter_subjects_request,
     build_list_meters_request,
+    build_list_portal_tokens_request,
     build_query_meter_request,
     build_query_portal_meter_request,
 )
@@ -910,22 +911,30 @@ class ClientOperationsMixin(ClientMixinABC):
 
                 # JSON input template you can fill out and use as your body input.
                 body = {
+                    "createdAt": "2020-02-20 00:00:00",  # Required.
                     "expiresAt": "2020-02-20 00:00:00",  # Required.
+                    "id": "str",  # Required.
                     "subject": "str",  # Required.
-                    "token": "str",  # Required.
                     "allowedMeterSlugs": [
-                        "str"  # Optional.
-                    ]
+                        "str"  # Optional. Optional, if defined only the specified meters
+                          will be allowed.
+                    ],
+                    "expired": bool,  # Optional.
+                    "token": "str"  # Optional. The token is only returned at creation.
                 }
 
                 # response body for status code(s): 200
                 response == {
+                    "createdAt": "2020-02-20 00:00:00",  # Required.
                     "expiresAt": "2020-02-20 00:00:00",  # Required.
+                    "id": "str",  # Required.
                     "subject": "str",  # Required.
-                    "token": "str",  # Required.
                     "allowedMeterSlugs": [
-                        "str"  # Optional.
-                    ]
+                        "str"  # Optional. Optional, if defined only the specified meters
+                          will be allowed.
+                    ],
+                    "expired": bool,  # Optional.
+                    "token": "str"  # Optional. The token is only returned at creation.
                 }
         """
 
@@ -949,12 +958,16 @@ class ClientOperationsMixin(ClientMixinABC):
 
                 # response body for status code(s): 200
                 response == {
+                    "createdAt": "2020-02-20 00:00:00",  # Required.
                     "expiresAt": "2020-02-20 00:00:00",  # Required.
+                    "id": "str",  # Required.
                     "subject": "str",  # Required.
-                    "token": "str",  # Required.
                     "allowedMeterSlugs": [
-                        "str"  # Optional.
-                    ]
+                        "str"  # Optional. Optional, if defined only the specified meters
+                          will be allowed.
+                    ],
+                    "expired": bool,  # Optional.
+                    "token": "str"  # Optional. The token is only returned at creation.
                 }
         """
 
@@ -976,22 +989,30 @@ class ClientOperationsMixin(ClientMixinABC):
 
                 # JSON input template you can fill out and use as your body input.
                 body = {
+                    "createdAt": "2020-02-20 00:00:00",  # Required.
                     "expiresAt": "2020-02-20 00:00:00",  # Required.
+                    "id": "str",  # Required.
                     "subject": "str",  # Required.
-                    "token": "str",  # Required.
                     "allowedMeterSlugs": [
-                        "str"  # Optional.
-                    ]
+                        "str"  # Optional. Optional, if defined only the specified meters
+                          will be allowed.
+                    ],
+                    "expired": bool,  # Optional.
+                    "token": "str"  # Optional. The token is only returned at creation.
                 }
 
                 # response body for status code(s): 200
                 response == {
+                    "createdAt": "2020-02-20 00:00:00",  # Required.
                     "expiresAt": "2020-02-20 00:00:00",  # Required.
+                    "id": "str",  # Required.
                     "subject": "str",  # Required.
-                    "token": "str",  # Required.
                     "allowedMeterSlugs": [
-                        "str"  # Optional.
-                    ]
+                        "str"  # Optional. Optional, if defined only the specified meters
+                          will be allowed.
+                    ],
+                    "expired": bool,  # Optional.
+                    "token": "str"  # Optional. The token is only returned at creation.
                 }
         """
         error_map = {
@@ -1052,6 +1073,79 @@ class ClientOperationsMixin(ClientMixinABC):
 
         return cast(JSON, deserialized)  # type: ignore
 
+    @distributed_trace_async
+    async def list_portal_tokens(self, *, limit: int = 25, **kwargs: Any) -> List[JSON]:
+        """list_portal_tokens.
+
+        :keyword limit: Number of portal tokens to return. Default is 25. Default value is 25.
+        :paramtype limit: int
+        :return: list of JSON object
+        :rtype: list[JSON]
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == [
+                    {
+                        "createdAt": "2020-02-20 00:00:00",  # Required.
+                        "expiresAt": "2020-02-20 00:00:00",  # Required.
+                        "id": "str",  # Required.
+                        "subject": "str",  # Required.
+                        "allowedMeterSlugs": [
+                            "str"  # Optional. Optional, if defined only the specified
+                              meters will be allowed.
+                        ],
+                        "expired": bool,  # Optional.
+                        "token": "str"  # Optional. The token is only returned at creation.
+                    }
+                ]
+        """
+        error_map = {
+            401: ClientAuthenticationError,
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+
+        _request = build_list_portal_tokens_request(
+            limit=limit,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
+
+        return cast(List[JSON], deserialized)  # type: ignore
+
     @overload
     async def invalidate_portal_tokens(  # pylint: disable=inconsistent-return-statements
         self, body: Optional[JSON] = None, *, content_type: str = "application/json", **kwargs: Any
@@ -1072,7 +1166,10 @@ class ClientOperationsMixin(ClientMixinABC):
 
                 # JSON input template you can fill out and use as your body input.
                 body = {
-                    "subject": "str"  # Optional.
+                    "id": "str",  # Optional. Optional portal token ID to invalidate one token
+                      by.
+                    "subject": "str"  # Optional. Optional subject to invalidate all tokens for
+                      subject.
                 }
         """
 
@@ -1112,7 +1209,10 @@ class ClientOperationsMixin(ClientMixinABC):
 
                 # JSON input template you can fill out and use as your body input.
                 body = {
-                    "subject": "str"  # Optional.
+                    "id": "str",  # Optional. Optional portal token ID to invalidate one token
+                      by.
+                    "subject": "str"  # Optional. Optional subject to invalidate all tokens for
+                      subject.
                 }
         """
         error_map = {
