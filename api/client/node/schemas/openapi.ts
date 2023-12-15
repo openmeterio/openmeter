@@ -31,6 +31,7 @@ export interface paths {
     get: operations['listMeterSubjects']
   }
   '/api/v1/portal/tokens': {
+    get: operations['listPortalTokens']
     post: operations['createPortalToken']
   }
   '/api/v1/portal/tokens/invalidate': {
@@ -216,10 +217,16 @@ export interface components {
       } | null
     }
     PortalToken: {
+      id: string
       subject: string
       /** Format: date-time */
       expiresAt: string
-      token: string
+      expired?: boolean
+      /** Format: date-time */
+      createdAt: string
+      /** @description The token is only returned at creation. */
+      token?: string
+      /** @description Optional, if defined only the specified meters will be allowed */
       allowedMeterSlugs?: string[]
     }
     IdOrSlug: string
@@ -448,6 +455,24 @@ export interface operations {
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
+  listPortalTokens: {
+    parameters: {
+      query?: {
+        /** @description Number of portal tokens to return. Default is 25. */
+        limit?: number
+      }
+    }
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          'application/json': components['schemas']['PortalToken'][]
+        }
+      }
+      400: components['responses']['BadRequestProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
   createPortalToken: {
     requestBody?: {
       content: {
@@ -469,6 +494,9 @@ export interface operations {
     requestBody?: {
       content: {
         'application/json': {
+          /** @description Optional portal token ID to invalidate one token by. */
+          id?: string
+          /** @description Optional subject to invalidate all tokens for subject. */
           subject?: string
         }
       }
