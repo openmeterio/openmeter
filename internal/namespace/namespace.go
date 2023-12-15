@@ -37,13 +37,29 @@ func NewManager(config ManagerConfig) (*Manager, error) {
 // The behavior for trying to create a namespace that already exists is unspecified at the moment.
 type Handler interface {
 	CreateNamespace(ctx context.Context, name string) error
+	DeleteNamespace(ctx context.Context, name string) error
 }
 
 // CreateNamespace orchestrates namespace creation across different components.
 func (m Manager) CreateNamespace(ctx context.Context, name string) error {
-	// TODO: validate name
+	if name == "" {
+		return errors.New("cannot create empty namespace")
+	}
 
 	return m.createNamespace(ctx, name)
+}
+
+// DeleteNamespace orchestrates namespace creation across different components.
+func (m Manager) DeleteNamespace(ctx context.Context, name string) error {
+	if name == "" {
+		return errors.New("cannot delete empty namespace")
+	}
+
+	if name == m.config.DefaultNamespace {
+		return errors.New("cannot delete default namespace")
+	}
+
+	return m.deleteNamespace(ctx, name)
 }
 
 // CreateDefaultNamespace orchestrates the creation of a default namespace.
@@ -67,6 +83,20 @@ func (m Manager) createNamespace(ctx context.Context, name string) error {
 
 	for _, handler := range m.config.Handlers {
 		err := handler.CreateNamespace(ctx, name)
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
+// TODO: introduce some resiliency (eg. retries or rollbacks in case a component fails to delete a namespace).
+func (m Manager) deleteNamespace(ctx context.Context, name string) error {
+	var errs []error
+
+	for _, handler := range m.config.Handlers {
+		err := handler.DeleteNamespace(ctx, name)
 		if err != nil {
 			errs = append(errs, err)
 		}

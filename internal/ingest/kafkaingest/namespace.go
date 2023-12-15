@@ -23,11 +23,7 @@ type NamespaceHandler struct {
 
 // CreateNamespace implements the namespace handler interface.
 func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string) error {
-	if namespace == "" {
-		return fmt.Errorf("namespace is empty")
-	}
-
-	topic := fmt.Sprintf(h.NamespacedTopicTemplate, namespace)
+	topic := h.getTopicName(namespace)
 	result, err := h.AdminClient.CreateTopics(ctx, []kafka.TopicSpecification{
 		{
 			Topic:         topic,
@@ -49,4 +45,25 @@ func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string)
 	}
 
 	return nil
+}
+
+// DeleteNamespace implements the namespace handler interface.
+func (h NamespaceHandler) DeleteNamespace(ctx context.Context, namespace string) error {
+	topic := h.getTopicName(namespace)
+	result, err := h.AdminClient.DeleteTopics(ctx, []string{topic})
+	if err != nil {
+		return err
+	}
+	for _, r := range result {
+		if r.Error.Code() != kafka.ErrNoError {
+			return r.Error
+		}
+	}
+
+	return nil
+}
+
+func (h NamespaceHandler) getTopicName(namespace string) string {
+	topic := fmt.Sprintf(h.NamespacedTopicTemplate, namespace)
+	return topic
 }
