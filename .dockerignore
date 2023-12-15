@@ -1,6 +1,14 @@
 .direnv/
+.devenv/
 .github/
 bin/
 build/
+ci/
+deploy/
 Dockerfile
+docs/
+e2e/
+etc/
+examples/
+quickstart/
 tmp/
