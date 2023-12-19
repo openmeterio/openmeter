@@ -1,3 +1,3 @@
 .PHONY: docs
 docs:
-	helm-docs -s file -c . -t base.tmpl.md -t README.tmpl.md
+	helm-docs --log-level trace -s file -c . -t $$PWD/template.md -t README.tmpl.md
