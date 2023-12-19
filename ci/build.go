@@ -96,7 +96,9 @@ func (m *Binary) SinkWorker() *File {
 func (m *Build) HelmChart(version Optional[string]) *File {
 	chart := m.helmChartDir()
 
-	var opts HelmBasePackageOpts
+	opts := HelmBasePackageOpts{
+		DependencyUpdate: true,
+	}
 
 	if v, ok := version.Get(); ok {
 		opts.Version = strings.TrimPrefix(v, "v")
@@ -107,7 +109,9 @@ func (m *Build) HelmChart(version Optional[string]) *File {
 }
 
 func (m *Build) helmChartDir() *Directory {
-	chart := dag.Host().Directory(filepath.Join(root(), "deploy/charts/openmeter"))
+	chart := dag.Host().Directory(filepath.Join(root(), "deploy/charts/openmeter"), HostDirectoryOpts{
+		Exclude: []string{"charts"}, // exclude dependencies
+	})
 
 	readme := dag.HelmDocs().FromVersion(helmDocsVersion).Generate(chart, HelmDocsBaseGenerateOpts{
 		SortValuesOrder: "file",
