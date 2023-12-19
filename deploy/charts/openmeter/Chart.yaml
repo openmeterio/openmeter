@@ -4,6 +4,7 @@ name: openmeter
 version: 1.0.0-beta.32
 appVersion: "v1.0.0-beta.32"
 description: "Usage Metering for AI, DevOps, and Billing. Built for engineers to collect and aggregate millions of events in real-time."
+icon: https://openmeter.io/favicon.svg
 keywords:
   - metering
   - usage
