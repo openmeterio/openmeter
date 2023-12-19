@@ -157,7 +157,7 @@ func (m *Ci) Release(ctx context.Context, version string, githubActor string, gi
 
 		_, err := dag.Helm().FromVersion(helmVersion).
 			Login("ghcr.io", githubActor, githubToken).
-			Push(chart, "oci://ghcr.io/openmeter/helm-charts").
+			Push(chart, "oci://ghcr.io/openmeterio/helm-charts").
 			Sync(ctx)
 		if err != nil {
 			return err
