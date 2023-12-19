@@ -73,6 +73,7 @@
               curl
               jq
               minikube
+              helm-docs
 
               benthos
 

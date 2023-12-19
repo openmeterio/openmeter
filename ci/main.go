@@ -15,6 +15,9 @@ const (
 	kafkaVersion        = "3.6"
 	clickhouseVersion   = "23.3.9.55"
 	redisVersion        = "7.0.12"
+
+	helmDocsVersion = "1.11.3"
+	helmVersion     = "3.13.2"
 )
 
 type Ci struct{}
@@ -144,4 +147,24 @@ func redis() *Service {
 		From(fmt.Sprintf("redis:%s-alpine", redisVersion)).
 		WithExposedPort(6379).
 		AsService()
+}
+
+func (m *Ci) Release(ctx context.Context, version string, githubActor string, githubToken *Secret) error {
+	var group errgroup.Group
+
+	group.Go(func() error {
+		chart := m.Build().HelmChart(Opt(version))
+
+		_, err := dag.Helm().FromVersion(helmVersion).
+			Login("ghcr.io", githubActor, githubToken).
+			Push(chart, "oci://ghcr.io/openmeter/helm-charts").
+			Sync(ctx)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return group.Wait()
 }

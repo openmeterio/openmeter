@@ -10,6 +10,8 @@
   "dependencies": [
     "github.com/sagikazarmark/daggerverse/go@d5da86877cae930fa6a6e2e6377cea565e5e0c62",
     "github.com/sagikazarmark/daggerverse/golangci-lint@864aba8b1a39e804860b603d733f7fd97f5fe8d8",
+    "github.com/sagikazarmark/daggerverse/helm-docs@49dcb15929dc33d041621388875f278693e68658",
+    "github.com/sagikazarmark/daggerverse/helm@93e0edf41a5d1176f382dd295c528c1d8f71803e",
     "github.com/sagikazarmark/daggerverse/kafka@08c16734109440b8e031b20b9aca195816857c4e",
     "github.com/sagikazarmark/daggerverse/spectral@93e56d3af8e970a95b877992d7ce2f6ae6c664c8"
   ]
