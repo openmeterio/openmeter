@@ -1,0 +1,23 @@
+{
+  "name": "openmeter-example-langchain-llm",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OpenMeter example for LangChain LLM metering",
+  "main": "index.ts",
+  "type": "module",
+  "scripts": {
+    "start": "TZ=utc node --env-file=.env --loader ts-node/esm index.ts",
+    "lint": "prettier --write .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@openmeter/sdk": "^1.0.0-beta.35",
+    "dotenv": "^16.3.1",
+    "langchain": "^0.0.209",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "devDependencies": {
+    "prettier": "^3.1.1"
+  }
+}
