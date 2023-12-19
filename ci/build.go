@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"path/filepath"
+	"strings"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -26,6 +28,15 @@ func (m *Build) All(ctx context.Context) error {
 
 	group.Go(func() error {
 		_, err := m.ContainerImage().Sync(ctx)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	group.Go(func() error {
+		_, err := m.HelmChart(OptEmpty[string]()).Sync(ctx)
 		if err != nil {
 			return err
 		}
@@ -80,4 +91,27 @@ func (m *Binary) Api() *File {
 
 func (m *Binary) SinkWorker() *File {
 	return buildDir().DockerBuild().File("/usr/local/bin/openmeter-sink-worker")
+}
+
+func (m *Build) HelmChart(version Optional[string]) *File {
+	chart := m.helmChartDir()
+
+	var opts HelmBasePackageOpts
+
+	if v, ok := version.Get(); ok {
+		opts.Version = strings.TrimPrefix(v, "v")
+		opts.AppVersion = v
+	}
+
+	return dag.Helm().FromVersion(helmVersion).Package(chart, opts)
+}
+
+func (m *Build) helmChartDir() *Directory {
+	chart := dag.Host().Directory(filepath.Join(root(), "deploy/charts/openmeter"))
+
+	readme := dag.HelmDocs().FromVersion(helmDocsVersion).Generate(chart, HelmDocsBaseGenerateOpts{
+		SortValuesOrder: "file",
+	})
+
+	return chart.WithFile("README.md", readme)
 }
