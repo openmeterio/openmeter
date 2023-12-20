@@ -165,7 +165,7 @@ func main() {
 	var namespaceHandlers []namespace.Handler
 
 	// Initialize Kafka Ingest
-	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(ctx, conf, logger, serializer.NewJSONSerializer(), group)
+	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(ctx, conf, logger, serializer.NewJSONSerializer(), &group)
 	if err != nil {
 		logger.Error("failed to initialize kafka ingest", "error", err)
 		os.Exit(1)
@@ -323,7 +323,7 @@ func main() {
 	}
 }
 
-func initKafkaIngest(ctx context.Context, config config.Configuration, logger *slog.Logger, serializer serializer.Serializer, group run.Group) (*kafkaingest.Collector, *kafkaingest.NamespaceHandler, error) {
+func initKafkaIngest(ctx context.Context, config config.Configuration, logger *slog.Logger, serializer serializer.Serializer, group *run.Group) (*kafkaingest.Collector, *kafkaingest.NamespaceHandler, error) {
 	// Initialize Kafka Admin Client
 	kafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
 
