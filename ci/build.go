@@ -114,6 +114,10 @@ func (m *Build) helmChartDir() *Directory {
 	})
 
 	readme := dag.HelmDocs().FromVersion(helmDocsVersion).Generate(chart, HelmDocsBaseGenerateOpts{
+		Templates: []*File{
+			dag.Host().File(filepath.Join(root(), "deploy/charts/template.md")),
+			dag.Host().File(filepath.Join(root(), "deploy/charts/openmeter/README.tmpl.md")),
+		},
 		SortValuesOrder: "file",
 	})
 

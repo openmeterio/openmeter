@@ -1,6 +1,6 @@
-# Deploy All-In-One OpenMeter to a *local* Kubernetes cluster
+# Deploy OpenMeter
 
-The Helm Chart is only suited for development environments.
+## Deploy OpenMeter to a local Kubernetes cluster
 
 ## Prerequisites
 
@@ -8,24 +8,27 @@ The Helm Chart is only suited for development environments.
 - [kind](https://kind.sigs.k8s.io/)
 - [helm](https://helm.sh/)
 
-## 1. Setup local cluster
+## 1. Check out this repository
 
-```sh
+```shell
+git clone git@github.com:openmeterio/openmeter.git
+cd openmeter/deploy
+```
+
+## 2. Setup local cluster
+
+```shell
 kind create cluster --config ./kind.yaml
 ```
 
-## 2. Install OpenMeter via Helm
+## 3. Install OpenMeter via Helm
 
-Then, we're able to install OpenMeter and its dependencies via Helm to the local cluster.
-
-```sh
+```shell
 helm upgrade --install --dependency-update -f ./charts/openmeter/values.example.yaml openmeter ./charts/openmeter
 ```
 
 Once the `openmeter` pod is ready, we can use `port-forward` to access the API.
 
-```sh
+```shell
 kubectl port-forward svc/openmeter-api 8888:80
 ```
-
-See the available values in `./charts/openmeter/values.yaml`.
