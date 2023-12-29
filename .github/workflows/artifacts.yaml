@@ -135,12 +135,12 @@ jobs:
           format: sarif
           output: trivy-results.sarif
 
-      - name: Upload Trivy scan results as artifact
-        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
-        with:
-          name: "[${{ github.job }}] Trivy scan results"
-          path: trivy-results.sarif
-          retention-days: 5
+      # - name: Upload Trivy scan results as artifact
+      #   uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+      #   with:
+      #     name: "[${{ github.job }}] Trivy scan results"
+      #     path: trivy-results.sarif
+      #     retention-days: 5
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@29b1f65c5e92e24fe6b6647da1eaabe529cec70f # v2.3.3
