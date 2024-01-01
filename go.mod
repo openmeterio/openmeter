@@ -6,7 +6,7 @@ go 1.21
 
 require (
 	github.com/AppsFlyer/go-sundheit v0.5.0
-	github.com/ClickHouse/clickhouse-go/v2 v2.16.0
+	github.com/ClickHouse/clickhouse-go/v2 v2.17.1
 	github.com/avast/retry-go/v4 v4.5.0
 	github.com/brianvoe/gofakeit/v6 v6.26.3
 	github.com/cloudevents/sdk-go/v2 v2.14.0
