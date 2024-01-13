@@ -39,7 +39,7 @@ func (m *Ci) Ci(ctx context.Context) error {
 }
 
 func (m *Ci) Test() *Container {
-	return dag.Go().FromVersion(goVersion).
+	return dag.Go().
 		WithSource(projectDir()).
 		Exec([]string{"go", "test", "-v", "./..."})
 }
@@ -75,18 +75,17 @@ func (m *Lint) All(ctx context.Context) error {
 }
 
 func (m *Lint) Go() *Container {
-	return dag.GolangciLint().
-		Run(GolangciLintRunOpts{
-			Version:   golangciLintVersion,
-			GoVersion: goVersion,
-			Source:    projectDir(),
-			Verbose:   true,
+	return dag.GolangciLint(GolangciLintOpts{
+		Version:   golangciLintVersion,
+		GoVersion: goVersion,
+	}).
+		Run(projectDir(), GolangciLintRunOpts{
+			Verbose: true,
 		})
 }
 
 func (m *Lint) Openapi() *Container {
-	return dag.Spectral().
-		FromVersion(spectralVersion).
+	return dag.Spectral(SpectralOpts{Version: spectralVersion}).
 		WithSource(projectDir()).
 		Lint("api/openapi.yaml")
 }
@@ -117,16 +116,14 @@ func (m *Ci) Etoe(test Optional[string]) *Container {
 
 	args = append(args, "./e2e/...")
 
-	return dag.Go().
-		FromContainer(
-			dag.Go().
-				FromVersion(goVersion).
-				WithSource(projectDir()).
-				Container().
-				WithServiceBinding("api", api).
-				WithServiceBinding("sink-worker", sinkWorker).
-				WithEnvVariable("OPENMETER_ADDRESS", "http://api:8080"),
-		).
+	return dag.Go(GoOpts{
+		Container: dag.Go(GoOpts{Version: goVersion}).
+			WithSource(projectDir()).
+			Container().
+			WithServiceBinding("api", api).
+			WithServiceBinding("sink-worker", sinkWorker).
+			WithEnvVariable("OPENMETER_ADDRESS", "http://api:8080"),
+	}).
 		Exec(args)
 }
 
