@@ -18,12 +18,12 @@ generate: ## Generate code
 .PHONY: build-server
 build-server: ## Build server binary
 	$(call print-target)
-	go build -tags dynamic -o build/server ./cmd/server
+	go build -o build/server ./cmd/server
 
 .PHONY: build-sink-worker
 build-sink-worker: ## Build binary
 	$(call print-target)
-	go build -tags dynamic -o build/sink-worker ./cmd/sink-worker
+	go build -o build/sink-worker ./cmd/sink-worker
 
 config.yaml:
 	cp config.example.yaml config.yaml
