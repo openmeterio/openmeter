@@ -39,7 +39,7 @@ func (m *Ci) Ci(ctx context.Context) error {
 }
 
 func (m *Ci) Test() *Container {
-	return dag.Go().FromVersion(goVersion).
+	return dag.Go(GoOpts{Version: goVersion}).
 		WithSource(projectDir()).
 		Exec([]string{"go", "test", "-v", "./..."})
 }
@@ -117,16 +117,14 @@ func (m *Ci) Etoe(test Optional[string]) *Container {
 
 	args = append(args, "./e2e/...")
 
-	return dag.Go().
-		FromContainer(
-			dag.Go().
-				FromVersion(goVersion).
-				WithSource(projectDir()).
-				Container().
-				WithServiceBinding("api", api).
-				WithServiceBinding("sink-worker", sinkWorker).
-				WithEnvVariable("OPENMETER_ADDRESS", "http://api:8080"),
-		).
+	return dag.Go(GoOpts{
+		Container: dag.Go(GoOpts{Version: goVersion}).
+			WithSource(projectDir()).
+			Container().
+			WithServiceBinding("api", api).
+			WithServiceBinding("sink-worker", sinkWorker).
+			WithEnvVariable("OPENMETER_ADDRESS", "http://api:8080"),
+	}).
 		Exec(args)
 }
 
