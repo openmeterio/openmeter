@@ -65,10 +65,7 @@
               goreleaser
               air
 
-              # TODO: remove once https://github.com/NixOS/nixpkgs/pull/254878 hits unstable
-              (golangci-lint.override (prev: {
-                buildGoModule = pkgs.buildGo121Module;
-              }))
+              golangci-lint
 
               curl
               jq
@@ -110,7 +107,7 @@
               sha256 = "sha256-Pvjmvfk0zkY2uSyLwAtzWNn5hqKImztkf8S6OhX8XoM=";
             };
 
-            vendorSha256 = "sha256-ZIpZ2tPLHwfWiBywN00lPI1R7u7lseENIiybL3+9xG8=";
+            vendorHash = "sha256-ZIpZ2tPLHwfWiBywN00lPI1R7u7lseENIiybL3+9xG8=";
 
             subPackages = [ "cmd/licensei" ];
 
