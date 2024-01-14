@@ -8,11 +8,11 @@
     "api/client/node/node_modules"
   ],
   "dependencies": [
-    "github.com/sagikazarmark/daggerverse/go@329116361218e383992277d7a3ca5d1acb1fc163",
-    "github.com/sagikazarmark/daggerverse/golangci-lint@329116361218e383992277d7a3ca5d1acb1fc163",
-    "github.com/sagikazarmark/daggerverse/helm-docs@49dcb15929dc33d041621388875f278693e68658",
-    "github.com/sagikazarmark/daggerverse/helm@93e0edf41a5d1176f382dd295c528c1d8f71803e",
-    "github.com/sagikazarmark/daggerverse/kafka@08c16734109440b8e031b20b9aca195816857c4e",
-    "github.com/sagikazarmark/daggerverse/spectral@329116361218e383992277d7a3ca5d1acb1fc163"
+    "github.com/sagikazarmark/daggerverse/go@82024bb95d58d29665ad9ab1457f9f98a7111d10",
+    "github.com/sagikazarmark/daggerverse/golangci-lint@82024bb95d58d29665ad9ab1457f9f98a7111d10",
+    "github.com/sagikazarmark/daggerverse/helm-docs@82024bb95d58d29665ad9ab1457f9f98a7111d10",
+    "github.com/sagikazarmark/daggerverse/helm@82024bb95d58d29665ad9ab1457f9f98a7111d10",
+    "github.com/sagikazarmark/daggerverse/kafka@82024bb95d58d29665ad9ab1457f9f98a7111d10",
+    "github.com/sagikazarmark/daggerverse/spectral@82024bb95d58d29665ad9ab1457f9f98a7111d10"
   ]
 }
