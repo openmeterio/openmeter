@@ -93,7 +93,7 @@ func (m *Ci) Ci(ctx context.Context) error {
 
 func (m *Ci) Test() *Container {
 	return dag.Go().
-		WithSource(projectDir()).
+		WithSource(m.Source).
 		Exec([]string{"go", "test", "-v", "./..."})
 }
 
@@ -174,7 +174,7 @@ func (m *Ci) Etoe(test Optional[string]) *Container {
 
 	return dag.Go(GoOpts{
 		Container: dag.Go(GoOpts{Version: goVersion}).
-			WithSource(projectDir()).
+			WithSource(m.Source).
 			Container().
 			WithServiceBinding("api", api).
 			WithServiceBinding("sink-worker", sinkWorker).
