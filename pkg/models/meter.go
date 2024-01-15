@@ -222,11 +222,9 @@ func (m *Meter) Validate() error {
 		}
 	}
 
-	if len(m.GroupBy) != 0 {
-		for key, value := range m.GroupBy {
-			if !strings.HasPrefix(value, "$") {
-				return fmt.Errorf("meter group by value must start with $ for key %s", key)
-			}
+	for key, value := range m.GroupBy {
+		if !strings.HasPrefix(value, "$") {
+			return fmt.Errorf("meter group by value must start with $ for key %s", key)
 		}
 	}
 
