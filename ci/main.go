@@ -9,8 +9,11 @@ import (
 )
 
 const (
-	goVersion           = "1.21.5-alpine3.18@sha256:d8b99943fb0587b79658af03d4d4e8b57769b21dcf08a8401352a9f2a7228754"
-	golangciLintVersion = "v1.54.2"
+	// Alpine is required for our current build (due to Kafka and CGO), but it doesn't seem to work well with golangci-lint
+	goVersion      = "1.21.5"
+	goBuildVersion = goVersion + "-alpine3.18@sha256:d8b99943fb0587b79658af03d4d4e8b57769b21dcf08a8401352a9f2a7228754"
+
+	golangciLintVersion = "v1.55.2"
 	spectralVersion     = "6.11"
 	kafkaVersion        = "3.6"
 	clickhouseVersion   = "23.3.9.55"
@@ -133,7 +136,7 @@ func (m *Lint) Go() *Container {
 		Version:   golangciLintVersion,
 		GoVersion: goVersion,
 	}).
-		Run(projectDir(), GolangciLintRunOpts{
+		Run(m.Source, GolangciLintRunOpts{
 			Verbose: true,
 		})
 }

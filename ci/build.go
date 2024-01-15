@@ -192,7 +192,7 @@ func (m *Binary) build(platform Platform, version string, pkg string) *File {
 
 func buildContainer(platform Platform) *Go {
 	return dag.Go(GoOpts{
-		Container: dag.Go(GoOpts{Version: goVersion}).
+		Container: dag.Go(GoOpts{Version: goBuildVersion}).
 			WithEnvVariable("TARGETPLATFORM", string(platform)).
 			WithCgoEnabled().
 			Container().
