@@ -9,46 +9,103 @@ import (
 )
 
 const (
-	goVersion           = "1.21.5"
-	golangciLintVersion = "v1.54.2"
+	// Alpine is required for our current build (due to Kafka and CGO), but it doesn't seem to work well with golangci-lint
+	goVersion      = "1.21.5"
+	goBuildVersion = goVersion + "-alpine3.18@sha256:d8b99943fb0587b79658af03d4d4e8b57769b21dcf08a8401352a9f2a7228754"
+
+	golangciLintVersion = "v1.55.2"
 	spectralVersion     = "6.11"
 	kafkaVersion        = "3.6"
 	clickhouseVersion   = "23.3.9.55"
 	redisVersion        = "7.0.12"
 
-	helmDocsVersion = "1.11.3"
+	helmDocsVersion = "v1.11.3"
 	helmVersion     = "3.13.2"
+
+	alpineBaseImage = "alpine:3.19.0@sha256:51b67269f354137895d43f3b3d810bfacd3945438e94dc5ac55fdac340352f48"
+	xxBaseImage     = "tonistiigi/xx:1.3.0@sha256:904fe94f236d36d65aeb5a2462f88f2c537b8360475f6342e7599194f291fb7e"
 )
 
-type Ci struct{}
+type Ci struct {
+	// Project source directory
+	// This will become useful once pulling from remote becomes available
+	//
+	// +private
+	Source *Directory
+}
+
+func New(
+	// Checkout the repository (at the designated ref) and use it as the source directory instead of the local one.
+	// +optional
+	checkout string,
+) *Ci {
+	var source *Directory
+
+	if checkout != "" {
+		source = dag.Git("https://github.com/openmeterio/openmeter.git", GitOpts{
+			KeepGitDir: true,
+		}).Branch(checkout).Tree()
+	} else {
+		source = projectDir()
+	}
+	return &Ci{
+		Source: source,
+	}
+}
 
 func (m *Ci) Ci(ctx context.Context) error {
-	test, lint := m.Test(), m.Lint().Go()
+	group, ctx := errgroup.WithContext(ctx)
 
-	_, err := test.Sync(ctx)
-	if err != nil {
+	group.Go(func() error {
+		_, err := m.Test().Sync(ctx)
+
 		return err
-	}
+	})
 
-	_, err = lint.Sync(ctx)
-	if err != nil {
+	group.Go(func() error {
+		return m.Lint().All(ctx)
+	})
+
+	// TODO: run trivy scan on container(s?)
+	// TODO: version should be the commit hash (if any?)?
+	group.Go(func() error {
+		images := m.Build().containerImages("ci")
+
+		for _, image := range images {
+			_, err := image.Sync(ctx)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	// TODO: run trivy scan on helm chart
+	group.Go(func() error {
+		_, err := m.Build().HelmChart("0.0.0").Sync(ctx)
+
 		return err
-	}
+	})
 
-	return nil
+	return group.Wait()
 }
 
 func (m *Ci) Test() *Container {
 	return dag.Go().
-		WithSource(projectDir()).
+		WithSource(m.Source).
 		Exec([]string{"go", "test", "-v", "./..."})
 }
 
 func (m *Ci) Lint() *Lint {
-	return &Lint{}
+	return &Lint{
+		Source: m.Source,
+	}
 }
 
-type Lint struct{}
+type Lint struct {
+	Source *Directory
+}
 
 func (m *Lint) All(ctx context.Context) error {
 	var group errgroup.Group
@@ -79,22 +136,21 @@ func (m *Lint) Go() *Container {
 		Version:   golangciLintVersion,
 		GoVersion: goVersion,
 	}).
-		Run(projectDir(), GolangciLintRunOpts{
+		Run(m.Source, GolangciLintRunOpts{
 			Verbose: true,
 		})
 }
 
 func (m *Lint) Openapi() *Container {
 	return dag.Spectral(SpectralOpts{Version: spectralVersion}).
-		WithSource(projectDir()).
-		Lint("api/openapi.yaml")
+		Lint([]*File{m.Source.File("api/openapi.yaml")}, m.Source.File(".spectral.yaml"))
 }
 
 func (m *Ci) Etoe(test Optional[string]) *Container {
-	image := m.Build().ContainerImage().
+	image := m.Build().ContainerImage("").
 		WithExposedPort(10000).
 		WithMountedFile("/etc/openmeter/config.yaml", dag.Host().File(path.Join(root(), "e2e", "config.yaml"))).
-		WithServiceBinding("kafka", dag.Kafka().FromVersion(kafkaVersion).Service()).
+		WithServiceBinding("kafka", dag.Kafka(KafkaOpts{Version: kafkaVersion}).Service()).
 		WithServiceBinding("clickhouse", clickhouse())
 
 	api := image.
@@ -118,7 +174,7 @@ func (m *Ci) Etoe(test Optional[string]) *Container {
 
 	return dag.Go(GoOpts{
 		Container: dag.Go(GoOpts{Version: goVersion}).
-			WithSource(projectDir()).
+			WithSource(m.Source).
 			Container().
 			WithServiceBinding("api", api).
 			WithServiceBinding("sink-worker", sinkWorker).
@@ -150,9 +206,9 @@ func (m *Ci) Release(ctx context.Context, version string, githubActor string, gi
 	var group errgroup.Group
 
 	group.Go(func() error {
-		chart := m.Build().HelmChart(Opt(version))
+		chart := m.Build().HelmChart(version)
 
-		_, err := dag.Helm().FromVersion(helmVersion).
+		_, err := dag.Helm(HelmOpts{Version: helmVersion}).
 			Login("ghcr.io", githubActor, githubToken).
 			Push(chart, "oci://ghcr.io/openmeterio/helm-charts").
 			Sync(ctx)

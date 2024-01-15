@@ -21,7 +21,7 @@ var excludes = []string{
 	"api/client/node/node_modules",
 	"assets",
 	"ci",
-	"deploy",
+	"deploy/charts/**/charts",
 	"docs",
 	"examples",
 	"tmp",
