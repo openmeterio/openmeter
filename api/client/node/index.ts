@@ -7,8 +7,6 @@ export { OpenMeterConfig, RequestOptions } from './clients/client.js'
 export { Event, IngestedEvent } from './clients/event.js'
 export { Meter, MeterAggregation, WindowSize } from './clients/meter.js'
 
-export { createOpenAIStreamCallback } from './next.js'
-
 export class OpenMeter {
   public events: EventsClient
   public meters: MetersClient
