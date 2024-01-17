@@ -131,7 +131,7 @@ client
     path: `/api/v1/meters/${mockMeter.slug}/query`,
     query: {
       subject: 'user-1',
-      groupBy: 'a,b',
+      groupBy: ['a', 'b'],
       from: new Date('2021-01-01').toISOString(),
       to: new Date('2021-01-02').toISOString(),
       windowSize: 'HOUR',

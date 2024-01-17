@@ -138,7 +138,9 @@ export class BaseClient {
       }
 
       if (Array.isArray(value)) {
-        searchParams.append(key, value.join(','))
+        for (const item of value) {
+          searchParams.append(key, item)
+        }
       } else if (value instanceof Date) {
         searchParams.append(key, value.toISOString())
       } else {
