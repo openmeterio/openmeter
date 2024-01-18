@@ -49,7 +49,7 @@ jobs:
         run: nix develop --impure .#ci
 
       - name: Release
-        run: nix develop --impure .#ci -c dagger call release --version ${{ github.ref_name }} --github-actor ${{ github.actor }} --github-token ${{ github.token }}
+        run: nix develop --impure .#ci -c dagger call release --version ${{ github.ref_name }} --github-actor ${{ github.actor }} --github-token GITHUB_TOKEN
         env:
           DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
 
