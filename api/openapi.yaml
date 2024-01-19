@@ -278,7 +278,7 @@ paths:
     get:
       operationId: listSubjects
       tags:
-        - Cloud
+        - Subject
       responses:
         "200":
           description: OK
@@ -293,7 +293,7 @@ paths:
     post:
       operationId: upsertSubject
       tags:
-        - Cloud
+        - Subject
       description: |
         Upserts a subject. Creates or updates subject.
         If the subject doesn't exist, it will be created.
