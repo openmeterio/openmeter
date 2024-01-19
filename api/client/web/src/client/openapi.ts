@@ -37,6 +37,15 @@ export interface paths {
   '/api/v1/portal/tokens/invalidate': {
     post: operations['invalidatePortalTokens']
   }
+  '/api/v1/subjects': {
+    get: operations['listSubjects']
+    /**
+     * @description Upserts a subject. Creates or updates subject.
+     * If the subject doesn't exist, it will be created.
+     * If the subject exists, it will be partially updated with the provided fields.
+     */
+    post: operations['upsertSubject']
+  }
   '/api/v1/portal/meters/{meterSlug}/query': {
     get: operations['queryPortalMeter']
   }
@@ -228,6 +237,19 @@ export interface components {
       token?: string
       /** @description Optional, if defined only the specified meters will be allowed */
       allowedMeterSlugs?: string[]
+    }
+    Subject: {
+      id: string
+      key: string
+      displayName?: string | null
+      metadata?: {
+        [key: string]: unknown
+      }
+      /** Format: date-time */
+      currentPeriodStart?: string | null
+      /** Format: date-time */
+      currentPeriodEnd?: string | null
+      stripeCustomerId?: string | null
     }
     IdOrSlug: string
   }
@@ -505,6 +527,39 @@ export interface operations {
       /** @description No Content */
       204: {
         content: never
+      }
+      400: components['responses']['BadRequestProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  listSubjects: {
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          'application/json': components['schemas']['Subject'][]
+        }
+      }
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /**
+   * @description Upserts a subject. Creates or updates subject.
+   * If the subject doesn't exist, it will be created.
+   * If the subject exists, it will be partially updated with the provided fields.
+   */
+  upsertSubject: {
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['Subject']
+      }
+    }
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          'application/json': components['schemas']['Subject']
+        }
       }
       400: components['responses']['BadRequestProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
