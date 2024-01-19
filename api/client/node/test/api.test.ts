@@ -144,9 +144,19 @@ describe('sdk', () => {
         expect(subject).toEqual(mockSubject)
       })
 
-      it('should get subjects', async ({ openmeter }) => {
+      it('should list subjects', async ({ openmeter }) => {
         const subjects = await openmeter.subject.list()
         expect(subjects).toEqual([mockSubject])
+      })
+
+      it('should get subject', async ({ openmeter }) => {
+        const subjects = await openmeter.subject.get(mockSubject.key)
+        expect(subjects).toEqual(mockSubject)
+      })
+
+      it('should delete subject', async ({ openmeter }) => {
+        const resp = await openmeter.subject.delete(mockSubject.key)
+        expect(resp).toBeUndefined()
       })
     })
   })

@@ -243,3 +243,29 @@ client
       'Content-Type': 'application/json',
     },
   })
+
+client
+  .intercept({
+    path: '/api/v1/subjects/customer-1',
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(200, mockSubject, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+
+
+client
+  .intercept({
+    path: '/api/v1/subjects/customer-1',
+    method: 'DELETE',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(204)

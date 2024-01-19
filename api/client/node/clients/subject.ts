@@ -29,6 +29,18 @@ export class SubjectClient extends BaseClient {
   }
 
   /**
+   * Get subject by id or key
+   * @note OpenMeter Cloud only feature
+   */
+  public async get(idOrKey: string, options?: RequestOptions): Promise<void> {
+    return await this.request({
+      path: `/api/v1/subjects/${idOrKey}`,
+      method: 'GET',
+      options,
+    })
+  }
+
+  /**
    * List subjects
    * @note OpenMeter Cloud only feature
    */
@@ -39,4 +51,19 @@ export class SubjectClient extends BaseClient {
       options,
     })
   }
+
+  /**
+   * Delete subject by id or key
+   * @note OpenMeter Cloud only feature
+   */
+  public async delete(idOrKey: string, options?: RequestOptions): Promise<void> {
+    return await this.request({
+      path: `/api/v1/subjects/${idOrKey}`,
+      method: 'DELETE',
+      options,
+    })
+  }
 }
+
+
+
