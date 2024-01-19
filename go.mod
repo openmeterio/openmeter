@@ -21,7 +21,7 @@ require (
 	github.com/google/uuid v1.5.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/huandu/go-sqlbuilder v1.25.0
-	github.com/lmittmann/tint v1.0.3
+	github.com/lmittmann/tint v1.0.4
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oapi-codegen/nethttp-middleware v1.0.1
 	github.com/oapi-codegen/runtime v1.1.0
