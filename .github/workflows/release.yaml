@@ -52,6 +52,7 @@ jobs:
         run: nix develop --impure .#ci -c dagger call release --version ${{ github.ref_name }} --github-actor ${{ github.actor }} --github-token GITHUB_TOKEN
         env:
           DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Stop Engine
         run: docker stop -t 300 $(docker ps --filter name="dagger-engine-*" -q)
