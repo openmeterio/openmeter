@@ -1,5 +1,5 @@
 import { MockAgent } from 'undici'
-import { mockEvent, mockMeter, mockMeterValue } from './mocks.js'
+import { mockEvent, mockMeter, mockMeterValue, mockSubject } from './mocks.js'
 
 export const mockAgent = new MockAgent()
 mockAgent.disableNetConnect()
@@ -208,3 +208,38 @@ client
     body: JSON.stringify({}),
   })
   .reply(204)
+
+/** Subjects */
+client
+  .intercept({
+    path: '/api/v1/subjects',
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      key: mockSubject.key,
+      displayName: mockSubject.displayName,
+      metadata: mockSubject.metadata,
+    }),
+  })
+  .reply(200, mockSubject, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+client
+  .intercept({
+    path: '/api/v1/subjects',
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(200, [mockSubject], {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
