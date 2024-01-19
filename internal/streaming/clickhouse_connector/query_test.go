@@ -402,3 +402,57 @@ func TestListMeterViewSubjects(t *testing.T) {
 		})
 	}
 }
+
+func TestQueryEvents(t *testing.T) {
+	fromTime, _ := time.Parse(time.RFC3339, "2023-01-01T00:00:00Z")
+	toTime, _ := time.Parse(time.RFC3339, "2023-01-02T00:00:00Z")
+
+	tests := []struct {
+		query    queryEventsTable
+		wantSQL  string
+		wantArgs []interface{}
+	}{
+		{
+			query: queryEventsTable{
+				Database:  "openmeter",
+				Namespace: "my_namespace",
+				From:      &fromTime,
+				To:        &toTime,
+				Limit:     10,
+			},
+			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND time <= ? ORDER BY time DESC LIMIT 10",
+			wantArgs: []interface{}{"my_namespace", fromTime.Unix(), toTime.Unix()},
+		},
+		{
+			query: queryEventsTable{
+				Database:  "openmeter",
+				Namespace: "my_namespace",
+				From:      &fromTime,
+				Limit:     10,
+			},
+			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error FROM openmeter.om_events WHERE namespace = ? AND time >= ? ORDER BY time DESC LIMIT 10",
+			wantArgs: []interface{}{"my_namespace", fromTime.Unix()},
+		},
+		{
+			query: queryEventsTable{
+				Database:  "openmeter",
+				Namespace: "my_namespace",
+				To:        &toTime,
+				Limit:     10,
+			},
+			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error FROM openmeter.om_events WHERE namespace = ? AND time <= ? ORDER BY time DESC LIMIT 10",
+			wantArgs: []interface{}{"my_namespace", toTime.Unix()},
+		},
+	}
+
+	for _, tt := range tests {
+		gotSql, gotArgs, err := tt.query.toSQL()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		assert.Equal(t, tt.wantSQL, gotSql)
+		assert.Equal(t, tt.wantArgs, gotArgs)
+	}
+}

@@ -64,10 +64,10 @@ func (d queryEventsTable) toSQL() (string, []interface{}, error) {
 
 	where = append(where, query.Equal("namespace", d.Namespace))
 	if d.From != nil {
-		where = append(where, query.GreaterEqualThan("windowstart", d.From.Unix()))
+		where = append(where, query.GreaterEqualThan("time", d.From.Unix()))
 	}
 	if d.To != nil {
-		where = append(where, query.LessEqualThan("windowend", d.To.Unix()))
+		where = append(where, query.LessEqualThan("time", d.To.Unix()))
 	}
 	query.Where(where...)
 
