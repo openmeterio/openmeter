@@ -258,8 +258,6 @@ client
     },
   })
 
-
-
 client
   .intercept({
     path: '/api/v1/subjects/customer-1',

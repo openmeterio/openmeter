@@ -56,7 +56,10 @@ export class SubjectClient extends BaseClient {
    * Delete subject by id or key
    * @note OpenMeter Cloud only feature
    */
-  public async delete(idOrKey: string, options?: RequestOptions): Promise<void> {
+  public async delete(
+    idOrKey: string,
+    options?: RequestOptions
+  ): Promise<void> {
     return await this.request({
       path: `/api/v1/subjects/${idOrKey}`,
       method: 'DELETE',
@@ -64,6 +67,3 @@ export class SubjectClient extends BaseClient {
     })
   }
 }
-
-
-
