@@ -273,6 +273,48 @@ paths:
           $ref: "#/components/responses/BadRequestProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
+  # Subject
+  /api/v1/subjects:
+    get:
+      operationId: listSubjects
+      tags:
+        - Cloud
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subject"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+    post:
+      operationId: upsertSubject
+      tags:
+        - Cloud
+      description: |
+        Upserts a subject. Creates or updates subject.
+        If the subject doesn't exist, it will be created.
+        If the subject exists, it will be partially updated with the provided fields.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Subject"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subject"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+  # Meter Query
   /api/v1/portal/meters/{meterSlug}/query:
     get:
       operationId: queryPortalMeter
@@ -587,6 +629,35 @@ components:
           uniqueItems: true
           items:
             type: string
+    Subject:
+      type: object
+      required:
+        - id
+        - key
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          readOnly: true
+        key:
+          type: string
+        displayName:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties: true
+        currentPeriodStart:
+          type: string
+          format: date-time
+          nullable: true
+        currentPeriodEnd:
+          type: string
+          format: date-time
+          nullable: true
+        stripeCustomerId:
+          type: string
+          nullable: true
     IdOrSlug:
       type: string
       oneOf:

@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
+	"github.com/openmeterio/openmeter/internal/server/authenticator"
 	"github.com/openmeterio/openmeter/internal/server/router"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -101,12 +102,18 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 		return nil, err
 	}
 
+	portalTokenStrategy, err := authenticator.NewPortalTokenStrategy("12345", time.Hour)
+	if err != nil {
+		return nil, err
+	}
+
 	server, _ := NewServer(&Config{
 		RouterConfig: router.Config{
-			Meters:             meter.NewInMemoryRepository(mockMeters),
-			StreamingConnector: &MockConnector{},
-			IngestHandler:      MockHandler{},
-			NamespaceManager:   namespaceManager,
+			Meters:              meter.NewInMemoryRepository(mockMeters),
+			StreamingConnector:  &MockConnector{},
+			IngestHandler:       MockHandler{},
+			NamespaceManager:    namespaceManager,
+			PortalTokenStrategy: portalTokenStrategy,
 		},
 		RouterHook: func(r chi.Router) {},
 	})
@@ -353,11 +360,11 @@ func TestRoutes(t *testing.T) {
 				},
 			},
 			res: testResponse{
-				status: http.StatusNotImplemented,
+				status: http.StatusOK,
 			},
 		},
 		{
-			name: "create portal token",
+			name: "invalidate portal token",
 			req: testRequest{
 				method:      http.MethodPost,
 				path:        "/api/v1/portal/tokens/invalidate",
@@ -372,6 +379,27 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method: http.MethodGet,
 				path:   "/api/v1/portal/tokens",
+			},
+			res: testResponse{
+				status: http.StatusNotImplemented,
+			},
+		},
+		// Subjects
+		{
+			name: "upsert subjects",
+			req: testRequest{
+				method: http.MethodPost,
+				path:   "/api/v1/subjects",
+			},
+			res: testResponse{
+				status: http.StatusNotImplemented,
+			},
+		},
+		{
+			name: "list subjects",
+			req: testRequest{
+				method: http.MethodGet,
+				path:   "/api/v1/subjects",
 			},
 			res: testResponse{
 				status: http.StatusNotImplemented,

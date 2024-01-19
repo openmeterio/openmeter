@@ -76,6 +76,17 @@ type PortalToken struct {
 // Problem A Problem Details object (RFC 7807)
 type Problem = models.StatusProblem
 
+// Subject defines model for Subject.
+type Subject struct {
+	CurrentPeriodEnd   *time.Time              `json:"currentPeriodEnd"`
+	CurrentPeriodStart *time.Time              `json:"currentPeriodStart"`
+	DisplayName        *string                 `json:"displayName"`
+	Id                 *string                 `json:"id,omitempty"`
+	Key                string                  `json:"key"`
+	Metadata           *map[string]interface{} `json:"metadata,omitempty"`
+	StripeCustomerId   *string                 `json:"stripeCustomerId"`
+}
+
 // WindowSize Aggregation window size.
 type WindowSize = models.WindowSize
 
@@ -207,6 +218,9 @@ type CreatePortalTokenJSONRequestBody = PortalToken
 // InvalidatePortalTokensJSONRequestBody defines body for InvalidatePortalTokens for application/json ContentType.
 type InvalidatePortalTokensJSONRequestBody InvalidatePortalTokensJSONBody
 
+// UpsertSubjectJSONRequestBody defines body for UpsertSubject for application/json ContentType.
+type UpsertSubjectJSONRequestBody = Subject
+
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
 
@@ -325,6 +339,14 @@ type ClientInterface interface {
 	InvalidatePortalTokensWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	InvalidatePortalTokens(ctx context.Context, body InvalidatePortalTokensJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListSubjects request
+	ListSubjects(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpsertSubjectWithBody request with any body
+	UpsertSubjectWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpsertSubject(ctx context.Context, body UpsertSubjectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) ListEvents(ctx context.Context, params *ListEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -521,6 +543,42 @@ func (c *Client) InvalidatePortalTokensWithBody(ctx context.Context, contentType
 
 func (c *Client) InvalidatePortalTokens(ctx context.Context, body InvalidatePortalTokensJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewInvalidatePortalTokensRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListSubjects(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListSubjectsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpsertSubjectWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpsertSubjectRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpsertSubject(ctx context.Context, body UpsertSubjectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpsertSubjectRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1217,6 +1275,73 @@ func NewInvalidatePortalTokensRequestWithBody(server string, contentType string,
 	return req, nil
 }
 
+// NewListSubjectsRequest generates requests for ListSubjects
+func NewListSubjectsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/subjects")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpsertSubjectRequest calls the generic UpsertSubject builder with application/json body
+func NewUpsertSubjectRequest(server string, body UpsertSubjectJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpsertSubjectRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewUpsertSubjectRequestWithBody generates requests for UpsertSubject with any type of body
+func NewUpsertSubjectRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/subjects")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -1305,6 +1430,14 @@ type ClientWithResponsesInterface interface {
 	InvalidatePortalTokensWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*InvalidatePortalTokensResponse, error)
 
 	InvalidatePortalTokensWithResponse(ctx context.Context, body InvalidatePortalTokensJSONRequestBody, reqEditors ...RequestEditorFn) (*InvalidatePortalTokensResponse, error)
+
+	// ListSubjectsWithResponse request
+	ListSubjectsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListSubjectsResponse, error)
+
+	// UpsertSubjectWithBodyWithResponse request with any body
+	UpsertSubjectWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpsertSubjectResponse, error)
+
+	UpsertSubjectWithResponse(ctx context.Context, body UpsertSubjectJSONRequestBody, reqEditors ...RequestEditorFn) (*UpsertSubjectResponse, error)
 }
 
 type ListEventsResponse struct {
@@ -1594,6 +1727,53 @@ func (r InvalidatePortalTokensResponse) StatusCode() int {
 	return 0
 }
 
+type ListSubjectsResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *[]Subject
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r ListSubjectsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListSubjectsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpsertSubjectResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *Subject
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r UpsertSubjectResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpsertSubjectResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 // ListEventsWithResponse request returning *ListEventsResponse
 func (c *ClientWithResponses) ListEventsWithResponse(ctx context.Context, params *ListEventsParams, reqEditors ...RequestEditorFn) (*ListEventsResponse, error) {
 	rsp, err := c.ListEvents(ctx, params, reqEditors...)
@@ -1740,6 +1920,32 @@ func (c *ClientWithResponses) InvalidatePortalTokensWithResponse(ctx context.Con
 		return nil, err
 	}
 	return ParseInvalidatePortalTokensResponse(rsp)
+}
+
+// ListSubjectsWithResponse request returning *ListSubjectsResponse
+func (c *ClientWithResponses) ListSubjectsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListSubjectsResponse, error) {
+	rsp, err := c.ListSubjects(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListSubjectsResponse(rsp)
+}
+
+// UpsertSubjectWithBodyWithResponse request with arbitrary body returning *UpsertSubjectResponse
+func (c *ClientWithResponses) UpsertSubjectWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpsertSubjectResponse, error) {
+	rsp, err := c.UpsertSubjectWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpsertSubjectResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpsertSubjectWithResponse(ctx context.Context, body UpsertSubjectJSONRequestBody, reqEditors ...RequestEditorFn) (*UpsertSubjectResponse, error) {
+	rsp, err := c.UpsertSubject(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpsertSubjectResponse(rsp)
 }
 
 // ParseListEventsResponse parses an HTTP response from a ListEventsWithResponse call
@@ -2221,65 +2427,142 @@ func ParseInvalidatePortalTokensResponse(rsp *http.Response) (*InvalidatePortalT
 	return response, nil
 }
 
+// ParseListSubjectsResponse parses an HTTP response from a ListSubjectsWithResponse call
+func ParseListSubjectsResponse(rsp *http.Response) (*ListSubjectsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListSubjectsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []Subject
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpsertSubjectResponse parses an HTTP response from a UpsertSubjectWithResponse call
+func ParseUpsertSubjectResponse(rsp *http.Response) (*UpsertSubjectResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpsertSubjectResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Subject
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
+	"/x8AAP//I+8jOE1FAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
