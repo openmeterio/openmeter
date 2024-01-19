@@ -46,6 +46,10 @@ export interface paths {
      */
     post: operations['upsertSubject']
   }
+  '/api/v1/subjects/{subjectIdOrKey}': {
+    get: operations['getSubject']
+    delete: operations['deleteSubject']
+  }
   '/api/v1/portal/meters/{meterSlug}/query': {
     get: operations['queryPortalMeter']
   }
@@ -294,6 +298,8 @@ export interface components {
   parameters: {
     /** @description A unique identifier for the meter. */
     meterIdOrSlug: components['schemas']['IdOrSlug']
+    /** @description A unique identifier for a subject. */
+    subjectIdOrKey: string
     /**
      * @description Start date-time in RFC 3339 format.
      * Inclusive.
@@ -560,6 +566,37 @@ export interface operations {
         content: {
           'application/json': components['schemas']['Subject']
         }
+      }
+      400: components['responses']['BadRequestProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  getSubject: {
+    parameters: {
+      path: {
+        subjectIdOrKey: components['parameters']['subjectIdOrKey']
+      }
+    }
+    responses: {
+      /** @description OK */
+      200: {
+        content: {
+          'application/json': components['schemas']['Subject']
+        }
+      }
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  deleteSubject: {
+    parameters: {
+      path: {
+        subjectIdOrKey: components['parameters']['subjectIdOrKey']
+      }
+    }
+    responses: {
+      /** @description No Content */
+      204: {
+        content: never
       }
       400: components['responses']['BadRequestProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
