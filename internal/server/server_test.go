@@ -396,10 +396,30 @@ func TestRoutes(t *testing.T) {
 			},
 		},
 		{
+			name: "get subject",
+			req: testRequest{
+				method: http.MethodGet,
+				path:   "/api/v1/subjects/abcd",
+			},
+			res: testResponse{
+				status: http.StatusNotImplemented,
+			},
+		},
+		{
 			name: "list subjects",
 			req: testRequest{
 				method: http.MethodGet,
 				path:   "/api/v1/subjects",
+			},
+			res: testResponse{
+				status: http.StatusNotImplemented,
+			},
+		},
+		{
+			name: "delete subject",
+			req: testRequest{
+				method: http.MethodDelete,
+				path:   "/api/v1/subjects/abcd",
 			},
 			res: testResponse{
 				status: http.StatusNotImplemented,

@@ -314,6 +314,35 @@ paths:
           $ref: "#/components/responses/BadRequestProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
+  /api/v1/subjects/{subjectIdOrKey}:
+    get:
+      operationId: getSubject
+      tags:
+        - Subject
+      parameters:
+        - $ref: "#/components/parameters/subjectIdOrKey"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subject"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+    delete:
+      operationId: deleteSubject
+      tags:
+        - Subject
+      parameters:
+        - $ref: "#/components/parameters/subjectIdOrKey"
+      responses:
+        "204":
+          description: No Content
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
   # Meter Query
   /api/v1/portal/meters/{meterSlug}/query:
     get:
@@ -679,6 +708,13 @@ components:
       required: true
       schema:
         $ref: "#/components/schemas/IdOrSlug"
+    subjectIdOrKey:
+      name: subjectIdOrKey
+      description: A unique identifier for a subject.
+      in: path
+      required: true
+      schema:
+        type: string
     queryFrom:
       name: from
       in: query

@@ -11,7 +11,6 @@ export class PortalClient extends BaseClient {
   /**
    * Create portal token
    * Useful for creating a token sharable with your customer to query their own usage
-   * @note OpenMeter Cloud only feature
    */
   public async createToken(
     token: {

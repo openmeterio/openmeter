@@ -3,7 +3,7 @@ import { components } from '../schemas/openapi.js'
 import { RequestOptions, BaseClient, OpenMeterConfig } from './client.js'
 
 // We export Event instead
-type CloudEvents = components['schemas']['Event']
+export type CloudEvents = components['schemas']['Event']
 export type IngestedEvent = components['schemas']['IngestedEvent']
 
 export type EventsQueryParams = {
@@ -68,7 +68,7 @@ export type Event = {
    *   "path": "/hello"
    * }
    */
-  data: Record<string, unknown>;
+  data: Record<string, unknown>
 }
 
 export class EventsClient extends BaseClient {
@@ -124,11 +124,11 @@ export class EventsClient extends BaseClient {
   public async list(
     params?: EventsQueryParams,
     options?: RequestOptions
-  ): Promise<CloudEvents[]> {
+  ): Promise<IngestedEvent[]> {
     const searchParams = params
       ? BaseClient.toURLSearchParams(params)
       : undefined
-    return this.request<CloudEvents[]>({
+    return this.request<IngestedEvent[]>({
       method: 'GET',
       path: `/api/v1/events`,
       searchParams,

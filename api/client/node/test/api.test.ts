@@ -2,6 +2,7 @@ import crypto from 'crypto'
 import { setGlobalDispatcher } from 'undici'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 // test built version
+import { CloudEvents } from '../clients/event.js'
 import {
   OpenMeter,
   type Event,
@@ -9,7 +10,7 @@ import {
   WindowSize,
 } from '../dist/index.js'
 import { mockAgent } from './agent.js'
-import { mockEvent, mockMeter, mockMeterValue } from './mocks.js'
+import { mockEvent, mockMeter, mockMeterValue, mockSubject } from './mocks.js'
 
 declare module 'vitest' {
   export interface TestContext {
@@ -54,9 +55,10 @@ describe('sdk', () => {
     describe('list', () => {
       it('should list events', async ({ openmeter }) => {
         const events = await openmeter.events.list()
+        const event = mockEvent as CloudEvents
         const expected: IngestedEvent = {
           event: {
-            ...mockEvent,
+            ...event,
             time: mockEvent.time?.toISOString(),
           },
         }
@@ -113,7 +115,7 @@ describe('sdk', () => {
       })
     })
 
-    describe('subjects', () => {
+    describe('meter subjects', () => {
       it('should get meter subjects', async ({ openmeter }) => {
         const subjects = await openmeter.meters.subjects(mockMeter.slug)
         expect(subjects).toEqual([mockMeterValue.subject])
@@ -129,6 +131,32 @@ describe('sdk', () => {
           subject: 'customer-1',
           expiresAt: new Date('2023-01-01').toISOString(),
         })
+      })
+    })
+
+    describe('subjects', () => {
+      it('should upsert subjects', async ({ openmeter }) => {
+        const subject = await openmeter.subject.upsert({
+          key: mockSubject.key,
+          displayName: mockSubject.displayName,
+          metadata: mockSubject.metadata,
+        })
+        expect(subject).toEqual(mockSubject)
+      })
+
+      it('should list subjects', async ({ openmeter }) => {
+        const subjects = await openmeter.subject.list()
+        expect(subjects).toEqual([mockSubject])
+      })
+
+      it('should get subject', async ({ openmeter }) => {
+        const subjects = await openmeter.subject.get(mockSubject.key)
+        expect(subjects).toEqual(mockSubject)
+      })
+
+      it('should delete subject', async ({ openmeter }) => {
+        const resp = await openmeter.subject.delete(mockSubject.key)
+        expect(resp).toBeUndefined()
       })
     })
   })

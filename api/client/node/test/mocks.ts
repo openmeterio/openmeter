@@ -1,3 +1,4 @@
+import { Subject } from '../clients/subject.js'
 import { Event, Meter, WindowSize } from '../index.js'
 
 export const mockEvent: Event = {
@@ -31,5 +32,14 @@ export const mockMeterValue = {
   value: 1,
   groupBy: {
     method: 'GET',
+  },
+}
+
+export const mockSubject: Subject = {
+  id: 'abcde',
+  key: 'customer-1',
+  displayName: 'Customer 1',
+  metadata: {
+    foo: 'bar',
   },
 }
