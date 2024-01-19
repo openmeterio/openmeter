@@ -238,4 +238,4 @@ jobs:
           module: github.com/${{ github.repository }}/ci@${{ github.ref }}
           args: --checkout ${{ github.ref }} ci
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: "0.9.6"
+          version: "0.9.7"
