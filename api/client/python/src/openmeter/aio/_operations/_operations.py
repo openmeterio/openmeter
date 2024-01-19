@@ -26,7 +26,9 @@ from ..._operations._operations import (
     build_create_meter_request,
     build_create_portal_token_request,
     build_delete_meter_request,
+    build_delete_subject_request,
     build_get_meter_request,
+    build_get_subject_request,
     build_ingest_events_request,
     build_invalidate_portal_tokens_request,
     build_list_events_request,
@@ -1518,6 +1520,124 @@ class ClientOperationsMixin(ClientMixinABC):
             return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
 
         return cast(JSON, deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def get_subject(self, subject_id_or_key: str, **kwargs: Any) -> JSON:
+        """get_subject.
+
+        :param subject_id_or_key: A unique identifier for a subject. Required.
+        :type subject_id_or_key: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == {
+                    "id": "str",  # Required.
+                    "key": "str",  # Required.
+                    "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
+                    "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
+                    "displayName": "str",  # Optional.
+                    "metadata": {
+                        "str": {}  # Optional. Dictionary of :code:`<any>`.
+                    },
+                    "stripeCustomerId": "str"  # Optional.
+                }
+        """
+        error_map = {
+            401: ClientAuthenticationError,
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        _request = build_get_subject_request(
+            subject_id_or_key=subject_id_or_key,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def delete_subject(  # pylint: disable=inconsistent-return-statements
+        self, subject_id_or_key: str, **kwargs: Any
+    ) -> None:
+        """delete_subject.
+
+        :param subject_id_or_key: A unique identifier for a subject. Required.
+        :type subject_id_or_key: str
+        :return: None
+        :rtype: None
+        :raises ~azure.core.exceptions.HttpResponseError:
+        """
+        error_map = {
+            401: ClientAuthenticationError,
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[None] = kwargs.pop("cls", None)
+
+        _request = build_delete_subject_request(
+            subject_id_or_key=subject_id_or_key,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [204]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            raise HttpResponseError(response=response)
+
+        if cls:
+            return cls(pipeline_response, None, {})  # type: ignore
 
     @distributed_trace_async
     async def query_portal_meter(

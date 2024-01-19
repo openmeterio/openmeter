@@ -299,6 +299,44 @@ def build_upsert_subject_request(**kwargs: Any) -> HttpRequest:
     return HttpRequest(method="POST", url=_url, headers=_headers, **kwargs)
 
 
+def build_get_subject_request(subject_id_or_key: str, **kwargs: Any) -> HttpRequest:
+    _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+
+    accept = _headers.pop("Accept", "application/json, application/problem+json")
+
+    # Construct URL
+    _url = "/api/v1/subjects/{subjectIdOrKey}"
+    path_format_arguments = {
+        "subjectIdOrKey": _SERIALIZER.url("subject_id_or_key", subject_id_or_key, "str"),
+    }
+
+    _url: str = _url.format(**path_format_arguments)  # type: ignore
+
+    # Construct headers
+    _headers["Accept"] = _SERIALIZER.header("accept", accept, "str")
+
+    return HttpRequest(method="GET", url=_url, headers=_headers, **kwargs)
+
+
+def build_delete_subject_request(subject_id_or_key: str, **kwargs: Any) -> HttpRequest:
+    _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+
+    accept = _headers.pop("Accept", "application/problem+json")
+
+    # Construct URL
+    _url = "/api/v1/subjects/{subjectIdOrKey}"
+    path_format_arguments = {
+        "subjectIdOrKey": _SERIALIZER.url("subject_id_or_key", subject_id_or_key, "str"),
+    }
+
+    _url: str = _url.format(**path_format_arguments)  # type: ignore
+
+    # Construct headers
+    _headers["Accept"] = _SERIALIZER.header("accept", accept, "str")
+
+    return HttpRequest(method="DELETE", url=_url, headers=_headers, **kwargs)
+
+
 def build_query_portal_meter_request(
     meter_slug: str,
     *,
@@ -1809,6 +1847,124 @@ class ClientOperationsMixin(ClientMixinABC):
             return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
 
         return cast(JSON, deserialized)  # type: ignore
+
+    @distributed_trace
+    def get_subject(self, subject_id_or_key: str, **kwargs: Any) -> JSON:
+        """get_subject.
+
+        :param subject_id_or_key: A unique identifier for a subject. Required.
+        :type subject_id_or_key: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == {
+                    "id": "str",  # Required.
+                    "key": "str",  # Required.
+                    "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
+                    "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
+                    "displayName": "str",  # Optional.
+                    "metadata": {
+                        "str": {}  # Optional. Dictionary of :code:`<any>`.
+                    },
+                    "stripeCustomerId": "str"  # Optional.
+                }
+        """
+        error_map = {
+            401: ClientAuthenticationError,
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        _request = build_get_subject_request(
+            subject_id_or_key=subject_id_or_key,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = self._client._pipeline.run(  # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @distributed_trace
+    def delete_subject(  # pylint: disable=inconsistent-return-statements
+        self, subject_id_or_key: str, **kwargs: Any
+    ) -> None:
+        """delete_subject.
+
+        :param subject_id_or_key: A unique identifier for a subject. Required.
+        :type subject_id_or_key: str
+        :return: None
+        :rtype: None
+        :raises ~azure.core.exceptions.HttpResponseError:
+        """
+        error_map = {
+            401: ClientAuthenticationError,
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[None] = kwargs.pop("cls", None)
+
+        _request = build_delete_subject_request(
+            subject_id_or_key=subject_id_or_key,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = self._client._pipeline.run(  # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [204]:
+            if _stream:
+                response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            raise HttpResponseError(response=response)
+
+        if cls:
+            return cls(pipeline_response, None, {})  # type: ignore
 
     @distributed_trace
     def query_portal_meter(
