@@ -33,8 +33,10 @@ from ..._operations._operations import (
     build_list_meter_subjects_request,
     build_list_meters_request,
     build_list_portal_tokens_request,
+    build_list_subjects_request,
     build_query_meter_request,
     build_query_portal_meter_request,
+    build_upsert_subject_request,
 )
 from .._vendor import ClientMixinABC
 
@@ -1265,6 +1267,257 @@ class ClientOperationsMixin(ClientMixinABC):
 
         if cls:
             return cls(pipeline_response, None, {})  # type: ignore
+
+    @distributed_trace_async
+    async def list_subjects(self, **kwargs: Any) -> List[JSON]:
+        """list_subjects.
+
+        :return: list of JSON object
+        :rtype: list[JSON]
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == [
+                    {
+                        "id": "str",  # Required.
+                        "key": "str",  # Required.
+                        "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
+                        "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
+                        "displayName": "str",  # Optional.
+                        "metadata": {
+                            "str": {}  # Optional. Dictionary of :code:`<any>`.
+                        },
+                        "stripeCustomerId": "str"  # Optional.
+                    }
+                ]
+        """
+        error_map = {
+            401: ClientAuthenticationError,
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+
+        _request = build_list_subjects_request(
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
+
+        return cast(List[JSON], deserialized)  # type: ignore
+
+    @overload
+    async def upsert_subject(
+        self, body: Optional[JSON] = None, *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        """Upserts a subject. Creates or updates subject.
+        If the subject doesn't exist, it will be created.
+        If the subject exists, it will be partially updated with the provided fields.
+
+        :param body: Default value is None.
+        :type body: JSON
+        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "id": "str",  # Required.
+                    "key": "str",  # Required.
+                    "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
+                    "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
+                    "displayName": "str",  # Optional.
+                    "metadata": {
+                        "str": {}  # Optional. Dictionary of :code:`<any>`.
+                    },
+                    "stripeCustomerId": "str"  # Optional.
+                }
+
+                # response body for status code(s): 200
+                response == {
+                    "id": "str",  # Required.
+                    "key": "str",  # Required.
+                    "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
+                    "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
+                    "displayName": "str",  # Optional.
+                    "metadata": {
+                        "str": {}  # Optional. Dictionary of :code:`<any>`.
+                    },
+                    "stripeCustomerId": "str"  # Optional.
+                }
+        """
+
+    @overload
+    async def upsert_subject(
+        self, body: Optional[IO] = None, *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        """Upserts a subject. Creates or updates subject.
+        If the subject doesn't exist, it will be created.
+        If the subject exists, it will be partially updated with the provided fields.
+
+        :param body: Default value is None.
+        :type body: IO
+        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == {
+                    "id": "str",  # Required.
+                    "key": "str",  # Required.
+                    "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
+                    "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
+                    "displayName": "str",  # Optional.
+                    "metadata": {
+                        "str": {}  # Optional. Dictionary of :code:`<any>`.
+                    },
+                    "stripeCustomerId": "str"  # Optional.
+                }
+        """
+
+    @distributed_trace_async
+    async def upsert_subject(self, body: Optional[Union[JSON, IO]] = None, **kwargs: Any) -> JSON:
+        """Upserts a subject. Creates or updates subject.
+        If the subject doesn't exist, it will be created.
+        If the subject exists, it will be partially updated with the provided fields.
+
+        :param body: Is either a JSON type or a IO type. Default value is None.
+        :type body: JSON or IO
+        :keyword content_type: Body Parameter content-type. Known values are: 'application/json'.
+         Default value is None.
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "id": "str",  # Required.
+                    "key": "str",  # Required.
+                    "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
+                    "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
+                    "displayName": "str",  # Optional.
+                    "metadata": {
+                        "str": {}  # Optional. Dictionary of :code:`<any>`.
+                    },
+                    "stripeCustomerId": "str"  # Optional.
+                }
+
+                # response body for status code(s): 200
+                response == {
+                    "id": "str",  # Required.
+                    "key": "str",  # Required.
+                    "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
+                    "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
+                    "displayName": "str",  # Optional.
+                    "metadata": {
+                        "str": {}  # Optional. Dictionary of :code:`<any>`.
+                    },
+                    "stripeCustomerId": "str"  # Optional.
+                }
+        """
+        error_map = {
+            401: ClientAuthenticationError,
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _params = kwargs.pop("params", {}) or {}
+
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        content_type = content_type or "application/json"
+        _json = None
+        _content = None
+        if isinstance(body, (IOBase, bytes)):
+            _content = body
+        else:
+            if body is not None:
+                _json = body
+            else:
+                _json = None
+
+        _request = build_upsert_subject_request(
+            content_type=content_type,
+            json=_json,
+            content=_content,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
 
     @distributed_trace_async
     async def query_portal_meter(
