@@ -1,0 +1,15 @@
+apiVersion: v2
+type: application
+name: benthos-collector
+version: 0.0.0
+appVersion: "latest"
+description: "A Benthos-based collector for OpenMeter"
+icon: https://openmeter.io/favicon.svg
+keywords:
+  - metering
+  - usage
+  - billing
+  - aggregation
+home: https://openmeter.io
+sources:
+  - https://github.com/openmeterio/openmeter

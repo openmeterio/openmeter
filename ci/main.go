@@ -83,7 +83,13 @@ func (m *Ci) Ci(ctx context.Context) error {
 
 	// TODO: run trivy scan on helm chart
 	group.Go(func() error {
-		_, err := m.Build().HelmChart("0.0.0").Sync(ctx)
+		_, err := m.Build().HelmChart("openmeter", "0.0.0").Sync(ctx)
+
+		return err
+	})
+
+	group.Go(func() error {
+		_, err := m.Build().HelmChart("benthos-collector", "0.0.0").Sync(ctx)
 
 		return err
 	})
@@ -206,7 +212,21 @@ func (m *Ci) Release(ctx context.Context, version string, githubActor string, gi
 	var group errgroup.Group
 
 	group.Go(func() error {
-		chart := m.Build().HelmChart(version)
+		chart := m.Build().HelmChart("openmeter", version)
+
+		_, err := dag.Helm(HelmOpts{Version: helmVersion}).
+			Login("ghcr.io", githubActor, githubToken).
+			Push(chart, "oci://ghcr.io/openmeterio/helm-charts").
+			Sync(ctx)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	group.Go(func() error {
+		chart := m.Build().HelmChart("benthos-collector", version)
 
 		_, err := dag.Helm(HelmOpts{Version: helmVersion}).
 			Login("ghcr.io", githubActor, githubToken).
