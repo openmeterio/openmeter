@@ -30,9 +30,7 @@ WORKDIR /etc/benthos
 
 COPY cloudevents.spec.json /etc/benthos/
 
-# COPY examples/http-server/input.yaml /etc/benthos/examples/http-server/input.yaml
-# COPY examples/http-server/output.yaml /etc/benthos/examples/http-server/output.yaml
-# COPY examples/kubernetes-pod-exec-time/config.yaml /etc/benthos/examples/kubernetes-pod-exec-time/config.yaml
+COPY collector/benthos/presets /etc/benthos/presets
 
 COPY --from=builder /usr/local/bin/benthos /usr/local/bin/
 

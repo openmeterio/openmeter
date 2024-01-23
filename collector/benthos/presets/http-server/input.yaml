@@ -1,0 +1,71 @@
+input:
+  http_server:
+    address: 0.0.0.0:4196
+    path: /api/v1/events
+    sync_response:
+      status: '${! meta("http_response_status").or("204") }'
+
+pipeline:
+  processors:
+    - switch:
+        - check: meta("Content-Type").lowercase() == "application/cloudevents-batch+json"
+          processors:
+            - unarchive:
+                format: json_array
+        - check: meta("Content-Type").lowercase() == "application/cloudevents+json"
+          processors:
+            - noop: {}
+        - check: ""
+          processors:
+            - log:
+                level: ERROR
+                message: 'Unexpected Content-Type: ${!meta("Content-Type")}'
+            - mapping: |
+                meta http_response_status = "400"
+
+                root = {
+                  "type": "about:blank",
+                  "title": "Bad Request",
+                  "status": 400,
+                  "detail":"request body has an error: header Content-Type has unexpected value \"%s\"".format(meta("Content-Type")),
+                }
+            - sync_response: {}
+            - mapping: "root = deleted()"
+    - json_schema:
+        schema_path: "file://./cloudevents.spec.json"
+    - catch:
+        - log:
+            level: ERROR
+            message: "Schema validation failed due to: ${!error()}"
+        - mapping: |
+            meta http_response_status = "400"
+
+            root = {
+              "type": "about:blank",
+              "title": "Bad Request",
+              "status": 400,
+              "detail":"request body has an error: %s".format(error()),
+            }
+        - sync_response: {}
+        - mapping: "root = deleted()"
+
+output:
+  switch:
+    cases:
+      - check: ""
+        continue: true
+        output:
+          broker:
+            pattern: fan_out
+            outputs:
+              - sync_response: {}
+                processors:
+                  - mapping: root = null
+              # https://github.com/benthosdev/benthos/discussions/2324
+              # https://github.com/benthosdev/benthos/issues/1946
+              - inproc: openmeter
+
+      - check: '"${DEBUG:false}" == "true"'
+        output:
+          stdout:
+            codec: lines

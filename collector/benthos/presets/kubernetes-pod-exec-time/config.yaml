@@ -1,0 +1,52 @@
+input:
+  schedule:
+    input:
+      kubernetes_resources:
+        resource:
+          version: v1
+          name: pods
+        namespaces:
+          - ${SCRAPE_NAMESPACE:default}
+    interval: "${SCRAPE_INTERVAL:15s}"
+
+pipeline:
+  processors:
+    - mapping: |
+        root = {
+          "id": uuid_v4(),
+          "specversion": "1.0",
+          "type": "kube-pod-exec-time",
+          "source": "kubernetes-api",
+          "time": meta("schedule_time"),
+          "subject": this.metadata.annotations."openmeter.io/subject".or(this.metadata.name),
+          "data": this.metadata.annotations.filter(item -> item.key.has_prefix("data.openmeter.io/")).map_each_key(key -> key.trim_prefix("data.openmeter.io/")).assign({
+            "pod_name": this.metadata.name,
+            "pod_namespace": this.metadata.namespace,
+            "duration_seconds": (meta("schedule_interval").parse_duration() / 1000 / 1000 / 1000).round().int64(),
+          }),
+        }
+    - json_schema:
+        schema_path: "file://./cloudevents.spec.json"
+    - catch:
+        - log:
+            level: ERROR
+            message: "Schema validation failed due to: ${!error()}"
+        - mapping: "root = deleted()"
+
+output:
+  switch:
+    cases:
+      - check: ""
+        continue: true
+        output:
+          openmeter:
+            url: "${OPENMETER_URL:https://openmeter.cloud}"
+            token: "${OPENMETER_TOKEN:}"
+            batching:
+              count: ${BATCH_SIZE:20}
+              period: ${BATCH_PERIOD:}
+
+      - check: '"${DEBUG:false}" == "true"'
+        output:
+          stdout:
+            codec: lines
