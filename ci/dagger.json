@@ -12,7 +12,7 @@
     "github.com/sagikazarmark/daggerverse/golangci-lint@82024bb95d58d29665ad9ab1457f9f98a7111d10",
     "github.com/sagikazarmark/daggerverse/helm-docs@82024bb95d58d29665ad9ab1457f9f98a7111d10",
     "github.com/sagikazarmark/daggerverse/helm@82024bb95d58d29665ad9ab1457f9f98a7111d10",
-    "github.com/sagikazarmark/daggerverse/kafka@82024bb95d58d29665ad9ab1457f9f98a7111d10",
+    "github.com/sagikazarmark/daggerverse/kafka@d0876cfe5c30f5896294d5c756c55fedc6ec21b8",
     "github.com/sagikazarmark/daggerverse/spectral@82024bb95d58d29665ad9ab1457f9f98a7111d10"
   ]
 }

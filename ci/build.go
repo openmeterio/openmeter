@@ -39,7 +39,16 @@ func (m *Build) All(
 	})
 
 	group.Go(func() error {
-		_, err := m.HelmChart("").Sync(ctx)
+		_, err := m.HelmChart("openmeter", "").Sync(ctx)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	group.Go(func() error {
+		_, err := m.HelmChart("benthos-collector", "").Sync(ctx)
 		if err != nil {
 			return err
 		}
@@ -204,11 +213,14 @@ func buildContainer(platform Platform) *Go {
 }
 
 func (m *Build) HelmChart(
+	// Name of the chart to build.
+	chartName string,
+
 	// Release version.
 	// +optional
 	version string,
 ) *File {
-	chart := helmChartDir(m.Source)
+	chart := helmChartDir(m.Source, chartName)
 
 	opts := HelmPackageOpts{
 		DependencyUpdate: true,
@@ -222,13 +234,13 @@ func (m *Build) HelmChart(
 	return dag.Helm(HelmOpts{Version: helmVersion}).Package(chart, opts)
 }
 
-func helmChartDir(source *Directory) *Directory {
-	chart := source.Directory("deploy/charts/openmeter")
+func helmChartDir(source *Directory, chartName string) *Directory {
+	chart := source.Directory("deploy/charts").Directory(chartName)
 
 	readme := dag.HelmDocs(HelmDocsOpts{Version: helmDocsVersion}).Generate(chart, HelmDocsGenerateOpts{
 		Templates: []*File{
 			source.File("deploy/charts/template.md"),
-			source.File("deploy/charts/openmeter/README.tmpl.md"),
+			chart.File("README.tmpl.md"),
 		},
 		SortValuesOrder: "file",
 	})
