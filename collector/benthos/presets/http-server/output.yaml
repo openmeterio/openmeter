@@ -1,0 +1,13 @@
+input:
+  inproc: openmeter
+
+buffer:
+  memory: {}
+
+output:
+  openmeter:
+    url: "${OPENMETER_URL:https://openmeter.cloud}"
+    token: "${OPENMETER_TOKEN:}"
+    batching:
+      count: ${BATCH_SIZE:20}
+      period: ${BATCH_PERIOD:}
