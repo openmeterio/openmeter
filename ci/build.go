@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/sync/errgroup"
+	"github.com/sourcegraph/conc/pool"
 )
 
 // Build individual artifacts. (Useful for testing and development)
@@ -27,36 +27,13 @@ func (m *Build) All(
 	// +optional
 	platform Platform,
 ) error {
-	var group errgroup.Group
+	p := pool.New().WithErrors().WithContext(ctx)
 
-	group.Go(func() error {
-		_, err := m.ContainerImage(platform).Sync(ctx)
-		if err != nil {
-			return err
-		}
+	p.Go(syncFunc(m.ContainerImage(platform)))
+	p.Go(syncFunc(m.HelmChart("openmeter", "")))
+	p.Go(syncFunc(m.HelmChart("benthos-collector", "")))
 
-		return nil
-	})
-
-	group.Go(func() error {
-		_, err := m.HelmChart("openmeter", "").Sync(ctx)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	group.Go(func() error {
-		_, err := m.HelmChart("benthos-collector", "").Sync(ctx)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	return group.Wait()
+	return p.Wait()
 }
 
 func (m *Build) containerImages(version string) []*Container {
@@ -124,27 +101,13 @@ func (m *Binary) All(
 	// +optional
 	platform Platform,
 ) error {
-	var group errgroup.Group
+	p := pool.New().WithErrors().WithContext(ctx)
 
-	group.Go(func() error {
-		_, err := m.Api(platform).Sync(ctx)
-		if err != nil {
-			return err
-		}
+	p.Go(syncFunc(m.Api(platform)))
+	p.Go(syncFunc(m.SinkWorker(platform)))
+	p.Go(syncFunc(m.BenthosCollector(platform)))
 
-		return nil
-	})
-
-	group.Go(func() error {
-		_, err := m.SinkWorker(platform).Sync(ctx)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	return group.Wait()
+	return p.Wait()
 }
 
 // Build the API server binary.
@@ -157,7 +120,7 @@ func (m *Binary) Api(
 }
 
 func (m *Binary) api(platform Platform, version string) *File {
-	return m.build(platform, version, "./cmd/server")
+	return m.buildCross(platform, version, "./cmd/server")
 }
 
 // Build the sink worker binary.
@@ -170,17 +133,26 @@ func (m *Binary) SinkWorker(
 }
 
 func (m *Binary) sinkWorker(platform Platform, version string) *File {
-	return m.build(platform, version, "./cmd/sink-worker")
+	return m.buildCross(platform, version, "./cmd/sink-worker")
 }
 
-func (m *Binary) build(platform Platform, version string, pkg string) *File {
+func (m *Binary) buildCross(platform Platform, version string, pkg string) *File {
 	if version == "" {
 		version = "unknown"
 	}
 
-	goModule := buildContainer(platform)
+	goContainer := dag.Go(GoOpts{
+		Container: goModule().
+			WithEnvVariable("TARGETPLATFORM", string(platform)).
+			WithCgoEnabled().
+			Container().
+			WithDirectory("/", dag.Container().From(xxBaseImage).Rootfs()).
+			WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "make", "git", "curl", "clang", "lld"}).
+			WithExec([]string{"xx-apk", "add", "--update", "--no-cache", "musl-dev", "gcc"}).
+			WithExec([]string{"xx-go", "--wrap"}),
+	})
 
-	binary := goModule.
+	binary := goContainer.
 		WithSource(m.Source).
 		Build(GoWithSourceBuildOpts{
 			Pkg:      pkg,
@@ -192,35 +164,59 @@ func (m *Binary) build(platform Platform, version string, pkg string) *File {
 			},
 		})
 
-	return goModule.
+	return goContainer.
 		Container().
 		WithFile("/out/binary", binary).
 		WithExec([]string{"xx-verify", "/out/binary"}).
 		File("/out/binary")
 }
 
-func buildContainer(platform Platform) *Go {
-	return dag.Go(GoOpts{
-		Container: dag.Go(GoOpts{Version: goBuildVersion}).
-			WithEnvVariable("TARGETPLATFORM", string(platform)).
-			WithCgoEnabled().
-			Container().
-			WithDirectory("/", dag.Container().From(xxBaseImage).Rootfs()).
-			WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "make", "git", "curl", "clang", "lld"}).
-			WithExec([]string{"xx-apk", "add", "--update", "--no-cache", "musl-dev", "gcc"}).
-			WithExec([]string{"xx-go", "--wrap"}),
-	})
+// Build the sink worker binary.
+func (m *Binary) BenthosCollector(
+	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
+	// +optional
+	platform Platform,
+) *File {
+	return m.benthosCollector(platform, "")
+}
+
+func (m *Binary) benthosCollector(platform Platform, version string) *File {
+	return m.build(platform, version, "./cmd/benthos-collector")
+}
+
+func (m *Binary) build(platform Platform, version string, pkg string) *File {
+	if version == "" {
+		version = "unknown"
+	}
+
+	return goModule().
+		WithSource(m.Source).
+		Build(GoWithSourceBuildOpts{
+			Name:     "benthos",
+			Pkg:      pkg,
+			Trimpath: true,
+			RawArgs: []string{
+				"-ldflags",
+				"-s -w -X main.version=" + version,
+			},
+		})
+}
+
+func goModule() *Go {
+	return dag.Go(GoOpts{Version: goBuildVersion}).
+		WithModuleCache(dag.CacheVolume("openmeter-go-mod-v1")).
+		WithBuildCache(dag.CacheVolume("openmeter-go-build-v1"))
 }
 
 func (m *Build) HelmChart(
 	// Name of the chart to build.
-	chartName string,
+	name string,
 
 	// Release version.
 	// +optional
 	version string,
 ) *File {
-	chart := helmChartDir(m.Source, chartName)
+	chart := helmChartDir(m.Source, name)
 
 	opts := HelmPackageOpts{
 		DependencyUpdate: true,
@@ -234,8 +230,8 @@ func (m *Build) HelmChart(
 	return dag.Helm(HelmOpts{Version: helmVersion}).Package(chart, opts)
 }
 
-func helmChartDir(source *Directory, chartName string) *Directory {
-	chart := source.Directory("deploy/charts").Directory(chartName)
+func helmChartDir(source *Directory, name string) *Directory {
+	chart := source.Directory("deploy/charts").Directory(name)
 
 	readme := dag.HelmDocs(HelmDocsOpts{Version: helmDocsVersion}).Generate(chart, HelmDocsGenerateOpts{
 		Templates: []*File{
