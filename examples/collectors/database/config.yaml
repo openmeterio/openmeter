@@ -1,0 +1,66 @@
+input:
+  sql_select:
+    driver: "${DATABASE_DRIVER}"
+    dsn: "${DATABASE_DSN}"
+    table: messages
+    columns:
+      - message_id
+      - account_id
+      - message
+      - time
+    where: time >= ?
+    args_mapping: 'root = [ (now().ts_unix() - 30).ts_format(format: "2006-01-02 15:04:05", tz: "UTC") ]'
+
+pipeline:
+  processors:
+    # Enrich data with plan
+    - mapping: |
+        root = this
+        root.plan = if this.account_id == "dundermifflin" {
+          "enterprise"
+        } else {
+          "pro"
+        }
+    - mapping: |
+        root = {
+          "id": this.message_id,
+          "specversion": "1.0",
+          "type": "chat-message",
+          "source": "clickhouse",
+          "time": this.time,
+          "subject": this.account_id,
+          "data": {
+            "message_length": this.message.length(),
+            "message_length_billable": if this.plan == "enterprise" {
+              0
+            } else {
+              this.message.length()
+            },
+            "plan": this.plan,
+          },
+        }
+    - json_schema:
+        schema_path: "file://./cloudevents.spec.json"
+    - catch:
+        - log:
+            level: ERROR
+            message: "Schema validation failed due to: ${!error()}"
+        - mapping: "root = deleted()"
+
+output:
+  switch:
+    cases:
+      - check: ""
+        continue: true
+        output:
+          openmeter:
+            url: "${OPENMETER_URL:https://openmeter.cloud}"
+            token: "${OPENMETER_TOKEN:}"
+            batching:
+              count: ${BATCH_SIZE:20}
+              period: ${BATCH_PERIOD:}
+
+      - check: '"${DEBUG:false}" == "true"'
+        output:
+          stdout:
+            codec: lines
