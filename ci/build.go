@@ -192,6 +192,7 @@ func (m *Binary) build(platform Platform, version string, pkg string) *File {
 	return goModule().
 		WithSource(m.Source).
 		Build(GoWithSourceBuildOpts{
+			Name:     "benthos",
 			Pkg:      pkg,
 			Trimpath: true,
 			RawArgs: []string{

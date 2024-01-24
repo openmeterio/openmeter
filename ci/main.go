@@ -20,6 +20,8 @@ const (
 	helmDocsVersion = "v1.11.3"
 	helmVersion     = "3.13.2"
 
+	ghVersion = "2.42.1"
+
 	alpineBaseImage = "alpine:3.19.0@sha256:51b67269f354137895d43f3b3d810bfacd3945438e94dc5ac55fdac340352f48"
 	xxBaseImage     = "tonistiigi/xx:1.3.0@sha256:904fe94f236d36d65aeb5a2462f88f2c537b8360475f6342e7599194f291fb7e"
 )
@@ -75,6 +77,19 @@ func (m *Ci) Ci(ctx context.Context) error {
 	// TODO: run trivy scan on helm chart
 	p.Go(syncFunc(m.Build().HelmChart("openmeter", "0.0.0")))
 	p.Go(syncFunc(m.Build().HelmChart("benthos-collector", "0.0.0")))
+
+	p.Go(func(ctx context.Context) error {
+		files := m.releaseAssets("ci")
+
+		for _, file := range files {
+			_, err := file.Sync(ctx)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 
 	return p.Wait()
 }
