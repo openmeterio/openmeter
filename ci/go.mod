@@ -10,6 +10,12 @@ require (
 )
 
 require (
+	github.com/sourcegraph/conc v0.3.0
+	go.uber.org/atomic v1.7.0 // indirect
+	go.uber.org/multierr v1.9.0 // indirect
+)
+
+require (
 	github.com/stretchr/testify v1.8.3 // indirect
 	github.com/vektah/gqlparser/v2 v2.5.6
 )

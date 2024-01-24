@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/sync/errgroup"
+	"github.com/sourcegraph/conc/pool"
 )
 
 // Build individual artifacts. (Useful for testing and development)
@@ -27,36 +27,13 @@ func (m *Build) All(
 	// +optional
 	platform Platform,
 ) error {
-	var group errgroup.Group
+	p := pool.New().WithErrors().WithContext(ctx)
 
-	group.Go(func() error {
-		_, err := m.ContainerImage(platform).Sync(ctx)
-		if err != nil {
-			return err
-		}
+	p.Go(syncFunc(m.ContainerImage(platform)))
+	p.Go(syncFunc(m.HelmChart("openmeter", "")))
+	p.Go(syncFunc(m.HelmChart("benthos-collector", "")))
 
-		return nil
-	})
-
-	group.Go(func() error {
-		_, err := m.HelmChart("openmeter", "").Sync(ctx)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	group.Go(func() error {
-		_, err := m.HelmChart("benthos-collector", "").Sync(ctx)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	return group.Wait()
+	return p.Wait()
 }
 
 func (m *Build) containerImages(version string) []*Container {
@@ -124,27 +101,12 @@ func (m *Binary) All(
 	// +optional
 	platform Platform,
 ) error {
-	var group errgroup.Group
+	p := pool.New().WithErrors().WithContext(ctx)
 
-	group.Go(func() error {
-		_, err := m.Api(platform).Sync(ctx)
-		if err != nil {
-			return err
-		}
+	p.Go(syncFunc(m.Api(platform)))
+	p.Go(syncFunc(m.SinkWorker(platform)))
 
-		return nil
-	})
-
-	group.Go(func() error {
-		_, err := m.SinkWorker(platform).Sync(ctx)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	return group.Wait()
+	return p.Wait()
 }
 
 // Build the API server binary.

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"slices"
@@ -41,4 +42,23 @@ func buildDir() *Directory {
 	return dag.Host().Directory(root(), HostDirectoryOpts{
 		Exclude: exclude("e2e"),
 	})
+}
+
+type syncable[T any] interface {
+	Sync(ctx context.Context) (T, error)
+}
+
+func sync[T any](ctx context.Context, s syncable[T]) error {
+	_, err := s.Sync(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func syncFunc[T any](s syncable[T]) func(context.Context) error {
+	return func(ctx context.Context) error {
+		return sync(ctx, s)
+	}
 }

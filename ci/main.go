@@ -6,6 +6,8 @@ import (
 	"path"
 
 	"golang.org/x/sync/errgroup"
+
+	"github.com/sourcegraph/conc/pool"
 )
 
 const (
@@ -54,21 +56,14 @@ func New(
 }
 
 func (m *Ci) Ci(ctx context.Context) error {
-	group, ctx := errgroup.WithContext(ctx)
+	p := pool.New().WithErrors().WithContext(ctx)
 
-	group.Go(func() error {
-		_, err := m.Test().Sync(ctx)
-
-		return err
-	})
-
-	group.Go(func() error {
-		return m.Lint().All(ctx)
-	})
+	p.Go(syncFunc(m.Test()))
+	p.Go(m.Lint().All)
 
 	// TODO: run trivy scan on container(s?)
 	// TODO: version should be the commit hash (if any?)?
-	group.Go(func() error {
+	p.Go(func(ctx context.Context) error {
 		images := m.Build().containerImages("ci")
 
 		for _, image := range images {
@@ -82,19 +77,10 @@ func (m *Ci) Ci(ctx context.Context) error {
 	})
 
 	// TODO: run trivy scan on helm chart
-	group.Go(func() error {
-		_, err := m.Build().HelmChart("openmeter", "0.0.0").Sync(ctx)
+	p.Go(syncFunc(m.Build().HelmChart("openmeter", "0.0.0")))
+	p.Go(syncFunc(m.Build().HelmChart("benthos-collector", "0.0.0")))
 
-		return err
-	})
-
-	group.Go(func() error {
-		_, err := m.Build().HelmChart("benthos-collector", "0.0.0").Sync(ctx)
-
-		return err
-	})
-
-	return group.Wait()
+	return p.Wait()
 }
 
 func (m *Ci) Test() *Container {
@@ -114,27 +100,12 @@ type Lint struct {
 }
 
 func (m *Lint) All(ctx context.Context) error {
-	var group errgroup.Group
+	p := pool.New().WithErrors().WithContext(ctx)
 
-	group.Go(func() error {
-		_, err := m.Go().Sync(ctx)
-		if err != nil {
-			return err
-		}
+	p.Go(syncFunc(m.Go()))
+	p.Go(syncFunc(m.Openapi()))
 
-		return nil
-	})
-
-	group.Go(func() error {
-		_, err := m.Openapi().Sync(ctx)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	return group.Wait()
+	return p.Wait()
 }
 
 func (m *Lint) Go() *Container {
