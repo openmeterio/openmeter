@@ -29,6 +29,31 @@ client
   })
   .reply(204)
 
+// Batch ingest
+client
+  .intercept({
+    path: '/api/v1/events',
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/cloudevents-batch+json',
+    },
+    body: JSON.stringify([
+      {
+        specversion: '1.0',
+        id: 'id-1',
+        source: 'my-app',
+        type: 'my-type',
+        subject: 'my-awesome-user-id',
+        time: new Date('2023-01-01'),
+        data: {
+          api_calls: 1,
+        },
+      }
+    ]),
+  })
+  .reply(204)
+
 client
   .intercept({
     path: `/api/v1/events`,
