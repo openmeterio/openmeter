@@ -54,6 +54,12 @@ const event: Event = {
 await openmeter.events.ingest(event)
 ```
 
+### batch ingest
+
+```ts
+await openmeter.events.ingest([event1, event2, event3])
+```
+
 #### list
 
 Retrieve latest raw events. Useful for debugging.

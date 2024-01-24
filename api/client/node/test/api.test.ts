@@ -50,6 +50,11 @@ describe('sdk', () => {
         const data = await openmeter.events.ingest(event)
         expect(data).toBeUndefined()
       })
+
+      it('should batch ingest event', async ({ openmeter }) => {
+        const data = await openmeter.events.ingest([mockEvent])
+        expect(data).toBeUndefined()
+      })
     })
 
     describe('list', () => {
