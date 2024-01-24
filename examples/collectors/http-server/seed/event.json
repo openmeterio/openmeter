@@ -1,0 +1,14 @@
+{
+    "id": "6b7b88b8-79c7-42b1-8c25-6009ec8a23f2",
+    "specversion": "1.0",
+    "type": "api-calls",
+    "source": "api-gateway",
+    "subject": "customer-1",
+    "data": {
+        "method": "POST",
+        "path": "/",
+        "region": "us-east-1",
+        "zone": "a",
+        "duration_ms": 300
+    }
+}

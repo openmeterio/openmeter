@@ -1,0 +1,94 @@
+version: "3.9"
+
+services:
+  postgres:
+    profiles:
+      - postgres
+    image: postgres:15.3
+    ports:
+      - 127.0.0.1:5432:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: chat
+    healthcheck:
+      test: pg_isready -U postgres -d chat
+      interval: 5s
+      timeout: 3s
+      retries: 100
+
+  postgres-collector:
+    profiles:
+      - postgres
+    extends:
+      file: docker-compose.common.yaml
+      service: collector
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_DRIVER: postgres
+      DATABASE_DSN: postgres://postgres:postgres@postgres:5432/chat?sslmode=disable
+
+  postgres-seeder:
+    profiles:
+      - postgres
+    extends:
+      file: docker-compose.common.yaml
+      service: seeder
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_DRIVER: postgres
+      DATABASE_DSN: postgres://postgres:postgres@postgres:5432/chat?sslmode=disable
+    volumes:
+      - ./seed/init.postgres.sql:/etc/benthos/init.sql:ro
+
+  clickhouse:
+    profiles:
+      - clickhouse
+    image: clickhouse/clickhouse-server:23.8.9.54-alpine
+    ports:
+      - 127.0.0.1:8123:8123
+      - 127.0.0.1:9000:9000
+      - 127.0.0.1:9009:9009
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: default
+      CLICKHOUSE_DB: chat
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://clickhouse:8123/ping || exit 1
+      interval: 5s
+      timeout: 3s
+      retries: 100
+
+  clickhouse-collector:
+    profiles:
+      - clickhouse
+    extends:
+      file: docker-compose.common.yaml
+      service: collector
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    environment:
+      DATABASE_DRIVER: clickhouse
+      DATABASE_DSN: clickhouse://default:default@clickhouse:9000/chat?dial_timeout=200ms&max_execution_time=60
+
+  clickhouse-seeder:
+    profiles:
+      - clickhouse
+    extends:
+      file: docker-compose.common.yaml
+      service: seeder
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    environment:
+      DATABASE_DRIVER: clickhouse
+      DATABASE_DSN: clickhouse://default:default@clickhouse:9000/chat?dial_timeout=200ms&max_execution_time=60
+    volumes:
+      - ./seed/init.clickhouse.sql:/etc/benthos/init.sql:ro
