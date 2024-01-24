@@ -32,7 +32,7 @@ func (m *Ci) Etoe(test Optional[string]) *Container {
 	args = append(args, "./e2e/...")
 
 	return dag.Go(GoOpts{
-		Container: dag.Go(GoOpts{Version: goVersion}).
+		Container: goModule().
 			WithSource(m.Source).
 			Container().
 			WithServiceBinding("api", api).
