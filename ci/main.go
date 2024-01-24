@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/google/go-github/v58/github"
 	"github.com/sourcegraph/conc/pool"
+	"golang.org/x/oauth2"
 )
 
 const (
@@ -53,7 +56,16 @@ func New(
 	}
 }
 
-func (m *Ci) Ci(ctx context.Context) error {
+func (m *Ci) Ci(ctx context.Context, commit string, githubToken *Secret) error {
+	token, err := githubToken.Plaintext(ctx)
+	if err != nil {
+		return err
+	}
+
+	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
+	tc := oauth2.NewClient(ctx, ts)
+	gh := github.NewClient(tc)
+
 	p := pool.New().WithErrors().WithContext(ctx)
 
 	p.Go(syncFunc(m.Test()))
@@ -62,12 +74,57 @@ func (m *Ci) Ci(ctx context.Context) error {
 	// TODO: run trivy scan on container(s?)
 	// TODO: version should be the commit hash (if any?)?
 	p.Go(func(ctx context.Context) error {
+		{
+			rs := github.RepoStatus{
+				State: github.String("pending"),
+				// TargetURL:   github.String(""),
+				Context:     github.String("continuous-integration/dagger/container-image"),
+				Description: github.String("Starting container image build"),
+			}
+
+			_, _, err := gh.Repositories.CreateStatus(ctx, "openmeterio", "openmeter", commit, &rs)
+			if err != nil {
+				fmt.Println("GITHUB STATUS ERROR")
+				fmt.Println(err.Error())
+			}
+		}
+
 		images := m.Build().containerImages("ci")
 
 		for _, image := range images {
 			_, err := image.Sync(ctx)
 			if err != nil {
+
+				{
+					rs := github.RepoStatus{
+						State: github.String("failure"),
+						// TargetURL:   github.String(""),
+						Context:     github.String("continuous-integration/dagger/container-image"),
+						Description: github.String("Image build failed!"),
+					}
+
+					_, _, err := gh.Repositories.CreateStatus(ctx, "openmeterio", "openmeter", commit, &rs)
+					if err != nil {
+						fmt.Println("GITHUB STATUS ERROR")
+						fmt.Println(err.Error())
+					}
+				}
 				return err
+			}
+		}
+
+		{
+			rs := github.RepoStatus{
+				State: github.String("success"),
+				// TargetURL:   github.String(""),
+				Context:     github.String("continuous-integration/dagger/container-image"),
+				Description: github.String("Image build successful!"),
+			}
+
+			_, _, err := gh.Repositories.CreateStatus(ctx, "openmeterio", "openmeter", commit, &rs)
+			if err != nil {
+				fmt.Println("GITHUB STATUS ERROR")
+				fmt.Println(err.Error())
 			}
 		}
 
