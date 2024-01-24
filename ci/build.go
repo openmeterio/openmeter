@@ -105,6 +105,7 @@ func (m *Binary) All(
 
 	p.Go(syncFunc(m.Api(platform)))
 	p.Go(syncFunc(m.SinkWorker(platform)))
+	p.Go(syncFunc(m.BenthosCollector(platform)))
 
 	return p.Wait()
 }
@@ -168,6 +169,36 @@ func (m *Binary) buildCross(platform Platform, version string, pkg string) *File
 		WithFile("/out/binary", binary).
 		WithExec([]string{"xx-verify", "/out/binary"}).
 		File("/out/binary")
+}
+
+// Build the sink worker binary.
+func (m *Binary) BenthosCollector(
+	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
+	// +optional
+	platform Platform,
+) *File {
+	return m.benthosCollector(platform, "")
+}
+
+func (m *Binary) benthosCollector(platform Platform, version string) *File {
+	return m.build(platform, version, "./cmd/benthos-collector")
+}
+
+func (m *Binary) build(platform Platform, version string, pkg string) *File {
+	if version == "" {
+		version = "unknown"
+	}
+
+	return dag.Go(GoOpts{Version: goBuildVersion}).
+		WithSource(m.Source).
+		Build(GoWithSourceBuildOpts{
+			Pkg:      pkg,
+			Trimpath: true,
+			RawArgs: []string{
+				"-ldflags",
+				"-s -w -X main.version=" + version,
+			},
+		})
 }
 
 func (m *Build) HelmChart(
