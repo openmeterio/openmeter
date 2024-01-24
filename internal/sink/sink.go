@@ -147,11 +147,11 @@ func (s *Sink) flush() error {
 	// Least once guarantee, if offset commit fails we will potentially process the same messages again as they are not committed yet
 	// If Redis write succeeds but Kafka commit fails we will reprocess messages without side effect as they will be dropped at duplicate check
 	// If Redis write fails we will double write them to ClickHouse and we have to rely on ClickHouse's deduplication
-	offsetCommitFailure := false
+	var offsetCommitErr error
 	err := s.offsetCommit(ctx, messages)
 	if err != nil {
 		logger.Error("failed to commit offset to kafka", "err", err)
-		offsetCommitFailure = true
+		offsetCommitErr = err
 		// do not return error here as we want to write Redis even if commit fails as we already saved them in ClickHouse
 	}
 
@@ -163,12 +163,18 @@ func (s *Sink) flush() error {
 		err := s.dedupeSet(ctx, dedupedMessages)
 		if err != nil {
 			// When both offset commit and dedupe sink fails we need to reconcile the state based on logs
-			if offsetCommitFailure {
+			if offsetCommitErr != nil {
 				logger.Error("consistency failure", "err", err, "messages", messages)
 			}
 
 			return fmt.Errorf("failed to sink to redis: %s", err)
 		}
+	}
+
+	// Return offset commit error if any as above we don't return error
+	// to ensure we set deduplication IDs in Redis
+	if offsetCommitErr != nil {
+		return fmt.Errorf("failed to commit offset to kafka: %w", offsetCommitErr)
 	}
 
 	// Metrics and logs
@@ -479,13 +485,6 @@ func (s *Sink) Run() error {
 
 				s.buffer.Add(sinkMessage)
 				logger.Debug("event added to buffer", "partition", e.TopicPartition.Partition, "offset", e.TopicPartition.Offset, "event", kafkaCloudEvent)
-
-				// Store message, this won't commit offset immediately just store it for the next manual commit
-				_, err = s.config.Consumer.StoreMessage(e)
-				if err != nil {
-					// Stop processing, non-recoverable error
-					return fmt.Errorf("failed to store kafka message for upcoming offset commit: %w", err)
-				}
 
 				// Flush buffer and commit messages
 				if s.buffer.Size() >= s.config.MinCommitCount {
