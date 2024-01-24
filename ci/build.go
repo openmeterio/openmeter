@@ -191,6 +191,7 @@ func (m *Binary) build(platform Platform, version string, pkg string) *File {
 
 	return goModule().
 		WithSource(m.Source).
+		WithPlatform(string(platform)).
 		Build(GoWithSourceBuildOpts{
 			Name:     "benthos",
 			Pkg:      pkg,

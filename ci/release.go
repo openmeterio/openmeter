@@ -94,7 +94,7 @@ func (m *Ci) binaryArchive(version string, platform Platform) *File {
 	}
 
 	return archiver.Archive(
-		fmt.Sprintf("benthos_%s", strings.ReplaceAll(string(platform), "/", "_")),
+		fmt.Sprintf("benthos-collector_%s", strings.ReplaceAll(string(platform), "/", "_")),
 		dag.Directory().
 			WithFile("", m.Build().Binary().benthosCollector(platform, version)).
 			WithFile("", m.Source.File("README.md")).
