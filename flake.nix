@@ -16,6 +16,17 @@
       systems = [ "x86_64-linux" "x86_64-darwin" "aarch64-darwin" ];
 
       perSystem = { config, self', inputs', pkgs, system, ... }: rec {
+        _module.args.pkgs = import inputs.nixpkgs {
+          inherit system;
+
+          overlays = [
+            (final: prev: {
+              dagger = inputs'.dagger.packages.dagger;
+              licensei = self'.packages.licensei;
+            })
+          ];
+        };
+
         devenv.shells = {
           default = {
             languages = {
@@ -73,6 +84,8 @@
               curl
               jq
               minikube
+              kind
+              kubectl
               helm-docs
 
               benthos
@@ -85,13 +98,20 @@
 
               just
               semver-tool
-            ] ++ [
-              self'.packages.licensei
-              inputs'.dagger.packages.dagger
+
+              dagger
+              licensei
             ];
 
             env = {
               DAGGER_MODULE = "ci";
+
+              KUBECONFIG = "${config.devenv.shells.default.env.DEVENV_STATE}/kube/config";
+              KIND_CLUSTER_NAME = "openmeter";
+
+              HELM_CACHE_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/cache";
+              HELM_CONFIG_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/config";
+              HELM_DATA_HOME = "${config.devenv.shells.default.env.DEVENV_STATE}/helm/data";
             };
 
             # https://github.com/cachix/devenv/issues/528#issuecomment-1556108767
