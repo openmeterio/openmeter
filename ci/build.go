@@ -142,7 +142,7 @@ func (m *Binary) buildCross(platform Platform, version string, pkg string) *File
 	}
 
 	goContainer := dag.Go(GoOpts{
-		Container: dag.Go(GoOpts{Version: goBuildVersion}).
+		Container: goModule().
 			WithEnvVariable("TARGETPLATFORM", string(platform)).
 			WithCgoEnabled().
 			Container().
@@ -189,7 +189,7 @@ func (m *Binary) build(platform Platform, version string, pkg string) *File {
 		version = "unknown"
 	}
 
-	return dag.Go(GoOpts{Version: goBuildVersion}).
+	return goModule().
 		WithSource(m.Source).
 		Build(GoWithSourceBuildOpts{
 			Pkg:      pkg,
@@ -199,6 +199,12 @@ func (m *Binary) build(platform Platform, version string, pkg string) *File {
 				"-s -w -X main.version=" + version,
 			},
 		})
+}
+
+func goModule() *Go {
+	return dag.Go(GoOpts{Version: goBuildVersion}).
+		WithModuleCache(dag.CacheVolume("openmeter-go-mod-v1")).
+		WithBuildCache(dag.CacheVolume("openmeter-go-build-v1"))
 }
 
 func (m *Build) HelmChart(
