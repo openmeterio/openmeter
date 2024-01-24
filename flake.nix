@@ -82,6 +82,9 @@
 
               # python
               poetry
+
+              just
+              semver-tool
             ] ++ [
               self'.packages.licensei
               inputs'.dagger.packages.dagger
