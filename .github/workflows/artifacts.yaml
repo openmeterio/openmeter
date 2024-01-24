@@ -214,7 +214,7 @@ jobs:
         uses: docker/build-push-action@4a13e500e55cf31b7a5d59a38ab2040ab0f42f56 # v5.1.0
         with:
           context: .
-          target: ${{ matrix.target }}
+          file: benthos-collector.Dockerfile
           build-args: |
             VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
           platforms: linux/amd64,linux/arm64 # The confluent library and UBI8 don't support ARMv7
