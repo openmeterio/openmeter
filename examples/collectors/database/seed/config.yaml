@@ -1,0 +1,50 @@
+input:
+  generate:
+    interval: "${SEEDER_INTERVAL:1s}"
+    mapping: |
+      let accounts = ["acmeinc", "dundermifflin", "sabre"]
+
+      let account = $accounts.index(random_int(seed: timestamp_unix_nano()) % $accounts.length())
+
+      root = {
+        "message_id": uuid_v4(),
+        "account_id": $account,
+        "sender": fake("first_name").lowercase(),
+        "recipient": fake("first_name").lowercase(),
+        "message": fake("paragraph"),
+        "time": now(),
+      }
+
+output:
+  switch:
+    cases:
+      - check: ""
+        continue: true
+        output:
+          sql_insert:
+            driver: "${DATABASE_DRIVER}"
+            dsn: "${DATABASE_DSN}"
+            table: messages
+            columns:
+              - message_id
+              - account_id
+              - sender
+              - recipient
+              - message
+              - time
+            args_mapping: |
+              root = [
+                this.message_id,
+                this.account_id,
+                this.sender,
+                this.recipient,
+                this.message,
+                this.time.ts_format(format: "2006-01-02 15:04:05", tz: "UTC"),
+              ]
+            init_files:
+              - init.sql
+
+      - check: '"${SEEDER_LOG:false}" == "true"'
+        output:
+          stdout:
+            codec: lines

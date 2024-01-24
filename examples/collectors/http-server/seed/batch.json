@@ -1,0 +1,44 @@
+[
+    {
+        "id": "86ab0f19-3b91-4639-8d81-cdb4ee7998a5",
+        "specversion": "1.0",
+        "type": "api-calls",
+        "source": "api-gateway",
+        "subject": "customer-1",
+        "data": {
+            "method": "POST",
+            "path": "/",
+            "region": "us-east-1",
+            "zone": "a",
+            "duration_ms": 300
+        }
+    },
+    {
+        "id": "3046317d-a85d-4dd0-a3f1-0246ee1bbb44",
+        "specversion": "1.0",
+        "type": "api-calls",
+        "source": "api-gateway",
+        "subject": "customer-2",
+        "data": {
+            "method": "GET",
+            "path": "/contact",
+            "region": "us-east-1",
+            "zone": "a",
+            "duration_ms": 300
+        }
+    },
+    {
+        "id": "64121dc0-84d3-4c00-9878-a510a41c17c1",
+        "specversion": "1.0",
+        "type": "api-calls",
+        "source": "api-gateway",
+        "subject": "customer-3",
+        "data": {
+            "method": "GET",
+            "path": "/home",
+            "region": "us-east-1",
+            "zone": "a",
+            "duration_ms": 300
+        }
+    }
+]
