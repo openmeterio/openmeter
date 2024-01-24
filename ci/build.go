@@ -119,7 +119,7 @@ func (m *Binary) Api(
 }
 
 func (m *Binary) api(platform Platform, version string) *File {
-	return m.build(platform, version, "./cmd/server")
+	return m.buildCross(platform, version, "./cmd/server")
 }
 
 // Build the sink worker binary.
@@ -132,17 +132,26 @@ func (m *Binary) SinkWorker(
 }
 
 func (m *Binary) sinkWorker(platform Platform, version string) *File {
-	return m.build(platform, version, "./cmd/sink-worker")
+	return m.buildCross(platform, version, "./cmd/sink-worker")
 }
 
-func (m *Binary) build(platform Platform, version string, pkg string) *File {
+func (m *Binary) buildCross(platform Platform, version string, pkg string) *File {
 	if version == "" {
 		version = "unknown"
 	}
 
-	goModule := buildContainer(platform)
+	goContainer := dag.Go(GoOpts{
+		Container: dag.Go(GoOpts{Version: goBuildVersion}).
+			WithEnvVariable("TARGETPLATFORM", string(platform)).
+			WithCgoEnabled().
+			Container().
+			WithDirectory("/", dag.Container().From(xxBaseImage).Rootfs()).
+			WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "make", "git", "curl", "clang", "lld"}).
+			WithExec([]string{"xx-apk", "add", "--update", "--no-cache", "musl-dev", "gcc"}).
+			WithExec([]string{"xx-go", "--wrap"}),
+	})
 
-	binary := goModule.
+	binary := goContainer.
 		WithSource(m.Source).
 		Build(GoWithSourceBuildOpts{
 			Pkg:      pkg,
@@ -154,24 +163,11 @@ func (m *Binary) build(platform Platform, version string, pkg string) *File {
 			},
 		})
 
-	return goModule.
+	return goContainer.
 		Container().
 		WithFile("/out/binary", binary).
 		WithExec([]string{"xx-verify", "/out/binary"}).
 		File("/out/binary")
-}
-
-func buildContainer(platform Platform) *Go {
-	return dag.Go(GoOpts{
-		Container: dag.Go(GoOpts{Version: goBuildVersion}).
-			WithEnvVariable("TARGETPLATFORM", string(platform)).
-			WithCgoEnabled().
-			Container().
-			WithDirectory("/", dag.Container().From(xxBaseImage).Rootfs()).
-			WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "make", "git", "curl", "clang", "lld"}).
-			WithExec([]string{"xx-apk", "add", "--update", "--no-cache", "musl-dev", "gcc"}).
-			WithExec([]string{"xx-go", "--wrap"}),
-	})
 }
 
 func (m *Build) HelmChart(
