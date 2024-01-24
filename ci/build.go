@@ -209,13 +209,13 @@ func goModule() *Go {
 
 func (m *Build) HelmChart(
 	// Name of the chart to build.
-	chartName string,
+	name string,
 
 	// Release version.
 	// +optional
 	version string,
 ) *File {
-	chart := helmChartDir(m.Source, chartName)
+	chart := helmChartDir(m.Source, name)
 
 	opts := HelmPackageOpts{
 		DependencyUpdate: true,
@@ -229,8 +229,8 @@ func (m *Build) HelmChart(
 	return dag.Helm(HelmOpts{Version: helmVersion}).Package(chart, opts)
 }
 
-func helmChartDir(source *Directory, chartName string) *Directory {
-	chart := source.Directory("deploy/charts").Directory(chartName)
+func helmChartDir(source *Directory, name string) *Directory {
+	chart := source.Directory("deploy/charts").Directory(name)
 
 	readme := dag.HelmDocs(HelmDocsOpts{Version: helmDocsVersion}).Generate(chart, HelmDocsGenerateOpts{
 		Templates: []*File{
