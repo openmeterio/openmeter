@@ -258,6 +258,10 @@ func initSink(config config.Configuration, logger *slog.Logger, metricMeter metr
 	_ = consumerKafkaConfig.SetKey("enable.auto.commit", false)
 	_ = consumerKafkaConfig.SetKey("enable.auto.offset.store", false)
 	_ = consumerKafkaConfig.SetKey("go.application.rebalance.enable", true)
+	// Used when offset retention resets the offset. In this case we want to consume from the latest offset as everything before should be already processed.
+	_ = consumerKafkaConfig.SetKey("auto.offset.reset", "latest")
+	// Guarantees an assignment that is maximally balanced while preserving as many existing partition assignments as possible.
+	_ = consumerKafkaConfig.SetKey("partition.assignment.strategy", "cooperative-sticky")
 
 	consumer, err := kafka.NewConsumer(&consumerKafkaConfig)
 	if err != nil {

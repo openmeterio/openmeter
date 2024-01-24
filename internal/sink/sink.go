@@ -517,13 +517,31 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 
 	switch e := event.(type) {
 	case kafka.AssignedPartitions:
-		logger.Info("kafka assigned partitions", "partitions", e.Partitions)
-		err := s.config.Consumer.Assign(e.Partitions)
+		logger.Info("kafka assigned partitions", "partitions", prettyPartitions(e.Partitions))
+
+		// Consumer to use the committed offset as a start position,
+		// with a fallback to `auto.offset.reset` if there is no committed offset.
+		// Auto offset reset is typically should be set to latest, so we will only consume new messages.
+		// Where old messages are already processed and stored in ClickHouse.
+		for i := range e.Partitions {
+			e.Partitions[i].Offset = kafka.OffsetStored
+		}
+
+		// IncrementalAssign adds the specified partitions to the current set of partitions to consume.
+		err := s.config.Consumer.IncrementalAssign(e.Partitions)
 		if err != nil {
 			return fmt.Errorf("failed to assign partitions: %w", err)
 		}
+
+		// TODO: this may be can be removed if IncrementalAssign overwrites previous pause
+		// This is here to ensure we resumse previously paused partitions
+		err = c.Resume(e.Partitions)
+		if err != nil {
+			return fmt.Errorf("failed to resume partitions: %w", err)
+		}
+
 	case kafka.RevokedPartitions:
-		logger.Info("kafka revoked partitions", "partitions", e.Partitions)
+		logger.Info("kafka revoked partitions", "partitions", prettyPartitions(e.Partitions))
 
 		// Usually, the rebalance callback for `RevokedPartitions` is called
 		// just before the partitions are revoked. We can be certain that a
@@ -540,13 +558,23 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 			logger.Warn("assignment lost involuntarily, commit may fail")
 		}
 
-		err := s.flush()
+		// Pause the consumer to stop processing messages from revoked partitions
+		// This is important to avoid commit offset failures.
+		err := c.Pause(e.Partitions)
+		if err != nil {
+			return fmt.Errorf("failed to pause partitions: %w", err)
+		}
+
+		// We flush the buffer to ensure we commit offsets for revoked partitions until we can.
+		// After unassigning the partitions we will not be able to commit offsets for revoked partitions.
+		err = s.flush()
 		if err != nil {
 			// Stop processing, non-recoverable error
 			return fmt.Errorf("failed to flush: %w", err)
 		}
 
-		err = s.config.Consumer.Unassign()
+		// IncrementalUnassign removes the specified partitions from the current set of partitions to consume.
+		err = s.config.Consumer.IncrementalUnassign(e.Partitions)
 		if err != nil {
 			return fmt.Errorf("failed to unassign partitions: %w", err)
 		}
