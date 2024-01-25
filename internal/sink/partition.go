@@ -12,15 +12,15 @@ func prettyPartitions(partitions []kafka.TopicPartition) []string {
 
 	for _, partition := range partitions {
 		var topicName string
-		
+
 		if partition.Topic != nil {
 			topicName = *partition.Topic
 		}
-		
+
 		out = append(out, fmt.Sprintf("%s-%d", topicName, partition.Partition))
 	}
 
 	sort.Strings(out)
-	
+
 	return out
 }
