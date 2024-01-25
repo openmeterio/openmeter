@@ -8,16 +8,19 @@ import (
 )
 
 func prettyPartitions(partitions []kafka.TopicPartition) []string {
-	out := []string{}
+	out := make([]string, 0, len(partitions))
 
-	for i := range partitions {
-		topicName := ""
-		if partitions[i].Topic != nil {
-			topicName = *partitions[i].Topic
+	for _, partition := range partitions {
+		var topicName string
+		
+		if partition.Topic != nil {
+			topicName = *partition.Topic
 		}
-		out = append(out, fmt.Sprintf("%s-%d", topicName, partitions[i].Partition))
+		
+		out = append(out, fmt.Sprintf("%s-%d", topicName, partition.Partition))
 	}
 
 	sort.Strings(out)
+	
 	return out
 }
