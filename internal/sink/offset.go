@@ -1,6 +1,10 @@
 package sink
 
-import "github.com/confluentinc/confluent-kafka-go/v2/kafka"
+import (
+	"fmt"
+
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+)
 
 // OffsetStore helps to determinate the next offset to commit
 type OffsetStore struct {
@@ -40,10 +44,23 @@ func (o *OffsetStore) Add(topicPartition kafka.TopicPartition) {
 	}
 }
 
-func (o *OffsetStore) Get() []kafka.TopicPartition {
+// Get returns the next offset to commit for the given assigned partitions
+func (o *OffsetStore) Get(assignedPartitions []kafka.TopicPartition) []kafka.TopicPartition {
+	partitionMap := map[string]bool{}
+	for _, topicPartition := range assignedPartitions {
+		key := topicPartitionKey(topicPartition)
+		partitionMap[key] = true
+	}
+
 	offsets := []kafka.TopicPartition{}
 	for topic, t := range o.topics {
 		for partition, p := range t.partitions {
+			// Exclude partitions that are not assigned to this consumer
+			key := partitionKey(topic, partition)
+			if !partitionMap[key] {
+				continue
+			}
+
 			metadata := ""
 			offsets = append(offsets, kafka.TopicPartition{
 				Topic:     &topic,
@@ -55,4 +72,16 @@ func (o *OffsetStore) Get() []kafka.TopicPartition {
 		}
 	}
 	return offsets
+}
+
+func topicPartitionKey(partition kafka.TopicPartition) string {
+	var topic string
+	if partition.Topic != nil {
+		topic = *partition.Topic
+	}
+	return partitionKey(topic, partition.Partition)
+}
+
+func partitionKey(topic string, partition int32) string {
+	return fmt.Sprintf("%s-%d", topic, partition)
 }
