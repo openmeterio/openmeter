@@ -81,38 +81,47 @@ export class EventsClient extends BaseClient {
    * @see https://cloudevents.io
    */
   public async ingest(
-    usageEvent: Event,
+    usageEvent: Event | Event[],
     options?: RequestOptions
   ): Promise<void> {
-    if (
-      usageEvent.datacontenttype &&
-      usageEvent.datacontenttype !== 'application/json'
-    ) {
-      throw new TypeError(
-        `Unsupported datacontenttype: ${usageEvent.datacontenttype}`
-      )
-    }
+    const isBatch = Array.isArray(usageEvent)
+    const cloudEvents: CloudEvents[] = (isBatch ? usageEvent : [usageEvent]).map((ev) => {
+      // Validate content type
+      if (
+        ev.datacontenttype &&
+        ev.datacontenttype !== 'application/json'
+      ) {
+        throw new TypeError(
+          `Unsupported datacontenttype: ${ev.datacontenttype}`
+        )
+      }
 
-    // We default where we can to lower the barrier to use CloudEvents
-    const body: CloudEvents = {
-      specversion: usageEvent.specversion ?? '1.0',
-      id: usageEvent.id ?? crypto.randomUUID(),
-      source: usageEvent.source ?? '@openmeter/sdk',
-      type: usageEvent.type,
-      subject: usageEvent.subject,
-      time: usageEvent.time?.toISOString(),
-      datacontenttype: usageEvent.datacontenttype,
-      dataschema: usageEvent.dataschema,
-      data: usageEvent.data,
-    }
+      // We default where we can to lower the barrier to use CloudEvents
+      const cloudEvent: CloudEvents = {
+        specversion: ev.specversion ?? '1.0',
+        id: ev.id ?? crypto.randomUUID(),
+        source: ev.source ?? '@openmeter/sdk',
+        type: ev.type,
+        subject: ev.subject,
+        time: ev.time?.toISOString(),
+        datacontenttype: ev.datacontenttype,
+        dataschema: ev.dataschema,
+        data: ev.data,
+      }
+
+      return cloudEvent
+    })
+
+    const contentType = isBatch ? 'application/cloudevents-batch+json' : 'application/cloudevents+json'
+    const body = isBatch ? JSON.stringify(cloudEvents) : JSON.stringify(cloudEvents[0])
 
     // Making Request
     return await this.request({
       path: '/api/v1/events',
       method: 'POST',
-      body: JSON.stringify(body),
+      body,
       headers: {
-        'Content-Type': 'application/cloudevents+json',
+        'Content-Type': contentType,
       },
       options,
     })
