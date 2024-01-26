@@ -33,7 +33,7 @@ func errorRespond(logger *slog.Logger, problem models.Problem, w http.ResponseWr
 	logger.LogAttrs(r.Context(), logLevel, msg,
 		slog.Int("resp_status", statusCode),
 		slog.String("req_method", r.Method),
-		slog.String("req_method", r.URL.Path),
+		slog.String("req_path", r.URL.Path),
 		slog.Any("error", problem.RawError()),
 	)
 }
