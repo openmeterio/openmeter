@@ -18,7 +18,7 @@ func (a *Router) CreatePortalToken(w http.ResponseWriter, r *http.Request) {
 
 	if a.config.PortalTokenStrategy == nil {
 		err := fmt.Errorf("not implemented: portal is not enabled")
-		errorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented), w, r)
+		ErrorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented), w, r)
 		return
 	}
 
@@ -26,14 +26,14 @@ func (a *Router) CreatePortalToken(w http.ResponseWriter, r *http.Request) {
 	body := &api.CreatePortalTokenJSONRequestBody{}
 	if err := render.DecodeJSON(r.Body, body); err != nil {
 		err := fmt.Errorf("decode json: %w", err)
-		errorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusBadRequest), w, r)
+		ErrorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusBadRequest), w, r)
 		return
 	}
 
 	t, err := a.config.PortalTokenStrategy.Generate(body.Subject, body.AllowedMeterSlugs, body.ExpiresAt)
 	if err != nil {
 		err := fmt.Errorf("generate portal token: %w", err)
-		errorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError), w, r)
+		ErrorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError), w, r)
 		return
 	}
 
@@ -49,13 +49,13 @@ func (a *Router) CreatePortalToken(w http.ResponseWriter, r *http.Request) {
 func (a *Router) ListPortalTokens(w http.ResponseWriter, r *http.Request, params api.ListPortalTokensParams) {
 	logger := slog.With("operation", "listPortalTokens")
 	err := fmt.Errorf("not implemented: portal token listing is an OpenMeter Cloud only feature")
-	errorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented), w, r)
+	ErrorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented), w, r)
 }
 
 func (a *Router) InvalidatePortalTokens(w http.ResponseWriter, r *http.Request) {
 	logger := slog.With("operation", "invalidatePortalTokens")
 	err := fmt.Errorf("not implemented: portal token invalidation is an OpenMeter Cloud only feature")
-	errorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented), w, r)
+	ErrorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented), w, r)
 }
 
 func (a *Router) QueryPortalMeter(w http.ResponseWriter, r *http.Request, meterSlug string, params api.QueryPortalMeterParams) {
@@ -63,7 +63,7 @@ func (a *Router) QueryPortalMeter(w http.ResponseWriter, r *http.Request, meterS
 	subject := authenticator.GetAuthenticatedSubject(r.Context())
 	if subject == "" {
 		err := fmt.Errorf("not authenticated")
-		errorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusUnauthorized), w, r)
+		ErrorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusUnauthorized), w, r)
 		return
 	}
 

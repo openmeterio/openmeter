@@ -35,7 +35,7 @@ func (a *Router) ListEvents(w http.ResponseWriter, r *http.Request, params api.L
 	events, err := a.config.StreamingConnector.ListEvents(r.Context(), namespace, queryParams)
 	if err != nil {
 		err := fmt.Errorf("query events: %w", err)
-		errorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError), w, r)
+		ErrorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError), w, r)
 		return
 
 	}

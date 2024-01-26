@@ -19,12 +19,12 @@ func (a *Router) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meter
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
 			err := fmt.Errorf("meter not found: %w", err)
-			errorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusNotFound), w, r)
+			ErrorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusNotFound), w, r)
 			return
 		}
 
 		err := fmt.Errorf("list meter subjects: %w", err)
-		errorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError), w, r)
+		ErrorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError), w, r)
 		return
 	}
 

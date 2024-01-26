@@ -9,8 +9,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// errorRespond responds with the problem and logs the problem
-func errorRespond(logger *slog.Logger, problem models.Problem, w http.ResponseWriter, r *http.Request) {
+// ErrorRespond responds with the problem and logs the problem
+func ErrorRespond(logger *slog.Logger, problem models.Problem, w http.ResponseWriter, r *http.Request) {
 	statusCode := http.StatusInternalServerError
 	title := http.StatusText(statusCode)
 	logLevel := slog.LevelError
