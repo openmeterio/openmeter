@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -17,13 +18,13 @@ func (a *Router) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meter
 	subjects, err := a.config.StreamingConnector.ListMeterSubjects(r.Context(), namespace, meterIDOrSlug, nil, nil)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
-			logger.Warn("meter not found", "error", err)
-			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
+			err := fmt.Errorf("meter not found: %w", err)
+			errorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusNotFound), w, r)
 			return
 		}
 
-		logger.Error("connector", "error", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+		err := fmt.Errorf("list meter subjects: %w", err)
+		errorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError), w, r)
 		return
 	}
 

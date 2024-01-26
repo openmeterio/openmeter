@@ -18,10 +18,8 @@ func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request) {
 
 	meters, err := a.config.Meters.ListMeters(r.Context(), namespace)
 	if err != nil {
-		logger.Error("listing meters", "error", err)
-
-		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
-
+		err := fmt.Errorf("list meters: %w", err)
+		errorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError), w, r)
 		return
 	}
 
@@ -34,13 +32,15 @@ func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Router) CreateMeter(w http.ResponseWriter, r *http.Request) {
+	logger := slog.With("operation", "createMeter")
 	err := fmt.Errorf("not implemented: manage meters via config or checkout OpenMeter Cloud")
-	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(w, r)
+	errorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented), w, r)
 }
 
 func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string) {
+	logger := slog.With("operation", "deleteMeter", "id", meterIdOrSlug)
 	err := fmt.Errorf("not implemented: manage meters via config or checkout OpenMeter Cloud")
-	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(w, r)
+	errorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented), w, r)
 }
 
 func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string) {
@@ -51,17 +51,11 @@ func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug 
 
 	// TODO: remove once meter model pointer is removed
 	if e := (&models.MeterNotFoundError{}); errors.As(err, &e) {
-		logger.Debug("meter not found")
-
-		// TODO: add meter id or slug as detail
-		models.NewStatusProblem(r.Context(), errors.New("meter not found"), http.StatusNotFound).Respond(w, r)
-
+		errorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusNotFound), w, r)
 		return
 	} else if err != nil {
-		logger.Error("getting meter", slog.Any("error", err))
-
-		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
-
+		err := fmt.Errorf("get meter: %w", err)
+		errorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError), w, r)
 		return
 	}
 

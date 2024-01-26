@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -33,8 +34,8 @@ func (a *Router) ListEvents(w http.ResponseWriter, r *http.Request, params api.L
 
 	events, err := a.config.StreamingConnector.ListEvents(r.Context(), namespace, queryParams)
 	if err != nil {
-		logger.Error("query events", "error", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+		err := fmt.Errorf("query events: %w", err)
+		errorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError), w, r)
 		return
 
 	}

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -29,6 +30,7 @@ const (
 type Problem interface {
 	Respond(w http.ResponseWriter, r *http.Request)
 	Error() string
+	RawError() error
 	ProblemType() ProblemType
 	ProblemTitle() string
 }
@@ -55,6 +57,10 @@ func (p *StatusProblem) Error() string {
 	}
 
 	return fmt.Sprintf("[%s] %s - %s", p.Title, p.Err.Error(), p.Detail)
+}
+
+func (p *StatusProblem) RawError() error {
+	return p.Err
 }
 
 func (p *StatusProblem) ProblemType() ProblemType {
@@ -85,6 +91,14 @@ func NewStatusProblem(ctx context.Context, err error, status int) Problem {
 	reqID := middleware.GetReqID(ctx)
 	if reqID != "" {
 		instance = fmt.Sprintf("urn:request:%s", reqID)
+	}
+
+	// Set context canceled errors to 408.
+	// Context canceled errors either happen when the client cancels the request or when a timeout happens in dependency.
+	// If client cancels the request, the status code doesn't matter, because the client will not see the response.
+	// If timeout happens in dependency, we want to return 408 to the client.
+	if err != nil && strings.Contains(err.Error(), "context canceled") {
+		status = http.StatusRequestTimeout
 	}
 
 	var detail string
