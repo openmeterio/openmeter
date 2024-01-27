@@ -255,7 +255,7 @@ func initSink(config config.Configuration, logger *slog.Logger, metricMeter metr
 	consumerKafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
 	_ = consumerKafkaConfig.SetKey("group.id", config.Sink.GroupId)
 	_ = consumerKafkaConfig.SetKey("session.timeout.ms", 6000)
-	_ = consumerKafkaConfig.SetKey("enable.auto.commit", false)
+	_ = consumerKafkaConfig.SetKey("enable.auto.commit", true)
 	_ = consumerKafkaConfig.SetKey("enable.auto.offset.store", false)
 	_ = consumerKafkaConfig.SetKey("go.application.rebalance.enable", true)
 	// Used when offset retention resets the offset. In this case we want to consume from the latest offset as everything before should be already processed.
