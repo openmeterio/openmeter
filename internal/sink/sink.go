@@ -273,11 +273,19 @@ func (s *Sink) offsetCommit(ctx context.Context, messages []SinkMessage) error {
 	for _, message := range messages {
 		offsetStore.Add(message.KafkaMessage.TopicPartition)
 	}
-	offsets := offsetStore.Get()
 
 	// We retry with exponential backoff as it's critical that either step #2 or #3 succeeds.
 	err := retry.Do(
 		func() error {
+			// We only commit offsets for assigned partitions
+			// Uncommitted offsets will be dropped and reprocessed by an other consumer.
+			// This is fine as we have a least once guarantee thanks to dedupe.
+			assignedPartitions, err := s.config.Consumer.Assignment()
+			if err != nil {
+				return fmt.Errorf("failed to get assigned partitions: %w", err)
+			}
+			offsets := offsetStore.Get(assignedPartitions)
+
 			commitedOffsets, err := s.config.Consumer.CommitOffsets(offsets)
 			if err != nil {
 				return err
@@ -517,7 +525,8 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 
 	switch e := event.(type) {
 	case kafka.AssignedPartitions:
-		logger.Info("kafka assigned partitions", "partitions", prettyPartitions(e.Partitions))
+		// Logs newly assigned partitions only (doesn't log already assigned partitions)
+		logger.Info("kafka partition assignment", "partitions", prettyPartitions(e.Partitions))
 
 		// Consumer to use the committed offset as a start position,
 		// with a fallback to `auto.offset.reset` if there is no committed offset.
@@ -541,7 +550,8 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 		}
 
 	case kafka.RevokedPartitions:
-		logger.Info("kafka revoked partitions", "partitions", prettyPartitions(e.Partitions))
+		// Logs revoked partitions only
+		logger.Info("kafka partition revoke", "partitions", prettyPartitions(e.Partitions))
 
 		// Usually, the rebalance callback for `RevokedPartitions` is called
 		// just before the partitions are revoked. We can be certain that a
