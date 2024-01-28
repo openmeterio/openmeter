@@ -15,6 +15,7 @@ aggregation:
 
 sink:
   minCommitCount: 1
+  maxCommitWait: 1s
   namespaceRefetch: 1s
   dedupe:
     enabled: true
