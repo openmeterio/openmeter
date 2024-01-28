@@ -53,7 +53,9 @@ OpenMeter exposes a [REST API](https://editor.swagger.io/?url=https://raw.github
 Currently, we offer the following Client SDKs:
 
 - [Node.js](/api/client/node)
+- [Python](/api/client/python)
 - [Go](/api/client/go)
+- [Web](/api/client/web)
 
 In cases where no specific SDK is available for your preferred programming language, you can utilize the [OpenAPI definition](https://github.com/openmeterio/openmeter/blob/main/api/openapi.yaml).
 Please raise a [GitHub issue](https://github.com/openmeterio/openmeter/issues/new?assignees=&labels=area%2Fapi%2Ckind%2Ffeature&projects=&template=feature_request.yaml) to request SDK support in other languages.
