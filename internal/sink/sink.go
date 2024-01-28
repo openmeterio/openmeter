@@ -172,11 +172,20 @@ func (s *Sink) flush() error {
 	if s.config.Deduplicator != nil && len(dedupedMessages) > 0 {
 		err := s.dedupeSet(ctx, dedupedMessages)
 		if err != nil {
+			// Try to commit offset if dedupe fails to ensure consistency
+			if offsetStoreErr == nil {
+				_, err := s.config.Consumer.Commit()
+				if err != nil {
+					return fmt.Errorf("failed to commit offset: %w", err)
+				}
+			}
+
 			// When both offset commit and dedupe sink fails we need to reconcile the state based on logs
 			if offsetStoreErr != nil {
 				logger.Error("consistency failure", "err", err, "messages", messages)
 			}
 
+			// Return error, stop consuming
 			return fmt.Errorf("failed to sink to redis: %s", err)
 		}
 	}
