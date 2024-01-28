@@ -8,7 +8,6 @@ telemetry:
 ingest:
   kafka:
     broker: kafka:9092
-    partitions: 4
 
 aggregation:
   clickhouse:

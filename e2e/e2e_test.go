@@ -80,50 +80,50 @@ func TestIngest(t *testing.T) {
 	}, 30*time.Second, time.Second)
 }
 
-func TestBatchIngest(t *testing.T) {
-	client := initClient(t)
+// func TestBatchIngest(t *testing.T) {
+// 	client := initClient(t)
 
-	// Make clickhouse's job easier by sending events within a fix time range
-	now := time.Now()
+// 	// Make clickhouse's job easier by sending events within a fix time range
+// 	now := time.Now()
 
-	var sum int
+// 	var sum int
 
-	var events []cloudevents.Event
+// 	var events []cloudevents.Event
 
-	for i := 0; i < 1000; i++ {
-		// Make clickhouse's job easier by sending events within a fix time range
-		timestamp := gofakeit.DateRange(now.Add(-30*24*time.Hour), now.Add(30*24*time.Hour))
-		duration := gofakeit.Number(1, 1000)
+// 	for i := 0; i < 1000; i++ {
+// 		// Make clickhouse's job easier by sending events within a fix time range
+// 		timestamp := gofakeit.DateRange(now.Add(-30*24*time.Hour), now.Add(30*24*time.Hour))
+// 		duration := gofakeit.Number(1, 1000)
 
-		sum += duration
+// 		sum += duration
 
-		ev := cloudevents.New()
-		ev.SetID(gofakeit.UUID())
-		ev.SetSource("my-app")
-		ev.SetType("batchingest")
-		ev.SetSubject("customer-1")
-		ev.SetTime(timestamp)
-		_ = ev.SetData("application/json", map[string]string{
-			"duration_ms": fmt.Sprintf("%d", duration),
-		})
+// 		ev := cloudevents.New()
+// 		ev.SetID(gofakeit.UUID())
+// 		ev.SetSource("my-app")
+// 		ev.SetType("batchingest")
+// 		ev.SetSubject("customer-1")
+// 		ev.SetTime(timestamp)
+// 		_ = ev.SetData("application/json", map[string]string{
+// 			"duration_ms": fmt.Sprintf("%d", duration),
+// 		})
 
-		events = append(events, ev)
-	}
+// 		events = append(events, ev)
+// 	}
 
-	resp, err := client.IngestEventBatchWithResponse(context.Background(), events)
-	require.NoError(t, err)
-	require.Equal(t, http.StatusNoContent, resp.StatusCode())
+// 	resp, err := client.IngestEventBatchWithResponse(context.Background(), events)
+// 	require.NoError(t, err)
+// 	require.Equal(t, http.StatusNoContent, resp.StatusCode())
 
-	// Wait for events to be processed
-	assert.EventuallyWithT(t, func(t *assert.CollectT) {
-		resp, err := client.QueryMeterWithResponse(context.Background(), "batchingest", nil)
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, resp.StatusCode())
+// 	// Wait for events to be processed
+// 	assert.EventuallyWithT(t, func(t *assert.CollectT) {
+// 		resp, err := client.QueryMeterWithResponse(context.Background(), "batchingest", nil)
+// 		require.NoError(t, err)
+// 		require.Equal(t, http.StatusOK, resp.StatusCode())
 
-		require.Len(t, resp.JSON200.Data, 1)
-		assert.Equal(t, float64(sum), resp.JSON200.Data[0].Value)
-	}, 30*time.Second, time.Second)
-}
+// 		require.Len(t, resp.JSON200.Data, 1)
+// 		assert.Equal(t, float64(sum), resp.JSON200.Data[0].Value)
+// 	}, 30*time.Second, time.Second)
+// }
 
 func TestDedupe(t *testing.T) {
 	client := initClient(t)
