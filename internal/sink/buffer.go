@@ -43,13 +43,14 @@ func (b *SinkBuffer) Dequeue() []SinkMessage {
 	return list
 }
 
-// RemoveByRevokedPartitions removes messages from the buffer that are assigned to the revoked partitions.
-func (b *SinkBuffer) RemoveByRevokedPartitions(revokedPartitions []kafka.TopicPartition) {
+// RemoveByPartitions removes messages from the buffer by partitions
+// Useful when partitions are revoked.
+func (b *SinkBuffer) RemoveByPartitions(partitions []kafka.TopicPartition) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
 	partitionMap := map[string]bool{}
-	for _, topicPartition := range revokedPartitions {
+	for _, topicPartition := range partitions {
 		key := topicPartitionKey(topicPartition)
 		partitionMap[key] = true
 	}

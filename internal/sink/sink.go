@@ -591,7 +591,7 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 		}
 
 		// Remove messages for revoked partitions from buffer
-		s.buffer.RemoveByRevokedPartitions(e.Partitions)
+		s.buffer.RemoveByPartitions(e.Partitions)
 	default:
 		logger.Error("unxpected event type", "event", e)
 	}

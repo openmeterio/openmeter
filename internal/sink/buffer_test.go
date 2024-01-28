@@ -41,3 +41,37 @@ func TestBuffer(t *testing.T) {
 	assert.Equal(t, 2, buffer.Size())
 	assert.ElementsMatch(t, []sink.SinkMessage{sinkMessage1, sinkMessage2}, buffer.Dequeue())
 }
+
+func TestBufferRemoveByPartitions(t *testing.T) {
+	buffer := sink.NewSinkBuffer()
+	topic := "my-topic"
+
+	partition1 := kafka.TopicPartition{
+		Topic:     &topic,
+		Partition: 1,
+		Offset:    1,
+	}
+	partition2 := kafka.TopicPartition{
+		Topic:     &topic,
+		Partition: 2,
+		Offset:    1,
+	}
+
+	sinkMessage1 := sink.SinkMessage{
+		KafkaMessage: &kafka.Message{
+			TopicPartition: partition1,
+		},
+	}
+	sinkMessage2 := sink.SinkMessage{
+		KafkaMessage: &kafka.Message{
+			TopicPartition: partition2,
+		},
+	}
+
+	buffer.Add(sinkMessage1)
+	buffer.Add(sinkMessage2)
+	assert.Equal(t, 2, buffer.Size())
+
+	buffer.RemoveByPartitions([]kafka.TopicPartition{partition2})
+	assert.Equal(t, 1, buffer.Size())
+}
