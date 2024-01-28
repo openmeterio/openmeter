@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
+	"sort"
 	"syscall"
 	"time"
 
@@ -133,10 +134,6 @@ func (s *Sink) flush() error {
 		}
 	}()
 
-	// Stop polling new messages from Kafka until we finalize batch
-	s.clearFlushTimer()
-	defer s.setFlushTimer()
-
 	messages := s.buffer.Dequeue()
 
 	// Start tracing
@@ -158,6 +155,10 @@ func (s *Sink) flush() error {
 	// 2. Store Offset
 	// Least once guarantee, if offset commit fails we will re-process the same messages again as they are not committed yet
 	var offsetStoreErr error
+	// Order to ensure we commit largest offset last
+	sort.Slice(messages, func(i, j int) bool {
+		return messages[i].KafkaMessage.TopicPartition.Offset < messages[j].KafkaMessage.TopicPartition.Offset
+	})
 	for _, message := range messages {
 		_, err = s.config.Consumer.StoreMessage(message.KafkaMessage)
 		if err != nil {
