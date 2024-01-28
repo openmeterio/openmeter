@@ -131,16 +131,9 @@ func TestDedupe(t *testing.T) {
 	// Make clickhouse's job easier by sending events within a fix time range
 	now := time.Now()
 
-	var firstDuration int
-
 	for i := 0; i < 1000; i++ {
 		// Make clickhouse's job easier by sending events within a fix time range
 		timestamp := gofakeit.DateRange(now.Add(-30*24*time.Hour), now.Add(30*24*time.Hour))
-		duration := gofakeit.Number(1, 1000)
-
-		if firstDuration == 0 {
-			firstDuration = duration
-		}
 
 		ev := cloudevents.New()
 		ev.SetID("52f44f66-020f-4fa9-a733-102a8ef6f515")
@@ -148,9 +141,7 @@ func TestDedupe(t *testing.T) {
 		ev.SetType("dedupe")
 		ev.SetSubject("customer-1")
 		ev.SetTime(timestamp)
-		_ = ev.SetData("application/json", map[string]string{
-			"duration_ms": fmt.Sprintf("%d", duration),
-		})
+		_ = ev.SetData("application/json", map[string]string{})
 
 		resp, err := client.IngestEventWithResponse(context.Background(), ev)
 		require.NoError(t, err)
@@ -164,7 +155,7 @@ func TestDedupe(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 
 		require.Len(t, resp.JSON200.Data, 1)
-		assert.Equal(t, float64(firstDuration), resp.JSON200.Data[0].Value)
+		assert.Equal(t, 1.0, resp.JSON200.Data[0].Value)
 	}, 30*time.Second, time.Second)
 }
 

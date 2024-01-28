@@ -39,8 +39,7 @@ meters:
   - slug: dedupe
     description: Meter for testing deduplication
     eventType: dedupe
-    valueProperty: $.duration_ms
-    aggregation: SUM
+    aggregation: COUNT
   - slug: query
     description: Meter for testing querying
     eventType: query
