@@ -117,6 +117,9 @@ func (s *Sink) flush() error {
 	ctx := context.TODO()
 	logger := s.config.Logger.With("operation", "flush")
 
+	s.clearFlushTimer()
+	defer s.setFlushTimer()
+
 	// Nothing to flush
 	if s.buffer.Size() == 0 {
 		return nil
@@ -494,8 +497,6 @@ func (s *Sink) Run() error {
 }
 
 func (s *Sink) pause() error {
-	s.clearFlushTimer()
-
 	// Pause partitions to avoid processing new messages while we flush
 	assignedPartitions, err := s.config.Consumer.Assignment()
 	if err != nil {
@@ -517,8 +518,6 @@ func (s *Sink) resume() error {
 	if err != nil {
 		return fmt.Errorf("failed to resume partitions after flush: %w", err)
 	}
-
-	s.setFlushTimer()
 
 	return nil
 }
