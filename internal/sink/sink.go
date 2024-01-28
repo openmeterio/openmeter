@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
+	"sort"
 	"syscall"
 	"time"
 
@@ -110,22 +111,33 @@ func NewSink(config SinkConfig) (*Sink, error) {
 	return sink, nil
 }
 
-// flush flushes the 1. buffer to storage, 2. sets dedupe and 3. commits the offset to Kafka
+// flush flushes the 1. buffer to storage, 2. sets dedupe and 3. store the offset
 // called when max wait time or min commit count reached
 func (s *Sink) flush() error {
 	ctx := context.TODO()
 	logger := s.config.Logger.With("operation", "flush")
 
-	// Stop polling new messages from Kafka until we finalize batch
 	s.clearFlushTimer()
 	defer s.setFlushTimer()
 
-	messages := s.buffer.Dequeue()
-
 	// Nothing to flush
-	if len(messages) == 0 {
+	if s.buffer.Size() == 0 {
 		return nil
 	}
+
+	// Pause partitions to avoid processing new messages while we flush
+	err := s.pause()
+	if err != nil {
+		return fmt.Errorf("failed to pause partitions before flush: %w", err)
+	}
+	defer func() {
+		err = s.resume()
+		if err != nil {
+			logger.Error("failed to resume partitions after flush", "err", err)
+		}
+	}()
+
+	messages := s.buffer.Dequeue()
 
 	// Start tracing
 	ctx, flushSpan := s.config.Tracer.Start(ctx, "flush", trace.WithSpanKind(trace.SpanKindConsumer), trace.WithAttributes(attribute.Int("size", len(messages))))
@@ -143,38 +155,48 @@ func (s *Sink) flush() error {
 		}
 	}
 
-	// 2. Commit Offset to Kafka
-	// Least once guarantee, if offset commit fails we will potentially process the same messages again as they are not committed yet
-	// If Redis write succeeds but Kafka commit fails we will reprocess messages without side effect as they will be dropped at duplicate check
-	// If Redis write fails we will double write them to ClickHouse and we have to rely on ClickHouse's deduplication
-	var offsetCommitErr error
-	err := s.offsetCommit(ctx, messages)
-	if err != nil {
-		logger.Error("failed to commit offset to kafka", "err", err)
-		offsetCommitErr = err
-		// do not return error here as we want to write Redis even if commit fails as we already saved them in ClickHouse
+	// 2. Store Offset
+	// Least once guarantee, if offset commit fails we will re-process the same messages again as they are not committed yet
+	var offsetStoreErr error
+	// Order to ensure we commit largest offset last
+	sort.Slice(messages, func(i, j int) bool {
+		return messages[i].KafkaMessage.TopicPartition.Offset < messages[j].KafkaMessage.TopicPartition.Offset
+	})
+	for _, message := range messages {
+		_, err = s.config.Consumer.StoreMessage(message.KafkaMessage)
+		if err != nil {
+			offsetStoreErr = err
+		}
 	}
 
 	// 3. Sink to Redis
-	// Least once guarantee, if Redis write fails we will accept messages with same idempotency key in future and
-	// we have to rely on ClickHouse's deduplication.
+	// Least once guarantee, if Redis write fails we potenitally accept messages with same idempotency key in future.
 	// Deduplicator is an optional dependency so we check if it's set
 	if s.config.Deduplicator != nil && len(dedupedMessages) > 0 {
 		err := s.dedupeSet(ctx, dedupedMessages)
 		if err != nil {
+			// Try to commit offset if dedupe fails to ensure consistency
+			if offsetStoreErr == nil {
+				_, err := s.config.Consumer.Commit()
+				if err != nil {
+					return fmt.Errorf("failed to commit offset: %w", err)
+				}
+			}
+
 			// When both offset commit and dedupe sink fails we need to reconcile the state based on logs
-			if offsetCommitErr != nil {
+			if offsetStoreErr != nil {
 				logger.Error("consistency failure", "err", err, "messages", messages)
 			}
 
+			// Return error, stop consuming
 			return fmt.Errorf("failed to sink to redis: %s", err)
 		}
 	}
 
-	// Return offset commit error if any as above we don't return error
+	// Return offset store error if any as above we don't return error
 	// to ensure we set deduplication IDs in Redis
-	if offsetCommitErr != nil {
-		return fmt.Errorf("failed to commit offset to kafka: %w", offsetCommitErr)
+	if offsetStoreErr != nil {
+		return fmt.Errorf("failed to store offset: %w", offsetStoreErr)
 	}
 
 	// Metrics and logs
@@ -261,52 +283,6 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) err
 		logger.Debug("succeeded to sink to storage", "buffer size", len(messages))
 	}
 
-	return nil
-}
-
-// offsetCommit commits the offset to Kafka with retry
-func (s *Sink) offsetCommit(ctx context.Context, messages []SinkMessage) error {
-	logger := s.config.Logger.With("operation", "offsetCommit")
-	offsetCtx, offsetSpan := s.config.Tracer.Start(ctx, "offset-commit")
-
-	offsetStore := NewOffsetStore()
-	for _, message := range messages {
-		offsetStore.Add(message.KafkaMessage.TopicPartition)
-	}
-
-	// We retry with exponential backoff as it's critical that either step #2 or #3 succeeds.
-	err := retry.Do(
-		func() error {
-			// We only commit offsets for assigned partitions
-			// Uncommitted offsets will be dropped and reprocessed by an other consumer.
-			// This is fine as we have a least once guarantee thanks to dedupe.
-			assignedPartitions, err := s.config.Consumer.Assignment()
-			if err != nil {
-				return fmt.Errorf("failed to get assigned partitions: %w", err)
-			}
-			offsets := offsetStore.Get(assignedPartitions)
-
-			commitedOffsets, err := s.config.Consumer.CommitOffsets(offsets)
-			if err != nil {
-				return err
-			}
-			logger.Debug("succeeded to commit offset to kafka", "offsets", commitedOffsets)
-			return nil
-		},
-		retry.Context(offsetCtx),
-		retry.OnRetry(func(n uint, err error) {
-			offsetSpan.AddEvent("retry", trace.WithAttributes(attribute.Int("count", int(n))))
-			logger.Warn("failed to commit kafka offset, will retry", "err", err, "retry", n)
-		}),
-	)
-	if err != nil {
-		offsetSpan.SetStatus(codes.Error, "offset commit failure")
-		offsetSpan.RecordError(err)
-		offsetSpan.End()
-		return fmt.Errorf("failed to commit offset to kafka: %w", err)
-	}
-
-	offsetSpan.End()
 	return nil
 }
 
@@ -520,13 +496,49 @@ func (s *Sink) Run() error {
 	return s.Close()
 }
 
+func (s *Sink) pause() error {
+	// Pause partitions to avoid processing new messages while we flush
+	assignedPartitions, err := s.config.Consumer.Assignment()
+	if err != nil {
+		return fmt.Errorf("failed to get assigned partitions: %w", err)
+	}
+	err = s.config.Consumer.Pause(assignedPartitions)
+	if err != nil {
+		return fmt.Errorf("failed to pause partitions before flush: %w", err)
+	}
+	return nil
+}
+
+func (s *Sink) resume() error {
+	assignedPartitions, err := s.config.Consumer.Assignment()
+	if err != nil {
+		return fmt.Errorf("failed to get assigned partitions: %w", err)
+	}
+	err = s.config.Consumer.Resume(assignedPartitions)
+	if err != nil {
+		return fmt.Errorf("failed to resume partitions after flush: %w", err)
+	}
+
+	return nil
+}
+
 func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 	logger := s.config.Logger.With("operation", "rebalance")
 
 	switch e := event.(type) {
 	case kafka.AssignedPartitions:
+		// We resume the consumer after the partitions are assigned to start processing new messages.
+		err := s.resume()
+		if err != nil {
+			return fmt.Errorf("failed to resume after assigned partitions: %w", err)
+		}
+
 		// Logs newly assigned partitions only (doesn't log already assigned partitions)
 		logger.Info("kafka partition assignment", "partitions", prettyPartitions(e.Partitions))
+
+		if len(e.Partitions) == 0 {
+			return nil
+		}
 
 		// Consumer to use the committed offset as a start position,
 		// with a fallback to `auto.offset.reset` if there is no committed offset.
@@ -537,21 +549,25 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 		}
 
 		// IncrementalAssign adds the specified partitions to the current set of partitions to consume.
-		err := s.config.Consumer.IncrementalAssign(e.Partitions)
+		err = s.config.Consumer.IncrementalAssign(e.Partitions)
 		if err != nil {
 			return fmt.Errorf("failed to assign partitions: %w", err)
 		}
 
-		// TODO: this may be can be removed if IncrementalAssign overwrites previous pause
-		// This is here to ensure we resumse previously paused partitions
-		err = c.Resume(e.Partitions)
+	case kafka.RevokedPartitions:
+		// We pause the consumer before the partitions are revoked to avoid processing new messages from revoked partitions.
+		// Consumption will be resumed after the new partitions are assigned. See above.
+		err := s.pause()
 		if err != nil {
-			return fmt.Errorf("failed to resume partitions: %w", err)
+			return fmt.Errorf("failed to pause after revoked partitions: %w", err)
 		}
 
-	case kafka.RevokedPartitions:
 		// Logs revoked partitions only
 		logger.Info("kafka partition revoke", "partitions", prettyPartitions(e.Partitions))
+
+		if len(e.Partitions) == 0 {
+			return nil
+		}
 
 		// Usually, the rebalance callback for `RevokedPartitions` is called
 		// just before the partitions are revoked. We can be certain that a
@@ -568,26 +584,14 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 			logger.Warn("assignment lost involuntarily, commit may fail")
 		}
 
-		// Pause the consumer to stop processing messages from revoked partitions
-		// This is important to avoid commit offset failures.
-		err := c.Pause(e.Partitions)
-		if err != nil {
-			return fmt.Errorf("failed to pause partitions: %w", err)
-		}
-
-		// We flush the buffer to ensure we commit offsets for revoked partitions until we can.
-		// After unassigning the partitions we will not be able to commit offsets for revoked partitions.
-		err = s.flush()
-		if err != nil {
-			// Stop processing, non-recoverable error
-			return fmt.Errorf("failed to flush: %w", err)
-		}
-
 		// IncrementalUnassign removes the specified partitions from the current set of partitions to consume.
 		err = s.config.Consumer.IncrementalUnassign(e.Partitions)
 		if err != nil {
 			return fmt.Errorf("failed to unassign partitions: %w", err)
 		}
+
+		// Remove messages for revoked partitions from buffer
+		s.buffer.RemoveByPartitions(e.Partitions)
 	default:
 		logger.Error("unxpected event type", "event", e)
 	}
