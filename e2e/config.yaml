@@ -14,7 +14,7 @@ aggregation:
     address: clickhouse:9000
 
 sink:
-  minCommitCount: 1
+  minCommitCount: 250
   maxCommitWait: 1s
   namespaceRefetch: 1s
   dedupe:
