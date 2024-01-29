@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -28,9 +29,8 @@ const (
 
 // Problem is the RFC 7807 response body.
 type Problem interface {
-	Respond(w http.ResponseWriter, r *http.Request)
+	Respond(logger *slog.Logger, w http.ResponseWriter, r *http.Request)
 	Error() string
-	RawError() error
 	ProblemType() ProblemType
 	ProblemTitle() string
 }
@@ -72,7 +72,8 @@ func (p *StatusProblem) ProblemTitle() string {
 }
 
 // Respond will render the problem as JSON to the provided ResponseWriter.
-func (p *StatusProblem) Respond(w http.ResponseWriter, r *http.Request) {
+func (p *StatusProblem) Respond(logger *slog.Logger, w http.ResponseWriter, r *http.Request) {
+	// Respond
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)
 	enc.SetEscapeHTML(true)
@@ -81,6 +82,21 @@ func (p *StatusProblem) Respond(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", ProblemContentType)
 	w.WriteHeader(p.Status)
 	_, _ = w.Write(buf.Bytes())
+
+	// Set log level based on status code.
+	logLevel := slog.LevelError
+	if p.Status < 500 {
+		logLevel = slog.LevelWarn
+	}
+
+	// Log
+	msg := fmt.Sprintf("request failed: %s", strings.ToLower(p.Title))
+	logger.LogAttrs(r.Context(), logLevel, msg,
+		slog.Int("resp_status", p.Status),
+		slog.String("req_method", r.Method),
+		slog.String("req_path", r.URL.Path),
+		slog.Any("error", p.Err),
+	)
 }
 
 // NewStatusProblem will generate a problem for the provided HTTP status

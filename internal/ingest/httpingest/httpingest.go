@@ -45,6 +45,7 @@ func NewHandler(config HandlerConfig) (*Handler, error) {
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, namespace string) {
 	logger := h.getLogger()
+	logger = logger.With("operation", "ingestEvent", "namespace", namespace)
 
 	contentType := r.Header.Get("Content-Type")
 
@@ -62,7 +63,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, namespace str
 	if err != nil {
 		logger.ErrorContext(r.Context(), "unable to process request", "error", err)
 
-		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(logger, w, r)
 
 		return
 	}

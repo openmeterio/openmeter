@@ -19,7 +19,7 @@ func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request) {
 	meters, err := a.config.Meters.ListMeters(r.Context(), namespace)
 	if err != nil {
 		err := fmt.Errorf("list meters: %w", err)
-		ErrorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError), w, r)
+		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(logger, w, r)
 		return
 	}
 
@@ -34,13 +34,13 @@ func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request) {
 func (a *Router) CreateMeter(w http.ResponseWriter, r *http.Request) {
 	logger := slog.With("operation", "createMeter")
 	err := fmt.Errorf("not implemented: manage meters via config or checkout OpenMeter Cloud")
-	ErrorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented), w, r)
+	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(logger, w, r)
 }
 
 func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string) {
 	logger := slog.With("operation", "deleteMeter", "id", meterIdOrSlug)
 	err := fmt.Errorf("not implemented: manage meters via config or checkout OpenMeter Cloud")
-	ErrorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented), w, r)
+	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(logger, w, r)
 }
 
 func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string) {
@@ -51,11 +51,11 @@ func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug 
 
 	// TODO: remove once meter model pointer is removed
 	if e := (&models.MeterNotFoundError{}); errors.As(err, &e) {
-		ErrorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusNotFound), w, r)
+		models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(logger, w, r)
 		return
 	} else if err != nil {
 		err := fmt.Errorf("get meter: %w", err)
-		ErrorRespond(logger, models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError), w, r)
+		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(logger, w, r)
 		return
 	}
 

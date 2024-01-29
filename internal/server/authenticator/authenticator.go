@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"slices"
 	"strings"
@@ -43,11 +44,13 @@ func NewAuthenticator(portalTokenStrategy *PortalTokenStrategy) Authenticator {
 // requests based on the OpenAPI 3 security requirements.
 // TODO: support custom claims
 func (a Authenticator) NewAuthenticatorMiddlewareFunc(swagger *openapi3.T) func(http.Handler) http.Handler {
+	logger := slog.With("operation", "authenticatorMiddleware")
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			sr, err := a.getSecurityRequirements(swagger, r)
 			if err != nil {
-				models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+				models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(logger, w, r)
 				return
 			}
 
@@ -58,7 +61,7 @@ func (a Authenticator) NewAuthenticatorMiddlewareFunc(swagger *openapi3.T) func(
 
 			r, err = a.validateSecurityRequirements(*sr, w, r)
 			if err != nil {
-				models.NewStatusProblem(r.Context(), err, http.StatusUnauthorized).Respond(w, r)
+				models.NewStatusProblem(r.Context(), err, http.StatusUnauthorized).Respond(logger, w, r)
 				return
 			}
 
