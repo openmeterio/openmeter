@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -27,7 +29,7 @@ const (
 
 // Problem is the RFC 7807 response body.
 type Problem interface {
-	Respond(w http.ResponseWriter, r *http.Request)
+	Respond(logger *slog.Logger, w http.ResponseWriter, r *http.Request)
 	Error() string
 	ProblemType() ProblemType
 	ProblemTitle() string
@@ -57,6 +59,10 @@ func (p *StatusProblem) Error() string {
 	return fmt.Sprintf("[%s] %s - %s", p.Title, p.Err.Error(), p.Detail)
 }
 
+func (p *StatusProblem) RawError() error {
+	return p.Err
+}
+
 func (p *StatusProblem) ProblemType() ProblemType {
 	return p.Type
 }
@@ -66,7 +72,8 @@ func (p *StatusProblem) ProblemTitle() string {
 }
 
 // Respond will render the problem as JSON to the provided ResponseWriter.
-func (p *StatusProblem) Respond(w http.ResponseWriter, r *http.Request) {
+func (p *StatusProblem) Respond(logger *slog.Logger, w http.ResponseWriter, r *http.Request) {
+	// Respond
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)
 	enc.SetEscapeHTML(true)
@@ -75,6 +82,21 @@ func (p *StatusProblem) Respond(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", ProblemContentType)
 	w.WriteHeader(p.Status)
 	_, _ = w.Write(buf.Bytes())
+
+	// Set log level based on status code.
+	logLevel := slog.LevelError
+	if p.Status < 500 {
+		logLevel = slog.LevelWarn
+	}
+
+	// Log
+	msg := fmt.Sprintf("request failed: %s", strings.ToLower(p.Title))
+	logger.LogAttrs(r.Context(), logLevel, msg,
+		slog.Int("resp_status", p.Status),
+		slog.String("req_method", r.Method),
+		slog.String("req_path", r.URL.Path),
+		slog.Any("error", p.Err),
+	)
 }
 
 // NewStatusProblem will generate a problem for the provided HTTP status
@@ -85,6 +107,14 @@ func NewStatusProblem(ctx context.Context, err error, status int) Problem {
 	reqID := middleware.GetReqID(ctx)
 	if reqID != "" {
 		instance = fmt.Sprintf("urn:request:%s", reqID)
+	}
+
+	// Set context canceled errors to 408.
+	// Context canceled errors either happen when the client cancels the request or when a timeout happens in dependency.
+	// If client cancels the request, the status code doesn't matter, because the client will not see the response.
+	// If timeout happens in dependency, we want to return 408 to the client.
+	if err != nil && strings.Contains(err.Error(), "context canceled") {
+		status = http.StatusRequestTimeout
 	}
 
 	var detail string

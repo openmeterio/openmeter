@@ -76,21 +76,8 @@ type StructuredLoggerEntry struct {
 	level slog.Level
 }
 
-func (e *StructuredLoggerEntry) statusLevel(status int) slog.Level {
-	switch {
-	case status < 400:
-		return e.level
-	case status >= 400 && status < 500 && status != http.StatusNotFound:
-		return slog.LevelWarn
-	case status >= 500:
-		return slog.LevelError
-	default:
-		return e.level
-	}
-}
-
 func (e *StructuredLoggerEntry) Write(status, bytes int, header http.Header, elapsed time.Duration, extra interface{}) {
-	e.logger.LogAttrs(e.request.Context(), e.statusLevel(status), "request complete",
+	e.logger.LogAttrs(e.request.Context(), slog.LevelDebug, "request complete",
 		slog.Int("resp_status", status),
 		slog.Int("resp_byte_length", bytes),
 		slog.Float64("resp_elapsed_ms", float64(elapsed.Nanoseconds())/1000000.0),
@@ -98,7 +85,7 @@ func (e *StructuredLoggerEntry) Write(status, bytes int, header http.Header, ela
 }
 
 func (e *StructuredLoggerEntry) Panic(v interface{}, stack []byte) {
-	e.logger.LogAttrs(e.request.Context(), e.statusLevel(500), "request panicked",
+	e.logger.LogAttrs(e.request.Context(), slog.LevelError, "request panicked",
 		slog.String("stack", string(stack)),
 		slog.String("panic", fmt.Sprintf("%+v", v)),
 	)

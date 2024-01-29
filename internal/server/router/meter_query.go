@@ -24,13 +24,13 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 	meter, err := a.config.Meters.GetMeterByIDOrSlug(r.Context(), namespace, meterIDOrSlug)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
-			logger.Warn("meter not found", "error", err)
-			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(w, r)
+			err := fmt.Errorf("meter not found: %w", err)
+			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(logger, w, r)
 			return
 		}
 
-		logger.Error("get meter", "error", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+		err := fmt.Errorf("get meter: %w", err)
+		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(logger, w, r)
 		return
 	}
 
@@ -56,8 +56,7 @@ func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, log
 			// Validate group by, `subject` is a special group by
 			if ok := groupBy == "subject" || meter.GroupBy[groupBy] != ""; !ok {
 				err := fmt.Errorf("invalid group by: %s", groupBy)
-				logger.Warn("invalid group by", "error", err)
-				models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+				models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(logger, w, r)
 				return
 			}
 
@@ -68,24 +67,24 @@ func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, log
 	if params.WindowTimeZone != nil {
 		tz, err := time.LoadLocation(*params.WindowTimeZone)
 		if err != nil {
-			logger.Warn("invalid time zone", "error", err)
-			models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+			err := fmt.Errorf("invalid time zone: %w", err)
+			models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(logger, w, r)
 			return
 		}
 		queryParams.WindowTimeZone = tz
 	}
 
 	if err := queryParams.Validate(meter.WindowSize); err != nil {
-		logger.Warn("invalid parameters", "error", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		err := fmt.Errorf("invalid query parameters: %w", err)
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(logger, w, r)
 		return
 	}
 
 	// Query connector
 	data, err := a.config.StreamingConnector.QueryMeter(r.Context(), meter.Namespace, meter.Slug, queryParams)
 	if err != nil {
-		logger.Error("connector", "error", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+		err := fmt.Errorf("query meter: %w", err)
+		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(logger, w, r)
 		return
 	}
 

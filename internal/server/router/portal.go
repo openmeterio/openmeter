@@ -2,6 +2,7 @@ package router
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/render"
@@ -13,22 +14,26 @@ import (
 
 // CreatePortalToken creates a new portal token.
 func (a *Router) CreatePortalToken(w http.ResponseWriter, r *http.Request) {
+	logger := slog.With("operation", "createPortalToken")
+
 	if a.config.PortalTokenStrategy == nil {
 		err := fmt.Errorf("not implemented: portal is not enabled")
-		models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(w, r)
+		models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(logger, w, r)
 		return
 	}
 
 	// Parse request body
 	body := &api.CreatePortalTokenJSONRequestBody{}
 	if err := render.DecodeJSON(r.Body, body); err != nil {
-		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		err := fmt.Errorf("decode json: %w", err)
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(logger, w, r)
 		return
 	}
 
 	t, err := a.config.PortalTokenStrategy.Generate(body.Subject, body.AllowedMeterSlugs, body.ExpiresAt)
 	if err != nil {
-		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+		err := fmt.Errorf("generate portal token: %w", err)
+		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(logger, w, r)
 		return
 	}
 
@@ -42,20 +47,23 @@ func (a *Router) CreatePortalToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Router) ListPortalTokens(w http.ResponseWriter, r *http.Request, params api.ListPortalTokensParams) {
+	logger := slog.With("operation", "listPortalTokens")
 	err := fmt.Errorf("not implemented: portal token listing is an OpenMeter Cloud only feature")
-	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(w, r)
+	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(logger, w, r)
 }
 
 func (a *Router) InvalidatePortalTokens(w http.ResponseWriter, r *http.Request) {
+	logger := slog.With("operation", "invalidatePortalTokens")
 	err := fmt.Errorf("not implemented: portal token invalidation is an OpenMeter Cloud only feature")
-	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(w, r)
+	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(logger, w, r)
 }
 
 func (a *Router) QueryPortalMeter(w http.ResponseWriter, r *http.Request, meterSlug string, params api.QueryPortalMeterParams) {
+	logger := slog.With("operation", "queryPortalMeter", "meterSlug", meterSlug, "params", params)
 	subject := authenticator.GetAuthenticatedSubject(r.Context())
 	if subject == "" {
 		err := fmt.Errorf("not authenticated")
-		models.NewStatusProblem(r.Context(), err, http.StatusUnauthorized).Respond(w, r)
+		models.NewStatusProblem(r.Context(), err, http.StatusUnauthorized).Respond(logger, w, r)
 		return
 	}
 
