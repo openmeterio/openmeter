@@ -44,7 +44,7 @@ jobs:
         run: pnpm run generate
         working-directory: ./api/client/node
       - name: Open Pull Request
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v6
         with:
           branch: openapi/node-client
           branch-suffix: short-commit-hash
