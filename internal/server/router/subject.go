@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -20,7 +21,7 @@ func (a *Router) GetSubject(w http.ResponseWriter, r *http.Request, idOrKey stri
 	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(logger, w, r)
 }
 
-func (a *Router) ListSubjects(w http.ResponseWriter, r *http.Request) {
+func (a *Router) ListSubjects(w http.ResponseWriter, r *http.Request, paraks api.ListSubjectsParams) {
 	logger := slog.With("operation", "listSubjects")
 	err := fmt.Errorf("not implemented: subjects are only available in OpenMeter Cloud")
 	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(logger, w, r)
