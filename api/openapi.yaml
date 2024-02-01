@@ -279,6 +279,16 @@ paths:
       operationId: listSubjects
       tags:
         - Subject
+      parameters:
+        - name: include
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - events
       responses:
         "200":
           description: OK
