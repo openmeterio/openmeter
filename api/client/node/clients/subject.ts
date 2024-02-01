@@ -14,9 +14,9 @@ export class SubjectClient extends BaseClient {
    * @note OpenMeter Cloud only feature
    */
   public async upsert(
-    subject: Omit<Subject, 'id'>,
+    subject: Omit<Subject, 'id'>[],
     options?: RequestOptions
-  ): Promise<Subject> {
+  ): Promise<Subject[]> {
     return await this.request({
       path: '/api/v1/subjects',
       method: 'POST',

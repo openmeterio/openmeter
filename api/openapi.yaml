@@ -302,14 +302,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Subject"
+              type: array
+              items:
+                $ref: "#/components/schemas/Subject"
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Subject"
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subject"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         default:

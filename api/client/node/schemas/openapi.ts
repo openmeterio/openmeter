@@ -557,14 +557,14 @@ export interface operations {
   upsertSubject: {
     requestBody?: {
       content: {
-        'application/json': components['schemas']['Subject']
+        'application/json': components['schemas']['Subject'][]
       }
     }
     responses: {
       /** @description OK */
       200: {
         content: {
-          'application/json': components['schemas']['Subject']
+          'application/json': components['schemas']['Subject'][]
         }
       }
       400: components['responses']['BadRequestProblemResponse']

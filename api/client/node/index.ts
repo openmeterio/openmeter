@@ -12,12 +12,12 @@ export class OpenMeter {
   public events: EventsClient
   public meters: MetersClient
   public portal: PortalClient
-  public subject: SubjectClient
+  public subjects: SubjectClient
 
   constructor(config: OpenMeterConfig) {
     this.events = new EventsClient(config)
     this.meters = new MetersClient(config)
     this.portal = new PortalClient(config)
-    this.subject = new SubjectClient(config)
+    this.subjects = new SubjectClient(config)
   }
 }
