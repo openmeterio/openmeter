@@ -151,7 +151,7 @@ const subjects = await openmeter.subjects.upsert([
 List subjects.
 
 ```ts
-const subjects = await openmeter.subjects.list('customer-1')
+const subjects = await openmeter.subjects.list()
 ```
 
 #### get
