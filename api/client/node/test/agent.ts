@@ -243,13 +243,13 @@ client
       Accept: 'application/json',
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
+    body: JSON.stringify([{
       key: mockSubject.key,
       displayName: mockSubject.displayName,
       metadata: mockSubject.metadata,
-    }),
+    }]),
   })
-  .reply(200, mockSubject, {
+  .reply(200, [mockSubject], {
     headers: {
       'Content-Type': 'application/json',
     },

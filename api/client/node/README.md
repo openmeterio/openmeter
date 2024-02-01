@@ -102,7 +102,7 @@ const values = await openmeter.meters.query('my-meter-slug', {
 })
 ```
 
-#### subjects
+#### meter subjects
 
 List meter subjects.
 
@@ -127,4 +127,46 @@ Invalidate portal tokens for all or specific subjects.
 
 ```ts
 await openmeter.portal.invalidateTokens()
+```
+
+### Subject
+
+Subject mappings. Like display name and metadata.
+
+#### upsert
+
+Upsert subjects.
+
+```ts
+const subjects = await openmeter.subjects.upsert([
+  {
+    key: 'customer-1',
+    displayName: 'ACME'
+  }
+])
+```
+
+#### list
+
+List subjects.
+
+```ts
+const subjects = await openmeter.subjects.list('customer-1')
+```
+
+#### get
+
+Get subject by key.
+
+```ts
+const subjects = await openmeter.subjects.get('customer-1')
+```
+
+#### delete
+
+Delete subject by key.
+It doesn't delete corresponding usage.
+
+```ts
+await openmeter.subjects.delete('customer-1')
 ```

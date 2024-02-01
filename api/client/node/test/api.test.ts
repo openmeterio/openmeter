@@ -141,26 +141,28 @@ describe('sdk', () => {
 
     describe('subjects', () => {
       it('should upsert subjects', async ({ openmeter }) => {
-        const subject = await openmeter.subject.upsert({
-          key: mockSubject.key,
-          displayName: mockSubject.displayName,
-          metadata: mockSubject.metadata,
-        })
-        expect(subject).toEqual(mockSubject)
+        const subjects = await openmeter.subjects.upsert([
+          {
+            key: mockSubject.key,
+            displayName: mockSubject.displayName,
+            metadata: mockSubject.metadata,
+          }
+        ])
+        expect(subjects).toEqual([mockSubject])
       })
 
       it('should list subjects', async ({ openmeter }) => {
-        const subjects = await openmeter.subject.list()
+        const subjects = await openmeter.subjects.list()
         expect(subjects).toEqual([mockSubject])
       })
 
       it('should get subject', async ({ openmeter }) => {
-        const subjects = await openmeter.subject.get(mockSubject.key)
+        const subjects = await openmeter.subjects.get(mockSubject.key)
         expect(subjects).toEqual(mockSubject)
       })
 
       it('should delete subject', async ({ openmeter }) => {
-        const resp = await openmeter.subject.delete(mockSubject.key)
+        const resp = await openmeter.subjects.delete(mockSubject.key)
         expect(resp).toBeUndefined()
       })
     })
