@@ -1340,55 +1340,59 @@ class ClientOperationsMixin(ClientMixinABC):
 
     @overload
     async def upsert_subject(
-        self, body: Optional[JSON] = None, *, content_type: str = "application/json", **kwargs: Any
-    ) -> JSON:
+        self, body: Optional[List[JSON]] = None, *, content_type: str = "application/json", **kwargs: Any
+    ) -> List[JSON]:
         """Upserts a subject. Creates or updates subject.
         If the subject doesn't exist, it will be created.
         If the subject exists, it will be partially updated with the provided fields.
 
         :param body: Default value is None.
-        :type body: JSON
+        :type body: list[JSON]
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
         :paramtype content_type: str
-        :return: JSON object
-        :rtype: JSON
+        :return: list of JSON object
+        :rtype: list[JSON]
         :raises ~azure.core.exceptions.HttpResponseError:
 
         Example:
             .. code-block:: python
 
                 # JSON input template you can fill out and use as your body input.
-                body = {
-                    "id": "str",  # Required.
-                    "key": "str",  # Required.
-                    "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
-                    "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
-                    "displayName": "str",  # Optional.
-                    "metadata": {
-                        "str": {}  # Optional. Dictionary of :code:`<any>`.
-                    },
-                    "stripeCustomerId": "str"  # Optional.
-                }
+                body = [
+                    {
+                        "id": "str",  # Required.
+                        "key": "str",  # Required.
+                        "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
+                        "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
+                        "displayName": "str",  # Optional.
+                        "metadata": {
+                            "str": {}  # Optional. Dictionary of :code:`<any>`.
+                        },
+                        "stripeCustomerId": "str"  # Optional.
+                    }
+                ]
 
                 # response body for status code(s): 200
-                response == {
-                    "id": "str",  # Required.
-                    "key": "str",  # Required.
-                    "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
-                    "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
-                    "displayName": "str",  # Optional.
-                    "metadata": {
-                        "str": {}  # Optional. Dictionary of :code:`<any>`.
-                    },
-                    "stripeCustomerId": "str"  # Optional.
-                }
+                response == [
+                    {
+                        "id": "str",  # Required.
+                        "key": "str",  # Required.
+                        "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
+                        "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
+                        "displayName": "str",  # Optional.
+                        "metadata": {
+                            "str": {}  # Optional. Dictionary of :code:`<any>`.
+                        },
+                        "stripeCustomerId": "str"  # Optional.
+                    }
+                ]
         """
 
     @overload
     async def upsert_subject(
         self, body: Optional[IO] = None, *, content_type: str = "application/json", **kwargs: Any
-    ) -> JSON:
+    ) -> List[JSON]:
         """Upserts a subject. Creates or updates subject.
         If the subject doesn't exist, it will be created.
         If the subject exists, it will be partially updated with the provided fields.
@@ -1398,70 +1402,61 @@ class ClientOperationsMixin(ClientMixinABC):
         :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
          Default value is "application/json".
         :paramtype content_type: str
-        :return: JSON object
-        :rtype: JSON
+        :return: list of JSON object
+        :rtype: list[JSON]
         :raises ~azure.core.exceptions.HttpResponseError:
 
         Example:
             .. code-block:: python
 
                 # response body for status code(s): 200
-                response == {
-                    "id": "str",  # Required.
-                    "key": "str",  # Required.
-                    "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
-                    "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
-                    "displayName": "str",  # Optional.
-                    "metadata": {
-                        "str": {}  # Optional. Dictionary of :code:`<any>`.
-                    },
-                    "stripeCustomerId": "str"  # Optional.
-                }
+                response == [
+                    {
+                        "id": "str",  # Required.
+                        "key": "str",  # Required.
+                        "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
+                        "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
+                        "displayName": "str",  # Optional.
+                        "metadata": {
+                            "str": {}  # Optional. Dictionary of :code:`<any>`.
+                        },
+                        "stripeCustomerId": "str"  # Optional.
+                    }
+                ]
         """
 
     @distributed_trace_async
-    async def upsert_subject(self, body: Optional[Union[JSON, IO]] = None, **kwargs: Any) -> JSON:
+    async def upsert_subject(self, body: Optional[Union[List[JSON], IO]] = None, **kwargs: Any) -> List[JSON]:
         """Upserts a subject. Creates or updates subject.
         If the subject doesn't exist, it will be created.
         If the subject exists, it will be partially updated with the provided fields.
 
-        :param body: Is either a JSON type or a IO type. Default value is None.
-        :type body: JSON or IO
+        :param body: Is either a [JSON] type or a IO type. Default value is None.
+        :type body: list[JSON] or IO
         :keyword content_type: Body Parameter content-type. Known values are: 'application/json'.
          Default value is None.
         :paramtype content_type: str
-        :return: JSON object
-        :rtype: JSON
+        :return: list of JSON object
+        :rtype: list[JSON]
         :raises ~azure.core.exceptions.HttpResponseError:
 
         Example:
             .. code-block:: python
 
-                # JSON input template you can fill out and use as your body input.
-                body = {
-                    "id": "str",  # Required.
-                    "key": "str",  # Required.
-                    "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
-                    "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
-                    "displayName": "str",  # Optional.
-                    "metadata": {
-                        "str": {}  # Optional. Dictionary of :code:`<any>`.
-                    },
-                    "stripeCustomerId": "str"  # Optional.
-                }
-
                 # response body for status code(s): 200
-                response == {
-                    "id": "str",  # Required.
-                    "key": "str",  # Required.
-                    "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
-                    "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
-                    "displayName": "str",  # Optional.
-                    "metadata": {
-                        "str": {}  # Optional. Dictionary of :code:`<any>`.
-                    },
-                    "stripeCustomerId": "str"  # Optional.
-                }
+                response == [
+                    {
+                        "id": "str",  # Required.
+                        "key": "str",  # Required.
+                        "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
+                        "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
+                        "displayName": "str",  # Optional.
+                        "metadata": {
+                            "str": {}  # Optional. Dictionary of :code:`<any>`.
+                        },
+                        "stripeCustomerId": "str"  # Optional.
+                    }
+                ]
         """
         error_map = {
             401: ClientAuthenticationError,
@@ -1476,7 +1471,7 @@ class ClientOperationsMixin(ClientMixinABC):
         _params = kwargs.pop("params", {}) or {}
 
         content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
-        cls: ClsType[JSON] = kwargs.pop("cls", None)
+        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
 
         content_type = content_type or "application/json"
         _json = None
@@ -1517,9 +1512,9 @@ class ClientOperationsMixin(ClientMixinABC):
             deserialized = None
 
         if cls:
-            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
 
-        return cast(JSON, deserialized)  # type: ignore
+        return cast(List[JSON], deserialized)  # type: ignore
 
     @distributed_trace_async
     async def get_subject(self, subject_id_or_key: str, **kwargs: Any) -> JSON:
