@@ -10,7 +10,7 @@ require (
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/cloudevents/sdk-go/v2 v2.15.0
 	github.com/confluentinc/confluent-kafka-go/v2 v2.2.0
-	github.com/deepmap/oapi-codegen/v2 v2.0.0
+	github.com/deepmap/oapi-codegen/v2 v2.1.0
 	github.com/getkin/kin-openapi v0.122.0
 	github.com/go-chi/chi/v5 v5.0.11
 	github.com/go-chi/cors v1.2.1
@@ -51,9 +51,6 @@ require (
 	k8s.io/client-go v0.29.1
 	sigs.k8s.io/controller-runtime v0.17.0
 )
-
-// Until https://github.com/deepmap/oapi-codegen/pull/1364 is released
-replace github.com/getkin/kin-openapi => github.com/getkin/kin-openapi v0.120.0
 
 require (
 	cloud.google.com/go v0.110.10 // indirect
