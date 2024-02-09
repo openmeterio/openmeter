@@ -3,7 +3,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     devenv.url = "github:cachix/devenv";
-    dagger.url = "github:dagger/nix";
+    dagger.url = "github:dagger/nix/d74bfdc29cfa2d89c02f0c5ba2f76c2608fe582b"; # pin to 0.9.7
     dagger.inputs.nixpkgs.follows = "nixpkgs";
   };
 
@@ -32,7 +32,7 @@
             languages = {
               go = {
                 enable = true;
-                package = pkgs.go_1_21;
+                package = pkgs.go_1_22;
               };
 
               python = {
@@ -75,11 +75,6 @@
               # golangci-lint
               goreleaser
               air
-
-              # TODO: remove once https://github.com/NixOS/nixpkgs/pull/254878 hits unstable
-              (golangci-lint.override (prev: {
-                buildGoModule = pkgs.buildGo121Module;
-              }))
 
               curl
               jq
@@ -133,7 +128,7 @@
               sha256 = "sha256-Pvjmvfk0zkY2uSyLwAtzWNn5hqKImztkf8S6OhX8XoM=";
             };
 
-            vendorSha256 = "sha256-ZIpZ2tPLHwfWiBywN00lPI1R7u7lseENIiybL3+9xG8=";
+            vendorHash = "sha256-ZIpZ2tPLHwfWiBywN00lPI1R7u7lseENIiybL3+9xG8=";
 
             subPackages = [ "cmd/licensei" ];
 

@@ -1,8 +1,6 @@
 module github.com/openmeterio/openmeter
 
-go 1.21
-
-// toolchain go1.21.0
+go 1.22
 
 require (
 	github.com/AppsFlyer/go-sundheit v0.5.0
