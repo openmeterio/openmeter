@@ -23,7 +23,7 @@ require (
 	github.com/lmittmann/tint v1.0.4
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oapi-codegen/nethttp-middleware v1.0.1
-	github.com/oapi-codegen/runtime v1.1.0
+	github.com/oapi-codegen/runtime v1.1.1
 	github.com/oklog/run v1.1.0
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852
