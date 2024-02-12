@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 
 	"github.com/sourcegraph/conc/pool"
 )
@@ -35,22 +36,27 @@ type Ci struct {
 }
 
 func New(
+	// Project source directory.
+	// +optional
+	source *Directory,
+
 	// Checkout the repository (at the designated ref) and use it as the source directory instead of the local one.
 	// +optional
-	checkout string,
-) *Ci {
-	var source *Directory
-
-	if checkout != "" {
+	ref string,
+) (*Ci, error) {
+	if source == nil && ref != "" {
 		source = dag.Git("https://github.com/openmeterio/openmeter.git", GitOpts{
 			KeepGitDir: true,
-		}).Branch(checkout).Tree()
-	} else {
-		source = projectDir()
+		}).Ref(ref).Tree()
 	}
+
+	if source == nil {
+		return nil, errors.New("either source or ref is required")
+	}
+
 	return &Ci{
 		Source: source,
-	}
+	}, nil
 }
 
 func (m *Ci) Ci(ctx context.Context) error {

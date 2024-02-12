@@ -1,0 +1,50 @@
+{
+  "name": "ci",
+  "sdk": "go",
+  "exclude": [
+    ".devenv",
+    ".direnv",
+    "api/client/node/node_modules",
+    "tmp"
+  ],
+  "dependencies": [
+    {
+      "name": "archivist",
+      "source": "github.com/sagikazarmark/daggerverse/archivist@c9fc1a849646c47a86bdc71713c9760c69ce818a"
+    },
+    {
+      "name": "checksum",
+      "source": "github.com/sagikazarmark/daggerverse/checksum@c9fc1a849646c47a86bdc71713c9760c69ce818a"
+    },
+    {
+      "name": "gh",
+      "source": "github.com/sagikazarmark/daggerverse/gh@c9fc1a849646c47a86bdc71713c9760c69ce818a"
+    },
+    {
+      "name": "go",
+      "source": "github.com/sagikazarmark/daggerverse/go@c9fc1a849646c47a86bdc71713c9760c69ce818a"
+    },
+    {
+      "name": "golangci-lint",
+      "source": "github.com/sagikazarmark/daggerverse/golangci-lint@c9fc1a849646c47a86bdc71713c9760c69ce818a"
+    },
+    {
+      "name": "helm",
+      "source": "github.com/sagikazarmark/daggerverse/helm@c9fc1a849646c47a86bdc71713c9760c69ce818a"
+    },
+    {
+      "name": "helm-docs",
+      "source": "github.com/sagikazarmark/daggerverse/helm-docs@c9fc1a849646c47a86bdc71713c9760c69ce818a"
+    },
+    {
+      "name": "kafka",
+      "source": "github.com/sagikazarmark/daggerverse/kafka@c9fc1a849646c47a86bdc71713c9760c69ce818a"
+    },
+    {
+      "name": "spectral",
+      "source": "github.com/sagikazarmark/daggerverse/spectral@c9fc1a849646c47a86bdc71713c9760c69ce818a"
+    }
+  ],
+  "source": "ci",
+  "engineVersion": "v0.9.10"
+}

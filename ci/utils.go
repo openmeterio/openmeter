@@ -33,15 +33,11 @@ func exclude(paths ...string) []string {
 }
 
 func projectDir() *Directory {
-	return dag.Host().Directory(root(), HostDirectoryOpts{
-		Exclude: exclude(),
-	})
+	return dag.CurrentModule().Source().Directory(root())
 }
 
 func buildDir() *Directory {
-	return dag.Host().Directory(root(), HostDirectoryOpts{
-		Exclude: exclude("e2e"),
-	})
+	return dag.CurrentModule().Source().Directory(root())
 }
 
 type syncable[T any] interface {

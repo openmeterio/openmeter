@@ -5,10 +5,13 @@ import (
 	"path"
 )
 
-func (m *Ci) Etoe(test Optional[string]) *Container {
+func (m *Ci) Etoe(
+	// +optional
+	test string,
+) *Container {
 	image := m.Build().ContainerImage("").
 		WithExposedPort(10000).
-		WithMountedFile("/etc/openmeter/config.yaml", dag.Host().File(path.Join(root(), "e2e", "config.yaml"))).
+		WithMountedFile("/etc/openmeter/config.yaml", dag.CurrentModule().Source().File(path.Join(root(), "e2e", "config.yaml"))).
 		WithServiceBinding("kafka", dag.Kafka(KafkaOpts{Version: kafkaVersion}).Service()).
 		WithServiceBinding("clickhouse", clickhouse())
 
@@ -25,8 +28,8 @@ func (m *Ci) Etoe(test Optional[string]) *Container {
 
 	args := []string{"go", "test", "-v"}
 
-	if t, ok := test.Get(); ok {
-		args = append(args, "-run", fmt.Sprintf("Test%s", t))
+	if test != "" {
+		args = append(args, "-run", fmt.Sprintf("Test%s", test))
 	}
 
 	args = append(args, "./e2e/...")
