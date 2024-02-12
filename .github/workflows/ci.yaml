@@ -230,12 +230,18 @@ jobs:
     name: CI
     runs-on: ubuntu-latest-large
 
+    permissions:
+      contents: read
+      statuses: write
+
     steps:
       - name: Run pipeline
         uses: dagger/dagger-for-github@e86a41a730841597c2b728134e83596e4e9c7804 # v5.1.0
         with:
           verb: call
           module: github.com/${{ github.repository }}/ci@${{ github.ref }}
-          args: --checkout ${{ github.ref }} ci
+          args: --checkout ${{ github.ref }} ci --commit ${{ github.event.pull_request.head.sha }} --github-token GITHUB_TOKEN
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: "0.9.7"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
