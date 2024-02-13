@@ -9,7 +9,7 @@ import (
 
 // NewLogHandler returns a new [slog.Handler]
 func NewLogHandler(handler slog.Handler) slog.Handler {
-	return nil
+	return Handler{handler}
 }
 
 type Handler struct {
