@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/server/authenticator"
 	"github.com/openmeterio/openmeter/internal/server/router"
 	"github.com/openmeterio/openmeter/internal/streaming"
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -47,13 +48,15 @@ var mockMeters = []models.Meter{
 	},
 }
 
-var mockSubject = "s1"
-var mockQueryValue = models.MeterQueryRow{
-	Subject:     &mockSubject,
-	WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
-	WindowEnd:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
-	Value:       300,
-}
+var (
+	mockSubject    = "s1"
+	mockQueryValue = models.MeterQueryRow{
+		Subject:     &mockSubject,
+		WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+		WindowEnd:   time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC),
+		Value:       300,
+	}
+)
 
 type MockConnector struct{}
 
@@ -114,6 +117,7 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 			IngestHandler:       MockHandler{},
 			NamespaceManager:    namespaceManager,
 			PortalTokenStrategy: portalTokenStrategy,
+			ErrorHandler:        errorsx.NopHandler{},
 		},
 		RouterHook: func(r chi.Router) {},
 	})

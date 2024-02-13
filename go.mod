@@ -27,12 +27,14 @@ require (
 	github.com/oklog/run v1.1.0
 	github.com/oklog/ulid/v2 v2.1.0
 	github.com/oliveagle/jsonpath v0.0.0-20180606110733-2e52cf6e6852
+	github.com/peterbourgon/ctxdata/v4 v4.0.0
 	github.com/prometheus/client_golang v1.18.0
 	github.com/redis/go-redis/extra/redisotel/v9 v9.0.5
 	github.com/redis/go-redis/v9 v9.4.0
 	github.com/sagikazarmark/mapstructurex v0.0.1
 	github.com/sagikazarmark/slog-shim v0.1.0
 	github.com/samber/lo v1.39.0
+	github.com/samber/slog-multi v1.0.2
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.8.4
