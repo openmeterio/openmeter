@@ -216,6 +216,7 @@ func main() {
 		Collector:        ingestCollector,
 		NamespaceManager: namespaceManager,
 		Logger:           logger,
+		ErrorHandler:     errorsx.NewAppHandler(errorsx.NewSlogHandler(logger)),
 	})
 	if err != nil {
 		logger.Error("failed to initialize http ingest handler", "error", err)

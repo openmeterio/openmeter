@@ -105,6 +105,8 @@ func NewServer(config *Config) (*Server, error) {
 			}),
 		},
 		ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
+			config.RouterConfig.ErrorHandler.HandleContext(r.Context(), err)
+
 			models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(defaultLogger, w, r)
 		},
 	})
