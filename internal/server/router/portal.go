@@ -2,7 +2,6 @@ package router
 
 import (
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/render"
@@ -22,7 +21,7 @@ func (a *Router) CreatePortalToken(w http.ResponseWriter, r *http.Request) {
 
 		// TODO: caller error, no need to pass to error handler
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(slog.Default(), w, r)
+		models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w, r)
 
 		return
 	}
@@ -34,7 +33,7 @@ func (a *Router) CreatePortalToken(w http.ResponseWriter, r *http.Request) {
 
 		// TODO: caller error, no need to pass to error handler
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(slog.Default(), w, r)
+		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
 
 		return
 	}
@@ -44,7 +43,7 @@ func (a *Router) CreatePortalToken(w http.ResponseWriter, r *http.Request) {
 		err := fmt.Errorf("generate portal token: %w", err)
 
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(slog.Default(), w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
 
 		return
 	}
@@ -65,7 +64,7 @@ func (a *Router) ListPortalTokens(w http.ResponseWriter, r *http.Request, params
 
 	// TODO: caller error, no need to pass to error handler
 	a.config.ErrorHandler.HandleContext(ctx, err)
-	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(slog.Default(), w, r)
+	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(w, r)
 }
 
 func (a *Router) InvalidatePortalTokens(w http.ResponseWriter, r *http.Request) {
@@ -75,7 +74,7 @@ func (a *Router) InvalidatePortalTokens(w http.ResponseWriter, r *http.Request) 
 
 	// TODO: caller error, no need to pass to error handler
 	a.config.ErrorHandler.HandleContext(ctx, err)
-	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(slog.Default(), w, r)
+	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(w, r)
 }
 
 func (a *Router) QueryPortalMeter(w http.ResponseWriter, r *http.Request, meterSlug string, params api.QueryPortalMeterParams) {
@@ -86,7 +85,7 @@ func (a *Router) QueryPortalMeter(w http.ResponseWriter, r *http.Request, meterS
 	subject := authenticator.GetAuthenticatedSubject(ctx)
 	if subject == "" {
 		err := fmt.Errorf("not authenticated")
-		models.NewStatusProblem(ctx, err, http.StatusUnauthorized).Respond(slog.Default(), w, r)
+		models.NewStatusProblem(ctx, err, http.StatusUnauthorized).Respond(w, r)
 		return
 	}
 

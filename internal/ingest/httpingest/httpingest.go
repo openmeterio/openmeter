@@ -65,7 +65,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, namespace str
 
 	if err != nil {
 		h.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(slog.Default(), w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
 
 		return
 	}

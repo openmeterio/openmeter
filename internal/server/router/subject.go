@@ -2,7 +2,6 @@ package router
 
 import (
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/openmeterio/openmeter/pkg/contextx"
@@ -16,7 +15,7 @@ func (a *Router) UpsertSubject(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: caller error, no need to pass to error handler
 	a.config.ErrorHandler.HandleContext(ctx, err)
-	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(slog.Default(), w, r)
+	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w, r)
 }
 
 func (a *Router) GetSubject(w http.ResponseWriter, r *http.Request, idOrKey string) {
@@ -27,7 +26,7 @@ func (a *Router) GetSubject(w http.ResponseWriter, r *http.Request, idOrKey stri
 
 	// TODO: caller error, no need to pass to error handler
 	a.config.ErrorHandler.HandleContext(ctx, err)
-	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(slog.Default(), w, r)
+	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w, r)
 }
 
 func (a *Router) ListSubjects(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +35,7 @@ func (a *Router) ListSubjects(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: caller error, no need to pass to error handler
 	a.config.ErrorHandler.HandleContext(ctx, err)
-	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(slog.Default(), w, r)
+	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w, r)
 }
 
 func (a *Router) DeleteSubject(w http.ResponseWriter, r *http.Request, idOrKey string) {
@@ -47,5 +46,5 @@ func (a *Router) DeleteSubject(w http.ResponseWriter, r *http.Request, idOrKey s
 
 	// TODO: caller error, no need to pass to error handler
 	a.config.ErrorHandler.HandleContext(ctx, err)
-	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(slog.Default(), w, r)
+	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w, r)
 }

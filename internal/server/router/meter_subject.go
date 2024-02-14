@@ -2,7 +2,6 @@ package router
 
 import (
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/render"
@@ -25,7 +24,7 @@ func (a *Router) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meter
 
 			// TODO: caller error, no need to pass to error handler
 			a.config.ErrorHandler.HandleContext(ctx, err)
-			models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(slog.Default(), w, r)
+			models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w, r)
 
 			return
 		}
@@ -33,7 +32,7 @@ func (a *Router) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meter
 		err := fmt.Errorf("list meter subjects: %w", err)
 
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(slog.Default(), w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
 
 		return
 	}

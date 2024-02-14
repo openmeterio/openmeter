@@ -33,7 +33,7 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 
 			// TODO: caller error, no need to pass to error handler
 			a.config.ErrorHandler.HandleContext(ctx, err)
-			models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(slog.Default(), w, r)
+			models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w, r)
 
 			return
 		}
@@ -41,7 +41,7 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 		err := fmt.Errorf("get meter: %w", err)
 
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(slog.Default(), w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
 
 		return
 	}
@@ -71,7 +71,7 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 
 				// TODO: caller error, no need to pass to error handler
 				a.config.ErrorHandler.HandleContext(ctx, err)
-				models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(slog.Default(), w, r)
+				models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
 
 				return
 			}
@@ -87,7 +87,7 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 
 			// TODO: caller error, no need to pass to error handler
 			a.config.ErrorHandler.HandleContext(ctx, err)
-			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(slog.Default(), w, r)
+			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
 
 			return
 		}
@@ -99,7 +99,7 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 
 		// TODO: caller error, no need to pass to error handler
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(slog.Default(), w, r)
+		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
 
 		return
 	}
@@ -110,7 +110,7 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 		err := fmt.Errorf("query meter: %w", err)
 
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(slog.Default(), w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
 
 		return
 	}
