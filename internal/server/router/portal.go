@@ -9,16 +9,21 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/server/authenticator"
+	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // CreatePortalToken creates a new portal token.
 func (a *Router) CreatePortalToken(w http.ResponseWriter, r *http.Request) {
-	logger := slog.With("operation", "createPortalToken")
+	ctx := contextx.WithAttr(r.Context(), "operation", "createPortalToken")
 
 	if a.config.PortalTokenStrategy == nil {
 		err := fmt.Errorf("not implemented: portal is not enabled")
-		models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(logger, w, r)
+
+		// TODO: caller error, no need to pass to error handler
+		a.config.ErrorHandler.HandleContext(ctx, err)
+		models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(slog.Default(), w, r)
+
 		return
 	}
 
@@ -26,14 +31,21 @@ func (a *Router) CreatePortalToken(w http.ResponseWriter, r *http.Request) {
 	body := &api.CreatePortalTokenJSONRequestBody{}
 	if err := render.DecodeJSON(r.Body, body); err != nil {
 		err := fmt.Errorf("decode json: %w", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(logger, w, r)
+
+		// TODO: caller error, no need to pass to error handler
+		a.config.ErrorHandler.HandleContext(ctx, err)
+		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(slog.Default(), w, r)
+
 		return
 	}
 
 	t, err := a.config.PortalTokenStrategy.Generate(body.Subject, body.AllowedMeterSlugs, body.ExpiresAt)
 	if err != nil {
 		err := fmt.Errorf("generate portal token: %w", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(logger, w, r)
+
+		a.config.ErrorHandler.HandleContext(ctx, err)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(slog.Default(), w, r)
+
 		return
 	}
 
@@ -47,23 +59,34 @@ func (a *Router) CreatePortalToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Router) ListPortalTokens(w http.ResponseWriter, r *http.Request, params api.ListPortalTokensParams) {
-	logger := slog.With("operation", "listPortalTokens")
+	ctx := contextx.WithAttr(r.Context(), "operation", "listPortalTokens")
+
 	err := fmt.Errorf("not implemented: portal token listing is an OpenMeter Cloud only feature")
-	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(logger, w, r)
+
+	// TODO: caller error, no need to pass to error handler
+	a.config.ErrorHandler.HandleContext(ctx, err)
+	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(slog.Default(), w, r)
 }
 
 func (a *Router) InvalidatePortalTokens(w http.ResponseWriter, r *http.Request) {
-	logger := slog.With("operation", "invalidatePortalTokens")
+	ctx := contextx.WithAttr(r.Context(), "operation", "invalidatePortalTokens")
+
 	err := fmt.Errorf("not implemented: portal token invalidation is an OpenMeter Cloud only feature")
-	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(logger, w, r)
+
+	// TODO: caller error, no need to pass to error handler
+	a.config.ErrorHandler.HandleContext(ctx, err)
+	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(slog.Default(), w, r)
 }
 
 func (a *Router) QueryPortalMeter(w http.ResponseWriter, r *http.Request, meterSlug string, params api.QueryPortalMeterParams) {
-	logger := slog.With("operation", "queryPortalMeter", "meterSlug", meterSlug, "params", params)
-	subject := authenticator.GetAuthenticatedSubject(r.Context())
+	ctx := contextx.WithAttr(r.Context(), "operation", "queryPortalMeter")
+	ctx = contextx.WithAttr(ctx, "meterSlug", meterSlug)
+	ctx = contextx.WithAttr(ctx, "params", params) // TODO: HOW ABOUT NO?
+
+	subject := authenticator.GetAuthenticatedSubject(ctx)
 	if subject == "" {
 		err := fmt.Errorf("not authenticated")
-		models.NewStatusProblem(r.Context(), err, http.StatusUnauthorized).Respond(logger, w, r)
+		models.NewStatusProblem(ctx, err, http.StatusUnauthorized).Respond(slog.Default(), w, r)
 		return
 	}
 

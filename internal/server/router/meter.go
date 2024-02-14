@@ -8,18 +8,23 @@ import (
 
 	"github.com/go-chi/render"
 
+	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request) {
-	logger := slog.With("operation", "listMeters")
+	ctx := contextx.WithAttr(r.Context(), "operation", "listMeters")
+
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	meters, err := a.config.Meters.ListMeters(r.Context(), namespace)
 	if err != nil {
 		err := fmt.Errorf("list meters: %w", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(logger, w, r)
+
+		a.config.ErrorHandler.HandleContext(ctx, err)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(slog.Default(), w, r)
+
 		return
 	}
 
@@ -32,30 +37,44 @@ func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *Router) CreateMeter(w http.ResponseWriter, r *http.Request) {
-	logger := slog.With("operation", "createMeter")
+	ctx := contextx.WithAttr(r.Context(), "operation", "createMeter")
+
 	err := fmt.Errorf("not implemented: manage meters via config or checkout OpenMeter Cloud")
-	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(logger, w, r)
+
+	// TODO: caller error, no need to pass to error handler
+	a.config.ErrorHandler.HandleContext(ctx, err)
+	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(slog.Default(), w, r)
 }
 
 func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string) {
-	logger := slog.With("operation", "deleteMeter", "id", meterIdOrSlug)
+	ctx := contextx.WithAttr(r.Context(), "operation", "deleteMeter")
+	ctx = contextx.WithAttr(ctx, "id", meterIdOrSlug)
+
 	err := fmt.Errorf("not implemented: manage meters via config or checkout OpenMeter Cloud")
-	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(logger, w, r)
+
+	a.config.ErrorHandler.HandleContext(ctx, err)
+	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(slog.Default(), w, r)
 }
 
 func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string) {
-	logger := slog.With("operation", "getMeter", "id", meterIdOrSlug)
+	ctx := contextx.WithAttr(r.Context(), "operation", "getMeter")
+	ctx = contextx.WithAttr(ctx, "id", meterIdOrSlug)
+
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
-	meter, err := a.config.Meters.GetMeterByIDOrSlug(r.Context(), namespace, meterIdOrSlug)
+	meter, err := a.config.Meters.GetMeterByIDOrSlug(ctx, namespace, meterIdOrSlug)
 
 	// TODO: remove once meter model pointer is removed
 	if e := (&models.MeterNotFoundError{}); errors.As(err, &e) {
-		models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(logger, w, r)
+		// TODO: caller error, no need to pass to error handler
+		a.config.ErrorHandler.HandleContext(ctx, err)
+		models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(slog.Default(), w, r)
+
 		return
 	} else if err != nil {
 		err := fmt.Errorf("get meter: %w", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(logger, w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(slog.Default(), w, r)
+
 		return
 	}
 

@@ -1,6 +1,7 @@
 package router
 
 import (
+	"context"
 	"encoding/csv"
 	"fmt"
 	"log/slog"
@@ -12,33 +13,44 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/streaming"
+	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // QueryMeter queries the values stored for a meter.
 func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlug string, params api.QueryMeterParams) {
-	logger := slog.With("operation", "queryMeter", "id", meterIDOrSlug, "params", params)
+	ctx := contextx.WithAttr(r.Context(), "operation", "queryMeter")
+	ctx = contextx.WithAttr(ctx, "id", meterIDOrSlug)
+	ctx = contextx.WithAttr(ctx, "params", params) // TODO: HOW ABOUT NO????
+
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	// Get meter
-	meter, err := a.config.Meters.GetMeterByIDOrSlug(r.Context(), namespace, meterIDOrSlug)
+	meter, err := a.config.Meters.GetMeterByIDOrSlug(ctx, namespace, meterIDOrSlug)
 	if err != nil {
 		if _, ok := err.(*models.MeterNotFoundError); ok {
 			err := fmt.Errorf("meter not found: %w", err)
-			models.NewStatusProblem(r.Context(), err, http.StatusNotFound).Respond(logger, w, r)
+
+			// TODO: caller error, no need to pass to error handler
+			a.config.ErrorHandler.HandleContext(ctx, err)
+			models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(slog.Default(), w, r)
+
 			return
 		}
 
 		err := fmt.Errorf("get meter: %w", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(logger, w, r)
+
+		a.config.ErrorHandler.HandleContext(ctx, err)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(slog.Default(), w, r)
+
 		return
 	}
 
-	a.QueryMeterWithMeter(w, r, logger, meter, params)
+	a.QueryMeterWithMeter(ctx, w, r, slog.Default(), meter, params)
 }
 
 // QueryMeter queries the values stored for a meter.
-func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, logger *slog.Logger, meter models.Meter, params api.QueryMeterParams) {
+func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter, r *http.Request, logger *slog.Logger, meter models.Meter, params api.QueryMeterParams) {
 	// Query Params
 	queryParams := &streaming.QueryParams{
 		From:        params.From,
@@ -56,7 +68,11 @@ func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, log
 			// Validate group by, `subject` is a special group by
 			if ok := groupBy == "subject" || meter.GroupBy[groupBy] != ""; !ok {
 				err := fmt.Errorf("invalid group by: %s", groupBy)
-				models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(logger, w, r)
+
+				// TODO: caller error, no need to pass to error handler
+				a.config.ErrorHandler.HandleContext(ctx, err)
+				models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(slog.Default(), w, r)
+
 				return
 			}
 
@@ -68,7 +84,11 @@ func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, log
 		tz, err := time.LoadLocation(*params.WindowTimeZone)
 		if err != nil {
 			err := fmt.Errorf("invalid time zone: %w", err)
-			models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(logger, w, r)
+
+			// TODO: caller error, no need to pass to error handler
+			a.config.ErrorHandler.HandleContext(ctx, err)
+			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(slog.Default(), w, r)
+
 			return
 		}
 		queryParams.WindowTimeZone = tz
@@ -76,15 +96,22 @@ func (a *Router) QueryMeterWithMeter(w http.ResponseWriter, r *http.Request, log
 
 	if err := queryParams.Validate(meter.WindowSize); err != nil {
 		err := fmt.Errorf("invalid query parameters: %w", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(logger, w, r)
+
+		// TODO: caller error, no need to pass to error handler
+		a.config.ErrorHandler.HandleContext(ctx, err)
+		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(slog.Default(), w, r)
+
 		return
 	}
 
 	// Query connector
-	data, err := a.config.StreamingConnector.QueryMeter(r.Context(), meter.Namespace, meter.Slug, queryParams)
+	data, err := a.config.StreamingConnector.QueryMeter(ctx, meter.Namespace, meter.Slug, queryParams)
 	if err != nil {
 		err := fmt.Errorf("query meter: %w", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(logger, w, r)
+
+		a.config.ErrorHandler.HandleContext(ctx, err)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(slog.Default(), w, r)
+
 		return
 	}
 
