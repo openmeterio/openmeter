@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+
+	"github.com/sourcegraph/conc/pool"
 )
 
 func root() string {
@@ -61,4 +63,45 @@ func syncFunc[T any](s syncable[T]) func(context.Context) error {
 	return func(ctx context.Context) error {
 		return sync(ctx, s)
 	}
+}
+
+func wrapSyncable[T any](s syncable[T]) func(context.Context) error {
+	return func(ctx context.Context) error {
+		_, err := s.Sync(ctx)
+		return err
+	}
+}
+
+func wrapSyncables[T syncable[T]](ss []T) func(context.Context) error {
+	return func(ctx context.Context) error {
+		for _, s := range ss {
+			_, err := s.Sync(ctx)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+type pipeline struct {
+	pool *pool.ContextPool
+}
+
+func newPipeline(ctx context.Context) *pipeline {
+	return &pipeline{
+		pool: pool.New().WithErrors().WithContext(ctx),
+	}
+}
+
+func (p *pipeline) addStep(s func(context.Context) error) {
+	p.pool.Go(s)
+}
+
+func (p *pipeline) wait() error {
+	return p.pool.Wait()
+}
+
+func addSyncableStep[T any](p *pipeline, s syncable[T]) {
+	p.pool.Go(syncFunc(s))
 }
