@@ -19,8 +19,6 @@ func (a *Router) CreatePortalToken(w http.ResponseWriter, r *http.Request) {
 	if a.config.PortalTokenStrategy == nil {
 		err := fmt.Errorf("not implemented: portal is not enabled")
 
-		// TODO: caller error, no need to pass to error handler
-		a.config.ErrorHandler.HandleContext(ctx, err)
 		models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w, r)
 
 		return
@@ -31,8 +29,6 @@ func (a *Router) CreatePortalToken(w http.ResponseWriter, r *http.Request) {
 	if err := render.DecodeJSON(r.Body, body); err != nil {
 		err := fmt.Errorf("decode json: %w", err)
 
-		// TODO: caller error, no need to pass to error handler
-		a.config.ErrorHandler.HandleContext(ctx, err)
 		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
 
 		return
@@ -62,9 +58,7 @@ func (a *Router) ListPortalTokens(w http.ResponseWriter, r *http.Request, params
 
 	err := fmt.Errorf("not implemented: portal token listing is an OpenMeter Cloud only feature")
 
-	// TODO: caller error, no need to pass to error handler
-	a.config.ErrorHandler.HandleContext(ctx, err)
-	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(w, r)
+	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w, r)
 }
 
 func (a *Router) InvalidatePortalTokens(w http.ResponseWriter, r *http.Request) {
@@ -72,9 +66,7 @@ func (a *Router) InvalidatePortalTokens(w http.ResponseWriter, r *http.Request) 
 
 	err := fmt.Errorf("not implemented: portal token invalidation is an OpenMeter Cloud only feature")
 
-	// TODO: caller error, no need to pass to error handler
-	a.config.ErrorHandler.HandleContext(ctx, err)
-	models.NewStatusProblem(r.Context(), err, http.StatusNotImplemented).Respond(w, r)
+	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w, r)
 }
 
 func (a *Router) QueryPortalMeter(w http.ResponseWriter, r *http.Request, meterSlug string, params api.QueryPortalMeterParams) {

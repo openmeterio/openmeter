@@ -63,9 +63,6 @@ func (a Authenticator) NewAuthenticatorMiddlewareFunc(swagger *openapi3.T) func(
 
 			r, err = a.validateSecurityRequirements(*sr, w, r)
 			if err != nil {
-
-				// TODO: caller error, no need to pass to error handler
-				a.errorHandler.HandleContext(r.Context(), err)
 				models.NewStatusProblem(r.Context(), err, http.StatusUnauthorized).Respond(w, r)
 
 				return

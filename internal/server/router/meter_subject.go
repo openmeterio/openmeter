@@ -22,8 +22,6 @@ func (a *Router) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meter
 		if _, ok := err.(*models.MeterNotFoundError); ok {
 			err := fmt.Errorf("meter not found: %w", err)
 
-			// TODO: caller error, no need to pass to error handler
-			a.config.ErrorHandler.HandleContext(ctx, err)
 			models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w, r)
 
 			return

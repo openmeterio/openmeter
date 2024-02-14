@@ -31,8 +31,6 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 		if _, ok := err.(*models.MeterNotFoundError); ok {
 			err := fmt.Errorf("meter not found: %w", err)
 
-			// TODO: caller error, no need to pass to error handler
-			a.config.ErrorHandler.HandleContext(ctx, err)
 			models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w, r)
 
 			return
@@ -69,8 +67,6 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 			if ok := groupBy == "subject" || meter.GroupBy[groupBy] != ""; !ok {
 				err := fmt.Errorf("invalid group by: %s", groupBy)
 
-				// TODO: caller error, no need to pass to error handler
-				a.config.ErrorHandler.HandleContext(ctx, err)
 				models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
 
 				return
@@ -85,8 +81,6 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 		if err != nil {
 			err := fmt.Errorf("invalid time zone: %w", err)
 
-			// TODO: caller error, no need to pass to error handler
-			a.config.ErrorHandler.HandleContext(ctx, err)
 			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
 
 			return
@@ -97,8 +91,6 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 	if err := queryParams.Validate(meter.WindowSize); err != nil {
 		err := fmt.Errorf("invalid query parameters: %w", err)
 
-		// TODO: caller error, no need to pass to error handler
-		a.config.ErrorHandler.HandleContext(ctx, err)
 		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
 
 		return
