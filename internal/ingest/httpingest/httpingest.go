@@ -14,6 +14,8 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/namespace"
+	"github.com/openmeterio/openmeter/pkg/contextx"
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -26,6 +28,7 @@ type HandlerConfig struct {
 	Collector        ingest.Collector
 	NamespaceManager *namespace.Manager
 	Logger           *slog.Logger
+	ErrorHandler     errorsx.Handler
 }
 
 func NewHandler(config HandlerConfig) (*Handler, error) {
@@ -44,26 +47,25 @@ func NewHandler(config HandlerConfig) (*Handler, error) {
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, namespace string) {
-	logger := h.getLogger()
-	logger = logger.With("operation", "ingestEvent", "namespace", namespace)
+	ctx := contextx.WithAttr(r.Context(), "operation", "ingestEvent")
+	ctx = contextx.WithAttr(ctx, "namespace", namespace)
 
 	contentType := r.Header.Get("Content-Type")
 
 	var err error
 	switch contentType {
 	case "application/cloudevents+json":
-		err = h.processSingleRequest(w, r, namespace)
+		err = h.processSingleRequest(ctx, w, r, namespace)
 	case "application/cloudevents-batch+json":
-		err = h.processBatchRequest(w, r, namespace)
+		err = h.processBatchRequest(ctx, w, r, namespace)
 	default:
 		// this should never happen
 		err = errors.New("invalid content type: " + contentType)
 	}
 
 	if err != nil {
-		logger.ErrorContext(r.Context(), "unable to process request", "error", err)
-
-		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(logger, w, r)
+		h.config.ErrorHandler.HandleContext(ctx, err)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
 
 		return
 	}
@@ -71,7 +73,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, namespace str
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h Handler) processBatchRequest(w http.ResponseWriter, r *http.Request, namespace string) error {
+func (h Handler) processBatchRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, namespace string) error {
 	var events api.IngestEventsApplicationCloudeventsBatchPlusJSONBody
 
 	err := json.NewDecoder(r.Body).Decode(&events)
@@ -80,7 +82,7 @@ func (h Handler) processBatchRequest(w http.ResponseWriter, r *http.Request, nam
 	}
 
 	for _, event := range events {
-		err = h.processEvent(r.Context(), event, namespace)
+		err = h.processEvent(ctx, event, namespace)
 		if err != nil {
 			return err
 		}
@@ -89,7 +91,7 @@ func (h Handler) processBatchRequest(w http.ResponseWriter, r *http.Request, nam
 	return nil
 }
 
-func (h Handler) processSingleRequest(w http.ResponseWriter, r *http.Request, namespace string) error {
+func (h Handler) processSingleRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, namespace string) error {
 	var event api.IngestEventsApplicationCloudeventsPlusJSONRequestBody
 
 	err := json.NewDecoder(r.Body).Decode(&event)

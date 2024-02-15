@@ -16,6 +16,7 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/namespace"
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 )
 
 var namespaceManager, _ = namespace.NewManager(namespace.ManagerConfig{
@@ -36,6 +37,7 @@ func TestHandler(t *testing.T) {
 	httpHandler, err := NewHandler(HandlerConfig{
 		Collector:        collector,
 		NamespaceManager: namespaceManager,
+		ErrorHandler:     errorsx.NopHandler{},
 	})
 	require.NoError(t, err)
 	handler := MockHandler{
@@ -80,6 +82,7 @@ func TestBatchHandler(t *testing.T) {
 	httpHandler, err := NewHandler(HandlerConfig{
 		Collector:        collector,
 		NamespaceManager: namespaceManager,
+		ErrorHandler:     errorsx.NopHandler{},
 	})
 	require.NoError(t, err)
 

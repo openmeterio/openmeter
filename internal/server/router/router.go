@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/server/authenticator"
 	"github.com/openmeterio/openmeter/internal/streaming"
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 )
 
 func init() {
@@ -40,6 +41,7 @@ type Config struct {
 	Meters              meter.Repository
 	PortalCORSEnabled   bool
 	PortalTokenStrategy *authenticator.PortalTokenStrategy
+	ErrorHandler        errorsx.Handler
 }
 
 type Router struct {

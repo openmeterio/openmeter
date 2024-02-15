@@ -22,6 +22,7 @@ import (
 	"github.com/go-slog/otelslog"
 	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	slogmulti "github.com/samber/slog-multi"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -44,6 +45,8 @@ import (
 	"github.com/openmeterio/openmeter/internal/server/router"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
+	"github.com/openmeterio/openmeter/pkg/contextx"
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -101,7 +104,7 @@ func main() {
 		extraResources,
 	)
 
-	logger := slog.New(otelslog.NewHandler(conf.Telemetry.Log.NewHandler(os.Stdout)))
+	logger := slog.New(slogmulti.Pipe(otelslog.NewHandler, contextx.NewLogHandler).Handler(conf.Telemetry.Log.NewHandler(os.Stdout)))
 	logger = otelslog.WithResource(logger, res)
 
 	slog.SetDefault(logger)
@@ -213,6 +216,7 @@ func main() {
 		Collector:        ingestCollector,
 		NamespaceManager: namespaceManager,
 		Logger:           logger,
+		ErrorHandler:     errorsx.NewAppHandler(errorsx.NewSlogHandler(logger)),
 	})
 	if err != nil {
 		logger.Error("failed to initialize http ingest handler", "error", err)
@@ -237,6 +241,7 @@ func main() {
 			Meters:              meterRepository,
 			PortalTokenStrategy: portalTokenStrategy,
 			PortalCORSEnabled:   conf.Portal.CORS.Enabled,
+			ErrorHandler:        errorsx.NewAppHandler(errorsx.NewSlogHandler(logger)),
 		},
 		RouterHook: func(r chi.Router) {
 			r.Use(func(h http.Handler) http.Handler {

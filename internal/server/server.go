@@ -31,8 +31,6 @@ type Config struct {
 }
 
 func NewServer(config *Config) (*Server, error) {
-	defaultLogger := slog.Default()
-
 	// Get the OpenAPI spec
 	swagger, err := api.GetSwagger()
 	if err != nil {
@@ -77,10 +75,10 @@ func NewServer(config *Config) (*Server, error) {
 	}
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		models.NewStatusProblem(r.Context(), nil, http.StatusNotFound).Respond(defaultLogger, w, r)
+		models.NewStatusProblem(r.Context(), nil, http.StatusNotFound).Respond(w, r)
 	})
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-		models.NewStatusProblem(r.Context(), nil, http.StatusMethodNotAllowed).Respond(defaultLogger, w, r)
+		models.NewStatusProblem(r.Context(), nil, http.StatusMethodNotAllowed).Respond(w, r)
 	})
 
 	// Serve the OpenAPI spec
@@ -92,10 +90,10 @@ func NewServer(config *Config) (*Server, error) {
 	_ = api.HandlerWithOptions(impl, api.ChiServerOptions{
 		BaseRouter: r,
 		Middlewares: []api.MiddlewareFunc{
-			authenticator.NewAuthenticator(config.RouterConfig.PortalTokenStrategy).NewAuthenticatorMiddlewareFunc(swagger),
+			authenticator.NewAuthenticator(config.RouterConfig.PortalTokenStrategy, config.RouterConfig.ErrorHandler).NewAuthenticatorMiddlewareFunc(swagger),
 			oapimiddleware.OapiRequestValidatorWithOptions(swagger, &oapimiddleware.Options{
 				ErrorHandler: func(w http.ResponseWriter, message string, statusCode int) {
-					models.NewStatusProblem(context.Background(), errors.New(message), statusCode).Respond(defaultLogger, w, nil)
+					models.NewStatusProblem(context.Background(), errors.New(message), statusCode).Respond(w, nil)
 				},
 				Options: openapi3filter.Options{
 					// Unfortunately, the OpenAPI 3 filter library doesn't support context changes
@@ -105,7 +103,9 @@ func NewServer(config *Config) (*Server, error) {
 			}),
 		},
 		ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
-			models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(defaultLogger, w, r)
+			config.RouterConfig.ErrorHandler.HandleContext(r.Context(), err)
+
+			models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
 		},
 	})
 
