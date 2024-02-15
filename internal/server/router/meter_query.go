@@ -21,7 +21,7 @@ import (
 func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlug string, params api.QueryMeterParams) {
 	ctx := contextx.WithAttr(r.Context(), "operation", "queryMeter")
 	ctx = contextx.WithAttr(ctx, "id", meterIDOrSlug)
-	ctx = contextx.WithAttr(ctx, "params", params) // TODO: HOW ABOUT NO????
+	ctx = contextx.WithAttr(ctx, "params", params) // TODO: we should probable NOT add this to the context
 
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 

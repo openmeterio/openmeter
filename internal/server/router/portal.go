@@ -72,7 +72,7 @@ func (a *Router) InvalidatePortalTokens(w http.ResponseWriter, r *http.Request) 
 func (a *Router) QueryPortalMeter(w http.ResponseWriter, r *http.Request, meterSlug string, params api.QueryPortalMeterParams) {
 	ctx := contextx.WithAttr(r.Context(), "operation", "queryPortalMeter")
 	ctx = contextx.WithAttr(ctx, "meterSlug", meterSlug)
-	ctx = contextx.WithAttr(ctx, "params", params) // TODO: HOW ABOUT NO?
+	ctx = contextx.WithAttr(ctx, "params", params) // TODO: we should probable NOT add this to the context
 
 	subject := authenticator.GetAuthenticatedSubject(ctx)
 	if subject == "" {
