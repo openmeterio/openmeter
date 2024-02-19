@@ -30,7 +30,7 @@ require (
 	github.com/peterbourgon/ctxdata/v4 v4.0.0
 	github.com/prometheus/client_golang v1.18.0
 	github.com/redis/go-redis/extra/redisotel/v9 v9.0.5
-	github.com/redis/go-redis/v9 v9.4.0
+	github.com/redis/go-redis/v9 v9.5.0
 	github.com/sagikazarmark/mapstructurex v0.0.1
 	github.com/sagikazarmark/slog-shim v0.1.0
 	github.com/samber/lo v1.39.0
