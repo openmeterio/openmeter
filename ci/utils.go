@@ -94,8 +94,14 @@ func newPipeline(ctx context.Context) *pipeline {
 	}
 }
 
-func (p *pipeline) addStep(s func(context.Context) error) {
-	p.pool.Go(s)
+func (p *pipeline) addJob(job func(context.Context) error) {
+	p.pool.Go(job)
+}
+
+func (p *pipeline) addJobs(jobs ...func(context.Context) error) {
+	for _, job := range jobs {
+		p.pool.Go(job)
+	}
 }
 
 func (p *pipeline) wait() error {

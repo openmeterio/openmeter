@@ -54,43 +54,20 @@ func New(
 func (m *Ci) Ci(ctx context.Context) error {
 	p := newPipeline(ctx)
 
-	p.addStep(wrapSyncable(m.Test()))
-	p.addStep(m.Lint().All)
+	p.addJobs(
+		wrapSyncable(m.Test()),
+		m.Lint().All,
 
-	// TODO: run trivy scan on container(s?)
-	// TODO: version should be the commit hash (if any?)?
-	p.addStep(wrapSyncables(m.Build().containerImages("ci")))
-	// p.addStep(func(ctx context.Context) error {
-	// 	images := m.Build().containerImages("ci")
-	//
-	// 	for _, image := range images {
-	// 		_, err := image.Sync(ctx)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 	}
-	//
-	// 	return nil
-	// })
+		// TODO: run trivy scan on container(s?)
+		// TODO: version should be the commit hash (if any?)?
+		wrapSyncables(m.Build().containerImages("ci")),
 
-	// TODO: run trivy scan on helm chart
-	p.addStep(wrapSyncable(m.Build().HelmChart("openmeter", "0.0.0")))
-	p.addStep(wrapSyncable(m.Build().HelmChart("benthos-collector", "0.0.0")))
+		// TODO: run trivy scan on helm chart
+		wrapSyncable(m.Build().HelmChart("openmeter", "0.0.0")),
+		wrapSyncable(m.Build().HelmChart("benthos-collector", "0.0.0")),
 
-	p.addStep(wrapSyncables(m.releaseAssets("ci")))
-
-	// p.addStep(func(ctx context.Context) error {
-	// 	files := m.releaseAssets("ci")
-	//
-	// 	for _, file := range files {
-	// 		_, err := file.Sync(ctx)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 	}
-	//
-	// 	return nil
-	// })
+		wrapSyncables(m.releaseAssets("ci")),
+	)
 
 	return p.wait()
 }
