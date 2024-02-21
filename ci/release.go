@@ -5,44 +5,43 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-
-	"golang.org/x/sync/errgroup"
 )
 
 func (m *Ci) Release(ctx context.Context, version string, githubActor string, githubToken *Secret) error {
-	var group errgroup.Group
+	p := newPipeline(ctx)
 
-	group.Go(func() error {
-		return m.pushHelmChart(ctx, "openmeter", version, githubActor, githubToken)
-	})
+	p.addJobs(
+		func(ctx context.Context) error {
+			return m.pushHelmChart(ctx, "openmeter", version, githubActor, githubToken)
+		},
 
-	group.Go(func() error {
-		return m.pushHelmChart(ctx, "benthos-collector", version, githubActor, githubToken)
-	})
+		func(ctx context.Context) error {
+			return m.pushHelmChart(ctx, "benthos-collector", version, githubActor, githubToken)
+		},
 
-	// Binaries
-	group.Go(func() error {
-		if githubToken == nil {
-			return errors.New("GitHub token is required to publish a release")
-		}
+		func(ctx context.Context) error {
+			if githubToken == nil {
+				return errors.New("GitHub token is required to publish a release")
+			}
 
-		releaseAssets := m.releaseAssets(version)
+			releaseAssets := m.releaseAssets(version)
 
-		_, err := dag.Gh(GhOpts{
-			Version: ghVersion,
-			Token:   githubToken,
-			Repo:    "openmeterio/openmeter",
-		}).Release().Create(version, version, GhReleaseCreateOpts{
-			Files:         releaseAssets,
-			GenerateNotes: true,
-			Latest:        true,
-			VerifyTag:     true,
-		}).Sync(ctx)
+			_, err := dag.Gh(GhOpts{
+				Version: ghVersion,
+				Token:   githubToken,
+				Repo:    "openmeterio/openmeter",
+			}).Release().Create(version, version, GhReleaseCreateOpts{
+				Files:         releaseAssets,
+				GenerateNotes: true,
+				Latest:        true,
+				VerifyTag:     true,
+			}).Sync(ctx)
 
-		return err
-	})
+			return err
+		},
+	)
 
-	return group.Wait()
+	return p.wait()
 }
 
 func (m *Ci) pushHelmChart(ctx context.Context, name string, version string, githubActor string, githubToken *Secret) error {
