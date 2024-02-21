@@ -560,7 +560,6 @@ components:
         - slug
         - aggregation
         - eventType
-        - windowSize
     MeterAggregation:
       type: string
       x-go-type: models.MeterAggregation
