@@ -33,27 +33,13 @@ jobs:
       security-events: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-
-      - name: Set up Nix
-        uses: cachix/install-nix-action@6004951b182f8860210c8d6f0d808ec5b1a33d28 # v25
+      - name: Run pipeline
+        uses: dagger/dagger-for-github@e86a41a730841597c2b728134e83596e4e9c7804 # v5.1.0
         with:
-          extra_nix_config: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up magic Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@eeabdb06718ac63a7021c6132129679a8e22d0c7 # v3
-
-      - name: Prepare Nix shell
-        run: nix develop --impure .#ci
-
-      - name: Release
-        run: nix develop --impure .#ci -c dagger call release --version ${{ github.ref_name }} --github-actor ${{ github.actor }} --github-token GITHUB_TOKEN
+          verb: call
+          module: github.com/${{ github.repository }}/ci@${{ github.ref }}
+          args: --checkout ${{ github.ref }} release --version ${{ github.ref_name }} --github-actor ${{ github.actor }} --github-token GITHUB_TOKEN
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          version: "0.9.7"
         env:
-          DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
-
-      - name: Stop Engine
-        run: docker stop -t 300 $(docker ps --filter name="dagger-engine-*" -q)
-        if: always()
