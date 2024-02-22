@@ -123,6 +123,11 @@ func (d createMeterView) toSQL() (string, []interface{}, error) {
 	orderBy := []string{"windowstart", "windowend", "subject"}
 	sortedGroupBy := sortedKeys(d.GroupBy)
 	for _, k := range sortedGroupBy {
+		// Skip empty keys
+		if k == "" {
+			continue
+		}
+
 		columnName := sqlbuilder.Escape(k)
 		orderBy = append(orderBy, sqlbuilder.Escape(columnName))
 		columns = append(columns, column{Name: columnName, Type: "String"})
@@ -191,6 +196,12 @@ func (d createMeterView) toSelectSQL() (string, error) {
 	sortedGroupBy := sortedKeys(d.GroupBy)
 	for _, k := range sortedGroupBy {
 		v := d.GroupBy[k]
+
+		// Skip empty keys or values
+		if k == "" || v == "" {
+			continue
+		}
+
 		columnName := sqlbuilder.Escape(k)
 		orderBy = append(orderBy, sqlbuilder.Escape(columnName))
 		selects = append(selects, fmt.Sprintf("JSON_VALUE(data, '%s') as %s", sqlbuilder.Escape(v), sqlbuilder.Escape(k)))
@@ -298,6 +309,11 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 	}
 
 	for _, column := range d.GroupBy {
+		// Skip empty column names
+		if column == "" {
+			continue
+		}
+
 		c := sqlbuilder.Escape(column)
 		selectColumns = append(selectColumns, c)
 		groupByColumns = append(groupByColumns, c)
