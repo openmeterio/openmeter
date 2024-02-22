@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-
-	"github.com/sourcegraph/conc/pool"
 )
 
 const (
@@ -54,44 +52,24 @@ func New(
 }
 
 func (m *Ci) Ci(ctx context.Context) error {
-	p := pool.New().WithErrors().WithContext(ctx)
+	p := newPipeline(ctx)
 
-	p.Go(syncFunc(m.Test()))
-	p.Go(m.Lint().All)
+	p.addJobs(
+		wrapSyncable(m.Test()),
+		m.Lint().All,
 
-	// TODO: run trivy scan on container(s?)
-	// TODO: version should be the commit hash (if any?)?
-	p.Go(func(ctx context.Context) error {
-		images := m.Build().containerImages("ci")
+		// TODO: run trivy scan on container(s?)
+		// TODO: version should be the commit hash (if any?)?
+		wrapSyncables(m.Build().containerImages("ci")),
 
-		for _, image := range images {
-			_, err := image.Sync(ctx)
-			if err != nil {
-				return err
-			}
-		}
+		// TODO: run trivy scan on helm chart
+		wrapSyncable(m.Build().HelmChart("openmeter", "0.0.0")),
+		wrapSyncable(m.Build().HelmChart("benthos-collector", "0.0.0")),
 
-		return nil
-	})
+		wrapSyncables(m.releaseAssets("ci")),
+	)
 
-	// TODO: run trivy scan on helm chart
-	p.Go(syncFunc(m.Build().HelmChart("openmeter", "0.0.0")))
-	p.Go(syncFunc(m.Build().HelmChart("benthos-collector", "0.0.0")))
-
-	p.Go(func(ctx context.Context) error {
-		files := m.releaseAssets("ci")
-
-		for _, file := range files {
-			_, err := file.Sync(ctx)
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
-	})
-
-	return p.Wait()
+	return p.wait()
 }
 
 func (m *Ci) Test() *Container {
