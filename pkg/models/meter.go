@@ -226,6 +226,15 @@ func (m *Meter) Validate() error {
 		if !strings.HasPrefix(value, "$") {
 			return fmt.Errorf("meter group by value must start with $ for key %s", key)
 		}
+		if strings.TrimSpace(key) == "" {
+			return fmt.Errorf("meter group by key cannot be empty")
+		}
+		// keys must be unique
+		seen := make(map[string]struct{}, len(m.GroupBy))
+		if _, ok := seen[key]; ok {
+			return fmt.Errorf("meter group by key %s is not unique", key)
+		}
+		seen[key] = struct{}{}
 	}
 
 	return nil
