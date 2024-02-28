@@ -24,7 +24,7 @@ jobs:
 
   dagger:
     name: Dagger
-    runs-on: ubuntu-latest-large
+    runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
 
     permissions:
       contents: write

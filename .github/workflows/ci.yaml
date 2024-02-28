@@ -228,7 +228,7 @@ jobs:
 
   dagger:
     name: CI
-    runs-on: ubuntu-latest-large
+    runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
 
     steps:
       - name: Run pipeline
