@@ -14,7 +14,7 @@ meters:
   # Sample meter to count API requests
   - slug: api_request               # Unique identifier for the meter
     description: API Requests
-    eventType: api_request          # Filter events by type
+    eventType: request              # Filter events by type
     aggregation: COUNT              # Aggregation method: COUNT, SUM, etc.
     groupBy:
       method: $.method              # HTTP Method: GET, POST, etc.
