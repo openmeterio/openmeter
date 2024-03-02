@@ -11,21 +11,24 @@ sink:
   namespaceRefetch: 1s
 
 meters:
-  - slug: m1
-    description: API calls
-    eventType: api-calls
-    valueProperty: $.duration_ms
-    aggregation: SUM
+  # Sample meter to count API requests
+  - slug: api_request               # Unique identifier for the meter
+    description: API Requests
+    eventType: api_request          # Filter events by type
+    aggregation: COUNT              # Aggregation method: COUNT, SUM, etc.
     groupBy:
-      method: $.method
-      path: $.path
-  - slug: m2
-    description: Open AI Tokens
-    eventType: openai
-    valueProperty: $.total_tokens
+      method: $.method              # HTTP Method: GET, POST, etc.
+      route: $.route                # Route: /products/:product_id
+
+  # Sample meter to count LLM Token Usage
+  - slug: token_usage
+    description: AI Token Usage
+    eventType: prompt               # Filter events by type
     aggregation: SUM
+    valueProperty: $.tokens         # JSONPath to parse usage value
     groupBy:
-      model: $.model
+      model: $.model                # AI model used: gpt4-turbo, etc.
+      type: $.type                  # Prompt type: input, output, system
 
 portal:
   enabled: true

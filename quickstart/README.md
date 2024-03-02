@@ -31,15 +31,14 @@ curl -X POST http://localhost:8888/api/v1/events \
 --data-raw '
 {
   "specversion" : "1.0",
-  "type": "api-calls",
+  "type": "api_request",
   "id": "00001",
   "time": "2023-01-01T00:00:00.001Z",
   "source": "service-0",
   "subject": "customer-1",
   "data": {
-    "duration_ms": "1",
     "method": "GET",
-    "path": "/hello"
+    "route": "/hello"
   }
 }
 '
@@ -53,15 +52,14 @@ curl -X POST http://localhost:8888/api/v1/events \
 --data-raw '
 {
   "specversion" : "1.0",
-  "type": "api-calls",
+  "type": "api_request",
   "id": "00002",
   "time": "2023-01-01T00:00:00.001Z",
   "source": "service-0",
   "subject": "customer-1",
   "data": {
-    "duration_ms": "1",
     "method": "GET",
-    "path": "/hello"
+    "route": "/hello"
   }
 }
 '
@@ -75,15 +73,14 @@ curl -X POST http://localhost:8888/api/v1/events \
 --data-raw '
 {
   "specversion" : "1.0",
-  "type": "api-calls",
+  "type": "api_request",
   "id": "00003",
   "time": "2023-01-02T00:00:00.001Z",
   "source": "service-0",
   "subject": "customer-1",
   "data": {
-    "duration_ms": "1",
     "method": "GET",
-    "path": "/hello"
+    "route": "/hello"
   }
 }
 '
@@ -94,7 +91,7 @@ curl -X POST http://localhost:8888/api/v1/events \
 Query the usage hourly:
 
 ```sh
-curl 'http://localhost:8888/api/v1/meters/m1/query?windowSize=HOUR&groupBy=method&groupBy=path' | jq
+curl 'http://localhost:8888/api/v1/meters/api_request/query?windowSize=HOUR&groupBy=method&groupBy=route' | jq
 ```
 
 ```json
@@ -108,7 +105,7 @@ curl 'http://localhost:8888/api/v1/meters/m1/query?windowSize=HOUR&groupBy=metho
       "subject": null,
       "groupBy": {
         "method": "GET",
-        "path": "/hello"
+        "route": "/hello"
       }
     },
     {
@@ -118,7 +115,7 @@ curl 'http://localhost:8888/api/v1/meters/m1/query?windowSize=HOUR&groupBy=metho
       "subject": null,
       "groupBy": {
         "method": "GET",
-        "path": "/hello"
+        "route": "/hello"
       }
     }
   ]
@@ -128,7 +125,7 @@ curl 'http://localhost:8888/api/v1/meters/m1/query?windowSize=HOUR&groupBy=metho
 Query the total usage for `customer-1`:
 
 ```sh
-curl 'http://localhost:8888/api/v1/meters/m1/query?subject=customer-1' | jq
+curl 'http://localhost:8888/api/v1/meters/api_request/query?subject=customer-1' | jq
 ```
 
 ```json
@@ -147,21 +144,25 @@ curl 'http://localhost:8888/api/v1/meters/m1/query?subject=customer-1' | jq
 
 ## 4. Configure additional meter(s) _(optional)_
 
-Configure how OpenMeter should process your usage events.
-In this example we will meter the execution duration per API invocation, groupped by method and path.
-You can think about it how AWS Lambda [charges](https://aws.amazon.com/lambda/pricing/) by execution duration on a millisecond level.
+In this example we will meter LLM token usage, groupped by AI model and prompt type.
+You can think about it how OpenAI [charges](https://openai.com/pricing) by tokens for ChatGPT.
+
+Configure how OpenMeter should process your usage events in this new `token_usage` meter.
 
 ```yaml
 # ...
 
 meters:
-  - slug: m1
-    eventType: api-calls
-    valueProperty: $.duration_ms
+  # Sample meter to count LLM Token Usage
+  - slug: token_usage
+    description: AI Token Usage
+    eventType: prompt               # Filter events by type
     aggregation: SUM
+    valueProperty: $.tokens         # JSONPath to parse usage value
     groupBy:
-      method: $.method
-      path: $.path
+      model: $.model                # AI model used: gpt4-turbo, etc.
+      type: $.type                  # Prompt type: input, output, system
+
 ```
 
 ## Cleanup
