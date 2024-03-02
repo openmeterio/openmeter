@@ -19,7 +19,7 @@ telemetry:
 
 meters:
   # Sample meter to count API requests
-  - slug: api_request               # Unique identifier for the meter
+  - slug: api_requests              # Unique identifier for the meter
     description: API Requests
     eventType: request              # Filter events by type
     aggregation: COUNT              # Aggregation method: COUNT, SUM, etc.
@@ -28,7 +28,7 @@ meters:
       route: $.route                # Route: /products/:product_id
 
   # Sample meter to count LLM Token Usage
-  - slug: token_usage
+  - slug: tokens
     description: AI Token Usage
     eventType: prompt               # Filter events by type
     aggregation: SUM
