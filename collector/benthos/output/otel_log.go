@@ -1,31 +1,25 @@
 package output
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"errors"
-	"io"
-	"net/http"
 
 	"github.com/benthosdev/benthos/v4/public/service"
-
-	openmeter "github.com/openmeterio/openmeter/api/client/go"
+	collogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
+	logspb "go.opentelemetry.io/proto/otlp/logs/v1"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func otelLogOutputConfig() *service.ConfigSpec {
 	return service.NewConfigSpec().
 		Beta().
 		Categories("Services").
-		Summary("Sends events the OpenMeter ingest API.").
+		Summary("Export logs to an OTLP log collector service.").
 		Description("").
 		Fields(
-			service.NewURLField("url").
-				Description("OpenMeter API endpoint"),
-			service.NewStringField("token").
-				Description("OpenMeter API token").
-				Secret().
-				Optional(),
+			service.NewStringField("address").
+				Description("OTLP gRPC endpoint"),
 
 			service.NewBatchPolicyField("batching"),
 			service.NewOutputMaxInFlightField().Default(10),
@@ -58,114 +52,73 @@ func init() {
 }
 
 type otelLogOutput struct {
-	client openmeter.ClientWithResponsesInterface
+	address string
+
+	conn   *grpc.ClientConn
+	client collogspb.LogsServiceClient
 }
 
 func newOtelLogOutput(conf *service.ParsedConfig) (*otelLogOutput, error) {
-	url, err := conf.FieldString("url")
+	address, err := conf.FieldString("address")
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: custom HTTP client
-	var client openmeter.ClientWithResponsesInterface
-
-	if conf.Contains("token") {
-		token, err := conf.FieldString("token")
-		if err != nil {
-			return nil, err
-		}
-
-		client, err = openmeter.NewAuthClientWithResponses(url, token)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		var err error
-
-		client, err = openmeter.NewClientWithResponses(url)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	return &otelLogOutput{
-		client: client,
+		address: address,
 	}, nil
 }
 
-func (out *otelLogOutput) Connect(_ context.Context) error {
-	return nil
-}
-
-// TODO: add schema validation
-func (out *otelLogOutput) WriteBatch(ctx context.Context, batch service.MessageBatch) error {
-	// if there is only one message use the single message endpoint
-	// otherwise use the batch endpoint
-	// if validation is enabled, try to parse the message as cloudevents first
-	//
-
-	var contentType string
-	var body io.Reader
-
-	// No need to send a batch if there is only one message
-	if len(batch) == 1 {
-		contentType = "application/cloudevents+json"
-
-		b, err := batch[0].AsBytes()
-		if err != nil {
-			return err
-		}
-
-		body = bytes.NewReader(b)
-	} else {
-		contentType = "application/cloudevents-batch+json"
-
-		events := make([]any, 0, len(batch))
-
-		err := batch.WalkWithBatchedErrors(func(_ int, msg *service.Message) error {
-			e, err := msg.AsStructured()
-			if err != nil {
-				return err
-			}
-
-			events = append(events, e)
-
-			return nil
-		})
-		if err != nil {
-			return err
-		}
-
-		var b bytes.Buffer
-
-		err = json.NewEncoder(&b).Encode(events)
-		if err != nil {
-			return err
-		}
-
-		body = &b
+func (out *otelLogOutput) Connect(ctx context.Context) error {
+	if out.conn != nil {
+		out.conn.Close()
+		out.conn = nil
 	}
 
-	resp, err := out.client.IngestEventsWithBodyWithResponse(ctx, contentType, body)
+	conn, err := grpc.DialContext(ctx, out.address, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return err
 	}
 
-	// TODO: improve error handling
-	if resp.StatusCode() != http.StatusNoContent {
-		if err := resp.ApplicationproblemJSON400; err != nil {
-			return err
-		} else if err := resp.ApplicationproblemJSONDefault; err != nil {
+	out.conn = conn
+	out.client = collogspb.NewLogsServiceClient(conn)
+
+	return nil
+}
+
+func (out *otelLogOutput) WriteBatch(ctx context.Context, batch service.MessageBatch) error {
+	var resourceLogs []*logspb.ResourceLogs
+
+	for _, msg := range batch {
+		var resourceLog logspb.ResourceLogs
+
+		b, err := msg.AsBytes()
+		if err != nil {
 			return err
 		}
 
-		return errors.New("unknown error")
+		err = protojson.Unmarshal(b, &resourceLog)
+		if err != nil {
+			return err
+		}
+
+		resourceLogs = append(resourceLogs, &resourceLog)
+	}
+
+	req := &collogspb.ExportLogsServiceRequest{
+		ResourceLogs: resourceLogs,
+	}
+
+	_, err := out.client.Export(ctx, req)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
 func (out *otelLogOutput) Close(_ context.Context) error {
+	out.conn.Close()
+
 	return nil
 }
