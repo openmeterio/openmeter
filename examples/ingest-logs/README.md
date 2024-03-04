@@ -18,6 +18,6 @@ Transformations in Vector uses the [Vector Remap Language](https://vector.dev/do
 
 1. First, start OpenMeter. Refer to the [quickstart guide](/quickstart) for instructions.
 2. Execute `docker compose up` within this example directory.
-3. To query meters, use the following command: `curl http://localhost:8888/api/v1/meters/m1/values`.
+3. To query meters, use the following command: `curl http://localhost:8888/api/v1/meters/api_requests_total/values`.
 
 Note: It's important that you run quickstart's `docker compose` first.
