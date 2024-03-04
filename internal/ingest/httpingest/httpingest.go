@@ -53,14 +53,20 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, namespace str
 	contentType := r.Header.Get("Content-Type")
 
 	var err error
+	var handled bool
 	switch contentType {
 	case "application/cloudevents+json":
-		err = h.processSingleRequest(ctx, w, r, namespace)
+		err, handled = h.processSingleRequest(ctx, w, r, namespace)
 	case "application/cloudevents-batch+json":
-		err = h.processBatchRequest(ctx, w, r, namespace)
+		err, handled = h.processBatchRequest(ctx, w, r, namespace)
 	default:
 		// this should never happen
-		err = errors.New("invalid content type: " + contentType)
+		models.NewStatusProblem(ctx, errors.New("invalid content type: "+contentType), http.StatusBadRequest).Respond(w, r)
+		handled = true
+	}
+
+	if handled {
+		return
 	}
 
 	if err != nil {
@@ -73,38 +79,42 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, namespace str
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h Handler) processBatchRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, namespace string) error {
+func (h Handler) processBatchRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, namespace string) (error, bool) {
 	var events api.IngestEventsApplicationCloudeventsBatchPlusJSONBody
 
 	err := json.NewDecoder(r.Body).Decode(&events)
 	if err != nil {
-		return fmt.Errorf("parsing event: %w", err)
+		models.NewStatusProblem(ctx, fmt.Errorf("parsing event: %w", err), http.StatusBadRequest).Respond(w, r)
+
+		return nil, true
 	}
 
 	for _, event := range events {
 		err = h.processEvent(ctx, event, namespace)
 		if err != nil {
-			return err
+			return err, false
 		}
 	}
 
-	return nil
+	return nil, false
 }
 
-func (h Handler) processSingleRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, namespace string) error {
+func (h Handler) processSingleRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, namespace string) (error, bool) {
 	var event api.IngestEventsApplicationCloudeventsPlusJSONRequestBody
 
 	err := json.NewDecoder(r.Body).Decode(&event)
 	if err != nil {
-		return fmt.Errorf("parsing event: %w", err)
+		models.NewStatusProblem(ctx, fmt.Errorf("parsing event: %w", err), http.StatusBadRequest).Respond(w, r)
+
+		return nil, true
 	}
 
 	err = h.processEvent(r.Context(), event, namespace)
 	if err != nil {
-		return err
+		return err, false
 	}
 
-	return nil
+	return nil, false
 }
 
 func (h Handler) processEvent(ctx context.Context, event event.Event, namespace string) error {
