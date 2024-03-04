@@ -91,7 +91,7 @@ curl -X POST http://localhost:8888/api/v1/events \
 Query the usage hourly:
 
 ```sh
-curl 'http://localhost:8888/api/v1/meters/api_requests/query?windowSize=HOUR&groupBy=method&groupBy=route' | jq
+curl 'http://localhost:8888/api/v1/meters/api_requests_total/query?windowSize=HOUR&groupBy=method&groupBy=route' | jq
 ```
 
 ```json
@@ -125,7 +125,7 @@ curl 'http://localhost:8888/api/v1/meters/api_requests/query?windowSize=HOUR&gro
 Query the total usage for `customer-1`:
 
 ```sh
-curl 'http://localhost:8888/api/v1/meters/api_requests/query?subject=customer-1' | jq
+curl 'http://localhost:8888/api/v1/meters/api_requests_total/query?subject=customer-1' | jq
 ```
 
 ```json
@@ -147,14 +147,14 @@ curl 'http://localhost:8888/api/v1/meters/api_requests/query?subject=customer-1'
 In this example we will meter LLM token usage, groupped by AI model and prompt type.
 You can think about it how OpenAI [charges](https://openai.com/pricing) by tokens for ChatGPT.
 
-Configure how OpenMeter should process your usage events in this new `tokens` meter.
+Configure how OpenMeter should process your usage events in this new `tokens_total` meter.
 
 ```yaml
 # ...
 
 meters:
   # Sample meter to count LLM Token Usage
-  - slug: tokens
+  - slug: tokens_total
     description: AI Token Usage
     eventType: prompt               # Filter events by type
     aggregation: SUM

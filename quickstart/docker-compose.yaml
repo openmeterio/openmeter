@@ -16,7 +16,7 @@ services:
     volumes:
       - ./config.yaml:/etc/openmeter/config.yaml
     healthcheck:
-      test: wget --no-verbose --tries=1 --spider http://openmeter:8888/api/v1/meters/api_requests/query || exit 1
+      test: wget --no-verbose --tries=1 --spider http://openmeter:8888/api/v1/meters/api_requests_total/query || exit 1
       interval: 5s
       timeout: 3s
       retries: 100
