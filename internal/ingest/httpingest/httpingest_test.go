@@ -77,6 +77,27 @@ func TestHandler(t *testing.T) {
 	assert.Equal(t, receivedEvent.Time(), ev.Time())
 }
 
+func TestHandler_InvalidEvent(t *testing.T) {
+	collector := ingest.NewInMemoryCollector()
+	httpHandler, err := NewHandler(HandlerConfig{
+		Collector:        collector,
+		NamespaceManager: namespaceManager,
+		ErrorHandler:     errorsx.NopHandler{},
+	})
+	require.NoError(t, err)
+	handler := MockHandler{
+		handler: httpHandler,
+	}
+
+	server := httptest.NewServer(handler)
+	client := server.Client()
+
+	resp, err := client.Post(server.URL, "application/cloudevents+json", bytes.NewBuffer([]byte(`invalid`)))
+	require.NoError(t, err)
+
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
 func TestBatchHandler(t *testing.T) {
 	collector := ingest.NewInMemoryCollector()
 	httpHandler, err := NewHandler(HandlerConfig{

@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+  forwarder:
+    image: ghcr.io/openmeterio/benthos-collector
+    pull_policy: always
+    command: benthos -c /etc/benthos/config.yaml
+    env_file:
+      - .env
+    environment:
+      OTLP_ADDRESS: 0.0.0.0:4317
+    ports:
+      - 127.0.0.1:4317:4317
+    volumes:
+      - ./config.yaml:/etc/benthos/config.yaml:ro
+
+  seeder:
+    image: ghcr.io/openmeterio/benthos-collector
+    pull_policy: always
+    command: benthos -c /etc/benthos/config.yaml
+    env_file:
+      - .env
+    environment:
+      OTLP_ADDRESS: forwarder:4317
+    volumes:
+      - ./seed/config.yaml:/etc/benthos/config.yaml:ro

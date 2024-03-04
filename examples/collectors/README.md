@@ -8,6 +8,7 @@ The examples use the custom Benthos distribution in this repository.
 - [Generate](generate/) random events
 - [HTTP server](http-server/) (forwarding events to OpenMeter)
 - [Kubernetes Pod execution time](kubernetes-pod-exec-time/)
+- [OpenTelemetry Logs](otel-log/)
 
 ## Prerequisites
 
