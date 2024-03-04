@@ -1,0 +1,95 @@
+input:
+  generate:
+    interval: "${SEEDER_INTERVAL:1s}"
+    mapping: |
+      let max_subjects = ${SEEDER_MAX_SUBJECTS:100}
+
+      let event_type = "api-calls"
+      let source = "api-gateway"
+      let methods = ["GET", "POST"]
+      let paths = ["/", "/about", "/contact", "/pricing", "/docs"]
+      let regions = ["us-east-1", "us-west-1", "us-east-2", "us-west-2"]
+      let zoneSuffixes = ["a", "b", "c", "d"]
+
+      let subject = "customer-%d".format(random_int(seed: timestamp_unix_nano()) % $max_subjects)
+      let time = (now().ts_sub_iso8601("P3D").ts_unix() + random_int(min: 60, max: 60 * 60 * 24 * 3)).ts_format()
+
+      let method = $methods.index(random_int(seed: timestamp_unix_nano()) % $methods.length())
+      let path = $paths.index(random_int(seed: timestamp_unix_nano()) % $paths.length())
+      let region = $regions.index(random_int(seed: timestamp_unix_nano()) % $regions.length())
+      let zone = "%s%s".format($region, $zoneSuffixes.index(random_int(seed: timestamp_unix_nano()) % $zoneSuffixes.length()))
+      let duration = random_int(seed: timestamp_unix_nano(), max: 1000)
+
+      root = {
+        "scope_logs": [
+          {
+            "log_records": [
+              {
+                "severity_number": 9,
+                "severity_text": "INFO",
+                "attributes": [
+                  {
+                    "key": "subject",
+                    "value": {
+                      "stringValue": $subject,
+                    },
+                  },
+                  {
+                    "key": "time",
+                    "value": {
+                      "stringValue": $time,
+                    },
+                  },
+                  {
+                    "key": "method",
+                    "value": {
+                      "stringValue": $method,
+                    },
+                  },
+                  {
+                    "key": "path",
+                    "value": {
+                      "stringValue": $path,
+                    },
+                  },
+                  {
+                    "key": "region",
+                    "value": {
+                      "stringValue": $region,
+                    },
+                  },
+                  {
+                    "key": "zone",
+                    "value": {
+                      "stringValue": $zone,
+                    },
+                  },
+                  {
+                    "key": "duration",
+                    "value": {
+                      "intValue": $duration,
+                    },
+                  },
+                ],
+                "body": {
+                  "stringValue": "this is an access log"
+                },
+              },
+            ],
+          },
+        ],
+      }
+
+output:
+  switch:
+    cases:
+      - check: ""
+        continue: true
+        output:
+          otel_log:
+            address: "${OTLP_ADDRESS}"
+
+      - check: '"${SEEDER_LOG:false}" == "true"'
+        output:
+          stdout:
+            codec: lines

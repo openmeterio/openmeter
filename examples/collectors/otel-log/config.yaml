@@ -1,0 +1,48 @@
+input:
+  otel_log:
+    address: "${OTLP_ADDRESS}"
+    timeout: 30s
+
+pipeline:
+  processors:
+    - mapping: |
+        root = {
+          "id": uuid_v4(),
+          "specversion": "1.0",
+          "type": "api-calls",
+          "source": "otlp-log",
+          "time": this.record.attributes.time,
+          "subject": this.record.attributes.subject,
+          "data": {
+            "method": this.record.attributes.method,
+            "path": this.record.attributes.path,
+            "region": this.record.attributes.region,
+            "zone": this.record.attributes.zone,
+            "duration_ms": this.record.attributes.duration,
+          },
+        }
+    - json_schema:
+        schema_path: "file://./cloudevents.spec.json"
+    - catch:
+        - log:
+            level: ERROR
+            message: "Schema validation failed due to: ${!error()}"
+        - mapping: "root = deleted()"
+
+output:
+  switch:
+    cases:
+      - check: ""
+        continue: true
+        output:
+          openmeter:
+            url: "${OPENMETER_URL:https://openmeter.cloud}"
+            token: "${OPENMETER_TOKEN:}"
+            batching:
+              count: ${BATCH_SIZE:20}
+              period: ${BATCH_PERIOD:}
+
+      - check: '"${DEBUG:false}" == "true"'
+        output:
+          stdout:
+            codec: lines
