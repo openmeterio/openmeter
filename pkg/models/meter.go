@@ -4,11 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/oklog/ulid/v2"
 )
+
+var groupByKeyRegExp = regexp.MustCompile(`^[a-zA-Z_][0-9a-zA-Z_]*$`)
 
 type MeterAggregation string
 
@@ -228,6 +231,9 @@ func (m *Meter) Validate() error {
 		}
 		if strings.TrimSpace(key) == "" {
 			return fmt.Errorf("meter group by key cannot be empty")
+		}
+		if !groupByKeyRegExp.MatchString(key) {
+			return fmt.Errorf("meter group by key %s is invalid, only alphanumeric and underscore characters are allowed", key)
 		}
 		// keys must be unique
 		seen := make(map[string]struct{}, len(m.GroupBy))
