@@ -4,7 +4,7 @@ services:
   forwarder:
     image: ghcr.io/openmeterio/benthos-collector
     pull_policy: always
-    command: benthos streams --no-api /etc/benthos/input.yaml /etc/benthos/output.yaml
+    command: streams --no-api /etc/benthos/input.yaml /etc/benthos/output.yaml
     env_file:
       - .env
     ports:
@@ -18,7 +18,7 @@ services:
       - seed
     image: ghcr.io/openmeterio/benthos-collector
     pull_policy: always
-    command: benthos -c /etc/benthos/config.yaml
+    command: -c /etc/benthos/config.yaml
     env_file:
       - .env
     environment:
