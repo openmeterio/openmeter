@@ -11,7 +11,7 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-var groupByKeyRegExp = regexp.MustCompile("^[a-zA-Z0-9_]+$")
+var groupByKeyRegExp = regexp.MustCompile(`^[a-zA-Z_][0-9a-zA-Z_]*$`)
 
 type MeterAggregation string
 
