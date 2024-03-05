@@ -233,7 +233,7 @@ func (m *Meter) Validate() error {
 			return fmt.Errorf("meter group by key cannot be empty")
 		}
 		if !groupByKeyRegExp.MatchString(key) {
-			return fmt.Errorf("meter group by key %s is invalid, only alphanumeric and underscore charahcters are allowed", key)
+			return fmt.Errorf("meter group by key %s is invalid, only alphanumeric and underscore characters are allowed", key)
 		}
 		// keys must be unique
 		seen := make(map[string]struct{}, len(m.GroupBy))

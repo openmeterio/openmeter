@@ -160,7 +160,7 @@ func TestMeterValidation(t *testing.T) {
 				ValueProperty: "$.my_property",
 				GroupBy:       map[string]string{"in-valid": "$.test_group"},
 			},
-			error: fmt.Errorf("meter group by key in-valid is invalid, only alphanumeric and underscore charahcters are allowed"),
+			error: fmt.Errorf("meter group by key in-valid is invalid, only alphanumeric and underscore characters are allowed"),
 		},
 		{
 			description: "invalid group by key",
