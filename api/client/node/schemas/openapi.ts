@@ -189,7 +189,7 @@ export interface components {
        */
       valueProperty?: string
       /**
-       * @description Named JSONPath expressions to extract the group by values from the event data.
+       * @description Named JSONPath expressions to extract the group by values from the event data. Keys must be unique and consist only alphanumeric and underscore characters.
        * @example {
        *   "method": "$.method",
        *   "path": "$.path"
