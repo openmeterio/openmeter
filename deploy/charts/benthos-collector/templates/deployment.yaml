@@ -53,7 +53,7 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - name: config
-              mountPath: /etc/openmeter/config.yaml
+              mountPath: /etc/benthos/config.yaml
               readOnly: true
               subPath: config.yaml
           {{- with .Values.volumeMounts }}

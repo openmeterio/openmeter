@@ -34,4 +34,4 @@ COPY collector/benthos/presets /etc/benthos/presets
 
 COPY --from=builder /usr/local/bin/benthos /usr/local/bin/
 
-CMD benthos
+ENTRYPOINT ["/usr/local/bin/benthos"]

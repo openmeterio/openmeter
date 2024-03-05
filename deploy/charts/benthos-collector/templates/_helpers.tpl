@@ -79,14 +79,14 @@ Create args for the deployment
 */}}
 {{- define "benthos-collector.args" -}}
 {{- if .Values.config -}}
-["benthos", "-c", "/etc/benthos/config.yaml"]
+["-c", "/etc/benthos/config.yaml"]
 {{- else if .Values.configFile -}}
-["benthos", "-c", "{{ .Values.configFile }}"]
+["-c", "{{ .Values.configFile }}"]
 {{- else if .Values.preset }}
 {{- if eq .Values.preset "http-server" -}}
-["benthos", "streams", "--no-api", "/etc/benthos/presets/http-server/input.yaml", "/etc/benthos/presets/http-server/output.yaml"]
+["streams", "--no-api", "/etc/benthos/presets/http-server/input.yaml", "/etc/benthos/presets/http-server/output.yaml"]
 {{- else if eq .Values.preset "kubernetes-pod-exec-time" -}}
-["benthos", "-c", "/etc/benthos/presets/kubernetes-pod-exec-time/config.yaml"]
+["-c", "/etc/benthos/presets/kubernetes-pod-exec-time/config.yaml"]
 {{- else }}
 {{- fail (printf "Invalid example '%s" .Values.preset) }}
 {{- end }}
