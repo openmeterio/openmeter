@@ -4,7 +4,7 @@ services:
   forwarder:
     image: ghcr.io/openmeterio/benthos-collector
     pull_policy: always
-    command: benthos -c /etc/benthos/config.yaml
+    command: -c /etc/benthos/config.yaml
     env_file:
       - .env
     environment:
@@ -17,7 +17,7 @@ services:
   seeder:
     image: ghcr.io/openmeterio/benthos-collector
     pull_policy: always
-    command: benthos -c /etc/benthos/config.yaml
+    command: -c /etc/benthos/config.yaml
     env_file:
       - .env
     environment:
