@@ -24,7 +24,7 @@ jobs:
 
   dagger:
     name: Dagger
-    runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
+    runs-on: ubuntu-latest-large
 
     permissions:
       contents: write
@@ -33,6 +33,9 @@ jobs:
       security-events: write
 
     steps:
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@v1.3.1
+
       - name: Run pipeline
         uses: dagger/dagger-for-github@e86a41a730841597c2b728134e83596e4e9c7804 # v5.1.0
         with:
