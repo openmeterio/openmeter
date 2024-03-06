@@ -3,7 +3,7 @@
 ## Install
 
 ```sh
-go get github.com/openmeterio/openmeter/api/client/go
+go get github.com/openmeterio/openmeter/api/client/go@v1.0.0-beta.53
 ```
 
 ## Usage
