@@ -1,8 +1,8 @@
 apiVersion: v2
 type: application
 name: openmeter
-version: 1.0.0-beta.32
-appVersion: "v1.0.0-beta.32"
+version: 1.0.0-beta.53
+appVersion: "v1.0.0-beta.53"
 description: "Usage Metering for AI, DevOps, and Billing. Built for engineers to collect and aggregate millions of events in real-time."
 icon: https://openmeter.io/favicon.svg
 keywords:
@@ -15,10 +15,10 @@ sources:
   - https://github.com/openmeterio/openmeter
 dependencies:
   - name: strimzi-kafka-operator
-    version: "0.38.0"
+    version: "0.39.0"
     repository: "https://strimzi.io/charts/"
     condition: kafka.operator.install
   - name: altinity-clickhouse-operator
-    version: "0.22.1"
+    version: "0.23.3"
     repository: "https://docs.altinity.com/clickhouse-operator/"
     condition: clickhouse.operator.install
