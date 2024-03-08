@@ -27,7 +27,8 @@ kind create cluster --config ./kind.yaml
 helm upgrade --install --dependency-update -f ./charts/openmeter/values.example.yaml openmeter ./charts/openmeter
 ```
 
-Once the `openmeter` pod is ready, we can use `port-forward` to access the API.
+Once the `openmeter-api` pod is ready, we can use `port-forward` to access the API.
+This might take a few minutes.
 
 ```shell
 kubectl port-forward svc/openmeter-api 8888:80

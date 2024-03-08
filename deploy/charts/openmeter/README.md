@@ -10,8 +10,8 @@ Usage Metering for AI, DevOps, and Billing. Built for engineers to collect and a
 
 | Repository | Name | Version |
 |------------|------|---------|
-| https://docs.altinity.com/clickhouse-operator/ | altinity-clickhouse-operator | 0.22.1 |
-| https://strimzi.io/charts/ | strimzi-kafka-operator | 0.38.0 |
+| https://docs.altinity.com/clickhouse-operator/ | altinity-clickhouse-operator | 0.23.3 |
+| https://strimzi.io/charts/ | strimzi-kafka-operator | 0.39.0 |
 
 ## TL;DR;
 
