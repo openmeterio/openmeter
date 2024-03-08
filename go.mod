@@ -9,7 +9,7 @@ require (
 	github.com/benthosdev/benthos/v4 v4.25.1
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/cloudevents/sdk-go/v2 v2.15.1
-	github.com/confluentinc/confluent-kafka-go/v2 v2.2.0
+	github.com/confluentinc/confluent-kafka-go/v2 v2.3.0
 	github.com/deepmap/oapi-codegen/v2 v2.1.0
 	github.com/getkin/kin-openapi v0.123.0
 	github.com/go-chi/chi/v5 v5.0.12
@@ -332,7 +332,6 @@ require (
 	github.com/trinodb/trino-go-client v0.313.0 // indirect
 	github.com/twmb/franz-go v1.16.1 // indirect
 	github.com/twmb/franz-go/pkg/kmsg v1.7.0 // indirect
-	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/urfave/cli/v2 v2.27.1 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
