@@ -3,7 +3,7 @@
 This example demonstrates how to run an HTTP server that accepts and forwards events to OpenMeter.
 It enables the operation of a low-latency ingestion point near your services, which also handles retries, back pressure, and buffering (if necessary).
 
-The nice thing about this solution is that you can use it as a drop-in replacement for existing integrations since it's compatible with the [OpenMeter Ingest API](https://openmeter.io/docs/getting-started/rest-api).
+The nice thing about this solution is that you can use it as a drop-in replacement for existing integrations since it's compatible with the [OpenMeter Ingest API](https://openmeter.io/docs/getting-started/api).
 This means you can use our existing SDKs; the only thing you need to change is the API endpoint.
 That is, of course, optional: you can use any client library or payload format you prefer and handle the mapping to the [CloudEvents](https://cloudevents.io/) format in a Benthos [`mapping` processor](https://www.benthos.dev/docs/components/processors/mapping/).
 
@@ -65,6 +65,7 @@ meters:
       region: $.region
       zone: $.zone
 ```
+
 </details>
 
 > [!TIP]

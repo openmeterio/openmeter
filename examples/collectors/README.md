@@ -46,7 +46,7 @@ meters:
 
 Once you start ingesting events, you can check them in the [Event debugger](https://openmeter.cloud/ingest/debug) or in the [Query](https://openmeter.cloud/query) page.
 
-If you self-host OpenMeter, you can use the [REST API](https://openmeter.io/docs/getting-started/rest-api) to query data.
+If you self-host OpenMeter, you can use the [REST API](https://openmeter.io/docs/getting-started/api) to query data.
 
 ## Production use
 
