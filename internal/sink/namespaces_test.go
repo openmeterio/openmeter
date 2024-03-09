@@ -101,7 +101,7 @@ func TestNamespaStore(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run("", func(t *testing.T) {
-			err := namespaces.ValidateEvent(ctx, tt.event, tt.namespace)
+			_, err := namespaces.ValidateEvent(ctx, tt.event, tt.namespace)
 			if tt.want == nil {
 				assert.Nil(t, err)
 				return
