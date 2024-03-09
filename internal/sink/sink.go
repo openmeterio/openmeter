@@ -62,7 +62,9 @@ type SinkConfig struct {
 	// the meter configs used in event validation.
 	NamespaceRefetch time.Duration
 	// OnFlushSuccess is an optional lifecycle hook
-	OnFlushSuccess func(string, int64)
+	OnFlushSuccess func(namespace string, count int64)
+	// OnSubjectFlushSuccess is an optional lifecycle hook
+	OnSubjectFlushSuccess func(namespace string, subject string)
 }
 
 func NewSink(config SinkConfig) (*Sink, error) {
@@ -211,11 +213,27 @@ func (s *Sink) flush() error {
 	return nil
 }
 
+type NamespaceSubject struct {
+	Namespace string
+	Subject   string
+}
+
+func (n NamespaceSubject) Key() string {
+	return fmt.Sprintf("%s-%s", n.Namespace, n.Subject)
+}
+
 // reportFlushMetrics reports metrics to OTel
 func (s *Sink) reportFlushMetrics(ctx context.Context, messages []SinkMessage) error {
 	namespacesReport := map[string]int64{}
+	subjectsReport := map[string]NamespaceSubject{}
 
 	for _, message := range messages {
+		item := NamespaceSubject{
+			Namespace: message.Namespace,
+			Subject:   message.Serialized.Subject,
+		}
+		subjectsReport[item.Key()] = item
+
 		namespaceAttr := attribute.String("namespace", message.Namespace)
 		statusAttr := attribute.String("status", "success")
 
@@ -238,6 +256,12 @@ func (s *Sink) reportFlushMetrics(ctx context.Context, messages []SinkMessage) e
 	if s.config.OnFlushSuccess != nil {
 		for namespace, count := range namespacesReport {
 			s.config.OnFlushSuccess(namespace, count)
+		}
+	}
+
+	for _, item := range subjectsReport {
+		if s.config.OnSubjectFlushSuccess != nil {
+			s.config.OnSubjectFlushSuccess(item.Namespace, item.Subject)
 		}
 	}
 
