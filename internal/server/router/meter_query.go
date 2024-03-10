@@ -104,12 +104,6 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 		for k, v := range *params.Filter {
 			// Subject filters
 			if k == "subject" {
-				if len(v) == 0 {
-					err := fmt.Errorf("filter subject is empty")
-					models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
-					return
-				}
-
 				queryParams.Subject = append(queryParams.Subject, v)
 				continue
 			}
@@ -118,12 +112,6 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 			if _, ok := meter.GroupBy[k]; ok {
 				if queryParams.FilterGroupBy == nil {
 					queryParams.FilterGroupBy = map[string][]string{}
-				}
-
-				if len(v) == 0 {
-					err := fmt.Errorf("filter %s is empty", k)
-					models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
-					return
 				}
 
 				queryParams.FilterGroupBy[k] = []string{v}
