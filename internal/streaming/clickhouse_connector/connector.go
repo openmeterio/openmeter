@@ -313,7 +313,7 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		Aggregation:    params.Aggregation,
 		From:           params.From,
 		To:             params.To,
-		Subject:        params.Subject,
+		Subject:        params.FilterSubject,
 		FilterGroupBy:  params.FilterGroupBy,
 		GroupBy:        params.GroupBy,
 		WindowSize:     params.WindowSize,

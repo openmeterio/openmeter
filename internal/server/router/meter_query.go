@@ -75,7 +75,7 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 
 	// Subject is a special query parameter which both filters and groups by subject(s)
 	if params.Subject != nil {
-		queryParams.Subject = *params.Subject
+		queryParams.FilterSubject = *params.Subject
 
 		// Add subject to group by if not already present
 		if !slices.Contains(queryParams.GroupBy, "subject") {
@@ -99,7 +99,7 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 		for k, v := range *params.Filter {
 			// Subject filters
 			if k == "subject" {
-				queryParams.Subject = append(queryParams.Subject, v)
+				queryParams.FilterSubject = append(queryParams.FilterSubject, v)
 				continue
 			}
 
