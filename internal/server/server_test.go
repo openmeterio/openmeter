@@ -320,6 +320,17 @@ func TestRoutes(t *testing.T) {
 			},
 		},
 		{
+			name: "query meter with invalid group by filter",
+			req: testRequest{
+				method:      http.MethodGet,
+				contentType: "application/json",
+				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?filter[invalid]=abcd",
+			},
+			res: testResponse{
+				status: http.StatusBadRequest,
+			},
+		},
+		{
 			name: "query meter as csv",
 			req: testRequest{
 				accept:      "text/csv",

@@ -111,6 +111,10 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 
 				queryParams.FilterGroupBy[k] = []string{v}
 				continue
+			} else {
+				err := fmt.Errorf("invalid group by filter: %s", k)
+				models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+				return
 			}
 		}
 	}
