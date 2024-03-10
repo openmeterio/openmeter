@@ -11,7 +11,7 @@ import (
 type QueryParams struct {
 	From           *time.Time
 	To             *time.Time
-	Subject        []string
+	FilterSubject  []string
 	FilterGroupBy  map[string][]string
 	GroupBy        []string
 	Aggregation    models.MeterAggregation

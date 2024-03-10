@@ -80,7 +80,7 @@ func (c *MockConnector) DeleteMeter(ctx context.Context, namespace string, meter
 func (c *MockConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	value := mockQueryValue
 
-	if params.Subject == nil {
+	if params.FilterSubject == nil {
 		value.Subject = nil
 	}
 
