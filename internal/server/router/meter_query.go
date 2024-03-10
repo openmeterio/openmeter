@@ -78,13 +78,8 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 		queryParams.Subject = *params.Subject
 
 		// Add subject to group by if not already present
-		if params.GroupBy == nil {
-			// If group by is not set, we default to group by subject
-			queryParams.GroupBy = []string{"subject"}
-		} else {
-			if !slices.Contains(queryParams.GroupBy, "subject") {
-				queryParams.GroupBy = append(queryParams.GroupBy, "subject")
-			}
+		if !slices.Contains(queryParams.GroupBy, "subject") {
+			queryParams.GroupBy = append(queryParams.GroupBy, "subject")
 		}
 	}
 
@@ -192,8 +187,17 @@ func (resp QueryMeterResponse) Render(_ http.ResponseWriter, _ *http.Request) er
 }
 
 // RenderCSV renders the response as CSV.
-func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request, groupByKeys []string, meterIDOrSlug string) {
+func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request, _groupByKeys []string, meterIDOrSlug string) {
 	records := [][]string{}
+
+	// Filter out the subject from the group by keys
+	groupByKeys := []string{}
+	for _, k := range groupByKeys {
+		if k == "subject" {
+			continue
+		}
+		groupByKeys = append(groupByKeys, k)
+	}
 
 	// CSV headers
 	headers := []string{"window_start", "window_end", "subject"}

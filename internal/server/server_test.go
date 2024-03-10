@@ -302,6 +302,24 @@ func TestRoutes(t *testing.T) {
 			},
 		},
 		{
+			name: "query meter with filter",
+			req: testRequest{
+				method:      http.MethodGet,
+				contentType: "application/json",
+				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?filter[subject]=s1",
+			},
+			res: testResponse{
+				status: http.StatusOK,
+				body: struct {
+					Data []models.MeterQueryRow `json:"data"`
+				}{
+					Data: []models.MeterQueryRow{
+						{Subject: mockQueryValue.Subject, WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
+					},
+				},
+			},
+		},
+		{
 			name: "query meter as csv",
 			req: testRequest{
 				accept:      "text/csv",
