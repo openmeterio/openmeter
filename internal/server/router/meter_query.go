@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/go-chi/render"
@@ -57,10 +58,6 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 		Aggregation: meter.Aggregation,
 	}
 
-	if params.Subject != nil {
-		queryParams.Subject = *params.Subject
-	}
-
 	if params.GroupBy != nil {
 		for _, groupBy := range *params.GroupBy {
 			// Validate group by, `subject` is a special group by
@@ -76,6 +73,21 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 		}
 	}
 
+	// Subject is a special query parameter which both filters and groups by subject(s)
+	if params.Subject != nil {
+		queryParams.Subject = *params.Subject
+
+		// Add subject to group by if not already present
+		if params.GroupBy == nil {
+			// If group by is not set, we default to group by subject
+			queryParams.GroupBy = []string{"subject"}
+		} else {
+			if !slices.Contains(queryParams.GroupBy, "subject") {
+				queryParams.GroupBy = append(queryParams.GroupBy, "subject")
+			}
+		}
+	}
+
 	if params.WindowTimeZone != nil {
 		tz, err := time.LoadLocation(*params.WindowTimeZone)
 		if err != nil {
@@ -86,6 +98,38 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 			return
 		}
 		queryParams.WindowTimeZone = tz
+	}
+
+	if params.Filter != nil {
+		for k, v := range *params.Filter {
+			// Subject filters
+			if k == "subject" {
+				if len(v) == 0 {
+					err := fmt.Errorf("filter subject is empty")
+					models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+					return
+				}
+
+				queryParams.Subject = append(queryParams.Subject, v)
+				continue
+			}
+
+			// GroupBy filters
+			if _, ok := meter.GroupBy[k]; ok {
+				if queryParams.FilterGroupBy == nil {
+					queryParams.FilterGroupBy = map[string][]string{}
+				}
+
+				if len(v) == 0 {
+					err := fmt.Errorf("filter %s is empty", k)
+					models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+					return
+				}
+
+				queryParams.FilterGroupBy[k] = []string{v}
+				continue
+			}
+		}
 	}
 
 	if err := queryParams.Validate(meter.WindowSize); err != nil {

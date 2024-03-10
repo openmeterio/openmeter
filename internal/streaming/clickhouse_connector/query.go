@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/huandu/go-sqlbuilder"
-	"golang.org/x/exp/slices"
 
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -290,11 +289,6 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 		selectColumns = append(selectColumns, "toFloat64(countMerge(value)) AS value")
 	default:
 		return "", nil, fmt.Errorf("invalid aggregation type: %s", d.Aggregation)
-	}
-
-	// Grouping by subject is required when filtering for a subject
-	if len(d.Subject) > 0 && !slices.Contains(d.GroupBy, "subject") {
-		d.GroupBy = append([]string{"subject"}, d.GroupBy...)
 	}
 
 	for _, column := range d.GroupBy {
