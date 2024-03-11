@@ -8,7 +8,7 @@ require (
 	github.com/avast/retry-go/v4 v4.5.1
 	github.com/benthosdev/benthos/v4 v4.25.1
 	github.com/brianvoe/gofakeit/v6 v6.28.0
-	github.com/cloudevents/sdk-go/v2 v2.15.1
+	github.com/cloudevents/sdk-go/v2 v2.15.2
 	github.com/confluentinc/confluent-kafka-go/v2 v2.2.0
 	github.com/deepmap/oapi-codegen/v2 v2.1.0
 	github.com/getkin/kin-openapi v0.123.0
