@@ -213,22 +213,22 @@ func (resp QueryMeterResponse) Render(_ http.ResponseWriter, _ *http.Request) er
 }
 
 // RenderCSV renders the response as CSV.
-func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request, _groupByKeys []string, meterIDOrSlug string) {
+func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request, groupByKeys []string, meterIDOrSlug string) {
 	records := [][]string{}
 
 	// Filter out the subject from the group by keys
-	groupByKeys := []string{}
+	dataGroupByKeys := make([]string, 0, len(groupByKeys))
 	for _, k := range groupByKeys {
 		if k == "subject" {
 			continue
 		}
-		groupByKeys = append(groupByKeys, k)
+		dataGroupByKeys = append(dataGroupByKeys, k)
 	}
 
 	// CSV headers
 	headers := []string{"window_start", "window_end", "subject"}
-	if len(groupByKeys) > 0 {
-		headers = append(headers, groupByKeys...)
+	if len(dataGroupByKeys) > 0 {
+		headers = append(headers, dataGroupByKeys...)
 	}
 	headers = append(headers, "value")
 	records = append(records, headers)
@@ -241,7 +241,7 @@ func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request,
 		} else {
 			data = append(data, "")
 		}
-		for _, k := range groupByKeys {
+		for _, k := range dataGroupByKeys {
 			var groupByValue string
 
 			if row.GroupBy[k] != nil {
