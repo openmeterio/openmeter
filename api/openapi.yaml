@@ -856,7 +856,8 @@ components:
         type: object
         description: |
           Simple filter for subject and any group bys.
-          Usage: ?filter[subject]=customer-1&filter[model]=gpt-4
+          Usage: ?filter[subject]={"$eq":"customer-1"}&filter[model]={"$eq":"gpt-4"}
+          Complex example: ?filter[subject]={"$in":["customer-1","customer-2"]}&filter[model]={"$eq":"/gpt-4"}&filter[type]={"$nin":["input","system"]}`
         example:
           subject: customer-1
           model: gpt-4
