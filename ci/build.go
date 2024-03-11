@@ -205,8 +205,8 @@ func (m *Binary) build(platform Platform, version string, pkg string) *File {
 
 func goModule() *Go {
 	return dag.Go(GoOpts{Version: goBuildVersion}).
-		WithModuleCache(dag.CacheVolume("openmeter-go-mod-v1")).
-		WithBuildCache(dag.CacheVolume("openmeter-go-build-v1"))
+		WithModuleCache(dag.CacheVolume("openmeter-go-mod-v2")).
+		WithBuildCache(dag.CacheVolume("openmeter-go-build-v2"))
 }
 
 func (m *Build) HelmChart(
