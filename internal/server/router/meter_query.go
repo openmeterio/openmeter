@@ -77,7 +77,12 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 
 	// Subject is a special query parameter which both filters and groups by subject(s)
 	if params.Subject != nil {
-		f, _ := filter.ToFilter(fmt.Sprintf(`{"$in": %s}`, strings.Join(*params.Subject, ", ")))
+		subjects := []string{}
+		for _, subject := range *params.Subject {
+			subjects = append(subjects, fmt.Sprintf(`"%s"`, subject))
+		}
+
+		f, _ := filter.ToFilter(fmt.Sprintf(`{"$in": [%s]}`, strings.Join(subjects, ", ")))
 		queryParams.FilterSubject = &f
 
 		// Add subject to group by if not already present
