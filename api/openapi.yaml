@@ -852,6 +852,8 @@ components:
       explode: true
       required: false
       schema:
+        # TODO: ideally this would be: map[string]filter.Filter
+        # But the deepObject style parser doesn't support complex objects.
         x-go-type: map[string]string
         type: object
         description: |

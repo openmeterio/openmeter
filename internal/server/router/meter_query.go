@@ -105,6 +105,9 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 
 	if params.Filter != nil {
 		for k, paramFilter := range *params.Filter {
+			// TODO: ideally `paramFilter` would be `filter.Filter` type but the OpenAPI parser
+			// doesn't support complext objects in query parameters so we have to parse it manually from string.
+			// With this we also loose the ability to validate the filter in the OpenAPI schema and we have to do it manually here.
 			f, err := filter.ToFilter(paramFilter)
 			if err != nil {
 				err := fmt.Errorf(`invalid "%s" filter (%s): %w`, k, paramFilter, err)
