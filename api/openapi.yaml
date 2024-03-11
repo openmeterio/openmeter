@@ -784,7 +784,7 @@ components:
           model: gpt-4
           type: input
         additionalProperties:
-            type: string
+          type: string
     queryGroupBy:
       name: groupBy
       in: query
