@@ -704,6 +704,81 @@ components:
           pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
           minLength: 1
           maxLength: 63
+    # Filter
+    Filter:
+      x-go-type: filter.Filter
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/filter
+      type: object
+      properties:
+        $and:
+          type: array
+          minItems: 2
+          items:
+            $ref: "#/components/schemas/Filter"
+        $or:
+          type: array
+          minItems: 2
+          items:
+            $ref: "#/components/schemas/Filter"
+        $in:
+          $ref: "#/components/schemas/FilterValue"
+        $nin:
+          $ref: "#/components/schemas/FilterValue"
+        $eq:
+          $ref: "#/components/schemas/FilterValue"
+        $ne:
+          $ref: "#/components/schemas/FilterValue"
+        $gt:
+          $ref: "#/components/schemas/FilterValue"
+        $gte:
+          $ref: "#/components/schemas/FilterValue"
+        $lt:
+          $ref: "#/components/schemas/FilterValue"
+        $lte:
+          $ref: "#/components/schemas/FilterValue"
+    FilterValue:
+      x-go-type: filter.FilterValue
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/filter
+      oneOf:
+        - $ref: "#/components/schemas/FilterValueString"
+        - $ref: "#/components/schemas/FilterValueNumber"
+        - $ref: "#/components/schemas/FilterValueArrayString"
+        - $ref: "#/components/schemas/FilterValueArrayNumber"
+    FilterValueArray:
+      type: array
+      minItems: 1
+      items:
+        x-go-type-name: FilterValueArrayItem
+        oneOf:
+          - $ref: "#/components/schemas/FilterValueString"
+          - $ref: "#/components/schemas/FilterValueNumber"
+    FilterValueString:
+      x-go-type: filter.FilterValueString
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/filter
+      type: string
+    FilterValueNumber:
+      x-go-type: filter.FilterValueNumber
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/filter
+      type: number
+    FilterValueArrayString:
+      x-go-type: filter.FilterValueArrayString
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/filter
+      type: array
+      items:
+        type: string
+    FilterValueArrayNumber:
+      x-go-type: filter.FilterValueArrayNumber
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/filter
+      type: array
+      items:
+        type: number
+        x-go-type: float64
 
   parameters:
     meterIdOrSlug:
@@ -774,8 +849,10 @@ components:
       name: filter
       in: query
       style: deepObject
+      explode: true
       required: false
       schema:
+        x-go-type: map[string]string
         type: object
         description: |
           Simple filter for subject and any group bys.
@@ -784,7 +861,7 @@ components:
           subject: customer-1
           model: gpt-4
         additionalProperties:
-            type: string
+          $ref: "#/components/schemas/Filter"
     queryGroupBy:
       name: groupBy
       in: query

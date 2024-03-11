@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type QueryParams struct {
 	From           *time.Time
 	To             *time.Time
-	FilterSubject  []string
-	FilterGroupBy  map[string][]string
+	FilterSubject  *filter.Filter
+	FilterGroupBy  map[string]filter.Filter
 	GroupBy        []string
 	Aggregation    models.MeterAggregation
 	WindowSize     *models.WindowSize

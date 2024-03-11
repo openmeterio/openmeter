@@ -8,6 +8,7 @@ import (
 	"mime"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/go-chi/render"
@@ -15,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/contextx"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -75,7 +77,8 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 
 	// Subject is a special query parameter which both filters and groups by subject(s)
 	if params.Subject != nil {
-		queryParams.FilterSubject = *params.Subject
+		f, _ := filter.ToFilter(fmt.Sprintf(`{"$in": %s}`, strings.Join(*params.Subject, ", ")))
+		queryParams.FilterSubject = &f
 
 		// Add subject to group by if not already present
 		if !slices.Contains(queryParams.GroupBy, "subject") {
@@ -95,21 +98,37 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 		queryParams.WindowTimeZone = tz
 	}
 
+	fmt.Println(params.Filter)
+
 	if params.Filter != nil {
-		for k, v := range *params.Filter {
+		for k, paramFilter := range *params.Filter {
+			f, err := filter.ToFilter(paramFilter)
+			if err != nil {
+				err := fmt.Errorf(`invalid "%s" filter (%s): %w`, k, paramFilter, err)
+				models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+				return
+			}
+
+			err = filter.Validate(f)
+			if err != nil {
+				err := fmt.Errorf("invalid %s filter (%s): %w", k, paramFilter, err)
+				models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+				return
+			}
+
 			// Subject filters
 			if k == "subject" {
-				queryParams.FilterSubject = append(queryParams.FilterSubject, v)
+				queryParams.FilterSubject = &f
 				continue
 			}
 
 			// GroupBy filters
 			if _, ok := meter.GroupBy[k]; ok {
 				if queryParams.FilterGroupBy == nil {
-					queryParams.FilterGroupBy = map[string][]string{}
+					queryParams.FilterGroupBy = map[string]filter.Filter{}
 				}
 
-				queryParams.FilterGroupBy[k] = []string{v}
+				queryParams.FilterGroupBy[k] = f
 				continue
 			} else {
 				err := fmt.Errorf("invalid group by filter: %s", k)
