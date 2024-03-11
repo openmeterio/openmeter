@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/huandu/go-sqlbuilder"
 )
 
 type CompareType string
@@ -28,7 +30,7 @@ var (
 )
 
 func ToSQL(field string, filter Filter) (string, error) {
-	return traverse(field, filter)
+	return traverse(sqlbuilder.Escape(field), filter)
 }
 
 // TODO: optimize this function
@@ -253,5 +255,5 @@ func filterArithmetic[T JSONUnmarshald](compareType CompareType, field string, a
 }
 
 func wrapString(value string) string {
-	return fmt.Sprintf(`'%s'`, value)
+	return fmt.Sprintf(`'%s'`, sqlbuilder.Escape(value))
 }

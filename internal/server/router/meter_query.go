@@ -98,8 +98,6 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 		queryParams.WindowTimeZone = tz
 	}
 
-	fmt.Println(params.Filter)
-
 	if params.Filter != nil {
 		for k, paramFilter := range *params.Filter {
 			f, err := filter.ToFilter(paramFilter)

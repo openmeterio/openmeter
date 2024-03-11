@@ -110,7 +110,7 @@ func TestToSQL(t *testing.T) {
 					}`),
 			want: `subject NOT IN (1, 2)`,
 		},
-		// Controlers
+		// Controls
 		{
 			name:  "not",
 			field: "subject",

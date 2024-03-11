@@ -314,7 +314,7 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 		// We sort the columns to ensure the query is deterministic
 		columns := make([]string, 0, len(d.FilterGroupBy))
 		for k := range d.FilterGroupBy {
-			columns = append(columns, sqlbuilder.Escape(k))
+			columns = append(columns, k)
 		}
 		sort.Strings(columns)
 

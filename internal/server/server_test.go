@@ -306,7 +306,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodGet,
 				contentType: "application/json",
-				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?filter[subject]=s1",
+				path:        "/api/v1/meters/" + mockMeters[0].ID + `/query?filter[subject]={"$eq":"s1"}`,
 			},
 			res: testResponse{
 				status: http.StatusOK,
