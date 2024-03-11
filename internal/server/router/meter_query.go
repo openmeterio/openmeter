@@ -95,14 +95,8 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 		queryParams.WindowTimeZone = tz
 	}
 
-	if params.Filter != nil {
-		for k, v := range *params.Filter {
-			// Subject filters
-			if k == "subject" {
-				queryParams.FilterSubject = append(queryParams.FilterSubject, v)
-				continue
-			}
-
+	if params.FilterGroupBy != nil {
+		for k, v := range *params.FilterGroupBy {
 			// GroupBy filters
 			if _, ok := meter.GroupBy[k]; ok {
 				if queryParams.FilterGroupBy == nil {
