@@ -134,22 +134,35 @@ Run the dependencies:
 make up
 ```
 
-Run OpenMeter:
-
-```sh
-make run
-```
-
 Run tests:
 
 ```sh
 make test
+make etoe
 ```
 
 Run linters:
 
 ```sh
 make lint
+```
+
+Some linter violations can automatically be fixed:
+
+```shell
+make fmt
+```
+
+Generate go code:
+
+```shell
+make generate
+```
+
+Once you are done, you can tear down project dependencies:
+
+```shell
+make down
 ```
 
 ## Roadmap
