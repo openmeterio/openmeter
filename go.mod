@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/AppsFlyer/go-sundheit v0.5.0
-	github.com/ClickHouse/clickhouse-go/v2 v2.21.1
+	github.com/ClickHouse/clickhouse-go/v2 v2.22.0
 	github.com/avast/retry-go/v4 v4.5.1
 	github.com/benthosdev/benthos/v4 v4.25.1
 	github.com/brianvoe/gofakeit/v6 v6.28.0
