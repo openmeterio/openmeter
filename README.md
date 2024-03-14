@@ -101,7 +101,11 @@ For other shells, see [https://direnv.net/docs/hook.html](https://direnv.net/doc
 Nix may stop working after a MacOS upgrade. If it does, follow [these instructions](https://github.com/NixOS/nix/issues/3616#issuecomment-662858874).
 
 <hr>
-</details>
+</details><br>
+
+_Alternatively, install [Go](https://go.dev/dl/) on your computer then run `make deps` to install the rest of the dependencies._
+
+Make sure Docker is installed with Compose and Buildx.
 
 Run the dependencies:
 
@@ -109,22 +113,49 @@ Run the dependencies:
 make up
 ```
 
-Run OpenMeter:
+Run project components:
 
 ```sh
-make run
+make sink-worker
+make server
+```
+
+Build binary:
+
+```shell
+make build-sink-worker # Builds sink-worker binary
+make build-server # Builds server binary
 ```
 
 Run tests:
 
 ```sh
 make test
+make test-e2e
 ```
 
 Run linters:
 
 ```sh
 make lint
+```
+
+Some linter violations can automatically be fixed:
+
+```shell
+make fmt
+```
+
+Generate go code:
+
+```shell
+make generate
+```
+
+Once you are done, you can tear down project dependencies:
+
+```shell
+make down
 ```
 
 ## Roadmap
