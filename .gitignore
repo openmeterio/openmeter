@@ -2,6 +2,7 @@
 /.direnv/
 /.env.local
 /.pre-commit-config.yaml
+/bin/
 /build/
 /config.yaml
 /tmp/
