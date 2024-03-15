@@ -38,7 +38,7 @@ func (h NamespaceHandler) CreateNamespace(ctx context.Context, namespace string)
 		code := r.Error.Code()
 
 		if code == kafka.ErrTopicAlreadyExists {
-			h.Logger.Debug("topic already exists", slog.String("topic", topic))
+			h.Logger.Debug(fmt.Sprintf("topic already exists: %s", topic))
 		} else if code != kafka.ErrNoError {
 			return r.Error
 		}

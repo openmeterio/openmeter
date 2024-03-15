@@ -108,7 +108,7 @@ func main() {
 	}
 	defer func() {
 		if err := otelMeterProvider.Shutdown(context.Background()); err != nil {
-			logger.Error("shutting down meter provider: %v", err)
+			logger.Error(fmt.Errorf("shutting down meter provider: %w", err).Error())
 		}
 	}()
 	otel.SetMeterProvider(otelMeterProvider)
@@ -126,7 +126,7 @@ func main() {
 	}
 	defer func() {
 		if err := otelTracerProvider.Shutdown(context.Background()); err != nil {
-			logger.Error("shutting down tracer provider", "error", err)
+			logger.Error(fmt.Errorf("shutting down tracer provider: %w", err).Error())
 		}
 	}()
 
@@ -160,7 +160,7 @@ func main() {
 	// Initialize sink worker
 	sink, err := initSink(conf, logger, metricMeter, tracer, meterRepository)
 	if err != nil {
-		logger.Error("failed to initialize sink worker", "error", err)
+		logger.Error(fmt.Errorf("failed to initialize sink worker: %w", err).Error())
 		os.Exit(1)
 	}
 
@@ -195,9 +195,9 @@ func main() {
 
 	err = group.Run()
 	if e := (run.SignalError{}); errors.As(err, &e) {
-		slog.Info("received signal; shutting down", slog.String("signal", e.Signal.String()))
+		slog.Info(fmt.Sprintf("received signal; shutting down: signal: %s", e.Signal.String()))
 	} else if !errors.Is(err, http.ErrServerClosed) {
-		logger.Error("application stopped due to error", slog.String("error", err.Error()))
+		logger.Error(fmt.Errorf("application stopped due to error: %w", err).Error())
 	}
 }
 

@@ -133,7 +133,7 @@ func (s *Sink) flush() error {
 	defer func() {
 		err = s.resume()
 		if err != nil {
-			logger.Error("failed to resume partitions after flush", "err", err)
+			logger.Error(fmt.Errorf("failed to resume partitions after flush: %w", err).Error())
 		}
 	}()
 
@@ -185,7 +185,7 @@ func (s *Sink) flush() error {
 
 			// When both offset commit and dedupe sink fails we need to reconcile the state based on logs
 			if offsetStoreErr != nil {
-				logger.Error("consistency failure", "err", err, "messages", messages)
+				logger.Error(fmt.Errorf("consistency failure: %w; messages: %v", err, messages).Error())
 			}
 
 			// Return error, stop consuming
@@ -200,7 +200,7 @@ func (s *Sink) flush() error {
 	}
 
 	// Metrics and logs
-	logger.Debug("succeeded to flush", "buffer size", len(messages))
+	logger.Debug(fmt.Sprintf("succeeded to flush, buffer size: %d", len(messages)))
 	err = s.reportFlushMetrics(ctx, messages)
 	if err != nil {
 		flushSpan.SetStatus(codes.Error, "failed to report flush metrics")
@@ -260,7 +260,7 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) err
 				// Do nothing: include in batch
 			case DROP:
 				// Skip message from batch
-				logger.Debug("dropping message", "error", message.Error, "message", string(message.KafkaMessage.Value), "namespace", message.Namespace)
+				logger.Debug(fmt.Sprintf("dropping message: %s; message: %s; namespace: %s", message.Error, string(message.KafkaMessage.Value), message.Namespace))
 				continue
 			default:
 				return fmt.Errorf("unknown error type: %s", message.Error)
@@ -280,7 +280,7 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) err
 			storageSpan.End()
 			return fmt.Errorf("failed to sink to storage: %s", err)
 		}
-		logger.Debug("succeeded to sink to storage", "buffer size", len(messages))
+		logger.Debug(fmt.Sprintf("succeeded to sink to storage, buffer size: %d", len(messages)))
 	}
 
 	return nil
@@ -311,7 +311,7 @@ func (s *Sink) dedupeSet(ctx context.Context, messages []SinkMessage) error {
 		retry.Context(dedupeCtx),
 		retry.OnRetry(func(n uint, err error) {
 			dedupeSet.AddEvent("retry", trace.WithAttributes(attribute.Int("count", int(n))))
-			logger.Warn("failed to sink to redis, will retry", "err", err, "retry", n)
+			logger.Warn(fmt.Sprintf("failed to sink to redis, will retry: %d; error: %v", n, err))
 		}),
 	)
 	if err != nil {
@@ -321,7 +321,7 @@ func (s *Sink) dedupeSet(ctx context.Context, messages []SinkMessage) error {
 		return fmt.Errorf("failed to sink to redis: %s", err)
 	}
 	dedupeSet.End()
-	logger.Debug("succeeded to sink to redis", "buffer size", len(messages))
+	logger.Debug(fmt.Sprintf("succeeded to sink to redis, buffer size: %d", len(messages)))
 	return nil
 }
 
@@ -366,7 +366,7 @@ func (s *Sink) subscribeToNamespaces() error {
 	if isNewNamespace {
 		// We always subscribe to all namespaces as consumer.SubscribeTopics replaces the current subscription.
 		topics := getTopics(*s.namespaceStore)
-		logger.Info("new namespaces detected, subscribing to topics", "topics", topics)
+		logger.Info(fmt.Sprintf("new namespaces detected, subscribing to topics: %v", topics))
 
 		err = s.config.Consumer.SubscribeTopics(topics, s.rebalance)
 		if err != nil {
@@ -388,7 +388,7 @@ func (s *Sink) setFlushTimer() {
 		err := s.flush()
 		if err != nil {
 			// TODO: should we panic?
-			logger.Error("failed to flush", "err", err)
+			logger.Error(fmt.Errorf("failed to flush: %w", err).Error())
 		}
 	}
 
@@ -424,7 +424,7 @@ func (s *Sink) Run() error {
 		err := s.subscribeToNamespaces()
 		if err != nil {
 			// TODO: should we panic?
-			logger.Error("failed to subscribe to namespaces", "err", err)
+			logger.Error(fmt.Errorf("failed to subscribe to namespaces: %w", err).Error())
 		}
 		s.namespaceRefetch = time.AfterFunc(s.config.NamespaceRefetch, refetch)
 	}
@@ -439,7 +439,7 @@ func (s *Sink) Run() error {
 	for s.running {
 		select {
 		case sig := <-sigchan:
-			logger.Error("caught signal, terminating", "sig", sig)
+			logger.Error(fmt.Errorf("caught signal, terminating: %s", sig).Error())
 			s.running = false
 		default:
 			ev := s.config.Consumer.Poll(100)
@@ -468,7 +468,7 @@ func (s *Sink) Run() error {
 				s.messageCounter.Add(ctx, 1, metric.WithAttributes(namespaceAttr))
 
 				s.buffer.Add(sinkMessage)
-				logger.Debug("event added to buffer", "partition", e.TopicPartition.Partition, "offset", e.TopicPartition.Offset, "event", kafkaCloudEvent)
+				logger.Debug(fmt.Sprintf("event added to buffer; partition: %d; offset: %d; event: %v", e.TopicPartition.Partition, e.TopicPartition.Offset, kafkaCloudEvent))
 
 				// Flush buffer and commit messages
 				if s.buffer.Size() >= s.config.MinCommitCount {
@@ -482,12 +482,12 @@ func (s *Sink) Run() error {
 				// Errors should generally be considered
 				// informational, the client will try to
 				// automatically recover.
-				logger.Error("kafka error", "code", e.Code(), "event", e)
+				logger.Error(fmt.Errorf("kafka error; code: %s; event: %w", e.Code().String(), e).Error())
 			case kafka.OffsetsCommitted:
 				// do nothing, this is an ack of the periodic offset commit
-				logger.Debug("kafka offset committed", "offset", e.Offsets)
+				logger.Debug(fmt.Sprintf("kafka offset committed: %v", e.Offsets))
 			default:
-				logger.Debug("kafka ignored event", "event", e)
+				logger.Debug(fmt.Sprintf("kafka ignored event: %s", e))
 			}
 		}
 	}
@@ -563,7 +563,7 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 		}
 
 		// Logs revoked partitions only
-		logger.Info("kafka partition revoke", "partitions", prettyPartitions(e.Partitions))
+		logger.Info(fmt.Sprintf("kafka partition revoke, partitions: %v", prettyPartitions(e.Partitions)))
 
 		if len(e.Partitions) == 0 {
 			return nil
@@ -593,7 +593,7 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 		// Remove messages for revoked partitions from buffer
 		s.buffer.RemoveByPartitions(e.Partitions)
 	default:
-		logger.Error("unxpected event type", "event", e)
+		logger.Error(fmt.Errorf("unxpected event type: %s", e).Error())
 	}
 
 	return nil

@@ -135,7 +135,7 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 	// Browser can send back media type Go marks as invalid
 	// If that happens, default to JSON
 	if err != nil {
-		logger.Debug("invalid media type, default to json", "error", err)
+		logger.Debug(fmt.Sprintf("invalid media type, default to json: %s", err))
 		mediatype = "application/json"
 	}
 
@@ -198,10 +198,10 @@ func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request,
 	writer := csv.NewWriter(w)
 	err := writer.WriteAll(records)
 	if err != nil {
-		slog.Error("writing record to csv", "error", err)
+		slog.Error(fmt.Errorf("writing record to csv: %w", err).Error())
 	}
 
 	if err := writer.Error(); err != nil {
-		slog.Error("writing csv", "error", err)
+		slog.Error(fmt.Errorf("writing csv: %w", err).Error())
 	}
 }

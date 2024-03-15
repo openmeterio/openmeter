@@ -119,7 +119,7 @@ func main() {
 	}
 	defer func() {
 		if err := meterProvider.Shutdown(context.Background()); err != nil {
-			logger.Error("shutting down meter provider: %v", err)
+			logger.Error(fmt.Errorf("shutting down meter provider: %w", err).Error())
 		}
 	}()
 
@@ -136,7 +136,7 @@ func main() {
 	}
 	defer func() {
 		if err := tracerProvider.Shutdown(context.Background()); err != nil {
-			logger.Error("shutting down tracer provider", "error", err)
+			logger.Error(fmt.Errorf("shutting down tracer provider: %w", err).Error())
 		}
 	}()
 
@@ -170,7 +170,7 @@ func main() {
 	// Initialize Kafka Ingest
 	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(ctx, conf, logger, serializer.NewJSONSerializer(), &group)
 	if err != nil {
-		logger.Error("failed to initialize kafka ingest", "error", err)
+		logger.Error(fmt.Errorf("failed to initialize kafka ingest: %w", err).Error())
 		os.Exit(1)
 	}
 	namespaceHandlers = append(namespaceHandlers, kafkaIngestNamespaceHandler)
@@ -183,7 +183,7 @@ func main() {
 	// Initialize ClickHouse Aggregation
 	clickhouseStreamingConnector, err := initClickHouseStreaming(conf, meterRepository, logger)
 	if err != nil {
-		logger.Error("failed to initialize clickhouse aggregation", "error", err)
+		logger.Error(fmt.Errorf("failed to initialize clickhouse aggregation: %w", err).Error())
 		os.Exit(1)
 	}
 
@@ -193,7 +193,7 @@ func main() {
 	// Initialize Namespace
 	namespaceManager, err := initNamespace(conf, namespaceHandlers...)
 	if err != nil {
-		logger.Error("failed to initialize namespace", "error", err)
+		logger.Error(fmt.Errorf("failed to initialize namespace: %w", err).Error())
 		os.Exit(1)
 	}
 
@@ -201,7 +201,7 @@ func main() {
 	if conf.Dedupe.Enabled {
 		deduplicator, err := conf.Dedupe.NewDeduplicator()
 		if err != nil {
-			logger.Error("failed to initialize deduplicator", "error", err)
+			logger.Error(fmt.Errorf("failed to initialize deduplicator: %w", err).Error())
 			os.Exit(1)
 		}
 
@@ -219,7 +219,7 @@ func main() {
 		ErrorHandler:     errorsx.NewAppHandler(errorsx.NewSlogHandler(logger)),
 	})
 	if err != nil {
-		logger.Error("failed to initialize http ingest handler", "error", err)
+		logger.Error(fmt.Errorf("failed to initialize http ingest handler: %w", err).Error())
 		os.Exit(1)
 	}
 
@@ -228,7 +228,7 @@ func main() {
 	if conf.Portal.Enabled {
 		portalTokenStrategy, err = authenticator.NewPortalTokenStrategy(conf.Portal.TokenSecret, conf.Portal.TokenExpiration)
 		if err != nil {
-			logger.Error("failed to initialize portal token strategy", "error", err)
+			logger.Error(fmt.Errorf("failed to initialize portal token strategy: %w", err).Error())
 			os.Exit(1)
 		}
 	}
@@ -268,7 +268,7 @@ func main() {
 		},
 	})
 	if err != nil {
-		logger.Error("failed to create server", "error", err)
+		logger.Error(fmt.Errorf("failed to create server: %w", err).Error())
 		os.Exit(1)
 	}
 
@@ -283,11 +283,11 @@ func main() {
 	for _, meter := range conf.Meters {
 		err := streamingConnector.CreateMeter(ctx, namespaceManager.GetDefaultNamespace(), meter)
 		if err != nil {
-			slog.Warn("failed to initialize meter", "error", err)
+			slog.Error(fmt.Errorf("failed to create meter: %w", err).Error())
 			os.Exit(1)
 		}
 	}
-	slog.Info("meters successfully created", "count", len(conf.Meters))
+	slog.Info(fmt.Sprintf("meters successfully created; count: %d", len(conf.Meters)))
 
 	// Set up telemetry server
 	{
@@ -322,9 +322,9 @@ func main() {
 
 	err = group.Run()
 	if e := (run.SignalError{}); errors.As(err, &e) {
-		slog.Info("received signal; shutting down", slog.String("signal", e.Signal.String()))
+		slog.Info(fmt.Sprintf("received signal; shutting down: signal: %s", e.Signal.String()))
 	} else if !errors.Is(err, http.ErrServerClosed) {
-		logger.Error("application stopped due to error", slog.String("error", err.Error()))
+		logger.Error(fmt.Errorf("application stopped due to error: %w", err).Error())
 	}
 }
 

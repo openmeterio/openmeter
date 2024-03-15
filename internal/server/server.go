@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -34,7 +35,7 @@ func NewServer(config *Config) (*Server, error) {
 	// Get the OpenAPI spec
 	swagger, err := api.GetSwagger()
 	if err != nil {
-		slog.Error("failed to get swagger", "error", err)
+		slog.Error(fmt.Errorf("failed to get swagger: %w", err).Error())
 		return nil, err
 	}
 
@@ -44,7 +45,7 @@ func NewServer(config *Config) (*Server, error) {
 
 	impl, err := router.NewRouter(config.RouterConfig)
 	if err != nil {
-		slog.Error("failed to create API", "error", err)
+		slog.Error(fmt.Errorf("failed to create API: %w", err).Error())
 		return nil, err
 	}
 

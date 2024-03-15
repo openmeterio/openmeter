@@ -73,9 +73,9 @@ func KafkaProducerGroup(ctx context.Context, producer *kafka.Producer, logger *s
 						// is already configured to do that.
 						m := ev
 						if m.TopicPartition.Error != nil {
-							logger.Error("kafka delivery failed", "error", m.TopicPartition.Error)
+							logger.Error(fmt.Errorf("kafka delivery failed: %w", m.TopicPartition.Error).Error())
 						} else {
-							logger.Debug("kafka message delivered", "topic", *m.TopicPartition.Topic, "partition", m.TopicPartition.Partition, "offset", m.TopicPartition.Offset)
+							logger.Debug(fmt.Sprintf("kafka message delivered: topic=%s partition=%d offset=%d", *m.TopicPartition.Topic, m.TopicPartition.Partition, m.TopicPartition.Offset))
 						}
 					case kafka.Error:
 						// Generic client instance-level errors, such as
@@ -85,7 +85,7 @@ func KafkaProducerGroup(ctx context.Context, producer *kafka.Producer, logger *s
 						// as the underlying client will automatically try to
 						// recover from any errors encountered, the application
 						// does not need to take action on them.
-						logger.Error("kafka error", "error", ev)
+						logger.Error(fmt.Errorf("kafka error: %w", ev).Error())
 					}
 				case <-ctx.Done():
 					return ctx.Err()

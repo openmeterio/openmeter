@@ -136,7 +136,7 @@ func (h Handler) processEvent(ctx context.Context, event event.Event, namespace 
 	err := h.config.Collector.Ingest(ctx, namespace, event)
 	if err != nil {
 		// TODO: attach context to error and log at a higher level
-		logger.ErrorContext(ctx, "unable to forward event to collector", "error", err)
+		logger.ErrorContext(ctx, fmt.Errorf("unable to forward event to collector: %w", err).Error())
 
 		return fmt.Errorf("forwarding event to collector: %w", err)
 	}

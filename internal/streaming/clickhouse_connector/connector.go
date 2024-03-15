@@ -338,7 +338,7 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		return values, fmt.Errorf("query meter view query: %w", err)
 	}
 	elapsed := time.Since(start)
-	slog.Debug("query meter view", "elapsed", elapsed.String(), "sql", sql, "args", args)
+	slog.Debug(fmt.Sprintf("query meter view; elapsed: %s; sql: %s; args: %v", elapsed.String(), sql, args))
 
 	for rows.Next() {
 		value := models.MeterQueryRow{
