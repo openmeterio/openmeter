@@ -7,38 +7,32 @@ approved = [
   "mpl-2.0",
   "isc",
   "epl-2.0",
-  "richard-crowley",
 ]
 
 ignored = [
+  "github.com/benthosdev/benthos/v4", # Apache 2.0
   "github.com/xeipuuv/gojsonpointer", # Apache 2.0
   "github.com/xeipuuv/gojsonreference", # Apache 2.0
   "github.com/xeipuuv/gojsonschema", # Apache 2.0
-  "github.com/couchbase/gocbcoreps", # Apache 2.0
   "github.com/confluentinc/confluent-kafka-go/v2", # Apache 2.0
   "github.com/JohnCGriffin/overflow", # MIT
   "github.com/invopop/yaml", # MIT
-  "github.com/form3tech-oss/jwt-go", #MIT 
+  "github.com/form3tech-oss/jwt-go", #MIT
   "github.com/russross/blackfriday/v2", # 2-Clause BSD
   "github.com/gogo/protobuf", # 3-Clause BSD
-  "github.com/rcrowley/go-metrics", # Richard Crowley
+  "github.com/rcrowley/go-metrics", # Custom License - https://github.com/rcrowley/go-metrics/blob/master/LICENSE"
 
   "cuelang.org/go", # Apache 2.0
   "go.mongodb.org/mongo-driver", # Apache 2.0
-
-  # Unsupported VCS
   "google.golang.org/protobuf", # 3-Clause BSD
   "modernc.org/libc", # 3-Clause BSD
   "modernc.org/mathutil", # 3-Clause BSD
   "modernc.org/memory", # 3-Clause BSD
   "modernc.org/sqlite", # 3-Clause BSD
-
-  # No license
-  "github.com/couchbase/goprotostellar",
 ]
 
 [header]
-ignorePaths = [".devenv", ".direnv", "vendor", "client", ".gen"]
+ignorePaths = [".devenv", ".direnv", "vendor", "client", ".gen", "openmeter/ent/db", "pkg/framework/entutils/testutils/ent1/db", "pkg/framework/entutils/testutils/ent2/db"]
 ignoreFiles = ["*.gen.go"]
 template = """// Copyright © :YEAR: Tailfin Cloud Inc.
 //
