@@ -6,7 +6,7 @@ require (
 	github.com/AppsFlyer/go-sundheit v0.5.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.22.0
 	github.com/avast/retry-go/v4 v4.5.1
-	github.com/benthosdev/benthos/v4 v4.25.1
+	github.com/benthosdev/benthos/v4 v4.26.0
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/cloudevents/sdk-go/v2 v2.15.2
 	github.com/confluentinc/confluent-kafka-go/v2 v2.2.0
