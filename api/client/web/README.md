@@ -10,4 +10,4 @@ npm install --save @openmeter/web
 
 ## Learn More
 
-- [Consumer Portal Next.js example](../../../examples/consumer-dashboard-nextjs/) - how to use with React.
+- [Consumer Portal Next.js example](../../../examples/customer-dashboard-nextjs/) - how to use with React.
