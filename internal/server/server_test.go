@@ -80,7 +80,7 @@ func (c *MockConnector) DeleteMeter(ctx context.Context, namespace string, meter
 func (c *MockConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	value := mockQueryValue
 
-	if params.Subject == nil {
+	if params.FilterSubject == nil {
 		value.Subject = nil
 	}
 
@@ -299,6 +299,35 @@ func TestRoutes(t *testing.T) {
 						{Subject: mockQueryValue.Subject, WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
 					},
 				},
+			},
+		},
+		{
+			name: "query meter with filter",
+			req: testRequest{
+				method:      http.MethodGet,
+				contentType: "application/json",
+				path:        "/api/v1/meters/" + mockMeters[0].ID + `/query?filter[subject]={"$eq":"s1"}`,
+			},
+			res: testResponse{
+				status: http.StatusOK,
+				body: struct {
+					Data []models.MeterQueryRow `json:"data"`
+				}{
+					Data: []models.MeterQueryRow{
+						{Subject: mockQueryValue.Subject, WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
+					},
+				},
+			},
+		},
+		{
+			name: "query meter with invalid group by filter",
+			req: testRequest{
+				method:      http.MethodGet,
+				contentType: "application/json",
+				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?filter[invalid]=abcd",
+			},
+			res: testResponse{
+				status: http.StatusBadRequest,
 			},
 		},
 		{

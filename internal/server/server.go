@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -104,12 +105,39 @@ func NewServer(config *Config) (*Server, error) {
 		},
 		ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 			config.RouterConfig.ErrorHandler.HandleContext(r.Context(), err)
-
-			models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+			errorHandlerReply(w, r, err)
 		},
 	})
 
 	return &Server{
 		Router: r,
 	}, nil
+}
+
+// errorHandlerReply handles errors returned by the OpenAPI layer.
+func errorHandlerReply(w http.ResponseWriter, r *http.Request, err error) {
+	switch e := err.(type) {
+	case *api.UnescapedCookieParamError:
+		err := fmt.Errorf("unescaped cookie param %s: %w", e.ParamName, err)
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+	case *api.UnmarshalingParamError:
+		err := fmt.Errorf("unmarshaling param %s: %w", e.ParamName, err)
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+	case *api.RequiredParamError:
+		err := fmt.Errorf("required param missing %s: %w", e.ParamName, err)
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+	case *api.RequiredHeaderError:
+		err := fmt.Errorf("required header missing %s: %w", e.ParamName, err)
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+	case *api.InvalidParamFormatError:
+		err := fmt.Errorf("invalid param format %s: %w", e.ParamName, err)
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+	case *api.TooManyValuesForParamError:
+		err := fmt.Errorf("too many values for param %s: %w", e.ParamName, err)
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+
+	default:
+		err := fmt.Errorf("unhandled server error: %w", err)
+		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+	}
 }

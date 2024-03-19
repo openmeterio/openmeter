@@ -8,10 +8,9 @@ import (
 	"time"
 
 	"github.com/huandu/go-sqlbuilder"
-	"golang.org/x/exp/slices"
 
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type column struct {
@@ -224,8 +223,8 @@ type queryMeterView struct {
 	Namespace      string
 	MeterSlug      string
 	Aggregation    models.MeterAggregation
-	Subject        []string
-	FilterGroupBy  map[string][]string
+	FilterSubject  *filter.Filter
+	FilterGroupBy  map[string]filter.Filter
 	From           *time.Time
 	To             *time.Time
 	GroupBy        []string
@@ -292,11 +291,6 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 		return "", nil, fmt.Errorf("invalid aggregation type: %s", d.Aggregation)
 	}
 
-	// Grouping by subject is required when filtering for a subject
-	if len(d.Subject) > 0 && !slices.Contains(d.GroupBy, "subject") {
-		d.GroupBy = append([]string{"subject"}, d.GroupBy...)
-	}
-
 	for _, column := range d.GroupBy {
 		c := sqlbuilder.Escape(column)
 		selectColumns = append(selectColumns, c)
@@ -307,12 +301,13 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 	queryView.Select(selectColumns...)
 	queryView.From(viewName)
 
-	if len(d.Subject) > 0 {
-		mapFunc := func(subject string) string {
-			return queryView.Equal("subject", subject)
+	if d.FilterSubject != nil {
+		w, err := filter.ToSQL("subject", *d.FilterSubject)
+		if err != nil {
+			return "", nil, err
 		}
 
-		where = append(where, queryView.Or(slicesx.Map(d.Subject, mapFunc)...))
+		where = append(where, w)
 	}
 
 	if len(d.FilterGroupBy) > 0 {
@@ -324,15 +319,13 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 		sort.Strings(columns)
 
 		for _, column := range columns {
-			values := d.FilterGroupBy[column]
-			if len(values) == 0 {
-				return "", nil, fmt.Errorf("empty filter for group by: %s", column)
-			}
-			mapFunc := func(value string) string {
-				return queryView.Equal(sqlbuilder.Escape(column), value)
+			f := d.FilterGroupBy[column]
+			w, err := filter.ToSQL(column, f)
+			if err != nil {
+				return "", nil, err
 			}
 
-			where = append(where, queryView.Or(slicesx.Map(values, mapFunc)...))
+			where = append(where, w)
 		}
 	}
 

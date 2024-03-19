@@ -1,11 +1,13 @@
 package clickhouse_connector
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -172,6 +174,11 @@ func TestQueryMeterView(t *testing.T) {
 	to, _ := time.Parse(time.RFC3339, "2023-01-02T00:00:00Z")
 	tz, _ := time.LoadLocation("Asia/Shanghai")
 	windowSize := models.WindowSizeHour
+	filterSubject1, _ := filter.ToFilter(fmt.Sprintf(`{ "$eq": "%s" }`, subject))
+	filterSubject2, _ := filter.ToFilter(`{ "$or": [{ "$eq": "subject1" }, { "$eq": "subject2" }] }`)
+	filterGroupBy1, _ := filter.ToFilter(`{ "$eq": "g1v1" }`)
+	filterGroupBy2, _ := filter.ToFilter(`{ "$or": [{ "$eq": "g1v1" }, { "$eq": "g1v2" }] }`)
+	filterGroupBy3, _ := filter.ToFilter(`{ "$or": [{ "$eq": "g2v1" }, { "$eq": "g2v2" }] }`)
 
 	tests := []struct {
 		query    queryMeterView
@@ -180,18 +187,18 @@ func TestQueryMeterView(t *testing.T) {
 	}{
 		{
 			query: queryMeterView{
-				Database:    "openmeter",
-				Namespace:   "my_namespace",
-				MeterSlug:   "meter1",
-				Aggregation: models.MeterAggregationSum,
-				Subject:     []string{subject},
-				From:        &from,
-				To:          &to,
-				GroupBy:     []string{"group1", "group2"},
-				WindowSize:  &windowSize,
+				Database:      "openmeter",
+				Namespace:     "my_namespace",
+				MeterSlug:     "meter1",
+				Aggregation:   models.MeterAggregationSum,
+				FilterSubject: &filterSubject1,
+				From:          &from,
+				To:            &to,
+				GroupBy:       []string{"subject", "group1", "group2"},
+				WindowSize:    &windowSize,
 			},
-			wantSQL:  "SELECT tumbleStart(windowstart, toIntervalHour(1), 'UTC') AS windowstart, tumbleEnd(windowstart, toIntervalHour(1), 'UTC') AS windowend, sumMerge(value) AS value, subject, group1, group2 FROM openmeter.om_my_namespace_meter1 WHERE (subject = ?) AND windowstart >= ? AND windowend <= ? GROUP BY windowstart, windowend, subject, group1, group2 ORDER BY windowstart",
-			wantArgs: []interface{}{"subject1", from.Unix(), to.Unix()},
+			wantSQL:  "SELECT tumbleStart(windowstart, toIntervalHour(1), 'UTC') AS windowstart, tumbleEnd(windowstart, toIntervalHour(1), 'UTC') AS windowend, sumMerge(value) AS value, subject, group1, group2 FROM openmeter.om_my_namespace_meter1 WHERE subject = 'subject1' AND windowstart >= ? AND windowend <= ? GROUP BY windowstart, windowend, subject, group1, group2 ORDER BY windowstart",
+			wantArgs: []interface{}{from.Unix(), to.Unix()},
 		},
 		{ // Aggregate all available data
 			query: queryMeterView{
@@ -265,70 +272,79 @@ func TestQueryMeterView(t *testing.T) {
 		},
 		{ // Aggregate data for a single subject
 			query: queryMeterView{
-				Database:    "openmeter",
-				Namespace:   "my_namespace",
-				MeterSlug:   "meter1",
-				Aggregation: models.MeterAggregationSum,
-				Subject:     []string{subject},
+				Database:      "openmeter",
+				Namespace:     "my_namespace",
+				MeterSlug:     "meter1",
+				Aggregation:   models.MeterAggregationSum,
+				FilterSubject: &filterSubject1,
+				GroupBy:       []string{"subject"},
 			},
-			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value, subject FROM openmeter.om_my_namespace_meter1 WHERE (subject = ?) GROUP BY subject",
-			wantArgs: []interface{}{"subject1"},
+			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value, subject FROM openmeter.om_my_namespace_meter1 WHERE subject = 'subject1' GROUP BY subject",
+			wantArgs: nil,
 		},
 		{ // Aggregate data for a single subject and group by additional fields
 			query: queryMeterView{
-				Database:    "openmeter",
-				Namespace:   "my_namespace",
-				MeterSlug:   "meter1",
-				Aggregation: models.MeterAggregationSum,
-				Subject:     []string{subject},
-				GroupBy:     []string{"group1", "group2"},
+				Database:      "openmeter",
+				Namespace:     "my_namespace",
+				MeterSlug:     "meter1",
+				Aggregation:   models.MeterAggregationSum,
+				FilterSubject: &filterSubject1,
+				GroupBy:       []string{"subject", "group1", "group2"},
 			},
-			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value, subject, group1, group2 FROM openmeter.om_my_namespace_meter1 WHERE (subject = ?) GROUP BY subject, group1, group2",
-			wantArgs: []interface{}{"subject1"},
+			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value, subject, group1, group2 FROM openmeter.om_my_namespace_meter1 WHERE subject = 'subject1' GROUP BY subject, group1, group2",
+			wantArgs: nil,
 		},
 		{ // Aggregate data for a multiple subjects
 			query: queryMeterView{
+				Database:      "openmeter",
+				Namespace:     "my_namespace",
+				MeterSlug:     "meter1",
+				Aggregation:   models.MeterAggregationSum,
+				FilterSubject: &filterSubject2,
+				GroupBy:       []string{"subject"},
+			},
+			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value, subject FROM openmeter.om_my_namespace_meter1 WHERE (subject = 'subject1' OR subject = 'subject2') GROUP BY subject",
+			wantArgs: nil,
+		},
+		{ // Aggregate data with filtering for a single group and single value
+			query: queryMeterView{
 				Database:    "openmeter",
 				Namespace:   "my_namespace",
 				MeterSlug:   "meter1",
 				Aggregation: models.MeterAggregationSum,
-				Subject:     []string{subject, "subject2"},
+				FilterGroupBy: map[string]filter.Filter{
+					"g1": filterGroupBy1,
+				},
 			},
-			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value, subject FROM openmeter.om_my_namespace_meter1 WHERE (subject = ? OR subject = ?) GROUP BY subject",
-			wantArgs: []interface{}{"subject1", "subject2"},
-		},
-		{ // Aggregate data with filtering for a single group and single value
-			query: queryMeterView{
-				Database:      "openmeter",
-				Namespace:     "my_namespace",
-				MeterSlug:     "meter1",
-				Aggregation:   models.MeterAggregationSum,
-				FilterGroupBy: map[string][]string{"g1": {"g1v1"}},
-			},
-			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 WHERE (g1 = ?)",
-			wantArgs: []interface{}{"g1v1"},
+			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 WHERE g1 = 'g1v1'",
+			wantArgs: nil,
 		},
 		{ // Aggregate data with filtering for a single group and multiple values
 			query: queryMeterView{
-				Database:      "openmeter",
-				Namespace:     "my_namespace",
-				MeterSlug:     "meter1",
-				Aggregation:   models.MeterAggregationSum,
-				FilterGroupBy: map[string][]string{"g1": {"g1v1", "g1v2"}},
+				Database:    "openmeter",
+				Namespace:   "my_namespace",
+				MeterSlug:   "meter1",
+				Aggregation: models.MeterAggregationSum,
+				FilterGroupBy: map[string]filter.Filter{
+					"g1": filterGroupBy2,
+				},
 			},
-			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 WHERE (g1 = ? OR g1 = ?)",
-			wantArgs: []interface{}{"g1v1", "g1v2"},
+			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 WHERE (g1 = 'g1v1' OR g1 = 'g1v2')",
+			wantArgs: nil,
 		},
 		{ // Aggregate data with filtering for multiple groups and multiple values
 			query: queryMeterView{
-				Database:      "openmeter",
-				Namespace:     "my_namespace",
-				MeterSlug:     "meter1",
-				Aggregation:   models.MeterAggregationSum,
-				FilterGroupBy: map[string][]string{"g1": {"g1v1", "g1v2"}, "g2": {"g2v1", "g2v2"}},
+				Database:    "openmeter",
+				Namespace:   "my_namespace",
+				MeterSlug:   "meter1",
+				Aggregation: models.MeterAggregationSum,
+				FilterGroupBy: map[string]filter.Filter{
+					"g1": filterGroupBy2,
+					"g2": filterGroupBy3,
+				},
 			},
-			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 WHERE (g1 = ? OR g1 = ?) AND (g2 = ? OR g2 = ?)",
-			wantArgs: []interface{}{"g1v1", "g1v2", "g2v1", "g2v2"},
+			wantSQL:  "SELECT min(windowstart), max(windowend), sumMerge(value) AS value FROM openmeter.om_my_namespace_meter1 WHERE (g1 = 'g1v1' OR g1 = 'g1v2') AND (g2 = 'g2v1' OR g2 = 'g2v2')",
+			wantArgs: nil,
 		},
 	}
 

@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/go-chi/render"
@@ -14,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/contextx"
+	"github.com/openmeterio/openmeter/pkg/filter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -57,10 +60,6 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 		Aggregation: meter.Aggregation,
 	}
 
-	if params.Subject != nil {
-		queryParams.Subject = *params.Subject
-	}
-
 	if params.GroupBy != nil {
 		for _, groupBy := range *params.GroupBy {
 			// Validate group by, `subject` is a special group by
@@ -76,6 +75,22 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 		}
 	}
 
+	// Subject is a special query parameter which both filters and groups by subject(s)
+	if params.Subject != nil {
+		subjects := []string{}
+		for _, subject := range *params.Subject {
+			subjects = append(subjects, fmt.Sprintf(`"%s"`, subject))
+		}
+
+		f, _ := filter.ToFilter(fmt.Sprintf(`{"$in": [%s]}`, strings.Join(subjects, ", ")))
+		queryParams.FilterSubject = &f
+
+		// Add subject to group by if not already present
+		if !slices.Contains(queryParams.GroupBy, "subject") {
+			queryParams.GroupBy = append(queryParams.GroupBy, "subject")
+		}
+	}
+
 	if params.WindowTimeZone != nil {
 		tz, err := time.LoadLocation(*params.WindowTimeZone)
 		if err != nil {
@@ -86,6 +101,47 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 			return
 		}
 		queryParams.WindowTimeZone = tz
+	}
+
+	if params.Filter != nil {
+		for k, paramFilter := range *params.Filter {
+			// TODO: ideally `paramFilter` would be `filter.Filter` type but the OpenAPI parser
+			// doesn't support complext objects in query parameters so we have to parse it manually from string.
+			// With this we also loose the ability to validate the filter in the OpenAPI schema and we have to do it manually here.
+			f, err := filter.ToFilter(paramFilter)
+			if err != nil {
+				err := fmt.Errorf(`invalid "%s" filter (%s): %w`, k, paramFilter, err)
+				models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+				return
+			}
+
+			err = filter.Validate(f)
+			if err != nil {
+				err := fmt.Errorf("invalid %s filter (%s): %w", k, paramFilter, err)
+				models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+				return
+			}
+
+			// Subject filters
+			if k == "subject" {
+				queryParams.FilterSubject = &f
+				continue
+			}
+
+			// GroupBy filters
+			if _, ok := meter.GroupBy[k]; ok {
+				if queryParams.FilterGroupBy == nil {
+					queryParams.FilterGroupBy = map[string]filter.Filter{}
+				}
+
+				queryParams.FilterGroupBy[k] = f
+				continue
+			} else {
+				err := fmt.Errorf("invalid group by filter: %s", k)
+				models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+				return
+			}
+		}
 	}
 
 	if err := queryParams.Validate(meter.WindowSize); err != nil {
@@ -163,10 +219,19 @@ func (resp QueryMeterResponse) Render(_ http.ResponseWriter, _ *http.Request) er
 func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request, groupByKeys []string, meterIDOrSlug string) {
 	records := [][]string{}
 
+	// Filter out the subject from the group by keys
+	dataGroupByKeys := make([]string, 0, len(groupByKeys))
+	for _, k := range groupByKeys {
+		if k == "subject" {
+			continue
+		}
+		dataGroupByKeys = append(dataGroupByKeys, k)
+	}
+
 	// CSV headers
 	headers := []string{"window_start", "window_end", "subject"}
-	if len(groupByKeys) > 0 {
-		headers = append(headers, groupByKeys...)
+	if len(dataGroupByKeys) > 0 {
+		headers = append(headers, dataGroupByKeys...)
 	}
 	headers = append(headers, "value")
 	records = append(records, headers)
@@ -179,7 +244,7 @@ func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request,
 		} else {
 			data = append(data, "")
 		}
-		for _, k := range groupByKeys {
+		for _, k := range dataGroupByKeys {
 			var groupByValue string
 
 			if row.GroupBy[k] != nil {
