@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"mime"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/go-chi/render"
@@ -57,10 +58,6 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 		Aggregation: meter.Aggregation,
 	}
 
-	if params.Subject != nil {
-		queryParams.Subject = *params.Subject
-	}
-
 	if params.GroupBy != nil {
 		for _, groupBy := range *params.GroupBy {
 			// Validate group by, `subject` is a special group by
@@ -76,6 +73,16 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 		}
 	}
 
+	// Subject is a special query parameter which both filters and groups by subject(s)
+	if params.Subject != nil {
+		queryParams.FilterSubject = *params.Subject
+
+		// Add subject to group by if not already present
+		if !slices.Contains(queryParams.GroupBy, "subject") {
+			queryParams.GroupBy = append(queryParams.GroupBy, "subject")
+		}
+	}
+
 	if params.WindowTimeZone != nil {
 		tz, err := time.LoadLocation(*params.WindowTimeZone)
 		if err != nil {
@@ -86,6 +93,24 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 			return
 		}
 		queryParams.WindowTimeZone = tz
+	}
+
+	if params.FilterGroupBy != nil {
+		for k, v := range *params.FilterGroupBy {
+			// GroupBy filters
+			if _, ok := meter.GroupBy[k]; ok {
+				if queryParams.FilterGroupBy == nil {
+					queryParams.FilterGroupBy = map[string][]string{}
+				}
+
+				queryParams.FilterGroupBy[k] = []string{v}
+				continue
+			} else {
+				err := fmt.Errorf("invalid group by filter: %s", k)
+				models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+				return
+			}
+		}
 	}
 
 	if err := queryParams.Validate(meter.WindowSize); err != nil {
@@ -160,8 +185,17 @@ func (resp QueryMeterResponse) Render(_ http.ResponseWriter, _ *http.Request) er
 }
 
 // RenderCSV renders the response as CSV.
-func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request, groupByKeys []string, meterIDOrSlug string) {
+func (resp QueryMeterResponse) RenderCSV(w http.ResponseWriter, r *http.Request, _groupByKeys []string, meterIDOrSlug string) {
 	records := [][]string{}
+
+	// Filter out the subject from the group by keys
+	groupByKeys := []string{}
+	for _, k := range groupByKeys {
+		if k == "subject" {
+			continue
+		}
+		groupByKeys = append(groupByKeys, k)
+	}
 
 	// CSV headers
 	headers := []string{"window_start", "window_end", "subject"}

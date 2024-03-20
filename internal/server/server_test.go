@@ -80,7 +80,7 @@ func (c *MockConnector) DeleteMeter(ctx context.Context, namespace string, meter
 func (c *MockConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	value := mockQueryValue
 
-	if params.Subject == nil {
+	if params.FilterSubject == nil {
 		value.Subject = nil
 	}
 
@@ -215,7 +215,7 @@ func TestRoutes(t *testing.T) {
 			name: "get meter",
 			req: testRequest{
 				method: http.MethodGet,
-				path:   "/api/v1/meters/" + mockMeters[0].ID,
+				path:   "/api/v1/meters/" + mockMeters[0].Slug,
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -237,7 +237,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodGet,
 				contentType: "application/json",
-				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query",
+				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query",
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -255,7 +255,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodGet,
 				contentType: "application/json",
-				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?groupBy=path&groupBy=method",
+				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query?groupBy=path&groupBy=method",
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -266,7 +266,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodGet,
 				contentType: "application/json",
-				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?groupBy=subject",
+				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query?groupBy=subject",
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -277,7 +277,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodGet,
 				contentType: "application/json",
-				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?groupBy=foo",
+				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query?groupBy=foo",
 			},
 			res: testResponse{
 				status: http.StatusBadRequest,
@@ -288,7 +288,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodGet,
 				contentType: "application/json",
-				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?subject=s1",
+				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query?subject=s1",
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -302,12 +302,41 @@ func TestRoutes(t *testing.T) {
 			},
 		},
 		{
+			name: "query meter with filter",
+			req: testRequest{
+				method:      http.MethodGet,
+				contentType: "application/json",
+				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query?filterGroupBy[method]=GET",
+			},
+			res: testResponse{
+				status: http.StatusOK,
+				body: struct {
+					Data []models.MeterQueryRow `json:"data"`
+				}{
+					Data: []models.MeterQueryRow{
+						{Subject: nil, WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
+					},
+				},
+			},
+		},
+		{
+			name: "query meter with invalid group by filter",
+			req: testRequest{
+				method:      http.MethodGet,
+				contentType: "application/json",
+				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query?filterGroupBy[invalid]=abcd",
+			},
+			res: testResponse{
+				status: http.StatusBadRequest,
+			},
+		},
+		{
 			name: "query meter as csv",
 			req: testRequest{
 				accept:      "text/csv",
 				contentType: "text/csv",
 				method:      http.MethodGet,
-				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query",
+				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query",
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -327,7 +356,7 @@ func TestRoutes(t *testing.T) {
 				accept:      "text/csv",
 				contentType: "text/csv",
 				method:      http.MethodGet,
-				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?subject=s1",
+				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query?subject=s1",
 			},
 			res: testResponse{
 				status: http.StatusOK,

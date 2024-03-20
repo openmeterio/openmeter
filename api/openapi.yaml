@@ -156,7 +156,8 @@ paths:
         - $ref: "#/components/parameters/queryTo"
         - $ref: "#/components/parameters/queryWindowSize"
         - $ref: "#/components/parameters/queryWindowTimeZone"
-        - $ref: "#/components/parameters/querySubject"
+        - $ref: "#/components/parameters/queryFilterSubject"
+        - $ref: "#/components/parameters/queryFilterGroupBy"
         - $ref: "#/components/parameters/queryGroupBy"
       responses:
         "200":
@@ -758,13 +759,31 @@ components:
         type: string
         default: UTC
         example: "America/New_York"
-    querySubject:
+    queryFilterSubject:
       name: subject
+      description: |
+        Filtering and group by multiple subjects.
+        Usage: ?subject=customer-1&subject=customer-2
       in: query
       required: false
       schema:
         type: array
         items:
+          type: string
+    queryFilterGroupBy:
+      name: filterGroupBy
+      in: query
+      style: deepObject
+      required: false
+      schema:
+        type: object
+        description: |
+          Simple filter for group bys with exact match.
+          Usage: ?filter[type]=input&filter[model]=gpt-4
+        example:
+          model: gpt-4
+          type: input
+        additionalProperties:
           type: string
     queryGroupBy:
       name: groupBy
