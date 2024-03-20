@@ -317,7 +317,14 @@ export interface components {
      * If not specified, the UTC timezone will be used.
      */
     queryWindowTimeZone?: string
-    querySubject?: string[]
+    /**
+     * @description Filtering and group by multiple subjects.
+     * Usage: ?subject=customer-1&subject=customer-2
+     */
+    queryFilterSubject?: string[]
+    queryFilterGroupBy?: {
+      [key: string]: string
+    }
     /**
      * @description If not specified a single aggregate will be returned for each subject and time window.
      * `subject` is a reserved group by value.
@@ -446,7 +453,8 @@ export interface operations {
         to?: components['parameters']['queryTo']
         windowSize?: components['parameters']['queryWindowSize']
         windowTimeZone?: components['parameters']['queryWindowTimeZone']
-        subject?: components['parameters']['querySubject']
+        subject?: components['parameters']['queryFilterSubject']
+        filterGroupBy?: components['parameters']['queryFilterGroupBy']
         groupBy?: components['parameters']['queryGroupBy']
       }
       path: {
