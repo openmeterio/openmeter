@@ -1,5 +1,11 @@
 # A Self-Documenting Makefile: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 
+.PHONY: autorest-python
+autorest-python: ## Generate autorest-python
+	$(call print-target)
+	docker build -t ghcr.io/openmeterio/autorest-python:latest .
+	docker push ghcr.io/openmeterio/autorest-python:latest
+
 .PHONY: generate
 generate: ## Generate code
 	$(call print-target)
@@ -8,7 +14,7 @@ generate: ## Generate code
 		--rm \
 		-v "$$(pwd):/workdir" \
 		-w /workdir \
-		-t azsdkengsys.azurecr.io/azuresdk/autorest-python config.yaml
+		-t ghcr.io/openmeterio/autorest-python:latest config.yaml
 	rm openapi.yaml
 
 .PHONY: help
