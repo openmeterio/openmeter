@@ -617,6 +617,7 @@ export interface operations {
         to?: components['parameters']['queryTo']
         windowSize?: components['parameters']['queryWindowSize']
         windowTimeZone?: components['parameters']['queryWindowTimeZone']
+        filterGroupBy?: components['parameters']['queryFilterGroupBy']
         groupBy?: components['parameters']['queryGroupBy']
       }
       path: {
