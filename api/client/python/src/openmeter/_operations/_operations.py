@@ -347,6 +347,7 @@ def build_query_portal_meter_request(
     to: Optional[datetime.datetime] = None,
     window_size: Optional[str] = None,
     window_time_zone: str = "UTC",
+    filter_group_by: Optional[Dict[str, str]] = None,
     group_by: Optional[List[str]] = None,
     **kwargs: Any
 ) -> HttpRequest:
@@ -372,6 +373,8 @@ def build_query_portal_meter_request(
         _params["windowSize"] = _SERIALIZER.query("window_size", window_size, "str")
     if window_time_zone is not None:
         _params["windowTimeZone"] = _SERIALIZER.query("window_time_zone", window_time_zone, "str")
+    if filter_group_by is not None:
+        _params["filterGroupBy"] = _SERIALIZER.query("filter_group_by", filter_group_by, "{str}")
     if group_by is not None:
         _params["groupBy"] = _SERIALIZER.query("group_by", group_by, "[str]")
 
@@ -1979,6 +1982,7 @@ class ClientOperationsMixin(ClientMixinABC):
         to: Optional[datetime.datetime] = None,
         window_size: Optional[str] = None,
         window_time_zone: str = "UTC",
+        filter_group_by: Optional[Dict[str, str]] = None,
         group_by: Optional[List[str]] = None,
         **kwargs: Any
     ) -> Union[JSON, str]:
@@ -2000,6 +2004,8 @@ class ClientOperationsMixin(ClientMixinABC):
          Zone Database (http://www.iana.org/time-zones).
          If not specified, the UTC timezone will be used. Default value is "UTC".
         :paramtype window_time_zone: str
+        :keyword filter_group_by: Default value is None.
+        :paramtype filter_group_by: dict[str, str]
         :keyword group_by: If not specified a single aggregate will be returned for each subject and
          time window.
          ``subject`` is a reserved group by value. Default value is None.
@@ -2064,6 +2070,7 @@ class ClientOperationsMixin(ClientMixinABC):
             to=to,
             window_size=window_size,
             window_time_zone=window_time_zone,
+            filter_group_by=filter_group_by,
             group_by=group_by,
             headers=_headers,
             params=_params,
