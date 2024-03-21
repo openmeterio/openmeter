@@ -10,7 +10,7 @@ trace: true
 version-tolerant: true
 override-client-name: Client
 
-use: ["@autorest/modelerfour@4.26.2", "@autorest/python@6.9.4"]
+use: ["@autorest/modelerfour@4.27.0", "@autorest/python@6.13.7"]
 directive:
   - from: openapi-document
     where: "$.components.parameters[*]"
