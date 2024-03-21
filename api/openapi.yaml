@@ -780,7 +780,7 @@ components:
         type: object
         description: |
           Simple filter for group bys with exact match.
-          Usage: ?filter[type]=input&filter[model]=gpt-4
+          Usage: ?filterGroupBy[type]=input&filterGroupBy[model]=gpt-4
         example:
           model: gpt-4
           type: input
