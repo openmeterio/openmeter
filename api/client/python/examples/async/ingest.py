@@ -18,24 +18,27 @@ client = Client(
     headers=headers,
 )
 
-event = CloudEvent(
-    attributes={
-        "type": "tokens",
-        "source": "openmeter-python",
-        "subject": "user-id",
-    },
-    data={
-        "prompt_tokens": 5,
-        "completion_tokens": 10,
-        "total_tokens": 15,
-        "model": "gpt-3.5-turbo",
-    },
-)
-
 
 async def main():
     async with client as c:
         try:
+            event = CloudEvent(
+                attributes={
+                    "type": "request",
+                    "source": "openmeter-python",
+                    "subject": "user-id",
+                },
+                data={"method": "GET", "route": "/hello"},
+            )
+            await c.ingest_events(to_dict(event))
+            event = CloudEvent(
+                attributes={
+                    "type": "request",
+                    "source": "openmeter-python",
+                    "subject": "user-id",
+                },
+                data={"method": "POST", "route": "/hello"},
+            )
             await c.ingest_events(to_dict(event))
         except HttpResponseError as e:
             print(e)

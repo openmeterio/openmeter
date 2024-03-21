@@ -7,3 +7,4 @@ authors = ["Andras Toth <4157749+tothandras@users.noreply.github.com>"]
 [tool.poetry.dependencies]
 python = "^3.9"
 openmeter = { path = "../..", extras = ["aio"], develop = true }
+pip = "^24.0"
