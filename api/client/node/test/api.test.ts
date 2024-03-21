@@ -111,6 +111,9 @@ describe('sdk', () => {
           from,
           to,
           windowSize,
+          filterGroupBy: {
+            model: 'gpt-4'
+          }
         })
 
         expect(data.from).toBe(mockMeterValue.windowStart)

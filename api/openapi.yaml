@@ -366,6 +366,7 @@ paths:
         - $ref: "#/components/parameters/queryTo"
         - $ref: "#/components/parameters/queryWindowSize"
         - $ref: "#/components/parameters/queryWindowTimeZone"
+        - $ref: "#/components/parameters/queryFilterGroupBy"
         - $ref: "#/components/parameters/queryGroupBy"
       responses:
         "200":

@@ -160,6 +160,7 @@ client
       from: new Date('2021-01-01').toISOString(),
       to: new Date('2021-01-02').toISOString(),
       windowSize: 'HOUR',
+      'filterGroupBy[model]': 'gpt-4',
     },
     method: 'GET',
     headers: {

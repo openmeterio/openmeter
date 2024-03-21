@@ -49,6 +49,10 @@ export type MeterQueryParams = {
    * If not specified a single aggregate will be returned for each subject and time window.
    */
   groupBy?: string[]
+  /**
+   * @description Filter by group by
+   */
+  filterGroupBy?: Record<string, string>
 }
 
 export type MeterQueryResponse =
