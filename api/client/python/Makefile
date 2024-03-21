@@ -1,10 +1,9 @@
 # A Self-Documenting Makefile: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 
 .PHONY: autorest-python
-autorest-python: ## Generate autorest-python
+autorest-python: ## Build and publish autorest-python image
 	$(call print-target)
-	docker build -t ghcr.io/openmeterio/autorest-python:latest .
-	docker push ghcr.io/openmeterio/autorest-python:latest
+	docker buildx build --platform linux/amd64,linux/arm64 -t ghcr.io/openmeterio/autorest-python:latest --push .
 
 .PHONY: generate
 generate: ## Generate code
