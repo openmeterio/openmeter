@@ -17,14 +17,20 @@ from ._operations import ClientOperationsMixin
 
 
 class Client(ClientOperationsMixin):  # pylint: disable=client-accepts-api-version-keyword
-    """Client.
+    """OpenMeter is a cloud native usage metering service.
 
-    :keyword endpoint: Service URL. Required. Default value is "".
+    The OpenMeter API allows you to ingest events, query meter usage, and manage resources.
+    ---------------------------------------------------------------------------------------
+
+    *Operations with the ☁ (cloud) notation are only available in OpenMeter Cloud.*.
+
+    :keyword endpoint: Service URL. Known values are: "http://127.0.0.1:8888" and
+     "https://openmeter.cloud". Default value is "http://127.0.0.1:8888".
     :paramtype endpoint: str
     """
 
     def __init__(  # pylint: disable=missing-client-constructor-parameter-credential
-        self, *, endpoint: str = "", **kwargs: Any
+        self, *, endpoint: str = "http://127.0.0.1:8888", **kwargs: Any
     ) -> None:
         self._config = ClientConfiguration(**kwargs)
         _policies = kwargs.pop("policies", None)

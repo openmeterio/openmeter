@@ -37,28 +37,11 @@ _SERIALIZER = Serializer()
 _SERIALIZER.client_side_validation = False
 
 
-def build_ingest_events_request(**kwargs: Any) -> HttpRequest:
-    _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
-
-    content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
-    accept = _headers.pop("Accept", "application/problem+json")
-
-    # Construct URL
-    _url = "/api/v1/events"
-
-    # Construct headers
-    if content_type is not None:
-        _headers["Content-Type"] = _SERIALIZER.header("content_type", content_type, "str")
-    _headers["Accept"] = _SERIALIZER.header("accept", accept, "str")
-
-    return HttpRequest(method="POST", url=_url, headers=_headers, **kwargs)
-
-
 def build_list_events_request(
     *,
     from_parameter: Optional[datetime.datetime] = None,
     to: Optional[datetime.datetime] = None,
-    limit: Optional[int] = None,
+    limit: int = 100,
     **kwargs: Any
 ) -> HttpRequest:
     _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
@@ -81,6 +64,23 @@ def build_list_events_request(
     _headers["Accept"] = _SERIALIZER.header("accept", accept, "str")
 
     return HttpRequest(method="GET", url=_url, params=_params, headers=_headers, **kwargs)
+
+
+def build_ingest_events_request(**kwargs: Any) -> HttpRequest:
+    _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+
+    content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+    accept = _headers.pop("Accept", "application/problem+json")
+
+    # Construct URL
+    _url = "/api/v1/events"
+
+    # Construct headers
+    if content_type is not None:
+        _headers["Content-Type"] = _SERIALIZER.header("content_type", content_type, "str")
+    _headers["Accept"] = _SERIALIZER.header("accept", accept, "str")
+
+    return HttpRequest(method="POST", url=_url, headers=_headers, **kwargs)
 
 
 def build_list_meters_request(**kwargs: Any) -> HttpRequest:
@@ -385,6 +385,108 @@ def build_query_portal_meter_request(
 
 
 class ClientOperationsMixin(ClientMixinABC):
+    @distributed_trace
+    def list_events(
+        self,
+        *,
+        from_parameter: Optional[datetime.datetime] = None,
+        to: Optional[datetime.datetime] = None,
+        limit: int = 100,
+        **kwargs: Any
+    ) -> List[JSON]:
+        # pylint: disable=line-too-long
+        """List ingested events.
+
+        List ingested events within a time range.
+
+        :keyword from_parameter: Start date-time in RFC 3339 format.
+         Inclusive. Default value is None.
+        :paramtype from_parameter: ~datetime.datetime
+        :keyword to: End date-time in RFC 3339 format.
+         Inclusive. Default value is None.
+        :paramtype to: ~datetime.datetime
+        :keyword limit: Number of events to return. Default value is 100.
+        :paramtype limit: int
+        :return: list of JSON object
+        :rtype: list[JSON]
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == [
+                    {
+                        "event": {
+                            "id": "str",  # Identifies the event. Required.
+                            "source": "str",  # Identifies the context in which an event
+                              happened. Required.
+                            "specversion": "str",  # The version of the CloudEvents
+                              specification which the event uses. Required.
+                            "subject": "str",  # Describes the subject of the event in
+                              the context of the event producer (identified by source). Required.
+                            "type": "str",  # Describes the type of event related to the
+                              originating occurrence. Required.
+                            "data": {
+                                "str": {}  # Optional. The event payload.
+                            },
+                            "datacontenttype": "str",  # Optional. Content type of the
+                              data value. Must adhere to RFC 2046 format. "application/json"
+                            "dataschema": "str",  # Optional. Identifies the schema that
+                              data adheres to.
+                            "time": "2020-02-20 00:00:00"  # Optional. Timestamp of when
+                              the occurrence happened. Must adhere to RFC 3339.
+                        },
+                        "validationError": "str"  # Optional.
+                    }
+                ]
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+
+        _request = build_list_events_request(
+            from_parameter=from_parameter,
+            to=to,
+            limit=limit,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = self._client._pipeline.run(  # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
+
+        return cast(List[JSON], deserialized)  # type: ignore
+
     @overload
     def ingest_events(  # pylint: disable=inconsistent-return-statements
         self, body: JSON, *, content_type: str = "application/cloudevents+json", **kwargs: Any
@@ -392,7 +494,12 @@ class ClientOperationsMixin(ClientMixinABC):
         # pylint: disable=line-too-long
         """Ingest events.
 
-        :param body: Required.
+        Ingests an event or batch of events following the CloudEvents specification.
+
+        :param body: The event or batch of events to ingest.
+         The request body must be a CloudEvents JSON object or an array of CloudEvents JSON objects.
+         The CloudEvents JSON object must adhere to the CloudEvents Specification JSON Schema.
+         Required.
         :type body: JSON
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/cloudevents+json".
@@ -433,7 +540,12 @@ class ClientOperationsMixin(ClientMixinABC):
         # pylint: disable=line-too-long
         """Ingest events.
 
-        :param body: Required.
+        Ingests an event or batch of events following the CloudEvents specification.
+
+        :param body: The event or batch of events to ingest.
+         The request body must be a CloudEvents JSON object or an array of CloudEvents JSON objects.
+         The CloudEvents JSON object must adhere to the CloudEvents Specification JSON Schema.
+         Required.
         :type body: list[JSON]
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/cloudevents-batch+json".
@@ -477,7 +589,12 @@ class ClientOperationsMixin(ClientMixinABC):
         # pylint: disable=line-too-long
         """Ingest events.
 
-        :param body: Is either a JSON type or a [JSON] type. Required.
+        Ingests an event or batch of events following the CloudEvents specification.
+
+        :param body: The event or batch of events to ingest.
+         The request body must be a CloudEvents JSON object or an array of CloudEvents JSON objects.
+         The CloudEvents JSON object must adhere to the CloudEvents Specification JSON Schema. Is
+         either a JSON type or a [JSON] type. Required.
         :type body: JSON or list[JSON]
         :return: None
         :rtype: None
@@ -508,11 +625,11 @@ class ClientOperationsMixin(ClientMixinABC):
                 }
         """
         error_map = {
-            401: ClientAuthenticationError,
             404: ResourceNotFoundError,
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
             400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
 
@@ -548,116 +665,18 @@ class ClientOperationsMixin(ClientMixinABC):
         if response.status_code not in [204]:
             if _stream:
                 response.read()  # Load the body in memory and close the socket
-            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
             raise HttpResponseError(response=response)
 
         if cls:
             return cls(pipeline_response, None, {})  # type: ignore
 
     @distributed_trace
-    def list_events(
-        self,
-        *,
-        from_parameter: Optional[datetime.datetime] = None,
-        to: Optional[datetime.datetime] = None,
-        limit: Optional[int] = None,
-        **kwargs: Any
-    ) -> List[JSON]:
-        # pylint: disable=line-too-long
-        """Retrieve latest raw events.
-
-        :keyword from_parameter: Start date-time in RFC 3339 format.
-         Inclusive. Default value is None.
-        :paramtype from_parameter: ~datetime.datetime
-        :keyword to: End date-time in RFC 3339 format.
-         Inclusive. Default value is None.
-        :paramtype to: ~datetime.datetime
-        :keyword limit: Number of events to return. Default value is None.
-        :paramtype limit: int
-        :return: list of JSON object
-        :rtype: list[JSON]
-        :raises ~azure.core.exceptions.HttpResponseError:
-
-        Example:
-            .. code-block:: python
-
-                # response body for status code(s): 200
-                response == [
-                    {
-                        "event": {
-                            "id": "str",  # Identifies the event. Required.
-                            "source": "str",  # Identifies the context in which an event
-                              happened. Required.
-                            "specversion": "str",  # The version of the CloudEvents
-                              specification which the event uses. Required.
-                            "subject": "str",  # Describes the subject of the event in
-                              the context of the event producer (identified by source). Required.
-                            "type": "str",  # Describes the type of event related to the
-                              originating occurrence. Required.
-                            "data": {
-                                "str": {}  # Optional. The event payload.
-                            },
-                            "datacontenttype": "str",  # Optional. Content type of the
-                              data value. Must adhere to RFC 2046 format. "application/json"
-                            "dataschema": "str",  # Optional. Identifies the schema that
-                              data adheres to.
-                            "time": "2020-02-20 00:00:00"  # Optional. Timestamp of when
-                              the occurrence happened. Must adhere to RFC 3339.
-                        },
-                        "validationError": "str"  # Optional.
-                    }
-                ]
-        """
-        error_map = {
-            401: ClientAuthenticationError,
-            404: ResourceNotFoundError,
-            409: ResourceExistsError,
-            304: ResourceNotModifiedError,
-            400: HttpResponseError,
-        }
-        error_map.update(kwargs.pop("error_map", {}) or {})
-
-        _headers = kwargs.pop("headers", {}) or {}
-        _params = kwargs.pop("params", {}) or {}
-
-        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
-
-        _request = build_list_events_request(
-            from_parameter=from_parameter,
-            to=to,
-            limit=limit,
-            headers=_headers,
-            params=_params,
-        )
-        _request.url = self._client.format_url(_request.url)
-
-        _stream = False
-        pipeline_response: PipelineResponse = self._client._pipeline.run(  # pylint: disable=protected-access
-            _request, stream=_stream, **kwargs
-        )
-
-        response = pipeline_response.http_response
-
-        if response.status_code not in [200]:
-            if _stream:
-                response.read()  # Load the body in memory and close the socket
-            map_error(status_code=response.status_code, response=response, error_map=error_map)
-            raise HttpResponseError(response=response)
-
-        if response.content:
-            deserialized = response.json()
-        else:
-            deserialized = None
-
-        if cls:
-            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
-
-        return cast(List[JSON], deserialized)  # type: ignore
-
-    @distributed_trace
     def list_meters(self, **kwargs: Any) -> List[JSON]:
         # pylint: disable=line-too-long
         """List meters.
+
+        List meters.
 
         :return: list of JSON object
         :rtype: list[JSON]
@@ -672,7 +691,8 @@ class ClientOperationsMixin(ClientMixinABC):
                         "aggregation": "str",  # The aggregation type to use for the meter.
                           Required. Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
                         "eventType": "str",  # The event type to aggregate. Required.
-                        "slug": "str",  # A unique identifier for the meter. Required.
+                        "slug": "str",  # A unique, human-readable identifier for the meter.
+                          Must consist only alphanumeric and underscore characters. Required.
                         "windowSize": "str",  # Aggregation window size. Required. Known
                           values are: "MINUTE", "HOUR", and "DAY".
                         "description": "str",  # Optional. A description of the meter.
@@ -688,10 +708,10 @@ class ClientOperationsMixin(ClientMixinABC):
                 ]
         """
         error_map = {
-            401: ClientAuthenticationError,
             404: ResourceNotFoundError,
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
 
@@ -716,7 +736,7 @@ class ClientOperationsMixin(ClientMixinABC):
         if response.status_code not in [200]:
             if _stream:
                 response.read()  # Load the body in memory and close the socket
-            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
             raise HttpResponseError(response=response)
 
         if response.content:
@@ -732,9 +752,14 @@ class ClientOperationsMixin(ClientMixinABC):
     @overload
     def create_meter(self, body: JSON, *, content_type: str = "application/json", **kwargs: Any) -> JSON:
         # pylint: disable=line-too-long
-        """Create meter.
+        """☁ Create meter.
 
-        :param body: Required.
+        *Available in OpenMeter Cloud.*
+        *In the open-source version, meters are created in the configuration file.*
+
+        Create a meter.
+
+        :param body: The meter to create. Required.
         :type body: JSON
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
@@ -751,7 +776,8 @@ class ClientOperationsMixin(ClientMixinABC):
                     "aggregation": "str",  # The aggregation type to use for the meter. Required.
                       Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
-                    "slug": "str",  # A unique identifier for the meter. Required.
+                    "slug": "str",  # A unique, human-readable identifier for the meter. Must
+                      consist only alphanumeric and underscore characters. Required.
                     "windowSize": "str",  # Aggregation window size. Required. Known values are:
                       "MINUTE", "HOUR", and "DAY".
                     "description": "str",  # Optional. A description of the meter.
@@ -770,7 +796,8 @@ class ClientOperationsMixin(ClientMixinABC):
                     "aggregation": "str",  # The aggregation type to use for the meter. Required.
                       Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
-                    "slug": "str",  # A unique identifier for the meter. Required.
+                    "slug": "str",  # A unique, human-readable identifier for the meter. Must
+                      consist only alphanumeric and underscore characters. Required.
                     "windowSize": "str",  # Aggregation window size. Required. Known values are:
                       "MINUTE", "HOUR", and "DAY".
                     "description": "str",  # Optional. A description of the meter.
@@ -788,9 +815,14 @@ class ClientOperationsMixin(ClientMixinABC):
     @overload
     def create_meter(self, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any) -> JSON:
         # pylint: disable=line-too-long
-        """Create meter.
+        """☁ Create meter.
 
-        :param body: Required.
+        *Available in OpenMeter Cloud.*
+        *In the open-source version, meters are created in the configuration file.*
+
+        Create a meter.
+
+        :param body: The meter to create. Required.
         :type body: IO[bytes]
         :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
          Default value is "application/json".
@@ -807,7 +839,8 @@ class ClientOperationsMixin(ClientMixinABC):
                     "aggregation": "str",  # The aggregation type to use for the meter. Required.
                       Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
-                    "slug": "str",  # A unique identifier for the meter. Required.
+                    "slug": "str",  # A unique, human-readable identifier for the meter. Must
+                      consist only alphanumeric and underscore characters. Required.
                     "windowSize": "str",  # Aggregation window size. Required. Known values are:
                       "MINUTE", "HOUR", and "DAY".
                     "description": "str",  # Optional. A description of the meter.
@@ -825,9 +858,14 @@ class ClientOperationsMixin(ClientMixinABC):
     @distributed_trace
     def create_meter(self, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
         # pylint: disable=line-too-long
-        """Create meter.
+        """☁ Create meter.
 
-        :param body: Is either a JSON type or a IO[bytes] type. Required.
+        *Available in OpenMeter Cloud.*
+        *In the open-source version, meters are created in the configuration file.*
+
+        Create a meter.
+
+        :param body: The meter to create. Is either a JSON type or a IO[bytes] type. Required.
         :type body: JSON or IO[bytes]
         :return: JSON object
         :rtype: JSON
@@ -841,7 +879,8 @@ class ClientOperationsMixin(ClientMixinABC):
                     "aggregation": "str",  # The aggregation type to use for the meter. Required.
                       Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
-                    "slug": "str",  # A unique identifier for the meter. Required.
+                    "slug": "str",  # A unique, human-readable identifier for the meter. Must
+                      consist only alphanumeric and underscore characters. Required.
                     "windowSize": "str",  # Aggregation window size. Required. Known values are:
                       "MINUTE", "HOUR", and "DAY".
                     "description": "str",  # Optional. A description of the meter.
@@ -860,7 +899,8 @@ class ClientOperationsMixin(ClientMixinABC):
                     "aggregation": "str",  # The aggregation type to use for the meter. Required.
                       Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
-                    "slug": "str",  # A unique identifier for the meter. Required.
+                    "slug": "str",  # A unique, human-readable identifier for the meter. Must
+                      consist only alphanumeric and underscore characters. Required.
                     "windowSize": "str",  # Aggregation window size. Required. Known values are:
                       "MINUTE", "HOUR", and "DAY".
                     "description": "str",  # Optional. A description of the meter.
@@ -875,11 +915,11 @@ class ClientOperationsMixin(ClientMixinABC):
                 }
         """
         error_map = {
-            401: ClientAuthenticationError,
             404: ResourceNotFoundError,
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
             400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
             501: HttpResponseError,
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
@@ -917,7 +957,7 @@ class ClientOperationsMixin(ClientMixinABC):
         if response.status_code not in [201]:
             if _stream:
                 response.read()  # Load the body in memory and close the socket
-            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
             raise HttpResponseError(response=response)
 
         if response.content:
@@ -933,7 +973,9 @@ class ClientOperationsMixin(ClientMixinABC):
     @distributed_trace
     def get_meter(self, meter_id_or_slug: str, **kwargs: Any) -> JSON:
         # pylint: disable=line-too-long
-        """Get meter by slugs.
+        """Get meter.
+
+        Get meter by ID or slug.
 
         :param meter_id_or_slug: A unique identifier for the meter. Required.
         :type meter_id_or_slug: str
@@ -949,7 +991,8 @@ class ClientOperationsMixin(ClientMixinABC):
                     "aggregation": "str",  # The aggregation type to use for the meter. Required.
                       Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
-                    "slug": "str",  # A unique identifier for the meter. Required.
+                    "slug": "str",  # A unique, human-readable identifier for the meter. Must
+                      consist only alphanumeric and underscore characters. Required.
                     "windowSize": "str",  # Aggregation window size. Required. Known values are:
                       "MINUTE", "HOUR", and "DAY".
                     "description": "str",  # Optional. A description of the meter.
@@ -1010,7 +1053,11 @@ class ClientOperationsMixin(ClientMixinABC):
     def delete_meter(  # pylint: disable=inconsistent-return-statements
         self, meter_id_or_slug: str, **kwargs: Any
     ) -> None:
-        """Delete meter by slug.
+        """☁ Delete meter.
+
+        *Available in OpenMeter Cloud.*
+
+        Delete a meter by ID or slug.
 
         :param meter_id_or_slug: A unique identifier for the meter. Required.
         :type meter_id_or_slug: str
@@ -1071,6 +1118,8 @@ class ClientOperationsMixin(ClientMixinABC):
     ) -> Union[JSON, str]:
         """Query meter.
 
+        Query meter for usage.
+
         :param meter_id_or_slug: A unique identifier for the meter. Required.
         :type meter_id_or_slug: str
         :keyword from_parameter: Start date-time in RFC 3339 format.
@@ -1124,11 +1173,11 @@ class ClientOperationsMixin(ClientMixinABC):
                 }
         """
         error_map = {
-            401: ClientAuthenticationError,
             404: ResourceNotFoundError,
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
             400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
 
@@ -1161,7 +1210,7 @@ class ClientOperationsMixin(ClientMixinABC):
         if response.status_code not in [200, 200]:
             if _stream:
                 response.read()  # Load the body in memory and close the socket
-            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
             raise HttpResponseError(response=response)
 
         if response.status_code == 200:
@@ -1184,6 +1233,8 @@ class ClientOperationsMixin(ClientMixinABC):
     @distributed_trace
     def list_meter_subjects(self, meter_id_or_slug: str, **kwargs: Any) -> List[str]:
         """List meter subjects.
+
+        List subjects for a meter.
 
         :param meter_id_or_slug: A unique identifier for the meter. Required.
         :type meter_id_or_slug: str
@@ -1244,12 +1295,12 @@ class ClientOperationsMixin(ClientMixinABC):
         return cast(List[str], deserialized)  # type: ignore
 
     @overload
-    def create_portal_token(
-        self, body: Optional[JSON] = None, *, content_type: str = "application/json", **kwargs: Any
-    ) -> JSON:
-        """create_portal_token.
+    def create_portal_token(self, body: JSON, *, content_type: str = "application/json", **kwargs: Any) -> JSON:
+        """Create portal token.
 
-        :param body: Default value is None.
+        Create a consumer portal token.
+
+        :param body: The portal token to create. Required.
         :type body: JSON
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
@@ -1263,40 +1314,40 @@ class ClientOperationsMixin(ClientMixinABC):
 
                 # JSON input template you can fill out and use as your body input.
                 body = {
-                    "createdAt": "2020-02-20 00:00:00",  # Required.
-                    "expiresAt": "2020-02-20 00:00:00",  # Required.
-                    "id": "str",  # Required.
                     "subject": "str",  # Required.
                     "allowedMeterSlugs": [
                         "str"  # Optional. Optional, if defined only the specified meters
                           will be allowed.
                     ],
+                    "createdAt": "2020-02-20 00:00:00",  # Optional.
                     "expired": bool,  # Optional.
+                    "expiresAt": "2020-02-20 00:00:00",  # Optional.
+                    "id": "str",  # Optional.
                     "token": "str"  # Optional. The token is only returned at creation.
                 }
 
                 # response body for status code(s): 200
                 response == {
-                    "createdAt": "2020-02-20 00:00:00",  # Required.
-                    "expiresAt": "2020-02-20 00:00:00",  # Required.
-                    "id": "str",  # Required.
                     "subject": "str",  # Required.
                     "allowedMeterSlugs": [
                         "str"  # Optional. Optional, if defined only the specified meters
                           will be allowed.
                     ],
+                    "createdAt": "2020-02-20 00:00:00",  # Optional.
                     "expired": bool,  # Optional.
+                    "expiresAt": "2020-02-20 00:00:00",  # Optional.
+                    "id": "str",  # Optional.
                     "token": "str"  # Optional. The token is only returned at creation.
                 }
         """
 
     @overload
-    def create_portal_token(
-        self, body: Optional[IO[bytes]] = None, *, content_type: str = "application/json", **kwargs: Any
-    ) -> JSON:
-        """create_portal_token.
+    def create_portal_token(self, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any) -> JSON:
+        """Create portal token.
 
-        :param body: Default value is None.
+        Create a consumer portal token.
+
+        :param body: The portal token to create. Required.
         :type body: IO[bytes]
         :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
          Default value is "application/json".
@@ -1310,24 +1361,26 @@ class ClientOperationsMixin(ClientMixinABC):
 
                 # response body for status code(s): 200
                 response == {
-                    "createdAt": "2020-02-20 00:00:00",  # Required.
-                    "expiresAt": "2020-02-20 00:00:00",  # Required.
-                    "id": "str",  # Required.
                     "subject": "str",  # Required.
                     "allowedMeterSlugs": [
                         "str"  # Optional. Optional, if defined only the specified meters
                           will be allowed.
                     ],
+                    "createdAt": "2020-02-20 00:00:00",  # Optional.
                     "expired": bool,  # Optional.
+                    "expiresAt": "2020-02-20 00:00:00",  # Optional.
+                    "id": "str",  # Optional.
                     "token": "str"  # Optional. The token is only returned at creation.
                 }
         """
 
     @distributed_trace
-    def create_portal_token(self, body: Optional[Union[JSON, IO[bytes]]] = None, **kwargs: Any) -> JSON:
-        """create_portal_token.
+    def create_portal_token(self, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
+        """Create portal token.
 
-        :param body: Is either a JSON type or a IO[bytes] type. Default value is None.
+        Create a consumer portal token.
+
+        :param body: The portal token to create. Is either a JSON type or a IO[bytes] type. Required.
         :type body: JSON or IO[bytes]
         :return: JSON object
         :rtype: JSON
@@ -1338,38 +1391,38 @@ class ClientOperationsMixin(ClientMixinABC):
 
                 # JSON input template you can fill out and use as your body input.
                 body = {
-                    "createdAt": "2020-02-20 00:00:00",  # Required.
-                    "expiresAt": "2020-02-20 00:00:00",  # Required.
-                    "id": "str",  # Required.
                     "subject": "str",  # Required.
                     "allowedMeterSlugs": [
                         "str"  # Optional. Optional, if defined only the specified meters
                           will be allowed.
                     ],
+                    "createdAt": "2020-02-20 00:00:00",  # Optional.
                     "expired": bool,  # Optional.
+                    "expiresAt": "2020-02-20 00:00:00",  # Optional.
+                    "id": "str",  # Optional.
                     "token": "str"  # Optional. The token is only returned at creation.
                 }
 
                 # response body for status code(s): 200
                 response == {
-                    "createdAt": "2020-02-20 00:00:00",  # Required.
-                    "expiresAt": "2020-02-20 00:00:00",  # Required.
-                    "id": "str",  # Required.
                     "subject": "str",  # Required.
                     "allowedMeterSlugs": [
                         "str"  # Optional. Optional, if defined only the specified meters
                           will be allowed.
                     ],
+                    "createdAt": "2020-02-20 00:00:00",  # Optional.
                     "expired": bool,  # Optional.
+                    "expiresAt": "2020-02-20 00:00:00",  # Optional.
+                    "id": "str",  # Optional.
                     "token": "str"  # Optional. The token is only returned at creation.
                 }
         """
         error_map = {
-            401: ClientAuthenticationError,
             404: ResourceNotFoundError,
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
             400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
 
@@ -1385,10 +1438,7 @@ class ClientOperationsMixin(ClientMixinABC):
         if isinstance(body, (IOBase, bytes)):
             _content = body
         else:
-            if body is not None:
-                _json = body
-            else:
-                _json = None
+            _json = body
 
         _request = build_create_portal_token_request(
             content_type=content_type,
@@ -1409,7 +1459,7 @@ class ClientOperationsMixin(ClientMixinABC):
         if response.status_code not in [200]:
             if _stream:
                 response.read()  # Load the body in memory and close the socket
-            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
             raise HttpResponseError(response=response)
 
         if response.content:
@@ -1424,7 +1474,11 @@ class ClientOperationsMixin(ClientMixinABC):
 
     @distributed_trace
     def list_portal_tokens(self, *, limit: int = 25, **kwargs: Any) -> List[JSON]:
-        """list_portal_tokens.
+        """☁ List portal tokens.
+
+        *Available in OpenMeter Cloud.*
+
+        List consumer portal tokens.
 
         :keyword limit: Number of portal tokens to return. Default is 25. Default value is 25.
         :paramtype limit: int
@@ -1438,25 +1492,26 @@ class ClientOperationsMixin(ClientMixinABC):
                 # response body for status code(s): 200
                 response == [
                     {
-                        "createdAt": "2020-02-20 00:00:00",  # Required.
-                        "expiresAt": "2020-02-20 00:00:00",  # Required.
-                        "id": "str",  # Required.
                         "subject": "str",  # Required.
                         "allowedMeterSlugs": [
                             "str"  # Optional. Optional, if defined only the specified
                               meters will be allowed.
                         ],
+                        "createdAt": "2020-02-20 00:00:00",  # Optional.
                         "expired": bool,  # Optional.
+                        "expiresAt": "2020-02-20 00:00:00",  # Optional.
+                        "id": "str",  # Optional.
                         "token": "str"  # Optional. The token is only returned at creation.
                     }
                 ]
         """
         error_map = {
-            401: ClientAuthenticationError,
             404: ResourceNotFoundError,
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
             400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            501: HttpResponseError,
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
 
@@ -1482,7 +1537,7 @@ class ClientOperationsMixin(ClientMixinABC):
         if response.status_code not in [200]:
             if _stream:
                 response.read()  # Load the body in memory and close the socket
-            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
             raise HttpResponseError(response=response)
 
         if response.content:
@@ -1497,11 +1552,15 @@ class ClientOperationsMixin(ClientMixinABC):
 
     @overload
     def invalidate_portal_tokens(  # pylint: disable=inconsistent-return-statements
-        self, body: Optional[JSON] = None, *, content_type: str = "application/json", **kwargs: Any
+        self, body: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> None:
-        """invalidate_portal_tokens.
+        """☁ Invalidate portal tokens.
 
-        :param body: Default value is None.
+        *Available in OpenMeter Cloud.*
+
+        Invalidates consumer portal tokens by ID or subject.
+
+        :param body: If no id or subject is specified, all tokens will be invalidated. Required.
         :type body: JSON
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
@@ -1515,20 +1574,22 @@ class ClientOperationsMixin(ClientMixinABC):
 
                 # JSON input template you can fill out and use as your body input.
                 body = {
-                    "id": "str",  # Optional. Optional portal token ID to invalidate one token
-                      by.
-                    "subject": "str"  # Optional. Optional subject to invalidate all tokens for
-                      subject.
+                    "id": "str",  # Optional. Invalidate a portal token by ID.
+                    "subject": "str"  # Optional. Invalidate all portal tokens for a subject.
                 }
         """
 
     @overload
     def invalidate_portal_tokens(  # pylint: disable=inconsistent-return-statements
-        self, body: Optional[IO[bytes]] = None, *, content_type: str = "application/json", **kwargs: Any
+        self, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> None:
-        """invalidate_portal_tokens.
+        """☁ Invalidate portal tokens.
 
-        :param body: Default value is None.
+        *Available in OpenMeter Cloud.*
+
+        Invalidates consumer portal tokens by ID or subject.
+
+        :param body: If no id or subject is specified, all tokens will be invalidated. Required.
         :type body: IO[bytes]
         :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
          Default value is "application/json".
@@ -1540,11 +1601,16 @@ class ClientOperationsMixin(ClientMixinABC):
 
     @distributed_trace
     def invalidate_portal_tokens(  # pylint: disable=inconsistent-return-statements
-        self, body: Optional[Union[JSON, IO[bytes]]] = None, **kwargs: Any
+        self, body: Union[JSON, IO[bytes]], **kwargs: Any
     ) -> None:
-        """invalidate_portal_tokens.
+        """☁ Invalidate portal tokens.
 
-        :param body: Is either a JSON type or a IO[bytes] type. Default value is None.
+        *Available in OpenMeter Cloud.*
+
+        Invalidates consumer portal tokens by ID or subject.
+
+        :param body: If no id or subject is specified, all tokens will be invalidated. Is either a JSON
+         type or a IO[bytes] type. Required.
         :type body: JSON or IO[bytes]
         :return: None
         :rtype: None
@@ -1555,18 +1621,17 @@ class ClientOperationsMixin(ClientMixinABC):
 
                 # JSON input template you can fill out and use as your body input.
                 body = {
-                    "id": "str",  # Optional. Optional portal token ID to invalidate one token
-                      by.
-                    "subject": "str"  # Optional. Optional subject to invalidate all tokens for
-                      subject.
+                    "id": "str",  # Optional. Invalidate a portal token by ID.
+                    "subject": "str"  # Optional. Invalidate all portal tokens for a subject.
                 }
         """
         error_map = {
-            401: ClientAuthenticationError,
             404: ResourceNotFoundError,
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
             400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            501: HttpResponseError,
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
 
@@ -1582,10 +1647,7 @@ class ClientOperationsMixin(ClientMixinABC):
         if isinstance(body, (IOBase, bytes)):
             _content = body
         else:
-            if body is not None:
-                _json = body
-            else:
-                _json = None
+            _json = body
 
         _request = build_invalidate_portal_tokens_request(
             content_type=content_type,
@@ -1606,7 +1668,7 @@ class ClientOperationsMixin(ClientMixinABC):
         if response.status_code not in [204]:
             if _stream:
                 response.read()  # Load the body in memory and close the socket
-            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
             raise HttpResponseError(response=response)
 
         if cls:
@@ -1614,7 +1676,11 @@ class ClientOperationsMixin(ClientMixinABC):
 
     @distributed_trace
     def list_subjects(self, **kwargs: Any) -> List[JSON]:
-        """list_subjects.
+        """☁ List subjects.
+
+        *Available in OpenMeter Cloud.*
+
+        List subjects.
 
         :return: list of JSON object
         :rtype: list[JSON]
@@ -1626,11 +1692,11 @@ class ClientOperationsMixin(ClientMixinABC):
                 # response body for status code(s): 200
                 response == [
                     {
-                        "id": "str",  # Required.
                         "key": "str",  # Required.
                         "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
                         "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
                         "displayName": "str",  # Optional.
+                        "id": "str",  # Optional.
                         "metadata": {
                             "str": {}  # Optional. Dictionary of :code:`<any>`.
                         },
@@ -1639,10 +1705,10 @@ class ClientOperationsMixin(ClientMixinABC):
                 ]
         """
         error_map = {
-            401: ClientAuthenticationError,
             404: ResourceNotFoundError,
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
 
@@ -1667,7 +1733,7 @@ class ClientOperationsMixin(ClientMixinABC):
         if response.status_code not in [200]:
             if _stream:
                 response.read()  # Load the body in memory and close the socket
-            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
             raise HttpResponseError(response=response)
 
         if response.content:
@@ -1681,14 +1747,16 @@ class ClientOperationsMixin(ClientMixinABC):
         return cast(List[JSON], deserialized)  # type: ignore
 
     @overload
-    def upsert_subject(
-        self, body: Optional[List[JSON]] = None, *, content_type: str = "application/json", **kwargs: Any
-    ) -> List[JSON]:
-        """Upserts a subject. Creates or updates subject.
+    def upsert_subject(self, body: List[JSON], *, content_type: str = "application/json", **kwargs: Any) -> List[JSON]:
+        """☁ Upsert subject.
+
+        *Available in OpenMeter Cloud.*
+
+        Upserts a subject. Creates or updates subject.
         If the subject doesn't exist, it will be created.
         If the subject exists, it will be partially updated with the provided fields.
 
-        :param body: Default value is None.
+        :param body: The subject to upsert. Required.
         :type body: list[JSON]
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
@@ -1703,11 +1771,11 @@ class ClientOperationsMixin(ClientMixinABC):
                 # JSON input template you can fill out and use as your body input.
                 body = [
                     {
-                        "id": "str",  # Required.
                         "key": "str",  # Required.
                         "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
                         "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
                         "displayName": "str",  # Optional.
+                        "id": "str",  # Optional.
                         "metadata": {
                             "str": {}  # Optional. Dictionary of :code:`<any>`.
                         },
@@ -1718,11 +1786,11 @@ class ClientOperationsMixin(ClientMixinABC):
                 # response body for status code(s): 200
                 response == [
                     {
-                        "id": "str",  # Required.
                         "key": "str",  # Required.
                         "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
                         "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
                         "displayName": "str",  # Optional.
+                        "id": "str",  # Optional.
                         "metadata": {
                             "str": {}  # Optional. Dictionary of :code:`<any>`.
                         },
@@ -1732,14 +1800,16 @@ class ClientOperationsMixin(ClientMixinABC):
         """
 
     @overload
-    def upsert_subject(
-        self, body: Optional[IO[bytes]] = None, *, content_type: str = "application/json", **kwargs: Any
-    ) -> List[JSON]:
-        """Upserts a subject. Creates or updates subject.
+    def upsert_subject(self, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any) -> List[JSON]:
+        """☁ Upsert subject.
+
+        *Available in OpenMeter Cloud.*
+
+        Upserts a subject. Creates or updates subject.
         If the subject doesn't exist, it will be created.
         If the subject exists, it will be partially updated with the provided fields.
 
-        :param body: Default value is None.
+        :param body: The subject to upsert. Required.
         :type body: IO[bytes]
         :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
          Default value is "application/json".
@@ -1754,11 +1824,11 @@ class ClientOperationsMixin(ClientMixinABC):
                 # response body for status code(s): 200
                 response == [
                     {
-                        "id": "str",  # Required.
                         "key": "str",  # Required.
                         "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
                         "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
                         "displayName": "str",  # Optional.
+                        "id": "str",  # Optional.
                         "metadata": {
                             "str": {}  # Optional. Dictionary of :code:`<any>`.
                         },
@@ -1768,12 +1838,16 @@ class ClientOperationsMixin(ClientMixinABC):
         """
 
     @distributed_trace
-    def upsert_subject(self, body: Optional[Union[List[JSON], IO[bytes]]] = None, **kwargs: Any) -> List[JSON]:
-        """Upserts a subject. Creates or updates subject.
+    def upsert_subject(self, body: Union[List[JSON], IO[bytes]], **kwargs: Any) -> List[JSON]:
+        """☁ Upsert subject.
+
+        *Available in OpenMeter Cloud.*
+
+        Upserts a subject. Creates or updates subject.
         If the subject doesn't exist, it will be created.
         If the subject exists, it will be partially updated with the provided fields.
 
-        :param body: Is either a [JSON] type or a IO[bytes] type. Default value is None.
+        :param body: The subject to upsert. Is either a [JSON] type or a IO[bytes] type. Required.
         :type body: list[JSON] or IO[bytes]
         :return: list of JSON object
         :rtype: list[JSON]
@@ -1785,11 +1859,11 @@ class ClientOperationsMixin(ClientMixinABC):
                 # response body for status code(s): 200
                 response == [
                     {
-                        "id": "str",  # Required.
                         "key": "str",  # Required.
                         "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
                         "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
                         "displayName": "str",  # Optional.
+                        "id": "str",  # Optional.
                         "metadata": {
                             "str": {}  # Optional. Dictionary of :code:`<any>`.
                         },
@@ -1798,11 +1872,12 @@ class ClientOperationsMixin(ClientMixinABC):
                 ]
         """
         error_map = {
-            401: ClientAuthenticationError,
             404: ResourceNotFoundError,
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
             400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            501: HttpResponseError,
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
 
@@ -1818,10 +1893,7 @@ class ClientOperationsMixin(ClientMixinABC):
         if isinstance(body, (IOBase, bytes)):
             _content = body
         else:
-            if body is not None:
-                _json = body
-            else:
-                _json = None
+            _json = body
 
         _request = build_upsert_subject_request(
             content_type=content_type,
@@ -1842,7 +1914,7 @@ class ClientOperationsMixin(ClientMixinABC):
         if response.status_code not in [200]:
             if _stream:
                 response.read()  # Load the body in memory and close the socket
-            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
             raise HttpResponseError(response=response)
 
         if response.content:
@@ -1857,7 +1929,11 @@ class ClientOperationsMixin(ClientMixinABC):
 
     @distributed_trace
     def get_subject(self, subject_id_or_key: str, **kwargs: Any) -> JSON:
-        """get_subject.
+        """☁ Get subject.
+
+        *Available in OpenMeter Cloud.*
+
+        Get subject by ID or key.
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
@@ -1870,11 +1946,11 @@ class ClientOperationsMixin(ClientMixinABC):
 
                 # response body for status code(s): 200
                 response == {
-                    "id": "str",  # Required.
                     "key": "str",  # Required.
                     "currentPeriodEnd": "2020-02-20 00:00:00",  # Optional.
                     "currentPeriodStart": "2020-02-20 00:00:00",  # Optional.
                     "displayName": "str",  # Optional.
+                    "id": "str",  # Optional.
                     "metadata": {
                         "str": {}  # Optional. Dictionary of :code:`<any>`.
                     },
@@ -1882,10 +1958,10 @@ class ClientOperationsMixin(ClientMixinABC):
                 }
         """
         error_map = {
-            401: ClientAuthenticationError,
-            404: ResourceNotFoundError,
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            404: lambda response: ResourceNotFoundError(response=response),
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
 
@@ -1911,7 +1987,7 @@ class ClientOperationsMixin(ClientMixinABC):
         if response.status_code not in [200]:
             if _stream:
                 response.read()  # Load the body in memory and close the socket
-            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
             raise HttpResponseError(response=response)
 
         if response.content:
@@ -1928,7 +2004,11 @@ class ClientOperationsMixin(ClientMixinABC):
     def delete_subject(  # pylint: disable=inconsistent-return-statements
         self, subject_id_or_key: str, **kwargs: Any
     ) -> None:
-        """delete_subject.
+        """☁ Delete subject.
+
+        *Available in OpenMeter Cloud.*
+
+        Delete a subject by ID or key.
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
@@ -1937,11 +2017,12 @@ class ClientOperationsMixin(ClientMixinABC):
         :raises ~azure.core.exceptions.HttpResponseError:
         """
         error_map = {
-            401: ClientAuthenticationError,
-            404: ResourceNotFoundError,
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
             400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            404: lambda response: ResourceNotFoundError(response=response),
+            501: HttpResponseError,
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
 
@@ -1967,7 +2048,7 @@ class ClientOperationsMixin(ClientMixinABC):
         if response.status_code not in [204]:
             if _stream:
                 response.read()  # Load the body in memory and close the socket
-            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
             raise HttpResponseError(response=response)
 
         if cls:
@@ -1986,9 +2067,11 @@ class ClientOperationsMixin(ClientMixinABC):
         group_by: Optional[List[str]] = None,
         **kwargs: Any
     ) -> Union[JSON, str]:
-        """query_portal_meter.
+        """Query portal meter.
 
-        :param meter_slug: Required.
+        Query meter for consumer portal. This endpoint is publicly exposable to consumers.
+
+        :param meter_slug: A unique identifier for the meter. Required.
         :type meter_slug: str
         :keyword from_parameter: Start date-time in RFC 3339 format.
          Inclusive. Default value is None.
@@ -2036,26 +2119,13 @@ class ClientOperationsMixin(ClientMixinABC):
                     "windowSize": "str"  # Optional. Aggregation window size. Known values are:
                       "MINUTE", "HOUR", and "DAY".
                 }
-                # response body for status code(s): 401
-                response == {
-                    "detail": "str",  # A human-readable explanation specific to this occurrence
-                      of the problem. Required.
-                    "status": 0,  # The HTTP status code generated by the origin server for this
-                      occurrence of the problem. Required.
-                    "title": "str",  # A a short, human-readable summary of the problem type.
-                      Required.
-                    "type": "str",  # Type contains a URI that identifies the problem type.
-                      Required.
-                    "instance": "str"  # Optional. A URI reference that identifies the specific
-                      occurrence of the problem.
-                }
         """
         error_map = {
-            401: ClientAuthenticationError,
             404: ResourceNotFoundError,
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
             400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
 
@@ -2084,10 +2154,10 @@ class ClientOperationsMixin(ClientMixinABC):
 
         response = pipeline_response.http_response
 
-        if response.status_code not in [200, 200, 401]:
+        if response.status_code not in [200, 200]:
             if _stream:
                 response.read()  # Load the body in memory and close the socket
-            map_error(status_code=response.status_code, response=response, error_map=error_map)
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
             raise HttpResponseError(response=response)
 
         if response.status_code == 200:
@@ -2097,12 +2167,6 @@ class ClientOperationsMixin(ClientMixinABC):
                 deserialized = None
 
         if response.status_code == 200:
-            if response.content:
-                deserialized = response.json()
-            else:
-                deserialized = None
-
-        if response.status_code == 401:
             if response.content:
                 deserialized = response.json()
             else:
