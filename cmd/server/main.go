@@ -35,7 +35,7 @@ import (
 
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/internal/ingest"
-	"github.com/openmeterio/openmeter/internal/ingest/httpingest"
+	"github.com/openmeterio/openmeter/internal/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/internal/meter"
@@ -212,16 +212,22 @@ func main() {
 	}
 
 	// Initialize HTTP Ingest handler
-	ingestHandler, err := httpingest.NewHandler(httpingest.HandlerConfig{
-		Collector:        ingestCollector,
-		NamespaceManager: namespaceManager,
-		Logger:           logger,
-		ErrorHandler:     errorsx.NewAppHandler(errorsx.NewSlogHandler(logger)),
-	})
-	if err != nil {
-		logger.Error("failed to initialize http ingest handler", "error", err)
-		os.Exit(1)
+	// ingestHandler, err := httpingest.NewHandler(httpingest.HandlerConfig{
+	// 	Collector:        ingestCollector,
+	// 	NamespaceManager: namespaceManager,
+	// 	Logger:           logger,
+	// 	ErrorHandler:     errorsx.NewAppHandler(errorsx.NewSlogHandler(logger)),
+	// })
+	// if err != nil {
+	// 	logger.Error("failed to initialize http ingest handler", "error", err)
+	// 	os.Exit(1)
+	// }
+
+	ingestService := ingest.Service{
+		Collector: ingestCollector,
+		Logger:    logger,
 	}
+	ingestHandler := ingestdriver.NewIngestEventsHandler(ingestService.IngestEvents, namespaceManager, errorsx.NewContextHandler(errorsx.NewAppHandler(errorsx.NewSlogHandler(logger))))
 
 	// Initialize portal
 	var portalTokenStrategy *authenticator.PortalTokenStrategy
