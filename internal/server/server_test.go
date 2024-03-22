@@ -402,6 +402,7 @@ func TestRoutes(t *testing.T) {
 				method:      http.MethodPost,
 				path:        "/api/v1/portal/tokens/invalidate",
 				contentType: "application/json",
+				body:        api.InvalidatePortalTokensJSONRequestBody{},
 			},
 			res: testResponse{
 				status: http.StatusNotImplemented,
@@ -421,8 +422,12 @@ func TestRoutes(t *testing.T) {
 		{
 			name: "upsert subjects",
 			req: testRequest{
-				method: http.MethodPost,
-				path:   "/api/v1/subjects",
+				method:      http.MethodPost,
+				path:        "/api/v1/subjects",
+				contentType: "application/json",
+				body: api.UpsertSubjectJSONRequestBody{{
+					Key: "customer",
+				}},
 			},
 			res: testResponse{
 				status: http.StatusNotImplemented,
@@ -479,7 +484,7 @@ func TestRoutes(t *testing.T) {
 			res := w.Result()
 
 			// status
-			assert.Equal(t, tt.res.status, res.StatusCode)
+			assert.Equal(t, tt.res.status, res.StatusCode, w.Body.String())
 
 			// body
 			if tt.res.body == nil {
