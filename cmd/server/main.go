@@ -47,6 +47,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
+	"github.com/openmeterio/openmeter/pkg/framework/operation"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -104,7 +105,11 @@ func main() {
 		extraResources,
 	)
 
-	logger := slog.New(slogmulti.Pipe(otelslog.NewHandler, contextx.NewLogHandler).Handler(conf.Telemetry.Log.NewHandler(os.Stdout)))
+	logger := slog.New(slogmulti.Pipe(
+		otelslog.NewHandler,
+		contextx.NewLogHandler,
+		operation.NewLogHandler,
+	).Handler(conf.Telemetry.Log.NewHandler(os.Stdout)))
 	logger = otelslog.WithResource(logger, res)
 
 	slog.SetDefault(logger)
@@ -227,7 +232,12 @@ func main() {
 		Collector: ingestCollector,
 		Logger:    logger,
 	}
-	ingestHandler := ingestdriver.NewIngestEventsHandler(ingestService.IngestEvents, namespaceManager, errorsx.NewContextHandler(errorsx.NewAppHandler(errorsx.NewSlogHandler(logger))))
+	ingestHandler := ingestdriver.NewIngestEventsHandler(
+		ingestService.IngestEvents,
+		ingestdriver.StaticNamespaceDecoder(namespaceManager.GetDefaultNamespace()),
+		nil,
+		errorsx.NewContextHandler(errorsx.NewAppHandler(errorsx.NewSlogHandler(logger))),
+	)
 
 	// Initialize portal
 	var portalTokenStrategy *authenticator.PortalTokenStrategy

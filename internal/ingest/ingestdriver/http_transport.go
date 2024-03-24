@@ -10,26 +10,41 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/ingest"
-	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
 	httptransport "github.com/openmeterio/openmeter/pkg/framework/transport/http"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // NewIngestEventsHandler returns a new HTTP handler that wraps the given [operation.Operation].
-func NewIngestEventsHandler(op operation.Operation[ingest.IngestEventsRequest, bool], namespaceManager *namespace.Manager, errorHandler httptransport.ErrorHandler) http.Handler {
-	requestDecoder := IngestEventsRequestDecoder{
-		NamespaceManager: namespaceManager,
-	}
-
+func NewIngestEventsHandler(
+	op operation.Operation[ingest.IngestEventsRequest, bool],
+	namespaceDecoder NamespaceDecoder,
+	commonErrorEncoder httptransport.ErrorEncoder,
+	errorHandler httptransport.ErrorHandler,
+) http.Handler {
 	return httptransport.NewHandler(
 		op,
-		requestDecoder.Decode,
-		EncodeIngestEventsResponse,
-		EncodeIngestEventsError,
+		(ingestEventsRequestDecoder{
+			NamespaceDecoder: namespaceDecoder,
+		}).decode,
+		encodeIngestEventsResponse,
+		(ingestEventsErrorEncoder{
+			CommonErrorEncoder: commonErrorEncoder,
+		}).encode,
 		httptransport.WithErrorHandler(errorHandler),
 		httptransport.WithOperationName("ingestEvents"),
 	)
+}
+
+// NamespaceDecoder gets the namespace from the request.
+type NamespaceDecoder interface {
+	GetNamespace(ctx context.Context) (string, bool)
+}
+
+type StaticNamespaceDecoder string
+
+func (d StaticNamespaceDecoder) GetNamespace(ctx context.Context) (string, bool) {
+	return string(d), true
 }
 
 type ErrorInvalidContentType struct {
@@ -66,14 +81,19 @@ func (e ErrorInvalidEvent) Message() string {
 	return "invalid event: " + e.Err.Error()
 }
 
-type IngestEventsRequestDecoder struct {
-	NamespaceManager *namespace.Manager
+type ingestEventsRequestDecoder struct {
+	NamespaceDecoder NamespaceDecoder
 }
 
-func (d IngestEventsRequestDecoder) Decode(ctx context.Context, r *http.Request) (ingest.IngestEventsRequest, error) {
+func (d ingestEventsRequestDecoder) decode(ctx context.Context, r *http.Request) (ingest.IngestEventsRequest, error) {
 	var req ingest.IngestEventsRequest
 
-	req.Namespace = d.NamespaceManager.GetDefaultNamespace()
+	namespace, ok := d.NamespaceDecoder.GetNamespace(ctx)
+	if !ok {
+		return req, errors.New("namespace not found")
+	}
+
+	req.Namespace = namespace
 
 	contentType := r.Header.Get("Content-Type")
 
@@ -101,19 +121,23 @@ func (d IngestEventsRequestDecoder) Decode(ctx context.Context, r *http.Request)
 
 		req.Events = apiRequest
 	default:
-		return ingest.IngestEventsRequest{}, ErrorInvalidContentType{ContentType: contentType}
+		return req, ErrorInvalidContentType{ContentType: contentType}
 	}
 
 	return req, nil
 }
 
-func EncodeIngestEventsResponse(_ context.Context, w http.ResponseWriter, _ bool) error {
+func encodeIngestEventsResponse(_ context.Context, w http.ResponseWriter, _ bool) error {
 	w.WriteHeader(http.StatusNoContent)
 
 	return nil
 }
 
-func EncodeIngestEventsError(ctx context.Context, err error, w http.ResponseWriter) bool {
+type ingestEventsErrorEncoder struct {
+	CommonErrorEncoder httptransport.ErrorEncoder
+}
+
+func (e ingestEventsErrorEncoder) encode(ctx context.Context, err error, w http.ResponseWriter) bool {
 	if e := (ErrorInvalidContentType{}); errors.As(err, &e) {
 		models.NewStatusProblem(ctx, e, http.StatusBadRequest).Respond(w, nil)
 
@@ -126,7 +150,11 @@ func EncodeIngestEventsError(ctx context.Context, err error, w http.ResponseWrit
 		return true
 	}
 
+	if e.CommonErrorEncoder != nil {
+		return e.CommonErrorEncoder(ctx, err, w)
+	}
+
 	models.NewStatusProblem(ctx, errors.New("something went wrong"), http.StatusInternalServerError).Respond(w, nil)
 
-	return true
+	return false
 }

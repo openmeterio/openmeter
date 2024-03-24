@@ -17,13 +17,8 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/ingest/ingestdriver"
-	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 )
-
-var namespaceManager, _ = namespace.NewManager(namespace.ManagerConfig{
-	DefaultNamespace: "test",
-})
 
 func TestIngestEvents(t *testing.T) {
 	collector := ingest.NewInMemoryCollector()
@@ -33,7 +28,12 @@ func TestIngestEvents(t *testing.T) {
 		Logger:    slog.Default(),
 	}
 
-	handler := ingestdriver.NewIngestEventsHandler(service.IngestEvents, namespaceManager, errorsx.NewContextHandler(errorsx.NopHandler{}))
+	handler := ingestdriver.NewIngestEventsHandler(
+		service.IngestEvents,
+		ingestdriver.StaticNamespaceDecoder("test"),
+		nil,
+		errorsx.NewContextHandler(errorsx.NopHandler{}),
+	)
 
 	server := httptest.NewServer(handler)
 	client := server.Client()
@@ -76,7 +76,12 @@ func TestIngestEvents_InvalidEvent(t *testing.T) {
 		Logger:    slog.Default(),
 	}
 
-	handler := ingestdriver.NewIngestEventsHandler(service.IngestEvents, namespaceManager, errorsx.NewContextHandler(errorsx.NopHandler{}))
+	handler := ingestdriver.NewIngestEventsHandler(
+		service.IngestEvents,
+		ingestdriver.StaticNamespaceDecoder("test"),
+		nil,
+		errorsx.NewContextHandler(errorsx.NopHandler{}),
+	)
 
 	server := httptest.NewServer(handler)
 	client := server.Client()
@@ -95,7 +100,12 @@ func TestBatchHandler(t *testing.T) {
 		Logger:    slog.Default(),
 	}
 
-	handler := ingestdriver.NewIngestEventsHandler(service.IngestEvents, namespaceManager, errorsx.NewContextHandler(errorsx.NopHandler{}))
+	handler := ingestdriver.NewIngestEventsHandler(
+		service.IngestEvents,
+		ingestdriver.StaticNamespaceDecoder("test"),
+		nil,
+		errorsx.NewContextHandler(errorsx.NopHandler{}),
+	)
 
 	server := httptest.NewServer(handler)
 	client := server.Client()
