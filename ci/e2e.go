@@ -2,26 +2,10 @@ package main
 
 import (
 	"fmt"
-	"path"
 )
 
 func (m *Ci) Etoe(test Optional[string]) *Container {
-	image := m.Build().ContainerImage("").
-		WithExposedPort(10000).
-		WithMountedFile("/etc/openmeter/config.yaml", dag.Host().File(path.Join(root(), "e2e", "config.yaml"))).
-		WithServiceBinding("kafka", dag.Kafka(KafkaOpts{Version: kafkaVersion}).Service()).
-		WithServiceBinding("clickhouse", clickhouse())
-
-	api := image.
-		WithExposedPort(8080).
-		WithExec([]string{"openmeter", "--config", "/etc/openmeter/config.yaml"}).
-		AsService()
-
-	sinkWorker := image.
-		WithServiceBinding("redis", redis()).
-		WithServiceBinding("api", api). // Make sure api is up before starting sink worker
-		WithExec([]string{"openmeter-sink-worker", "--config", "/etc/openmeter/config.yaml"}).
-		AsService()
+	localStack := NewLocalStack(m.Source, m.Source.File("e2e/config.yaml"))
 
 	args := []string{"go", "test", "-v"}
 
@@ -35,11 +19,56 @@ func (m *Ci) Etoe(test Optional[string]) *Container {
 		Container: goModule().
 			WithSource(m.Source).
 			Container().
-			WithServiceBinding("api", api).
-			WithServiceBinding("sink-worker", sinkWorker).
+			WithServiceBinding("api", localStack.Api).
+			WithServiceBinding("sink-worker", localStack.SinkWorker).
 			WithEnvVariable("OPENMETER_ADDRESS", "http://api:8080"),
 	}).
 		Exec(args)
+}
+
+type AppStack struct {
+	Api        *Service
+	SinkWorker *Service
+	Clickhouse *Service
+	Redis      *Service
+	Kafka      *Service
+}
+
+func NewLocalStack(source *Directory, omConfig *File) *AppStack {
+	builder := &Build{
+		Source: source,
+	}
+
+	configPath := "/etc/openmeter/config.yaml"
+
+	kafka := dag.Kafka(KafkaOpts{Version: kafkaVersion}).Service()
+	clickhouse := clickhouse()
+	redis := redis()
+
+	base := builder.ContainerImage("").
+		WithExposedPort(10000).
+		WithMountedFile(configPath, omConfig).
+		WithServiceBinding("kafka", kafka).
+		WithServiceBinding("clickhouse", clickhouse)
+
+	api := base.
+		WithExposedPort(8080).
+		WithExec([]string{"openmeter", "--config", configPath}).
+		AsService()
+
+	sinkWorker := base.
+		WithServiceBinding("redis", redis).
+		WithServiceBinding("api", api). // Make sure api is up before starting sink worker
+		WithExec([]string{"openmeter-sink-worker", "--config", configPath}).
+		AsService()
+
+	return &AppStack{
+		Api:        api,
+		SinkWorker: sinkWorker,
+		Clickhouse: clickhouse,
+		Redis:      redis,
+		Kafka:      kafka,
+	}
 }
 
 func clickhouse() *Service {
