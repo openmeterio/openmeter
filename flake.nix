@@ -96,6 +96,9 @@
 
               dagger
               licensei
+
+              # perf testing
+              k6
             ];
 
             env = {
