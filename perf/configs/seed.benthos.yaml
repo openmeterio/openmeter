@@ -1,0 +1,54 @@
+input:
+  generate:
+    count: ${SEEDER_COUNT:1000000}
+    interval: "${SEEDER_INTERVAL:0ms}"
+    # batch_size: 1
+    mapping: |
+      let max_subjects = ${SEEDER_MAX_SUBJECTS:5}
+
+      let source = "seeder"
+      let group1_values = ["group1_value1", "group1_value2", "group1_value3"]
+      let group2_values = ["group2_value1", "group2_value2", "group2_value3"]
+
+
+      let subject = "subject-%d".format(random_int(seed: timestamp_unix_nano()) % $max_subjects)
+      let time = (now().ts_sub_iso8601("P3D").ts_unix() + random_int(min: 60, max: 60 * 60 * 24)).ts_format()
+
+      let event_type = "etype"
+      let group1 = $group1_values.index(random_int(seed: timestamp_unix_nano()) % $group1_values.length())
+      let group2 = $group2_values.index(random_int(seed: timestamp_unix_nano()) % $group2_values.length())
+
+      let value = random_int(seed: timestamp_unix_nano(), max: 1000)
+
+      root = {
+        "id": uuid_v4(),
+        "specversion": "1.0",
+        "type": $event_type,
+        "source": $source,
+        "subject": $subject,
+        "time": $time,
+        "data": {
+          "value": $value,
+          "group1": $group1,
+          "group2": $group2,
+        },
+      }
+
+output:
+  switch:
+    cases:
+      - check: ""
+        continue: true
+        output:
+          http_client:
+            url: ${OPENMETER_BASE_URL:http://127.0.0.1:8888}/api/v1/events
+            verb: POST
+            headers:
+              Content-Type: application/cloudevents+json
+              Authorization: "Bearer ${OPENMETER_TOKEN:}"
+            max_in_flight: 64
+
+      - check: '"${SEEDER_LOG:false}" == "true"'
+        output:
+          stdout:
+            codec: lines

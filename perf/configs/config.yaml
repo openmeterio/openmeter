@@ -1,0 +1,43 @@
+ingest:
+  kafka:
+    broker: localhost:29092
+
+aggregation:
+  clickhouse:
+    address: localhost:9000
+
+sink:
+  minCommitCount: 1000
+  maxCommitWait: 10s
+  namespaceRefetch: 1s
+
+meters:
+  - slug: grouped_count_meter
+    description: Grouped Count Meter
+    eventType: etype
+    aggregation: COUNT
+    groupBy:
+      group1: $.group1
+      group2: $.group2
+
+  - slug: grouped_sum_meter
+    description: Grouped Sum Meter
+    eventType: etype
+    aggregation: SUM
+    valueProperty: $.value
+    groupBy:
+      group1: $.group1
+      group2: $.group2
+
+  - slug: grouped_avg_meter
+    description: Grouped Average Meter
+    eventType: etype
+    aggregation: AVG
+    valueProperty: $.value
+    groupBy:
+      group1: $.group1
+      group2: $.group2
+
+portal:
+  enabled: true
+  tokenSecret: this-isnt-secure
