@@ -208,32 +208,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-
-      - name: Free disk space
-        uses: ./.github/actions/free-disk-space
-
-      - name: Set up Nix
-        uses: cachix/install-nix-action@8887e596b4ee1134dae06b98d573bd674693f47c # v26
+      - name: Run pipeline
+        uses: dagger/dagger-for-github@698ef94185f8baaa1f3c3d825a7d3d487152db2f # v5.2.0
         with:
-          extra_nix_config: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up magic Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@fc6aaceb40b9845a02b91e059ec147e78d1b4e41 # v4
-
-      - name: Prepare Nix shell
-        run: nix develop --impure .#ci
-
-      - name: Test
-        run: nix develop --impure .#ci -c dagger call etoe
-        env:
-          DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
-      - name: Stop Engine
-        run: docker stop -t 300 $(docker ps --filter name="dagger-engine-*" -q)
-        if: always()
+          verb: call
+          module: github.com/${{ github.repository }}@${{ github.ref }}
+          args: --ref ${{ github.ref }} etoe
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          version: "0.10.3"
 
   dagger:
     name: CI
@@ -259,7 +241,7 @@ jobs:
         uses: dagger/dagger-for-github@698ef94185f8baaa1f3c3d825a7d3d487152db2f # v5.2.0
         with:
           verb: call
-          module: github.com/${{ github.repository }}/ci@${{ github.ref }}
-          args: --checkout ${{ github.ref }} ci
+          module: github.com/${{ github.repository }}@${{ github.ref }}
+          args: --ref ${{ github.ref }} ci
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: "0.9.7"
+          version: "0.10.3"
