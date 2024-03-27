@@ -109,10 +109,16 @@ Run the dependencies:
 make up
 ```
 
+Run OpenMeter Sink Worker
+
+```sh
+make sink-worker
+```
+
 Run OpenMeter:
 
 ```sh
-make run
+make server
 ```
 
 Run tests:

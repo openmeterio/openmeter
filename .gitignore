@@ -5,6 +5,7 @@
 /build/
 /config.yaml
 /tmp/
+/.idea/
 
 # Go workspace file
 go.work
