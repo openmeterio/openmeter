@@ -273,6 +273,7 @@ func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace str
 		EventType:     meter.EventType,
 		ValueProperty: meter.ValueProperty,
 		GroupBy:       meter.GroupBy,
+		FilterBy:      meter.FilterBy,
 	}
 	sql, args, err := view.toSQL()
 	if err != nil {
