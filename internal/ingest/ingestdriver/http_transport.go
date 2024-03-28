@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
-	httptransport "github.com/openmeterio/openmeter/pkg/framework/transport/http"
+	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 

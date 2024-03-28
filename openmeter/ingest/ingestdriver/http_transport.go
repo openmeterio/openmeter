@@ -6,7 +6,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
-	httptransport "github.com/openmeterio/openmeter/pkg/framework/transport/http"
+	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
 // NewIngestEventsHandler returns a new HTTP handler that wraps the given [operation.Operation].
