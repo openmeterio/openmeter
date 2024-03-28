@@ -17,6 +17,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/internal/ingest"
+	"github.com/openmeterio/openmeter/internal/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/server/authenticator"
@@ -112,9 +114,11 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 
 	server, _ := NewServer(&Config{
 		RouterConfig: router.Config{
-			Meters:              meter.NewInMemoryRepository(mockMeters),
-			StreamingConnector:  &MockConnector{},
-			IngestHandler:       MockHandler{},
+			Meters:             meter.NewInMemoryRepository(mockMeters),
+			StreamingConnector: &MockConnector{},
+			IngestHandler: ingestdriver.NewIngestEventsHandler(func(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {
+				return true, nil
+			}, ingestdriver.StaticNamespaceDecoder("test"), nil, errorsx.NewContextHandler(errorsx.NopHandler{})),
 			NamespaceManager:    namespaceManager,
 			PortalTokenStrategy: portalTokenStrategy,
 			ErrorHandler:        errorsx.NopHandler{},
@@ -162,7 +166,7 @@ func TestRoutes(t *testing.T) {
 				}(),
 			},
 			res: testResponse{
-				status: http.StatusOK,
+				status: http.StatusNoContent,
 			},
 		},
 		{

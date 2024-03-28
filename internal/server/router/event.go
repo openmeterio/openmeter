@@ -13,10 +13,7 @@ import (
 )
 
 func (a *Router) IngestEvents(w http.ResponseWriter, r *http.Request) {
-	// TODO: add error handling
-
-	namespace := a.config.NamespaceManager.GetDefaultNamespace()
-	a.config.IngestHandler.ServeHTTP(w, r, namespace)
+	a.config.IngestHandler.ServeHTTP(w, r)
 }
 
 func (a *Router) ListEvents(w http.ResponseWriter, r *http.Request, params api.ListEventsParams) {
