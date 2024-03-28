@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -202,6 +203,20 @@ func (m *Meter) Validate() error {
 			return fmt.Errorf("meter group by key %s is not unique", key)
 		}
 		seen[key] = struct{}{}
+	}
+
+	if m.FilterBy != nil {
+		for _, filter := range m.FilterBy {
+			if !strings.HasPrefix(filter.Property, "$") {
+				return fmt.Errorf("meter filterBy Property must start with $, got %s in meter %s", filter.Property, m.Slug)
+			}
+			if !slices.Contains(filter.Operator.Values(), string(filter.Operator)) {
+				return fmt.Errorf("meter filterBy Operator must be one of %s, got %s in meter %s", filter.Operator.Values(), filter.Operator, m.Slug)
+			}
+			if strings.TrimSpace(filter.Value) == "" {
+				return fmt.Errorf("meter filterBy value must not be empty in meter %s", m.Slug)
+			}
+		}
 	}
 
 	return nil
