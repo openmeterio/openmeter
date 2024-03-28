@@ -7,12 +7,16 @@ import (
 	"time"
 
 	"github.com/cloudevents/sdk-go/v2/event"
+
+	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/internal/streaming"
 )
 
 // Service implements the ingestion service.
 type Service struct {
-	Collector Collector
-	Logger    *slog.Logger
+	Collector          Collector
+	StreamingConnector streaming.Connector
+	Logger             *slog.Logger
 }
 
 type IngestEventsRequest struct {
@@ -58,4 +62,26 @@ func (s Service) processEvent(ctx context.Context, event event.Event, namespace 
 	logger.DebugContext(ctx, "event forwarded to downstream collector")
 
 	return nil
+}
+
+type ListEventsRequest struct {
+	Namespace string
+	From      *time.Time
+	To        *time.Time
+	Limit     *int
+}
+
+func (s Service) ListEvents(ctx context.Context, request ListEventsRequest) ([]api.IngestedEvent, error) {
+	limit := 100
+	if request.Limit != nil {
+		limit = *request.Limit
+	}
+
+	params := streaming.ListEventsParams{
+		From:  request.From,
+		To:    request.To,
+		Limit: limit,
+	}
+
+	return s.StreamingConnector.ListEvents(ctx, request.Namespace, params)
 }
