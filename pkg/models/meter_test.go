@@ -186,6 +186,60 @@ func TestMeterValidation(t *testing.T) {
 			},
 			error: fmt.Errorf("meter group by value must start with $ for key test_group"),
 		},
+		{
+			description: "filterBy property is invalid",
+			meter: Meter{
+				Slug:          "slug-test",
+				Aggregation:   MeterAggregationCount,
+				WindowSize:    WindowSizeMinute,
+				EventType:     "event-type-test",
+				ValueProperty: "$.my_property",
+				FilterBy: []MeterFilter{
+					{
+						Property: "invalid",
+						Operator: MeterFilterOperatorEquals,
+						Value:    "success",
+					},
+				},
+			},
+			error: fmt.Errorf("meter filterBy Property must start with $, got invalid in meter slug-test"),
+		},
+		{
+			description: "filterBy Operator is invalid",
+			meter: Meter{
+				Slug:          "slug-test",
+				Aggregation:   MeterAggregationCount,
+				WindowSize:    WindowSizeMinute,
+				EventType:     "event-type-test",
+				ValueProperty: "$.my_property",
+				FilterBy: []MeterFilter{
+					{
+						Property: "$.result",
+						Operator: "NE",
+						Value:    "success",
+					},
+				},
+			},
+			error: fmt.Errorf("meter filterBy Operator must be one of [EQ], got NE in meter slug-test"),
+		},
+		{
+			description: "filterBy Value is invalid",
+			meter: Meter{
+				Slug:          "slug-test",
+				Aggregation:   MeterAggregationCount,
+				WindowSize:    WindowSizeMinute,
+				EventType:     "event-type-test",
+				ValueProperty: "$.my_property",
+				FilterBy: []MeterFilter{
+					{
+						Property: "$.result",
+						Operator: "EQ",
+						Value:    "",
+					},
+				},
+			},
+			error: fmt.Errorf("meter filterBy value must not be empty in meter slug-test"),
+		},
 	}
 
 	for _, tt := range tests {

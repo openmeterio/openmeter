@@ -1,6 +1,8 @@
 module github.com/openmeterio/openmeter/examples/export-stripe
 
-go 1.20
+go 1.22
+
+toolchain go1.22.1
 
 require (
 	github.com/openmeterio/openmeter v0.0.0-00010101000000-000000000000

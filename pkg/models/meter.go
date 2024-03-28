@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -47,44 +48,6 @@ func (MeterAggregation) IsValid(input string) bool {
 	}
 
 	return false
-}
-
-type MeterFilterOperator string
-
-const (
-	// MeterFilterOperatorIn        MeterFilterOperator = "IN"
-	// MeterFilterOperatorNotIn     MeterFilterOperator = "NOT IN"
-	MeterFilterOperatorEquals    MeterFilterOperator = "EQ"
-	MeterFilterOperatorNot       MeterFilterOperator = "NEQ"
-	MeterFilterLowerThan         MeterFilterOperator = "LT"
-	MeterFilterLowerThanOrEq     MeterFilterOperator = "LTE"
-	MeterFilterGreaterThan       MeterFilterOperator = "GT"
-	MeterFilterGreaterThanOrEq   MeterFilterOperator = "GTE"
-	MeterFilterOperatorIsNull    MeterFilterOperator = "IS NULL"
-	MeterFilterOperatorIsNotNull MeterFilterOperator = "IS NOT NULL"
-)
-
-type MeterFilter struct {
-	Property string              `json:"property" yaml:"property"`
-	Operator MeterFilterOperator `json:"operator" yaml:"operator"`
-	Value    string              `json:"value" yaml:"value"`
-}
-
-// Values provides list valid values for Enum
-func (MeterFilterOperator) Values() (kinds []string) {
-	for _, s := range []MeterFilterOperator{
-		MeterFilterOperatorEquals,
-		MeterFilterOperatorNot,
-		MeterFilterLowerThan,
-		MeterFilterLowerThanOrEq,
-		MeterFilterGreaterThan,
-		MeterFilterGreaterThanOrEq,
-		MeterFilterOperatorIsNull,
-		MeterFilterOperatorIsNotNull,
-	} {
-		kinds = append(kinds, string(s))
-	}
-	return
 }
 
 type WindowSize string
@@ -146,8 +109,7 @@ type Meter struct {
 	ValueProperty string            `json:"valueProperty,omitempty" yaml:"valueProperty,omitempty"`
 	GroupBy       map[string]string `json:"groupBy,omitempty" yaml:"groupBy,omitempty"`
 	WindowSize    WindowSize        `json:"windowSize,omitempty" yaml:"windowSize,omitempty"`
-	// TODO: add filter by
-	// FilterBy      []MeterFilter
+	FilterBy      []MeterFilter     `json:"filterBy,omitempty" yaml:"filterBy,omitempty"`
 }
 
 type MeterOptions struct {
@@ -241,6 +203,20 @@ func (m *Meter) Validate() error {
 			return fmt.Errorf("meter group by key %s is not unique", key)
 		}
 		seen[key] = struct{}{}
+	}
+
+	if m.FilterBy != nil {
+		for _, filter := range m.FilterBy {
+			if !strings.HasPrefix(filter.Property, "$") {
+				return fmt.Errorf("meter filterBy Property must start with $, got %s in meter %s", filter.Property, m.Slug)
+			}
+			if !slices.Contains(filter.Operator.Values(), string(filter.Operator)) {
+				return fmt.Errorf("meter filterBy Operator must be one of %s, got %s in meter %s", filter.Operator.Values(), filter.Operator, m.Slug)
+			}
+			if strings.TrimSpace(filter.Value) == "" {
+				return fmt.Errorf("meter filterBy value must not be empty in meter %s", m.Slug)
+			}
+		}
 	}
 
 	return nil
