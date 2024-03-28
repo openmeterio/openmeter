@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+
 	"github.com/huandu/go-sqlbuilder"
 )
 
