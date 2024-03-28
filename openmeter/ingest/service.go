@@ -6,3 +6,5 @@ import "github.com/openmeterio/openmeter/internal/ingest"
 type Service = ingest.Service
 
 type IngestEventsRequest = ingest.IngestEventsRequest
+
+type ListEventsRequest = ingest.ListEventsRequest

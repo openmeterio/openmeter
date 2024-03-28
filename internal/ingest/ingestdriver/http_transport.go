@@ -7,9 +7,11 @@ import (
 	"net/http"
 
 	"github.com/cloudevents/sdk-go/v2/event"
+	"github.com/oapi-codegen/runtime"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/ingest"
+	"github.com/openmeterio/openmeter/internal/platform/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -157,4 +159,46 @@ func (e ingestEventsErrorEncoder) encode(ctx context.Context, err error, w http.
 	models.NewStatusProblem(ctx, errors.New("something went wrong"), http.StatusInternalServerError).Respond(w, nil)
 
 	return false
+}
+
+// NewListEventsHandler returns a new HTTP handler that wraps the given [operation.Operation].
+func NewListEventsHandler(
+	op operation.Operation[ingest.ListEventsRequest, []api.IngestedEvent],
+	namespaceDecoder NamespaceDecoder,
+	commonErrorEncoder httptransport.ErrorEncoder,
+	errorHandler httptransport.ErrorHandler,
+) http.Handler {
+	return httptransport.NewHandler(
+		op,
+		(listEventsRequestDecoder{
+			NamespaceDecoder: namespaceDecoder,
+		}).decode,
+		commonhttp.JSONResponseEncoder,
+		commonErrorEncoder,
+		httptransport.WithErrorHandler(errorHandler),
+		httptransport.WithOperationName("listEvents"),
+	)
+}
+
+type listEventsRequestDecoder struct {
+	NamespaceDecoder NamespaceDecoder
+}
+
+func (d listEventsRequestDecoder) decode(ctx context.Context, r *http.Request) (ingest.ListEventsRequest, error) {
+	var req ingest.ListEventsRequest
+
+	namespace, ok := d.NamespaceDecoder.GetNamespace(ctx)
+	if !ok {
+		return req, errors.New("namespace not found")
+	}
+
+	req.Namespace = namespace
+
+	// This shouldn't fail at this point, so we ignore the error.
+	// TODO: write a better router generator that doesn't require this.
+	_ = runtime.BindQueryParameter("form", true, false, "from", r.URL.Query(), &req.From)
+	_ = runtime.BindQueryParameter("form", true, false, "to", r.URL.Query(), &req.To)
+	_ = runtime.BindQueryParameter("form", true, false, "limit", r.URL.Query(), &req.Limit)
+
+	return req, nil
 }

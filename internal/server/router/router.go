@@ -9,8 +9,11 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/internal/ingest"
+	"github.com/openmeterio/openmeter/internal/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
+	"github.com/openmeterio/openmeter/internal/platform/commonhttp"
 	"github.com/openmeterio/openmeter/internal/server/authenticator"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
@@ -38,6 +41,7 @@ type Config struct {
 	NamespaceManager    *namespace.Manager
 	StreamingConnector  streaming.Connector
 	IngestHandler       http.Handler
+	IngestService       ingest.Service
 	Meters              meter.Repository
 	PortalCORSEnabled   bool
 	PortalTokenStrategy *authenticator.PortalTokenStrategy
@@ -46,6 +50,8 @@ type Config struct {
 
 type Router struct {
 	config Config
+
+	listEventsHandler http.Handler
 }
 
 // Make sure we conform to ServerInterface
@@ -54,5 +60,12 @@ var _ api.ServerInterface = (*Router)(nil)
 func NewRouter(config Config) (*Router, error) {
 	return &Router{
 		config: config,
+
+		listEventsHandler: ingestdriver.NewListEventsHandler(
+			config.IngestService.ListEvents,
+			ingestdriver.StaticNamespaceDecoder(config.NamespaceManager.GetDefaultNamespace()),
+			commonhttp.ErrorEncoder,
+			errorsx.NewContextHandler(config.ErrorHandler),
+		),
 	}, nil
 }

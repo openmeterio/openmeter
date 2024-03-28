@@ -254,6 +254,7 @@ func main() {
 			NamespaceManager:    namespaceManager,
 			StreamingConnector:  streamingConnector,
 			IngestHandler:       ingestHandler,
+			IngestService:       ingestService,
 			Meters:              meterRepository,
 			PortalTokenStrategy: portalTokenStrategy,
 			PortalCORSEnabled:   conf.Portal.CORS.Enabled,
