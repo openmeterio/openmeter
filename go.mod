@@ -4,9 +4,9 @@ go 1.22
 
 require (
 	github.com/AppsFlyer/go-sundheit v0.5.0
-	github.com/ClickHouse/clickhouse-go/v2 v2.21.1
+	github.com/ClickHouse/clickhouse-go/v2 v2.23.0
 	github.com/avast/retry-go/v4 v4.5.1
-	github.com/benthosdev/benthos/v4 v4.25.1
+	github.com/benthosdev/benthos/v4 v4.26.0
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/cloudevents/sdk-go/v2 v2.15.2
 	github.com/confluentinc/confluent-kafka-go/v2 v2.2.0
@@ -19,7 +19,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/huandu/go-sqlbuilder v1.25.0
+	github.com/huandu/go-sqlbuilder v1.26.0
 	github.com/lmittmann/tint v1.0.4
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oapi-codegen/nethttp-middleware v1.0.1
@@ -51,8 +51,8 @@ require (
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 	google.golang.org/grpc v1.62.1
 	google.golang.org/protobuf v1.33.0
-	k8s.io/apimachinery v0.29.2
-	k8s.io/client-go v0.29.2
+	k8s.io/apimachinery v0.29.3
+	k8s.io/client-go v0.29.3
 	sigs.k8s.io/controller-runtime v0.17.2
 )
 
@@ -198,7 +198,7 @@ require (
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/glog v1.2.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/flatbuffers v23.5.26+incompatible // indirect
 	github.com/google/gofuzz v1.2.0 // indirect

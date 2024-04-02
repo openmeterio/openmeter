@@ -84,6 +84,7 @@ func (a *Router) QueryPortalMeter(w http.ResponseWriter, r *http.Request, meterS
 	a.QueryMeter(w, r, meterSlug, api.QueryMeterParams{
 		From:           params.From,
 		To:             params.To,
+		FilterGroupBy:  params.FilterGroupBy,
 		WindowSize:     params.WindowSize,
 		WindowTimeZone: params.WindowTimeZone,
 		Subject:        &[]string{subject},

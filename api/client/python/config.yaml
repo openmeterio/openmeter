@@ -10,19 +10,18 @@ trace: true
 version-tolerant: true
 override-client-name: Client
 
-use: ["@autorest/modelerfour@4.26.2", "@autorest/python@6.9.4"]
+use: ["@autorest/modelerfour@4.27.0", "@autorest/python@6.13.7"]
 directive:
   - from: openapi-document
     where: "$.components.parameters[*]"
     transform: >
       $["x-ms-parameter-location"] = "method";
-
   - from: openapi-document
     where: "$.components.responses.BadRequestProblemResponse"
     transform: >
       $["x-ms-error-response"] = true;
   - from: openapi-document
-    where: "$.components.responses.MethodNotAllowedProblemResponse"
+    where: "$.components.responses.UnauthorizedProblemResponse"
     transform: >
       $["x-ms-error-response"] = true;
   - from: openapi-document
@@ -37,3 +36,23 @@ directive:
     where: "$.components.responses.UnexpectedProblemResponse"
     transform: >
       $["x-ms-error-response"] = true;
+  # remove CloudCookieAuth from securitySchemes
+  # and remove it from the security requirements
+  - from: openapi-document
+    where: "$.components.securitySchemes.CloudCookieAuth"
+    transform: >
+      return undefined;
+  - from: openapi-document
+    where: "$.security[*]"
+    transform: >
+      if ($.CloudCookieAuth) {
+        return undefined;
+      }
+      return $;
+suppressions:
+  - code: UnkownSecurityScheme
+    from: openapi-document
+    reason: Unkown security scheme
+  - code: PreCheck/CheckDuplicateSchemas
+    from: openapi-document
+    reason: Validator already checks

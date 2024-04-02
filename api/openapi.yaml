@@ -1,24 +1,110 @@
 openapi: "3.0.3"
 info:
   title: OpenMeter API
-  version: "1.0.0-alpha.2"
-  description: ""
+  version: "1.0.0"
+  description: |
+    OpenMeter is a cloud native usage metering service.
+    The OpenMeter API allows you to ingest events, query meter usage, and manage resources.
+    ---
+    *Operations with the ☁ (cloud) notation are only available in OpenMeter Cloud.*
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
+externalDocs:
+  description: Documentation
+  url: https://openmeter.io/docs
+servers:
+  - url: http://127.0.0.1:8888
+    description: local
+  - url: https://openmeter.cloud
+    description: cloud
 tags:
   - name: Events
-    description: Endpoints related to ingesting events
+    description: |
+      Endpoints related to ingesting and debugging usage events.
+      [Learn more](https://openmeter.io/docs/getting-started/usage/overview)
   - name: Meters
-    description: Endpoints related to meters
+    description: |
+      Endpoints related to creating, and querying meters.
+      [Learn more](https://openmeter.io/docs/getting-started/meters/overview)
   - name: Portal
-    description: Endpoints related to the portal
+    description: |
+      Endpoints related to the consumer portal.
+      [Learn more](https://openmeter.io/docs/monetize/dashboard/portal-developer-guide)
+  - name: Subjects
+    description: |
+      Endpoints related to subjects.
+      [Learn more](https://openmeter.io/docs/getting-started/subjects)
 paths:
   /api/v1/events:
+    get:
+      summary: List ingested events
+      description: |
+        List ingested events within a time range.
+      operationId: listEvents
+      parameters:
+        - $ref: "#/components/parameters/queryFrom"
+        - $ref: "#/components/parameters/queryTo"
+        - name: limit
+          in: query
+          required: false
+          description: Number of events to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 100
+            example: 100
+      tags:
+        - Events
+      responses:
+        "200":
+          description: List of events for debugging.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IngestedEvent"
+                example:
+                  - event:
+                      id: 5c10fade-1c9e-4d6c-8275-c52c36731d3c
+                      source: service-name
+                      specversion: "1.0"
+                      type: prompt
+                      subject: customer-id
+                      time: "2023-01-01T01:01:01.001Z"
+                      data:
+                        tokens: "1234"
+                        model: "gpt-4-turbo"
+                        type: "input"
+                  - event:
+                      id: 912d1d87-09ad-4bcc-a57d-5b3552493ed2
+                      source: service-name
+                      specversion: "1.0"
+                      type: prompt
+                      subject: customer-id
+                      time: "2023-01-01T01:01:02.001Z"
+                      data:
+                        tokens: "2345"
+                        model: "gpt-4-turbo"
+                        type: "output"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
     post:
-      description: Ingest events
       operationId: ingestEvents
+      summary: Ingest events
+      description: |
+        Ingests an event or batch of events following the CloudEvents specification.
       requestBody:
+        description: |
+          The event or batch of events to ingest.
+          The request body must be a CloudEvents JSON object or an array of CloudEvents JSON objects.
+          The CloudEvents JSON object must adhere to the CloudEvents Specification JSON Schema.
         required: true
         content:
           application/cloudevents+json:
@@ -29,68 +115,83 @@ paths:
               type: array
               items:
                 $ref: "#/components/schemas/Event"
+              example:
+                - id: 5c10fade-1c9e-4d6c-8275-c52c36731d3c
+                  source: service-name
+                  specversion: "1.0"
+                  type: prompt
+                  subject: customer-id
+                  time: "2023-01-01T01:01:01.001Z"
+                  data:
+                    tokens: "1234"
+                    model: "gpt-4-turbo"
+                    type: "input"
+                - id: 912d1d87-09ad-4bcc-a57d-5b3552493ed2
+                  source: service-name
+                  specversion: "1.0"
+                  type: prompt
+                  subject: customer-id
+                  time: "2023-01-01T01:01:02.001Z"
+                  data:
+                    tokens: "2345"
+                    model: "gpt-4-turbo"
+                    type: "output"
+
       tags:
         - Events
       responses:
         "204":
-          description: OK
+          description: Successfully ingested.
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
-        default:
-          $ref: "#/components/responses/UnexpectedProblemResponse"
-    get:
-      description: Retrieve latest raw events.
-      operationId: listEvents
-      parameters:
-        - $ref: "#/components/parameters/queryFrom"
-        - $ref: "#/components/parameters/queryTo"
-        - name: limit
-          in: query
-          required: false
-          description: Number of events to return.
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-      tags:
-        - Events
-      responses:
-        "200":
-          description: Events response
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/IngestedEvent"
-        "400":
-          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
 
   /api/v1/meters:
     get:
-      description: List meters
       operationId: listMeters
+      summary: List meters
+      description: List meters.
       tags:
         - Meters
       responses:
         "200":
-          description: Meters response
+          description: List of meters.
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: "#/components/schemas/Meter"
+                example:
+                  - id: 01G65Z755AFWAKHE12NY0CQ9FH
+                    slug: tokens_total
+                    description: AI token usage
+                    aggregation: SUM
+                    windowSize: MINUTE
+                    eventType: prompt
+                    valueProperty: $.tokens
+                    groupBy:
+                      model: $.model
+                      type: $.type
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
     post:
-      description: Create meter
       operationId: createMeter
+      summary: ☁ Create meter
+      description: |
+        *Available in OpenMeter Cloud.*
+        *In the open-source version, meters are created in the configuration file.*
+
+        Create a meter.
       tags:
         - Meters
       requestBody:
+        description: The meter to create.
         required: true
         content:
           application/json:
@@ -98,46 +199,75 @@ paths:
               $ref: "#/components/schemas/Meter"
       responses:
         "201":
-          description: Created
+          description: Created.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Meter"
+              example:
+                id: 01G65Z755AFWAKHE12NY0CQ9FH
+                slug: tokens_total
+                description: AI token usage
+                aggregation: SUM
+                windowSize: MINUTE
+                eventType: prompt
+                valueProperty: $.tokens
+                groupBy:
+                  model: $.model
+                  type: $.type
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
         "501":
           $ref: "#/components/responses/NotImplementedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
   /api/v1/meters/{meterIdOrSlug}:
     get:
-      description: Get meter by slugs
       operationId: getMeter
+      summary: Get meter
+      description: Get meter by ID or slug
       parameters:
         - $ref: "#/components/parameters/meterIdOrSlug"
       tags:
         - Meters
       responses:
         "200":
-          description: OK
+          description: Meter found.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Meter"
+              example:
+                id: 01G65Z755AFWAKHE12NY0CQ9FH
+                slug: tokens_total
+                description: AI token usage
+                aggregation: SUM
+                windowSize: MINUTE
+                eventType: prompt
+                valueProperty: $.tokens
+                groupBy:
+                  model: $.model
+                  type: $.type
         "404":
           $ref: "#/components/responses/NotFoundProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
     delete:
-      description: Delete meter by slug
       operationId: deleteMeter
+      summary: ☁ Delete meter
+      description: |
+        *Available in OpenMeter Cloud.*
+
+        Delete a meter by ID or slug.
       parameters:
         - $ref: "#/components/parameters/meterIdOrSlug"
       tags:
         - Meters
       responses:
         "204":
-          description: No Content
+          description: Meter deleted.
         "404":
           $ref: "#/components/responses/NotFoundProblemResponse"
         "501":
@@ -146,8 +276,9 @@ paths:
           $ref: "#/components/responses/UnexpectedProblemResponse"
   /api/v1/meters/{meterIdOrSlug}/query:
     get:
-      description: Query meter
       operationId: queryMeter
+      summary: Query meter
+      description: Query meter for usage.
       tags:
         - Meters
       parameters:
@@ -156,45 +287,64 @@ paths:
         - $ref: "#/components/parameters/queryTo"
         - $ref: "#/components/parameters/queryWindowSize"
         - $ref: "#/components/parameters/queryWindowTimeZone"
-        - $ref: "#/components/parameters/querySubject"
+        - $ref: "#/components/parameters/queryFilterSubject"
+        - $ref: "#/components/parameters/queryFilterGroupBy"
         - $ref: "#/components/parameters/queryGroupBy"
       responses:
         "200":
-          description: OK
+          description: Usage data.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/MeterQueryResult"
+              example:
+                from: "2023-01-01T00:00:00Z"
+                to: "2023-01-02T00:00:00Z"
+                windowSize: MINUTE
+                data:
+                  - value: 12
+                    windowStart: "2023-01-01T00:00:00Z"
+                    windowEnd: "2023-01-02T00:00:00Z"
+                    subject: customer-id
+                    groupBy:
+                      model: gpt-4-turbo
+                      type: prompt
             text/csv:
               schema:
                 type: string
-              example: |-
-                window_start,window_end,subject,method,path,value
-                2023-01-01T00:00:00.001Z,2023-01-02T00:00:00.001Z,customer_1,get,/hello,12
-                2023-01-01T00:00:00.001Z,2023-01-02T00:00:00.001Z,customer_1,get,/world,20
-                2023-01-01T00:00:00.001Z,2023-01-02T00:00:00.001Z,customer_2,get,/hello,4
+                example: |-
+                  window_start,window_end,subject,model,type,value
+                  2023-01-01T00:00:00Z,2023-01-01T00:01:00Z,customer_1,gpt-4-turbo,input,12
+                  2023-01-01T00:01:00Z,2023-01-02T00:02:00Z,customer_1,gpt-4-turbo,input,20
+                  2023-01-01T00:02:00Z,2023-01-02T00:03:00Z,customer_2,gpt-4-turbo,output,4
 
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
   /api/v1/meters/{meterIdOrSlug}/subjects:
     get:
-      description: List meter subjects
       operationId: listMeterSubjects
+      summary: List meter subjects
+      description: List subjects for a meter.
       tags:
         - Meters
       parameters:
         - $ref: "#/components/parameters/meterIdOrSlug"
       responses:
         "200":
-          description: OK
+          description: List of subjects.
           content:
             application/json:
               schema:
                 type: array
                 items:
                   type: string
+                example:
+                  - customer-id
+                  - customer_2
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         default:
@@ -203,26 +353,41 @@ paths:
   /api/v1/portal/tokens:
     post:
       operationId: createPortalToken
+      summary: Create portal token
+      description: Create a consumer portal token.
       tags:
         - Portal
       requestBody:
+        description: The portal token to create.
+        required: true
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/PortalToken"
+            example:
+              subject: customer-id
+              allowedMeterSlugs:
+                - tokens_total
       responses:
         "200":
-          description: OK
+          description: Created.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/PortalToken"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
     get:
       operationId: listPortalTokens
+      summary: ☁ List portal tokens
+      description: |
+        *Available in OpenMeter Cloud.*
+
+        List consumer portal tokens.
       tags:
         - Portal
       parameters:
@@ -235,9 +400,10 @@ paths:
             minimum: 1
             maximum: 100
             default: 25
+            example: 25
       responses:
         "200":
-          description: OK
+          description: List of portal tokens.
           content:
             application/json:
               schema:
@@ -246,59 +412,97 @@ paths:
                   $ref: "#/components/schemas/PortalToken"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "501":
+          $ref: "#/components/responses/NotImplementedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
   /api/v1/portal/tokens/invalidate:
     post:
       operationId: invalidatePortalTokens
+      summary: ☁ Invalidate portal tokens
+      description: |
+        *Available in OpenMeter Cloud.*
+
+        Invalidates consumer portal tokens by ID or subject.
       tags:
         - Portal
       requestBody:
+        description: If no id or subject is specified, all tokens will be invalidated.
+        required: true
         content:
           application/json:
             schema:
               type: object
-              description: If no id or subject is specified, all tokens will be invalidated.
               properties:
                 id:
                   type: string
-                  description: Optional portal token ID to invalidate one token by.
+                  description: Invalidate a portal token by ID.
                 subject:
                   type: string
-                  description: Optional subject to invalidate all tokens for subject.
+                  description: Invalidate all portal tokens for a subject.
+            examples:
+              "Invalidate by ID":
+                description: Invalidate a portal token by ID.
+                value:
+                  id: "01G65Z755AFWAKHE12NY0CQ9FH"
+              "Invalidate by subject":
+                description: Invalidate all portal tokens for a subject.
+                value:
+                  subject: "customer-id"
+              "Invalidate all":
+                description: Invalidate all portal tokens.
+                value: {}
       responses:
         "204":
-          description: No Content
+          description: Portal tokens invalidated.
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "501":
+          $ref: "#/components/responses/NotImplementedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
   # Subject
   /api/v1/subjects:
     get:
       operationId: listSubjects
+      summary: ☁ List subjects
+      description: |
+        *Available in OpenMeter Cloud.*
+
+        List subjects.
       tags:
-        - Subject
+        - Subjects
       responses:
         "200":
-          description: OK
+          description: List of subjects.
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: "#/components/schemas/Subject"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
     post:
       operationId: upsertSubject
-      tags:
-        - Subject
+      summary: ☁ Upsert subject
       description: |
+        *Available in OpenMeter Cloud.*
+
         Upserts a subject. Creates or updates subject.
         If the subject doesn't exist, it will be created.
         If the subject exists, it will be partially updated with the provided fields.
+      tags:
+        - Subjects
       requestBody:
+        description: The subject to upsert.
+        required: true
         content:
           application/json:
             schema:
@@ -307,7 +511,7 @@ paths:
                 $ref: "#/components/schemas/Subject"
       responses:
         "200":
-          description: OK
+          description: Subject upserted.
           content:
             application/json:
               schema:
@@ -316,59 +520,89 @@ paths:
                   $ref: "#/components/schemas/Subject"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "501":
+          $ref: "#/components/responses/NotImplementedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
   /api/v1/subjects/{subjectIdOrKey}:
     get:
       operationId: getSubject
+      summary: ☁ Get subject
+      description: |
+        *Available in OpenMeter Cloud.*
+
+        Get subject by ID or key.
       tags:
-        - Subject
+        - Subjects
       parameters:
         - $ref: "#/components/parameters/subjectIdOrKey"
       responses:
         "200":
-          description: OK
+          description: Subject found.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Subject"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
     delete:
       operationId: deleteSubject
+      summary: ☁ Delete subject
+      description: |
+        *Available in OpenMeter Cloud.*
+
+        Delete a subject by ID or key.
       tags:
-        - Subject
+        - Subjects
       parameters:
         - $ref: "#/components/parameters/subjectIdOrKey"
       responses:
         "204":
-          description: No Content
+          description: Subject deleted.
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
+        "501":
+          $ref: "#/components/responses/NotImplementedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
-  # Meter Query
+  # Portal
   /api/v1/portal/meters/{meterSlug}/query:
     get:
       operationId: queryPortalMeter
+      summary: Query portal meter
+      description: Query meter for consumer portal. This endpoint is publicly exposable to consumers.
       tags:
         - Portal
       security:
-        - portalToken: []
+        - PortalTokenAuth: []
+        - CloudPortalTokenAuth: []
       parameters:
         - name: meterSlug
+          description: A unique identifier for the meter.
           in: path
           required: true
           schema:
             type: string
+            example: "tokens_total"
         - $ref: "#/components/parameters/queryFrom"
         - $ref: "#/components/parameters/queryTo"
         - $ref: "#/components/parameters/queryWindowSize"
         - $ref: "#/components/parameters/queryWindowTimeZone"
+        - $ref: "#/components/parameters/queryFilterGroupBy"
         - $ref: "#/components/parameters/queryGroupBy"
       responses:
         "200":
-          description: OK
+          description: Usage data.
           content:
             application/json:
               schema:
@@ -376,11 +610,11 @@ paths:
             text/csv:
               schema:
                 type: string
-              example: |-
-                window_start,window_end,subject,method,path,value
-                2023-01-01T00:00:00.001Z,2023-01-02T00:00:00.001Z,customer_1,get,/hello,12
-                2023-01-01T00:00:00.001Z,2023-01-02T00:00:00.001Z,customer_1,get,/world,20
-                2023-01-01T00:00:00.001Z,2023-01-02T00:00:00.001Z,customer_2,get,/hello,4
+                example: |-
+                  window_start,window_end,subject,model,type,value
+                  2023-01-01T00:00:00Z,2023-01-01T00:01:00Z,customer_1,gpt-4-turbo,input,12
+                  2023-01-01T00:01:00Z,2023-01-02T00:02:00Z,customer_1,gpt-4-turbo,input,20
+                  2023-01-01T00:02:00Z,2023-01-02T00:03:00Z,customer_2,gpt-4-turbo,output,4
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
@@ -392,11 +626,12 @@ components:
   schemas:
     Problem:
       type: object
-      description: A Problem Details object (RFC 7807)
+      description: |-
+        A Problem Details object (RFC 7807).
+        Additional properties specific to the problem type may be present.
       x-go-type: models.StatusProblem
       x-go-type-import:
         path: github.com/openmeterio/openmeter/pkg/models
-      additionalProperties: true
       properties:
         type:
           type: string
@@ -417,12 +652,13 @@ components:
         detail:
           type: string
           description: A human-readable explanation specific to this occurrence of the problem.
-          example: header Content-Type has unexpected value \"application/xml\"
+          example: "body must be a JSON object"
         instance:
           type: string
           format: uri
           description: A URI reference that identifies the specific occurrence of the problem.
           example: "urn:request:local/JMOlctsKV8-000001"
+      additionalProperties: true
       required:
         - type
         - title
@@ -432,8 +668,7 @@ components:
         type: "urn:problem-type:bad-request"
         title: "Bad Request"
         status: 400
-        detail: 'header Content-Type has unexpected value "application/xml"'
-        instance: "urn:request:local/JMOlctsKV8-000001"
+        detail: "body must be a JSON object"
     Event:
       description: CloudEvents Specification JSON Schema
       x-go-type: event.Event
@@ -452,7 +687,7 @@ components:
           type: string
           format: uri-reference
           minLength: 1
-          example: services/service-0
+          example: service-name
         specversion:
           description: The version of the CloudEvents specification which the event uses.
           type: string
@@ -461,7 +696,7 @@ components:
         type:
           description: Describes the type of event related to the originating occurrence.
           type: string
-          example: api_request
+          example: prompt
         datacontenttype:
           description: Content type of the data value. Must adhere to RFC 2046 format.
           type: string
@@ -481,7 +716,7 @@ components:
           type: string
           nullable: false
           minLength: 1
-          example: customer_id
+          example: "customer-id"
         time:
           description: Timestamp of when the occurrence happened. Must adhere to RFC 3339.
           type: string
@@ -494,15 +729,27 @@ components:
           type: object
           additionalProperties: true
           example:
-            duration_ms: "12"
-            path: "/hello"
+            tokens: "1234"
+            model: "gpt-4-turbo"
       required:
         - id
         - source
         - specversion
         - type
         - subject
+      example:
+        id: 5c10fade-1c9e-4d6c-8275-c52c36731d3c
+        source: service-name
+        specversion: "1.0"
+        type: prompt
+        subject: customer-id
+        time: "2023-01-01T01:01:01.001Z"
+        data:
+          tokens: "1234"
+          model: "gpt-4-turbo"
+          type: "input"
     IngestedEvent:
+      description: An ingested event with optional validation error.
       type: object
       additionalProperties: false
       required:
@@ -513,8 +760,22 @@ components:
         validationError:
           type: string
           readOnly: true
+          example: "invalid event"
+      example:
+        event:
+          id: 5c10fade-1c9e-4d6c-8275-c52c36731d3d
+          source: service-name
+          specversion: "1.0"
+          type: prompt
+          subject: customer-id
+          time: "2023-01-01T01:01:01.001Z"
+          data:
+            tokens: "1234"
+            model: "gpt-4-turbo"
+        validationError: "meter not found for event"
     Meter:
       type: object
+      description: A meter is a configuration that defines how to match and aggregate events.
       x-go-type: models.Meter
       x-go-type-import:
         path: github.com/openmeterio/openmeter/pkg/models
@@ -526,16 +787,16 @@ components:
           readOnly: true
         slug:
           type: string
-          description: A unique identifier for the meter.
+          description: A unique, human-readable identifier for the meter. Must consist only alphanumeric and underscore characters.
           pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
           minLength: 1
           maxLength: 63
-          example: my_meter
+          example: tokens_total
         description:
           type: string
           description: A description of the meter.
           nullable: true
-          example: My Meter Description
+          example: AI Token Usage
         aggregation:
           $ref: "#/components/schemas/MeterAggregation"
         windowSize:
@@ -543,26 +804,41 @@ components:
         eventType:
           type: string
           description: The event type to aggregate.
-          example: api_request
+          example: prompt
         valueProperty:
           type: string
           description: JSONPath expression to extract the value from the event data.
-          example: $.duration_ms
+          example: $.tokens
         groupBy:
           type: object
+          description: Named JSONPath expressions to extract the group by values from the event data. Keys must be unique and consist only alphanumeric and underscore characters.
+          # Only works with OpenAPI 3.1.0
+          # propertyNames:
+          #   pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
           additionalProperties:
             type: string
-          description: Named JSONPath expressions to extract the group by values from the event data. Keys must be unique and consist only alphanumeric and underscore characters.
+            example: $.model
           example:
-            method: "$.method"
-            path: "$.path"
+            model: $.model
+            type: $.type
       required:
         - slug
         - aggregation
         - eventType
         - windowSize
+      example:
+        slug: tokens_total
+        description: AI token usage
+        aggregation: SUM
+        windowSize: MINUTE
+        eventType: prompt
+        valueProperty: $.tokens
+        groupBy:
+          model: $.model
+          type: $.type
     MeterAggregation:
       type: string
+      description: The aggregation type to use for the meter.
       x-go-type: models.MeterAggregation
       x-go-type-import:
         path: github.com/openmeterio/openmeter/pkg/models
@@ -572,7 +848,7 @@ components:
         - AVG
         - MIN
         - MAX
-      description: The aggregation type to use for the meter.
+      example: SUM
     WindowSize:
       type: string
       description: Aggregation window size.
@@ -583,25 +859,50 @@ components:
         - MINUTE
         - HOUR
         - DAY
+      example: MINUTE
     MeterQueryResult:
       type: object
+      description: The result of a meter query.
       required:
         - data
       properties:
         from:
           type: string
           format: date-time
+          example: "2023-01-01T00:00:00Z"
         to:
           type: string
           format: date-time
+          example: "2023-01-02T00:00:00Z"
         windowSize:
           $ref: "#/components/schemas/WindowSize"
         data:
           type: array
           items:
             $ref: "#/components/schemas/MeterQueryRow"
+          example:
+            - value: 12
+              windowStart: "2023-01-01T00:00:00Z"
+              windowEnd: "2023-01-02T00:00:00Z"
+              subject: customer-id
+              groupBy:
+                model: gpt-4-turbo
+                type: prompt
+      example:
+        from: "2023-01-01T00:00:00Z"
+        to: "2023-01-02T00:00:00Z"
+        windowSize: MINUTE
+        data:
+          - value: 12
+            windowStart: "2023-01-01T00:00:00Z"
+            windowEnd: "2023-01-02T00:00:00Z"
+            subject: customer-id
+            groupBy:
+              model: gpt-4-turbo
+              type: prompt
     MeterQueryRow:
       type: object
+      description: A row in the result of a meter query.
       x-go-type: models.MeterQueryRow
       x-go-type-import:
         path: github.com/openmeterio/openmeter/pkg/models
@@ -612,38 +913,61 @@ components:
       properties:
         value:
           type: number
+          example: 12
         windowStart:
           type: string
           format: date-time
+          example: "2023-01-01T00:00:00Z"
         windowEnd:
           type: string
           format: date-time
+          example: "2023-01-02T00:00:00Z"
         subject:
           type: string
           nullable: true
           description: The subject of the meter value.
+          example: customer-id
         groupBy:
           type: object
           nullable: true
           additionalProperties:
             type: string
+          example:
+            model: gpt-4-turbo
+            type: prompt
+      example:
+        value: 12
+        windowStart: "2023-01-01T00:00:00Z"
+        windowEnd: "2023-01-02T00:00:00Z"
+        subject: customer-id
+        groupBy:
+          model: gpt-4-turbo
+          type: prompt
     PortalToken:
       type: object
+      description: A consumer portal token.
       required:
-        - id
+        # Validator doesn't obey required for readOnly properties
+        # See: https://github.com/stoplightio/spectral/issues/1274
+        # - id
         - subject
-        - expiresAt
-        - createdAt
+        # - expiresAt
+        # - expired
+        # - createdAt
+        # - token
       properties:
         id:
           type: string
           readOnly: true
+          example: "01G65Z755AFWAKHE12NY0CQ9FH"
         subject:
           type: string
+          example: customer-id
         expiresAt:
           type: string
           format: date-time
           readOnly: true
+          example: "2023-01-02T00:00:00Z"
         expired:
           type: boolean
           readOnly: true
@@ -651,10 +975,12 @@ components:
           type: string
           format: date-time
           readOnly: true
+          example: "2023-01-01T00:00:00Z"
         token:
           description: The token is only returned at creation.
           type: string
           readOnly: true
+          example: "om_portal_IAnD3PpWW2A2Wr8m9jfzeHlGX8xmCXwG.y5q4S-AWqFu6qjfaFz0zQq4Ez28RsnyVwJffX5qxMvo"
         allowedMeterSlugs:
           description: Optional, if defined only the specified meters will be allowed
           type: array
@@ -662,47 +988,83 @@ components:
           uniqueItems: true
           items:
             type: string
+          example:
+            - tokens_total
+      example:
+        id: "01G65Z755AFWAKHE12NY0CQ9FH"
+        subject: customer-id
+        expiresAt: "2023-01-02T00:00:00Z"
+        expired: false
+        createdAt: "2023-01-01T00:00:00Z"
+        token: "om_portal_IAnD3PpWW2A2Wr8m9jfzeHlGX8xmCXwG.y5q4S-AWqFu6qjfaFz0zQq4Ez28RsnyVwJffX5qxMvo"
+        allowedMeterSlugs:
+          - tokens_total
     Subject:
       type: object
+      description: A subject is a unique identifier for a user or entity.
       required:
-        - id
+        # Validator doesn't obey required for readOnly properties
+        # See: https://github.com/stoplightio/spectral/issues/1274
+        # - id
         - key
       additionalProperties: false
       properties:
         id:
           type: string
           readOnly: true
+          example: "01G65Z755AFWAKHE12NY0CQ9FH"
         key:
           type: string
+          example: customer-id
         displayName:
           type: string
           nullable: true
+          example: "Customer Name"
         metadata:
           type: object
           additionalProperties: true
+          nullable: true
+          example:
+            hubspotId: "123456"
         currentPeriodStart:
           type: string
           format: date-time
           nullable: true
+          example: "2023-01-01T00:00:00Z"
         currentPeriodEnd:
           type: string
           format: date-time
           nullable: true
+          example: "2023-02-01T00:00:00Z"
         stripeCustomerId:
           type: string
           nullable: true
+          example: "cus_JMOlctsKV8"
+      example:
+        id: "01G65Z755AFWAKHE12NY0CQ9FH"
+        key: customer-id
+        displayName: "Customer Name"
+        metadata:
+          hubspotId: "123456"
+        currentPeriodStart: "2023-01-01T00:00:00Z"
+        currentPeriodEnd: "2023-02-01T00:00:00Z"
+        stripeCustomerId: "cus_JMOlctsKV8"
     IdOrSlug:
       type: string
+      description: A unique identifier.
       oneOf:
         # id
         - type: string
           pattern: "^[0-9ABCDEFGHJKMNPQRSTVWXYZ]{26}$"
           description: "ULID (Universally Unique Lexicographically Sortable Identifier)"
+          example: "01G65Z755AFWAKHE12NY0CQ9FH"
         # slug
         - type: string
           pattern: "^[a-z0-9]+(?:_[a-z0-9]+)*$"
           minLength: 1
           maxLength: 63
+          example: "tokens_total"
+      example: "tokens_total"
 
   parameters:
     meterIdOrSlug:
@@ -719,6 +1081,7 @@ components:
       required: true
       schema:
         type: string
+        example: "customer-id"
     queryFrom:
       name: from
       in: query
@@ -729,6 +1092,7 @@ components:
       schema:
         type: string
         format: date-time
+        example: "2023-01-01T00:00:00Z"
     queryTo:
       name: to
       in: query
@@ -739,6 +1103,7 @@ components:
       schema:
         type: string
         format: date-time
+        example: "2023-01-02T00:00:00Z"
     queryWindowSize:
       name: windowSize
       in: query
@@ -758,13 +1123,31 @@ components:
         type: string
         default: UTC
         example: "America/New_York"
-    querySubject:
+    queryFilterSubject:
       name: subject
+      description: |
+        Filtering and group by multiple subjects.
+        Usage: ?subject=customer-1&subject=customer-2
       in: query
       required: false
       schema:
         type: array
         items:
+          type: string
+    queryFilterGroupBy:
+      name: filterGroupBy
+      in: query
+      style: deepObject
+      required: false
+      schema:
+        type: object
+        description: |
+          Simple filter for group bys with exact match.
+          Usage: ?filterGroupBy[type]=input&filterGroupBy[model]=gpt-4
+        example:
+          model: gpt-4
+          type: input
+        additionalProperties:
           type: string
     queryGroupBy:
       name: groupBy
@@ -777,6 +1160,9 @@ components:
         type: array
         items:
           type: string
+        example:
+          - model
+          - type
 
   responses:
     BadRequestProblemResponse:
@@ -785,39 +1171,79 @@ components:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/Problem"
+          example:
+            type: "urn:problem-type:bad-request"
+            title: "Bad Request"
+            status: 400
+            detail: 'header Content-Type has unexpected value "application/xml"'
     UnauthorizedProblemResponse:
       description: Unauthorized
       content:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/Problem"
-    MethodNotAllowedProblemResponse:
-      description: Method not allowed, feature not supported
-      content:
-        application/problem+json:
-          schema:
-            $ref: "#/components/schemas/Problem"
+          example:
+            type: "urn:problem-type:unauthorized"
+            title: "Unauthorized"
+            status: 401
+            detail: "missing or invalid token"
     NotFoundProblemResponse:
       description: Not Found
       content:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/Problem"
+          example:
+            type: "urn:problem-type:not-found"
+            title: "Not Found"
+            status: 404
+            detail: "meter not found"
     NotImplementedProblemResponse:
       description: Not Implemented
       content:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/Problem"
+          example:
+            type: "urn:problem-type:not-implemented"
+            title: "Not Implemented"
+            status: 501
+            detail: "feature not implemented"
     UnexpectedProblemResponse:
       description: Unexpected error
       content:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/Problem"
+          example:
+            type: "urn:problem-type:unexpected"
+            title: "Unexpected Error"
+            status: 500
+            detail: "unexpected error"
 
   securitySchemes:
-    portalToken:
+    PortalTokenAuth:
+      description: Consumer portal token in open-source version
       type: http
       scheme: bearer
       bearerFormat: jwt
+    CloudTokenAuth:
+      description: Cloud API token
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+    CloudCookieAuth:
+      description: Cloud API web app cookie
+      type: apiKey
+      in: cookie
+      name: __session
+    CloudPortalTokenAuth:
+      description: Cloud consumer portal token
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+
+security:
+  - {} # No authentication required in open-source version
+  - CloudTokenAuth: []
+  - CloudCookieAuth: []

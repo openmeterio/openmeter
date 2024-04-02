@@ -37,7 +37,7 @@ type IngestHandler interface {
 type Config struct {
 	NamespaceManager    *namespace.Manager
 	StreamingConnector  streaming.Connector
-	IngestHandler       IngestHandler
+	IngestHandler       http.Handler
 	Meters              meter.Repository
 	PortalCORSEnabled   bool
 	PortalTokenStrategy *authenticator.PortalTokenStrategy

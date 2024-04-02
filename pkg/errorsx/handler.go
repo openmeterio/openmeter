@@ -64,3 +64,20 @@ func (h NopHandler) Handle(err error) {
 
 func (h NopHandler) HandleContext(ctx context.Context, err error) {
 }
+
+// ContextHandler always accepts a context.
+type ContextHandler struct {
+	Handler Handler
+}
+
+func NewContextHandler(handler Handler) ContextHandler {
+	return ContextHandler{Handler: handler}
+}
+
+func (h ContextHandler) Handle(ctx context.Context, err error) {
+	h.Handler.HandleContext(ctx, err)
+}
+
+func (h ContextHandler) HandleContext(ctx context.Context, err error) {
+	h.Handler.HandleContext(ctx, err)
+}

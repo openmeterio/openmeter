@@ -40,9 +40,9 @@ jobs:
         uses: dagger/dagger-for-github@698ef94185f8baaa1f3c3d825a7d3d487152db2f # v5.2.0
         with:
           verb: call
-          module: github.com/${{ github.repository }}/ci@${{ github.ref }}
-          args: --checkout ${{ github.ref }} release --version ${{ github.ref_name }} --github-actor ${{ github.actor }} --github-token GITHUB_TOKEN
+          module: github.com/${{ github.repository }}@${{ github.ref }}
+          args: --ref ${{ github.ref }} release --version ${{ github.ref_name }} --github-actor ${{ github.actor }} --github-token GITHUB_TOKEN
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: "0.9.7"
+          version: "0.10.3"
         env:
           GITHUB_TOKEN: ${{ github.token }}

@@ -49,8 +49,7 @@ func (m *Ci) pushHelmChart(ctx context.Context, name string, version string, git
 
 	_, err := dag.Helm(HelmOpts{Version: helmVersion}).
 		Login("ghcr.io", githubActor, githubToken).
-		Push(chart, "oci://ghcr.io/openmeterio/helm-charts").
-		Sync(ctx)
+		Push(ctx, chart, "oci://ghcr.io/openmeterio/helm-charts")
 	if err != nil {
 		return err
 	}

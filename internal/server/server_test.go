@@ -17,6 +17,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/internal/ingest"
+	"github.com/openmeterio/openmeter/internal/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/server/authenticator"
@@ -80,7 +82,7 @@ func (c *MockConnector) DeleteMeter(ctx context.Context, namespace string, meter
 func (c *MockConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	value := mockQueryValue
 
-	if params.Subject == nil {
+	if params.FilterSubject == nil {
 		value.Subject = nil
 	}
 
@@ -112,9 +114,11 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 
 	server, _ := NewServer(&Config{
 		RouterConfig: router.Config{
-			Meters:              meter.NewInMemoryRepository(mockMeters),
-			StreamingConnector:  &MockConnector{},
-			IngestHandler:       MockHandler{},
+			Meters:             meter.NewInMemoryRepository(mockMeters),
+			StreamingConnector: &MockConnector{},
+			IngestHandler: ingestdriver.NewIngestEventsHandler(func(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {
+				return true, nil
+			}, ingestdriver.StaticNamespaceDecoder("test"), nil, errorsx.NewContextHandler(errorsx.NopHandler{})),
 			NamespaceManager:    namespaceManager,
 			PortalTokenStrategy: portalTokenStrategy,
 			ErrorHandler:        errorsx.NopHandler{},
@@ -162,7 +166,7 @@ func TestRoutes(t *testing.T) {
 				}(),
 			},
 			res: testResponse{
-				status: http.StatusOK,
+				status: http.StatusNoContent,
 			},
 		},
 		{
@@ -215,7 +219,7 @@ func TestRoutes(t *testing.T) {
 			name: "get meter",
 			req: testRequest{
 				method: http.MethodGet,
-				path:   "/api/v1/meters/" + mockMeters[0].ID,
+				path:   "/api/v1/meters/" + mockMeters[0].Slug,
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -237,7 +241,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodGet,
 				contentType: "application/json",
-				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query",
+				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query",
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -255,7 +259,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodGet,
 				contentType: "application/json",
-				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?groupBy=path&groupBy=method",
+				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query?groupBy=path&groupBy=method",
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -266,7 +270,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodGet,
 				contentType: "application/json",
-				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?groupBy=subject",
+				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query?groupBy=subject",
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -277,7 +281,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodGet,
 				contentType: "application/json",
-				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?groupBy=foo",
+				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query?groupBy=foo",
 			},
 			res: testResponse{
 				status: http.StatusBadRequest,
@@ -288,7 +292,7 @@ func TestRoutes(t *testing.T) {
 			req: testRequest{
 				method:      http.MethodGet,
 				contentType: "application/json",
-				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?subject=s1",
+				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query?subject=s1",
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -302,12 +306,41 @@ func TestRoutes(t *testing.T) {
 			},
 		},
 		{
+			name: "query meter with filter",
+			req: testRequest{
+				method:      http.MethodGet,
+				contentType: "application/json",
+				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query?filterGroupBy[method]=GET",
+			},
+			res: testResponse{
+				status: http.StatusOK,
+				body: struct {
+					Data []models.MeterQueryRow `json:"data"`
+				}{
+					Data: []models.MeterQueryRow{
+						{Subject: nil, WindowStart: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), WindowEnd: time.Date(2021, 1, 1, 1, 0, 0, 0, time.UTC), Value: 300},
+					},
+				},
+			},
+		},
+		{
+			name: "query meter with invalid group by filter",
+			req: testRequest{
+				method:      http.MethodGet,
+				contentType: "application/json",
+				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query?filterGroupBy[invalid]=abcd",
+			},
+			res: testResponse{
+				status: http.StatusBadRequest,
+			},
+		},
+		{
 			name: "query meter as csv",
 			req: testRequest{
 				accept:      "text/csv",
 				contentType: "text/csv",
 				method:      http.MethodGet,
-				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query",
+				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query",
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -327,7 +360,7 @@ func TestRoutes(t *testing.T) {
 				accept:      "text/csv",
 				contentType: "text/csv",
 				method:      http.MethodGet,
-				path:        "/api/v1/meters/" + mockMeters[0].ID + "/query?subject=s1",
+				path:        "/api/v1/meters/" + mockMeters[0].Slug + "/query?subject=s1",
 			},
 			res: testResponse{
 				status: http.StatusOK,
@@ -373,6 +406,7 @@ func TestRoutes(t *testing.T) {
 				method:      http.MethodPost,
 				path:        "/api/v1/portal/tokens/invalidate",
 				contentType: "application/json",
+				body:        api.InvalidatePortalTokensJSONRequestBody{},
 			},
 			res: testResponse{
 				status: http.StatusNotImplemented,
@@ -392,8 +426,12 @@ func TestRoutes(t *testing.T) {
 		{
 			name: "upsert subjects",
 			req: testRequest{
-				method: http.MethodPost,
-				path:   "/api/v1/subjects",
+				method:      http.MethodPost,
+				path:        "/api/v1/subjects",
+				contentType: "application/json",
+				body: api.UpsertSubjectJSONRequestBody{{
+					Key: "customer",
+				}},
 			},
 			res: testResponse{
 				status: http.StatusNotImplemented,
@@ -450,7 +488,7 @@ func TestRoutes(t *testing.T) {
 			res := w.Result()
 
 			// status
-			assert.Equal(t, tt.res.status, res.StatusCode)
+			assert.Equal(t, tt.res.status, res.StatusCode, w.Body.String())
 
 			// body
 			if tt.res.body == nil {

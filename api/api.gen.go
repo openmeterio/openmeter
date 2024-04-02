@@ -23,29 +23,32 @@ import (
 )
 
 const (
-	PortalTokenScopes = "portalToken.Scopes"
+	CloudCookieAuthScopes      = "CloudCookieAuth.Scopes"
+	CloudPortalTokenAuthScopes = "CloudPortalTokenAuth.Scopes"
+	CloudTokenAuthScopes       = "CloudTokenAuth.Scopes"
+	PortalTokenAuthScopes      = "PortalTokenAuth.Scopes"
 )
 
 // Event CloudEvents Specification JSON Schema
 type Event = event.Event
 
-// IdOrSlug defines model for IdOrSlug.
+// IdOrSlug A unique identifier.
 type IdOrSlug = string
 
-// IngestedEvent defines model for IngestedEvent.
+// IngestedEvent An ingested event with optional validation error.
 type IngestedEvent struct {
 	// Event CloudEvents Specification JSON Schema
 	Event           Event   `json:"event"`
 	ValidationError *string `json:"validationError,omitempty"`
 }
 
-// Meter defines model for Meter.
+// Meter A meter is a configuration that defines how to match and aggregate events.
 type Meter = models.Meter
 
 // MeterAggregation The aggregation type to use for the meter.
 type MeterAggregation = models.MeterAggregation
 
-// MeterQueryResult defines model for MeterQueryResult.
+// MeterQueryResult The result of a meter query.
 type MeterQueryResult struct {
 	Data []MeterQueryRow `json:"data"`
 	From *time.Time      `json:"from,omitempty"`
@@ -55,10 +58,10 @@ type MeterQueryResult struct {
 	WindowSize *WindowSize `json:"windowSize,omitempty"`
 }
 
-// MeterQueryRow defines model for MeterQueryRow.
+// MeterQueryRow A row in the result of a meter query.
 type MeterQueryRow = models.MeterQueryRow
 
-// PortalToken defines model for PortalToken.
+// PortalToken A consumer portal token.
 type PortalToken struct {
 	// AllowedMeterSlugs Optional, if defined only the specified meters will be allowed
 	AllowedMeterSlugs *[]string  `json:"allowedMeterSlugs,omitempty"`
@@ -72,34 +75,39 @@ type PortalToken struct {
 	Token *string `json:"token,omitempty"`
 }
 
-// Problem A Problem Details object (RFC 7807)
+// Problem A Problem Details object (RFC 7807).
+// Additional properties specific to the problem type may be present.
 type Problem = models.StatusProblem
 
-// Subject defines model for Subject.
+// Subject A subject is a unique identifier for a user or entity.
 type Subject struct {
 	CurrentPeriodEnd   *time.Time              `json:"currentPeriodEnd"`
 	CurrentPeriodStart *time.Time              `json:"currentPeriodStart"`
 	DisplayName        *string                 `json:"displayName"`
 	Id                 *string                 `json:"id,omitempty"`
 	Key                string                  `json:"key"`
-	Metadata           *map[string]interface{} `json:"metadata,omitempty"`
+	Metadata           *map[string]interface{} `json:"metadata"`
 	StripeCustomerId   *string                 `json:"stripeCustomerId"`
 }
 
 // WindowSize Aggregation window size.
 type WindowSize = models.WindowSize
 
-// MeterIdOrSlug defines model for meterIdOrSlug.
+// MeterIdOrSlug A unique identifier.
 type MeterIdOrSlug = IdOrSlug
+
+// QueryFilterGroupBy Simple filter for group bys with exact match.
+// Usage: ?filterGroupBy[type]=input&filterGroupBy[model]=gpt-4
+type QueryFilterGroupBy map[string]string
+
+// QueryFilterSubject defines model for queryFilterSubject.
+type QueryFilterSubject = []string
 
 // QueryFrom defines model for queryFrom.
 type QueryFrom = time.Time
 
 // QueryGroupBy defines model for queryGroupBy.
 type QueryGroupBy = []string
-
-// QuerySubject defines model for querySubject.
-type QuerySubject = []string
 
 // QueryTo defines model for queryTo.
 type QueryTo = time.Time
@@ -113,19 +121,24 @@ type QueryWindowTimeZone = string
 // SubjectIdOrKey defines model for subjectIdOrKey.
 type SubjectIdOrKey = string
 
-// BadRequestProblemResponse A Problem Details object (RFC 7807)
+// BadRequestProblemResponse A Problem Details object (RFC 7807).
+// Additional properties specific to the problem type may be present.
 type BadRequestProblemResponse = Problem
 
-// NotFoundProblemResponse A Problem Details object (RFC 7807)
+// NotFoundProblemResponse A Problem Details object (RFC 7807).
+// Additional properties specific to the problem type may be present.
 type NotFoundProblemResponse = Problem
 
-// NotImplementedProblemResponse A Problem Details object (RFC 7807)
+// NotImplementedProblemResponse A Problem Details object (RFC 7807).
+// Additional properties specific to the problem type may be present.
 type NotImplementedProblemResponse = Problem
 
-// UnauthorizedProblemResponse A Problem Details object (RFC 7807)
+// UnauthorizedProblemResponse A Problem Details object (RFC 7807).
+// Additional properties specific to the problem type may be present.
 type UnauthorizedProblemResponse = Problem
 
-// UnexpectedProblemResponse A Problem Details object (RFC 7807)
+// UnexpectedProblemResponse A Problem Details object (RFC 7807).
+// Additional properties specific to the problem type may be present.
 type UnexpectedProblemResponse = Problem
 
 // ListEventsParams defines parameters for ListEvents.
@@ -138,7 +151,7 @@ type ListEventsParams struct {
 	// Inclusive.
 	To *QueryTo `form:"to,omitempty" json:"to,omitempty"`
 
-	// Limit Number of events to return.
+	// Limit Number of events to return
 	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
@@ -161,7 +174,11 @@ type QueryMeterParams struct {
 	// WindowTimeZone The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
 	// If not specified, the UTC timezone will be used.
 	WindowTimeZone *QueryWindowTimeZone `form:"windowTimeZone,omitempty" json:"windowTimeZone,omitempty"`
-	Subject        *QuerySubject        `form:"subject,omitempty" json:"subject,omitempty"`
+
+	// Subject Filtering and group by multiple subjects.
+	// Usage: ?subject=customer-1&subject=customer-2
+	Subject       *QueryFilterSubject `form:"subject,omitempty" json:"subject,omitempty"`
+	FilterGroupBy *QueryFilterGroupBy `json:"filterGroupBy,omitempty"`
 
 	// GroupBy If not specified a single aggregate will be returned for each subject and time window.
 	// `subject` is a reserved group by value.
@@ -184,6 +201,7 @@ type QueryPortalMeterParams struct {
 	// WindowTimeZone The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
 	// If not specified, the UTC timezone will be used.
 	WindowTimeZone *QueryWindowTimeZone `form:"windowTimeZone,omitempty" json:"windowTimeZone,omitempty"`
+	FilterGroupBy  *QueryFilterGroupBy  `json:"filterGroupBy,omitempty"`
 
 	// GroupBy If not specified a single aggregate will be returned for each subject and time window.
 	// `subject` is a reserved group by value.
@@ -198,10 +216,10 @@ type ListPortalTokensParams struct {
 
 // InvalidatePortalTokensJSONBody defines parameters for InvalidatePortalTokens.
 type InvalidatePortalTokensJSONBody struct {
-	// Id Optional portal token ID to invalidate one token by.
+	// Id Invalidate a portal token by ID.
 	Id *string `json:"id,omitempty"`
 
-	// Subject Optional subject to invalidate all tokens for subject.
+	// Subject Invalidate all portal tokens for a subject.
 	Subject *string `json:"subject,omitempty"`
 }
 
@@ -228,52 +246,52 @@ type UpsertSubjectJSONRequestBody = UpsertSubjectJSONBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-
+	// List ingested events
 	// (GET /api/v1/events)
 	ListEvents(w http.ResponseWriter, r *http.Request, params ListEventsParams)
-
+	// Ingest events
 	// (POST /api/v1/events)
 	IngestEvents(w http.ResponseWriter, r *http.Request)
-
+	// List meters
 	// (GET /api/v1/meters)
 	ListMeters(w http.ResponseWriter, r *http.Request)
-
+	// ☁ Create meter
 	// (POST /api/v1/meters)
 	CreateMeter(w http.ResponseWriter, r *http.Request)
-
+	// ☁ Delete meter
 	// (DELETE /api/v1/meters/{meterIdOrSlug})
 	DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug)
-
+	// Get meter
 	// (GET /api/v1/meters/{meterIdOrSlug})
 	GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug)
-
+	// Query meter
 	// (GET /api/v1/meters/{meterIdOrSlug}/query)
 	QueryMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug, params QueryMeterParams)
-
+	// List meter subjects
 	// (GET /api/v1/meters/{meterIdOrSlug}/subjects)
 	ListMeterSubjects(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug)
-
+	// Query portal meter
 	// (GET /api/v1/portal/meters/{meterSlug}/query)
 	QueryPortalMeter(w http.ResponseWriter, r *http.Request, meterSlug string, params QueryPortalMeterParams)
-
+	// ☁ List portal tokens
 	// (GET /api/v1/portal/tokens)
 	ListPortalTokens(w http.ResponseWriter, r *http.Request, params ListPortalTokensParams)
-
+	// Create portal token
 	// (POST /api/v1/portal/tokens)
 	CreatePortalToken(w http.ResponseWriter, r *http.Request)
-
+	// ☁ Invalidate portal tokens
 	// (POST /api/v1/portal/tokens/invalidate)
 	InvalidatePortalTokens(w http.ResponseWriter, r *http.Request)
-
+	// ☁ List subjects
 	// (GET /api/v1/subjects)
 	ListSubjects(w http.ResponseWriter, r *http.Request)
-
+	// ☁ Upsert subject
 	// (POST /api/v1/subjects)
 	UpsertSubject(w http.ResponseWriter, r *http.Request)
-
+	// ☁ Delete subject
 	// (DELETE /api/v1/subjects/{subjectIdOrKey})
 	DeleteSubject(w http.ResponseWriter, r *http.Request, subjectIdOrKey SubjectIdOrKey)
-
+	// ☁ Get subject
 	// (GET /api/v1/subjects/{subjectIdOrKey})
 	GetSubject(w http.ResponseWriter, r *http.Request, subjectIdOrKey SubjectIdOrKey)
 }
@@ -282,81 +300,97 @@ type ServerInterface interface {
 
 type Unimplemented struct{}
 
+// List ingested events
 // (GET /api/v1/events)
 func (_ Unimplemented) ListEvents(w http.ResponseWriter, r *http.Request, params ListEventsParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Ingest events
 // (POST /api/v1/events)
 func (_ Unimplemented) IngestEvents(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// List meters
 // (GET /api/v1/meters)
 func (_ Unimplemented) ListMeters(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ☁ Create meter
 // (POST /api/v1/meters)
 func (_ Unimplemented) CreateMeter(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ☁ Delete meter
 // (DELETE /api/v1/meters/{meterIdOrSlug})
 func (_ Unimplemented) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Get meter
 // (GET /api/v1/meters/{meterIdOrSlug})
 func (_ Unimplemented) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Query meter
 // (GET /api/v1/meters/{meterIdOrSlug}/query)
 func (_ Unimplemented) QueryMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug, params QueryMeterParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// List meter subjects
 // (GET /api/v1/meters/{meterIdOrSlug}/subjects)
 func (_ Unimplemented) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meterIdOrSlug MeterIdOrSlug) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Query portal meter
 // (GET /api/v1/portal/meters/{meterSlug}/query)
 func (_ Unimplemented) QueryPortalMeter(w http.ResponseWriter, r *http.Request, meterSlug string, params QueryPortalMeterParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ☁ List portal tokens
 // (GET /api/v1/portal/tokens)
 func (_ Unimplemented) ListPortalTokens(w http.ResponseWriter, r *http.Request, params ListPortalTokensParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// Create portal token
 // (POST /api/v1/portal/tokens)
 func (_ Unimplemented) CreatePortalToken(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ☁ Invalidate portal tokens
 // (POST /api/v1/portal/tokens/invalidate)
 func (_ Unimplemented) InvalidatePortalTokens(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ☁ List subjects
 // (GET /api/v1/subjects)
 func (_ Unimplemented) ListSubjects(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ☁ Upsert subject
 // (POST /api/v1/subjects)
 func (_ Unimplemented) UpsertSubject(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ☁ Delete subject
 // (DELETE /api/v1/subjects/{subjectIdOrKey})
 func (_ Unimplemented) DeleteSubject(w http.ResponseWriter, r *http.Request, subjectIdOrKey SubjectIdOrKey) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ☁ Get subject
 // (GET /api/v1/subjects/{subjectIdOrKey})
 func (_ Unimplemented) GetSubject(w http.ResponseWriter, r *http.Request, subjectIdOrKey SubjectIdOrKey) {
 	w.WriteHeader(http.StatusNotImplemented)
@@ -376,6 +410,10 @@ func (siw *ServerInterfaceWrapper) ListEvents(w http.ResponseWriter, r *http.Req
 	ctx := r.Context()
 
 	var err error
+
+	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
+
+	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params ListEventsParams
@@ -419,6 +457,10 @@ func (siw *ServerInterfaceWrapper) ListEvents(w http.ResponseWriter, r *http.Req
 func (siw *ServerInterfaceWrapper) IngestEvents(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
+
+	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.IngestEvents(w, r)
 	}))
@@ -434,6 +476,10 @@ func (siw *ServerInterfaceWrapper) IngestEvents(w http.ResponseWriter, r *http.R
 func (siw *ServerInterfaceWrapper) ListMeters(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
+
+	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListMeters(w, r)
 	}))
@@ -448,6 +494,10 @@ func (siw *ServerInterfaceWrapper) ListMeters(w http.ResponseWriter, r *http.Req
 // CreateMeter operation middleware
 func (siw *ServerInterfaceWrapper) CreateMeter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
+
+	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateMeter(w, r)
@@ -475,6 +525,10 @@ func (siw *ServerInterfaceWrapper) DeleteMeter(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
+
+	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteMeter(w, r, meterIdOrSlug)
 	}))
@@ -501,6 +555,10 @@ func (siw *ServerInterfaceWrapper) GetMeter(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
+
+	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetMeter(w, r, meterIdOrSlug)
 	}))
@@ -526,6 +584,10 @@ func (siw *ServerInterfaceWrapper) QueryMeter(w http.ResponseWriter, r *http.Req
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "meterIdOrSlug", Err: err})
 		return
 	}
+
+	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
+
+	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params QueryMeterParams
@@ -570,6 +632,14 @@ func (siw *ServerInterfaceWrapper) QueryMeter(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// ------------- Optional query parameter "filterGroupBy" -------------
+
+	err = runtime.BindQueryParameter("deepObject", true, false, "filterGroupBy", r.URL.Query(), &params.FilterGroupBy)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filterGroupBy", Err: err})
+		return
+	}
+
 	// ------------- Optional query parameter "groupBy" -------------
 
 	err = runtime.BindQueryParameter("form", true, false, "groupBy", r.URL.Query(), &params.GroupBy)
@@ -604,6 +674,10 @@ func (siw *ServerInterfaceWrapper) ListMeterSubjects(w http.ResponseWriter, r *h
 		return
 	}
 
+	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
+
+	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListMeterSubjects(w, r, meterIdOrSlug)
 	}))
@@ -630,7 +704,9 @@ func (siw *ServerInterfaceWrapper) QueryPortalMeter(w http.ResponseWriter, r *ht
 		return
 	}
 
-	ctx = context.WithValue(ctx, PortalTokenScopes, []string{})
+	ctx = context.WithValue(ctx, PortalTokenAuthScopes, []string{})
+
+	ctx = context.WithValue(ctx, CloudPortalTokenAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params QueryPortalMeterParams
@@ -667,6 +743,14 @@ func (siw *ServerInterfaceWrapper) QueryPortalMeter(w http.ResponseWriter, r *ht
 		return
 	}
 
+	// ------------- Optional query parameter "filterGroupBy" -------------
+
+	err = runtime.BindQueryParameter("deepObject", true, false, "filterGroupBy", r.URL.Query(), &params.FilterGroupBy)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filterGroupBy", Err: err})
+		return
+	}
+
 	// ------------- Optional query parameter "groupBy" -------------
 
 	err = runtime.BindQueryParameter("form", true, false, "groupBy", r.URL.Query(), &params.GroupBy)
@@ -691,6 +775,10 @@ func (siw *ServerInterfaceWrapper) ListPortalTokens(w http.ResponseWriter, r *ht
 	ctx := r.Context()
 
 	var err error
+
+	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
+
+	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params ListPortalTokensParams
@@ -718,6 +806,10 @@ func (siw *ServerInterfaceWrapper) ListPortalTokens(w http.ResponseWriter, r *ht
 func (siw *ServerInterfaceWrapper) CreatePortalToken(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
+
+	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreatePortalToken(w, r)
 	}))
@@ -732,6 +824,10 @@ func (siw *ServerInterfaceWrapper) CreatePortalToken(w http.ResponseWriter, r *h
 // InvalidatePortalTokens operation middleware
 func (siw *ServerInterfaceWrapper) InvalidatePortalTokens(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
+
+	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.InvalidatePortalTokens(w, r)
@@ -748,6 +844,10 @@ func (siw *ServerInterfaceWrapper) InvalidatePortalTokens(w http.ResponseWriter,
 func (siw *ServerInterfaceWrapper) ListSubjects(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
+
+	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListSubjects(w, r)
 	}))
@@ -762,6 +862,10 @@ func (siw *ServerInterfaceWrapper) ListSubjects(w http.ResponseWriter, r *http.R
 // UpsertSubject operation middleware
 func (siw *ServerInterfaceWrapper) UpsertSubject(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
+
+	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpsertSubject(w, r)
@@ -789,6 +893,10 @@ func (siw *ServerInterfaceWrapper) DeleteSubject(w http.ResponseWriter, r *http.
 		return
 	}
 
+	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
+
+	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteSubject(w, r, subjectIdOrKey)
 	}))
@@ -814,6 +922,10 @@ func (siw *ServerInterfaceWrapper) GetSubject(w http.ResponseWriter, r *http.Req
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "subjectIdOrKey", Err: err})
 		return
 	}
+
+	ctx = context.WithValue(ctx, CloudTokenAuthScopes, []string{})
+
+	ctx = context.WithValue(ctx, CloudCookieAuthScopes, []string{})
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetSubject(w, r, subjectIdOrKey)
@@ -994,68 +1106,97 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"1w3TE/lIAAA=",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

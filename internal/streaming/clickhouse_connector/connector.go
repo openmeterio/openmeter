@@ -10,7 +10,6 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/cloudevents/sdk-go/v2/event"
-	"golang.org/x/exp/slices"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/meter"
@@ -314,7 +313,7 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 		Aggregation:    params.Aggregation,
 		From:           params.From,
 		To:             params.To,
-		Subject:        params.Subject,
+		Subject:        params.FilterSubject,
 		FilterGroupBy:  params.FilterGroupBy,
 		GroupBy:        params.GroupBy,
 		WindowSize:     params.WindowSize,
@@ -347,12 +346,6 @@ func (c *ClickhouseConnector) queryMeterView(ctx context.Context, namespace stri
 
 		args := []interface{}{&value.WindowStart, &value.WindowEnd, &value.Value}
 		argCount := len(args)
-
-		// Grouping by subject is required when filtering for a subject
-		if len(queryMeter.Subject) > 0 && !slices.Contains(queryMeter.GroupBy, "subject") {
-			args = append(args, &value.Subject)
-			argCount++
-		}
 
 		for range queryMeter.GroupBy {
 			tmp := ""

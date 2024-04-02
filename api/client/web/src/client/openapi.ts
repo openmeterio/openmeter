@@ -5,52 +5,122 @@
 
 export interface paths {
   '/api/v1/events': {
-    /** @description Retrieve latest raw events. */
+    /**
+     * List ingested events
+     * @description List ingested events within a time range.
+     */
     get: operations['listEvents']
-    /** @description Ingest events */
+    /**
+     * Ingest events
+     * @description Ingests an event or batch of events following the CloudEvents specification.
+     */
     post: operations['ingestEvents']
   }
   '/api/v1/meters': {
-    /** @description List meters */
+    /**
+     * List meters
+     * @description List meters.
+     */
     get: operations['listMeters']
-    /** @description Create meter */
+    /**
+     * ☁ Create meter
+     * @description *Available in OpenMeter Cloud.*
+     * *In the open-source version, meters are created in the configuration file.*
+     *
+     * Create a meter.
+     */
     post: operations['createMeter']
   }
   '/api/v1/meters/{meterIdOrSlug}': {
-    /** @description Get meter by slugs */
+    /**
+     * Get meter
+     * @description Get meter by ID or slug
+     */
     get: operations['getMeter']
-    /** @description Delete meter by slug */
+    /**
+     * ☁ Delete meter
+     * @description *Available in OpenMeter Cloud.*
+     *
+     * Delete a meter by ID or slug.
+     */
     delete: operations['deleteMeter']
   }
   '/api/v1/meters/{meterIdOrSlug}/query': {
-    /** @description Query meter */
+    /**
+     * Query meter
+     * @description Query meter for usage.
+     */
     get: operations['queryMeter']
   }
   '/api/v1/meters/{meterIdOrSlug}/subjects': {
-    /** @description List meter subjects */
+    /**
+     * List meter subjects
+     * @description List subjects for a meter.
+     */
     get: operations['listMeterSubjects']
   }
   '/api/v1/portal/tokens': {
+    /**
+     * ☁ List portal tokens
+     * @description *Available in OpenMeter Cloud.*
+     *
+     * List consumer portal tokens.
+     */
     get: operations['listPortalTokens']
+    /**
+     * Create portal token
+     * @description Create a consumer portal token.
+     */
     post: operations['createPortalToken']
   }
   '/api/v1/portal/tokens/invalidate': {
+    /**
+     * ☁ Invalidate portal tokens
+     * @description *Available in OpenMeter Cloud.*
+     *
+     * Invalidates consumer portal tokens by ID or subject.
+     */
     post: operations['invalidatePortalTokens']
   }
   '/api/v1/subjects': {
+    /**
+     * ☁ List subjects
+     * @description *Available in OpenMeter Cloud.*
+     *
+     * List subjects.
+     */
     get: operations['listSubjects']
     /**
-     * @description Upserts a subject. Creates or updates subject.
+     * ☁ Upsert subject
+     * @description *Available in OpenMeter Cloud.*
+     *
+     * Upserts a subject. Creates or updates subject.
      * If the subject doesn't exist, it will be created.
      * If the subject exists, it will be partially updated with the provided fields.
      */
     post: operations['upsertSubject']
   }
   '/api/v1/subjects/{subjectIdOrKey}': {
+    /**
+     * ☁ Get subject
+     * @description *Available in OpenMeter Cloud.*
+     *
+     * Get subject by ID or key.
+     */
     get: operations['getSubject']
+    /**
+     * ☁ Delete subject
+     * @description *Available in OpenMeter Cloud.*
+     *
+     * Delete a subject by ID or key.
+     */
     delete: operations['deleteSubject']
   }
   '/api/v1/portal/meters/{meterSlug}/query': {
+    /**
+     * Query portal meter
+     * @description Query meter for consumer portal. This endpoint is publicly exposable to consumers.
+     */
     get: operations['queryPortalMeter']
   }
 }
@@ -60,13 +130,13 @@ export type webhooks = Record<string, never>
 export interface components {
   schemas: {
     /**
-     * @description A Problem Details object (RFC 7807)
+     * @description A Problem Details object (RFC 7807).
+     * Additional properties specific to the problem type may be present.
      * @example {
      *   "type": "urn:problem-type:bad-request",
      *   "title": "Bad Request",
      *   "status": 400,
-     *   "detail": "header Content-Type has unexpected value \"application/xml\"",
-     *   "instance": "urn:request:local/JMOlctsKV8-000001"
+     *   "detail": "body must be a JSON object"
      * }
      */
     Problem: {
@@ -89,7 +159,7 @@ export interface components {
       status: number
       /**
        * @description A human-readable explanation specific to this occurrence of the problem.
-       * @example header Content-Type has unexpected value \"application/xml\"
+       * @example body must be a JSON object
        */
       detail: string
       /**
@@ -100,7 +170,22 @@ export interface components {
       instance?: string
       [key: string]: unknown
     }
-    /** @description CloudEvents Specification JSON Schema */
+    /**
+     * @description CloudEvents Specification JSON Schema
+     * @example {
+     *   "id": "5c10fade-1c9e-4d6c-8275-c52c36731d3c",
+     *   "source": "service-name",
+     *   "specversion": "1.0",
+     *   "type": "prompt",
+     *   "subject": "customer-id",
+     *   "time": "2023-01-01T01:01:01.001Z",
+     *   "data": {
+     *     "tokens": "1234",
+     *     "model": "gpt-4-turbo",
+     *     "type": "input"
+     *   }
+     * }
+     */
     Event: {
       /**
        * @description Identifies the event.
@@ -110,7 +195,7 @@ export interface components {
       /**
        * Format: uri-reference
        * @description Identifies the context in which an event happened.
-       * @example services/service-0
+       * @example service-name
        */
       source: string
       /**
@@ -120,7 +205,7 @@ export interface components {
       specversion: string
       /**
        * @description Describes the type of event related to the originating occurrence.
-       * @example api_request
+       * @example prompt
        */
       type: string
       /**
@@ -136,7 +221,7 @@ export interface components {
       dataschema?: string | null
       /**
        * @description Describes the subject of the event in the context of the event producer (identified by source).
-       * @example customer_id
+       * @example customer-id
        */
       subject: string
       /**
@@ -148,18 +233,52 @@ export interface components {
       /**
        * @description The event payload.
        * @example {
-       *   "duration_ms": "12",
-       *   "path": "/hello"
+       *   "tokens": "1234",
+       *   "model": "gpt-4-turbo"
        * }
        */
       data?: {
         [key: string]: unknown
       }
     }
+    /**
+     * @description An ingested event with optional validation error.
+     * @example {
+     *   "event": {
+     *     "id": "5c10fade-1c9e-4d6c-8275-c52c36731d3d",
+     *     "source": "service-name",
+     *     "specversion": "1.0",
+     *     "type": "prompt",
+     *     "subject": "customer-id",
+     *     "time": "2023-01-01T01:01:01.001Z",
+     *     "data": {
+     *       "tokens": "1234",
+     *       "model": "gpt-4-turbo"
+     *     }
+     *   },
+     *   "validationError": "meter not found for event"
+     * }
+     */
     IngestedEvent: {
       event: components['schemas']['Event']
+      /** @example invalid event */
       validationError?: string
     }
+    /**
+     * @description A meter is a configuration that defines how to match and aggregate events.
+     * @example {
+     *   "slug": "tokens_total",
+     *   "description": "AI token usage",
+     *   "aggregation": "SUM",
+     *   "windowSize": "MINUTE",
+     *   "eventType": "prompt",
+     *   "valueProperty": "$.tokens",
+     *   "groupBy": {
+     *     "model": "$.model",
+     *     "type": "$.type"
+     *   }
+     * }
+     */
     Meter: {
       /**
        * @description A unique identifier for the meter.
@@ -167,32 +286,32 @@ export interface components {
        */
       id?: string
       /**
-       * @description A unique identifier for the meter.
-       * @example my_meter
+       * @description A unique, human-readable identifier for the meter. Must consist only alphanumeric and underscore characters.
+       * @example tokens_total
        */
       slug: string
       /**
        * @description A description of the meter.
-       * @example My Meter Description
+       * @example AI Token Usage
        */
       description?: string | null
       aggregation: components['schemas']['MeterAggregation']
       windowSize: components['schemas']['WindowSize']
       /**
        * @description The event type to aggregate.
-       * @example api_request
+       * @example prompt
        */
       eventType: string
       /**
        * @description JSONPath expression to extract the value from the event data.
-       * @example $.duration_ms
+       * @example $.tokens
        */
       valueProperty?: string
       /**
        * @description Named JSONPath expressions to extract the group by values from the event data. Keys must be unique and consist only alphanumeric and underscore characters.
        * @example {
-       *   "method": "$.method",
-       *   "path": "$.path"
+       *   "model": "$.model",
+       *   "type": "$.type"
        * }
        */
       groupBy?: {
@@ -201,60 +320,194 @@ export interface components {
     }
     /**
      * @description The aggregation type to use for the meter.
+     * @example SUM
      * @enum {string}
      */
     MeterAggregation: 'SUM' | 'COUNT' | 'AVG' | 'MIN' | 'MAX'
     /**
      * @description Aggregation window size.
+     * @example MINUTE
      * @enum {string}
      */
     WindowSize: 'MINUTE' | 'HOUR' | 'DAY'
+    /**
+     * @description The result of a meter query.
+     * @example {
+     *   "from": "2023-01-01T00:00:00Z",
+     *   "to": "2023-01-02T00:00:00Z",
+     *   "windowSize": "MINUTE",
+     *   "data": [
+     *     {
+     *       "value": 12,
+     *       "windowStart": "2023-01-01T00:00:00Z",
+     *       "windowEnd": "2023-01-02T00:00:00Z",
+     *       "subject": "customer-id",
+     *       "groupBy": {
+     *         "model": "gpt-4-turbo",
+     *         "type": "prompt"
+     *       }
+     *     }
+     *   ]
+     * }
+     */
     MeterQueryResult: {
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @example 2023-01-01T00:00:00Z
+       */
       from?: string
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @example 2023-01-02T00:00:00Z
+       */
       to?: string
       windowSize?: components['schemas']['WindowSize']
+      /**
+       * @example [
+       *   {
+       *     "value": 12,
+       *     "windowStart": "2023-01-01T00:00:00Z",
+       *     "windowEnd": "2023-01-02T00:00:00Z",
+       *     "subject": "customer-id",
+       *     "groupBy": {
+       *       "model": "gpt-4-turbo",
+       *       "type": "prompt"
+       *     }
+       *   }
+       * ]
+       */
       data: components['schemas']['MeterQueryRow'][]
     }
+    /**
+     * @description A row in the result of a meter query.
+     * @example {
+     *   "value": 12,
+     *   "windowStart": "2023-01-01T00:00:00Z",
+     *   "windowEnd": "2023-01-02T00:00:00Z",
+     *   "subject": "customer-id",
+     *   "groupBy": {
+     *     "model": "gpt-4-turbo",
+     *     "type": "prompt"
+     *   }
+     * }
+     */
     MeterQueryRow: {
+      /** @example 12 */
       value: number
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @example 2023-01-01T00:00:00Z
+       */
       windowStart: string
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @example 2023-01-02T00:00:00Z
+       */
       windowEnd: string
-      /** @description The subject of the meter value. */
+      /**
+       * @description The subject of the meter value.
+       * @example customer-id
+       */
       subject?: string | null
+      /**
+       * @example {
+       *   "model": "gpt-4-turbo",
+       *   "type": "prompt"
+       * }
+       */
       groupBy?: {
         [key: string]: string
       } | null
     }
+    /**
+     * @description A consumer portal token.
+     * @example {
+     *   "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+     *   "subject": "customer-id",
+     *   "expiresAt": "2023-01-02T00:00:00Z",
+     *   "expired": false,
+     *   "createdAt": "2023-01-01T00:00:00Z",
+     *   "token": "om_portal_IAnD3PpWW2A2Wr8m9jfzeHlGX8xmCXwG.y5q4S-AWqFu6qjfaFz0zQq4Ez28RsnyVwJffX5qxMvo",
+     *   "allowedMeterSlugs": [
+     *     "tokens_total"
+     *   ]
+     * }
+     */
     PortalToken: {
-      id: string
+      /** @example 01G65Z755AFWAKHE12NY0CQ9FH */
+      id?: string
+      /** @example customer-id */
       subject: string
-      /** Format: date-time */
-      expiresAt: string
+      /**
+       * Format: date-time
+       * @example 2023-01-02T00:00:00Z
+       */
+      expiresAt?: string
       expired?: boolean
-      /** Format: date-time */
-      createdAt: string
-      /** @description The token is only returned at creation. */
+      /**
+       * Format: date-time
+       * @example 2023-01-01T00:00:00Z
+       */
+      createdAt?: string
+      /**
+       * @description The token is only returned at creation.
+       * @example om_portal_IAnD3PpWW2A2Wr8m9jfzeHlGX8xmCXwG.y5q4S-AWqFu6qjfaFz0zQq4Ez28RsnyVwJffX5qxMvo
+       */
       token?: string
-      /** @description Optional, if defined only the specified meters will be allowed */
+      /**
+       * @description Optional, if defined only the specified meters will be allowed
+       * @example [
+       *   "tokens_total"
+       * ]
+       */
       allowedMeterSlugs?: string[]
     }
+    /**
+     * @description A subject is a unique identifier for a user or entity.
+     * @example {
+     *   "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+     *   "key": "customer-id",
+     *   "displayName": "Customer Name",
+     *   "metadata": {
+     *     "hubspotId": "123456"
+     *   },
+     *   "currentPeriodStart": "2023-01-01T00:00:00Z",
+     *   "currentPeriodEnd": "2023-02-01T00:00:00Z",
+     *   "stripeCustomerId": "cus_JMOlctsKV8"
+     * }
+     */
     Subject: {
-      id: string
+      /** @example 01G65Z755AFWAKHE12NY0CQ9FH */
+      id?: string
+      /** @example customer-id */
       key: string
+      /** @example Customer Name */
       displayName?: string | null
+      /**
+       * @example {
+       *   "hubspotId": "123456"
+       * }
+       */
       metadata?: {
         [key: string]: unknown
-      }
-      /** Format: date-time */
+      } | null
+      /**
+       * Format: date-time
+       * @example 2023-01-01T00:00:00Z
+       */
       currentPeriodStart?: string | null
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @example 2023-02-01T00:00:00Z
+       */
       currentPeriodEnd?: string | null
+      /** @example cus_JMOlctsKV8 */
       stripeCustomerId?: string | null
     }
+    /**
+     * @description A unique identifier.
+     * @example tokens_total
+     */
     IdOrSlug: string
   }
   responses: {
@@ -266,12 +519,6 @@ export interface components {
     }
     /** @description Unauthorized */
     UnauthorizedProblemResponse: {
-      content: {
-        'application/problem+json': components['schemas']['Problem']
-      }
-    }
-    /** @description Method not allowed, feature not supported */
-    MethodNotAllowedProblemResponse: {
       content: {
         'application/problem+json': components['schemas']['Problem']
       }
@@ -317,7 +564,14 @@ export interface components {
      * If not specified, the UTC timezone will be used.
      */
     queryWindowTimeZone?: string
-    querySubject?: string[]
+    /**
+     * @description Filtering and group by multiple subjects.
+     * Usage: ?subject=customer-1&subject=customer-2
+     */
+    queryFilterSubject?: string[]
+    queryFilterGroupBy?: {
+      [key: string]: string
+    }
     /**
      * @description If not specified a single aggregate will be returned for each subject and time window.
      * `subject` is a reserved group by value.
@@ -334,29 +588,41 @@ export type $defs = Record<string, never>
 export type external = Record<string, never>
 
 export interface operations {
-  /** @description Retrieve latest raw events. */
+  /**
+   * List ingested events
+   * @description List ingested events within a time range.
+   */
   listEvents: {
     parameters: {
       query?: {
         from?: components['parameters']['queryFrom']
         to?: components['parameters']['queryTo']
-        /** @description Number of events to return. */
+        /** @description Number of events to return */
         limit?: number
       }
     }
     responses: {
-      /** @description Events response */
+      /** @description List of events for debugging. */
       200: {
         content: {
           'application/json': components['schemas']['IngestedEvent'][]
         }
       }
       400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
-  /** @description Ingest events */
+  /**
+   * Ingest events
+   * @description Ingests an event or batch of events following the CloudEvents specification.
+   */
   ingestEvents: {
+    /**
+     * @description The event or batch of events to ingest.
+     * The request body must be a CloudEvents JSON object or an array of CloudEvents JSON objects.
+     * The CloudEvents JSON object must adhere to the CloudEvents Specification JSON Schema.
+     */
     requestBody: {
       content: {
         'application/cloudevents+json': components['schemas']['Event']
@@ -364,46 +630,62 @@ export interface operations {
       }
     }
     responses: {
-      /** @description OK */
+      /** @description Successfully ingested. */
       204: {
         content: never
       }
       400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
-  /** @description List meters */
+  /**
+   * List meters
+   * @description List meters.
+   */
   listMeters: {
     responses: {
-      /** @description Meters response */
+      /** @description List of meters. */
       200: {
         content: {
           'application/json': components['schemas']['Meter'][]
         }
       }
+      401: components['responses']['UnauthorizedProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
-  /** @description Create meter */
+  /**
+   * ☁ Create meter
+   * @description *Available in OpenMeter Cloud.*
+   * *In the open-source version, meters are created in the configuration file.*
+   *
+   * Create a meter.
+   */
   createMeter: {
+    /** @description The meter to create. */
     requestBody: {
       content: {
         'application/json': components['schemas']['Meter']
       }
     }
     responses: {
-      /** @description Created */
+      /** @description Created. */
       201: {
         content: {
           'application/json': components['schemas']['Meter']
         }
       }
       400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
       501: components['responses']['NotImplementedProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
-  /** @description Get meter by slugs */
+  /**
+   * Get meter
+   * @description Get meter by ID or slug
+   */
   getMeter: {
     parameters: {
       path: {
@@ -411,7 +693,7 @@ export interface operations {
       }
     }
     responses: {
-      /** @description OK */
+      /** @description Meter found. */
       200: {
         content: {
           'application/json': components['schemas']['Meter']
@@ -421,7 +703,12 @@ export interface operations {
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
-  /** @description Delete meter by slug */
+  /**
+   * ☁ Delete meter
+   * @description *Available in OpenMeter Cloud.*
+   *
+   * Delete a meter by ID or slug.
+   */
   deleteMeter: {
     parameters: {
       path: {
@@ -429,7 +716,7 @@ export interface operations {
       }
     }
     responses: {
-      /** @description No Content */
+      /** @description Meter deleted. */
       204: {
         content: never
       }
@@ -438,7 +725,10 @@ export interface operations {
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
-  /** @description Query meter */
+  /**
+   * Query meter
+   * @description Query meter for usage.
+   */
   queryMeter: {
     parameters: {
       query?: {
@@ -446,7 +736,8 @@ export interface operations {
         to?: components['parameters']['queryTo']
         windowSize?: components['parameters']['queryWindowSize']
         windowTimeZone?: components['parameters']['queryWindowTimeZone']
-        subject?: components['parameters']['querySubject']
+        subject?: components['parameters']['queryFilterSubject']
+        filterGroupBy?: components['parameters']['queryFilterGroupBy']
         groupBy?: components['parameters']['queryGroupBy']
       }
       path: {
@@ -454,7 +745,7 @@ export interface operations {
       }
     }
     responses: {
-      /** @description OK */
+      /** @description Usage data. */
       200: {
         content: {
           'application/json': components['schemas']['MeterQueryResult']
@@ -462,10 +753,14 @@ export interface operations {
         }
       }
       400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
-  /** @description List meter subjects */
+  /**
+   * List meter subjects
+   * @description List subjects for a meter.
+   */
   listMeterSubjects: {
     parameters: {
       path: {
@@ -473,7 +768,7 @@ export interface operations {
       }
     }
     responses: {
-      /** @description OK */
+      /** @description List of subjects. */
       200: {
         content: {
           'application/json': string[]
@@ -483,6 +778,12 @@ export interface operations {
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
+  /**
+   * ☁ List portal tokens
+   * @description *Available in OpenMeter Cloud.*
+   *
+   * List consumer portal tokens.
+   */
   listPortalTokens: {
     parameters: {
       query?: {
@@ -491,86 +792,130 @@ export interface operations {
       }
     }
     responses: {
-      /** @description OK */
+      /** @description List of portal tokens. */
       200: {
         content: {
           'application/json': components['schemas']['PortalToken'][]
         }
       }
       400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
+      501: components['responses']['NotImplementedProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
+  /**
+   * Create portal token
+   * @description Create a consumer portal token.
+   */
   createPortalToken: {
-    requestBody?: {
+    /** @description The portal token to create. */
+    requestBody: {
       content: {
+        /**
+         * @example {
+         *   "subject": "customer-id",
+         *   "allowedMeterSlugs": [
+         *     "tokens_total"
+         *   ]
+         * }
+         */
         'application/json': components['schemas']['PortalToken']
       }
     }
     responses: {
-      /** @description OK */
+      /** @description Created. */
       200: {
         content: {
           'application/json': components['schemas']['PortalToken']
         }
       }
       400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
+  /**
+   * ☁ Invalidate portal tokens
+   * @description *Available in OpenMeter Cloud.*
+   *
+   * Invalidates consumer portal tokens by ID or subject.
+   */
   invalidatePortalTokens: {
-    requestBody?: {
+    /** @description If no id or subject is specified, all tokens will be invalidated. */
+    requestBody: {
       content: {
         'application/json': {
-          /** @description Optional portal token ID to invalidate one token by. */
+          /** @description Invalidate a portal token by ID. */
           id?: string
-          /** @description Optional subject to invalidate all tokens for subject. */
+          /** @description Invalidate all portal tokens for a subject. */
           subject?: string
         }
       }
     }
     responses: {
-      /** @description No Content */
+      /** @description Portal tokens invalidated. */
       204: {
         content: never
       }
       400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
+      501: components['responses']['NotImplementedProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
+  /**
+   * ☁ List subjects
+   * @description *Available in OpenMeter Cloud.*
+   *
+   * List subjects.
+   */
   listSubjects: {
     responses: {
-      /** @description OK */
+      /** @description List of subjects. */
       200: {
         content: {
           'application/json': components['schemas']['Subject'][]
         }
       }
+      401: components['responses']['UnauthorizedProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
   /**
-   * @description Upserts a subject. Creates or updates subject.
+   * ☁ Upsert subject
+   * @description *Available in OpenMeter Cloud.*
+   *
+   * Upserts a subject. Creates or updates subject.
    * If the subject doesn't exist, it will be created.
    * If the subject exists, it will be partially updated with the provided fields.
    */
   upsertSubject: {
-    requestBody?: {
+    /** @description The subject to upsert. */
+    requestBody: {
       content: {
         'application/json': components['schemas']['Subject'][]
       }
     }
     responses: {
-      /** @description OK */
+      /** @description Subject upserted. */
       200: {
         content: {
           'application/json': components['schemas']['Subject'][]
         }
       }
       400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
+      501: components['responses']['NotImplementedProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
+  /**
+   * ☁ Get subject
+   * @description *Available in OpenMeter Cloud.*
+   *
+   * Get subject by ID or key.
+   */
   getSubject: {
     parameters: {
       path: {
@@ -578,15 +923,23 @@ export interface operations {
       }
     }
     responses: {
-      /** @description OK */
+      /** @description Subject found. */
       200: {
         content: {
           'application/json': components['schemas']['Subject']
         }
       }
+      401: components['responses']['UnauthorizedProblemResponse']
+      404: components['responses']['NotFoundProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
+  /**
+   * ☁ Delete subject
+   * @description *Available in OpenMeter Cloud.*
+   *
+   * Delete a subject by ID or key.
+   */
   deleteSubject: {
     parameters: {
       path: {
@@ -594,14 +947,21 @@ export interface operations {
       }
     }
     responses: {
-      /** @description No Content */
+      /** @description Subject deleted. */
       204: {
         content: never
       }
       400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
+      404: components['responses']['NotFoundProblemResponse']
+      501: components['responses']['NotImplementedProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
+  /**
+   * Query portal meter
+   * @description Query meter for consumer portal. This endpoint is publicly exposable to consumers.
+   */
   queryPortalMeter: {
     parameters: {
       query?: {
@@ -609,14 +969,16 @@ export interface operations {
         to?: components['parameters']['queryTo']
         windowSize?: components['parameters']['queryWindowSize']
         windowTimeZone?: components['parameters']['queryWindowTimeZone']
+        filterGroupBy?: components['parameters']['queryFilterGroupBy']
         groupBy?: components['parameters']['queryGroupBy']
       }
       path: {
+        /** @description A unique identifier for the meter. */
         meterSlug: string
       }
     }
     responses: {
-      /** @description OK */
+      /** @description Usage data. */
       200: {
         content: {
           'application/json': components['schemas']['MeterQueryResult']
