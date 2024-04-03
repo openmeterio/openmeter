@@ -35,7 +35,7 @@ RUN xx-verify /usr/local/bin/openmeter
 RUN go build -ldflags "-linkmode external -extldflags \"-static\" -X main.version=${VERSION}" -tags musl -o /usr/local/bin/openmeter-sink-worker ./cmd/sink-worker
 RUN xx-verify /usr/local/bin/openmeter-sink-worker
 
-FROM gcr.io/distroless/base-debian11:latest@sha256:280852156756ea3f39f9e774a30346f2e756244e1f432aea3061c4ac85d90a66 AS distroless
+FROM gcr.io/distroless/base-debian11:latest@sha256:9bc3117a99c731a41200a28774405125cb6fbda1819f4a1af88bd3bfad5dcf32 AS distroless
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
