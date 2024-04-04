@@ -43,6 +43,9 @@ jobs:
       - name: Generate Client
         run: pnpm run generate
         working-directory: ./api/client/node
+      - name: Run tests
+        run: pnpm test
+        working-directory: ./api/client/node
       - name: Open Pull Request
         uses: peter-evans/create-pull-request@v6
         with:
