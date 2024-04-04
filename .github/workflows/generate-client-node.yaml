@@ -43,6 +43,9 @@ jobs:
       - name: Generate Client
         run: pnpm run generate
         working-directory: ./api/client/node
+      - name: Build Client
+        run: pnpm build
+        working-directory: ./api/client/node
       - name: Run tests
         run: pnpm test
         working-directory: ./api/client/node
