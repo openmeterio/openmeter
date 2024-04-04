@@ -49,7 +49,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.24.0
 	go.opentelemetry.io/proto/otlp v1.1.0
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
-	google.golang.org/grpc v1.62.1
+	google.golang.org/grpc v1.63.0
 	google.golang.org/protobuf v1.33.0
 	k8s.io/apimachinery v0.29.3
 	k8s.io/client-go v0.29.3
@@ -58,13 +58,13 @@ require (
 
 require (
 	cloud.google.com/go v0.112.0 // indirect
-	cloud.google.com/go/bigquery v1.59.0 // indirect
-	cloud.google.com/go/compute v1.23.3 // indirect
+	cloud.google.com/go/bigquery v1.59.1 // indirect
+	cloud.google.com/go/compute v1.24.0 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	cloud.google.com/go/iam v1.1.6 // indirect
 	cloud.google.com/go/pubsub v1.36.1 // indirect
 	cloud.google.com/go/storage v1.37.0 // indirect
-	cloud.google.com/go/trace v1.10.4 // indirect
+	cloud.google.com/go/trace v1.10.5 // indirect
 	cuelang.org/go v0.7.0 // indirect
 	github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4 // indirect
 	github.com/99designs/keyring v1.2.2 // indirect
@@ -371,9 +371,9 @@ require (
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	google.golang.org/api v0.162.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
-	google.golang.org/genproto v0.0.0-20240125205218-1f4bbc51befe // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240205150955-31a09d347014 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240205150955-31a09d347014 // indirect
+	google.golang.org/genproto v0.0.0-20240227224415-6ceb2ff114de // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240227224415-6ceb2ff114de // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240227224415-6ceb2ff114de // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/jcmturner/aescts.v1 v1.0.1 // indirect
