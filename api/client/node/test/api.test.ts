@@ -112,8 +112,8 @@ describe('sdk', () => {
           to,
           windowSize,
           filterGroupBy: {
-            model: 'gpt-4'
-          }
+            model: 'gpt-4',
+          },
         })
 
         expect(data.from).toBe(mockMeterValue.windowStart)
@@ -149,7 +149,7 @@ describe('sdk', () => {
             key: mockSubject.key,
             displayName: mockSubject.displayName,
             metadata: mockSubject.metadata,
-          }
+          },
         ])
         expect(subjects).toEqual([mockSubject])
       })
