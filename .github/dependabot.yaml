@@ -38,6 +38,11 @@ updates:
       - area/dependencies
       - dependency/javascript
       - release-note/dependency-update
+    groups:
+      production-dependencies:
+        dependency-type: "production"
+      development-dependencies:
+        dependency-type: "development"
 
   - package-ecosystem: npm
     directory: "/api/client/node"
@@ -49,6 +54,11 @@ updates:
       - area/dependencies
       - dependency/javascript
       - release-note/dependency-update
+    groups:
+      production-dependencies:
+        dependency-type: "production"
+      development-dependencies:
+        dependency-type: "development"
 
   - package-ecosystem: pip
     directory: "/api/client/python"
@@ -60,3 +70,8 @@ updates:
       - area/dependencies
       - dependency/python
       - release-note/dependency-update
+    groups:
+      production-dependencies:
+        dependency-type: "production"
+      development-dependencies:
+        dependency-type: "development"
