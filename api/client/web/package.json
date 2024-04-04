@@ -55,7 +55,7 @@
     "eslint-plugin-import": "2.29.0",
     "eslint-plugin-unused-imports": "3.0.0",
     "eslint-plugin-vitest": "^0.3.10",
-    "jsdom": "^22.1.0",
+    "jsdom": "^24.0.0",
     "openapi-typescript": "6.7.0",
     "prettier": "3.0.3",
     "react": "18.2.0",
