@@ -8,6 +8,7 @@ updates:
     labels:
       - area/dependencies
       - dependency/go
+      - release-note/dependency-update
 
   - package-ecosystem: github-actions
     directory: /
@@ -16,6 +17,7 @@ updates:
     labels:
       - area/dependencies
       - dependency/github_actions
+      - release-note/ignore
 
   - package-ecosystem: "docker"
     directory: "/"
@@ -24,3 +26,37 @@ updates:
     labels:
       - area/dependencies
       - dependency/docker
+      - release-note/ignore
+
+  - package-ecosystem: npm
+    directory: "/api/client/web"
+    schedule:
+      interval: daily
+    reviewers:
+      - "tothandras"
+    labels:
+      - area/dependencies
+      - dependency/javascript
+      - release-note/dependency-update
+
+  - package-ecosystem: npm
+    directory: "/api/client/node"
+    schedule:
+      interval: daily
+    reviewers:
+      - "tothandras"
+    labels:
+      - area/dependencies
+      - dependency/javascript
+      - release-note/dependency-update
+
+  - package-ecosystem: pip
+    directory: "/api/client/python"
+    schedule:
+      interval: daily
+    reviewers:
+      - "tothandras"
+    labels:
+      - area/dependencies
+      - dependency/python
+      - release-note/dependency-update
