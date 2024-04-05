@@ -37,7 +37,7 @@ jobs:
         uses: jlumbroso/free-disk-space@v1.3.1
 
       - name: Run pipeline
-        uses: dagger/dagger-for-github@698ef94185f8baaa1f3c3d825a7d3d487152db2f # v5.2.0
+        uses: dagger/dagger-for-github@6cec00fab908dba5e6c12924970849baaae915c2 # v5.3.0
         with:
           verb: call
           module: github.com/${{ github.repository }}@${{ github.ref }}
