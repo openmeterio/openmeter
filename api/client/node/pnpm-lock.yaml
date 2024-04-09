@@ -7,7 +7,7 @@ settings:
 dependencies:
   undici:
     specifier: ^6.11.1
-    version: 6.11.1
+    version: 6.12.0
 
 devDependencies:
   '@types/node':
@@ -2978,8 +2978,8 @@ packages:
       '@fastify/busboy': 2.1.1
     dev: true
 
-  /undici@6.11.1:
-    resolution: {integrity: sha512-KyhzaLJnV1qa3BSHdj4AZ2ndqI0QWPxYzaIOio0WzcEJB9gvuysprJSLtpvc2D9mhR9jPDUk7xlJlZbH2KR5iw==}
+  /undici@6.12.0:
+    resolution: {integrity: sha512-d87yk8lqSFUYtR5fTFe2frpkMIrUEz+lgoJmhcL+J3StVl+8fj8ytE4lLnJOTPCE12YbumNGzf4LYsQyusdV5g==}
     engines: {node: '>=18.0'}
     dev: false
 
