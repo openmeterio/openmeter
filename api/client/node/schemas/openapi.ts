@@ -303,7 +303,10 @@ export interface components {
        */
       eventType: string
       /**
-       * @description JSONPath expression to extract the value from the event data.
+       * @description JSONPath expression to extract the value from the ingested event's data property.
+       * The ingested value for SUM, AVG, MIN, and MAX aggregations is a number or a string that can be parsed to a number.
+       * For UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT aggregation the valueProperty is ignored.
+       *
        * @example $.tokens
        */
       valueProperty?: string
@@ -323,7 +326,7 @@ export interface components {
      * @example SUM
      * @enum {string}
      */
-    MeterAggregation: 'SUM' | 'COUNT' | 'AVG' | 'MIN' | 'MAX'
+    MeterAggregation: 'SUM' | 'COUNT' | 'UNIQUE_COUNT' | 'AVG' | 'MIN' | 'MAX'
     /**
      * @description Aggregation window size.
      * @example MINUTE
