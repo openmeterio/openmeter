@@ -807,7 +807,10 @@ components:
           example: prompt
         valueProperty:
           type: string
-          description: JSONPath expression to extract the value from the event data.
+          description: |
+            JSONPath expression to extract the value from the ingested event's data property.
+            The ingested value for SUM, AVG, MIN, and MAX aggregations is a number or a string that can be parsed to a number.
+            For UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT aggregation the valueProperty is ignored.
           example: $.tokens
         groupBy:
           type: object
@@ -845,6 +848,7 @@ components:
       enum:
         - SUM
         - COUNT
+        - UNIQUE_COUNT
         - AVG
         - MIN
         - MAX

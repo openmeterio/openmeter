@@ -16,11 +16,12 @@ var groupByKeyRegExp = regexp.MustCompile(`^[a-zA-Z_][0-9a-zA-Z_]*$`)
 type MeterAggregation string
 
 const (
-	MeterAggregationSum   MeterAggregation = "SUM"
-	MeterAggregationCount MeterAggregation = "COUNT"
-	MeterAggregationAvg   MeterAggregation = "AVG"
-	MeterAggregationMin   MeterAggregation = "MIN"
-	MeterAggregationMax   MeterAggregation = "MAX"
+	MeterAggregationSum         MeterAggregation = "SUM"
+	MeterAggregationCount       MeterAggregation = "COUNT"
+	MeterAggregationAvg         MeterAggregation = "AVG"
+	MeterAggregationMin         MeterAggregation = "MIN"
+	MeterAggregationMax         MeterAggregation = "MAX"
+	MeterAggregationUniqueCount MeterAggregation = "UNIQUE_COUNT"
 )
 
 // Values provides list valid values for Enum
@@ -31,6 +32,7 @@ func (MeterAggregation) Values() (kinds []string) {
 		MeterAggregationAvg,
 		MeterAggregationMin,
 		MeterAggregationMax,
+		MeterAggregationUniqueCount,
 	} {
 		kinds = append(kinds, string(s))
 	}
@@ -234,6 +236,9 @@ func (m *Meter) Validate() error {
 		}
 		if !groupByKeyRegExp.MatchString(key) {
 			return fmt.Errorf("meter group by key %s is invalid, only alphanumeric and underscore characters are allowed", key)
+		}
+		if value == m.ValueProperty {
+			return fmt.Errorf("meter group by value %s cannot be the same as value property", key)
 		}
 		// keys must be unique
 		seen := make(map[string]struct{}, len(m.GroupBy))

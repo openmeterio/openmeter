@@ -112,11 +112,17 @@ func (d createMeterView) toSQL() (string, []interface{}, error) {
 		agg = "max"
 	case models.MeterAggregationCount:
 		agg = "count"
+	case models.MeterAggregationUniqueCount:
+		agg = "uniq"
 	default:
 		return "", nil, fmt.Errorf("invalid aggregation type: %s", d.Aggregation)
 	}
 
-	columns = append(columns, column{Name: "value", Type: fmt.Sprintf("AggregateFunction(%s, Float64)", agg)})
+	if d.Aggregation == models.MeterAggregationUniqueCount {
+		columns = append(columns, column{Name: "value", Type: fmt.Sprintf("AggregateFunction(%s, String)", agg)})
+	} else {
+		columns = append(columns, column{Name: "value", Type: fmt.Sprintf("AggregateFunction(%s, Float64)", agg)})
+	}
 
 	// Group by
 	orderBy := []string{"windowstart", "windowend", "subject"}
@@ -167,6 +173,8 @@ func (d createMeterView) toSelectSQL() (string, error) {
 		aggStateFn = "minState"
 	case models.MeterAggregationMax:
 		aggStateFn = "maxState"
+	case models.MeterAggregationUniqueCount:
+		aggStateFn = "uniqState"
 	case models.MeterAggregationCount:
 		aggStateFn = "countState"
 	default:
@@ -181,6 +189,8 @@ func (d createMeterView) toSelectSQL() (string, error) {
 	}
 	if d.ValueProperty == "" && d.Aggregation == models.MeterAggregationCount {
 		selects = append(selects, fmt.Sprintf("%s(*) AS value", aggStateFn))
+	} else if d.Aggregation == models.MeterAggregationUniqueCount {
+		selects = append(selects, fmt.Sprintf("%s(JSON_VALUE(data, '%s')) AS value", aggStateFn, sqlbuilder.Escape(d.ValueProperty)))
 	} else {
 		selects = append(selects, fmt.Sprintf("%s(cast(JSON_VALUE(data, '%s'), 'Float64')) AS value", aggStateFn, sqlbuilder.Escape(d.ValueProperty)))
 	}
@@ -285,6 +295,8 @@ func (d queryMeterView) toSQL() (string, []interface{}, error) {
 		selectColumns = append(selectColumns, "minMerge(value) AS value")
 	case models.MeterAggregationMax:
 		selectColumns = append(selectColumns, "maxMerge(value) AS value")
+	case models.MeterAggregationUniqueCount:
+		selectColumns = append(selectColumns, "toFloat64(uniqMerge(value)) AS value")
 	case models.MeterAggregationCount:
 		selectColumns = append(selectColumns, "toFloat64(countMerge(value)) AS value")
 	default:

@@ -121,6 +121,19 @@ func TestCreateMeterView(t *testing.T) {
 			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.om_my_namespace_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(count, Float64)) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, countState(*) AS value FROM openmeter.om_events WHERE openmeter.om_events.namespace = 'my_namespace' AND empty(openmeter.om_events.validation_error) = 1 AND openmeter.om_events.type = 'myevent' GROUP BY windowstart, windowend, subject",
 			wantArgs: nil,
 		},
+		{
+			query: createMeterView{
+				Database:      "openmeter",
+				Namespace:     "my_namespace",
+				MeterSlug:     "meter1",
+				Aggregation:   models.MeterAggregationUniqueCount,
+				EventType:     "myevent",
+				ValueProperty: "$.trace_id",
+				GroupBy:       map[string]string{},
+			},
+			wantSQL:  "CREATE MATERIALIZED VIEW IF NOT EXISTS openmeter.om_my_namespace_meter1 (subject String, windowstart DateTime, windowend DateTime, value AggregateFunction(uniq, String)) ENGINE = AggregatingMergeTree() ORDER BY (windowstart, windowend, subject) AS SELECT subject, tumbleStart(time, toIntervalMinute(1)) AS windowstart, tumbleEnd(time, toIntervalMinute(1)) AS windowend, uniqState(JSON_VALUE(data, '$.trace_id')) AS value FROM openmeter.om_events WHERE openmeter.om_events.namespace = 'my_namespace' AND empty(openmeter.om_events.validation_error) = 1 AND openmeter.om_events.type = 'myevent' GROUP BY windowstart, windowend, subject",
+			wantArgs: nil,
+		},
 	}
 
 	for _, tt := range tests {
