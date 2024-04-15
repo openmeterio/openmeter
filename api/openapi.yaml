@@ -845,6 +845,7 @@ components:
       enum:
         - SUM
         - COUNT
+        - UNIQUE_COUNT
         - AVG
         - MIN
         - MAX

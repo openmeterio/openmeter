@@ -186,6 +186,18 @@ func TestMeterValidation(t *testing.T) {
 			},
 			error: fmt.Errorf("meter group by value must start with $ for key test_group"),
 		},
+		{
+			description: "value property cannot be in the group by",
+			meter: Meter{
+				Slug:          "slug-test",
+				Aggregation:   MeterAggregationUniqueCount,
+				WindowSize:    WindowSizeMinute,
+				EventType:     "event-type-test",
+				ValueProperty: "$.my_property",
+				GroupBy:       map[string]string{"test_group": "$.my_property"},
+			},
+			error: fmt.Errorf("meter group by value test_group cannot be the same as value property"),
+		},
 	}
 
 	for _, tt := range tests {
