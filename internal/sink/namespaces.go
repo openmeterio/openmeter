@@ -92,7 +92,10 @@ func validateEventWithMeter(meter models.Meter, ev serializer.CloudEventsKafkaPa
 	switch meter.Aggregation {
 	// UNIQUE_COUNT aggregation requires string property value
 	case models.MeterAggregationUniqueCount:
-		if _, ok := valueRaw.(string); !ok {
+		switch valueRaw.(type) {
+		case string, float64:
+			// No need to do anything
+		default:
 			return NewProcessingError("event data value property must be string for unique count aggregation", INVALID)
 		}
 	// SUM, AVG, MIN, MAX aggregations require float64 parsable value property value
