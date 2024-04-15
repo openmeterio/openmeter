@@ -88,15 +88,23 @@ func validateEventWithMeter(meter models.Meter, ev serializer.CloudEventsKafkaPa
 		return NewProcessingError("event data value cannot be null", INVALID)
 	}
 
-	if valueStr, ok := valueRaw.(string); ok {
-		_, err = strconv.ParseFloat(valueStr, 64)
-		if err != nil {
-			return NewProcessingError(fmt.Sprintf("event data value cannot be parsed as float64: %s", valueStr), INVALID)
+	// Unique count aggregation requires string property value
+	if meter.Aggregation == models.MeterAggregationUniqueCount {
+		if _, ok := valueRaw.(string); !ok {
+			return NewProcessingError("event data value property must be string for unique count aggregation", INVALID)
 		}
-	} else if _, ok := valueRaw.(float64); ok {
-
 	} else {
-		return NewProcessingError("event data value property cannot be parsed", INVALID)
+		// SUM, AVG, MIN, MAX aggregations require float64 parsable value property value
+		if valueStr, ok := valueRaw.(string); ok {
+			_, err = strconv.ParseFloat(valueStr, 64)
+			if err != nil {
+				return NewProcessingError(fmt.Sprintf("event data value cannot be parsed as float64: %s", valueStr), INVALID)
+			}
+		} else if _, ok := valueRaw.(float64); ok {
+
+		} else {
+			return NewProcessingError("event data value property cannot be parsed", INVALID)
+		}
 	}
 
 	return nil
