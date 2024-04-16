@@ -108,6 +108,20 @@ func (c *ClickhouseConnector) QueryMeter(ctx context.Context, namespace string, 
 		return nil, fmt.Errorf("get values: %w", err)
 	}
 
+	// If the total usage is queried for a single period (no window size),
+	// replace the window start and end with the period for each row.
+	// We can still have multiple rows for a single period due to group bys.
+	if params.WindowSize == nil {
+		for i := range values {
+			if params.From != nil {
+				values[i].WindowStart = *params.From
+			}
+			if params.To != nil {
+				values[i].WindowEnd = *params.To
+			}
+		}
+	}
+
 	return values, nil
 }
 
