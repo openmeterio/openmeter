@@ -689,7 +689,8 @@ class ClientOperationsMixin(ClientMixinABC):
                 response == [
                     {
                         "aggregation": "str",  # The aggregation type to use for the meter.
-                          Required. Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
+                          Required. Known values are: "SUM", "COUNT", "UNIQUE_COUNT", "AVG", "MIN", and
+                          "MAX".
                         "eventType": "str",  # The event type to aggregate. Required.
                         "slug": "str",  # A unique, human-readable identifier for the meter.
                           Must consist only alphanumeric and underscore characters. Required.
@@ -703,7 +704,10 @@ class ClientOperationsMixin(ClientMixinABC):
                         },
                         "id": "str",  # Optional. A unique identifier for the meter.
                         "valueProperty": "str"  # Optional. JSONPath expression to extract
-                          the value from the event data.
+                          the value from the ingested event's data property. The ingested value for
+                          SUM, AVG, MIN, and MAX aggregations is a number or a string that can be
+                          parsed to a number. For UNIQUE_COUNT aggregation, the ingested value must be
+                          a string. For COUNT aggregation the valueProperty is ignored.
                     }
                 ]
         """
@@ -774,7 +778,7 @@ class ClientOperationsMixin(ClientMixinABC):
                 # JSON input template you can fill out and use as your body input.
                 body = {
                     "aggregation": "str",  # The aggregation type to use for the meter. Required.
-                      Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
+                      Known values are: "SUM", "COUNT", "UNIQUE_COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
                     "slug": "str",  # A unique, human-readable identifier for the meter. Must
                       consist only alphanumeric and underscore characters. Required.
@@ -788,13 +792,16 @@ class ClientOperationsMixin(ClientMixinABC):
                     },
                     "id": "str",  # Optional. A unique identifier for the meter.
                     "valueProperty": "str"  # Optional. JSONPath expression to extract the value
-                      from the event data.
+                      from the ingested event's data property. The ingested value for SUM, AVG, MIN,
+                      and MAX aggregations is a number or a string that can be parsed to a number. For
+                      UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT
+                      aggregation the valueProperty is ignored.
                 }
 
                 # response body for status code(s): 201
                 response == {
                     "aggregation": "str",  # The aggregation type to use for the meter. Required.
-                      Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
+                      Known values are: "SUM", "COUNT", "UNIQUE_COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
                     "slug": "str",  # A unique, human-readable identifier for the meter. Must
                       consist only alphanumeric and underscore characters. Required.
@@ -808,7 +815,10 @@ class ClientOperationsMixin(ClientMixinABC):
                     },
                     "id": "str",  # Optional. A unique identifier for the meter.
                     "valueProperty": "str"  # Optional. JSONPath expression to extract the value
-                      from the event data.
+                      from the ingested event's data property. The ingested value for SUM, AVG, MIN,
+                      and MAX aggregations is a number or a string that can be parsed to a number. For
+                      UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT
+                      aggregation the valueProperty is ignored.
                 }
         """
 
@@ -837,7 +847,7 @@ class ClientOperationsMixin(ClientMixinABC):
                 # response body for status code(s): 201
                 response == {
                     "aggregation": "str",  # The aggregation type to use for the meter. Required.
-                      Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
+                      Known values are: "SUM", "COUNT", "UNIQUE_COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
                     "slug": "str",  # A unique, human-readable identifier for the meter. Must
                       consist only alphanumeric and underscore characters. Required.
@@ -851,7 +861,10 @@ class ClientOperationsMixin(ClientMixinABC):
                     },
                     "id": "str",  # Optional. A unique identifier for the meter.
                     "valueProperty": "str"  # Optional. JSONPath expression to extract the value
-                      from the event data.
+                      from the ingested event's data property. The ingested value for SUM, AVG, MIN,
+                      and MAX aggregations is a number or a string that can be parsed to a number. For
+                      UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT
+                      aggregation the valueProperty is ignored.
                 }
         """
 
@@ -877,7 +890,7 @@ class ClientOperationsMixin(ClientMixinABC):
                 # JSON input template you can fill out and use as your body input.
                 body = {
                     "aggregation": "str",  # The aggregation type to use for the meter. Required.
-                      Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
+                      Known values are: "SUM", "COUNT", "UNIQUE_COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
                     "slug": "str",  # A unique, human-readable identifier for the meter. Must
                       consist only alphanumeric and underscore characters. Required.
@@ -891,13 +904,16 @@ class ClientOperationsMixin(ClientMixinABC):
                     },
                     "id": "str",  # Optional. A unique identifier for the meter.
                     "valueProperty": "str"  # Optional. JSONPath expression to extract the value
-                      from the event data.
+                      from the ingested event's data property. The ingested value for SUM, AVG, MIN,
+                      and MAX aggregations is a number or a string that can be parsed to a number. For
+                      UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT
+                      aggregation the valueProperty is ignored.
                 }
 
                 # response body for status code(s): 201
                 response == {
                     "aggregation": "str",  # The aggregation type to use for the meter. Required.
-                      Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
+                      Known values are: "SUM", "COUNT", "UNIQUE_COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
                     "slug": "str",  # A unique, human-readable identifier for the meter. Must
                       consist only alphanumeric and underscore characters. Required.
@@ -911,7 +927,10 @@ class ClientOperationsMixin(ClientMixinABC):
                     },
                     "id": "str",  # Optional. A unique identifier for the meter.
                     "valueProperty": "str"  # Optional. JSONPath expression to extract the value
-                      from the event data.
+                      from the ingested event's data property. The ingested value for SUM, AVG, MIN,
+                      and MAX aggregations is a number or a string that can be parsed to a number. For
+                      UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT
+                      aggregation the valueProperty is ignored.
                 }
         """
         error_map = {
@@ -989,7 +1008,7 @@ class ClientOperationsMixin(ClientMixinABC):
                 # response body for status code(s): 200
                 response == {
                     "aggregation": "str",  # The aggregation type to use for the meter. Required.
-                      Known values are: "SUM", "COUNT", "AVG", "MIN", and "MAX".
+                      Known values are: "SUM", "COUNT", "UNIQUE_COUNT", "AVG", "MIN", and "MAX".
                     "eventType": "str",  # The event type to aggregate. Required.
                     "slug": "str",  # A unique, human-readable identifier for the meter. Must
                       consist only alphanumeric and underscore characters. Required.
@@ -1003,7 +1022,10 @@ class ClientOperationsMixin(ClientMixinABC):
                     },
                     "id": "str",  # Optional. A unique identifier for the meter.
                     "valueProperty": "str"  # Optional. JSONPath expression to extract the value
-                      from the event data.
+                      from the ingested event's data property. The ingested value for SUM, AVG, MIN,
+                      and MAX aggregations is a number or a string that can be parsed to a number. For
+                      UNIQUE_COUNT aggregation, the ingested value must be a string. For COUNT
+                      aggregation the valueProperty is ignored.
                 }
         """
         error_map = {
