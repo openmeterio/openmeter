@@ -20,7 +20,9 @@ import (
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/oapi-codegen/runtime"
+	"github.com/openmeterio/openmeter/pkg/credit"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/product"
 )
 
 const (
@@ -29,6 +31,39 @@ const (
 	CloudTokenAuthScopes       = "CloudTokenAuth.Scopes"
 	PortalTokenAuthScopes      = "PortalTokenAuth.Scopes"
 )
+
+// CreditBalance Credit balance of a subject.
+type CreditBalance = credit.Balance
+
+// CreditExpirationPeriod Expiration period of a credit grant.
+type CreditExpirationPeriod = credit.ExpirationPeriod
+
+// CreditGrant Grants are used to increase balance of specific subjects.
+type CreditGrant = credit.Grant
+
+// CreditGrantBalance defines model for CreditGrantBalance.
+type CreditGrantBalance = credit.Grant
+
+// CreditGrantRollover Grant rollover configuration.
+type CreditGrantRollover = credit.GrantRollover
+
+// CreditGrantRolloverType The rollover type to use:
+// - `REMAINING_AMOUNT` - Rollover remaining amount.
+// - `ORIGINAL_AMOUNT` - Rollover re-applies the full grant amount.
+type CreditGrantRolloverType = credit.GrantRolloverType
+
+// CreditGrantType The grant type:
+// - `USAGE` - Increase balance by the amount in the unit of the associated meter.
+type CreditGrantType = credit.GrantType
+
+// CreditLedgerEntry Credit ledger entry.
+type CreditLedgerEntry = credit.LedgerEntry
+
+// CreditLedgerEntryType defines model for CreditLedgerEntryType.
+type CreditLedgerEntryType = credit.LedgerEntryType
+
+// CreditReset Credit reset configuration.
+type CreditReset = credit.Reset
 
 // Event CloudEvents Specification JSON Schema
 type Event = event.Event
@@ -80,6 +115,13 @@ type PortalToken struct {
 // Additional properties specific to the problem type may be present.
 type Problem = models.StatusProblem
 
+// Product A product is a feature or service offered to a customer.
+// For example: CPU-Hours, Tokens, API Calls, etc.
+type Product = product.Product
+
+// ProductBalance defines model for ProductBalance.
+type ProductBalance = product.Product
+
 // Subject A subject is a unique identifier for a user or entity.
 type Subject struct {
 	CurrentPeriodEnd   *time.Time              `json:"currentPeriodEnd"`
@@ -94,8 +136,14 @@ type Subject struct {
 // WindowSize Aggregation window size.
 type WindowSize = models.WindowSize
 
+// CreditGrantId defines model for creditGrantId.
+type CreditGrantId = string
+
 // MeterIdOrSlug A unique identifier.
 type MeterIdOrSlug = IdOrSlug
+
+// ProductId defines model for productId.
+type ProductId = string
 
 // QueryFilterGroupBy Simple filter for group bys with exact match.
 // Usage: ?filterGroupBy[type]=input&filterGroupBy[model]=gpt-4
@@ -141,6 +189,28 @@ type UnauthorizedProblemResponse = Problem
 // UnexpectedProblemResponse A Problem Details object (RFC 7807).
 // Additional properties specific to the problem type may be present.
 type UnexpectedProblemResponse = Problem
+
+// GetCreditBalanceParams defines parameters for GetCreditBalance.
+type GetCreditBalanceParams struct {
+	// Time Point of time to query balances: date-time in RFC 3339 format. Defaults to now.
+	Time *time.Time `form:"time,omitempty" json:"time,omitempty"`
+}
+
+// ListCreditGrantsParams defines parameters for ListCreditGrants.
+type ListCreditGrantsParams struct {
+	// Subject Filtering and group by multiple subjects.
+	// Usage: ?subject=customer-1&subject=customer-2
+	Subject *QueryFilterSubject `form:"subject,omitempty" json:"subject,omitempty"`
+}
+
+// GetCreditLedgerParams defines parameters for GetCreditLedger.
+type GetCreditLedgerParams struct {
+	// From Start of time range to query ledger: date-time in RFC 3339 format.
+	From time.Time `form:"from" json:"from"`
+
+	// To End of time range to query ledger: date-time in RFC 3339 format. Defaults to now.
+	To *time.Time `form:"to,omitempty" json:"to,omitempty"`
+}
 
 // ListEventsParams defines parameters for ListEvents.
 type ListEventsParams struct {
@@ -227,6 +297,12 @@ type InvalidatePortalTokensJSONBody struct {
 // UpsertSubjectJSONBody defines parameters for UpsertSubject.
 type UpsertSubjectJSONBody = []Subject
 
+// CreateCreditGrantJSONRequestBody defines body for CreateCreditGrant for application/json ContentType.
+type CreateCreditGrantJSONRequestBody = CreditGrant
+
+// ResetCreditJSONRequestBody defines body for ResetCredit for application/json ContentType.
+type ResetCreditJSONRequestBody = CreditReset
+
 // IngestEventsApplicationCloudeventsPlusJSONRequestBody defines body for IngestEvents for application/cloudevents+json ContentType.
 type IngestEventsApplicationCloudeventsPlusJSONRequestBody = Event
 
@@ -241,6 +317,9 @@ type CreatePortalTokenJSONRequestBody = PortalToken
 
 // InvalidatePortalTokensJSONRequestBody defines body for InvalidatePortalTokens for application/json ContentType.
 type InvalidatePortalTokensJSONRequestBody InvalidatePortalTokensJSONBody
+
+// CreateProductJSONRequestBody defines body for CreateProduct for application/json ContentType.
+type CreateProductJSONRequestBody = Product
 
 // UpsertSubjectJSONRequestBody defines body for UpsertSubject for application/json ContentType.
 type UpsertSubjectJSONRequestBody = UpsertSubjectJSONBody
@@ -318,6 +397,31 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+	// GetCreditBalance request
+	GetCreditBalance(ctx context.Context, subject string, params *GetCreditBalanceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListCreditGrants request
+	ListCreditGrants(ctx context.Context, params *ListCreditGrantsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateCreditGrantWithBody request with any body
+	CreateCreditGrantWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateCreditGrant(ctx context.Context, body CreateCreditGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// VoidCreditGrant request
+	VoidCreditGrant(ctx context.Context, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetCreditGrant request
+	GetCreditGrant(ctx context.Context, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetCreditLedger request
+	GetCreditLedger(ctx context.Context, subject string, params *GetCreditLedgerParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ResetCreditWithBody request with any body
+	ResetCreditWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	ResetCredit(ctx context.Context, body ResetCreditJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListEvents request
 	ListEvents(ctx context.Context, params *ListEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -364,6 +468,20 @@ type ClientInterface interface {
 
 	InvalidatePortalTokens(ctx context.Context, body InvalidatePortalTokensJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListProducts request
+	ListProducts(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateProductWithBody request with any body
+	CreateProductWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateProduct(ctx context.Context, body CreateProductJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteProduct request
+	DeleteProduct(ctx context.Context, productId ProductId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetProduct request
+	GetProduct(ctx context.Context, productId ProductId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListSubjects request
 	ListSubjects(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -377,6 +495,114 @@ type ClientInterface interface {
 
 	// GetSubject request
 	GetSubject(ctx context.Context, subjectIdOrKey SubjectIdOrKey, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+func (c *Client) GetCreditBalance(ctx context.Context, subject string, params *GetCreditBalanceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetCreditBalanceRequest(c.Server, subject, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListCreditGrants(ctx context.Context, params *ListCreditGrantsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListCreditGrantsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateCreditGrantWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateCreditGrantRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateCreditGrant(ctx context.Context, body CreateCreditGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateCreditGrantRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) VoidCreditGrant(ctx context.Context, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewVoidCreditGrantRequest(c.Server, creditGrantId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetCreditGrant(ctx context.Context, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetCreditGrantRequest(c.Server, creditGrantId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetCreditLedger(ctx context.Context, subject string, params *GetCreditLedgerParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetCreditLedgerRequest(c.Server, subject, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ResetCreditWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewResetCreditRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ResetCredit(ctx context.Context, body ResetCreditJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewResetCreditRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 func (c *Client) ListEvents(ctx context.Context, params *ListEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -583,6 +809,66 @@ func (c *Client) InvalidatePortalTokens(ctx context.Context, body InvalidatePort
 	return c.Client.Do(req)
 }
 
+func (c *Client) ListProducts(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListProductsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateProductWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateProductRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateProduct(ctx context.Context, body CreateProductJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateProductRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteProduct(ctx context.Context, productId ProductId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteProductRequest(c.Server, productId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetProduct(ctx context.Context, productId ProductId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetProductRequest(c.Server, productId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListSubjects(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListSubjectsRequest(c.Server)
 	if err != nil {
@@ -641,6 +927,327 @@ func (c *Client) GetSubject(ctx context.Context, subjectIdOrKey SubjectIdOrKey, 
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+// NewGetCreditBalanceRequest generates requests for GetCreditBalance
+func NewGetCreditBalanceRequest(server string, subject string, params *GetCreditBalanceParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "subject", runtime.ParamLocationPath, subject)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/credit-balance/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Time != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "time", runtime.ParamLocationQuery, *params.Time); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListCreditGrantsRequest generates requests for ListCreditGrants
+func NewListCreditGrantsRequest(server string, params *ListCreditGrantsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/credit-grants")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Subject != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "subject", runtime.ParamLocationQuery, *params.Subject); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateCreditGrantRequest calls the generic CreateCreditGrant builder with application/json body
+func NewCreateCreditGrantRequest(server string, body CreateCreditGrantJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateCreditGrantRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateCreditGrantRequestWithBody generates requests for CreateCreditGrant with any type of body
+func NewCreateCreditGrantRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/credit-grants")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewVoidCreditGrantRequest generates requests for VoidCreditGrant
+func NewVoidCreditGrantRequest(server string, creditGrantId CreditGrantId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "creditGrantId", runtime.ParamLocationPath, creditGrantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/credit-grants/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetCreditGrantRequest generates requests for GetCreditGrant
+func NewGetCreditGrantRequest(server string, creditGrantId CreditGrantId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "creditGrantId", runtime.ParamLocationPath, creditGrantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/credit-grants/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetCreditLedgerRequest generates requests for GetCreditLedger
+func NewGetCreditLedgerRequest(server string, subject string, params *GetCreditLedgerParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "subject", runtime.ParamLocationPath, subject)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/credit-ledger/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, params.From); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		if params.To != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "to", runtime.ParamLocationQuery, *params.To); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewResetCreditRequest calls the generic ResetCredit builder with application/json body
+func NewResetCreditRequest(server string, body ResetCreditJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewResetCreditRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewResetCreditRequestWithBody generates requests for ResetCredit with any type of body
+func NewResetCreditRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/credit-resets")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
 }
 
 // NewListEventsRequest generates requests for ListEvents
@@ -1361,6 +1968,141 @@ func NewInvalidatePortalTokensRequestWithBody(server string, contentType string,
 	return req, nil
 }
 
+// NewListProductsRequest generates requests for ListProducts
+func NewListProductsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/products")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateProductRequest calls the generic CreateProduct builder with application/json body
+func NewCreateProductRequest(server string, body CreateProductJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateProductRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateProductRequestWithBody generates requests for CreateProduct with any type of body
+func NewCreateProductRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/products")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteProductRequest generates requests for DeleteProduct
+func NewDeleteProductRequest(server string, productId ProductId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "productId", runtime.ParamLocationPath, productId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/products/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetProductRequest generates requests for GetProduct
+func NewGetProductRequest(server string, productId ProductId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "productId", runtime.ParamLocationPath, productId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/products/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListSubjectsRequest generates requests for ListSubjects
 func NewListSubjectsRequest(server string) (*http.Request, error) {
 	var err error
@@ -1539,6 +2281,31 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
+	// GetCreditBalanceWithResponse request
+	GetCreditBalanceWithResponse(ctx context.Context, subject string, params *GetCreditBalanceParams, reqEditors ...RequestEditorFn) (*GetCreditBalanceResponse, error)
+
+	// ListCreditGrantsWithResponse request
+	ListCreditGrantsWithResponse(ctx context.Context, params *ListCreditGrantsParams, reqEditors ...RequestEditorFn) (*ListCreditGrantsResponse, error)
+
+	// CreateCreditGrantWithBodyWithResponse request with any body
+	CreateCreditGrantWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateCreditGrantResponse, error)
+
+	CreateCreditGrantWithResponse(ctx context.Context, body CreateCreditGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateCreditGrantResponse, error)
+
+	// VoidCreditGrantWithResponse request
+	VoidCreditGrantWithResponse(ctx context.Context, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*VoidCreditGrantResponse, error)
+
+	// GetCreditGrantWithResponse request
+	GetCreditGrantWithResponse(ctx context.Context, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*GetCreditGrantResponse, error)
+
+	// GetCreditLedgerWithResponse request
+	GetCreditLedgerWithResponse(ctx context.Context, subject string, params *GetCreditLedgerParams, reqEditors ...RequestEditorFn) (*GetCreditLedgerResponse, error)
+
+	// ResetCreditWithBodyWithResponse request with any body
+	ResetCreditWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResetCreditResponse, error)
+
+	ResetCreditWithResponse(ctx context.Context, body ResetCreditJSONRequestBody, reqEditors ...RequestEditorFn) (*ResetCreditResponse, error)
+
 	// ListEventsWithResponse request
 	ListEventsWithResponse(ctx context.Context, params *ListEventsParams, reqEditors ...RequestEditorFn) (*ListEventsResponse, error)
 
@@ -1585,6 +2352,20 @@ type ClientWithResponsesInterface interface {
 
 	InvalidatePortalTokensWithResponse(ctx context.Context, body InvalidatePortalTokensJSONRequestBody, reqEditors ...RequestEditorFn) (*InvalidatePortalTokensResponse, error)
 
+	// ListProductsWithResponse request
+	ListProductsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListProductsResponse, error)
+
+	// CreateProductWithBodyWithResponse request with any body
+	CreateProductWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateProductResponse, error)
+
+	CreateProductWithResponse(ctx context.Context, body CreateProductJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateProductResponse, error)
+
+	// DeleteProductWithResponse request
+	DeleteProductWithResponse(ctx context.Context, productId ProductId, reqEditors ...RequestEditorFn) (*DeleteProductResponse, error)
+
+	// GetProductWithResponse request
+	GetProductWithResponse(ctx context.Context, productId ProductId, reqEditors ...RequestEditorFn) (*GetProductResponse, error)
+
 	// ListSubjectsWithResponse request
 	ListSubjectsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListSubjectsResponse, error)
 
@@ -1598,6 +2379,181 @@ type ClientWithResponsesInterface interface {
 
 	// GetSubjectWithResponse request
 	GetSubjectWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, reqEditors ...RequestEditorFn) (*GetSubjectResponse, error)
+}
+
+type GetCreditBalanceResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *CreditBalance
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r GetCreditBalanceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetCreditBalanceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListCreditGrantsResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *[]CreditGrant
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r ListCreditGrantsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListCreditGrantsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateCreditGrantResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON201                       *CreditGrant
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateCreditGrantResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateCreditGrantResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type VoidCreditGrantResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r VoidCreditGrantResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r VoidCreditGrantResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetCreditGrantResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *CreditGrant
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r GetCreditGrantResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetCreditGrantResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetCreditLedgerResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *[]CreditLedgerEntry
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r GetCreditLedgerResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetCreditLedgerResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ResetCreditResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON201                       *CreditReset
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r ResetCreditResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ResetCreditResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
 }
 
 type ListEventsResponse struct {
@@ -1897,6 +2853,105 @@ func (r InvalidatePortalTokensResponse) StatusCode() int {
 	return 0
 }
 
+type ListProductsResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *[]Product
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r ListProductsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListProductsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateProductResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON201                       *Product
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON501     *NotImplementedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateProductResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateProductResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteProductResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteProductResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteProductResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetProductResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *Product
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r GetProductResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetProductResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListSubjectsResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
@@ -1996,6 +3051,85 @@ func (r GetSubjectResponse) StatusCode() int {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
+}
+
+// GetCreditBalanceWithResponse request returning *GetCreditBalanceResponse
+func (c *ClientWithResponses) GetCreditBalanceWithResponse(ctx context.Context, subject string, params *GetCreditBalanceParams, reqEditors ...RequestEditorFn) (*GetCreditBalanceResponse, error) {
+	rsp, err := c.GetCreditBalance(ctx, subject, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetCreditBalanceResponse(rsp)
+}
+
+// ListCreditGrantsWithResponse request returning *ListCreditGrantsResponse
+func (c *ClientWithResponses) ListCreditGrantsWithResponse(ctx context.Context, params *ListCreditGrantsParams, reqEditors ...RequestEditorFn) (*ListCreditGrantsResponse, error) {
+	rsp, err := c.ListCreditGrants(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListCreditGrantsResponse(rsp)
+}
+
+// CreateCreditGrantWithBodyWithResponse request with arbitrary body returning *CreateCreditGrantResponse
+func (c *ClientWithResponses) CreateCreditGrantWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateCreditGrantResponse, error) {
+	rsp, err := c.CreateCreditGrantWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateCreditGrantResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateCreditGrantWithResponse(ctx context.Context, body CreateCreditGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateCreditGrantResponse, error) {
+	rsp, err := c.CreateCreditGrant(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateCreditGrantResponse(rsp)
+}
+
+// VoidCreditGrantWithResponse request returning *VoidCreditGrantResponse
+func (c *ClientWithResponses) VoidCreditGrantWithResponse(ctx context.Context, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*VoidCreditGrantResponse, error) {
+	rsp, err := c.VoidCreditGrant(ctx, creditGrantId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseVoidCreditGrantResponse(rsp)
+}
+
+// GetCreditGrantWithResponse request returning *GetCreditGrantResponse
+func (c *ClientWithResponses) GetCreditGrantWithResponse(ctx context.Context, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*GetCreditGrantResponse, error) {
+	rsp, err := c.GetCreditGrant(ctx, creditGrantId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetCreditGrantResponse(rsp)
+}
+
+// GetCreditLedgerWithResponse request returning *GetCreditLedgerResponse
+func (c *ClientWithResponses) GetCreditLedgerWithResponse(ctx context.Context, subject string, params *GetCreditLedgerParams, reqEditors ...RequestEditorFn) (*GetCreditLedgerResponse, error) {
+	rsp, err := c.GetCreditLedger(ctx, subject, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetCreditLedgerResponse(rsp)
+}
+
+// ResetCreditWithBodyWithResponse request with arbitrary body returning *ResetCreditResponse
+func (c *ClientWithResponses) ResetCreditWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResetCreditResponse, error) {
+	rsp, err := c.ResetCreditWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseResetCreditResponse(rsp)
+}
+
+func (c *ClientWithResponses) ResetCreditWithResponse(ctx context.Context, body ResetCreditJSONRequestBody, reqEditors ...RequestEditorFn) (*ResetCreditResponse, error) {
+	rsp, err := c.ResetCredit(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseResetCreditResponse(rsp)
 }
 
 // ListEventsWithResponse request returning *ListEventsResponse
@@ -2146,6 +3280,50 @@ func (c *ClientWithResponses) InvalidatePortalTokensWithResponse(ctx context.Con
 	return ParseInvalidatePortalTokensResponse(rsp)
 }
 
+// ListProductsWithResponse request returning *ListProductsResponse
+func (c *ClientWithResponses) ListProductsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListProductsResponse, error) {
+	rsp, err := c.ListProducts(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListProductsResponse(rsp)
+}
+
+// CreateProductWithBodyWithResponse request with arbitrary body returning *CreateProductResponse
+func (c *ClientWithResponses) CreateProductWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateProductResponse, error) {
+	rsp, err := c.CreateProductWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateProductResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateProductWithResponse(ctx context.Context, body CreateProductJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateProductResponse, error) {
+	rsp, err := c.CreateProduct(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateProductResponse(rsp)
+}
+
+// DeleteProductWithResponse request returning *DeleteProductResponse
+func (c *ClientWithResponses) DeleteProductWithResponse(ctx context.Context, productId ProductId, reqEditors ...RequestEditorFn) (*DeleteProductResponse, error) {
+	rsp, err := c.DeleteProduct(ctx, productId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteProductResponse(rsp)
+}
+
+// GetProductWithResponse request returning *GetProductResponse
+func (c *ClientWithResponses) GetProductWithResponse(ctx context.Context, productId ProductId, reqEditors ...RequestEditorFn) (*GetProductResponse, error) {
+	rsp, err := c.GetProduct(ctx, productId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetProductResponse(rsp)
+}
+
 // ListSubjectsWithResponse request returning *ListSubjectsResponse
 func (c *ClientWithResponses) ListSubjectsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListSubjectsResponse, error) {
 	rsp, err := c.ListSubjects(ctx, reqEditors...)
@@ -2188,6 +3366,335 @@ func (c *ClientWithResponses) GetSubjectWithResponse(ctx context.Context, subjec
 		return nil, err
 	}
 	return ParseGetSubjectResponse(rsp)
+}
+
+// ParseGetCreditBalanceResponse parses an HTTP response from a GetCreditBalanceWithResponse call
+func ParseGetCreditBalanceResponse(rsp *http.Response) (*GetCreditBalanceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetCreditBalanceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CreditBalance
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListCreditGrantsResponse parses an HTTP response from a ListCreditGrantsWithResponse call
+func ParseListCreditGrantsResponse(rsp *http.Response) (*ListCreditGrantsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListCreditGrantsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []CreditGrant
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateCreditGrantResponse parses an HTTP response from a CreateCreditGrantWithResponse call
+func ParseCreateCreditGrantResponse(rsp *http.Response) (*CreateCreditGrantResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateCreditGrantResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest CreditGrant
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseVoidCreditGrantResponse parses an HTTP response from a VoidCreditGrantWithResponse call
+func ParseVoidCreditGrantResponse(rsp *http.Response) (*VoidCreditGrantResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &VoidCreditGrantResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetCreditGrantResponse parses an HTTP response from a GetCreditGrantWithResponse call
+func ParseGetCreditGrantResponse(rsp *http.Response) (*GetCreditGrantResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetCreditGrantResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CreditGrant
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetCreditLedgerResponse parses an HTTP response from a GetCreditLedgerWithResponse call
+func ParseGetCreditLedgerResponse(rsp *http.Response) (*GetCreditLedgerResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetCreditLedgerResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []CreditLedgerEntry
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseResetCreditResponse parses an HTTP response from a ResetCreditWithResponse call
+func ParseResetCreditResponse(rsp *http.Response) (*ResetCreditResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ResetCreditResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest CreditReset
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseListEventsResponse parses an HTTP response from a ListEventsWithResponse call
@@ -2739,6 +4246,187 @@ func ParseInvalidatePortalTokensResponse(rsp *http.Response) (*InvalidatePortalT
 	return response, nil
 }
 
+// ParseListProductsResponse parses an HTTP response from a ListProductsWithResponse call
+func ParseListProductsResponse(rsp *http.Response) (*ListProductsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListProductsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []Product
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateProductResponse parses an HTTP response from a CreateProductWithResponse call
+func ParseCreateProductResponse(rsp *http.Response) (*CreateProductResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateProductResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Product
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 501:
+		var dest NotImplementedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON501 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteProductResponse parses an HTTP response from a DeleteProductWithResponse call
+func ParseDeleteProductResponse(rsp *http.Response) (*DeleteProductResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteProductResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetProductResponse parses an HTTP response from a GetProductWithResponse call
+func ParseGetProductResponse(rsp *http.Response) (*GetProductResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetProductResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Product
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListSubjectsResponse parses an HTTP response from a ListSubjectsWithResponse call
 func ParseListSubjectsResponse(rsp *http.Response) (*ListSubjectsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -2937,99 +4625,136 @@ func ParseGetSubjectResponse(rsp *http.Response) (*GetSubjectResponse, error) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"p7kjszIIJSRyi7m9vP2/AAAA//8ZeH4HZnYAAA==",
+	"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",
+	"j5Lbi9v/FwAA//+VMou/fLQAAA==",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

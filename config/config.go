@@ -20,14 +20,15 @@ type Configuration struct {
 
 	Telemetry TelemetryConfig
 
-	Namespace   NamespaceConfiguration
-	Ingest      IngestConfiguration
 	Aggregation AggregationConfiguration
-	Sink        SinkConfiguration
+	Credits     CreditsConfig
 	Dedupe      DedupeConfiguration
+	Ingest      IngestConfiguration
+	Meters      []*models.Meter
+	Namespace   NamespaceConfiguration
 	Portal      PortalConfiguration
-
-	Meters []*models.Meter
+	Postgres    PostgresConfig
+	Sink        SinkConfiguration
 }
 
 // Validate validates the configuration.

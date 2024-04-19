@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
+	credit_model "github.com/openmeterio/openmeter/pkg/credit"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -458,4 +459,218 @@ func TestQuery(t *testing.T) {
 	// })
 
 	// TODO: add tests for group by and subject
+}
+
+func TestCredit(t *testing.T) {
+	client := initClient(t)
+	customer := "customer-1"
+	productId := "credit_test_product_id"
+
+	// Reproducible random data
+	faker := gofakeit.New(8675309)
+	var events []cloudevents.Event
+
+	newEvent := func(timestamp string, model string) cloudevents.Event {
+		ts, err := time.Parse(time.RFC3339, timestamp)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		ev := cloudevents.New()
+		ev.SetID(faker.UUID())
+		ev.SetSource("credit-test")
+		ev.SetType("credit_event")
+		ev.SetTime(ts)
+		ev.SetSubject("customer-1")
+		_ = ev.SetData("application/json", map[string]string{
+			"model": model,
+		})
+
+		return ev
+	}
+
+	// First event
+	{
+		events = append(events, newEvent("2024-01-01T00:01:00Z", "gpt-4"))
+	}
+
+	// Irrilevant event
+	{
+		events = append(events, newEvent("2024-01-01T00:01:00Z", "gpt-3"))
+	}
+
+	// Ingore events
+	{
+		resp, err := client.IngestEventBatchWithResponse(context.Background(), events)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, resp.StatusCode())
+	}
+
+	// Wait for events to be processed
+	time.Sleep(10 * time.Second)
+
+	t.Run("Create Product", func(t *testing.T) {
+		resp, err := client.CreateProductWithResponse(context.Background(), api.Product{
+			ID:        &productId,
+			Name:      "Credit Test Product",
+			MeterSlug: "credit_test_meter",
+			MeterGroupByFilters: &map[string]string{
+				"model": "gpt-4",
+			},
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code")
+
+		expected := &api.Product{
+			ID:        &productId,
+			Name:      "Credit Test Product",
+			MeterSlug: "credit_test_meter",
+			MeterGroupByFilters: &map[string]string{
+				"model": "gpt-4",
+			},
+		}
+
+		assert.Equal(t, expected, resp.JSON201)
+	})
+
+	t.Run("Create Grant", func(t *testing.T) {
+		effectiveAt, _ := time.Parse(time.RFC3339, "2024-01-01T00:01:00Z")
+
+		resp, err := client.CreateCreditGrantWithResponse(context.Background(), api.CreditGrant{
+			Subject:     customer,
+			Type:        credit_model.GrantTypeUsage,
+			ProductID:   &productId,
+			Amount:      100,
+			Priority:    1,
+			EffectiveAt: effectiveAt,
+			Rollover: &api.CreditGrantRollover{
+				Type: credit_model.GrantRolloverTypeRemainingAmount,
+			},
+			Expiration: api.CreditExpirationPeriod{
+				Duration: "DAY",
+				Count:    1,
+			},
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code")
+
+		expected := &api.CreditGrant{
+			ID:          resp.JSON201.ID,
+			Subject:     customer,
+			Type:        credit_model.GrantTypeUsage,
+			ProductID:   &productId,
+			Amount:      100,
+			Priority:    1,
+			EffectiveAt: effectiveAt,
+			Rollover: &api.CreditGrantRollover{
+				Type: credit_model.GrantRolloverTypeRemainingAmount,
+			},
+			Expiration: api.CreditExpirationPeriod{
+				Duration: "DAY",
+				Count:    1,
+			},
+		}
+
+		assert.Equal(t, expected, resp.JSON201)
+	})
+
+	t.Run("Balance", func(t *testing.T) {
+		effectiveAt, _ := time.Parse(time.RFC3339, "2024-01-01T00:01:00Z")
+
+		resp, err := client.GetCreditBalanceWithResponse(context.Background(), customer, nil)
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+
+		expected := &api.CreditBalance{
+			Subject: customer,
+			ProductBalances: []credit_model.ProductBalance{
+				{
+					Product: api.Product{
+						ID:        &productId,
+						Name:      "Credit Test Product",
+						MeterSlug: "credit_test_meter",
+						MeterGroupByFilters: &map[string]string{
+							"model": "gpt-4",
+						},
+					},
+					Balance: 99,
+				},
+			},
+			GrantBalances: []credit_model.GrantBalance{
+				{
+					Grant: api.CreditGrant{
+						ID:          resp.JSON200.GrantBalances[0].ID,
+						Subject:     customer,
+						Type:        credit_model.GrantTypeUsage,
+						ProductID:   &productId,
+						Amount:      100,
+						Priority:    1,
+						EffectiveAt: effectiveAt,
+						Rollover: &api.CreditGrantRollover{
+							Type: credit_model.GrantRolloverTypeRemainingAmount,
+						},
+						Expiration: api.CreditExpirationPeriod{
+							Duration: "DAY",
+							Count:    1,
+						},
+					},
+					Balance: 99,
+				},
+			},
+		}
+
+		assert.Equal(t, expected, resp.JSON200)
+	})
+
+	t.Run("Reset", func(t *testing.T) {
+		effectiveAt, _ := time.Parse(time.RFC3339, "2024-01-02T00:01:00Z")
+
+		// Reset credit
+		resetResp, err := client.ResetCreditWithResponse(context.Background(), api.CreditReset{
+			Subject:     customer,
+			EffectiveAt: effectiveAt,
+		})
+
+		require.NoError(t, err)
+
+		expectedReset := &api.CreditReset{
+			ID:          resetResp.JSON201.ID,
+			Subject:     customer,
+			EffectiveAt: effectiveAt,
+		}
+		assert.Equal(t, expectedReset, resetResp.JSON201)
+
+		// List grants
+		resp, err := client.ListCreditGrantsWithResponse(context.Background(), &api.ListCreditGrantsParams{
+			Subject: &[]string{customer},
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+
+		grants := *resp.JSON200
+		expected := []api.CreditGrant{
+			{
+				ID:          grants[0].ID,
+				Subject:     customer,
+				Type:        credit_model.GrantTypeUsage,
+				ProductID:   &productId,
+				Amount:      99,
+				Priority:    1,
+				EffectiveAt: effectiveAt,
+				Rollover: &api.CreditGrantRollover{
+					Type: credit_model.GrantRolloverTypeRemainingAmount,
+				},
+				Expiration: api.CreditExpirationPeriod{
+					Duration: "DAY",
+					Count:    1,
+				},
+			},
+		}
+
+		assert.Equal(t, expected, resp.JSON200)
+	})
 }
