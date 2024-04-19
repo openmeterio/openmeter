@@ -35,6 +35,10 @@ tags:
     description: |
       Endpoints related to subjects.
       [Learn more](https://openmeter.io/docs/getting-started/subjects)
+  - name: Credits
+    description: |
+      Endpoints related to credits.
+      [Learn more](https://openmeter.io/docs/getting-started/credits)
 paths:
   /api/v1/events:
     get:
@@ -621,6 +625,314 @@ paths:
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
+  # Product
+  /api/v1/products:
+    get:
+      operationId: listProducts
+      summary: List products
+      description: |
+        List products.
+      tags:
+        - Products
+      responses:
+        "200":
+          description: List of products.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+    post:
+      operationId: createProduct
+      summary: Create product
+      description: |
+        Creates a product.
+      tags:
+        - Products
+      requestBody:
+        description: The product to create.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Product"
+      responses:
+        "201":
+          description: Product created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "501":
+          $ref: "#/components/responses/NotImplementedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+  /api/v1/products/{productId}:
+    get:
+      operationId: getProduct
+      summary: Get product
+      description: |
+        Get product by key.
+      tags:
+        - Products
+      parameters:
+        - $ref: "#/components/parameters/productId"
+      responses:
+        "200":
+          description: Product found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+    delete:
+      operationId: deleteProduct
+      summary: Delete product
+      description: |
+        Delete a product by key.
+      tags:
+        - Products
+      parameters:
+        - $ref: "#/components/parameters/productId"
+      responses:
+        "204":
+          description: Product deleted.
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+  # Credit Balances
+  /api/v1/credit-balance/{subject}:
+    get:
+      operationId: getCreditBalance
+      summary: Get credit balance
+      description: |
+        Get credit balance for a specific subject.
+      tags:
+        - Credits
+      parameters:
+        - name: subject
+          in: path
+          required: true
+          description: Subject to query balances for.
+          schema:
+            type: string
+            example: "customer-id"
+        - name: time
+          in: query
+          required: false
+          description: |
+            Point of time to query balances: date-time in RFC 3339 format. Defaults to now.
+          schema:
+            type: string
+            format: date-time
+            example: "2023-01-01T00:00:00Z"
+      responses:
+        "200":
+          description: Credit balances found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditBalance"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+  # Credit Ledger
+  /api/v1/credit-ledger/{subject}:
+    get:
+      operationId: getCreditLedger
+      summary: Get credit ledger
+      description: |
+        Get credit ledger for a specific subject.
+      tags:
+        - Credits
+      parameters:
+        - name: subject
+          in: path
+          required: true
+          description: Subject to query ledger for.
+          schema:
+            type: string
+            example: "customer-id"
+        - name: from
+          in: query
+          required: true
+          description: |
+            Start of time range to query ledger: date-time in RFC 3339 format.
+          schema:
+            type: string
+            format: date-time
+            example: "2023-01-01T00:00:00Z"
+        - name: to
+          in: query
+          required: false
+          description: |
+            End of time range to query ledger: date-time in RFC 3339 format. Defaults to now.
+          schema:
+            type: string
+            format: date-time
+            example: "2023-01-01T00:00:00Z"
+      responses:
+        "200":
+          description: Credit balances found.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CreditLedgerEntry"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+  # Credit Reset
+  /api/v1/credit-resets:
+    post:
+      operationId: resetCredit
+      summary: Resets the credit balances to zero for a specific subject and re-apply active grants with rollover configuration.
+      description: |
+        Reset credit balance for the given subject.
+      tags:
+        - Credits
+      requestBody:
+        description: The subject to reset balance for.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreditReset"
+      responses:
+        "201":
+          description: Credit balance.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditReset"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+  # Credit Grants
+  /api/v1/credit-grants:
+    get:
+      operationId: listCreditGrants
+      summary: List credit grants
+      description: |
+        List credit grants.
+      tags:
+        - Credits
+      parameters:
+        - $ref: "#/components/parameters/queryFilterSubject"
+      responses:
+        "200":
+          description: List of credit grants.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CreditGrant"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+    post:
+      operationId: createCreditGrant
+      summary: Create credit grant
+      description: |
+        Creates a credit grant.
+      tags:
+        - Credits
+      requestBody:
+        description: The credit grant to create.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreditGrant"
+      responses:
+        "201":
+          description: CreditGrant created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditGrant"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+  # Credit Grants
+  /api/v1/credit-grants/{creditGrantId}:
+    get:
+      operationId: getCreditGrant
+      summary: Get credit
+      description: |
+        Get credit by key.
+      tags:
+        - Credits
+      parameters:
+        - $ref: "#/components/parameters/creditGrantId"
+      responses:
+        "200":
+          description: Credit found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditGrant"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+    delete:
+      operationId: voidCreditGrant
+      summary: Void credit grant
+      description: |
+        Void a credit grant by ID. Partially or fully used credits cannot be voided.
+        Voided credits won't be applied to the subject's balance anymore.
+      tags:
+        - Credits
+      parameters:
+        - $ref: "#/components/parameters/creditGrantId"
+      responses:
+        "204":
+          description: Credit grant voided.
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
 
 components:
   schemas:
@@ -773,6 +1085,333 @@ components:
             tokens: "1234"
             model: "gpt-4-turbo"
         validationError: "meter not found for event"
+    Product:
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/product
+      x-go-type: product.Product
+      type: object
+      description: |
+        A product is a feature or service offered to a customer.
+        For example: CPU-Hours, Tokens, API Calls, etc.
+      required:
+        - name
+        - meterSlug
+      additionalProperties: false
+      properties:
+        id:
+          readOnly: true
+          description: |
+            Readonly unique ULID identifier of the product.
+          type: string
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+        name:
+          description: |
+            The name of the product.
+          type: string
+          example: AI Tokens
+        meterSlug:
+          description: |
+              The meter that the product is associated with and decreases grants by usage.
+          type: string
+          example: tokens_total
+        meterGroupByFilters:
+          description: |
+            Optional meter group by filters. Useful if the meter scope is broader than what product tracks.
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            model: gpt-4
+        archived:
+          readOnly: true
+          description: |
+            If the product is archived, it will not be used for grants or usage.
+          type: boolean
+          example: false
+    CreditLedgerEntry:
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/credit
+      x-go-type: credit.LedgerEntry
+      type: object
+      description: |
+        Credit ledger entry.
+      required:
+        - id
+        - type
+        - time
+      properties:
+        id:
+          description: |
+            Readonly unique ULID identifier of the ledger entry.
+          readOnly: true
+          type: string
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+        type:
+          $ref: "#/components/schemas/CreditLedgerEntryType"
+        time:
+          description: |
+            The time the ledger entry was created.
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        amount:
+          description: |
+            The amount to apply. Can be positive or negative number. If applicable.
+          type: number
+          example: 100
+        from:
+          description: |
+            Period start time where the amount was applied. If applicable.
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        to:
+          description: |
+            Period end time where the amount was applied. If applicable.
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+    CreditLedgerEntryType:
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/credit
+      x-go-type: credit.LedgerEntryType
+      type: string
+      enum:
+        - GRANT
+        - VOID
+        - RESET
+        - GRANT_USAGE
+      example: GRANT
+    CreditBalance:
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/credit
+      x-go-type: credit.Balance
+      type: object
+      description: |
+        Credit balance of a subject.
+      required:
+        - subject
+        - amount
+        - grants
+      properties:
+        subject:
+          description: |
+            The subject to get the balance for.
+          type: string
+          example: customer-id
+        products:
+          description: |
+            Products with balances.
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductBalance"
+        grants:
+          description: |
+            The grants applied to the subject.
+          type: array
+          items:
+            $ref: "#/components/schemas/CreditGrantBalance"
+    CreditReset:
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/credit
+      x-go-type: credit.Reset
+      type: object
+      description: |
+        Credit reset configuration.
+      required:
+        - id
+        - subject
+        - effectiveAt
+      properties:
+        id:
+          description: |
+            Readonly unique ULID identifier of the reset.
+          readOnly: true
+          type: string
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+        subject:
+          description: |
+            The subject to reset the credit for.
+          type: string
+          example: customer-id
+        effectiveAt:
+          description: |
+            The time to reset the credit. It cannot be in the future.
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+    CreditGrantBalance:
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/credit
+      x-go-type: credit.GrantBalance
+      allOf:
+        - $ref: "#/components/schemas/CreditGrant"
+        - type: object
+          properties:
+            balance:
+              description: |
+                The balance of the grant.
+              type: number
+              example: 100
+    ProductBalance:
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/credit
+      x-go-type: credit.ProductBalance
+      allOf:
+        - $ref: "#/components/schemas/Product"
+        - type: object
+          properties:
+            balance:
+              description: |
+                The balance of the product.
+              type: number
+              example: 100
+    CreditGrant:
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/credit
+      x-go-type: credit.Grant
+      type: object
+      description: |
+        Grants are used to increase balance of specific subjects.
+      required:
+        - id
+        - subject
+        - type
+        - amount
+        - productId
+        - effectiveAt
+        - expiration
+      properties:
+        id:
+          description: |
+            Readonly unique ULID identifier of the grant.
+          readOnly: true
+          type: string
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+        subject:
+          description: |
+            The subject to grant the amount to.
+          type: string
+          example: customer-id
+        type:
+          $ref: "#/components/schemas/CreditGrantType"
+        amount:
+          description: |
+            The amount to grant. Can be positive or negative number.
+          type: number
+          example: 100
+        productId:
+          description: |
+            The unique product ULID that the grant is associated with, if any.
+          type: string
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+        priority:
+          description: |
+            The priority of the grant. Grants with higher priority are applied first.
+            Priority is a positive decimal numbers. With lower numbers indicating higher importance.
+            For example, a priority of 1 is more urgent than a priority of 2.
+            When there are several grants available for the same subject, the system selects the grant with the highest priority.
+            In cases where credit grants share the same priority level, the grant closest to its expiration will be used first.
+            In the case of two credits have identical priorities and expiration dates, the system will use the grant that was created first.
+          type: integer
+          minimum: 1
+          maximum: 255
+          default: 1
+          example: 1
+        effectiveAt:
+          description: |
+            The effective date.
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        expiresAt:
+          readOnly: false
+          description: |
+            The expiration date of the grant.
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        expiration:
+          writeOnly: true
+          allOf:
+            - $ref: "#/components/schemas/CreditExpirationPeriod"
+        rollover:
+          $ref: "#/components/schemas/CreditGrantRollover"
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
+    CreditGrantType:
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/credit
+      x-go-type: credit.GrantType
+      description: |
+        The grant type:
+        - `USAGE` - Increase balance by the amount in the unit of the associated meter.
+      type: string
+      enum:
+        - USAGE
+      example: USAGE
+    CreditGrantRollover:
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/credit
+      x-go-type: credit.GrantRollover
+      type: object
+      description: |
+        Grant rollover configuration.
+      required:
+        - type
+      properties:
+        type:
+          $ref: "#/components/schemas/CreditGrantRolloverType"
+        maxAmount:
+          description: |
+            Maximum amount to rollover.
+          type: number
+    CreditGrantRolloverType:
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/credit
+      x-go-type: credit.GrantRolloverType
+      description: |
+        The rollover type to use:
+        - `REMAINING_AMOUNT` - Rollover remaining amount.
+        - `ORIGINAL_AMOUNT` - Rollover re-applies the full grant amount.
+      type: string
+      enum:
+        - REMAINING_AMOUNT
+        - ORIGINAL_AMOUNT
+      example: ORIGINAL_AMOUNT
+    CreditExpirationPeriod:
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/pkg/credit
+      x-go-type: credit.ExpirationPeriod
+      type: object
+      description: |
+        Expiration period of a credit grant.
+      required:
+        - duration
+        - count
+      properties:
+        duration:
+          x-go-type-import:
+            path: github.com/openmeterio/openmeter/pkg/credit
+          x-go-type: credit.ExpirationPeriodDuration
+          description: |
+            The expiration period duration like month.
+          type: string
+          enum:
+            - HOUR
+            - DAY
+            - WEEK
+            - MONTH
+            - YEAR
+        count:
+          description: |
+            The expiration period count like 12 months.
+          type: integer
+          example: 12
     Meter:
       type: object
       description: A meter is a configuration that defines how to match and aggregate events.
@@ -1086,6 +1725,22 @@ components:
       schema:
         type: string
         example: "customer-id"
+    productId:
+      name: productId
+      description: A unique ULID identifier for a product.
+      in: path
+      required: true
+      schema:
+        type: string
+        example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    creditGrantId:
+      name: creditGrantId
+      description: A unique identifier for a credit grant.
+      in: path
+      required: true
+      schema:
+        type: string
+        example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
     queryFrom:
       name: from
       in: query

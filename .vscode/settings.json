@@ -1,5 +1,8 @@
 {
-    "[helm]": {
-        "editor.formatOnSave": false
-    }
+  "[helm]": {
+    "editor.formatOnSave": false
+  },
+  "go.testEnvVars": {
+    "TZ": "UTC"
+  }
 }
