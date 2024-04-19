@@ -48,3 +48,9 @@ meters:
     groupBy:
       method: $.method
       path: $.path
+  - slug: credit_test_meter
+    description: Meter for testing credit
+    eventType: credit_event
+    aggregation: COUNT
+    groupBy:
+      model: $.model
