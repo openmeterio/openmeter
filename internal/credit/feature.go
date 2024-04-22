@@ -16,8 +16,8 @@ func (e *FeatureNotFoundError) Error() string {
 // Feature is a feature or service offered to a customer.
 // For example: CPU-Hours, Tokens, API Calls, etc.
 type Feature struct {
-	Namespace string  `json:"namespace"`
-	ID        *string `json:"id"`
+	Namespace string  `json:"-"`
+	ID        *string `json:"id,omitempty"`
 
 	// Name The name of the feature.
 	Name string `json:"name"`
@@ -28,7 +28,8 @@ type Feature struct {
 	// MeterGroupByFilters Optional meter group by filters. Useful if the meter scope is broader than what feature tracks.
 	MeterGroupByFilters *map[string]string `json:"meterGroupByFilters,omitempty"`
 
-	Archived bool `json:"archived"`
+	// Read-only fields
+	Archived *bool `json:"archived,omitempty"`
 }
 
 // Render implements the chi renderer interface.

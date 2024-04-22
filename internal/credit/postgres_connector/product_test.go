@@ -87,7 +87,7 @@ func TestFeature(t *testing.T) {
 				// assert
 				p, err = connector.GetFeature(ctx, namespace, *p.ID)
 				assert.NoError(t, err)
-				assert.True(t, p.Archived)
+				assert.True(t, *p.Archived)
 			},
 		},
 		{
