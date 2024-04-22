@@ -14,3 +14,9 @@ OpenMeter Credits can help to implement:
 ## Quickstart
 
 Run docker compose with `--profile postgres` and enable credits in `config.yaml` via `credits: true`
+
+## Test
+
+Credit tests require a Postgres database. The recommended way to run tests is to use `make test`, which runs the necessary dependencies via Dagger.
+If you need to iterate on credit tests quickly, you can run your own Postgres instance (or use the one run by docker-compose)
+and run  tests manually as: `POSTGRES_HOST=localhost go test ./internal/credit/...`
