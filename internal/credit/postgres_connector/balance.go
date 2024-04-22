@@ -9,10 +9,9 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
+	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/streaming"
-	credit_model "github.com/openmeterio/openmeter/pkg/credit"
 	"github.com/openmeterio/openmeter/pkg/models"
-	product_model "github.com/openmeterio/openmeter/pkg/product"
 )
 
 type balanceQueryPeriod struct {
@@ -55,8 +54,8 @@ func (a *PostgresConnector) getBalance(
 		return credit_model.Balance{}, ledgerEntries, fmt.Errorf("list grants: %w", err)
 	}
 
-	// Get products in grants
-	products := map[string]product_model.Product{}
+	// Get features in grants
+	features := map[string]credit_model.Feature{}
 	for _, grant := range grants {
 		if grant.Void {
 			ledgerEntries.AddVoidGrant(grant)
@@ -65,23 +64,23 @@ func (a *PostgresConnector) getBalance(
 
 		ledgerEntries.AddGrant(grant)
 
-		if grant.ProductID != nil {
-			productID := *grant.ProductID
-			if _, ok := products[productID]; !ok {
-				product, err := a.GetProduct(ctx, namespace, productID)
+		if grant.FeatureID != nil {
+			featureID := *grant.FeatureID
+			if _, ok := features[featureID]; !ok {
+				feature, err := a.GetFeature(ctx, namespace, featureID)
 				if err != nil {
-					return credit_model.Balance{}, ledgerEntries, fmt.Errorf("get product: %w", err)
+					return credit_model.Balance{}, ledgerEntries, fmt.Errorf("get feature: %w", err)
 				}
-				products[productID] = product
+				features[featureID] = feature
 			}
 		}
 	}
 
-	// Get meters for products
+	// Get meters for features
 	// TODO: after we use Ent we can fetch the two together
 	meters := map[string]models.Meter{}
-	for _, product := range products {
-		meterSlug := product.MeterSlug
+	for _, feature := range features {
+		meterSlug := feature.MeterSlug
 		if _, ok := meters[meterSlug]; !ok {
 			meter, err := a.meterRepository.GetMeterByIDOrSlug(ctx, namespace, meterSlug)
 			if err != nil {
@@ -138,7 +137,7 @@ func (a *PostgresConnector) getBalance(
 
 	// The correct order to burn down grants is:
 	// 1. Grants with higher priority are burned down first
-	// 2. Grants with product has higher priority
+	// 2. Grants with feature has higher priority
 	// 3. Grants with earlier expiration date are burned down first
 
 	// 3. Grants with earlier expiration date are burned down first
@@ -146,15 +145,15 @@ func (a *PostgresConnector) getBalance(
 		return grantBalances[i].ExpirationDate().Unix() < grantBalances[j].ExpirationDate().Unix()
 	})
 
-	// 2. Order grant balances by product
-	// grants with product are applied first
+	// 2. Order grant balances by feature
+	// grants with feature are applied first
 	sort.Slice(grantBalances, func(i, j int) bool {
 		a := 1
 		b := 1
-		if grantBalances[i].ProductID != nil {
+		if grantBalances[i].FeatureID != nil {
 			a = 0
 		}
-		if grantBalances[j].ProductID != nil {
+		if grantBalances[j].FeatureID != nil {
 			b = 0
 		}
 
@@ -172,7 +171,7 @@ func (a *PostgresConnector) getBalance(
 		carryOverAmount := map[string]float64{}
 
 		for i := range grantBalances {
-			var product *product_model.Product
+			var feature *credit_model.Feature
 			grantBalance := &grantBalances[i]
 
 			// Skip grants that does not apply to this period
@@ -184,23 +183,23 @@ func (a *PostgresConnector) getBalance(
 				continue
 			}
 
-			// Grants without product are not implemented yet
-			if grantBalance.ProductID == nil {
-				return credit_model.Balance{}, ledgerEntries, fmt.Errorf("not implemented: grants without product")
+			// Grants without feature are not implemented yet
+			if grantBalance.FeatureID == nil {
+				return credit_model.Balance{}, ledgerEntries, fmt.Errorf("not implemented: grants without feature")
 			}
 
-			// Get product
-			if _, ok := products[*grantBalance.ProductID]; !ok {
-				return credit_model.Balance{}, ledgerEntries, fmt.Errorf("product not found: %s", *grantBalance.ProductID)
+			// Get feature
+			if _, ok := features[*grantBalance.FeatureID]; !ok {
+				return credit_model.Balance{}, ledgerEntries, fmt.Errorf("feature not found: %s", *grantBalance.FeatureID)
 			}
-			p := products[*grantBalance.ProductID]
-			product = &p
+			p := features[*grantBalance.FeatureID]
+			feature = &p
 
 			// Get meter
-			if _, ok := meters[product.MeterSlug]; !ok {
-				return credit_model.Balance{}, ledgerEntries, fmt.Errorf("meter not found: %s", product.MeterSlug)
+			if _, ok := meters[feature.MeterSlug]; !ok {
+				return credit_model.Balance{}, ledgerEntries, fmt.Errorf("meter not found: %s", feature.MeterSlug)
 			}
-			meter := meters[product.MeterSlug]
+			meter := meters[feature.MeterSlug]
 
 			// Usage query params for the meter
 			queryParams := &streaming.QueryParams{
@@ -210,16 +209,16 @@ func (a *PostgresConnector) getBalance(
 			queryParams.To = &period.To
 			queryParams.Aggregation = meter.Aggregation
 
-			if product.MeterGroupByFilters != nil {
+			if feature.MeterGroupByFilters != nil {
 				queryParams.FilterGroupBy = map[string][]string{}
-				for k, v := range *product.MeterGroupByFilters {
+				for k, v := range *feature.MeterGroupByFilters {
 					queryParams.FilterGroupBy[k] = []string{v}
 				}
 			}
 
 			var amount float64 = 0
 
-			// Query cache helps to minimize the number of usage queries between different products with the same meter and group by filters
+			// Query cache helps to minimize the number of usage queries between different features with the same meter and group by filters
 			queryCacheKey := queryKeyByParams(meter.Slug, queryParams.FilterGroupBy)
 			if _, ok := queryCache[queryCacheKey]; !ok {
 				// Query usage
@@ -240,7 +239,7 @@ func (a *PostgresConnector) getBalance(
 			}
 
 			// Add carry over from previous grant if any, otherwise use the full amount from the query
-			carryOverKey := fmt.Sprintf("%s-%s", queryCacheKey, *product.ID)
+			carryOverKey := fmt.Sprintf("%s-%s", queryCacheKey, *feature.ID)
 			if val, ok := carryOverAmount[carryOverKey]; ok {
 				amount += val
 			} else {
@@ -275,35 +274,35 @@ func (a *PostgresConnector) getBalance(
 		}
 	}
 
-	// Aggregate grant balances by product
-	productBalancesMap := map[string]credit_model.ProductBalance{}
+	// Aggregate grant balances by feature
+	featureBalancesMap := map[string]credit_model.FeatureBalance{}
 	for _, grantBalance := range grantBalances {
-		if grantBalance.ProductID == nil {
+		if grantBalance.FeatureID == nil {
 			continue
 		}
-		productId := *grantBalance.ProductID
-		product := products[productId]
+		featureId := *grantBalance.FeatureID
+		feature := features[featureId]
 
-		if productBalance, ok := productBalancesMap[productId]; ok {
-			productBalance.Balance += grantBalance.Balance
-			productBalancesMap[productId] = productBalance
+		if featureBalance, ok := featureBalancesMap[featureId]; ok {
+			featureBalance.Balance += grantBalance.Balance
+			featureBalancesMap[featureId] = featureBalance
 		} else {
-			productBalancesMap[productId] = credit_model.ProductBalance{
-				Product: product,
+			featureBalancesMap[featureId] = credit_model.FeatureBalance{
+				Feature: feature,
 				Balance: grantBalance.Balance,
 			}
 		}
 	}
 
 	// Convert map to slice
-	productBalances := []credit_model.ProductBalance{}
-	for _, productBalance := range productBalancesMap {
-		productBalances = append(productBalances, productBalance)
+	featureBalances := []credit_model.FeatureBalance{}
+	for _, featureBalance := range featureBalancesMap {
+		featureBalances = append(featureBalances, featureBalance)
 	}
 
 	return credit_model.Balance{
 		Subject:         subject,
-		ProductBalances: productBalances,
+		FeatureBalances: featureBalances,
 		GrantBalances:   grantBalances,
 	}, ledgerEntries, nil
 }

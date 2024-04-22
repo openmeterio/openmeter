@@ -21,7 +21,7 @@ type Configuration struct {
 	Telemetry TelemetryConfig
 
 	Aggregation AggregationConfiguration
-	Credits     CreditsConfig
+	Credits     CreditsConfiguration
 	Dedupe      DedupeConfiguration
 	Ingest      IngestConfiguration
 	Meters      []*models.Meter

@@ -12,9 +12,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/product"
-	"github.com/openmeterio/openmeter/pkg/credit"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
 )
 
 // CreditEntryCreate is the builder for creating a CreditEntry entity.
@@ -85,16 +85,16 @@ func (cec *CreditEntryCreate) SetNillableType(ct *credit.GrantType) *CreditEntry
 	return cec
 }
 
-// SetProductID sets the "product_id" field.
-func (cec *CreditEntryCreate) SetProductID(s string) *CreditEntryCreate {
-	cec.mutation.SetProductID(s)
+// SetFeatureID sets the "feature_id" field.
+func (cec *CreditEntryCreate) SetFeatureID(s string) *CreditEntryCreate {
+	cec.mutation.SetFeatureID(s)
 	return cec
 }
 
-// SetNillableProductID sets the "product_id" field if the given value is not nil.
-func (cec *CreditEntryCreate) SetNillableProductID(s *string) *CreditEntryCreate {
+// SetNillableFeatureID sets the "feature_id" field if the given value is not nil.
+func (cec *CreditEntryCreate) SetNillableFeatureID(s *string) *CreditEntryCreate {
 	if s != nil {
-		cec.SetProductID(*s)
+		cec.SetFeatureID(*s)
 	}
 	return cec
 }
@@ -255,9 +255,9 @@ func (cec *CreditEntryCreate) SetChildren(c *CreditEntry) *CreditEntryCreate {
 	return cec.SetChildrenID(c.ID)
 }
 
-// SetProduct sets the "product" edge to the Product entity.
-func (cec *CreditEntryCreate) SetProduct(p *Product) *CreditEntryCreate {
-	return cec.SetProductID(p.ID)
+// SetFeature sets the "feature" edge to the Feature entity.
+func (cec *CreditEntryCreate) SetFeature(f *Feature) *CreditEntryCreate {
+	return cec.SetFeatureID(f.ID)
 }
 
 // Mutation returns the CreditEntryMutation object of the builder.
@@ -495,21 +495,21 @@ func (cec *CreditEntryCreate) createSpec() (*CreditEntry, *sqlgraph.CreateSpec) 
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := cec.mutation.ProductIDs(); len(nodes) > 0 {
+	if nodes := cec.mutation.FeatureIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   creditentry.ProductTable,
-			Columns: []string{creditentry.ProductColumn},
+			Table:   creditentry.FeatureTable,
+			Columns: []string{creditentry.FeatureColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(product.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(feature.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.ProductID = &nodes[0]
+		_node.FeatureID = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -626,8 +626,8 @@ func (u *CreditEntryUpsertOne) UpdateNewValues() *CreditEntryUpsertOne {
 		if _, exists := u.create.mutation.GetType(); exists {
 			s.SetIgnore(creditentry.FieldType)
 		}
-		if _, exists := u.create.mutation.ProductID(); exists {
-			s.SetIgnore(creditentry.FieldProductID)
+		if _, exists := u.create.mutation.FeatureID(); exists {
+			s.SetIgnore(creditentry.FieldFeatureID)
 		}
 		if _, exists := u.create.mutation.Amount(); exists {
 			s.SetIgnore(creditentry.FieldAmount)
@@ -917,8 +917,8 @@ func (u *CreditEntryUpsertBulk) UpdateNewValues() *CreditEntryUpsertBulk {
 			if _, exists := b.mutation.GetType(); exists {
 				s.SetIgnore(creditentry.FieldType)
 			}
-			if _, exists := b.mutation.ProductID(); exists {
-				s.SetIgnore(creditentry.FieldProductID)
+			if _, exists := b.mutation.FeatureID(); exists {
+				s.SetIgnore(creditentry.FieldFeatureID)
 			}
 			if _, exists := b.mutation.Amount(); exists {
 				s.SetIgnore(creditentry.FieldAmount)

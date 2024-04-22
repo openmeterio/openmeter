@@ -10,9 +10,9 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/product"
-	"github.com/openmeterio/openmeter/pkg/credit"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
 )
 
 // CreditEntry is the model entity for the CreditEntry schema.
@@ -32,8 +32,8 @@ type CreditEntry struct {
 	EntryType credit.EntryType `json:"entry_type,omitempty"`
 	// Type holds the value of the "type" field.
 	Type *credit.GrantType `json:"type,omitempty"`
-	// ProductID holds the value of the "product_id" field.
-	ProductID *string `json:"product_id,omitempty"`
+	// FeatureID holds the value of the "feature_id" field.
+	FeatureID *string `json:"feature_id,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount *float64 `json:"amount,omitempty"`
 	// Priority holds the value of the "priority" field.
@@ -64,8 +64,8 @@ type CreditEntryEdges struct {
 	Parent *CreditEntry `json:"parent,omitempty"`
 	// Children holds the value of the children edge.
 	Children *CreditEntry `json:"children,omitempty"`
-	// Product holds the value of the product edge.
-	Product *Product `json:"product,omitempty"`
+	// Feature holds the value of the feature edge.
+	Feature *Feature `json:"feature,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [3]bool
@@ -93,15 +93,15 @@ func (e CreditEntryEdges) ChildrenOrErr() (*CreditEntry, error) {
 	return nil, &NotLoadedError{edge: "children"}
 }
 
-// ProductOrErr returns the Product value or an error if the edge
+// FeatureOrErr returns the Feature value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
-func (e CreditEntryEdges) ProductOrErr() (*Product, error) {
-	if e.Product != nil {
-		return e.Product, nil
+func (e CreditEntryEdges) FeatureOrErr() (*Feature, error) {
+	if e.Feature != nil {
+		return e.Feature, nil
 	} else if e.loadedTypes[2] {
-		return nil, &NotFoundError{label: product.Label}
+		return nil, &NotFoundError{label: feature.Label}
 	}
-	return nil, &NotLoadedError{edge: "product"}
+	return nil, &NotLoadedError{edge: "feature"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -115,7 +115,7 @@ func (*CreditEntry) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullFloat64)
 		case creditentry.FieldPriority, creditentry.FieldExpirationPeriodCount:
 			values[i] = new(sql.NullInt64)
-		case creditentry.FieldID, creditentry.FieldNamespace, creditentry.FieldSubject, creditentry.FieldEntryType, creditentry.FieldType, creditentry.FieldProductID, creditentry.FieldExpirationPeriodDuration, creditentry.FieldRolloverType, creditentry.FieldParentID:
+		case creditentry.FieldID, creditentry.FieldNamespace, creditentry.FieldSubject, creditentry.FieldEntryType, creditentry.FieldType, creditentry.FieldFeatureID, creditentry.FieldExpirationPeriodDuration, creditentry.FieldRolloverType, creditentry.FieldParentID:
 			values[i] = new(sql.NullString)
 		case creditentry.FieldCreatedAt, creditentry.FieldUpdatedAt, creditentry.FieldEffectiveAt:
 			values[i] = new(sql.NullTime)
@@ -177,12 +177,12 @@ func (ce *CreditEntry) assignValues(columns []string, values []any) error {
 				ce.Type = new(credit.GrantType)
 				*ce.Type = credit.GrantType(value.String)
 			}
-		case creditentry.FieldProductID:
+		case creditentry.FieldFeatureID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field product_id", values[i])
+				return fmt.Errorf("unexpected type %T for field feature_id", values[i])
 			} else if value.Valid {
-				ce.ProductID = new(string)
-				*ce.ProductID = value.String
+				ce.FeatureID = new(string)
+				*ce.FeatureID = value.String
 			}
 		case creditentry.FieldAmount:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
@@ -269,9 +269,9 @@ func (ce *CreditEntry) QueryChildren() *CreditEntryQuery {
 	return NewCreditEntryClient(ce.config).QueryChildren(ce)
 }
 
-// QueryProduct queries the "product" edge of the CreditEntry entity.
-func (ce *CreditEntry) QueryProduct() *ProductQuery {
-	return NewCreditEntryClient(ce.config).QueryProduct(ce)
+// QueryFeature queries the "feature" edge of the CreditEntry entity.
+func (ce *CreditEntry) QueryFeature() *FeatureQuery {
+	return NewCreditEntryClient(ce.config).QueryFeature(ce)
 }
 
 // Update returns a builder for updating this CreditEntry.
@@ -317,8 +317,8 @@ func (ce *CreditEntry) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := ce.ProductID; v != nil {
-		builder.WriteString("product_id=")
+	if v := ce.FeatureID; v != nil {
+		builder.WriteString("feature_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

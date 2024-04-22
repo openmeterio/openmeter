@@ -10,11 +10,11 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/product"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
 )
 
-// Product is the model entity for the Product schema.
-type Product struct {
+// Feature is the model entity for the Feature schema.
+type Feature struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
@@ -33,13 +33,13 @@ type Product struct {
 	// Archived holds the value of the "archived" field.
 	Archived bool `json:"archived,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
-	// The values are being populated by the ProductQuery when eager-loading is set.
-	Edges        ProductEdges `json:"edges"`
+	// The values are being populated by the FeatureQuery when eager-loading is set.
+	Edges        FeatureEdges `json:"edges"`
 	selectValues sql.SelectValues
 }
 
-// ProductEdges holds the relations/edges for other nodes in the graph.
-type ProductEdges struct {
+// FeatureEdges holds the relations/edges for other nodes in the graph.
+type FeatureEdges struct {
 	// CreditGrants holds the value of the credit_grants edge.
 	CreditGrants []*CreditEntry `json:"credit_grants,omitempty"`
 	// loadedTypes holds the information for reporting if a
@@ -49,7 +49,7 @@ type ProductEdges struct {
 
 // CreditGrantsOrErr returns the CreditGrants value or an error if the edge
 // was not loaded in eager-loading.
-func (e ProductEdges) CreditGrantsOrErr() ([]*CreditEntry, error) {
+func (e FeatureEdges) CreditGrantsOrErr() ([]*CreditEntry, error) {
 	if e.loadedTypes[0] {
 		return e.CreditGrants, nil
 	}
@@ -57,17 +57,17 @@ func (e ProductEdges) CreditGrantsOrErr() ([]*CreditEntry, error) {
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
-func (*Product) scanValues(columns []string) ([]any, error) {
+func (*Feature) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case product.FieldMeterGroupByFilters:
+		case feature.FieldMeterGroupByFilters:
 			values[i] = new([]byte)
-		case product.FieldArchived:
+		case feature.FieldArchived:
 			values[i] = new(sql.NullBool)
-		case product.FieldID, product.FieldNamespace, product.FieldName, product.FieldMeterSlug:
+		case feature.FieldID, feature.FieldNamespace, feature.FieldName, feature.FieldMeterSlug:
 			values[i] = new(sql.NullString)
-		case product.FieldCreatedAt, product.FieldUpdatedAt:
+		case feature.FieldCreatedAt, feature.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -77,127 +77,127 @@ func (*Product) scanValues(columns []string) ([]any, error) {
 }
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
-// to the Product fields.
-func (pr *Product) assignValues(columns []string, values []any) error {
+// to the Feature fields.
+func (f *Feature) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
 	for i := range columns {
 		switch columns[i] {
-		case product.FieldID:
+		case feature.FieldID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
-				pr.ID = value.String
+				f.ID = value.String
 			}
-		case product.FieldCreatedAt:
+		case feature.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				pr.CreatedAt = value.Time
+				f.CreatedAt = value.Time
 			}
-		case product.FieldUpdatedAt:
+		case feature.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
-				pr.UpdatedAt = value.Time
+				f.UpdatedAt = value.Time
 			}
-		case product.FieldNamespace:
+		case feature.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
-				pr.Namespace = value.String
+				f.Namespace = value.String
 			}
-		case product.FieldName:
+		case feature.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
-				pr.Name = value.String
+				f.Name = value.String
 			}
-		case product.FieldMeterSlug:
+		case feature.FieldMeterSlug:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field meter_slug", values[i])
 			} else if value.Valid {
-				pr.MeterSlug = value.String
+				f.MeterSlug = value.String
 			}
-		case product.FieldMeterGroupByFilters:
+		case feature.FieldMeterGroupByFilters:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field meter_group_by_filters", values[i])
 			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &pr.MeterGroupByFilters); err != nil {
+				if err := json.Unmarshal(*value, &f.MeterGroupByFilters); err != nil {
 					return fmt.Errorf("unmarshal field meter_group_by_filters: %w", err)
 				}
 			}
-		case product.FieldArchived:
+		case feature.FieldArchived:
 			if value, ok := values[i].(*sql.NullBool); !ok {
 				return fmt.Errorf("unexpected type %T for field archived", values[i])
 			} else if value.Valid {
-				pr.Archived = value.Bool
+				f.Archived = value.Bool
 			}
 		default:
-			pr.selectValues.Set(columns[i], values[i])
+			f.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
 }
 
-// Value returns the ent.Value that was dynamically selected and assigned to the Product.
+// Value returns the ent.Value that was dynamically selected and assigned to the Feature.
 // This includes values selected through modifiers, order, etc.
-func (pr *Product) Value(name string) (ent.Value, error) {
-	return pr.selectValues.Get(name)
+func (f *Feature) Value(name string) (ent.Value, error) {
+	return f.selectValues.Get(name)
 }
 
-// QueryCreditGrants queries the "credit_grants" edge of the Product entity.
-func (pr *Product) QueryCreditGrants() *CreditEntryQuery {
-	return NewProductClient(pr.config).QueryCreditGrants(pr)
+// QueryCreditGrants queries the "credit_grants" edge of the Feature entity.
+func (f *Feature) QueryCreditGrants() *CreditEntryQuery {
+	return NewFeatureClient(f.config).QueryCreditGrants(f)
 }
 
-// Update returns a builder for updating this Product.
-// Note that you need to call Product.Unwrap() before calling this method if this Product
+// Update returns a builder for updating this Feature.
+// Note that you need to call Feature.Unwrap() before calling this method if this Feature
 // was returned from a transaction, and the transaction was committed or rolled back.
-func (pr *Product) Update() *ProductUpdateOne {
-	return NewProductClient(pr.config).UpdateOne(pr)
+func (f *Feature) Update() *FeatureUpdateOne {
+	return NewFeatureClient(f.config).UpdateOne(f)
 }
 
-// Unwrap unwraps the Product entity that was returned from a transaction after it was closed,
+// Unwrap unwraps the Feature entity that was returned from a transaction after it was closed,
 // so that all future queries will be executed through the driver which created the transaction.
-func (pr *Product) Unwrap() *Product {
-	_tx, ok := pr.config.driver.(*txDriver)
+func (f *Feature) Unwrap() *Feature {
+	_tx, ok := f.config.driver.(*txDriver)
 	if !ok {
-		panic("db: Product is not a transactional entity")
+		panic("db: Feature is not a transactional entity")
 	}
-	pr.config.driver = _tx.drv
-	return pr
+	f.config.driver = _tx.drv
+	return f
 }
 
 // String implements the fmt.Stringer.
-func (pr *Product) String() string {
+func (f *Feature) String() string {
 	var builder strings.Builder
-	builder.WriteString("Product(")
-	builder.WriteString(fmt.Sprintf("id=%v, ", pr.ID))
+	builder.WriteString("Feature(")
+	builder.WriteString(fmt.Sprintf("id=%v, ", f.ID))
 	builder.WriteString("created_at=")
-	builder.WriteString(pr.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(f.CreatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("updated_at=")
-	builder.WriteString(pr.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(f.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("namespace=")
-	builder.WriteString(pr.Namespace)
+	builder.WriteString(f.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("name=")
-	builder.WriteString(pr.Name)
+	builder.WriteString(f.Name)
 	builder.WriteString(", ")
 	builder.WriteString("meter_slug=")
-	builder.WriteString(pr.MeterSlug)
+	builder.WriteString(f.MeterSlug)
 	builder.WriteString(", ")
 	builder.WriteString("meter_group_by_filters=")
-	builder.WriteString(fmt.Sprintf("%v", pr.MeterGroupByFilters))
+	builder.WriteString(fmt.Sprintf("%v", f.MeterGroupByFilters))
 	builder.WriteString(", ")
 	builder.WriteString("archived=")
-	builder.WriteString(fmt.Sprintf("%v", pr.Archived))
+	builder.WriteString(fmt.Sprintf("%v", f.Archived))
 	builder.WriteByte(')')
 	return builder.String()
 }
 
-// Products is a parsable slice of Product.
-type Products []*Product
+// Features is a parsable slice of Feature.
+type Features []*Feature

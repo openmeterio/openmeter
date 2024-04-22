@@ -8,7 +8,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/openmeterio/openmeter/pkg/credit"
+	"github.com/openmeterio/openmeter/internal/credit"
 )
 
 const (
@@ -28,8 +28,8 @@ const (
 	FieldEntryType = "entry_type"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
-	// FieldProductID holds the string denoting the product_id field in the database.
-	FieldProductID = "product_id"
+	// FieldFeatureID holds the string denoting the feature_id field in the database.
+	FieldFeatureID = "feature_id"
 	// FieldAmount holds the string denoting the amount field in the database.
 	FieldAmount = "amount"
 	// FieldPriority holds the string denoting the priority field in the database.
@@ -52,8 +52,8 @@ const (
 	EdgeParent = "parent"
 	// EdgeChildren holds the string denoting the children edge name in mutations.
 	EdgeChildren = "children"
-	// EdgeProduct holds the string denoting the product edge name in mutations.
-	EdgeProduct = "product"
+	// EdgeFeature holds the string denoting the feature edge name in mutations.
+	EdgeFeature = "feature"
 	// Table holds the table name of the creditentry in the database.
 	Table = "credit_entries"
 	// ParentTable is the table that holds the parent relation/edge.
@@ -64,13 +64,13 @@ const (
 	ChildrenTable = "credit_entries"
 	// ChildrenColumn is the table column denoting the children relation/edge.
 	ChildrenColumn = "parent_id"
-	// ProductTable is the table that holds the product relation/edge.
-	ProductTable = "credit_entries"
-	// ProductInverseTable is the table name for the Product entity.
-	// It exists in this package in order to avoid circular dependency with the "product" package.
-	ProductInverseTable = "products"
-	// ProductColumn is the table column denoting the product relation/edge.
-	ProductColumn = "product_id"
+	// FeatureTable is the table that holds the feature relation/edge.
+	FeatureTable = "credit_entries"
+	// FeatureInverseTable is the table name for the Feature entity.
+	// It exists in this package in order to avoid circular dependency with the "feature" package.
+	FeatureInverseTable = "features"
+	// FeatureColumn is the table column denoting the feature relation/edge.
+	FeatureColumn = "feature_id"
 )
 
 // Columns holds all SQL columns for creditentry fields.
@@ -82,7 +82,7 @@ var Columns = []string{
 	FieldSubject,
 	FieldEntryType,
 	FieldType,
-	FieldProductID,
+	FieldFeatureID,
 	FieldAmount,
 	FieldPriority,
 	FieldEffectiveAt,
@@ -201,9 +201,9 @@ func ByType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldType, opts...).ToFunc()
 }
 
-// ByProductID orders the results by the product_id field.
-func ByProductID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldProductID, opts...).ToFunc()
+// ByFeatureID orders the results by the feature_id field.
+func ByFeatureID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeatureID, opts...).ToFunc()
 }
 
 // ByAmount orders the results by the amount field.
@@ -260,10 +260,10 @@ func ByChildrenField(field string, opts ...sql.OrderTermOption) OrderOption {
 	}
 }
 
-// ByProductField orders the results by product field.
-func ByProductField(field string, opts ...sql.OrderTermOption) OrderOption {
+// ByFeatureField orders the results by feature field.
+func ByFeatureField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newProductStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborTerms(s, newFeatureStep(), sql.OrderByField(field, opts...))
 	}
 }
 func newParentStep() *sqlgraph.Step {
@@ -280,10 +280,10 @@ func newChildrenStep() *sqlgraph.Step {
 		sqlgraph.Edge(sqlgraph.O2O, false, ChildrenTable, ChildrenColumn),
 	)
 }
-func newProductStep() *sqlgraph.Step {
+func newFeatureStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
-		sqlgraph.To(ProductInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, true, ProductTable, ProductColumn),
+		sqlgraph.To(FeatureInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, FeatureTable, FeatureColumn),
 	)
 }

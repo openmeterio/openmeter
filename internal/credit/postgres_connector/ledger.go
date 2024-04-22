@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
+	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	db_credit "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
-	credit_model "github.com/openmeterio/openmeter/pkg/credit"
 )
 
 func (a *PostgresConnector) GetLedger(

@@ -33,7 +33,7 @@ func TestConnector(t *testing.T) {
 	}{
 		{
 			name:        "ImplementsInterface",
-			description: "PostgresConnector implements product.Connector interface",
+			description: "PostgresConnector implements feature.Connector interface",
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
 				assert.Implements(t, (*credit_connector.Connector)(nil), connector)
 			},

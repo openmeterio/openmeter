@@ -8,20 +8,20 @@ import (
 	"entgo.io/ent/schema/index"
 )
 
-type Product struct {
+type Feature struct {
 	ent.Schema
 }
 
-// Mixin of the Product.
-func (Product) Mixin() []ent.Mixin {
+// Mixin of the Feature.
+func (Feature) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		IDMixin{},
 		TimeMixin{},
 	}
 }
 
-// Fields of the Product.
-func (Product) Fields() []ent.Field {
+// Fields of the Feature.
+func (Feature) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("namespace").NotEmpty().Immutable(),
 		field.String("name").NotEmpty(),
@@ -31,15 +31,15 @@ func (Product) Fields() []ent.Field {
 	}
 }
 
-// Indexes of the Product.
-func (Product) Indexes() []ent.Index {
+// Indexes of the Feature.
+func (Feature) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "id"),
 	}
 }
 
-// Edges of the Product define the relations to other entities.
-func (Product) Edges() []ent.Edge {
+// Edges of the Feature define the relations to other entities.
+func (Feature) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.
 			To("credit_grants", CreditEntry.Type).
