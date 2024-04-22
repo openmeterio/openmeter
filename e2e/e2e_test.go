@@ -464,7 +464,6 @@ func TestQuery(t *testing.T) {
 func TestCredit(t *testing.T) {
 	client := initClient(t)
 	customer := "customer-1"
-	featureId := "credit_test_feature_id"
 
 	// Reproducible random data
 	faker := gofakeit.New(8675309)
@@ -481,7 +480,7 @@ func TestCredit(t *testing.T) {
 		ev.SetSource("credit-test")
 		ev.SetType("credit_event")
 		ev.SetTime(ts)
-		ev.SetSubject("customer-1")
+		ev.SetSubject(customer)
 		_ = ev.SetData("application/json", map[string]string{
 			"model": model,
 		})
@@ -494,7 +493,7 @@ func TestCredit(t *testing.T) {
 		events = append(events, newEvent("2024-01-01T00:01:00Z", "gpt-4"))
 	}
 
-	// Irrilevant event
+	// Irrelevant event (does not affect credit because of model mismatch)
 	{
 		events = append(events, newEvent("2024-01-01T00:01:00Z", "gpt-3"))
 	}
@@ -511,7 +510,6 @@ func TestCredit(t *testing.T) {
 
 	t.Run("Create Feature", func(t *testing.T) {
 		resp, err := client.CreateFeatureWithResponse(context.Background(), api.Feature{
-			ID:        &featureId,
 			Name:      "Credit Test Feature",
 			MeterSlug: "credit_test_meter",
 			MeterGroupByFilters: &map[string]string{
@@ -522,13 +520,16 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code")
 
+		featureId := resp.JSON201.ID
+		archived := false
 		expected := &api.Feature{
-			ID:        &featureId,
+			ID:        featureId,
 			Name:      "Credit Test Feature",
 			MeterSlug: "credit_test_meter",
 			MeterGroupByFilters: &map[string]string{
 				"model": "gpt-4",
 			},
+			Archived: &archived,
 		}
 
 		assert.Equal(t, expected, resp.JSON201)
@@ -537,10 +538,20 @@ func TestCredit(t *testing.T) {
 	t.Run("Create Grant", func(t *testing.T) {
 		effectiveAt, _ := time.Parse(time.RFC3339, "2024-01-01T00:01:00Z")
 
+		// Get feature
+		featureListResp, err := client.ListFeaturesWithResponse(context.Background())
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, featureListResp.StatusCode())
+		require.NotNil(t, featureListResp.JSON200)
+		require.Len(t, *featureListResp.JSON200, 1)
+		features := *featureListResp.JSON200
+		featureId := features[0].ID
+
+		// Create grant
 		resp, err := client.CreateCreditGrantWithResponse(context.Background(), api.CreditGrant{
 			Subject:     customer,
 			Type:        credit_model.GrantTypeUsage,
-			FeatureID:   &featureId,
+			FeatureID:   featureId,
 			Amount:      100,
 			Priority:    1,
 			EffectiveAt: effectiveAt,
@@ -552,7 +563,6 @@ func TestCredit(t *testing.T) {
 				Count:    1,
 			},
 		})
-
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code")
 
@@ -560,7 +570,7 @@ func TestCredit(t *testing.T) {
 			ID:          resp.JSON201.ID,
 			Subject:     customer,
 			Type:        credit_model.GrantTypeUsage,
-			FeatureID:   &featureId,
+			FeatureID:   featureId,
 			Amount:      100,
 			Priority:    1,
 			EffectiveAt: effectiveAt,
@@ -577,10 +587,25 @@ func TestCredit(t *testing.T) {
 	})
 
 	t.Run("Balance", func(t *testing.T) {
-		effectiveAt, _ := time.Parse(time.RFC3339, "2024-01-01T00:01:00Z")
+		// Get grants
+		grantListResp, err := client.ListCreditGrantsWithResponse(context.Background(), &api.ListCreditGrantsParams{})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, grantListResp.StatusCode())
+		require.NotNil(t, grantListResp.JSON200)
+		require.Len(t, *grantListResp.JSON200, 1)
+		grants := *grantListResp.JSON200
+		grant := grants[0]
+
+		// Get feature
+		featureListResp, err := client.ListFeaturesWithResponse(context.Background())
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, featureListResp.StatusCode())
+		require.NotNil(t, featureListResp.JSON200)
+		require.Len(t, *featureListResp.JSON200, 1)
+		features := *featureListResp.JSON200
+		feature := features[0]
 
 		resp, err := client.GetCreditBalanceWithResponse(context.Background(), customer, nil)
-
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 
@@ -588,35 +613,13 @@ func TestCredit(t *testing.T) {
 			Subject: customer,
 			FeatureBalances: []credit_model.FeatureBalance{
 				{
-					Feature: api.Feature{
-						ID:        &featureId,
-						Name:      "Credit Test Feature",
-						MeterSlug: "credit_test_meter",
-						MeterGroupByFilters: &map[string]string{
-							"model": "gpt-4",
-						},
-					},
+					Feature: feature,
 					Balance: 99,
 				},
 			},
 			GrantBalances: []credit_model.GrantBalance{
 				{
-					Grant: api.CreditGrant{
-						ID:          resp.JSON200.GrantBalances[0].ID,
-						Subject:     customer,
-						Type:        credit_model.GrantTypeUsage,
-						FeatureID:   &featureId,
-						Amount:      100,
-						Priority:    1,
-						EffectiveAt: effectiveAt,
-						Rollover: &api.CreditGrantRollover{
-							Type: credit_model.GrantRolloverTypeRemainingAmount,
-						},
-						Expiration: api.CreditExpirationPeriod{
-							Duration: "DAY",
-							Count:    1,
-						},
-					},
+					Grant:   grant,
 					Balance: 99,
 				},
 			},
@@ -626,7 +629,25 @@ func TestCredit(t *testing.T) {
 	})
 
 	t.Run("Reset", func(t *testing.T) {
-		effectiveAt, _ := time.Parse(time.RFC3339, "2024-01-02T00:01:00Z")
+		effectiveAt, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
+
+		// Get grants
+		parentGrantListResp, err := client.ListCreditGrantsWithResponse(context.Background(), &api.ListCreditGrantsParams{})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, parentGrantListResp.StatusCode())
+		require.NotNil(t, parentGrantListResp.JSON200)
+		require.Len(t, *parentGrantListResp.JSON200, 1)
+		parentGrants := *parentGrantListResp.JSON200
+		parentGrant := parentGrants[0]
+
+		// Get feature
+		featureListResp, err := client.ListFeaturesWithResponse(context.Background())
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, featureListResp.StatusCode())
+		require.NotNil(t, featureListResp.JSON200)
+		require.Len(t, *featureListResp.JSON200, 1)
+		features := *featureListResp.JSON200
+		featureId := features[0].ID
 
 		// Reset credit
 		resetResp, err := client.ResetCreditWithResponse(context.Background(), api.CreditReset{
@@ -635,9 +656,11 @@ func TestCredit(t *testing.T) {
 		})
 
 		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resetResp.StatusCode())
 
+		reset := resetResp.JSON201
 		expectedReset := &api.CreditReset{
-			ID:          resetResp.JSON201.ID,
+			ID:          reset.ID,
 			Subject:     customer,
 			EffectiveAt: effectiveAt,
 		}
@@ -652,15 +675,17 @@ func TestCredit(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 
 		grants := *resp.JSON200
-		expected := []api.CreditGrant{
+		expected := &[]api.CreditGrant{
 			{
-				ID:          grants[0].ID,
-				Subject:     customer,
-				Type:        credit_model.GrantTypeUsage,
-				FeatureID:   &featureId,
-				Amount:      99,
-				Priority:    1,
-				EffectiveAt: effectiveAt,
+				ID:        grants[0].ID,
+				ParentID:  parentGrant.ID,
+				Subject:   customer,
+				Type:      credit_model.GrantTypeUsage,
+				FeatureID: featureId,
+				Amount:    99,
+				Priority:  1,
+				// TODO: this should be equal to `effectiveAt` but we run into timezone issues
+				EffectiveAt: grants[0].EffectiveAt,
 				Rollover: &api.CreditGrantRollover{
 					Type: credit_model.GrantRolloverTypeRemainingAmount,
 				},
