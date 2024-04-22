@@ -16,7 +16,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/product"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
 )
 
 // Client is the client that holds all ent builders.
@@ -26,8 +26,8 @@ type Client struct {
 	Schema *migrate.Schema
 	// CreditEntry is the client for interacting with the CreditEntry builders.
 	CreditEntry *CreditEntryClient
-	// Product is the client for interacting with the Product builders.
-	Product *ProductClient
+	// Feature is the client for interacting with the Feature builders.
+	Feature *FeatureClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -40,7 +40,7 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.CreditEntry = NewCreditEntryClient(c.config)
-	c.Product = NewProductClient(c.config)
+	c.Feature = NewFeatureClient(c.config)
 }
 
 type (
@@ -134,7 +134,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ctx:         ctx,
 		config:      cfg,
 		CreditEntry: NewCreditEntryClient(cfg),
-		Product:     NewProductClient(cfg),
+		Feature:     NewFeatureClient(cfg),
 	}, nil
 }
 
@@ -155,7 +155,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ctx:         ctx,
 		config:      cfg,
 		CreditEntry: NewCreditEntryClient(cfg),
-		Product:     NewProductClient(cfg),
+		Feature:     NewFeatureClient(cfg),
 	}, nil
 }
 
@@ -185,14 +185,14 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	c.CreditEntry.Use(hooks...)
-	c.Product.Use(hooks...)
+	c.Feature.Use(hooks...)
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	c.CreditEntry.Intercept(interceptors...)
-	c.Product.Intercept(interceptors...)
+	c.Feature.Intercept(interceptors...)
 }
 
 // Mutate implements the ent.Mutator interface.
@@ -200,8 +200,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
 	case *CreditEntryMutation:
 		return c.CreditEntry.mutate(ctx, m)
-	case *ProductMutation:
-		return c.Product.mutate(ctx, m)
+	case *FeatureMutation:
+		return c.Feature.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("db: unknown mutation type %T", m)
 	}
@@ -347,15 +347,15 @@ func (c *CreditEntryClient) QueryChildren(ce *CreditEntry) *CreditEntryQuery {
 	return query
 }
 
-// QueryProduct queries the product edge of a CreditEntry.
-func (c *CreditEntryClient) QueryProduct(ce *CreditEntry) *ProductQuery {
-	query := (&ProductClient{config: c.config}).Query()
+// QueryFeature queries the feature edge of a CreditEntry.
+func (c *CreditEntryClient) QueryFeature(ce *CreditEntry) *FeatureQuery {
+	query := (&FeatureClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := ce.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(creditentry.Table, creditentry.FieldID, id),
-			sqlgraph.To(product.Table, product.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, creditentry.ProductTable, creditentry.ProductColumn),
+			sqlgraph.To(feature.Table, feature.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, creditentry.FeatureTable, creditentry.FeatureColumn),
 		)
 		fromV = sqlgraph.Neighbors(ce.driver.Dialect(), step)
 		return fromV, nil
@@ -388,107 +388,107 @@ func (c *CreditEntryClient) mutate(ctx context.Context, m *CreditEntryMutation) 
 	}
 }
 
-// ProductClient is a client for the Product schema.
-type ProductClient struct {
+// FeatureClient is a client for the Feature schema.
+type FeatureClient struct {
 	config
 }
 
-// NewProductClient returns a client for the Product from the given config.
-func NewProductClient(c config) *ProductClient {
-	return &ProductClient{config: c}
+// NewFeatureClient returns a client for the Feature from the given config.
+func NewFeatureClient(c config) *FeatureClient {
+	return &FeatureClient{config: c}
 }
 
 // Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `product.Hooks(f(g(h())))`.
-func (c *ProductClient) Use(hooks ...Hook) {
-	c.hooks.Product = append(c.hooks.Product, hooks...)
+// A call to `Use(f, g, h)` equals to `feature.Hooks(f(g(h())))`.
+func (c *FeatureClient) Use(hooks ...Hook) {
+	c.hooks.Feature = append(c.hooks.Feature, hooks...)
 }
 
 // Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `product.Intercept(f(g(h())))`.
-func (c *ProductClient) Intercept(interceptors ...Interceptor) {
-	c.inters.Product = append(c.inters.Product, interceptors...)
+// A call to `Intercept(f, g, h)` equals to `feature.Intercept(f(g(h())))`.
+func (c *FeatureClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Feature = append(c.inters.Feature, interceptors...)
 }
 
-// Create returns a builder for creating a Product entity.
-func (c *ProductClient) Create() *ProductCreate {
-	mutation := newProductMutation(c.config, OpCreate)
-	return &ProductCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+// Create returns a builder for creating a Feature entity.
+func (c *FeatureClient) Create() *FeatureCreate {
+	mutation := newFeatureMutation(c.config, OpCreate)
+	return &FeatureCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
-// CreateBulk returns a builder for creating a bulk of Product entities.
-func (c *ProductClient) CreateBulk(builders ...*ProductCreate) *ProductCreateBulk {
-	return &ProductCreateBulk{config: c.config, builders: builders}
+// CreateBulk returns a builder for creating a bulk of Feature entities.
+func (c *FeatureClient) CreateBulk(builders ...*FeatureCreate) *FeatureCreateBulk {
+	return &FeatureCreateBulk{config: c.config, builders: builders}
 }
 
 // MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
 // a builder and applies setFunc on it.
-func (c *ProductClient) MapCreateBulk(slice any, setFunc func(*ProductCreate, int)) *ProductCreateBulk {
+func (c *FeatureClient) MapCreateBulk(slice any, setFunc func(*FeatureCreate, int)) *FeatureCreateBulk {
 	rv := reflect.ValueOf(slice)
 	if rv.Kind() != reflect.Slice {
-		return &ProductCreateBulk{err: fmt.Errorf("calling to ProductClient.MapCreateBulk with wrong type %T, need slice", slice)}
+		return &FeatureCreateBulk{err: fmt.Errorf("calling to FeatureClient.MapCreateBulk with wrong type %T, need slice", slice)}
 	}
-	builders := make([]*ProductCreate, rv.Len())
+	builders := make([]*FeatureCreate, rv.Len())
 	for i := 0; i < rv.Len(); i++ {
 		builders[i] = c.Create()
 		setFunc(builders[i], i)
 	}
-	return &ProductCreateBulk{config: c.config, builders: builders}
+	return &FeatureCreateBulk{config: c.config, builders: builders}
 }
 
-// Update returns an update builder for Product.
-func (c *ProductClient) Update() *ProductUpdate {
-	mutation := newProductMutation(c.config, OpUpdate)
-	return &ProductUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+// Update returns an update builder for Feature.
+func (c *FeatureClient) Update() *FeatureUpdate {
+	mutation := newFeatureMutation(c.config, OpUpdate)
+	return &FeatureUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // UpdateOne returns an update builder for the given entity.
-func (c *ProductClient) UpdateOne(pr *Product) *ProductUpdateOne {
-	mutation := newProductMutation(c.config, OpUpdateOne, withProduct(pr))
-	return &ProductUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+func (c *FeatureClient) UpdateOne(f *Feature) *FeatureUpdateOne {
+	mutation := newFeatureMutation(c.config, OpUpdateOne, withFeature(f))
+	return &FeatureUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // UpdateOneID returns an update builder for the given id.
-func (c *ProductClient) UpdateOneID(id string) *ProductUpdateOne {
-	mutation := newProductMutation(c.config, OpUpdateOne, withProductID(id))
-	return &ProductUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+func (c *FeatureClient) UpdateOneID(id string) *FeatureUpdateOne {
+	mutation := newFeatureMutation(c.config, OpUpdateOne, withFeatureID(id))
+	return &FeatureUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
-// Delete returns a delete builder for Product.
-func (c *ProductClient) Delete() *ProductDelete {
-	mutation := newProductMutation(c.config, OpDelete)
-	return &ProductDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+// Delete returns a delete builder for Feature.
+func (c *FeatureClient) Delete() *FeatureDelete {
+	mutation := newFeatureMutation(c.config, OpDelete)
+	return &FeatureDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // DeleteOne returns a builder for deleting the given entity.
-func (c *ProductClient) DeleteOne(pr *Product) *ProductDeleteOne {
-	return c.DeleteOneID(pr.ID)
+func (c *FeatureClient) DeleteOne(f *Feature) *FeatureDeleteOne {
+	return c.DeleteOneID(f.ID)
 }
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *ProductClient) DeleteOneID(id string) *ProductDeleteOne {
-	builder := c.Delete().Where(product.ID(id))
+func (c *FeatureClient) DeleteOneID(id string) *FeatureDeleteOne {
+	builder := c.Delete().Where(feature.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
-	return &ProductDeleteOne{builder}
+	return &FeatureDeleteOne{builder}
 }
 
-// Query returns a query builder for Product.
-func (c *ProductClient) Query() *ProductQuery {
-	return &ProductQuery{
+// Query returns a query builder for Feature.
+func (c *FeatureClient) Query() *FeatureQuery {
+	return &FeatureQuery{
 		config: c.config,
-		ctx:    &QueryContext{Type: TypeProduct},
+		ctx:    &QueryContext{Type: TypeFeature},
 		inters: c.Interceptors(),
 	}
 }
 
-// Get returns a Product entity by its id.
-func (c *ProductClient) Get(ctx context.Context, id string) (*Product, error) {
-	return c.Query().Where(product.ID(id)).Only(ctx)
+// Get returns a Feature entity by its id.
+func (c *FeatureClient) Get(ctx context.Context, id string) (*Feature, error) {
+	return c.Query().Where(feature.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
-func (c *ProductClient) GetX(ctx context.Context, id string) *Product {
+func (c *FeatureClient) GetX(ctx context.Context, id string) *Feature {
 	obj, err := c.Get(ctx, id)
 	if err != nil {
 		panic(err)
@@ -496,53 +496,53 @@ func (c *ProductClient) GetX(ctx context.Context, id string) *Product {
 	return obj
 }
 
-// QueryCreditGrants queries the credit_grants edge of a Product.
-func (c *ProductClient) QueryCreditGrants(pr *Product) *CreditEntryQuery {
+// QueryCreditGrants queries the credit_grants edge of a Feature.
+func (c *FeatureClient) QueryCreditGrants(f *Feature) *CreditEntryQuery {
 	query := (&CreditEntryClient{config: c.config}).Query()
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
-		id := pr.ID
+		id := f.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(product.Table, product.FieldID, id),
+			sqlgraph.From(feature.Table, feature.FieldID, id),
 			sqlgraph.To(creditentry.Table, creditentry.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, product.CreditGrantsTable, product.CreditGrantsColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, feature.CreditGrantsTable, feature.CreditGrantsColumn),
 		)
-		fromV = sqlgraph.Neighbors(pr.driver.Dialect(), step)
+		fromV = sqlgraph.Neighbors(f.driver.Dialect(), step)
 		return fromV, nil
 	}
 	return query
 }
 
 // Hooks returns the client hooks.
-func (c *ProductClient) Hooks() []Hook {
-	return c.hooks.Product
+func (c *FeatureClient) Hooks() []Hook {
+	return c.hooks.Feature
 }
 
 // Interceptors returns the client interceptors.
-func (c *ProductClient) Interceptors() []Interceptor {
-	return c.inters.Product
+func (c *FeatureClient) Interceptors() []Interceptor {
+	return c.inters.Feature
 }
 
-func (c *ProductClient) mutate(ctx context.Context, m *ProductMutation) (Value, error) {
+func (c *FeatureClient) mutate(ctx context.Context, m *FeatureMutation) (Value, error) {
 	switch m.Op() {
 	case OpCreate:
-		return (&ProductCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+		return (&FeatureCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
 	case OpUpdate:
-		return (&ProductUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+		return (&FeatureUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
 	case OpUpdateOne:
-		return (&ProductUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+		return (&FeatureUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
 	case OpDelete, OpDeleteOne:
-		return (&ProductDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+		return (&FeatureDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
-		return nil, fmt.Errorf("db: unknown Product mutation op: %q", m.Op())
+		return nil, fmt.Errorf("db: unknown Feature mutation op: %q", m.Op())
 	}
 }
 
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		CreditEntry, Product []ent.Hook
+		CreditEntry, Feature []ent.Hook
 	}
 	inters struct {
-		CreditEntry, Product []ent.Interceptor
+		CreditEntry, Feature []ent.Interceptor
 	}
 )

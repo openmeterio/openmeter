@@ -8,9 +8,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 
 	connector "github.com/openmeterio/openmeter/internal/credit"
+	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_credit "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
-	credit_model "github.com/openmeterio/openmeter/pkg/credit"
 )
 
 func (c *PostgresConnector) CreateGrant(ctx context.Context, namespace string, grant credit_model.Grant) (credit_model.Grant, error) {
@@ -34,7 +34,7 @@ func (c *PostgresConnector) CreateGrant(ctx context.Context, namespace string, g
 		SetEntryType(credit_model.EntryTypeGrant).
 		SetType(grant.Type).
 		SetNillableParentID(grant.ParentID).
-		SetNillableProductID(grant.ProductID).
+		SetNillableFeatureID(grant.FeatureID).
 		SetAmount(grant.Amount).
 		SetPriority(grant.Priority).
 		SetEffectiveAt(grant.EffectiveAt).
@@ -97,7 +97,7 @@ func (c *PostgresConnector) VoidGrant(ctx context.Context, namespace string, gra
 		SetSubject(entity.Subject).
 		SetEntryType(credit_model.EntryTypeVoidGrant).
 		SetType(*entity.Type).
-		SetNillableProductID(entity.ProductID).
+		SetNillableFeatureID(entity.FeatureID).
 		SetAmount(*entity.Amount).
 		SetPriority(entity.Priority).
 		SetEffectiveAt(entity.EffectiveAt).
@@ -311,7 +311,7 @@ func (c *PostgresConnector) Reset(ctx context.Context, namespace string, reset c
 			SetEntryType(credit_model.EntryTypeGrant).
 			SetType(grant.Type).
 			SetNillableParentID(grant.ParentID).
-			SetNillableProductID(grant.ProductID).
+			SetNillableFeatureID(grant.FeatureID).
 			SetAmount(grant.Amount).
 			SetPriority(grant.Priority).
 			SetEffectiveAt(grant.EffectiveAt).
@@ -363,7 +363,7 @@ func mapGrantEntity(entry *db.CreditEntry) (credit_model.Grant, error) {
 		ParentID:    entry.ParentID,
 		Subject:     entry.Subject,
 		Type:        *entry.Type,
-		ProductID:   entry.ProductID,
+		FeatureID:   entry.FeatureID,
 		Amount:      *entry.Amount,
 		Priority:    entry.Priority,
 		EffectiveAt: entry.EffectiveAt,

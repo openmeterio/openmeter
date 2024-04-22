@@ -21,16 +21,16 @@ func (f CreditEntryFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, e
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.CreditEntryMutation", m)
 }
 
-// The ProductFunc type is an adapter to allow the use of ordinary
-// function as Product mutator.
-type ProductFunc func(context.Context, *db.ProductMutation) (db.Value, error)
+// The FeatureFunc type is an adapter to allow the use of ordinary
+// function as Feature mutator.
+type FeatureFunc func(context.Context, *db.FeatureMutation) (db.Value, error)
 
 // Mutate calls f(ctx, m).
-func (f ProductFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
-	if mv, ok := m.(*db.ProductMutation); ok {
+func (f FeatureFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.FeatureMutation); ok {
 		return f(ctx, mv)
 	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.ProductMutation", m)
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.FeatureMutation", m)
 }
 
 // Condition is a hook condition function.

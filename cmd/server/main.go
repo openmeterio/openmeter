@@ -214,6 +214,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	// ingestHandler, err := httpingest.NewHandler(httpingest.HandlerConfig{
+	// 	Collector:        ingestCollector,
+	// 	NamespaceManager: namespaceManager,
+	// 	Logger:           logger,
+	// 	ErrorHandler:     errorsx.NewAppHandler(errorsx.NewSlogHandler(logger)),
+	// })
+	// if err != nil {
+	// 	logger.Error("failed to initialize http ingest handler", "error", err)
+	// 	os.Exit(1)
+	// }
+
 	// Initialize deduplication
 	if conf.Dedupe.Enabled {
 		deduplicator, err := conf.Dedupe.NewDeduplicator()

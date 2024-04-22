@@ -8,8 +8,8 @@ import (
 	"github.com/go-chi/render"
 
 	"github.com/openmeterio/openmeter/api"
+	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/pkg/contextx"
-	credit_model "github.com/openmeterio/openmeter/pkg/credit"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 

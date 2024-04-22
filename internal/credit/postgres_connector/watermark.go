@@ -7,9 +7,9 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 
+	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_credit "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
-	credit_model "github.com/openmeterio/openmeter/pkg/credit"
 )
 
 // GetHighWatermark returns the high watermark for the given credit and subject pair.

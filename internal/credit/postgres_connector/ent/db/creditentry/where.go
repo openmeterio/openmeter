@@ -7,8 +7,8 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/predicate"
-	"github.com/openmeterio/openmeter/pkg/credit"
 )
 
 // ID filters vertices based on their ID field.
@@ -86,9 +86,9 @@ func Subject(v string) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldEQ(FieldSubject, v))
 }
 
-// ProductID applies equality check predicate on the "product_id" field. It's identical to ProductIDEQ.
-func ProductID(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldEQ(FieldProductID, v))
+// FeatureID applies equality check predicate on the "feature_id" field. It's identical to FeatureIDEQ.
+func FeatureID(v string) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldEQ(FieldFeatureID, v))
 }
 
 // Amount applies equality check predicate on the "amount" field. It's identical to AmountEQ.
@@ -401,79 +401,79 @@ func TypeNotNil() predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldNotNull(FieldType))
 }
 
-// ProductIDEQ applies the EQ predicate on the "product_id" field.
-func ProductIDEQ(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldEQ(FieldProductID, v))
+// FeatureIDEQ applies the EQ predicate on the "feature_id" field.
+func FeatureIDEQ(v string) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldEQ(FieldFeatureID, v))
 }
 
-// ProductIDNEQ applies the NEQ predicate on the "product_id" field.
-func ProductIDNEQ(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldNEQ(FieldProductID, v))
+// FeatureIDNEQ applies the NEQ predicate on the "feature_id" field.
+func FeatureIDNEQ(v string) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldNEQ(FieldFeatureID, v))
 }
 
-// ProductIDIn applies the In predicate on the "product_id" field.
-func ProductIDIn(vs ...string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldIn(FieldProductID, vs...))
+// FeatureIDIn applies the In predicate on the "feature_id" field.
+func FeatureIDIn(vs ...string) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldIn(FieldFeatureID, vs...))
 }
 
-// ProductIDNotIn applies the NotIn predicate on the "product_id" field.
-func ProductIDNotIn(vs ...string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldNotIn(FieldProductID, vs...))
+// FeatureIDNotIn applies the NotIn predicate on the "feature_id" field.
+func FeatureIDNotIn(vs ...string) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldNotIn(FieldFeatureID, vs...))
 }
 
-// ProductIDGT applies the GT predicate on the "product_id" field.
-func ProductIDGT(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldGT(FieldProductID, v))
+// FeatureIDGT applies the GT predicate on the "feature_id" field.
+func FeatureIDGT(v string) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldGT(FieldFeatureID, v))
 }
 
-// ProductIDGTE applies the GTE predicate on the "product_id" field.
-func ProductIDGTE(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldGTE(FieldProductID, v))
+// FeatureIDGTE applies the GTE predicate on the "feature_id" field.
+func FeatureIDGTE(v string) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldGTE(FieldFeatureID, v))
 }
 
-// ProductIDLT applies the LT predicate on the "product_id" field.
-func ProductIDLT(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldLT(FieldProductID, v))
+// FeatureIDLT applies the LT predicate on the "feature_id" field.
+func FeatureIDLT(v string) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldLT(FieldFeatureID, v))
 }
 
-// ProductIDLTE applies the LTE predicate on the "product_id" field.
-func ProductIDLTE(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldLTE(FieldProductID, v))
+// FeatureIDLTE applies the LTE predicate on the "feature_id" field.
+func FeatureIDLTE(v string) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldLTE(FieldFeatureID, v))
 }
 
-// ProductIDContains applies the Contains predicate on the "product_id" field.
-func ProductIDContains(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldContains(FieldProductID, v))
+// FeatureIDContains applies the Contains predicate on the "feature_id" field.
+func FeatureIDContains(v string) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldContains(FieldFeatureID, v))
 }
 
-// ProductIDHasPrefix applies the HasPrefix predicate on the "product_id" field.
-func ProductIDHasPrefix(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldHasPrefix(FieldProductID, v))
+// FeatureIDHasPrefix applies the HasPrefix predicate on the "feature_id" field.
+func FeatureIDHasPrefix(v string) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldHasPrefix(FieldFeatureID, v))
 }
 
-// ProductIDHasSuffix applies the HasSuffix predicate on the "product_id" field.
-func ProductIDHasSuffix(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldHasSuffix(FieldProductID, v))
+// FeatureIDHasSuffix applies the HasSuffix predicate on the "feature_id" field.
+func FeatureIDHasSuffix(v string) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldHasSuffix(FieldFeatureID, v))
 }
 
-// ProductIDIsNil applies the IsNil predicate on the "product_id" field.
-func ProductIDIsNil() predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldIsNull(FieldProductID))
+// FeatureIDIsNil applies the IsNil predicate on the "feature_id" field.
+func FeatureIDIsNil() predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldIsNull(FieldFeatureID))
 }
 
-// ProductIDNotNil applies the NotNil predicate on the "product_id" field.
-func ProductIDNotNil() predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldNotNull(FieldProductID))
+// FeatureIDNotNil applies the NotNil predicate on the "feature_id" field.
+func FeatureIDNotNil() predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldNotNull(FieldFeatureID))
 }
 
-// ProductIDEqualFold applies the EqualFold predicate on the "product_id" field.
-func ProductIDEqualFold(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldEqualFold(FieldProductID, v))
+// FeatureIDEqualFold applies the EqualFold predicate on the "feature_id" field.
+func FeatureIDEqualFold(v string) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldEqualFold(FieldFeatureID, v))
 }
 
-// ProductIDContainsFold applies the ContainsFold predicate on the "product_id" field.
-func ProductIDContainsFold(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldContainsFold(FieldProductID, v))
+// FeatureIDContainsFold applies the ContainsFold predicate on the "feature_id" field.
+func FeatureIDContainsFold(v string) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldContainsFold(FieldFeatureID, v))
 }
 
 // AmountEQ applies the EQ predicate on the "amount" field.
@@ -917,21 +917,21 @@ func HasChildrenWith(preds ...predicate.CreditEntry) predicate.CreditEntry {
 	})
 }
 
-// HasProduct applies the HasEdge predicate on the "product" edge.
-func HasProduct() predicate.CreditEntry {
+// HasFeature applies the HasEdge predicate on the "feature" edge.
+func HasFeature() predicate.CreditEntry {
 	return predicate.CreditEntry(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, ProductTable, ProductColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, FeatureTable, FeatureColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasProductWith applies the HasEdge predicate on the "product" edge with a given conditions (other predicates).
-func HasProductWith(preds ...predicate.Product) predicate.CreditEntry {
+// HasFeatureWith applies the HasEdge predicate on the "feature" edge with a given conditions (other predicates).
+func HasFeatureWith(preds ...predicate.Feature) predicate.CreditEntry {
 	return predicate.CreditEntry(func(s *sql.Selector) {
-		step := newProductStep()
+		step := newFeatureStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

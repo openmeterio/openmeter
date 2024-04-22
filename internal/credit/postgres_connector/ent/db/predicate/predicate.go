@@ -9,5 +9,5 @@ import (
 // CreditEntry is the predicate function for creditentry builders.
 type CreditEntry func(*sql.Selector)
 
-// Product is the predicate function for product builders.
-type Product func(*sql.Selector)
+// Feature is the predicate function for feature builders.
+type Feature func(*sql.Selector)

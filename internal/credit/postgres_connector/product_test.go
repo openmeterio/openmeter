@@ -11,14 +11,14 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/credit"
 	credit_connector "github.com/openmeterio/openmeter/internal/credit"
+	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	inmemory_lock "github.com/openmeterio/openmeter/internal/credit/inmemory_lock"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	meter_internal "github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
-	product_model "github.com/openmeterio/openmeter/pkg/product"
 )
 
-func TestProduct(t *testing.T) {
+func TestFeature(t *testing.T) {
 	namespace := "default"
 	meter := models.Meter{
 		Namespace: namespace,
@@ -30,9 +30,9 @@ func TestProduct(t *testing.T) {
 	meterRepository := meter_internal.NewInMemoryRepository(meters)
 	lockManager := inmemory_lock.NewLockManager(time.Second * 10)
 
-	testProduct := product_model.Product{
+	testFeature := credit_model.Feature{
 		Namespace: namespace,
-		Name:      "product-1",
+		Name:      "feature-1",
 		MeterSlug: meter.Slug,
 		MeterGroupByFilters: &map[string]string{
 			"key": "value",
@@ -45,63 +45,63 @@ func TestProduct(t *testing.T) {
 		test        func(t *testing.T, connector credit.Connector, db_client *db.Client)
 	}{
 		{
-			name:        "CreateProduct",
-			description: "Create a product in the database",
+			name:        "CreateFeature",
+			description: "Create a feature in the database",
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
 				ctx := context.Background()
-				productIn := testProduct
-				productOut, err := connector.CreateProduct(ctx, namespace, productIn)
+				featureIn := testFeature
+				featureOut, err := connector.CreateFeature(ctx, namespace, featureIn)
 				assert.NoError(t, err)
 				// assert count
-				assert.Equal(t, 1, db_client.Product.Query().CountX(ctx))
+				assert.Equal(t, 1, db_client.Feature.Query().CountX(ctx))
 				// assert fields
-				assert.NotNil(t, productOut.ID)
-				productIn.ID = productOut.ID
-				assert.Equal(t, productIn, productOut)
+				assert.NotNil(t, featureOut.ID)
+				featureIn.ID = featureOut.ID
+				assert.Equal(t, featureIn, featureOut)
 			},
 		},
 		{
-			name:        "GetProduct",
-			description: "Get a product in the database",
+			name:        "GetFeature",
+			description: "Get a feature in the database",
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
 				ctx := context.Background()
-				productIn, err := connector.CreateProduct(ctx, namespace, testProduct)
+				featureIn, err := connector.CreateFeature(ctx, namespace, testFeature)
 				assert.NoError(t, err)
 
-				productOut, err := connector.GetProduct(ctx, namespace, *productIn.ID)
+				featureOut, err := connector.GetFeature(ctx, namespace, *featureIn.ID)
 				assert.NoError(t, err)
-				assert.Equal(t, productIn, productOut)
+				assert.Equal(t, featureIn, featureOut)
 			},
 		},
 		{
-			name:        "DeleteProduct",
-			description: "Delete a product in the database",
+			name:        "DeleteFeature",
+			description: "Delete a feature in the database",
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
 				ctx := context.Background()
-				p, err := connector.CreateProduct(ctx, namespace, testProduct)
+				p, err := connector.CreateFeature(ctx, namespace, testFeature)
 				assert.NoError(t, err)
 
-				err = connector.DeleteProduct(ctx, namespace, *p.ID)
+				err = connector.DeleteFeature(ctx, namespace, *p.ID)
 				assert.NoError(t, err)
 
 				// assert
-				p, err = connector.GetProduct(ctx, namespace, *p.ID)
+				p, err = connector.GetFeature(ctx, namespace, *p.ID)
 				assert.NoError(t, err)
 				assert.True(t, p.Archived)
 			},
 		},
 		{
-			name:        "ListProducts",
-			description: "List products in the database",
+			name:        "ListFeatures",
+			description: "List features in the database",
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
 				ctx := context.Background()
-				product, err := connector.CreateProduct(ctx, namespace, testProduct)
+				feature, err := connector.CreateFeature(ctx, namespace, testFeature)
 				assert.NoError(t, err)
 
-				products, err := connector.ListProducts(ctx, namespace, credit_connector.ListProductsParams{})
+				features, err := connector.ListFeatures(ctx, namespace, credit_connector.ListFeaturesParams{})
 				assert.NoError(t, err)
-				assert.Len(t, products, 1)
-				assert.Equal(t, product, products[0])
+				assert.Len(t, features, 1)
+				assert.Equal(t, feature, features[0])
 			},
 		},
 	}

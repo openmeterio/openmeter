@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/product"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -75,7 +75,7 @@ func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			creditentry.Table: creditentry.ValidColumn,
-			product.Table:     product.ValidColumn,
+			feature.Table:     feature.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

@@ -9,12 +9,11 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/internal/credit"
+	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	inmemory_lock "github.com/openmeterio/openmeter/internal/credit/inmemory_lock"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
-	credit_model "github.com/openmeterio/openmeter/pkg/credit"
 	"github.com/openmeterio/openmeter/pkg/models"
-	product_model "github.com/openmeterio/openmeter/pkg/product"
 )
 
 func TestPostgresConnectorLedger(t *testing.T) {
@@ -27,10 +26,10 @@ func TestPostgresConnectorLedger(t *testing.T) {
 		Aggregation: models.MeterAggregationSum,
 	}
 	meterRepository := meter_model.NewInMemoryRepository([]models.Meter{meter})
-	productIn := product_model.Product{
+	featureIn := credit_model.Feature{
 		Namespace: namespace,
 		MeterSlug: meter.Slug,
-		Name:      "product-1",
+		Name:      "feature-1",
 	}
 
 	tt := []struct {
@@ -43,7 +42,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 			description: "Should return ledger entries",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
-				product := createProduct(t, connector, namespace, productIn)
+				feature := createFeature(t, connector, namespace, featureIn)
 				// We need to truncate the time to workaround pgx driver timezone issue
 				// We also move it to the past to avoid timezone issues
 				t1 := time.Now().Truncate(time.Hour * 24).Add(-time.Hour * 24)
@@ -53,7 +52,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 
 				grant1, err := connector.CreateGrant(ctx, namespace, credit_model.Grant{
 					Subject:     subject,
-					ProductID:   product.ID,
+					FeatureID:   feature.ID,
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
@@ -70,7 +69,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 
 				grant2, err := connector.CreateGrant(ctx, namespace, credit_model.Grant{
 					Subject:     subject,
-					ProductID:   product.ID,
+					FeatureID:   feature.ID,
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
@@ -121,7 +120,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 						ID:        grant1.ID,
 						Type:      credit_model.LedgerEntryTypeGrant,
 						Time:      t1,
-						ProductID: product.ID,
+						FeatureID: feature.ID,
 						Amount:    &grant1.Amount,
 					},
 					// Void
@@ -129,7 +128,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 						ID:        grant2.ID,
 						Type:      credit_model.LedgerEntryTypeVoid,
 						Time:      t2,
-						ProductID: product.ID,
+						FeatureID: feature.ID,
 						Amount:    &grant2.Amount,
 					},
 					// Usage
@@ -137,7 +136,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 						ID:        grant1.ID,
 						Type:      credit_model.LedgerEntryTypeGrantUsage,
 						Time:      t3,
-						ProductID: product.ID,
+						FeatureID: feature.ID,
 						Amount:    &ledgerUsage,
 						From:      &t1,
 						To:        &t3,
@@ -153,7 +152,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 						ID:        rolloverGrants[0].ID,
 						Type:      credit_model.LedgerEntryTypeGrant,
 						Time:      t3,
-						ProductID: product.ID,
+						FeatureID: feature.ID,
 						Amount:    &reamingAmount,
 					},
 				}, ledgerEntries)
