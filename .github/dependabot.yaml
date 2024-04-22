@@ -29,11 +29,10 @@ updates:
       - release-note/ignore
 
   - package-ecosystem: npm
+    open-pull-requests-limit: 0
     directory: "/api/client/web"
     schedule:
       interval: weekly
-    reviewers:
-      - "tothandras"
     labels:
       - area/dependencies
       - dependency/javascript
@@ -48,11 +47,10 @@ updates:
       - dependency-name: "eslint-formatter-pretty"
 
   - package-ecosystem: npm
+    open-pull-requests-limit: 0
     directory: "/api/client/node"
     schedule:
       interval: weekly
-    reviewers:
-      - "tothandras"
     labels:
       - area/dependencies
       - dependency/javascript
@@ -67,11 +65,10 @@ updates:
       - dependency-name: "eslint-formatter-pretty"
 
   - package-ecosystem: pip
+    open-pull-requests-limit: 1
     directory: "/api/client/python"
     schedule:
       interval: weekly
-    reviewers:
-      - "tothandras"
     labels:
       - area/dependencies
       - dependency/python
