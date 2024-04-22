@@ -94,6 +94,9 @@ func (*EntMigrator) Verify(
 func initDB(t *testing.T) *entsql.Driver {
 	t.Helper()
 
+	// Dagger will set the POSTGRES_HOST environment variable for `make test`.
+	// If you need to run credit tests without Dagger you can set the POSTGRES_HOST environment variable.
+	// For example to use the Postgres in docker compose you can run `POSTGRES_HOST=localhost go test ./internal/credit/...`
 	host := os.Getenv("POSTGRES_HOST")
 	if host == "" {
 		t.Skip("POSTGRES_HOST not set")
