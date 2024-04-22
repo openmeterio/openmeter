@@ -88,7 +88,7 @@ func mapFeatureEntity(entity *db.Feature) credit_model.Feature {
 		Namespace: entity.Namespace,
 		Name:      entity.Name,
 		MeterSlug: entity.MeterSlug,
-		Archived:  entity.Archived,
+		Archived:  &entity.Archived,
 	}
 
 	if len(entity.MeterGroupByFilters) > 0 {
