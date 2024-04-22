@@ -3,7 +3,7 @@ import { components } from '../schemas/openapi.js'
 import { RequestOptions, BaseClient, OpenMeterConfig } from './client.js'
 
 // We export Event instead
-export type CloudEvents = components['schemas']['Event']
+export type CloudEvent = components['schemas']['Event']
 export type IngestedEvent = components['schemas']['IngestedEvent']
 
 export type EventsQueryParams = {
@@ -85,35 +85,38 @@ export class EventsClient extends BaseClient {
     options?: RequestOptions
   ): Promise<void> {
     const isBatch = Array.isArray(usageEvent)
-    const cloudEvents: CloudEvents[] = (isBatch ? usageEvent : [usageEvent]).map((ev) => {
-      // Validate content type
-      if (
-        ev.datacontenttype &&
-        ev.datacontenttype !== 'application/json'
-      ) {
-        throw new TypeError(
-          `Unsupported datacontenttype: ${ev.datacontenttype}`
-        )
+    const cloudEvents: CloudEvent[] = (isBatch ? usageEvent : [usageEvent]).map(
+      (ev) => {
+        // Validate content type
+        if (ev.datacontenttype && ev.datacontenttype !== 'application/json') {
+          throw new TypeError(
+            `Unsupported datacontenttype: ${ev.datacontenttype}`
+          )
+        }
+
+        // We default where we can to lower the barrier to use CloudEvents
+        const cloudEvent: CloudEvent = {
+          specversion: ev.specversion ?? '1.0',
+          id: ev.id ?? crypto.randomUUID(),
+          source: ev.source ?? '@openmeter/sdk',
+          type: ev.type,
+          subject: ev.subject,
+          time: ev.time?.toISOString(),
+          datacontenttype: ev.datacontenttype,
+          dataschema: ev.dataschema,
+          data: ev.data,
+        }
+
+        return cloudEvent
       }
+    )
 
-      // We default where we can to lower the barrier to use CloudEvents
-      const cloudEvent: CloudEvents = {
-        specversion: ev.specversion ?? '1.0',
-        id: ev.id ?? crypto.randomUUID(),
-        source: ev.source ?? '@openmeter/sdk',
-        type: ev.type,
-        subject: ev.subject,
-        time: ev.time?.toISOString(),
-        datacontenttype: ev.datacontenttype,
-        dataschema: ev.dataschema,
-        data: ev.data,
-      }
-
-      return cloudEvent
-    })
-
-    const contentType = isBatch ? 'application/cloudevents-batch+json' : 'application/cloudevents+json'
-    const body = isBatch ? JSON.stringify(cloudEvents) : JSON.stringify(cloudEvents[0])
+    const contentType = isBatch
+      ? 'application/cloudevents-batch+json'
+      : 'application/cloudevents+json'
+    const body = isBatch
+      ? JSON.stringify(cloudEvents)
+      : JSON.stringify(cloudEvents[0])
 
     // Making Request
     return await this.request({

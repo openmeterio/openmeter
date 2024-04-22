@@ -5,7 +5,7 @@ import { PortalClient } from './clients/portal.js'
 import { SubjectClient } from './clients/subject.js'
 
 export { OpenMeterConfig, RequestOptions } from './clients/client.js'
-export { Event, IngestedEvent } from './clients/event.js'
+export { Event, IngestedEvent, CloudEvent } from './clients/event.js'
 export { Meter, MeterAggregation, WindowSize } from './clients/meter.js'
 
 export class OpenMeter {

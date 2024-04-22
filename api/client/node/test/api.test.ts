@@ -2,11 +2,11 @@ import crypto from 'crypto'
 import { setGlobalDispatcher } from 'undici'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 // test built version
-import { CloudEvents } from '../clients/event.js'
 import {
   OpenMeter,
   type Event,
-  IngestedEvent,
+  type IngestedEvent,
+  type CloudEvent,
   WindowSize,
 } from '../dist/index.js'
 import { mockAgent } from './agent.js'
@@ -60,7 +60,7 @@ describe('sdk', () => {
     describe('list', () => {
       it('should list events', async ({ openmeter }) => {
         const events = await openmeter.events.list()
-        const event = mockEvent as CloudEvents
+        const event = mockEvent as CloudEvent
         const expected: IngestedEvent = {
           event: {
             ...event,
