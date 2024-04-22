@@ -10,13 +10,12 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
+	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	inmemory_lock "github.com/openmeterio/openmeter/internal/credit/inmemory_lock"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/streaming"
-	credit_model "github.com/openmeterio/openmeter/pkg/credit"
 	"github.com/openmeterio/openmeter/pkg/models"
-	product_model "github.com/openmeterio/openmeter/pkg/product"
 )
 
 func TestPostgresConnectorBalances(t *testing.T) {
@@ -35,15 +34,15 @@ func TestPostgresConnectorBalances(t *testing.T) {
 		Aggregation: models.MeterAggregationSum,
 	}
 	meterRepository := meter_model.NewInMemoryRepository([]models.Meter{meter1, meter2})
-	productIn1 := product_model.Product{
+	featureIn1 := credit_model.Feature{
 		Namespace: namespace,
 		MeterSlug: meter1.Slug,
-		Name:      "product-1",
+		Name:      "feature-1",
 	}
-	productIn2 := product_model.Product{
+	featureIn2 := credit_model.Feature{
 		Namespace: namespace,
 		MeterSlug: meter2.Slug,
-		Name:      "product-2",
+		Name:      "feature-2",
 	}
 
 	tt := []struct {
@@ -56,7 +55,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should return balance",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
-				product := createProduct(t, connector, namespace, productIn1)
+				feature := createFeature(t, connector, namespace, featureIn1)
 				// We need to truncate the time to workaround pgx driver timezone issue
 				// We also move it to the past to avoid timezone issues
 				t1 := time.Now().Truncate(time.Hour * 24).Add(-time.Hour * 24)
@@ -64,7 +63,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 
 				grant, err := connector.CreateGrant(ctx, namespace, credit_model.Grant{
 					Subject:     subject,
-					ProductID:   product.ID,
+					FeatureID:   feature.ID,
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
@@ -90,9 +89,9 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				// Assert balance
 				assert.Equal(t, credit_model.Balance{
 					Subject: subject,
-					ProductBalances: []credit_model.ProductBalance{
+					FeatureBalances: []credit_model.FeatureBalance{
 						{
-							Product: product,
+							Feature: feature,
 							Balance: 99,
 						},
 					},
@@ -110,7 +109,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should return balance after reset",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
-				product := createProduct(t, connector, namespace, productIn1)
+				feature := createFeature(t, connector, namespace, featureIn1)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:00:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 				t3, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
@@ -124,7 +123,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 
 				grant, err := connector.CreateGrant(ctx, namespace, credit_model.Grant{
 					Subject:     subject,
-					ProductID:   product.ID,
+					FeatureID:   feature.ID,
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
@@ -153,9 +152,9 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				// Assert balance
 				assert.Equal(t, credit_model.Balance{
 					Subject: subject,
-					ProductBalances: []credit_model.ProductBalance{
+					FeatureBalances: []credit_model.FeatureBalance{
 						{
-							Product: product,
+							Feature: feature,
 							Balance: 99,
 						},
 					},
@@ -173,7 +172,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should exclude voided grant from balance",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
-				product := createProduct(t, connector, namespace, productIn1)
+				feature := createFeature(t, connector, namespace, featureIn1)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:00:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 
@@ -186,7 +185,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 
 				grant, err := connector.CreateGrant(ctx, namespace, credit_model.Grant{
 					Subject:     subject,
-					ProductID:   product.ID,
+					FeatureID:   feature.ID,
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
@@ -215,7 +214,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				// Assert balance
 				assert.Equal(t, credit_model.Balance{
 					Subject:         subject,
-					ProductBalances: []credit_model.ProductBalance{},
+					FeatureBalances: []credit_model.FeatureBalance{},
 					GrantBalances:   []credit_model.GrantBalance{},
 				}, balance)
 			},
@@ -225,13 +224,13 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should burn down grant with highest priority first",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
-				product := createProduct(t, connector, namespace, productIn1)
+				feature := createFeature(t, connector, namespace, featureIn1)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:00:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 
 				grant1, err := connector.CreateGrant(ctx, namespace, credit_model.Grant{
 					Subject:     subject,
-					ProductID:   product.ID,
+					FeatureID:   feature.ID,
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      10,
 					Priority:    1,
@@ -245,7 +244,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 
 				grant2, err := connector.CreateGrant(ctx, namespace, credit_model.Grant{
 					Subject:     subject,
-					ProductID:   product.ID,
+					FeatureID:   feature.ID,
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      100,
 					Priority:    2,
@@ -275,9 +274,9 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				// Assert balance
 				assert.Equal(t, credit_model.Balance{
 					Subject: subject,
-					ProductBalances: []credit_model.ProductBalance{
+					FeatureBalances: []credit_model.FeatureBalance{
 						{
-							Product: product,
+							Feature: feature,
 							Balance: 90,
 						},
 					},
@@ -299,13 +298,13 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should burn down grant that expires first",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
-				product := createProduct(t, connector, namespace, productIn1)
+				feature := createFeature(t, connector, namespace, featureIn1)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:00:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 
 				grant1, err := connector.CreateGrant(ctx, namespace, credit_model.Grant{
 					Subject:     subject,
-					ProductID:   product.ID,
+					FeatureID:   feature.ID,
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      10,
 					Priority:    1,
@@ -319,7 +318,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 
 				grant2, err := connector.CreateGrant(ctx, namespace, credit_model.Grant{
 					Subject:     subject,
-					ProductID:   product.ID,
+					FeatureID:   feature.ID,
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
@@ -349,9 +348,9 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				// Assert balance
 				assert.Equal(t, credit_model.Balance{
 					Subject: subject,
-					ProductBalances: []credit_model.ProductBalance{
+					FeatureBalances: []credit_model.FeatureBalance{
 						{
-							Product: product,
+							Feature: feature,
 							Balance: 90,
 						},
 					},
@@ -369,18 +368,18 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			},
 		},
 		{
-			name:        "GetBalanceWithMultipleProducts",
-			description: "Should burn down the right product",
+			name:        "GetBalanceWithMultipleFeatures",
+			description: "Should burn down the right feature",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
-				product1 := createProduct(t, connector, namespace, productIn1)
-				product2 := createProduct(t, connector, namespace, productIn2)
+				feature1 := createFeature(t, connector, namespace, featureIn1)
+				feature2 := createFeature(t, connector, namespace, featureIn2)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:00:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 
 				grant1, err := connector.CreateGrant(ctx, namespace, credit_model.Grant{
 					Subject:     subject,
-					ProductID:   product1.ID,
+					FeatureID:   feature1.ID,
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
@@ -394,7 +393,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 
 				grant2, err := connector.CreateGrant(ctx, namespace, credit_model.Grant{
 					Subject:     subject,
-					ProductID:   product2.ID,
+					FeatureID:   feature2.ID,
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
@@ -428,16 +427,16 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				balance.GrantBalances[1].Grant.EffectiveAt = grant2.EffectiveAt
 
 				// Assert balance
-				assert.ElementsMatch(t, []credit_model.ProductBalance{
+				assert.ElementsMatch(t, []credit_model.FeatureBalance{
 					{
-						Product: product1,
+						Feature: feature1,
 						Balance: 99,
 					},
 					{
-						Product: product2,
+						Feature: feature2,
 						Balance: 90,
 					},
-				}, balance.ProductBalances)
+				}, balance.FeatureBalances)
 
 				assert.ElementsMatch(t, []credit_model.GrantBalance{
 					{

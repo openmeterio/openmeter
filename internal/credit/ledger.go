@@ -42,7 +42,7 @@ type LedgerEntry struct {
 	ID        *string         `json:"id,omitempty"`
 	Type      LedgerEntryType `json:"type"`
 	Time      time.Time       `json:"time"`
-	ProductID *string         `json:"productId,omitempty"`
+	FeatureID *string         `json:"featureId,omitempty"`
 	Amount    *float64        `json:"amount,omitempty"`
 	From      *time.Time      `json:"from,omitempty"`
 	To        *time.Time      `json:"to,omitempty"`
@@ -98,7 +98,7 @@ func (c *LedgerEntryList) AddGrant(grant Grant) {
 		ID:        grant.ID,
 		Type:      LedgerEntryTypeGrant,
 		Time:      grant.EffectiveAt,
-		ProductID: grant.ProductID,
+		FeatureID: grant.FeatureID,
 		Amount:    &grant.Amount,
 	})
 }
@@ -108,7 +108,7 @@ func (c *LedgerEntryList) AddVoidGrant(grant Grant) {
 		ID:        grant.ParentID,
 		Type:      LedgerEntryTypeVoid,
 		Time:      grant.EffectiveAt,
-		ProductID: grant.ProductID,
+		FeatureID: grant.FeatureID,
 		Amount:    &grant.Amount,
 	})
 }
@@ -131,7 +131,7 @@ func (c *LedgerEntryList) AddGrantUsage(grantBalance GrantBalance, from time.Tim
 		ID:        grantBalance.ID,
 		Type:      LedgerEntryTypeGrantUsage,
 		Time:      to,
-		ProductID: grantBalance.ProductID,
+		FeatureID: grantBalance.FeatureID,
 		Amount:    &amount,
 		From:      &from,
 		To:        &to,

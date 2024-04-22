@@ -6,8 +6,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
-	credit_model "github.com/openmeterio/openmeter/pkg/credit"
-	product_model "github.com/openmeterio/openmeter/pkg/product"
+	credit_model "github.com/openmeterio/openmeter/internal/credit"
 )
 
 type Connector struct{}
@@ -49,16 +48,16 @@ func (c *Connector) Reset(ctx context.Context, namespace string, reset credit_mo
 	return credit_model.Reset{}, []credit_model.Grant{}, fmt.Errorf("not implemented")
 }
 
-// Product
-func (c *Connector) CreateProduct(ctx context.Context, namespace string, product product_model.Product) (product_model.Product, error) {
-	return product_model.Product{}, fmt.Errorf("not implemented")
+// Feature
+func (c *Connector) CreateFeature(ctx context.Context, namespace string, feature credit_model.Feature) (credit_model.Feature, error) {
+	return credit_model.Feature{}, fmt.Errorf("not implemented")
 }
-func (c *Connector) DeleteProduct(ctx context.Context, namespace string, id string) error {
+func (c *Connector) DeleteFeature(ctx context.Context, namespace string, id string) error {
 	return fmt.Errorf("not implemented")
 }
-func (c *Connector) ListProducts(ctx context.Context, namespace string, params credit.ListProductsParams) ([]product_model.Product, error) {
+func (c *Connector) ListFeatures(ctx context.Context, namespace string, params credit.ListFeaturesParams) ([]credit_model.Feature, error) {
 	return nil, fmt.Errorf("not implemented")
 }
-func (c *Connector) GetProduct(ctx context.Context, namespace string, id string) (product_model.Product, error) {
-	return product_model.Product{}, fmt.Errorf("not implemented")
+func (c *Connector) GetFeature(ctx context.Context, namespace string, id string) (credit_model.Feature, error) {
+	return credit_model.Feature{}, fmt.Errorf("not implemented")
 }

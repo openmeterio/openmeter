@@ -2,14 +2,12 @@ package credit
 
 import (
 	"net/http"
-
-	product_model "github.com/openmeterio/openmeter/pkg/product"
 )
 
 // Balance of a subject in a credit.
 type Balance struct {
 	Subject         string           `json:"subject"`
-	ProductBalances []ProductBalance `json:"productBalances"`
+	FeatureBalances []FeatureBalance `json:"featureBalances"`
 	GrantBalances   []GrantBalance   `json:"grantBalances"`
 }
 
@@ -28,12 +26,12 @@ func (c GrantBalance) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-type ProductBalance struct {
-	product_model.Product
+type FeatureBalance struct {
+	Feature
 	Balance float64 `json:"balance"`
 }
 
 // Render implements the chi renderer interface.
-func (c ProductBalance) Render(w http.ResponseWriter, r *http.Request) error {
+func (c FeatureBalance) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }

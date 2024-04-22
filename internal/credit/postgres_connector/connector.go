@@ -4,10 +4,10 @@ import (
 	"log/slog"
 
 	"github.com/openmeterio/openmeter/internal/credit"
+	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/streaming"
-	credit_model "github.com/openmeterio/openmeter/pkg/credit"
 )
 
 type PostgresConnector struct {

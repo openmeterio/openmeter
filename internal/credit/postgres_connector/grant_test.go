@@ -10,12 +10,11 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	credit "github.com/openmeterio/openmeter/internal/credit"
+	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	inmemory_lock "github.com/openmeterio/openmeter/internal/credit/inmemory_lock"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	"github.com/openmeterio/openmeter/internal/meter"
-	credit_model "github.com/openmeterio/openmeter/pkg/credit"
 	"github.com/openmeterio/openmeter/pkg/models"
-	product_model "github.com/openmeterio/openmeter/pkg/product"
 )
 
 func TestPostgresConnectorGrants(t *testing.T) {
@@ -28,10 +27,10 @@ func TestPostgresConnectorGrants(t *testing.T) {
 		},
 	}
 	meterRepository := meter.NewInMemoryRepository(meters)
-	products := []product_model.Product{{
+	features := []credit_model.Feature{{
 		Namespace: namespace,
 		MeterSlug: "meter-1",
-		Name:      "product-1",
+		Name:      "feature-1",
 	}}
 
 	effectiveTime := time.Date(2024, 1, 1, 0, 0, 0, 0, time.Local)
@@ -46,10 +45,10 @@ func TestPostgresConnectorGrants(t *testing.T) {
 			description: "Create a grant in the database",
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
 				ctx := context.Background()
-				p := createProduct(t, connector, namespace, products[0])
+				p := createFeature(t, connector, namespace, features[0])
 				grant := credit_model.Grant{
 					Subject:     "subject-1",
-					ProductID:   p.ID,
+					FeatureID:   p.ID,
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
@@ -75,10 +74,10 @@ func TestPostgresConnectorGrants(t *testing.T) {
 			description: "Void a grant in the database and get the latest grant for an ID",
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
 				ctx := context.Background()
-				p := createProduct(t, connector, namespace, products[0])
+				p := createFeature(t, connector, namespace, features[0])
 				grant := credit_model.Grant{
 					Subject:     "subject-1",
-					ProductID:   p.ID,
+					FeatureID:   p.ID,
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
@@ -118,12 +117,12 @@ func TestPostgresConnectorGrants(t *testing.T) {
 			description: "Void a grant that does not exist",
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
 				ctx := context.Background()
-				p := createProduct(t, connector, namespace, products[0])
+				p := createFeature(t, connector, namespace, features[0])
 				id := ulid.MustNew(ulid.Now(), nil).String()
 				grant := credit_model.Grant{
 					ID:          &id,
 					Subject:     "subject-1",
-					ProductID:   p.ID,
+					FeatureID:   p.ID,
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
@@ -143,10 +142,10 @@ func TestPostgresConnectorGrants(t *testing.T) {
 			description: "List grants for subjects",
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
 				ctx := context.Background()
-				p := createProduct(t, connector, namespace, products[0])
+				p := createFeature(t, connector, namespace, features[0])
 				grant_s1_1 := credit_model.Grant{
 					Subject:     "subject-1",
-					ProductID:   p.ID,
+					FeatureID:   p.ID,
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
@@ -158,7 +157,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				}
 				grant_s1_2 := credit_model.Grant{
 					Subject:     "subject-1",
-					ProductID:   p.ID,
+					FeatureID:   p.ID,
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      200,
 					Priority:    2,
@@ -170,7 +169,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				}
 				grant_s2_1 := credit_model.Grant{
 					Subject:     "subject-2",
-					ProductID:   p.ID,
+					FeatureID:   p.ID,
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      300,
 					Priority:    1,
@@ -220,9 +219,9 @@ func TestPostgresConnectorGrants(t *testing.T) {
 	}
 }
 
-func createProduct(t *testing.T, connector credit.Connector, namespace string, product product_model.Product) product_model.Product {
+func createFeature(t *testing.T, connector credit.Connector, namespace string, feature credit_model.Feature) credit_model.Feature {
 	ctx := context.Background()
-	p, err := connector.CreateProduct(ctx, namespace, product)
+	p, err := connector.CreateFeature(ctx, namespace, feature)
 	if err != nil {
 		t.Error(err)
 	}

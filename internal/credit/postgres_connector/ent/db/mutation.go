@@ -11,10 +11,10 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/predicate"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/product"
-	"github.com/openmeterio/openmeter/pkg/credit"
 )
 
 const (
@@ -27,7 +27,7 @@ const (
 
 	// Node types.
 	TypeCreditEntry = "CreditEntry"
-	TypeProduct     = "Product"
+	TypeFeature     = "Feature"
 )
 
 // CreditEntryMutation represents an operation that mutates the CreditEntry nodes in the graph.
@@ -59,8 +59,8 @@ type CreditEntryMutation struct {
 	clearedparent              bool
 	children                   *string
 	clearedchildren            bool
-	product                    *string
-	clearedproduct             bool
+	feature                    *string
+	clearedfeature             bool
 	done                       bool
 	oldValue                   func(context.Context) (*CreditEntry, error)
 	predicates                 []predicate.CreditEntry
@@ -399,53 +399,53 @@ func (m *CreditEntryMutation) ResetType() {
 	delete(m.clearedFields, creditentry.FieldType)
 }
 
-// SetProductID sets the "product_id" field.
-func (m *CreditEntryMutation) SetProductID(s string) {
-	m.product = &s
+// SetFeatureID sets the "feature_id" field.
+func (m *CreditEntryMutation) SetFeatureID(s string) {
+	m.feature = &s
 }
 
-// ProductID returns the value of the "product_id" field in the mutation.
-func (m *CreditEntryMutation) ProductID() (r string, exists bool) {
-	v := m.product
+// FeatureID returns the value of the "feature_id" field in the mutation.
+func (m *CreditEntryMutation) FeatureID() (r string, exists bool) {
+	v := m.feature
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldProductID returns the old "product_id" field's value of the CreditEntry entity.
+// OldFeatureID returns the old "feature_id" field's value of the CreditEntry entity.
 // If the CreditEntry object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CreditEntryMutation) OldProductID(ctx context.Context) (v *string, err error) {
+func (m *CreditEntryMutation) OldFeatureID(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldProductID is only allowed on UpdateOne operations")
+		return v, errors.New("OldFeatureID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldProductID requires an ID field in the mutation")
+		return v, errors.New("OldFeatureID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldProductID: %w", err)
+		return v, fmt.Errorf("querying old value for OldFeatureID: %w", err)
 	}
-	return oldValue.ProductID, nil
+	return oldValue.FeatureID, nil
 }
 
-// ClearProductID clears the value of the "product_id" field.
-func (m *CreditEntryMutation) ClearProductID() {
-	m.product = nil
-	m.clearedFields[creditentry.FieldProductID] = struct{}{}
+// ClearFeatureID clears the value of the "feature_id" field.
+func (m *CreditEntryMutation) ClearFeatureID() {
+	m.feature = nil
+	m.clearedFields[creditentry.FieldFeatureID] = struct{}{}
 }
 
-// ProductIDCleared returns if the "product_id" field was cleared in this mutation.
-func (m *CreditEntryMutation) ProductIDCleared() bool {
-	_, ok := m.clearedFields[creditentry.FieldProductID]
+// FeatureIDCleared returns if the "feature_id" field was cleared in this mutation.
+func (m *CreditEntryMutation) FeatureIDCleared() bool {
+	_, ok := m.clearedFields[creditentry.FieldFeatureID]
 	return ok
 }
 
-// ResetProductID resets all changes to the "product_id" field.
-func (m *CreditEntryMutation) ResetProductID() {
-	m.product = nil
-	delete(m.clearedFields, creditentry.FieldProductID)
+// ResetFeatureID resets all changes to the "feature_id" field.
+func (m *CreditEntryMutation) ResetFeatureID() {
+	m.feature = nil
+	delete(m.clearedFields, creditentry.FieldFeatureID)
 }
 
 // SetAmount sets the "amount" field.
@@ -1012,31 +1012,31 @@ func (m *CreditEntryMutation) ResetChildren() {
 	m.clearedchildren = false
 }
 
-// ClearProduct clears the "product" edge to the Product entity.
-func (m *CreditEntryMutation) ClearProduct() {
-	m.clearedproduct = true
-	m.clearedFields[creditentry.FieldProductID] = struct{}{}
+// ClearFeature clears the "feature" edge to the Feature entity.
+func (m *CreditEntryMutation) ClearFeature() {
+	m.clearedfeature = true
+	m.clearedFields[creditentry.FieldFeatureID] = struct{}{}
 }
 
-// ProductCleared reports if the "product" edge to the Product entity was cleared.
-func (m *CreditEntryMutation) ProductCleared() bool {
-	return m.ProductIDCleared() || m.clearedproduct
+// FeatureCleared reports if the "feature" edge to the Feature entity was cleared.
+func (m *CreditEntryMutation) FeatureCleared() bool {
+	return m.FeatureIDCleared() || m.clearedfeature
 }
 
-// ProductIDs returns the "product" edge IDs in the mutation.
+// FeatureIDs returns the "feature" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// ProductID instead. It exists only for internal usage by the builders.
-func (m *CreditEntryMutation) ProductIDs() (ids []string) {
-	if id := m.product; id != nil {
+// FeatureID instead. It exists only for internal usage by the builders.
+func (m *CreditEntryMutation) FeatureIDs() (ids []string) {
+	if id := m.feature; id != nil {
 		ids = append(ids, *id)
 	}
 	return
 }
 
-// ResetProduct resets all changes to the "product" edge.
-func (m *CreditEntryMutation) ResetProduct() {
-	m.product = nil
-	m.clearedproduct = false
+// ResetFeature resets all changes to the "feature" edge.
+func (m *CreditEntryMutation) ResetFeature() {
+	m.feature = nil
+	m.clearedfeature = false
 }
 
 // Where appends a list predicates to the CreditEntryMutation builder.
@@ -1092,8 +1092,8 @@ func (m *CreditEntryMutation) Fields() []string {
 	if m._type != nil {
 		fields = append(fields, creditentry.FieldType)
 	}
-	if m.product != nil {
-		fields = append(fields, creditentry.FieldProductID)
+	if m.feature != nil {
+		fields = append(fields, creditentry.FieldFeatureID)
 	}
 	if m.amount != nil {
 		fields = append(fields, creditentry.FieldAmount)
@@ -1142,8 +1142,8 @@ func (m *CreditEntryMutation) Field(name string) (ent.Value, bool) {
 		return m.EntryType()
 	case creditentry.FieldType:
 		return m.GetType()
-	case creditentry.FieldProductID:
-		return m.ProductID()
+	case creditentry.FieldFeatureID:
+		return m.FeatureID()
 	case creditentry.FieldAmount:
 		return m.Amount()
 	case creditentry.FieldPriority:
@@ -1183,8 +1183,8 @@ func (m *CreditEntryMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldEntryType(ctx)
 	case creditentry.FieldType:
 		return m.OldType(ctx)
-	case creditentry.FieldProductID:
-		return m.OldProductID(ctx)
+	case creditentry.FieldFeatureID:
+		return m.OldFeatureID(ctx)
 	case creditentry.FieldAmount:
 		return m.OldAmount(ctx)
 	case creditentry.FieldPriority:
@@ -1254,12 +1254,12 @@ func (m *CreditEntryMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetType(v)
 		return nil
-	case creditentry.FieldProductID:
+	case creditentry.FieldFeatureID:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetProductID(v)
+		m.SetFeatureID(v)
 		return nil
 	case creditentry.FieldAmount:
 		v, ok := value.(float64)
@@ -1408,8 +1408,8 @@ func (m *CreditEntryMutation) ClearedFields() []string {
 	if m.FieldCleared(creditentry.FieldType) {
 		fields = append(fields, creditentry.FieldType)
 	}
-	if m.FieldCleared(creditentry.FieldProductID) {
-		fields = append(fields, creditentry.FieldProductID)
+	if m.FieldCleared(creditentry.FieldFeatureID) {
+		fields = append(fields, creditentry.FieldFeatureID)
 	}
 	if m.FieldCleared(creditentry.FieldAmount) {
 		fields = append(fields, creditentry.FieldAmount)
@@ -1449,8 +1449,8 @@ func (m *CreditEntryMutation) ClearField(name string) error {
 	case creditentry.FieldType:
 		m.ClearType()
 		return nil
-	case creditentry.FieldProductID:
-		m.ClearProductID()
+	case creditentry.FieldFeatureID:
+		m.ClearFeatureID()
 		return nil
 	case creditentry.FieldAmount:
 		m.ClearAmount()
@@ -1499,8 +1499,8 @@ func (m *CreditEntryMutation) ResetField(name string) error {
 	case creditentry.FieldType:
 		m.ResetType()
 		return nil
-	case creditentry.FieldProductID:
-		m.ResetProductID()
+	case creditentry.FieldFeatureID:
+		m.ResetFeatureID()
 		return nil
 	case creditentry.FieldAmount:
 		m.ResetAmount()
@@ -1542,8 +1542,8 @@ func (m *CreditEntryMutation) AddedEdges() []string {
 	if m.children != nil {
 		edges = append(edges, creditentry.EdgeChildren)
 	}
-	if m.product != nil {
-		edges = append(edges, creditentry.EdgeProduct)
+	if m.feature != nil {
+		edges = append(edges, creditentry.EdgeFeature)
 	}
 	return edges
 }
@@ -1560,8 +1560,8 @@ func (m *CreditEntryMutation) AddedIDs(name string) []ent.Value {
 		if id := m.children; id != nil {
 			return []ent.Value{*id}
 		}
-	case creditentry.EdgeProduct:
-		if id := m.product; id != nil {
+	case creditentry.EdgeFeature:
+		if id := m.feature; id != nil {
 			return []ent.Value{*id}
 		}
 	}
@@ -1589,8 +1589,8 @@ func (m *CreditEntryMutation) ClearedEdges() []string {
 	if m.clearedchildren {
 		edges = append(edges, creditentry.EdgeChildren)
 	}
-	if m.clearedproduct {
-		edges = append(edges, creditentry.EdgeProduct)
+	if m.clearedfeature {
+		edges = append(edges, creditentry.EdgeFeature)
 	}
 	return edges
 }
@@ -1603,8 +1603,8 @@ func (m *CreditEntryMutation) EdgeCleared(name string) bool {
 		return m.clearedparent
 	case creditentry.EdgeChildren:
 		return m.clearedchildren
-	case creditentry.EdgeProduct:
-		return m.clearedproduct
+	case creditentry.EdgeFeature:
+		return m.clearedfeature
 	}
 	return false
 }
@@ -1619,8 +1619,8 @@ func (m *CreditEntryMutation) ClearEdge(name string) error {
 	case creditentry.EdgeChildren:
 		m.ClearChildren()
 		return nil
-	case creditentry.EdgeProduct:
-		m.ClearProduct()
+	case creditentry.EdgeFeature:
+		m.ClearFeature()
 		return nil
 	}
 	return fmt.Errorf("unknown CreditEntry unique edge %s", name)
@@ -1636,15 +1636,15 @@ func (m *CreditEntryMutation) ResetEdge(name string) error {
 	case creditentry.EdgeChildren:
 		m.ResetChildren()
 		return nil
-	case creditentry.EdgeProduct:
-		m.ResetProduct()
+	case creditentry.EdgeFeature:
+		m.ResetFeature()
 		return nil
 	}
 	return fmt.Errorf("unknown CreditEntry edge %s", name)
 }
 
-// ProductMutation represents an operation that mutates the Product nodes in the graph.
-type ProductMutation struct {
+// FeatureMutation represents an operation that mutates the Feature nodes in the graph.
+type FeatureMutation struct {
 	config
 	op                     Op
 	typ                    string
@@ -1661,21 +1661,21 @@ type ProductMutation struct {
 	removedcredit_grants   map[string]struct{}
 	clearedcredit_grants   bool
 	done                   bool
-	oldValue               func(context.Context) (*Product, error)
-	predicates             []predicate.Product
+	oldValue               func(context.Context) (*Feature, error)
+	predicates             []predicate.Feature
 }
 
-var _ ent.Mutation = (*ProductMutation)(nil)
+var _ ent.Mutation = (*FeatureMutation)(nil)
 
-// productOption allows management of the mutation configuration using functional options.
-type productOption func(*ProductMutation)
+// featureOption allows management of the mutation configuration using functional options.
+type featureOption func(*FeatureMutation)
 
-// newProductMutation creates new mutation for the Product entity.
-func newProductMutation(c config, op Op, opts ...productOption) *ProductMutation {
-	m := &ProductMutation{
+// newFeatureMutation creates new mutation for the Feature entity.
+func newFeatureMutation(c config, op Op, opts ...featureOption) *FeatureMutation {
+	m := &FeatureMutation{
 		config:        c,
 		op:            op,
-		typ:           TypeProduct,
+		typ:           TypeFeature,
 		clearedFields: make(map[string]struct{}),
 	}
 	for _, opt := range opts {
@@ -1684,20 +1684,20 @@ func newProductMutation(c config, op Op, opts ...productOption) *ProductMutation
 	return m
 }
 
-// withProductID sets the ID field of the mutation.
-func withProductID(id string) productOption {
-	return func(m *ProductMutation) {
+// withFeatureID sets the ID field of the mutation.
+func withFeatureID(id string) featureOption {
+	return func(m *FeatureMutation) {
 		var (
 			err   error
 			once  sync.Once
-			value *Product
+			value *Feature
 		)
-		m.oldValue = func(ctx context.Context) (*Product, error) {
+		m.oldValue = func(ctx context.Context) (*Feature, error) {
 			once.Do(func() {
 				if m.done {
 					err = errors.New("querying old values post mutation is not allowed")
 				} else {
-					value, err = m.Client().Product.Get(ctx, id)
+					value, err = m.Client().Feature.Get(ctx, id)
 				}
 			})
 			return value, err
@@ -1706,10 +1706,10 @@ func withProductID(id string) productOption {
 	}
 }
 
-// withProduct sets the old Product of the mutation.
-func withProduct(node *Product) productOption {
-	return func(m *ProductMutation) {
-		m.oldValue = func(context.Context) (*Product, error) {
+// withFeature sets the old Feature of the mutation.
+func withFeature(node *Feature) featureOption {
+	return func(m *FeatureMutation) {
+		m.oldValue = func(context.Context) (*Feature, error) {
 			return node, nil
 		}
 		m.id = &node.ID
@@ -1718,7 +1718,7 @@ func withProduct(node *Product) productOption {
 
 // Client returns a new `ent.Client` from the mutation. If the mutation was
 // executed in a transaction (ent.Tx), a transactional client is returned.
-func (m ProductMutation) Client() *Client {
+func (m FeatureMutation) Client() *Client {
 	client := &Client{config: m.config}
 	client.init()
 	return client
@@ -1726,7 +1726,7 @@ func (m ProductMutation) Client() *Client {
 
 // Tx returns an `ent.Tx` for mutations that were executed in transactions;
 // it returns an error otherwise.
-func (m ProductMutation) Tx() (*Tx, error) {
+func (m FeatureMutation) Tx() (*Tx, error) {
 	if _, ok := m.driver.(*txDriver); !ok {
 		return nil, errors.New("db: mutation is not running in a transaction")
 	}
@@ -1736,14 +1736,14 @@ func (m ProductMutation) Tx() (*Tx, error) {
 }
 
 // SetID sets the value of the id field. Note that this
-// operation is only accepted on creation of Product entities.
-func (m *ProductMutation) SetID(id string) {
+// operation is only accepted on creation of Feature entities.
+func (m *FeatureMutation) SetID(id string) {
 	m.id = &id
 }
 
 // ID returns the ID value in the mutation. Note that the ID is only available
 // if it was provided to the builder or after it was returned from the database.
-func (m *ProductMutation) ID() (id string, exists bool) {
+func (m *FeatureMutation) ID() (id string, exists bool) {
 	if m.id == nil {
 		return
 	}
@@ -1754,7 +1754,7 @@ func (m *ProductMutation) ID() (id string, exists bool) {
 // That means, if the mutation is applied within a transaction with an isolation level such
 // as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
 // or updated by the mutation.
-func (m *ProductMutation) IDs(ctx context.Context) ([]string, error) {
+func (m *FeatureMutation) IDs(ctx context.Context) ([]string, error) {
 	switch {
 	case m.op.Is(OpUpdateOne | OpDeleteOne):
 		id, exists := m.ID()
@@ -1763,19 +1763,19 @@ func (m *ProductMutation) IDs(ctx context.Context) ([]string, error) {
 		}
 		fallthrough
 	case m.op.Is(OpUpdate | OpDelete):
-		return m.Client().Product.Query().Where(m.predicates...).IDs(ctx)
+		return m.Client().Feature.Query().Where(m.predicates...).IDs(ctx)
 	default:
 		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
 	}
 }
 
 // SetCreatedAt sets the "created_at" field.
-func (m *ProductMutation) SetCreatedAt(t time.Time) {
+func (m *FeatureMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
 }
 
 // CreatedAt returns the value of the "created_at" field in the mutation.
-func (m *ProductMutation) CreatedAt() (r time.Time, exists bool) {
+func (m *FeatureMutation) CreatedAt() (r time.Time, exists bool) {
 	v := m.created_at
 	if v == nil {
 		return
@@ -1783,10 +1783,10 @@ func (m *ProductMutation) CreatedAt() (r time.Time, exists bool) {
 	return *v, true
 }
 
-// OldCreatedAt returns the old "created_at" field's value of the Product entity.
-// If the Product object wasn't provided to the builder, the object is fetched from the database.
+// OldCreatedAt returns the old "created_at" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProductMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+func (m *FeatureMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
 	}
@@ -1801,17 +1801,17 @@ func (m *ProductMutation) OldCreatedAt(ctx context.Context) (v time.Time, err er
 }
 
 // ResetCreatedAt resets all changes to the "created_at" field.
-func (m *ProductMutation) ResetCreatedAt() {
+func (m *FeatureMutation) ResetCreatedAt() {
 	m.created_at = nil
 }
 
 // SetUpdatedAt sets the "updated_at" field.
-func (m *ProductMutation) SetUpdatedAt(t time.Time) {
+func (m *FeatureMutation) SetUpdatedAt(t time.Time) {
 	m.updated_at = &t
 }
 
 // UpdatedAt returns the value of the "updated_at" field in the mutation.
-func (m *ProductMutation) UpdatedAt() (r time.Time, exists bool) {
+func (m *FeatureMutation) UpdatedAt() (r time.Time, exists bool) {
 	v := m.updated_at
 	if v == nil {
 		return
@@ -1819,10 +1819,10 @@ func (m *ProductMutation) UpdatedAt() (r time.Time, exists bool) {
 	return *v, true
 }
 
-// OldUpdatedAt returns the old "updated_at" field's value of the Product entity.
-// If the Product object wasn't provided to the builder, the object is fetched from the database.
+// OldUpdatedAt returns the old "updated_at" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProductMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+func (m *FeatureMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
 	}
@@ -1837,17 +1837,17 @@ func (m *ProductMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err er
 }
 
 // ResetUpdatedAt resets all changes to the "updated_at" field.
-func (m *ProductMutation) ResetUpdatedAt() {
+func (m *FeatureMutation) ResetUpdatedAt() {
 	m.updated_at = nil
 }
 
 // SetNamespace sets the "namespace" field.
-func (m *ProductMutation) SetNamespace(s string) {
+func (m *FeatureMutation) SetNamespace(s string) {
 	m.namespace = &s
 }
 
 // Namespace returns the value of the "namespace" field in the mutation.
-func (m *ProductMutation) Namespace() (r string, exists bool) {
+func (m *FeatureMutation) Namespace() (r string, exists bool) {
 	v := m.namespace
 	if v == nil {
 		return
@@ -1855,10 +1855,10 @@ func (m *ProductMutation) Namespace() (r string, exists bool) {
 	return *v, true
 }
 
-// OldNamespace returns the old "namespace" field's value of the Product entity.
-// If the Product object wasn't provided to the builder, the object is fetched from the database.
+// OldNamespace returns the old "namespace" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProductMutation) OldNamespace(ctx context.Context) (v string, err error) {
+func (m *FeatureMutation) OldNamespace(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldNamespace is only allowed on UpdateOne operations")
 	}
@@ -1873,17 +1873,17 @@ func (m *ProductMutation) OldNamespace(ctx context.Context) (v string, err error
 }
 
 // ResetNamespace resets all changes to the "namespace" field.
-func (m *ProductMutation) ResetNamespace() {
+func (m *FeatureMutation) ResetNamespace() {
 	m.namespace = nil
 }
 
 // SetName sets the "name" field.
-func (m *ProductMutation) SetName(s string) {
+func (m *FeatureMutation) SetName(s string) {
 	m.name = &s
 }
 
 // Name returns the value of the "name" field in the mutation.
-func (m *ProductMutation) Name() (r string, exists bool) {
+func (m *FeatureMutation) Name() (r string, exists bool) {
 	v := m.name
 	if v == nil {
 		return
@@ -1891,10 +1891,10 @@ func (m *ProductMutation) Name() (r string, exists bool) {
 	return *v, true
 }
 
-// OldName returns the old "name" field's value of the Product entity.
-// If the Product object wasn't provided to the builder, the object is fetched from the database.
+// OldName returns the old "name" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProductMutation) OldName(ctx context.Context) (v string, err error) {
+func (m *FeatureMutation) OldName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldName is only allowed on UpdateOne operations")
 	}
@@ -1909,17 +1909,17 @@ func (m *ProductMutation) OldName(ctx context.Context) (v string, err error) {
 }
 
 // ResetName resets all changes to the "name" field.
-func (m *ProductMutation) ResetName() {
+func (m *FeatureMutation) ResetName() {
 	m.name = nil
 }
 
 // SetMeterSlug sets the "meter_slug" field.
-func (m *ProductMutation) SetMeterSlug(s string) {
+func (m *FeatureMutation) SetMeterSlug(s string) {
 	m.meter_slug = &s
 }
 
 // MeterSlug returns the value of the "meter_slug" field in the mutation.
-func (m *ProductMutation) MeterSlug() (r string, exists bool) {
+func (m *FeatureMutation) MeterSlug() (r string, exists bool) {
 	v := m.meter_slug
 	if v == nil {
 		return
@@ -1927,10 +1927,10 @@ func (m *ProductMutation) MeterSlug() (r string, exists bool) {
 	return *v, true
 }
 
-// OldMeterSlug returns the old "meter_slug" field's value of the Product entity.
-// If the Product object wasn't provided to the builder, the object is fetched from the database.
+// OldMeterSlug returns the old "meter_slug" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProductMutation) OldMeterSlug(ctx context.Context) (v string, err error) {
+func (m *FeatureMutation) OldMeterSlug(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldMeterSlug is only allowed on UpdateOne operations")
 	}
@@ -1945,17 +1945,17 @@ func (m *ProductMutation) OldMeterSlug(ctx context.Context) (v string, err error
 }
 
 // ResetMeterSlug resets all changes to the "meter_slug" field.
-func (m *ProductMutation) ResetMeterSlug() {
+func (m *FeatureMutation) ResetMeterSlug() {
 	m.meter_slug = nil
 }
 
 // SetMeterGroupByFilters sets the "meter_group_by_filters" field.
-func (m *ProductMutation) SetMeterGroupByFilters(value map[string]string) {
+func (m *FeatureMutation) SetMeterGroupByFilters(value map[string]string) {
 	m.meter_group_by_filters = &value
 }
 
 // MeterGroupByFilters returns the value of the "meter_group_by_filters" field in the mutation.
-func (m *ProductMutation) MeterGroupByFilters() (r map[string]string, exists bool) {
+func (m *FeatureMutation) MeterGroupByFilters() (r map[string]string, exists bool) {
 	v := m.meter_group_by_filters
 	if v == nil {
 		return
@@ -1963,10 +1963,10 @@ func (m *ProductMutation) MeterGroupByFilters() (r map[string]string, exists boo
 	return *v, true
 }
 
-// OldMeterGroupByFilters returns the old "meter_group_by_filters" field's value of the Product entity.
-// If the Product object wasn't provided to the builder, the object is fetched from the database.
+// OldMeterGroupByFilters returns the old "meter_group_by_filters" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProductMutation) OldMeterGroupByFilters(ctx context.Context) (v map[string]string, err error) {
+func (m *FeatureMutation) OldMeterGroupByFilters(ctx context.Context) (v map[string]string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldMeterGroupByFilters is only allowed on UpdateOne operations")
 	}
@@ -1981,30 +1981,30 @@ func (m *ProductMutation) OldMeterGroupByFilters(ctx context.Context) (v map[str
 }
 
 // ClearMeterGroupByFilters clears the value of the "meter_group_by_filters" field.
-func (m *ProductMutation) ClearMeterGroupByFilters() {
+func (m *FeatureMutation) ClearMeterGroupByFilters() {
 	m.meter_group_by_filters = nil
-	m.clearedFields[product.FieldMeterGroupByFilters] = struct{}{}
+	m.clearedFields[feature.FieldMeterGroupByFilters] = struct{}{}
 }
 
 // MeterGroupByFiltersCleared returns if the "meter_group_by_filters" field was cleared in this mutation.
-func (m *ProductMutation) MeterGroupByFiltersCleared() bool {
-	_, ok := m.clearedFields[product.FieldMeterGroupByFilters]
+func (m *FeatureMutation) MeterGroupByFiltersCleared() bool {
+	_, ok := m.clearedFields[feature.FieldMeterGroupByFilters]
 	return ok
 }
 
 // ResetMeterGroupByFilters resets all changes to the "meter_group_by_filters" field.
-func (m *ProductMutation) ResetMeterGroupByFilters() {
+func (m *FeatureMutation) ResetMeterGroupByFilters() {
 	m.meter_group_by_filters = nil
-	delete(m.clearedFields, product.FieldMeterGroupByFilters)
+	delete(m.clearedFields, feature.FieldMeterGroupByFilters)
 }
 
 // SetArchived sets the "archived" field.
-func (m *ProductMutation) SetArchived(b bool) {
+func (m *FeatureMutation) SetArchived(b bool) {
 	m.archived = &b
 }
 
 // Archived returns the value of the "archived" field in the mutation.
-func (m *ProductMutation) Archived() (r bool, exists bool) {
+func (m *FeatureMutation) Archived() (r bool, exists bool) {
 	v := m.archived
 	if v == nil {
 		return
@@ -2012,10 +2012,10 @@ func (m *ProductMutation) Archived() (r bool, exists bool) {
 	return *v, true
 }
 
-// OldArchived returns the old "archived" field's value of the Product entity.
-// If the Product object wasn't provided to the builder, the object is fetched from the database.
+// OldArchived returns the old "archived" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *ProductMutation) OldArchived(ctx context.Context) (v bool, err error) {
+func (m *FeatureMutation) OldArchived(ctx context.Context) (v bool, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldArchived is only allowed on UpdateOne operations")
 	}
@@ -2030,12 +2030,12 @@ func (m *ProductMutation) OldArchived(ctx context.Context) (v bool, err error) {
 }
 
 // ResetArchived resets all changes to the "archived" field.
-func (m *ProductMutation) ResetArchived() {
+func (m *FeatureMutation) ResetArchived() {
 	m.archived = nil
 }
 
 // AddCreditGrantIDs adds the "credit_grants" edge to the CreditEntry entity by ids.
-func (m *ProductMutation) AddCreditGrantIDs(ids ...string) {
+func (m *FeatureMutation) AddCreditGrantIDs(ids ...string) {
 	if m.credit_grants == nil {
 		m.credit_grants = make(map[string]struct{})
 	}
@@ -2045,17 +2045,17 @@ func (m *ProductMutation) AddCreditGrantIDs(ids ...string) {
 }
 
 // ClearCreditGrants clears the "credit_grants" edge to the CreditEntry entity.
-func (m *ProductMutation) ClearCreditGrants() {
+func (m *FeatureMutation) ClearCreditGrants() {
 	m.clearedcredit_grants = true
 }
 
 // CreditGrantsCleared reports if the "credit_grants" edge to the CreditEntry entity was cleared.
-func (m *ProductMutation) CreditGrantsCleared() bool {
+func (m *FeatureMutation) CreditGrantsCleared() bool {
 	return m.clearedcredit_grants
 }
 
 // RemoveCreditGrantIDs removes the "credit_grants" edge to the CreditEntry entity by IDs.
-func (m *ProductMutation) RemoveCreditGrantIDs(ids ...string) {
+func (m *FeatureMutation) RemoveCreditGrantIDs(ids ...string) {
 	if m.removedcredit_grants == nil {
 		m.removedcredit_grants = make(map[string]struct{})
 	}
@@ -2066,7 +2066,7 @@ func (m *ProductMutation) RemoveCreditGrantIDs(ids ...string) {
 }
 
 // RemovedCreditGrants returns the removed IDs of the "credit_grants" edge to the CreditEntry entity.
-func (m *ProductMutation) RemovedCreditGrantsIDs() (ids []string) {
+func (m *FeatureMutation) RemovedCreditGrantsIDs() (ids []string) {
 	for id := range m.removedcredit_grants {
 		ids = append(ids, id)
 	}
@@ -2074,7 +2074,7 @@ func (m *ProductMutation) RemovedCreditGrantsIDs() (ids []string) {
 }
 
 // CreditGrantsIDs returns the "credit_grants" edge IDs in the mutation.
-func (m *ProductMutation) CreditGrantsIDs() (ids []string) {
+func (m *FeatureMutation) CreditGrantsIDs() (ids []string) {
 	for id := range m.credit_grants {
 		ids = append(ids, id)
 	}
@@ -2082,21 +2082,21 @@ func (m *ProductMutation) CreditGrantsIDs() (ids []string) {
 }
 
 // ResetCreditGrants resets all changes to the "credit_grants" edge.
-func (m *ProductMutation) ResetCreditGrants() {
+func (m *FeatureMutation) ResetCreditGrants() {
 	m.credit_grants = nil
 	m.clearedcredit_grants = false
 	m.removedcredit_grants = nil
 }
 
-// Where appends a list predicates to the ProductMutation builder.
-func (m *ProductMutation) Where(ps ...predicate.Product) {
+// Where appends a list predicates to the FeatureMutation builder.
+func (m *FeatureMutation) Where(ps ...predicate.Feature) {
 	m.predicates = append(m.predicates, ps...)
 }
 
-// WhereP appends storage-level predicates to the ProductMutation builder. Using this method,
+// WhereP appends storage-level predicates to the FeatureMutation builder. Using this method,
 // users can use type-assertion to append predicates that do not depend on any generated package.
-func (m *ProductMutation) WhereP(ps ...func(*sql.Selector)) {
-	p := make([]predicate.Product, len(ps))
+func (m *FeatureMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Feature, len(ps))
 	for i := range ps {
 		p[i] = ps[i]
 	}
@@ -2104,45 +2104,45 @@ func (m *ProductMutation) WhereP(ps ...func(*sql.Selector)) {
 }
 
 // Op returns the operation name.
-func (m *ProductMutation) Op() Op {
+func (m *FeatureMutation) Op() Op {
 	return m.op
 }
 
 // SetOp allows setting the mutation operation.
-func (m *ProductMutation) SetOp(op Op) {
+func (m *FeatureMutation) SetOp(op Op) {
 	m.op = op
 }
 
-// Type returns the node type of this mutation (Product).
-func (m *ProductMutation) Type() string {
+// Type returns the node type of this mutation (Feature).
+func (m *FeatureMutation) Type() string {
 	return m.typ
 }
 
 // Fields returns all fields that were changed during this mutation. Note that in
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
-func (m *ProductMutation) Fields() []string {
+func (m *FeatureMutation) Fields() []string {
 	fields := make([]string, 0, 7)
 	if m.created_at != nil {
-		fields = append(fields, product.FieldCreatedAt)
+		fields = append(fields, feature.FieldCreatedAt)
 	}
 	if m.updated_at != nil {
-		fields = append(fields, product.FieldUpdatedAt)
+		fields = append(fields, feature.FieldUpdatedAt)
 	}
 	if m.namespace != nil {
-		fields = append(fields, product.FieldNamespace)
+		fields = append(fields, feature.FieldNamespace)
 	}
 	if m.name != nil {
-		fields = append(fields, product.FieldName)
+		fields = append(fields, feature.FieldName)
 	}
 	if m.meter_slug != nil {
-		fields = append(fields, product.FieldMeterSlug)
+		fields = append(fields, feature.FieldMeterSlug)
 	}
 	if m.meter_group_by_filters != nil {
-		fields = append(fields, product.FieldMeterGroupByFilters)
+		fields = append(fields, feature.FieldMeterGroupByFilters)
 	}
 	if m.archived != nil {
-		fields = append(fields, product.FieldArchived)
+		fields = append(fields, feature.FieldArchived)
 	}
 	return fields
 }
@@ -2150,21 +2150,21 @@ func (m *ProductMutation) Fields() []string {
 // Field returns the value of a field with the given name. The second boolean
 // return value indicates that this field was not set, or was not defined in the
 // schema.
-func (m *ProductMutation) Field(name string) (ent.Value, bool) {
+func (m *FeatureMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case product.FieldCreatedAt:
+	case feature.FieldCreatedAt:
 		return m.CreatedAt()
-	case product.FieldUpdatedAt:
+	case feature.FieldUpdatedAt:
 		return m.UpdatedAt()
-	case product.FieldNamespace:
+	case feature.FieldNamespace:
 		return m.Namespace()
-	case product.FieldName:
+	case feature.FieldName:
 		return m.Name()
-	case product.FieldMeterSlug:
+	case feature.FieldMeterSlug:
 		return m.MeterSlug()
-	case product.FieldMeterGroupByFilters:
+	case feature.FieldMeterGroupByFilters:
 		return m.MeterGroupByFilters()
-	case product.FieldArchived:
+	case feature.FieldArchived:
 		return m.Archived()
 	}
 	return nil, false
@@ -2173,74 +2173,74 @@ func (m *ProductMutation) Field(name string) (ent.Value, bool) {
 // OldField returns the old value of the field from the database. An error is
 // returned if the mutation operation is not UpdateOne, or the query to the
 // database failed.
-func (m *ProductMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+func (m *FeatureMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case product.FieldCreatedAt:
+	case feature.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
-	case product.FieldUpdatedAt:
+	case feature.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
-	case product.FieldNamespace:
+	case feature.FieldNamespace:
 		return m.OldNamespace(ctx)
-	case product.FieldName:
+	case feature.FieldName:
 		return m.OldName(ctx)
-	case product.FieldMeterSlug:
+	case feature.FieldMeterSlug:
 		return m.OldMeterSlug(ctx)
-	case product.FieldMeterGroupByFilters:
+	case feature.FieldMeterGroupByFilters:
 		return m.OldMeterGroupByFilters(ctx)
-	case product.FieldArchived:
+	case feature.FieldArchived:
 		return m.OldArchived(ctx)
 	}
-	return nil, fmt.Errorf("unknown Product field %s", name)
+	return nil, fmt.Errorf("unknown Feature field %s", name)
 }
 
 // SetField sets the value of a field with the given name. It returns an error if
 // the field is not defined in the schema, or if the type mismatched the field
 // type.
-func (m *ProductMutation) SetField(name string, value ent.Value) error {
+func (m *FeatureMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case product.FieldCreatedAt:
+	case feature.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCreatedAt(v)
 		return nil
-	case product.FieldUpdatedAt:
+	case feature.FieldUpdatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUpdatedAt(v)
 		return nil
-	case product.FieldNamespace:
+	case feature.FieldNamespace:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNamespace(v)
 		return nil
-	case product.FieldName:
+	case feature.FieldName:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetName(v)
 		return nil
-	case product.FieldMeterSlug:
+	case feature.FieldMeterSlug:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMeterSlug(v)
 		return nil
-	case product.FieldMeterGroupByFilters:
+	case feature.FieldMeterGroupByFilters:
 		v, ok := value.(map[string]string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMeterGroupByFilters(v)
 		return nil
-	case product.FieldArchived:
+	case feature.FieldArchived:
 		v, ok := value.(bool)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
@@ -2248,102 +2248,102 @@ func (m *ProductMutation) SetField(name string, value ent.Value) error {
 		m.SetArchived(v)
 		return nil
 	}
-	return fmt.Errorf("unknown Product field %s", name)
+	return fmt.Errorf("unknown Feature field %s", name)
 }
 
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
-func (m *ProductMutation) AddedFields() []string {
+func (m *FeatureMutation) AddedFields() []string {
 	return nil
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
-func (m *ProductMutation) AddedField(name string) (ent.Value, bool) {
+func (m *FeatureMutation) AddedField(name string) (ent.Value, bool) {
 	return nil, false
 }
 
 // AddField adds the value to the field with the given name. It returns an error if
 // the field is not defined in the schema, or if the type mismatched the field
 // type.
-func (m *ProductMutation) AddField(name string, value ent.Value) error {
+func (m *FeatureMutation) AddField(name string, value ent.Value) error {
 	switch name {
 	}
-	return fmt.Errorf("unknown Product numeric field %s", name)
+	return fmt.Errorf("unknown Feature numeric field %s", name)
 }
 
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
-func (m *ProductMutation) ClearedFields() []string {
+func (m *FeatureMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(product.FieldMeterGroupByFilters) {
-		fields = append(fields, product.FieldMeterGroupByFilters)
+	if m.FieldCleared(feature.FieldMeterGroupByFilters) {
+		fields = append(fields, feature.FieldMeterGroupByFilters)
 	}
 	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
 // cleared in this mutation.
-func (m *ProductMutation) FieldCleared(name string) bool {
+func (m *FeatureMutation) FieldCleared(name string) bool {
 	_, ok := m.clearedFields[name]
 	return ok
 }
 
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
-func (m *ProductMutation) ClearField(name string) error {
+func (m *FeatureMutation) ClearField(name string) error {
 	switch name {
-	case product.FieldMeterGroupByFilters:
+	case feature.FieldMeterGroupByFilters:
 		m.ClearMeterGroupByFilters()
 		return nil
 	}
-	return fmt.Errorf("unknown Product nullable field %s", name)
+	return fmt.Errorf("unknown Feature nullable field %s", name)
 }
 
 // ResetField resets all changes in the mutation for the field with the given name.
 // It returns an error if the field is not defined in the schema.
-func (m *ProductMutation) ResetField(name string) error {
+func (m *FeatureMutation) ResetField(name string) error {
 	switch name {
-	case product.FieldCreatedAt:
+	case feature.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil
-	case product.FieldUpdatedAt:
+	case feature.FieldUpdatedAt:
 		m.ResetUpdatedAt()
 		return nil
-	case product.FieldNamespace:
+	case feature.FieldNamespace:
 		m.ResetNamespace()
 		return nil
-	case product.FieldName:
+	case feature.FieldName:
 		m.ResetName()
 		return nil
-	case product.FieldMeterSlug:
+	case feature.FieldMeterSlug:
 		m.ResetMeterSlug()
 		return nil
-	case product.FieldMeterGroupByFilters:
+	case feature.FieldMeterGroupByFilters:
 		m.ResetMeterGroupByFilters()
 		return nil
-	case product.FieldArchived:
+	case feature.FieldArchived:
 		m.ResetArchived()
 		return nil
 	}
-	return fmt.Errorf("unknown Product field %s", name)
+	return fmt.Errorf("unknown Feature field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
-func (m *ProductMutation) AddedEdges() []string {
+func (m *FeatureMutation) AddedEdges() []string {
 	edges := make([]string, 0, 1)
 	if m.credit_grants != nil {
-		edges = append(edges, product.EdgeCreditGrants)
+		edges = append(edges, feature.EdgeCreditGrants)
 	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
-func (m *ProductMutation) AddedIDs(name string) []ent.Value {
+func (m *FeatureMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case product.EdgeCreditGrants:
+	case feature.EdgeCreditGrants:
 		ids := make([]ent.Value, 0, len(m.credit_grants))
 		for id := range m.credit_grants {
 			ids = append(ids, id)
@@ -2354,19 +2354,19 @@ func (m *ProductMutation) AddedIDs(name string) []ent.Value {
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
-func (m *ProductMutation) RemovedEdges() []string {
+func (m *FeatureMutation) RemovedEdges() []string {
 	edges := make([]string, 0, 1)
 	if m.removedcredit_grants != nil {
-		edges = append(edges, product.EdgeCreditGrants)
+		edges = append(edges, feature.EdgeCreditGrants)
 	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
-func (m *ProductMutation) RemovedIDs(name string) []ent.Value {
+func (m *FeatureMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
-	case product.EdgeCreditGrants:
+	case feature.EdgeCreditGrants:
 		ids := make([]ent.Value, 0, len(m.removedcredit_grants))
 		for id := range m.removedcredit_grants {
 			ids = append(ids, id)
@@ -2377,19 +2377,19 @@ func (m *ProductMutation) RemovedIDs(name string) []ent.Value {
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
-func (m *ProductMutation) ClearedEdges() []string {
+func (m *FeatureMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 1)
 	if m.clearedcredit_grants {
-		edges = append(edges, product.EdgeCreditGrants)
+		edges = append(edges, feature.EdgeCreditGrants)
 	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
-func (m *ProductMutation) EdgeCleared(name string) bool {
+func (m *FeatureMutation) EdgeCleared(name string) bool {
 	switch name {
-	case product.EdgeCreditGrants:
+	case feature.EdgeCreditGrants:
 		return m.clearedcredit_grants
 	}
 	return false
@@ -2397,19 +2397,19 @@ func (m *ProductMutation) EdgeCleared(name string) bool {
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
-func (m *ProductMutation) ClearEdge(name string) error {
+func (m *FeatureMutation) ClearEdge(name string) error {
 	switch name {
 	}
-	return fmt.Errorf("unknown Product unique edge %s", name)
+	return fmt.Errorf("unknown Feature unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
-func (m *ProductMutation) ResetEdge(name string) error {
+func (m *FeatureMutation) ResetEdge(name string) error {
 	switch name {
-	case product.EdgeCreditGrants:
+	case feature.EdgeCreditGrants:
 		m.ResetCreditGrants()
 		return nil
 	}
-	return fmt.Errorf("unknown Product edge %s", name)
+	return fmt.Errorf("unknown Feature edge %s", name)
 }

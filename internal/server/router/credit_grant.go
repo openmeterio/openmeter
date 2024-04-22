@@ -9,10 +9,9 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	credit_connector "github.com/openmeterio/openmeter/internal/credit"
+	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/pkg/contextx"
-	credit_model "github.com/openmeterio/openmeter/pkg/credit"
 	"github.com/openmeterio/openmeter/pkg/models"
-	product_model "github.com/openmeterio/openmeter/pkg/product"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -79,12 +78,12 @@ func (a *Router) CreateCreditGrant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if product exists
-	if grant.ProductID != nil {
-		_, err := a.config.CreditConnector.GetProduct(ctx, namespace, *grant.ProductID)
+	// Check if feature exists
+	if grant.FeatureID != nil {
+		_, err := a.config.CreditConnector.GetFeature(ctx, namespace, *grant.FeatureID)
 		if err != nil {
-			if _, ok := err.(*product_model.ProductNotFoundError); ok {
-				err := fmt.Errorf("product not found: %s", *grant.ProductID)
+			if _, ok := err.(*credit_model.FeatureNotFoundError); ok {
+				err := fmt.Errorf("feature not found: %s", *grant.FeatureID)
 				models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
 				return
 			}

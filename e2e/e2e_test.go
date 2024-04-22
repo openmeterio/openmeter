@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
-	credit_model "github.com/openmeterio/openmeter/pkg/credit"
+	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -464,7 +464,7 @@ func TestQuery(t *testing.T) {
 func TestCredit(t *testing.T) {
 	client := initClient(t)
 	customer := "customer-1"
-	productId := "credit_test_product_id"
+	featureId := "credit_test_feature_id"
 
 	// Reproducible random data
 	faker := gofakeit.New(8675309)
@@ -509,10 +509,10 @@ func TestCredit(t *testing.T) {
 	// Wait for events to be processed
 	time.Sleep(10 * time.Second)
 
-	t.Run("Create Product", func(t *testing.T) {
-		resp, err := client.CreateProductWithResponse(context.Background(), api.Product{
-			ID:        &productId,
-			Name:      "Credit Test Product",
+	t.Run("Create Feature", func(t *testing.T) {
+		resp, err := client.CreateFeatureWithResponse(context.Background(), api.Feature{
+			ID:        &featureId,
+			Name:      "Credit Test Feature",
 			MeterSlug: "credit_test_meter",
 			MeterGroupByFilters: &map[string]string{
 				"model": "gpt-4",
@@ -522,9 +522,9 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code")
 
-		expected := &api.Product{
-			ID:        &productId,
-			Name:      "Credit Test Product",
+		expected := &api.Feature{
+			ID:        &featureId,
+			Name:      "Credit Test Feature",
 			MeterSlug: "credit_test_meter",
 			MeterGroupByFilters: &map[string]string{
 				"model": "gpt-4",
@@ -540,7 +540,7 @@ func TestCredit(t *testing.T) {
 		resp, err := client.CreateCreditGrantWithResponse(context.Background(), api.CreditGrant{
 			Subject:     customer,
 			Type:        credit_model.GrantTypeUsage,
-			ProductID:   &productId,
+			FeatureID:   &featureId,
 			Amount:      100,
 			Priority:    1,
 			EffectiveAt: effectiveAt,
@@ -560,7 +560,7 @@ func TestCredit(t *testing.T) {
 			ID:          resp.JSON201.ID,
 			Subject:     customer,
 			Type:        credit_model.GrantTypeUsage,
-			ProductID:   &productId,
+			FeatureID:   &featureId,
 			Amount:      100,
 			Priority:    1,
 			EffectiveAt: effectiveAt,
@@ -586,11 +586,11 @@ func TestCredit(t *testing.T) {
 
 		expected := &api.CreditBalance{
 			Subject: customer,
-			ProductBalances: []credit_model.ProductBalance{
+			FeatureBalances: []credit_model.FeatureBalance{
 				{
-					Product: api.Product{
-						ID:        &productId,
-						Name:      "Credit Test Product",
+					Feature: api.Feature{
+						ID:        &featureId,
+						Name:      "Credit Test Feature",
 						MeterSlug: "credit_test_meter",
 						MeterGroupByFilters: &map[string]string{
 							"model": "gpt-4",
@@ -605,7 +605,7 @@ func TestCredit(t *testing.T) {
 						ID:          resp.JSON200.GrantBalances[0].ID,
 						Subject:     customer,
 						Type:        credit_model.GrantTypeUsage,
-						ProductID:   &productId,
+						FeatureID:   &featureId,
 						Amount:      100,
 						Priority:    1,
 						EffectiveAt: effectiveAt,
@@ -657,7 +657,7 @@ func TestCredit(t *testing.T) {
 				ID:          grants[0].ID,
 				Subject:     customer,
 				Type:        credit_model.GrantTypeUsage,
-				ProductID:   &productId,
+				FeatureID:   &featureId,
 				Amount:      99,
 				Priority:    1,
 				EffectiveAt: effectiveAt,

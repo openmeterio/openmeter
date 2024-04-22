@@ -14,8 +14,8 @@ type Tx struct {
 	config
 	// CreditEntry is the client for interacting with the CreditEntry builders.
 	CreditEntry *CreditEntryClient
-	// Product is the client for interacting with the Product builders.
-	Product *ProductClient
+	// Feature is the client for interacting with the Feature builders.
+	Feature *FeatureClient
 
 	// lazily loaded.
 	client     *Client
@@ -148,7 +148,7 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.CreditEntry = NewCreditEntryClient(tx.config)
-	tx.Product = NewProductClient(tx.config)
+	tx.Feature = NewFeatureClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

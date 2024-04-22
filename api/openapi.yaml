@@ -625,49 +625,49 @@ paths:
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
-  # Product
-  /api/v1/products:
+  # Feature
+  /api/v1/features:
     get:
-      operationId: listProducts
-      summary: List products
+      operationId: listFeatures
+      summary: List features
       description: |
-        List products.
+        List features.
       tags:
         - Credits (Experimental)
       responses:
         "200":
-          description: List of products.
+          description: List of features.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Product"
+                  $ref: "#/components/schemas/Feature"
         "401":
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
     post:
-      operationId: createProduct
-      summary: Create product
+      operationId: createFeature
+      summary: Create feature
       description: |
-        Creates a product.
+        Creates a feature.
       tags:
         - Credits (Experimental)
       requestBody:
-        description: The product to create.
+        description: The feature to create.
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Product"
+              $ref: "#/components/schemas/Feature"
       responses:
         "201":
-          description: Product created.
+          description: Feature created.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Product"
+                $ref: "#/components/schemas/Feature"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
@@ -676,23 +676,23 @@ paths:
           $ref: "#/components/responses/NotImplementedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
-  /api/v1/products/{productId}:
+  /api/v1/features/{featureId}:
     get:
-      operationId: getProduct
-      summary: Get product
+      operationId: getFeature
+      summary: Get feature
       description: |
-        Get product by key.
+        Get feature by key.
       tags:
         - Credits (Experimental)
       parameters:
-        - $ref: "#/components/parameters/productId"
+        - $ref: "#/components/parameters/featureId"
       responses:
         "200":
-          description: Product found.
+          description: Feature found.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Product"
+                $ref: "#/components/schemas/Feature"
         "401":
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         "404":
@@ -700,17 +700,17 @@ paths:
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
     delete:
-      operationId: deleteProduct
-      summary: Delete product
+      operationId: deleteFeature
+      summary: Delete feature
       description: |
-        Delete a product by key.
+        Delete a feature by key.
       tags:
         - Credits (Experimental)
       parameters:
-        - $ref: "#/components/parameters/productId"
+        - $ref: "#/components/parameters/featureId"
       responses:
         "204":
-          description: Product deleted.
+          description: Feature deleted.
         "401":
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         "404":
@@ -1085,13 +1085,13 @@ components:
             tokens: "1234"
             model: "gpt-4-turbo"
         validationError: "meter not found for event"
-    Product:
+    Feature:
       x-go-type-import:
-        path: github.com/openmeterio/openmeter/pkg/product
-      x-go-type: product.Product
+        path: github.com/openmeterio/openmeter/internal/credit
+      x-go-type: credit.Feature
       type: object
       description: |
-        A product is a feature or service offered to a customer.
+        A feature is a feature or service offered to a customer.
         For example: CPU-Hours, Tokens, API Calls, etc.
       required:
         - name
@@ -1101,22 +1101,22 @@ components:
         id:
           readOnly: true
           description: |
-            Readonly unique ULID identifier of the product.
+            Readonly unique ULID identifier of the feature.
           type: string
           example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         name:
           description: |
-            The name of the product.
+            The name of the feature.
           type: string
           example: AI Tokens
         meterSlug:
           description: |
-              The meter that the product is associated with and decreases grants by usage.
+              The meter that the feature is associated with and decreases grants by usage.
           type: string
           example: tokens_total
         meterGroupByFilters:
           description: |
-            Optional meter group by filters. Useful if the meter scope is broader than what product tracks.
+            Optional meter group by filters. Useful if the meter scope is broader than what feature tracks.
           type: object
           additionalProperties:
             type: string
@@ -1125,12 +1125,12 @@ components:
         archived:
           readOnly: true
           description: |
-            If the product is archived, it will not be used for grants or usage.
+            If the feature is archived, it will not be used for grants or usage.
           type: boolean
           example: false
     CreditLedgerEntry:
       x-go-type-import:
-        path: github.com/openmeterio/openmeter/pkg/credit
+        path: github.com/openmeterio/openmeter/internal/credit
       x-go-type: credit.LedgerEntry
       type: object
       description: |
@@ -1173,7 +1173,7 @@ components:
           example: "2023-01-01T00:00:00Z"
     CreditLedgerEntryType:
       x-go-type-import:
-        path: github.com/openmeterio/openmeter/pkg/credit
+        path: github.com/openmeterio/openmeter/internal/credit
       x-go-type: credit.LedgerEntryType
       type: string
       enum:
@@ -1184,7 +1184,7 @@ components:
       example: GRANT
     CreditBalance:
       x-go-type-import:
-        path: github.com/openmeterio/openmeter/pkg/credit
+        path: github.com/openmeterio/openmeter/internal/credit
       x-go-type: credit.Balance
       type: object
       description: |
@@ -1199,12 +1199,12 @@ components:
             The subject to get the balance for.
           type: string
           example: customer-id
-        products:
+        features:
           description: |
-            Products with balances.
+            Features with balances.
           type: array
           items:
-            $ref: "#/components/schemas/ProductBalance"
+            $ref: "#/components/schemas/FeatureBalance"
         grants:
           description: |
             The grants applied to the subject.
@@ -1213,7 +1213,7 @@ components:
             $ref: "#/components/schemas/CreditGrantBalance"
     CreditReset:
       x-go-type-import:
-        path: github.com/openmeterio/openmeter/pkg/credit
+        path: github.com/openmeterio/openmeter/internal/credit
       x-go-type: credit.Reset
       type: object
       description: |
@@ -1242,7 +1242,7 @@ components:
           example: "2023-01-01T00:00:00Z"
     CreditGrantBalance:
       x-go-type-import:
-        path: github.com/openmeterio/openmeter/pkg/credit
+        path: github.com/openmeterio/openmeter/internal/credit
       x-go-type: credit.GrantBalance
       allOf:
         - $ref: "#/components/schemas/CreditGrant"
@@ -1253,22 +1253,22 @@ components:
                 The balance of the grant.
               type: number
               example: 100
-    ProductBalance:
+    FeatureBalance:
       x-go-type-import:
-        path: github.com/openmeterio/openmeter/pkg/credit
-      x-go-type: credit.ProductBalance
+        path: github.com/openmeterio/openmeter/internal/credit
+      x-go-type: credit.FeatureBalance
       allOf:
-        - $ref: "#/components/schemas/Product"
+        - $ref: "#/components/schemas/Feature"
         - type: object
           properties:
             balance:
               description: |
-                The balance of the product.
+                The balance of the feature.
               type: number
               example: 100
     CreditGrant:
       x-go-type-import:
-        path: github.com/openmeterio/openmeter/pkg/credit
+        path: github.com/openmeterio/openmeter/internal/credit
       x-go-type: credit.Grant
       type: object
       description: |
@@ -1278,7 +1278,7 @@ components:
         - subject
         - type
         - amount
-        - productId
+        - featureId
         - effectiveAt
         - expiration
       properties:
@@ -1300,9 +1300,9 @@ components:
             The amount to grant. Can be positive or negative number.
           type: number
           example: 100
-        productId:
+        featureId:
           description: |
-            The unique product ULID that the grant is associated with, if any.
+            The unique feature ULID that the grant is associated with, if any.
           type: string
           example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         priority:
@@ -1345,7 +1345,7 @@ components:
             stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
     CreditGrantType:
       x-go-type-import:
-        path: github.com/openmeterio/openmeter/pkg/credit
+        path: github.com/openmeterio/openmeter/internal/credit
       x-go-type: credit.GrantType
       description: |
         The grant type:
@@ -1356,7 +1356,7 @@ components:
       example: USAGE
     CreditGrantRollover:
       x-go-type-import:
-        path: github.com/openmeterio/openmeter/pkg/credit
+        path: github.com/openmeterio/openmeter/internal/credit
       x-go-type: credit.GrantRollover
       type: object
       description: |
@@ -1372,7 +1372,7 @@ components:
           type: number
     CreditGrantRolloverType:
       x-go-type-import:
-        path: github.com/openmeterio/openmeter/pkg/credit
+        path: github.com/openmeterio/openmeter/internal/credit
       x-go-type: credit.GrantRolloverType
       description: |
         The rollover type to use:
@@ -1385,7 +1385,7 @@ components:
       example: ORIGINAL_AMOUNT
     CreditExpirationPeriod:
       x-go-type-import:
-        path: github.com/openmeterio/openmeter/pkg/credit
+        path: github.com/openmeterio/openmeter/internal/credit
       x-go-type: credit.ExpirationPeriod
       type: object
       description: |
@@ -1396,7 +1396,7 @@ components:
       properties:
         duration:
           x-go-type-import:
-            path: github.com/openmeterio/openmeter/pkg/credit
+            path: github.com/openmeterio/openmeter/internal/credit
           x-go-type: credit.ExpirationPeriodDuration
           description: |
             The expiration period duration like month.
@@ -1725,9 +1725,9 @@ components:
       schema:
         type: string
         example: "customer-id"
-    productId:
-      name: productId
-      description: A unique ULID identifier for a product.
+    featureId:
+      name: featureId
+      description: A unique ULID identifier for a feature.
       in: path
       required: true
       schema:

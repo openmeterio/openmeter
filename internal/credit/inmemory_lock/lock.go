@@ -8,7 +8,7 @@ import (
 
 	"github.com/oklog/ulid/v2"
 
-	credit_model "github.com/openmeterio/openmeter/pkg/credit"
+	credit_model "github.com/openmeterio/openmeter/internal/credit"
 )
 
 func NewLockManager(duration time.Duration) credit_model.LockManager {

@@ -9,7 +9,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
-	credit_model "github.com/openmeterio/openmeter/pkg/credit"
+	credit_model "github.com/openmeterio/openmeter/internal/credit"
 )
 
 type CreditEntry struct {
@@ -31,7 +31,7 @@ func (CreditEntry) Fields() []ent.Field {
 		field.String("subject").NotEmpty().Immutable(),
 		field.Enum("entry_type").GoType(credit_model.EntryType("")).Immutable(),
 		field.Enum("type").GoType(credit_model.GrantType("")).Optional().Nillable().Immutable(),
-		field.String("product_id").Optional().Nillable().Immutable(),
+		field.String("feature_id").Optional().Nillable().Immutable(),
 		// TODO: use decimal instead of float?
 		field.Float("amount").Optional().Nillable().Immutable(),
 		field.Uint8("priority").Default(1).Immutable(),
@@ -65,9 +65,9 @@ func (CreditEntry) Edges() []ent.Edge {
 			Unique().
 			Immutable().
 			Field("parent_id"),
-		edge.From("product", Product.Type).
+		edge.From("feature", Feature.Type).
 			Ref("credit_grants").
-			Field("product_id").
+			Field("feature_id").
 			Unique().
 			Immutable(),
 	}

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/product"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/schema"
 )
 
@@ -51,41 +51,41 @@ func init() {
 	creditentryDescID := creditentryMixinFields0[0].Descriptor()
 	// creditentry.DefaultID holds the default value on creation for the id field.
 	creditentry.DefaultID = creditentryDescID.Default.(func() string)
-	productMixin := schema.Product{}.Mixin()
-	productMixinFields0 := productMixin[0].Fields()
-	_ = productMixinFields0
-	productMixinFields1 := productMixin[1].Fields()
-	_ = productMixinFields1
-	productFields := schema.Product{}.Fields()
-	_ = productFields
-	// productDescCreatedAt is the schema descriptor for created_at field.
-	productDescCreatedAt := productMixinFields1[0].Descriptor()
-	// product.DefaultCreatedAt holds the default value on creation for the created_at field.
-	product.DefaultCreatedAt = productDescCreatedAt.Default.(func() time.Time)
-	// productDescUpdatedAt is the schema descriptor for updated_at field.
-	productDescUpdatedAt := productMixinFields1[1].Descriptor()
-	// product.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	product.DefaultUpdatedAt = productDescUpdatedAt.Default.(func() time.Time)
-	// product.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	product.UpdateDefaultUpdatedAt = productDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// productDescNamespace is the schema descriptor for namespace field.
-	productDescNamespace := productFields[0].Descriptor()
-	// product.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
-	product.NamespaceValidator = productDescNamespace.Validators[0].(func(string) error)
-	// productDescName is the schema descriptor for name field.
-	productDescName := productFields[1].Descriptor()
-	// product.NameValidator is a validator for the "name" field. It is called by the builders before save.
-	product.NameValidator = productDescName.Validators[0].(func(string) error)
-	// productDescMeterSlug is the schema descriptor for meter_slug field.
-	productDescMeterSlug := productFields[2].Descriptor()
-	// product.MeterSlugValidator is a validator for the "meter_slug" field. It is called by the builders before save.
-	product.MeterSlugValidator = productDescMeterSlug.Validators[0].(func(string) error)
-	// productDescArchived is the schema descriptor for archived field.
-	productDescArchived := productFields[4].Descriptor()
-	// product.DefaultArchived holds the default value on creation for the archived field.
-	product.DefaultArchived = productDescArchived.Default.(bool)
-	// productDescID is the schema descriptor for id field.
-	productDescID := productMixinFields0[0].Descriptor()
-	// product.DefaultID holds the default value on creation for the id field.
-	product.DefaultID = productDescID.Default.(func() string)
+	featureMixin := schema.Feature{}.Mixin()
+	featureMixinFields0 := featureMixin[0].Fields()
+	_ = featureMixinFields0
+	featureMixinFields1 := featureMixin[1].Fields()
+	_ = featureMixinFields1
+	featureFields := schema.Feature{}.Fields()
+	_ = featureFields
+	// featureDescCreatedAt is the schema descriptor for created_at field.
+	featureDescCreatedAt := featureMixinFields1[0].Descriptor()
+	// feature.DefaultCreatedAt holds the default value on creation for the created_at field.
+	feature.DefaultCreatedAt = featureDescCreatedAt.Default.(func() time.Time)
+	// featureDescUpdatedAt is the schema descriptor for updated_at field.
+	featureDescUpdatedAt := featureMixinFields1[1].Descriptor()
+	// feature.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	feature.DefaultUpdatedAt = featureDescUpdatedAt.Default.(func() time.Time)
+	// feature.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	feature.UpdateDefaultUpdatedAt = featureDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// featureDescNamespace is the schema descriptor for namespace field.
+	featureDescNamespace := featureFields[0].Descriptor()
+	// feature.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	feature.NamespaceValidator = featureDescNamespace.Validators[0].(func(string) error)
+	// featureDescName is the schema descriptor for name field.
+	featureDescName := featureFields[1].Descriptor()
+	// feature.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	feature.NameValidator = featureDescName.Validators[0].(func(string) error)
+	// featureDescMeterSlug is the schema descriptor for meter_slug field.
+	featureDescMeterSlug := featureFields[2].Descriptor()
+	// feature.MeterSlugValidator is a validator for the "meter_slug" field. It is called by the builders before save.
+	feature.MeterSlugValidator = featureDescMeterSlug.Validators[0].(func(string) error)
+	// featureDescArchived is the schema descriptor for archived field.
+	featureDescArchived := featureFields[4].Descriptor()
+	// feature.DefaultArchived holds the default value on creation for the archived field.
+	feature.DefaultArchived = featureDescArchived.Default.(bool)
+	// featureDescID is the schema descriptor for id field.
+	featureDescID := featureMixinFields0[0].Descriptor()
+	// feature.DefaultID holds the default value on creation for the id field.
+	feature.DefaultID = featureDescID.Default.(func() string)
 }

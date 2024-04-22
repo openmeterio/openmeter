@@ -12,8 +12,8 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/predicate"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/product"
 )
 
 // CreditEntryQuery is the builder for querying CreditEntry entities.
@@ -25,7 +25,7 @@ type CreditEntryQuery struct {
 	predicates   []predicate.CreditEntry
 	withParent   *CreditEntryQuery
 	withChildren *CreditEntryQuery
-	withProduct  *ProductQuery
+	withFeature  *FeatureQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -106,9 +106,9 @@ func (ceq *CreditEntryQuery) QueryChildren() *CreditEntryQuery {
 	return query
 }
 
-// QueryProduct chains the current query on the "product" edge.
-func (ceq *CreditEntryQuery) QueryProduct() *ProductQuery {
-	query := (&ProductClient{config: ceq.config}).Query()
+// QueryFeature chains the current query on the "feature" edge.
+func (ceq *CreditEntryQuery) QueryFeature() *FeatureQuery {
+	query := (&FeatureClient{config: ceq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := ceq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -119,8 +119,8 @@ func (ceq *CreditEntryQuery) QueryProduct() *ProductQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(creditentry.Table, creditentry.FieldID, selector),
-			sqlgraph.To(product.Table, product.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, creditentry.ProductTable, creditentry.ProductColumn),
+			sqlgraph.To(feature.Table, feature.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, creditentry.FeatureTable, creditentry.FeatureColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(ceq.driver.Dialect(), step)
 		return fromU, nil
@@ -322,7 +322,7 @@ func (ceq *CreditEntryQuery) Clone() *CreditEntryQuery {
 		predicates:   append([]predicate.CreditEntry{}, ceq.predicates...),
 		withParent:   ceq.withParent.Clone(),
 		withChildren: ceq.withChildren.Clone(),
-		withProduct:  ceq.withProduct.Clone(),
+		withFeature:  ceq.withFeature.Clone(),
 		// clone intermediate query.
 		sql:  ceq.sql.Clone(),
 		path: ceq.path,
@@ -351,14 +351,14 @@ func (ceq *CreditEntryQuery) WithChildren(opts ...func(*CreditEntryQuery)) *Cred
 	return ceq
 }
 
-// WithProduct tells the query-builder to eager-load the nodes that are connected to
-// the "product" edge. The optional arguments are used to configure the query builder of the edge.
-func (ceq *CreditEntryQuery) WithProduct(opts ...func(*ProductQuery)) *CreditEntryQuery {
-	query := (&ProductClient{config: ceq.config}).Query()
+// WithFeature tells the query-builder to eager-load the nodes that are connected to
+// the "feature" edge. The optional arguments are used to configure the query builder of the edge.
+func (ceq *CreditEntryQuery) WithFeature(opts ...func(*FeatureQuery)) *CreditEntryQuery {
+	query := (&FeatureClient{config: ceq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	ceq.withProduct = query
+	ceq.withFeature = query
 	return ceq
 }
 
@@ -443,7 +443,7 @@ func (ceq *CreditEntryQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 		loadedTypes = [3]bool{
 			ceq.withParent != nil,
 			ceq.withChildren != nil,
-			ceq.withProduct != nil,
+			ceq.withFeature != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -476,9 +476,9 @@ func (ceq *CreditEntryQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 			return nil, err
 		}
 	}
-	if query := ceq.withProduct; query != nil {
-		if err := ceq.loadProduct(ctx, query, nodes, nil,
-			func(n *CreditEntry, e *Product) { n.Edges.Product = e }); err != nil {
+	if query := ceq.withFeature; query != nil {
+		if err := ceq.loadFeature(ctx, query, nodes, nil,
+			func(n *CreditEntry, e *Feature) { n.Edges.Feature = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -547,14 +547,14 @@ func (ceq *CreditEntryQuery) loadChildren(ctx context.Context, query *CreditEntr
 	}
 	return nil
 }
-func (ceq *CreditEntryQuery) loadProduct(ctx context.Context, query *ProductQuery, nodes []*CreditEntry, init func(*CreditEntry), assign func(*CreditEntry, *Product)) error {
+func (ceq *CreditEntryQuery) loadFeature(ctx context.Context, query *FeatureQuery, nodes []*CreditEntry, init func(*CreditEntry), assign func(*CreditEntry, *Feature)) error {
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*CreditEntry)
 	for i := range nodes {
-		if nodes[i].ProductID == nil {
+		if nodes[i].FeatureID == nil {
 			continue
 		}
-		fk := *nodes[i].ProductID
+		fk := *nodes[i].FeatureID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -563,7 +563,7 @@ func (ceq *CreditEntryQuery) loadProduct(ctx context.Context, query *ProductQuer
 	if len(ids) == 0 {
 		return nil
 	}
-	query.Where(product.IDIn(ids...))
+	query.Where(feature.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
@@ -571,7 +571,7 @@ func (ceq *CreditEntryQuery) loadProduct(ctx context.Context, query *ProductQuer
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "product_id" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "feature_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -608,8 +608,8 @@ func (ceq *CreditEntryQuery) querySpec() *sqlgraph.QuerySpec {
 		if ceq.withParent != nil {
 			_spec.Node.AddColumnOnce(creditentry.FieldParentID)
 		}
-		if ceq.withProduct != nil {
-			_spec.Node.AddColumnOnce(creditentry.FieldProductID)
+		if ceq.withFeature != nil {
+			_spec.Node.AddColumnOnce(creditentry.FieldFeatureID)
 		}
 	}
 	if ps := ceq.predicates; len(ps) > 0 {
