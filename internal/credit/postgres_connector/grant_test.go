@@ -6,10 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"entgo.io/ent/dialect"
-	entsql "entgo.io/ent/dialect/sql"
 	"github.com/oklog/ulid/v2"
-	"github.com/peterldowns/pgtestdb"
 	"github.com/stretchr/testify/assert"
 
 	credit "github.com/openmeterio/openmeter/internal/credit"
@@ -37,6 +34,8 @@ func TestPostgresConnectorGrants(t *testing.T) {
 		Name:      "product-1",
 	}}
 
+	effectiveTime := time.Date(2024, 1, 1, 0, 0, 0, 0, time.Local)
+
 	tt := []struct {
 		name        string
 		description string
@@ -54,7 +53,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
-					EffectiveAt: time.Now().Truncate(0),
+					EffectiveAt: effectiveTime,
 					Expiration: credit_model.ExpirationPeriod{
 						Duration: credit_model.ExpirationPeriodDurationDay,
 						Count:    1,
@@ -83,7 +82,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
-					EffectiveAt: time.Now().Truncate(0),
+					EffectiveAt: effectiveTime,
 					Expiration: credit_model.ExpirationPeriod{
 						Duration: credit_model.ExpirationPeriodDurationDay,
 						Count:    1,
@@ -128,7 +127,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
-					EffectiveAt: time.Now().Truncate(0),
+					EffectiveAt: effectiveTime,
 					Expiration: credit_model.ExpirationPeriod{
 						Duration: credit_model.ExpirationPeriodDurationDay,
 						Count:    1,
@@ -151,7 +150,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
-					EffectiveAt: time.Now().Truncate(0),
+					EffectiveAt: effectiveTime,
 					Expiration: credit_model.ExpirationPeriod{
 						Duration: credit_model.ExpirationPeriodDurationDay,
 						Count:    1,
@@ -163,7 +162,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      200,
 					Priority:    2,
-					EffectiveAt: time.Now().Truncate(0),
+					EffectiveAt: effectiveTime,
 					Expiration: credit_model.ExpirationPeriod{
 						Duration: credit_model.ExpirationPeriodDurationDay,
 						Count:    1,
@@ -175,7 +174,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 					Type:        credit_model.GrantTypeUsage,
 					Amount:      300,
 					Priority:    1,
-					EffectiveAt: time.Now().Truncate(0),
+					EffectiveAt: effectiveTime,
 					Expiration: credit_model.ExpirationPeriod{
 						Duration: credit_model.ExpirationPeriodDurationDay,
 						Count:    1,
@@ -210,14 +209,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.description)
-			driver := entsql.OpenDB(dialect.Postgres, pgtestdb.New(t, pgtestdb.Config{
-				DriverName: "pgx",
-				User:       "postgres",
-				Password:   "postgres",
-				Host:       "localhost",
-				Port:       "5432",
-				Options:    "sslmode=disable",
-			}, &EntMigrator{}))
+			driver := initDB(t)
 			databaseClient := db.NewClient(db.Driver(driver))
 			defer databaseClient.Close()
 			// Note: lock manager cannot be shared between tests as these parallel tests write the same ledger
