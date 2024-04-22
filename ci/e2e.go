@@ -16,6 +16,8 @@ func (m *Ci) Etoe(
 
 	api := image.
 		WithExposedPort(8080).
+		WithServiceBinding("postgres", postgres()).
+		WithEnvVariable("POSTGRES_HOST", "postgres").
 		WithExec([]string{"openmeter", "--config", "/etc/openmeter/config.yaml"}).
 		AsService()
 
