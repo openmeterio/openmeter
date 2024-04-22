@@ -15,6 +15,7 @@ const (
 	kafkaVersion        = "3.6"
 	clickhouseVersion   = "23.3.9.55"
 	redisVersion        = "7.0.12"
+	postgresVersion     = "15.3"
 
 	helmDocsVersion = "v1.11.3"
 	helmVersion     = "3.13.2"
@@ -81,5 +82,8 @@ func (m *Ci) Ci(ctx context.Context) error {
 func (m *Ci) Test() *Container {
 	return dag.Go().
 		WithSource(m.Source).
-		Exec([]string{"go", "test", "-v", "./..."})
+		Container().
+		WithServiceBinding("postgres", postgres()).
+		WithEnvVariable("POSTGRES_HOST", "postgres").
+		WithExec([]string{"go", "test", "-v", "./..."})
 }

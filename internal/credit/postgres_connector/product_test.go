@@ -6,10 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"entgo.io/ent/dialect"
-	entsql "entgo.io/ent/dialect/sql"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/peterldowns/pgtestdb"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/internal/credit"
@@ -112,14 +109,7 @@ func TestProduct(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.description)
-			driver := entsql.OpenDB(dialect.Postgres, pgtestdb.New(t, pgtestdb.Config{
-				DriverName: "pgx",
-				User:       "postgres",
-				Password:   "postgres",
-				Host:       "localhost",
-				Port:       "5432",
-				Options:    "sslmode=disable",
-			}, &EntMigrator{}))
+			driver := initDB(t)
 			databaseClient := db.NewClient(db.Driver(driver))
 			defer databaseClient.Close()
 			connector := NewPostgresConnector(slog.Default(), databaseClient, nil, meterRepository, lockManager)
