@@ -61,7 +61,8 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				ctx := context.Background()
 				product := createProduct(t, connector, namespace, productIn1)
 				// We need to truncate the time to workaround pgx driver timezone issue
-				t1 := time.Now().Truncate(time.Hour * 24)
+				// We also move it to the past to avoid timezone issues
+				t1 := time.Now().Truncate(time.Hour * 24).Add(-time.Hour * 24)
 				t2 := t1.Add(time.Hour).Truncate(0)
 
 				grant, err := connector.CreateGrant(ctx, namespace, credit_model.Grant{
