@@ -25,6 +25,12 @@ sink:
       database: 1
       address: redis:6379
 
+credits:
+  enabled: true
+
+postgres:
+  url: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
+
 meters:
   - slug: ingest
     description: Meter for testing ingestion
