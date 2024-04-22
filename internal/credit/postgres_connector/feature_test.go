@@ -9,8 +9,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/internal/credit"
-	credit_connector "github.com/openmeterio/openmeter/internal/credit"
 	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	inmemory_lock "github.com/openmeterio/openmeter/internal/credit/inmemory_lock"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
@@ -42,12 +40,12 @@ func TestFeature(t *testing.T) {
 	tt := []struct {
 		name        string
 		description string
-		test        func(t *testing.T, connector credit.Connector, db_client *db.Client)
+		test        func(t *testing.T, connector credit_model.Connector, db_client *db.Client)
 	}{
 		{
 			name:        "CreateFeature",
 			description: "Create a feature in the database",
-			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit_model.Connector, db_client *db.Client) {
 				ctx := context.Background()
 				featureIn := testFeature
 				featureOut, err := connector.CreateFeature(ctx, namespace, featureIn)
@@ -57,26 +55,33 @@ func TestFeature(t *testing.T) {
 				// assert fields
 				assert.NotNil(t, featureOut.ID)
 				featureIn.ID = featureOut.ID
-				assert.Equal(t, featureIn, featureOut)
+				expected := featureIn
+				archived := false
+				expected.Archived = &archived
+				assert.Equal(t, expected, featureOut)
 			},
 		},
 		{
 			name:        "GetFeature",
-			description: "Get a feature in the database",
-			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
+			description: "Get a feature from the database",
+			test: func(t *testing.T, connector credit_model.Connector, db_client *db.Client) {
 				ctx := context.Background()
 				featureIn, err := connector.CreateFeature(ctx, namespace, testFeature)
 				assert.NoError(t, err)
 
 				featureOut, err := connector.GetFeature(ctx, namespace, *featureIn.ID)
 				assert.NoError(t, err)
-				assert.Equal(t, featureIn, featureOut)
+
+				expected := featureIn
+				archived := false
+				expected.Archived = &archived
+				assert.Equal(t, expected, featureOut)
 			},
 		},
 		{
 			name:        "DeleteFeature",
 			description: "Delete a feature in the database",
-			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit_model.Connector, db_client *db.Client) {
 				ctx := context.Background()
 				p, err := connector.CreateFeature(ctx, namespace, testFeature)
 				assert.NoError(t, err)
@@ -93,15 +98,19 @@ func TestFeature(t *testing.T) {
 		{
 			name:        "ListFeatures",
 			description: "List features in the database",
-			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit_model.Connector, db_client *db.Client) {
 				ctx := context.Background()
 				feature, err := connector.CreateFeature(ctx, namespace, testFeature)
 				assert.NoError(t, err)
 
-				features, err := connector.ListFeatures(ctx, namespace, credit_connector.ListFeaturesParams{})
+				features, err := connector.ListFeatures(ctx, namespace, credit_model.ListFeaturesParams{})
 				assert.NoError(t, err)
 				assert.Len(t, features, 1)
-				assert.Equal(t, feature, features[0])
+
+				expected := feature
+				archived := false
+				expected.Archived = &archived
+				assert.Equal(t, []credit_model.Feature{expected}, features)
 			},
 		},
 	}

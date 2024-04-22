@@ -14,8 +14,7 @@ import (
 	"github.com/peterldowns/pgtestdb"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/internal/credit"
-	credit_connector "github.com/openmeterio/openmeter/internal/credit"
+	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	inmemory_lock "github.com/openmeterio/openmeter/internal/credit/inmemory_lock"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/migrate"
@@ -29,13 +28,13 @@ func TestConnector(t *testing.T) {
 	tt := []struct {
 		name        string
 		description string
-		test        func(t *testing.T, connector credit.Connector, db_client *db.Client)
+		test        func(t *testing.T, connector credit_model.Connector, db_client *db.Client)
 	}{
 		{
 			name:        "ImplementsInterface",
 			description: "PostgresConnector implements feature.Connector interface",
-			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
-				assert.Implements(t, (*credit_connector.Connector)(nil), connector)
+			test: func(t *testing.T, connector credit_model.Connector, db_client *db.Client) {
+				assert.Implements(t, (*credit_model.Connector)(nil), connector)
 			},
 		},
 	}
