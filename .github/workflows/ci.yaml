@@ -209,7 +209,7 @@ jobs:
 
     steps:
       - name: Run pipeline
-        uses: dagger/dagger-for-github@698ef94185f8baaa1f3c3d825a7d3d487152db2f # v5.2.0
+        uses: dagger/dagger-for-github@eba69b4dddb54eddfdb51a88eb7fd86957137630 # v5.4.0
         with:
           verb: call
           module: github.com/${{ github.repository }}@${{ github.ref }}
@@ -238,7 +238,7 @@ jobs:
           swap-storage: false
 
       - name: Run pipeline
-        uses: dagger/dagger-for-github@698ef94185f8baaa1f3c3d825a7d3d487152db2f # v5.2.0
+        uses: dagger/dagger-for-github@eba69b4dddb54eddfdb51a88eb7fd86957137630 # v5.4.0
         with:
           verb: call
           module: github.com/${{ github.repository }}@${{ github.ref }}
