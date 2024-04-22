@@ -29,7 +29,7 @@ credits:
   enabled: true
 
 postgres:
-  url: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
+  url: postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
 
 meters:
   - slug: ingest
