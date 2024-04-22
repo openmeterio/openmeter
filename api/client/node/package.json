@@ -9,8 +9,12 @@
     "url": "https://github.com/openmeterio/openmeter.git",
     "directory": "api/client/node"
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/types/index.d.ts",
+  "main": "./dist/index.cjs",
+  "exports": {
+    "require": "./dist/index.cjs",
+    "import": "./dist/index.js"
+  },
   "type": "module",
   "engines": {
     "node": ">=18.16.1"
@@ -18,7 +22,7 @@
   "scripts": {
     "lint": "eslint . --ext .ts --format=pretty",
     "format": "prettier --write .",
-    "build": "rimraf ./dist && tsc --build",
+    "build": "rimraf ./dist && rollup -c",
     "generate": "rimraf ./schemas && openapi-typescript '../../openapi.yaml' --output schemas/openapi.ts && prettier --write schemas/",
     "pretest": "pnpm run build",
     "test": "vitest --run",
@@ -26,13 +30,14 @@
     "prepublishOnly": "pnpm run generate && pnpm run build && pnpm run test && pnpm run lint"
   },
   "devDependencies": {
-    "@types/node": "^20.12.4",
+    "@rollup/plugin-typescript": "11.1.6",
+    "@types/node": "^20.12.7",
     "@types/node-fetch": "2.6.11",
-    "@typescript-eslint/eslint-plugin": "7.5.0",
-    "@typescript-eslint/parser": "7.5.0",
+    "@typescript-eslint/eslint-plugin": "7.7.0",
+    "@typescript-eslint/parser": "7.7.0",
     "eslint": "8.57.0",
     "eslint-config-prettier": "9.1.0",
-    "eslint-formatter-pretty": "6.0.1",
+    "eslint-formatter-pretty": "5.0.0",
     "eslint-import-resolver-typescript": "3.6.1",
     "eslint-plugin-compat": "4.2.0",
     "eslint-plugin-import": "2.29.1",
@@ -42,13 +47,15 @@
     "openapi-typescript": "6.7.5",
     "prettier": "3.2.5",
     "rimraf": "5.0.5",
-    "typescript": "5.4.4",
-    "vitest": "1.4.0"
+    "rollup": "4.16.1",
+    "tslib": "2.6.2",
+    "typescript": "5.4.5",
+    "vitest": "1.5.0"
   },
   "browserslist": [
     "current node"
   ],
   "dependencies": {
-    "undici": "^6.11.1"
+    "undici": "^6.13.0"
   }
 }

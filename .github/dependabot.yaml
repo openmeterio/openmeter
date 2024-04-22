@@ -31,7 +31,7 @@ updates:
   - package-ecosystem: npm
     directory: "/api/client/web"
     schedule:
-      interval: daily
+      interval: weekly
     reviewers:
       - "tothandras"
     labels:
@@ -43,11 +43,14 @@ updates:
         dependency-type: "production"
       development-dependencies:
         dependency-type: "development"
+    ignore:
+      - dependency-name: "eslint"
+      - dependency-name: "eslint-formatter-pretty"
 
   - package-ecosystem: npm
     directory: "/api/client/node"
     schedule:
-      interval: daily
+      interval: weekly
     reviewers:
       - "tothandras"
     labels:
@@ -59,11 +62,14 @@ updates:
         dependency-type: "production"
       development-dependencies:
         dependency-type: "development"
+    ignore:
+      - dependency-name: "eslint"
+      - dependency-name: "eslint-formatter-pretty"
 
   - package-ecosystem: pip
     directory: "/api/client/python"
     schedule:
-      interval: daily
+      interval: weekly
     reviewers:
       - "tothandras"
     labels:
