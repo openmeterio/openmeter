@@ -8,7 +8,6 @@ updates:
     labels:
       - area/dependencies
       - dependency/go
-      - release-note/dependency-update
 
   - package-ecosystem: github-actions
     directory: /
@@ -36,7 +35,6 @@ updates:
     labels:
       - area/dependencies
       - dependency/javascript
-      - release-note/dependency-update
     groups:
       production-dependencies:
         dependency-type: "production"
@@ -54,7 +52,6 @@ updates:
     labels:
       - area/dependencies
       - dependency/javascript
-      - release-note/dependency-update
     groups:
       production-dependencies:
         dependency-type: "production"
