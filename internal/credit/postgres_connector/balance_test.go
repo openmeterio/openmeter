@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/internal/credit"
 	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	inmemory_lock "github.com/openmeterio/openmeter/internal/credit/inmemory_lock"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
@@ -48,12 +47,12 @@ func TestPostgresConnectorBalances(t *testing.T) {
 	tt := []struct {
 		name        string
 		description string
-		test        func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client)
+		test        func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client)
 	}{
 		{
 			name:        "GetBalance",
 			description: "Should return balance",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
 				feature := createFeature(t, connector, namespace, featureIn1)
 				// We need to truncate the time to workaround pgx driver timezone issue
@@ -107,7 +106,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 		{
 			name:        "GetBalanceWithReset",
 			description: "Should return balance after reset",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
 				feature := createFeature(t, connector, namespace, featureIn1)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:00:00Z", time.UTC)
@@ -170,7 +169,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 		{
 			name:        "GetBalanceWithVoidGrant",
 			description: "Should exclude voided grant from balance",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
 				feature := createFeature(t, connector, namespace, featureIn1)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:00:00Z", time.UTC)
@@ -222,7 +221,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 		{
 			name:        "GetBalanceWithPiorities",
 			description: "Should burn down grant with highest priority first",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
 				feature := createFeature(t, connector, namespace, featureIn1)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:00:00Z", time.UTC)
@@ -296,7 +295,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 		{
 			name:        "GetBalanceWithDifferentGrantExpiration",
 			description: "Should burn down grant that expires first",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
 				feature := createFeature(t, connector, namespace, featureIn1)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:00:00Z", time.UTC)
@@ -370,7 +369,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 		{
 			name:        "GetBalanceWithMultipleFeatures",
 			description: "Should burn down the right feature",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
 				feature1 := createFeature(t, connector, namespace, featureIn1)
 				feature2 := createFeature(t, connector, namespace, featureIn2)
