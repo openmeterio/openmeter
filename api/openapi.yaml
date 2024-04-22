@@ -35,7 +35,7 @@ tags:
     description: |
       Endpoints related to subjects.
       [Learn more](https://openmeter.io/docs/getting-started/subjects)
-  - name: Credits
+  - name: Credits (Experimental)
     description: |
       Endpoints related to credits.
       [Learn more](https://openmeter.io/docs/getting-started/credits)
@@ -633,7 +633,7 @@ paths:
       description: |
         List products.
       tags:
-        - Products
+        - Credits (Experimental)
       responses:
         "200":
           description: List of products.
@@ -653,7 +653,7 @@ paths:
       description: |
         Creates a product.
       tags:
-        - Products
+        - Credits (Experimental)
       requestBody:
         description: The product to create.
         required: true
@@ -683,7 +683,7 @@ paths:
       description: |
         Get product by key.
       tags:
-        - Products
+        - Credits (Experimental)
       parameters:
         - $ref: "#/components/parameters/productId"
       responses:
@@ -705,7 +705,7 @@ paths:
       description: |
         Delete a product by key.
       tags:
-        - Products
+        - Credits (Experimental)
       parameters:
         - $ref: "#/components/parameters/productId"
       responses:
@@ -725,7 +725,7 @@ paths:
       description: |
         Get credit balance for a specific subject.
       tags:
-        - Credits
+        - Credits (Experimental)
       parameters:
         - name: subject
           in: path
@@ -764,7 +764,7 @@ paths:
       description: |
         Get credit ledger for a specific subject.
       tags:
-        - Credits
+        - Credits (Experimental)
       parameters:
         - name: subject
           in: path
@@ -814,7 +814,7 @@ paths:
       description: |
         Reset credit balance for the given subject.
       tags:
-        - Credits
+        - Credits (Experimental)
       requestBody:
         description: The subject to reset balance for.
         required: true
@@ -845,7 +845,7 @@ paths:
       description: |
         List credit grants.
       tags:
-        - Credits
+        - Credits (Experimental)
       parameters:
         - $ref: "#/components/parameters/queryFilterSubject"
       responses:
@@ -869,7 +869,7 @@ paths:
       description: |
         Creates a credit grant.
       tags:
-        - Credits
+        - Credits (Experimental)
       requestBody:
         description: The credit grant to create.
         required: true
@@ -898,7 +898,7 @@ paths:
       description: |
         Get credit by key.
       tags:
-        - Credits
+        - Credits (Experimental)
       parameters:
         - $ref: "#/components/parameters/creditGrantId"
       responses:
@@ -921,7 +921,7 @@ paths:
         Void a credit grant by ID. Partially or fully used credits cannot be voided.
         Voided credits won't be applied to the subject's balance anymore.
       tags:
-        - Credits
+        - Credits (Experimental)
       parameters:
         - $ref: "#/components/parameters/creditGrantId"
       responses:
