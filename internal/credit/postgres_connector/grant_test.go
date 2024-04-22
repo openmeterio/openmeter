@@ -9,7 +9,6 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
-	credit "github.com/openmeterio/openmeter/internal/credit"
 	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	inmemory_lock "github.com/openmeterio/openmeter/internal/credit/inmemory_lock"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
@@ -38,12 +37,12 @@ func TestPostgresConnectorGrants(t *testing.T) {
 	tt := []struct {
 		name        string
 		description string
-		test        func(t *testing.T, connector credit.Connector, db_client *db.Client)
+		test        func(t *testing.T, connector credit_model.Connector, db_client *db.Client)
 	}{
 		{
 			name:        "CreateGrant",
 			description: "Create a grant in the database",
-			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit_model.Connector, db_client *db.Client) {
 				ctx := context.Background()
 				p := createFeature(t, connector, namespace, features[0])
 				grant := credit_model.Grant{
@@ -72,7 +71,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 		{
 			name:        "VoidGrant",
 			description: "Void a grant in the database and get the latest grant for an ID",
-			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit_model.Connector, db_client *db.Client) {
 				ctx := context.Background()
 				p := createFeature(t, connector, namespace, features[0])
 				grant := credit_model.Grant{
@@ -115,7 +114,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 		{
 			name:        "VoidGrantNotFound",
 			description: "Void a grant that does not exist",
-			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit_model.Connector, db_client *db.Client) {
 				ctx := context.Background()
 				p := createFeature(t, connector, namespace, features[0])
 				id := ulid.MustNew(ulid.Now(), nil).String()
@@ -140,7 +139,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 		{
 			name:        "ListGrants",
 			description: "List grants for subjects",
-			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit_model.Connector, db_client *db.Client) {
 				ctx := context.Background()
 				p := createFeature(t, connector, namespace, features[0])
 				grant_s1_1 := credit_model.Grant{
@@ -190,15 +189,15 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				// assert count
 				assert.Equal(t, 4, db_client.CreditEntry.Query().CountX(ctx))
 				// all subjects' non-void grants
-				gs, err := connector.ListGrants(ctx, namespace, credit.ListGrantsParams{})
+				gs, err := connector.ListGrants(ctx, namespace, credit_model.ListGrantsParams{})
 				assert.NoError(t, err)
 				assert.ElementsMatch(t, []credit_model.Grant{grant_s1_2, grant_s2_1}, gs)
 				// subject-1's non-void grants
-				gs, err = connector.ListGrants(ctx, namespace, credit.ListGrantsParams{Subjects: []string{"subject-1"}})
+				gs, err = connector.ListGrants(ctx, namespace, credit_model.ListGrantsParams{Subjects: []string{"subject-1"}})
 				assert.NoError(t, err)
 				assert.ElementsMatch(t, []credit_model.Grant{grant_s1_2}, gs)
 				// all subjects' grants, including void grants
-				gs, err = connector.ListGrants(ctx, namespace, credit.ListGrantsParams{IncludeVoid: true})
+				gs, err = connector.ListGrants(ctx, namespace, credit_model.ListGrantsParams{IncludeVoid: true})
 				assert.NoError(t, err)
 				assert.ElementsMatch(t, []credit_model.Grant{grant_s1_2, grant_s2_1, void_grant_s1_1}, gs)
 			},
@@ -219,7 +218,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 	}
 }
 
-func createFeature(t *testing.T, connector credit.Connector, namespace string, feature credit_model.Feature) credit_model.Feature {
+func createFeature(t *testing.T, connector credit_model.Connector, namespace string, feature credit_model.Feature) credit_model.Feature {
 	ctx := context.Background()
 	p, err := connector.CreateFeature(ctx, namespace, feature)
 	if err != nil {
