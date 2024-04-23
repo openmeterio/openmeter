@@ -8,9 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/internal/credit"
 	credit_model "github.com/openmeterio/openmeter/internal/credit"
-	inmemory_lock "github.com/openmeterio/openmeter/internal/credit/inmemory_lock"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -35,12 +33,12 @@ func TestPostgresConnectorReset(t *testing.T) {
 	tt := []struct {
 		name        string
 		description string
-		test        func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, lockManager credit_model.LockManager)
+		test        func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client)
 	}{
 		{
 			name:        "Reset",
 			description: "Should move high watermark ahead",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, lockManager credit_model.LockManager) {
+			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
 				feature := createFeature(t, connector, namespace, featureIn)
 				// We need to truncate the time to workaround pgx driver timezone issue
@@ -84,7 +82,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 				}, highWatermark)
 
 				// Get grants
-				grants, err := connector.ListGrants(ctx, namespace, credit.ListGrantsParams{
+				grants, err := connector.ListGrants(ctx, namespace, credit_model.ListGrantsParams{
 					Subjects:          []string{subject},
 					FromHighWatermark: true,
 				})
@@ -98,7 +96,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 		{
 			name:        "ResetWithFullRollover",
 			description: "Should rollover grants with original amount",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, lockManager credit_model.LockManager) {
+			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
 				feature := createFeature(t, connector, namespace, featureIn)
 				// We need to truncate the time to workaround pgx driver timezone issue
@@ -135,7 +133,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 				assert.NoError(t, err)
 
 				// Get grants
-				grants, err := connector.ListGrants(ctx, namespace, credit.ListGrantsParams{
+				grants, err := connector.ListGrants(ctx, namespace, credit_model.ListGrantsParams{
 					Subjects:          []string{subject},
 					FromHighWatermark: true,
 				})
@@ -148,7 +146,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 		{
 			name:        "ResetWithRemainingRollover",
 			description: "Should rollover grants with remaining amount",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, lockManager credit_model.LockManager) {
+			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
 				feature := createFeature(t, connector, namespace, featureIn)
 				// We need to truncate the time to workaround pgx driver timezone issue
@@ -190,7 +188,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 				assert.NoError(t, err)
 
 				// Get grants
-				grants, err := connector.ListGrants(ctx, namespace, credit.ListGrantsParams{
+				grants, err := connector.ListGrants(ctx, namespace, credit_model.ListGrantsParams{
 					Subjects:          []string{subject},
 					FromHighWatermark: true,
 				})
@@ -207,42 +205,47 @@ func TestPostgresConnectorReset(t *testing.T) {
 		{
 			name:        "ResetLock",
 			description: "Should manage locks correctly",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, lockManager credit_model.LockManager) {
+			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
+
+				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
+				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
+				t3, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:03:00Z", time.UTC)
+
 				// We need to add a row to the streaming connector as we call balance in the reset
 				// even though there is no grant to rollover
 				streamingConnector.addRow(meter.Slug, models.MeterQueryRow{})
 
-				// Reset
-				resetIn := credit_model.Reset{
+				// 1. Should succeed to obtain lock
+				_, _, err := connector.Reset(ctx, namespace, credit_model.Reset{
 					Subject:     subject,
-					EffectiveAt: time.Now(),
-				}
+					EffectiveAt: t1,
+				})
+				assert.NoError(t, err)
 
 				// 1. Lock ledger
-				lock, err := lockManager.Obtain(ctx, namespace, subject)
+				tx, err := db_client.Tx(ctx)
+				assert.NoError(t, err)
+				_, err = LockLedger(tx, ctx, namespace, subject)
 				assert.NoError(t, err)
 
 				// 2. Should fail to obtain lock
-				_, _, err = connector.Reset(ctx, namespace, resetIn)
-				expectedErr := credit_model.LockErrNotObtained{Namespace: namespace, Subject: subject}
+				_, _, err = connector.Reset(ctx, namespace, credit_model.Reset{
+					Subject:     subject,
+					EffectiveAt: t2,
+				})
+				expectedErr := credit_model.LockErrNotObtainedError{Namespace: namespace, Subject: subject}
 				assert.Error(t, err, expectedErr.Error())
 
-				// 3. Lock should remain locked
-				_, err = lockManager.Obtain(ctx, namespace, subject)
-				assert.Error(t, err, expectedErr.Error())
-
-				err = lockManager.Release(ctx, lock)
+				// Commit
+				err = tx.Commit()
 				assert.NoError(t, err)
 
-				// 4. Should succeed to obtain lock
-				_, _, err = connector.Reset(ctx, namespace, resetIn)
-				assert.NoError(t, err)
-
-				// 5. Lock should be released (check via obtaining lock again)
-				lock, err = lockManager.Obtain(ctx, namespace, subject)
-				assert.NoError(t, err)
-				err = lockManager.Release(ctx, lock)
+				// 3. Should succeed to obtain lock after commit
+				_, _, err = connector.Reset(ctx, namespace, credit_model.Reset{
+					Subject:     subject,
+					EffectiveAt: t3,
+				})
 				assert.NoError(t, err)
 			},
 		},
@@ -256,11 +259,10 @@ func TestPostgresConnectorReset(t *testing.T) {
 			defer databaseClient.Close()
 
 			// Note: lock manager cannot be shared between tests as these parallel tests write the same ledger
-			lockManager := inmemory_lock.NewLockManager(time.Second * 10)
 			streamingConnector := newMockStreamingConnector()
-			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository, lockManager)
+			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository)
 
-			tc.test(t, connector, streamingConnector, databaseClient, lockManager)
+			tc.test(t, connector, streamingConnector, databaseClient)
 		})
 	}
 }

@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"os"
 	"testing"
-	"time"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
@@ -15,7 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	credit_model "github.com/openmeterio/openmeter/internal/credit"
-	inmemory_lock "github.com/openmeterio/openmeter/internal/credit/inmemory_lock"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/migrate"
 	meter_internal "github.com/openmeterio/openmeter/internal/meter"
@@ -23,7 +21,6 @@ import (
 
 func TestConnector(t *testing.T) {
 	meterRepository := meter_internal.NewInMemoryRepository(nil)
-	lockManager := inmemory_lock.NewLockManager(time.Second * 10)
 
 	tt := []struct {
 		name        string
@@ -45,7 +42,7 @@ func TestConnector(t *testing.T) {
 			driver := initDB(t)
 			databaseClient := db.NewClient(db.Driver(driver))
 			defer databaseClient.Close()
-			connector := NewPostgresConnector(slog.Default(), databaseClient, nil, meterRepository, lockManager)
+			connector := NewPostgresConnector(slog.Default(), databaseClient, nil, meterRepository)
 			tc.test(t, connector, databaseClient)
 		})
 	}

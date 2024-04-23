@@ -11,3 +11,6 @@ type CreditEntry func(*sql.Selector)
 
 // Feature is the predicate function for feature builders.
 type Feature func(*sql.Selector)
+
+// Ledger is the predicate function for ledger builders.
+type Ledger func(*sql.Selector)

@@ -7,27 +7,43 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 
-	connector "github.com/openmeterio/openmeter/internal/credit"
 	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_credit "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 )
 
 func (c *PostgresConnector) CreateGrant(ctx context.Context, namespace string, grant credit_model.Grant) (credit_model.Grant, error) {
-	// Lock ledger for the subject
-	logger := c.logger.With("operation", "createGrant", "namespace", namespace, "subject", grant.Subject, "id", grant.ID)
-	lock, err := c.lockManager.Obtain(ctx, namespace, grant.Subject)
+	_, err := c.checkHighWatermark(ctx, namespace, grant.Subject, grant.EffectiveAt)
 	if err != nil {
 		return credit_model.Grant{}, err
 	}
-	defer func() {
-		err = c.lockManager.Release(ctx, lock)
-		if err != nil {
-			logger.Error("failed to release lock", "error", err)
-		}
-	}()
 
-	q := c.db.CreditEntry.Create().
+	tx, err := c.db.Tx(ctx)
+	if err != nil {
+		return credit_model.Grant{}, err
+	}
+
+	grant, err = c.createGrantWithTransaction(tx, ctx, namespace, grant)
+	if err != nil {
+		return credit_model.Grant{}, rollback(tx, err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return credit_model.Grant{}, err
+	}
+
+	return grant, nil
+}
+
+func (c *PostgresConnector) createGrantWithTransaction(tx *db.Tx, ctx context.Context, namespace string, grant credit_model.Grant) (credit_model.Grant, error) {
+	// Lock ledger for the subject
+	_, err := c.LockLedger(tx, ctx, namespace, grant.Subject)
+	if err != nil {
+		return credit_model.Grant{}, err
+	}
+
+	q := tx.CreditEntry.Create().
 		SetNamespace(namespace).
 		SetNillableID(grant.ID).
 		SetSubject(grant.Subject).
@@ -54,29 +70,47 @@ func (c *PostgresConnector) CreateGrant(ctx context.Context, namespace string, g
 	if err != nil {
 		return grant, fmt.Errorf("failed to map grant entity: %w", err)
 	}
+
+	return grant, nil
+}
+
+func (c *PostgresConnector) VoidGrant(ctx context.Context, namespace string, grant credit_model.Grant) (credit_model.Grant, error) {
+	_, err := c.checkHighWatermark(ctx, namespace, grant.Subject, grant.EffectiveAt)
+	if err != nil {
+		return credit_model.Grant{}, err
+	}
+
+	tx, err := c.db.Tx(ctx)
+	if err != nil {
+		return credit_model.Grant{}, err
+	}
+
+	grant, err = c.voidGrantWithTransaction(tx, ctx, namespace, grant)
+	if err != nil {
+		return credit_model.Grant{}, rollback(tx, err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return credit_model.Grant{}, err
+	}
+
 	return grant, nil
 }
 
 // TODO: use grant ID as an argument to void grant
-func (c *PostgresConnector) VoidGrant(ctx context.Context, namespace string, grant credit_model.Grant) (credit_model.Grant, error) {
+func (c *PostgresConnector) voidGrantWithTransaction(tx *db.Tx, ctx context.Context, namespace string, grant credit_model.Grant) (credit_model.Grant, error) {
 	if grant.ID == nil {
 		return grant, fmt.Errorf("grant ID is required")
 	}
 
 	// Lock ledger for the subject
-	logger := c.logger.With("operation", "voidGrant", "namespace", namespace, "subject", grant.Subject, "id", grant.ID)
-	lock, err := c.lockManager.Obtain(ctx, namespace, grant.Subject)
+	_, err := c.LockLedger(tx, ctx, namespace, grant.Subject)
 	if err != nil {
 		return credit_model.Grant{}, err
 	}
-	defer func() {
-		err = c.lockManager.Release(ctx, lock)
-		if err != nil {
-			logger.Error("failed to release lock", "error", err)
-		}
-	}()
 
-	entity, err := c.db.CreditEntry.Query().
+	entity, err := tx.CreditEntry.Query().
 		Where(
 			db_credit.Namespace(namespace),
 			db_credit.ID(*grant.ID),
@@ -91,7 +125,7 @@ func (c *PostgresConnector) VoidGrant(ctx context.Context, namespace string, gra
 	}
 
 	// create a new entry with parent ID and void type
-	entity, err = c.db.CreditEntry.Create().
+	entity, err = tx.CreditEntry.Create().
 		SetNamespace(entity.Namespace).
 		SetParentID(entity.ID).
 		SetSubject(entity.Subject).
@@ -116,7 +150,7 @@ func (c *PostgresConnector) VoidGrant(ctx context.Context, namespace string, gra
 	return grant, nil
 }
 
-func (c *PostgresConnector) ListGrants(ctx context.Context, namespace string, params connector.ListGrantsParams) ([]credit_model.Grant, error) {
+func (c *PostgresConnector) ListGrants(ctx context.Context, namespace string, params credit_model.ListGrantsParams) ([]credit_model.Grant, error) {
 	q := c.db.CreditEntry.Query().
 		Where(
 			db_credit.Namespace(namespace),
@@ -239,20 +273,43 @@ func (c *PostgresConnector) GetGrant(ctx context.Context, namespace string, id s
 // Reset resets the ledger for the subject.
 // Rolls over grants with rollover configuration.
 func (c *PostgresConnector) Reset(ctx context.Context, namespace string, reset credit_model.Reset) (credit_model.Reset, []credit_model.Grant, error) {
-	var rollovedGrants []credit_model.Grant
+	_, err := c.checkHighWatermark(ctx, namespace, reset.Subject, reset.EffectiveAt)
+	if err != nil {
+		return credit_model.Reset{}, nil, err
+	}
 
-	// Lock ledger for the subject
-	logger := c.logger.With("operation", "reset", "namespace", namespace, "subject", reset.Subject, "id", reset.ID)
-	lock, err := c.lockManager.Obtain(ctx, namespace, reset.Subject)
+	// Start a transaction
+	tx, err := c.db.Tx(ctx)
+	if err != nil {
+		return credit_model.Reset{}, nil, err
+	}
+
+	// Reset the ledger
+	reset, rollovedGrants, err := c.resetWithTransaction(tx, ctx, namespace, reset)
+	if err != nil {
+		return credit_model.Reset{}, rollovedGrants, rollback(tx, err)
+	}
+
+	// Commit the transaction
+	err = tx.Commit()
 	if err != nil {
 		return credit_model.Reset{}, rollovedGrants, err
 	}
-	defer func() {
-		err = c.lockManager.Release(ctx, lock)
-		if err != nil {
-			logger.Error("failed to release lock", "error", err)
-		}
-	}()
+
+	return reset, rollovedGrants, nil
+
+}
+
+// Reset resets the ledger for the subject in a transaction.
+// Rolls over grants with rollover configuration.
+func (c *PostgresConnector) resetWithTransaction(tx *db.Tx, ctx context.Context, namespace string, reset credit_model.Reset) (credit_model.Reset, []credit_model.Grant, error) {
+	var rollovedGrants []credit_model.Grant
+
+	// Lock ledger for the subject
+	ledgerEntity, err := c.LockLedger(tx, ctx, namespace, reset.Subject)
+	if err != nil {
+		return credit_model.Reset{}, nil, err
+	}
 
 	// Collect grants to rollover
 	balance, err := c.GetBalance(ctx, namespace, reset.Subject, reset.EffectiveAt)
@@ -296,7 +353,7 @@ func (c *PostgresConnector) Reset(ctx context.Context, namespace string, reset c
 
 	// Add reset entry to the transaction
 	createEntities := []*db.CreditEntryCreate{
-		c.db.CreditEntry.Create().
+		tx.CreditEntry.Create().
 			SetNamespace(namespace).
 			SetSubject(reset.Subject).
 			SetEntryType(credit_model.EntryTypeReset).
@@ -305,7 +362,7 @@ func (c *PostgresConnector) Reset(ctx context.Context, namespace string, reset c
 
 	// Add new grants to the transaction
 	for _, grant := range rolloverGrants {
-		grantEntityCreate := c.db.CreditEntry.Create().
+		grantEntityCreate := tx.CreditEntry.Create().
 			SetNamespace(namespace).
 			SetSubject(grant.Subject).
 			SetEntryType(credit_model.EntryTypeGrant).
@@ -330,7 +387,7 @@ func (c *PostgresConnector) Reset(ctx context.Context, namespace string, reset c
 	}
 
 	// Create the reset and grant entries
-	entryEntities, err := c.db.CreditEntry.CreateBulk(createEntities...).Save(ctx)
+	entryEntities, err := tx.CreditEntry.CreateBulk(createEntities...).Save(ctx)
 	if err != nil {
 		return reset, rollovedGrants, fmt.Errorf("failed to create grant entity: %w", err)
 	}
@@ -350,6 +407,13 @@ func (c *PostgresConnector) Reset(ctx context.Context, namespace string, reset c
 		}
 		rollovedGrants = append(rollovedGrants, grant)
 	}
+
+	// Update the ledger high watermark
+	err = ledgerEntity.Update().SetHighwatermark(reset.EffectiveAt).Exec(ctx)
+	if err != nil {
+		return credit_model.Reset{}, nil, fmt.Errorf("failed to update ledger highwatermark: %w", err)
+	}
+
 	return reset, rollovedGrants, nil
 }
 
@@ -398,4 +462,13 @@ func mapResetEntity(entry *db.CreditEntry) (credit_model.Reset, error) {
 	}
 
 	return reset, nil
+}
+
+// rollback calls to tx.Rollback and wraps the given error
+// with the rollback error if occurred.
+func rollback(tx *db.Tx, err error) error {
+	if rerr := tx.Rollback(); rerr != nil {
+		err = fmt.Errorf("%w: %v", err, rerr)
+	}
+	return err
 }

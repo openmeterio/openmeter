@@ -38,7 +38,7 @@ func (c *Connector) GetGrant(ctx context.Context, namespace string, id string) (
 func (c *Connector) GetBalance(ctx context.Context, namespace string, subject string, cutline time.Time) (credit_model.Balance, error) {
 	return credit_model.Balance{}, fmt.Errorf("not implemented")
 }
-func (c *Connector) GetLedger(ctx context.Context, namespace string, subject string, from time.Time, to time.Time) (credit_model.LedgerEntryList, error) {
+func (c *Connector) GetHistory(ctx context.Context, namespace string, subject string, from time.Time, to time.Time) (credit_model.LedgerEntryList, error) {
 	return credit_model.LedgerEntryList{}, fmt.Errorf("not implemented")
 }
 func (c *Connector) GetHighWatermark(ctx context.Context, namespace string, subject string) (credit_model.HighWatermark, error) {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/schema"
 )
 
@@ -88,4 +89,31 @@ func init() {
 	featureDescID := featureMixinFields0[0].Descriptor()
 	// feature.DefaultID holds the default value on creation for the id field.
 	feature.DefaultID = featureDescID.Default.(func() string)
+	ledgerMixin := schema.Ledger{}.Mixin()
+	ledgerMixinFields0 := ledgerMixin[0].Fields()
+	_ = ledgerMixinFields0
+	ledgerFields := schema.Ledger{}.Fields()
+	_ = ledgerFields
+	// ledgerDescCreatedAt is the schema descriptor for created_at field.
+	ledgerDescCreatedAt := ledgerMixinFields0[0].Descriptor()
+	// ledger.DefaultCreatedAt holds the default value on creation for the created_at field.
+	ledger.DefaultCreatedAt = ledgerDescCreatedAt.Default.(func() time.Time)
+	// ledgerDescUpdatedAt is the schema descriptor for updated_at field.
+	ledgerDescUpdatedAt := ledgerMixinFields0[1].Descriptor()
+	// ledger.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	ledger.DefaultUpdatedAt = ledgerDescUpdatedAt.Default.(func() time.Time)
+	// ledger.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	ledger.UpdateDefaultUpdatedAt = ledgerDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// ledgerDescNamespace is the schema descriptor for namespace field.
+	ledgerDescNamespace := ledgerFields[0].Descriptor()
+	// ledger.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	ledger.NamespaceValidator = ledgerDescNamespace.Validators[0].(func(string) error)
+	// ledgerDescSubject is the schema descriptor for subject field.
+	ledgerDescSubject := ledgerFields[1].Descriptor()
+	// ledger.SubjectValidator is a validator for the "subject" field. It is called by the builders before save.
+	ledger.SubjectValidator = ledgerDescSubject.Validators[0].(func(string) error)
+	// ledgerDescHighwatermark is the schema descriptor for highwatermark field.
+	ledgerDescHighwatermark := ledgerFields[2].Descriptor()
+	// ledger.DefaultHighwatermark holds the default value on creation for the highwatermark field.
+	ledger.DefaultHighwatermark = ledgerDescHighwatermark.Default.(func() time.Time)
 }

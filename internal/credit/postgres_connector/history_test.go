@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	credit_model "github.com/openmeterio/openmeter/internal/credit"
-	inmemory_lock "github.com/openmeterio/openmeter/internal/credit/inmemory_lock"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -37,7 +36,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 		test        func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client)
 	}{
 		{
-			name:        "GetLedger",
+			name:        "GetHistory",
 			description: "Should return ledger entries",
 			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
@@ -104,7 +103,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 				assert.NoError(t, err)
 
 				// Get ledger
-				ledgerList, err := connector.GetLedger(ctx, namespace, subject, t1, t4)
+				ledgerList, err := connector.GetHistory(ctx, namespace, subject, t1, t4)
 				assert.NoError(t, err)
 
 				// Expected
@@ -167,9 +166,8 @@ func TestPostgresConnectorLedger(t *testing.T) {
 			defer databaseClient.Close()
 
 			// Note: lock manager cannot be shared between tests as these parallel tests write the same ledger
-			lockManager := inmemory_lock.NewLockManager(time.Second * 10)
 			streamingConnector := newMockStreamingConnector()
-			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository, lockManager)
+			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository)
 
 			tc.test(t, connector, streamingConnector, databaseClient)
 		})

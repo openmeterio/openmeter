@@ -2,53 +2,46 @@ package postgres_connector
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	credit_model "github.com/openmeterio/openmeter/internal/credit"
-	db_credit "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
+	db_ledger "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
 )
 
-func (a *PostgresConnector) GetLedger(
-	ctx context.Context,
-	namespace string,
-	subject string,
-	from time.Time,
-	to time.Time,
-) (credit_model.LedgerEntryList, error) {
-	ledgerEntries := credit_model.NewLedgerEntryList()
+// https://www.postgresql.org/docs/current/errcodes-appendix.html
+const pgLockNotAvailableErrorCode = "55P03"
 
-	entities, err := a.db.CreditEntry.Query().Where(
-		db_credit.And(
-			db_credit.EntryTypeEQ(credit_model.EntryTypeReset),
-			db_credit.EffectiveAtGTE(from),
-			db_credit.EffectiveAtLTE(to),
-		),
-	).All(ctx)
+// lockLedger locks the ledger for the given namespace and subject to avoid concurrent updates (grant, grant void and reset).
+func (a *PostgresConnector) LockLedger(tx *db.Tx, ctx context.Context, namespace string, subject string) (*db.Ledger, error) {
+	return LockLedger(tx, ctx, namespace, subject)
+}
+
+// LockLedger locks the ledger for the given namespace and subject to avoid concurrent updates (grant, grant void and reset).
+func LockLedger(tx *db.Tx, ctx context.Context, namespace string, subject string) (*db.Ledger, error) {
+	// Lock ledger for the subject with pessimistic update
+	ledgerEntity, err := tx.Ledger.Query().
+		Where(db_ledger.Namespace(namespace)).
+		Where(db_ledger.Subject(subject)).
+
+		// We use the ForUpdate method to tell ent to ask our DB to lock
+		// the returned records for update.
+		ForUpdate(
+			// We specify that the query should not wait for the lock to be
+			// released and instead fail immediately if the record is locked.
+			sql.WithLockAction(sql.NoWait),
+		).
+		Only(ctx)
 	if err != nil {
-		return ledgerEntries, err
-	}
+		if strings.Contains(err.Error(), pgLockNotAvailableErrorCode) {
+			return nil, &credit_model.LockErrNotObtainedError{Namespace: namespace, Subject: subject}
 
-	resets := []time.Time{}
-	for _, entity := range entities {
-		reset, err := mapResetEntity(entity)
-		if err != nil {
-			return ledgerEntries, err
 		}
-
-		ledgerEntries.AddReset(reset)
-		resets = append(resets, reset.EffectiveAt)
-	}
-	resets = append(resets, to)
-
-	balanceFrom := from
-	for _, balanceTo := range resets {
-		_, entries, err := a.getBalance(ctx, namespace, subject, balanceFrom, balanceTo)
-		if err != nil {
-			return ledgerEntries, err
-		}
-		ledgerEntries.Append(entries)
-		balanceFrom = balanceTo
+		return nil, fmt.Errorf("failed to lock ledger: %w", err)
 	}
 
-	return ledgerEntries, nil
+	return ledgerEntity.Update().SetUpdatedAt(time.Now()).Save(ctx)
 }

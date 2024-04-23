@@ -35,7 +35,6 @@ import (
 
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/internal/credit"
-	credit_lock "github.com/openmeterio/openmeter/internal/credit/inmemory_lock"
 	nope_credit "github.com/openmeterio/openmeter/internal/credit/nope_connector"
 	postgres_credit "github.com/openmeterio/openmeter/internal/credit/postgres_connector"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
@@ -281,13 +280,11 @@ func main() {
 	// Initialize Credit
 	var creditConnector credit.Connector
 	if conf.Credits.Enabled {
-		creditLockManager := credit_lock.NewLockManager(time.Second * 10)
 		creditConnector = postgres_credit.NewPostgresConnector(
 			logger,
 			creditDbClient,
 			streamingConnector,
 			meterRepository,
-			creditLockManager,
 		)
 		if err != nil {
 			logger.Error("failed to initialize credit", "error", err)
