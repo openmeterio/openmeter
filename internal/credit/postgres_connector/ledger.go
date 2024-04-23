@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"entgo.io/ent/dialect/sql"
+
 	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_ledger "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"

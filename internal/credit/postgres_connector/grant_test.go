@@ -31,7 +31,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 		Name:      "feature-1",
 	}}
 
-	effectiveTime := time.Date(2024, 1, 1, 0, 0, 0, 0, time.Local)
+	effectiveTime := time.Date(2024, 1, 1, 0, 0, 0, 1, time.Local)
 
 	tt := []struct {
 		name        string
