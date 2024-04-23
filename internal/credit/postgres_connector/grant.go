@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 
@@ -74,28 +75,14 @@ func (c *PostgresConnector) createGrantWithTransaction(tx *db.Tx, ctx context.Co
 	return grant, nil
 }
 
-func (c *PostgresConnector) VoidGrant(ctx context.Context, namespace string, grant credit_model.Grant) (credit_model.Grant, error) {
-	_, err := c.checkHighWatermark(ctx, namespace, grant.Subject, grant.EffectiveAt)
-	if err != nil {
-		return credit_model.Grant{}, err
-	}
-
-	tx, err := c.db.Tx(ctx)
-	if err != nil {
-		return credit_model.Grant{}, err
-	}
-
-	grant, err = c.voidGrantWithTransaction(tx, ctx, namespace, grant)
-	if err != nil {
-		return credit_model.Grant{}, rollback(tx, err)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return credit_model.Grant{}, err
-	}
-
-	return grant, nil
+func (c *PostgresConnector) VoidGrant(ctx context.Context, namespace string, grant credit_model.Grant) (*credit_model.Grant, error) {
+	return syncronizedTransaction(ctx, c, namespace, grant.Subject, func(tx *db.Tx, _ time.Time) (*credit_model.Grant, error) {
+		grant, err := c.voidGrantWithTransaction(tx, ctx, namespace, grant)
+		if err != nil {
+			return nil, err
+		}
+		return &grant, nil
+	})
 }
 
 // TODO: use grant ID as an argument to void grant
@@ -273,31 +260,25 @@ func (c *PostgresConnector) GetGrant(ctx context.Context, namespace string, id s
 // Reset resets the ledger for the subject.
 // Rolls over grants with rollover configuration.
 func (c *PostgresConnector) Reset(ctx context.Context, namespace string, reset credit_model.Reset) (credit_model.Reset, []credit_model.Grant, error) {
-	_, err := c.checkHighWatermark(ctx, namespace, reset.Subject, reset.EffectiveAt)
+	var rolloverGrants []credit_model.Grant
+
+	reset, err := syncronizedTransaction(ctx, c, namespace, reset.Subject, func(tx *db.Tx, highWatermark time.Time) (*R, error) {
+		var err error
+		// or we can wrap this into a single struct or make syncronized transaction to return err only
+		// and always use variable from the outer scope
+		reset, rolloverGrants, err = c.resetWithTransaction(tx, ctx, namespace, reset)
+		if err != nil {
+			return nil, err
+		}
+
+		return reset, err
+	})
+
 	if err != nil {
 		return credit_model.Reset{}, nil, err
 	}
 
-	// Start a transaction
-	tx, err := c.db.Tx(ctx)
-	if err != nil {
-		return credit_model.Reset{}, nil, err
-	}
-
-	// Reset the ledger
-	reset, rollovedGrants, err := c.resetWithTransaction(tx, ctx, namespace, reset)
-	if err != nil {
-		return credit_model.Reset{}, rollovedGrants, rollback(tx, err)
-	}
-
-	// Commit the transaction
-	err = tx.Commit()
-	if err != nil {
-		return credit_model.Reset{}, rollovedGrants, err
-	}
-
-	return reset, rollovedGrants, nil
-
+	return reset, rolloverGrants, nil
 }
 
 // Reset resets the ledger for the subject in a transaction.
@@ -462,13 +443,4 @@ func mapResetEntity(entry *db.CreditEntry) (credit_model.Reset, error) {
 	}
 
 	return reset, nil
-}
-
-// rollback calls to tx.Rollback and wraps the given error
-// with the rollback error if occurred.
-func rollback(tx *db.Tx, err error) error {
-	if rerr := tx.Rollback(); rerr != nil {
-		err = fmt.Errorf("%w: %v", err, rerr)
-	}
-	return err
 }
