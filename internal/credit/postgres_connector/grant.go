@@ -3,7 +3,6 @@ package postgres_connector
 import (
 	"context"
 	"fmt"
-	"math"
 
 	"entgo.io/ent/dialect/sql"
 
@@ -12,142 +11,111 @@ import (
 	db_credit "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 )
 
-func (c *PostgresConnector) CreateGrant(ctx context.Context, namespace string, grant credit_model.Grant) (credit_model.Grant, error) {
-	_, err := c.checkHighWatermark(ctx, namespace, grant.Subject, grant.EffectiveAt)
-	if err != nil {
-		return credit_model.Grant{}, err
-	}
-
-	tx, err := c.db.Tx(ctx)
-	if err != nil {
-		return credit_model.Grant{}, err
-	}
-
-	grant, err = c.createGrantWithTransaction(tx, ctx, namespace, grant)
-	if err != nil {
-		return credit_model.Grant{}, rollback(tx, err)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return credit_model.Grant{}, err
-	}
-
-	return grant, nil
-}
-
-func (c *PostgresConnector) createGrantWithTransaction(tx *db.Tx, ctx context.Context, namespace string, grant credit_model.Grant) (credit_model.Grant, error) {
-	// Lock ledger for the subject
-	_, err := c.LockLedger(tx, ctx, namespace, grant.Subject)
-	if err != nil {
-		return credit_model.Grant{}, err
-	}
-
-	q := tx.CreditEntry.Create().
-		SetNamespace(namespace).
-		SetNillableID(grant.ID).
-		SetSubject(grant.Subject).
-		SetEntryType(credit_model.EntryTypeGrant).
-		SetType(grant.Type).
-		SetNillableParentID(grant.ParentID).
-		SetNillableFeatureID(grant.FeatureID).
-		SetAmount(grant.Amount).
-		SetPriority(grant.Priority).
-		SetEffectiveAt(grant.EffectiveAt).
-		SetExpirationPeriodDuration(grant.Expiration.Duration).
-		SetExpirationPeriodCount(grant.Expiration.Count).
-		SetMetadata(grant.Metadata)
-	if grant.Rollover != nil {
-		q = q.SetRolloverType(grant.Rollover.Type).
-			SetNillableRolloverMaxAmount(grant.Rollover.MaxAmount)
-	}
-	entity, err := q.Save(ctx)
-	if err != nil {
-		return grant, fmt.Errorf("failed to create grant: %w", err)
-	}
-
-	grant, err = mapGrantEntity(entity)
-	if err != nil {
-		return grant, fmt.Errorf("failed to map grant entity: %w", err)
-	}
-
-	return grant, nil
-}
-
-func (c *PostgresConnector) VoidGrant(ctx context.Context, namespace string, grant credit_model.Grant) (credit_model.Grant, error) {
-	_, err := c.checkHighWatermark(ctx, namespace, grant.Subject, grant.EffectiveAt)
-	if err != nil {
-		return credit_model.Grant{}, err
-	}
-
-	tx, err := c.db.Tx(ctx)
-	if err != nil {
-		return credit_model.Grant{}, err
-	}
-
-	grant, err = c.voidGrantWithTransaction(tx, ctx, namespace, grant)
-	if err != nil {
-		return credit_model.Grant{}, rollback(tx, err)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return credit_model.Grant{}, err
-	}
-
-	return grant, nil
-}
-
-// TODO: use grant ID as an argument to void grant
-func (c *PostgresConnector) voidGrantWithTransaction(tx *db.Tx, ctx context.Context, namespace string, grant credit_model.Grant) (credit_model.Grant, error) {
-	if grant.ID == nil {
-		return grant, fmt.Errorf("grant ID is required")
-	}
-
-	// Lock ledger for the subject
-	_, err := c.LockLedger(tx, ctx, namespace, grant.Subject)
-	if err != nil {
-		return credit_model.Grant{}, err
-	}
-
-	entity, err := tx.CreditEntry.Query().
-		Where(
-			db_credit.Namespace(namespace),
-			db_credit.ID(*grant.ID),
-		).
-		Only(ctx)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return grant, &credit_model.GrantNotFoundError{GrantID: *grant.ID}
+func (c *PostgresConnector) CreateGrant(ctx context.Context, namespace string, grantIn credit_model.Grant) (credit_model.Grant, error) {
+	grant, err := mutationTransaction(ctx, c, namespace, grantIn.Subject, func(tx *db.Tx, ledgerEntity *db.Ledger) (*credit_model.Grant, error) {
+		// Check if the reset is in the future
+		err := checkAfterHighWatermark(grantIn.EffectiveAt, ledgerEntity)
+		if err != nil {
+			// Typed error do not wrap
+			return nil, err
 		}
 
-		return grant, fmt.Errorf("failed to void grant: %w", err)
+		q := tx.CreditEntry.Create().
+			SetNamespace(namespace).
+			SetNillableID(grantIn.ID).
+			SetSubject(grantIn.Subject).
+			SetEntryType(credit_model.EntryTypeGrant).
+			SetType(grantIn.Type).
+			SetNillableParentID(grantIn.ParentID).
+			SetNillableFeatureID(grantIn.FeatureID).
+			SetAmount(grantIn.Amount).
+			SetPriority(grantIn.Priority).
+			SetEffectiveAt(grantIn.EffectiveAt).
+			SetExpirationPeriodDuration(grantIn.Expiration.Duration).
+			SetExpirationPeriodCount(grantIn.Expiration.Count).
+			SetMetadata(grantIn.Metadata)
+		if grantIn.Rollover != nil {
+			q = q.SetRolloverType(grantIn.Rollover.Type).
+				SetNillableRolloverMaxAmount(grantIn.Rollover.MaxAmount)
+		}
+		entity, err := q.Save(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create grant: %w", err)
+		}
+
+		grant, err := mapGrantEntity(entity)
+		if err != nil {
+			return nil, fmt.Errorf("failed to map grant entity: %w", err)
+		}
+
+		return &grant, nil
+	})
+
+	if err != nil {
+		return credit_model.Grant{}, err
 	}
 
-	// create a new entry with parent ID and void type
-	entity, err = tx.CreditEntry.Create().
-		SetNamespace(entity.Namespace).
-		SetParentID(entity.ID).
-		SetSubject(entity.Subject).
-		SetEntryType(credit_model.EntryTypeVoidGrant).
-		SetType(*entity.Type).
-		SetNillableFeatureID(entity.FeatureID).
-		SetAmount(*entity.Amount).
-		SetPriority(entity.Priority).
-		SetEffectiveAt(entity.EffectiveAt).
-		SetExpirationPeriodDuration(*entity.ExpirationPeriodDuration).
-		SetExpirationPeriodCount(*entity.ExpirationPeriodCount).
-		SetMetadata(entity.Metadata).
-		Save(ctx)
+	return *grant, nil
+}
+
+func (c *PostgresConnector) VoidGrant(ctx context.Context, namespace string, grantIn credit_model.Grant) (credit_model.Grant, error) {
+	grant, err := mutationTransaction(ctx, c, namespace, grantIn.Subject, func(tx *db.Tx, ledgerEntity *db.Ledger) (*credit_model.Grant, error) {
+		// Check if the reset is in the future
+		err := checkAfterHighWatermark(grantIn.EffectiveAt, ledgerEntity)
+		if err != nil {
+			// Typed error do not wrap
+			return nil, err
+		}
+
+		if grantIn.ID == nil {
+			return nil, fmt.Errorf("grant ID is required")
+		}
+
+		entity, err := tx.CreditEntry.Query().
+			Where(
+				db_credit.Namespace(namespace),
+				db_credit.ID(*grantIn.ID),
+			).
+			Only(ctx)
+		if err != nil {
+			if db.IsNotFound(err) {
+				return nil, &credit_model.GrantNotFoundError{GrantID: *grantIn.ID}
+			}
+
+			return nil, fmt.Errorf("failed to void grant: %w", err)
+		}
+
+		// create a new entry with parent ID and void type
+		entity, err = tx.CreditEntry.Create().
+			SetNamespace(entity.Namespace).
+			SetParentID(entity.ID).
+			SetSubject(entity.Subject).
+			SetEntryType(credit_model.EntryTypeVoidGrant).
+			SetType(*entity.Type).
+			SetNillableFeatureID(entity.FeatureID).
+			SetAmount(*entity.Amount).
+			SetPriority(entity.Priority).
+			SetEffectiveAt(entity.EffectiveAt).
+			SetExpirationPeriodDuration(*entity.ExpirationPeriodDuration).
+			SetExpirationPeriodCount(*entity.ExpirationPeriodCount).
+			SetMetadata(entity.Metadata).
+			Save(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to void grant: %w", err)
+		}
+
+		grant, err := mapGrantEntity(entity)
+		if err != nil {
+			return nil, fmt.Errorf("failed to map grant entity: %w", err)
+		}
+		return &grant, nil
+	})
+
 	if err != nil {
-		return grant, fmt.Errorf("failed to void grant: %w", err)
+		return credit_model.Grant{}, err
 	}
 
-	grant, err = mapGrantEntity(entity)
-	if err != nil {
-		return grant, fmt.Errorf("failed to map grant entity: %w", err)
-	}
-	return grant, nil
+	return *grant, nil
 }
 
 func (c *PostgresConnector) ListGrants(ctx context.Context, namespace string, params credit_model.ListGrantsParams) ([]credit_model.Grant, error) {
@@ -263,158 +231,11 @@ func (c *PostgresConnector) GetGrant(ctx context.Context, namespace string, id s
 		return credit_model.Grant{}, fmt.Errorf("failed to get grant: %w", err)
 	}
 
-	grantOut, err := mapGrantEntity(entity)
+	grant, err := mapGrantEntity(entity)
 	if err != nil {
 		return credit_model.Grant{}, fmt.Errorf("failed to map grant entity: %w", err)
 	}
-	return grantOut, nil
-}
-
-// Reset resets the ledger for the subject.
-// Rolls over grants with rollover configuration.
-func (c *PostgresConnector) Reset(ctx context.Context, namespace string, reset credit_model.Reset) (credit_model.Reset, []credit_model.Grant, error) {
-	_, err := c.checkHighWatermark(ctx, namespace, reset.Subject, reset.EffectiveAt)
-	if err != nil {
-		return credit_model.Reset{}, nil, err
-	}
-
-	// Start a transaction
-	tx, err := c.db.Tx(ctx)
-	if err != nil {
-		return credit_model.Reset{}, nil, err
-	}
-
-	// Reset the ledger
-	reset, rollovedGrants, err := c.resetWithTransaction(tx, ctx, namespace, reset)
-	if err != nil {
-		return credit_model.Reset{}, rollovedGrants, rollback(tx, err)
-	}
-
-	// Commit the transaction
-	err = tx.Commit()
-	if err != nil {
-		return credit_model.Reset{}, rollovedGrants, err
-	}
-
-	return reset, rollovedGrants, nil
-
-}
-
-// Reset resets the ledger for the subject in a transaction.
-// Rolls over grants with rollover configuration.
-func (c *PostgresConnector) resetWithTransaction(tx *db.Tx, ctx context.Context, namespace string, reset credit_model.Reset) (credit_model.Reset, []credit_model.Grant, error) {
-	var rollovedGrants []credit_model.Grant
-
-	// Lock ledger for the subject
-	ledgerEntity, err := c.LockLedger(tx, ctx, namespace, reset.Subject)
-	if err != nil {
-		return credit_model.Reset{}, nil, err
-	}
-
-	// Collect grants to rollover
-	balance, err := c.GetBalance(ctx, namespace, reset.Subject, reset.EffectiveAt)
-	if err != nil {
-		return reset, rollovedGrants, fmt.Errorf("failed to list grants: %w", err)
-	}
-
-	// Collect grants to rollover
-	rolloverGrants := []credit_model.Grant{}
-	for _, grantBalance := range balance.GrantBalances {
-		grant := grantBalance.Grant
-
-		// Do not rollover grants without rollover
-		if grant.Rollover == nil {
-			continue
-		}
-
-		switch grant.Rollover.Type {
-		case credit_model.GrantRolloverTypeOriginalAmount:
-			// Nothing to do, we rollover the original amount
-		case credit_model.GrantRolloverTypeRemainingAmount:
-			// We rollover the remaining amount
-			grant.Amount = grantBalance.Balance
-		}
-		if grant.Rollover.MaxAmount != nil {
-			grant.Amount = math.Max(*grant.Rollover.MaxAmount, grant.Amount)
-		}
-		// Skip grants with zero amount, amount never goes negative
-		if grant.Amount == 0 {
-			continue
-		}
-
-		// Set the parent ID to the grant ID we are rolling over
-		parentId := *grant.ID
-		grant.ParentID = &parentId
-		grant.EffectiveAt = reset.EffectiveAt
-
-		// Append grant to rollover grants
-		rolloverGrants = append(rolloverGrants, grant)
-	}
-
-	// Add reset entry to the transaction
-	createEntities := []*db.CreditEntryCreate{
-		tx.CreditEntry.Create().
-			SetNamespace(namespace).
-			SetSubject(reset.Subject).
-			SetEntryType(credit_model.EntryTypeReset).
-			SetEffectiveAt(reset.EffectiveAt),
-	}
-
-	// Add new grants to the transaction
-	for _, grant := range rolloverGrants {
-		grantEntityCreate := tx.CreditEntry.Create().
-			SetNamespace(namespace).
-			SetSubject(grant.Subject).
-			SetEntryType(credit_model.EntryTypeGrant).
-			SetType(grant.Type).
-			SetNillableParentID(grant.ParentID).
-			SetNillableFeatureID(grant.FeatureID).
-			SetAmount(grant.Amount).
-			SetPriority(grant.Priority).
-			SetEffectiveAt(grant.EffectiveAt).
-			SetExpirationPeriodDuration(grant.Expiration.Duration).
-			SetExpirationPeriodCount(grant.Expiration.Count).
-			SetMetadata(grant.Metadata)
-
-		if grant.Rollover != nil {
-			grantEntityCreate = grantEntityCreate.
-				SetNillableRolloverMaxAmount(grant.Rollover.MaxAmount).
-				SetRolloverType(grant.Rollover.Type)
-		}
-
-		createEntities = append(createEntities, grantEntityCreate)
-
-	}
-
-	// Create the reset and grant entries
-	entryEntities, err := tx.CreditEntry.CreateBulk(createEntities...).Save(ctx)
-	if err != nil {
-		return reset, rollovedGrants, fmt.Errorf("failed to create grant entity: %w", err)
-	}
-
-	// Convert the entities to models
-	resetEntity := entryEntities[0]
-	reset, err = mapResetEntity(resetEntity)
-	if err != nil {
-		return reset, rollovedGrants, fmt.Errorf("failed to map reset entity: %w", err)
-	}
-
-	grantEntities := entryEntities[1:]
-	for _, entity := range grantEntities {
-		grant, err := mapGrantEntity(entity)
-		if err != nil {
-			return reset, rollovedGrants, fmt.Errorf("failed to map grant entity: %w", err)
-		}
-		rollovedGrants = append(rollovedGrants, grant)
-	}
-
-	// Update the ledger high watermark
-	err = ledgerEntity.Update().SetHighwatermark(reset.EffectiveAt).Exec(ctx)
-	if err != nil {
-		return credit_model.Reset{}, nil, fmt.Errorf("failed to update ledger highwatermark: %w", err)
-	}
-
-	return reset, rollovedGrants, nil
+	return grant, nil
 }
 
 func mapGrantEntity(entry *db.CreditEntry) (credit_model.Grant, error) {
@@ -448,27 +269,4 @@ func mapGrantEntity(entry *db.CreditEntry) (credit_model.Grant, error) {
 	}
 
 	return grant, nil
-}
-
-func mapResetEntity(entry *db.CreditEntry) (credit_model.Reset, error) {
-	if entry.EntryType != credit_model.EntryTypeReset {
-		return credit_model.Reset{}, fmt.Errorf("entry type must be reset: %s", entry.EntryType)
-	}
-
-	reset := credit_model.Reset{
-		ID:          &entry.ID,
-		Subject:     entry.Subject,
-		EffectiveAt: entry.EffectiveAt,
-	}
-
-	return reset, nil
-}
-
-// rollback calls to tx.Rollback and wraps the given error
-// with the rollback error if occurred.
-func rollback(tx *db.Tx, err error) error {
-	if rerr := tx.Rollback(); rerr != nil {
-		err = fmt.Errorf("%w: %v", err, rerr)
-	}
-	return err
 }

@@ -131,6 +131,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 					EffectiveAt: t3,
 				})
 				assert.NoError(t, err)
+				assert.Len(t, rolloverGrants, 1)
 
 				// Get grants
 				grants, err := connector.ListGrants(ctx, namespace, credit_model.ListGrantsParams{
@@ -138,6 +139,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 					FromHighWatermark: true,
 				})
 				assert.NoError(t, err)
+				assert.Len(t, rolloverGrants, 1)
 
 				// Grants after reset should be the same as rollover grants
 				assert.Equal(t, rolloverGrants, grants)
@@ -226,7 +228,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 				// 1. Lock ledger
 				tx, err := db_client.Tx(ctx)
 				assert.NoError(t, err)
-				_, err = LockLedger(tx, ctx, namespace, subject)
+				_, err = lockLedger(tx, ctx, namespace, subject)
 				assert.NoError(t, err)
 
 				// 2. Should fail to obtain lock
