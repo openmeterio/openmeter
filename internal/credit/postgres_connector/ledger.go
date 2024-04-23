@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"entgo.io/ent/dialect/sql"
 	credit_model "github.com/openmeterio/openmeter/internal/credit"
@@ -43,5 +42,5 @@ func LockLedger(tx *db.Tx, ctx context.Context, namespace string, subject string
 		return nil, fmt.Errorf("failed to lock ledger: %w", err)
 	}
 
-	return ledgerEntity.Update().SetUpdatedAt(time.Now()).Save(ctx)
+	return ledgerEntity, nil
 }
