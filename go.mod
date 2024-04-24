@@ -6,7 +6,7 @@ require (
 	github.com/AppsFlyer/go-sundheit v0.5.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.23.1
 	github.com/avast/retry-go/v4 v4.5.1
-	github.com/benthosdev/benthos/v4 v4.26.0
+	github.com/benthosdev/benthos/v4 v4.27.0
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/cloudevents/sdk-go/v2 v2.15.2
 	github.com/confluentinc/confluent-kafka-go/v2 v2.2.0
@@ -84,8 +84,10 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.21.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.45.0 // indirect
 	github.com/IBM/sarama v1.42.2 // indirect
+	github.com/Jeffail/checkpoint v1.0.1 // indirect
 	github.com/Jeffail/gabs/v2 v2.7.0 // indirect
 	github.com/Jeffail/grok v1.1.0 // indirect
+	github.com/Jeffail/shutdown v1.0.0 // indirect
 	github.com/JohnCGriffin/overflow v0.0.0-20211019200055-46fa312c352c // indirect
 	github.com/Masterminds/squirrel v1.5.4 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
@@ -151,10 +153,10 @@ require (
 	github.com/clbanning/mxj/v2 v2.7.0 // indirect
 	github.com/cockroachdb/apd/v3 v3.2.1 // indirect
 	github.com/colinmarc/hdfs v1.1.3 // indirect
-	github.com/couchbase/gocb/v2 v2.7.1 // indirect
-	github.com/couchbase/gocbcore/v10 v10.3.1 // indirect
-	github.com/couchbase/gocbcoreps v0.1.1 // indirect
-	github.com/couchbase/goprotostellar v1.0.1 // indirect
+	github.com/couchbase/gocb/v2 v2.8.0 // indirect
+	github.com/couchbase/gocbcore/v10 v10.4.0 // indirect
+	github.com/couchbase/gocbcoreps v0.1.2 // indirect
+	github.com/couchbase/goprotostellar v1.0.2 // indirect
 	github.com/couchbaselabs/gocbconnstr/v2 v2.0.0-20230515165046-68b522a21131 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/danieljoos/wincred v1.2.0 // indirect
@@ -237,7 +239,7 @@ require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgproto3/v2 v2.3.3 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20231201235250-de7065d80cb9 // indirect
-	github.com/jackc/pgtype v1.14.2 // indirect
+	github.com/jackc/pgtype v1.14.3 // indirect
 	github.com/jackc/pgx/v4 v4.18.2 // indirect
 	github.com/jackc/puddle v1.3.0 // indirect
 	github.com/jcmturner/aescts/v2 v2.0.0 // indirect
