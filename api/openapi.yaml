@@ -810,9 +810,9 @@ paths:
   /api/v1/credit-resets:
     post:
       operationId: resetCredit
-      summary: Resets the credit balances to zero for a specific subject and re-apply active grants with rollover configuration.
+      summary: Reset credit balance
       description: |
-        Reset credit balance for the given subject.
+        Resets the credit balances to zero for a specific subject and re-apply active grants with rollover configuration.
       tags:
         - Credits (Experimental)
       requestBody:
