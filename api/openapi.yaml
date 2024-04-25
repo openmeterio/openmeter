@@ -1786,13 +1786,17 @@ components:
       name: subject
       description: |
         Filtering and group by multiple subjects.
-        Usage: ?subject=customer-1&subject=customer-2
+
+        Usage: `?subject=customer-1&subject=customer-2`
       in: query
       required: false
       schema:
         type: array
         items:
           type: string
+      example:
+        - customer-1
+        - customer-2
     queryFilterGroupBy:
       name: filterGroupBy
       in: query
@@ -1802,7 +1806,8 @@ components:
         type: object
         description: |
           Simple filter for group bys with exact match.
-          Usage: ?filterGroupBy[type]=input&filterGroupBy[model]=gpt-4
+
+          Usage: `?filterGroupBy[type]=input&filterGroupBy[model]=gpt-4`
         example:
           model: gpt-4
           type: input
