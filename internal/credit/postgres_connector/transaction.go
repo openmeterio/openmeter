@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"entgo.io/ent/dialect/sql"
 	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_ledger "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
@@ -76,11 +75,7 @@ func lockLedger(tx *db.Tx, ctx context.Context, namespace string, subject string
 
 		// We use the ForUpdate method to tell ent to ask our DB to lock
 		// the returned records for update.
-		ForUpdate(
-			// We specify that the query should not wait for the lock to be
-			// released and instead fail immediately if the record is locked.
-			sql.WithLockAction(sql.NoWait),
-		).
+		ForUpdate().
 		Only(ctx)
 	if err != nil {
 		// If the ledger does not exist, we create it and try to lock it again
