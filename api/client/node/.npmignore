@@ -19,9 +19,10 @@ node_modules
 !.vscode/*.code-snippets
 
 # source
+index.ts
 clients/
 schemas/
 scripts/
 test/
 vitest.config.ts
-tsconfig.json
+tsconfig*.json

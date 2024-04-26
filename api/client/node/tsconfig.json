@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "moduleResolution": "node",
-    "target": "es2022",
+    "target": "ES2022",
     "declaration": true,
     "lib": ["esnext"],
     "allowJs": true,
@@ -14,8 +14,15 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "allowSyntheticDefaultImports": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "sourceMap": true
   },
   "include": ["**/*.ts"],
-  "exclude": ["**/*.spec.ts", "**/*.test.ts", "scripts/**/*.ts", "*.config.ts"]
+  "exclude": [
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "scripts/**/*.ts",
+    "dist/**/*.ts",
+    "*.config.ts"
+  ]
 }
