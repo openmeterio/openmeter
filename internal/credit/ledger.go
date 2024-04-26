@@ -71,13 +71,13 @@ func (f LedgerEntryList) GetEntries() []LedgerEntry {
 	list := make([]LedgerEntry, len(f.list))
 	_ = copy(list, f.list)
 
-	// Sort ledger entries by type first
+	// Sort ledger entries by time
 	sort.Slice(list, func(i, j int) bool {
-		return entryTypeWeight[list[i].Type] < entryTypeWeight[list[j].Type]
-	})
+		// Sort ledger entries by type if time is equal
+		if list[i].Time.Equal(list[j].Time) {
+			return entryTypeWeight[list[i].Type] < entryTypeWeight[list[j].Type]
+		}
 
-	// Sort ledger entries by time second
-	sort.Slice(list, func(i, j int) bool {
 		return list[i].Time.Before(list[j].Time)
 	})
 
