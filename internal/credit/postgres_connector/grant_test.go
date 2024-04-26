@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	credit_model "github.com/openmeterio/openmeter/internal/credit"
-	inmemory_lock "github.com/openmeterio/openmeter/internal/credit/inmemory_lock"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -32,7 +31,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 		Name:      "feature-1",
 	}}
 
-	effectiveTime := time.Date(2024, 1, 1, 0, 0, 0, 0, time.Local)
+	effectiveTime := time.Date(2024, 1, 1, 0, 1, 0, 0, time.Local)
 
 	tt := []struct {
 		name        string
@@ -211,8 +210,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 			databaseClient := db.NewClient(db.Driver(driver))
 			defer databaseClient.Close()
 			// Note: lock manager cannot be shared between tests as these parallel tests write the same ledger
-			lockManager := inmemory_lock.NewLockManager(time.Second * 10)
-			connector := NewPostgresConnector(slog.Default(), databaseClient, nil, meterRepository, lockManager)
+			connector := NewPostgresConnector(slog.Default(), databaseClient, nil, meterRepository)
 			tc.test(t, connector, databaseClient)
 		})
 	}

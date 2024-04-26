@@ -4,13 +4,11 @@ import (
 	"context"
 	"log/slog"
 	"testing"
-	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 
 	credit_model "github.com/openmeterio/openmeter/internal/credit"
-	inmemory_lock "github.com/openmeterio/openmeter/internal/credit/inmemory_lock"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	meter_internal "github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -26,7 +24,6 @@ func TestFeature(t *testing.T) {
 	}
 	meters := []models.Meter{meter}
 	meterRepository := meter_internal.NewInMemoryRepository(meters)
-	lockManager := inmemory_lock.NewLockManager(time.Second * 10)
 
 	testFeature := credit_model.Feature{
 		Namespace: namespace,
@@ -121,7 +118,7 @@ func TestFeature(t *testing.T) {
 			driver := initDB(t)
 			databaseClient := db.NewClient(db.Driver(driver))
 			defer databaseClient.Close()
-			connector := NewPostgresConnector(slog.Default(), databaseClient, nil, meterRepository, lockManager)
+			connector := NewPostgresConnector(slog.Default(), databaseClient, nil, meterRepository)
 			tc.test(t, connector, databaseClient)
 		})
 	}

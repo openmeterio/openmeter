@@ -1,7 +1,6 @@
 package credit
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -200,37 +199,23 @@ type HighWatermark struct {
 	Time    time.Time `ch:"time"`
 }
 
-// LockErrNotObtained is returned when a lock cannot be obtained.
-type LockErrNotObtained struct {
+// HighWatermarBeforeError is returned when a lock cannot be obtained.
+type HighWatermarBeforeError struct {
+	Namespace     string
+	Subject       string
+	HighWatermark time.Time
+}
+
+func (e *HighWatermarBeforeError) Error() string {
+	return fmt.Sprintf("ledger action for subject %s must be after highwatermark: %s", e.Subject, e.HighWatermark.Format(time.RFC3339))
+}
+
+// LockErrNotObtainedError is returned when a lock cannot be obtained.
+type LockErrNotObtainedError struct {
 	Namespace string
 	Subject   string
 }
 
-func (e *LockErrNotObtained) Error() string {
+func (e *LockErrNotObtainedError) Error() string {
 	return fmt.Sprintf("lock not obtained for namespace %s, subject %s", e.Namespace, e.Subject)
-}
-
-// LockNotHeld is returned when a lock is not held.
-type LockNotHeld struct {
-	Namespace string
-	Subject   string
-}
-
-func (e *LockNotHeld) Error() string {
-	return fmt.Sprintf("lock not held for namespace %s, subject %s", e.Namespace, e.Subject)
-}
-
-// Lock is an interface to a lock.
-type Lock interface {
-	ID() string
-	Key() string
-	Namespace() string
-	Subject() string
-}
-
-// LockManager is an interface to implement a distributed credit lock.
-type LockManager interface {
-	Obtain(ctx context.Context, namespace string, subject string) (Lock, error)
-	Release(ctx context.Context, lock Lock) error
-	Extend(ctx context.Context, lock Lock) error
 }

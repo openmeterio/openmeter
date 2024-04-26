@@ -4,7 +4,6 @@ import (
 	"log/slog"
 
 	"github.com/openmeterio/openmeter/internal/credit"
-	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/streaming"
@@ -15,7 +14,6 @@ type PostgresConnector struct {
 	db                 *db.Client
 	streamingConnector streaming.Connector
 	meterRepository    meter.Repository
-	lockManager        credit_model.LockManager
 }
 
 // Implement the Connector interface
@@ -26,14 +24,12 @@ func NewPostgresConnector(
 	db *db.Client,
 	streamingConnector streaming.Connector,
 	meterRepository meter.Repository,
-	lockManager credit_model.LockManager,
 ) credit.Connector {
 	connector := PostgresConnector{
 		logger:             logger,
 		db:                 db,
 		streamingConnector: streamingConnector,
 		meterRepository:    meterRepository,
-		lockManager:        lockManager,
 	}
 
 	return &connector
