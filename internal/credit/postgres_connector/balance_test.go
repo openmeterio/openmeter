@@ -10,7 +10,6 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	credit_model "github.com/openmeterio/openmeter/internal/credit"
-	inmemory_lock "github.com/openmeterio/openmeter/internal/credit/inmemory_lock"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/streaming"
@@ -109,9 +108,9 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
 				feature := createFeature(t, connector, namespace, featureIn1)
-				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:00:00Z", time.UTC)
-				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
-				t3, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
+				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
+				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
+				t3, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:03:00Z", time.UTC)
 
 				reset := credit_model.Reset{
 					Subject:     subject,
@@ -172,8 +171,8 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
 				feature := createFeature(t, connector, namespace, featureIn1)
-				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:00:00Z", time.UTC)
-				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
+				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
+				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 
 				reset := credit_model.Reset{
 					Subject:     subject,
@@ -224,8 +223,8 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
 				feature := createFeature(t, connector, namespace, featureIn1)
-				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:00:00Z", time.UTC)
-				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
+				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
+				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 
 				grant1, err := connector.CreateGrant(ctx, namespace, credit_model.Grant{
 					Subject:     subject,
@@ -298,8 +297,8 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
 				feature := createFeature(t, connector, namespace, featureIn1)
-				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:00:00Z", time.UTC)
-				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
+				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
+				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 
 				grant1, err := connector.CreateGrant(ctx, namespace, credit_model.Grant{
 					Subject:     subject,
@@ -373,8 +372,8 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				ctx := context.Background()
 				feature1 := createFeature(t, connector, namespace, featureIn1)
 				feature2 := createFeature(t, connector, namespace, featureIn2)
-				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:00:00Z", time.UTC)
-				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
+				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
+				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 
 				grant1, err := connector.CreateGrant(ctx, namespace, credit_model.Grant{
 					Subject:     subject,
@@ -459,9 +458,8 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			defer databaseClient.Close()
 
 			// Note: lock manager cannot be shared between tests as these parallel tests write the same ledger
-			lockManager := inmemory_lock.NewLockManager(time.Second * 10)
 			streamingConnector := newMockStreamingConnector()
-			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository, lockManager)
+			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository)
 
 			tc.test(t, connector, streamingConnector, databaseClient)
 		})

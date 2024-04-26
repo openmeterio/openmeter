@@ -64,20 +64,6 @@ func (a *Router) CreateCreditGrant(w http.ResponseWriter, r *http.Request) {
 		grant.Priority = 1
 	}
 
-	// Check if grant date is after high watermark
-	hw, err := a.config.CreditConnector.GetHighWatermark(ctx, namespace, grant.Subject)
-	if err != nil {
-		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
-		return
-	}
-	if !grant.EffectiveAt.After(hw.Time) {
-		err := fmt.Errorf("new grant must be after last reset: %s", hw.Time.Format(time.RFC3339))
-		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
-		return
-	}
-
 	// Check if feature exists
 	if grant.FeatureID != nil {
 		_, err := a.config.CreditConnector.GetFeature(ctx, namespace, *grant.FeatureID)
@@ -97,7 +83,13 @@ func (a *Router) CreateCreditGrant(w http.ResponseWriter, r *http.Request) {
 	// Create credit
 	g, err := a.config.CreditConnector.CreateGrant(ctx, namespace, *grant)
 	if err != nil {
-		if _, ok := err.(*credit_model.LockErrNotObtained); ok {
+		if _, ok := err.(*credit_model.HighWatermarBeforeError); ok {
+			a.config.ErrorHandler.HandleContext(ctx, err)
+			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+			return
+		}
+
+		if _, ok := err.(*credit_model.LockErrNotObtainedError); ok {
 			err := fmt.Errorf("credit is currently locked, try again: %w", err)
 			a.config.ErrorHandler.HandleContext(ctx, err)
 			models.NewStatusProblem(ctx, err, http.StatusConflict).Respond(w, r)
@@ -138,20 +130,6 @@ func (a *Router) VoidCreditGrant(w http.ResponseWriter, r *http.Request, creditG
 		return
 	}
 
-	// Check if grant date is after high watermark
-	hw, err := a.config.CreditConnector.GetHighWatermark(ctx, namespace, grant.Subject)
-	if err != nil {
-		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
-		return
-	}
-	if hw.Time.After(grant.EffectiveAt) {
-		err := fmt.Errorf("can only void grants after last reset: %s", hw.Time.Format(time.RFC3339))
-		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
-		return
-	}
-
 	// Get balance to check if grant can be voided: not partially or fully used yet
 	balance, err := a.config.CreditConnector.GetBalance(ctx, namespace, grant.Subject, time.Now())
 	if err != nil {
@@ -174,7 +152,13 @@ func (a *Router) VoidCreditGrant(w http.ResponseWriter, r *http.Request, creditG
 	// Void grant
 	_, err = a.config.CreditConnector.VoidGrant(ctx, namespace, grant)
 	if err != nil {
-		if _, ok := err.(*credit_model.LockErrNotObtained); ok {
+		if _, ok := err.(*credit_model.HighWatermarBeforeError); ok {
+			a.config.ErrorHandler.HandleContext(ctx, err)
+			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+			return
+		}
+
+		if _, ok := err.(*credit_model.LockErrNotObtainedError); ok {
 			err := fmt.Errorf("credit is currently locked, try again: %w", err)
 			a.config.ErrorHandler.HandleContext(ctx, err)
 			models.NewStatusProblem(ctx, err, http.StatusConflict).Respond(w, r)

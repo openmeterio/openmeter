@@ -8,7 +8,7 @@ import (
 	db_credit "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 )
 
-func (a *PostgresConnector) GetLedger(
+func (a *PostgresConnector) GetHistory(
 	ctx context.Context,
 	namespace string,
 	subject string,

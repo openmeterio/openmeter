@@ -26,7 +26,7 @@ type Connector interface {
 
 	// Credit
 	GetBalance(ctx context.Context, namespace string, subject string, cutline time.Time) (Balance, error)
-	GetLedger(ctx context.Context, namespace string, subject string, from time.Time, to time.Time) (LedgerEntryList, error)
+	GetHistory(ctx context.Context, namespace string, subject string, from time.Time, to time.Time) (LedgerEntryList, error)
 	GetHighWatermark(ctx context.Context, namespace string, subject string) (HighWatermark, error)
 	Reset(ctx context.Context, namespace string, reset Reset) (Reset, []Grant, error)
 

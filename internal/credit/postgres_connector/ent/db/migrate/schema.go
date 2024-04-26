@@ -79,10 +79,33 @@ var (
 			},
 		},
 	}
+	// LedgersColumns holds the columns for the "ledgers" table.
+	LedgersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "subject", Type: field.TypeString},
+		{Name: "highwatermark", Type: field.TypeTime},
+	}
+	// LedgersTable holds the schema information for the "ledgers" table.
+	LedgersTable = &schema.Table{
+		Name:       "ledgers",
+		Columns:    LedgersColumns,
+		PrimaryKey: []*schema.Column{LedgersColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "ledger_namespace_subject",
+				Unique:  true,
+				Columns: []*schema.Column{LedgersColumns[3], LedgersColumns[4]},
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		CreditEntriesTable,
 		FeaturesTable,
+		LedgersTable,
 	}
 )
 

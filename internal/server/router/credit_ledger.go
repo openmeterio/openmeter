@@ -23,7 +23,7 @@ func (a *Router) GetCreditLedger(w http.ResponseWriter, r *http.Request, subject
 	}
 
 	// Get Ledger
-	ledgerEntries, err := a.config.CreditConnector.GetLedger(ctx, namespace, subject, params.From, to)
+	ledgerEntries, err := a.config.CreditConnector.GetHistory(ctx, namespace, subject, params.From, to)
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)
 		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)

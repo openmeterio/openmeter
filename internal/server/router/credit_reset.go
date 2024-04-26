@@ -37,24 +37,16 @@ func (a *Router) ResetCredit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if reset is after high watermark
-	hw, err := a.config.CreditConnector.GetHighWatermark(ctx, namespace, resetIn.Subject)
-	if err != nil {
-		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
-		return
-	}
-	if !resetIn.EffectiveAt.After(hw.Time) {
-		err := fmt.Errorf("new resets must be after last reset: %s", hw.Time.Format(time.RFC3339))
-		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
-		return
-	}
-
 	// Reset credit
 	reset, _, err := a.config.CreditConnector.Reset(ctx, namespace, *resetIn)
 	if err != nil {
-		if _, ok := err.(*credit_model.LockErrNotObtained); ok {
+		if _, ok := err.(*credit_model.HighWatermarBeforeError); ok {
+			a.config.ErrorHandler.HandleContext(ctx, err)
+			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+			return
+		}
+
+		if _, ok := err.(*credit_model.LockErrNotObtainedError); ok {
 			err := fmt.Errorf("credit is currently locked, try again: %w", err)
 			a.config.ErrorHandler.HandleContext(ctx, err)
 			models.NewStatusProblem(ctx, err, http.StatusConflict).Respond(w, r)
