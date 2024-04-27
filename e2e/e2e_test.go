@@ -164,80 +164,72 @@ func TestQuery(t *testing.T) {
 	client := initClient(t)
 
 	// Reproducible random data
-	faker := gofakeit.New(8675309)
-
+	const customerCount = 5
 	paths := []string{"/", "/about", "/users", "/contact"}
-
+	faker := gofakeit.New(8675309)
 	timestamp := faker.DateRange(time.Date(2023, time.May, 6, 0, 0, 0, 0, time.UTC), faker.FutureDate().UTC()).UTC().Truncate(time.Second)
 
-	const customerCount = 5
-
-	var events []cloudevents.Event
-
-	newEvents := func(fn func(ev *cloudevents.Event)) []cloudevents.Event {
+	t.Run("Total", func(t *testing.T) {
 		var events []cloudevents.Event
 
-		for i := 0; i < customerCount; i++ {
-			ev := cloudevents.New()
+		newEvents := func(fn func(ev *cloudevents.Event)) []cloudevents.Event {
+			var events []cloudevents.Event
 
-			ev.SetID(faker.UUID())
-			ev.SetSource("my-app")
-			ev.SetType("query")
-			ev.SetSubject(fmt.Sprintf("customer-%d", i+1))
+			for i := 0; i < customerCount; i++ {
+				ev := cloudevents.New()
 
-			fn(&ev)
+				ev.SetID(faker.UUID())
+				ev.SetSource("my-app")
+				ev.SetType("query")
+				ev.SetSubject(fmt.Sprintf("customer-%d", i+1))
 
-			events = append(events, ev)
+				fn(&ev)
+
+				events = append(events, ev)
+			}
+
+			return events
 		}
 
-		return events
-	}
+		newTimedEvents := func(timestamp time.Time) []cloudevents.Event {
+			method := faker.HTTPMethod()
+			path := paths[faker.Number(0, len(paths)-1)]
 
-	newTimedEvents := func(timestamp time.Time) []cloudevents.Event {
-		method := faker.HTTPMethod()
-		path := paths[faker.Number(0, len(paths)-1)]
-
-		return newEvents(func(ev *cloudevents.Event) {
-			ev.SetTime(timestamp)
-			_ = ev.SetData("application/json", map[string]string{
-				"duration_ms": "100",
-				"method":      method,
-				"path":        path,
+			return newEvents(func(ev *cloudevents.Event) {
+				ev.SetTime(timestamp)
+				_ = ev.SetData("application/json", map[string]string{
+					"duration_ms": "100",
+					"method":      method,
+					"path":        path,
+				})
 			})
-		})
-	}
+		}
 
-	// First event
-	{
-		events = append(events, newTimedEvents(timestamp)...)
-	}
+		// First event
+		{
+			events = append(events, newTimedEvents(timestamp)...)
+		}
 
-	// Plus one minute
-	{
-		events = append(events, newTimedEvents(timestamp.Add(time.Minute))...)
-	}
+		// Plus one minute
+		{
+			events = append(events, newTimedEvents(timestamp.Add(time.Minute))...)
+		}
 
-	// Plus one hour
-	{
-		events = append(events, newTimedEvents(timestamp.Add(time.Hour))...)
-	}
+		// Plus one hour
+		{
+			events = append(events, newTimedEvents(timestamp.Add(time.Hour))...)
+		}
 
-	// Plus one day
-	{
-		events = append(events, newTimedEvents(timestamp.Add(24*time.Hour))...)
-	}
+		// Plus one day
+		{
+			events = append(events, newTimedEvents(timestamp.Add(24*time.Hour))...)
+		}
 
-	{
-		resp, err := client.IngestEventBatchWithResponse(context.Background(), events)
-		require.NoError(t, err)
-		require.Equal(t, http.StatusNoContent, resp.StatusCode())
-	}
-
-	// Wait for events to be processed
-	time.Sleep(10 * time.Second)
-
-	t.Run("Total", func(t *testing.T) {
-		t.Parallel()
+		{
+			resp, err := client.IngestEventBatchWithResponse(context.Background(), events)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusNoContent, resp.StatusCode())
+		}
 
 		// Wait for events to be processed
 		assert.EventuallyWithT(t, func(t *assert.CollectT) {
@@ -463,50 +455,62 @@ func TestQuery(t *testing.T) {
 
 func TestCredit(t *testing.T) {
 	client := initClient(t)
-	customer := "customer-1"
+	subject := "customer-1"
+	meterSlug := "credit_test_meter"
 
-	// Reproducible random data
-	faker := gofakeit.New(8675309)
-	var events []cloudevents.Event
+	t.Run("Ingest usage", func(t *testing.T) {
+		// Reproducible random data
+		faker := gofakeit.New(8675309)
+		var events []cloudevents.Event
 
-	newEvent := func(timestamp string, model string) cloudevents.Event {
-		ts, err := time.Parse(time.RFC3339, timestamp)
-		if err != nil {
-			t.Fatal(err)
+		newEvent := func(timestamp string, model string) cloudevents.Event {
+			ts, err := time.Parse(time.RFC3339, timestamp)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			ev := cloudevents.New()
+			ev.SetID(faker.UUID())
+			ev.SetSource("credit-test")
+			ev.SetType("credit_event")
+			ev.SetTime(ts)
+			ev.SetSubject(subject)
+			_ = ev.SetData("application/json", map[string]string{
+				"model": model,
+			})
+
+			return ev
 		}
 
-		ev := cloudevents.New()
-		ev.SetID(faker.UUID())
-		ev.SetSource("credit-test")
-		ev.SetType("credit_event")
-		ev.SetTime(ts)
-		ev.SetSubject(customer)
-		_ = ev.SetData("application/json", map[string]string{
-			"model": model,
-		})
+		// First event
+		{
+			events = append(events, newEvent("2024-01-01T00:01:00Z", "gpt-4"))
+		}
 
-		return ev
-	}
+		// Irrelevant event (does not affect credit because of model mismatch)
+		{
+			events = append(events, newEvent("2024-01-01T00:01:00Z", "gpt-3"))
+		}
 
-	// First event
-	{
-		events = append(events, newEvent("2024-01-01T00:01:00Z", "gpt-4"))
-	}
+		// Ingore events
+		{
+			resp, err := client.IngestEventBatchWithResponse(context.Background(), events)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusNoContent, resp.StatusCode())
+		}
 
-	// Irrelevant event (does not affect credit because of model mismatch)
-	{
-		events = append(events, newEvent("2024-01-01T00:01:00Z", "gpt-3"))
-	}
+		// Wait for events to be processed
+		assert.EventuallyWithT(t, func(t *assert.CollectT) {
+			resp, err := client.QueryMeterWithResponse(context.Background(), meterSlug, &api.QueryMeterParams{
+				Subject: &[]string{subject},
+			})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode())
 
-	// Ingore events
-	{
-		resp, err := client.IngestEventBatchWithResponse(context.Background(), events)
-		require.NoError(t, err)
-		require.Equal(t, http.StatusNoContent, resp.StatusCode())
-	}
-
-	// Wait for events to be processed
-	time.Sleep(10 * time.Second)
+			// As we invested two events with a count meter
+			assert.Equal(t, 2.0, resp.JSON200.Data[0].Value)
+		}, 30*time.Second, time.Second)
+	})
 
 	t.Run("Create Feature", func(t *testing.T) {
 		resp, err := client.CreateFeatureWithResponse(context.Background(), api.Feature{
@@ -549,7 +553,7 @@ func TestCredit(t *testing.T) {
 
 		// Create grant
 		resp, err := client.CreateCreditGrantWithResponse(context.Background(), api.CreditGrant{
-			Subject:     customer,
+			Subject:     subject,
 			Type:        credit_model.GrantTypeUsage,
 			FeatureID:   featureId,
 			Amount:      100,
@@ -568,7 +572,7 @@ func TestCredit(t *testing.T) {
 
 		expected := &api.CreditGrant{
 			ID:          resp.JSON201.ID,
-			Subject:     customer,
+			Subject:     subject,
 			Type:        credit_model.GrantTypeUsage,
 			FeatureID:   featureId,
 			Amount:      100,
@@ -605,12 +609,12 @@ func TestCredit(t *testing.T) {
 		features := *featureListResp.JSON200
 		feature := features[0]
 
-		resp, err := client.GetCreditBalanceWithResponse(context.Background(), customer, nil)
+		resp, err := client.GetCreditBalanceWithResponse(context.Background(), subject, nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 
 		expected := &api.CreditBalance{
-			Subject: customer,
+			Subject: subject,
 			FeatureBalances: []credit_model.FeatureBalance{
 				{
 					Feature: feature,
@@ -651,7 +655,7 @@ func TestCredit(t *testing.T) {
 
 		// Reset credit
 		resetResp, err := client.ResetCreditWithResponse(context.Background(), api.CreditReset{
-			Subject:     customer,
+			Subject:     subject,
 			EffectiveAt: effectiveAt,
 		})
 
@@ -661,14 +665,14 @@ func TestCredit(t *testing.T) {
 		reset := resetResp.JSON201
 		expectedReset := &api.CreditReset{
 			ID:          reset.ID,
-			Subject:     customer,
+			Subject:     subject,
 			EffectiveAt: effectiveAt,
 		}
 		assert.Equal(t, expectedReset, resetResp.JSON201)
 
 		// List grants
 		resp, err := client.ListCreditGrantsWithResponse(context.Background(), &api.ListCreditGrantsParams{
-			Subject: &[]string{customer},
+			Subject: &[]string{subject},
 		})
 
 		require.NoError(t, err)
@@ -679,7 +683,7 @@ func TestCredit(t *testing.T) {
 			{
 				ID:        grants[0].ID,
 				ParentID:  parentGrant.ID,
-				Subject:   customer,
+				Subject:   subject,
 				Type:      credit_model.GrantTypeUsage,
 				FeatureID: featureId,
 				Amount:    99,
