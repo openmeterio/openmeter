@@ -4,15 +4,24 @@ updates:
   - package-ecosystem: gomod
     directory: /
     schedule:
-      interval: daily
+      interval: weekly
+      day: monday
+      time: "05:00"
     labels:
       - area/dependencies
       - dependency/go
+    groups:
+      k8s:
+        patterns:
+          - "k8s.io/*"
+          - "sig.sk8s.io/*"
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: daily
+      interval: weekly
+      day: monday
+      time: "05:00"
     labels:
       - area/dependencies
       - dependency/github_actions
@@ -21,7 +30,9 @@ updates:
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: weekly
+      day: monday
+      time: "05:00"
     labels:
       - area/dependencies
       - dependency/docker
