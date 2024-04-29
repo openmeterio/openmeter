@@ -19,7 +19,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/huandu/go-sqlbuilder v1.26.0
+	github.com/huandu/go-sqlbuilder v1.27.1
 	github.com/lmittmann/tint v1.0.4
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oapi-codegen/nethttp-middleware v1.0.1
