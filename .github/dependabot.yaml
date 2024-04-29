@@ -14,7 +14,7 @@ updates:
       k8s:
         patterns:
           - "k8s.io/*"
-          - "sig.sk8s.io/*"
+          - "sigs.sk8s.io/*"
 
   - package-ecosystem: github-actions
     directory: /
