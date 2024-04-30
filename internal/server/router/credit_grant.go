@@ -17,7 +17,7 @@ import (
 
 // List credit grants, GET /api/v1/credit-grants
 func (a *Router) ListCreditGrants(w http.ResponseWriter, r *http.Request, params api.ListCreditGrantsParams) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "ListCreditGrants")
+	ctx := contextx.WithAttr(r.Context(), "operation", "listCreditGrants")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	var subjects []string
@@ -46,7 +46,7 @@ func (a *Router) ListCreditGrants(w http.ResponseWriter, r *http.Request, params
 
 // Create credit grant, POST /api/v1/credit-grants
 func (a *Router) CreateCreditGrant(w http.ResponseWriter, r *http.Request) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "CreateCreditGrant")
+	ctx := contextx.WithAttr(r.Context(), "operation", "createCreditGrant")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	// Parse request body
@@ -107,7 +107,7 @@ func (a *Router) CreateCreditGrant(w http.ResponseWriter, r *http.Request) {
 
 // Void credit grant, DELETE /api/v1/credit-grants/{creditGrantId}
 func (a *Router) VoidCreditGrant(w http.ResponseWriter, r *http.Request, creditGrantId api.CreditGrantId) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "VoidCreditGrant")
+	ctx := contextx.WithAttr(r.Context(), "operation", "voidCreditGrant")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	// Get grant
@@ -175,7 +175,7 @@ func (a *Router) VoidCreditGrant(w http.ResponseWriter, r *http.Request, creditG
 
 // Get credit, GET /api/v1/credit-grants/{creditGrantId}
 func (a *Router) GetCreditGrant(w http.ResponseWriter, r *http.Request, creditGrantId api.CreditGrantId) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "GetCreditGrant")
+	ctx := contextx.WithAttr(r.Context(), "operation", "getCreditGrant")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	// Get grant

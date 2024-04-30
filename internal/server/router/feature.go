@@ -16,7 +16,7 @@ import (
 
 // Get feature, GET:/api/v1/features/{featureId}
 func (a *Router) GetFeature(w http.ResponseWriter, r *http.Request, featureId api.FeatureId) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "GetFeature")
+	ctx := contextx.WithAttr(r.Context(), "operation", "getFeature")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	feature, err := a.config.CreditConnector.GetFeature(ctx, namespace, featureId)
@@ -36,7 +36,7 @@ func (a *Router) GetFeature(w http.ResponseWriter, r *http.Request, featureId ap
 
 // List features: GET /api/v1/features
 func (a *Router) ListFeatures(w http.ResponseWriter, r *http.Request) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "ListFeatures")
+	ctx := contextx.WithAttr(r.Context(), "operation", "listFeatures")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	features, err := a.config.CreditConnector.ListFeatures(ctx, namespace, credit_model.ListFeaturesParams{})
@@ -54,7 +54,7 @@ func (a *Router) ListFeatures(w http.ResponseWriter, r *http.Request) {
 
 // Create feature, POST: /api/v1/features
 func (a *Router) CreateFeature(w http.ResponseWriter, r *http.Request) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "CreateFeature")
+	ctx := contextx.WithAttr(r.Context(), "operation", "createFeature")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	// Parse request body
@@ -84,7 +84,7 @@ func (a *Router) CreateFeature(w http.ResponseWriter, r *http.Request) {
 
 // Delete feature, DELETE:/api/v1/features/{featureId}
 func (a *Router) DeleteFeature(w http.ResponseWriter, r *http.Request, featureId api.FeatureId) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "DeleteFeature")
+	ctx := contextx.WithAttr(r.Context(), "operation", "deleteFeature")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	_, err := a.config.CreditConnector.GetFeature(ctx, namespace, featureId)

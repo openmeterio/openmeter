@@ -270,7 +270,7 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 
 func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace string, meter *models.Meter) error {
 	// CreateOrReplace is used to force the recreation of the materialized view
-	// This is not safe to use in featureion as it will drop the existing views
+	// This is not safe to use in production as it will drop the existing views
 	if c.config.CreateOrReplaceMeter {
 		err := c.deleteMeterView(ctx, namespace, meter.Slug)
 		if err != nil {

@@ -13,7 +13,7 @@ import (
 
 // Get credit balance, GET /api/v1/credit-ledger/{subject}
 func (a *Router) GetCreditLedger(w http.ResponseWriter, r *http.Request, subject string, params api.GetCreditLedgerParams) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "GetCreditLedger")
+	ctx := contextx.WithAttr(r.Context(), "operation", "getCreditLedger")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 	now := time.Now()
 	to := now

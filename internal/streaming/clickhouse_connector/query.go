@@ -86,7 +86,7 @@ type createMeterView struct {
 	ValueProperty string
 	GroupBy       map[string]string
 	// Populate creates the materialized view with data from the events table
-	// This is not safe to use in featureion as requires to stop ingestion
+	// This is not safe to use in production as requires to stop ingestion
 	Populate bool
 }
 
