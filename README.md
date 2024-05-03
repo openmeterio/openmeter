@@ -112,7 +112,9 @@ make up
 Run OpenMeter:
 
 ```sh
-make run
+make server
+
+make sink-worker
 ```
 
 Run tests:

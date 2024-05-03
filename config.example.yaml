@@ -1,21 +1,132 @@
-address: 127.0.0.1:8888
+############ Configuration Example ############
+# This contains an example configuration file for OpenMeter OSS.
+# Values here match the default configuration, unless noted otherwise.
+###############################################
+
+
+###### Server configuration ######
+## Address the server listens on
+address: 127.0.0.1:8888 # Default: :8888
+
+# ## Aggregation configuration
+# # default values
+# aggregation:
+#     ## ClickHouse connection configuration
+#     clickhouse:
+#         address: 127.0.0.1:9000
+#         database: openmeter
+#         password: default
+#         tls: false
+#         username: default
+#
+
+## Deduplication of metering events
+dedupe:
+    # ## Redis connection config, only used when driver=redis
+    # config:
+    #     address: 127.0.0.1:6379
+    #     database: 0
+    #     expiration: 24h
+    #     password: ""
+    #     sentinel:
+    #         enabled: false
+    #         mastername: ""
+    #     size: 128
+    #     tls:
+    #         enabled: false
+    #         insecureskipverify: false
+    #     username: ""
+    ## Dedupe driver: memory, redis
+    driver: memory
+    enabled: true # Default: false
+
+# ## Environment name
+# environment: unknown
+
+# ## Namespace configuration
+# #  OpenMeter OSS only supports a single namespace
+# namespace:
+#     default: default
+#     disablemanagement: false
+
+# ## Metering event ingestion
+# ingest:
+#     ## Kafka connection configuration
+#     kafka:
+#         broker: 127.0.0.1:29092
+#         eventstopictemplate: om_%s_events
+#         partitions: 1
+#         saslmechanisms: ""
+#         saslpassword: ""
+#         saslusername: ""
+#         securityprotocol: ""
+
+# ## Auth configuration for use with the Web Portal
+# portal:
+#     cors:
+#         enabled: true
+#     enabled: false
+#     tokenexpiration: 1h
+#     tokensecret: ""
+
+
+###### Sink-Worker configuration ######
+
+# sink:
+#     # ## Deduplication of metering events, same as for server
+#     # dedupe:
+#     #     config:
+#     #         address: 127.0.0.1:6379
+#     #         database: 0
+#     #         expiration: 24h
+#     #         password: ""
+#     #         sentinel:
+#     #             enabled: false
+#     #             mastername: ""
+#     #         size: 128
+#     #         tls:
+#     #             enabled: false
+#     #             insecureskipverify: false
+#     #         username: ""
+#     #     driver: memory
+#     #     enabled: false
+#     groupid: openmeter-sink-worker
+#     ## Maximum wait time for batched commits
+#     maxcommitwait: 5s
+#     ## Minimum event count for batched commits
+#     mincommitcount: 500
+#     ## Namespace refetch interval (used for event validation)
+#     namespacerefetch: 15s
+
 
 telemetry:
-  log:
-    level: debug
+    # ## Telemetry address
+    # address: :10000
+    ## Logging configuration
+    log:
+        # ## Accepted values: json, text
+        # format: json
+        ## Minimum log level that should appear in the output
+        level: debug # Default: info
+    # ## Metrics configuration
+    # ## Currently Prometheus and OpenTelemetry Metrics are supported
+    # metrics:
+    #     exporters:
+    #         otlp:
+    #             address: ""
+    #             enabled: false
+    #         prometheus:
+    #             enabled: false
+    # ## Tracing Config
+    # trace:
+    #     exporters:
+    #         otlp:
+    #             address: ""
+    #             enabled: false
+    #     ## Accepted values: always, never or a float between 0 and 1
+    #     sampler: never
 
-# dedupe:
-#   enabled: true
-#   driver: redis
-#   config:
-#     address: 127.0.0.1:6379
-#     database: 0
-#     expiration: 768h # 32d
-
-# Consumer portal
-# portal:
-#   enabled: true
-#   tokenSecret: this-isnt-secure
+###### Meters ######
 
 meters:
   # Sample meter to count API requests
