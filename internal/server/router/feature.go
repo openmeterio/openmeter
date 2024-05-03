@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/render"
-	"github.com/oklog/ulid/v2"
 
 	"github.com/openmeterio/openmeter/api"
 	credit_model "github.com/openmeterio/openmeter/internal/credit"
@@ -49,6 +48,7 @@ func (a *Router) ListFeatures(w http.ResponseWriter, r *http.Request) {
 		return &feature
 	})
 
+	// TODO: no features -> we should return empty array
 	_ = render.RenderList(w, r, list)
 }
 
@@ -68,8 +68,21 @@ func (a *Router) CreateFeature(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := ulid.Make().String()
-	featureIn.ID = &id
+	_, err := a.config.Meters.GetMeterByIDOrSlug(ctx, namespace, featureIn.MeterSlug)
+	if err != nil {
+		if _, ok := err.(*models.MeterNotFoundError); ok {
+			err := fmt.Errorf("meter not found: %s", featureIn.MeterSlug)
+			a.config.ErrorHandler.HandleContext(ctx, err)
+			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+			return
+		}
+		a.config.ErrorHandler.HandleContext(ctx, err)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+		return
+	}
+
+	// Let's make sure we are not allowing the ID to be specified externally
+	featureIn.ID = nil
 
 	featureOut, err := a.config.CreditConnector.CreateFeature(ctx, namespace, *featureIn)
 	if err != nil {

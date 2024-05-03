@@ -552,8 +552,7 @@ func TestCredit(t *testing.T) {
 		featureId := features[0].ID
 
 		// Create grant
-		resp, err := client.CreateCreditGrantWithResponse(context.Background(), api.CreditGrant{
-			Subject:     subject,
+		resp, err := client.CreateCreditGrantWithResponse(context.Background(), subject, api.CreditGrant{
 			Type:        credit_model.GrantTypeUsage,
 			FeatureID:   featureId,
 			Amount:      100,
@@ -654,8 +653,7 @@ func TestCredit(t *testing.T) {
 		featureId := features[0].ID
 
 		// Reset credit
-		resetResp, err := client.ResetCreditWithResponse(context.Background(), api.CreditReset{
-			Subject:     subject,
+		resetResp, err := client.ResetCreditWithResponse(context.Background(), subject, api.CreditReset{
 			EffectiveAt: effectiveAt,
 		})
 

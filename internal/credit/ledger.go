@@ -39,13 +39,18 @@ func (LedgerEntryType) Values() (kinds []string) {
 
 // LedgerEntry is a credit ledger entry.
 type LedgerEntry struct {
-	ID        *string         `json:"id,omitempty"`
-	Type      LedgerEntryType `json:"type"`
-	Time      time.Time       `json:"time"`
-	FeatureID *string         `json:"featureId,omitempty"`
-	Amount    *float64        `json:"amount,omitempty"`
-	From      *time.Time      `json:"from,omitempty"`
-	To        *time.Time      `json:"to,omitempty"`
+	ID         *string         `json:"id,omitempty"`
+	Type       LedgerEntryType `json:"type"`
+	Time       time.Time       `json:"time"`
+	FeatureID  *string         `json:"featureId,omitempty"`
+	Amount     *float64        `json:"amount,omitempty"`
+	Period     *Period         `json:"period,omitempty"`
+	ExternalID *string         `json:"externalId,omitempty"`
+}
+
+type Period struct {
+	From time.Time `json:"from"`
+	To   time.Time `json:"to"`
 }
 
 // Render implements the chi renderer interface.
@@ -133,7 +138,9 @@ func (c *LedgerEntryList) AddGrantUsage(grantBalance GrantBalance, from time.Tim
 		Time:      to,
 		FeatureID: grantBalance.FeatureID,
 		Amount:    &amount,
-		From:      &from,
-		To:        &to,
+		Period: &Period{
+			From: from,
+			To:   to,
+		},
 	})
 }

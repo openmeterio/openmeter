@@ -290,8 +290,10 @@ func main() {
 			logger.Error("failed to initialize credit", "error", err)
 			os.Exit(1)
 		}
+		logger.Info("credits support enabled")
 	} else {
 		creditConnector = nope_credit.NewConnector()
+		logger.Info("credits support disabled")
 	}
 
 	s, err := server.NewServer(&server.Config{

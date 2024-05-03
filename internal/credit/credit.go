@@ -148,6 +148,9 @@ type Grant struct {
 
 	// Void The voided date.
 	Void bool `json:"void"`
+
+	// ExpiresAt contains the exact expiration date calculated from effectiveAt and Expiration for rendering
+	ExpiresAt time.Time `json:"expiresAt,omitempty"`
 }
 
 func (c Grant) ExpirationDate() time.Time {
@@ -155,7 +158,8 @@ func (c Grant) ExpirationDate() time.Time {
 }
 
 // Render implements the chi renderer interface.
-func (c Grant) Render(w http.ResponseWriter, r *http.Request) error {
+func (c *Grant) Render(w http.ResponseWriter, r *http.Request) error {
+	c.ExpiresAt = c.ExpirationDate()
 	return nil
 }
 

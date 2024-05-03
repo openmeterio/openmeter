@@ -102,8 +102,10 @@ func TestLedgerEntryList(t *testing.T) {
 						Type:      LedgerEntryTypeGrantUsage,
 						Time:      t2,
 						Amount:    &usage,
-						From:      &t1,
-						To:        &t2,
+						Period: &Period{
+							From: t1,
+							To:   t2,
+						},
 					},
 				}
 				assert.Equal(t, expected, entryList.GetEntries())
@@ -148,8 +150,10 @@ func TestLedgerEntryList(t *testing.T) {
 						Type:      LedgerEntryTypeGrantUsage,
 						Time:      t2,
 						Amount:    &usage,
-						From:      &t1,
-						To:        &t2,
+						Period: &Period{
+							From: t1,
+							To:   t2,
+						},
 					},
 					{
 						ID:        voidGrant1.ParentID,

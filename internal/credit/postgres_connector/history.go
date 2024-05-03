@@ -14,16 +14,25 @@ func (a *PostgresConnector) GetHistory(
 	subject string,
 	from time.Time,
 	to time.Time,
+	limit int,
 ) (credit_model.LedgerEntryList, error) {
 	ledgerEntries := credit_model.NewLedgerEntryList()
 
-	entities, err := a.db.CreditEntry.Query().Where(
+	query := a.db.CreditEntry.Query().Where(
 		db_credit.And(
 			db_credit.EntryTypeEQ(credit_model.EntryTypeReset),
 			db_credit.EffectiveAtGTE(from),
 			db_credit.EffectiveAtLTE(to),
 		),
-	).All(ctx)
+	).Order(
+		db_credit.ByCreatedAt(),
+	)
+
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+
+	entities, err := query.All(ctx)
 	if err != nil {
 		return ledgerEntries, err
 	}

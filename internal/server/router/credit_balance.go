@@ -12,7 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// Get credit balance, GET /api/v1/credit-balance/{subject}
+// Get credit balance, GET /api/v1/ledgers/{creditSubjectId}/balance
 func (a *Router) GetCreditBalance(w http.ResponseWriter, r *http.Request, subject string, params api.GetCreditBalanceParams) {
 	ctx := contextx.WithAttr(r.Context(), "operation", "getCreditBalance")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
