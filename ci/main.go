@@ -17,7 +17,7 @@ const (
 	clickhouseVersion   = "23.3.9.55"
 	redisVersion        = "7.0.12"
 
-	helmDocsVersion = "v1.11.3"
+	helmDocsVersion = "v1.13.1"
 	helmVersion     = "3.14.4"
 
 	alpineBaseImage = "alpine:3.19.1@sha256:c5b1261d6d3e43071626931fc004f70149baeba2c8ec672bd4f27761f8e1ad6b"
