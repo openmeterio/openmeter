@@ -19,8 +19,6 @@ const (
 	helmDocsVersion = "v1.11.3"
 	helmVersion     = "3.13.2"
 
-	ghVersion = "2.42.1"
-
 	alpineBaseImage = "alpine:3.19.1@sha256:c5b1261d6d3e43071626931fc004f70149baeba2c8ec672bd4f27761f8e1ad6b"
 	xxBaseImage     = "tonistiigi/xx:1.3.0@sha256:904fe94f236d36d65aeb5a2462f88f2c537b8360475f6342e7599194f291fb7e"
 )

@@ -27,15 +27,14 @@ func (m *Ci) Release(ctx context.Context, version string, githubActor string, gi
 			releaseAssets := m.releaseAssets(version)
 
 			_, err := dag.Gh(GhOpts{
-				Version: ghVersion,
-				Token:   githubToken,
-				Repo:    "openmeterio/openmeter",
-			}).Release().Create(version, version, GhReleaseCreateOpts{
+				Token: githubToken,
+				Repo:  "openmeterio/openmeter",
+			}).Release().Create(ctx, version, version, GhReleaseCreateOpts{
 				Files:         releaseAssets,
 				GenerateNotes: true,
 				Latest:        true,
 				VerifyTag:     true,
-			}).Sync(ctx)
+			})
 
 			return err
 		},
