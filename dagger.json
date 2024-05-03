@@ -9,6 +9,10 @@
   ],
   "dependencies": [
     {
+      "name": "go",
+      "source": "github.com/sagikazarmark/daggerverse/go@769385f3c107cd70b31e64473eb5f40c6397ef8e"
+    },
+    {
       "name": "archivist",
       "source": "github.com/sagikazarmark/daggerverse/archivist@9a3074edb9cb21746ea2f9dcdd018d520b47f2e6"
     },
@@ -18,19 +22,15 @@
     },
     {
       "name": "gh",
-      "source": "github.com/sagikazarmark/daggerverse/gh@9a3074edb9cb21746ea2f9dcdd018d520b47f2e6"
-    },
-    {
-      "name": "go",
-      "source": "github.com/sagikazarmark/daggerverse/go@9a3074edb9cb21746ea2f9dcdd018d520b47f2e6"
+      "source": "github.com/sagikazarmark/daggerverse/gh@52367e48ba10d4afb4c1187ff14d2f79d33c091f"
     },
     {
       "name": "golangci-lint",
-      "source": "github.com/sagikazarmark/daggerverse/golangci-lint@9a3074edb9cb21746ea2f9dcdd018d520b47f2e6"
+      "source": "github.com/sagikazarmark/daggerverse/golangci-lint@769385f3c107cd70b31e64473eb5f40c6397ef8e"
     },
     {
       "name": "helm",
-      "source": "github.com/sagikazarmark/daggerverse/helm@9a3074edb9cb21746ea2f9dcdd018d520b47f2e6"
+      "source": "github.com/sagikazarmark/daggerverse/helm@1b1721e459afc1423c9fb9f56454cc59c1f4c9ee"
     },
     {
       "name": "helm-docs",
@@ -46,7 +46,7 @@
     }
   ],
   "source": "ci",
-  "engineVersion": "v0.11.1",
+  "engineVersion": "v0.11.2",
   "views": [
     {
       "name": "default",
@@ -57,8 +57,5 @@
         "!tmp"
       ]
     }
-  ],
-  "codegen": {
-    "automaticGitignore": true
-  }
+  ]
 }
