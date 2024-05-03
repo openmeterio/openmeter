@@ -1,5 +1,5 @@
 ############ Configuration Example ############
-# This contains an example configuration file for OpenMeter OSS.
+# This contains an example configuration file for OpenMeter.
 # Values here match the default configuration, unless noted otherwise.
 ###############################################
 
@@ -22,6 +22,10 @@ address: 127.0.0.1:8888 # Default: :8888
 
 ## Deduplication of metering events
 dedupe:
+    enabled: true # Default: false
+
+    ## Dedupe driver: memory, redis
+    driver: memory
     # ## Redis connection config, only used when driver=redis
     # config:
     #     address: 127.0.0.1:6379
@@ -34,17 +38,13 @@ dedupe:
     #     size: 128
     #     tls:
     #         enabled: false
-    #         insecureskipverify: false
+    #         insecureSkipVerify: false
     #     username: ""
-    ## Dedupe driver: memory, redis
-    driver: memory
-    enabled: true # Default: false
 
 # ## Environment name
 # environment: unknown
 
 # ## Namespace configuration
-# #  OpenMeter OSS only supports a single namespace
 # namespace:
 #     default: default
 #     disablemanagement: false
