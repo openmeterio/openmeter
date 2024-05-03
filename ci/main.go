@@ -7,10 +7,11 @@ import (
 
 const (
 	// Alpine is required for our current build (due to Kafka and CGO), but it doesn't seem to work well with golangci-lint
-	goVersion      = "1.22.0"
-	goBuildVersion = goVersion + "-alpine3.18@sha256:2745a45f77ae2e7be569934fa9a111f067d04c767f54577e251d9b101250e46b"
+	goVersion      = "1.22.2"
+	goBuildVersion = goVersion + "-alpine3.19@sha256:cdc86d9f363e8786845bea2040312b4efa321b828acdeb26f393faa864d887b0"
+	xxBaseImage    = "tonistiigi/xx:1.4.0@sha256:0cd3f05c72d6c9b038eb135f91376ee1169ef3a330d34e418e65e2a5c2e9c0d4"
 
-	golangciLintVersion = "v1.56.1"
+	golangciLintVersion = "v1.57.2"
 	spectralVersion     = "6.11"
 	kafkaVersion        = "3.6"
 	clickhouseVersion   = "23.3.9.55"
@@ -20,7 +21,6 @@ const (
 	helmVersion     = "3.14.4"
 
 	alpineBaseImage = "alpine:3.19.1@sha256:c5b1261d6d3e43071626931fc004f70149baeba2c8ec672bd4f27761f8e1ad6b"
-	xxBaseImage     = "tonistiigi/xx:1.3.0@sha256:904fe94f236d36d65aeb5a2462f88f2c537b8360475f6342e7599194f291fb7e"
 )
 
 type Ci struct {
