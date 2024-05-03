@@ -107,7 +107,7 @@ func (a *PostgresConnector) getBalance(
 			Balance: grant.Amount,
 		})
 
-		expiresAt := grant.ExpirationDate()
+		expiresAt := grant.ExpiresAt
 
 		if (grant.EffectiveAt.After(from) || grant.EffectiveAt.Equal(from)) && (grant.EffectiveAt.Before(to)) {
 			dates = append(dates, grant.EffectiveAt)
