@@ -46,7 +46,7 @@
     }
   ],
   "source": "ci",
-  "engineVersion": "v0.11.1",
+  "engineVersion": "v0.11.2",
   "views": [
     {
       "name": "default",
@@ -57,8 +57,5 @@
         "!tmp"
       ]
     }
-  ],
-  "codegen": {
-    "automaticGitignore": true
-  }
+  ]
 }
