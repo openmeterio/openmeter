@@ -66,7 +66,7 @@ func (a *Router) ListCreditGrantsBySubject(w http.ResponseWriter, r *http.Reques
 	_ = render.RenderList(w, r, list)
 }
 
-// Create credit grant, POST /api/v1/credit-grants
+// Create credit grant, POST /api/v1/ledgers/{creditSubjectId}/grants
 func (a *Router) CreateCreditGrant(w http.ResponseWriter, r *http.Request, creditSubjectId api.CreditSubjectId) {
 	ctx := contextx.WithAttr(r.Context(), "operation", "createCreditGrant")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()

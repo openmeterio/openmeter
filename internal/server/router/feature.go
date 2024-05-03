@@ -48,7 +48,6 @@ func (a *Router) ListFeatures(w http.ResponseWriter, r *http.Request) {
 		return &feature
 	})
 
-	// TODO: no features -> we should return empty array
 	_ = render.RenderList(w, r, list)
 }
 
