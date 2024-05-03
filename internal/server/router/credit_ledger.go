@@ -22,7 +22,7 @@ func (a *Router) GetCreditHistory(w http.ResponseWriter, r *http.Request, credit
 		ctx, namespace, creditSubjectId,
 		params.From,
 		defaultx.WithDefault(params.To, time.Now()),
-		defaultx.WithDefault(params.Limit, api.DefaultCreditQueryLimit),
+		defaultx.WithDefault(params.Limit, api.DefaultCreditsQueryLimit),
 	)
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)

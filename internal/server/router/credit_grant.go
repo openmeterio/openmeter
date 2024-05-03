@@ -21,18 +21,12 @@ func (a *Router) ListCreditGrants(w http.ResponseWriter, r *http.Request, params
 	ctx := contextx.WithAttr(r.Context(), "operation", "listCreditGrants")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
-	limit, err := api.ValidateCreditQueryLimit(params.Limit)
-	if err != nil {
-		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
-	}
-
 	// Get grants
 	grants, err := a.config.CreditConnector.ListGrants(ctx, namespace, credit_connector.ListGrantsParams{
 		Subjects:          defaultx.WithDefault(params.Subject, []string{}),
 		FromHighWatermark: true,
 		IncludeVoid:       true,
-		Limit:             limit,
+		Limit:             defaultx.WithDefault(params.Limit, api.DefaultCreditsQueryLimit),
 	})
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)
@@ -52,18 +46,12 @@ func (a *Router) ListCreditGrantsBySubject(w http.ResponseWriter, r *http.Reques
 	ctx := contextx.WithAttr(r.Context(), "operation", "listCreditGrants")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
-	limit, err := api.ValidateCreditQueryLimit(params.Limit)
-	if err != nil {
-		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
-	}
-
 	// Get grants
 	grants, err := a.config.CreditConnector.ListGrants(ctx, namespace, credit_connector.ListGrantsParams{
 		Subjects:          []string{creditSubjectId},
 		FromHighWatermark: true,
 		IncludeVoid:       true,
-		Limit:             limit,
+		Limit:             defaultx.WithDefault(params.Limit, api.DefaultCreditsQueryLimit),
 	})
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)
