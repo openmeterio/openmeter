@@ -896,7 +896,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateCreditGrant"
+              $ref: "#/components/schemas/CreditGrant"
       responses:
         "201":
           description: CreditGrant created.
@@ -1289,63 +1289,6 @@ components:
                 The balance of the feature.
               type: number
               example: 100
-    CreateCreditGrant:
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.Grant
-      type: object
-      description: |
-        Grants are used to increase balance of specific subjects.
-      required:
-        - type
-        - amount
-        - featureId
-        - effectiveAt
-        - expiration
-      properties:
-        type:
-          $ref: "#/components/schemas/CreditGrantType"
-        amount:
-          description: |
-            The amount to grant. Can be positive or negative number.
-          type: number
-          example: 100
-        featureId:
-          description: |
-            The unique feature ULID that the grant is associated with, if any.
-          type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-        priority:
-          description: |
-            The priority of the grant. Grants with higher priority are applied first.
-            Priority is a positive decimal numbers. With lower numbers indicating higher importance.
-            For example, a priority of 1 is more urgent than a priority of 2.
-            When there are several grants available for the same subject, the system selects the grant with the highest priority.
-            In cases where credit grants share the same priority level, the grant closest to its expiration will be used first.
-            In the case of two credits have identical priorities and expiration dates, the system will use the grant that was created first.
-          type: integer
-          minimum: 1
-          maximum: 255
-          default: 1
-          example: 1
-        effectiveAt:
-          description: |
-            The effective date.
-          type: string
-          format: date-time
-          example: "2023-01-01T00:00:00Z"
-        expiration:
-          writeOnly: true
-          allOf:
-            - $ref: "#/components/schemas/CreditExpirationPeriod"
-        rollover:
-          $ref: "#/components/schemas/CreditGrantRollover"
-        metadata:
-          type: object
-          additionalProperties:
-            type: string
-          example:
-            stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
     CreditGrant:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit
@@ -1373,6 +1316,7 @@ components:
             The subject to grant the amount to.
           type: string
           example: customer-id
+          readOnly: true
         type:
           $ref: "#/components/schemas/CreditGrantType"
         amount:
@@ -1405,7 +1349,7 @@ components:
           format: date-time
           example: "2023-01-01T00:00:00Z"
         expiresAt:
-          readOnly: false
+          readOnly: true
           description: |
             The expiration date of the grant.
           type: string
