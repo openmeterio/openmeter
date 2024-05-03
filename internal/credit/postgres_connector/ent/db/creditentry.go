@@ -44,6 +44,8 @@ type CreditEntry struct {
 	ExpirationPeriodDuration *credit.ExpirationPeriodDuration `json:"expiration_period_duration,omitempty"`
 	// ExpirationPeriodCount holds the value of the "expiration_period_count" field.
 	ExpirationPeriodCount *uint8 `json:"expiration_period_count,omitempty"`
+	// ExpirationAt holds the value of the "expiration_at" field.
+	ExpirationAt *time.Time `json:"expiration_at,omitempty"`
 	// RolloverType holds the value of the "rollover_type" field.
 	RolloverType *credit.GrantRolloverType `json:"rollover_type,omitempty"`
 	// RolloverMaxAmount holds the value of the "rollover_max_amount" field.
@@ -117,7 +119,7 @@ func (*CreditEntry) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case creditentry.FieldID, creditentry.FieldNamespace, creditentry.FieldSubject, creditentry.FieldEntryType, creditentry.FieldType, creditentry.FieldFeatureID, creditentry.FieldExpirationPeriodDuration, creditentry.FieldRolloverType, creditentry.FieldParentID:
 			values[i] = new(sql.NullString)
-		case creditentry.FieldCreatedAt, creditentry.FieldUpdatedAt, creditentry.FieldEffectiveAt:
+		case creditentry.FieldCreatedAt, creditentry.FieldUpdatedAt, creditentry.FieldEffectiveAt, creditentry.FieldExpirationAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -216,6 +218,13 @@ func (ce *CreditEntry) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				ce.ExpirationPeriodCount = new(uint8)
 				*ce.ExpirationPeriodCount = uint8(value.Int64)
+			}
+		case creditentry.FieldExpirationAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field expiration_at", values[i])
+			} else if value.Valid {
+				ce.ExpirationAt = new(time.Time)
+				*ce.ExpirationAt = value.Time
 			}
 		case creditentry.FieldRolloverType:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -341,6 +350,11 @@ func (ce *CreditEntry) String() string {
 	if v := ce.ExpirationPeriodCount; v != nil {
 		builder.WriteString("expiration_period_count=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := ce.ExpirationAt; v != nil {
+		builder.WriteString("expiration_at=")
+		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
 	if v := ce.RolloverType; v != nil {

@@ -39,6 +39,7 @@ func (CreditEntry) Fields() []ent.Field {
 		// Expiration
 		field.Enum("expiration_period_duration").GoType(credit_model.ExpirationPeriodDuration("")).Optional().Nillable().Immutable(),
 		field.Uint8("expiration_period_count").Optional().Nillable().Immutable(),
+		field.Time("expiration_at").Optional().Nillable().Immutable(),
 		// Rollover
 		field.Enum("rollover_type").GoType(credit_model.GrantRolloverType("")).Optional().Nillable().Immutable(),
 		field.Float("rollover_max_amount").Optional().Nillable().Immutable(),

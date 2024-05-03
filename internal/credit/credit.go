@@ -140,17 +140,17 @@ type Grant struct {
 	EffectiveAt time.Time `json:"effectiveAt"`
 
 	// Expiration The expiration configuration.
-	Expiration ExpirationPeriod  `json:"expiration"`
-	Metadata   map[string]string `json:"metadata,omitempty"`
+	Expiration ExpirationPeriod `json:"expiration"`
+	// ExpiresAt contains the exact expiration date calculated from effectiveAt and Expiration for rendering
+	ExpiresAt time.Time `json:"expiresAt"`
+
+	Metadata map[string]string `json:"metadata,omitempty"`
 
 	// Rollover Grant rollover configuration.
 	Rollover *GrantRollover `json:"rollover,omitempty"`
 
 	// Void The voided date.
 	Void bool `json:"void"`
-
-	// ExpiresAt contains the exact expiration date calculated from effectiveAt and Expiration for rendering
-	ExpiresAt time.Time `json:"expiresAt,omitempty"`
 }
 
 func (c Grant) ExpirationDate() time.Time {
@@ -158,8 +158,7 @@ func (c Grant) ExpirationDate() time.Time {
 }
 
 // Render implements the chi renderer interface.
-func (c *Grant) Render(w http.ResponseWriter, r *http.Request) error {
-	c.ExpiresAt = c.ExpirationDate()
+func (c Grant) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 

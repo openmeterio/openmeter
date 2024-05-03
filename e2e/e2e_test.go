@@ -522,7 +522,7 @@ func TestCredit(t *testing.T) {
 		})
 
 		require.NoError(t, err)
-		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code")
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", resp.Body)
 
 		featureId := resp.JSON201.ID
 		archived := false
@@ -552,7 +552,7 @@ func TestCredit(t *testing.T) {
 		featureId := features[0].ID
 
 		// Create grant
-		resp, err := client.CreateCreditGrantWithResponse(context.Background(), subject, api.CreditGrant{
+		resp, err := client.CreateCreditGrantWithResponse(context.Background(), subject, api.CreateCreditGrantRequest{
 			Type:        credit_model.GrantTypeUsage,
 			FeatureID:   featureId,
 			Amount:      100,
@@ -567,9 +567,9 @@ func TestCredit(t *testing.T) {
 			},
 		})
 		require.NoError(t, err)
-		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code")
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", resp.Body)
 
-		expected := &api.CreditGrant{
+		expected := &api.CreditGrantResponse{
 			ID:          resp.JSON201.ID,
 			Subject:     subject,
 			Type:        credit_model.GrantTypeUsage,
@@ -677,7 +677,7 @@ func TestCredit(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 
 		grants := *resp.JSON200
-		expected := &[]api.CreditGrant{
+		expected := &[]api.CreditGrantResponse{
 			{
 				ID:        grants[0].ID,
 				ParentID:  parentGrant.ID,

@@ -36,7 +36,7 @@ func (a *Router) ListCreditGrants(w http.ResponseWriter, r *http.Request, params
 
 	// Response
 	list := slicesx.Map[credit_model.Grant, render.Renderer](grants, func(grant credit_model.Grant) render.Renderer {
-		return &grant
+		return grant
 	})
 	_ = render.RenderList(w, r, list)
 }
@@ -61,7 +61,7 @@ func (a *Router) ListCreditGrantsBySubject(w http.ResponseWriter, r *http.Reques
 
 	// Response
 	list := slicesx.Map[credit_model.Grant, render.Renderer](grants, func(grant credit_model.Grant) render.Renderer {
-		return &grant
+		return grant
 	})
 	_ = render.RenderList(w, r, list)
 }
@@ -128,7 +128,7 @@ func (a *Router) CreateCreditGrant(w http.ResponseWriter, r *http.Request, credi
 	}
 
 	render.Status(r, http.StatusCreated)
-	_ = render.Render(w, r, &g)
+	_ = render.Render(w, r, g)
 }
 
 // Void credit grant, DELETE /api/v1/ledgers/{creditSubjectId}/grants/{creditGrantId}
@@ -224,5 +224,5 @@ func (a *Router) GetCreditGrant(w http.ResponseWriter, r *http.Request, creditSu
 		return
 	}
 
-	_ = render.Render(w, r, &grant)
+	_ = render.Render(w, r, grant)
 }

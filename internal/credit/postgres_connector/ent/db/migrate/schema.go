@@ -22,6 +22,7 @@ var (
 		{Name: "effective_at", Type: field.TypeTime},
 		{Name: "expiration_period_duration", Type: field.TypeEnum, Nullable: true, Enums: []string{"HOUR", "DAY", "WEEK", "MONTH", "YEAR"}},
 		{Name: "expiration_period_count", Type: field.TypeUint8, Nullable: true},
+		{Name: "expiration_at", Type: field.TypeTime, Nullable: true},
 		{Name: "rollover_type", Type: field.TypeEnum, Nullable: true, Enums: []string{"ORIGINAL_AMOUNT", "REMAINING_AMOUNT"}},
 		{Name: "rollover_max_amount", Type: field.TypeFloat64, Nullable: true},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true},
@@ -36,13 +37,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "credit_entries_credit_entries_children",
-				Columns:    []*schema.Column{CreditEntriesColumns[15]},
+				Columns:    []*schema.Column{CreditEntriesColumns[16]},
 				RefColumns: []*schema.Column{CreditEntriesColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
 			{
 				Symbol:     "credit_entries_features_credit_grants",
-				Columns:    []*schema.Column{CreditEntriesColumns[16]},
+				Columns:    []*schema.Column{CreditEntriesColumns[17]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.Restrict,
 			},

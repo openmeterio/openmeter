@@ -848,7 +848,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/CreditGrant"
+                  $ref: "#/components/schemas/CreditGrantResponse"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
@@ -874,7 +874,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/CreditGrant"
+                  $ref: "#/components/schemas/CreditGrantResponse"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
@@ -896,14 +896,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreditGrant"
+              $ref: "#/components/schemas/CreateCreditGrantRequest"
       responses:
         "201":
           description: CreditGrant created.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CreditGrant"
+                $ref: "#/components/schemas/CreditGrantResponse"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
@@ -928,7 +928,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CreditGrant"
+                $ref: "#/components/schemas/CreditGrantResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         "404":
@@ -1268,7 +1268,7 @@ components:
         path: github.com/openmeterio/openmeter/internal/credit
       x-go-type: credit.GrantBalance
       allOf:
-        - $ref: "#/components/schemas/CreditGrant"
+        - $ref: "#/components/schemas/CreditGrantResponse"
         - type: object
           properties:
             balance:
@@ -1289,7 +1289,7 @@ components:
                 The balance of the feature.
               type: number
               example: 100
-    CreditGrant:
+    CreateCreditGrantRequest:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit
       x-go-type: credit.Grant
@@ -1298,7 +1298,6 @@ components:
         Grants are used to increase balance of specific subjects.
       required:
         - id
-        - subject
         - type
         - amount
         - featureId
@@ -1311,12 +1310,6 @@ components:
           readOnly: true
           type: string
           example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-        subject:
-          description: |
-            The subject to grant the amount to.
-          type: string
-          example: customer-id
-          readOnly: true
         type:
           $ref: "#/components/schemas/CreditGrantType"
         amount:
@@ -1348,13 +1341,6 @@ components:
           type: string
           format: date-time
           example: "2023-01-01T00:00:00Z"
-        expiresAt:
-          readOnly: true
-          description: |
-            The expiration date of the grant.
-          type: string
-          format: date-time
-          example: "2023-01-01T00:00:00Z"
         expiration:
           writeOnly: true
           allOf:
@@ -1367,6 +1353,29 @@ components:
             type: string
           example:
             stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
+    CreditGrantResponse:
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/internal/credit
+      x-go-type: credit.Grant
+      allOf:
+      - $ref: "#/components/schemas/CreateCreditGrantRequest"
+      - type: object
+        required:
+        - subject
+        properties:
+          subject:
+            description: |
+              The subject to grant the amount to.
+            type: string
+            example: customer-id
+            readOnly: true
+          expiresAt:
+            readOnly: true
+            description: |
+              The expiration date of the grant.
+            type: string
+            format: date-time
+            example: "2023-01-01T00:00:00Z"
     CreditGrantType:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit
