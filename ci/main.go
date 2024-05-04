@@ -71,6 +71,8 @@ func (m *Ci) Ci(ctx context.Context) error {
 		wrapSyncable(m.Build().helmChart("benthos-collector", "0.0.0").File()),
 
 		wrapSyncables(m.releaseAssets("ci")),
+
+		wrapSyncable(m.Generate().PythonSdk()),
 	)
 
 	return p.wait()

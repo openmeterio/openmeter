@@ -2,7 +2,7 @@ title: OpenMeterClient
 namespace: openmeter
 python: true
 black: true
-input-file: ./openapi.yaml
+input-file: ../../openapi.yaml
 output-folder: ./src
 clear-output-folder: true
 verbose: true
