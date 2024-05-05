@@ -41,6 +41,10 @@
       "source": "github.com/sagikazarmark/daggerverse/kafka@9a3074edb9cb21746ea2f9dcdd018d520b47f2e6"
     },
     {
+      "name": "python",
+      "source": "github.com/sagikazarmark/daggerverse/python@d8b5409dc45cc2242792566059f18cb1e5488629"
+    },
+    {
       "name": "spectral",
       "source": "github.com/sagikazarmark/daggerverse/spectral@9a3074edb9cb21746ea2f9dcdd018d520b47f2e6"
     }
