@@ -21,6 +21,7 @@ func (m *Lint) All(ctx context.Context) error {
 
 	p.Go(syncFunc(m.Go()))
 	p.Go(syncFunc(m.Openapi()))
+	p.Go(m.Helm)
 
 	return p.Wait()
 }
@@ -38,4 +39,13 @@ func (m *Lint) Go() *Container {
 func (m *Lint) Openapi() *Container {
 	return dag.Spectral(SpectralOpts{Version: spectralVersion}).
 		Lint([]*File{m.Source.File("api/openapi.yaml")}, m.Source.File(".spectral.yaml"))
+}
+
+func (m *Lint) Helm(ctx context.Context) error {
+	p := pool.New().WithErrors().WithContext(ctx)
+
+	p.Go(syncFunc(helmChart(m.Source, "openmeter").Lint()))
+	p.Go(syncFunc(helmChart(m.Source, "benthos-collector").Lint()))
+
+	return p.Wait()
 }

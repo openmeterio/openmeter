@@ -217,9 +217,11 @@ func (m *Build) HelmChart(
 	// +optional
 	version string,
 ) *File {
-	chart := helmChartDir(m.Source, name)
+	return m.helmChart(name, version).File()
+}
 
-	opts := HelmPackageOpts{
+func (m *Build) helmChart(name string, version string) *HelmPackage {
+	opts := HelmChartPackageOpts{
 		DependencyUpdate: true,
 	}
 
@@ -228,10 +230,10 @@ func (m *Build) HelmChart(
 		opts.AppVersion = version
 	}
 
-	return dag.Helm(HelmOpts{Version: helmVersion}).Package(chart, opts)
+	return helmChart(m.Source, name).Package(opts)
 }
 
-func helmChartDir(source *Directory, name string) *Directory {
+func helmChart(source *Directory, name string) *HelmChart {
 	chart := source.Directory("deploy/charts").Directory(name)
 
 	readme := dag.HelmDocs(HelmDocsOpts{Version: helmDocsVersion}).Generate(chart, HelmDocsGenerateOpts{
@@ -242,5 +244,7 @@ func helmChartDir(source *Directory, name string) *Directory {
 		SortValuesOrder: "file",
 	})
 
-	return chart.WithFile("README.md", readme)
+	chart = chart.WithFile("README.md", readme)
+
+	return dag.Helm(HelmOpts{Version: helmVersion}).Chart(chart)
 }
