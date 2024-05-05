@@ -75,6 +75,8 @@ func (m *Ci) Ci(ctx context.Context) error {
 		wrapSyncables(m.releaseAssets("ci")),
 
 		wrapSyncable(m.Generate().PythonSdk()),
+		wrapSyncable(m.Generate().NodeSdk()),
+		wrapSyncable(m.Generate().WebSdk()),
 	)
 
 	return p.wait()

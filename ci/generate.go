@@ -30,3 +30,29 @@ func (m *Generate) PythonSdk() *Directory {
 		WithExec([]string{"autorest", "config.yaml"}).
 		Directory("/work/client/python")
 }
+
+// Generate the Node SDK.
+func (m *Generate) NodeSdk() *Directory {
+	return dag.Container().
+		From("node:20-alpine").
+		WithExec([]string{"npm", "install", "-g", "pnpm"}).
+		WithDirectory("/work", m.Source.Directory("api")).
+		WithWorkdir("/work/client/node").
+		WithExec([]string{"pnpm", "install", "--frozen-lockfile"}).
+		WithExec([]string{"pnpm", "run", "generate"}).
+		WithExec([]string{"pnpm", "build"}).
+		WithExec([]string{"pnpm", "test"}).
+		Directory("/work/client/node")
+}
+
+// Generate the Web SDK.
+func (m *Generate) WebSdk() *Directory {
+	return dag.Container().
+		From("node:20-alpine").
+		WithExec([]string{"npm", "install", "-g", "pnpm"}).
+		WithDirectory("/work", m.Source.Directory("api")).
+		WithWorkdir("/work/client/web").
+		WithExec([]string{"pnpm", "install", "--frozen-lockfile"}).
+		WithExec([]string{"pnpm", "run", "generate"}).
+		Directory("/work/client/web")
+}
