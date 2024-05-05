@@ -8,6 +8,9 @@ on:
 permissions:
   contents: read
 
+env:
+  DAGGER_VERSION: 0.11.2
+
 jobs:
   build:
     name: Build
@@ -47,7 +50,7 @@ jobs:
           module: github.com/${{ github.repository }}@${{ github.ref }}
           args: --ref ${{ github.ref }} test
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: "0.11.2"
+          version: ${{ env.DAGGER_VERSION }}
 
   lint:
     name: Lint
@@ -61,7 +64,7 @@ jobs:
           module: github.com/${{ github.repository }}@${{ github.ref }}
           args: --ref ${{ github.ref }} lint all
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: "0.11.2"
+          version: ${{ env.DAGGER_VERSION }}
 
   commit-hooks:
     name: Commit hooks
@@ -202,7 +205,7 @@ jobs:
           module: github.com/${{ github.repository }}@${{ github.ref }}
           args: --ref ${{ github.ref }} etoe
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: "0.11.2"
+          version: ${{ env.DAGGER_VERSION }}
 
   dagger:
     name: CI
@@ -231,4 +234,4 @@ jobs:
           module: github.com/${{ github.repository }}@${{ github.ref }}
           args: --ref ${{ github.ref }} ci
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: "0.11.2"
+          version: ${{ env.DAGGER_VERSION }}
