@@ -44,16 +44,12 @@ func (m *Ci) Release(ctx context.Context, version string, githubActor string, gi
 }
 
 func (m *Ci) pushHelmChart(ctx context.Context, name string, version string, githubActor string, githubToken *Secret) error {
-	chart := m.Build().HelmChart(name, version)
+	_, err := m.Build().
+		helmChart(name, version).
+		WithRegistryAuth("ghcr.io", githubActor, githubToken).
+		Publish(ctx, "oci://ghcr.io/openmeterio/helm-charts")
 
-	_, err := dag.Helm(HelmOpts{Version: helmVersion}).
-		Login("ghcr.io", githubActor, githubToken).
-		Push(ctx, chart, "oci://ghcr.io/openmeterio/helm-charts")
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (m *Ci) releaseAssets(version string) []*File {

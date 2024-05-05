@@ -67,8 +67,8 @@ func (m *Ci) Ci(ctx context.Context) error {
 		wrapSyncables(m.Build().containerImages("ci")),
 
 		// TODO: run trivy scan on helm chart
-		wrapSyncable(m.Build().HelmChart("openmeter", "0.0.0")),
-		wrapSyncable(m.Build().HelmChart("benthos-collector", "0.0.0")),
+		wrapSyncable(m.Build().helmChart("openmeter", "0.0.0").File()),
+		wrapSyncable(m.Build().helmChart("benthos-collector", "0.0.0").File()),
 
 		wrapSyncables(m.releaseAssets("ci")),
 	)
