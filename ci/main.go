@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 )
 
 const (
@@ -80,4 +81,18 @@ func (m *Ci) Test() *Container {
 	return dag.Go().
 		WithSource(m.Source).
 		Exec([]string{"go", "test", "-v", "./..."})
+}
+
+func (m *Ci) QuickstartTest(
+	service *Service,
+
+	// +default=8888
+	port int,
+) *Container {
+	return dag.Go().
+		WithSource(m.Source).
+		Container().
+		WithServiceBinding("openmeter", service).
+		WithEnvVariable("OPENMETER_ADDRESS", fmt.Sprintf("http://openmeter:%d", port)).
+		WithExec([]string{"go", "test", "-v", "./quickstart/"})
 }
