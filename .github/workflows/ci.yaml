@@ -40,35 +40,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-
-      - name: Free disk space
-        uses: ./.github/actions/free-disk-space
-
-      - name: Set up Nix
-        uses: cachix/install-nix-action@8887e596b4ee1134dae06b98d573bd674693f47c # v26
+      - name: Run pipeline
+        uses: dagger/dagger-for-github@eba69b4dddb54eddfdb51a88eb7fd86957137630 # v5.4.0
         with:
-          extra_nix_config: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up magic Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@fc6aaceb40b9845a02b91e059ec147e78d1b4e41 # v4
-
-      - name: Prepare Nix shell
-        run: nix develop --impure .#ci
-
-      - name: Test
-        run: nix develop --impure .#ci -c make test
-        env:
-          DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
-      - name: Stop Engine
-        run: docker stop -t 300 $(docker ps --filter name="dagger-engine-*" -q)
-        if: always()
+          verb: call
+          module: github.com/${{ github.repository }}@${{ github.ref }}
+          args: --ref ${{ github.ref }} test
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          version: "0.11.2"
 
   lint:
     name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run pipeline
+        uses: dagger/dagger-for-github@eba69b4dddb54eddfdb51a88eb7fd86957137630 # v5.4.0
+        with:
+          verb: call
+          module: github.com/${{ github.repository }}@${{ github.ref }}
+          args: --ref ${{ github.ref }} lint all
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          version: "0.11.2"
+
+  commit-hooks:
+    name: Commit hooks
     runs-on: ubuntu-latest
 
     steps:
@@ -92,20 +88,11 @@ jobs:
       - name: Prepare Nix shell
         run: nix develop --impure .#ci
 
-      - name: Lint
-        run: nix develop --impure .#ci -c make lint
-        env:
-          DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
       - name: Pre-commit hooks
         run: nix develop --impure .#ci -c pre-commit run -a
 
       - name: Check commit messages
         run: nix develop --impure .#ci -c pre-commit run --hook-stage manual
-
-      - name: Stop Engine
-        run: docker stop -t 300 $(docker ps --filter name="dagger-engine-*" -q)
-        if: always()
 
   dev:
     name: Developer environment
