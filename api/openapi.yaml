@@ -718,22 +718,16 @@ paths:
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
   # Credit Balances
-  /api/v1/credit-balance/{subject}:
+  /api/v1/ledgers/{creditSubjectId}/balance:
     get:
       operationId: getCreditBalance
-      summary: Get credit balance
+      summary: Get the balance of a specific subject.
       description: |
-        Get credit balance for a specific subject.
+        Get the balance of a specific subject.
       tags:
         - Credits (Experimental)
       parameters:
-        - name: subject
-          in: path
-          required: true
-          description: Subject to query balances for.
-          schema:
-            type: string
-            example: "customer-id"
+        - $ref: "#/components/parameters/creditSubjectId"
         - name: time
           in: query
           required: false
@@ -757,22 +751,17 @@ paths:
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
   # Credit Ledger
-  /api/v1/credit-ledger/{subject}:
+  /api/v1/ledgers/{creditSubjectId}/history:
     get:
-      operationId: getCreditLedger
+      operationId: getCreditHistory
       summary: Get credit ledger
       description: |
         Get credit ledger for a specific subject.
       tags:
         - Credits (Experimental)
       parameters:
-        - name: subject
-          in: path
-          required: true
-          description: Subject to query ledger for.
-          schema:
-            type: string
-            example: "customer-id"
+        - $ref: "#/components/parameters/creditSubjectId"
+        - $ref: "#/components/parameters/creditQueryLimit"
         - name: from
           in: query
           required: true
@@ -807,7 +796,7 @@ paths:
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
   # Credit Reset
-  /api/v1/credit-resets:
+  /api/v1/ledgers/{creditSubjectId}/reset:
     post:
       operationId: resetCredit
       summary: Reset credit balance
@@ -815,8 +804,10 @@ paths:
         Resets the credit balances to zero for a specific subject and re-apply active grants with rollover configuration.
       tags:
         - Credits (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/creditSubjectId"
       requestBody:
-        description: The subject to reset balance for.
+        description: Details for the reset.
         required: true
         content:
           application/json:
@@ -838,16 +829,17 @@ paths:
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
   # Credit Grants
-  /api/v1/credit-grants:
+  /api/v1/ledgers/grants:
     get:
       operationId: listCreditGrants
-      summary: List credit grants
+      summary: List credit grants for multiple subjects
       description: |
-        List credit grants.
+        List credit grants for multiple subjects.
       tags:
         - Credits (Experimental)
       parameters:
         - $ref: "#/components/parameters/queryFilterSubject"
+        - $ref: "#/components/parameters/creditQueryLimit"
       responses:
         "200":
           description: List of credit grants.
@@ -856,7 +848,33 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/CreditGrant"
+                  $ref: "#/components/schemas/CreditGrantResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+  /api/v1/ledgers/{creditSubjectId}/grants:
+    get:
+      operationId: listCreditGrantsBySubject
+      summary: List credit grants
+      description: |
+        List credit grants.
+      tags:
+        - Credits (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/creditSubjectId"
+        - $ref: "#/components/parameters/creditQueryLimit"
+      responses:
+        "200":
+          description: List of credit grants.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CreditGrantResponse"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
@@ -868,6 +886,8 @@ paths:
       summary: Create credit grant
       description: |
         Creates a credit grant.
+      parameters:
+        - $ref: "#/components/parameters/creditSubjectId"        
       tags:
         - Credits (Experimental)
       requestBody:
@@ -876,14 +896,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreditGrant"
+              $ref: "#/components/schemas/CreateCreditGrantRequest"
       responses:
         "201":
           description: CreditGrant created.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CreditGrant"
+                $ref: "#/components/schemas/CreditGrantResponse"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
@@ -891,15 +911,16 @@ paths:
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
   # Credit Grants
-  /api/v1/credit-grants/{creditGrantId}:
+  /api/v1/ledgers/{creditSubjectId}/grants/{creditGrantId}:
     get:
       operationId: getCreditGrant
-      summary: Get credit
+      summary: Get credit grant.
       description: |
         Get credit by key.
       tags:
         - Credits (Experimental)
       parameters:
+        - $ref: "#/components/parameters/creditSubjectId"
         - $ref: "#/components/parameters/creditGrantId"
       responses:
         "200":
@@ -907,7 +928,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CreditGrant"
+                $ref: "#/components/schemas/CreditGrantResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         "404":
@@ -924,6 +945,7 @@ paths:
         - Credits (Experimental)
       parameters:
         - $ref: "#/components/parameters/creditGrantId"
+        - $ref: "#/components/parameters/creditSubjectId"
       responses:
         "204":
           description: Credit grant voided.
@@ -1159,6 +1181,19 @@ components:
             The amount to apply. Can be positive or negative number. If applicable.
           type: number
           example: 100
+        period:
+          $ref: "#/components/schemas/Period"
+    Period:
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/internal/credit
+      x-go-type: credit.Period
+      type: object
+      description: |
+        A time period
+      required:
+        - from
+        - to
+      properties:
         from:
           description: |
             Period start time where the amount was applied. If applicable.
@@ -1190,15 +1225,9 @@ components:
       description: |
         Credit balance of a subject.
       required:
-        - subject
         - amount
         - grants
       properties:
-        subject:
-          description: |
-            The subject to get the balance for.
-          type: string
-          example: customer-id
         features:
           description: |
             Features with balances.
@@ -1220,7 +1249,6 @@ components:
         Credit reset configuration.
       required:
         - id
-        - subject
         - effectiveAt
       properties:
         id:
@@ -1229,11 +1257,6 @@ components:
           readOnly: true
           type: string
           example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-        subject:
-          description: |
-            The subject to reset the credit for.
-          type: string
-          example: customer-id
         effectiveAt:
           description: |
             The time to reset the credit. It cannot be in the future.
@@ -1245,7 +1268,7 @@ components:
         path: github.com/openmeterio/openmeter/internal/credit
       x-go-type: credit.GrantBalance
       allOf:
-        - $ref: "#/components/schemas/CreditGrant"
+        - $ref: "#/components/schemas/CreditGrantResponse"
         - type: object
           properties:
             balance:
@@ -1266,7 +1289,7 @@ components:
                 The balance of the feature.
               type: number
               example: 100
-    CreditGrant:
+    CreateCreditGrantRequest:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit
       x-go-type: credit.Grant
@@ -1275,7 +1298,6 @@ components:
         Grants are used to increase balance of specific subjects.
       required:
         - id
-        - subject
         - type
         - amount
         - featureId
@@ -1288,11 +1310,6 @@ components:
           readOnly: true
           type: string
           example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-        subject:
-          description: |
-            The subject to grant the amount to.
-          type: string
-          example: customer-id
         type:
           $ref: "#/components/schemas/CreditGrantType"
         amount:
@@ -1324,13 +1341,6 @@ components:
           type: string
           format: date-time
           example: "2023-01-01T00:00:00Z"
-        expiresAt:
-          readOnly: false
-          description: |
-            The expiration date of the grant.
-          type: string
-          format: date-time
-          example: "2023-01-01T00:00:00Z"
         expiration:
           writeOnly: true
           allOf:
@@ -1343,6 +1353,29 @@ components:
             type: string
           example:
             stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
+    CreditGrantResponse:
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/internal/credit
+      x-go-type: credit.Grant
+      allOf:
+      - $ref: "#/components/schemas/CreateCreditGrantRequest"
+      - type: object
+        required:
+        - subject
+        properties:
+          subject:
+            description: |
+              The subject to grant the amount to.
+            type: string
+            example: customer-id
+            readOnly: true
+          expiresAt:
+            readOnly: true
+            description: |
+              The expiration date of the grant.
+            type: string
+            format: date-time
+            example: "2023-01-01T00:00:00Z"
     CreditGrantType:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit
@@ -1741,6 +1774,25 @@ components:
       schema:
         type: string
         example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    creditSubjectId:
+      name: creditSubjectId
+      in: path
+      required: true
+      description: A unique identifier for a credit ledger's subject.
+      schema:
+        type: string
+        example: "customer-id"
+    creditQueryLimit:
+      name: limit
+      in: query
+      required: false
+      description: Number of entries to return
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 1000
+        example: 100
     queryFrom:
       name: from
       in: query

@@ -169,6 +169,20 @@ func (cec *CreditEntryCreate) SetNillableExpirationPeriodCount(u *uint8) *Credit
 	return cec
 }
 
+// SetExpirationAt sets the "expiration_at" field.
+func (cec *CreditEntryCreate) SetExpirationAt(t time.Time) *CreditEntryCreate {
+	cec.mutation.SetExpirationAt(t)
+	return cec
+}
+
+// SetNillableExpirationAt sets the "expiration_at" field if the given value is not nil.
+func (cec *CreditEntryCreate) SetNillableExpirationAt(t *time.Time) *CreditEntryCreate {
+	if t != nil {
+		cec.SetExpirationAt(*t)
+	}
+	return cec
+}
+
 // SetRolloverType sets the "rollover_type" field.
 func (cec *CreditEntryCreate) SetRolloverType(crt credit.GrantRolloverType) *CreditEntryCreate {
 	cec.mutation.SetRolloverType(crt)
@@ -450,6 +464,10 @@ func (cec *CreditEntryCreate) createSpec() (*CreditEntry, *sqlgraph.CreateSpec) 
 		_spec.SetField(creditentry.FieldExpirationPeriodCount, field.TypeUint8, value)
 		_node.ExpirationPeriodCount = &value
 	}
+	if value, ok := cec.mutation.ExpirationAt(); ok {
+		_spec.SetField(creditentry.FieldExpirationAt, field.TypeTime, value)
+		_node.ExpirationAt = &value
+	}
 	if value, ok := cec.mutation.RolloverType(); ok {
 		_spec.SetField(creditentry.FieldRolloverType, field.TypeEnum, value)
 		_node.RolloverType = &value
@@ -643,6 +661,9 @@ func (u *CreditEntryUpsertOne) UpdateNewValues() *CreditEntryUpsertOne {
 		}
 		if _, exists := u.create.mutation.ExpirationPeriodCount(); exists {
 			s.SetIgnore(creditentry.FieldExpirationPeriodCount)
+		}
+		if _, exists := u.create.mutation.ExpirationAt(); exists {
+			s.SetIgnore(creditentry.FieldExpirationAt)
 		}
 		if _, exists := u.create.mutation.RolloverType(); exists {
 			s.SetIgnore(creditentry.FieldRolloverType)
@@ -934,6 +955,9 @@ func (u *CreditEntryUpsertBulk) UpdateNewValues() *CreditEntryUpsertBulk {
 			}
 			if _, exists := b.mutation.ExpirationPeriodCount(); exists {
 				s.SetIgnore(creditentry.FieldExpirationPeriodCount)
+			}
+			if _, exists := b.mutation.ExpirationAt(); exists {
+				s.SetIgnore(creditentry.FieldExpirationAt)
 			}
 			if _, exists := b.mutation.RolloverType(); exists {
 				s.SetIgnore(creditentry.FieldRolloverType)

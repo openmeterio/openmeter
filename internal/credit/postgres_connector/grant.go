@@ -33,6 +33,7 @@ func (c *PostgresConnector) CreateGrant(ctx context.Context, namespace string, g
 			SetEffectiveAt(grantIn.EffectiveAt).
 			SetExpirationPeriodDuration(grantIn.Expiration.Duration).
 			SetExpirationPeriodCount(grantIn.Expiration.Count).
+			SetExpirationAt(grantIn.Expiration.GetExpiration(grantIn.EffectiveAt)).
 			SetMetadata(grantIn.Metadata)
 		if grantIn.Rollover != nil {
 			q = q.SetRolloverType(grantIn.Rollover.Type).

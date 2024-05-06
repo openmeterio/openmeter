@@ -136,6 +136,9 @@ func (ceu *CreditEntryUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if ceu.mutation.ExpirationPeriodCountCleared() {
 		_spec.ClearField(creditentry.FieldExpirationPeriodCount, field.TypeUint8)
 	}
+	if ceu.mutation.ExpirationAtCleared() {
+		_spec.ClearField(creditentry.FieldExpirationAt, field.TypeTime)
+	}
 	if ceu.mutation.RolloverTypeCleared() {
 		_spec.ClearField(creditentry.FieldRolloverType, field.TypeEnum)
 	}
@@ -334,6 +337,9 @@ func (ceuo *CreditEntryUpdateOne) sqlSave(ctx context.Context) (_node *CreditEnt
 	}
 	if ceuo.mutation.ExpirationPeriodCountCleared() {
 		_spec.ClearField(creditentry.FieldExpirationPeriodCount, field.TypeUint8)
+	}
+	if ceuo.mutation.ExpirationAtCleared() {
+		_spec.ClearField(creditentry.FieldExpirationAt, field.TypeTime)
 	}
 	if ceuo.mutation.RolloverTypeCleared() {
 		_spec.ClearField(creditentry.FieldRolloverType, field.TypeEnum)

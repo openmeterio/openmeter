@@ -31,17 +31,20 @@ const (
 	PortalTokenAuthScopes      = "PortalTokenAuth.Scopes"
 )
 
+// CreateCreditGrantRequest Grants are used to increase balance of specific subjects.
+type CreateCreditGrantRequest = credit.Grant
+
 // CreditBalance Credit balance of a subject.
 type CreditBalance = credit.Balance
 
 // CreditExpirationPeriod Expiration period of a credit grant.
 type CreditExpirationPeriod = credit.ExpirationPeriod
 
-// CreditGrant Grants are used to increase balance of specific subjects.
-type CreditGrant = credit.Grant
-
 // CreditGrantBalance defines model for CreditGrantBalance.
 type CreditGrantBalance = credit.Grant
+
+// CreditGrantResponse defines model for CreditGrantResponse.
+type CreditGrantResponse = credit.Grant
 
 // CreditGrantRollover Grant rollover configuration.
 type CreditGrantRollover = credit.GrantRollover
@@ -103,6 +106,9 @@ type MeterQueryResult struct {
 // MeterQueryRow A row in the result of a meter query.
 type MeterQueryRow = models.MeterQueryRow
 
+// Period A time period
+type Period = credit.Period
+
 // PortalToken A consumer portal token.
 type PortalToken struct {
 	// AllowedMeterSlugs Optional, if defined only the specified meters will be allowed
@@ -137,6 +143,12 @@ type WindowSize = models.WindowSize
 
 // CreditGrantId defines model for creditGrantId.
 type CreditGrantId = string
+
+// CreditQueryLimit defines model for creditQueryLimit.
+type CreditQueryLimit = int
+
+// CreditSubjectId defines model for creditSubjectId.
+type CreditSubjectId = string
 
 // FeatureId defines model for featureId.
 type FeatureId = string
@@ -190,29 +202,6 @@ type UnauthorizedProblemResponse = Problem
 // Additional properties specific to the problem type may be present.
 type UnexpectedProblemResponse = Problem
 
-// GetCreditBalanceParams defines parameters for GetCreditBalance.
-type GetCreditBalanceParams struct {
-	// Time Point of time to query balances: date-time in RFC 3339 format. Defaults to now.
-	Time *time.Time `form:"time,omitempty" json:"time,omitempty"`
-}
-
-// ListCreditGrantsParams defines parameters for ListCreditGrants.
-type ListCreditGrantsParams struct {
-	// Subject Filtering and group by multiple subjects.
-	//
-	// Usage: `?subject=customer-1&subject=customer-2`
-	Subject *QueryFilterSubject `form:"subject,omitempty" json:"subject,omitempty"`
-}
-
-// GetCreditLedgerParams defines parameters for GetCreditLedger.
-type GetCreditLedgerParams struct {
-	// From Start of time range to query ledger: date-time in RFC 3339 format.
-	From time.Time `form:"from" json:"from"`
-
-	// To End of time range to query ledger: date-time in RFC 3339 format. Defaults to now.
-	To *time.Time `form:"to,omitempty" json:"to,omitempty"`
-}
-
 // ListEventsParams defines parameters for ListEvents.
 type ListEventsParams struct {
 	// From Start date-time in RFC 3339 format.
@@ -229,6 +218,41 @@ type ListEventsParams struct {
 
 // IngestEventsApplicationCloudeventsBatchPlusJSONBody defines parameters for IngestEvents.
 type IngestEventsApplicationCloudeventsBatchPlusJSONBody = []Event
+
+// ListCreditGrantsParams defines parameters for ListCreditGrants.
+type ListCreditGrantsParams struct {
+	// Subject Filtering and group by multiple subjects.
+	//
+	// Usage: `?subject=customer-1&subject=customer-2`
+	Subject *QueryFilterSubject `form:"subject,omitempty" json:"subject,omitempty"`
+
+	// Limit Number of entries to return
+	Limit *CreditQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// GetCreditBalanceParams defines parameters for GetCreditBalance.
+type GetCreditBalanceParams struct {
+	// Time Point of time to query balances: date-time in RFC 3339 format. Defaults to now.
+	Time *time.Time `form:"time,omitempty" json:"time,omitempty"`
+}
+
+// ListCreditGrantsBySubjectParams defines parameters for ListCreditGrantsBySubject.
+type ListCreditGrantsBySubjectParams struct {
+	// Limit Number of entries to return
+	Limit *CreditQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// GetCreditHistoryParams defines parameters for GetCreditHistory.
+type GetCreditHistoryParams struct {
+	// Limit Number of entries to return
+	Limit *CreditQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// From Start of time range to query ledger: date-time in RFC 3339 format.
+	From time.Time `form:"from" json:"from"`
+
+	// To End of time range to query ledger: date-time in RFC 3339 format. Defaults to now.
+	To *time.Time `form:"to,omitempty" json:"to,omitempty"`
+}
 
 // QueryMeterParams defines parameters for QueryMeter.
 type QueryMeterParams struct {
@@ -299,12 +323,6 @@ type InvalidatePortalTokensJSONBody struct {
 // UpsertSubjectJSONBody defines parameters for UpsertSubject.
 type UpsertSubjectJSONBody = []Subject
 
-// CreateCreditGrantJSONRequestBody defines body for CreateCreditGrant for application/json ContentType.
-type CreateCreditGrantJSONRequestBody = CreditGrant
-
-// ResetCreditJSONRequestBody defines body for ResetCredit for application/json ContentType.
-type ResetCreditJSONRequestBody = CreditReset
-
 // IngestEventsApplicationCloudeventsPlusJSONRequestBody defines body for IngestEvents for application/cloudevents+json ContentType.
 type IngestEventsApplicationCloudeventsPlusJSONRequestBody = Event
 
@@ -313,6 +331,12 @@ type IngestEventsApplicationCloudeventsBatchPlusJSONRequestBody = IngestEventsAp
 
 // CreateFeatureJSONRequestBody defines body for CreateFeature for application/json ContentType.
 type CreateFeatureJSONRequestBody = Feature
+
+// CreateCreditGrantJSONRequestBody defines body for CreateCreditGrant for application/json ContentType.
+type CreateCreditGrantJSONRequestBody = CreateCreditGrantRequest
+
+// ResetCreditJSONRequestBody defines body for ResetCredit for application/json ContentType.
+type ResetCreditJSONRequestBody = CreditReset
 
 // CreateMeterJSONRequestBody defines body for CreateMeter for application/json ContentType.
 type CreateMeterJSONRequestBody = Meter
@@ -399,31 +423,6 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
-	// GetCreditBalance request
-	GetCreditBalance(ctx context.Context, subject string, params *GetCreditBalanceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ListCreditGrants request
-	ListCreditGrants(ctx context.Context, params *ListCreditGrantsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// CreateCreditGrantWithBody request with any body
-	CreateCreditGrantWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	CreateCreditGrant(ctx context.Context, body CreateCreditGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// VoidCreditGrant request
-	VoidCreditGrant(ctx context.Context, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetCreditGrant request
-	GetCreditGrant(ctx context.Context, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetCreditLedger request
-	GetCreditLedger(ctx context.Context, subject string, params *GetCreditLedgerParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ResetCreditWithBody request with any body
-	ResetCreditWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	ResetCredit(ctx context.Context, body ResetCreditJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// ListEvents request
 	ListEvents(ctx context.Context, params *ListEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -447,6 +446,34 @@ type ClientInterface interface {
 
 	// GetFeature request
 	GetFeature(ctx context.Context, featureId FeatureId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListCreditGrants request
+	ListCreditGrants(ctx context.Context, params *ListCreditGrantsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetCreditBalance request
+	GetCreditBalance(ctx context.Context, creditSubjectId CreditSubjectId, params *GetCreditBalanceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListCreditGrantsBySubject request
+	ListCreditGrantsBySubject(ctx context.Context, creditSubjectId CreditSubjectId, params *ListCreditGrantsBySubjectParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateCreditGrantWithBody request with any body
+	CreateCreditGrantWithBody(ctx context.Context, creditSubjectId CreditSubjectId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateCreditGrant(ctx context.Context, creditSubjectId CreditSubjectId, body CreateCreditGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// VoidCreditGrant request
+	VoidCreditGrant(ctx context.Context, creditSubjectId CreditSubjectId, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetCreditGrant request
+	GetCreditGrant(ctx context.Context, creditSubjectId CreditSubjectId, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetCreditHistory request
+	GetCreditHistory(ctx context.Context, creditSubjectId CreditSubjectId, params *GetCreditHistoryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ResetCreditWithBody request with any body
+	ResetCreditWithBody(ctx context.Context, creditSubjectId CreditSubjectId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	ResetCredit(ctx context.Context, creditSubjectId CreditSubjectId, body ResetCreditJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListMeters request
 	ListMeters(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -497,114 +524,6 @@ type ClientInterface interface {
 
 	// GetSubject request
 	GetSubject(ctx context.Context, subjectIdOrKey SubjectIdOrKey, reqEditors ...RequestEditorFn) (*http.Response, error)
-}
-
-func (c *Client) GetCreditBalance(ctx context.Context, subject string, params *GetCreditBalanceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetCreditBalanceRequest(c.Server, subject, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ListCreditGrants(ctx context.Context, params *ListCreditGrantsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListCreditGrantsRequest(c.Server, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) CreateCreditGrantWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateCreditGrantRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) CreateCreditGrant(ctx context.Context, body CreateCreditGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateCreditGrantRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) VoidCreditGrant(ctx context.Context, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewVoidCreditGrantRequest(c.Server, creditGrantId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetCreditGrant(ctx context.Context, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetCreditGrantRequest(c.Server, creditGrantId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetCreditLedger(ctx context.Context, subject string, params *GetCreditLedgerParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetCreditLedgerRequest(c.Server, subject, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ResetCreditWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewResetCreditRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ResetCredit(ctx context.Context, body ResetCreditJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewResetCreditRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
 }
 
 func (c *Client) ListEvents(ctx context.Context, params *ListEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -705,6 +624,126 @@ func (c *Client) DeleteFeature(ctx context.Context, featureId FeatureId, reqEdit
 
 func (c *Client) GetFeature(ctx context.Context, featureId FeatureId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetFeatureRequest(c.Server, featureId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListCreditGrants(ctx context.Context, params *ListCreditGrantsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListCreditGrantsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetCreditBalance(ctx context.Context, creditSubjectId CreditSubjectId, params *GetCreditBalanceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetCreditBalanceRequest(c.Server, creditSubjectId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListCreditGrantsBySubject(ctx context.Context, creditSubjectId CreditSubjectId, params *ListCreditGrantsBySubjectParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListCreditGrantsBySubjectRequest(c.Server, creditSubjectId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateCreditGrantWithBody(ctx context.Context, creditSubjectId CreditSubjectId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateCreditGrantRequestWithBody(c.Server, creditSubjectId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateCreditGrant(ctx context.Context, creditSubjectId CreditSubjectId, body CreateCreditGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateCreditGrantRequest(c.Server, creditSubjectId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) VoidCreditGrant(ctx context.Context, creditSubjectId CreditSubjectId, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewVoidCreditGrantRequest(c.Server, creditSubjectId, creditGrantId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetCreditGrant(ctx context.Context, creditSubjectId CreditSubjectId, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetCreditGrantRequest(c.Server, creditSubjectId, creditGrantId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetCreditHistory(ctx context.Context, creditSubjectId CreditSubjectId, params *GetCreditHistoryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetCreditHistoryRequest(c.Server, creditSubjectId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ResetCreditWithBody(ctx context.Context, creditSubjectId CreditSubjectId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewResetCreditRequestWithBody(c.Server, creditSubjectId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ResetCredit(ctx context.Context, creditSubjectId CreditSubjectId, body ResetCreditJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewResetCreditRequest(c.Server, creditSubjectId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -929,327 +968,6 @@ func (c *Client) GetSubject(ctx context.Context, subjectIdOrKey SubjectIdOrKey, 
 		return nil, err
 	}
 	return c.Client.Do(req)
-}
-
-// NewGetCreditBalanceRequest generates requests for GetCreditBalance
-func NewGetCreditBalanceRequest(server string, subject string, params *GetCreditBalanceParams) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "subject", runtime.ParamLocationPath, subject)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/credit-balance/%s", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.Time != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "time", runtime.ParamLocationQuery, *params.Time); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewListCreditGrantsRequest generates requests for ListCreditGrants
-func NewListCreditGrantsRequest(server string, params *ListCreditGrantsParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/credit-grants")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.Subject != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "subject", runtime.ParamLocationQuery, *params.Subject); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewCreateCreditGrantRequest calls the generic CreateCreditGrant builder with application/json body
-func NewCreateCreditGrantRequest(server string, body CreateCreditGrantJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewCreateCreditGrantRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewCreateCreditGrantRequestWithBody generates requests for CreateCreditGrant with any type of body
-func NewCreateCreditGrantRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/credit-grants")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewVoidCreditGrantRequest generates requests for VoidCreditGrant
-func NewVoidCreditGrantRequest(server string, creditGrantId CreditGrantId) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "creditGrantId", runtime.ParamLocationPath, creditGrantId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/credit-grants/%s", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewGetCreditGrantRequest generates requests for GetCreditGrant
-func NewGetCreditGrantRequest(server string, creditGrantId CreditGrantId) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "creditGrantId", runtime.ParamLocationPath, creditGrantId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/credit-grants/%s", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewGetCreditLedgerRequest generates requests for GetCreditLedger
-func NewGetCreditLedgerRequest(server string, subject string, params *GetCreditLedgerParams) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "subject", runtime.ParamLocationPath, subject)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/credit-ledger/%s", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, params.From); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		if params.To != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "to", runtime.ParamLocationQuery, *params.To); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewResetCreditRequest calls the generic ResetCredit builder with application/json body
-func NewResetCreditRequest(server string, body ResetCreditJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewResetCreditRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewResetCreditRequestWithBody generates requests for ResetCredit with any type of body
-func NewResetCreditRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/credit-resets")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
 }
 
 // NewListEventsRequest generates requests for ListEvents
@@ -1515,6 +1233,443 @@ func NewGetFeatureRequest(server string, featureId FeatureId) (*http.Request, er
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewListCreditGrantsRequest generates requests for ListCreditGrants
+func NewListCreditGrantsRequest(server string, params *ListCreditGrantsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/ledgers/grants")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Subject != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "subject", runtime.ParamLocationQuery, *params.Subject); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetCreditBalanceRequest generates requests for GetCreditBalance
+func NewGetCreditBalanceRequest(server string, creditSubjectId CreditSubjectId, params *GetCreditBalanceParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "creditSubjectId", runtime.ParamLocationPath, creditSubjectId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/ledgers/%s/balance", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Time != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "time", runtime.ParamLocationQuery, *params.Time); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListCreditGrantsBySubjectRequest generates requests for ListCreditGrantsBySubject
+func NewListCreditGrantsBySubjectRequest(server string, creditSubjectId CreditSubjectId, params *ListCreditGrantsBySubjectParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "creditSubjectId", runtime.ParamLocationPath, creditSubjectId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/ledgers/%s/grants", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateCreditGrantRequest calls the generic CreateCreditGrant builder with application/json body
+func NewCreateCreditGrantRequest(server string, creditSubjectId CreditSubjectId, body CreateCreditGrantJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateCreditGrantRequestWithBody(server, creditSubjectId, "application/json", bodyReader)
+}
+
+// NewCreateCreditGrantRequestWithBody generates requests for CreateCreditGrant with any type of body
+func NewCreateCreditGrantRequestWithBody(server string, creditSubjectId CreditSubjectId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "creditSubjectId", runtime.ParamLocationPath, creditSubjectId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/ledgers/%s/grants", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewVoidCreditGrantRequest generates requests for VoidCreditGrant
+func NewVoidCreditGrantRequest(server string, creditSubjectId CreditSubjectId, creditGrantId CreditGrantId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "creditSubjectId", runtime.ParamLocationPath, creditSubjectId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "creditGrantId", runtime.ParamLocationPath, creditGrantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/ledgers/%s/grants/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetCreditGrantRequest generates requests for GetCreditGrant
+func NewGetCreditGrantRequest(server string, creditSubjectId CreditSubjectId, creditGrantId CreditGrantId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "creditSubjectId", runtime.ParamLocationPath, creditSubjectId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "creditGrantId", runtime.ParamLocationPath, creditGrantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/ledgers/%s/grants/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetCreditHistoryRequest generates requests for GetCreditHistory
+func NewGetCreditHistoryRequest(server string, creditSubjectId CreditSubjectId, params *GetCreditHistoryParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "creditSubjectId", runtime.ParamLocationPath, creditSubjectId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/ledgers/%s/history", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, params.From); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		if params.To != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "to", runtime.ParamLocationQuery, *params.To); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewResetCreditRequest calls the generic ResetCredit builder with application/json body
+func NewResetCreditRequest(server string, creditSubjectId CreditSubjectId, body ResetCreditJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewResetCreditRequestWithBody(server, creditSubjectId, "application/json", bodyReader)
+}
+
+// NewResetCreditRequestWithBody generates requests for ResetCredit with any type of body
+func NewResetCreditRequestWithBody(server string, creditSubjectId CreditSubjectId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "creditSubjectId", runtime.ParamLocationPath, creditSubjectId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/ledgers/%s/reset", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -2283,31 +2438,6 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
-	// GetCreditBalanceWithResponse request
-	GetCreditBalanceWithResponse(ctx context.Context, subject string, params *GetCreditBalanceParams, reqEditors ...RequestEditorFn) (*GetCreditBalanceResponse, error)
-
-	// ListCreditGrantsWithResponse request
-	ListCreditGrantsWithResponse(ctx context.Context, params *ListCreditGrantsParams, reqEditors ...RequestEditorFn) (*ListCreditGrantsResponse, error)
-
-	// CreateCreditGrantWithBodyWithResponse request with any body
-	CreateCreditGrantWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateCreditGrantResponse, error)
-
-	CreateCreditGrantWithResponse(ctx context.Context, body CreateCreditGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateCreditGrantResponse, error)
-
-	// VoidCreditGrantWithResponse request
-	VoidCreditGrantWithResponse(ctx context.Context, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*VoidCreditGrantResponse, error)
-
-	// GetCreditGrantWithResponse request
-	GetCreditGrantWithResponse(ctx context.Context, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*GetCreditGrantResponse, error)
-
-	// GetCreditLedgerWithResponse request
-	GetCreditLedgerWithResponse(ctx context.Context, subject string, params *GetCreditLedgerParams, reqEditors ...RequestEditorFn) (*GetCreditLedgerResponse, error)
-
-	// ResetCreditWithBodyWithResponse request with any body
-	ResetCreditWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResetCreditResponse, error)
-
-	ResetCreditWithResponse(ctx context.Context, body ResetCreditJSONRequestBody, reqEditors ...RequestEditorFn) (*ResetCreditResponse, error)
-
 	// ListEventsWithResponse request
 	ListEventsWithResponse(ctx context.Context, params *ListEventsParams, reqEditors ...RequestEditorFn) (*ListEventsResponse, error)
 
@@ -2331,6 +2461,34 @@ type ClientWithResponsesInterface interface {
 
 	// GetFeatureWithResponse request
 	GetFeatureWithResponse(ctx context.Context, featureId FeatureId, reqEditors ...RequestEditorFn) (*GetFeatureResponse, error)
+
+	// ListCreditGrantsWithResponse request
+	ListCreditGrantsWithResponse(ctx context.Context, params *ListCreditGrantsParams, reqEditors ...RequestEditorFn) (*ListCreditGrantsResponse, error)
+
+	// GetCreditBalanceWithResponse request
+	GetCreditBalanceWithResponse(ctx context.Context, creditSubjectId CreditSubjectId, params *GetCreditBalanceParams, reqEditors ...RequestEditorFn) (*GetCreditBalanceResponse, error)
+
+	// ListCreditGrantsBySubjectWithResponse request
+	ListCreditGrantsBySubjectWithResponse(ctx context.Context, creditSubjectId CreditSubjectId, params *ListCreditGrantsBySubjectParams, reqEditors ...RequestEditorFn) (*ListCreditGrantsBySubjectResponse, error)
+
+	// CreateCreditGrantWithBodyWithResponse request with any body
+	CreateCreditGrantWithBodyWithResponse(ctx context.Context, creditSubjectId CreditSubjectId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateCreditGrantResponse, error)
+
+	CreateCreditGrantWithResponse(ctx context.Context, creditSubjectId CreditSubjectId, body CreateCreditGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateCreditGrantResponse, error)
+
+	// VoidCreditGrantWithResponse request
+	VoidCreditGrantWithResponse(ctx context.Context, creditSubjectId CreditSubjectId, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*VoidCreditGrantResponse, error)
+
+	// GetCreditGrantWithResponse request
+	GetCreditGrantWithResponse(ctx context.Context, creditSubjectId CreditSubjectId, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*GetCreditGrantResponse, error)
+
+	// GetCreditHistoryWithResponse request
+	GetCreditHistoryWithResponse(ctx context.Context, creditSubjectId CreditSubjectId, params *GetCreditHistoryParams, reqEditors ...RequestEditorFn) (*GetCreditHistoryResponse, error)
+
+	// ResetCreditWithBodyWithResponse request with any body
+	ResetCreditWithBodyWithResponse(ctx context.Context, creditSubjectId CreditSubjectId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResetCreditResponse, error)
+
+	ResetCreditWithResponse(ctx context.Context, creditSubjectId CreditSubjectId, body ResetCreditJSONRequestBody, reqEditors ...RequestEditorFn) (*ResetCreditResponse, error)
 
 	// ListMetersWithResponse request
 	ListMetersWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListMetersResponse, error)
@@ -2381,181 +2539,6 @@ type ClientWithResponsesInterface interface {
 
 	// GetSubjectWithResponse request
 	GetSubjectWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, reqEditors ...RequestEditorFn) (*GetSubjectResponse, error)
-}
-
-type GetCreditBalanceResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *CreditBalance
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r GetCreditBalanceResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetCreditBalanceResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type ListCreditGrantsResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *[]CreditGrant
-	ApplicationproblemJSON400     *BadRequestProblemResponse
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r ListCreditGrantsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ListCreditGrantsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type CreateCreditGrantResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON201                       *CreditGrant
-	ApplicationproblemJSON400     *BadRequestProblemResponse
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r CreateCreditGrantResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r CreateCreditGrantResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type VoidCreditGrantResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r VoidCreditGrantResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r VoidCreditGrantResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetCreditGrantResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *CreditGrant
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r GetCreditGrantResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetCreditGrantResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetCreditLedgerResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *[]CreditLedgerEntry
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r GetCreditLedgerResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetCreditLedgerResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type ResetCreditResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON201                       *CreditReset
-	ApplicationproblemJSON400     *BadRequestProblemResponse
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r ResetCreditResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ResetCreditResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
 }
 
 type ListEventsResponse struct {
@@ -2700,6 +2683,206 @@ func (r GetFeatureResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetFeatureResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListCreditGrantsResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *[]CreditGrantResponse
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r ListCreditGrantsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListCreditGrantsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetCreditBalanceResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *CreditBalance
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r GetCreditBalanceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetCreditBalanceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListCreditGrantsBySubjectResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *[]CreditGrantResponse
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r ListCreditGrantsBySubjectResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListCreditGrantsBySubjectResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateCreditGrantResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON201                       *CreditGrantResponse
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateCreditGrantResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateCreditGrantResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type VoidCreditGrantResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r VoidCreditGrantResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r VoidCreditGrantResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetCreditGrantResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *CreditGrantResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r GetCreditGrantResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetCreditGrantResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetCreditHistoryResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *[]CreditLedgerEntry
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r GetCreditHistoryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetCreditHistoryResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ResetCreditResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON201                       *CreditReset
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r ResetCreditResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ResetCreditResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -3055,85 +3238,6 @@ func (r GetSubjectResponse) StatusCode() int {
 	return 0
 }
 
-// GetCreditBalanceWithResponse request returning *GetCreditBalanceResponse
-func (c *ClientWithResponses) GetCreditBalanceWithResponse(ctx context.Context, subject string, params *GetCreditBalanceParams, reqEditors ...RequestEditorFn) (*GetCreditBalanceResponse, error) {
-	rsp, err := c.GetCreditBalance(ctx, subject, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetCreditBalanceResponse(rsp)
-}
-
-// ListCreditGrantsWithResponse request returning *ListCreditGrantsResponse
-func (c *ClientWithResponses) ListCreditGrantsWithResponse(ctx context.Context, params *ListCreditGrantsParams, reqEditors ...RequestEditorFn) (*ListCreditGrantsResponse, error) {
-	rsp, err := c.ListCreditGrants(ctx, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseListCreditGrantsResponse(rsp)
-}
-
-// CreateCreditGrantWithBodyWithResponse request with arbitrary body returning *CreateCreditGrantResponse
-func (c *ClientWithResponses) CreateCreditGrantWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateCreditGrantResponse, error) {
-	rsp, err := c.CreateCreditGrantWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCreateCreditGrantResponse(rsp)
-}
-
-func (c *ClientWithResponses) CreateCreditGrantWithResponse(ctx context.Context, body CreateCreditGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateCreditGrantResponse, error) {
-	rsp, err := c.CreateCreditGrant(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCreateCreditGrantResponse(rsp)
-}
-
-// VoidCreditGrantWithResponse request returning *VoidCreditGrantResponse
-func (c *ClientWithResponses) VoidCreditGrantWithResponse(ctx context.Context, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*VoidCreditGrantResponse, error) {
-	rsp, err := c.VoidCreditGrant(ctx, creditGrantId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseVoidCreditGrantResponse(rsp)
-}
-
-// GetCreditGrantWithResponse request returning *GetCreditGrantResponse
-func (c *ClientWithResponses) GetCreditGrantWithResponse(ctx context.Context, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*GetCreditGrantResponse, error) {
-	rsp, err := c.GetCreditGrant(ctx, creditGrantId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetCreditGrantResponse(rsp)
-}
-
-// GetCreditLedgerWithResponse request returning *GetCreditLedgerResponse
-func (c *ClientWithResponses) GetCreditLedgerWithResponse(ctx context.Context, subject string, params *GetCreditLedgerParams, reqEditors ...RequestEditorFn) (*GetCreditLedgerResponse, error) {
-	rsp, err := c.GetCreditLedger(ctx, subject, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetCreditLedgerResponse(rsp)
-}
-
-// ResetCreditWithBodyWithResponse request with arbitrary body returning *ResetCreditResponse
-func (c *ClientWithResponses) ResetCreditWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResetCreditResponse, error) {
-	rsp, err := c.ResetCreditWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseResetCreditResponse(rsp)
-}
-
-func (c *ClientWithResponses) ResetCreditWithResponse(ctx context.Context, body ResetCreditJSONRequestBody, reqEditors ...RequestEditorFn) (*ResetCreditResponse, error) {
-	rsp, err := c.ResetCredit(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseResetCreditResponse(rsp)
-}
-
 // ListEventsWithResponse request returning *ListEventsResponse
 func (c *ClientWithResponses) ListEventsWithResponse(ctx context.Context, params *ListEventsParams, reqEditors ...RequestEditorFn) (*ListEventsResponse, error) {
 	rsp, err := c.ListEvents(ctx, params, reqEditors...)
@@ -3210,6 +3314,94 @@ func (c *ClientWithResponses) GetFeatureWithResponse(ctx context.Context, featur
 		return nil, err
 	}
 	return ParseGetFeatureResponse(rsp)
+}
+
+// ListCreditGrantsWithResponse request returning *ListCreditGrantsResponse
+func (c *ClientWithResponses) ListCreditGrantsWithResponse(ctx context.Context, params *ListCreditGrantsParams, reqEditors ...RequestEditorFn) (*ListCreditGrantsResponse, error) {
+	rsp, err := c.ListCreditGrants(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListCreditGrantsResponse(rsp)
+}
+
+// GetCreditBalanceWithResponse request returning *GetCreditBalanceResponse
+func (c *ClientWithResponses) GetCreditBalanceWithResponse(ctx context.Context, creditSubjectId CreditSubjectId, params *GetCreditBalanceParams, reqEditors ...RequestEditorFn) (*GetCreditBalanceResponse, error) {
+	rsp, err := c.GetCreditBalance(ctx, creditSubjectId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetCreditBalanceResponse(rsp)
+}
+
+// ListCreditGrantsBySubjectWithResponse request returning *ListCreditGrantsBySubjectResponse
+func (c *ClientWithResponses) ListCreditGrantsBySubjectWithResponse(ctx context.Context, creditSubjectId CreditSubjectId, params *ListCreditGrantsBySubjectParams, reqEditors ...RequestEditorFn) (*ListCreditGrantsBySubjectResponse, error) {
+	rsp, err := c.ListCreditGrantsBySubject(ctx, creditSubjectId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListCreditGrantsBySubjectResponse(rsp)
+}
+
+// CreateCreditGrantWithBodyWithResponse request with arbitrary body returning *CreateCreditGrantResponse
+func (c *ClientWithResponses) CreateCreditGrantWithBodyWithResponse(ctx context.Context, creditSubjectId CreditSubjectId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateCreditGrantResponse, error) {
+	rsp, err := c.CreateCreditGrantWithBody(ctx, creditSubjectId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateCreditGrantResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateCreditGrantWithResponse(ctx context.Context, creditSubjectId CreditSubjectId, body CreateCreditGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateCreditGrantResponse, error) {
+	rsp, err := c.CreateCreditGrant(ctx, creditSubjectId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateCreditGrantResponse(rsp)
+}
+
+// VoidCreditGrantWithResponse request returning *VoidCreditGrantResponse
+func (c *ClientWithResponses) VoidCreditGrantWithResponse(ctx context.Context, creditSubjectId CreditSubjectId, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*VoidCreditGrantResponse, error) {
+	rsp, err := c.VoidCreditGrant(ctx, creditSubjectId, creditGrantId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseVoidCreditGrantResponse(rsp)
+}
+
+// GetCreditGrantWithResponse request returning *GetCreditGrantResponse
+func (c *ClientWithResponses) GetCreditGrantWithResponse(ctx context.Context, creditSubjectId CreditSubjectId, creditGrantId CreditGrantId, reqEditors ...RequestEditorFn) (*GetCreditGrantResponse, error) {
+	rsp, err := c.GetCreditGrant(ctx, creditSubjectId, creditGrantId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetCreditGrantResponse(rsp)
+}
+
+// GetCreditHistoryWithResponse request returning *GetCreditHistoryResponse
+func (c *ClientWithResponses) GetCreditHistoryWithResponse(ctx context.Context, creditSubjectId CreditSubjectId, params *GetCreditHistoryParams, reqEditors ...RequestEditorFn) (*GetCreditHistoryResponse, error) {
+	rsp, err := c.GetCreditHistory(ctx, creditSubjectId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetCreditHistoryResponse(rsp)
+}
+
+// ResetCreditWithBodyWithResponse request with arbitrary body returning *ResetCreditResponse
+func (c *ClientWithResponses) ResetCreditWithBodyWithResponse(ctx context.Context, creditSubjectId CreditSubjectId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResetCreditResponse, error) {
+	rsp, err := c.ResetCreditWithBody(ctx, creditSubjectId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseResetCreditResponse(rsp)
+}
+
+func (c *ClientWithResponses) ResetCreditWithResponse(ctx context.Context, creditSubjectId CreditSubjectId, body ResetCreditJSONRequestBody, reqEditors ...RequestEditorFn) (*ResetCreditResponse, error) {
+	rsp, err := c.ResetCredit(ctx, creditSubjectId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseResetCreditResponse(rsp)
 }
 
 // ListMetersWithResponse request returning *ListMetersResponse
@@ -3368,335 +3560,6 @@ func (c *ClientWithResponses) GetSubjectWithResponse(ctx context.Context, subjec
 		return nil, err
 	}
 	return ParseGetSubjectResponse(rsp)
-}
-
-// ParseGetCreditBalanceResponse parses an HTTP response from a GetCreditBalanceWithResponse call
-func ParseGetCreditBalanceResponse(rsp *http.Response) (*GetCreditBalanceResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetCreditBalanceResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest CreditBalance
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseListCreditGrantsResponse parses an HTTP response from a ListCreditGrantsWithResponse call
-func ParseListCreditGrantsResponse(rsp *http.Response) (*ListCreditGrantsResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ListCreditGrantsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []CreditGrant
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseCreateCreditGrantResponse parses an HTTP response from a CreateCreditGrantWithResponse call
-func ParseCreateCreditGrantResponse(rsp *http.Response) (*CreateCreditGrantResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &CreateCreditGrantResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest CreditGrant
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON201 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseVoidCreditGrantResponse parses an HTTP response from a VoidCreditGrantWithResponse call
-func ParseVoidCreditGrantResponse(rsp *http.Response) (*VoidCreditGrantResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &VoidCreditGrantResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetCreditGrantResponse parses an HTTP response from a GetCreditGrantWithResponse call
-func ParseGetCreditGrantResponse(rsp *http.Response) (*GetCreditGrantResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetCreditGrantResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest CreditGrant
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetCreditLedgerResponse parses an HTTP response from a GetCreditLedgerWithResponse call
-func ParseGetCreditLedgerResponse(rsp *http.Response) (*GetCreditLedgerResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetCreditLedgerResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []CreditLedgerEntry
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseResetCreditResponse parses an HTTP response from a ResetCreditWithResponse call
-func ParseResetCreditResponse(rsp *http.Response) (*ResetCreditResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ResetCreditResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest CreditReset
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON201 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
 }
 
 // ParseListEventsResponse parses an HTTP response from a ListEventsWithResponse call
@@ -3940,6 +3803,382 @@ func ParseGetFeatureResponse(rsp *http.Response) (*GetFeatureResponse, error) {
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListCreditGrantsResponse parses an HTTP response from a ListCreditGrantsWithResponse call
+func ParseListCreditGrantsResponse(rsp *http.Response) (*ListCreditGrantsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListCreditGrantsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []CreditGrantResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetCreditBalanceResponse parses an HTTP response from a GetCreditBalanceWithResponse call
+func ParseGetCreditBalanceResponse(rsp *http.Response) (*GetCreditBalanceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetCreditBalanceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CreditBalance
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListCreditGrantsBySubjectResponse parses an HTTP response from a ListCreditGrantsBySubjectWithResponse call
+func ParseListCreditGrantsBySubjectResponse(rsp *http.Response) (*ListCreditGrantsBySubjectResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListCreditGrantsBySubjectResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []CreditGrantResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateCreditGrantResponse parses an HTTP response from a CreateCreditGrantWithResponse call
+func ParseCreateCreditGrantResponse(rsp *http.Response) (*CreateCreditGrantResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateCreditGrantResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest CreditGrantResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseVoidCreditGrantResponse parses an HTTP response from a VoidCreditGrantWithResponse call
+func ParseVoidCreditGrantResponse(rsp *http.Response) (*VoidCreditGrantResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &VoidCreditGrantResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetCreditGrantResponse parses an HTTP response from a GetCreditGrantWithResponse call
+func ParseGetCreditGrantResponse(rsp *http.Response) (*GetCreditGrantResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetCreditGrantResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CreditGrantResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetCreditHistoryResponse parses an HTTP response from a GetCreditHistoryWithResponse call
+func ParseGetCreditHistoryResponse(rsp *http.Response) (*GetCreditHistoryResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetCreditHistoryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []CreditLedgerEntry
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseResetCreditResponse parses an HTTP response from a ResetCreditWithResponse call
+func ParseResetCreditResponse(rsp *http.Response) (*ResetCreditResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ResetCreditResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest CreditReset
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest UnauthorizedProblemResponse
@@ -4627,136 +4866,138 @@ func ParseGetSubjectResponse(rsp *http.Response) (*GetSubjectResponse, error) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+x9a3PbttLwX8HwPTNNWupqOxfPnHlGdWxHTWynviRtY78pREISGgpgANC24vGH51+c",
-	"33d+yTu4kARJUKJsOcmb9pnOc2IRBBa7i71hd3njBXQWU4KI4N72jRdDBmdIIKb+ChgKsdhnkIhhKH8I",
-	"EQ8YjgWmxNv2BiAh+FOCAA4REXiMEQNjygAE+kUwkW+2Pd/DcngMxdTzPQJnyNsuze17DH1KMEOhty1Y",
-	"gnyPB1M0g3JRdA1ncSTf6fYGx39sHL7YfXV68nbz+Hhv79cnz/e39gZvPd8T81iO4YJhMvFub31vjKBI",
-	"GFoI+tnr4Ysq/ObNGtDzeR8EbIX/YXjETqJk0hzrYoqAerUG6uK0iyD/F0Njb9v7P52cNzr6Ke9kE0hI",
-	"PyWIzfdwJBDbZzSJf57L19Xa6pGFssIgezEYhljuDEZvGI0RExgp3ivhxS9h4QRL5AI9r9r/RE4ORnMO",
-	"rrCYAnQNAwFmUATT9jk5J2ccTtA2+PN/CqC8l8tc/BuTOBHnSbfbf1J8PKMhii7+PYlFa/PPc+L5OVlv",
-	"PPXQ2/bU05yUajIJsfmbjv5CgfqBi7liiBCh+Cj71cLiSaJ/rRBdP8ZkAiAJs62CWRIJLPHA9Yu8uFXz",
-	"67+DhAs6Q6zV03us/N4v7e29l7/i+fkffe/Cd9LXzFigLBZo5ial+QEyBucWIzE6q+78REAmQAgFagk8",
-	"QwATcLy3AzY2Np5Lss+gaJ+TIQmihONL1Fb7cHKgnN19Pvvd/kar22t1e6fd7rb67w/P9/Tsklzp4s7j",
-	"qtax2L8I/nAMCBWAxyiQRzUEEHBMJhECcDJhaAIFAlc4isAIAYZEwggKFTsjGExTsiqiq91fYRLSq/Y5",
-	"+dM8+hNgDiBgiCN2iSzWuIRRsgAdE8dRtMivWdtsV9J8RVqe0ioqdkm4BjoKuoyK/TtT8Z3C7gn+jJYT",
-	"0s8pmcjztoyeUjxLec2QmAM6Vn/nXBEjhmkN4RWp6hFylQPdVIhb+yzt/RTP0B+UOPZ/OkWapyTDSeDl",
-	"8ulGFEU/U4IA5CBEYyx3jYl6NhwcDoCcF8iJwQso4AhyBB5NhYi3O52rq6s2hgS2KZt05EQtORF/LNmh",
-	"gnM54dnpjlpQrZfiOuEoXIajbHM2nkI0hkkkGeTsdMeWgd5ghhgOYOcQXX34nbKPTr4xhJJq8RWar2Ij",
-	"mTdrtHVp3maGRiancegA9lZOwmNKuNawP8PwGH1KEBdvGB1FaHZsnirTjxKBiNJEMI4jHEC5oU6sR/70",
-	"F5e7u7G1YYgExFIdThEMEQM7eobW6TxGYAo5SAi6jlEgUGgY6bww9fUsOvckaQQUCfe2N7td3xNYqJ39",
-	"DENggM13ljCybQBqyZ+2RzBsMTPqtulhMJvXCCoSz1711vcOqdijCQnXiy5llyk+H8vJCxjYzDFwSAXY",
-	"MwPq9k+oaOlJ1rH7fEW996EEfYaIQGvGgLGnFQ5wvoiFia1ur4iJYWHYInzYE64LK8PinGcEJmJKGf68",
-	"bszMMJc6BlAGMLmEEQ6BoB8RKTCJhRobkgV4Sexh60DKWWnCs+yorxcflghBjFFWYJGujYds3K4ZV4+L",
-	"dOiaMFGC8DabVQndHeX2/gwjSAKHltWPwUg/l+o1VxRKu8UFJ8mcHO5wGMwT7QyZ+bjRkKkxt2iPZoIU",
-	"0oql53vKu+duS0E/A4q+SDKttnfsnTSCYiePEiyAhNe5Taf5ohKGCRIKjhS9Y8raRcdniQq11fB7y+mB",
-	"M5oQ+Q+Dk4uy8+d7160JbZkfdeyjne7IeijFFWVCh2LEVBrqWEyTUTugsw6NEVHaAtP83x1MBGIERh09",
-	"q4JSo233OsZMHa43yrx0mOTZiNQCVRxXCN842C5Qu3ViG1VmVINBhD8i0OuDGSViyktY7/Ut51mgCWLK",
-	"4U/0RE0XSsfrtdRCZh2SzCS9Xh6dHXu+92Lwu+d773Z3X3m+d3B0ePrS873fdwfHFtkMxZ1kK6P1RQrn",
-	"uulYYrcwX0cToBmXVbjgodhNndIqsfaNKGDaSJfnEJOAIekDWHLOGPmBHcqoMJ45Z06G0M/UMVd8C3Yg",
-	"kZ5BTDkW+BJJJUqkgyb/TZLZCJUPf0+pEI08PUCyIRqPUSBfGtSxfDpAebdlgXKP4IKcJqWd2n0UHY29",
-	"7fdNRGaF6rcXvnfFsEBHJJprJyJdAPHB8tMs4UzdPUswrGmjC0K1Eg7jQ6WGograiikUOTQqDMI5DTCU",
-	"uldqPR/gMYBkXgZ0lXCs72EHSMcIhpRE87og8iI0LVydIRjm9HFAM0MChlCsFjm1LCn5Y4zewLm0XiW2",
-	"vRh/2Dxig4/T15dzPMX0ebzVmz7HeI/87IxhxgxThsW84Dv3fAfR0pFFdAAjD5RdMsWTKWL5SCkkUpth",
-	"jBmX2HuTPlSBruw0hyjAMxiZk8zb4J2cMKJX0pnSvwFMQmVdkkm6kpZ3Uua0z8keZcDgxpdTW/D25Goz",
-	"KmUWmyApVqaQlMb02+fk3RSpKIeEmyHA0SViMMrMn0uIIziKUBYB4nCWWSQ6msHnXKAZ4CiSQs9iaIUg",
-	"+acCnYtsbRUnAwHk0rpTS9v6mgM+laBkq2UgR+gSRb61QhBRLieWEllw+7DbUZWMEEMdz5ELK5JeUbMw",
-	"B1N4mUY4AhilS2LEVQCrJEV4YeNqqYQjCy51sq8gl9Or05xCUBDWvjeD13gmVXt/a8v3Zpjov3ouY4LR",
-	"KKKXiK1gcB6nr6xiYZoNWOpoJQsz/aExkKdyeNlSUDPn1qma0jJS7fsrW7sV9E0z40Lr/Ae1KCxfaRUF",
-	"qCG79W9KJsSozvU6nRbskToB7jISqnLyoh5bD231F3nXbY6B9DiAgJIxnhjL0mVyzeD1oMbqOtDnz7K8",
-	"0mn1RBVTakXeTjfh5PH0ZqIpk2YY+SJ4PzU7rbJYhnkJgMRZwtH2OWmBP493DwbDw+Hh/ofBwdHZ4emf",
-	"oAXS+QBDM4iJugBU2G6rV46Oh/vDw8Fr9xstrUq1UhknkdFL+QyWb1Re3PO90uQS2bkUKz9s5DlVUfSg",
-	"xKgnghHT89ig/uxksL8rsTcseyajuS3NzZVGQrBIZYRldOrb9wJa1cRFzOmfmuPrQfH0GoUTxHaJYPPa",
-	"YFSkxgAkB93dKZO8OG/klIHhGJjA4ChCjXy0sfPqWHs+gKsbZH19qswli6DSyjAG5+J17+fe3MOJqGJ/",
-	"Xb6EAtZJNYWr8uK2RbZW5AhaSzqU3Xt/JcI111jWSaq3yYwlplZrprvsA/oFhEAqMlP5tX88UML97dHw",
-	"hed7x7snu/JP9fMHh3BLxzcQbuVVH2p3x4gjUSvcmHy63ApaGgTSR4aa+ZSfpLcJhgIEkBAqpNwzCmSc",
-	"qPSyb0TEKJjXK1ua+ktldN03JF/yfGyyNTtvmlvWz4u7l+mVlzNqM4YRR+Ugyk5Ek1C9yMGJCY9qN/qX",
-	"k6NDcKLvqgrxnTQ2VEhNa4mEjajEHf2ICPe2vV5/w5WwJnnI2wp63TEMUasXPEetzfBJ0HrWf7rVCrb6",
-	"wcaTpxu9cCOQSKYJCxQlELvEAWqpxAXf4zEKLhHjegu9dtciSIWWSgMV+L63rf5rd7u9P3IIY0ZnsQk/",
-	"2cdycShM86YjqilRCmI4jygM2wty+moQ5wqLSUjMxaZwmp0mHUKb/ebgyZdMohY4SLgAMNR6jqrcqH53",
-	"80maG2XZlPalqbosLUjgylMVGXmNyEQyb8/3SBKpmFTt2ZVQ2fkxhSyoVHhop0IP0wEbtRm9AQ4EbduS",
-	"K2F4dThcEq20vqJkgYJN2bcIS1V+Ge5esr6i+LXyC66mOJgCSAx3TWEcI4KK7FU+KzZ+WgyNEUM6MrAM",
-	"OvuMORO19MOUz2xBwguCREOdoVI6o7wIsj7BywCqE/cv1F+jlF2M4Ddg6SWNSkxRWXgWMxomAWLgUaa1",
-	"QumSafI8bi/QE0sgrjF+8QxxAWexBOPKxHYBDYKEKdLkZHWd142NjeftWo1ekmxOrb7iCXFLmiLOU3mj",
-	"EcpQpFxVcyFPGZ5goiPk+S6LezCyt5nm1cemyKGZ2ZtyyRJNrA+1VphNFXEgOVy9yDs8/Nia0M5lv6N+",
-	"UJCabIYVFfAgu3FSdw/pH5QBc5ABHctDq/AJQcqAxauFbbDz5qz1kiaM++BUKRIfDN4MwQ6MIu4DJAKn",
-	"V82CKb5EoTMTVdmQFmhmrA+w0AF1Y27q+L1KjldXA5TpZNWSiWU2X2PVjSiNECT3NDLTkop1X4dlufo6",
-	"RZ7fo6bgKNYv6UBOnkqtSwJ4G5xxNE4igMd5sQXgAY0VEUaMqrxHdVN0JTViSiHBYPCxnPNQLh9wGRVq",
-	"BXcVyGkGQHYPajNE8SZU3cKESIe2eMoMo7mTGYyx80FQASOXp6EzVF0A2SnBNfQeDM0ZWCpQjI7McdDM",
-	"gE9P+vpN+FJGVOP7iBSi+91FuPF5n9uI0n7Wj7CVapjai3iQEmQQXcq2k7Lm0RnBUtfAKJqDMz3va3SN",
-	"AzphMJ7iQD04oUyoq9jMhGOPS5Jo/8nWH0+3tgZ77wavXu72+oe/d3d+fb73UspmKOT+vG3v/77vtp4P",
-	"ft55sbu3//KXVweHb349Pjl9++633/+4uOk/uf2X48jc1O9sBq9Tjf9ko2wA2KvC1udu6/nFT4/+Z/tD",
-	"9sfjHx3LXTjO7JBMEBcovIsbOiAAm9eNFaFkCk2lpcpL1eakSnkseVQoXXIV33QFZzT8es5ovnOdZVpJ",
-	"5tYFHdoKqYSUUrwskh276buVpWyeSnODkbGZlujNkqDVb1049M+B3I3r9OptKqOoEDoznqAqAOFgSq+k",
-	"YaRq8JQKyktktKlW4pT0sSn8OjvwKqw41PnPWnHJt+U8pwW6+Fltk8Vr/2oXKprkD+of0ndREqp8LpVX",
-	"bo7GXI9P1ZZVcLPtHQwPz053q9Qt7GUxjRWWB9b4smFSxb/1d6ofstLPqq4FZwZbSx0KC503tYGT9OIy",
-	"o2Yzf6FAlzoLLZ+mQrE6q+0QzlCoImJvoKr7jBni8sRzCSS6ltZXmihm18ZxMGZ0ZjmbUj61wSs052Am",
-	"nbtRlncmeTeghGMugDJ1YRRPIUlUgZB6mpAQMR5QhkAwhXJFaTC67b0FvFg5gTi8YwFwQ722PJC7UH/7",
-	"YJrMIGnJaZRyrQVJ+8v3ReIX0J6Vo1/eu4PTyoymy5sy9ipqzx+4DpUZeTFvn5NTe5B5mTJwcnbgg8Hb",
-	"fR8cDA99haKDwW/AEi1cy2Bt+QFdVqb2oQVxYC5bIeOpj5olvkoP9exw+OvZ7oedo7PDU3tavwi2hig9",
-	"E+kSbSCnqLybIyBFoYQRTwhl1XtDS6pWyHBVKMZcoZyxkKKva91taWxLucIqS/wLdWh5W+vE+xnL8cdJ",
-	"R0+nAK4oAPdVuo3jPHfEcfRNnFgr0B2TnmHT2vO9wdt9z5faS/7/wW/FGLJ+c9Edno2MQQG568bLrwli",
-	"82PEVZ6pM6FGPdOFC9ouUcWfbdfFyPsbl3FQMkTLVl6dwaiYXBcvaC7aJWF9HbJhNAElStxXfdJy15kM",
-	"dVeBgi5dYLFZktrgean3N4+RRnVCFqvQK1eJUJohstachbUUn69J0inK1hrxGWocqpzRqzQI3+wsfcsM",
-	"U2b4Bjbnonz5hvurMaytzh9N7sNtS95cCy644FhqzBvk3jjrrPLcKQvx6+ZoTan1tdqw+V3vrriUvZkV",
-	"tHl2ONaqvd5QJmCkHDDXqZOmsLR9gSpIiLRfW3aIo4heofAgDYFylfhqm8AXvmdSsgaiHr26yifM4jtW",
-	"1U8dnVX0ZaHrUBtH0Tv26OyD3tqH4YC82HgTv3vXH/TfsWez53+NP6OX0f5vz65nO79d7bfnW582T1qD",
-	"d5/2kief/hrDvc/dz79+2tz93H92zMn87dUv4/FvW5+uDy6pw9OuIummJrCvKoLS9hTKByl24dCdr7Lq",
-	"BzNzsTFOGf31nVFmmAz1w15JH/medp/MY1OLZRHyrkdmqTuXccJNg9ueQnHY3STDUoBwWO6VdS9vNRez",
-	"zQsu3CdUJXWp6Anmmleydi7Ss5K0wrR4YB+K5VcN6NXes0qpZErXV0qaGQDzGnihKvE50BOCR8d7O+Dp",
-	"s+7Tx+1zMsjmA/kJzes6zZWzKb7XLswMzpWDyhAvJ3JYVf8jGs4t91MlP2VCfX3tQkqWslm9KrlLIQ90",
-	"HUeQaL+suFnJOHnqgNHuBoIi4yzcYfXMEC7c90YDcHY8BFkmiY4C4FLOTgpjQ9gk2gyWtiMawKjzy8FR",
-	"FAj+6u2zVlf+X6+a6lM9mYZMrmP28vT0DdADQEBDBCaIIKZuL036vc5TULfuWWSpMXYVZ2TwYSI2+p5V",
-	"PLb1/LlVPLZpXahZ5WOGsar4hoBPKROVQBhPZjPI5iW4FNcX0etk1WUpHqqnTkCJgJhwABXVXbSuX3bh",
-	"YVhGTlcpToqjjNR+eoSaWWIn6q1UPK3VErO66q2U/JHa5SrGVtfGKeE68iZ/FmVPSbOn0Nnstm/TL6vz",
-	"wsiFLo7vhZjHEZwf6k5RO0a9gUN957XccvuI5tV0KauweJqMeEx1eXCvv7G59USfYIZjlK6mHgYJ/5AL",
-	"g6oMrW6/akf0Gxk2S50dF/7uakUtz5C0CWCvUqZFwxzHdZk/H3UHssamz/Jqcr2QxdFu3lju/1aYpwSm",
-	"zUdL8VaSP3LbLltnUTs/K2hpmioCjj8jO35qYmi+3TekECbNBjSIlL6zu/StTbZJzKIgYVjMVTa4PnYq",
-	"3XOH0o8YDRI5640rsVzloF2hEYBxDAI1Om1Fl/1lmtF9+MD1RUe+VxjjV0hF1tRklrObLjlCkCG2lx4w",
-	"GsNPymF3geJ0htM2fcpAUpPly0+FiLPF77ysxEDjpZZv8a8rUV3ItTOACZAUbem8BZBnSi6B4lZ5ZTrT",
-	"5gUNHPbUCxokM0REGo5PWGTe5tudnI3amHZCOYEyJ8fU5TMjcmBd8yuEEV2opxteat4kkzQZ0lxk5S9K",
-	"9CofmoM5TXTjlwniwtz++zq4aOJdak59yTWDRM7PkEYPb5+TVqt1Tn48ihEz915Zd4T//ud/wSMF3WNA",
-	"qN636sWg7xizDgyYWJAp8rd/VLdREQ6Q6Uxm2H0Qw2CKQF+li+QINL0qoXqqulWaV3nn9XBn9/Bkt9Vv",
-	"d9tTMYssk9Er4MPzvUI+Srsrh0qywBh7295Gu9ve0PlGU0XdDoxx57Jn0qpaJimsc2Nsk1sV43TVN+0j",
-	"kdbUWO2upL1aarSj7+Roilol2feRKDYq8wudwSt5WCd5RY+madpwTNXzLOxwuZbWln6lfpBiogOqpi6r",
-	"CNb24ka04IVubKIyCIjqt1vXjVZbDOvuKnxRatXZ73YXdM5LO+Y1a15XJKyjhV2xBx3XmUxtyaeb3V7d",
-	"7Bm4nUXdENUcm8vnqOu0qWA1PWeWw1HXg1D3bVX+mfOgSIJAHWzdMQ1OHu1ex4hhJVmjx96FnKJ0NPN2",
-	"eM7z+BpzUWzU4jp4cpRVwc6rB8+16XxIx9FM/N7ctGqnPkdb6AqTKXTQcQkjmkG6y4lb37t2TWy6djar",
-	"0r8Jm/leTLm7ehUKxJ29+oocpUfa1NECF3HxMw3naxYrhv5Vep9Oi22KpGTVAe92RQPcVvi196XAtB5n",
-	"te7fMVNq5igQ5j7Cr3NT+KrHrebbCAmHA/aW4rDEvmA0B8MXbfAGMoFV0jZlqm/JXBeypN2m8nLqS4pD",
-	"lVX0Vv0jG3FFyQ86lupsQPoDz2wiSOYzmqbVF0+OnLN4blYTxcUvnDik8GZtVbpGh9ndd6t5FQusynv+",
-	"cnN3Dj6i+UKz9oEI2v2yYurvY5ndTSjp7iWr+Uqm48kdXCXdz2JlTylf8Gv4SfrrKqmfxCCZoDJo28s+",
-	"2rH4gytNgL5XVojrMyP32dAKzh/9Bl2/FYx1u7dMA5P97+sXRunRvoMQUh1O9LfVnJa8ajjC7RYoGYIF",
-	"BZ8RozXCSIXKTJO3OYC6A/HEaq66qMdfUYYpGHZSSftw3oFurlLjHVS6wthd2r+Cj1ALbPEcfEPuwTd3",
-	"hI51c6X7BFd0qHhxVKVYX6G5HxMALR1QF2vRTTHuGGWRCk7qnyaDT6lXVVWHpm5jnEKueF8krE7jRHiG",
-	"hfvzRaoSuFgXnKU46L8W9Me9t9ax88nvVPD5/2EzIlXXu+Je+xubW/lMNBH2Zp/3+mEvfPa01X0Ow9bm",
-	"KAhacOtp2NoabWxt9Tefb6Cw/9Cb7ddttmkmfrHSeIVIoDkCUtmFaJRMJphMvvuAYEl0WcLRSKb6EKBG",
-	"NM9bDlEGRqrU1kZmFNErXQ+2oA2QSzrq6TP52MwosNqw/LSazt3NWrXUzNdSe/tpsej53tufff9ypqmY",
-	"aSxe8rplx/nIrqTN3bXhclDKx7QPjpWbqQouCVBLy0lrhnEzed0ss2InqfJJre38p0/tMrPYEWQ8SYIA",
-	"ca4jq6kE+p5F7dBOO3DJWMvgtD+pVW9ypqPq7Mr081vel/Dm8wYzjZVtBv+3rR7HORrXcFVWaKHjuiXL",
-	"ewc9hA+ckcktpLJuUV/nYmwBdObRN3ghttVkjsWfrnzAa7Vxxk6reLwpz3dusu90LLxIe6F+t9rT1d9/",
-	"6KE5l6/m9OafDWl2l5WyjQb8O44UGgqsQO4Fl1jLqbiPxIOQsPslZcnfIHh8t+OfEnOR9aHHtJ2Wx4F+",
-	"f43xnK/TlqlBAepaGjet1GFgFRMrJdI3bWDNUm5JWdSwT7059eNgSUrtj+Y7YY4EZz+tsIW5NWH1/7X6",
-	"iI1xhORk58ToUmh/XcVlu6V9WR7CcjO0d9ttpgvnuq22r94X7UsdQP++RNj5xyxtduL/+5//BeY4zcxp",
-	"qRz7iibq3Kj/TXt5LjRFl8qGc5JZq/rYqIwv1VA5Sib1Jmt6uFezdgqANzRaNcBFk/V+tsU3zAyGGLXM",
-	"sMBMdZDPZag+EOG6/wjQNQpQzfO2Rf4NWtN3l1j6ArbWov7VKkIaZw3SK8yshq2Fnf2Hu15uMtTuIbXS",
-	"K6d4hv6gpPlrpTKEld4yTd0bv5WNv7ew+Nt2iltBithN+VS/cXQtOgG/rHEizYof1Jf4fPMHIqGffglZ",
-	"4deX+PQVrs6Ja1t+6cee+jFF9Yeeb5HHV7d6fq9fmapXnEqjpr98qn63MlXfNdVGcap+YSp9E+dvOhL/",
-	"KmJZde3VXWm/47sZS/zeTbobHloSMklHmWS6rFlmTQDlJJ30q5gurjhMSaTk/LW4CVXTaEWKnzWx2gNG",
-	"KzJQl7CLLrgucs1d7IFSbXobnE4xB4iEsaoxxRzEySjCQTQH6DqmXLk/gmbv8RpbQteT11gUd+j47Egd",
-	"z7+d0SwPe/GXP/5uhssXNkH+Ub//qN8vpn5N0xAlayqNLd5fSJZ39/V4fyHZu6y+TXOLshbXbzvFcpqp",
-	"VCOEG0SSdEGtq71GbVaGtRu+TObmubmFqfMU3axQRKqA/lZ79ZTd/paVsSv/+IIJu43uPOwWpivYEkVa",
-	"/BOWbRCJU6gr4M11jBanuOiPsbibyrpuTGzqrnpvsmqTWrdn3NjpLDCi+xqm0F9npduY9SnnJWDu/G0K",
-	"ykttnBrrg475khHUtwt3vIE8J8NsGl6jIqzQdX1tZz5NSXPc6bAodsunBDCKXFnd9vOyKM2beqvvq+Vj",
-	"1W4Wz1Y8IbrU3ppwabi6umJtU/NFm0ir2QzWbQhqhMRtQUwUOww6vxG8fNPNP2C72laqfepKTemqQmE4",
-	"BoQCHFqsKA2KrCm1r9Y1C6adqfNjErbvlgP8prCRwnz/6Ovl+tpii6Va2xJ2S2NVTe3eLFxTY+la8auH",
-	"NxPzCP9dw03foCbLrDJHuCnD7j3SZM7JWcwRE9ySICDNVaYMJLFWX7l6Mt/9TYVESBEnPwiArjEX+Zd/",
-	"R3mebuUVNZQXxsZZrxW9YJh31osZvVRdVcYYRaGT1fQWTgodCu6SfLNuNivVEycKzPXbgusGO20OoeH9",
-	"RxY3O6WaCUHeJ8NxTB0yOOsLMgyP2Cs0X1tmS8p4mYW5MBs7PzyrXTQUgW+Y3ZIyWDG/5XuoXf/2s2wW",
-	"8qd/Z3NgH4nGHLePxMOx2/rc6Exi1kvI7zx9XLKNRdgamVYK5GZBW3co124IbaK46nMKruCn+s5Duflt",
-	"r/+03W13273tZ8+ePXO0M1DVugt6Duvn6vvUejeO1j3qUo0DhiJljGQFmphMzFfsTWm4aUJsPiR8Tt6/",
-	"RpARMKMMXTyq7XfcmSAh52qpuxAUdtQsHXqJ2CVGV4/VoTGRW1Md6OwwVAVTfxGGTHQLYxUEllCaLPA7",
-	"w2eOnxNAc+vZEECTZF24y2wM1owSJPBn1Akhn44oZKEJ3LRCdIkiKWZakwSHqACgcYEaAmj5NHdEVjpD",
-	"AYjsxDQnZIjvA4WZoABETeXH7cXt/wsAAP//pJVsv4K1AAA=",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

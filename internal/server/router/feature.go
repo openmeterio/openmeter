@@ -5,10 +5,9 @@ import (
 	"net/http"
 
 	"github.com/go-chi/render"
-	"github.com/oklog/ulid/v2"
 
 	"github.com/openmeterio/openmeter/api"
-	credit_model "github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -21,7 +20,7 @@ func (a *Router) GetFeature(w http.ResponseWriter, r *http.Request, featureId ap
 
 	feature, err := a.config.CreditConnector.GetFeature(ctx, namespace, featureId)
 	if err != nil {
-		if _, ok := err.(*credit_model.FeatureNotFoundError); ok {
+		if _, ok := err.(*credit.FeatureNotFoundError); ok {
 			models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w, r)
 			return
 		}
@@ -39,13 +38,13 @@ func (a *Router) ListFeatures(w http.ResponseWriter, r *http.Request) {
 	ctx := contextx.WithAttr(r.Context(), "operation", "listFeatures")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
-	features, err := a.config.CreditConnector.ListFeatures(ctx, namespace, credit_model.ListFeaturesParams{})
+	features, err := a.config.CreditConnector.ListFeatures(ctx, namespace, credit.ListFeaturesParams{})
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)
 		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
 		return
 	}
-	list := slicesx.Map[credit_model.Feature, render.Renderer](features, func(feature credit_model.Feature) render.Renderer {
+	list := slicesx.Map[credit.Feature, render.Renderer](features, func(feature credit.Feature) render.Renderer {
 		return &feature
 	})
 
@@ -68,8 +67,27 @@ func (a *Router) CreateFeature(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := ulid.Make().String()
-	featureIn.ID = &id
+	meter, err := a.config.Meters.GetMeterByIDOrSlug(ctx, namespace, featureIn.MeterSlug)
+	if err != nil {
+		if _, ok := err.(*models.MeterNotFoundError); ok {
+			err := fmt.Errorf("meter not found: %s", featureIn.MeterSlug)
+			a.config.ErrorHandler.HandleContext(ctx, err)
+			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+			return
+		}
+		a.config.ErrorHandler.HandleContext(ctx, err)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+		return
+	}
+
+	if err := validateMeterAggregation(meter); err != nil {
+		a.config.ErrorHandler.HandleContext(ctx, err)
+		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+		return
+	}
+
+	// Let's make sure we are not allowing the ID to be specified externally
+	featureIn.ID = nil
 
 	featureOut, err := a.config.CreditConnector.CreateFeature(ctx, namespace, *featureIn)
 	if err != nil {
@@ -82,6 +100,18 @@ func (a *Router) CreateFeature(w http.ResponseWriter, r *http.Request) {
 	_ = render.Render(w, r, featureOut)
 }
 
+func validateMeterAggregation(meter models.Meter) error {
+	switch meter.Aggregation {
+	case models.MeterAggregationCount, models.MeterAggregationUniqueCount, models.MeterAggregationSum:
+		return nil
+	}
+
+	return fmt.Errorf("meter %s's aggregation is %s but features can only be created for SUM, COUNT, UNIQUE_COUNT meters",
+		meter.Slug,
+		meter.Aggregation,
+	)
+}
+
 // Delete feature, DELETE:/api/v1/features/{featureId}
 func (a *Router) DeleteFeature(w http.ResponseWriter, r *http.Request, featureId api.FeatureId) {
 	ctx := contextx.WithAttr(r.Context(), "operation", "deleteFeature")
@@ -89,7 +119,7 @@ func (a *Router) DeleteFeature(w http.ResponseWriter, r *http.Request, featureId
 
 	_, err := a.config.CreditConnector.GetFeature(ctx, namespace, featureId)
 	if err != nil {
-		if _, ok := err.(*credit_model.FeatureNotFoundError); ok {
+		if _, ok := err.(*credit.FeatureNotFoundError); ok {
 			models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w, r)
 			return
 		}

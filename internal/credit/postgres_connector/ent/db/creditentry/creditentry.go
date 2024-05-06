@@ -40,6 +40,8 @@ const (
 	FieldExpirationPeriodDuration = "expiration_period_duration"
 	// FieldExpirationPeriodCount holds the string denoting the expiration_period_count field in the database.
 	FieldExpirationPeriodCount = "expiration_period_count"
+	// FieldExpirationAt holds the string denoting the expiration_at field in the database.
+	FieldExpirationAt = "expiration_at"
 	// FieldRolloverType holds the string denoting the rollover_type field in the database.
 	FieldRolloverType = "rollover_type"
 	// FieldRolloverMaxAmount holds the string denoting the rollover_max_amount field in the database.
@@ -88,6 +90,7 @@ var Columns = []string{
 	FieldEffectiveAt,
 	FieldExpirationPeriodDuration,
 	FieldExpirationPeriodCount,
+	FieldExpirationAt,
 	FieldRolloverType,
 	FieldRolloverMaxAmount,
 	FieldMetadata,
@@ -229,6 +232,11 @@ func ByExpirationPeriodDuration(opts ...sql.OrderTermOption) OrderOption {
 // ByExpirationPeriodCount orders the results by the expiration_period_count field.
 func ByExpirationPeriodCount(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldExpirationPeriodCount, opts...).ToFunc()
+}
+
+// ByExpirationAt orders the results by the expiration_at field.
+func ByExpirationAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldExpirationAt, opts...).ToFunc()
 }
 
 // ByRolloverType orders the results by the rollover_type field.

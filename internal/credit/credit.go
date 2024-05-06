@@ -140,8 +140,11 @@ type Grant struct {
 	EffectiveAt time.Time `json:"effectiveAt"`
 
 	// Expiration The expiration configuration.
-	Expiration ExpirationPeriod  `json:"expiration"`
-	Metadata   map[string]string `json:"metadata,omitempty"`
+	Expiration ExpirationPeriod `json:"expiration"`
+	// ExpiresAt contains the exact expiration date calculated from effectiveAt and Expiration for rendering
+	ExpiresAt time.Time `json:"expiresAt"`
+
+	Metadata map[string]string `json:"metadata,omitempty"`
 
 	// Rollover Grant rollover configuration.
 	Rollover *GrantRollover `json:"rollover,omitempty"`

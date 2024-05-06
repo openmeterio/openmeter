@@ -52,6 +52,7 @@ type CreditEntryMutation struct {
 	expiration_period_duration *credit.ExpirationPeriodDuration
 	expiration_period_count    *uint8
 	addexpiration_period_count *int8
+	expiration_at              *time.Time
 	rollover_type              *credit.GrantRolloverType
 	rollover_max_amount        *float64
 	addrollover_max_amount     *float64
@@ -731,6 +732,55 @@ func (m *CreditEntryMutation) ResetExpirationPeriodCount() {
 	delete(m.clearedFields, creditentry.FieldExpirationPeriodCount)
 }
 
+// SetExpirationAt sets the "expiration_at" field.
+func (m *CreditEntryMutation) SetExpirationAt(t time.Time) {
+	m.expiration_at = &t
+}
+
+// ExpirationAt returns the value of the "expiration_at" field in the mutation.
+func (m *CreditEntryMutation) ExpirationAt() (r time.Time, exists bool) {
+	v := m.expiration_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpirationAt returns the old "expiration_at" field's value of the CreditEntry entity.
+// If the CreditEntry object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CreditEntryMutation) OldExpirationAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpirationAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpirationAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpirationAt: %w", err)
+	}
+	return oldValue.ExpirationAt, nil
+}
+
+// ClearExpirationAt clears the value of the "expiration_at" field.
+func (m *CreditEntryMutation) ClearExpirationAt() {
+	m.expiration_at = nil
+	m.clearedFields[creditentry.FieldExpirationAt] = struct{}{}
+}
+
+// ExpirationAtCleared returns if the "expiration_at" field was cleared in this mutation.
+func (m *CreditEntryMutation) ExpirationAtCleared() bool {
+	_, ok := m.clearedFields[creditentry.FieldExpirationAt]
+	return ok
+}
+
+// ResetExpirationAt resets all changes to the "expiration_at" field.
+func (m *CreditEntryMutation) ResetExpirationAt() {
+	m.expiration_at = nil
+	delete(m.clearedFields, creditentry.FieldExpirationAt)
+}
+
 // SetRolloverType sets the "rollover_type" field.
 func (m *CreditEntryMutation) SetRolloverType(crt credit.GrantRolloverType) {
 	m.rollover_type = &crt
@@ -1075,7 +1125,7 @@ func (m *CreditEntryMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CreditEntryMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 17)
 	if m.created_at != nil {
 		fields = append(fields, creditentry.FieldCreatedAt)
 	}
@@ -1111,6 +1161,9 @@ func (m *CreditEntryMutation) Fields() []string {
 	}
 	if m.expiration_period_count != nil {
 		fields = append(fields, creditentry.FieldExpirationPeriodCount)
+	}
+	if m.expiration_at != nil {
+		fields = append(fields, creditentry.FieldExpirationAt)
 	}
 	if m.rollover_type != nil {
 		fields = append(fields, creditentry.FieldRolloverType)
@@ -1156,6 +1209,8 @@ func (m *CreditEntryMutation) Field(name string) (ent.Value, bool) {
 		return m.ExpirationPeriodDuration()
 	case creditentry.FieldExpirationPeriodCount:
 		return m.ExpirationPeriodCount()
+	case creditentry.FieldExpirationAt:
+		return m.ExpirationAt()
 	case creditentry.FieldRolloverType:
 		return m.RolloverType()
 	case creditentry.FieldRolloverMaxAmount:
@@ -1197,6 +1252,8 @@ func (m *CreditEntryMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldExpirationPeriodDuration(ctx)
 	case creditentry.FieldExpirationPeriodCount:
 		return m.OldExpirationPeriodCount(ctx)
+	case creditentry.FieldExpirationAt:
+		return m.OldExpirationAt(ctx)
 	case creditentry.FieldRolloverType:
 		return m.OldRolloverType(ctx)
 	case creditentry.FieldRolloverMaxAmount:
@@ -1297,6 +1354,13 @@ func (m *CreditEntryMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetExpirationPeriodCount(v)
+		return nil
+	case creditentry.FieldExpirationAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpirationAt(v)
 		return nil
 	case creditentry.FieldRolloverType:
 		v, ok := value.(credit.GrantRolloverType)
@@ -1422,6 +1486,9 @@ func (m *CreditEntryMutation) ClearedFields() []string {
 	if m.FieldCleared(creditentry.FieldExpirationPeriodCount) {
 		fields = append(fields, creditentry.FieldExpirationPeriodCount)
 	}
+	if m.FieldCleared(creditentry.FieldExpirationAt) {
+		fields = append(fields, creditentry.FieldExpirationAt)
+	}
 	if m.FieldCleared(creditentry.FieldRolloverType) {
 		fields = append(fields, creditentry.FieldRolloverType)
 	}
@@ -1462,6 +1529,9 @@ func (m *CreditEntryMutation) ClearField(name string) error {
 		return nil
 	case creditentry.FieldExpirationPeriodCount:
 		m.ClearExpirationPeriodCount()
+		return nil
+	case creditentry.FieldExpirationAt:
+		m.ClearExpirationAt()
 		return nil
 	case creditentry.FieldRolloverType:
 		m.ClearRolloverType()
@@ -1518,6 +1588,9 @@ func (m *CreditEntryMutation) ResetField(name string) error {
 		return nil
 	case creditentry.FieldExpirationPeriodCount:
 		m.ResetExpirationPeriodCount()
+		return nil
+	case creditentry.FieldExpirationAt:
+		m.ResetExpirationAt()
 		return nil
 	case creditentry.FieldRolloverType:
 		m.ResetRolloverType()

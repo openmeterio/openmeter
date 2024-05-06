@@ -103,7 +103,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 				assert.NoError(t, err)
 
 				// Get ledger
-				ledgerList, err := connector.GetHistory(ctx, namespace, subject, t1, t4)
+				ledgerList, err := connector.GetHistory(ctx, namespace, subject, t1, t4, 0)
 				assert.NoError(t, err)
 
 				// Expected
@@ -136,8 +136,10 @@ func TestPostgresConnectorLedger(t *testing.T) {
 						Time:      t3,
 						FeatureID: feature.ID,
 						Amount:    &ledgerUsage,
-						From:      &t1,
-						To:        &t3,
+						Period: &credit_model.Period{
+							From: t1,
+							To:   t3,
+						},
 					},
 					// Reset
 					{

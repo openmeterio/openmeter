@@ -111,6 +111,11 @@ func ExpirationPeriodCount(v uint8) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldEQ(FieldExpirationPeriodCount, v))
 }
 
+// ExpirationAt applies equality check predicate on the "expiration_at" field. It's identical to ExpirationAtEQ.
+func ExpirationAt(v time.Time) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldEQ(FieldExpirationAt, v))
+}
+
 // RolloverMaxAmount applies equality check predicate on the "rollover_max_amount" field. It's identical to RolloverMaxAmountEQ.
 func RolloverMaxAmount(v float64) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldEQ(FieldRolloverMaxAmount, v))
@@ -694,6 +699,56 @@ func ExpirationPeriodCountIsNil() predicate.CreditEntry {
 // ExpirationPeriodCountNotNil applies the NotNil predicate on the "expiration_period_count" field.
 func ExpirationPeriodCountNotNil() predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldNotNull(FieldExpirationPeriodCount))
+}
+
+// ExpirationAtEQ applies the EQ predicate on the "expiration_at" field.
+func ExpirationAtEQ(v time.Time) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldEQ(FieldExpirationAt, v))
+}
+
+// ExpirationAtNEQ applies the NEQ predicate on the "expiration_at" field.
+func ExpirationAtNEQ(v time.Time) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldNEQ(FieldExpirationAt, v))
+}
+
+// ExpirationAtIn applies the In predicate on the "expiration_at" field.
+func ExpirationAtIn(vs ...time.Time) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldIn(FieldExpirationAt, vs...))
+}
+
+// ExpirationAtNotIn applies the NotIn predicate on the "expiration_at" field.
+func ExpirationAtNotIn(vs ...time.Time) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldNotIn(FieldExpirationAt, vs...))
+}
+
+// ExpirationAtGT applies the GT predicate on the "expiration_at" field.
+func ExpirationAtGT(v time.Time) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldGT(FieldExpirationAt, v))
+}
+
+// ExpirationAtGTE applies the GTE predicate on the "expiration_at" field.
+func ExpirationAtGTE(v time.Time) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldGTE(FieldExpirationAt, v))
+}
+
+// ExpirationAtLT applies the LT predicate on the "expiration_at" field.
+func ExpirationAtLT(v time.Time) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldLT(FieldExpirationAt, v))
+}
+
+// ExpirationAtLTE applies the LTE predicate on the "expiration_at" field.
+func ExpirationAtLTE(v time.Time) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldLTE(FieldExpirationAt, v))
+}
+
+// ExpirationAtIsNil applies the IsNil predicate on the "expiration_at" field.
+func ExpirationAtIsNil() predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldIsNull(FieldExpirationAt))
+}
+
+// ExpirationAtNotNil applies the NotNil predicate on the "expiration_at" field.
+func ExpirationAtNotNil() predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldNotNull(FieldExpirationAt))
 }
 
 // RolloverTypeEQ applies the EQ predicate on the "rollover_type" field.
