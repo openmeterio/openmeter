@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/render"
 
 	"github.com/openmeterio/openmeter/api"
-	credit_model "github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -41,12 +41,12 @@ func (a *Router) ResetCredit(w http.ResponseWriter, r *http.Request, ledgerID ap
 	// Reset credit
 	reset, _, err := a.config.CreditConnector.Reset(ctx, namespace, *resetIn)
 	if err != nil {
-		if _, ok := err.(*credit_model.HighWatermarBeforeError); ok {
+		if _, ok := err.(*credit.HighWatermarBeforeError); ok {
 			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
 			return
 		}
 
-		if _, ok := err.(*credit_model.LockErrNotObtainedError); ok {
+		if _, ok := err.(*credit.LockErrNotObtainedError); ok {
 			err := fmt.Errorf("credit is currently locked, try again: %w", err)
 			models.NewStatusProblem(ctx, err, http.StatusConflict).Respond(w, r)
 			return

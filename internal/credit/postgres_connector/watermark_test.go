@@ -9,7 +9,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
-	credit_model "github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
@@ -23,12 +23,12 @@ func TestWatermark(t *testing.T) {
 	tt := []struct {
 		name        string
 		description string
-		test        func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client)
+		test        func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client)
 	}{
 		{
 			name:        "GetHighWatermark",
 			description: "Should return highwatermark",
-			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 
@@ -46,7 +46,7 @@ func TestWatermark(t *testing.T) {
 				hw, err := connector.GetHighWatermark(ctx, namespace, ledgerID)
 				assert.NoError(t, err)
 
-				expected := credit_model.HighWatermark{
+				expected := credit.HighWatermark{
 					LedgerID: ledgerID,
 					Time:     t1,
 				}
@@ -57,10 +57,10 @@ func TestWatermark(t *testing.T) {
 		{
 			name:        "GetDefaultHighWatermark",
 			description: "Should return default highwatermark",
-			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
 
-				ledger, err := connector.CreateLedger(ctx, namespace, credit_model.Ledger{
+				ledger, err := connector.CreateLedger(ctx, namespace, credit.Ledger{
 					Subject: subject,
 				}, false)
 				assert.NoError(t, err)
@@ -68,7 +68,7 @@ func TestWatermark(t *testing.T) {
 				hw, err := connector.GetHighWatermark(ctx, namespace, ledger.ID)
 				assert.NoError(t, err)
 
-				expected := credit_model.HighWatermark{
+				expected := credit.HighWatermark{
 					LedgerID: ledger.ID,
 					Time:     defaultHighwatermark,
 				}
@@ -78,7 +78,7 @@ func TestWatermark(t *testing.T) {
 		{
 			name:        "checkAfterHighWatermark",
 			description: "Should check if time is after high watermark",
-			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 				t3, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:03:00Z", time.UTC)
@@ -92,7 +92,7 @@ func TestWatermark(t *testing.T) {
 				}
 
 				err := checkAfterHighWatermark(t1, &ledger)
-				expected := &credit_model.HighWatermarBeforeError{
+				expected := &credit.HighWatermarBeforeError{
 					Namespace:     namespace,
 					LedgerID:      ledgerID,
 					HighWatermark: t2,

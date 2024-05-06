@@ -6,7 +6,7 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// ULID implements a valuer (and Scanner) that can serialise string ULIDs into postgres
+// ULID implements a valuer (and Scanner) that can serialize string ULIDs into postgres
 // instead of the binary representation, as postgres interprets those as UTF-8 strings
 type ULID struct {
 	ulid.ULID

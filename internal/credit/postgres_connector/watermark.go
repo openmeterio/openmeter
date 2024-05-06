@@ -6,7 +6,8 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
-	credit_model "github.com/openmeterio/openmeter/internal/credit"
+
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_ledger "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
@@ -15,7 +16,7 @@ import (
 var defaultHighwatermark, _ = time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
 
 // GetHighWatermark returns the high watermark for the given credit and subject pair.
-func (c *PostgresConnector) GetHighWatermark(ctx context.Context, namespace string, ledgerID ulid.ULID) (credit_model.HighWatermark, error) {
+func (c *PostgresConnector) GetHighWatermark(ctx context.Context, namespace string, ledgerID ulid.ULID) (credit.HighWatermark, error) {
 	ledgerEntity, err := c.db.Ledger.Query().
 		Where(
 			db_ledger.ID(pgulid.Wrap(ledgerID)),
@@ -25,16 +26,16 @@ func (c *PostgresConnector) GetHighWatermark(ctx context.Context, namespace stri
 
 	if err != nil {
 		if db.IsNotFound(err) {
-			return credit_model.HighWatermark{
+			return credit.HighWatermark{
 				LedgerID: ledgerID,
 				Time:     defaultHighwatermark,
 			}, nil
 		}
 
-		return credit_model.HighWatermark{}, fmt.Errorf("failed to get high watermark: %w", err)
+		return credit.HighWatermark{}, fmt.Errorf("failed to get high watermark: %w", err)
 	}
 
-	return credit_model.HighWatermark{
+	return credit.HighWatermark{
 		LedgerID: ledgerID,
 		Time:     ledgerEntity.Highwatermark.In(time.UTC),
 	}, nil
@@ -42,7 +43,7 @@ func (c *PostgresConnector) GetHighWatermark(ctx context.Context, namespace stri
 
 func checkAfterHighWatermark(t time.Time, ledger *db.Ledger) error {
 	if !t.After(ledger.Highwatermark) {
-		return &credit_model.HighWatermarBeforeError{
+		return &credit.HighWatermarBeforeError{
 			Namespace:     ledger.Namespace,
 			LedgerID:      ledger.ID.ULID,
 			HighWatermark: ledger.Highwatermark,

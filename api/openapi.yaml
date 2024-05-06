@@ -915,7 +915,7 @@ paths:
       tags:
         - Credits (Experimental)
       parameters:
-        - $ref: "#/components/parameters/queryFilterLedgerIDs"
+        - $ref: "#/components/parameters/queryFilterLedgerID"
         - $ref: "#/components/parameters/creditQueryLimit"
       responses:
         "200":
@@ -1963,24 +1963,21 @@ components:
         type: string
         default: UTC
         example: "America/New_York"
-    queryFilterLedgerIDs:
+    queryFilterLedgerID:
       name: ledgerID
       description: |
         Filtering and group by multiple subjects.
 
-        Usage: `?ledgerID=01HX6VK5C498B3ABY9PR1069PP&ledgerID=01HX6VM5VF1M2R97RWXX6263SB`
+        Usage: `?ledgerID=01HX6VK5C498B3ABY9PR1069PP`
       in: query
       required: false
       schema:
-        type: array
-        items:
-          type: string
-          x-go-type: ulid.ULID
-          x-go-type-import:
-            path: github.com/oklog/ulid/v2
+        type: string
+        x-go-type: ulid.ULID
+        x-go-type-import:
+          path: github.com/oklog/ulid/v2
       example:
         - 01HX6VK5C498B3ABY9PR1069PP
-        - 01HX6VM5VF1M2R97RWXX6263SB
     queryFilterSubject:
       name: subject
       description: |

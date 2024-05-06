@@ -9,8 +9,7 @@ import (
 	"github.com/oklog/ulid/v2"
 
 	"github.com/openmeterio/openmeter/api"
-	credit_connector "github.com/openmeterio/openmeter/internal/credit"
-	credit_model "github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -22,9 +21,14 @@ func (a *Router) ListCreditGrants(w http.ResponseWriter, r *http.Request, params
 	ctx := contextx.WithAttr(r.Context(), "operation", "listCreditGrants")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
+	ledgerIDs := []ulid.ULID{}
+	if params.LedgerID != nil {
+		ledgerIDs = append(ledgerIDs, *params.LedgerID)
+	}
+
 	// Get grants
-	grants, err := a.config.CreditConnector.ListGrants(ctx, namespace, credit_connector.ListGrantsParams{
-		LedgerIDs:         defaultx.WithDefault(params.LedgerID, nil),
+	grants, err := a.config.CreditConnector.ListGrants(ctx, namespace, credit.ListGrantsParams{
+		LedgerIDs:         ledgerIDs,
 		FromHighWatermark: true,
 		IncludeVoid:       true,
 		Limit:             defaultx.WithDefault(params.Limit, api.DefaultCreditsQueryLimit),
@@ -36,7 +40,7 @@ func (a *Router) ListCreditGrants(w http.ResponseWriter, r *http.Request, params
 	}
 
 	// Response
-	list := slicesx.Map[credit_model.Grant, render.Renderer](grants, func(grant credit_model.Grant) render.Renderer {
+	list := slicesx.Map[credit.Grant, render.Renderer](grants, func(grant credit.Grant) render.Renderer {
 		return grant
 	})
 	_ = render.RenderList(w, r, list)
@@ -48,7 +52,7 @@ func (a *Router) ListCreditGrantsByLedger(w http.ResponseWriter, r *http.Request
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	// Get grants
-	grants, err := a.config.CreditConnector.ListGrants(ctx, namespace, credit_connector.ListGrantsParams{
+	grants, err := a.config.CreditConnector.ListGrants(ctx, namespace, credit.ListGrantsParams{
 		LedgerIDs:         []ulid.ULID{ledgerID},
 		FromHighWatermark: true,
 		IncludeVoid:       true,
@@ -61,7 +65,7 @@ func (a *Router) ListCreditGrantsByLedger(w http.ResponseWriter, r *http.Request
 	}
 
 	// Response
-	list := slicesx.Map[credit_model.Grant, render.Renderer](grants, func(grant credit_model.Grant) render.Renderer {
+	list := slicesx.Map[credit.Grant, render.Renderer](grants, func(grant credit.Grant) render.Renderer {
 		return grant
 	})
 	_ = render.RenderList(w, r, list)
@@ -91,7 +95,7 @@ func (a *Router) CreateCreditGrant(w http.ResponseWriter, r *http.Request, ledge
 	if grant.FeatureID != nil {
 		_, err := a.config.CreditConnector.GetFeature(ctx, namespace, *grant.FeatureID)
 		if err != nil {
-			if _, ok := err.(*credit_model.FeatureNotFoundError); ok {
+			if _, ok := err.(*credit.FeatureNotFoundError); ok {
 				err := fmt.Errorf("feature not found: %s", *grant.FeatureID)
 				models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
 				return
@@ -110,13 +114,13 @@ func (a *Router) CreateCreditGrant(w http.ResponseWriter, r *http.Request, ledge
 	// Create credit
 	g, err := a.config.CreditConnector.CreateGrant(ctx, namespace, *grant)
 	if err != nil {
-		if _, ok := err.(*credit_model.HighWatermarBeforeError); ok {
+		if _, ok := err.(*credit.HighWatermarBeforeError); ok {
 			a.config.ErrorHandler.HandleContext(ctx, err)
 			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
 			return
 		}
 
-		if _, ok := err.(*credit_model.LockErrNotObtainedError); ok {
+		if _, ok := err.(*credit.LockErrNotObtainedError); ok {
 			err := fmt.Errorf("credit is currently locked, try again: %w", err)
 			a.config.ErrorHandler.HandleContext(ctx, err)
 			models.NewStatusProblem(ctx, err, http.StatusConflict).Respond(w, r)
@@ -140,7 +144,7 @@ func (a *Router) VoidCreditGrant(w http.ResponseWriter, r *http.Request, ledgerI
 	// Get grant
 	grant, err := a.config.CreditConnector.GetGrant(ctx, namespace, creditGrantId)
 	if err != nil {
-		if _, ok := err.(*credit_model.GrantNotFoundError); ok {
+		if _, ok := err.(*credit.GrantNotFoundError); ok {
 			err := fmt.Errorf("grant not found: %s", creditGrantId)
 			models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w, r)
 			return
@@ -152,7 +156,7 @@ func (a *Router) VoidCreditGrant(w http.ResponseWriter, r *http.Request, ledgerI
 	}
 
 	if grant.LedgerID != ledgerID {
-		a.config.ErrorHandler.HandleContext(ctx, &credit_model.GrantNotFoundError{GrantID: creditGrantId})
+		a.config.ErrorHandler.HandleContext(ctx, &credit.GrantNotFoundError{GrantID: creditGrantId})
 		models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w, r)
 		return
 	}
@@ -186,13 +190,13 @@ func (a *Router) VoidCreditGrant(w http.ResponseWriter, r *http.Request, ledgerI
 	// Void grant
 	_, err = a.config.CreditConnector.VoidGrant(ctx, namespace, grant)
 	if err != nil {
-		if _, ok := err.(*credit_model.HighWatermarBeforeError); ok {
+		if _, ok := err.(*credit.HighWatermarBeforeError); ok {
 			a.config.ErrorHandler.HandleContext(ctx, err)
 			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
 			return
 		}
 
-		if _, ok := err.(*credit_model.LockErrNotObtainedError); ok {
+		if _, ok := err.(*credit.LockErrNotObtainedError); ok {
 			err := fmt.Errorf("credit is currently locked, try again: %w", err)
 			a.config.ErrorHandler.HandleContext(ctx, err)
 			models.NewStatusProblem(ctx, err, http.StatusConflict).Respond(w, r)
@@ -221,7 +225,7 @@ func (a *Router) GetCreditGrant(w http.ResponseWriter, r *http.Request, ledgerID
 	}
 
 	if grant.LedgerID != ledgerID {
-		a.config.ErrorHandler.HandleContext(ctx, &credit_model.GrantNotFoundError{GrantID: creditGrantId})
+		a.config.ErrorHandler.HandleContext(ctx, &credit.GrantNotFoundError{GrantID: creditGrantId})
 		models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w, r)
 		return
 	}

@@ -7,7 +7,8 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/mixin"
-	ulid "github.com/oklog/ulid/v2"
+	"github.com/oklog/ulid/v2"
+
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 

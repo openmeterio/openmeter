@@ -8,7 +8,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 
-	credit_model "github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	meter_internal "github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -25,7 +25,7 @@ func TestFeature(t *testing.T) {
 	meters := []models.Meter{meter}
 	meterRepository := meter_internal.NewInMemoryRepository(meters)
 
-	testFeature := credit_model.Feature{
+	testFeature := credit.Feature{
 		Namespace: namespace,
 		Name:      "feature-1",
 		MeterSlug: meter.Slug,
@@ -37,12 +37,12 @@ func TestFeature(t *testing.T) {
 	tt := []struct {
 		name        string
 		description string
-		test        func(t *testing.T, connector credit_model.Connector, db_client *db.Client)
+		test        func(t *testing.T, connector credit.Connector, db_client *db.Client)
 	}{
 		{
 			name:        "CreateFeature",
 			description: "Create a feature in the database",
-			test: func(t *testing.T, connector credit_model.Connector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
 				ctx := context.Background()
 				featureIn := testFeature
 				featureOut, err := connector.CreateFeature(ctx, namespace, featureIn)
@@ -61,7 +61,7 @@ func TestFeature(t *testing.T) {
 		{
 			name:        "GetFeature",
 			description: "Get a feature from the database",
-			test: func(t *testing.T, connector credit_model.Connector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
 				ctx := context.Background()
 				featureIn, err := connector.CreateFeature(ctx, namespace, testFeature)
 				assert.NoError(t, err)
@@ -78,7 +78,7 @@ func TestFeature(t *testing.T) {
 		{
 			name:        "DeleteFeature",
 			description: "Delete a feature in the database",
-			test: func(t *testing.T, connector credit_model.Connector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
 				ctx := context.Background()
 				p, err := connector.CreateFeature(ctx, namespace, testFeature)
 				assert.NoError(t, err)
@@ -95,19 +95,19 @@ func TestFeature(t *testing.T) {
 		{
 			name:        "ListFeatures",
 			description: "List features in the database",
-			test: func(t *testing.T, connector credit_model.Connector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
 				ctx := context.Background()
 				feature, err := connector.CreateFeature(ctx, namespace, testFeature)
 				assert.NoError(t, err)
 
-				features, err := connector.ListFeatures(ctx, namespace, credit_model.ListFeaturesParams{})
+				features, err := connector.ListFeatures(ctx, namespace, credit.ListFeaturesParams{})
 				assert.NoError(t, err)
 				assert.Len(t, features, 1)
 
 				expected := feature
 				archived := false
 				expected.Archived = &archived
-				assert.Equal(t, []credit_model.Feature{expected}, features)
+				assert.Equal(t, []credit.Feature{expected}, features)
 			},
 		},
 	}

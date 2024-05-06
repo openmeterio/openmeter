@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
-	credit_model "github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit"
 	db_credit "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 )
 
@@ -16,12 +16,12 @@ func (a *PostgresConnector) GetHistory(
 	from time.Time,
 	to time.Time,
 	limit int,
-) (credit_model.LedgerEntryList, error) {
-	ledgerEntries := credit_model.NewLedgerEntryList()
+) (credit.LedgerEntryList, error) {
+	ledgerEntries := credit.NewLedgerEntryList()
 
 	query := a.db.CreditEntry.Query().Where(
 		db_credit.And(
-			db_credit.EntryTypeEQ(credit_model.EntryTypeReset),
+			db_credit.EntryTypeEQ(credit.EntryTypeReset),
 			db_credit.EffectiveAtGTE(from),
 			db_credit.EffectiveAtLTE(to),
 		),

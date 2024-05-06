@@ -10,7 +10,6 @@ import (
 
 	"github.com/oklog/ulid/v2"
 	"github.com/openmeterio/openmeter/internal/credit"
-	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -25,11 +24,11 @@ func (a *PostgresConnector) GetBalance(
 	namespace string,
 	ledgerID ulid.ULID,
 	cutline time.Time,
-) (credit_model.Balance, error) {
+) (credit.Balance, error) {
 	// TODO: wrap into transaction
 	hw, err := a.GetHighWatermark(ctx, namespace, ledgerID)
 	if err != nil {
-		return credit_model.Balance{}, fmt.Errorf("get high watermark: %w", err)
+		return credit.Balance{}, fmt.Errorf("get high watermark: %w", err)
 	}
 
 	balance, _, err := a.getBalance(ctx, namespace, ledgerID, hw.Time, cutline)
@@ -42,12 +41,12 @@ func (a *PostgresConnector) getBalance(
 	ledgerID ulid.ULID,
 	from time.Time,
 	to time.Time,
-) (credit_model.Balance, credit_model.LedgerEntryList, error) {
-	ledgerEntries := credit_model.NewLedgerEntryList()
+) (credit.Balance, credit.LedgerEntryList, error) {
+	ledgerEntries := credit.NewLedgerEntryList()
 
 	ledger, err := a.getLedger(ctx, namespace, ledgerID)
 	if err != nil {
-		return credit_model.Balance{}, ledgerEntries, err
+		return credit.Balance{}, ledgerEntries, err
 	}
 
 	grants, err := a.ListGrants(ctx, namespace, credit.ListGrantsParams{
@@ -57,11 +56,11 @@ func (a *PostgresConnector) getBalance(
 		IncludeVoid: true,
 	})
 	if err != nil {
-		return credit_model.Balance{}, ledgerEntries, fmt.Errorf("list grants: %w", err)
+		return credit.Balance{}, ledgerEntries, fmt.Errorf("list grants: %w", err)
 	}
 
 	// Get features in grants
-	features := map[ulid.ULID]credit_model.Feature{}
+	features := map[ulid.ULID]credit.Feature{}
 	for _, grant := range grants {
 		if grant.Void {
 			ledgerEntries.AddVoidGrant(grant)
@@ -75,7 +74,7 @@ func (a *PostgresConnector) getBalance(
 			if _, ok := features[featureID]; !ok {
 				feature, err := a.GetFeature(ctx, namespace, featureID)
 				if err != nil {
-					return credit_model.Balance{}, ledgerEntries, fmt.Errorf("get feature: %w", err)
+					return credit.Balance{}, ledgerEntries, fmt.Errorf("get feature: %w", err)
 				}
 				features[featureID] = feature
 			}
@@ -90,7 +89,7 @@ func (a *PostgresConnector) getBalance(
 		if _, ok := meters[meterSlug]; !ok {
 			meter, err := a.meterRepository.GetMeterByIDOrSlug(ctx, namespace, meterSlug)
 			if err != nil {
-				return credit_model.Balance{}, ledgerEntries, fmt.Errorf("get meter: %w", err)
+				return credit.Balance{}, ledgerEntries, fmt.Errorf("get meter: %w", err)
 			}
 			meters[meterSlug] = meter
 		}
@@ -102,13 +101,13 @@ func (a *PostgresConnector) getBalance(
 
 	// Find pivot dates first (effective and expiration dates in range)
 	dates := []time.Time{}
-	grantBalances := []credit_model.GrantBalance{}
+	grantBalances := []credit.GrantBalance{}
 	for _, grant := range grants {
 		if grant.Void {
 			continue
 		}
 
-		grantBalances = append(grantBalances, credit_model.GrantBalance{
+		grantBalances = append(grantBalances, credit.GrantBalance{
 			Grant:   grant,
 			Balance: grant.Amount,
 		})
@@ -177,7 +176,7 @@ func (a *PostgresConnector) getBalance(
 		carryOverAmount := map[string]float64{}
 
 		for i := range grantBalances {
-			var feature *credit_model.Feature
+			var feature *credit.Feature
 			grantBalance := &grantBalances[i]
 
 			// Skip grants that does not apply to this period
@@ -191,19 +190,19 @@ func (a *PostgresConnector) getBalance(
 
 			// Grants without feature are not implemented yet
 			if grantBalance.FeatureID == nil {
-				return credit_model.Balance{}, ledgerEntries, fmt.Errorf("not implemented: grants without feature")
+				return credit.Balance{}, ledgerEntries, fmt.Errorf("not implemented: grants without feature")
 			}
 
 			// Get feature
 			if _, ok := features[*grantBalance.FeatureID]; !ok {
-				return credit_model.Balance{}, ledgerEntries, fmt.Errorf("feature not found: %s", *grantBalance.FeatureID)
+				return credit.Balance{}, ledgerEntries, fmt.Errorf("feature not found: %s", *grantBalance.FeatureID)
 			}
 			p := features[*grantBalance.FeatureID]
 			feature = &p
 
 			// Get meter
 			if _, ok := meters[feature.MeterSlug]; !ok {
-				return credit_model.Balance{}, ledgerEntries, fmt.Errorf("meter not found: %s", feature.MeterSlug)
+				return credit.Balance{}, ledgerEntries, fmt.Errorf("meter not found: %s", feature.MeterSlug)
 			}
 			meter := meters[feature.MeterSlug]
 
@@ -231,10 +230,10 @@ func (a *PostgresConnector) getBalance(
 				// Query usage
 				rows, err := a.streamingConnector.QueryMeter(ctx, namespace, meter.Slug, queryParams)
 				if err != nil {
-					return credit_model.Balance{}, ledgerEntries, fmt.Errorf("query meter: %w", err)
+					return credit.Balance{}, ledgerEntries, fmt.Errorf("query meter: %w", err)
 				}
 				if len(rows) > 1 {
-					return credit_model.Balance{}, ledgerEntries, fmt.Errorf("unexpected number of usage rows")
+					return credit.Balance{}, ledgerEntries, fmt.Errorf("unexpected number of usage rows")
 				}
 
 				// Get usage amount
@@ -282,7 +281,7 @@ func (a *PostgresConnector) getBalance(
 	}
 
 	// Aggregate grant balances by feature
-	featureBalancesMap := map[ulid.ULID]credit_model.FeatureBalance{}
+	featureBalancesMap := map[ulid.ULID]credit.FeatureBalance{}
 	for _, grantBalance := range grantBalances {
 		if grantBalance.FeatureID == nil {
 			continue
@@ -294,7 +293,7 @@ func (a *PostgresConnector) getBalance(
 			featureBalance.Balance += grantBalance.Balance
 			featureBalancesMap[featureId] = featureBalance
 		} else {
-			featureBalancesMap[featureId] = credit_model.FeatureBalance{
+			featureBalancesMap[featureId] = credit.FeatureBalance{
 				Feature: feature,
 				Balance: grantBalance.Balance,
 			}
@@ -302,12 +301,12 @@ func (a *PostgresConnector) getBalance(
 	}
 
 	// Convert map to slice
-	featureBalances := []credit_model.FeatureBalance{}
+	featureBalances := []credit.FeatureBalance{}
 	for _, featureBalance := range featureBalancesMap {
 		featureBalances = append(featureBalances, featureBalance)
 	}
 
-	return credit_model.Balance{
+	return credit.Balance{
 		LedgerID:        ledgerID,
 		Subject:         ledger.Subject,
 		Metadata:        ledger.Metadata,

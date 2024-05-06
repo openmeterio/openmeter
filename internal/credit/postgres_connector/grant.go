@@ -6,17 +6,17 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
-
 	"github.com/oklog/ulid/v2"
-	credit_model "github.com/openmeterio/openmeter/internal/credit"
+
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_credit "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func (c *PostgresConnector) CreateGrant(ctx context.Context, namespace string, grantIn credit_model.Grant) (credit_model.Grant, error) {
-	grant, err := mutationTransaction(ctx, c, namespace, grantIn.LedgerID, func(tx *db.Tx, ledgerEntity *db.Ledger) (*credit_model.Grant, error) {
+func (c *PostgresConnector) CreateGrant(ctx context.Context, namespace string, grantIn credit.Grant) (credit.Grant, error) {
+	grant, err := mutationTransaction(ctx, c, namespace, grantIn.LedgerID, func(tx *db.Tx, ledgerEntity *db.Ledger) (*credit.Grant, error) {
 		// Check if the reset is in the future
 		err := checkAfterHighWatermark(grantIn.EffectiveAt, ledgerEntity)
 		if err != nil {
@@ -28,7 +28,7 @@ func (c *PostgresConnector) CreateGrant(ctx context.Context, namespace string, g
 			SetNamespace(namespace).
 			SetNillableID(pgulid.Ptr(grantIn.ID)).
 			SetLedgerID(pgulid.Wrap(grantIn.LedgerID)).
-			SetEntryType(credit_model.EntryTypeGrant).
+			SetEntryType(credit.EntryTypeGrant).
 			SetType(grantIn.Type).
 			SetNillableParentID(pgulid.Ptr(grantIn.ParentID)).
 			SetNillableFeatureID(pgulid.Ptr(grantIn.FeatureID)).
@@ -57,14 +57,14 @@ func (c *PostgresConnector) CreateGrant(ctx context.Context, namespace string, g
 	})
 
 	if err != nil {
-		return credit_model.Grant{}, err
+		return credit.Grant{}, err
 	}
 
 	return *grant, nil
 }
 
-func (c *PostgresConnector) VoidGrant(ctx context.Context, namespace string, grantIn credit_model.Grant) (credit_model.Grant, error) {
-	grant, err := mutationTransaction(ctx, c, namespace, grantIn.LedgerID, func(tx *db.Tx, ledgerEntity *db.Ledger) (*credit_model.Grant, error) {
+func (c *PostgresConnector) VoidGrant(ctx context.Context, namespace string, grantIn credit.Grant) (credit.Grant, error) {
+	grant, err := mutationTransaction(ctx, c, namespace, grantIn.LedgerID, func(tx *db.Tx, ledgerEntity *db.Ledger) (*credit.Grant, error) {
 		// Check if the reset is in the future
 		err := checkAfterHighWatermark(grantIn.EffectiveAt, ledgerEntity)
 		if err != nil {
@@ -84,7 +84,7 @@ func (c *PostgresConnector) VoidGrant(ctx context.Context, namespace string, gra
 			Only(ctx)
 		if err != nil {
 			if db.IsNotFound(err) {
-				return nil, &credit_model.GrantNotFoundError{GrantID: *grantIn.ID}
+				return nil, &credit.GrantNotFoundError{GrantID: *grantIn.ID}
 			}
 
 			return nil, fmt.Errorf("failed to void grant: %w", err)
@@ -95,7 +95,7 @@ func (c *PostgresConnector) VoidGrant(ctx context.Context, namespace string, gra
 			SetNamespace(entity.Namespace).
 			SetParentID(entity.ID).
 			SetLedgerID(entity.LedgerID).
-			SetEntryType(credit_model.EntryTypeVoidGrant).
+			SetEntryType(credit.EntryTypeVoidGrant).
 			SetType(*entity.Type).
 			SetNillableFeatureID(entity.FeatureID).
 			SetAmount(*entity.Amount).
@@ -117,13 +117,13 @@ func (c *PostgresConnector) VoidGrant(ctx context.Context, namespace string, gra
 	})
 
 	if err != nil {
-		return credit_model.Grant{}, err
+		return credit.Grant{}, err
 	}
 
 	return *grant, nil
 }
 
-func (c *PostgresConnector) ListGrants(ctx context.Context, namespace string, params credit_model.ListGrantsParams) ([]credit_model.Grant, error) {
+func (c *PostgresConnector) ListGrants(ctx context.Context, namespace string, params credit.ListGrantsParams) ([]credit.Grant, error) {
 	q := c.db.CreditEntry.Query().
 		Where(
 			db_credit.Namespace(namespace),
@@ -152,7 +152,7 @@ func (c *PostgresConnector) ListGrants(ctx context.Context, namespace string, pa
 			Where(
 				sql.And(
 					sql.EQ(t.C(db_credit.FieldNamespace), namespace),
-					sql.EQ(t.C(db_credit.FieldEntryType), credit_model.EntryTypeReset),
+					sql.EQ(t.C(db_credit.FieldEntryType), credit.EntryTypeReset),
 				),
 			).
 			GroupBy(db_credit.FieldLedgerID)
@@ -177,11 +177,11 @@ func (c *PostgresConnector) ListGrants(ctx context.Context, namespace string, pa
 		// Has no void children or is void
 		q = q.Where(
 			db_credit.Or(
-				db_credit.EntryTypeEQ(credit_model.EntryTypeVoidGrant),
+				db_credit.EntryTypeEQ(credit.EntryTypeVoidGrant),
 				db_credit.And(
-					db_credit.EntryTypeEQ(credit_model.EntryTypeGrant),
+					db_credit.EntryTypeEQ(credit.EntryTypeGrant),
 					db_credit.Not(db_credit.HasChildrenWith(
-						db_credit.EntryTypeEQ(credit_model.EntryTypeVoidGrant),
+						db_credit.EntryTypeEQ(credit.EntryTypeVoidGrant),
 					)),
 				),
 			),
@@ -189,9 +189,9 @@ func (c *PostgresConnector) ListGrants(ctx context.Context, namespace string, pa
 	} else {
 		// Has no void children
 		q = q.Where(
-			db_credit.EntryTypeEQ(credit_model.EntryTypeGrant),
+			db_credit.EntryTypeEQ(credit.EntryTypeGrant),
 			db_credit.Not(db_credit.HasChildrenWith(
-				db_credit.EntryTypeEQ(credit_model.EntryTypeVoidGrant),
+				db_credit.EntryTypeEQ(credit.EntryTypeVoidGrant),
 			)),
 		)
 	}
@@ -200,7 +200,7 @@ func (c *PostgresConnector) ListGrants(ctx context.Context, namespace string, pa
 		return nil, fmt.Errorf("failed to list grants: %w", err)
 	}
 
-	var list []credit_model.Grant
+	var list []credit.Grant
 	for _, entity := range entities {
 		grant, err := mapGrantEntity(entity)
 		if err != nil {
@@ -212,45 +212,45 @@ func (c *PostgresConnector) ListGrants(ctx context.Context, namespace string, pa
 	return list, nil
 }
 
-func (c *PostgresConnector) GetGrant(ctx context.Context, namespace string, id ulid.ULID) (credit_model.Grant, error) {
+func (c *PostgresConnector) GetGrant(ctx context.Context, namespace string, id ulid.ULID) (credit.Grant, error) {
 	entity, err := c.db.CreditEntry.Query().Where(
 		db_credit.Or(
 			// grant
 			db_credit.And(
 				db_credit.Namespace(namespace),
 				db_credit.ID(pgulid.Wrap(id)),
-				db_credit.EntryTypeEQ(credit_model.EntryTypeGrant),
+				db_credit.EntryTypeEQ(credit.EntryTypeGrant),
 				db_credit.Not(db_credit.HasChildren()),
 			),
 			// void grant
 			db_credit.And(
 				db_credit.Namespace(namespace),
 				db_credit.HasParentWith(db_credit.ID(pgulid.Wrap(id))),
-				db_credit.EntryTypeEQ(credit_model.EntryTypeVoidGrant),
+				db_credit.EntryTypeEQ(credit.EntryTypeVoidGrant),
 			),
 		),
 	).Only(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return credit_model.Grant{}, &credit_model.GrantNotFoundError{GrantID: id}
+			return credit.Grant{}, &credit.GrantNotFoundError{GrantID: id}
 		}
 
-		return credit_model.Grant{}, fmt.Errorf("failed to get grant: %w", err)
+		return credit.Grant{}, fmt.Errorf("failed to get grant: %w", err)
 	}
 
 	grant, err := mapGrantEntity(entity)
 	if err != nil {
-		return credit_model.Grant{}, fmt.Errorf("failed to map grant entity: %w", err)
+		return credit.Grant{}, fmt.Errorf("failed to map grant entity: %w", err)
 	}
 	return grant, nil
 }
 
-func mapGrantEntity(entry *db.CreditEntry) (credit_model.Grant, error) {
-	if entry.EntryType != credit_model.EntryTypeGrant && entry.EntryType != credit_model.EntryTypeVoidGrant {
-		return credit_model.Grant{}, fmt.Errorf("entry type must be grant: %s", entry.EntryType)
+func mapGrantEntity(entry *db.CreditEntry) (credit.Grant, error) {
+	if entry.EntryType != credit.EntryTypeGrant && entry.EntryType != credit.EntryTypeVoidGrant {
+		return credit.Grant{}, fmt.Errorf("entry type must be grant: %s", entry.EntryType)
 	}
 
-	grant := credit_model.Grant{
+	grant := credit.Grant{
 		ID:          &entry.ID.ULID,
 		ParentID:    entry.ParentID.ULIDPointer(),
 		LedgerID:    entry.LedgerID.ULID,
@@ -259,15 +259,15 @@ func mapGrantEntity(entry *db.CreditEntry) (credit_model.Grant, error) {
 		Amount:      *entry.Amount,
 		Priority:    entry.Priority,
 		EffectiveAt: entry.EffectiveAt.In(time.UTC),
-		Expiration: credit_model.ExpirationPeriod{
+		Expiration: credit.ExpirationPeriod{
 			Duration: *entry.ExpirationPeriodDuration,
 			Count:    *entry.ExpirationPeriodCount,
 		},
 		Metadata: entry.Metadata,
-		Void:     entry.EntryType == credit_model.EntryTypeVoidGrant,
+		Void:     entry.EntryType == credit.EntryTypeVoidGrant,
 	}
 	if entry.RolloverType != nil {
-		grant.Rollover = &credit_model.GrantRollover{
+		grant.Rollover = &credit.GrantRollover{
 			Type: *entry.RolloverType,
 		}
 		if entry.RolloverMaxAmount != nil {

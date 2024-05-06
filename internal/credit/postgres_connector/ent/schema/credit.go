@@ -10,7 +10,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
-	credit_model "github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
@@ -33,8 +33,8 @@ func (CreditEntry) Fields() []ent.Field {
 		field.Other("ledger_id", pgulid.ULID{}).Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
-		field.Enum("entry_type").GoType(credit_model.EntryType("")).Immutable(),
-		field.Enum("type").GoType(credit_model.GrantType("")).Optional().Nillable().Immutable(),
+		field.Enum("entry_type").GoType(credit.EntryType("")).Immutable(),
+		field.Enum("type").GoType(credit.GrantType("")).Optional().Nillable().Immutable(),
 		field.Other("feature_id", pgulid.ULID{}).Optional().Nillable().Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
@@ -43,11 +43,11 @@ func (CreditEntry) Fields() []ent.Field {
 		field.Uint8("priority").Default(1).Immutable(),
 		field.Time("effective_at").Default(time.Now).Immutable(),
 		// Expiration
-		field.Enum("expiration_period_duration").GoType(credit_model.ExpirationPeriodDuration("")).Optional().Nillable().Immutable(),
+		field.Enum("expiration_period_duration").GoType(credit.ExpirationPeriodDuration("")).Optional().Nillable().Immutable(),
 		field.Uint8("expiration_period_count").Optional().Nillable().Immutable(),
 		field.Time("expiration_at").Optional().Nillable().Immutable(),
 		// Rollover
-		field.Enum("rollover_type").GoType(credit_model.GrantRolloverType("")).Optional().Nillable().Immutable(),
+		field.Enum("rollover_type").GoType(credit.GrantRolloverType("")).Optional().Nillable().Immutable(),
 		field.Float("rollover_max_amount").Optional().Nillable().Immutable(),
 		field.JSON("metadata", map[string]string{}).Optional(),
 		// Rollover or void grants will have a parent_id

@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
-	credit_model "github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -572,14 +572,14 @@ func TestCredit(t *testing.T) {
 
 		// Create grant
 		resp, err := client.CreateCreditGrantWithResponse(context.Background(), ledgerID, api.CreateCreditGrantRequest{
-			Type:        credit_model.GrantTypeUsage,
+			Type:        credit.GrantTypeUsage,
 			LedgerID:    ledgerID,
 			FeatureID:   featureId,
 			Amount:      100,
 			Priority:    1,
 			EffectiveAt: effectiveAt,
 			Rollover: &api.CreditGrantRollover{
-				Type: credit_model.GrantRolloverTypeRemainingAmount,
+				Type: credit.GrantRolloverTypeRemainingAmount,
 			},
 			Expiration: api.CreditExpirationPeriod{
 				Duration: "DAY",
@@ -592,13 +592,13 @@ func TestCredit(t *testing.T) {
 		expected := &api.CreditGrantResponse{
 			ID:          resp.JSON201.ID,
 			LedgerID:    ledgerID,
-			Type:        credit_model.GrantTypeUsage,
+			Type:        credit.GrantTypeUsage,
 			FeatureID:   featureId,
 			Amount:      100,
 			Priority:    1,
 			EffectiveAt: effectiveAt,
 			Rollover: &api.CreditGrantRollover{
-				Type: credit_model.GrantRolloverTypeRemainingAmount,
+				Type: credit.GrantRolloverTypeRemainingAmount,
 			},
 			Expiration: api.CreditExpirationPeriod{
 				Duration: "DAY",
@@ -636,13 +636,13 @@ func TestCredit(t *testing.T) {
 			LedgerID: ledgerID,
 			Subject:  subject,
 			Metadata: ledgerMeta,
-			FeatureBalances: []credit_model.FeatureBalance{
+			FeatureBalances: []credit.FeatureBalance{
 				{
 					Feature: feature,
 					Balance: 99,
 				},
 			},
-			GrantBalances: []credit_model.GrantBalance{
+			GrantBalances: []credit.GrantBalance{
 				{
 					Grant:   grant,
 					Balance: 99,
@@ -692,7 +692,7 @@ func TestCredit(t *testing.T) {
 
 		// List grants
 		resp, err := client.ListCreditGrantsWithResponse(context.Background(), &api.ListCreditGrantsParams{
-			LedgerID: &[]ulid.ULID{ledgerID},
+			LedgerID: &ledgerID,
 		})
 
 		require.NoError(t, err)
@@ -704,14 +704,14 @@ func TestCredit(t *testing.T) {
 				ID:        grants[0].ID,
 				ParentID:  parentGrant.ID,
 				LedgerID:  ledgerID,
-				Type:      credit_model.GrantTypeUsage,
+				Type:      credit.GrantTypeUsage,
 				FeatureID: featureId,
 				Amount:    99,
 				Priority:  1,
 				// TODO: this should be equal to `effectiveAt` but we run into timezone issues
 				EffectiveAt: grants[0].EffectiveAt,
 				Rollover: &api.CreditGrantRollover{
-					Type: credit_model.GrantRolloverTypeRemainingAmount,
+					Type: credit.GrantRolloverTypeRemainingAmount,
 				},
 				Expiration: api.CreditExpirationPeriod{
 					Duration: "DAY",
