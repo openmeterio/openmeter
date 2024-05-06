@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/schema"
 )
 
@@ -36,10 +37,6 @@ func init() {
 	creditentryDescNamespace := creditentryFields[0].Descriptor()
 	// creditentry.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	creditentry.NamespaceValidator = creditentryDescNamespace.Validators[0].(func(string) error)
-	// creditentryDescSubject is the schema descriptor for subject field.
-	creditentryDescSubject := creditentryFields[1].Descriptor()
-	// creditentry.SubjectValidator is a validator for the "subject" field. It is called by the builders before save.
-	creditentry.SubjectValidator = creditentryDescSubject.Validators[0].(func(string) error)
 	// creditentryDescPriority is the schema descriptor for priority field.
 	creditentryDescPriority := creditentryFields[6].Descriptor()
 	// creditentry.DefaultPriority holds the default value on creation for the priority field.
@@ -51,7 +48,7 @@ func init() {
 	// creditentryDescID is the schema descriptor for id field.
 	creditentryDescID := creditentryMixinFields0[0].Descriptor()
 	// creditentry.DefaultID holds the default value on creation for the id field.
-	creditentry.DefaultID = creditentryDescID.Default.(func() string)
+	creditentry.DefaultID = creditentryDescID.Default.(func() pgulid.ULID)
 	featureMixin := schema.Feature{}.Mixin()
 	featureMixinFields0 := featureMixin[0].Fields()
 	_ = featureMixinFields0
@@ -88,10 +85,12 @@ func init() {
 	// featureDescID is the schema descriptor for id field.
 	featureDescID := featureMixinFields0[0].Descriptor()
 	// feature.DefaultID holds the default value on creation for the id field.
-	feature.DefaultID = featureDescID.Default.(func() string)
+	feature.DefaultID = featureDescID.Default.(func() pgulid.ULID)
 	ledgerMixin := schema.Ledger{}.Mixin()
 	ledgerMixinFields0 := ledgerMixin[0].Fields()
 	_ = ledgerMixinFields0
+	ledgerMixinFields1 := ledgerMixin[1].Fields()
+	_ = ledgerMixinFields1
 	ledgerFields := schema.Ledger{}.Fields()
 	_ = ledgerFields
 	// ledgerDescCreatedAt is the schema descriptor for created_at field.
@@ -113,7 +112,11 @@ func init() {
 	// ledger.SubjectValidator is a validator for the "subject" field. It is called by the builders before save.
 	ledger.SubjectValidator = ledgerDescSubject.Validators[0].(func(string) error)
 	// ledgerDescHighwatermark is the schema descriptor for highwatermark field.
-	ledgerDescHighwatermark := ledgerFields[2].Descriptor()
+	ledgerDescHighwatermark := ledgerFields[3].Descriptor()
 	// ledger.DefaultHighwatermark holds the default value on creation for the highwatermark field.
 	ledger.DefaultHighwatermark = ledgerDescHighwatermark.Default.(func() time.Time)
+	// ledgerDescID is the schema descriptor for id field.
+	ledgerDescID := ledgerMixinFields1[0].Descriptor()
+	// ledger.DefaultID holds the default value on creation for the id field.
+	ledger.DefaultID = ledgerDescID.Default.(func() pgulid.ULID)
 }

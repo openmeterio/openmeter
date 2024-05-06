@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 // CreditEntryCreate is the builder for creating a CreditEntry entity.
@@ -59,9 +60,9 @@ func (cec *CreditEntryCreate) SetNamespace(s string) *CreditEntryCreate {
 	return cec
 }
 
-// SetSubject sets the "subject" field.
-func (cec *CreditEntryCreate) SetSubject(s string) *CreditEntryCreate {
-	cec.mutation.SetSubject(s)
+// SetLedgerID sets the "ledger_id" field.
+func (cec *CreditEntryCreate) SetLedgerID(pg pgulid.ULID) *CreditEntryCreate {
+	cec.mutation.SetLedgerID(pg)
 	return cec
 }
 
@@ -86,15 +87,15 @@ func (cec *CreditEntryCreate) SetNillableType(ct *credit.GrantType) *CreditEntry
 }
 
 // SetFeatureID sets the "feature_id" field.
-func (cec *CreditEntryCreate) SetFeatureID(s string) *CreditEntryCreate {
-	cec.mutation.SetFeatureID(s)
+func (cec *CreditEntryCreate) SetFeatureID(pg pgulid.ULID) *CreditEntryCreate {
+	cec.mutation.SetFeatureID(pg)
 	return cec
 }
 
 // SetNillableFeatureID sets the "feature_id" field if the given value is not nil.
-func (cec *CreditEntryCreate) SetNillableFeatureID(s *string) *CreditEntryCreate {
-	if s != nil {
-		cec.SetFeatureID(*s)
+func (cec *CreditEntryCreate) SetNillableFeatureID(pg *pgulid.ULID) *CreditEntryCreate {
+	if pg != nil {
+		cec.SetFeatureID(*pg)
 	}
 	return cec
 }
@@ -218,29 +219,29 @@ func (cec *CreditEntryCreate) SetMetadata(m map[string]string) *CreditEntryCreat
 }
 
 // SetParentID sets the "parent_id" field.
-func (cec *CreditEntryCreate) SetParentID(s string) *CreditEntryCreate {
-	cec.mutation.SetParentID(s)
+func (cec *CreditEntryCreate) SetParentID(pg pgulid.ULID) *CreditEntryCreate {
+	cec.mutation.SetParentID(pg)
 	return cec
 }
 
 // SetNillableParentID sets the "parent_id" field if the given value is not nil.
-func (cec *CreditEntryCreate) SetNillableParentID(s *string) *CreditEntryCreate {
-	if s != nil {
-		cec.SetParentID(*s)
+func (cec *CreditEntryCreate) SetNillableParentID(pg *pgulid.ULID) *CreditEntryCreate {
+	if pg != nil {
+		cec.SetParentID(*pg)
 	}
 	return cec
 }
 
 // SetID sets the "id" field.
-func (cec *CreditEntryCreate) SetID(s string) *CreditEntryCreate {
-	cec.mutation.SetID(s)
+func (cec *CreditEntryCreate) SetID(pg pgulid.ULID) *CreditEntryCreate {
+	cec.mutation.SetID(pg)
 	return cec
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (cec *CreditEntryCreate) SetNillableID(s *string) *CreditEntryCreate {
-	if s != nil {
-		cec.SetID(*s)
+func (cec *CreditEntryCreate) SetNillableID(pg *pgulid.ULID) *CreditEntryCreate {
+	if pg != nil {
+		cec.SetID(*pg)
 	}
 	return cec
 }
@@ -251,13 +252,13 @@ func (cec *CreditEntryCreate) SetParent(c *CreditEntry) *CreditEntryCreate {
 }
 
 // SetChildrenID sets the "children" edge to the CreditEntry entity by ID.
-func (cec *CreditEntryCreate) SetChildrenID(id string) *CreditEntryCreate {
+func (cec *CreditEntryCreate) SetChildrenID(id pgulid.ULID) *CreditEntryCreate {
 	cec.mutation.SetChildrenID(id)
 	return cec
 }
 
 // SetNillableChildrenID sets the "children" edge to the CreditEntry entity by ID if the given value is not nil.
-func (cec *CreditEntryCreate) SetNillableChildrenID(id *string) *CreditEntryCreate {
+func (cec *CreditEntryCreate) SetNillableChildrenID(id *pgulid.ULID) *CreditEntryCreate {
 	if id != nil {
 		cec = cec.SetChildrenID(*id)
 	}
@@ -347,13 +348,8 @@ func (cec *CreditEntryCreate) check() error {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "CreditEntry.namespace": %w`, err)}
 		}
 	}
-	if _, ok := cec.mutation.Subject(); !ok {
-		return &ValidationError{Name: "subject", err: errors.New(`db: missing required field "CreditEntry.subject"`)}
-	}
-	if v, ok := cec.mutation.Subject(); ok {
-		if err := creditentry.SubjectValidator(v); err != nil {
-			return &ValidationError{Name: "subject", err: fmt.Errorf(`db: validator failed for field "CreditEntry.subject": %w`, err)}
-		}
+	if _, ok := cec.mutation.LedgerID(); !ok {
+		return &ValidationError{Name: "ledger_id", err: errors.New(`db: missing required field "CreditEntry.ledger_id"`)}
 	}
 	if _, ok := cec.mutation.EntryType(); !ok {
 		return &ValidationError{Name: "entry_type", err: errors.New(`db: missing required field "CreditEntry.entry_type"`)}
@@ -399,10 +395,10 @@ func (cec *CreditEntryCreate) sqlSave(ctx context.Context) (*CreditEntry, error)
 		return nil, err
 	}
 	if _spec.ID.Value != nil {
-		if id, ok := _spec.ID.Value.(string); ok {
-			_node.ID = id
-		} else {
-			return nil, fmt.Errorf("unexpected CreditEntry.ID type: %T", _spec.ID.Value)
+		if id, ok := _spec.ID.Value.(*pgulid.ULID); ok {
+			_node.ID = *id
+		} else if err := _node.ID.Scan(_spec.ID.Value); err != nil {
+			return nil, err
 		}
 	}
 	cec.mutation.id = &_node.ID
@@ -413,12 +409,12 @@ func (cec *CreditEntryCreate) sqlSave(ctx context.Context) (*CreditEntry, error)
 func (cec *CreditEntryCreate) createSpec() (*CreditEntry, *sqlgraph.CreateSpec) {
 	var (
 		_node = &CreditEntry{config: cec.config}
-		_spec = sqlgraph.NewCreateSpec(creditentry.Table, sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString))
+		_spec = sqlgraph.NewCreateSpec(creditentry.Table, sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeOther))
 	)
 	_spec.OnConflict = cec.conflict
 	if id, ok := cec.mutation.ID(); ok {
 		_node.ID = id
-		_spec.ID.Value = id
+		_spec.ID.Value = &id
 	}
 	if value, ok := cec.mutation.CreatedAt(); ok {
 		_spec.SetField(creditentry.FieldCreatedAt, field.TypeTime, value)
@@ -432,9 +428,9 @@ func (cec *CreditEntryCreate) createSpec() (*CreditEntry, *sqlgraph.CreateSpec) 
 		_spec.SetField(creditentry.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
-	if value, ok := cec.mutation.Subject(); ok {
-		_spec.SetField(creditentry.FieldSubject, field.TypeString, value)
-		_node.Subject = value
+	if value, ok := cec.mutation.LedgerID(); ok {
+		_spec.SetField(creditentry.FieldLedgerID, field.TypeOther, value)
+		_node.LedgerID = value
 	}
 	if value, ok := cec.mutation.EntryType(); ok {
 		_spec.SetField(creditentry.FieldEntryType, field.TypeEnum, value)
@@ -488,7 +484,7 @@ func (cec *CreditEntryCreate) createSpec() (*CreditEntry, *sqlgraph.CreateSpec) 
 			Columns: []string{creditentry.ParentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeOther),
 			},
 		}
 		for _, k := range nodes {
@@ -505,7 +501,7 @@ func (cec *CreditEntryCreate) createSpec() (*CreditEntry, *sqlgraph.CreateSpec) 
 			Columns: []string{creditentry.ChildrenColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeOther),
 			},
 		}
 		for _, k := range nodes {
@@ -521,7 +517,7 @@ func (cec *CreditEntryCreate) createSpec() (*CreditEntry, *sqlgraph.CreateSpec) 
 			Columns: []string{creditentry.FeatureColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(feature.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(feature.FieldID, field.TypeOther),
 			},
 		}
 		for _, k := range nodes {
@@ -635,8 +631,8 @@ func (u *CreditEntryUpsertOne) UpdateNewValues() *CreditEntryUpsertOne {
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(creditentry.FieldNamespace)
 		}
-		if _, exists := u.create.mutation.Subject(); exists {
-			s.SetIgnore(creditentry.FieldSubject)
+		if _, exists := u.create.mutation.LedgerID(); exists {
+			s.SetIgnore(creditentry.FieldLedgerID)
 		}
 		if _, exists := u.create.mutation.EntryType(); exists {
 			s.SetIgnore(creditentry.FieldEntryType)
@@ -756,7 +752,7 @@ func (u *CreditEntryUpsertOne) ExecX(ctx context.Context) {
 }
 
 // Exec executes the UPSERT query and returns the inserted/updated ID.
-func (u *CreditEntryUpsertOne) ID(ctx context.Context) (id string, err error) {
+func (u *CreditEntryUpsertOne) ID(ctx context.Context) (id pgulid.ULID, err error) {
 	if u.create.driver.Dialect() == dialect.MySQL {
 		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
 		// fields from the database since MySQL does not support the RETURNING clause.
@@ -770,7 +766,7 @@ func (u *CreditEntryUpsertOne) ID(ctx context.Context) (id string, err error) {
 }
 
 // IDX is like ID, but panics if an error occurs.
-func (u *CreditEntryUpsertOne) IDX(ctx context.Context) string {
+func (u *CreditEntryUpsertOne) IDX(ctx context.Context) pgulid.ULID {
 	id, err := u.ID(ctx)
 	if err != nil {
 		panic(err)
@@ -929,8 +925,8 @@ func (u *CreditEntryUpsertBulk) UpdateNewValues() *CreditEntryUpsertBulk {
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(creditentry.FieldNamespace)
 			}
-			if _, exists := b.mutation.Subject(); exists {
-				s.SetIgnore(creditentry.FieldSubject)
+			if _, exists := b.mutation.LedgerID(); exists {
+				s.SetIgnore(creditentry.FieldLedgerID)
 			}
 			if _, exists := b.mutation.EntryType(); exists {
 				s.SetIgnore(creditentry.FieldEntryType)

@@ -2,13 +2,17 @@ package credit
 
 import (
 	"net/http"
+
+	"github.com/oklog/ulid/v2"
 )
 
 // Balance of a subject in a credit.
 type Balance struct {
-	Subject         string           `json:"subject"`
-	FeatureBalances []FeatureBalance `json:"featureBalances"`
-	GrantBalances   []GrantBalance   `json:"grantBalances"`
+	LedgerID        ulid.ULID         `json:"id"`
+	Metadata        map[string]string `json:"metadata,omitempty"`
+	Subject         string            `json:"subject"`
+	FeatureBalances []FeatureBalance  `json:"featureBalances"`
+	GrantBalances   []GrantBalance    `json:"grantBalances"`
 }
 
 // Render implements the chi renderer interface.

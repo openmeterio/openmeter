@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 const (
@@ -22,8 +23,8 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldNamespace holds the string denoting the namespace field in the database.
 	FieldNamespace = "namespace"
-	// FieldSubject holds the string denoting the subject field in the database.
-	FieldSubject = "subject"
+	// FieldLedgerID holds the string denoting the ledger_id field in the database.
+	FieldLedgerID = "ledger_id"
 	// FieldEntryType holds the string denoting the entry_type field in the database.
 	FieldEntryType = "entry_type"
 	// FieldType holds the string denoting the type field in the database.
@@ -81,7 +82,7 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldNamespace,
-	FieldSubject,
+	FieldLedgerID,
 	FieldEntryType,
 	FieldType,
 	FieldFeatureID,
@@ -116,14 +117,12 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	NamespaceValidator func(string) error
-	// SubjectValidator is a validator for the "subject" field. It is called by the builders before save.
-	SubjectValidator func(string) error
 	// DefaultPriority holds the default value on creation for the "priority" field.
 	DefaultPriority uint8
 	// DefaultEffectiveAt holds the default value on creation for the "effective_at" field.
 	DefaultEffectiveAt func() time.Time
 	// DefaultID holds the default value on creation for the "id" field.
-	DefaultID func() string
+	DefaultID func() pgulid.ULID
 )
 
 // EntryTypeValidator is a validator for the "entry_type" field enum values. It is called by the builders before save.
@@ -189,9 +188,9 @@ func ByNamespace(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNamespace, opts...).ToFunc()
 }
 
-// BySubject orders the results by the subject field.
-func BySubject(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldSubject, opts...).ToFunc()
+// ByLedgerID orders the results by the ledger_id field.
+func ByLedgerID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLedgerID, opts...).ToFunc()
 }
 
 // ByEntryType orders the results by the entry_type field.

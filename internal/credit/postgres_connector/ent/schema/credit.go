@@ -4,12 +4,14 @@ import (
 	"time"
 
 	"entgo.io/ent"
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
 	credit_model "github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 type CreditEntry struct {
@@ -28,10 +30,14 @@ func (CreditEntry) Mixin() []ent.Mixin {
 func (CreditEntry) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("namespace").NotEmpty().Immutable(),
-		field.String("subject").NotEmpty().Immutable(),
+		field.Other("ledger_id", pgulid.ULID{}).Immutable().SchemaType(map[string]string{
+			dialect.Postgres: "char(26)",
+		}),
 		field.Enum("entry_type").GoType(credit_model.EntryType("")).Immutable(),
 		field.Enum("type").GoType(credit_model.GrantType("")).Optional().Nillable().Immutable(),
-		field.String("feature_id").Optional().Nillable().Immutable(),
+		field.Other("feature_id", pgulid.ULID{}).Optional().Nillable().Immutable().SchemaType(map[string]string{
+			dialect.Postgres: "char(26)",
+		}),
 		// TODO: use decimal instead of float?
 		field.Float("amount").Optional().Nillable().Immutable(),
 		field.Uint8("priority").Default(1).Immutable(),
@@ -45,14 +51,16 @@ func (CreditEntry) Fields() []ent.Field {
 		field.Float("rollover_max_amount").Optional().Nillable().Immutable(),
 		field.JSON("metadata", map[string]string{}).Optional(),
 		// Rollover or void grants will have a parent_id
-		field.String("parent_id").Optional().Nillable().Immutable(),
+		field.Other("parent_id", pgulid.ULID{}).Optional().Nillable().Immutable().SchemaType(map[string]string{
+			dialect.Postgres: "char(26)",
+		}),
 	}
 }
 
 // Indexes of the CreditGrant.
 func (CreditEntry) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("namespace", "subject"),
+		index.Fields("namespace", "ledger_id"),
 	}
 }
 

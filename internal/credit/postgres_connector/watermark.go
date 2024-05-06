@@ -5,18 +5,20 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_ledger "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 var defaultHighwatermark, _ = time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
 
 // GetHighWatermark returns the high watermark for the given credit and subject pair.
-func (c *PostgresConnector) GetHighWatermark(ctx context.Context, namespace string, subject string) (credit_model.HighWatermark, error) {
+func (c *PostgresConnector) GetHighWatermark(ctx context.Context, namespace string, ledgerID ulid.ULID) (credit_model.HighWatermark, error) {
 	ledgerEntity, err := c.db.Ledger.Query().
 		Where(
-			db_ledger.Subject(subject),
+			db_ledger.ID(pgulid.Wrap(ledgerID)),
 			db_ledger.Namespace(namespace),
 		).
 		Only(ctx)
@@ -24,8 +26,8 @@ func (c *PostgresConnector) GetHighWatermark(ctx context.Context, namespace stri
 	if err != nil {
 		if db.IsNotFound(err) {
 			return credit_model.HighWatermark{
-				Subject: subject,
-				Time:    defaultHighwatermark,
+				LedgerID: ledgerID,
+				Time:     defaultHighwatermark,
 			}, nil
 		}
 
@@ -33,14 +35,18 @@ func (c *PostgresConnector) GetHighWatermark(ctx context.Context, namespace stri
 	}
 
 	return credit_model.HighWatermark{
-		Subject: subject,
-		Time:    ledgerEntity.Highwatermark,
+		LedgerID: ledgerID,
+		Time:     ledgerEntity.Highwatermark.In(time.UTC),
 	}, nil
 }
 
 func checkAfterHighWatermark(t time.Time, ledger *db.Ledger) error {
 	if !t.After(ledger.Highwatermark) {
-		return &credit_model.HighWatermarBeforeError{Namespace: ledger.Namespace, Subject: ledger.Subject, HighWatermark: ledger.Highwatermark}
+		return &credit_model.HighWatermarBeforeError{
+			Namespace:     ledger.Namespace,
+			LedgerID:      ledger.ID.ULID,
+			HighWatermark: ledger.Highwatermark,
+		}
 	}
 
 	return nil

@@ -7,3 +7,13 @@ func WithDefault[T any](value *T, def T) T {
 
 	return def
 }
+
+func ToPointerOrNil[T comparable](v T) *T {
+	var defaultValue T
+
+	if v == defaultValue {
+		return nil
+	}
+
+	return &v
+}

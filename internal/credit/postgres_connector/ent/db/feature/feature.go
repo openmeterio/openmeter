@@ -7,6 +7,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 const (
@@ -79,7 +80,7 @@ var (
 	// DefaultArchived holds the default value on creation for the "archived" field.
 	DefaultArchived bool
 	// DefaultID holds the default value on creation for the "id" field.
-	DefaultID func() string
+	DefaultID func() pgulid.ULID
 )
 
 // OrderOption defines the ordering options for the Feature queries.

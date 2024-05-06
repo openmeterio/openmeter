@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
-	credit_model "github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -16,7 +17,7 @@ import (
 
 func TestPostgresConnectorLedger(t *testing.T) {
 	namespace := "default"
-	subject := "subject-1"
+
 	meter := models.Meter{
 		Namespace:   namespace,
 		ID:          "meter-1",
@@ -24,7 +25,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 		Aggregation: models.MeterAggregationSum,
 	}
 	meterRepository := meter_model.NewInMemoryRepository([]models.Meter{meter})
-	featureIn := credit_model.Feature{
+	featureIn := credit.Feature{
 		Namespace: namespace,
 		MeterSlug: meter.Slug,
 		Name:      "feature-1",
@@ -33,51 +34,51 @@ func TestPostgresConnectorLedger(t *testing.T) {
 	tt := []struct {
 		name        string
 		description string
-		test        func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client)
+		test        func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger)
 	}{
 		{
 			name:        "GetHistory",
 			description: "Should return ledger entries",
-			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
 				feature := createFeature(t, connector, namespace, featureIn)
 				// We need to truncate the time to workaround pgx driver timezone issue
 				// We also move it to the past to avoid timezone issues
-				t1 := time.Now().Truncate(time.Hour * 24).Add(-time.Hour * 24)
-				t2 := t1.Add(time.Hour).Truncate(0)
-				t3 := t2.Add(time.Hour).Truncate(0)
-				t4 := t3.Add(time.Hour).Truncate(0)
+				t1 := time.Now().Truncate(time.Hour * 24).Add(-time.Hour * 24).In(time.UTC)
+				t2 := t1.Add(time.Hour).Truncate(0).In(time.UTC)
+				t3 := t2.Add(time.Hour).Truncate(0).In(time.UTC)
+				t4 := t3.Add(time.Hour).Truncate(0).In(time.UTC)
 
-				grant1, err := connector.CreateGrant(ctx, namespace, credit_model.Grant{
-					Subject:     subject,
+				grant1, err := connector.CreateGrant(ctx, namespace, credit.Grant{
+					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
-					Type:        credit_model.GrantTypeUsage,
+					Type:        credit.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
 					EffectiveAt: t1,
-					Expiration: credit_model.ExpirationPeriod{
-						Duration: credit_model.ExpirationPeriodDurationMonth,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationMonth,
 						Count:    1,
 					},
-					Rollover: &credit_model.GrantRollover{
-						Type: credit_model.GrantRolloverTypeRemainingAmount,
+					Rollover: &credit.GrantRollover{
+						Type: credit.GrantRolloverTypeRemainingAmount,
 					},
 				})
 				assert.NoError(t, err)
 
-				grant2, err := connector.CreateGrant(ctx, namespace, credit_model.Grant{
-					Subject:     subject,
+				grant2, err := connector.CreateGrant(ctx, namespace, credit.Grant{
+					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
-					Type:        credit_model.GrantTypeUsage,
+					Type:        credit.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
 					EffectiveAt: t2,
-					Expiration: credit_model.ExpirationPeriod{
-						Duration: credit_model.ExpirationPeriodDurationMonth,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationMonth,
 						Count:    1,
 					},
-					Rollover: &credit_model.GrantRollover{
-						Type: credit_model.GrantRolloverTypeOriginalAmount,
+					Rollover: &credit.GrantRollover{
+						Type: credit.GrantRolloverTypeOriginalAmount,
 					},
 				})
 				assert.NoError(t, err)
@@ -96,14 +97,14 @@ func TestPostgresConnectorLedger(t *testing.T) {
 					GroupBy:   map[string]*string{},
 				})
 
-				reset, rolloverGrants, err := connector.Reset(ctx, namespace, credit_model.Reset{
-					Subject:     subject,
+				reset, rolloverGrants, err := connector.Reset(ctx, namespace, credit.Reset{
+					LedgerID:    ledger.ID,
 					EffectiveAt: t3,
 				})
 				assert.NoError(t, err)
 
 				// Get ledger
-				ledgerList, err := connector.GetHistory(ctx, namespace, subject, t1, t4, 0)
+				ledgerList, err := connector.GetHistory(ctx, namespace, ledger.ID, t1, t4, 0)
 				assert.NoError(t, err)
 
 				// Expected
@@ -112,11 +113,11 @@ func TestPostgresConnectorLedger(t *testing.T) {
 				reamingAmount := grant1.Amount - usage
 
 				// Assert balance
-				assert.Equal(t, []credit_model.LedgerEntry{
+				assert.Equal(t, []credit.LedgerEntry{
 					// Original grant
 					{
 						ID:        grant1.ID,
-						Type:      credit_model.LedgerEntryTypeGrant,
+						Type:      credit.LedgerEntryTypeGrant,
 						Time:      t1,
 						FeatureID: feature.ID,
 						Amount:    &grant1.Amount,
@@ -124,7 +125,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 					// Void
 					{
 						ID:        grant2.ID,
-						Type:      credit_model.LedgerEntryTypeVoid,
+						Type:      credit.LedgerEntryTypeVoid,
 						Time:      t2,
 						FeatureID: feature.ID,
 						Amount:    &grant2.Amount,
@@ -132,11 +133,11 @@ func TestPostgresConnectorLedger(t *testing.T) {
 					// Usage
 					{
 						ID:        grant1.ID,
-						Type:      credit_model.LedgerEntryTypeGrantUsage,
+						Type:      credit.LedgerEntryTypeGrantUsage,
 						Time:      t3,
 						FeatureID: feature.ID,
 						Amount:    &ledgerUsage,
-						Period: &credit_model.Period{
+						Period: &credit.Period{
 							From: t1,
 							To:   t3,
 						},
@@ -144,13 +145,13 @@ func TestPostgresConnectorLedger(t *testing.T) {
 					// Reset
 					{
 						ID:   reset.ID,
-						Type: credit_model.LedgerEntryTypeReset,
+						Type: credit.LedgerEntryTypeReset,
 						Time: t3,
 					},
 					// Rolled over grant
 					{
 						ID:        rolloverGrants[0].ID,
-						Type:      credit_model.LedgerEntryTypeGrant,
+						Type:      credit.LedgerEntryTypeGrant,
 						Time:      t3,
 						FeatureID: feature.ID,
 						Amount:    &reamingAmount,
@@ -171,7 +172,14 @@ func TestPostgresConnectorLedger(t *testing.T) {
 			streamingConnector := newMockStreamingConnector()
 			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository)
 
-			tc.test(t, connector, streamingConnector, databaseClient)
+			// let's provision a ledger
+			ledger, err := connector.CreateLedger(context.Background(), namespace, credit.Ledger{
+				Subject: ulid.Make().String(),
+			}, false)
+
+			assert.NoError(t, err)
+
+			tc.test(t, connector, streamingConnector, databaseClient, ledger)
 		})
 	}
 }

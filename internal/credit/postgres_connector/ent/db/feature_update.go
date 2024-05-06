@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/predicate"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 // FeatureUpdate is the builder for updating Feature entities.
@@ -76,14 +77,14 @@ func (fu *FeatureUpdate) SetNillableArchived(b *bool) *FeatureUpdate {
 }
 
 // AddCreditGrantIDs adds the "credit_grants" edge to the CreditEntry entity by IDs.
-func (fu *FeatureUpdate) AddCreditGrantIDs(ids ...string) *FeatureUpdate {
+func (fu *FeatureUpdate) AddCreditGrantIDs(ids ...pgulid.ULID) *FeatureUpdate {
 	fu.mutation.AddCreditGrantIDs(ids...)
 	return fu
 }
 
 // AddCreditGrants adds the "credit_grants" edges to the CreditEntry entity.
 func (fu *FeatureUpdate) AddCreditGrants(c ...*CreditEntry) *FeatureUpdate {
-	ids := make([]string, len(c))
+	ids := make([]pgulid.ULID, len(c))
 	for i := range c {
 		ids[i] = c[i].ID
 	}
@@ -102,14 +103,14 @@ func (fu *FeatureUpdate) ClearCreditGrants() *FeatureUpdate {
 }
 
 // RemoveCreditGrantIDs removes the "credit_grants" edge to CreditEntry entities by IDs.
-func (fu *FeatureUpdate) RemoveCreditGrantIDs(ids ...string) *FeatureUpdate {
+func (fu *FeatureUpdate) RemoveCreditGrantIDs(ids ...pgulid.ULID) *FeatureUpdate {
 	fu.mutation.RemoveCreditGrantIDs(ids...)
 	return fu
 }
 
 // RemoveCreditGrants removes "credit_grants" edges to CreditEntry entities.
 func (fu *FeatureUpdate) RemoveCreditGrants(c ...*CreditEntry) *FeatureUpdate {
-	ids := make([]string, len(c))
+	ids := make([]pgulid.ULID, len(c))
 	for i := range c {
 		ids[i] = c[i].ID
 	}
@@ -166,7 +167,7 @@ func (fu *FeatureUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if err := fu.check(); err != nil {
 		return n, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(feature.Table, feature.Columns, sqlgraph.NewFieldSpec(feature.FieldID, field.TypeString))
+	_spec := sqlgraph.NewUpdateSpec(feature.Table, feature.Columns, sqlgraph.NewFieldSpec(feature.FieldID, field.TypeOther))
 	if ps := fu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -197,7 +198,7 @@ func (fu *FeatureUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{feature.CreditGrantsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeOther),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -210,7 +211,7 @@ func (fu *FeatureUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{feature.CreditGrantsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeOther),
 			},
 		}
 		for _, k := range nodes {
@@ -226,7 +227,7 @@ func (fu *FeatureUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{feature.CreditGrantsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeOther),
 			},
 		}
 		for _, k := range nodes {
@@ -301,14 +302,14 @@ func (fuo *FeatureUpdateOne) SetNillableArchived(b *bool) *FeatureUpdateOne {
 }
 
 // AddCreditGrantIDs adds the "credit_grants" edge to the CreditEntry entity by IDs.
-func (fuo *FeatureUpdateOne) AddCreditGrantIDs(ids ...string) *FeatureUpdateOne {
+func (fuo *FeatureUpdateOne) AddCreditGrantIDs(ids ...pgulid.ULID) *FeatureUpdateOne {
 	fuo.mutation.AddCreditGrantIDs(ids...)
 	return fuo
 }
 
 // AddCreditGrants adds the "credit_grants" edges to the CreditEntry entity.
 func (fuo *FeatureUpdateOne) AddCreditGrants(c ...*CreditEntry) *FeatureUpdateOne {
-	ids := make([]string, len(c))
+	ids := make([]pgulid.ULID, len(c))
 	for i := range c {
 		ids[i] = c[i].ID
 	}
@@ -327,14 +328,14 @@ func (fuo *FeatureUpdateOne) ClearCreditGrants() *FeatureUpdateOne {
 }
 
 // RemoveCreditGrantIDs removes the "credit_grants" edge to CreditEntry entities by IDs.
-func (fuo *FeatureUpdateOne) RemoveCreditGrantIDs(ids ...string) *FeatureUpdateOne {
+func (fuo *FeatureUpdateOne) RemoveCreditGrantIDs(ids ...pgulid.ULID) *FeatureUpdateOne {
 	fuo.mutation.RemoveCreditGrantIDs(ids...)
 	return fuo
 }
 
 // RemoveCreditGrants removes "credit_grants" edges to CreditEntry entities.
 func (fuo *FeatureUpdateOne) RemoveCreditGrants(c ...*CreditEntry) *FeatureUpdateOne {
-	ids := make([]string, len(c))
+	ids := make([]pgulid.ULID, len(c))
 	for i := range c {
 		ids[i] = c[i].ID
 	}
@@ -404,7 +405,7 @@ func (fuo *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err e
 	if err := fuo.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(feature.Table, feature.Columns, sqlgraph.NewFieldSpec(feature.FieldID, field.TypeString))
+	_spec := sqlgraph.NewUpdateSpec(feature.Table, feature.Columns, sqlgraph.NewFieldSpec(feature.FieldID, field.TypeOther))
 	id, ok := fuo.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "Feature.id" for update`)}
@@ -452,7 +453,7 @@ func (fuo *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err e
 			Columns: []string{feature.CreditGrantsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeOther),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -465,7 +466,7 @@ func (fuo *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err e
 			Columns: []string{feature.CreditGrantsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeOther),
 			},
 		}
 		for _, k := range nodes {
@@ -481,7 +482,7 @@ func (fuo *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err e
 			Columns: []string{feature.CreditGrantsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeOther),
 			},
 		}
 		for _, k := range nodes {

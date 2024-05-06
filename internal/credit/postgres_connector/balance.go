@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/openmeterio/openmeter/internal/credit"
 	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/streaming"
@@ -22,30 +23,35 @@ type balanceQueryPeriod struct {
 func (a *PostgresConnector) GetBalance(
 	ctx context.Context,
 	namespace string,
-	subject string,
+	ledgerID ulid.ULID,
 	cutline time.Time,
 ) (credit_model.Balance, error) {
-	// Get high watermark for credit
-	hw, err := a.GetHighWatermark(ctx, namespace, subject)
+	// TODO: wrap into transaction
+	hw, err := a.GetHighWatermark(ctx, namespace, ledgerID)
 	if err != nil {
 		return credit_model.Balance{}, fmt.Errorf("get high watermark: %w", err)
 	}
 
-	balance, _, err := a.getBalance(ctx, namespace, subject, hw.Time, cutline)
+	balance, _, err := a.getBalance(ctx, namespace, ledgerID, hw.Time, cutline)
 	return balance, err
 }
 
 func (a *PostgresConnector) getBalance(
 	ctx context.Context,
 	namespace string,
-	subject string,
+	ledgerID ulid.ULID,
 	from time.Time,
 	to time.Time,
 ) (credit_model.Balance, credit_model.LedgerEntryList, error) {
 	ledgerEntries := credit_model.NewLedgerEntryList()
 
+	ledger, err := a.getLedger(ctx, namespace, ledgerID)
+	if err != nil {
+		return credit_model.Balance{}, ledgerEntries, err
+	}
+
 	grants, err := a.ListGrants(ctx, namespace, credit.ListGrantsParams{
-		Subjects:    []string{subject},
+		LedgerIDs:   []ulid.ULID{ledgerID},
 		From:        &from,
 		To:          &to,
 		IncludeVoid: true,
@@ -55,7 +61,7 @@ func (a *PostgresConnector) getBalance(
 	}
 
 	// Get features in grants
-	features := map[string]credit_model.Feature{}
+	features := map[ulid.ULID]credit_model.Feature{}
 	for _, grant := range grants {
 		if grant.Void {
 			ledgerEntries.AddVoidGrant(grant)
@@ -203,7 +209,8 @@ func (a *PostgresConnector) getBalance(
 
 			// Usage query params for the meter
 			queryParams := &streaming.QueryParams{
-				FilterSubject: []string{subject},
+				// TODO: do we want this to be settable in ledger
+				FilterSubject: []string{ledger.Subject},
 			}
 			queryParams.From = &period.From
 			queryParams.To = &period.To
@@ -275,7 +282,7 @@ func (a *PostgresConnector) getBalance(
 	}
 
 	// Aggregate grant balances by feature
-	featureBalancesMap := map[string]credit_model.FeatureBalance{}
+	featureBalancesMap := map[ulid.ULID]credit_model.FeatureBalance{}
 	for _, grantBalance := range grantBalances {
 		if grantBalance.FeatureID == nil {
 			continue
@@ -301,7 +308,9 @@ func (a *PostgresConnector) getBalance(
 	}
 
 	return credit_model.Balance{
-		Subject:         subject,
+		LedgerID:        ledgerID,
+		Subject:         ledger.Subject,
+		Metadata:        ledger.Metadata,
 		FeatureBalances: featureBalances,
 		GrantBalances:   grantBalances,
 	}, ledgerEntries, nil

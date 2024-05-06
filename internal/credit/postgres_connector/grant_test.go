@@ -9,7 +9,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
-	credit_model "github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -17,6 +17,7 @@ import (
 
 func TestPostgresConnectorGrants(t *testing.T) {
 	namespace := "default"
+
 	meters := []models.Meter{
 		{
 			Namespace: namespace,
@@ -25,34 +26,34 @@ func TestPostgresConnectorGrants(t *testing.T) {
 		},
 	}
 	meterRepository := meter.NewInMemoryRepository(meters)
-	features := []credit_model.Feature{{
+	features := []credit.Feature{{
 		Namespace: namespace,
 		MeterSlug: "meter-1",
 		Name:      "feature-1",
 	}}
 
-	effectiveTime := time.Date(2024, 1, 1, 0, 1, 0, 0, time.Local)
+	effectiveTime := time.Date(2024, 1, 1, 0, 1, 0, 0, time.UTC)
 
 	tt := []struct {
 		name        string
 		description string
-		test        func(t *testing.T, connector credit_model.Connector, db_client *db.Client)
+		test        func(t *testing.T, connector credit.Connector, db_client *db.Client, ledger credit.Ledger)
 	}{
 		{
 			name:        "CreateGrant",
 			description: "Create a grant in the database",
-			test: func(t *testing.T, connector credit_model.Connector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit.Connector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
 				p := createFeature(t, connector, namespace, features[0])
-				grant := credit_model.Grant{
-					Subject:     "subject-1",
+				grant := credit.Grant{
+					LedgerID:    ledger.ID,
 					FeatureID:   p.ID,
-					Type:        credit_model.GrantTypeUsage,
+					Type:        credit.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
 					EffectiveAt: effectiveTime,
-					Expiration: credit_model.ExpirationPeriod{
-						Duration: credit_model.ExpirationPeriodDurationDay,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationDay,
 						Count:    1,
 					},
 				}
@@ -70,18 +71,18 @@ func TestPostgresConnectorGrants(t *testing.T) {
 		{
 			name:        "VoidGrant",
 			description: "Void a grant in the database and get the latest grant for an ID",
-			test: func(t *testing.T, connector credit_model.Connector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit.Connector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
 				p := createFeature(t, connector, namespace, features[0])
-				grant := credit_model.Grant{
-					Subject:     "subject-1",
+				grant := credit.Grant{
+					LedgerID:    ledger.ID,
 					FeatureID:   p.ID,
-					Type:        credit_model.GrantTypeUsage,
+					Type:        credit.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
 					EffectiveAt: effectiveTime,
-					Expiration: credit_model.ExpirationPeriod{
-						Duration: credit_model.ExpirationPeriodDurationDay,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationDay,
 						Count:    1,
 					},
 				}
@@ -113,71 +114,77 @@ func TestPostgresConnectorGrants(t *testing.T) {
 		{
 			name:        "VoidGrantNotFound",
 			description: "Void a grant that does not exist",
-			test: func(t *testing.T, connector credit_model.Connector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit.Connector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
 				p := createFeature(t, connector, namespace, features[0])
-				id := ulid.MustNew(ulid.Now(), nil).String()
-				grant := credit_model.Grant{
+				id := ulid.MustNew(ulid.Now(), nil)
+				grant := credit.Grant{
 					ID:          &id,
-					Subject:     "subject-1",
+					LedgerID:    ledger.ID,
 					FeatureID:   p.ID,
-					Type:        credit_model.GrantTypeUsage,
+					Type:        credit.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
 					EffectiveAt: effectiveTime,
-					Expiration: credit_model.ExpirationPeriod{
-						Duration: credit_model.ExpirationPeriodDurationDay,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationDay,
 						Count:    1,
 					},
 				}
 				_, err := connector.VoidGrant(ctx, namespace, grant)
 				assert.Error(t, err)
-				assert.Equal(t, &credit_model.GrantNotFoundError{GrantID: id}, err)
+				assert.Equal(t, &credit.GrantNotFoundError{GrantID: id}, err)
 			},
 		},
 		{
 			name:        "ListGrants",
-			description: "List grants for subjects",
-			test: func(t *testing.T, connector credit_model.Connector, db_client *db.Client) {
+			description: "List grants for ledgers",
+			test: func(t *testing.T, connector credit.Connector, db_client *db.Client, ledger1 credit.Ledger) {
+				ledger2, err := connector.CreateLedger(context.Background(), namespace, credit.Ledger{
+					Subject: ulid.Make().String(),
+				}, false)
+
+				assert.NoError(t, err)
+
 				ctx := context.Background()
 				p := createFeature(t, connector, namespace, features[0])
-				grant_s1_1 := credit_model.Grant{
-					Subject:     "subject-1",
+				grant_s1_1 := credit.Grant{
+					LedgerID:    ledger1.ID,
 					FeatureID:   p.ID,
-					Type:        credit_model.GrantTypeUsage,
+					Type:        credit.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
 					EffectiveAt: effectiveTime,
-					Expiration: credit_model.ExpirationPeriod{
-						Duration: credit_model.ExpirationPeriodDurationDay,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationDay,
 						Count:    1,
 					},
 				}
-				grant_s1_2 := credit_model.Grant{
-					Subject:     "subject-1",
+				grant_s1_2 := credit.Grant{
+					LedgerID:    ledger1.ID,
 					FeatureID:   p.ID,
-					Type:        credit_model.GrantTypeUsage,
+					Type:        credit.GrantTypeUsage,
 					Amount:      200,
 					Priority:    2,
 					EffectiveAt: effectiveTime,
-					Expiration: credit_model.ExpirationPeriod{
-						Duration: credit_model.ExpirationPeriodDurationDay,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationDay,
 						Count:    1,
 					},
 				}
-				grant_s2_1 := credit_model.Grant{
-					Subject:     "subject-2",
+				grant_s2_1 := credit.Grant{
+					LedgerID:    ledger2.ID,
 					FeatureID:   p.ID,
-					Type:        credit_model.GrantTypeUsage,
+					Type:        credit.GrantTypeUsage,
 					Amount:      300,
 					Priority:    1,
 					EffectiveAt: effectiveTime,
-					Expiration: credit_model.ExpirationPeriod{
-						Duration: credit_model.ExpirationPeriodDurationDay,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationDay,
 						Count:    1,
 					},
 				}
-				grant_s1_1, err := connector.CreateGrant(ctx, namespace, grant_s1_1)
+				grant_s1_1, err = connector.CreateGrant(ctx, namespace, grant_s1_1)
 				assert.NoError(t, err)
 				grant_s1_2, err = connector.CreateGrant(ctx, namespace, grant_s1_2)
 				assert.NoError(t, err)
@@ -187,18 +194,20 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				assert.NoError(t, err)
 				// assert count
 				assert.Equal(t, 4, db_client.CreditEntry.Query().CountX(ctx))
-				// all subjects' non-void grants
-				gs, err := connector.ListGrants(ctx, namespace, credit_model.ListGrantsParams{})
+				// all ledgers' non-void grants
+				gs, err := connector.ListGrants(ctx, namespace, credit.ListGrantsParams{})
 				assert.NoError(t, err)
-				assert.ElementsMatch(t, []credit_model.Grant{grant_s1_2, grant_s2_1}, gs)
-				// subject-1's non-void grants
-				gs, err = connector.ListGrants(ctx, namespace, credit_model.ListGrantsParams{Subjects: []string{"subject-1"}})
+				assert.ElementsMatch(t, []credit.Grant{grant_s1_2, grant_s2_1}, gs)
+				// ledger-1's non-void grants
+				gs, err = connector.ListGrants(ctx, namespace, credit.ListGrantsParams{
+					LedgerIDs: []ulid.ULID{ledger1.ID},
+				})
 				assert.NoError(t, err)
-				assert.ElementsMatch(t, []credit_model.Grant{grant_s1_2}, gs)
-				// all subjects' grants, including void grants
-				gs, err = connector.ListGrants(ctx, namespace, credit_model.ListGrantsParams{IncludeVoid: true})
+				assert.ElementsMatch(t, []credit.Grant{grant_s1_2}, gs)
+				// all ledger' grants, including void grants
+				gs, err = connector.ListGrants(ctx, namespace, credit.ListGrantsParams{IncludeVoid: true})
 				assert.NoError(t, err)
-				assert.ElementsMatch(t, []credit_model.Grant{grant_s1_2, grant_s2_1, void_grant_s1_1}, gs)
+				assert.ElementsMatch(t, []credit.Grant{grant_s1_2, grant_s2_1, void_grant_s1_1}, gs)
 			},
 		},
 	}
@@ -211,12 +220,20 @@ func TestPostgresConnectorGrants(t *testing.T) {
 			defer databaseClient.Close()
 			// Note: lock manager cannot be shared between tests as these parallel tests write the same ledger
 			connector := NewPostgresConnector(slog.Default(), databaseClient, nil, meterRepository)
-			tc.test(t, connector, databaseClient)
+
+			// let's provision a ledger
+			ledger, err := connector.CreateLedger(context.Background(), namespace, credit.Ledger{
+				Subject: ulid.Make().String(),
+			}, false)
+
+			assert.NoError(t, err)
+
+			tc.test(t, connector, databaseClient, ledger)
 		})
 	}
 }
 
-func createFeature(t *testing.T, connector credit_model.Connector, namespace string, feature credit_model.Feature) credit_model.Feature {
+func createFeature(t *testing.T, connector credit.Connector, namespace string, feature credit.Feature) credit.Feature {
 	ctx := context.Background()
 	p, err := connector.CreateFeature(ctx, namespace, feature)
 	if err != nil {

@@ -18,6 +18,7 @@ type Ledger struct {
 func (Ledger) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		TimeMixin{},
+		IDMixin{},
 	}
 }
 
@@ -26,6 +27,7 @@ func (Ledger) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("namespace").NotEmpty().Immutable(),
 		field.String("subject").NotEmpty().Immutable(),
+		field.JSON("metadata", map[string]string{}).Optional(),
 		field.Time("highwatermark").Default(func() time.Time {
 			return defaultHighwatermark
 		}),

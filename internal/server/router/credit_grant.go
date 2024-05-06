@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-chi/render"
+	"github.com/oklog/ulid/v2"
 
 	"github.com/openmeterio/openmeter/api"
 	credit_connector "github.com/openmeterio/openmeter/internal/credit"
@@ -23,7 +24,7 @@ func (a *Router) ListCreditGrants(w http.ResponseWriter, r *http.Request, params
 
 	// Get grants
 	grants, err := a.config.CreditConnector.ListGrants(ctx, namespace, credit_connector.ListGrantsParams{
-		Subjects:          defaultx.WithDefault(params.Subject, []string{}),
+		LedgerIDs:         defaultx.WithDefault(params.LedgerID, nil),
 		FromHighWatermark: true,
 		IncludeVoid:       true,
 		Limit:             defaultx.WithDefault(params.Limit, api.DefaultCreditsQueryLimit),
@@ -41,14 +42,14 @@ func (a *Router) ListCreditGrants(w http.ResponseWriter, r *http.Request, params
 	_ = render.RenderList(w, r, list)
 }
 
-// List credit grants, GET /api/v1/ledgers/{creditSubjectId}/grants
-func (a *Router) ListCreditGrantsBySubject(w http.ResponseWriter, r *http.Request, creditSubjectId api.CreditSubjectId, params api.ListCreditGrantsBySubjectParams) {
+// List credit grants, GET /api/v1/ledgers/{ledgerID}/grants
+func (a *Router) ListCreditGrantsByLedger(w http.ResponseWriter, r *http.Request, ledgerID api.LedgerID, params api.ListCreditGrantsByLedgerParams) {
 	ctx := contextx.WithAttr(r.Context(), "operation", "listCreditGrants")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	// Get grants
 	grants, err := a.config.CreditConnector.ListGrants(ctx, namespace, credit_connector.ListGrantsParams{
-		Subjects:          []string{creditSubjectId},
+		LedgerIDs:         []ulid.ULID{ledgerID},
 		FromHighWatermark: true,
 		IncludeVoid:       true,
 		Limit:             defaultx.WithDefault(params.Limit, api.DefaultCreditsQueryLimit),
@@ -67,7 +68,7 @@ func (a *Router) ListCreditGrantsBySubject(w http.ResponseWriter, r *http.Reques
 }
 
 // Create credit grant, POST /api/v1/ledgers/{creditSubjectId}/grants
-func (a *Router) CreateCreditGrant(w http.ResponseWriter, r *http.Request, creditSubjectId api.CreditSubjectId) {
+func (a *Router) CreateCreditGrant(w http.ResponseWriter, r *http.Request, ledgerID api.LedgerID) {
 	ctx := contextx.WithAttr(r.Context(), "operation", "createCreditGrant")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
@@ -102,7 +103,7 @@ func (a *Router) CreateCreditGrant(w http.ResponseWriter, r *http.Request, credi
 		}
 	}
 
-	grant.Subject = creditSubjectId
+	grant.LedgerID = ledgerID
 	// Let's make sure we are not allowing the ID to be specified externally
 	grant.ID = nil
 
@@ -131,8 +132,8 @@ func (a *Router) CreateCreditGrant(w http.ResponseWriter, r *http.Request, credi
 	_ = render.Render(w, r, g)
 }
 
-// Void credit grant, DELETE /api/v1/ledgers/{creditSubjectId}/grants/{creditGrantId}
-func (a *Router) VoidCreditGrant(w http.ResponseWriter, r *http.Request, creditSubjectId api.CreditSubjectId, creditGrantId api.CreditGrantId) {
+// Void credit grant, DELETE /api/v1/ledgers/{ledgerID}/grants/{creditGrantID}
+func (a *Router) VoidCreditGrant(w http.ResponseWriter, r *http.Request, ledgerID api.LedgerID, creditGrantId api.CreditGrantID) {
 	ctx := contextx.WithAttr(r.Context(), "operation", "voidCreditGrant")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
@@ -150,7 +151,7 @@ func (a *Router) VoidCreditGrant(w http.ResponseWriter, r *http.Request, creditS
 		return
 	}
 
-	if grant.Subject != creditSubjectId {
+	if grant.LedgerID != ledgerID {
 		a.config.ErrorHandler.HandleContext(ctx, &credit_model.GrantNotFoundError{GrantID: creditGrantId})
 		models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w, r)
 		return
@@ -162,8 +163,9 @@ func (a *Router) VoidCreditGrant(w http.ResponseWriter, r *http.Request, creditS
 		return
 	}
 
+	// TODO: this and the next should happen in the same trns
 	// Get balance to check if grant can be voided: not partially or fully used yet
-	balance, err := a.config.CreditConnector.GetBalance(ctx, namespace, grant.Subject, time.Now())
+	balance, err := a.config.CreditConnector.GetBalance(ctx, namespace, ledgerID, time.Now())
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)
 		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
@@ -205,8 +207,8 @@ func (a *Router) VoidCreditGrant(w http.ResponseWriter, r *http.Request, creditS
 	render.Status(r, http.StatusNoContent)
 }
 
-// Get credit, GET /api/v1/ledgers/{creditSubjectId}/grants/{creditGrantId}
-func (a *Router) GetCreditGrant(w http.ResponseWriter, r *http.Request, creditSubjectId api.CreditSubjectId, creditGrantId api.CreditGrantId) {
+// Get credit, GET /api/v1/ledgers/{ledgerID}/grants/{creditGrantId}
+func (a *Router) GetCreditGrant(w http.ResponseWriter, r *http.Request, ledgerID api.LedgerID, creditGrantId api.CreditGrantID) {
 	ctx := contextx.WithAttr(r.Context(), "operation", "getCreditGrant")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
@@ -218,7 +220,7 @@ func (a *Router) GetCreditGrant(w http.ResponseWriter, r *http.Request, creditSu
 		return
 	}
 
-	if grant.Subject != creditSubjectId {
+	if grant.LedgerID != ledgerID {
 		a.config.ErrorHandler.HandleContext(ctx, &credit_model.GrantNotFoundError{GrantID: creditGrantId})
 		models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w, r)
 		return

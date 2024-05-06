@@ -3,16 +3,20 @@ package postgres_connector
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 
+	"github.com/oklog/ulid/v2"
 	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_credit "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 func (c *PostgresConnector) CreateGrant(ctx context.Context, namespace string, grantIn credit_model.Grant) (credit_model.Grant, error) {
-	grant, err := mutationTransaction(ctx, c, namespace, grantIn.Subject, func(tx *db.Tx, ledgerEntity *db.Ledger) (*credit_model.Grant, error) {
+	grant, err := mutationTransaction(ctx, c, namespace, grantIn.LedgerID, func(tx *db.Tx, ledgerEntity *db.Ledger) (*credit_model.Grant, error) {
 		// Check if the reset is in the future
 		err := checkAfterHighWatermark(grantIn.EffectiveAt, ledgerEntity)
 		if err != nil {
@@ -22,12 +26,12 @@ func (c *PostgresConnector) CreateGrant(ctx context.Context, namespace string, g
 
 		q := tx.CreditEntry.Create().
 			SetNamespace(namespace).
-			SetNillableID(grantIn.ID).
-			SetSubject(grantIn.Subject).
+			SetNillableID(pgulid.Ptr(grantIn.ID)).
+			SetLedgerID(pgulid.Wrap(grantIn.LedgerID)).
 			SetEntryType(credit_model.EntryTypeGrant).
 			SetType(grantIn.Type).
-			SetNillableParentID(grantIn.ParentID).
-			SetNillableFeatureID(grantIn.FeatureID).
+			SetNillableParentID(pgulid.Ptr(grantIn.ParentID)).
+			SetNillableFeatureID(pgulid.Ptr(grantIn.FeatureID)).
 			SetAmount(grantIn.Amount).
 			SetPriority(grantIn.Priority).
 			SetEffectiveAt(grantIn.EffectiveAt).
@@ -60,7 +64,7 @@ func (c *PostgresConnector) CreateGrant(ctx context.Context, namespace string, g
 }
 
 func (c *PostgresConnector) VoidGrant(ctx context.Context, namespace string, grantIn credit_model.Grant) (credit_model.Grant, error) {
-	grant, err := mutationTransaction(ctx, c, namespace, grantIn.Subject, func(tx *db.Tx, ledgerEntity *db.Ledger) (*credit_model.Grant, error) {
+	grant, err := mutationTransaction(ctx, c, namespace, grantIn.LedgerID, func(tx *db.Tx, ledgerEntity *db.Ledger) (*credit_model.Grant, error) {
 		// Check if the reset is in the future
 		err := checkAfterHighWatermark(grantIn.EffectiveAt, ledgerEntity)
 		if err != nil {
@@ -75,7 +79,7 @@ func (c *PostgresConnector) VoidGrant(ctx context.Context, namespace string, gra
 		entity, err := tx.CreditEntry.Query().
 			Where(
 				db_credit.Namespace(namespace),
-				db_credit.ID(*grantIn.ID),
+				db_credit.ID(pgulid.Wrap(*grantIn.ID)),
 			).
 			Only(ctx)
 		if err != nil {
@@ -90,7 +94,7 @@ func (c *PostgresConnector) VoidGrant(ctx context.Context, namespace string, gra
 		entity, err = tx.CreditEntry.Create().
 			SetNamespace(entity.Namespace).
 			SetParentID(entity.ID).
-			SetSubject(entity.Subject).
+			SetLedgerID(entity.LedgerID).
 			SetEntryType(credit_model.EntryTypeVoidGrant).
 			SetType(*entity.Type).
 			SetNillableFeatureID(entity.FeatureID).
@@ -124,8 +128,10 @@ func (c *PostgresConnector) ListGrants(ctx context.Context, namespace string, pa
 		Where(
 			db_credit.Namespace(namespace),
 		)
-	if len(params.Subjects) > 0 {
-		q = q.Where(db_credit.SubjectIn(params.Subjects...))
+	if len(params.LedgerIDs) > 0 {
+		q = q.Where(db_credit.LedgerIDIn(slicesx.Map(params.LedgerIDs, func(id ulid.ULID) pgulid.ULID {
+			return pgulid.Wrap(id)
+		})...))
 	}
 	// equal?
 	if params.From != nil {
@@ -140,7 +146,7 @@ func (c *PostgresConnector) ListGrants(ctx context.Context, namespace string, pa
 		// Define the subquery for the maximum reset date
 		subQuery := sql.Select(
 			sql.As(sql.Max(t.C(db_credit.FieldEffectiveAt)), "highwatermark"),
-			t.C(db_credit.FieldSubject),
+			t.C(db_credit.FieldLedgerID),
 		).
 			From(t).
 			Where(
@@ -149,14 +155,14 @@ func (c *PostgresConnector) ListGrants(ctx context.Context, namespace string, pa
 					sql.EQ(t.C(db_credit.FieldEntryType), credit_model.EntryTypeReset),
 				),
 			).
-			GroupBy(db_credit.FieldSubject)
+			GroupBy(db_credit.FieldLedgerID)
 
 		// include as subquery, and find the last reset for each subject
 		// use the last reset as the high watermark
 		q = q.Where(func(s *sql.Selector) {
 			s.LeftJoin(subQuery).
 				On(s.C(db_credit.FieldNamespace), t.C(db_credit.FieldNamespace)).
-				On(s.C(db_credit.FieldSubject), t.C(db_credit.FieldSubject))
+				On(s.C(db_credit.FieldLedgerID), t.C(db_credit.FieldLedgerID))
 
 			// Ensure the effective date is greater than the last reset date
 			s.Where(
@@ -206,20 +212,20 @@ func (c *PostgresConnector) ListGrants(ctx context.Context, namespace string, pa
 	return list, nil
 }
 
-func (c *PostgresConnector) GetGrant(ctx context.Context, namespace string, id string) (credit_model.Grant, error) {
+func (c *PostgresConnector) GetGrant(ctx context.Context, namespace string, id ulid.ULID) (credit_model.Grant, error) {
 	entity, err := c.db.CreditEntry.Query().Where(
 		db_credit.Or(
 			// grant
 			db_credit.And(
 				db_credit.Namespace(namespace),
-				db_credit.ID(id),
+				db_credit.ID(pgulid.Wrap(id)),
 				db_credit.EntryTypeEQ(credit_model.EntryTypeGrant),
 				db_credit.Not(db_credit.HasChildren()),
 			),
 			// void grant
 			db_credit.And(
 				db_credit.Namespace(namespace),
-				db_credit.HasParentWith(db_credit.ID(id)),
+				db_credit.HasParentWith(db_credit.ID(pgulid.Wrap(id))),
 				db_credit.EntryTypeEQ(credit_model.EntryTypeVoidGrant),
 			),
 		),
@@ -245,14 +251,14 @@ func mapGrantEntity(entry *db.CreditEntry) (credit_model.Grant, error) {
 	}
 
 	grant := credit_model.Grant{
-		ID:          &entry.ID,
-		ParentID:    entry.ParentID,
-		Subject:     entry.Subject,
+		ID:          &entry.ID.ULID,
+		ParentID:    entry.ParentID.ULIDPointer(),
+		LedgerID:    entry.LedgerID.ULID,
 		Type:        *entry.Type,
-		FeatureID:   entry.FeatureID,
+		FeatureID:   entry.FeatureID.ULIDPointer(),
 		Amount:      *entry.Amount,
 		Priority:    entry.Priority,
-		EffectiveAt: entry.EffectiveAt,
+		EffectiveAt: entry.EffectiveAt.In(time.UTC),
 		Expiration: credit_model.ExpirationPeriod{
 			Duration: *entry.ExpirationPeriodDuration,
 			Count:    *entry.ExpirationPeriodCount,

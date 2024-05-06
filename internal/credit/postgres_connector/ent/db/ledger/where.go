@@ -7,50 +7,51 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/predicate"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 // ID filters vertices based on their ID field.
-func ID(id int) predicate.Ledger {
+func ID(id pgulid.ULID) predicate.Ledger {
 	return predicate.Ledger(sql.FieldEQ(FieldID, id))
 }
 
 // IDEQ applies the EQ predicate on the ID field.
-func IDEQ(id int) predicate.Ledger {
+func IDEQ(id pgulid.ULID) predicate.Ledger {
 	return predicate.Ledger(sql.FieldEQ(FieldID, id))
 }
 
 // IDNEQ applies the NEQ predicate on the ID field.
-func IDNEQ(id int) predicate.Ledger {
+func IDNEQ(id pgulid.ULID) predicate.Ledger {
 	return predicate.Ledger(sql.FieldNEQ(FieldID, id))
 }
 
 // IDIn applies the In predicate on the ID field.
-func IDIn(ids ...int) predicate.Ledger {
+func IDIn(ids ...pgulid.ULID) predicate.Ledger {
 	return predicate.Ledger(sql.FieldIn(FieldID, ids...))
 }
 
 // IDNotIn applies the NotIn predicate on the ID field.
-func IDNotIn(ids ...int) predicate.Ledger {
+func IDNotIn(ids ...pgulid.ULID) predicate.Ledger {
 	return predicate.Ledger(sql.FieldNotIn(FieldID, ids...))
 }
 
 // IDGT applies the GT predicate on the ID field.
-func IDGT(id int) predicate.Ledger {
+func IDGT(id pgulid.ULID) predicate.Ledger {
 	return predicate.Ledger(sql.FieldGT(FieldID, id))
 }
 
 // IDGTE applies the GTE predicate on the ID field.
-func IDGTE(id int) predicate.Ledger {
+func IDGTE(id pgulid.ULID) predicate.Ledger {
 	return predicate.Ledger(sql.FieldGTE(FieldID, id))
 }
 
 // IDLT applies the LT predicate on the ID field.
-func IDLT(id int) predicate.Ledger {
+func IDLT(id pgulid.ULID) predicate.Ledger {
 	return predicate.Ledger(sql.FieldLT(FieldID, id))
 }
 
 // IDLTE applies the LTE predicate on the ID field.
-func IDLTE(id int) predicate.Ledger {
+func IDLTE(id pgulid.ULID) predicate.Ledger {
 	return predicate.Ledger(sql.FieldLTE(FieldID, id))
 }
 
@@ -287,6 +288,16 @@ func SubjectEqualFold(v string) predicate.Ledger {
 // SubjectContainsFold applies the ContainsFold predicate on the "subject" field.
 func SubjectContainsFold(v string) predicate.Ledger {
 	return predicate.Ledger(sql.FieldContainsFold(FieldSubject, v))
+}
+
+// MetadataIsNil applies the IsNil predicate on the "metadata" field.
+func MetadataIsNil() predicate.Ledger {
+	return predicate.Ledger(sql.FieldIsNull(FieldMetadata))
+}
+
+// MetadataNotNil applies the NotNil predicate on the "metadata" field.
+func MetadataNotNil() predicate.Ledger {
+	return predicate.Ledger(sql.FieldNotNull(FieldMetadata))
 }
 
 // HighwatermarkEQ applies the EQ predicate on the "highwatermark" field.

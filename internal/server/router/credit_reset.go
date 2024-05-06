@@ -13,8 +13,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// Resets the credit POST /api/v1/ledgers/{creditSubjectId}/reset
-func (a *Router) ResetCredit(w http.ResponseWriter, r *http.Request, creditSubjectId api.CreditSubjectId) {
+// Resets the credit POST /api/v1/ledgers/{ledgerID}/reset
+func (a *Router) ResetCredit(w http.ResponseWriter, r *http.Request, ledgerID api.LedgerID) {
 	ctx := contextx.WithAttr(r.Context(), "operation", "resetCredit")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
@@ -36,7 +36,7 @@ func (a *Router) ResetCredit(w http.ResponseWriter, r *http.Request, creditSubje
 		return
 	}
 
-	resetIn.Subject = creditSubjectId
+	resetIn.LedgerID = ledgerID
 
 	// Reset credit
 	reset, _, err := a.config.CreditConnector.Reset(ctx, namespace, *resetIn)

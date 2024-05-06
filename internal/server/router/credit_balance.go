@@ -6,14 +6,15 @@ import (
 	"time"
 
 	"github.com/go-chi/render"
+	"github.com/oklog/ulid/v2"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// Get credit balance, GET /api/v1/ledgers/{creditSubjectId}/balance
-func (a *Router) GetCreditBalance(w http.ResponseWriter, r *http.Request, subject string, params api.GetCreditBalanceParams) {
+// Get credit balance, GET /api/v1/ledgers/{ledgerID}/balance
+func (a *Router) GetCreditBalance(w http.ResponseWriter, r *http.Request, ledgerID ulid.ULID, params api.GetCreditBalanceParams) {
 	ctx := contextx.WithAttr(r.Context(), "operation", "getCreditBalance")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 	cutline := time.Now()
@@ -23,7 +24,7 @@ func (a *Router) GetCreditBalance(w http.ResponseWriter, r *http.Request, subjec
 	}
 
 	// Get high watermark for credit
-	hw, err := a.config.CreditConnector.GetHighWatermark(ctx, namespace, subject)
+	hw, err := a.config.CreditConnector.GetHighWatermark(ctx, namespace, ledgerID)
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)
 		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
@@ -39,7 +40,7 @@ func (a *Router) GetCreditBalance(w http.ResponseWriter, r *http.Request, subjec
 	}
 
 	// Get balance
-	balance, err := a.config.CreditConnector.GetBalance(ctx, namespace, subject, cutline)
+	balance, err := a.config.CreditConnector.GetBalance(ctx, namespace, ledgerID, cutline)
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)
 		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)

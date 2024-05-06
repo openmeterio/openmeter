@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"time"
 
 	credit_model "github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 type resetWithRollovedGrants struct {
@@ -17,7 +19,7 @@ type resetWithRollovedGrants struct {
 // Reset resets the ledger for the subject.
 // Rolls over grants with rollover configuration.
 func (c *PostgresConnector) Reset(ctx context.Context, namespace string, reset credit_model.Reset) (credit_model.Reset, []credit_model.Grant, error) {
-	result, err := mutationTransaction(ctx, c, namespace, reset.Subject, func(tx *db.Tx, ledgerEntity *db.Ledger) (*resetWithRollovedGrants, error) {
+	result, err := mutationTransaction(ctx, c, namespace, reset.LedgerID, func(tx *db.Tx, ledgerEntity *db.Ledger) (*resetWithRollovedGrants, error) {
 		var rollovedGrants []credit_model.Grant
 
 		// Check if the reset is in the future
@@ -28,7 +30,7 @@ func (c *PostgresConnector) Reset(ctx context.Context, namespace string, reset c
 		}
 
 		// Collect grants to rollover
-		balance, err := c.GetBalance(ctx, namespace, reset.Subject, reset.EffectiveAt)
+		balance, err := c.GetBalance(ctx, namespace, reset.LedgerID, reset.EffectiveAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to list grants: %w", err)
 		}
@@ -59,8 +61,7 @@ func (c *PostgresConnector) Reset(ctx context.Context, namespace string, reset c
 			}
 
 			// Set the parent ID to the grant ID we are rolling over
-			parentId := *grant.ID
-			grant.ParentID = &parentId
+			grant.ParentID = grant.ID
 			grant.EffectiveAt = reset.EffectiveAt
 
 			// Append grant to rollover grants
@@ -71,7 +72,7 @@ func (c *PostgresConnector) Reset(ctx context.Context, namespace string, reset c
 		createEntities := []*db.CreditEntryCreate{
 			tx.CreditEntry.Create().
 				SetNamespace(namespace).
-				SetSubject(reset.Subject).
+				SetLedgerID(pgulid.Wrap(reset.LedgerID)).
 				SetEntryType(credit_model.EntryTypeReset).
 				SetEffectiveAt(reset.EffectiveAt),
 		}
@@ -80,11 +81,11 @@ func (c *PostgresConnector) Reset(ctx context.Context, namespace string, reset c
 		for _, grant := range rolloverGrants {
 			grantEntityCreate := tx.CreditEntry.Create().
 				SetNamespace(namespace).
-				SetSubject(grant.Subject).
+				SetLedgerID(pgulid.Wrap(grant.LedgerID)).
 				SetEntryType(credit_model.EntryTypeGrant).
 				SetType(grant.Type).
-				SetNillableParentID(grant.ParentID).
-				SetNillableFeatureID(grant.FeatureID).
+				SetNillableParentID(pgulid.Ptr(grant.ParentID)).
+				SetNillableFeatureID(pgulid.Ptr(grant.FeatureID)).
 				SetAmount(grant.Amount).
 				SetPriority(grant.Priority).
 				SetEffectiveAt(grant.EffectiveAt).
@@ -149,9 +150,9 @@ func mapResetEntity(entry *db.CreditEntry) (credit_model.Reset, error) {
 	}
 
 	reset := credit_model.Reset{
-		ID:          &entry.ID,
-		Subject:     entry.Subject,
-		EffectiveAt: entry.EffectiveAt,
+		ID:          &entry.ID.ULID,
+		LedgerID:    entry.LedgerID.ULID,
+		EffectiveAt: entry.EffectiveAt.In(time.UTC),
 	}
 
 	return reset, nil

@@ -3,6 +3,7 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -10,13 +11,14 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 // Ledger is the model entity for the Ledger schema.
 type Ledger struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID int `json:"id,omitempty"`
+	ID pgulid.ULID `json:"id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -25,6 +27,8 @@ type Ledger struct {
 	Namespace string `json:"namespace,omitempty"`
 	// Subject holds the value of the "subject" field.
 	Subject string `json:"subject,omitempty"`
+	// Metadata holds the value of the "metadata" field.
+	Metadata map[string]string `json:"metadata,omitempty"`
 	// Highwatermark holds the value of the "highwatermark" field.
 	Highwatermark time.Time `json:"highwatermark,omitempty"`
 	selectValues  sql.SelectValues
@@ -35,8 +39,10 @@ func (*Ledger) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case ledger.FieldMetadata:
+			values[i] = new([]byte)
 		case ledger.FieldID:
-			values[i] = new(sql.NullInt64)
+			values[i] = new(pgulid.ULID)
 		case ledger.FieldNamespace, ledger.FieldSubject:
 			values[i] = new(sql.NullString)
 		case ledger.FieldCreatedAt, ledger.FieldUpdatedAt, ledger.FieldHighwatermark:
@@ -57,11 +63,11 @@ func (l *Ledger) assignValues(columns []string, values []any) error {
 	for i := range columns {
 		switch columns[i] {
 		case ledger.FieldID:
-			value, ok := values[i].(*sql.NullInt64)
-			if !ok {
-				return fmt.Errorf("unexpected type %T for field id", value)
+			if value, ok := values[i].(*pgulid.ULID); !ok {
+				return fmt.Errorf("unexpected type %T for field id", values[i])
+			} else if value != nil {
+				l.ID = *value
 			}
-			l.ID = int(value.Int64)
 		case ledger.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -85,6 +91,14 @@ func (l *Ledger) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field subject", values[i])
 			} else if value.Valid {
 				l.Subject = value.String
+			}
+		case ledger.FieldMetadata:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field metadata", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &l.Metadata); err != nil {
+					return fmt.Errorf("unmarshal field metadata: %w", err)
+				}
 			}
 		case ledger.FieldHighwatermark:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -139,6 +153,9 @@ func (l *Ledger) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("subject=")
 	builder.WriteString(l.Subject)
+	builder.WriteString(", ")
+	builder.WriteString("metadata=")
+	builder.WriteString(fmt.Sprintf("%v", l.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("highwatermark=")
 	builder.WriteString(l.Highwatermark.Format(time.ANSIC))

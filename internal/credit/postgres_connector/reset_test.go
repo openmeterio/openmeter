@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
-	credit_model "github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -16,7 +17,6 @@ import (
 
 func TestPostgresConnectorReset(t *testing.T) {
 	namespace := "default"
-	subject := "subject-1"
 	meter := models.Meter{
 		Namespace:   namespace,
 		ID:          "meter-1",
@@ -24,7 +24,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 		Aggregation: models.MeterAggregationSum,
 	}
 	meterRepository := meter_model.NewInMemoryRepository([]models.Meter{meter})
-	featureIn := credit_model.Feature{
+	featureIn := credit.Feature{
 		Namespace: namespace,
 		MeterSlug: meter.Slug,
 		Name:      "feature-1",
@@ -33,29 +33,29 @@ func TestPostgresConnectorReset(t *testing.T) {
 	tt := []struct {
 		name        string
 		description string
-		test        func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client)
+		test        func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger)
 	}{
 		{
 			name:        "Reset",
 			description: "Should move high watermark ahead",
-			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
 				feature := createFeature(t, connector, namespace, featureIn)
 				// We need to truncate the time to workaround pgx driver timezone issue
 				// We also move it to the past to avoid timezone issues
-				t1 := time.Now().Truncate(time.Hour * 24).Add(-time.Hour * 24)
+				t1 := time.Now().In(time.UTC).Truncate(time.Hour * 24).Add(-time.Hour * 24)
 				t2 := t1.Add(time.Hour).Truncate(0)
 				t3 := t2.Add(time.Hour).Truncate(0)
 
-				_, err := connector.CreateGrant(ctx, namespace, credit_model.Grant{
-					Subject:     subject,
+				_, err := connector.CreateGrant(ctx, namespace, credit.Grant{
+					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
-					Type:        credit_model.GrantTypeUsage,
+					Type:        credit.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
 					EffectiveAt: t1,
-					Expiration: credit_model.ExpirationPeriod{
-						Duration: credit_model.ExpirationPeriodDurationMonth,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationMonth,
 						Count:    1,
 					},
 				})
@@ -66,24 +66,24 @@ func TestPostgresConnectorReset(t *testing.T) {
 				streamingConnector.addRow(meter.Slug, models.MeterQueryRow{})
 
 				// Reset
-				reset, rolloverGrants, err := connector.Reset(ctx, namespace, credit_model.Reset{
-					Subject:     subject,
+				reset, rolloverGrants, err := connector.Reset(ctx, namespace, credit.Reset{
+					LedgerID:    ledger.ID,
 					EffectiveAt: t3,
 				})
 				assert.NoError(t, err)
 				assert.NotNil(t, reset.ID)
 
 				// Get high watermark
-				highWatermark, err := connector.GetHighWatermark(ctx, namespace, subject)
+				highWatermark, err := connector.GetHighWatermark(ctx, namespace, ledger.ID)
 				assert.NoError(t, err)
-				assert.Equal(t, credit_model.HighWatermark{
-					Subject: subject,
-					Time:    t3,
+				assert.Equal(t, credit.HighWatermark{
+					LedgerID: ledger.ID,
+					Time:     t3,
 				}, highWatermark)
 
 				// Get grants
-				grants, err := connector.ListGrants(ctx, namespace, credit_model.ListGrantsParams{
-					Subjects:          []string{subject},
+				grants, err := connector.ListGrants(ctx, namespace, credit.ListGrantsParams{
+					LedgerIDs:         []ulid.ULID{ledger.ID},
 					FromHighWatermark: true,
 				})
 				assert.NoError(t, err)
@@ -96,7 +96,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 		{
 			name:        "ResetWithFullRollover",
 			description: "Should rollover grants with original amount",
-			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
 				feature := createFeature(t, connector, namespace, featureIn)
 				// We need to truncate the time to workaround pgx driver timezone issue
@@ -104,19 +104,19 @@ func TestPostgresConnectorReset(t *testing.T) {
 				t2 := t1.Add(time.Hour).Truncate(0)
 				t3 := t2.Add(time.Hour).Truncate(0)
 
-				_, err := connector.CreateGrant(ctx, namespace, credit_model.Grant{
-					Subject:     subject,
+				_, err := connector.CreateGrant(ctx, namespace, credit.Grant{
+					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
-					Type:        credit_model.GrantTypeUsage,
+					Type:        credit.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
 					EffectiveAt: t1,
-					Expiration: credit_model.ExpirationPeriod{
-						Duration: credit_model.ExpirationPeriodDurationMonth,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationMonth,
 						Count:    1,
 					},
-					Rollover: &credit_model.GrantRollover{
-						Type: credit_model.GrantRolloverTypeOriginalAmount,
+					Rollover: &credit.GrantRollover{
+						Type: credit.GrantRolloverTypeOriginalAmount,
 					},
 				})
 				assert.NoError(t, err)
@@ -126,16 +126,16 @@ func TestPostgresConnectorReset(t *testing.T) {
 				streamingConnector.addRow(meter.Slug, models.MeterQueryRow{})
 
 				// Reset
-				_, rolloverGrants, err := connector.Reset(ctx, namespace, credit_model.Reset{
-					Subject:     subject,
+				_, rolloverGrants, err := connector.Reset(ctx, namespace, credit.Reset{
+					LedgerID:    ledger.ID,
 					EffectiveAt: t3,
 				})
 				assert.NoError(t, err)
 				assert.Len(t, rolloverGrants, 1)
 
 				// Get grants
-				grants, err := connector.ListGrants(ctx, namespace, credit_model.ListGrantsParams{
-					Subjects:          []string{subject},
+				grants, err := connector.ListGrants(ctx, namespace, credit.ListGrantsParams{
+					LedgerIDs:         []ulid.ULID{ledger.ID},
 					FromHighWatermark: true,
 				})
 				assert.NoError(t, err)
@@ -148,7 +148,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 		{
 			name:        "ResetWithRemainingRollover",
 			description: "Should rollover grants with remaining amount",
-			test: func(t *testing.T, connector credit_model.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
 				feature := createFeature(t, connector, namespace, featureIn)
 				// We need to truncate the time to workaround pgx driver timezone issue
@@ -156,19 +156,19 @@ func TestPostgresConnectorReset(t *testing.T) {
 				t2 := t1.Add(time.Hour).Truncate(0)
 				t3 := t2.Add(time.Hour).Truncate(0)
 
-				grant1, err := connector.CreateGrant(ctx, namespace, credit_model.Grant{
-					Subject:     subject,
+				grant1, err := connector.CreateGrant(ctx, namespace, credit.Grant{
+					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
-					Type:        credit_model.GrantTypeUsage,
+					Type:        credit.GrantTypeUsage,
 					Amount:      100,
 					Priority:    1,
 					EffectiveAt: t1,
-					Expiration: credit_model.ExpirationPeriod{
-						Duration: credit_model.ExpirationPeriodDurationMonth,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationMonth,
 						Count:    1,
 					},
-					Rollover: &credit_model.GrantRollover{
-						Type: credit_model.GrantRolloverTypeRemainingAmount,
+					Rollover: &credit.GrantRollover{
+						Type: credit.GrantRolloverTypeRemainingAmount,
 					},
 				})
 				assert.NoError(t, err)
@@ -183,15 +183,15 @@ func TestPostgresConnectorReset(t *testing.T) {
 					GroupBy:   map[string]*string{},
 				})
 
-				_, rolloverGrants, err := connector.Reset(ctx, namespace, credit_model.Reset{
-					Subject:     subject,
+				_, rolloverGrants, err := connector.Reset(ctx, namespace, credit.Reset{
+					LedgerID:    ledger.ID,
 					EffectiveAt: t3,
 				})
 				assert.NoError(t, err)
 
 				// Get grants
-				grants, err := connector.ListGrants(ctx, namespace, credit_model.ListGrantsParams{
-					Subjects:          []string{subject},
+				grants, err := connector.ListGrants(ctx, namespace, credit.ListGrantsParams{
+					LedgerIDs:         []ulid.ULID{ledger.ID},
 					FromHighWatermark: true,
 				})
 				assert.NoError(t, err)
@@ -217,7 +217,14 @@ func TestPostgresConnectorReset(t *testing.T) {
 			streamingConnector := newMockStreamingConnector()
 			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository)
 
-			tc.test(t, connector, streamingConnector, databaseClient)
+			// let's provision a ledger
+			ledger, err := connector.CreateLedger(context.Background(), namespace, credit.Ledger{
+				Subject: ulid.Make().String(),
+			}, false)
+
+			assert.NoError(t, err)
+
+			tc.test(t, connector, streamingConnector, databaseClient, ledger)
 		})
 	}
 }
