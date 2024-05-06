@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"

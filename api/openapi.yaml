@@ -774,6 +774,8 @@ paths:
       summary: Creates the specified ledger
       description: |
         Create or update the specified ledger.
+      tags:
+        - Credits (Experimental)
       requestBody:
         description: The ledger to be created
         required: true
@@ -1976,8 +1978,7 @@ components:
         x-go-type: ulid.ULID
         x-go-type-import:
           path: github.com/oklog/ulid/v2
-      example:
-        - 01HX6VK5C498B3ABY9PR1069PP
+      example: 01HX6VK5C498B3ABY9PR1069PP
     queryFilterSubject:
       name: subject
       description: |
