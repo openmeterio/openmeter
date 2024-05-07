@@ -37,8 +37,8 @@ tags:
       [Learn more](https://openmeter.io/docs/getting-started/subjects)
   - name: Entitlements (Experimental)
     description: |
-      Endpoints related to credits.
-      [Learn more](https://openmeter.io/docs/getting-started/credits)
+      Endpoints related to entitlements.
+      [Learn more](https://openmeter.io/docs/monetize/entitlements/overview)
 paths:
   /api/v1/events:
     get:
