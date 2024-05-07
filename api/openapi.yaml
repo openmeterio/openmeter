@@ -35,7 +35,7 @@ tags:
     description: |
       Endpoints related to subjects.
       [Learn more](https://openmeter.io/docs/getting-started/subjects)
-  - name: Credits (Experimental)
+  - name: Entitlements (Experimental)
     description: |
       Endpoints related to credits.
       [Learn more](https://openmeter.io/docs/getting-started/credits)
@@ -633,7 +633,7 @@ paths:
       description: |
         List features.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       responses:
         "200":
           description: List of features.
@@ -653,7 +653,7 @@ paths:
       description: |
         Creates a feature.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       requestBody:
         description: The feature to create.
         required: true
@@ -683,7 +683,7 @@ paths:
       description: |
         Get feature by key.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       parameters:
         - $ref: "#/components/parameters/featureID"
       responses:
@@ -705,7 +705,7 @@ paths:
       description: |
         Delete a feature by key.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       parameters:
         - $ref: "#/components/parameters/featureID"
       responses:
@@ -725,7 +725,7 @@ paths:
       description: |
         List the already defined ledgers.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       parameters:
         - name: subject
           in: query
@@ -775,7 +775,7 @@ paths:
       description: |
         Create or update the specified ledger.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       requestBody:
         description: The ledger to be created
         required: true
@@ -804,7 +804,7 @@ paths:
       description: |
         Get the balance of a specific subject.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       parameters:
         - $ref: "#/components/parameters/ledgerID"
         - name: time
@@ -837,7 +837,7 @@ paths:
       description: |
         Get credit ledger for a specific subject.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       parameters:
         - $ref: "#/components/parameters/ledgerID"
         - $ref: "#/components/parameters/creditQueryLimit"
@@ -882,7 +882,7 @@ paths:
       description: |
         Resets the credit balances to zero for a specific subject and re-apply active grants with rollover configuration.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       parameters:
         - $ref: "#/components/parameters/ledgerID"
       requestBody:
@@ -915,7 +915,7 @@ paths:
       description: |
         List credit grants for multiple ledgers.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       parameters:
         - $ref: "#/components/parameters/queryFilterLedgerID"
         - $ref: "#/components/parameters/creditQueryLimit"
@@ -941,7 +941,7 @@ paths:
       description: |
         List credit grants for a specific ledger.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       parameters:
         - $ref: "#/components/parameters/ledgerID"
         - $ref: "#/components/parameters/creditQueryLimit"
@@ -968,7 +968,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/ledgerID"        
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       requestBody:
         description: The credit grant to create.
         required: true
@@ -997,7 +997,7 @@ paths:
       description: |
         Get credit by key.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       parameters:
         - $ref: "#/components/parameters/ledgerID"
         - $ref: "#/components/parameters/creditGrantID"
@@ -1021,7 +1021,7 @@ paths:
         Void a credit grant by ID. Partially or fully used credits cannot be voided.
         Voided credits won't be applied to the subject's balance anymore.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       parameters:
         - $ref: "#/components/parameters/creditGrantID"
         - $ref: "#/components/parameters/ledgerID"
