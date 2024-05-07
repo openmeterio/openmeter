@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"time"
 
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 // LedgerCreate is the builder for creating a Ledger entity.
@@ -62,6 +64,12 @@ func (lc *LedgerCreate) SetSubject(s string) *LedgerCreate {
 	return lc
 }
 
+// SetMetadata sets the "metadata" field.
+func (lc *LedgerCreate) SetMetadata(m map[string]string) *LedgerCreate {
+	lc.mutation.SetMetadata(m)
+	return lc
+}
+
 // SetHighwatermark sets the "highwatermark" field.
 func (lc *LedgerCreate) SetHighwatermark(t time.Time) *LedgerCreate {
 	lc.mutation.SetHighwatermark(t)
@@ -72,6 +80,20 @@ func (lc *LedgerCreate) SetHighwatermark(t time.Time) *LedgerCreate {
 func (lc *LedgerCreate) SetNillableHighwatermark(t *time.Time) *LedgerCreate {
 	if t != nil {
 		lc.SetHighwatermark(*t)
+	}
+	return lc
+}
+
+// SetID sets the "id" field.
+func (lc *LedgerCreate) SetID(pg pgulid.ULID) *LedgerCreate {
+	lc.mutation.SetID(pg)
+	return lc
+}
+
+// SetNillableID sets the "id" field if the given value is not nil.
+func (lc *LedgerCreate) SetNillableID(pg *pgulid.ULID) *LedgerCreate {
+	if pg != nil {
+		lc.SetID(*pg)
 	}
 	return lc
 }
@@ -123,6 +145,10 @@ func (lc *LedgerCreate) defaults() {
 		v := ledger.DefaultHighwatermark()
 		lc.mutation.SetHighwatermark(v)
 	}
+	if _, ok := lc.mutation.ID(); !ok {
+		v := ledger.DefaultID()
+		lc.mutation.SetID(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -166,8 +192,13 @@ func (lc *LedgerCreate) sqlSave(ctx context.Context) (*Ledger, error) {
 		}
 		return nil, err
 	}
-	id := _spec.ID.Value.(int64)
-	_node.ID = int(id)
+	if _spec.ID.Value != nil {
+		if id, ok := _spec.ID.Value.(*pgulid.ULID); ok {
+			_node.ID = *id
+		} else if err := _node.ID.Scan(_spec.ID.Value); err != nil {
+			return nil, err
+		}
+	}
 	lc.mutation.id = &_node.ID
 	lc.mutation.done = true
 	return _node, nil
@@ -176,9 +207,13 @@ func (lc *LedgerCreate) sqlSave(ctx context.Context) (*Ledger, error) {
 func (lc *LedgerCreate) createSpec() (*Ledger, *sqlgraph.CreateSpec) {
 	var (
 		_node = &Ledger{config: lc.config}
-		_spec = sqlgraph.NewCreateSpec(ledger.Table, sqlgraph.NewFieldSpec(ledger.FieldID, field.TypeInt))
+		_spec = sqlgraph.NewCreateSpec(ledger.Table, sqlgraph.NewFieldSpec(ledger.FieldID, field.TypeOther))
 	)
 	_spec.OnConflict = lc.conflict
+	if id, ok := lc.mutation.ID(); ok {
+		_node.ID = id
+		_spec.ID.Value = &id
+	}
 	if value, ok := lc.mutation.CreatedAt(); ok {
 		_spec.SetField(ledger.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -194,6 +229,10 @@ func (lc *LedgerCreate) createSpec() (*Ledger, *sqlgraph.CreateSpec) {
 	if value, ok := lc.mutation.Subject(); ok {
 		_spec.SetField(ledger.FieldSubject, field.TypeString, value)
 		_node.Subject = value
+	}
+	if value, ok := lc.mutation.Metadata(); ok {
+		_spec.SetField(ledger.FieldMetadata, field.TypeJSON, value)
+		_node.Metadata = value
 	}
 	if value, ok := lc.mutation.Highwatermark(); ok {
 		_spec.SetField(ledger.FieldHighwatermark, field.TypeTime, value)
@@ -263,6 +302,24 @@ func (u *LedgerUpsert) UpdateUpdatedAt() *LedgerUpsert {
 	return u
 }
 
+// SetMetadata sets the "metadata" field.
+func (u *LedgerUpsert) SetMetadata(v map[string]string) *LedgerUpsert {
+	u.Set(ledger.FieldMetadata, v)
+	return u
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *LedgerUpsert) UpdateMetadata() *LedgerUpsert {
+	u.SetExcluded(ledger.FieldMetadata)
+	return u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *LedgerUpsert) ClearMetadata() *LedgerUpsert {
+	u.SetNull(ledger.FieldMetadata)
+	return u
+}
+
 // SetHighwatermark sets the "highwatermark" field.
 func (u *LedgerUpsert) SetHighwatermark(v time.Time) *LedgerUpsert {
 	u.Set(ledger.FieldHighwatermark, v)
@@ -275,17 +332,23 @@ func (u *LedgerUpsert) UpdateHighwatermark() *LedgerUpsert {
 	return u
 }
 
-// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
 //	client.Ledger.Create().
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(ledger.FieldID)
+//			}),
 //		).
 //		Exec(ctx)
 func (u *LedgerUpsertOne) UpdateNewValues() *LedgerUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.ID(); exists {
+			s.SetIgnore(ledger.FieldID)
+		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(ledger.FieldCreatedAt)
 		}
@@ -340,6 +403,27 @@ func (u *LedgerUpsertOne) UpdateUpdatedAt() *LedgerUpsertOne {
 	})
 }
 
+// SetMetadata sets the "metadata" field.
+func (u *LedgerUpsertOne) SetMetadata(v map[string]string) *LedgerUpsertOne {
+	return u.Update(func(s *LedgerUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *LedgerUpsertOne) UpdateMetadata() *LedgerUpsertOne {
+	return u.Update(func(s *LedgerUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *LedgerUpsertOne) ClearMetadata() *LedgerUpsertOne {
+	return u.Update(func(s *LedgerUpsert) {
+		s.ClearMetadata()
+	})
+}
+
 // SetHighwatermark sets the "highwatermark" field.
 func (u *LedgerUpsertOne) SetHighwatermark(v time.Time) *LedgerUpsertOne {
 	return u.Update(func(s *LedgerUpsert) {
@@ -370,7 +454,12 @@ func (u *LedgerUpsertOne) ExecX(ctx context.Context) {
 }
 
 // Exec executes the UPSERT query and returns the inserted/updated ID.
-func (u *LedgerUpsertOne) ID(ctx context.Context) (id int, err error) {
+func (u *LedgerUpsertOne) ID(ctx context.Context) (id pgulid.ULID, err error) {
+	if u.create.driver.Dialect() == dialect.MySQL {
+		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
+		// fields from the database since MySQL does not support the RETURNING clause.
+		return id, errors.New("db: LedgerUpsertOne.ID is not supported by MySQL driver. Use LedgerUpsertOne.Exec instead")
+	}
 	node, err := u.create.Save(ctx)
 	if err != nil {
 		return id, err
@@ -379,7 +468,7 @@ func (u *LedgerUpsertOne) ID(ctx context.Context) (id int, err error) {
 }
 
 // IDX is like ID, but panics if an error occurs.
-func (u *LedgerUpsertOne) IDX(ctx context.Context) int {
+func (u *LedgerUpsertOne) IDX(ctx context.Context) pgulid.ULID {
 	id, err := u.ID(ctx)
 	if err != nil {
 		panic(err)
@@ -434,10 +523,6 @@ func (lcb *LedgerCreateBulk) Save(ctx context.Context) ([]*Ledger, error) {
 					return nil, err
 				}
 				mutation.id = &nodes[i].ID
-				if specs[i].ID.Value != nil {
-					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int(id)
-				}
 				mutation.done = true
 				return nodes[i], nil
 			})
@@ -524,12 +609,18 @@ type LedgerUpsertBulk struct {
 //	client.Ledger.Create().
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(ledger.FieldID)
+//			}),
 //		).
 //		Exec(ctx)
 func (u *LedgerUpsertBulk) UpdateNewValues() *LedgerUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		for _, b := range u.create.builders {
+			if _, exists := b.mutation.ID(); exists {
+				s.SetIgnore(ledger.FieldID)
+			}
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(ledger.FieldCreatedAt)
 			}
@@ -582,6 +673,27 @@ func (u *LedgerUpsertBulk) SetUpdatedAt(v time.Time) *LedgerUpsertBulk {
 func (u *LedgerUpsertBulk) UpdateUpdatedAt() *LedgerUpsertBulk {
 	return u.Update(func(s *LedgerUpsert) {
 		s.UpdateUpdatedAt()
+	})
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *LedgerUpsertBulk) SetMetadata(v map[string]string) *LedgerUpsertBulk {
+	return u.Update(func(s *LedgerUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *LedgerUpsertBulk) UpdateMetadata() *LedgerUpsertBulk {
+	return u.Update(func(s *LedgerUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *LedgerUpsertBulk) ClearMetadata() *LedgerUpsertBulk {
+	return u.Update(func(s *LedgerUpsert) {
+		s.ClearMetadata()
 	})
 }
 

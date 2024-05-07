@@ -13,12 +13,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-// Get feature, GET:/api/v1/features/{featureId}
-func (a *Router) GetFeature(w http.ResponseWriter, r *http.Request, featureId api.FeatureId) {
+// Get feature, GET:/api/v1/features/{featureID}
+func (a *Router) GetFeature(w http.ResponseWriter, r *http.Request, featureID api.FeatureID) {
 	ctx := contextx.WithAttr(r.Context(), "operation", "getFeature")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
-	feature, err := a.config.CreditConnector.GetFeature(ctx, namespace, featureId)
+	feature, err := a.config.CreditConnector.GetFeature(ctx, namespace, featureID)
 	if err != nil {
 		if _, ok := err.(*credit.FeatureNotFoundError); ok {
 			models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w, r)
@@ -112,12 +112,12 @@ func validateMeterAggregation(meter models.Meter) error {
 	)
 }
 
-// Delete feature, DELETE:/api/v1/features/{featureId}
-func (a *Router) DeleteFeature(w http.ResponseWriter, r *http.Request, featureId api.FeatureId) {
+// Delete feature, DELETE:/api/v1/features/{featureID}
+func (a *Router) DeleteFeature(w http.ResponseWriter, r *http.Request, featureID api.FeatureID) {
 	ctx := contextx.WithAttr(r.Context(), "operation", "deleteFeature")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
-	_, err := a.config.CreditConnector.GetFeature(ctx, namespace, featureId)
+	_, err := a.config.CreditConnector.GetFeature(ctx, namespace, featureID)
 	if err != nil {
 		if _, ok := err.(*credit.FeatureNotFoundError); ok {
 			models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w, r)
@@ -129,7 +129,7 @@ func (a *Router) DeleteFeature(w http.ResponseWriter, r *http.Request, featureId
 		return
 	}
 
-	err = a.config.CreditConnector.DeleteFeature(ctx, namespace, featureId)
+	err = a.config.CreditConnector.DeleteFeature(ctx, namespace, featureID)
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)
 		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)

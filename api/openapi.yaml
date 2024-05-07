@@ -35,7 +35,7 @@ tags:
     description: |
       Endpoints related to subjects.
       [Learn more](https://openmeter.io/docs/getting-started/subjects)
-  - name: Credits (Experimental)
+  - name: Entitlements (Experimental)
     description: |
       Endpoints related to credits.
       [Learn more](https://openmeter.io/docs/getting-started/credits)
@@ -633,7 +633,7 @@ paths:
       description: |
         List features.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       responses:
         "200":
           description: List of features.
@@ -653,7 +653,7 @@ paths:
       description: |
         Creates a feature.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       requestBody:
         description: The feature to create.
         required: true
@@ -676,16 +676,16 @@ paths:
           $ref: "#/components/responses/NotImplementedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
-  /api/v1/features/{featureId}:
+  /api/v1/features/{featureID}:
     get:
       operationId: getFeature
       summary: Get feature
       description: |
         Get feature by key.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       parameters:
-        - $ref: "#/components/parameters/featureId"
+        - $ref: "#/components/parameters/featureID"
       responses:
         "200":
           description: Feature found.
@@ -705,9 +705,9 @@ paths:
       description: |
         Delete a feature by key.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       parameters:
-        - $ref: "#/components/parameters/featureId"
+        - $ref: "#/components/parameters/featureID"
       responses:
         "204":
           description: Feature deleted.
@@ -718,16 +718,95 @@ paths:
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
   # Credit Balances
-  /api/v1/ledgers/{creditSubjectId}/balance:
+  /api/v1/ledgers:
+    get:
+      operationId: listLedgers
+      summary: List the already defined ledgers.
+      description: |
+        List the already defined ledgers.
+      tags:
+        - Entitlements (Experimental)
+      parameters:
+        - name: subject
+          in: query
+          required: false
+          description: Query a specific ledger
+          schema:
+            type: array
+            items:
+              type: string
+              description: |
+                A metering subject to list the ledger of.
+
+        - name: limit
+          in: query
+          required: false
+          description: Number of ledgers to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 1000
+            example: 1000
+        - name: offset
+          in: query
+          required: false
+          description: Start returning ledgers from this offset
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of the matching ledgers.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Ledger"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"                  
+    post:
+      operationId: createLedger
+      summary: Creates the specified ledger
+      description: |
+        Create or update the specified ledger.
+      tags:
+        - Entitlements (Experimental)
+      requestBody:
+        description: The ledger to be created
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLedger"
+      responses:
+        "201":
+          description: The created ledger.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ledger"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"    
+        
+  /api/v1/ledgers/{ledgerID}/balance:
     get:
       operationId: getCreditBalance
       summary: Get the balance of a specific subject.
       description: |
         Get the balance of a specific subject.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       parameters:
-        - $ref: "#/components/parameters/creditSubjectId"
+        - $ref: "#/components/parameters/ledgerID"
         - name: time
           in: query
           required: false
@@ -751,16 +830,16 @@ paths:
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
   # Credit Ledger
-  /api/v1/ledgers/{creditSubjectId}/history:
+  /api/v1/ledgers/{ledgerID}/history:
     get:
       operationId: getCreditHistory
       summary: Get credit ledger
       description: |
         Get credit ledger for a specific subject.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       parameters:
-        - $ref: "#/components/parameters/creditSubjectId"
+        - $ref: "#/components/parameters/ledgerID"
         - $ref: "#/components/parameters/creditQueryLimit"
         - name: from
           in: query
@@ -796,16 +875,16 @@ paths:
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
   # Credit Reset
-  /api/v1/ledgers/{creditSubjectId}/reset:
+  /api/v1/ledgers/{ledgerID}/reset:
     post:
       operationId: resetCredit
       summary: Reset credit balance
       description: |
         Resets the credit balances to zero for a specific subject and re-apply active grants with rollover configuration.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       parameters:
-        - $ref: "#/components/parameters/creditSubjectId"
+        - $ref: "#/components/parameters/ledgerID"
       requestBody:
         description: Details for the reset.
         required: true
@@ -832,13 +911,13 @@ paths:
   /api/v1/ledgers/grants:
     get:
       operationId: listCreditGrants
-      summary: List credit grants for multiple subjects
+      summary: List credit grants for multiple ledgers
       description: |
-        List credit grants for multiple subjects.
+        List credit grants for multiple ledgers.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       parameters:
-        - $ref: "#/components/parameters/queryFilterSubject"
+        - $ref: "#/components/parameters/queryFilterLedgerID"
         - $ref: "#/components/parameters/creditQueryLimit"
       responses:
         "200":
@@ -855,16 +934,16 @@ paths:
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
-  /api/v1/ledgers/{creditSubjectId}/grants:
+  /api/v1/ledgers/{ledgerID}/grants:
     get:
-      operationId: listCreditGrantsBySubject
+      operationId: listCreditGrantsByLedger
       summary: List credit grants
       description: |
-        List credit grants.
+        List credit grants for a specific ledger.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       parameters:
-        - $ref: "#/components/parameters/creditSubjectId"
+        - $ref: "#/components/parameters/ledgerID"
         - $ref: "#/components/parameters/creditQueryLimit"
       responses:
         "200":
@@ -887,9 +966,9 @@ paths:
       description: |
         Creates a credit grant.
       parameters:
-        - $ref: "#/components/parameters/creditSubjectId"        
+        - $ref: "#/components/parameters/ledgerID"        
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       requestBody:
         description: The credit grant to create.
         required: true
@@ -911,17 +990,17 @@ paths:
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
   # Credit Grants
-  /api/v1/ledgers/{creditSubjectId}/grants/{creditGrantId}:
+  /api/v1/ledgers/{ledgerID}/grants/{creditGrantID}:
     get:
       operationId: getCreditGrant
       summary: Get credit grant.
       description: |
         Get credit by key.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       parameters:
-        - $ref: "#/components/parameters/creditSubjectId"
-        - $ref: "#/components/parameters/creditGrantId"
+        - $ref: "#/components/parameters/ledgerID"
+        - $ref: "#/components/parameters/creditGrantID"
       responses:
         "200":
           description: Credit found.
@@ -942,10 +1021,10 @@ paths:
         Void a credit grant by ID. Partially or fully used credits cannot be voided.
         Voided credits won't be applied to the subject's balance anymore.
       tags:
-        - Credits (Experimental)
+        - Entitlements (Experimental)
       parameters:
-        - $ref: "#/components/parameters/creditGrantId"
-        - $ref: "#/components/parameters/creditSubjectId"
+        - $ref: "#/components/parameters/creditGrantID"
+        - $ref: "#/components/parameters/ledgerID"
       responses:
         "204":
           description: Credit grant voided.
@@ -1150,6 +1229,46 @@ components:
             If the feature is archived, it will not be used for grants or usage.
           type: boolean
           example: false
+    CreateLedger:
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/internal/credit
+      x-go-type: credit.Ledger
+      type: object
+      description: |
+        A ledger represented in open meter. A ledger must be assigned to a single
+        subject.
+      required:
+        - subject
+      properties:
+        subject:
+          description: |
+            The metering subject this ledger used to track credits for
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
+    Ledger:
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/internal/credit
+      x-go-type: credit.Ledger
+      type: object
+      description: |
+        A ledger represented in our system.
+      allOf:
+        - $ref: "#/components/schemas/CreateLedger"
+        - type: object
+          required:
+          - id
+          properties:
+            id:
+              description: |
+                Readonly unique ULID identifier of the ledger.
+              readOnly: true
+              type: string
+              example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
     CreditLedgerEntry:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit
@@ -1300,7 +1419,7 @@ components:
         - id
         - type
         - amount
-        - featureId
+        - featureID
         - effectiveAt
         - expiration
       properties:
@@ -1317,7 +1436,10 @@ components:
             The amount to grant. Can be positive or negative number.
           type: number
           example: 100
-        featureId:
+        featureID:
+          x-go-type: ulid.ULID
+          x-go-type-import:
+            path: github.com/oklog/ulid/v2
           description: |
             The unique feature ULID that the grant is associated with, if any.
           type: string
@@ -1758,28 +1880,37 @@ components:
       schema:
         type: string
         example: "customer-id"
-    featureId:
-      name: featureId
+    featureID:
+      name: featureID
       description: A unique ULID identifier for a feature.
       in: path
       required: true
       schema:
         type: string
         example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-    creditGrantId:
-      name: creditGrantId
+        x-go-type: ulid.ULID
+        x-go-type-import:
+          path: github.com/oklog/ulid/v2
+    creditGrantID:
+      name: creditGrantID
       description: A unique identifier for a credit grant.
       in: path
       required: true
       schema:
         type: string
         example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-    creditSubjectId:
-      name: creditSubjectId
+        x-go-type: ulid.ULID
+        x-go-type-import:
+          path: github.com/oklog/ulid/v2
+    ledgerID:
+      name: ledgerID
       in: path
       required: true
       description: A unique identifier for a credit ledger's subject.
       schema:
+        x-go-type: ulid.ULID
+        x-go-type-import:
+          path: github.com/oklog/ulid/v2
         type: string
         example: "customer-id"
     creditQueryLimit:
@@ -1834,21 +1965,32 @@ components:
         type: string
         default: UTC
         example: "America/New_York"
-    queryFilterSubject:
-      name: subject
+    queryFilterLedgerID:
+      name: ledgerID
       description: |
         Filtering and group by multiple subjects.
 
-        Usage: `?subject=customer-1&subject=customer-2`
+        Usage: `?ledgerID=01HX6VK5C498B3ABY9PR1069PP`
+      in: query
+      required: false
+      schema:
+        type: string
+        x-go-type: ulid.ULID
+        x-go-type-import:
+          path: github.com/oklog/ulid/v2
+      example: 01HX6VK5C498B3ABY9PR1069PP
+    queryFilterSubject:
+      name: subject
+      description: |
+        Filtering by multiple subjects.
+
+        Usage: ?subject=customer-1&subject=customer-2
       in: query
       required: false
       schema:
         type: array
         items:
           type: string
-      example:
-        - customer-1
-        - customer-2
     queryFilterGroupBy:
       name: filterGroupBy
       in: query

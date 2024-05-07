@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 const (
@@ -21,6 +22,8 @@ const (
 	FieldNamespace = "namespace"
 	// FieldSubject holds the string denoting the subject field in the database.
 	FieldSubject = "subject"
+	// FieldMetadata holds the string denoting the metadata field in the database.
+	FieldMetadata = "metadata"
 	// FieldHighwatermark holds the string denoting the highwatermark field in the database.
 	FieldHighwatermark = "highwatermark"
 	// Table holds the table name of the ledger in the database.
@@ -34,6 +37,7 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldNamespace,
 	FieldSubject,
+	FieldMetadata,
 	FieldHighwatermark,
 }
 
@@ -60,6 +64,8 @@ var (
 	SubjectValidator func(string) error
 	// DefaultHighwatermark holds the default value on creation for the "highwatermark" field.
 	DefaultHighwatermark func() time.Time
+	// DefaultID holds the default value on creation for the "id" field.
+	DefaultID func() pgulid.ULID
 )
 
 // OrderOption defines the ordering options for the Ledger queries.

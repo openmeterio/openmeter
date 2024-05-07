@@ -5,7 +5,24 @@ import (
 	"net/http"
 	"sort"
 	"time"
+
+	"github.com/oklog/ulid/v2"
 )
+
+type Ledger struct {
+	// ID is the ID of the ledger instance
+	ID ulid.ULID `json:"id,omitempty"`
+
+	// Subject specifies which metering subject this ledger is referring to
+	Subject string `json:"subject"`
+
+	Metadata map[string]string `json:"metadata,omitempty"`
+}
+
+// Render implements the chi renderer interface.
+func (c Ledger) Render(w http.ResponseWriter, r *http.Request) error {
+	return nil
+}
 
 type LedgerEntryType string
 
@@ -39,13 +56,12 @@ func (LedgerEntryType) Values() (kinds []string) {
 
 // LedgerEntry is a credit ledger entry.
 type LedgerEntry struct {
-	ID         *string         `json:"id,omitempty"`
-	Type       LedgerEntryType `json:"type"`
-	Time       time.Time       `json:"time"`
-	FeatureID  *string         `json:"featureId,omitempty"`
-	Amount     *float64        `json:"amount,omitempty"`
-	Period     *Period         `json:"period,omitempty"`
-	ExternalID *string         `json:"externalId,omitempty"`
+	ID        *ulid.ULID      `json:"id,omitempty"`
+	Type      LedgerEntryType `json:"type"`
+	Time      time.Time       `json:"time"`
+	FeatureID *ulid.ULID      `json:"featureId,omitempty"`
+	Amount    *float64        `json:"amount,omitempty"`
+	Period    *Period         `json:"period,omitempty"`
 }
 
 type Period struct {

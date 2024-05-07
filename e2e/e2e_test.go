@@ -10,11 +10,12 @@ import (
 
 	"github.com/brianvoe/gofakeit/v6"
 	cloudevents "github.com/cloudevents/sdk-go/v2/event"
+	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	api "github.com/openmeterio/openmeter/api/client/go"
-	credit_model "github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -522,7 +523,7 @@ func TestCredit(t *testing.T) {
 		})
 
 		require.NoError(t, err)
-		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", resp.Body)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
 
 		featureId := resp.JSON201.ID
 		archived := false
@@ -539,6 +540,24 @@ func TestCredit(t *testing.T) {
 		assert.Equal(t, expected, resp.JSON201)
 	})
 
+	ledgerID := ulid.ULID{}
+	ledgerMeta := map[string]string{
+		"test": "data",
+	}
+	t.Run("Create Ledger", func(t *testing.T) {
+		resp, err := client.CreateLedgerWithResponse(context.Background(), api.CreateLedgerJSONRequestBody{
+			Subject:  subject,
+			Metadata: ledgerMeta,
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+
+		require.Equal(t, resp.JSON201.Subject, subject)
+		require.Equal(t, resp.JSON201.Metadata["test"], "data")
+		ledgerID = resp.JSON201.ID
+	})
+
 	t.Run("Create Grant", func(t *testing.T) {
 		effectiveAt, _ := time.Parse(time.RFC3339, "2024-01-01T00:01:00Z")
 
@@ -552,14 +571,15 @@ func TestCredit(t *testing.T) {
 		featureId := features[0].ID
 
 		// Create grant
-		resp, err := client.CreateCreditGrantWithResponse(context.Background(), subject, api.CreateCreditGrantRequest{
-			Type:        credit_model.GrantTypeUsage,
+		resp, err := client.CreateCreditGrantWithResponse(context.Background(), ledgerID, api.CreateCreditGrantRequest{
+			Type:        credit.GrantTypeUsage,
+			LedgerID:    ledgerID,
 			FeatureID:   featureId,
 			Amount:      100,
 			Priority:    1,
 			EffectiveAt: effectiveAt,
 			Rollover: &api.CreditGrantRollover{
-				Type: credit_model.GrantRolloverTypeRemainingAmount,
+				Type: credit.GrantRolloverTypeRemainingAmount,
 			},
 			Expiration: api.CreditExpirationPeriod{
 				Duration: "DAY",
@@ -571,14 +591,14 @@ func TestCredit(t *testing.T) {
 
 		expected := &api.CreditGrantResponse{
 			ID:          resp.JSON201.ID,
-			Subject:     subject,
-			Type:        credit_model.GrantTypeUsage,
+			LedgerID:    ledgerID,
+			Type:        credit.GrantTypeUsage,
 			FeatureID:   featureId,
 			Amount:      100,
 			Priority:    1,
 			EffectiveAt: effectiveAt,
 			Rollover: &api.CreditGrantRollover{
-				Type: credit_model.GrantRolloverTypeRemainingAmount,
+				Type: credit.GrantRolloverTypeRemainingAmount,
 			},
 			Expiration: api.CreditExpirationPeriod{
 				Duration: "DAY",
@@ -608,19 +628,21 @@ func TestCredit(t *testing.T) {
 		features := *featureListResp.JSON200
 		feature := features[0]
 
-		resp, err := client.GetCreditBalanceWithResponse(context.Background(), subject, nil)
+		resp, err := client.GetCreditBalanceWithResponse(context.Background(), ledgerID, nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 
 		expected := &api.CreditBalance{
-			Subject: subject,
-			FeatureBalances: []credit_model.FeatureBalance{
+			LedgerID: ledgerID,
+			Subject:  subject,
+			Metadata: ledgerMeta,
+			FeatureBalances: []credit.FeatureBalance{
 				{
 					Feature: feature,
 					Balance: 99,
 				},
 			},
-			GrantBalances: []credit_model.GrantBalance{
+			GrantBalances: []credit.GrantBalance{
 				{
 					Grant:   grant,
 					Balance: 99,
@@ -653,7 +675,7 @@ func TestCredit(t *testing.T) {
 		featureId := features[0].ID
 
 		// Reset credit
-		resetResp, err := client.ResetCreditWithResponse(context.Background(), subject, api.CreditReset{
+		resetResp, err := client.ResetCreditWithResponse(context.Background(), ledgerID, api.CreditReset{
 			EffectiveAt: effectiveAt,
 		})
 
@@ -663,33 +685,33 @@ func TestCredit(t *testing.T) {
 		reset := resetResp.JSON201
 		expectedReset := &api.CreditReset{
 			ID:          reset.ID,
-			Subject:     subject,
+			LedgerID:    ledgerID,
 			EffectiveAt: effectiveAt,
 		}
 		assert.Equal(t, expectedReset, resetResp.JSON201)
 
 		// List grants
 		resp, err := client.ListCreditGrantsWithResponse(context.Background(), &api.ListCreditGrantsParams{
-			Subject: &[]string{subject},
+			LedgerID: &ledgerID,
 		})
 
 		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, resp.StatusCode())
+		require.Equal(t, http.StatusOK, resp.StatusCode(), "response body: %s", string(resp.Body))
 
 		grants := *resp.JSON200
 		expected := &[]api.CreditGrantResponse{
 			{
 				ID:        grants[0].ID,
 				ParentID:  parentGrant.ID,
-				Subject:   subject,
-				Type:      credit_model.GrantTypeUsage,
+				LedgerID:  ledgerID,
+				Type:      credit.GrantTypeUsage,
 				FeatureID: featureId,
 				Amount:    99,
 				Priority:  1,
 				// TODO: this should be equal to `effectiveAt` but we run into timezone issues
 				EffectiveAt: grants[0].EffectiveAt,
 				Rollover: &api.CreditGrantRollover{
-					Type: credit_model.GrantRolloverTypeRemainingAmount,
+					Type: credit.GrantRolloverTypeRemainingAmount,
 				},
 				Expiration: api.CreditExpirationPeriod{
 					Duration: "DAY",

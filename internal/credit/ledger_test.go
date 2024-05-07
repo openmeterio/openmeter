@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,22 +13,25 @@ func TestLedgerEntryList(t *testing.T) {
 	t2, _ := time.Parse(time.RFC3339, "2024-01-01T00:01:00Z")
 	t3, _ := time.Parse(time.RFC3339, "2024-01-01T00:02:00Z")
 
-	featureId1 := "feature-id-1"
-	grantId1 := "grant-id-1"
+	ledgerID := ulid.MustParse("01HX6RYGQHXPZDHMK2MHHG5BV6")
+
+	featureId1 := ulid.MustParse("01HX6RYPN9H1ZY2G2502MADK8N")
+	grantId1 := ulid.MustParse("01HX6RZ7E1NRYW1BTCTY2S5VS4")
+
 	grant1 := Grant{
 		ID:          &grantId1,
-		Subject:     "subject",
+		LedgerID:    ledgerID,
 		Amount:      100,
 		EffectiveAt: t1,
 		Priority:    0,
 		FeatureID:   &featureId1,
 	}
 
-	voidGrantId1 := "void-grant-id-1"
+	voidGrantId1 := ulid.MustParse("01HX6RY3ABY3ET3JS215ZK0NSJ")
 	voidGrant1 := Grant{
 		ID:          &voidGrantId1,
 		ParentID:    &grantId1,
-		Subject:     "subject",
+		LedgerID:    ledgerID,
 		Amount:      100,
 		EffectiveAt: t2,
 		Priority:    0,
@@ -40,10 +44,10 @@ func TestLedgerEntryList(t *testing.T) {
 		Balance: 100,
 	}
 
-	resetId1 := "reset-id-1"
+	resetId1 := ulid.MustParse("01HX6RZX0KHCGVB1BXYDJRMQHV")
 	reset1 := Reset{
 		ID:          &resetId1,
-		Subject:     "subject",
+		LedgerID:    resetId1,
 		EffectiveAt: t3,
 	}
 

@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"strings"
 
-	credit_model "github.com/openmeterio/openmeter/internal/credit"
+	"github.com/oklog/ulid/v2"
+
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_ledger "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 // https://www.postgresql.org/docs/current/errcodes-appendix.html
@@ -33,7 +36,7 @@ func transaction[R any](ctx context.Context, connector TransactionManager, callb
 		// This prevents pgsql connections being stuck in a transaction if a panic occurs
 		if r := recover(); r != nil {
 			_ = tx.Rollback()
-			panic(err)
+			panic(r)
 		}
 	}()
 
@@ -54,10 +57,10 @@ func transaction[R any](ctx context.Context, connector TransactionManager, callb
 }
 
 // mutationTransaction is a generic to perform atomic mutations on the ledger.
-func mutationTransaction[R any](ctx context.Context, connector *PostgresConnector, namespace, subject string, callback func(tx *db.Tx, ledgerEntity *db.Ledger) (*R, error)) (*R, error) {
+func mutationTransaction[R any](ctx context.Context, connector *PostgresConnector, namespace string, ledgerID ulid.ULID, callback func(tx *db.Tx, ledgerEntity *db.Ledger) (*R, error)) (*R, error) {
 	// Start a transaction and lock the ledger for the subject
 	return transaction(ctx, connector, func(tx *db.Tx) (*R, error) {
-		ledgerEntity, err := lockLedger(tx, ctx, namespace, subject)
+		ledgerEntity, err := lockLedger(tx, ctx, namespace, ledgerID)
 		if err != nil {
 			return nil, err
 		}
@@ -67,50 +70,32 @@ func mutationTransaction[R any](ctx context.Context, connector *PostgresConnecto
 }
 
 // lockLedger locks the ledger for the given namespace and subject to avoid concurrent updates
-func lockLedger(tx *db.Tx, ctx context.Context, namespace string, subject string) (*db.Ledger, error) {
+func lockLedger(tx *db.Tx, ctx context.Context, namespace string, ledgerID ulid.ULID) (*db.Ledger, error) {
 	// Lock ledger for the subject with pessimistic update
 	ledgerEntity, err := tx.Ledger.Query().
 		Where(db_ledger.Namespace(namespace)).
-		Where(db_ledger.Subject(subject)).
+		Where(db_ledger.ID(pgulid.Wrap(ledgerID))).
 
 		// We use the ForUpdate method to tell ent to ask our DB to lock
 		// the returned records for update.
 		ForUpdate().
 		Only(ctx)
+
 	if err != nil {
-		// If the ledger does not exist, we create it and try to lock it again
 		if db.IsNotFound(err) {
-			err := upsertLedger(tx, ctx, namespace, subject)
-			if err != nil {
-				return nil, fmt.Errorf("failed to upsert ledger: %w", err)
+			return nil, &credit.LedgerNotFoundError{
+				Namespace: namespace,
+				LedgerID:  ledgerID,
 			}
-
-			return lockLedger(tx, ctx, namespace, subject)
 		}
-
 		if strings.Contains(err.Error(), pgLockNotAvailableErrorCode) {
-			return nil, &credit_model.LockErrNotObtainedError{Namespace: namespace, Subject: subject}
+			return nil, &credit.LockErrNotObtainedError{
+				Namespace: namespace,
+				ID:        ledgerID,
+			}
 		}
-		return nil, fmt.Errorf("failed to lock ledger: %w", err)
+		return nil, err
 	}
 
 	return ledgerEntity, nil
-}
-
-// Upsert ledger for the subject
-// Ledger is created the first time when a mutation like granting, void or reset is performed.
-func upsertLedger(tx *db.Tx, ctx context.Context, namespace, subject string) error {
-	err := tx.Ledger.
-		Create().
-		SetNamespace(namespace).
-		SetSubject(subject).
-		OnConflictColumns(db_ledger.FieldNamespace, db_ledger.FieldSubject).
-		Ignore().
-		Exec(ctx)
-
-	if err != nil {
-		return fmt.Errorf("failed to upsert ledger: %w", err)
-	}
-
-	return nil
 }

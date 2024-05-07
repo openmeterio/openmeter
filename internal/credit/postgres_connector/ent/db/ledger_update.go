@@ -34,6 +34,18 @@ func (lu *LedgerUpdate) SetUpdatedAt(t time.Time) *LedgerUpdate {
 	return lu
 }
 
+// SetMetadata sets the "metadata" field.
+func (lu *LedgerUpdate) SetMetadata(m map[string]string) *LedgerUpdate {
+	lu.mutation.SetMetadata(m)
+	return lu
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (lu *LedgerUpdate) ClearMetadata() *LedgerUpdate {
+	lu.mutation.ClearMetadata()
+	return lu
+}
+
 // SetHighwatermark sets the "highwatermark" field.
 func (lu *LedgerUpdate) SetHighwatermark(t time.Time) *LedgerUpdate {
 	lu.mutation.SetHighwatermark(t)
@@ -90,7 +102,7 @@ func (lu *LedgerUpdate) defaults() {
 }
 
 func (lu *LedgerUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	_spec := sqlgraph.NewUpdateSpec(ledger.Table, ledger.Columns, sqlgraph.NewFieldSpec(ledger.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(ledger.Table, ledger.Columns, sqlgraph.NewFieldSpec(ledger.FieldID, field.TypeOther))
 	if ps := lu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -100,6 +112,12 @@ func (lu *LedgerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := lu.mutation.UpdatedAt(); ok {
 		_spec.SetField(ledger.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := lu.mutation.Metadata(); ok {
+		_spec.SetField(ledger.FieldMetadata, field.TypeJSON, value)
+	}
+	if lu.mutation.MetadataCleared() {
+		_spec.ClearField(ledger.FieldMetadata, field.TypeJSON)
 	}
 	if value, ok := lu.mutation.Highwatermark(); ok {
 		_spec.SetField(ledger.FieldHighwatermark, field.TypeTime, value)
@@ -127,6 +145,18 @@ type LedgerUpdateOne struct {
 // SetUpdatedAt sets the "updated_at" field.
 func (luo *LedgerUpdateOne) SetUpdatedAt(t time.Time) *LedgerUpdateOne {
 	luo.mutation.SetUpdatedAt(t)
+	return luo
+}
+
+// SetMetadata sets the "metadata" field.
+func (luo *LedgerUpdateOne) SetMetadata(m map[string]string) *LedgerUpdateOne {
+	luo.mutation.SetMetadata(m)
+	return luo
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (luo *LedgerUpdateOne) ClearMetadata() *LedgerUpdateOne {
+	luo.mutation.ClearMetadata()
 	return luo
 }
 
@@ -199,7 +229,7 @@ func (luo *LedgerUpdateOne) defaults() {
 }
 
 func (luo *LedgerUpdateOne) sqlSave(ctx context.Context) (_node *Ledger, err error) {
-	_spec := sqlgraph.NewUpdateSpec(ledger.Table, ledger.Columns, sqlgraph.NewFieldSpec(ledger.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(ledger.Table, ledger.Columns, sqlgraph.NewFieldSpec(ledger.FieldID, field.TypeOther))
 	id, ok := luo.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "Ledger.id" for update`)}
@@ -226,6 +256,12 @@ func (luo *LedgerUpdateOne) sqlSave(ctx context.Context) (_node *Ledger, err err
 	}
 	if value, ok := luo.mutation.UpdatedAt(); ok {
 		_spec.SetField(ledger.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := luo.mutation.Metadata(); ok {
+		_spec.SetField(ledger.FieldMetadata, field.TypeJSON, value)
+	}
+	if luo.mutation.MetadataCleared() {
+		_spec.ClearField(ledger.FieldMetadata, field.TypeJSON)
 	}
 	if value, ok := luo.mutation.Highwatermark(); ok {
 		_spec.SetField(ledger.FieldHighwatermark, field.TypeTime, value)

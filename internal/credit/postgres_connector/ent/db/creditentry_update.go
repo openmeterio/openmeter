@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/predicate"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 // CreditEntryUpdate is the builder for updating CreditEntry entities.
@@ -47,13 +48,13 @@ func (ceu *CreditEntryUpdate) ClearMetadata() *CreditEntryUpdate {
 }
 
 // SetChildrenID sets the "children" edge to the CreditEntry entity by ID.
-func (ceu *CreditEntryUpdate) SetChildrenID(id string) *CreditEntryUpdate {
+func (ceu *CreditEntryUpdate) SetChildrenID(id pgulid.ULID) *CreditEntryUpdate {
 	ceu.mutation.SetChildrenID(id)
 	return ceu
 }
 
 // SetNillableChildrenID sets the "children" edge to the CreditEntry entity by ID if the given value is not nil.
-func (ceu *CreditEntryUpdate) SetNillableChildrenID(id *string) *CreditEntryUpdate {
+func (ceu *CreditEntryUpdate) SetNillableChildrenID(id *pgulid.ULID) *CreditEntryUpdate {
 	if id != nil {
 		ceu = ceu.SetChildrenID(*id)
 	}
@@ -113,7 +114,7 @@ func (ceu *CreditEntryUpdate) defaults() {
 }
 
 func (ceu *CreditEntryUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	_spec := sqlgraph.NewUpdateSpec(creditentry.Table, creditentry.Columns, sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString))
+	_spec := sqlgraph.NewUpdateSpec(creditentry.Table, creditentry.Columns, sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeOther))
 	if ps := ceu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -159,7 +160,7 @@ func (ceu *CreditEntryUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{creditentry.ChildrenColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeOther),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -172,7 +173,7 @@ func (ceu *CreditEntryUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{creditentry.ChildrenColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeOther),
 			},
 		}
 		for _, k := range nodes {
@@ -219,13 +220,13 @@ func (ceuo *CreditEntryUpdateOne) ClearMetadata() *CreditEntryUpdateOne {
 }
 
 // SetChildrenID sets the "children" edge to the CreditEntry entity by ID.
-func (ceuo *CreditEntryUpdateOne) SetChildrenID(id string) *CreditEntryUpdateOne {
+func (ceuo *CreditEntryUpdateOne) SetChildrenID(id pgulid.ULID) *CreditEntryUpdateOne {
 	ceuo.mutation.SetChildrenID(id)
 	return ceuo
 }
 
 // SetNillableChildrenID sets the "children" edge to the CreditEntry entity by ID if the given value is not nil.
-func (ceuo *CreditEntryUpdateOne) SetNillableChildrenID(id *string) *CreditEntryUpdateOne {
+func (ceuo *CreditEntryUpdateOne) SetNillableChildrenID(id *pgulid.ULID) *CreditEntryUpdateOne {
 	if id != nil {
 		ceuo = ceuo.SetChildrenID(*id)
 	}
@@ -298,7 +299,7 @@ func (ceuo *CreditEntryUpdateOne) defaults() {
 }
 
 func (ceuo *CreditEntryUpdateOne) sqlSave(ctx context.Context) (_node *CreditEntry, err error) {
-	_spec := sqlgraph.NewUpdateSpec(creditentry.Table, creditentry.Columns, sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString))
+	_spec := sqlgraph.NewUpdateSpec(creditentry.Table, creditentry.Columns, sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeOther))
 	id, ok := ceuo.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "CreditEntry.id" for update`)}
@@ -361,7 +362,7 @@ func (ceuo *CreditEntryUpdateOne) sqlSave(ctx context.Context) (_node *CreditEnt
 			Columns: []string{creditentry.ChildrenColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeOther),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -374,7 +375,7 @@ func (ceuo *CreditEntryUpdateOne) sqlSave(ctx context.Context) (_node *CreditEnt
 			Columns: []string{creditentry.ChildrenColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeOther),
 			},
 		}
 		for _, k := range nodes {

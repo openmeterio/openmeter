@@ -6,8 +6,10 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -15,22 +17,21 @@ import (
 
 func TestTransaction(t *testing.T) {
 	namespace := "default"
-	subject := "subject-1"
 	meterRepository := meter_model.NewInMemoryRepository([]models.Meter{})
 
 	tt := []struct {
 		name        string
 		description string
-		test        func(t *testing.T, connector PostgresConnector, streamingConnector *mockStreamingConnector, db_client *db.Client)
+		test        func(t *testing.T, connector PostgresConnector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger)
 	}{
 		{
 			name:        "Lock",
 			description: "Should manage locks correctly",
-			test: func(t *testing.T, connector PostgresConnector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
+			test: func(t *testing.T, connector PostgresConnector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
 
 				// 1. Should succeed to obtain lock
-				_, err := mutationTransaction(ctx, &connector, namespace, subject, func(tx *db.Tx, ledgerEntity *db.Ledger) (*db.Ledger, error) {
+				_, err := mutationTransaction(ctx, &connector, namespace, ledger.ID, func(tx *db.Tx, ledgerEntity *db.Ledger) (*db.Ledger, error) {
 					return ledgerEntity, nil
 				})
 				assert.NoError(t, err)
@@ -38,7 +39,7 @@ func TestTransaction(t *testing.T) {
 				// 2.1. Lock ledger
 				tx, err := db_client.Tx(ctx)
 				assert.NoError(t, err)
-				_, err = lockLedger(tx, ctx, namespace, subject)
+				_, err = lockLedger(tx, ctx, namespace, ledger.ID)
 				assert.NoError(t, err)
 
 				var wg sync.WaitGroup
@@ -48,7 +49,7 @@ func TestTransaction(t *testing.T) {
 
 				// 2.2. Should wait until ledger is locked (waiting for 2.3. to unlock ledger)
 				go func() {
-					_, err := mutationTransaction(ctx, &connector, namespace, subject, func(tx *db.Tx, ledgerEntity *db.Ledger) (*db.Ledger, error) {
+					_, err := mutationTransaction(ctx, &connector, namespace, ledger.ID, func(tx *db.Tx, ledgerEntity *db.Ledger) (*db.Ledger, error) {
 						return ledgerEntity, nil
 					})
 					wg.Done()
@@ -73,7 +74,7 @@ func TestTransaction(t *testing.T) {
 				assert.NoError(t, commitErr)
 
 				// 3. Should succeed to obtain lock after commit
-				_, err = mutationTransaction(ctx, &connector, namespace, subject, func(tx *db.Tx, ledgerEntity *db.Ledger) (*db.Ledger, error) {
+				_, err = mutationTransaction(ctx, &connector, namespace, ledger.ID, func(tx *db.Tx, ledgerEntity *db.Ledger) (*db.Ledger, error) {
 					return ledgerEntity, nil
 				})
 				assert.NoError(t, err)
@@ -82,7 +83,7 @@ func TestTransaction(t *testing.T) {
 		{
 			name:        "LockWithCancel",
 			description: "Should respect context cancel in locks",
-			test: func(t *testing.T, connector PostgresConnector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
+			test: func(t *testing.T, connector PostgresConnector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
 
 				// 1.1. Lock ledger
@@ -91,14 +92,14 @@ func TestTransaction(t *testing.T) {
 
 				tx, err := db_client.Tx(ctxLock)
 				assert.NoError(t, err)
-				_, err = lockLedger(tx, ctxLock, namespace, subject)
+				_, err = lockLedger(tx, ctxLock, namespace, ledger.ID)
 				assert.NoError(t, err)
 
 				// 1.2. Lock will timeout
 				cancelLock()
 
 				// 2.2. Should wait until ledger is locked (waiting for 1.2. to unlock ledger)
-				_, err = mutationTransaction(ctx, &connector, namespace, subject, func(tx *db.Tx, ledgerEntity *db.Ledger) (*db.Ledger, error) {
+				_, err = mutationTransaction(ctx, &connector, namespace, ledger.ID, func(tx *db.Tx, ledgerEntity *db.Ledger) (*db.Ledger, error) {
 					return ledgerEntity, nil
 				})
 				assert.NoError(t, err)
@@ -121,8 +122,14 @@ func TestTransaction(t *testing.T) {
 				streamingConnector: streamingConnector,
 				meterRepository:    meterRepository,
 			}
+			// let's provision a ledger
+			ledger, err := connector.CreateLedger(context.Background(), namespace, credit.Ledger{
+				Subject: ulid.Make().String(),
+			})
 
-			tc.test(t, connector, streamingConnector, databaseClient)
+			assert.NoError(t, err)
+
+			tc.test(t, connector, streamingConnector, databaseClient, ledger)
 		})
 	}
 }

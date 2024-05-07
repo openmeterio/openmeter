@@ -9,61 +9,52 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/predicate"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 // ID filters vertices based on their ID field.
-func ID(id string) predicate.CreditEntry {
+func ID(id pgulid.ULID) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldEQ(FieldID, id))
 }
 
 // IDEQ applies the EQ predicate on the ID field.
-func IDEQ(id string) predicate.CreditEntry {
+func IDEQ(id pgulid.ULID) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldEQ(FieldID, id))
 }
 
 // IDNEQ applies the NEQ predicate on the ID field.
-func IDNEQ(id string) predicate.CreditEntry {
+func IDNEQ(id pgulid.ULID) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldNEQ(FieldID, id))
 }
 
 // IDIn applies the In predicate on the ID field.
-func IDIn(ids ...string) predicate.CreditEntry {
+func IDIn(ids ...pgulid.ULID) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldIn(FieldID, ids...))
 }
 
 // IDNotIn applies the NotIn predicate on the ID field.
-func IDNotIn(ids ...string) predicate.CreditEntry {
+func IDNotIn(ids ...pgulid.ULID) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldNotIn(FieldID, ids...))
 }
 
 // IDGT applies the GT predicate on the ID field.
-func IDGT(id string) predicate.CreditEntry {
+func IDGT(id pgulid.ULID) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldGT(FieldID, id))
 }
 
 // IDGTE applies the GTE predicate on the ID field.
-func IDGTE(id string) predicate.CreditEntry {
+func IDGTE(id pgulid.ULID) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldGTE(FieldID, id))
 }
 
 // IDLT applies the LT predicate on the ID field.
-func IDLT(id string) predicate.CreditEntry {
+func IDLT(id pgulid.ULID) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldLT(FieldID, id))
 }
 
 // IDLTE applies the LTE predicate on the ID field.
-func IDLTE(id string) predicate.CreditEntry {
+func IDLTE(id pgulid.ULID) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldLTE(FieldID, id))
-}
-
-// IDEqualFold applies the EqualFold predicate on the ID field.
-func IDEqualFold(id string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldEqualFold(FieldID, id))
-}
-
-// IDContainsFold applies the ContainsFold predicate on the ID field.
-func IDContainsFold(id string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldContainsFold(FieldID, id))
 }
 
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
@@ -81,13 +72,13 @@ func Namespace(v string) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldEQ(FieldNamespace, v))
 }
 
-// Subject applies equality check predicate on the "subject" field. It's identical to SubjectEQ.
-func Subject(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldEQ(FieldSubject, v))
+// LedgerID applies equality check predicate on the "ledger_id" field. It's identical to LedgerIDEQ.
+func LedgerID(v pgulid.ULID) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldEQ(FieldLedgerID, v))
 }
 
 // FeatureID applies equality check predicate on the "feature_id" field. It's identical to FeatureIDEQ.
-func FeatureID(v string) predicate.CreditEntry {
+func FeatureID(v pgulid.ULID) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldEQ(FieldFeatureID, v))
 }
 
@@ -122,7 +113,7 @@ func RolloverMaxAmount(v float64) predicate.CreditEntry {
 }
 
 // ParentID applies equality check predicate on the "parent_id" field. It's identical to ParentIDEQ.
-func ParentID(v string) predicate.CreditEntry {
+func ParentID(v pgulid.ULID) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldEQ(FieldParentID, v))
 }
 
@@ -271,69 +262,44 @@ func NamespaceContainsFold(v string) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldContainsFold(FieldNamespace, v))
 }
 
-// SubjectEQ applies the EQ predicate on the "subject" field.
-func SubjectEQ(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldEQ(FieldSubject, v))
+// LedgerIDEQ applies the EQ predicate on the "ledger_id" field.
+func LedgerIDEQ(v pgulid.ULID) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldEQ(FieldLedgerID, v))
 }
 
-// SubjectNEQ applies the NEQ predicate on the "subject" field.
-func SubjectNEQ(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldNEQ(FieldSubject, v))
+// LedgerIDNEQ applies the NEQ predicate on the "ledger_id" field.
+func LedgerIDNEQ(v pgulid.ULID) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldNEQ(FieldLedgerID, v))
 }
 
-// SubjectIn applies the In predicate on the "subject" field.
-func SubjectIn(vs ...string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldIn(FieldSubject, vs...))
+// LedgerIDIn applies the In predicate on the "ledger_id" field.
+func LedgerIDIn(vs ...pgulid.ULID) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldIn(FieldLedgerID, vs...))
 }
 
-// SubjectNotIn applies the NotIn predicate on the "subject" field.
-func SubjectNotIn(vs ...string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldNotIn(FieldSubject, vs...))
+// LedgerIDNotIn applies the NotIn predicate on the "ledger_id" field.
+func LedgerIDNotIn(vs ...pgulid.ULID) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldNotIn(FieldLedgerID, vs...))
 }
 
-// SubjectGT applies the GT predicate on the "subject" field.
-func SubjectGT(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldGT(FieldSubject, v))
+// LedgerIDGT applies the GT predicate on the "ledger_id" field.
+func LedgerIDGT(v pgulid.ULID) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldGT(FieldLedgerID, v))
 }
 
-// SubjectGTE applies the GTE predicate on the "subject" field.
-func SubjectGTE(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldGTE(FieldSubject, v))
+// LedgerIDGTE applies the GTE predicate on the "ledger_id" field.
+func LedgerIDGTE(v pgulid.ULID) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldGTE(FieldLedgerID, v))
 }
 
-// SubjectLT applies the LT predicate on the "subject" field.
-func SubjectLT(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldLT(FieldSubject, v))
+// LedgerIDLT applies the LT predicate on the "ledger_id" field.
+func LedgerIDLT(v pgulid.ULID) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldLT(FieldLedgerID, v))
 }
 
-// SubjectLTE applies the LTE predicate on the "subject" field.
-func SubjectLTE(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldLTE(FieldSubject, v))
-}
-
-// SubjectContains applies the Contains predicate on the "subject" field.
-func SubjectContains(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldContains(FieldSubject, v))
-}
-
-// SubjectHasPrefix applies the HasPrefix predicate on the "subject" field.
-func SubjectHasPrefix(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldHasPrefix(FieldSubject, v))
-}
-
-// SubjectHasSuffix applies the HasSuffix predicate on the "subject" field.
-func SubjectHasSuffix(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldHasSuffix(FieldSubject, v))
-}
-
-// SubjectEqualFold applies the EqualFold predicate on the "subject" field.
-func SubjectEqualFold(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldEqualFold(FieldSubject, v))
-}
-
-// SubjectContainsFold applies the ContainsFold predicate on the "subject" field.
-func SubjectContainsFold(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldContainsFold(FieldSubject, v))
+// LedgerIDLTE applies the LTE predicate on the "ledger_id" field.
+func LedgerIDLTE(v pgulid.ULID) predicate.CreditEntry {
+	return predicate.CreditEntry(sql.FieldLTE(FieldLedgerID, v))
 }
 
 // EntryTypeEQ applies the EQ predicate on the "entry_type" field.
@@ -407,58 +373,23 @@ func TypeNotNil() predicate.CreditEntry {
 }
 
 // FeatureIDEQ applies the EQ predicate on the "feature_id" field.
-func FeatureIDEQ(v string) predicate.CreditEntry {
+func FeatureIDEQ(v pgulid.ULID) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldEQ(FieldFeatureID, v))
 }
 
 // FeatureIDNEQ applies the NEQ predicate on the "feature_id" field.
-func FeatureIDNEQ(v string) predicate.CreditEntry {
+func FeatureIDNEQ(v pgulid.ULID) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldNEQ(FieldFeatureID, v))
 }
 
 // FeatureIDIn applies the In predicate on the "feature_id" field.
-func FeatureIDIn(vs ...string) predicate.CreditEntry {
+func FeatureIDIn(vs ...pgulid.ULID) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldIn(FieldFeatureID, vs...))
 }
 
 // FeatureIDNotIn applies the NotIn predicate on the "feature_id" field.
-func FeatureIDNotIn(vs ...string) predicate.CreditEntry {
+func FeatureIDNotIn(vs ...pgulid.ULID) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldNotIn(FieldFeatureID, vs...))
-}
-
-// FeatureIDGT applies the GT predicate on the "feature_id" field.
-func FeatureIDGT(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldGT(FieldFeatureID, v))
-}
-
-// FeatureIDGTE applies the GTE predicate on the "feature_id" field.
-func FeatureIDGTE(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldGTE(FieldFeatureID, v))
-}
-
-// FeatureIDLT applies the LT predicate on the "feature_id" field.
-func FeatureIDLT(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldLT(FieldFeatureID, v))
-}
-
-// FeatureIDLTE applies the LTE predicate on the "feature_id" field.
-func FeatureIDLTE(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldLTE(FieldFeatureID, v))
-}
-
-// FeatureIDContains applies the Contains predicate on the "feature_id" field.
-func FeatureIDContains(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldContains(FieldFeatureID, v))
-}
-
-// FeatureIDHasPrefix applies the HasPrefix predicate on the "feature_id" field.
-func FeatureIDHasPrefix(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldHasPrefix(FieldFeatureID, v))
-}
-
-// FeatureIDHasSuffix applies the HasSuffix predicate on the "feature_id" field.
-func FeatureIDHasSuffix(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldHasSuffix(FieldFeatureID, v))
 }
 
 // FeatureIDIsNil applies the IsNil predicate on the "feature_id" field.
@@ -469,16 +400,6 @@ func FeatureIDIsNil() predicate.CreditEntry {
 // FeatureIDNotNil applies the NotNil predicate on the "feature_id" field.
 func FeatureIDNotNil() predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldNotNull(FieldFeatureID))
-}
-
-// FeatureIDEqualFold applies the EqualFold predicate on the "feature_id" field.
-func FeatureIDEqualFold(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldEqualFold(FieldFeatureID, v))
-}
-
-// FeatureIDContainsFold applies the ContainsFold predicate on the "feature_id" field.
-func FeatureIDContainsFold(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldContainsFold(FieldFeatureID, v))
 }
 
 // AmountEQ applies the EQ predicate on the "amount" field.
@@ -852,58 +773,23 @@ func MetadataNotNil() predicate.CreditEntry {
 }
 
 // ParentIDEQ applies the EQ predicate on the "parent_id" field.
-func ParentIDEQ(v string) predicate.CreditEntry {
+func ParentIDEQ(v pgulid.ULID) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldEQ(FieldParentID, v))
 }
 
 // ParentIDNEQ applies the NEQ predicate on the "parent_id" field.
-func ParentIDNEQ(v string) predicate.CreditEntry {
+func ParentIDNEQ(v pgulid.ULID) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldNEQ(FieldParentID, v))
 }
 
 // ParentIDIn applies the In predicate on the "parent_id" field.
-func ParentIDIn(vs ...string) predicate.CreditEntry {
+func ParentIDIn(vs ...pgulid.ULID) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldIn(FieldParentID, vs...))
 }
 
 // ParentIDNotIn applies the NotIn predicate on the "parent_id" field.
-func ParentIDNotIn(vs ...string) predicate.CreditEntry {
+func ParentIDNotIn(vs ...pgulid.ULID) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldNotIn(FieldParentID, vs...))
-}
-
-// ParentIDGT applies the GT predicate on the "parent_id" field.
-func ParentIDGT(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldGT(FieldParentID, v))
-}
-
-// ParentIDGTE applies the GTE predicate on the "parent_id" field.
-func ParentIDGTE(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldGTE(FieldParentID, v))
-}
-
-// ParentIDLT applies the LT predicate on the "parent_id" field.
-func ParentIDLT(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldLT(FieldParentID, v))
-}
-
-// ParentIDLTE applies the LTE predicate on the "parent_id" field.
-func ParentIDLTE(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldLTE(FieldParentID, v))
-}
-
-// ParentIDContains applies the Contains predicate on the "parent_id" field.
-func ParentIDContains(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldContains(FieldParentID, v))
-}
-
-// ParentIDHasPrefix applies the HasPrefix predicate on the "parent_id" field.
-func ParentIDHasPrefix(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldHasPrefix(FieldParentID, v))
-}
-
-// ParentIDHasSuffix applies the HasSuffix predicate on the "parent_id" field.
-func ParentIDHasSuffix(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldHasSuffix(FieldParentID, v))
 }
 
 // ParentIDIsNil applies the IsNil predicate on the "parent_id" field.
@@ -914,16 +800,6 @@ func ParentIDIsNil() predicate.CreditEntry {
 // ParentIDNotNil applies the NotNil predicate on the "parent_id" field.
 func ParentIDNotNil() predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldNotNull(FieldParentID))
-}
-
-// ParentIDEqualFold applies the EqualFold predicate on the "parent_id" field.
-func ParentIDEqualFold(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldEqualFold(FieldParentID, v))
-}
-
-// ParentIDContainsFold applies the ContainsFold predicate on the "parent_id" field.
-func ParentIDContainsFold(v string) predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldContainsFold(FieldParentID, v))
 }
 
 // HasParent applies the HasEdge predicate on the "parent" edge.

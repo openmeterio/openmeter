@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/oklog/ulid/v2"
 )
 
 type GrantNotFoundError struct {
-	GrantID string
+	GrantID ulid.ULID
 }
 
 func (e *GrantNotFoundError) Error() string {
@@ -95,10 +97,10 @@ func (GrantRolloverType) Values() (kinds []string) {
 // Reset is used to reset the balance of a specific subject.
 type Reset struct {
 	// ID is the readonly identifies of a reset.
-	ID *string `json:"id,omitempty"`
+	ID *ulid.ULID `json:"id,omitempty"`
 
 	// Subject The subject to grant the amount to.
-	Subject string `json:"subject"`
+	LedgerID ulid.ULID `json:"ledgerID"`
 
 	// EffectiveAt The effective date, cannot be in the future.
 	EffectiveAt time.Time `json:"effectiveAt"`
@@ -112,19 +114,19 @@ func (c Reset) Render(w http.ResponseWriter, r *http.Request) error {
 // Grant is used to increase balance of specific subjects.
 type Grant struct {
 	// ID is the readonly identifies of a grant.
-	ID *string `json:"id,omitempty"`
+	ID *ulid.ULID `json:"id,omitempty"`
 
 	// Parent ID is the readonly identifies of the grant's parent if any.
-	ParentID *string `json:"parentID,omitempty"`
+	ParentID *ulid.ULID `json:"parentID,omitempty"`
 
 	// Subject The subject to grant the amount to.
-	Subject string `json:"subject"`
+	LedgerID ulid.ULID `json:"ledgerID"`
 
 	// Type The grant type.
 	Type GrantType `json:"type"`
 
 	// FeatureID The feature ID.
-	FeatureID *string `json:"featureId"`
+	FeatureID *ulid.ULID `json:"featureID"`
 
 	// Amount The amount to grant. Can be positive or negative number.
 	Amount float64 `json:"amount"`
@@ -198,27 +200,46 @@ func (c ExpirationPeriod) GetExpiration(t time.Time) time.Time {
 }
 
 type HighWatermark struct {
-	Subject string    `ch:"subject"`
-	Time    time.Time `ch:"time"`
+	LedgerID ulid.ULID `ch:"ledger_id"`
+	Time     time.Time `ch:"time"`
 }
 
 // HighWatermarBeforeError is returned when a lock cannot be obtained.
 type HighWatermarBeforeError struct {
 	Namespace     string
-	Subject       string
+	LedgerID      ulid.ULID
 	HighWatermark time.Time
 }
 
 func (e *HighWatermarBeforeError) Error() string {
-	return fmt.Sprintf("ledger action for subject %s must be after highwatermark: %s", e.Subject, e.HighWatermark.Format(time.RFC3339))
+	return fmt.Sprintf("ledger action for ledger %s.%s must be after highwatermark: %s", e.Namespace, e.LedgerID.String(), e.HighWatermark.Format(time.RFC3339))
 }
 
 // LockErrNotObtainedError is returned when a lock cannot be obtained.
 type LockErrNotObtainedError struct {
 	Namespace string
-	Subject   string
+	ID        ulid.ULID
 }
 
 func (e *LockErrNotObtainedError) Error() string {
-	return fmt.Sprintf("lock not obtained for namespace %s, subject %s", e.Namespace, e.Subject)
+	return fmt.Sprintf("lock not obtained ledger %s.%s", e.Namespace, e.ID.String())
+}
+
+type LedgerAlreadyExistsError struct {
+	Namespace string
+	LedgerID  ulid.ULID
+	Subject   string
+}
+
+func (e *LedgerAlreadyExistsError) Error() string {
+	return fmt.Sprintf("ledger (%s.%s) already exitst for subject %s", e.Namespace, e.LedgerID, e.Subject)
+}
+
+type LedgerNotFoundError struct {
+	Namespace string
+	LedgerID  ulid.ULID
+}
+
+func (e *LedgerNotFoundError) Error() string {
+	return fmt.Sprintf("ledger (%s.%s) not found", e.Namespace, e.LedgerID.String())
 }

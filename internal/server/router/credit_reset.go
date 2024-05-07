@@ -8,13 +8,13 @@ import (
 	"github.com/go-chi/render"
 
 	"github.com/openmeterio/openmeter/api"
-	credit_model "github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// Resets the credit POST /api/v1/ledgers/{creditSubjectId}/reset
-func (a *Router) ResetCredit(w http.ResponseWriter, r *http.Request, creditSubjectId api.CreditSubjectId) {
+// Resets the credit POST /api/v1/ledgers/{ledgerID}/reset
+func (a *Router) ResetCredit(w http.ResponseWriter, r *http.Request, ledgerID api.LedgerID) {
 	ctx := contextx.WithAttr(r.Context(), "operation", "resetCredit")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
@@ -36,17 +36,17 @@ func (a *Router) ResetCredit(w http.ResponseWriter, r *http.Request, creditSubje
 		return
 	}
 
-	resetIn.Subject = creditSubjectId
+	resetIn.LedgerID = ledgerID
 
 	// Reset credit
 	reset, _, err := a.config.CreditConnector.Reset(ctx, namespace, *resetIn)
 	if err != nil {
-		if _, ok := err.(*credit_model.HighWatermarBeforeError); ok {
+		if _, ok := err.(*credit.HighWatermarBeforeError); ok {
 			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
 			return
 		}
 
-		if _, ok := err.(*credit_model.LockErrNotObtainedError); ok {
+		if _, ok := err.(*credit.LockErrNotObtainedError); ok {
 			err := fmt.Errorf("credit is currently locked, try again: %w", err)
 			models.NewStatusProblem(ctx, err, http.StatusConflict).Respond(w, r)
 			return

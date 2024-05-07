@@ -11,13 +11,14 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 // Feature is the model entity for the Feature schema.
 type Feature struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID string `json:"id,omitempty"`
+	ID pgulid.ULID `json:"id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -63,9 +64,11 @@ func (*Feature) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case feature.FieldMeterGroupByFilters:
 			values[i] = new([]byte)
+		case feature.FieldID:
+			values[i] = new(pgulid.ULID)
 		case feature.FieldArchived:
 			values[i] = new(sql.NullBool)
-		case feature.FieldID, feature.FieldNamespace, feature.FieldName, feature.FieldMeterSlug:
+		case feature.FieldNamespace, feature.FieldName, feature.FieldMeterSlug:
 			values[i] = new(sql.NullString)
 		case feature.FieldCreatedAt, feature.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -85,10 +88,10 @@ func (f *Feature) assignValues(columns []string, values []any) error {
 	for i := range columns {
 		switch columns[i] {
 		case feature.FieldID:
-			if value, ok := values[i].(*sql.NullString); !ok {
+			if value, ok := values[i].(*pgulid.ULID); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
-			} else if value.Valid {
-				f.ID = value.String
+			} else if value != nil {
+				f.ID = *value
 			}
 		case feature.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {

@@ -3,10 +3,12 @@ package credit
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/oklog/ulid/v2"
 )
 
 type FeatureNotFoundError struct {
-	ID string
+	ID ulid.ULID
 }
 
 func (e *FeatureNotFoundError) Error() string {
@@ -16,8 +18,8 @@ func (e *FeatureNotFoundError) Error() string {
 // Feature is a feature or service offered to a customer.
 // For example: CPU-Hours, Tokens, API Calls, etc.
 type Feature struct {
-	Namespace string  `json:"-"`
-	ID        *string `json:"id,omitempty"`
+	Namespace string     `json:"-"`
+	ID        *ulid.ULID `json:"id,omitempty"`
 
 	// Name The name of the feature.
 	Name string `json:"name"`

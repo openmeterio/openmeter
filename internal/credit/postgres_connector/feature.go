@@ -4,16 +4,18 @@ import (
 	"context"
 	"fmt"
 
-	connector "github.com/openmeterio/openmeter/internal/credit"
-	credit_model "github.com/openmeterio/openmeter/internal/credit"
+	"github.com/oklog/ulid/v2"
+
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_feature "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 // CreateFeature creates a feature.
-func (c *PostgresConnector) CreateFeature(ctx context.Context, namespace string, featureIn credit_model.Feature) (credit_model.Feature, error) {
+func (c *PostgresConnector) CreateFeature(ctx context.Context, namespace string, featureIn credit.Feature) (credit.Feature, error) {
 	query := c.db.Feature.Create().
-		SetNillableID(featureIn.ID).
+		SetNillableID(pgulid.Ptr(featureIn.ID)).
 		SetName(featureIn.Name).
 		SetNamespace(namespace).
 		SetMeterSlug(featureIn.MeterSlug)
@@ -24,7 +26,7 @@ func (c *PostgresConnector) CreateFeature(ctx context.Context, namespace string,
 
 	entity, err := query.Save(ctx)
 	if err != nil {
-		return credit_model.Feature{}, fmt.Errorf("failed to create feature: %w", err)
+		return credit.Feature{}, fmt.Errorf("failed to create feature: %w", err)
 	}
 
 	featureOut := mapFeatureEntity(entity)
@@ -32,11 +34,11 @@ func (c *PostgresConnector) CreateFeature(ctx context.Context, namespace string,
 }
 
 // DeleteFeature deletes a feature.
-func (c *PostgresConnector) DeleteFeature(ctx context.Context, namespace string, id string) error {
-	err := c.db.Feature.UpdateOneID(id).SetArchived(true).Exec(ctx)
+func (c *PostgresConnector) DeleteFeature(ctx context.Context, namespace string, id ulid.ULID) error {
+	err := c.db.Feature.UpdateOneID(pgulid.Wrap(id)).SetArchived(true).Exec(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return &credit_model.FeatureNotFoundError{ID: id}
+			return &credit.FeatureNotFoundError{ID: id}
 		}
 
 		return fmt.Errorf("failed to delete feature: %w", err)
@@ -46,7 +48,7 @@ func (c *PostgresConnector) DeleteFeature(ctx context.Context, namespace string,
 }
 
 // ListFeatures lists features.
-func (c *PostgresConnector) ListFeatures(ctx context.Context, namespace string, params connector.ListFeaturesParams) ([]credit_model.Feature, error) {
+func (c *PostgresConnector) ListFeatures(ctx context.Context, namespace string, params credit.ListFeaturesParams) ([]credit.Feature, error) {
 	query := c.db.Feature.Query()
 	if !params.IncludeArchived {
 		query = query.Where(db_feature.ArchivedEQ(false))
@@ -57,7 +59,7 @@ func (c *PostgresConnector) ListFeatures(ctx context.Context, namespace string, 
 		return nil, fmt.Errorf("failed to list entities: %w", err)
 	}
 
-	var list []credit_model.Feature
+	var list []credit.Feature
 	for _, entity := range entities {
 		feature := mapFeatureEntity(entity)
 		list = append(list, feature)
@@ -67,14 +69,14 @@ func (c *PostgresConnector) ListFeatures(ctx context.Context, namespace string, 
 }
 
 // GetFeature gets a single feature by ID.
-func (c *PostgresConnector) GetFeature(ctx context.Context, namespace string, id string) (credit_model.Feature, error) {
-	entity, err := c.db.Feature.Get(ctx, id)
+func (c *PostgresConnector) GetFeature(ctx context.Context, namespace string, id ulid.ULID) (credit.Feature, error) {
+	entity, err := c.db.Feature.Get(ctx, pgulid.Wrap(id))
 	if err != nil {
 		if db.IsNotFound(err) {
-			return credit_model.Feature{}, &credit_model.FeatureNotFoundError{ID: id}
+			return credit.Feature{}, &credit.FeatureNotFoundError{ID: id}
 		}
 
-		return credit_model.Feature{}, fmt.Errorf("failed to get feature: %w", err)
+		return credit.Feature{}, fmt.Errorf("failed to get feature: %w", err)
 	}
 
 	featureOut := mapFeatureEntity(entity)
@@ -82,9 +84,9 @@ func (c *PostgresConnector) GetFeature(ctx context.Context, namespace string, id
 }
 
 // mapFeatureEntity maps a database feature entity to a feature model.
-func mapFeatureEntity(entity *db.Feature) credit_model.Feature {
-	feature := credit_model.Feature{
-		ID:        &entity.ID,
+func mapFeatureEntity(entity *db.Feature) credit.Feature {
+	feature := credit.Feature{
+		ID:        &entity.ID.ULID,
 		Namespace: entity.Namespace,
 		Name:      entity.Name,
 		MeterSlug: entity.MeterSlug,
