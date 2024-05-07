@@ -12,10 +12,17 @@ telemetry:
 #     database: 0
 #     expiration: 768h # 32d
 
+# Entitlements
+# entitlements:
+#   enabled: true
+
 # Consumer portal
 # portal:
 #   enabled: true
 #   tokenSecret: this-isnt-secure
+
+postgres:
+  url: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
 
 meters:
   # Sample meter to count API requests

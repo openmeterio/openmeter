@@ -25,6 +25,12 @@ sink:
       database: 1
       address: redis:6379
 
+entitlements:
+  enabled: true
+
+postgres:
+  url: postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
+
 meters:
   - slug: ingest
     description: Meter for testing ingestion
@@ -48,3 +54,9 @@ meters:
     groupBy:
       method: $.method
       path: $.path
+  - slug: credit_test_meter
+    description: Meter for testing credit
+    eventType: credit_event
+    aggregation: COUNT
+    groupBy:
+      model: $.model

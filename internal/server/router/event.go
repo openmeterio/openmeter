@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/contextx"
+	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -21,15 +22,10 @@ func (a *Router) ListEvents(w http.ResponseWriter, r *http.Request, params api.L
 
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
-	limit := 100
-	if params.Limit != nil {
-		limit = *params.Limit
-	}
-
 	queryParams := streaming.ListEventsParams{
 		From:  params.From,
 		To:    params.To,
-		Limit: limit,
+		Limit: defaultx.WithDefault(params.Limit, 100),
 	}
 
 	events, err := a.config.StreamingConnector.ListEvents(ctx, namespace, queryParams)

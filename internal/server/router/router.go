@@ -9,6 +9,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/server/authenticator"
@@ -35,6 +36,7 @@ type IngestHandler interface {
 }
 
 type Config struct {
+	CreditConnector     credit.Connector
 	NamespaceManager    *namespace.Manager
 	StreamingConnector  streaming.Connector
 	IngestHandler       http.Handler

@@ -6,6 +6,10 @@
 /config.yaml
 /tmp/
 
+.DS_Store
+
 # Go workspace file
 go.work
 go.work.sum
+
+__debug_bin*

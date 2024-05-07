@@ -34,6 +34,10 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/config"
+	"github.com/openmeterio/openmeter/internal/credit"
+	nope_credit "github.com/openmeterio/openmeter/internal/credit/nope_connector"
+	postgres_credit "github.com/openmeterio/openmeter/internal/credit/postgres_connector"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
@@ -172,6 +176,13 @@ func main() {
 	var streamingConnector streaming.Connector
 	var namespaceHandlers []namespace.Handler
 
+	// Initialize ClickHouse Client
+	clickHouseClient, err := initClickHouseClient(conf)
+	if err != nil {
+		logger.Error("failed to initialize clickhouse client", "error", err)
+		os.Exit(1)
+	}
+
 	// Initialize Kafka Ingest
 	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(ctx, conf, logger, serializer.NewJSONSerializer(), &group)
 	if err != nil {
@@ -186,7 +197,7 @@ func main() {
 	}))
 
 	// Initialize ClickHouse Aggregation
-	clickhouseStreamingConnector, err := initClickHouseStreaming(conf, meterRepository, logger)
+	clickhouseStreamingConnector, err := initClickHouseStreaming(conf, clickHouseClient, meterRepository, logger)
 	if err != nil {
 		logger.Error("failed to initialize clickhouse aggregation", "error", err)
 		os.Exit(1)
@@ -201,6 +212,17 @@ func main() {
 		logger.Error("failed to initialize namespace", "error", err)
 		os.Exit(1)
 	}
+
+	// ingestHandler, err := httpingest.NewHandler(httpingest.HandlerConfig{
+	// 	Collector:        ingestCollector,
+	// 	NamespaceManager: namespaceManager,
+	// 	Logger:           logger,
+	// 	ErrorHandler:     errorsx.NewAppHandler(errorsx.NewSlogHandler(logger)),
+	// })
+	// if err != nil {
+	// 	logger.Error("failed to initialize http ingest handler", "error", err)
+	// 	os.Exit(1)
+	// }
 
 	// Initialize deduplication
 	if conf.Dedupe.Enabled {
@@ -217,17 +239,6 @@ func main() {
 	}
 
 	// Initialize HTTP Ingest handler
-	// ingestHandler, err := httpingest.NewHandler(httpingest.HandlerConfig{
-	// 	Collector:        ingestCollector,
-	// 	NamespaceManager: namespaceManager,
-	// 	Logger:           logger,
-	// 	ErrorHandler:     errorsx.NewAppHandler(errorsx.NewSlogHandler(logger)),
-	// })
-	// if err != nil {
-	// 	logger.Error("failed to initialize http ingest handler", "error", err)
-	// 	os.Exit(1)
-	// }
-
 	ingestService := ingest.Service{
 		Collector: ingestCollector,
 		Logger:    logger,
@@ -249,8 +260,45 @@ func main() {
 		}
 	}
 
+	// Initialize Postgres
+	var creditDbClient *db.Client
+	if conf.Postgres.URL != "" {
+		creditDbClient, err = postgres_credit.Open(conf.Postgres.URL)
+		if err != nil {
+			logger.Error("failed to open postgres connection", "error", err)
+			os.Exit(1)
+		}
+
+		// TODO: use versioned migrations
+		// https://entgo.io/docs/versioned-migrations
+		if err := creditDbClient.Schema.Create(context.Background()); err != nil {
+			logger.Error("failed to migrate database", "error", err)
+			os.Exit(1)
+		}
+	}
+
+	// Initialize Credit
+	var creditConnector credit.Connector
+	if conf.Entitlements.Enabled {
+		creditConnector = postgres_credit.NewPostgresConnector(
+			logger,
+			creditDbClient,
+			streamingConnector,
+			meterRepository,
+		)
+		if err != nil {
+			logger.Error("failed to initialize entitlements support", "error", err)
+			os.Exit(1)
+		}
+		logger.Info("entitlements support enabled")
+	} else {
+		creditConnector = nope_credit.NewConnector()
+		logger.Info("entitlements support disabled")
+	}
+
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{
+			CreditConnector:     creditConnector,
 			NamespaceManager:    namespaceManager,
 			StreamingConnector:  streamingConnector,
 			IngestHandler:       ingestHandler,
@@ -412,12 +460,7 @@ func initClickHouseClient(config config.Configuration) (clickhouse.Conn, error) 
 	return clickHouseClient, nil
 }
 
-func initClickHouseStreaming(config config.Configuration, meterRepository meter.Repository, logger *slog.Logger) (*clickhouse_connector.ClickhouseConnector, error) {
-	clickHouseClient, err := initClickHouseClient(config)
-	if err != nil {
-		return nil, fmt.Errorf("init clickhouse client: %w", err)
-	}
-
+func initClickHouseStreaming(config config.Configuration, clickHouseClient clickhouse.Conn, meterRepository meter.Repository, logger *slog.Logger) (*clickhouse_connector.ClickhouseConnector, error) {
 	streamingConnector, err := clickhouse_connector.NewClickhouseConnector(clickhouse_connector.ClickhouseConnectorConfig{
 		Logger:               logger,
 		ClickHouse:           clickHouseClient,

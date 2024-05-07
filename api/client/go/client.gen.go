@@ -20,6 +20,8 @@ import (
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/oapi-codegen/runtime"
+	"github.com/oklog/ulid/v2"
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -30,8 +32,55 @@ const (
 	PortalTokenAuthScopes      = "PortalTokenAuth.Scopes"
 )
 
+// CreateCreditGrantRequest Grants are used to increase balance of specific subjects.
+type CreateCreditGrantRequest = credit.Grant
+
+// CreateLedger A ledger represented in open meter. A ledger must be assigned to a single
+// subject.
+type CreateLedger = credit.Ledger
+
+// CreditBalance Credit balance of a subject.
+type CreditBalance = credit.Balance
+
+// CreditExpirationPeriod Expiration period of a credit grant.
+type CreditExpirationPeriod = credit.ExpirationPeriod
+
+// CreditGrantBalance defines model for CreditGrantBalance.
+type CreditGrantBalance = credit.Grant
+
+// CreditGrantResponse defines model for CreditGrantResponse.
+type CreditGrantResponse = credit.Grant
+
+// CreditGrantRollover Grant rollover configuration.
+type CreditGrantRollover = credit.GrantRollover
+
+// CreditGrantRolloverType The rollover type to use:
+// - `REMAINING_AMOUNT` - Rollover remaining amount.
+// - `ORIGINAL_AMOUNT` - Rollover re-applies the full grant amount.
+type CreditGrantRolloverType = credit.GrantRolloverType
+
+// CreditGrantType The grant type:
+// - `USAGE` - Increase balance by the amount in the unit of the associated meter.
+type CreditGrantType = credit.GrantType
+
+// CreditLedgerEntry Credit ledger entry.
+type CreditLedgerEntry = credit.LedgerEntry
+
+// CreditLedgerEntryType defines model for CreditLedgerEntryType.
+type CreditLedgerEntryType = credit.LedgerEntryType
+
+// CreditReset Credit reset configuration.
+type CreditReset = credit.Reset
+
 // Event CloudEvents Specification JSON Schema
 type Event = event.Event
+
+// Feature A feature is a feature or service offered to a customer.
+// For example: CPU-Hours, Tokens, API Calls, etc.
+type Feature = credit.Feature
+
+// FeatureBalance defines model for FeatureBalance.
+type FeatureBalance = credit.Feature
 
 // IdOrSlug A unique identifier.
 type IdOrSlug = string
@@ -42,6 +91,9 @@ type IngestedEvent struct {
 	Event           Event   `json:"event"`
 	ValidationError *string `json:"validationError,omitempty"`
 }
+
+// Ledger defines model for Ledger.
+type Ledger = credit.Ledger
 
 // Meter A meter is a configuration that defines how to match and aggregate events.
 type Meter = models.Meter
@@ -61,6 +113,9 @@ type MeterQueryResult struct {
 
 // MeterQueryRow A row in the result of a meter query.
 type MeterQueryRow = models.MeterQueryRow
+
+// Period A time period
+type Period = credit.Period
 
 // PortalToken A consumer portal token.
 type PortalToken struct {
@@ -94,12 +149,28 @@ type Subject struct {
 // WindowSize Aggregation window size.
 type WindowSize = models.WindowSize
 
+// CreditGrantID defines model for creditGrantID.
+type CreditGrantID = ulid.ULID
+
+// CreditQueryLimit defines model for creditQueryLimit.
+type CreditQueryLimit = int
+
+// FeatureID defines model for featureID.
+type FeatureID = ulid.ULID
+
+// LedgerID defines model for ledgerID.
+type LedgerID = ulid.ULID
+
 // MeterIdOrSlug A unique identifier.
 type MeterIdOrSlug = IdOrSlug
 
 // QueryFilterGroupBy Simple filter for group bys with exact match.
-// Usage: ?filterGroupBy[type]=input&filterGroupBy[model]=gpt-4
+//
+// Usage: `?filterGroupBy[type]=input&filterGroupBy[model]=gpt-4`
 type QueryFilterGroupBy map[string]string
+
+// QueryFilterLedgerID defines model for queryFilterLedgerID.
+type QueryFilterLedgerID = ulid.ULID
 
 // QueryFilterSubject defines model for queryFilterSubject.
 type QueryFilterSubject = []string
@@ -159,6 +230,53 @@ type ListEventsParams struct {
 // IngestEventsApplicationCloudeventsBatchPlusJSONBody defines parameters for IngestEvents.
 type IngestEventsApplicationCloudeventsBatchPlusJSONBody = []Event
 
+// ListLedgersParams defines parameters for ListLedgers.
+type ListLedgersParams struct {
+	// Subject Query a specific ledger
+	Subject *[]string `form:"subject,omitempty" json:"subject,omitempty"`
+
+	// Limit Number of ledgers to return
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Start returning ledgers from this offset
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+}
+
+// ListCreditGrantsParams defines parameters for ListCreditGrants.
+type ListCreditGrantsParams struct {
+	// LedgerID Filtering and group by multiple subjects.
+	//
+	// Usage: `?ledgerID=01HX6VK5C498B3ABY9PR1069PP`
+	LedgerID *QueryFilterLedgerID `form:"ledgerID,omitempty" json:"ledgerID,omitempty"`
+
+	// Limit Number of entries to return
+	Limit *CreditQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// GetCreditBalanceParams defines parameters for GetCreditBalance.
+type GetCreditBalanceParams struct {
+	// Time Point of time to query balances: date-time in RFC 3339 format. Defaults to now.
+	Time *time.Time `form:"time,omitempty" json:"time,omitempty"`
+}
+
+// ListCreditGrantsByLedgerParams defines parameters for ListCreditGrantsByLedger.
+type ListCreditGrantsByLedgerParams struct {
+	// Limit Number of entries to return
+	Limit *CreditQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// GetCreditHistoryParams defines parameters for GetCreditHistory.
+type GetCreditHistoryParams struct {
+	// Limit Number of entries to return
+	Limit *CreditQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// From Start of time range to query ledger: date-time in RFC 3339 format.
+	From time.Time `form:"from" json:"from"`
+
+	// To End of time range to query ledger: date-time in RFC 3339 format. Defaults to now.
+	To *time.Time `form:"to,omitempty" json:"to,omitempty"`
+}
+
 // QueryMeterParams defines parameters for QueryMeter.
 type QueryMeterParams struct {
 	// From Start date-time in RFC 3339 format.
@@ -176,7 +294,8 @@ type QueryMeterParams struct {
 	// If not specified, the UTC timezone will be used.
 	WindowTimeZone *QueryWindowTimeZone `form:"windowTimeZone,omitempty" json:"windowTimeZone,omitempty"`
 
-	// Subject Filtering and group by multiple subjects.
+	// Subject Filtering by multiple subjects.
+	//
 	// Usage: ?subject=customer-1&subject=customer-2
 	Subject       *QueryFilterSubject `form:"subject,omitempty" json:"subject,omitempty"`
 	FilterGroupBy *QueryFilterGroupBy `json:"filterGroupBy,omitempty"`
@@ -232,6 +351,18 @@ type IngestEventsApplicationCloudeventsPlusJSONRequestBody = Event
 
 // IngestEventsApplicationCloudeventsBatchPlusJSONRequestBody defines body for IngestEvents for application/cloudevents-batch+json ContentType.
 type IngestEventsApplicationCloudeventsBatchPlusJSONRequestBody = IngestEventsApplicationCloudeventsBatchPlusJSONBody
+
+// CreateFeatureJSONRequestBody defines body for CreateFeature for application/json ContentType.
+type CreateFeatureJSONRequestBody = Feature
+
+// CreateLedgerJSONRequestBody defines body for CreateLedger for application/json ContentType.
+type CreateLedgerJSONRequestBody = CreateLedger
+
+// CreateCreditGrantJSONRequestBody defines body for CreateCreditGrant for application/json ContentType.
+type CreateCreditGrantJSONRequestBody = CreateCreditGrantRequest
+
+// ResetCreditJSONRequestBody defines body for ResetCredit for application/json ContentType.
+type ResetCreditJSONRequestBody = CreditReset
 
 // CreateMeterJSONRequestBody defines body for CreateMeter for application/json ContentType.
 type CreateMeterJSONRequestBody = Meter
@@ -328,6 +459,56 @@ type ClientInterface interface {
 
 	IngestEventsWithApplicationCloudeventsBatchPlusJSONBody(ctx context.Context, body IngestEventsApplicationCloudeventsBatchPlusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListFeatures request
+	ListFeatures(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateFeatureWithBody request with any body
+	CreateFeatureWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateFeature(ctx context.Context, body CreateFeatureJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteFeature request
+	DeleteFeature(ctx context.Context, featureID FeatureID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetFeature request
+	GetFeature(ctx context.Context, featureID FeatureID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListLedgers request
+	ListLedgers(ctx context.Context, params *ListLedgersParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateLedgerWithBody request with any body
+	CreateLedgerWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateLedger(ctx context.Context, body CreateLedgerJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListCreditGrants request
+	ListCreditGrants(ctx context.Context, params *ListCreditGrantsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetCreditBalance request
+	GetCreditBalance(ctx context.Context, ledgerID LedgerID, params *GetCreditBalanceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListCreditGrantsByLedger request
+	ListCreditGrantsByLedger(ctx context.Context, ledgerID LedgerID, params *ListCreditGrantsByLedgerParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateCreditGrantWithBody request with any body
+	CreateCreditGrantWithBody(ctx context.Context, ledgerID LedgerID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateCreditGrant(ctx context.Context, ledgerID LedgerID, body CreateCreditGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// VoidCreditGrant request
+	VoidCreditGrant(ctx context.Context, ledgerID LedgerID, creditGrantID CreditGrantID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetCreditGrant request
+	GetCreditGrant(ctx context.Context, ledgerID LedgerID, creditGrantID CreditGrantID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetCreditHistory request
+	GetCreditHistory(ctx context.Context, ledgerID LedgerID, params *GetCreditHistoryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ResetCreditWithBody request with any body
+	ResetCreditWithBody(ctx context.Context, ledgerID LedgerID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	ResetCredit(ctx context.Context, ledgerID LedgerID, body ResetCreditJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListMeters request
 	ListMeters(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -417,6 +598,222 @@ func (c *Client) IngestEventsWithApplicationCloudeventsPlusJSONBody(ctx context.
 
 func (c *Client) IngestEventsWithApplicationCloudeventsBatchPlusJSONBody(ctx context.Context, body IngestEventsApplicationCloudeventsBatchPlusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewIngestEventsRequestWithApplicationCloudeventsBatchPlusJSONBody(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListFeatures(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListFeaturesRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateFeatureWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateFeatureRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateFeature(ctx context.Context, body CreateFeatureJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateFeatureRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteFeature(ctx context.Context, featureID FeatureID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteFeatureRequest(c.Server, featureID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetFeature(ctx context.Context, featureID FeatureID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetFeatureRequest(c.Server, featureID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListLedgers(ctx context.Context, params *ListLedgersParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListLedgersRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateLedgerWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateLedgerRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateLedger(ctx context.Context, body CreateLedgerJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateLedgerRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListCreditGrants(ctx context.Context, params *ListCreditGrantsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListCreditGrantsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetCreditBalance(ctx context.Context, ledgerID LedgerID, params *GetCreditBalanceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetCreditBalanceRequest(c.Server, ledgerID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListCreditGrantsByLedger(ctx context.Context, ledgerID LedgerID, params *ListCreditGrantsByLedgerParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListCreditGrantsByLedgerRequest(c.Server, ledgerID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateCreditGrantWithBody(ctx context.Context, ledgerID LedgerID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateCreditGrantRequestWithBody(c.Server, ledgerID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateCreditGrant(ctx context.Context, ledgerID LedgerID, body CreateCreditGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateCreditGrantRequest(c.Server, ledgerID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) VoidCreditGrant(ctx context.Context, ledgerID LedgerID, creditGrantID CreditGrantID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewVoidCreditGrantRequest(c.Server, ledgerID, creditGrantID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetCreditGrant(ctx context.Context, ledgerID LedgerID, creditGrantID CreditGrantID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetCreditGrantRequest(c.Server, ledgerID, creditGrantID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetCreditHistory(ctx context.Context, ledgerID LedgerID, params *GetCreditHistoryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetCreditHistoryRequest(c.Server, ledgerID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ResetCreditWithBody(ctx context.Context, ledgerID LedgerID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewResetCreditRequestWithBody(c.Server, ledgerID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ResetCredit(ctx context.Context, ledgerID LedgerID, body ResetCreditJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewResetCreditRequest(c.Server, ledgerID, body)
 	if err != nil {
 		return nil, err
 	}
@@ -756,6 +1153,699 @@ func NewIngestEventsRequestWithBody(server string, contentType string, body io.R
 	}
 
 	operationPath := fmt.Sprintf("/api/v1/events")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListFeaturesRequest generates requests for ListFeatures
+func NewListFeaturesRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/features")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateFeatureRequest calls the generic CreateFeature builder with application/json body
+func NewCreateFeatureRequest(server string, body CreateFeatureJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateFeatureRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateFeatureRequestWithBody generates requests for CreateFeature with any type of body
+func NewCreateFeatureRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/features")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteFeatureRequest generates requests for DeleteFeature
+func NewDeleteFeatureRequest(server string, featureID FeatureID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "featureID", runtime.ParamLocationPath, featureID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/features/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetFeatureRequest generates requests for GetFeature
+func NewGetFeatureRequest(server string, featureID FeatureID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "featureID", runtime.ParamLocationPath, featureID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/features/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListLedgersRequest generates requests for ListLedgers
+func NewListLedgersRequest(server string, params *ListLedgersParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/ledgers")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Subject != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "subject", runtime.ParamLocationQuery, *params.Subject); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateLedgerRequest calls the generic CreateLedger builder with application/json body
+func NewCreateLedgerRequest(server string, body CreateLedgerJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateLedgerRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateLedgerRequestWithBody generates requests for CreateLedger with any type of body
+func NewCreateLedgerRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/ledgers")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListCreditGrantsRequest generates requests for ListCreditGrants
+func NewListCreditGrantsRequest(server string, params *ListCreditGrantsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/ledgers/grants")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.LedgerID != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "ledgerID", runtime.ParamLocationQuery, *params.LedgerID); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetCreditBalanceRequest generates requests for GetCreditBalance
+func NewGetCreditBalanceRequest(server string, ledgerID LedgerID, params *GetCreditBalanceParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ledgerID", runtime.ParamLocationPath, ledgerID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/ledgers/%s/balance", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Time != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "time", runtime.ParamLocationQuery, *params.Time); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListCreditGrantsByLedgerRequest generates requests for ListCreditGrantsByLedger
+func NewListCreditGrantsByLedgerRequest(server string, ledgerID LedgerID, params *ListCreditGrantsByLedgerParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ledgerID", runtime.ParamLocationPath, ledgerID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/ledgers/%s/grants", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateCreditGrantRequest calls the generic CreateCreditGrant builder with application/json body
+func NewCreateCreditGrantRequest(server string, ledgerID LedgerID, body CreateCreditGrantJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateCreditGrantRequestWithBody(server, ledgerID, "application/json", bodyReader)
+}
+
+// NewCreateCreditGrantRequestWithBody generates requests for CreateCreditGrant with any type of body
+func NewCreateCreditGrantRequestWithBody(server string, ledgerID LedgerID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ledgerID", runtime.ParamLocationPath, ledgerID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/ledgers/%s/grants", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewVoidCreditGrantRequest generates requests for VoidCreditGrant
+func NewVoidCreditGrantRequest(server string, ledgerID LedgerID, creditGrantID CreditGrantID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ledgerID", runtime.ParamLocationPath, ledgerID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "creditGrantID", runtime.ParamLocationPath, creditGrantID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/ledgers/%s/grants/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetCreditGrantRequest generates requests for GetCreditGrant
+func NewGetCreditGrantRequest(server string, ledgerID LedgerID, creditGrantID CreditGrantID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ledgerID", runtime.ParamLocationPath, ledgerID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "creditGrantID", runtime.ParamLocationPath, creditGrantID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/ledgers/%s/grants/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetCreditHistoryRequest generates requests for GetCreditHistory
+func NewGetCreditHistoryRequest(server string, ledgerID LedgerID, params *GetCreditHistoryParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ledgerID", runtime.ParamLocationPath, ledgerID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/ledgers/%s/history", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, params.From); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		if params.To != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "to", runtime.ParamLocationQuery, *params.To); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewResetCreditRequest calls the generic ResetCredit builder with application/json body
+func NewResetCreditRequest(server string, ledgerID LedgerID, body ResetCreditJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewResetCreditRequestWithBody(server, ledgerID, "application/json", bodyReader)
+}
+
+// NewResetCreditRequestWithBody generates requests for ResetCredit with any type of body
+func NewResetCreditRequestWithBody(server string, ledgerID LedgerID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ledgerID", runtime.ParamLocationPath, ledgerID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/ledgers/%s/reset", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -1549,6 +2639,56 @@ type ClientWithResponsesInterface interface {
 
 	IngestEventsWithApplicationCloudeventsBatchPlusJSONBodyWithResponse(ctx context.Context, body IngestEventsApplicationCloudeventsBatchPlusJSONRequestBody, reqEditors ...RequestEditorFn) (*IngestEventsResponse, error)
 
+	// ListFeaturesWithResponse request
+	ListFeaturesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListFeaturesResponse, error)
+
+	// CreateFeatureWithBodyWithResponse request with any body
+	CreateFeatureWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateFeatureResponse, error)
+
+	CreateFeatureWithResponse(ctx context.Context, body CreateFeatureJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateFeatureResponse, error)
+
+	// DeleteFeatureWithResponse request
+	DeleteFeatureWithResponse(ctx context.Context, featureID FeatureID, reqEditors ...RequestEditorFn) (*DeleteFeatureResponse, error)
+
+	// GetFeatureWithResponse request
+	GetFeatureWithResponse(ctx context.Context, featureID FeatureID, reqEditors ...RequestEditorFn) (*GetFeatureResponse, error)
+
+	// ListLedgersWithResponse request
+	ListLedgersWithResponse(ctx context.Context, params *ListLedgersParams, reqEditors ...RequestEditorFn) (*ListLedgersResponse, error)
+
+	// CreateLedgerWithBodyWithResponse request with any body
+	CreateLedgerWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateLedgerResponse, error)
+
+	CreateLedgerWithResponse(ctx context.Context, body CreateLedgerJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateLedgerResponse, error)
+
+	// ListCreditGrantsWithResponse request
+	ListCreditGrantsWithResponse(ctx context.Context, params *ListCreditGrantsParams, reqEditors ...RequestEditorFn) (*ListCreditGrantsResponse, error)
+
+	// GetCreditBalanceWithResponse request
+	GetCreditBalanceWithResponse(ctx context.Context, ledgerID LedgerID, params *GetCreditBalanceParams, reqEditors ...RequestEditorFn) (*GetCreditBalanceResponse, error)
+
+	// ListCreditGrantsByLedgerWithResponse request
+	ListCreditGrantsByLedgerWithResponse(ctx context.Context, ledgerID LedgerID, params *ListCreditGrantsByLedgerParams, reqEditors ...RequestEditorFn) (*ListCreditGrantsByLedgerResponse, error)
+
+	// CreateCreditGrantWithBodyWithResponse request with any body
+	CreateCreditGrantWithBodyWithResponse(ctx context.Context, ledgerID LedgerID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateCreditGrantResponse, error)
+
+	CreateCreditGrantWithResponse(ctx context.Context, ledgerID LedgerID, body CreateCreditGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateCreditGrantResponse, error)
+
+	// VoidCreditGrantWithResponse request
+	VoidCreditGrantWithResponse(ctx context.Context, ledgerID LedgerID, creditGrantID CreditGrantID, reqEditors ...RequestEditorFn) (*VoidCreditGrantResponse, error)
+
+	// GetCreditGrantWithResponse request
+	GetCreditGrantWithResponse(ctx context.Context, ledgerID LedgerID, creditGrantID CreditGrantID, reqEditors ...RequestEditorFn) (*GetCreditGrantResponse, error)
+
+	// GetCreditHistoryWithResponse request
+	GetCreditHistoryWithResponse(ctx context.Context, ledgerID LedgerID, params *GetCreditHistoryParams, reqEditors ...RequestEditorFn) (*GetCreditHistoryResponse, error)
+
+	// ResetCreditWithBodyWithResponse request with any body
+	ResetCreditWithBodyWithResponse(ctx context.Context, ledgerID LedgerID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResetCreditResponse, error)
+
+	ResetCreditWithResponse(ctx context.Context, ledgerID LedgerID, body ResetCreditJSONRequestBody, reqEditors ...RequestEditorFn) (*ResetCreditResponse, error)
+
 	// ListMetersWithResponse request
 	ListMetersWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListMetersResponse, error)
 
@@ -1643,6 +2783,355 @@ func (r IngestEventsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r IngestEventsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListFeaturesResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *[]Feature
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r ListFeaturesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListFeaturesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateFeatureResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON201                       *Feature
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON501     *NotImplementedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateFeatureResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateFeatureResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteFeatureResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteFeatureResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteFeatureResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetFeatureResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *Feature
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r GetFeatureResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetFeatureResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListLedgersResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *[]Ledger
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r ListLedgersResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListLedgersResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateLedgerResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON201                       *Ledger
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateLedgerResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateLedgerResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListCreditGrantsResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *[]CreditGrantResponse
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r ListCreditGrantsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListCreditGrantsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetCreditBalanceResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *CreditBalance
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r GetCreditBalanceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetCreditBalanceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListCreditGrantsByLedgerResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *[]CreditGrantResponse
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r ListCreditGrantsByLedgerResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListCreditGrantsByLedgerResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateCreditGrantResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON201                       *CreditGrantResponse
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateCreditGrantResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateCreditGrantResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type VoidCreditGrantResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r VoidCreditGrantResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r VoidCreditGrantResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetCreditGrantResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *CreditGrantResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r GetCreditGrantResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetCreditGrantResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetCreditHistoryResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *[]CreditLedgerEntry
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r GetCreditHistoryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetCreditHistoryResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ResetCreditResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON201                       *CreditReset
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r ResetCreditResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ResetCreditResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -2032,6 +3521,164 @@ func (c *ClientWithResponses) IngestEventsWithApplicationCloudeventsBatchPlusJSO
 	return ParseIngestEventsResponse(rsp)
 }
 
+// ListFeaturesWithResponse request returning *ListFeaturesResponse
+func (c *ClientWithResponses) ListFeaturesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListFeaturesResponse, error) {
+	rsp, err := c.ListFeatures(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListFeaturesResponse(rsp)
+}
+
+// CreateFeatureWithBodyWithResponse request with arbitrary body returning *CreateFeatureResponse
+func (c *ClientWithResponses) CreateFeatureWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateFeatureResponse, error) {
+	rsp, err := c.CreateFeatureWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateFeatureResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateFeatureWithResponse(ctx context.Context, body CreateFeatureJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateFeatureResponse, error) {
+	rsp, err := c.CreateFeature(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateFeatureResponse(rsp)
+}
+
+// DeleteFeatureWithResponse request returning *DeleteFeatureResponse
+func (c *ClientWithResponses) DeleteFeatureWithResponse(ctx context.Context, featureID FeatureID, reqEditors ...RequestEditorFn) (*DeleteFeatureResponse, error) {
+	rsp, err := c.DeleteFeature(ctx, featureID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteFeatureResponse(rsp)
+}
+
+// GetFeatureWithResponse request returning *GetFeatureResponse
+func (c *ClientWithResponses) GetFeatureWithResponse(ctx context.Context, featureID FeatureID, reqEditors ...RequestEditorFn) (*GetFeatureResponse, error) {
+	rsp, err := c.GetFeature(ctx, featureID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetFeatureResponse(rsp)
+}
+
+// ListLedgersWithResponse request returning *ListLedgersResponse
+func (c *ClientWithResponses) ListLedgersWithResponse(ctx context.Context, params *ListLedgersParams, reqEditors ...RequestEditorFn) (*ListLedgersResponse, error) {
+	rsp, err := c.ListLedgers(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListLedgersResponse(rsp)
+}
+
+// CreateLedgerWithBodyWithResponse request with arbitrary body returning *CreateLedgerResponse
+func (c *ClientWithResponses) CreateLedgerWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateLedgerResponse, error) {
+	rsp, err := c.CreateLedgerWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateLedgerResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateLedgerWithResponse(ctx context.Context, body CreateLedgerJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateLedgerResponse, error) {
+	rsp, err := c.CreateLedger(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateLedgerResponse(rsp)
+}
+
+// ListCreditGrantsWithResponse request returning *ListCreditGrantsResponse
+func (c *ClientWithResponses) ListCreditGrantsWithResponse(ctx context.Context, params *ListCreditGrantsParams, reqEditors ...RequestEditorFn) (*ListCreditGrantsResponse, error) {
+	rsp, err := c.ListCreditGrants(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListCreditGrantsResponse(rsp)
+}
+
+// GetCreditBalanceWithResponse request returning *GetCreditBalanceResponse
+func (c *ClientWithResponses) GetCreditBalanceWithResponse(ctx context.Context, ledgerID LedgerID, params *GetCreditBalanceParams, reqEditors ...RequestEditorFn) (*GetCreditBalanceResponse, error) {
+	rsp, err := c.GetCreditBalance(ctx, ledgerID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetCreditBalanceResponse(rsp)
+}
+
+// ListCreditGrantsByLedgerWithResponse request returning *ListCreditGrantsByLedgerResponse
+func (c *ClientWithResponses) ListCreditGrantsByLedgerWithResponse(ctx context.Context, ledgerID LedgerID, params *ListCreditGrantsByLedgerParams, reqEditors ...RequestEditorFn) (*ListCreditGrantsByLedgerResponse, error) {
+	rsp, err := c.ListCreditGrantsByLedger(ctx, ledgerID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListCreditGrantsByLedgerResponse(rsp)
+}
+
+// CreateCreditGrantWithBodyWithResponse request with arbitrary body returning *CreateCreditGrantResponse
+func (c *ClientWithResponses) CreateCreditGrantWithBodyWithResponse(ctx context.Context, ledgerID LedgerID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateCreditGrantResponse, error) {
+	rsp, err := c.CreateCreditGrantWithBody(ctx, ledgerID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateCreditGrantResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateCreditGrantWithResponse(ctx context.Context, ledgerID LedgerID, body CreateCreditGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateCreditGrantResponse, error) {
+	rsp, err := c.CreateCreditGrant(ctx, ledgerID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateCreditGrantResponse(rsp)
+}
+
+// VoidCreditGrantWithResponse request returning *VoidCreditGrantResponse
+func (c *ClientWithResponses) VoidCreditGrantWithResponse(ctx context.Context, ledgerID LedgerID, creditGrantID CreditGrantID, reqEditors ...RequestEditorFn) (*VoidCreditGrantResponse, error) {
+	rsp, err := c.VoidCreditGrant(ctx, ledgerID, creditGrantID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseVoidCreditGrantResponse(rsp)
+}
+
+// GetCreditGrantWithResponse request returning *GetCreditGrantResponse
+func (c *ClientWithResponses) GetCreditGrantWithResponse(ctx context.Context, ledgerID LedgerID, creditGrantID CreditGrantID, reqEditors ...RequestEditorFn) (*GetCreditGrantResponse, error) {
+	rsp, err := c.GetCreditGrant(ctx, ledgerID, creditGrantID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetCreditGrantResponse(rsp)
+}
+
+// GetCreditHistoryWithResponse request returning *GetCreditHistoryResponse
+func (c *ClientWithResponses) GetCreditHistoryWithResponse(ctx context.Context, ledgerID LedgerID, params *GetCreditHistoryParams, reqEditors ...RequestEditorFn) (*GetCreditHistoryResponse, error) {
+	rsp, err := c.GetCreditHistory(ctx, ledgerID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetCreditHistoryResponse(rsp)
+}
+
+// ResetCreditWithBodyWithResponse request with arbitrary body returning *ResetCreditResponse
+func (c *ClientWithResponses) ResetCreditWithBodyWithResponse(ctx context.Context, ledgerID LedgerID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResetCreditResponse, error) {
+	rsp, err := c.ResetCreditWithBody(ctx, ledgerID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseResetCreditResponse(rsp)
+}
+
+func (c *ClientWithResponses) ResetCreditWithResponse(ctx context.Context, ledgerID LedgerID, body ResetCreditJSONRequestBody, reqEditors ...RequestEditorFn) (*ResetCreditResponse, error) {
+	rsp, err := c.ResetCredit(ctx, ledgerID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseResetCreditResponse(rsp)
+}
+
 // ListMetersWithResponse request returning *ListMetersResponse
 func (c *ClientWithResponses) ListMetersWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListMetersResponse, error) {
 	rsp, err := c.ListMeters(ctx, reqEditors...)
@@ -2264,6 +3911,657 @@ func ParseIngestEventsResponse(rsp *http.Response) (*IngestEventsResponse, error
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListFeaturesResponse parses an HTTP response from a ListFeaturesWithResponse call
+func ParseListFeaturesResponse(rsp *http.Response) (*ListFeaturesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListFeaturesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []Feature
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateFeatureResponse parses an HTTP response from a CreateFeatureWithResponse call
+func ParseCreateFeatureResponse(rsp *http.Response) (*CreateFeatureResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateFeatureResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Feature
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 501:
+		var dest NotImplementedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON501 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteFeatureResponse parses an HTTP response from a DeleteFeatureWithResponse call
+func ParseDeleteFeatureResponse(rsp *http.Response) (*DeleteFeatureResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteFeatureResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetFeatureResponse parses an HTTP response from a GetFeatureWithResponse call
+func ParseGetFeatureResponse(rsp *http.Response) (*GetFeatureResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetFeatureResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Feature
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListLedgersResponse parses an HTTP response from a ListLedgersWithResponse call
+func ParseListLedgersResponse(rsp *http.Response) (*ListLedgersResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListLedgersResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []Ledger
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateLedgerResponse parses an HTTP response from a CreateLedgerWithResponse call
+func ParseCreateLedgerResponse(rsp *http.Response) (*CreateLedgerResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateLedgerResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Ledger
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListCreditGrantsResponse parses an HTTP response from a ListCreditGrantsWithResponse call
+func ParseListCreditGrantsResponse(rsp *http.Response) (*ListCreditGrantsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListCreditGrantsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []CreditGrantResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetCreditBalanceResponse parses an HTTP response from a GetCreditBalanceWithResponse call
+func ParseGetCreditBalanceResponse(rsp *http.Response) (*GetCreditBalanceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetCreditBalanceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CreditBalance
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListCreditGrantsByLedgerResponse parses an HTTP response from a ListCreditGrantsByLedgerWithResponse call
+func ParseListCreditGrantsByLedgerResponse(rsp *http.Response) (*ListCreditGrantsByLedgerResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListCreditGrantsByLedgerResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []CreditGrantResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateCreditGrantResponse parses an HTTP response from a CreateCreditGrantWithResponse call
+func ParseCreateCreditGrantResponse(rsp *http.Response) (*CreateCreditGrantResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateCreditGrantResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest CreditGrantResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseVoidCreditGrantResponse parses an HTTP response from a VoidCreditGrantWithResponse call
+func ParseVoidCreditGrantResponse(rsp *http.Response) (*VoidCreditGrantResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &VoidCreditGrantResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetCreditGrantResponse parses an HTTP response from a GetCreditGrantWithResponse call
+func ParseGetCreditGrantResponse(rsp *http.Response) (*GetCreditGrantResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetCreditGrantResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CreditGrantResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetCreditHistoryResponse parses an HTTP response from a GetCreditHistoryWithResponse call
+func ParseGetCreditHistoryResponse(rsp *http.Response) (*GetCreditHistoryResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetCreditHistoryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []CreditLedgerEntry
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseResetCreditResponse parses an HTTP response from a ResetCreditWithResponse call
+func ParseResetCreditResponse(rsp *http.Response) (*ResetCreditResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ResetCreditResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest CreditReset
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -2937,99 +5235,145 @@ func ParseGetSubjectResponse(rsp *http.Response) (*GetSubjectResponse, error) {
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"p7kjszIIJSRyi7m9vP2/AAAA//8ZeH4HZnYAAA==",
+	"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",
+	"pxTk7uLufwMAAP//QZEUY8vIAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

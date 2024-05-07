@@ -22,7 +22,7 @@ services:
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
     healthcheck:
       test: kafka-topics --bootstrap-server kafka:9092 --list
       interval: 5s
@@ -84,3 +84,20 @@ services:
     volumes:
       - ./api:/usr/local/src/openmeter/api
       - ./etc:/usr/local/src/openmeter/etc
+
+  # Credit
+  # docker compose --profile postgres up
+  postgres:
+    image: postgres:15.3
+    profiles:
+      - postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+      - POSTGRES_PASSWORD=postgres
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
