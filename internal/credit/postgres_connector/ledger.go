@@ -22,6 +22,8 @@ func (c *PostgresConnector) CreateLedger(ctx context.Context, namespace string, 
 		Save(ctx)
 
 	if db.IsConstraintError(err) {
+		// This cannot happen in the same transaction as the previous Create
+		// as the transaction is aborted at this stage
 		existingLedgerEntity, err := c.db.Ledger.Query().
 			Where(db_ledger.Namespace(namespace)).
 			Where(db_ledger.Subject(ledgerIn.Subject)).
