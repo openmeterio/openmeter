@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
 	"strings"
 	"time"
 )
@@ -129,22 +130,22 @@ func (m *Ci) publishPythonSdk(ctx context.Context, version string, pypiToken *Se
 
 func (m *Ci) publishNodeSdk(ctx context.Context, version string, npmToken *Secret) error {
 	// TODO: generate SDK on the fly?
-	return m.publishToNpm(ctx, m.Source.Directory("api/client/node"), version, npmToken)
+	return m.publishToNpm(ctx, "node", version, npmToken)
 }
 
 func (m *Ci) publishWebSdk(ctx context.Context, version string, npmToken *Secret) error {
 	// TODO: generate SDK on the fly?
-	return m.publishToNpm(ctx, m.Source.Directory("api/client/web"), version, npmToken)
+	return m.publishToNpm(ctx, "web", version, npmToken)
 }
 
-func (m *Ci) publishToNpm(ctx context.Context, pkg *Directory, version string, npmToken *Secret) error {
+func (m *Ci) publishToNpm(ctx context.Context, pkg string, version string, npmToken *Secret) error {
 	_, err := dag.Container().
 		From("node:20-alpine").
 		WithExec([]string{"npm", "install", "-g", "pnpm"}).
 		WithExec([]string{"sh", "-c", "echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' > /root/.npmrc"}).
 		WithSecretVariable("NPM_TOKEN", npmToken).
-		WithDirectory("/work", pkg).
-		WithWorkdir("/work").
+		WithDirectory("/work", m.Source.Directory("api")).
+		WithWorkdir(path.Join("/work/client", pkg)).
 		WithExec([]string{"pnpm", "install", "--frozen-lockfile"}).
 		WithExec([]string{"pnpm", "version", version, "--no-git-tag-version"}).
 		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
