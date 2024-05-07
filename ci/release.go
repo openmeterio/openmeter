@@ -106,6 +106,7 @@ func (m *Ci) publishPythonSdk(ctx context.Context, version string, pypiToken *Se
 			WithPipCache(dag.CacheVolume("openmeter-pip")).
 			Container().
 			WithExec([]string{"pip", "--disable-pip-version-check", "install", "pipx"}).
+			WithEnvVariable("PATH", "${PATH}:/root/.local/bin", ContainerWithEnvVariableOpts{Expand: true}).
 			WithExec([]string{"pipx", "install", "poetry"}),
 	}).
 		WithSource(m.Source.Directory("api/client/python")). // TODO: generate SDK on the fly?
