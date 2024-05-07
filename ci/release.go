@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func (m *Ci) Release(ctx context.Context, version string, githubActor string, githubToken *Secret, pypiToken *Secret) error {
+func (m *Ci) Release(ctx context.Context, version string, githubActor string, githubToken *Secret, pypiToken *Secret, npmToken *Secret) error {
 	p := newPipeline(ctx)
 
 	p.addJobs(
@@ -42,6 +42,12 @@ func (m *Ci) Release(ctx context.Context, version string, githubActor string, gi
 
 		func(ctx context.Context) error {
 			return m.publishPythonSdk(ctx, version, pypiToken)
+		},
+		func(ctx context.Context) error {
+			return m.publishNodeSdk(ctx, version, npmToken)
+		},
+		func(ctx context.Context) error {
+			return m.publishWebSdk(ctx, version, npmToken)
 		},
 	)
 
@@ -116,6 +122,32 @@ func (m *Ci) publishPythonSdk(ctx context.Context, version string, pypiToken *Se
 		WithSecretVariable("POETRY_PYPI_TOKEN_PYPI", pypiToken).
 		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
 		WithExec([]string{"poetry", "publish", "--build"}).
+		Sync(ctx)
+
+	return err
+}
+
+func (m *Ci) publishNodeSdk(ctx context.Context, version string, npmToken *Secret) error {
+	// TODO: generate SDK on the fly?
+	return m.publishToNpm(ctx, m.Source.Directory("api/client/node"), version, npmToken)
+}
+
+func (m *Ci) publishWebSdk(ctx context.Context, version string, npmToken *Secret) error {
+	// TODO: generate SDK on the fly?
+	return m.publishToNpm(ctx, m.Source.Directory("api/client/web"), version, npmToken)
+}
+
+func (m *Ci) publishToNpm(ctx context.Context, pkg *Directory, version string, npmToken *Secret) error {
+	_, err := dag.Container().
+		From("node:20-alpine").
+		WithExec([]string{"npm", "install", "-g", "pnpm"}).
+		WithExec([]string{"sh", "-c", "echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' > /root/.npmrc"}).
+		WithDirectory("/work", pkg).
+		WithExec([]string{"pnpm", "install", "--frozen-lockfile"}).
+		WithExec([]string{"pnpm", "version", version, "--no-git-tag-version"}).
+		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
+		WithSecretVariable("NPM_TOKEN", npmToken).
+		WithExec([]string{"pnpm", "--access=public", "--no-git-checks"}).
 		Sync(ctx)
 
 	return err
