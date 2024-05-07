@@ -38,3 +38,5 @@ require (
 	google.golang.org/grpc v1.62.1
 	google.golang.org/protobuf v1.33.0 // indirect
 )
+
+replace go.opentelemetry.io/otel/trace => go.opentelemetry.io/otel/trace v1.24.0
