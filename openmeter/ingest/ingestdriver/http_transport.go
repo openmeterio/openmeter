@@ -3,6 +3,7 @@ package ingestdriver
 import (
 	"net/http"
 
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
@@ -21,3 +22,13 @@ func NewIngestEventsHandler(
 
 // NamespaceDecoder gets the namespace from the request.
 type NamespaceDecoder = ingestdriver.NamespaceDecoder
+
+// NewListEventsHandler returns a new HTTP handler that wraps the given [operation.Operation].
+func NewListEventsHandler(
+	op operation.Operation[ingest.ListEventsRequest, []api.IngestedEvent],
+	namespaceDecoder NamespaceDecoder,
+	commonErrorEncoder httptransport.ErrorEncoder,
+	errorHandler httptransport.ErrorHandler,
+) http.Handler {
+	return ingestdriver.NewListEventsHandler(op, namespaceDecoder, commonErrorEncoder, errorHandler)
+}

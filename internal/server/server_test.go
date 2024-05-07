@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -119,6 +120,11 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 			IngestHandler: ingestdriver.NewIngestEventsHandler(func(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {
 				return true, nil
 			}, ingestdriver.StaticNamespaceDecoder("test"), nil, errorsx.NewContextHandler(errorsx.NopHandler{})),
+			IngestService: ingest.Service{
+				Collector:          nil,
+				StreamingConnector: &MockConnector{},
+				Logger:             slog.Default(),
+			},
 			NamespaceManager:    namespaceManager,
 			PortalTokenStrategy: portalTokenStrategy,
 			ErrorHandler:        errorsx.NopHandler{},

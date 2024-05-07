@@ -14,6 +14,7 @@ type ListEventsParams struct {
 	Limit int
 }
 
+// TODO: relocate struct from api package
 type Connector interface {
 	ListEvents(ctx context.Context, namespace string, params ListEventsParams) ([]api.IngestedEvent, error)
 	CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error
