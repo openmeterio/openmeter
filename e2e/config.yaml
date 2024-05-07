@@ -25,7 +25,7 @@ sink:
       database: 1
       address: redis:6379
 
-credits:
+entitlements:
   enabled: true
 
 postgres:

@@ -31,7 +31,7 @@ func (a *Router) ListCreditGrants(w http.ResponseWriter, r *http.Request, params
 		LedgerIDs:         ledgerIDs,
 		FromHighWatermark: true,
 		IncludeVoid:       true,
-		Limit:             defaultx.WithDefault(params.Limit, api.DefaultCreditsQueryLimit),
+		Limit:             defaultx.WithDefault(params.Limit, DefaultCreditsQueryLimit),
 	})
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)
@@ -56,7 +56,7 @@ func (a *Router) ListCreditGrantsByLedger(w http.ResponseWriter, r *http.Request
 		LedgerIDs:         []ulid.ULID{ledgerID},
 		FromHighWatermark: true,
 		IncludeVoid:       true,
-		Limit:             defaultx.WithDefault(params.Limit, api.DefaultCreditsQueryLimit),
+		Limit:             defaultx.WithDefault(params.Limit, DefaultCreditsQueryLimit),
 	})
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)

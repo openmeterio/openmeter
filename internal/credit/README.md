@@ -13,8 +13,11 @@ OpenMeter Credits can help to implement:
 
 ## Quickstart
 
-Run docker compose with `--profile postgres` and enable credits in `config.yaml` via `credits: true`
-
+Run docker compose with `--profile postgres` and enable entitlements in `config.yaml` via
+```
+entitlements:
+    enabled: true
+```
 ## Test
 
 Credit tests require a Postgres database. The recommended way to run tests is to use `make test`, which runs the necessary dependencies via Dagger.

@@ -279,7 +279,7 @@ func main() {
 
 	// Initialize Credit
 	var creditConnector credit.Connector
-	if conf.Credits.Enabled {
+	if conf.Entitlements.Enabled {
 		creditConnector = postgres_credit.NewPostgresConnector(
 			logger,
 			creditDbClient,
@@ -287,13 +287,13 @@ func main() {
 			meterRepository,
 		)
 		if err != nil {
-			logger.Error("failed to initialize credit", "error", err)
+			logger.Error("failed to initialize entitlements support", "error", err)
 			os.Exit(1)
 		}
-		logger.Info("credits support enabled")
+		logger.Info("entitlements support enabled")
 	} else {
 		creditConnector = nope_credit.NewConnector()
-		logger.Info("credits support disabled")
+		logger.Info("entitlements support disabled")
 	}
 
 	s, err := server.NewServer(&server.Config{

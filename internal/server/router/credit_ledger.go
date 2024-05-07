@@ -26,7 +26,7 @@ func (a *Router) GetCreditHistory(w http.ResponseWriter, r *http.Request, ledger
 		ctx, namespace, ledgerID,
 		params.From,
 		defaultx.WithDefault(params.To, time.Now()),
-		defaultx.WithDefault(params.Limit, api.DefaultCreditsQueryLimit),
+		defaultx.WithDefault(params.Limit, DefaultCreditsQueryLimit),
 	)
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)
@@ -93,7 +93,7 @@ func (a *Router) ListLedgers(w http.ResponseWriter, r *http.Request, params api.
 		credit.ListLedgersParams{
 			Subjects: defaultx.WithDefault(params.Subject, nil),
 			Offset:   defaultx.WithDefault(params.Offset, 0),
-			Limit:    defaultx.WithDefault(params.Limit, 0),
+			Limit:    defaultx.WithDefault(params.Limit, DefaultCreditsQueryLimit),
 		})
 	if err != nil && !db.IsNotFound(err) {
 		a.config.ErrorHandler.HandleContext(ctx, err)

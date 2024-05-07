@@ -12,8 +12,8 @@ telemetry:
 #     database: 0
 #     expiration: 768h # 32d
 
-# Credits
-# credits:
+# Entitlements
+# entitlements:
 #   enabled: true
 
 # Consumer portal
