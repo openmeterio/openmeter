@@ -148,7 +148,7 @@ func (m *Ci) publishToNpm(ctx context.Context, pkg *Directory, version string, n
 		WithExec([]string{"pnpm", "install", "--frozen-lockfile"}).
 		WithExec([]string{"pnpm", "version", version, "--no-git-tag-version"}).
 		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
-		WithExec([]string{"pnpm", "--access=public", "--no-git-checks"}).
+		WithExec([]string{"pnpm", "publish", "--access=public", "--no-git-checks"}).
 		Sync(ctx)
 
 	return err
