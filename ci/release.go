@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 )
 
-func (m *Ci) Release(ctx context.Context, version string, githubActor string, githubToken *Secret) error {
+func (m *Ci) Release(ctx context.Context, version string, githubActor string, githubToken *Secret, pypiToken *Secret) error {
 	p := newPipeline(ctx)
 
 	p.addJobs(
@@ -37,6 +38,10 @@ func (m *Ci) Release(ctx context.Context, version string, githubActor string, gi
 			})
 
 			return err
+		},
+
+		func(ctx context.Context) error {
+			return m.publishPythonSdk(ctx, version, pypiToken)
 		},
 	)
 
@@ -93,4 +98,24 @@ func (m *Ci) binaryArchive(version string, platform Platform) *File {
 			WithFile("", m.Source.File("README.md")).
 			WithFile("", m.Source.File("LICENSE")),
 	)
+}
+
+func (m *Ci) publishPythonSdk(ctx context.Context, version string, pypiToken *Secret) error {
+	_, err := dag.Python(PythonOpts{
+		Container: dag.Python(PythonOpts{Container: dag.Container().From("pypy:3.10-slim")}).
+			WithPipCache(dag.CacheVolume("openmeter-pip")).
+			Container().
+			WithExec([]string{"pip", "--disable-pip-version-check", "install", "pipx"}).
+			WithExec([]string{"pipx", "install", "poetry"}),
+	}).
+		WithSource(m.Source.Directory("api/client/python")). // TODO: generate SDK on the fly?
+		Container().
+		WithExec([]string{"poetry", "install"}).
+		WithExec([]string{"poetry", "version", version}).
+		WithSecretVariable("POETRY_PYPI_TOKEN_PYPI", pypiToken).
+		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
+		WithExec([]string{"poetry", "publish", "--build"}).
+		Sync(ctx)
+
+	return err
 }

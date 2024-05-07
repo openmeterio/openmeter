@@ -41,8 +41,9 @@ jobs:
         with:
           verb: call
           module: github.com/${{ github.repository }}@${{ github.ref }}
-          args: --ref ${{ github.ref }} release --version ${{ github.ref_name }} --github-actor ${{ github.actor }} --github-token env:GITHUB_TOKEN
+          args: --ref ${{ github.ref }} release --version ${{ github.ref_name }} --github-actor ${{ github.actor }} --github-token env:GITHUB_TOKEN --pypi-token env:PYPI_TOKEN
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: "0.11.2"
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}

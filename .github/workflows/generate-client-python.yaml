@@ -1,4 +1,4 @@
-name: Python Client Generation
+name: Generate / Python SDK
 
 permissions:
   contents: write
@@ -17,31 +17,23 @@ jobs:
   generate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/create-github-app-token@v1
-        id: app-token
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
-          app-id: ${{ vars.BOT_APP_ID }}
-          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ steps.app-token.outputs.token }}
           ref: ${{ github.head_ref }}
-          # Make sure the value of GITHUB_TOKEN will not be persisted in repo's config
-          persist-credentials: false
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
+
       - name: Generate Client
-        run: |
-          make generate
-        working-directory: ./api/client/python
+        uses: dagger/dagger-for-github@eba69b4dddb54eddfdb51a88eb7fd86957137630 # v5.4.0
+        with:
+          verb: call
+          args: --source .:default generate python-sdk -o api/client/python
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          version: "0.11.2"
+
       - name: Open Pull Request
         uses: peter-evans/create-pull-request@v6
         with:
-          branch: openapi/python-client
+          branch: openapi/python-sdk
           branch-suffix: short-commit-hash
           delete-branch: true
           commit-message: "chore(api): generate python client"
@@ -50,4 +42,4 @@ jobs:
           labels: |
             area/api
             release-note/misc
-          token: ${{ steps.app-token.outputs.token }}
+          token: ${{ secrets.BOT_GITHUB_TOKEN }}
