@@ -142,11 +142,12 @@ func (m *Ci) publishToNpm(ctx context.Context, pkg *Directory, version string, n
 		From("node:20-alpine").
 		WithExec([]string{"npm", "install", "-g", "pnpm"}).
 		WithExec([]string{"sh", "-c", "echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' > /root/.npmrc"}).
+		WithSecretVariable("NPM_TOKEN", npmToken).
 		WithDirectory("/work", pkg).
+		WithWorkdir("/work").
 		WithExec([]string{"pnpm", "install", "--frozen-lockfile"}).
 		WithExec([]string{"pnpm", "version", version, "--no-git-tag-version"}).
 		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
-		WithSecretVariable("NPM_TOKEN", npmToken).
 		WithExec([]string{"pnpm", "--access=public", "--no-git-checks"}).
 		Sync(ctx)
 
