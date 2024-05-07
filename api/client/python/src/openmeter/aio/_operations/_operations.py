@@ -23,22 +23,36 @@ from azure.core.tracing.decorator_async import distributed_trace_async
 from azure.core.utils import case_insensitive_dict
 
 from ..._operations._operations import (
+    build_create_credit_grant_request,
+    build_create_feature_request,
+    build_create_ledger_request,
     build_create_meter_request,
     build_create_portal_token_request,
+    build_delete_feature_request,
     build_delete_meter_request,
     build_delete_subject_request,
+    build_get_credit_balance_request,
+    build_get_credit_grant_request,
+    build_get_credit_history_request,
+    build_get_feature_request,
     build_get_meter_request,
     build_get_subject_request,
     build_ingest_events_request,
     build_invalidate_portal_tokens_request,
+    build_list_credit_grants_by_ledger_request,
+    build_list_credit_grants_request,
     build_list_events_request,
+    build_list_features_request,
+    build_list_ledgers_request,
     build_list_meter_subjects_request,
     build_list_meters_request,
     build_list_portal_tokens_request,
     build_list_subjects_request,
     build_query_meter_request,
     build_query_portal_meter_request,
+    build_reset_credit_request,
     build_upsert_subject_request,
+    build_void_credit_grant_request,
 )
 from .._vendor import ClientMixinABC
 
@@ -51,7 +65,7 @@ T = TypeVar("T")
 ClsType = Optional[Callable[[PipelineResponse[HttpRequest, AsyncHttpResponse], T, Dict[str, Any]], Any]]
 
 
-class ClientOperationsMixin(ClientMixinABC):
+class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-methods
     @distributed_trace_async
     async def list_events(
         self,
@@ -825,7 +839,8 @@ class ClientOperationsMixin(ClientMixinABC):
          Zone Database (http://www.iana.org/time-zones).
          If not specified, the UTC timezone will be used. Default value is "UTC".
         :paramtype window_time_zone: str
-        :keyword subject: Filtering and group by multiple subjects.
+        :keyword subject: Filtering by multiple subjects.
+
          Usage: ?subject=customer-1&subject=customer-2. Default value is None.
         :paramtype subject: list[str]
         :keyword filter_group_by: Default value is None.
@@ -1871,3 +1886,1692 @@ class ClientOperationsMixin(ClientMixinABC):
             return cls(pipeline_response, cast(Union[JSON, str], deserialized), {})  # type: ignore
 
         return cast(Union[JSON, str], deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def list_features(self, **kwargs: Any) -> List[JSON]:
+        # pylint: disable=line-too-long
+        """List features.
+
+        List features.
+
+        :return: list of JSON object
+        :rtype: list[JSON]
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == [
+                    {
+                        "meterSlug": "str",  # The meter that the feature is associated with
+                          and decreases grants by usage. Required.
+                        "name": "str",  # The name of the feature. Required.
+                        "archived": bool,  # Optional. If the feature is archived, it will
+                          not be used for grants or usage.
+                        "id": "str",  # Optional. Readonly unique ULID identifier of the
+                          feature.
+                        "meterGroupByFilters": {
+                            "str": "str"  # Optional. Optional meter group by filters.
+                              Useful if the meter scope is broader than what feature tracks.
+                        }
+                    }
+                ]
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+
+        _request = build_list_features_request(
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
+
+        return cast(List[JSON], deserialized)  # type: ignore
+
+    @overload
+    async def create_feature(self, body: JSON, *, content_type: str = "application/json", **kwargs: Any) -> JSON:
+        # pylint: disable=line-too-long
+        """Create feature.
+
+        Creates a feature.
+
+        :param body: The feature to create. Required.
+        :type body: JSON
+        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "meterSlug": "str",  # The meter that the feature is associated with and
+                      decreases grants by usage. Required.
+                    "name": "str",  # The name of the feature. Required.
+                    "archived": bool,  # Optional. If the feature is archived, it will not be
+                      used for grants or usage.
+                    "id": "str",  # Optional. Readonly unique ULID identifier of the feature.
+                    "meterGroupByFilters": {
+                        "str": "str"  # Optional. Optional meter group by filters. Useful if
+                          the meter scope is broader than what feature tracks.
+                    }
+                }
+
+                # response body for status code(s): 201
+                response == {
+                    "meterSlug": "str",  # The meter that the feature is associated with and
+                      decreases grants by usage. Required.
+                    "name": "str",  # The name of the feature. Required.
+                    "archived": bool,  # Optional. If the feature is archived, it will not be
+                      used for grants or usage.
+                    "id": "str",  # Optional. Readonly unique ULID identifier of the feature.
+                    "meterGroupByFilters": {
+                        "str": "str"  # Optional. Optional meter group by filters. Useful if
+                          the meter scope is broader than what feature tracks.
+                    }
+                }
+        """
+
+    @overload
+    async def create_feature(self, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any) -> JSON:
+        # pylint: disable=line-too-long
+        """Create feature.
+
+        Creates a feature.
+
+        :param body: The feature to create. Required.
+        :type body: IO[bytes]
+        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 201
+                response == {
+                    "meterSlug": "str",  # The meter that the feature is associated with and
+                      decreases grants by usage. Required.
+                    "name": "str",  # The name of the feature. Required.
+                    "archived": bool,  # Optional. If the feature is archived, it will not be
+                      used for grants or usage.
+                    "id": "str",  # Optional. Readonly unique ULID identifier of the feature.
+                    "meterGroupByFilters": {
+                        "str": "str"  # Optional. Optional meter group by filters. Useful if
+                          the meter scope is broader than what feature tracks.
+                    }
+                }
+        """
+
+    @distributed_trace_async
+    async def create_feature(self, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
+        # pylint: disable=line-too-long
+        """Create feature.
+
+        Creates a feature.
+
+        :param body: The feature to create. Is either a JSON type or a IO[bytes] type. Required.
+        :type body: JSON or IO[bytes]
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "meterSlug": "str",  # The meter that the feature is associated with and
+                      decreases grants by usage. Required.
+                    "name": "str",  # The name of the feature. Required.
+                    "archived": bool,  # Optional. If the feature is archived, it will not be
+                      used for grants or usage.
+                    "id": "str",  # Optional. Readonly unique ULID identifier of the feature.
+                    "meterGroupByFilters": {
+                        "str": "str"  # Optional. Optional meter group by filters. Useful if
+                          the meter scope is broader than what feature tracks.
+                    }
+                }
+
+                # response body for status code(s): 201
+                response == {
+                    "meterSlug": "str",  # The meter that the feature is associated with and
+                      decreases grants by usage. Required.
+                    "name": "str",  # The name of the feature. Required.
+                    "archived": bool,  # Optional. If the feature is archived, it will not be
+                      used for grants or usage.
+                    "id": "str",  # Optional. Readonly unique ULID identifier of the feature.
+                    "meterGroupByFilters": {
+                        "str": "str"  # Optional. Optional meter group by filters. Useful if
+                          the meter scope is broader than what feature tracks.
+                    }
+                }
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            501: HttpResponseError,
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _params = kwargs.pop("params", {}) or {}
+
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        content_type = content_type or "application/json"
+        _json = None
+        _content = None
+        if isinstance(body, (IOBase, bytes)):
+            _content = body
+        else:
+            _json = body
+
+        _request = build_create_feature_request(
+            content_type=content_type,
+            json=_json,
+            content=_content,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [201]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def get_feature(self, feature_id: str, **kwargs: Any) -> JSON:
+        # pylint: disable=line-too-long
+        """Get feature.
+
+        Get feature by key.
+
+        :param feature_id: A unique ULID identifier for a feature. Required.
+        :type feature_id: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == {
+                    "meterSlug": "str",  # The meter that the feature is associated with and
+                      decreases grants by usage. Required.
+                    "name": "str",  # The name of the feature. Required.
+                    "archived": bool,  # Optional. If the feature is archived, it will not be
+                      used for grants or usage.
+                    "id": "str",  # Optional. Readonly unique ULID identifier of the feature.
+                    "meterGroupByFilters": {
+                        "str": "str"  # Optional. Optional meter group by filters. Useful if
+                          the meter scope is broader than what feature tracks.
+                    }
+                }
+        """
+        error_map = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            404: lambda response: ResourceNotFoundError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        _request = build_get_feature_request(
+            feature_id=feature_id,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def delete_feature(  # pylint: disable=inconsistent-return-statements
+        self, feature_id: str, **kwargs: Any
+    ) -> None:
+        """Delete feature.
+
+        Delete a feature by key.
+
+        :param feature_id: A unique ULID identifier for a feature. Required.
+        :type feature_id: str
+        :return: None
+        :rtype: None
+        :raises ~azure.core.exceptions.HttpResponseError:
+        """
+        error_map = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            404: lambda response: ResourceNotFoundError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[None] = kwargs.pop("cls", None)
+
+        _request = build_delete_feature_request(
+            feature_id=feature_id,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [204]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if cls:
+            return cls(pipeline_response, None, {})  # type: ignore
+
+    @distributed_trace_async
+    async def list_ledgers(
+        self, *, subject: Optional[List[str]] = None, limit: int = 1000, offset: Optional[int] = None, **kwargs: Any
+    ) -> List[JSON]:
+        """List the already defined ledgers.
+
+        List the already defined ledgers.
+
+        :keyword subject: Query a specific ledger. Default value is None.
+        :paramtype subject: list[str]
+        :keyword limit: Number of ledgers to return. Default value is 1000.
+        :paramtype limit: int
+        :keyword offset: Start returning ledgers from this offset. Default value is None.
+        :paramtype offset: int
+        :return: list of JSON object
+        :rtype: list[JSON]
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == [
+                    {
+                        "id": "str",  # Readonly unique ULID identifier of the ledger.
+                          Required.
+                        "subject": "str",  # The metering subject this ledger used to track
+                          credits for. Required.
+                        "metadata": {
+                            "str": "str"  # Optional. Dictionary of :code:`<string>`.
+                        }
+                    }
+                ]
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+
+        _request = build_list_ledgers_request(
+            subject=subject,
+            limit=limit,
+            offset=offset,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
+
+        return cast(List[JSON], deserialized)  # type: ignore
+
+    @overload
+    async def create_ledger(self, body: JSON, *, content_type: str = "application/json", **kwargs: Any) -> JSON:
+        """Creates the specified ledger.
+
+        Create or update the specified ledger.
+
+        :param body: The ledger to be created. Required.
+        :type body: JSON
+        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "subject": "str",  # The metering subject this ledger used to track credits
+                      for. Required.
+                    "metadata": {
+                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
+                    }
+                }
+
+                # response body for status code(s): 201
+                response == {
+                    "id": "str",  # Readonly unique ULID identifier of the ledger. Required.
+                    "subject": "str",  # The metering subject this ledger used to track credits
+                      for. Required.
+                    "metadata": {
+                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
+                    }
+                }
+        """
+
+    @overload
+    async def create_ledger(self, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any) -> JSON:
+        """Creates the specified ledger.
+
+        Create or update the specified ledger.
+
+        :param body: The ledger to be created. Required.
+        :type body: IO[bytes]
+        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 201
+                response == {
+                    "id": "str",  # Readonly unique ULID identifier of the ledger. Required.
+                    "subject": "str",  # The metering subject this ledger used to track credits
+                      for. Required.
+                    "metadata": {
+                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
+                    }
+                }
+        """
+
+    @distributed_trace_async
+    async def create_ledger(self, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
+        """Creates the specified ledger.
+
+        Create or update the specified ledger.
+
+        :param body: The ledger to be created. Is either a JSON type or a IO[bytes] type. Required.
+        :type body: JSON or IO[bytes]
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "subject": "str",  # The metering subject this ledger used to track credits
+                      for. Required.
+                    "metadata": {
+                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
+                    }
+                }
+
+                # response body for status code(s): 201
+                response == {
+                    "id": "str",  # Readonly unique ULID identifier of the ledger. Required.
+                    "subject": "str",  # The metering subject this ledger used to track credits
+                      for. Required.
+                    "metadata": {
+                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
+                    }
+                }
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _params = kwargs.pop("params", {}) or {}
+
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        content_type = content_type or "application/json"
+        _json = None
+        _content = None
+        if isinstance(body, (IOBase, bytes)):
+            _content = body
+        else:
+            _json = body
+
+        _request = build_create_ledger_request(
+            content_type=content_type,
+            json=_json,
+            content=_content,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [201]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def get_credit_balance(
+        self, ledger_id: str, *, time: Optional[datetime.datetime] = None, **kwargs: Any
+    ) -> JSON:
+        # pylint: disable=line-too-long
+        """Get the balance of a specific subject.
+
+        Get the balance of a specific subject.
+
+        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :type ledger_id: str
+        :keyword time: Point of time to query balances: date-time in RFC 3339 format. Defaults to now.
+         Default value is None.
+        :paramtype time: ~datetime.datetime
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == {
+                    "grants": [
+                        {
+                            "amount": 0.0,  # The amount to grant. Can be positive or
+                              negative number. Required.
+                            "effectiveAt": "2020-02-20 00:00:00",  # The effective date.
+                              Required.
+                            "expiration": {
+                                "count": 0,  # The expiration period count like 12
+                                  months. Required.
+                                "duration": "str"  # The expiration period duration
+                                  like month. Required. Known values are: "HOUR", "DAY", "WEEK",
+                                  "MONTH", and "YEAR".
+                            },
+                            "featureID": "str",  # The unique feature ULID that the grant
+                              is associated with, if any. Required.
+                            "id": "str",  # Readonly unique ULID identifier of the grant.
+                              Required.
+                            "subject": "str",  # The subject to grant the amount to.
+                              Required.
+                            "type": "str",  # The grant type:   * ``USAGE`` - Increase
+                              balance by the amount in the unit of the associated meter. Required.
+                              "USAGE"
+                            "balance": 0.0,  # Optional. The balance of the grant.
+                            "expiresAt": "2020-02-20 00:00:00",  # Optional. The
+                              expiration date of the grant.
+                            "metadata": {
+                                "str": "str"  # Optional. Dictionary of
+                                  :code:`<string>`.
+                            },
+                            "priority": 1,  # Optional. Default value is 1. The priority
+                              of the grant. Grants with higher priority are applied first. Priority is
+                              a positive decimal numbers. With lower numbers indicating higher
+                              importance. For example, a priority of 1 is more urgent than a priority
+                              of 2. When there are several grants available for the same subject, the
+                              system selects the grant with the highest priority. In cases where credit
+                              grants share the same priority level, the grant closest to its expiration
+                              will be used first. In the case of two credits have identical priorities
+                              and expiration dates, the system will use the grant that was created
+                              first.
+                            "rollover": {
+                                "type": "str",  # The rollover type to use:   *
+                                  ``REMAINING_AMOUNT`` - Rollover remaining amount. *
+                                  ``ORIGINAL_AMOUNT`` - Rollover re-applies the full grant amount.
+                                  Required. Known values are: "REMAINING_AMOUNT" and "ORIGINAL_AMOUNT".
+                                "maxAmount": 0.0  # Optional. Maximum amount to
+                                  rollover.
+                            }
+                        }
+                    ],
+                    "features": [
+                        {
+                            "meterSlug": "str",  # The meter that the feature is
+                              associated with and decreases grants by usage. Required.
+                            "name": "str",  # The name of the feature. Required.
+                            "archived": bool,  # Optional. If the feature is archived, it
+                              will not be used for grants or usage.
+                            "balance": 0.0,  # Optional. The balance of the feature.
+                            "id": "str",  # Optional. Readonly unique ULID identifier of
+                              the feature.
+                            "meterGroupByFilters": {
+                                "str": "str"  # Optional. Optional meter group by
+                                  filters. Useful if the meter scope is broader than what feature
+                                  tracks.
+                            }
+                        }
+                    ]
+                }
+        """
+        error_map = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            404: lambda response: ResourceNotFoundError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        _request = build_get_credit_balance_request(
+            ledger_id=ledger_id,
+            time=time,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def get_credit_history(
+        self,
+        ledger_id: str,
+        *,
+        from_parameter: datetime.datetime,
+        limit: int = 1000,
+        to: Optional[datetime.datetime] = None,
+        **kwargs: Any
+    ) -> List[JSON]:
+        """Get credit ledger.
+
+        Get credit ledger for a specific subject.
+
+        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :type ledger_id: str
+        :keyword from_parameter: Start of time range to query ledger: date-time in RFC 3339 format.
+         Required.
+        :paramtype from_parameter: ~datetime.datetime
+        :keyword limit: Number of entries to return. Default value is 1000.
+        :paramtype limit: int
+        :keyword to: End of time range to query ledger: date-time in RFC 3339 format. Defaults to now.
+         Default value is None.
+        :paramtype to: ~datetime.datetime
+        :return: list of JSON object
+        :rtype: list[JSON]
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == [
+                    {
+                        "id": "str",  # Readonly unique ULID identifier of the ledger entry.
+                          Required.
+                        "time": "2020-02-20 00:00:00",  # The time the ledger entry was
+                          created. Required.
+                        "type": "str",  # Required. Known values are: "GRANT", "VOID",
+                          "RESET", and "GRANT_USAGE".
+                        "amount": 0.0,  # Optional. The amount to apply. Can be positive or
+                          negative number. If applicable.
+                        "period": {
+                            "from": "2020-02-20 00:00:00",  # Period start time where the
+                              amount was applied. If applicable. Required.
+                            "to": "2020-02-20 00:00:00"  # Period end time where the
+                              amount was applied. If applicable. Required.
+                        }
+                    }
+                ]
+        """
+        error_map = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            404: lambda response: ResourceNotFoundError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+
+        _request = build_get_credit_history_request(
+            ledger_id=ledger_id,
+            from_parameter=from_parameter,
+            limit=limit,
+            to=to,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
+
+        return cast(List[JSON], deserialized)  # type: ignore
+
+    @overload
+    async def reset_credit(
+        self, ledger_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        """Reset credit balance.
+
+        Resets the credit balances to zero for a specific subject and re-apply active grants with
+        rollover configuration.
+
+        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :type ledger_id: str
+        :param body: Details for the reset. Required.
+        :type body: JSON
+        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the credit. It
+                      cannot be in the future. Required.
+                    "id": "str"  # Readonly unique ULID identifier of the reset. Required.
+                }
+
+                # response body for status code(s): 201
+                response == {
+                    "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the credit. It
+                      cannot be in the future. Required.
+                    "id": "str"  # Readonly unique ULID identifier of the reset. Required.
+                }
+        """
+
+    @overload
+    async def reset_credit(
+        self, ledger_id: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        """Reset credit balance.
+
+        Resets the credit balances to zero for a specific subject and re-apply active grants with
+        rollover configuration.
+
+        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :type ledger_id: str
+        :param body: Details for the reset. Required.
+        :type body: IO[bytes]
+        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 201
+                response == {
+                    "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the credit. It
+                      cannot be in the future. Required.
+                    "id": "str"  # Readonly unique ULID identifier of the reset. Required.
+                }
+        """
+
+    @distributed_trace_async
+    async def reset_credit(self, ledger_id: str, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
+        """Reset credit balance.
+
+        Resets the credit balances to zero for a specific subject and re-apply active grants with
+        rollover configuration.
+
+        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :type ledger_id: str
+        :param body: Details for the reset. Is either a JSON type or a IO[bytes] type. Required.
+        :type body: JSON or IO[bytes]
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the credit. It
+                      cannot be in the future. Required.
+                    "id": "str"  # Readonly unique ULID identifier of the reset. Required.
+                }
+
+                # response body for status code(s): 201
+                response == {
+                    "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the credit. It
+                      cannot be in the future. Required.
+                    "id": "str"  # Readonly unique ULID identifier of the reset. Required.
+                }
+        """
+        error_map = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            404: lambda response: ResourceNotFoundError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _params = kwargs.pop("params", {}) or {}
+
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        content_type = content_type or "application/json"
+        _json = None
+        _content = None
+        if isinstance(body, (IOBase, bytes)):
+            _content = body
+        else:
+            _json = body
+
+        _request = build_reset_credit_request(
+            ledger_id=ledger_id,
+            content_type=content_type,
+            json=_json,
+            content=_content,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [201]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def list_credit_grants(
+        self, *, ledger_id: Optional[str] = None, limit: int = 1000, **kwargs: Any
+    ) -> List[JSON]:
+        # pylint: disable=line-too-long
+        """List credit grants for multiple ledgers.
+
+        List credit grants for multiple ledgers.
+
+        :keyword ledger_id: Filtering and group by multiple subjects.
+
+         Usage: ``?ledgerID=01HX6VK5C498B3ABY9PR1069PP``. Default value is None.
+        :paramtype ledger_id: str
+        :keyword limit: Number of entries to return. Default value is 1000.
+        :paramtype limit: int
+        :return: list of JSON object
+        :rtype: list[JSON]
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == [
+                    {
+                        "amount": 0.0,  # The amount to grant. Can be positive or negative
+                          number. Required.
+                        "effectiveAt": "2020-02-20 00:00:00",  # The effective date.
+                          Required.
+                        "expiration": {
+                            "count": 0,  # The expiration period count like 12 months.
+                              Required.
+                            "duration": "str"  # The expiration period duration like
+                              month. Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and
+                              "YEAR".
+                        },
+                        "featureID": "str",  # The unique feature ULID that the grant is
+                          associated with, if any. Required.
+                        "id": "str",  # Readonly unique ULID identifier of the grant.
+                          Required.
+                        "subject": "str",  # The subject to grant the amount to. Required.
+                        "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by
+                          the amount in the unit of the associated meter. Required. "USAGE"
+                        "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date
+                          of the grant.
+                        "metadata": {
+                            "str": "str"  # Optional. Dictionary of :code:`<string>`.
+                        },
+                        "priority": 1,  # Optional. Default value is 1. The priority of the
+                          grant. Grants with higher priority are applied first. Priority is a positive
+                          decimal numbers. With lower numbers indicating higher importance. For
+                          example, a priority of 1 is more urgent than a priority of 2. When there are
+                          several grants available for the same subject, the system selects the grant
+                          with the highest priority. In cases where credit grants share the same
+                          priority level, the grant closest to its expiration will be used first. In
+                          the case of two credits have identical priorities and expiration dates, the
+                          system will use the grant that was created first.
+                        "rollover": {
+                            "type": "str",  # The rollover type to use:   *
+                              ``REMAINING_AMOUNT`` - Rollover remaining amount. * ``ORIGINAL_AMOUNT`` -
+                              Rollover re-applies the full grant amount. Required. Known values are:
+                              "REMAINING_AMOUNT" and "ORIGINAL_AMOUNT".
+                            "maxAmount": 0.0  # Optional. Maximum amount to rollover.
+                        }
+                    }
+                ]
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+
+        _request = build_list_credit_grants_request(
+            ledger_id=ledger_id,
+            limit=limit,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
+
+        return cast(List[JSON], deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def list_credit_grants_by_ledger(self, ledger_id: str, *, limit: int = 1000, **kwargs: Any) -> List[JSON]:
+        # pylint: disable=line-too-long
+        """List credit grants.
+
+        List credit grants for a specific ledger.
+
+        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :type ledger_id: str
+        :keyword limit: Number of entries to return. Default value is 1000.
+        :paramtype limit: int
+        :return: list of JSON object
+        :rtype: list[JSON]
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == [
+                    {
+                        "amount": 0.0,  # The amount to grant. Can be positive or negative
+                          number. Required.
+                        "effectiveAt": "2020-02-20 00:00:00",  # The effective date.
+                          Required.
+                        "expiration": {
+                            "count": 0,  # The expiration period count like 12 months.
+                              Required.
+                            "duration": "str"  # The expiration period duration like
+                              month. Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and
+                              "YEAR".
+                        },
+                        "featureID": "str",  # The unique feature ULID that the grant is
+                          associated with, if any. Required.
+                        "id": "str",  # Readonly unique ULID identifier of the grant.
+                          Required.
+                        "subject": "str",  # The subject to grant the amount to. Required.
+                        "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by
+                          the amount in the unit of the associated meter. Required. "USAGE"
+                        "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date
+                          of the grant.
+                        "metadata": {
+                            "str": "str"  # Optional. Dictionary of :code:`<string>`.
+                        },
+                        "priority": 1,  # Optional. Default value is 1. The priority of the
+                          grant. Grants with higher priority are applied first. Priority is a positive
+                          decimal numbers. With lower numbers indicating higher importance. For
+                          example, a priority of 1 is more urgent than a priority of 2. When there are
+                          several grants available for the same subject, the system selects the grant
+                          with the highest priority. In cases where credit grants share the same
+                          priority level, the grant closest to its expiration will be used first. In
+                          the case of two credits have identical priorities and expiration dates, the
+                          system will use the grant that was created first.
+                        "rollover": {
+                            "type": "str",  # The rollover type to use:   *
+                              ``REMAINING_AMOUNT`` - Rollover remaining amount. * ``ORIGINAL_AMOUNT`` -
+                              Rollover re-applies the full grant amount. Required. Known values are:
+                              "REMAINING_AMOUNT" and "ORIGINAL_AMOUNT".
+                            "maxAmount": 0.0  # Optional. Maximum amount to rollover.
+                        }
+                    }
+                ]
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+
+        _request = build_list_credit_grants_by_ledger_request(
+            ledger_id=ledger_id,
+            limit=limit,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
+
+        return cast(List[JSON], deserialized)  # type: ignore
+
+    @overload
+    async def create_credit_grant(
+        self, ledger_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        # pylint: disable=line-too-long
+        """Create credit grant.
+
+        Creates a credit grant.
+
+        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :type ledger_id: str
+        :param body: The credit grant to create. Required.
+        :type body: JSON
+        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "amount": 0.0,  # The amount to grant. Can be positive or negative number.
+                      Required.
+                    "effectiveAt": "2020-02-20 00:00:00",  # The effective date. Required.
+                    "expiration": {
+                        "count": 0,  # The expiration period count like 12 months. Required.
+                        "duration": "str"  # The expiration period duration like month.
+                          Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
+                    },
+                    "featureID": "str",  # The unique feature ULID that the grant is associated
+                      with, if any. Required.
+                    "id": "str",  # Readonly unique ULID identifier of the grant. Required.
+                    "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
+                      amount in the unit of the associated meter. Required. "USAGE"
+                    "metadata": {
+                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
+                    },
+                    "priority": 1,  # Optional. Default value is 1. The priority of the grant.
+                      Grants with higher priority are applied first. Priority is a positive decimal
+                      numbers. With lower numbers indicating higher importance. For example, a priority
+                      of 1 is more urgent than a priority of 2. When there are several grants available
+                      for the same subject, the system selects the grant with the highest priority. In
+                      cases where credit grants share the same priority level, the grant closest to its
+                      expiration will be used first. In the case of two credits have identical
+                      priorities and expiration dates, the system will use the grant that was created
+                      first.
+                    "rollover": {
+                        "type": "str",  # The rollover type to use:   * ``REMAINING_AMOUNT``
+                          - Rollover remaining amount. * ``ORIGINAL_AMOUNT`` - Rollover re-applies the
+                          full grant amount. Required. Known values are: "REMAINING_AMOUNT" and
+                          "ORIGINAL_AMOUNT".
+                        "maxAmount": 0.0  # Optional. Maximum amount to rollover.
+                    }
+                }
+
+                # response body for status code(s): 201
+                response == {
+                    "amount": 0.0,  # The amount to grant. Can be positive or negative number.
+                      Required.
+                    "effectiveAt": "2020-02-20 00:00:00",  # The effective date. Required.
+                    "expiration": {
+                        "count": 0,  # The expiration period count like 12 months. Required.
+                        "duration": "str"  # The expiration period duration like month.
+                          Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
+                    },
+                    "featureID": "str",  # The unique feature ULID that the grant is associated
+                      with, if any. Required.
+                    "id": "str",  # Readonly unique ULID identifier of the grant. Required.
+                    "subject": "str",  # The subject to grant the amount to. Required.
+                    "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
+                      amount in the unit of the associated meter. Required. "USAGE"
+                    "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
+                      grant.
+                    "metadata": {
+                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
+                    },
+                    "priority": 1,  # Optional. Default value is 1. The priority of the grant.
+                      Grants with higher priority are applied first. Priority is a positive decimal
+                      numbers. With lower numbers indicating higher importance. For example, a priority
+                      of 1 is more urgent than a priority of 2. When there are several grants available
+                      for the same subject, the system selects the grant with the highest priority. In
+                      cases where credit grants share the same priority level, the grant closest to its
+                      expiration will be used first. In the case of two credits have identical
+                      priorities and expiration dates, the system will use the grant that was created
+                      first.
+                    "rollover": {
+                        "type": "str",  # The rollover type to use:   * ``REMAINING_AMOUNT``
+                          - Rollover remaining amount. * ``ORIGINAL_AMOUNT`` - Rollover re-applies the
+                          full grant amount. Required. Known values are: "REMAINING_AMOUNT" and
+                          "ORIGINAL_AMOUNT".
+                        "maxAmount": 0.0  # Optional. Maximum amount to rollover.
+                    }
+                }
+        """
+
+    @overload
+    async def create_credit_grant(
+        self, ledger_id: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        # pylint: disable=line-too-long
+        """Create credit grant.
+
+        Creates a credit grant.
+
+        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :type ledger_id: str
+        :param body: The credit grant to create. Required.
+        :type body: IO[bytes]
+        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 201
+                response == {
+                    "amount": 0.0,  # The amount to grant. Can be positive or negative number.
+                      Required.
+                    "effectiveAt": "2020-02-20 00:00:00",  # The effective date. Required.
+                    "expiration": {
+                        "count": 0,  # The expiration period count like 12 months. Required.
+                        "duration": "str"  # The expiration period duration like month.
+                          Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
+                    },
+                    "featureID": "str",  # The unique feature ULID that the grant is associated
+                      with, if any. Required.
+                    "id": "str",  # Readonly unique ULID identifier of the grant. Required.
+                    "subject": "str",  # The subject to grant the amount to. Required.
+                    "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
+                      amount in the unit of the associated meter. Required. "USAGE"
+                    "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
+                      grant.
+                    "metadata": {
+                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
+                    },
+                    "priority": 1,  # Optional. Default value is 1. The priority of the grant.
+                      Grants with higher priority are applied first. Priority is a positive decimal
+                      numbers. With lower numbers indicating higher importance. For example, a priority
+                      of 1 is more urgent than a priority of 2. When there are several grants available
+                      for the same subject, the system selects the grant with the highest priority. In
+                      cases where credit grants share the same priority level, the grant closest to its
+                      expiration will be used first. In the case of two credits have identical
+                      priorities and expiration dates, the system will use the grant that was created
+                      first.
+                    "rollover": {
+                        "type": "str",  # The rollover type to use:   * ``REMAINING_AMOUNT``
+                          - Rollover remaining amount. * ``ORIGINAL_AMOUNT`` - Rollover re-applies the
+                          full grant amount. Required. Known values are: "REMAINING_AMOUNT" and
+                          "ORIGINAL_AMOUNT".
+                        "maxAmount": 0.0  # Optional. Maximum amount to rollover.
+                    }
+                }
+        """
+
+    @distributed_trace_async
+    async def create_credit_grant(self, ledger_id: str, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
+        # pylint: disable=line-too-long
+        """Create credit grant.
+
+        Creates a credit grant.
+
+        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :type ledger_id: str
+        :param body: The credit grant to create. Is either a JSON type or a IO[bytes] type. Required.
+        :type body: JSON or IO[bytes]
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "amount": 0.0,  # The amount to grant. Can be positive or negative number.
+                      Required.
+                    "effectiveAt": "2020-02-20 00:00:00",  # The effective date. Required.
+                    "expiration": {
+                        "count": 0,  # The expiration period count like 12 months. Required.
+                        "duration": "str"  # The expiration period duration like month.
+                          Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
+                    },
+                    "featureID": "str",  # The unique feature ULID that the grant is associated
+                      with, if any. Required.
+                    "id": "str",  # Readonly unique ULID identifier of the grant. Required.
+                    "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
+                      amount in the unit of the associated meter. Required. "USAGE"
+                    "metadata": {
+                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
+                    },
+                    "priority": 1,  # Optional. Default value is 1. The priority of the grant.
+                      Grants with higher priority are applied first. Priority is a positive decimal
+                      numbers. With lower numbers indicating higher importance. For example, a priority
+                      of 1 is more urgent than a priority of 2. When there are several grants available
+                      for the same subject, the system selects the grant with the highest priority. In
+                      cases where credit grants share the same priority level, the grant closest to its
+                      expiration will be used first. In the case of two credits have identical
+                      priorities and expiration dates, the system will use the grant that was created
+                      first.
+                    "rollover": {
+                        "type": "str",  # The rollover type to use:   * ``REMAINING_AMOUNT``
+                          - Rollover remaining amount. * ``ORIGINAL_AMOUNT`` - Rollover re-applies the
+                          full grant amount. Required. Known values are: "REMAINING_AMOUNT" and
+                          "ORIGINAL_AMOUNT".
+                        "maxAmount": 0.0  # Optional. Maximum amount to rollover.
+                    }
+                }
+
+                # response body for status code(s): 201
+                response == {
+                    "amount": 0.0,  # The amount to grant. Can be positive or negative number.
+                      Required.
+                    "effectiveAt": "2020-02-20 00:00:00",  # The effective date. Required.
+                    "expiration": {
+                        "count": 0,  # The expiration period count like 12 months. Required.
+                        "duration": "str"  # The expiration period duration like month.
+                          Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
+                    },
+                    "featureID": "str",  # The unique feature ULID that the grant is associated
+                      with, if any. Required.
+                    "id": "str",  # Readonly unique ULID identifier of the grant. Required.
+                    "subject": "str",  # The subject to grant the amount to. Required.
+                    "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
+                      amount in the unit of the associated meter. Required. "USAGE"
+                    "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
+                      grant.
+                    "metadata": {
+                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
+                    },
+                    "priority": 1,  # Optional. Default value is 1. The priority of the grant.
+                      Grants with higher priority are applied first. Priority is a positive decimal
+                      numbers. With lower numbers indicating higher importance. For example, a priority
+                      of 1 is more urgent than a priority of 2. When there are several grants available
+                      for the same subject, the system selects the grant with the highest priority. In
+                      cases where credit grants share the same priority level, the grant closest to its
+                      expiration will be used first. In the case of two credits have identical
+                      priorities and expiration dates, the system will use the grant that was created
+                      first.
+                    "rollover": {
+                        "type": "str",  # The rollover type to use:   * ``REMAINING_AMOUNT``
+                          - Rollover remaining amount. * ``ORIGINAL_AMOUNT`` - Rollover re-applies the
+                          full grant amount. Required. Known values are: "REMAINING_AMOUNT" and
+                          "ORIGINAL_AMOUNT".
+                        "maxAmount": 0.0  # Optional. Maximum amount to rollover.
+                    }
+                }
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _params = kwargs.pop("params", {}) or {}
+
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        content_type = content_type or "application/json"
+        _json = None
+        _content = None
+        if isinstance(body, (IOBase, bytes)):
+            _content = body
+        else:
+            _json = body
+
+        _request = build_create_credit_grant_request(
+            ledger_id=ledger_id,
+            content_type=content_type,
+            json=_json,
+            content=_content,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [201]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def get_credit_grant(self, ledger_id: str, credit_grant_id: str, **kwargs: Any) -> JSON:
+        # pylint: disable=line-too-long
+        """Get credit grant.
+
+        Get credit by key.
+
+        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :type ledger_id: str
+        :param credit_grant_id: A unique identifier for a credit grant. Required.
+        :type credit_grant_id: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == {
+                    "amount": 0.0,  # The amount to grant. Can be positive or negative number.
+                      Required.
+                    "effectiveAt": "2020-02-20 00:00:00",  # The effective date. Required.
+                    "expiration": {
+                        "count": 0,  # The expiration period count like 12 months. Required.
+                        "duration": "str"  # The expiration period duration like month.
+                          Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
+                    },
+                    "featureID": "str",  # The unique feature ULID that the grant is associated
+                      with, if any. Required.
+                    "id": "str",  # Readonly unique ULID identifier of the grant. Required.
+                    "subject": "str",  # The subject to grant the amount to. Required.
+                    "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
+                      amount in the unit of the associated meter. Required. "USAGE"
+                    "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
+                      grant.
+                    "metadata": {
+                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
+                    },
+                    "priority": 1,  # Optional. Default value is 1. The priority of the grant.
+                      Grants with higher priority are applied first. Priority is a positive decimal
+                      numbers. With lower numbers indicating higher importance. For example, a priority
+                      of 1 is more urgent than a priority of 2. When there are several grants available
+                      for the same subject, the system selects the grant with the highest priority. In
+                      cases where credit grants share the same priority level, the grant closest to its
+                      expiration will be used first. In the case of two credits have identical
+                      priorities and expiration dates, the system will use the grant that was created
+                      first.
+                    "rollover": {
+                        "type": "str",  # The rollover type to use:   * ``REMAINING_AMOUNT``
+                          - Rollover remaining amount. * ``ORIGINAL_AMOUNT`` - Rollover re-applies the
+                          full grant amount. Required. Known values are: "REMAINING_AMOUNT" and
+                          "ORIGINAL_AMOUNT".
+                        "maxAmount": 0.0  # Optional. Maximum amount to rollover.
+                    }
+                }
+        """
+        error_map = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            404: lambda response: ResourceNotFoundError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        _request = build_get_credit_grant_request(
+            ledger_id=ledger_id,
+            credit_grant_id=credit_grant_id,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def void_credit_grant(  # pylint: disable=inconsistent-return-statements
+        self, credit_grant_id: str, ledger_id: str, **kwargs: Any
+    ) -> None:
+        """Void credit grant.
+
+        Void a credit grant by ID. Partially or fully used credits cannot be voided.
+        Voided credits won't be applied to the subject's balance anymore.
+
+        :param credit_grant_id: A unique identifier for a credit grant. Required.
+        :type credit_grant_id: str
+        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :type ledger_id: str
+        :return: None
+        :rtype: None
+        :raises ~azure.core.exceptions.HttpResponseError:
+        """
+        error_map = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            404: lambda response: ResourceNotFoundError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[None] = kwargs.pop("cls", None)
+
+        _request = build_void_credit_grant_request(
+            credit_grant_id=credit_grant_id,
+            ledger_id=ledger_id,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [204]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if cls:
+            return cls(pipeline_response, None, {})  # type: ignore
