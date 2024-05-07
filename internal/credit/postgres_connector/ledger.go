@@ -13,54 +13,36 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func (c *PostgresConnector) CreateLedger(ctx context.Context, namespace string, ledgerIn credit.Ledger, upsert bool) (credit.Ledger, error) {
-	dbLedger, err := transaction(ctx, c, func(tx *db.Tx) (*db.Ledger, error) {
-		existingLedgerEntity, err := tx.Ledger.Query().
+func (c *PostgresConnector) CreateLedger(ctx context.Context, namespace string, ledgerIn credit.Ledger) (credit.Ledger, error) {
+	entity, err := c.db.Ledger.Create().
+		SetNamespace(namespace).
+		SetMetadata(ledgerIn.Metadata).
+		SetSubject(ledgerIn.Subject).
+		SetHighwatermark(defaultHighwatermark).
+		Save(ctx)
+
+	if db.IsConstraintError(err) {
+		existingLedgerEntity, err := c.db.Ledger.Query().
 			Where(db_ledger.Namespace(namespace)).
 			Where(db_ledger.Subject(ledgerIn.Subject)).
 			Only(ctx)
 
-		if !db.IsNotFound(err) {
-			return nil, err
-		}
-
-		// ledger already exists
-		if err == nil {
-			if upsert {
-				return c.upsertLedger(ctx, tx, existingLedgerEntity, ledgerIn.Metadata)
-			}
-			return nil, &credit.LedgerAlreadyExistsError{
-				Namespace: namespace,
-				LedgerID:  existingLedgerEntity.ID.ULID,
-				Subject:   ledgerIn.Subject,
-			}
-		}
-
-		entity, err := tx.Ledger.Create().
-			SetNamespace(namespace).
-			SetMetadata(ledgerIn.Metadata).
-			SetSubject(ledgerIn.Subject).
-			SetHighwatermark(defaultHighwatermark).
-			Save(ctx)
-
 		if err != nil {
-			return nil, fmt.Errorf("failed to create ledger: %w", err)
+			return credit.Ledger{}, fmt.Errorf("cannot query existing ledger: %w", err)
 		}
-
-		return entity, nil
-	})
-
-	if err != nil {
-		return credit.Ledger{}, err
+		return credit.Ledger{}, &credit.LedgerAlreadyExistsError{
+			Namespace: namespace,
+			LedgerID:  existingLedgerEntity.ID.ULID,
+			Subject:   ledgerIn.Subject,
+		}
 	}
 
-	return mapDBLedgerToModel(dbLedger), nil
-}
+	if err != nil {
+		return credit.Ledger{}, fmt.Errorf("failed to create ledger: %w", err)
+	}
 
-func (a *PostgresConnector) upsertLedger(ctx context.Context, tx *db.Tx, entity *db.Ledger, metadata map[string]string) (*db.Ledger, error) {
-	return tx.Ledger.UpdateOneID(entity.ID).
-		SetMetadata(metadata).
-		Save(ctx)
+	return mapDBLedgerToModel(entity), nil
+
 }
 
 func (c *PostgresConnector) ListLedgers(ctx context.Context, namespace string, params credit.ListLedgersParams) ([]credit.Ledger, error) {

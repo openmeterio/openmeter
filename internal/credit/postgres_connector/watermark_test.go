@@ -62,7 +62,7 @@ func TestWatermark(t *testing.T) {
 
 				ledger, err := connector.CreateLedger(ctx, namespace, credit.Ledger{
 					Subject: subject,
-				}, false)
+				})
 				assert.NoError(t, err)
 
 				hw, err := connector.GetHighWatermark(ctx, namespace, ledger.ID)

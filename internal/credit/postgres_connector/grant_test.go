@@ -142,7 +142,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client, ledger1 credit.Ledger) {
 				ledger2, err := connector.CreateLedger(context.Background(), namespace, credit.Ledger{
 					Subject: ulid.Make().String(),
-				}, false)
+				})
 
 				assert.NoError(t, err)
 
@@ -224,7 +224,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 			// let's provision a ledger
 			ledger, err := connector.CreateLedger(context.Background(), namespace, credit.Ledger{
 				Subject: ulid.Make().String(),
-			}, false)
+			})
 
 			assert.NoError(t, err)
 

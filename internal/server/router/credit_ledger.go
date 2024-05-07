@@ -63,7 +63,7 @@ func (a *Router) CreateLedger(w http.ResponseWriter, r *http.Request) {
 	ledger, err := a.config.CreditConnector.CreateLedger(ctx, namespace, credit.Ledger{
 		Subject:  createLedgerArgs.Subject,
 		Metadata: createLedgerArgs.Metadata,
-	}, false)
+	})
 	if err != nil {
 
 		if existsError, ok := err.(*credit.LedgerAlreadyExistsError); ok {

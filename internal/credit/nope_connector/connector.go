@@ -22,7 +22,7 @@ func NewConnector() credit.Connector {
 }
 
 // Ledger
-func (c *Connector) CreateLedger(ctx context.Context, namespace string, ledger credit.Ledger, upsert bool) (credit.Ledger, error) {
+func (c *Connector) CreateLedger(ctx context.Context, namespace string, ledger credit.Ledger) (credit.Ledger, error) {
 	return credit.Ledger{}, fmt.Errorf("not implemented")
 }
 func (c *Connector) ListLedgers(ctx context.Context, namespace string, params credit.ListLedgersParams) ([]credit.Ledger, error) {

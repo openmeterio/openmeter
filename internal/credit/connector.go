@@ -28,7 +28,7 @@ type ListLedgersParams struct {
 
 type Connector interface {
 	// Ledger
-	CreateLedger(ctx context.Context, namespace string, ledger Ledger, upsert bool) (Ledger, error)
+	CreateLedger(ctx context.Context, namespace string, ledger Ledger) (Ledger, error)
 	ListLedgers(ctx context.Context, namespace string, params ListLedgersParams) ([]Ledger, error)
 
 	// Grant

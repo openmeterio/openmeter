@@ -175,7 +175,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 			// let's provision a ledger
 			ledger, err := connector.CreateLedger(context.Background(), namespace, credit.Ledger{
 				Subject: ulid.Make().String(),
-			}, false)
+			})
 
 			assert.NoError(t, err)
 
