@@ -157,7 +157,6 @@ jobs:
         with:
           api-key: ${{secrets.FOSSA_API_KEY}}
 
-  # TODO: Rewrite this into Dagger
   quickstart:
     name: Quickstart
     runs-on: ubuntu-latest
@@ -173,20 +172,13 @@ jobs:
       - name: Wait for worker to become ready
         run: curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:10000/healthz
 
-      # This is probably overkill but it can happen that OpenMeter creates namespaces slower
-      - name: Wait to pickup namespace
-        run: sleep 5
-
-      - name: Ingest sample data
-        run: ./ingest.sh
-        working-directory: quickstart
-
-      - name: Wait for data to be processed
-        run: sleep 20
-
-      - name: Verify sample data
-        run: ./verify.sh
-        working-directory: quickstart
+      - name: Generate Client
+        uses: dagger/dagger-for-github@eba69b4dddb54eddfdb51a88eb7fd86957137630 # v5.4.0
+        with:
+          verb: call
+          args: --source .:default quickstart-test --service tcp://localhost:8888 --port 8888
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          version: "0.11.2"
 
       - name: Cleanup Docker Compose
         run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml down -v
