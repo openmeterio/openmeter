@@ -164,53 +164,53 @@ export interface paths {
      * Get the balance of a specific subject.
      * @description Get the balance of a specific subject.
      */
-    get: operations['getCreditBalance']
+    get: operations['getLedgerBalance']
   }
   '/api/v1/ledgers/{ledgerID}/history': {
     /**
-     * Get credit ledger
-     * @description Get credit ledger for a specific subject.
+     * Get the history of a ledger
+     * @description Get the history of a specific ledger
      */
-    get: operations['getCreditHistory']
+    get: operations['getLedgerHistory']
   }
   '/api/v1/ledgers/{ledgerID}/reset': {
     /**
-     * Reset credit balance
-     * @description Resets the credit balances to zero for a specific subject and re-apply active grants with rollover configuration.
+     * Reset the ledger's balance
+     * @description Resets the ledger's balances to zero for a specific subject and re-apply active grants with rollover configuration.
      */
-    post: operations['resetCredit']
+    post: operations['resetLedger']
   }
   '/api/v1/ledgers/grants': {
     /**
-     * List credit grants for multiple ledgers
-     * @description List credit grants for multiple ledgers.
+     * List grants for multiple ledgers.
+     * @description List grants for multiple ledgers.
      */
-    get: operations['listCreditGrants']
+    get: operations['listLedgerGrants']
   }
   '/api/v1/ledgers/{ledgerID}/grants': {
     /**
-     * List credit grants
-     * @description List credit grants for a specific ledger.
+     * List ledger grants
+     * @description List ledger grants for a specific ledger.
      */
-    get: operations['listCreditGrantsByLedger']
+    get: operations['listLedgerGrantsByLedger']
     /**
-     * Create credit grant
-     * @description Creates a credit grant.
+     * Create a grant on a specific ledger.
+     * @description Create a grant on a specific ledger.
      */
-    post: operations['createCreditGrant']
+    post: operations['createLedgerGrant']
   }
-  '/api/v1/ledgers/{ledgerID}/grants/{creditGrantID}': {
+  '/api/v1/ledgers/{ledgerID}/grants/{ledgerGrantID}': {
     /**
-     * Get credit grant.
-     * @description Get credit by key.
+     * Get a single grant.
+     * @description Gets the grant for a ledger by ID.
      */
-    get: operations['getCreditGrant']
+    get: operations['getLedgerGrant']
     /**
-     * Void credit grant
-     * @description Void a credit grant by ID. Partially or fully used credits cannot be voided.
-     * Voided credits won't be applied to the subject's balance anymore.
+     * Void ledger grant
+     * @description Void a ledger grant by ID. Partially or fully used grants cannot be voided.
+     * Voided grant won't be applied to the subject's balance anymore.
      */
-    delete: operations['voidCreditGrant']
+    delete: operations['voidLedgerGrant']
   }
 }
 
@@ -398,7 +398,7 @@ export interface components {
      * subject.
      */
     CreateLedger: {
-      /** @description The metering subject this ledger used to track credits for */
+      /** @description The metering subject this ledger used to track grants for. */
       subject: string
       /**
        * @example {
@@ -418,15 +418,15 @@ export interface components {
        */
       id: string
     }
-    /** @description Credit ledger entry. */
-    CreditLedgerEntry: {
+    /** @description A ledger entry. */
+    LedgerEntry: {
       /**
        * @description Readonly unique ULID identifier of the ledger entry.
        *
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
       id: string
-      type: components['schemas']['CreditLedgerEntryType']
+      type: components['schemas']['LedgerEntryType']
       /**
        * Format: date-time
        * @description The time the ledger entry was created.
@@ -463,16 +463,16 @@ export interface components {
      * @example GRANT
      * @enum {string}
      */
-    CreditLedgerEntryType: 'GRANT' | 'VOID' | 'RESET' | 'GRANT_USAGE'
-    /** @description Credit balance of a subject. */
-    CreditBalance: {
+    LedgerEntryType: 'GRANT' | 'VOID' | 'RESET' | 'GRANT_USAGE'
+    /** @description Balance of a subject. */
+    LedgerBalance: {
       /** @description Features with balances. */
       features?: components['schemas']['FeatureBalance'][]
       /** @description The grants applied to the subject. */
-      grants: components['schemas']['CreditGrantBalance'][]
+      grants: components['schemas']['LedgerGrantBalance'][]
     }
-    /** @description Credit reset configuration. */
-    CreditReset: {
+    /** @description Ledger reset configuration. */
+    LedgerReset: {
       /**
        * @description Readonly unique ULID identifier of the reset.
        *
@@ -481,13 +481,13 @@ export interface components {
       id: string
       /**
        * Format: date-time
-       * @description The time to reset the credit. It cannot be in the future.
+       * @description The time to reset the ledger. It cannot be in the future.
        *
        * @example 2023-01-01T00:00:00Z
        */
       effectiveAt: string
     }
-    CreditGrantBalance: components['schemas']['CreditGrantResponse'] & {
+    LedgerGrantBalance: components['schemas']['LedgerGrantResponse'] & {
       /**
        * @description The balance of the grant.
        *
@@ -504,14 +504,14 @@ export interface components {
       balance?: number
     }
     /** @description Grants are used to increase balance of specific subjects. */
-    CreateCreditGrantRequest: {
+    CreateLedgerGrantRequest: {
       /**
        * @description Readonly unique ULID identifier of the grant.
        *
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
       id: string
-      type: components['schemas']['CreditGrantType']
+      type: components['schemas']['LedgerGrantType']
       /**
        * @description The amount to grant. Can be positive or negative number.
        *
@@ -529,8 +529,8 @@ export interface components {
        * Priority is a positive decimal numbers. With lower numbers indicating higher importance.
        * For example, a priority of 1 is more urgent than a priority of 2.
        * When there are several grants available for the same subject, the system selects the grant with the highest priority.
-       * In cases where credit grants share the same priority level, the grant closest to its expiration will be used first.
-       * In the case of two credits have identical priorities and expiration dates, the system will use the grant that was created first.
+       * In cases where grants share the same priority level, the grant closest to its expiration will be used first.
+       * In the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.
        *
        * @default 1
        * @example 1
@@ -543,8 +543,8 @@ export interface components {
        * @example 2023-01-01T00:00:00Z
        */
       effectiveAt: string
-      expiration: components['schemas']['CreditExpirationPeriod']
-      rollover?: components['schemas']['CreditGrantRollover']
+      expiration: components['schemas']['LedgerGrantExpirationPeriod']
+      rollover?: components['schemas']['LedgerGrantRollover']
       /**
        * @example {
        *   "stripePaymentId": "pi_4OrAkhLvyihio9p51h9iiFnB"
@@ -554,7 +554,7 @@ export interface components {
         [key: string]: string
       }
     }
-    CreditGrantResponse: components['schemas']['CreateCreditGrantRequest'] & {
+    LedgerGrantResponse: components['schemas']['CreateLedgerGrantRequest'] & {
       /**
        * @description The subject to grant the amount to.
        *
@@ -576,10 +576,10 @@ export interface components {
      * @example USAGE
      * @enum {string}
      */
-    CreditGrantType: 'USAGE'
+    LedgerGrantType: 'USAGE'
     /** @description Grant rollover configuration. */
-    CreditGrantRollover: {
-      type: components['schemas']['CreditGrantRolloverType']
+    LedgerGrantRollover: {
+      type: components['schemas']['LedgerGrantRolloverType']
       /** @description Maximum amount to rollover. */
       maxAmount?: number
     }
@@ -591,9 +591,9 @@ export interface components {
      * @example ORIGINAL_AMOUNT
      * @enum {string}
      */
-    CreditGrantRolloverType: 'REMAINING_AMOUNT' | 'ORIGINAL_AMOUNT'
-    /** @description Expiration period of a credit grant. */
-    CreditExpirationPeriod: {
+    LedgerGrantRolloverType: 'REMAINING_AMOUNT' | 'ORIGINAL_AMOUNT'
+    /** @description Expiration period of a ledger grant. */
+    LedgerGrantExpirationPeriod: {
       /**
        * @description The expiration period duration like month.
        *
@@ -895,12 +895,12 @@ export interface components {
     subjectIdOrKey: string
     /** @description A unique ULID identifier for a feature. */
     featureID: string
-    /** @description A unique identifier for a credit grant. */
-    creditGrantID: string
-    /** @description A unique identifier for a credit ledger's subject. */
+    /** @description A unique identifier for a ledger grant. */
+    ledgerGrantID: string
+    /** @description A unique identifier for a ledger. */
     ledgerID: string
     /** @description Number of entries to return */
-    creditQueryLimit?: number
+    ledgerQueryLimit?: number
     /**
      * @description Start date-time in RFC 3339 format.
      * Inclusive.
@@ -1489,7 +1489,7 @@ export interface operations {
    * Get the balance of a specific subject.
    * @description Get the balance of a specific subject.
    */
-  getCreditBalance: {
+  getLedgerBalance: {
     parameters: {
       query?: {
         /** @description Point of time to query balances: date-time in RFC 3339 format. Defaults to now. */
@@ -1500,10 +1500,10 @@ export interface operations {
       }
     }
     responses: {
-      /** @description Credit balances found. */
+      /** @description Ledger balances available. */
       200: {
         content: {
-          'application/json': components['schemas']['CreditBalance']
+          'application/json': components['schemas']['LedgerBalance']
         }
       }
       401: components['responses']['UnauthorizedProblemResponse']
@@ -1512,13 +1512,13 @@ export interface operations {
     }
   }
   /**
-   * Get credit ledger
-   * @description Get credit ledger for a specific subject.
+   * Get the history of a ledger
+   * @description Get the history of a specific ledger
    */
-  getCreditHistory: {
+  getLedgerHistory: {
     parameters: {
       query: {
-        limit?: components['parameters']['creditQueryLimit']
+        limit?: components['parameters']['ledgerQueryLimit']
         /** @description Start of time range to query ledger: date-time in RFC 3339 format. */
         from: string
         /** @description End of time range to query ledger: date-time in RFC 3339 format. Defaults to now. */
@@ -1529,10 +1529,10 @@ export interface operations {
       }
     }
     responses: {
-      /** @description Credit balances found. */
+      /** @description Ledger balance history. */
       200: {
         content: {
-          'application/json': components['schemas']['CreditLedgerEntry'][]
+          'application/json': components['schemas']['LedgerEntry'][]
         }
       }
       401: components['responses']['UnauthorizedProblemResponse']
@@ -1541,10 +1541,10 @@ export interface operations {
     }
   }
   /**
-   * Reset credit balance
-   * @description Resets the credit balances to zero for a specific subject and re-apply active grants with rollover configuration.
+   * Reset the ledger's balance
+   * @description Resets the ledger's balances to zero for a specific subject and re-apply active grants with rollover configuration.
    */
-  resetCredit: {
+  resetLedger: {
     parameters: {
       path: {
         ledgerID: components['parameters']['ledgerID']
@@ -1553,14 +1553,14 @@ export interface operations {
     /** @description Details for the reset. */
     requestBody: {
       content: {
-        'application/json': components['schemas']['CreditReset']
+        'application/json': components['schemas']['LedgerReset']
       }
     }
     responses: {
-      /** @description Credit balance. */
+      /** @description Ledger balance reset. */
       201: {
         content: {
-          'application/json': components['schemas']['CreditReset']
+          'application/json': components['schemas']['LedgerReset']
         }
       }
       400: components['responses']['BadRequestProblemResponse']
@@ -1570,21 +1570,21 @@ export interface operations {
     }
   }
   /**
-   * List credit grants for multiple ledgers
-   * @description List credit grants for multiple ledgers.
+   * List grants for multiple ledgers.
+   * @description List grants for multiple ledgers.
    */
-  listCreditGrants: {
+  listLedgerGrants: {
     parameters: {
       query?: {
         ledgerID?: components['parameters']['queryFilterLedgerID']
-        limit?: components['parameters']['creditQueryLimit']
+        limit?: components['parameters']['ledgerQueryLimit']
       }
     }
     responses: {
-      /** @description List of credit grants. */
+      /** @description List of ledger grants. */
       200: {
         content: {
-          'application/json': components['schemas']['CreditGrantResponse'][]
+          'application/json': components['schemas']['LedgerGrantResponse'][]
         }
       }
       400: components['responses']['BadRequestProblemResponse']
@@ -1593,23 +1593,23 @@ export interface operations {
     }
   }
   /**
-   * List credit grants
-   * @description List credit grants for a specific ledger.
+   * List ledger grants
+   * @description List ledger grants for a specific ledger.
    */
-  listCreditGrantsByLedger: {
+  listLedgerGrantsByLedger: {
     parameters: {
       query?: {
-        limit?: components['parameters']['creditQueryLimit']
+        limit?: components['parameters']['ledgerQueryLimit']
       }
       path: {
         ledgerID: components['parameters']['ledgerID']
       }
     }
     responses: {
-      /** @description List of credit grants. */
+      /** @description List of ledger grants created. */
       200: {
         content: {
-          'application/json': components['schemas']['CreditGrantResponse'][]
+          'application/json': components['schemas']['LedgerGrantResponse'][]
         }
       }
       400: components['responses']['BadRequestProblemResponse']
@@ -1618,26 +1618,26 @@ export interface operations {
     }
   }
   /**
-   * Create credit grant
-   * @description Creates a credit grant.
+   * Create a grant on a specific ledger.
+   * @description Create a grant on a specific ledger.
    */
-  createCreditGrant: {
+  createLedgerGrant: {
     parameters: {
       path: {
         ledgerID: components['parameters']['ledgerID']
       }
     }
-    /** @description The credit grant to create. */
+    /** @description The grant to create. */
     requestBody: {
       content: {
-        'application/json': components['schemas']['CreateCreditGrantRequest']
+        'application/json': components['schemas']['CreateLedgerGrantRequest']
       }
     }
     responses: {
-      /** @description CreditGrant created. */
+      /** @description LedgerGrant created. */
       201: {
         content: {
-          'application/json': components['schemas']['CreditGrantResponse']
+          'application/json': components['schemas']['LedgerGrantResponse']
         }
       }
       400: components['responses']['BadRequestProblemResponse']
@@ -1646,21 +1646,21 @@ export interface operations {
     }
   }
   /**
-   * Get credit grant.
-   * @description Get credit by key.
+   * Get a single grant.
+   * @description Gets the grant for a ledger by ID.
    */
-  getCreditGrant: {
+  getLedgerGrant: {
     parameters: {
       path: {
         ledgerID: components['parameters']['ledgerID']
-        creditGrantID: components['parameters']['creditGrantID']
+        ledgerGrantID: components['parameters']['ledgerGrantID']
       }
     }
     responses: {
-      /** @description Credit found. */
+      /** @description Ledger grant found. */
       200: {
         content: {
-          'application/json': components['schemas']['CreditGrantResponse']
+          'application/json': components['schemas']['LedgerGrantResponse']
         }
       }
       401: components['responses']['UnauthorizedProblemResponse']
@@ -1669,19 +1669,19 @@ export interface operations {
     }
   }
   /**
-   * Void credit grant
-   * @description Void a credit grant by ID. Partially or fully used credits cannot be voided.
-   * Voided credits won't be applied to the subject's balance anymore.
+   * Void ledger grant
+   * @description Void a ledger grant by ID. Partially or fully used grants cannot be voided.
+   * Voided grant won't be applied to the subject's balance anymore.
    */
-  voidCreditGrant: {
+  voidLedgerGrant: {
     parameters: {
       path: {
-        creditGrantID: components['parameters']['creditGrantID']
+        ledgerGrantID: components['parameters']['ledgerGrantID']
         ledgerID: components['parameters']['ledgerID']
       }
     }
     responses: {
-      /** @description Credit grant voided. */
+      /** @description Ledger grant voided. */
       204: {
         content: never
       }
