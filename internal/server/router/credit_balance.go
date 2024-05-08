@@ -14,8 +14,8 @@ import (
 )
 
 // Get credit balance, GET /api/v1/ledgers/{ledgerID}/balance
-func (a *Router) GetCreditBalance(w http.ResponseWriter, r *http.Request, ledgerID ulid.ULID, params api.GetCreditBalanceParams) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "getCreditBalance")
+func (a *Router) GetLedgerBalance(w http.ResponseWriter, r *http.Request, ledgerID ulid.ULID, params api.GetLedgerBalanceParams) {
+	ctx := contextx.WithAttr(r.Context(), "operation", "getLedgerBalance")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 	cutline := time.Now()
 
