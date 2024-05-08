@@ -33,8 +33,20 @@ jobs:
       security-events: write
 
     steps:
-      - name: Free disk space
-        uses: ./.github/actions/free-disk-space
+      - name: Free Disk Space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          # Runs quick, run rm in background
+          tool-cache: true
+
+          # These run slower as use apt to uninstall packages
+          # Turned on by default, so we disable them
+          android: false
+          dotnet: false
+          haskell: false
+          large-packages: false
+          docker-images: false
+          swap-storage: false
 
       - name: Run pipeline
         uses: dagger/dagger-for-github@eba69b4dddb54eddfdb51a88eb7fd86957137630 # v5.4.0
