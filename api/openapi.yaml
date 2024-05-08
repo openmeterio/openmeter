@@ -1300,6 +1300,9 @@ components:
             The amount to apply. Can be positive or negative number. If applicable.
           type: number
           example: 100
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+          x-go-type: decimal.Decimal
         period:
           $ref: "#/components/schemas/Period"
     Period:
@@ -1395,6 +1398,9 @@ components:
                 The balance of the grant.
               type: number
               example: 100
+              x-go-type-import:
+                path: github.com/shopspring/decimal
+              x-go-type: decimal.Decimal
     FeatureBalance:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit
@@ -1408,6 +1414,9 @@ components:
                 The balance of the feature.
               type: number
               example: 100
+              x-go-type-import:
+                path: github.com/shopspring/decimal
+              x-go-type: decimal.Decimal
     CreateCreditGrantRequest:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit
@@ -1436,6 +1445,9 @@ components:
             The amount to grant. Can be positive or negative number.
           type: number
           example: 100
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+          x-go-type: decimal.Decimal
         featureID:
           x-go-type: ulid.ULID
           x-go-type-import:
@@ -1525,6 +1537,9 @@ components:
           description: |
             Maximum amount to rollover.
           type: number
+          x-go-type-import:
+            path: github.com/shopspring/decimal
+          x-go-type: decimal.Decimal
     CreditGrantRolloverType:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit

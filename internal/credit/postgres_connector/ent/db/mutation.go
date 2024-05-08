@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/predicate"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
+	"github.com/shopspring/decimal"
 )
 
 const (
@@ -45,8 +46,7 @@ type CreditEntryMutation struct {
 	ledger_id                  *pgulid.ULID
 	entry_type                 *credit.EntryType
 	_type                      *credit.GrantType
-	amount                     *float64
-	addamount                  *float64
+	amount                     *decimal.Decimal
 	priority                   *uint8
 	addpriority                *int8
 	effective_at               *time.Time
@@ -55,8 +55,7 @@ type CreditEntryMutation struct {
 	addexpiration_period_count *int8
 	expiration_at              *time.Time
 	rollover_type              *credit.GrantRolloverType
-	rollover_max_amount        *float64
-	addrollover_max_amount     *float64
+	rollover_max_amount        *decimal.Decimal
 	metadata                   *map[string]string
 	clearedFields              map[string]struct{}
 	parent                     *pgulid.ULID
@@ -453,13 +452,12 @@ func (m *CreditEntryMutation) ResetFeatureID() {
 }
 
 // SetAmount sets the "amount" field.
-func (m *CreditEntryMutation) SetAmount(f float64) {
-	m.amount = &f
-	m.addamount = nil
+func (m *CreditEntryMutation) SetAmount(d decimal.Decimal) {
+	m.amount = &d
 }
 
 // Amount returns the value of the "amount" field in the mutation.
-func (m *CreditEntryMutation) Amount() (r float64, exists bool) {
+func (m *CreditEntryMutation) Amount() (r decimal.Decimal, exists bool) {
 	v := m.amount
 	if v == nil {
 		return
@@ -470,7 +468,7 @@ func (m *CreditEntryMutation) Amount() (r float64, exists bool) {
 // OldAmount returns the old "amount" field's value of the CreditEntry entity.
 // If the CreditEntry object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CreditEntryMutation) OldAmount(ctx context.Context) (v *float64, err error) {
+func (m *CreditEntryMutation) OldAmount(ctx context.Context) (v *decimal.Decimal, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldAmount is only allowed on UpdateOne operations")
 	}
@@ -484,28 +482,9 @@ func (m *CreditEntryMutation) OldAmount(ctx context.Context) (v *float64, err er
 	return oldValue.Amount, nil
 }
 
-// AddAmount adds f to the "amount" field.
-func (m *CreditEntryMutation) AddAmount(f float64) {
-	if m.addamount != nil {
-		*m.addamount += f
-	} else {
-		m.addamount = &f
-	}
-}
-
-// AddedAmount returns the value that was added to the "amount" field in this mutation.
-func (m *CreditEntryMutation) AddedAmount() (r float64, exists bool) {
-	v := m.addamount
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
 // ClearAmount clears the value of the "amount" field.
 func (m *CreditEntryMutation) ClearAmount() {
 	m.amount = nil
-	m.addamount = nil
 	m.clearedFields[creditentry.FieldAmount] = struct{}{}
 }
 
@@ -518,7 +497,6 @@ func (m *CreditEntryMutation) AmountCleared() bool {
 // ResetAmount resets all changes to the "amount" field.
 func (m *CreditEntryMutation) ResetAmount() {
 	m.amount = nil
-	m.addamount = nil
 	delete(m.clearedFields, creditentry.FieldAmount)
 }
 
@@ -832,13 +810,12 @@ func (m *CreditEntryMutation) ResetRolloverType() {
 }
 
 // SetRolloverMaxAmount sets the "rollover_max_amount" field.
-func (m *CreditEntryMutation) SetRolloverMaxAmount(f float64) {
-	m.rollover_max_amount = &f
-	m.addrollover_max_amount = nil
+func (m *CreditEntryMutation) SetRolloverMaxAmount(d decimal.Decimal) {
+	m.rollover_max_amount = &d
 }
 
 // RolloverMaxAmount returns the value of the "rollover_max_amount" field in the mutation.
-func (m *CreditEntryMutation) RolloverMaxAmount() (r float64, exists bool) {
+func (m *CreditEntryMutation) RolloverMaxAmount() (r decimal.Decimal, exists bool) {
 	v := m.rollover_max_amount
 	if v == nil {
 		return
@@ -849,7 +826,7 @@ func (m *CreditEntryMutation) RolloverMaxAmount() (r float64, exists bool) {
 // OldRolloverMaxAmount returns the old "rollover_max_amount" field's value of the CreditEntry entity.
 // If the CreditEntry object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CreditEntryMutation) OldRolloverMaxAmount(ctx context.Context) (v *float64, err error) {
+func (m *CreditEntryMutation) OldRolloverMaxAmount(ctx context.Context) (v *decimal.Decimal, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldRolloverMaxAmount is only allowed on UpdateOne operations")
 	}
@@ -863,28 +840,9 @@ func (m *CreditEntryMutation) OldRolloverMaxAmount(ctx context.Context) (v *floa
 	return oldValue.RolloverMaxAmount, nil
 }
 
-// AddRolloverMaxAmount adds f to the "rollover_max_amount" field.
-func (m *CreditEntryMutation) AddRolloverMaxAmount(f float64) {
-	if m.addrollover_max_amount != nil {
-		*m.addrollover_max_amount += f
-	} else {
-		m.addrollover_max_amount = &f
-	}
-}
-
-// AddedRolloverMaxAmount returns the value that was added to the "rollover_max_amount" field in this mutation.
-func (m *CreditEntryMutation) AddedRolloverMaxAmount() (r float64, exists bool) {
-	v := m.addrollover_max_amount
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
 // ClearRolloverMaxAmount clears the value of the "rollover_max_amount" field.
 func (m *CreditEntryMutation) ClearRolloverMaxAmount() {
 	m.rollover_max_amount = nil
-	m.addrollover_max_amount = nil
 	m.clearedFields[creditentry.FieldRolloverMaxAmount] = struct{}{}
 }
 
@@ -897,7 +855,6 @@ func (m *CreditEntryMutation) RolloverMaxAmountCleared() bool {
 // ResetRolloverMaxAmount resets all changes to the "rollover_max_amount" field.
 func (m *CreditEntryMutation) ResetRolloverMaxAmount() {
 	m.rollover_max_amount = nil
-	m.addrollover_max_amount = nil
 	delete(m.clearedFields, creditentry.FieldRolloverMaxAmount)
 }
 
@@ -1322,7 +1279,7 @@ func (m *CreditEntryMutation) SetField(name string, value ent.Value) error {
 		m.SetFeatureID(v)
 		return nil
 	case creditentry.FieldAmount:
-		v, ok := value.(float64)
+		v, ok := value.(decimal.Decimal)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -1371,7 +1328,7 @@ func (m *CreditEntryMutation) SetField(name string, value ent.Value) error {
 		m.SetRolloverType(v)
 		return nil
 	case creditentry.FieldRolloverMaxAmount:
-		v, ok := value.(float64)
+		v, ok := value.(decimal.Decimal)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -1399,17 +1356,11 @@ func (m *CreditEntryMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *CreditEntryMutation) AddedFields() []string {
 	var fields []string
-	if m.addamount != nil {
-		fields = append(fields, creditentry.FieldAmount)
-	}
 	if m.addpriority != nil {
 		fields = append(fields, creditentry.FieldPriority)
 	}
 	if m.addexpiration_period_count != nil {
 		fields = append(fields, creditentry.FieldExpirationPeriodCount)
-	}
-	if m.addrollover_max_amount != nil {
-		fields = append(fields, creditentry.FieldRolloverMaxAmount)
 	}
 	return fields
 }
@@ -1419,14 +1370,10 @@ func (m *CreditEntryMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *CreditEntryMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
-	case creditentry.FieldAmount:
-		return m.AddedAmount()
 	case creditentry.FieldPriority:
 		return m.AddedPriority()
 	case creditentry.FieldExpirationPeriodCount:
 		return m.AddedExpirationPeriodCount()
-	case creditentry.FieldRolloverMaxAmount:
-		return m.AddedRolloverMaxAmount()
 	}
 	return nil, false
 }
@@ -1436,13 +1383,6 @@ func (m *CreditEntryMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *CreditEntryMutation) AddField(name string, value ent.Value) error {
 	switch name {
-	case creditentry.FieldAmount:
-		v, ok := value.(float64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddAmount(v)
-		return nil
 	case creditentry.FieldPriority:
 		v, ok := value.(int8)
 		if !ok {
@@ -1456,13 +1396,6 @@ func (m *CreditEntryMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddExpirationPeriodCount(v)
-		return nil
-	case creditentry.FieldRolloverMaxAmount:
-		v, ok := value.(float64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddRolloverMaxAmount(v)
 		return nil
 	}
 	return fmt.Errorf("unknown CreditEntry numeric field %s", name)

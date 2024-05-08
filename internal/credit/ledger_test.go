@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +22,7 @@ func TestLedgerEntryList(t *testing.T) {
 	grant1 := Grant{
 		ID:          &grantId1,
 		LedgerID:    ledgerID,
-		Amount:      100,
+		Amount:      decimal.NewFromFloat(100),
 		EffectiveAt: t1,
 		Priority:    0,
 		FeatureID:   &featureId1,
@@ -32,7 +33,7 @@ func TestLedgerEntryList(t *testing.T) {
 		ID:          &voidGrantId1,
 		ParentID:    &grantId1,
 		LedgerID:    ledgerID,
-		Amount:      100,
+		Amount:      decimal.NewFromFloat(100),
 		EffectiveAt: t2,
 		Priority:    0,
 		FeatureID:   &featureId1,
@@ -41,7 +42,7 @@ func TestLedgerEntryList(t *testing.T) {
 
 	grantBalance1 := GrantBalance{
 		Grant:   grant1,
-		Balance: 100,
+		Balance: decimal.NewFromFloat(100),
 	}
 
 	resetId1 := ulid.MustParse("01HX6RZX0KHCGVB1BXYDJRMQHV")
@@ -51,7 +52,7 @@ func TestLedgerEntryList(t *testing.T) {
 		EffectiveAt: t3,
 	}
 
-	usage := 100.0
+	usage := decimal.NewFromFloat(100.0)
 
 	tt := []struct {
 		name        string

@@ -3,12 +3,12 @@ package postgres_connector
 import (
 	"context"
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
+	"github.com/shopspring/decimal"
 )
 
 type resetWithRollovedGrants struct {
@@ -53,10 +53,10 @@ func (c *PostgresConnector) Reset(ctx context.Context, namespace string, reset c
 				grant.Amount = grantBalance.Balance
 			}
 			if grant.Rollover.MaxAmount != nil {
-				grant.Amount = math.Max(*grant.Rollover.MaxAmount, grant.Amount)
+				grant.Amount = decimal.Max(*grant.Rollover.MaxAmount, grant.Amount)
 			}
 			// Skip grants with zero amount, amount never goes negative
-			if grant.Amount == 0 {
+			if grant.Amount.IsZero() {
 				continue
 			}
 

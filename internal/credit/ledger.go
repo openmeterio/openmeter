@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/shopspring/decimal"
 )
 
 type Ledger struct {
@@ -56,12 +57,12 @@ func (LedgerEntryType) Values() (kinds []string) {
 
 // LedgerEntry is a credit ledger entry.
 type LedgerEntry struct {
-	ID        *ulid.ULID      `json:"id,omitempty"`
-	Type      LedgerEntryType `json:"type"`
-	Time      time.Time       `json:"time"`
-	FeatureID *ulid.ULID      `json:"featureId,omitempty"`
-	Amount    *float64        `json:"amount,omitempty"`
-	Period    *Period         `json:"period,omitempty"`
+	ID        *ulid.ULID       `json:"id,omitempty"`
+	Type      LedgerEntryType  `json:"type"`
+	Time      time.Time        `json:"time"`
+	FeatureID *ulid.ULID       `json:"featureId,omitempty"`
+	Amount    *decimal.Decimal `json:"amount,omitempty"`
+	Period    *Period          `json:"period,omitempty"`
 }
 
 type Period struct {
@@ -142,7 +143,7 @@ func (c *LedgerEntryList) AddReset(reset Reset) {
 	})
 }
 
-func (c *LedgerEntryList) AddGrantUsage(grantBalance GrantBalance, from time.Time, to time.Time, amount float64) {
+func (c *LedgerEntryList) AddGrantUsage(grantBalance GrantBalance, from time.Time, to time.Time, amount decimal.Decimal) {
 	now := time.Now()
 	if to.After(now) {
 		to = now

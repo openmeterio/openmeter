@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/internal/credit"
@@ -49,7 +50,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 					LedgerID:    ledger.ID,
 					FeatureID:   p.ID,
 					Type:        credit.GrantTypeUsage,
-					Amount:      100,
+					Amount:      decimal.NewFromFloat(100),
 					Priority:    1,
 					EffectiveAt: effectiveTime,
 					Expiration: credit.ExpirationPeriod{
@@ -78,7 +79,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 					LedgerID:    ledger.ID,
 					FeatureID:   p.ID,
 					Type:        credit.GrantTypeUsage,
-					Amount:      100,
+					Amount:      decimal.NewFromFloat(100),
 					Priority:    1,
 					EffectiveAt: effectiveTime,
 					Expiration: credit.ExpirationPeriod{
@@ -123,7 +124,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 					LedgerID:    ledger.ID,
 					FeatureID:   p.ID,
 					Type:        credit.GrantTypeUsage,
-					Amount:      100,
+					Amount:      decimal.NewFromFloat(100),
 					Priority:    1,
 					EffectiveAt: effectiveTime,
 					Expiration: credit.ExpirationPeriod{
@@ -152,7 +153,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 					LedgerID:    ledger1.ID,
 					FeatureID:   p.ID,
 					Type:        credit.GrantTypeUsage,
-					Amount:      100,
+					Amount:      decimal.NewFromFloat(100),
 					Priority:    1,
 					EffectiveAt: effectiveTime,
 					Expiration: credit.ExpirationPeriod{
@@ -164,7 +165,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 					LedgerID:    ledger1.ID,
 					FeatureID:   p.ID,
 					Type:        credit.GrantTypeUsage,
-					Amount:      200,
+					Amount:      decimal.NewFromFloat(200),
 					Priority:    2,
 					EffectiveAt: effectiveTime,
 					Expiration: credit.ExpirationPeriod{
@@ -176,7 +177,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 					LedgerID:    ledger2.ID,
 					FeatureID:   p.ID,
 					Type:        credit.GrantTypeUsage,
-					Amount:      300,
+					Amount:      decimal.NewFromFloat(300),
 					Priority:    1,
 					EffectiveAt: effectiveTime,
 					Expiration: credit.ExpirationPeriod{

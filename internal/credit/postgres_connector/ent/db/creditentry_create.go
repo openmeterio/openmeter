@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
+	"github.com/shopspring/decimal"
 )
 
 // CreditEntryCreate is the builder for creating a CreditEntry entity.
@@ -101,15 +102,15 @@ func (cec *CreditEntryCreate) SetNillableFeatureID(pg *pgulid.ULID) *CreditEntry
 }
 
 // SetAmount sets the "amount" field.
-func (cec *CreditEntryCreate) SetAmount(f float64) *CreditEntryCreate {
-	cec.mutation.SetAmount(f)
+func (cec *CreditEntryCreate) SetAmount(d decimal.Decimal) *CreditEntryCreate {
+	cec.mutation.SetAmount(d)
 	return cec
 }
 
 // SetNillableAmount sets the "amount" field if the given value is not nil.
-func (cec *CreditEntryCreate) SetNillableAmount(f *float64) *CreditEntryCreate {
-	if f != nil {
-		cec.SetAmount(*f)
+func (cec *CreditEntryCreate) SetNillableAmount(d *decimal.Decimal) *CreditEntryCreate {
+	if d != nil {
+		cec.SetAmount(*d)
 	}
 	return cec
 }
@@ -199,15 +200,15 @@ func (cec *CreditEntryCreate) SetNillableRolloverType(crt *credit.GrantRolloverT
 }
 
 // SetRolloverMaxAmount sets the "rollover_max_amount" field.
-func (cec *CreditEntryCreate) SetRolloverMaxAmount(f float64) *CreditEntryCreate {
-	cec.mutation.SetRolloverMaxAmount(f)
+func (cec *CreditEntryCreate) SetRolloverMaxAmount(d decimal.Decimal) *CreditEntryCreate {
+	cec.mutation.SetRolloverMaxAmount(d)
 	return cec
 }
 
 // SetNillableRolloverMaxAmount sets the "rollover_max_amount" field if the given value is not nil.
-func (cec *CreditEntryCreate) SetNillableRolloverMaxAmount(f *float64) *CreditEntryCreate {
-	if f != nil {
-		cec.SetRolloverMaxAmount(*f)
+func (cec *CreditEntryCreate) SetNillableRolloverMaxAmount(d *decimal.Decimal) *CreditEntryCreate {
+	if d != nil {
+		cec.SetRolloverMaxAmount(*d)
 	}
 	return cec
 }
@@ -441,7 +442,7 @@ func (cec *CreditEntryCreate) createSpec() (*CreditEntry, *sqlgraph.CreateSpec) 
 		_node.Type = &value
 	}
 	if value, ok := cec.mutation.Amount(); ok {
-		_spec.SetField(creditentry.FieldAmount, field.TypeFloat64, value)
+		_spec.SetField(creditentry.FieldAmount, field.TypeOther, value)
 		_node.Amount = &value
 	}
 	if value, ok := cec.mutation.Priority(); ok {
@@ -469,7 +470,7 @@ func (cec *CreditEntryCreate) createSpec() (*CreditEntry, *sqlgraph.CreateSpec) 
 		_node.RolloverType = &value
 	}
 	if value, ok := cec.mutation.RolloverMaxAmount(); ok {
-		_spec.SetField(creditentry.FieldRolloverMaxAmount, field.TypeFloat64, value)
+		_spec.SetField(creditentry.FieldRolloverMaxAmount, field.TypeOther, value)
 		_node.RolloverMaxAmount = &value
 	}
 	if value, ok := cec.mutation.Metadata(); ok {

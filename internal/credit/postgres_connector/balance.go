@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/shopspring/decimal"
 
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/streaming"
@@ -173,8 +174,8 @@ func (a *PostgresConnector) getBalance(
 
 	// Query usage for each period
 	for _, period := range periods {
-		queryCache := map[string]float64{}
-		carryOverAmount := map[string]float64{}
+		queryCache := map[string]decimal.Decimal{}
+		carryOverAmount := map[string]decimal.Decimal{}
 
 		for i := range grantBalances {
 			var feature *credit.Feature
@@ -223,7 +224,7 @@ func (a *PostgresConnector) getBalance(
 				}
 			}
 
-			var amount float64 = 0
+			amount := decimal.Zero
 
 			// Query cache helps to minimize the number of usage queries between different features with the same meter and group by filters
 			queryCacheKey := queryKeyByParams(meter.Slug, queryParams.FilterGroupBy)
@@ -239,23 +240,24 @@ func (a *PostgresConnector) getBalance(
 
 				// Get usage amount
 				if len(rows) == 1 {
-					queryCache[queryCacheKey] = rows[0].Value
+					// TODO: do we want to use decimal for meters?
+					queryCache[queryCacheKey] = decimal.NewFromFloat(rows[0].Value)
 				} else {
-					queryCache[queryCacheKey] = 0
+					queryCache[queryCacheKey] = decimal.Zero
 				}
 			}
 
 			// Add carry over from previous grant if any, otherwise use the full amount from the query
 			carryOverKey := fmt.Sprintf("%s-%s", queryCacheKey, *feature.ID)
 			if val, ok := carryOverAmount[carryOverKey]; ok {
-				amount += val
+				amount = amount.Add(val)
 			} else {
-				carryOverAmount[carryOverKey] = 0
-				amount += queryCache[queryCacheKey]
+				carryOverAmount[carryOverKey] = decimal.Zero
+				amount = amount.Add(queryCache[queryCacheKey])
 			}
 
 			// Nothing to do if amount is 0
-			if amount == 0 {
+			if amount.IsZero() {
 				continue
 			}
 
@@ -263,21 +265,21 @@ func (a *PostgresConnector) getBalance(
 			if ledgerTime.After(time.Now()) {
 				ledgerTime = time.Now()
 			}
-			ledgerAmount := -amount
+			ledgerAmount := amount.Neg()
 
 			// Burn down the grant and apply to the balance
-			if amount > grantBalance.Balance {
-				amount -= grantBalance.Balance
-				ledgerAmount = amount * -1
-				grantBalance.Balance = 0
+			if amount.GreaterThan(grantBalance.Balance) {
+				amount = amount.Sub(grantBalance.Balance)
+				ledgerAmount = amount.Neg()
+				grantBalance.Balance = decimal.Zero
 			} else {
-				grantBalance.Balance -= amount
-				amount = 0
+				grantBalance.Balance = grantBalance.Balance.Sub(amount)
+				amount = decimal.Zero
 			}
 
 			ledgerEntries.AddGrantUsage(*grantBalance, period.From, ledgerTime, ledgerAmount)
 
-			carryOverAmount[carryOverKey] += amount
+			carryOverAmount[carryOverKey] = carryOverAmount[carryOverKey].Add(amount)
 		}
 	}
 
@@ -291,7 +293,7 @@ func (a *PostgresConnector) getBalance(
 		feature := features[featureId]
 
 		if featureBalance, ok := featureBalancesMap[featureId]; ok {
-			featureBalance.Balance += grantBalance.Balance
+			featureBalance.Balance = featureBalance.Balance.Add(grantBalance.Balance)
 			featureBalancesMap[featureId] = featureBalance
 		} else {
 			featureBalancesMap[featureId] = credit.FeatureBalance{

@@ -129,7 +129,7 @@ func (ceu *CreditEntryUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		_spec.ClearField(creditentry.FieldType, field.TypeEnum)
 	}
 	if ceu.mutation.AmountCleared() {
-		_spec.ClearField(creditentry.FieldAmount, field.TypeFloat64)
+		_spec.ClearField(creditentry.FieldAmount, field.TypeOther)
 	}
 	if ceu.mutation.ExpirationPeriodDurationCleared() {
 		_spec.ClearField(creditentry.FieldExpirationPeriodDuration, field.TypeEnum)
@@ -144,7 +144,7 @@ func (ceu *CreditEntryUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		_spec.ClearField(creditentry.FieldRolloverType, field.TypeEnum)
 	}
 	if ceu.mutation.RolloverMaxAmountCleared() {
-		_spec.ClearField(creditentry.FieldRolloverMaxAmount, field.TypeFloat64)
+		_spec.ClearField(creditentry.FieldRolloverMaxAmount, field.TypeOther)
 	}
 	if value, ok := ceu.mutation.Metadata(); ok {
 		_spec.SetField(creditentry.FieldMetadata, field.TypeJSON, value)
@@ -331,7 +331,7 @@ func (ceuo *CreditEntryUpdateOne) sqlSave(ctx context.Context) (_node *CreditEnt
 		_spec.ClearField(creditentry.FieldType, field.TypeEnum)
 	}
 	if ceuo.mutation.AmountCleared() {
-		_spec.ClearField(creditentry.FieldAmount, field.TypeFloat64)
+		_spec.ClearField(creditentry.FieldAmount, field.TypeOther)
 	}
 	if ceuo.mutation.ExpirationPeriodDurationCleared() {
 		_spec.ClearField(creditentry.FieldExpirationPeriodDuration, field.TypeEnum)
@@ -346,7 +346,7 @@ func (ceuo *CreditEntryUpdateOne) sqlSave(ctx context.Context) (_node *CreditEnt
 		_spec.ClearField(creditentry.FieldRolloverType, field.TypeEnum)
 	}
 	if ceuo.mutation.RolloverMaxAmountCleared() {
-		_spec.ClearField(creditentry.FieldRolloverMaxAmount, field.TypeFloat64)
+		_spec.ClearField(creditentry.FieldRolloverMaxAmount, field.TypeOther)
 	}
 	if value, ok := ceuo.mutation.Metadata(); ok {
 		_spec.SetField(creditentry.FieldMetadata, field.TypeJSON, value)

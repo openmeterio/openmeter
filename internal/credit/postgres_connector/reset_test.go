@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/internal/credit"
@@ -51,7 +52,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
 					Type:        credit.GrantTypeUsage,
-					Amount:      100,
+					Amount:      decimal.NewFromFloat(100),
 					Priority:    1,
 					EffectiveAt: t1,
 					Expiration: credit.ExpirationPeriod{
@@ -108,7 +109,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
 					Type:        credit.GrantTypeUsage,
-					Amount:      100,
+					Amount:      decimal.NewFromFloat(100),
 					Priority:    1,
 					EffectiveAt: t1,
 					Expiration: credit.ExpirationPeriod{
@@ -160,7 +161,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
 					Type:        credit.GrantTypeUsage,
-					Amount:      100,
+					Amount:      decimal.NewFromFloat(100),
 					Priority:    1,
 					EffectiveAt: t1,
 					Expiration: credit.ExpirationPeriod{
@@ -173,9 +174,9 @@ func TestPostgresConnectorReset(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				usage := 1.0
+				usage := decimal.NewFromFloat(1.0)
 				streamingConnector.addRow(meter.Slug, models.MeterQueryRow{
-					Value: usage,
+					Value: usage.InexactFloat64(),
 					// Grant 1's effective time is t1, so usage starts from t1
 					WindowStart: t1,
 					// Reset time is t3, so usage ends at t3
@@ -197,7 +198,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 				assert.NoError(t, err)
 
 				// Assert remaining amount
-				reamingAmount := grant1.Amount - usage
+				reamingAmount := grant1.Amount.Sub(usage)
 				assert.Equal(t, reamingAmount, rolloverGrants[0].Amount)
 
 				// Assert: grants after reset should be the same as rollover grants

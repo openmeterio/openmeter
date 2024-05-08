@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/predicate"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
+	"github.com/shopspring/decimal"
 )
 
 // ID filters vertices based on their ID field.
@@ -83,7 +84,7 @@ func FeatureID(v pgulid.ULID) predicate.CreditEntry {
 }
 
 // Amount applies equality check predicate on the "amount" field. It's identical to AmountEQ.
-func Amount(v float64) predicate.CreditEntry {
+func Amount(v decimal.Decimal) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldEQ(FieldAmount, v))
 }
 
@@ -108,7 +109,7 @@ func ExpirationAt(v time.Time) predicate.CreditEntry {
 }
 
 // RolloverMaxAmount applies equality check predicate on the "rollover_max_amount" field. It's identical to RolloverMaxAmountEQ.
-func RolloverMaxAmount(v float64) predicate.CreditEntry {
+func RolloverMaxAmount(v decimal.Decimal) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldEQ(FieldRolloverMaxAmount, v))
 }
 
@@ -403,42 +404,42 @@ func FeatureIDNotNil() predicate.CreditEntry {
 }
 
 // AmountEQ applies the EQ predicate on the "amount" field.
-func AmountEQ(v float64) predicate.CreditEntry {
+func AmountEQ(v decimal.Decimal) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldEQ(FieldAmount, v))
 }
 
 // AmountNEQ applies the NEQ predicate on the "amount" field.
-func AmountNEQ(v float64) predicate.CreditEntry {
+func AmountNEQ(v decimal.Decimal) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldNEQ(FieldAmount, v))
 }
 
 // AmountIn applies the In predicate on the "amount" field.
-func AmountIn(vs ...float64) predicate.CreditEntry {
+func AmountIn(vs ...decimal.Decimal) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldIn(FieldAmount, vs...))
 }
 
 // AmountNotIn applies the NotIn predicate on the "amount" field.
-func AmountNotIn(vs ...float64) predicate.CreditEntry {
+func AmountNotIn(vs ...decimal.Decimal) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldNotIn(FieldAmount, vs...))
 }
 
 // AmountGT applies the GT predicate on the "amount" field.
-func AmountGT(v float64) predicate.CreditEntry {
+func AmountGT(v decimal.Decimal) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldGT(FieldAmount, v))
 }
 
 // AmountGTE applies the GTE predicate on the "amount" field.
-func AmountGTE(v float64) predicate.CreditEntry {
+func AmountGTE(v decimal.Decimal) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldGTE(FieldAmount, v))
 }
 
 // AmountLT applies the LT predicate on the "amount" field.
-func AmountLT(v float64) predicate.CreditEntry {
+func AmountLT(v decimal.Decimal) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldLT(FieldAmount, v))
 }
 
 // AmountLTE applies the LTE predicate on the "amount" field.
-func AmountLTE(v float64) predicate.CreditEntry {
+func AmountLTE(v decimal.Decimal) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldLTE(FieldAmount, v))
 }
 
@@ -713,42 +714,42 @@ func RolloverTypeNotNil() predicate.CreditEntry {
 }
 
 // RolloverMaxAmountEQ applies the EQ predicate on the "rollover_max_amount" field.
-func RolloverMaxAmountEQ(v float64) predicate.CreditEntry {
+func RolloverMaxAmountEQ(v decimal.Decimal) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldEQ(FieldRolloverMaxAmount, v))
 }
 
 // RolloverMaxAmountNEQ applies the NEQ predicate on the "rollover_max_amount" field.
-func RolloverMaxAmountNEQ(v float64) predicate.CreditEntry {
+func RolloverMaxAmountNEQ(v decimal.Decimal) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldNEQ(FieldRolloverMaxAmount, v))
 }
 
 // RolloverMaxAmountIn applies the In predicate on the "rollover_max_amount" field.
-func RolloverMaxAmountIn(vs ...float64) predicate.CreditEntry {
+func RolloverMaxAmountIn(vs ...decimal.Decimal) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldIn(FieldRolloverMaxAmount, vs...))
 }
 
 // RolloverMaxAmountNotIn applies the NotIn predicate on the "rollover_max_amount" field.
-func RolloverMaxAmountNotIn(vs ...float64) predicate.CreditEntry {
+func RolloverMaxAmountNotIn(vs ...decimal.Decimal) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldNotIn(FieldRolloverMaxAmount, vs...))
 }
 
 // RolloverMaxAmountGT applies the GT predicate on the "rollover_max_amount" field.
-func RolloverMaxAmountGT(v float64) predicate.CreditEntry {
+func RolloverMaxAmountGT(v decimal.Decimal) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldGT(FieldRolloverMaxAmount, v))
 }
 
 // RolloverMaxAmountGTE applies the GTE predicate on the "rollover_max_amount" field.
-func RolloverMaxAmountGTE(v float64) predicate.CreditEntry {
+func RolloverMaxAmountGTE(v decimal.Decimal) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldGTE(FieldRolloverMaxAmount, v))
 }
 
 // RolloverMaxAmountLT applies the LT predicate on the "rollover_max_amount" field.
-func RolloverMaxAmountLT(v float64) predicate.CreditEntry {
+func RolloverMaxAmountLT(v decimal.Decimal) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldLT(FieldRolloverMaxAmount, v))
 }
 
 // RolloverMaxAmountLTE applies the LTE predicate on the "rollover_max_amount" field.
-func RolloverMaxAmountLTE(v float64) predicate.CreditEntry {
+func RolloverMaxAmountLTE(v decimal.Decimal) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldLTE(FieldRolloverMaxAmount, v))
 }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/brianvoe/gofakeit/v6"
 	cloudevents "github.com/cloudevents/sdk-go/v2/event"
 	"github.com/oklog/ulid/v2"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -575,7 +576,7 @@ func TestCredit(t *testing.T) {
 			Type:        credit.GrantTypeUsage,
 			LedgerID:    ledgerID,
 			FeatureID:   featureId,
-			Amount:      100,
+			Amount:      decimal.NewFromFloat(100),
 			Priority:    1,
 			EffectiveAt: effectiveAt,
 			Rollover: &api.CreditGrantRollover{
@@ -594,7 +595,7 @@ func TestCredit(t *testing.T) {
 			LedgerID:    ledgerID,
 			Type:        credit.GrantTypeUsage,
 			FeatureID:   featureId,
-			Amount:      100,
+			Amount:      decimal.NewFromFloat(100),
 			Priority:    1,
 			EffectiveAt: effectiveAt,
 			Rollover: &api.CreditGrantRollover{
@@ -639,13 +640,13 @@ func TestCredit(t *testing.T) {
 			FeatureBalances: []credit.FeatureBalance{
 				{
 					Feature: feature,
-					Balance: 99,
+					Balance: decimal.NewFromFloat(99),
 				},
 			},
 			GrantBalances: []credit.GrantBalance{
 				{
 					Grant:   grant,
-					Balance: 99,
+					Balance: decimal.NewFromFloat(99),
 				},
 			},
 		}
@@ -701,15 +702,14 @@ func TestCredit(t *testing.T) {
 		grants := *resp.JSON200
 		expected := &[]api.CreditGrantResponse{
 			{
-				ID:        grants[0].ID,
-				ParentID:  parentGrant.ID,
-				LedgerID:  ledgerID,
-				Type:      credit.GrantTypeUsage,
-				FeatureID: featureId,
-				Amount:    99,
-				Priority:  1,
-				// TODO: this should be equal to `effectiveAt` but we run into timezone issues
-				EffectiveAt: grants[0].EffectiveAt,
+				ID:          grants[0].ID,
+				ParentID:    parentGrant.ID,
+				LedgerID:    ledgerID,
+				Type:        credit.GrantTypeUsage,
+				FeatureID:   featureId,
+				Amount:      decimal.NewFromFloat(99),
+				Priority:    1,
+				EffectiveAt: effectiveAt,
 				Rollover: &api.CreditGrantRollover{
 					Type: credit.GrantRolloverTypeRemainingAmount,
 				},

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/shopspring/decimal"
 )
 
 type GrantNotFoundError struct {
@@ -129,7 +130,7 @@ type Grant struct {
 	FeatureID *ulid.ULID `json:"featureID"`
 
 	// Amount The amount to grant. Can be positive or negative number.
-	Amount float64 `json:"amount"`
+	Amount decimal.Decimal `json:"amount"`
 
 	// Priority is a positive decimal numbers. With lower numbers indicating higher importance;
 	// for example, a priority of 1 is more urgent than a priority of 2.
@@ -167,7 +168,7 @@ func (c Grant) Render(w http.ResponseWriter, r *http.Request) error {
 // GrantRollover configuration.
 type GrantRollover struct {
 	// MaxAmount Maximum amount to rollover.
-	MaxAmount *float64 `json:"maxAmount,omitempty"`
+	MaxAmount *decimal.Decimal `json:"maxAmount,omitempty"`
 
 	// Type The rollover type to use:
 	Type GrantRolloverType `json:"type"`

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/shopspring/decimal"
 )
 
 // Balance of a subject in a credit.
@@ -22,7 +23,7 @@ func (c Balance) Render(w http.ResponseWriter, r *http.Request) error {
 
 type GrantBalance struct {
 	Grant
-	Balance float64 `json:"balance"`
+	Balance decimal.Decimal `json:"balance"`
 }
 
 // Render implements the chi renderer interface.
@@ -32,7 +33,7 @@ func (c GrantBalance) Render(w http.ResponseWriter, r *http.Request) error {
 
 type FeatureBalance struct {
 	Feature
-	Balance float64 `json:"balance"`
+	Balance decimal.Decimal `json:"balance"`
 }
 
 // Render implements the chi renderer interface.

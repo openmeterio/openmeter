@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
+	"github.com/shopspring/decimal"
 )
 
 // CreditEntry is the model entity for the CreditEntry schema.
@@ -36,7 +37,7 @@ type CreditEntry struct {
 	// FeatureID holds the value of the "feature_id" field.
 	FeatureID *pgulid.ULID `json:"feature_id,omitempty"`
 	// Amount holds the value of the "amount" field.
-	Amount *float64 `json:"amount,omitempty"`
+	Amount *decimal.Decimal `json:"amount,omitempty"`
 	// Priority holds the value of the "priority" field.
 	Priority uint8 `json:"priority,omitempty"`
 	// EffectiveAt holds the value of the "effective_at" field.
@@ -50,7 +51,7 @@ type CreditEntry struct {
 	// RolloverType holds the value of the "rollover_type" field.
 	RolloverType *credit.GrantRolloverType `json:"rollover_type,omitempty"`
 	// RolloverMaxAmount holds the value of the "rollover_max_amount" field.
-	RolloverMaxAmount *float64 `json:"rollover_max_amount,omitempty"`
+	RolloverMaxAmount *decimal.Decimal `json:"rollover_max_amount,omitempty"`
 	// Metadata holds the value of the "metadata" field.
 	Metadata map[string]string `json:"metadata,omitempty"`
 	// ParentID holds the value of the "parent_id" field.
@@ -112,14 +113,14 @@ func (*CreditEntry) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case creditentry.FieldAmount, creditentry.FieldRolloverMaxAmount:
+			values[i] = &sql.NullScanner{S: new(decimal.Decimal)}
 		case creditentry.FieldFeatureID, creditentry.FieldParentID:
 			values[i] = &sql.NullScanner{S: new(pgulid.ULID)}
 		case creditentry.FieldMetadata:
 			values[i] = new([]byte)
 		case creditentry.FieldID, creditentry.FieldLedgerID:
 			values[i] = new(pgulid.ULID)
-		case creditentry.FieldAmount, creditentry.FieldRolloverMaxAmount:
-			values[i] = new(sql.NullFloat64)
 		case creditentry.FieldPriority, creditentry.FieldExpirationPeriodCount:
 			values[i] = new(sql.NullInt64)
 		case creditentry.FieldNamespace, creditentry.FieldEntryType, creditentry.FieldType, creditentry.FieldExpirationPeriodDuration, creditentry.FieldRolloverType:
@@ -192,11 +193,11 @@ func (ce *CreditEntry) assignValues(columns []string, values []any) error {
 				*ce.FeatureID = *value.S.(*pgulid.ULID)
 			}
 		case creditentry.FieldAmount:
-			if value, ok := values[i].(*sql.NullFloat64); !ok {
+			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field amount", values[i])
 			} else if value.Valid {
-				ce.Amount = new(float64)
-				*ce.Amount = value.Float64
+				ce.Amount = new(decimal.Decimal)
+				*ce.Amount = *value.S.(*decimal.Decimal)
 			}
 		case creditentry.FieldPriority:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -239,11 +240,11 @@ func (ce *CreditEntry) assignValues(columns []string, values []any) error {
 				*ce.RolloverType = credit.GrantRolloverType(value.String)
 			}
 		case creditentry.FieldRolloverMaxAmount:
-			if value, ok := values[i].(*sql.NullFloat64); !ok {
+			if value, ok := values[i].(*sql.NullScanner); !ok {
 				return fmt.Errorf("unexpected type %T for field rollover_max_amount", values[i])
 			} else if value.Valid {
-				ce.RolloverMaxAmount = new(float64)
-				*ce.RolloverMaxAmount = value.Float64
+				ce.RolloverMaxAmount = new(decimal.Decimal)
+				*ce.RolloverMaxAmount = *value.S.(*decimal.Decimal)
 			}
 		case creditentry.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {

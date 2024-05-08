@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/api"
@@ -63,7 +64,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
 					Type:        credit.GrantTypeUsage,
-					Amount:      100,
+					Amount:      decimal.NewFromFloat(100),
 					Priority:    1,
 					EffectiveAt: t1,
 					Expiration: credit.ExpirationPeriod{
@@ -91,13 +92,13 @@ func TestPostgresConnectorBalances(t *testing.T) {
 					FeatureBalances: []credit.FeatureBalance{
 						{
 							Feature: feature,
-							Balance: 99,
+							Balance: decimal.NewFromFloat(99),
 						},
 					},
 					GrantBalances: []credit.GrantBalance{
 						{
 							Grant:   grant,
-							Balance: 99,
+							Balance: decimal.NewFromFloat(99),
 						},
 					},
 				}, balance)
@@ -124,7 +125,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
 					Type:        credit.GrantTypeUsage,
-					Amount:      100,
+					Amount:      decimal.NewFromFloat(100),
 					Priority:    1,
 					EffectiveAt: t2,
 					Expiration: credit.ExpirationPeriod{
@@ -155,13 +156,13 @@ func TestPostgresConnectorBalances(t *testing.T) {
 					FeatureBalances: []credit.FeatureBalance{
 						{
 							Feature: feature,
-							Balance: 99,
+							Balance: decimal.NewFromFloat(99),
 						},
 					},
 					GrantBalances: []credit.GrantBalance{
 						{
 							Grant:   grant,
-							Balance: 99,
+							Balance: decimal.NewFromFloat(99),
 						},
 					},
 				}, balance)
@@ -187,7 +188,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
 					Type:        credit.GrantTypeUsage,
-					Amount:      100,
+					Amount:      decimal.NewFromFloat(100),
 					Priority:    1,
 					EffectiveAt: t2,
 					Expiration: credit.ExpirationPeriod{
@@ -233,7 +234,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
 					Type:        credit.GrantTypeUsage,
-					Amount:      10,
+					Amount:      decimal.NewFromFloat(10),
 					Priority:    1,
 					EffectiveAt: t1,
 					Expiration: credit.ExpirationPeriod{
@@ -247,7 +248,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
 					Type:        credit.GrantTypeUsage,
-					Amount:      100,
+					Amount:      decimal.NewFromFloat(100),
 					Priority:    2,
 					EffectiveAt: t1,
 					Expiration: credit.ExpirationPeriod{
@@ -279,17 +280,17 @@ func TestPostgresConnectorBalances(t *testing.T) {
 					FeatureBalances: []credit.FeatureBalance{
 						{
 							Feature: feature,
-							Balance: 90,
+							Balance: decimal.NewFromFloat(90),
 						},
 					},
 					GrantBalances: []credit.GrantBalance{
 						{
 							Grant:   grant1,
-							Balance: 0,
+							Balance: decimal.Zero,
 						},
 						{
 							Grant:   grant2,
-							Balance: 90,
+							Balance: decimal.NewFromFloat(90),
 						},
 					},
 				}, balance)
@@ -308,7 +309,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
 					Type:        credit.GrantTypeUsage,
-					Amount:      10,
+					Amount:      decimal.NewFromFloat(10),
 					Priority:    1,
 					EffectiveAt: t1,
 					Expiration: credit.ExpirationPeriod{
@@ -322,7 +323,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
 					Type:        credit.GrantTypeUsage,
-					Amount:      100,
+					Amount:      decimal.NewFromFloat(100),
 					Priority:    1,
 					EffectiveAt: t1,
 					Expiration: credit.ExpirationPeriod{
@@ -354,17 +355,17 @@ func TestPostgresConnectorBalances(t *testing.T) {
 					FeatureBalances: []credit.FeatureBalance{
 						{
 							Feature: feature,
-							Balance: 90,
+							Balance: decimal.NewFromFloat(90),
 						},
 					},
 					GrantBalances: []credit.GrantBalance{
 						{
 							Grant:   grant1,
-							Balance: 0,
+							Balance: decimal.Zero,
 						},
 						{
 							Grant:   grant2,
-							Balance: 90,
+							Balance: decimal.NewFromFloat(90),
 						},
 					},
 				}, balance)
@@ -384,7 +385,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 					LedgerID:    ledger.ID,
 					FeatureID:   feature1.ID,
 					Type:        credit.GrantTypeUsage,
-					Amount:      100,
+					Amount:      decimal.NewFromFloat(100),
 					Priority:    1,
 					EffectiveAt: t1,
 					Expiration: credit.ExpirationPeriod{
@@ -398,7 +399,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 					LedgerID:    ledger.ID,
 					FeatureID:   feature2.ID,
 					Type:        credit.GrantTypeUsage,
-					Amount:      100,
+					Amount:      decimal.NewFromFloat(100),
 					Priority:    1,
 					EffectiveAt: t1,
 					Expiration: credit.ExpirationPeriod{
@@ -433,22 +434,22 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				assert.ElementsMatch(t, []credit.FeatureBalance{
 					{
 						Feature: feature1,
-						Balance: 99,
+						Balance: decimal.NewFromFloat(99),
 					},
 					{
 						Feature: feature2,
-						Balance: 90,
+						Balance: decimal.NewFromFloat(90),
 					},
 				}, balance.FeatureBalances)
 
 				assert.ElementsMatch(t, []credit.GrantBalance{
 					{
 						Grant:   grant1,
-						Balance: 99,
+						Balance: decimal.NewFromFloat(99),
 					},
 					{
 						Grant:   grant2,
-						Balance: 90,
+						Balance: decimal.NewFromFloat(90),
 					},
 				}, balance.GrantBalances)
 			},
