@@ -14,12 +14,12 @@ import (
 )
 
 // Resets the credit POST /api/v1/ledgers/{ledgerID}/reset
-func (a *Router) ResetCredit(w http.ResponseWriter, r *http.Request, ledgerID api.LedgerID) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "resetCredit")
+func (a *Router) ResetLedger(w http.ResponseWriter, r *http.Request, ledgerID api.LedgerID) {
+	ctx := contextx.WithAttr(r.Context(), "operation", "resetLedger")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	// Parse request body
-	resetIn := &api.ResetCreditJSONRequestBody{}
+	resetIn := &api.ResetLedgerJSONRequestBody{}
 	if err := render.DecodeJSON(r.Body, resetIn); err != nil {
 		err := fmt.Errorf("decode json: %w", err)
 

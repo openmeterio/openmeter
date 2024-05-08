@@ -571,17 +571,17 @@ func TestCredit(t *testing.T) {
 		featureId := features[0].ID
 
 		// Create grant
-		resp, err := client.CreateCreditGrantWithResponse(context.Background(), ledgerID, api.CreateCreditGrantRequest{
+		resp, err := client.CreateLedgerGrantWithResponse(context.Background(), ledgerID, api.CreateLedgerGrantRequest{
 			Type:        credit.GrantTypeUsage,
 			LedgerID:    ledgerID,
 			FeatureID:   featureId,
 			Amount:      100,
 			Priority:    1,
 			EffectiveAt: effectiveAt,
-			Rollover: &api.CreditGrantRollover{
+			Rollover: &api.LedgerGrantRollover{
 				Type: credit.GrantRolloverTypeRemainingAmount,
 			},
-			Expiration: api.CreditExpirationPeriod{
+			Expiration: api.LedgerGrantExpirationPeriod{
 				Duration: "DAY",
 				Count:    1,
 			},
@@ -589,7 +589,7 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", resp.Body)
 
-		expected := &api.CreditGrantResponse{
+		expected := &api.LedgerGrantBalance{
 			ID:          resp.JSON201.ID,
 			LedgerID:    ledgerID,
 			Type:        credit.GrantTypeUsage,
@@ -597,10 +597,10 @@ func TestCredit(t *testing.T) {
 			Amount:      100,
 			Priority:    1,
 			EffectiveAt: effectiveAt,
-			Rollover: &api.CreditGrantRollover{
+			Rollover: &api.LedgerGrantRollover{
 				Type: credit.GrantRolloverTypeRemainingAmount,
 			},
-			Expiration: api.CreditExpirationPeriod{
+			Expiration: api.LedgerGrantExpirationPeriod{
 				Duration: "DAY",
 				Count:    1,
 			},
@@ -611,7 +611,7 @@ func TestCredit(t *testing.T) {
 
 	t.Run("Balance", func(t *testing.T) {
 		// Get grants
-		grantListResp, err := client.ListCreditGrantsWithResponse(context.Background(), &api.ListCreditGrantsParams{})
+		grantListResp, err := client.ListLedgerGrantsWithResponse(context.Background(), &api.ListLedgerGrantsParams{})
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, grantListResp.StatusCode())
 		require.NotNil(t, grantListResp.JSON200)
@@ -628,11 +628,11 @@ func TestCredit(t *testing.T) {
 		features := *featureListResp.JSON200
 		feature := features[0]
 
-		resp, err := client.GetCreditBalanceWithResponse(context.Background(), ledgerID, nil)
+		resp, err := client.GetLedgerBalanceWithResponse(context.Background(), ledgerID, nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 
-		expected := &api.CreditBalance{
+		expected := &api.LedgerBalance{
 			LedgerID: ledgerID,
 			Subject:  subject,
 			Metadata: ledgerMeta,
@@ -657,7 +657,7 @@ func TestCredit(t *testing.T) {
 		effectiveAt, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 
 		// Get grants
-		parentGrantListResp, err := client.ListCreditGrantsWithResponse(context.Background(), &api.ListCreditGrantsParams{})
+		parentGrantListResp, err := client.ListLedgerGrantsWithResponse(context.Background(), &api.ListLedgerGrantsParams{})
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, parentGrantListResp.StatusCode())
 		require.NotNil(t, parentGrantListResp.JSON200)
@@ -675,7 +675,7 @@ func TestCredit(t *testing.T) {
 		featureId := features[0].ID
 
 		// Reset credit
-		resetResp, err := client.ResetCreditWithResponse(context.Background(), ledgerID, api.CreditReset{
+		resetResp, err := client.ResetLedgerWithResponse(context.Background(), ledgerID, api.LedgerReset{
 			EffectiveAt: effectiveAt,
 		})
 
@@ -683,7 +683,7 @@ func TestCredit(t *testing.T) {
 		require.Equal(t, http.StatusCreated, resetResp.StatusCode())
 
 		reset := resetResp.JSON201
-		expectedReset := &api.CreditReset{
+		expectedReset := &api.LedgerReset{
 			ID:          reset.ID,
 			LedgerID:    ledgerID,
 			EffectiveAt: effectiveAt,
@@ -691,7 +691,7 @@ func TestCredit(t *testing.T) {
 		assert.Equal(t, expectedReset, resetResp.JSON201)
 
 		// List grants
-		resp, err := client.ListCreditGrantsWithResponse(context.Background(), &api.ListCreditGrantsParams{
+		resp, err := client.ListLedgerGrantsWithResponse(context.Background(), &api.ListLedgerGrantsParams{
 			LedgerID: &ledgerID,
 		})
 
@@ -699,21 +699,20 @@ func TestCredit(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp.StatusCode(), "response body: %s", string(resp.Body))
 
 		grants := *resp.JSON200
-		expected := &[]api.CreditGrantResponse{
+		expected := &[]api.LedgerGrantResponse{
 			{
-				ID:        grants[0].ID,
-				ParentID:  parentGrant.ID,
-				LedgerID:  ledgerID,
-				Type:      credit.GrantTypeUsage,
-				FeatureID: featureId,
-				Amount:    99,
-				Priority:  1,
-				// TODO: this should be equal to `effectiveAt` but we run into timezone issues
-				EffectiveAt: grants[0].EffectiveAt,
-				Rollover: &api.CreditGrantRollover{
+				ID:          grants[0].ID,
+				ParentID:    parentGrant.ID,
+				LedgerID:    ledgerID,
+				Type:        credit.GrantTypeUsage,
+				FeatureID:   featureId,
+				Amount:      99,
+				Priority:    1,
+				EffectiveAt: effectiveAt,
+				Rollover: &api.LedgerGrantRollover{
 					Type: credit.GrantRolloverTypeRemainingAmount,
 				},
-				Expiration: api.CreditExpirationPeriod{
+				Expiration: api.LedgerGrantExpirationPeriod{
 					Duration: "DAY",
 					Count:    1,
 				},
