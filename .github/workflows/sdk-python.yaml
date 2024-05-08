@@ -1,4 +1,4 @@
-name: Generate / Node SDK
+name: Python SDK
 
 permissions:
   contents: write
@@ -11,33 +11,35 @@ on:
       - main
     paths:
       - api/openapi.yaml
-      - ".github/workflows/generate-client-node.yaml"
+      - .github/workflows/sdk-python.yaml
 
 jobs:
   generate:
+    name: Generate
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           ref: ${{ github.head_ref }}
 
-      - name: Generate Client
+      - name: Generate
         uses: dagger/dagger-for-github@eba69b4dddb54eddfdb51a88eb7fd86957137630 # v5.4.0
         with:
           verb: call
-          args: --source .:default generate node-sdk -o api/client/node
+          args: --source .:default generate python-sdk -o api/client/python
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: "0.11.2"
 
-      - name: Open Pull Request
+      - name: Open pull request
         uses: peter-evans/create-pull-request@v6
         with:
-          branch: openapi/node-sdk
+          branch: openapi/python-sdk
           branch-suffix: short-commit-hash
           delete-branch: true
-          commit-message: "chore(api): generate node client"
-          title: "[bot] Re-generate Node.js client"
+          commit-message: "chore(api): generate python client"
+          title: "[bot] Re-generate Python client"
           body: "This PR was automatically generated."
           labels: |
             area/api
