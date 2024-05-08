@@ -17,8 +17,8 @@ import (
 )
 
 // List credit grants, GET /api/v1/ledgers/grants
-func (a *Router) ListCreditGrants(w http.ResponseWriter, r *http.Request, params api.ListCreditGrantsParams) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "listCreditGrants")
+func (a *Router) ListLedgerGrants(w http.ResponseWriter, r *http.Request, params api.ListLedgerGrantsParams) {
+	ctx := contextx.WithAttr(r.Context(), "operation", "listLedgerGrants")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	ledgerIDs := []ulid.ULID{}
@@ -31,7 +31,7 @@ func (a *Router) ListCreditGrants(w http.ResponseWriter, r *http.Request, params
 		LedgerIDs:         ledgerIDs,
 		FromHighWatermark: true,
 		IncludeVoid:       true,
-		Limit:             defaultx.WithDefault(params.Limit, DefaultCreditsQueryLimit),
+		Limit:             defaultx.WithDefault(params.Limit, DefaultLedgerQueryLimit),
 	})
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)
@@ -47,8 +47,8 @@ func (a *Router) ListCreditGrants(w http.ResponseWriter, r *http.Request, params
 }
 
 // List credit grants, GET /api/v1/ledgers/{ledgerID}/grants
-func (a *Router) ListCreditGrantsByLedger(w http.ResponseWriter, r *http.Request, ledgerID api.LedgerID, params api.ListCreditGrantsByLedgerParams) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "listCreditGrants")
+func (a *Router) ListLedgerGrantsByLedger(w http.ResponseWriter, r *http.Request, ledgerID api.LedgerID, params api.ListLedgerGrantsByLedgerParams) {
+	ctx := contextx.WithAttr(r.Context(), "operation", "listLedgerGrantsByLedger")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	// Get grants
@@ -56,7 +56,7 @@ func (a *Router) ListCreditGrantsByLedger(w http.ResponseWriter, r *http.Request
 		LedgerIDs:         []ulid.ULID{ledgerID},
 		FromHighWatermark: true,
 		IncludeVoid:       true,
-		Limit:             defaultx.WithDefault(params.Limit, DefaultCreditsQueryLimit),
+		Limit:             defaultx.WithDefault(params.Limit, DefaultLedgerQueryLimit),
 	})
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)
@@ -72,12 +72,12 @@ func (a *Router) ListCreditGrantsByLedger(w http.ResponseWriter, r *http.Request
 }
 
 // Create credit grant, POST /api/v1/ledgers/{creditSubjectId}/grants
-func (a *Router) CreateCreditGrant(w http.ResponseWriter, r *http.Request, ledgerID api.LedgerID) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "createCreditGrant")
+func (a *Router) CreateLedgerGrant(w http.ResponseWriter, r *http.Request, ledgerID api.LedgerID) {
+	ctx := contextx.WithAttr(r.Context(), "operation", "createLedgerGrant")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	// Parse request body
-	grant := &api.CreateCreditGrantJSONRequestBody{}
+	grant := &api.CreateLedgerGrantJSONRequestBody{}
 	if err := render.DecodeJSON(r.Body, grant); err != nil {
 		err := fmt.Errorf("decode json: %w", err)
 
@@ -137,8 +137,8 @@ func (a *Router) CreateCreditGrant(w http.ResponseWriter, r *http.Request, ledge
 }
 
 // Void credit grant, DELETE /api/v1/ledgers/{ledgerID}/grants/{creditGrantID}
-func (a *Router) VoidCreditGrant(w http.ResponseWriter, r *http.Request, ledgerID api.LedgerID, creditGrantId api.CreditGrantID) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "voidCreditGrant")
+func (a *Router) VoidLedgerGrant(w http.ResponseWriter, r *http.Request, ledgerID api.LedgerID, creditGrantId api.LedgerGrantID) {
+	ctx := contextx.WithAttr(r.Context(), "operation", "voidLedgerGrant")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	// Get grant
@@ -212,8 +212,8 @@ func (a *Router) VoidCreditGrant(w http.ResponseWriter, r *http.Request, ledgerI
 }
 
 // Get credit, GET /api/v1/ledgers/{ledgerID}/grants/{creditGrantId}
-func (a *Router) GetCreditGrant(w http.ResponseWriter, r *http.Request, ledgerID api.LedgerID, creditGrantId api.CreditGrantID) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "getCreditGrant")
+func (a *Router) GetLedgerGrant(w http.ResponseWriter, r *http.Request, ledgerID api.LedgerID, creditGrantId api.LedgerGrantID) {
+	ctx := contextx.WithAttr(r.Context(), "operation", "getLedgerGrant")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	// Get grant

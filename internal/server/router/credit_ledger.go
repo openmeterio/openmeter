@@ -17,8 +17,8 @@ import (
 )
 
 // Get credit balance, GET /api/v1/ledgers/{ledgerID}/history
-func (a *Router) GetCreditHistory(w http.ResponseWriter, r *http.Request, ledgerID api.LedgerID, params api.GetCreditHistoryParams) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "getCreditLedger")
+func (a *Router) GetLedgerHistory(w http.ResponseWriter, r *http.Request, ledgerID api.LedgerID, params api.GetLedgerHistoryParams) {
+	ctx := contextx.WithAttr(r.Context(), "operation", "getLedgerHistory")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	// Get Ledger
@@ -26,7 +26,7 @@ func (a *Router) GetCreditHistory(w http.ResponseWriter, r *http.Request, ledger
 		ctx, namespace, ledgerID,
 		params.From,
 		defaultx.WithDefault(params.To, time.Now()),
-		defaultx.WithDefault(params.Limit, DefaultCreditsQueryLimit),
+		defaultx.WithDefault(params.Limit, DefaultLedgerQueryLimit),
 	)
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)
@@ -39,7 +39,7 @@ func (a *Router) GetCreditHistory(w http.ResponseWriter, r *http.Request, ledger
 
 // CreateLedger POS /api/v1/ledgers
 func (a *Router) CreateLedger(w http.ResponseWriter, r *http.Request) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "createCreditLedger")
+	ctx := contextx.WithAttr(r.Context(), "operation", "createLedger")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	// Parse request body
@@ -93,7 +93,7 @@ func (a *Router) ListLedgers(w http.ResponseWriter, r *http.Request, params api.
 		credit.ListLedgersParams{
 			Subjects: defaultx.WithDefault(params.Subject, nil),
 			Offset:   defaultx.WithDefault(params.Offset, 0),
-			Limit:    defaultx.WithDefault(params.Limit, DefaultCreditsQueryLimit),
+			Limit:    defaultx.WithDefault(params.Limit, DefaultLedgerQueryLimit),
 		})
 	if err != nil && !db.IsNotFound(err) {
 		a.config.ErrorHandler.HandleContext(ctx, err)
