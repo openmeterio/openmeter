@@ -23,26 +23,26 @@ from azure.core.tracing.decorator_async import distributed_trace_async
 from azure.core.utils import case_insensitive_dict
 
 from ..._operations._operations import (
-    build_create_credit_grant_request,
     build_create_feature_request,
+    build_create_ledger_grant_request,
     build_create_ledger_request,
     build_create_meter_request,
     build_create_portal_token_request,
     build_delete_feature_request,
     build_delete_meter_request,
     build_delete_subject_request,
-    build_get_credit_balance_request,
-    build_get_credit_grant_request,
-    build_get_credit_history_request,
     build_get_feature_request,
+    build_get_ledger_balance_request,
+    build_get_ledger_grant_request,
+    build_get_ledger_history_request,
     build_get_meter_request,
     build_get_subject_request,
     build_ingest_events_request,
     build_invalidate_portal_tokens_request,
-    build_list_credit_grants_by_ledger_request,
-    build_list_credit_grants_request,
     build_list_events_request,
     build_list_features_request,
+    build_list_ledger_grants_by_ledger_request,
+    build_list_ledger_grants_request,
     build_list_ledgers_request,
     build_list_meter_subjects_request,
     build_list_meters_request,
@@ -50,9 +50,9 @@ from ..._operations._operations import (
     build_list_subjects_request,
     build_query_meter_request,
     build_query_portal_meter_request,
-    build_reset_credit_request,
+    build_reset_ledger_request,
     build_upsert_subject_request,
-    build_void_credit_grant_request,
+    build_void_ledger_grant_request,
 )
 from .._vendor import ClientMixinABC
 
@@ -2292,7 +2292,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         "id": "str",  # Readonly unique ULID identifier of the ledger.
                           Required.
                         "subject": "str",  # The metering subject this ledger used to track
-                          credits for. Required.
+                          grants for. Required.
                         "metadata": {
                             "str": "str"  # Optional. Dictionary of :code:`<string>`.
                         }
@@ -2365,7 +2365,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
                 # JSON input template you can fill out and use as your body input.
                 body = {
-                    "subject": "str",  # The metering subject this ledger used to track credits
+                    "subject": "str",  # The metering subject this ledger used to track grants
                       for. Required.
                     "metadata": {
                         "str": "str"  # Optional. Dictionary of :code:`<string>`.
@@ -2375,7 +2375,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 # response body for status code(s): 201
                 response == {
                     "id": "str",  # Readonly unique ULID identifier of the ledger. Required.
-                    "subject": "str",  # The metering subject this ledger used to track credits
+                    "subject": "str",  # The metering subject this ledger used to track grants
                       for. Required.
                     "metadata": {
                         "str": "str"  # Optional. Dictionary of :code:`<string>`.
@@ -2404,7 +2404,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 # response body for status code(s): 201
                 response == {
                     "id": "str",  # Readonly unique ULID identifier of the ledger. Required.
-                    "subject": "str",  # The metering subject this ledger used to track credits
+                    "subject": "str",  # The metering subject this ledger used to track grants
                       for. Required.
                     "metadata": {
                         "str": "str"  # Optional. Dictionary of :code:`<string>`.
@@ -2429,7 +2429,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
                 # JSON input template you can fill out and use as your body input.
                 body = {
-                    "subject": "str",  # The metering subject this ledger used to track credits
+                    "subject": "str",  # The metering subject this ledger used to track grants
                       for. Required.
                     "metadata": {
                         "str": "str"  # Optional. Dictionary of :code:`<string>`.
@@ -2439,7 +2439,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 # response body for status code(s): 201
                 response == {
                     "id": "str",  # Readonly unique ULID identifier of the ledger. Required.
-                    "subject": "str",  # The metering subject this ledger used to track credits
+                    "subject": "str",  # The metering subject this ledger used to track grants
                       for. Required.
                     "metadata": {
                         "str": "str"  # Optional. Dictionary of :code:`<string>`.
@@ -2502,7 +2502,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         return cast(JSON, deserialized)  # type: ignore
 
     @distributed_trace_async
-    async def get_credit_balance(
+    async def get_ledger_balance(
         self, ledger_id: str, *, time: Optional[datetime.datetime] = None, **kwargs: Any
     ) -> JSON:
         # pylint: disable=line-too-long
@@ -2510,7 +2510,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         Get the balance of a specific subject.
 
-        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :param ledger_id: A unique identifier for a ledger. Required.
         :type ledger_id: str
         :keyword time: Point of time to query balances: date-time in RFC 3339 format. Defaults to now.
          Default value is None.
@@ -2558,11 +2558,10 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                               a positive decimal numbers. With lower numbers indicating higher
                               importance. For example, a priority of 1 is more urgent than a priority
                               of 2. When there are several grants available for the same subject, the
-                              system selects the grant with the highest priority. In cases where credit
-                              grants share the same priority level, the grant closest to its expiration
-                              will be used first. In the case of two credits have identical priorities
-                              and expiration dates, the system will use the grant that was created
-                              first.
+                              system selects the grant with the highest priority. In cases where grants
+                              share the same priority level, the grant closest to its expiration will
+                              be used first. In the case of two grants have identical priorities and
+                              expiration dates, the system will use the grant that was created first.
                             "rollover": {
                                 "type": "str",  # The rollover type to use:   *
                                   ``REMAINING_AMOUNT`` - Rollover remaining amount. *
@@ -2605,7 +2604,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         cls: ClsType[JSON] = kwargs.pop("cls", None)
 
-        _request = build_get_credit_balance_request(
+        _request = build_get_ledger_balance_request(
             ledger_id=ledger_id,
             time=time,
             headers=_headers,
@@ -2637,7 +2636,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         return cast(JSON, deserialized)  # type: ignore
 
     @distributed_trace_async
-    async def get_credit_history(
+    async def get_ledger_history(
         self,
         ledger_id: str,
         *,
@@ -2646,11 +2645,11 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         to: Optional[datetime.datetime] = None,
         **kwargs: Any
     ) -> List[JSON]:
-        """Get credit ledger.
+        """Get the history of a ledger.
 
-        Get credit ledger for a specific subject.
+        Get the history of a specific ledger.
 
-        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :param ledger_id: A unique identifier for a ledger. Required.
         :type ledger_id: str
         :keyword from_parameter: Start of time range to query ledger: date-time in RFC 3339 format.
          Required.
@@ -2700,7 +2699,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
 
-        _request = build_get_credit_history_request(
+        _request = build_get_ledger_history_request(
             ledger_id=ledger_id,
             from_parameter=from_parameter,
             limit=limit,
@@ -2734,15 +2733,15 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         return cast(List[JSON], deserialized)  # type: ignore
 
     @overload
-    async def reset_credit(
+    async def reset_ledger(
         self, ledger_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> JSON:
-        """Reset credit balance.
+        """Reset the ledger's balance.
 
-        Resets the credit balances to zero for a specific subject and re-apply active grants with
+        Resets the ledger's balances to zero for a specific subject and re-apply active grants with
         rollover configuration.
 
-        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :param ledger_id: A unique identifier for a ledger. Required.
         :type ledger_id: str
         :param body: Details for the reset. Required.
         :type body: JSON
@@ -2758,29 +2757,29 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
                 # JSON input template you can fill out and use as your body input.
                 body = {
-                    "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the credit. It
+                    "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the ledger. It
                       cannot be in the future. Required.
                     "id": "str"  # Readonly unique ULID identifier of the reset. Required.
                 }
 
                 # response body for status code(s): 201
                 response == {
-                    "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the credit. It
+                    "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the ledger. It
                       cannot be in the future. Required.
                     "id": "str"  # Readonly unique ULID identifier of the reset. Required.
                 }
         """
 
     @overload
-    async def reset_credit(
+    async def reset_ledger(
         self, ledger_id: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> JSON:
-        """Reset credit balance.
+        """Reset the ledger's balance.
 
-        Resets the credit balances to zero for a specific subject and re-apply active grants with
+        Resets the ledger's balances to zero for a specific subject and re-apply active grants with
         rollover configuration.
 
-        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :param ledger_id: A unique identifier for a ledger. Required.
         :type ledger_id: str
         :param body: Details for the reset. Required.
         :type body: IO[bytes]
@@ -2796,20 +2795,20 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
                 # response body for status code(s): 201
                 response == {
-                    "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the credit. It
+                    "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the ledger. It
                       cannot be in the future. Required.
                     "id": "str"  # Readonly unique ULID identifier of the reset. Required.
                 }
         """
 
     @distributed_trace_async
-    async def reset_credit(self, ledger_id: str, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
-        """Reset credit balance.
+    async def reset_ledger(self, ledger_id: str, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
+        """Reset the ledger's balance.
 
-        Resets the credit balances to zero for a specific subject and re-apply active grants with
+        Resets the ledger's balances to zero for a specific subject and re-apply active grants with
         rollover configuration.
 
-        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :param ledger_id: A unique identifier for a ledger. Required.
         :type ledger_id: str
         :param body: Details for the reset. Is either a JSON type or a IO[bytes] type. Required.
         :type body: JSON or IO[bytes]
@@ -2822,14 +2821,14 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
                 # JSON input template you can fill out and use as your body input.
                 body = {
-                    "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the credit. It
+                    "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the ledger. It
                       cannot be in the future. Required.
                     "id": "str"  # Readonly unique ULID identifier of the reset. Required.
                 }
 
                 # response body for status code(s): 201
                 response == {
-                    "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the credit. It
+                    "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the ledger. It
                       cannot be in the future. Required.
                     "id": "str"  # Readonly unique ULID identifier of the reset. Required.
                 }
@@ -2857,7 +2856,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         else:
             _json = body
 
-        _request = build_reset_credit_request(
+        _request = build_reset_ledger_request(
             ledger_id=ledger_id,
             content_type=content_type,
             json=_json,
@@ -2891,13 +2890,13 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         return cast(JSON, deserialized)  # type: ignore
 
     @distributed_trace_async
-    async def list_credit_grants(
+    async def list_ledger_grants(
         self, *, ledger_id: Optional[str] = None, limit: int = 1000, **kwargs: Any
     ) -> List[JSON]:
         # pylint: disable=line-too-long
-        """List credit grants for multiple ledgers.
+        """List grants for multiple ledgers.
 
-        List credit grants for multiple ledgers.
+        List grants for multiple ledgers.
 
         :keyword ledger_id: Filtering and group by multiple subjects.
 
@@ -2943,10 +2942,10 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           decimal numbers. With lower numbers indicating higher importance. For
                           example, a priority of 1 is more urgent than a priority of 2. When there are
                           several grants available for the same subject, the system selects the grant
-                          with the highest priority. In cases where credit grants share the same
-                          priority level, the grant closest to its expiration will be used first. In
-                          the case of two credits have identical priorities and expiration dates, the
-                          system will use the grant that was created first.
+                          with the highest priority. In cases where grants share the same priority
+                          level, the grant closest to its expiration will be used first. In the case of
+                          two grants have identical priorities and expiration dates, the system will
+                          use the grant that was created first.
                         "rollover": {
                             "type": "str",  # The rollover type to use:   *
                               ``REMAINING_AMOUNT`` - Rollover remaining amount. * ``ORIGINAL_AMOUNT`` -
@@ -2971,7 +2970,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
 
-        _request = build_list_credit_grants_request(
+        _request = build_list_ledger_grants_request(
             ledger_id=ledger_id,
             limit=limit,
             headers=_headers,
@@ -3003,13 +3002,13 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         return cast(List[JSON], deserialized)  # type: ignore
 
     @distributed_trace_async
-    async def list_credit_grants_by_ledger(self, ledger_id: str, *, limit: int = 1000, **kwargs: Any) -> List[JSON]:
+    async def list_ledger_grants_by_ledger(self, ledger_id: str, *, limit: int = 1000, **kwargs: Any) -> List[JSON]:
         # pylint: disable=line-too-long
-        """List credit grants.
+        """List ledger grants.
 
-        List credit grants for a specific ledger.
+        List ledger grants for a specific ledger.
 
-        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :param ledger_id: A unique identifier for a ledger. Required.
         :type ledger_id: str
         :keyword limit: Number of entries to return. Default value is 1000.
         :paramtype limit: int
@@ -3051,10 +3050,10 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           decimal numbers. With lower numbers indicating higher importance. For
                           example, a priority of 1 is more urgent than a priority of 2. When there are
                           several grants available for the same subject, the system selects the grant
-                          with the highest priority. In cases where credit grants share the same
-                          priority level, the grant closest to its expiration will be used first. In
-                          the case of two credits have identical priorities and expiration dates, the
-                          system will use the grant that was created first.
+                          with the highest priority. In cases where grants share the same priority
+                          level, the grant closest to its expiration will be used first. In the case of
+                          two grants have identical priorities and expiration dates, the system will
+                          use the grant that was created first.
                         "rollover": {
                             "type": "str",  # The rollover type to use:   *
                               ``REMAINING_AMOUNT`` - Rollover remaining amount. * ``ORIGINAL_AMOUNT`` -
@@ -3079,7 +3078,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
 
-        _request = build_list_credit_grants_by_ledger_request(
+        _request = build_list_ledger_grants_by_ledger_request(
             ledger_id=ledger_id,
             limit=limit,
             headers=_headers,
@@ -3111,17 +3110,17 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         return cast(List[JSON], deserialized)  # type: ignore
 
     @overload
-    async def create_credit_grant(
+    async def create_ledger_grant(
         self, ledger_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> JSON:
         # pylint: disable=line-too-long
-        """Create credit grant.
+        """Create a grant on a specific ledger.
 
-        Creates a credit grant.
+        Create a grant on a specific ledger.
 
-        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :param ledger_id: A unique identifier for a ledger. Required.
         :type ledger_id: str
-        :param body: The credit grant to create. Required.
+        :param body: The grant to create. Required.
         :type body: JSON
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
@@ -3156,8 +3155,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                       numbers. With lower numbers indicating higher importance. For example, a priority
                       of 1 is more urgent than a priority of 2. When there are several grants available
                       for the same subject, the system selects the grant with the highest priority. In
-                      cases where credit grants share the same priority level, the grant closest to its
-                      expiration will be used first. In the case of two credits have identical
+                      cases where grants share the same priority level, the grant closest to its
+                      expiration will be used first. In the case of two grants have identical
                       priorities and expiration dates, the system will use the grant that was created
                       first.
                     "rollover": {
@@ -3195,8 +3194,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                       numbers. With lower numbers indicating higher importance. For example, a priority
                       of 1 is more urgent than a priority of 2. When there are several grants available
                       for the same subject, the system selects the grant with the highest priority. In
-                      cases where credit grants share the same priority level, the grant closest to its
-                      expiration will be used first. In the case of two credits have identical
+                      cases where grants share the same priority level, the grant closest to its
+                      expiration will be used first. In the case of two grants have identical
                       priorities and expiration dates, the system will use the grant that was created
                       first.
                     "rollover": {
@@ -3210,17 +3209,17 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         """
 
     @overload
-    async def create_credit_grant(
+    async def create_ledger_grant(
         self, ledger_id: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> JSON:
         # pylint: disable=line-too-long
-        """Create credit grant.
+        """Create a grant on a specific ledger.
 
-        Creates a credit grant.
+        Create a grant on a specific ledger.
 
-        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :param ledger_id: A unique identifier for a ledger. Required.
         :type ledger_id: str
-        :param body: The credit grant to create. Required.
+        :param body: The grant to create. Required.
         :type body: IO[bytes]
         :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
          Default value is "application/json".
@@ -3258,8 +3257,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                       numbers. With lower numbers indicating higher importance. For example, a priority
                       of 1 is more urgent than a priority of 2. When there are several grants available
                       for the same subject, the system selects the grant with the highest priority. In
-                      cases where credit grants share the same priority level, the grant closest to its
-                      expiration will be used first. In the case of two credits have identical
+                      cases where grants share the same priority level, the grant closest to its
+                      expiration will be used first. In the case of two grants have identical
                       priorities and expiration dates, the system will use the grant that was created
                       first.
                     "rollover": {
@@ -3273,15 +3272,15 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         """
 
     @distributed_trace_async
-    async def create_credit_grant(self, ledger_id: str, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
+    async def create_ledger_grant(self, ledger_id: str, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
         # pylint: disable=line-too-long
-        """Create credit grant.
+        """Create a grant on a specific ledger.
 
-        Creates a credit grant.
+        Create a grant on a specific ledger.
 
-        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :param ledger_id: A unique identifier for a ledger. Required.
         :type ledger_id: str
-        :param body: The credit grant to create. Is either a JSON type or a IO[bytes] type. Required.
+        :param body: The grant to create. Is either a JSON type or a IO[bytes] type. Required.
         :type body: JSON or IO[bytes]
         :return: JSON object
         :rtype: JSON
@@ -3313,8 +3312,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                       numbers. With lower numbers indicating higher importance. For example, a priority
                       of 1 is more urgent than a priority of 2. When there are several grants available
                       for the same subject, the system selects the grant with the highest priority. In
-                      cases where credit grants share the same priority level, the grant closest to its
-                      expiration will be used first. In the case of two credits have identical
+                      cases where grants share the same priority level, the grant closest to its
+                      expiration will be used first. In the case of two grants have identical
                       priorities and expiration dates, the system will use the grant that was created
                       first.
                     "rollover": {
@@ -3352,8 +3351,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                       numbers. With lower numbers indicating higher importance. For example, a priority
                       of 1 is more urgent than a priority of 2. When there are several grants available
                       for the same subject, the system selects the grant with the highest priority. In
-                      cases where credit grants share the same priority level, the grant closest to its
-                      expiration will be used first. In the case of two credits have identical
+                      cases where grants share the same priority level, the grant closest to its
+                      expiration will be used first. In the case of two grants have identical
                       priorities and expiration dates, the system will use the grant that was created
                       first.
                     "rollover": {
@@ -3388,7 +3387,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         else:
             _json = body
 
-        _request = build_create_credit_grant_request(
+        _request = build_create_ledger_grant_request(
             ledger_id=ledger_id,
             content_type=content_type,
             json=_json,
@@ -3422,16 +3421,16 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         return cast(JSON, deserialized)  # type: ignore
 
     @distributed_trace_async
-    async def get_credit_grant(self, ledger_id: str, credit_grant_id: str, **kwargs: Any) -> JSON:
+    async def get_ledger_grant(self, ledger_id: str, ledger_grant_id: str, **kwargs: Any) -> JSON:
         # pylint: disable=line-too-long
-        """Get credit grant.
+        """Get a single grant.
 
-        Get credit by key.
+        Gets the grant for a ledger by ID.
 
-        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :param ledger_id: A unique identifier for a ledger. Required.
         :type ledger_id: str
-        :param credit_grant_id: A unique identifier for a credit grant. Required.
-        :type credit_grant_id: str
+        :param ledger_grant_id: A unique identifier for a ledger grant. Required.
+        :type ledger_grant_id: str
         :return: JSON object
         :rtype: JSON
         :raises ~azure.core.exceptions.HttpResponseError:
@@ -3465,8 +3464,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                       numbers. With lower numbers indicating higher importance. For example, a priority
                       of 1 is more urgent than a priority of 2. When there are several grants available
                       for the same subject, the system selects the grant with the highest priority. In
-                      cases where credit grants share the same priority level, the grant closest to its
-                      expiration will be used first. In the case of two credits have identical
+                      cases where grants share the same priority level, the grant closest to its
+                      expiration will be used first. In the case of two grants have identical
                       priorities and expiration dates, the system will use the grant that was created
                       first.
                     "rollover": {
@@ -3491,9 +3490,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         cls: ClsType[JSON] = kwargs.pop("cls", None)
 
-        _request = build_get_credit_grant_request(
+        _request = build_get_ledger_grant_request(
             ledger_id=ledger_id,
-            credit_grant_id=credit_grant_id,
+            ledger_grant_id=ledger_grant_id,
             headers=_headers,
             params=_params,
         )
@@ -3523,17 +3522,17 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         return cast(JSON, deserialized)  # type: ignore
 
     @distributed_trace_async
-    async def void_credit_grant(  # pylint: disable=inconsistent-return-statements
-        self, credit_grant_id: str, ledger_id: str, **kwargs: Any
+    async def void_ledger_grant(  # pylint: disable=inconsistent-return-statements
+        self, ledger_grant_id: str, ledger_id: str, **kwargs: Any
     ) -> None:
-        """Void credit grant.
+        """Void ledger grant.
 
-        Void a credit grant by ID. Partially or fully used credits cannot be voided.
-        Voided credits won't be applied to the subject's balance anymore.
+        Void a ledger grant by ID. Partially or fully used grants cannot be voided.
+        Voided grant won't be applied to the subject's balance anymore.
 
-        :param credit_grant_id: A unique identifier for a credit grant. Required.
-        :type credit_grant_id: str
-        :param ledger_id: A unique identifier for a credit ledger's subject. Required.
+        :param ledger_grant_id: A unique identifier for a ledger grant. Required.
+        :type ledger_grant_id: str
+        :param ledger_id: A unique identifier for a ledger. Required.
         :type ledger_id: str
         :return: None
         :rtype: None
@@ -3552,8 +3551,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         cls: ClsType[None] = kwargs.pop("cls", None)
 
-        _request = build_void_credit_grant_request(
-            credit_grant_id=credit_grant_id,
+        _request = build_void_ledger_grant_request(
+            ledger_grant_id=ledger_grant_id,
             ledger_id=ledger_id,
             headers=_headers,
             params=_params,
