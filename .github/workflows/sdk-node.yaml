@@ -30,7 +30,7 @@ jobs:
           verb: call
           args: --source .:default generate node-sdk -o api/client/node
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: "0.11.2"
+          version: "0.11.3"
 
       - name: Open pull request
         uses: peter-evans/create-pull-request@v6

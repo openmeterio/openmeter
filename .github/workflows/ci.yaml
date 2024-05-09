@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 env:
-  DAGGER_VERSION: 0.11.2
+  DAGGER_VERSION: 0.11.3
 
 jobs:
   build:
@@ -178,7 +178,7 @@ jobs:
           verb: call
           args: --source .:default quickstart-test --service tcp://localhost:8888 --port 8888
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: "0.11.2"
+          version: ${{ env.DAGGER_VERSION }}
 
       - name: Cleanup Docker Compose
         run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml down -v
