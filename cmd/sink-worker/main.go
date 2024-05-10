@@ -111,7 +111,7 @@ func main() {
 	// Initialize OTel Metrics
 	otelMeterProvider, err := conf.Telemetry.Metrics.NewMeterProvider(ctx, res)
 	if err != nil {
-		logger.Error(err.Error())
+		logger.Error("failed to initialize OpenTelemetry Metrics provider", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 	defer func() {
@@ -134,7 +134,7 @@ func main() {
 	// Initialize OTel Tracer
 	otelTracerProvider, err := conf.Telemetry.Trace.NewTracerProvider(ctx, res)
 	if err != nil {
-		logger.Error(err.Error())
+		logger.Error("failed to initialize OpenTelemetry Trace provider", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 	defer func() {
