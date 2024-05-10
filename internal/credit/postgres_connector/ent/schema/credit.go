@@ -38,8 +38,9 @@ func (CreditEntry) Fields() []ent.Field {
 		field.Other("feature_id", pgulid.ULID{}).Optional().Nillable().Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
-		// TODO: use decimal instead of float?
-		field.Float("amount").Optional().Nillable().Immutable(),
+		field.Float("amount").Optional().Nillable().Immutable().SchemaType(map[string]string{
+			dialect.Postgres: "numeric",
+		}),
 		field.Uint8("priority").Default(1).Immutable(),
 		field.Time("effective_at").Default(time.Now).Immutable(),
 		// Expiration
@@ -48,7 +49,9 @@ func (CreditEntry) Fields() []ent.Field {
 		field.Time("expiration_at").Optional().Nillable().Immutable(),
 		// Rollover
 		field.Enum("rollover_type").GoType(credit.GrantRolloverType("")).Optional().Nillable().Immutable(),
-		field.Float("rollover_max_amount").Optional().Nillable().Immutable(),
+		field.Float("rollover_max_amount").Optional().Nillable().Immutable().SchemaType(map[string]string{
+			dialect.Postgres: "numeric",
+		}),
 		field.JSON("metadata", map[string]string{}).Optional(),
 		// Rollover or void grants will have a parent_id
 		field.Other("parent_id", pgulid.ULID{}).Optional().Nillable().Immutable().SchemaType(map[string]string{
