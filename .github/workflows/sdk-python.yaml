@@ -30,7 +30,7 @@ jobs:
           verb: call
           args: --source .:default generate python-sdk -o api/client/python
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: "0.11.3"
+          version: "0.11.4"
 
       - name: Open pull request
         uses: peter-evans/create-pull-request@v6
