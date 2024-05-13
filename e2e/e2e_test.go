@@ -599,7 +599,7 @@ func TestCredit(t *testing.T) {
 			require.Equal(t, http.StatusOK, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
 
 			require.Equal(t, resp.JSON200.Subject, upsertSubject)
-			require.Equal(t, resp.JSON200.Metadata, nil)
+			require.Empty(t, resp.JSON200.Metadata)
 		})
 
 	})
