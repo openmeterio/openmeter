@@ -37,14 +37,14 @@ func (a *Router) GetLedgerHistory(w http.ResponseWriter, r *http.Request, ledger
 	_ = render.Render(w, r, ledgerEntries)
 }
 
-// CreateLedger POS /api/v1/ledgers
+// CreateLedger POST /api/v1/ledgers
 func (a *Router) CreateLedger(w http.ResponseWriter, r *http.Request) {
 	ctx := contextx.WithAttr(r.Context(), "operation", "createLedger")
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	// Parse request body
-	createLedgerArgs := &api.CreateLedger{}
-	if err := render.DecodeJSON(r.Body, createLedgerArgs); err != nil {
+	createLedgerArgs := api.CreateLedger{}
+	if err := render.DecodeJSON(r.Body, &createLedgerArgs); err != nil {
 		err := fmt.Errorf("decode json: %w", err)
 
 		a.config.ErrorHandler.HandleContext(ctx, err)
@@ -60,10 +60,7 @@ func (a *Router) CreateLedger(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ledger, err := a.config.CreditConnector.CreateLedger(ctx, namespace, credit.Ledger{
-		Subject:  createLedgerArgs.Subject,
-		Metadata: createLedgerArgs.Metadata,
-	})
+	ledger, err := a.config.CreditConnector.CreateLedger(ctx, namespace, createLedgerArgs)
 	if err != nil {
 
 		if existsError, ok := err.(*credit.LedgerAlreadyExistsError); ok {
@@ -80,6 +77,41 @@ func (a *Router) CreateLedger(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.Status(r, http.StatusCreated)
+	_ = render.Render(w, r, ledger)
+
+}
+
+// UpsertLedger PATCH /api/v1/ledgers
+func (a *Router) UpsertLedgerBySubject(w http.ResponseWriter, r *http.Request) {
+	ctx := contextx.WithAttr(r.Context(), "operation", "upsertLedger")
+	namespace := a.config.NamespaceManager.GetDefaultNamespace()
+
+	// Parse request body
+	createLedgerArgs := api.UpsertLedgerBySubject{}
+	if err := render.DecodeJSON(r.Body, &createLedgerArgs); err != nil {
+		err := fmt.Errorf("decode json: %w", err)
+
+		a.config.ErrorHandler.HandleContext(ctx, err)
+		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+
+		return
+	}
+
+	if createLedgerArgs.Subject == "" {
+		err := fmt.Errorf("subject must be non-empty when upserting a new ledger")
+		a.config.ErrorHandler.HandleContext(ctx, err)
+		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+		return
+	}
+
+	ledger, err := a.config.CreditConnector.UpsertLedger(ctx, namespace, createLedgerArgs)
+	if err != nil {
+		a.config.ErrorHandler.HandleContext(ctx, err)
+		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+		return
+	}
+
+	render.Status(r, http.StatusOK)
 	_ = render.Render(w, r, ledger)
 
 }

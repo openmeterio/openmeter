@@ -10,11 +10,24 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_ledger "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
+	"github.com/openmeterio/openmeter/pkg/convertx"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 func (c *PostgresConnector) CreateLedger(ctx context.Context, namespace string, ledgerIn credit.Ledger) (credit.Ledger, error) {
-	entity, err := c.db.Ledger.Create().
+	ledger, err := transaction(ctx, c, func(tx *db.Tx) (*credit.Ledger, error) {
+		return c.createLedger(ctx, tx, namespace, ledgerIn)
+	})
+
+	if err != nil {
+		return credit.Ledger{}, err
+	}
+
+	return *ledger, nil
+}
+
+func (c *PostgresConnector) createLedger(ctx context.Context, tx *db.Tx, namespace string, ledgerIn credit.Ledger) (*credit.Ledger, error) {
+	entity, err := tx.Ledger.Create().
 		SetNamespace(namespace).
 		SetMetadata(ledgerIn.Metadata).
 		SetSubject(ledgerIn.Subject).
@@ -30,9 +43,9 @@ func (c *PostgresConnector) CreateLedger(ctx context.Context, namespace string, 
 			Only(ctx)
 
 		if err != nil {
-			return credit.Ledger{}, fmt.Errorf("cannot query existing ledger: %w", err)
+			return nil, fmt.Errorf("cannot query existing ledger: %w", err)
 		}
-		return credit.Ledger{}, &credit.LedgerAlreadyExistsError{
+		return nil, &credit.LedgerAlreadyExistsError{
 			Namespace: namespace,
 			LedgerID:  existingLedgerEntity.ID.ULID,
 			Subject:   ledgerIn.Subject,
@@ -40,11 +53,59 @@ func (c *PostgresConnector) CreateLedger(ctx context.Context, namespace string, 
 	}
 
 	if err != nil {
-		return credit.Ledger{}, fmt.Errorf("failed to create ledger: %w", err)
+		return nil, fmt.Errorf("failed to create ledger: %w", err)
 	}
 
-	return mapDBLedgerToModel(entity), nil
+	return convertx.ToPointer(mapDBLedgerToModel(entity)), nil
+}
 
+func (c *PostgresConnector) UpsertLedger(ctx context.Context, namespace string, ledgerIn credit.UpsertLedger) (credit.Ledger, error) {
+	ledger, err := transaction(ctx, c, func(tx *db.Tx) (*credit.Ledger, error) {
+		ledger, err := tx.Ledger.Query().
+			Where(db_ledger.Namespace(namespace)).
+			Where(db_ledger.Subject(ledgerIn.Subject)).
+			First(ctx)
+
+		if err != nil {
+			if db.IsNotFound(err) {
+				newLedger, err := c.createLedger(ctx, tx, namespace, ledgerIn.ToLedger())
+				if err != nil {
+					return nil, err
+				}
+				return newLedger, err
+			}
+
+			return nil, err
+		}
+
+		if ledgerIn.Metadata != nil {
+			err := tx.Ledger.Update().
+				Where(db_ledger.Namespace(namespace)).
+				Where(db_ledger.Subject(ledger.Subject)).
+				SetMetadata(*ledgerIn.Metadata).Exec(ctx)
+
+			if err != nil {
+				return nil, err
+			}
+
+			ledger, err = tx.Ledger.Query().
+				Where(db_ledger.Namespace(namespace)).
+				Where(db_ledger.Subject(ledgerIn.Subject)).
+				First(ctx)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return convertx.ToPointer(mapDBLedgerToModel(ledger)), nil
+
+	})
+
+	if err != nil {
+		return credit.Ledger{}, err
+	}
+
+	return *ledger, nil
 }
 
 func (c *PostgresConnector) ListLedgers(ctx context.Context, namespace string, params credit.ListLedgersParams) ([]credit.Ledger, error) {

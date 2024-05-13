@@ -28,6 +28,9 @@ func (c *Connector) CreateLedger(ctx context.Context, namespace string, ledger c
 func (c *Connector) ListLedgers(ctx context.Context, namespace string, params credit.ListLedgersParams) ([]credit.Ledger, error) {
 	return nil, fmt.Errorf("not implemented")
 }
+func (c *Connector) UpsertLedger(ctx context.Context, namespace string, ledgerIn credit.UpsertLedger) (credit.Ledger, error) {
+	return credit.Ledger{}, fmt.Errorf("not implemented")
+}
 
 // Grant
 func (c *Connector) CreateGrant(ctx context.Context, namespace string, grant credit.Grant) (credit.Grant, error) {

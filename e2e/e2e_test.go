@@ -16,6 +16,7 @@ import (
 
 	api "github.com/openmeterio/openmeter/api/client/go"
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/pkg/convertx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -556,6 +557,51 @@ func TestCredit(t *testing.T) {
 		require.Equal(t, resp.JSON201.Subject, subject)
 		require.Equal(t, resp.JSON201.Metadata["test"], "data")
 		ledgerID = resp.JSON201.ID
+	})
+
+	t.Run("Upsert Ledger", func(t *testing.T) {
+		upsertSubject := "upsertSubject"
+
+		t.Run("Ledger gets created when upserting", func(t *testing.T) {
+			resp, err := client.UpsertLedgerBySubjectWithResponse(context.Background(), api.UpsertLedgerBySubjectJSONRequestBody{
+				Subject: upsertSubject,
+				Metadata: convertx.ToPointer(map[string]string{
+					"test": "data",
+				}),
+			})
+
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+
+			require.Equal(t, resp.JSON200.Subject, upsertSubject)
+			require.Equal(t, resp.JSON200.Metadata["test"], "data")
+		})
+
+		t.Run("Upsertion without specified metadata leaves metadata intact", func(t *testing.T) {
+			resp, err := client.UpsertLedgerBySubjectWithResponse(context.Background(), api.UpsertLedgerBySubjectJSONRequestBody{
+				Subject: upsertSubject,
+			})
+
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+
+			require.Equal(t, resp.JSON200.Subject, upsertSubject)
+			require.Equal(t, resp.JSON200.Metadata["test"], "data")
+		})
+
+		t.Run("upsertion with empty metadata overrides metadata", func(t *testing.T) {
+			resp, err := client.UpsertLedgerBySubjectWithResponse(context.Background(), api.UpsertLedgerBySubjectJSONRequestBody{
+				Subject:  upsertSubject,
+				Metadata: convertx.ToPointer(map[string]string{}),
+			})
+
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+
+			require.Equal(t, resp.JSON200.Subject, upsertSubject)
+			require.Equal(t, resp.JSON200.Metadata, nil)
+		})
+
 	})
 
 	t.Run("Create Grant", func(t *testing.T) {

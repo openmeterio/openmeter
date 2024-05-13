@@ -19,6 +19,25 @@ type Ledger struct {
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
+type UpsertLedger struct {
+	// Subject specifies which metering subject this ledger is referring to
+	Subject string `json:"subject,omitempty"`
+
+	Metadata *map[string]string `json:"metadata,omitempty"`
+}
+
+func (u UpsertLedger) ToLedger() Ledger {
+	res := Ledger{
+		Subject: u.Subject,
+	}
+
+	if u.Metadata != nil {
+		res.Metadata = *u.Metadata
+	}
+
+	return res
+}
+
 // Render implements the chi renderer interface.
 func (c Ledger) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil

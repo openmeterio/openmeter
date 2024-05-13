@@ -773,7 +773,7 @@ paths:
       operationId: createLedger
       summary: Creates the specified ledger
       description: |
-        Create or update the specified ledger.
+        Creates the specified ledger.
       tags:
         - Entitlements (Experimental)
       requestBody:
@@ -795,7 +795,34 @@ paths:
         "401":
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
-          $ref: "#/components/responses/UnexpectedProblemResponse"    
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+    patch:
+      operationId: upsertLedgerBySubject
+      summary: Upserts the specified ledger
+      description: |
+        Create or update the specified ledger.
+      tags:
+        - Entitlements (Experimental)
+      requestBody:
+        description: The ledger to be created
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertLedgerBySubject"
+      responses:
+        "200":
+          description: The ledger upserted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ledger"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
         
   /api/v1/ledgers/{ledgerID}/balance:
     get:
@@ -1233,6 +1260,27 @@ components:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit
       x-go-type: credit.Ledger
+      type: object
+      description: |
+        A ledger represented in open meter. A ledger must be assigned to a single
+        subject.
+      required:
+        - subject
+      properties:
+        subject:
+          description: |
+            The metering subject this ledger used to track grants for.
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
+    UpsertLedgerBySubject:
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/internal/credit
+      x-go-type: credit.UpsertLedger
       type: object
       description: |
         A ledger represented in open meter. A ledger must be assigned to a single

@@ -30,6 +30,7 @@ type Connector interface {
 	// Ledger
 	CreateLedger(ctx context.Context, namespace string, ledger Ledger) (Ledger, error)
 	ListLedgers(ctx context.Context, namespace string, params ListLedgersParams) ([]Ledger, error)
+	UpsertLedger(ctx context.Context, namespace string, ledgerIn UpsertLedger) (Ledger, error)
 
 	// Grant
 	CreateGrant(ctx context.Context, namespace string, grant Grant) (Grant, error)

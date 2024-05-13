@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	"github.com/openmeterio/openmeter/internal/meter"
+	"github.com/openmeterio/openmeter/pkg/convertx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -56,4 +57,23 @@ func TestLedgerCreation(t *testing.T) {
 		}, details)
 	})
 
+	t.Run("UpsertNewLedger", func(t *testing.T) {
+		newSubject := ulid.Make().String()
+		ledger, err := connector.UpsertLedger(context.Background(), namespace, credit.UpsertLedger{
+			Subject: newSubject,
+			Metadata: convertx.ToPointer(map[string]string{
+				"test": "data",
+			}),
+		})
+
+		assert.NoError(t, err)
+		assert.Equal(t, credit.Ledger{
+			ID:      ledger.ID,
+			Subject: newSubject,
+			Metadata: map[string]string{
+				"test": "data",
+			},
+		}, ledger)
+
+	})
 }
