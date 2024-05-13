@@ -5,7 +5,7 @@ go 1.22.0
 require (
 	entgo.io/ent v0.13.1
 	github.com/AppsFlyer/go-sundheit v0.5.0
-	github.com/ClickHouse/clickhouse-go/v2 v2.23.2
+	github.com/ClickHouse/clickhouse-go/v2 v2.24.0
 	github.com/XSAM/otelsql v0.29.0
 	github.com/avast/retry-go/v4 v4.5.1
 	github.com/benthosdev/benthos/v4 v4.27.0
