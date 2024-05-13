@@ -1,5 +1,5 @@
 run:
-  timeout: 15m
+  timeout: 20m
   skip-dirs:
     - ci
     - collector/benthos/internal
