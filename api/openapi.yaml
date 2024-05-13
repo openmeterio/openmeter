@@ -1294,6 +1294,11 @@ components:
           type: string
         metadata:
           type: object
+          description: |
+            If null, the existing metadata will be kept.
+
+            If empty or a specific value, the metadata will be updated to the (empty) value.
+
           additionalProperties:
             type: string
           example:
