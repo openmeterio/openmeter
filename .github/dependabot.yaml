@@ -36,7 +36,6 @@ updates:
     labels:
       - area/dependencies
       - dependency/docker
-      - release-note/ignore
 
   - package-ecosystem: npm
     open-pull-requests-limit: 0
@@ -80,7 +79,6 @@ updates:
     labels:
       - area/dependencies
       - dependency/python
-      - release-note/dependency-update
     groups:
       production-dependencies:
         dependency-type: "production"
