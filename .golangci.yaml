@@ -1,8 +1,5 @@
 run:
-  timeout: 15m
-  skip-dirs:
-    - ci
-    - collector/benthos/internal
+  timeout: 20m
 
 linters-settings:
   gci:
@@ -28,3 +25,8 @@ linters:
     - misspell
     - nolintlint
     # - revive
+
+issues:
+  exclude-dirs:
+    - ci
+    - collector/benthos/internal
