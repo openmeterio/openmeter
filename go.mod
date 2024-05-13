@@ -6,7 +6,7 @@ require (
 	entgo.io/ent v0.13.1
 	github.com/AppsFlyer/go-sundheit v0.5.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.24.0
-	github.com/XSAM/otelsql v0.29.0
+	github.com/XSAM/otelsql v0.31.0
 	github.com/avast/retry-go/v4 v4.5.1
 	github.com/benthosdev/benthos/v4 v4.27.0
 	github.com/brianvoe/gofakeit/v6 v6.28.0
