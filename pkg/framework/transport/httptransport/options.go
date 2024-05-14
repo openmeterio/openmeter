@@ -9,6 +9,7 @@ func (h *handler[Request, Response]) apply(options []HandlerOption) {
 
 	h.errorHandler = opts.resolveErrorHandler()
 	h.operationNameFunc = opts.operationNameFunc
+	h.errorEncoders = opts.errorEncoders
 }
 
 type HandlerOption interface {
@@ -27,6 +28,12 @@ func WithErrorHandler(errorHandler ErrorHandler) HandlerOption {
 	})
 }
 
+func WithErrorEncoder(errorEncoder ErrorEncoder) HandlerOption {
+	return optionFunc(func(o *handlerOptions) {
+		o.errorEncoders = append(o.errorEncoders, errorEncoder)
+	})
+}
+
 func WithOperationName(name string) HandlerOption {
 	return optionFunc(func(o *handlerOptions) {
 		o.operationNameFunc = func(ctx context.Context) string {
@@ -42,7 +49,10 @@ func WithOperationNameFunc(fn func(ctx context.Context) string) HandlerOption {
 }
 
 type handlerOptions struct {
-	errorHandler      ErrorHandler
+	errorHandler ErrorHandler
+	// errorEncoder is responible for outputting the resulting error
+	errorEncoders []ErrorEncoder
+
 	operationNameFunc func(ctx context.Context) string
 }
 
@@ -52,10 +62,18 @@ func (h *handlerOptions) apply(options []HandlerOption) {
 	}
 }
 
+type dummyErrorHandler struct{}
+
+func (dummyErrorHandler) HandleContext(ctx context.Context, err error) {}
+
 func (o handlerOptions) resolveErrorHandler() ErrorHandler {
 	if o.errorHandler == nil {
-		return nil
+		return dummyErrorHandler{}
 	}
 
 	return o.errorHandler
+}
+
+func AppendOptions(base []HandlerOption, items ...HandlerOption) []HandlerOption {
+	return append(base, items...)
 }

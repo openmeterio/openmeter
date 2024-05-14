@@ -76,10 +76,10 @@ func NewServer(config *Config) (*Server, error) {
 	}
 	r.Use(render.SetContentType(render.ContentTypeJSON))
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		models.NewStatusProblem(r.Context(), nil, http.StatusNotFound).Respond(w, r)
+		models.NewStatusProblem(r.Context(), nil, http.StatusNotFound).Respond(w)
 	})
 	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
-		models.NewStatusProblem(r.Context(), nil, http.StatusMethodNotAllowed).Respond(w, r)
+		models.NewStatusProblem(r.Context(), nil, http.StatusMethodNotAllowed).Respond(w)
 	})
 
 	// Serve the OpenAPI spec
@@ -94,7 +94,7 @@ func NewServer(config *Config) (*Server, error) {
 			authenticator.NewAuthenticator(config.RouterConfig.PortalTokenStrategy, config.RouterConfig.ErrorHandler).NewAuthenticatorMiddlewareFunc(swagger),
 			oapimiddleware.OapiRequestValidatorWithOptions(swagger, &oapimiddleware.Options{
 				ErrorHandler: func(w http.ResponseWriter, message string, statusCode int) {
-					models.NewStatusProblem(context.Background(), errors.New(message), statusCode).Respond(w, nil)
+					models.NewStatusProblem(context.Background(), errors.New(message), statusCode).Respond(w)
 				},
 				Options: openapi3filter.Options{
 					// Unfortunately, the OpenAPI 3 filter library doesn't support context changes
@@ -119,25 +119,25 @@ func errorHandlerReply(w http.ResponseWriter, r *http.Request, err error) {
 	switch e := err.(type) {
 	case *api.UnescapedCookieParamError:
 		err := fmt.Errorf("unescaped cookie param %s: %w", e.ParamName, err)
-		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w)
 	case *api.UnmarshalingParamError:
 		err := fmt.Errorf("unmarshaling param %s: %w", e.ParamName, err)
-		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w)
 	case *api.RequiredParamError:
 		err := fmt.Errorf("required param missing %s: %w", e.ParamName, err)
-		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w)
 	case *api.RequiredHeaderError:
 		err := fmt.Errorf("required header missing %s: %w", e.ParamName, err)
-		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w)
 	case *api.InvalidParamFormatError:
 		err := fmt.Errorf("invalid param format %s: %w", e.ParamName, err)
-		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w)
 	case *api.TooManyValuesForParamError:
 		err := fmt.Errorf("too many values for param %s: %w", e.ParamName, err)
-		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w, r)
+		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w)
 
 	default:
 		err := fmt.Errorf("unhandled server error: %w", err)
-		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w, r)
+		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w)
 	}
 }

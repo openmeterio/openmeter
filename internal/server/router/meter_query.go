@@ -32,7 +32,7 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 		if _, ok := err.(*models.MeterNotFoundError); ok {
 			err := fmt.Errorf("meter not found: %w", err)
 
-			models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w, r)
+			models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w)
 
 			return
 		}
@@ -40,7 +40,7 @@ func (a *Router) QueryMeter(w http.ResponseWriter, r *http.Request, meterIDOrSlu
 		err := fmt.Errorf("get meter: %w", err)
 
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 
 		return
 	}
@@ -64,7 +64,7 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 			if ok := groupBy == "subject" || meter.GroupBy[groupBy] != ""; !ok {
 				err := fmt.Errorf("invalid group by: %s", groupBy)
 
-				models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+				models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
 
 				return
 			}
@@ -88,7 +88,7 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 		if err != nil {
 			err := fmt.Errorf("invalid time zone: %w", err)
 
-			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
 
 			return
 		}
@@ -107,7 +107,7 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 				continue
 			} else {
 				err := fmt.Errorf("invalid group by filter: %s", k)
-				models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+				models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
 				return
 			}
 		}
@@ -116,7 +116,7 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 	if err := queryParams.Validate(meter.WindowSize); err != nil {
 		err := fmt.Errorf("invalid query parameters: %w", err)
 
-		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
 
 		return
 	}
@@ -127,7 +127,7 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 		err := fmt.Errorf("query meter: %w", err)
 
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 
 		return
 	}

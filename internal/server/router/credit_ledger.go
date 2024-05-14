@@ -30,7 +30,7 @@ func (a *Router) GetLedgerHistory(w http.ResponseWriter, r *http.Request, ledger
 	)
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 		return
 	}
 
@@ -48,7 +48,7 @@ func (a *Router) CreateLedger(w http.ResponseWriter, r *http.Request) {
 		err := fmt.Errorf("decode json: %w", err)
 
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
 
 		return
 	}
@@ -56,7 +56,7 @@ func (a *Router) CreateLedger(w http.ResponseWriter, r *http.Request) {
 	if createLedgerArgs.Subject == "" {
 		err := fmt.Errorf("subject must be non-empty when creating a new ledger")
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
 		return
 	}
 
@@ -75,7 +75,7 @@ func (a *Router) CreateLedger(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
 		return
 	}
 
@@ -97,7 +97,7 @@ func (a *Router) ListLedgers(w http.ResponseWriter, r *http.Request, params api.
 		})
 	if err != nil && !db.IsNotFound(err) {
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 		return
 	}
 

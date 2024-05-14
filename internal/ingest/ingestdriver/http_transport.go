@@ -10,6 +10,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/ingest"
+	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -18,33 +19,22 @@ import (
 // NewIngestEventsHandler returns a new HTTP handler that wraps the given [operation.Operation].
 func NewIngestEventsHandler(
 	op operation.Operation[ingest.IngestEventsRequest, bool],
-	namespaceDecoder NamespaceDecoder,
+	namespaceDecoder namespacedriver.NamespaceDecoder,
 	commonErrorEncoder httptransport.ErrorEncoder,
 	errorHandler httptransport.ErrorHandler,
 ) http.Handler {
 	return httptransport.NewHandler(
-		op,
 		(ingestEventsRequestDecoder{
 			NamespaceDecoder: namespaceDecoder,
 		}).decode,
+		op,
 		encodeIngestEventsResponse,
-		(ingestEventsErrorEncoder{
+		httptransport.WithErrorEncoder((ingestEventsErrorEncoder{
 			CommonErrorEncoder: commonErrorEncoder,
-		}).encode,
+		}).encode),
 		httptransport.WithErrorHandler(errorHandler),
 		httptransport.WithOperationName("ingestEvents"),
 	)
-}
-
-// NamespaceDecoder gets the namespace from the request.
-type NamespaceDecoder interface {
-	GetNamespace(ctx context.Context) (string, bool)
-}
-
-type StaticNamespaceDecoder string
-
-func (d StaticNamespaceDecoder) GetNamespace(ctx context.Context) (string, bool) {
-	return string(d), true
 }
 
 type ErrorInvalidContentType struct {
@@ -82,7 +72,7 @@ func (e ErrorInvalidEvent) Message() string {
 }
 
 type ingestEventsRequestDecoder struct {
-	NamespaceDecoder NamespaceDecoder
+	NamespaceDecoder namespacedriver.NamespaceDecoder
 }
 
 func (d ingestEventsRequestDecoder) decode(ctx context.Context, r *http.Request) (ingest.IngestEventsRequest, error) {
@@ -139,13 +129,13 @@ type ingestEventsErrorEncoder struct {
 
 func (e ingestEventsErrorEncoder) encode(ctx context.Context, err error, w http.ResponseWriter) bool {
 	if e := (ErrorInvalidContentType{}); errors.As(err, &e) {
-		models.NewStatusProblem(ctx, e, http.StatusBadRequest).Respond(w, nil)
+		models.NewStatusProblem(ctx, e, http.StatusBadRequest).Respond(w)
 
 		return true
 	}
 
 	if e := (ErrorInvalidEvent{}); errors.As(err, &e) {
-		models.NewStatusProblem(ctx, e, http.StatusBadRequest).Respond(w, nil)
+		models.NewStatusProblem(ctx, e, http.StatusBadRequest).Respond(w)
 
 		return true
 	}
@@ -154,7 +144,7 @@ func (e ingestEventsErrorEncoder) encode(ctx context.Context, err error, w http.
 		return e.CommonErrorEncoder(ctx, err, w)
 	}
 
-	models.NewStatusProblem(ctx, errors.New("something went wrong"), http.StatusInternalServerError).Respond(w, nil)
+	models.NewStatusProblem(ctx, errors.New("something went wrong"), http.StatusInternalServerError).Respond(w)
 
 	return false
 }

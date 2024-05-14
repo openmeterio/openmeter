@@ -13,7 +13,7 @@ func (a *Router) UpsertSubject(w http.ResponseWriter, r *http.Request) {
 
 	err := fmt.Errorf("not implemented: subject management is only available in OpenMeter Cloud")
 
-	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w, r)
+	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w)
 }
 
 func (a *Router) GetSubject(w http.ResponseWriter, r *http.Request, idOrKey string) {
@@ -22,14 +22,14 @@ func (a *Router) GetSubject(w http.ResponseWriter, r *http.Request, idOrKey stri
 
 	err := fmt.Errorf("not implemented: subjects are only available in OpenMeter Cloud")
 
-	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w, r)
+	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w)
 }
 
 func (a *Router) ListSubjects(w http.ResponseWriter, r *http.Request) {
 	ctx := contextx.WithAttr(r.Context(), "operation", "listSubjects")
 	err := fmt.Errorf("not implemented: subjects are only available in OpenMeter Cloud")
 
-	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w, r)
+	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w)
 }
 
 func (a *Router) DeleteSubject(w http.ResponseWriter, r *http.Request, idOrKey string) {
@@ -38,5 +38,5 @@ func (a *Router) DeleteSubject(w http.ResponseWriter, r *http.Request, idOrKey s
 
 	err := fmt.Errorf("not implemented: subjects are only available in OpenMeter Cloud")
 
-	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w, r)
+	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w)
 }

@@ -33,7 +33,7 @@ func (a *Router) ListEvents(w http.ResponseWriter, r *http.Request, params api.L
 		err := fmt.Errorf("query events: %w", err)
 
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 
 		return
 

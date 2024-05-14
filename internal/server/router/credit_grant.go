@@ -35,7 +35,7 @@ func (a *Router) ListLedgerGrants(w http.ResponseWriter, r *http.Request, params
 	})
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 		return
 	}
 
@@ -60,7 +60,7 @@ func (a *Router) ListLedgerGrantsByLedger(w http.ResponseWriter, r *http.Request
 	})
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 		return
 	}
 
@@ -82,7 +82,7 @@ func (a *Router) CreateLedgerGrant(w http.ResponseWriter, r *http.Request, ledge
 		err := fmt.Errorf("decode json: %w", err)
 
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
 
 		return
 	}
@@ -97,12 +97,12 @@ func (a *Router) CreateLedgerGrant(w http.ResponseWriter, r *http.Request, ledge
 		if err != nil {
 			if _, ok := err.(*credit.FeatureNotFoundError); ok {
 				err := fmt.Errorf("feature not found: %s", *grant.FeatureID)
-				models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+				models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
 				return
 			}
 
 			a.config.ErrorHandler.HandleContext(ctx, err)
-			models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+			models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 			return
 		}
 	}
@@ -116,19 +116,19 @@ func (a *Router) CreateLedgerGrant(w http.ResponseWriter, r *http.Request, ledge
 	if err != nil {
 		if _, ok := err.(*credit.HighWatermarBeforeError); ok {
 			a.config.ErrorHandler.HandleContext(ctx, err)
-			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
 			return
 		}
 
 		if _, ok := err.(*credit.LockErrNotObtainedError); ok {
 			err := fmt.Errorf("credit is currently locked, try again: %w", err)
 			a.config.ErrorHandler.HandleContext(ctx, err)
-			models.NewStatusProblem(ctx, err, http.StatusConflict).Respond(w, r)
+			models.NewStatusProblem(ctx, err, http.StatusConflict).Respond(w)
 			return
 		}
 
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 		return
 	}
 
@@ -146,24 +146,24 @@ func (a *Router) VoidLedgerGrant(w http.ResponseWriter, r *http.Request, ledgerI
 	if err != nil {
 		if _, ok := err.(*credit.GrantNotFoundError); ok {
 			err := fmt.Errorf("grant not found: %s", creditGrantId)
-			models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w, r)
+			models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w)
 			return
 		}
 
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 		return
 	}
 
 	if grant.LedgerID != ledgerID {
 		a.config.ErrorHandler.HandleContext(ctx, &credit.GrantNotFoundError{GrantID: creditGrantId})
-		models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w)
 		return
 	}
 
 	if grant.Void {
 		err := fmt.Errorf("grant already void: %s", creditGrantId)
-		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
 		return
 	}
 
@@ -172,14 +172,14 @@ func (a *Router) VoidLedgerGrant(w http.ResponseWriter, r *http.Request, ledgerI
 	balance, err := a.config.CreditConnector.GetBalance(ctx, namespace, ledgerID, time.Now())
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 		return
 	}
 	for _, entry := range balance.GrantBalances {
 		if *entry.Grant.ID == *grant.ID {
 			if entry.Balance != grant.Amount {
 				err := fmt.Errorf("grant has been used, cannot void: %s", creditGrantId)
-				models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+				models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
 				return
 			}
 			break
@@ -192,19 +192,19 @@ func (a *Router) VoidLedgerGrant(w http.ResponseWriter, r *http.Request, ledgerI
 	if err != nil {
 		if _, ok := err.(*credit.HighWatermarBeforeError); ok {
 			a.config.ErrorHandler.HandleContext(ctx, err)
-			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
 			return
 		}
 
 		if _, ok := err.(*credit.LockErrNotObtainedError); ok {
 			err := fmt.Errorf("credit is currently locked, try again: %w", err)
 			a.config.ErrorHandler.HandleContext(ctx, err)
-			models.NewStatusProblem(ctx, err, http.StatusConflict).Respond(w, r)
+			models.NewStatusProblem(ctx, err, http.StatusConflict).Respond(w)
 			return
 		}
 
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 		return
 	}
 
@@ -220,13 +220,13 @@ func (a *Router) GetLedgerGrant(w http.ResponseWriter, r *http.Request, ledgerID
 	grant, err := a.config.CreditConnector.GetGrant(ctx, namespace, creditGrantId)
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 		return
 	}
 
 	if grant.LedgerID != ledgerID {
 		a.config.ErrorHandler.HandleContext(ctx, &credit.GrantNotFoundError{GrantID: creditGrantId})
-		models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w)
 		return
 	}
 

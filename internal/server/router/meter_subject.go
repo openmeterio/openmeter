@@ -22,7 +22,7 @@ func (a *Router) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meter
 		if _, ok := err.(*models.MeterNotFoundError); ok {
 			err := fmt.Errorf("meter not found: %w", err)
 
-			models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w, r)
+			models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w)
 
 			return
 		}
@@ -30,7 +30,7 @@ func (a *Router) ListMeterSubjects(w http.ResponseWriter, r *http.Request, meter
 		err := fmt.Errorf("list meter subjects: %w", err)
 
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 
 		return
 	}

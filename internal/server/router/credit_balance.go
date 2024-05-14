@@ -27,7 +27,7 @@ func (a *Router) GetLedgerBalance(w http.ResponseWriter, r *http.Request, ledger
 	hw, err := a.config.CreditConnector.GetHighWatermark(ctx, namespace, ledgerID)
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 		return
 	}
 
@@ -35,7 +35,7 @@ func (a *Router) GetLedgerBalance(w http.ResponseWriter, r *http.Request, ledger
 	if cutline.Before(hw.Time) {
 		err := fmt.Errorf("query time must be after high watermark: %s", hw.Time.Format(time.RFC3339))
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
 		return
 	}
 
@@ -43,7 +43,7 @@ func (a *Router) GetLedgerBalance(w http.ResponseWriter, r *http.Request, ledger
 	balance, err := a.config.CreditConnector.GetBalance(ctx, namespace, ledgerID, cutline)
 	if err != nil {
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 		return
 	}
 

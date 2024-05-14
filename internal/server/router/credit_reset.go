@@ -24,7 +24,7 @@ func (a *Router) ResetLedger(w http.ResponseWriter, r *http.Request, ledgerID ap
 		err := fmt.Errorf("decode json: %w", err)
 
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
 
 		return
 	}
@@ -32,7 +32,7 @@ func (a *Router) ResetLedger(w http.ResponseWriter, r *http.Request, ledgerID ap
 	// Check if reset date is in the future
 	if resetIn.EffectiveAt.After(time.Now()) {
 		err := fmt.Errorf("reset date cannot be in the future")
-		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
 		return
 	}
 
@@ -42,18 +42,18 @@ func (a *Router) ResetLedger(w http.ResponseWriter, r *http.Request, ledgerID ap
 	reset, _, err := a.config.CreditConnector.Reset(ctx, namespace, *resetIn)
 	if err != nil {
 		if _, ok := err.(*credit.HighWatermarBeforeError); ok {
-			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
 			return
 		}
 
 		if _, ok := err.(*credit.LockErrNotObtainedError); ok {
 			err := fmt.Errorf("credit is currently locked, try again: %w", err)
-			models.NewStatusProblem(ctx, err, http.StatusConflict).Respond(w, r)
+			models.NewStatusProblem(ctx, err, http.StatusConflict).Respond(w)
 			return
 		}
 
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 		return
 	}
 
