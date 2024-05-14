@@ -1307,7 +1307,7 @@ components:
         title: "Conflict"
         status: 409
         detail: "ledger (default.01HXVNDJR532E8GTBVSC2XK5D4) already exitst for subject subject-1"
-        instance: "redacted"
+        instance: "urn:request:local/JMOlctsKV8-000001"
         conflictingEntity:
           id: 01HXVNDJR532E8GTBVSC2XK5D4
           subject: "subject-1"

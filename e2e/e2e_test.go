@@ -575,7 +575,7 @@ func TestCredit(t *testing.T) {
 					Metadata: ledgerMeta,
 				},
 			},
-			resp.ApplicationproblemJSON409.ExtensionMembers)
+			resp.ApplicationproblemJSON409.LedgerAlreadyExistsProblemExtensionMetadata)
 	})
 
 	t.Run("Create Grant", func(t *testing.T) {
