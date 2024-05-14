@@ -13,8 +13,8 @@ telemetry:
 #     expiration: 768h # 32d
 
 # Entitlements
-# entitlements:
-#   enabled: true
+entitlements:
+  enabled: true
 
 # Consumer portal
 # portal:

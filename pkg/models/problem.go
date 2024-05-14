@@ -32,6 +32,7 @@ type Problem interface {
 	Error() string
 	ProblemType() ProblemType
 	ProblemTitle() string
+	ProblemStatus() int
 }
 
 // StatusProblem is the RFC 7807 response body without additional fields.
@@ -50,6 +51,8 @@ type StatusProblem struct {
 	Instance string `json:"instance,omitempty"`
 }
 
+var _ Problem = (*StatusProblem)(nil)
+
 func (p *StatusProblem) Error() string {
 	if p.Err == nil {
 		return fmt.Sprintf("[%s] %s", p.Title, p.Detail)
@@ -66,31 +69,36 @@ func (p *StatusProblem) ProblemType() ProblemType {
 	return p.Type
 }
 
+func (p *StatusProblem) ProblemStatus() int {
+	return p.Status
+}
+
 func (p *StatusProblem) ProblemTitle() string {
 	return p.Title
 }
 
 // Respond will render the problem as JSON to the provided ResponseWriter.
 func (p *StatusProblem) Respond(w http.ResponseWriter, r *http.Request) {
+	RespondProblem(p, w, r)
+}
+
+// Respond will render the problem as JSON to the provided ResponseWriter.
+func RespondProblem(problem Problem, w http.ResponseWriter, r *http.Request) {
 	// Respond
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)
 	enc.SetEscapeHTML(true)
-	_ = enc.Encode(p)
+	_ = enc.Encode(problem)
 
 	w.Header().Set("Content-Type", ProblemContentType)
-	w.WriteHeader(p.Status)
+	w.WriteHeader(problem.ProblemStatus())
 	_, _ = w.Write(buf.Bytes())
 }
 
 // NewStatusProblem will generate a problem for the provided HTTP status
 // code. The Problem's Status field will be set to match the status argument,
 // and the Title will be set to the default Go status text for that code.
-func NewStatusProblem(ctx context.Context, err error, status int) Problem {
-	return newStatusProblem(ctx, err, status)
-}
-
-func newStatusProblem(ctx context.Context, err error, status int) *StatusProblem {
+func NewStatusProblem(ctx context.Context, err error, status int) *StatusProblem {
 	var instance string
 	reqID := middleware.GetReqID(ctx)
 	if reqID != "" {
