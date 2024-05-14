@@ -227,12 +227,11 @@ func (e *LockErrNotObtainedError) Error() string {
 
 type LedgerAlreadyExistsError struct {
 	Namespace string
-	LedgerID  ulid.ULID
-	Subject   string
+	Ledger    Ledger
 }
 
 func (e *LedgerAlreadyExistsError) Error() string {
-	return fmt.Sprintf("ledger (%s.%s) already exitst for subject %s", e.Namespace, e.LedgerID, e.Subject)
+	return fmt.Sprintf("ledger (%s.%s) already exitst for subject %s", e.Namespace, e.Ledger.ID, e.Ledger.Subject)
 }
 
 type LedgerNotFoundError struct {

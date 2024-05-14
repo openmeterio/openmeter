@@ -558,6 +558,26 @@ func TestCredit(t *testing.T) {
 		ledgerID = resp.JSON201.ID
 	})
 
+	t.Run("Create Ledger for same subject", func(t *testing.T) {
+		resp, err := client.CreateLedgerWithResponse(context.Background(), api.CreateLedgerJSONRequestBody{
+			Subject:  subject,
+			Metadata: ledgerMeta,
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusConflict, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+
+		require.Equal(t,
+			credit.LedgerAlreadyExistsProblemExtensionMetadata{
+				ConflictingEntity: credit.Ledger{
+					ID:       ledgerID,
+					Subject:  subject,
+					Metadata: ledgerMeta,
+				},
+			},
+			resp.ApplicationproblemJSON409.ExtensionMembers)
+	})
+
 	t.Run("Create Grant", func(t *testing.T) {
 		effectiveAt, _ := time.Parse(time.RFC3339, "2024-01-01T00:01:00Z")
 

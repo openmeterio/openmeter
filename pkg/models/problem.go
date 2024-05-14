@@ -87,6 +87,10 @@ func (p *StatusProblem) Respond(w http.ResponseWriter, r *http.Request) {
 // code. The Problem's Status field will be set to match the status argument,
 // and the Title will be set to the default Go status text for that code.
 func NewStatusProblem(ctx context.Context, err error, status int) Problem {
+	return newStatusProblem(ctx, err, status)
+}
+
+func newStatusProblem(ctx context.Context, err error, status int) *StatusProblem {
 	var instance string
 	reqID := middleware.GetReqID(ctx)
 	if reqID != "" {

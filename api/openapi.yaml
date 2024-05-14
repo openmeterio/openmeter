@@ -794,6 +794,8 @@ paths:
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "409":
+          $ref: "#/components/responses/LedgerAlreadyExistsProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"    
         
@@ -1250,6 +1252,28 @@ components:
             type: string
           example:
             stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
+    LedgerAlreadyExistsProblem:
+      description: Ledger Exists
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/internal/credit
+      x-go-type: credit.LedgerAlreadyExistsProblemResponse
+      content:
+        application/problem+json:
+          schema:
+            allOf:
+            - $ref: "#/components/schemas/Problem"
+            - type: object
+              properties:
+                conflictingEntity:
+                  type: object
+                  properties:
+                    ledger:
+                      $ref: "#/components/schemas/Ledger"
+          example:
+            type: "urn:problem-type:unauthorized"
+            title: "Unauthorized"
+            status: 401
+            detail: "missing or invalid token"
     Ledger:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit
@@ -2045,6 +2069,22 @@ components:
             title: "Unauthorized"
             status: 401
             detail: "missing or invalid token"
+    LedgerAlreadyExistsProblemResponse:
+      description: Ledger Exists
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/LedgerAlreadyExistsProblem"
+          example:
+            type: "urn:problem-type:exists"
+            title: "ledger already exists"
+            status: 409
+            detail: "ledger exists"
+            conflictingEntry:
+              id: 01HXVM0S0CMZJSQ23G9MKXRQP7
+              subject: "subject-1"
+              metadata:
+                stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
     NotFoundProblemResponse:
       description: Not Found
       content:

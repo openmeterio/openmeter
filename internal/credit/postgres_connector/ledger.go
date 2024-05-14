@@ -34,8 +34,7 @@ func (c *PostgresConnector) CreateLedger(ctx context.Context, namespace string, 
 		}
 		return credit.Ledger{}, &credit.LedgerAlreadyExistsError{
 			Namespace: namespace,
-			LedgerID:  existingLedgerEntity.ID.ULID,
-			Subject:   ledgerIn.Subject,
+			Ledger:    mapDBLedgerToModel(existingLedgerEntity),
 		}
 	}
 
