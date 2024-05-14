@@ -7,13 +7,9 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type LedgerAlreadyExistsProblemExtensionMetadata struct {
-	ConflictingEntity Ledger `json:"conflictingEntity"`
-}
-
 type LedgerAlreadyExistsProblemResponse struct {
 	*models.StatusProblem
-	LedgerAlreadyExistsProblemExtensionMetadata
+	ConflictingEntity Ledger `json:"conflictingEntity"`
 }
 
 func (p *LedgerAlreadyExistsProblemResponse) Respond(w http.ResponseWriter, r *http.Request) {
@@ -22,9 +18,7 @@ func (p *LedgerAlreadyExistsProblemResponse) Respond(w http.ResponseWriter, r *h
 
 func NewLedgerAlreadyExistsProblem(ctx context.Context, err error, existingEntry Ledger) models.Problem {
 	return &LedgerAlreadyExistsProblemResponse{
-		StatusProblem: models.NewStatusProblem(ctx, err, http.StatusConflict),
-		LedgerAlreadyExistsProblemExtensionMetadata: LedgerAlreadyExistsProblemExtensionMetadata{
-			existingEntry,
-		},
+		StatusProblem:     models.NewStatusProblem(ctx, err, http.StatusConflict),
+		ConflictingEntity: existingEntry,
 	}
 }

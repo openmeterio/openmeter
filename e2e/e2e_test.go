@@ -568,14 +568,12 @@ func TestCredit(t *testing.T) {
 		require.Equal(t, http.StatusConflict, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
 
 		require.Equal(t,
-			credit.LedgerAlreadyExistsProblemExtensionMetadata{
-				ConflictingEntity: credit.Ledger{
-					ID:       ledgerID,
-					Subject:  subject,
-					Metadata: ledgerMeta,
-				},
+			credit.Ledger{
+				ID:       ledgerID,
+				Subject:  subject,
+				Metadata: ledgerMeta,
 			},
-			resp.ApplicationproblemJSON409.LedgerAlreadyExistsProblemExtensionMetadata)
+			resp.ApplicationproblemJSON409.ConflictingEntity)
 	})
 
 	t.Run("Create Grant", func(t *testing.T) {
