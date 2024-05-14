@@ -5,8 +5,6 @@ import (
 	"errors"
 )
 
-// TODO: move to the rigt place
-
 type Wrapped[T any] struct {
 	Request   T
 	Namespace string

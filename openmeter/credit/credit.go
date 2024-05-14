@@ -2,6 +2,7 @@ package credit
 
 import (
 	"entgo.io/ent/dialect/sql"
+
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/migrate"
 )
