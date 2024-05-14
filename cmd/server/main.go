@@ -28,6 +28,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
@@ -56,6 +57,11 @@ import (
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
+)
+
+const (
+	defaultShutdownTimeout = 5 * time.Second
+	otelName               = "openmeter.io/backend"
 )
 
 func main() {
@@ -121,35 +127,47 @@ func main() {
 	telemetryRouter := chi.NewRouter()
 	telemetryRouter.Mount("/debug", middleware.Profiler())
 
-	meterProvider, err := conf.Telemetry.Metrics.NewMeterProvider(context.Background(), res)
+	// Initialize OTel Metrics
+	otelMeterProvider, err := conf.Telemetry.Metrics.NewMeterProvider(ctx, res)
 	if err != nil {
-		logger.Error(err.Error())
+		logger.Error("failed to initialize OpenTelemetry Metrics provider", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 	defer func() {
-		if err := meterProvider.Shutdown(context.Background()); err != nil {
+		// Use dedicated context with timeout for shutdown as parent context might be canceled
+		// by the time the execution reaches this stage.
+		ctx, cancel := context.WithTimeout(context.Background(), defaultShutdownTimeout)
+		defer cancel()
+
+		if err := otelMeterProvider.Shutdown(ctx); err != nil {
 			logger.Error("shutting down meter provider: %v", err)
 		}
 	}()
-
-	otel.SetMeterProvider(meterProvider)
+	otel.SetMeterProvider(otelMeterProvider)
+	metricMeter := otelMeterProvider.Meter(otelName)
 
 	if conf.Telemetry.Metrics.Exporters.Prometheus.Enabled {
 		telemetryRouter.Handle("/metrics", promhttp.Handler())
 	}
 
-	tracerProvider, err := conf.Telemetry.Trace.NewTracerProvider(context.Background(), res)
+	// Initialize OTel Tracer
+	otelTracerProvider, err := conf.Telemetry.Trace.NewTracerProvider(ctx, res)
 	if err != nil {
-		logger.Error(err.Error())
+		logger.Error("failed to initialize OpenTelemetry Trace provider", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 	defer func() {
-		if err := tracerProvider.Shutdown(context.Background()); err != nil {
+		// Use dedicated context with timeout for shutdown as parent context might be canceled
+		// by the time the execution reaches this stage.
+		ctx, cancel := context.WithTimeout(context.Background(), defaultShutdownTimeout)
+		defer cancel()
+
+		if err := otelTracerProvider.Shutdown(ctx); err != nil {
 			logger.Error("shutting down tracer provider", "error", err)
 		}
 	}()
 
-	otel.SetTracerProvider(tracerProvider)
+	otel.SetTracerProvider(otelTracerProvider)
 	otel.SetTextMapPropagator(propagation.TraceContext{})
 
 	// Configure health checker
@@ -184,7 +202,14 @@ func main() {
 	}
 
 	// Initialize Kafka Ingest
-	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(ctx, conf, logger, serializer.NewJSONSerializer(), &group)
+	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(
+		ctx,
+		conf,
+		logger,
+		metricMeter,
+		serializer.NewJSONSerializer(),
+		&group,
+	)
 	if err != nil {
 		logger.Error("failed to initialize kafka ingest", "error", err)
 		os.Exit(1)
@@ -325,8 +350,8 @@ func main() {
 						}
 					}),
 					"",
-					otelhttp.WithMeterProvider(meterProvider),
-					otelhttp.WithTracerProvider(tracerProvider),
+					otelhttp.WithMeterProvider(otelMeterProvider),
+					otelhttp.WithTracerProvider(otelTracerProvider),
 				)
 			})
 		},
@@ -392,7 +417,7 @@ func main() {
 	}
 }
 
-func initKafkaIngest(ctx context.Context, config config.Configuration, logger *slog.Logger, serializer serializer.Serializer, group *run.Group) (*kafkaingest.Collector, *kafkaingest.NamespaceHandler, error) {
+func initKafkaIngest(ctx context.Context, config config.Configuration, logger *slog.Logger, metricMeter metric.Meter, serializer serializer.Serializer, group *run.Group) (*kafkaingest.Collector, *kafkaingest.NamespaceHandler, error) {
 	// Initialize Kafka Admin Client
 	kafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
 
@@ -409,10 +434,14 @@ func initKafkaIngest(ctx context.Context, config config.Configuration, logger *s
 
 	slog.Debug("connected to Kafka")
 
-	collector := &kafkaingest.Collector{
-		Producer:                producer,
-		NamespacedTopicTemplate: config.Ingest.Kafka.EventsTopicTemplate,
-		Serializer:              serializer,
+	collector, err := kafkaingest.NewCollector(
+		producer,
+		serializer,
+		config.Ingest.Kafka.EventsTopicTemplate,
+		metricMeter,
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("init kafka ingest: %w", err)
 	}
 
 	kafkaAdminClient, err := kafka.NewAdminClientFromProducer(producer)
