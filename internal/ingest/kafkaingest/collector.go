@@ -22,7 +22,6 @@ type Collector struct {
 	// For example: "om_%s_events"
 	NamespacedTopicTemplate string
 
-	metricMeter        metric.Meter
 	ingestEventCounter metric.Int64Counter
 }
 

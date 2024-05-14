@@ -31,7 +31,7 @@ type Transaction struct {
 	// indicates whether the message has been propagated successfully.
 	responseFunc func(context.Context, error) error
 
-	// Used for cancelling transactions. When cancelled it is up to the receiver
+	// Used for canceling transactions. When canceled it is up to the receiver
 	// of this transaction to abort any attempt to deliver the transaction
 	// message.
 	ctx context.Context
@@ -60,7 +60,7 @@ func NewTransactionFunc(payload Batch, fn func(context.Context, error) error) Tr
 }
 
 // Context returns a context that indicates the cancellation of a transaction.
-// It is optional for receivers of a transaction to honour this context, and is
+// It is optional for receivers of a transaction to honor this context, and is
 // worth doing in cases where the transaction is blocked (on reconnect loops,
 // etc) as it is often used as a fail-fast mechanism.
 //
@@ -71,7 +71,7 @@ func (t *Transaction) Context() context.Context {
 }
 
 // WithContext returns a copy of the transaction associated with a context used
-// for cancellation. When cancelled it is up to the receiver of this transaction
+// for cancellation. When canceled it is up to the receiver of this transaction
 // to abort any attempt to deliver the transaction message.
 func (t *Transaction) WithContext(ctx context.Context) *Transaction {
 	newT := *t

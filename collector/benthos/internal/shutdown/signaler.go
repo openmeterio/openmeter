@@ -86,7 +86,7 @@ func (s *Signaller) CloseAtLeisureChan() <-chan struct{} {
 }
 
 // CloseAtLeisureCtx returns a context.Context that will be terminated when
-// either the provided context is cancelled or the signal to shut down
+// either the provided context is canceled or the signal to shut down
 // either at leisure or immediately has been made.
 func (s *Signaller) CloseAtLeisureCtx(ctx context.Context) (context.Context, context.CancelFunc) {
 	var cancel context.CancelFunc
@@ -119,7 +119,7 @@ func (s *Signaller) CloseNowChan() <-chan struct{} {
 }
 
 // CloseNowCtx returns a context.Context that will be terminated when either the
-// provided context is cancelled or the signal to shut down immediately has been
+// provided context is canceled or the signal to shut down immediately has been
 // made.
 func (s *Signaller) CloseNowCtx(ctx context.Context) (context.Context, context.CancelFunc) {
 	var cancel context.CancelFunc
@@ -151,8 +151,8 @@ func (s *Signaller) HasClosedChan() <-chan struct{} {
 	return s.hasClosedChan
 }
 
-// HasClosedCtx returns a context.Context that will be cancelled when either the
-// provided context is cancelled or the signal that the component has shut down
+// HasClosedCtx returns a context.Context that will be canceled when either the
+// provided context is canceled or the signal that the component has shut down
 // has been made.
 func (s *Signaller) HasClosedCtx(ctx context.Context) (context.Context, context.CancelFunc) {
 	var cancel context.CancelFunc
