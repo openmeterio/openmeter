@@ -95,6 +95,7 @@ func TestComplete(t *testing.T) {
 			},
 		},
 		Sink: SinkConfiguration{
+			ClientId:         "openmeter-sink-worker",
 			GroupId:          "openmeter-sink-worker",
 			MinCommitCount:   500,
 			MaxCommitWait:    30 * time.Second,

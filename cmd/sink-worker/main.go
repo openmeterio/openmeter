@@ -165,8 +165,11 @@ func main() {
 	}
 
 	logger.Info("starting OpenMeter sink worker", "config", map[string]string{
-		"telemetry.address":   conf.Telemetry.Address,
-		"ingest.kafka.broker": conf.Ingest.Kafka.Broker,
+		"telemetry.address":                conf.Telemetry.Address,
+		"ingest.kafka.broker":              conf.Ingest.Kafka.Broker,
+		"ingest.kafka.brokerAddressFamily": conf.Ingest.Kafka.BrokerAddressFamily,
+		"sink.clientId":                    conf.Sink.ClientId,
+		"sink.groupId":                     conf.Sink.GroupId,
 	})
 
 	// Initialize meter repository
@@ -279,6 +282,7 @@ func initSink(config config.Configuration, logger *slog.Logger, metricMeter metr
 	)
 
 	consumerKafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
+	_ = consumerKafkaConfig.SetKey("client.id", config.Sink.ClientId)
 	_ = consumerKafkaConfig.SetKey("group.id", config.Sink.GroupId)
 	_ = consumerKafkaConfig.SetKey("session.timeout.ms", 6000)
 	_ = consumerKafkaConfig.SetKey("enable.auto.commit", true)

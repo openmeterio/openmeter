@@ -8,6 +8,9 @@ import (
 )
 
 type SinkConfiguration struct {
+	// ClientId defines the client id for the Kafka Consumer
+	ClientId string
+	// GroupId defines the consumer group id for the Kafka Consumer
 	GroupId          string
 	Dedupe           DedupeConfiguration
 	MinCommitCount   int
@@ -53,6 +56,7 @@ func ConfigureSink(v *viper.Viper) {
 
 	// Sink
 	v.SetDefault("sink.groupId", "openmeter-sink-worker")
+	v.SetDefault("sink.clientId", "openmeter-sink-worker")
 	v.SetDefault("sink.minCommitCount", 500)
 	v.SetDefault("sink.maxCommitWait", "5s")
 	v.SetDefault("sink.namespaceRefetch", "15s")
