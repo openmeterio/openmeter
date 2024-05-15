@@ -71,7 +71,7 @@ func (a *Router) CreateLedger(w http.ResponseWriter, r *http.Request) {
 				ctx,
 				err,
 				existsError.Ledger,
-			).Respond(w, r)
+			).Respond(w)
 			return
 		}
 		a.config.ErrorHandler.HandleContext(ctx, err)
