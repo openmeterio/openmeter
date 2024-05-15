@@ -67,7 +67,7 @@ func (c *PostgresConnector) ListLedgers(ctx context.Context, params credit.ListL
 	dbLedgers, err := query.All(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, nil
+			return []credit.Ledger{}, nil
 		}
 		return nil, err
 	}
