@@ -67,11 +67,11 @@ func (a *Router) CreateLedger(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 
 		if existsError, ok := err.(*credit.LedgerAlreadyExistsError); ok {
-			err := fmt.Errorf("ledger already exists for subject: %s, existing ledger %s.%s",
-				existsError.Subject,
-				existsError.Namespace,
-				existsError.LedgerID.String())
-			models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w, r)
+			credit.NewLedgerAlreadyExistsProblem(
+				ctx,
+				err,
+				existsError.Ledger,
+			).Respond(w, r)
 			return
 		}
 		a.config.ErrorHandler.HandleContext(ctx, err)
