@@ -83,6 +83,7 @@ func TestComplete(t *testing.T) {
 				SaslPassword:        "pass",
 				Partitions:          1,
 				EventsTopicTemplate: "om_%s_events",
+				MetadataMaxAge:      180 * time.Second,
 			},
 		},
 		Aggregation: AggregationConfiguration{
