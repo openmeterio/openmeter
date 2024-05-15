@@ -607,7 +607,7 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", resp.Body)
 
-		expected := &api.LedgerGrantBalance{
+		expected := &credit.Grant{
 			ID:          resp.JSON201.ID,
 			LedgerID:    ledgerID,
 			Type:        credit.GrantTypeUsage,

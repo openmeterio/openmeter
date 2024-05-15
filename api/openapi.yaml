@@ -1444,6 +1444,11 @@ components:
           format: date-time
           example: "2023-01-01T00:00:00Z"
     LedgerGrantBalance:
+      # TODO: until https://github.com/deepmap/oapi-codegen/pull/1610 is not merged, the
+      # generated go type will be invalid (it will be credit.Grant instead of GrantBalance).
+      # 
+      # Given that we are not using this type as a return type of a call, this is just
+      # an inconsistency we can ignore.
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit
       x-go-type: credit.GrantBalance
@@ -1457,6 +1462,11 @@ components:
               type: number
               example: 100
     FeatureBalance:
+      # TODO: until https://github.com/deepmap/oapi-codegen/pull/1610 is not merged, the
+      # generated go type will be invalid (it will be credit.Feature instead of FeatureBalance).
+      # 
+      # Given that we are not using this type as a return type of a call, this is just
+      # an inconsistency we can ignore.
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit
       x-go-type: credit.FeatureBalance
