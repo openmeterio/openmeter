@@ -284,7 +284,8 @@ func initSink(config config.Configuration, logger *slog.Logger, metricMeter metr
 	consumerKafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
 	_ = consumerKafkaConfig.SetKey("client.id", config.Sink.ClientId)
 	_ = consumerKafkaConfig.SetKey("group.id", config.Sink.GroupId)
-	_ = consumerKafkaConfig.SetKey("session.timeout.ms", 6000)
+	// SessionTimeout defines time interval the broker waits for receiving heartbeat from the consumer before removing it from the consumer group.
+	_ = consumerKafkaConfig.SetKey("session.timeout.ms", int(config.Sink.SessionTimeout.Milliseconds()))
 	_ = consumerKafkaConfig.SetKey("enable.auto.commit", true)
 	_ = consumerKafkaConfig.SetKey("enable.auto.offset.store", false)
 	_ = consumerKafkaConfig.SetKey("go.application.rebalance.enable", true)
