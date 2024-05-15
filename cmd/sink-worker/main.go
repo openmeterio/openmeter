@@ -24,7 +24,6 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -92,7 +91,7 @@ func main() {
 		resource.WithAttributes(
 			semconv.ServiceName("openmeter-sink-worker"),
 			semconv.ServiceVersion(version),
-			attribute.String("environment", conf.Environment),
+			semconv.DeploymentEnvironment(conf.Environment),
 		),
 	)
 	res, _ := resource.Merge(
