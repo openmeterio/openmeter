@@ -8,7 +8,13 @@ import (
 )
 
 type SinkConfiguration struct {
-	GroupId          string
+	// ClientId defines the client id for the Kafka Consumer
+	ClientId string
+	// GroupId defines the consumer group id for the Kafka Consumer
+	GroupId string
+	// SessionTimeout defines time interval the broker waits for receiving heartbeat
+	// from the consumer before removing it from the consumer group.
+	SessionTimeout   time.Duration
 	Dedupe           DedupeConfiguration
 	MinCommitCount   int
 	MaxCommitWait    time.Duration
@@ -26,6 +32,10 @@ func (c SinkConfiguration) Validate() error {
 
 	if c.NamespaceRefetch < 1 {
 		return errors.New("NamespaceRefetch must be greater than 0")
+	}
+
+	if c.SessionTimeout.Milliseconds() < 3000 {
+		return errors.New("SessionTimeout must be greater than 3000ms")
 	}
 
 	return nil
@@ -53,7 +63,9 @@ func ConfigureSink(v *viper.Viper) {
 
 	// Sink
 	v.SetDefault("sink.groupId", "openmeter-sink-worker")
+	v.SetDefault("sink.clientId", "openmeter-sink-worker")
 	v.SetDefault("sink.minCommitCount", 500)
 	v.SetDefault("sink.maxCommitWait", "5s")
 	v.SetDefault("sink.namespaceRefetch", "15s")
+	v.SetDefault("sink.sessionTimeout", 9*time.Second)
 }

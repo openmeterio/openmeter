@@ -83,6 +83,7 @@ func TestComplete(t *testing.T) {
 				SaslPassword:        "pass",
 				Partitions:          1,
 				EventsTopicTemplate: "om_%s_events",
+				MetadataMaxAge:      180 * time.Second,
 			},
 		},
 		Aggregation: AggregationConfiguration{
@@ -95,7 +96,9 @@ func TestComplete(t *testing.T) {
 			},
 		},
 		Sink: SinkConfiguration{
+			ClientId:         "openmeter-sink-worker",
 			GroupId:          "openmeter-sink-worker",
+			SessionTimeout:   9 * time.Second,
 			MinCommitCount:   500,
 			MaxCommitWait:    30 * time.Second,
 			NamespaceRefetch: 15 * time.Second,
