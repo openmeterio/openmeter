@@ -50,8 +50,8 @@ type Config struct {
 }
 
 type Router struct {
-	CreditHandler creditdriver.Handler
-	config        Config
+	CreditHandlers creditdriver.Handlers
+	config         Config
 }
 
 // Make sure we conform to ServerInterface
@@ -60,7 +60,7 @@ var _ api.ServerInterface = (*Router)(nil)
 func NewRouter(config Config) (*Router, error) {
 	return &Router{
 		config: config,
-		CreditHandler: creditdriver.NewHandler(
+		CreditHandlers: creditdriver.New(
 			config.CreditConnector,
 			config.Meters,
 			namespacedriver.StaticNamespaceDecoder("default"),

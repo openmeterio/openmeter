@@ -58,15 +58,15 @@ func (c *Connector) Reset(ctx context.Context, namespace string, reset credit.Re
 }
 
 // Feature
-func (c *Connector) CreateFeature(ctx context.Context, namespace string, feature credit.Feature) (credit.Feature, error) {
+func (c *Connector) CreateFeature(ctx context.Context, feature credit.Feature) (credit.Feature, error) {
 	return credit.Feature{}, fmt.Errorf("not implemented")
 }
-func (c *Connector) DeleteFeature(ctx context.Context, namespace string, featureID ulid.ULID) error {
+func (c *Connector) DeleteFeature(ctx context.Context, featureID credit.NamespacedID) error {
 	return fmt.Errorf("not implemented")
 }
-func (c *Connector) ListFeatures(ctx context.Context, namespace string, params credit.ListFeaturesParams) ([]credit.Feature, error) {
+func (c *Connector) ListFeatures(ctx context.Context, params credit.ListFeaturesParams) ([]credit.Feature, error) {
 	return nil, fmt.Errorf("not implemented")
 }
-func (c *Connector) GetFeature(ctx context.Context, namespace string, featureID ulid.ULID) (credit.Feature, error) {
+func (c *Connector) GetFeature(ctx context.Context, featureID credit.NamespacedID) (credit.Feature, error) {
 	return credit.Feature{}, fmt.Errorf("not implemented")
 }

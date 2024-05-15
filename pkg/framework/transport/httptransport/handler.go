@@ -10,6 +10,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+type Handler[Request any, Response any] interface {
+	ServeHTTP(w http.ResponseWriter, r *http.Request)
+	Chain(outer operation.Middleware[Request, Response], others ...operation.Middleware[Request, Response]) Handler[Request, Response]
+}
+
 // NewHandler returns a new HTTP handler that wraps the given [operation.Operation].
 func NewHandler[Request any, Response any](
 	requestDecoder RequestDecoder[Request],
@@ -17,7 +22,17 @@ func NewHandler[Request any, Response any](
 	responseEncoder ResponseEncoder[Response],
 
 	options ...HandlerOption,
-) http.Handler {
+) Handler[Request, Response] {
+	return newHandler(requestDecoder, op, responseEncoder, options...)
+}
+
+func newHandler[Request any, Response any](
+	requestDecoder RequestDecoder[Request],
+	op operation.Operation[Request, Response],
+	responseEncoder ResponseEncoder[Response],
+
+	options ...HandlerOption,
+) handler[Request, Response] {
 	h := handler[Request, Response]{
 		operation: op,
 
@@ -115,6 +130,11 @@ func (h handler[Request, Response]) encodeError(ctx context.Context, err error, 
 	models.NewStatusProblem(ctx, errors.New("internal server error"), http.StatusInternalServerError).Respond(w)
 
 	return false
+}
+
+func (h handler[Request, Response]) Chain(outer operation.Middleware[Request, Response], others ...operation.Middleware[Request, Response]) Handler[Request, Response] {
+	h.operation = operation.Chain(outer, others...)(h.operation)
+	return h
 }
 
 type SelfEncodingError interface {

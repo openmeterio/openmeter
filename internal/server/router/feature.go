@@ -8,21 +8,21 @@ import (
 
 // Get feature, GET:/api/v1/features/{featureID}
 func (a *Router) GetFeature(w http.ResponseWriter, r *http.Request, featureID api.FeatureID) {
-	a.CreditHandler.GetFeature(r.Context(), w, r, featureID)
+	a.CreditHandlers.GetFeature.With(featureID).ServeHTTP(w, r)
 	// TODO: remove chi renderers
 }
 
 // List features: GET /api/v1/features
 func (a *Router) ListFeatures(w http.ResponseWriter, r *http.Request) {
-	a.CreditHandler.ListFeatures(r.Context(), w, r)
+	a.CreditHandlers.ListFeatures.ServeHTTP(w, r)
 }
 
 // Create feature, POST: /api/v1/features
 func (a *Router) CreateFeature(w http.ResponseWriter, r *http.Request) {
-	a.CreditHandler.CreateFeature(r.Context(), w, r)
+	a.CreditHandlers.CreateFeature.ServeHTTP(w, r)
 }
 
 // Delete feature, DELETE:/api/v1/features/{featureID}
 func (a *Router) DeleteFeature(w http.ResponseWriter, r *http.Request, featureID api.FeatureID) {
-	a.CreditHandler.DeleteFeature(r.Context(), w, r, featureID)
+	a.CreditHandlers.DeleteFeature.With(featureID).ServeHTTP(w, r)
 }

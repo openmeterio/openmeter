@@ -93,7 +93,10 @@ func (a *Router) CreateLedgerGrant(w http.ResponseWriter, r *http.Request, ledge
 
 	// Check if feature exists
 	if grant.FeatureID != nil {
-		_, err := a.config.CreditConnector.GetFeature(ctx, namespace, *grant.FeatureID)
+		_, err := a.config.CreditConnector.GetFeature(ctx, credit.NamespacedID{
+			Namespace: namespace,
+			ID:  *grant.FeatureID,
+	})
 		if err != nil {
 			if _, ok := err.(*credit.FeatureNotFoundError); ok {
 				err := fmt.Errorf("feature not found: %s", *grant.FeatureID)

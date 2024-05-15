@@ -73,7 +73,9 @@ func (a *PostgresConnector) getBalance(
 		if grant.FeatureID != nil {
 			featureID := *grant.FeatureID
 			if _, ok := features[featureID]; !ok {
-				feature, err := a.GetFeature(ctx, namespace, featureID)
+				feature, err := a.GetFeature(ctx, credit.NamespacedID{
+					Namespace: namespace,
+					ID: featureID})
 				if err != nil {
 					return credit.Balance{}, ledgerEntries, fmt.Errorf("get feature: %w", err)
 				}

@@ -22,7 +22,7 @@ func NewIngestEventsHandler(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	commonErrorEncoder httptransport.ErrorEncoder,
 	errorHandler httptransport.ErrorHandler,
-) http.Handler {
+) httptransport.Handler[ingest.IngestEventsRequest, bool] {
 	return httptransport.NewHandler(
 		(ingestEventsRequestDecoder{
 			NamespaceDecoder: namespaceDecoder,

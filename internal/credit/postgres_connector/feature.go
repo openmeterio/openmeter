@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/oklog/ulid/v2"
-
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_feature "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
@@ -13,11 +11,11 @@ import (
 )
 
 // CreateFeature creates a feature.
-func (c *PostgresConnector) CreateFeature(ctx context.Context, namespace string, featureIn credit.Feature) (credit.Feature, error) {
+func (c *PostgresConnector) CreateFeature(ctx context.Context,featureIn credit.Feature) (credit.Feature, error) {
 	query := c.db.Feature.Create().
 		SetNillableID(pgulid.Ptr(featureIn.ID)).
 		SetName(featureIn.Name).
-		SetNamespace(namespace).
+		SetNamespace(featureIn.Namespace).
 		SetMeterSlug(featureIn.MeterSlug)
 
 	if featureIn.MeterGroupByFilters != nil {
@@ -34,11 +32,15 @@ func (c *PostgresConnector) CreateFeature(ctx context.Context, namespace string,
 }
 
 // DeleteFeature deletes a feature.
-func (c *PostgresConnector) DeleteFeature(ctx context.Context, namespace string, id ulid.ULID) error {
-	err := c.db.Feature.UpdateOneID(pgulid.Wrap(id)).SetArchived(true).Exec(ctx)
+func (c *PostgresConnector) DeleteFeature(ctx context.Context, id credit.NamespacedID) error {
+	err := c.db.Feature.Update().
+		SetArchived(true).
+		Where(db_feature.ID(pgulid.Wrap(id.ID))).
+		Where(db_feature.Namespace(id.Namespace)).
+	Exec(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return &credit.FeatureNotFoundError{ID: id}
+			return &credit.FeatureNotFoundError{ID: id.ID}
 		}
 
 		return fmt.Errorf("failed to delete feature: %w", err)
@@ -48,8 +50,10 @@ func (c *PostgresConnector) DeleteFeature(ctx context.Context, namespace string,
 }
 
 // ListFeatures lists features.
-func (c *PostgresConnector) ListFeatures(ctx context.Context, namespace string, params credit.ListFeaturesParams) ([]credit.Feature, error) {
-	query := c.db.Feature.Query()
+func (c *PostgresConnector) ListFeatures(ctx context.Context,  params credit.ListFeaturesParams) ([]credit.Feature, error) {
+	query := c.db.Feature.Query().
+		Where(db_feature.Namespace(params.Namespace))
+
 	if !params.IncludeArchived {
 		query = query.Where(db_feature.ArchivedEQ(false))
 	}
@@ -69,14 +73,18 @@ func (c *PostgresConnector) ListFeatures(ctx context.Context, namespace string, 
 }
 
 // GetFeature gets a single feature by ID.
-func (c *PostgresConnector) GetFeature(ctx context.Context, namespace string, id ulid.ULID) (credit.Feature, error) {
-	entity, err := c.db.Feature.Get(ctx, pgulid.Wrap(id))
+func (c *PostgresConnector) GetFeature(ctx context.Context, id credit.NamespacedID) (credit.Feature, error) {
+	entity, err := c.db.Feature.Get(ctx, pgulid.Wrap(id.ID))
 	if err != nil {
 		if db.IsNotFound(err) {
-			return credit.Feature{}, &credit.FeatureNotFoundError{ID: id}
+			return credit.Feature{}, &credit.FeatureNotFoundError{ID: id.ID}
 		}
 
 		return credit.Feature{}, fmt.Errorf("failed to get feature: %w", err)
+	}
+
+	if entity.Namespace != id.Namespace {
+		return credit.Feature{}, &credit.FeatureNotFoundError{ID: id.ID}
 	}
 
 	featureOut := mapFeatureEntity(entity)

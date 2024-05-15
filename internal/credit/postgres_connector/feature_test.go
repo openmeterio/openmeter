@@ -45,7 +45,7 @@ func TestFeature(t *testing.T) {
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
 				ctx := context.Background()
 				featureIn := testFeature
-				featureOut, err := connector.CreateFeature(ctx, namespace, featureIn)
+				featureOut, err := connector.CreateFeature(ctx, featureIn)
 				assert.NoError(t, err)
 				// assert count
 				assert.Equal(t, 1, db_client.Feature.Query().CountX(ctx))
@@ -63,10 +63,12 @@ func TestFeature(t *testing.T) {
 			description: "Get a feature from the database",
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
 				ctx := context.Background()
-				featureIn, err := connector.CreateFeature(ctx, namespace, testFeature)
+				featureIn, err := connector.CreateFeature(ctx,  testFeature)
 				assert.NoError(t, err)
 
-				featureOut, err := connector.GetFeature(ctx, namespace, *featureIn.ID)
+				featureOut, err := connector.GetFeature(ctx, credit.NamespacedID{
+					Namespace: namespace,
+					ID: *featureIn.ID})
 				assert.NoError(t, err)
 
 				expected := featureIn
@@ -80,14 +82,18 @@ func TestFeature(t *testing.T) {
 			description: "Delete a feature in the database",
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
 				ctx := context.Background()
-				p, err := connector.CreateFeature(ctx, namespace, testFeature)
+				p, err := connector.CreateFeature(ctx,  testFeature)
 				assert.NoError(t, err)
 
-				err = connector.DeleteFeature(ctx, namespace, *p.ID)
+				pFeatureID := credit.NamespacedID {
+					Namespace: namespace,
+					ID: *p.ID,
+				}
+				err = connector.DeleteFeature(ctx, pFeatureID)
 				assert.NoError(t, err)
 
 				// assert
-				p, err = connector.GetFeature(ctx, namespace, *p.ID)
+				p, err = connector.GetFeature(ctx, pFeatureID)
 				assert.NoError(t, err)
 				assert.True(t, *p.Archived)
 			},
@@ -97,10 +103,12 @@ func TestFeature(t *testing.T) {
 			description: "List features in the database",
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
 				ctx := context.Background()
-				feature, err := connector.CreateFeature(ctx, namespace, testFeature)
+				feature, err := connector.CreateFeature(ctx, testFeature)
 				assert.NoError(t, err)
 
-				features, err := connector.ListFeatures(ctx, namespace, credit.ListFeaturesParams{})
+				features, err := connector.ListFeatures(ctx, credit.ListFeaturesParams{
+					Namespace: namespace,
+				})
 				assert.NoError(t, err)
 				assert.Len(t, features, 1)
 

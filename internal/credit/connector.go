@@ -17,6 +17,7 @@ type ListGrantsParams struct {
 }
 
 type ListFeaturesParams struct {
+	Namespace       string
 	IncludeArchived bool
 }
 
@@ -25,6 +26,12 @@ type ListLedgersParams struct {
 	Offset   int
 	Limit    int
 }
+
+type NamespacedID struct {
+	Namespace string
+	ID        ulid.ULID
+}
+
 
 type Connector interface {
 	// Ledger
@@ -44,8 +51,8 @@ type Connector interface {
 	Reset(ctx context.Context, namespace string, reset Reset) (Reset, []Grant, error)
 
 	// Feature
-	CreateFeature(ctx context.Context, namespace string, feature Feature) (Feature, error)
-	DeleteFeature(ctx context.Context, namespace string, ledgerID ulid.ULID) error
-	ListFeatures(ctx context.Context, namespace string, params ListFeaturesParams) ([]Feature, error)
-	GetFeature(ctx context.Context, namespace string, ledgerID ulid.ULID) (Feature, error)
+	CreateFeature(ctx context.Context, feature Feature) (Feature, error)
+	DeleteFeature(ctx context.Context, featureID NamespacedID) error
+	ListFeatures(ctx context.Context, params ListFeaturesParams) ([]Feature, error)
+	GetFeature(ctx context.Context, featureID NamespacedID) (Feature, error)
 }

@@ -235,7 +235,8 @@ func TestPostgresConnectorGrants(t *testing.T) {
 
 func createFeature(t *testing.T, connector credit.Connector, namespace string, feature credit.Feature) credit.Feature {
 	ctx := context.Background()
-	p, err := connector.CreateFeature(ctx, namespace, feature)
+	feature.Namespace = namespace
+	p, err := connector.CreateFeature(ctx, feature)
 	if err != nil {
 		t.Error(err)
 	}

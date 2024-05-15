@@ -10,50 +10,62 @@ import (
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
+	"github.com/openmeterio/openmeter/pkg/framework/operation"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type Handler interface {
-	GetFeature(ctx context.Context, w http.ResponseWriter, r *http.Request, featureID api.FeatureID)
-	ListFeatures(ctx context.Context, w http.ResponseWriter, r *http.Request)
-	CreateFeature(ctx context.Context, w http.ResponseWriter, r *http.Request)
-	DeleteFeature(ctx context.Context, w http.ResponseWriter, r *http.Request, featureID api.FeatureID)
+type Handlers struct {
+	GetFeature    GetFeatureHandler
+	ListFeatures  ListFeaturesHandler
+	CreateFeature CreateFeatureHandler
+	DeleteFeature DeleteFeatureHandler
 }
 
-func NewHandler(
+func New(
 	creditConnector credit.Connector,
 	meterRepository meter.Repository,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	options ...httptransport.HandlerOption,
-) Handler {
-	return &handler{
+) Handlers {
+	builder := &builder{
 		CreditConnector:  creditConnector,
 		MeterRepository:  meterRepository,
 		NamespaceDecoder: namespaceDecoder,
 		Options:          options,
 	}
+
+	return Handlers{
+		GetFeature:    builder.GetFeature(),
+		ListFeatures:  builder.ListFeatures(),
+		CreateFeature: builder.CreateFeature(),
+		DeleteFeature: builder.DeleteFeature(),
+	}
 }
 
-type handler struct {
+type builder struct {
 	CreditConnector  credit.Connector
 	MeterRepository  meter.Repository
 	NamespaceDecoder namespacedriver.NamespaceDecoder
 	Options          []httptransport.HandlerOption
 }
 
-var _ Handler = (*handler)(nil)
+type GetFeatureHandler httptransport.HandlerWithArgs[credit.NamespacedID, credit.Feature, api.FeatureID]
 
-type featureIDWithNamespace *namespacedriver.Wrapped[api.FeatureID]
+func (h *builder) GetFeature() GetFeatureHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, featureID api.FeatureID) (credit.NamespacedID, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return credit.NamespacedID{}, err
+			}
 
-func (h *handler) GetFeature(ctx context.Context, w http.ResponseWriter, r *http.Request, featureID api.FeatureID) {
-	httptransport.NewHandler[featureIDWithNamespace, credit.Feature](
-		func(ctx context.Context, r *http.Request) (featureIDWithNamespace, error) {
-			return namespacedriver.Wrap(ctx, featureID, h.NamespaceDecoder)
+			return credit.NamespacedID{
+				Namespace: ns,
+				ID:        featureID,
+			}, nil
 		},
-		func(ctx context.Context, request featureIDWithNamespace) (credit.Feature, error) {
-			return h.CreditConnector.GetFeature(ctx, request.Namespace, request.Request)
-		},
+		h.CreditConnector.GetFeature,
 		commonhttp.JSONResponseEncoder,
 		httptransport.AppendOptions(
 			h.Options,
@@ -66,54 +78,51 @@ func (h *handler) GetFeature(ctx context.Context, w http.ResponseWriter, r *http
 			}),
 			httptransport.WithOperationName("getFeature"),
 		)...,
-	).ServeHTTP(w, r)
+	)
 
 }
 
-type featureWithNamespace *namespacedriver.Wrapped[credit.Feature]
+type CreateFeatureHandler httptransport.Handler[credit.Feature, credit.Feature]
 
-func (h *handler) CreateFeature(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	httptransport.NewHandler[featureWithNamespace, credit.Feature](
-		func(ctx context.Context, r *http.Request) (featureWithNamespace, error) {
-			featureIn := api.CreateFeatureJSONRequestBody{}
+func (h *builder) CreateFeature() CreateFeatureHandler {
+	return httptransport.NewHandler[credit.Feature, credit.Feature](
+		func(ctx context.Context, r *http.Request) (credit.Feature, error) {
+			featureIn := credit.Feature{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &featureIn); err != nil {
-				return nil, err
+				return featureIn, err
 			}
 
-			featureWithNS, err := namespacedriver.Wrap(ctx, featureIn, h.NamespaceDecoder)
+			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return nil, err
+				return  featureIn, err
 			}
 
-			meter, err := h.MeterRepository.GetMeterByIDOrSlug(ctx, featureWithNS.Namespace, featureIn.MeterSlug)
+			featureIn.Namespace = ns
+
+			meter, err := h.MeterRepository.GetMeterByIDOrSlug(ctx, featureIn.Namespace, featureIn.MeterSlug)
 			if err != nil {
 				if _, ok := err.(*models.MeterNotFoundError); ok {
-					return nil, commonhttp.NewHTTPError(
+					return  featureIn, commonhttp.NewHTTPError(
 						http.StatusBadRequest,
 						fmt.Errorf("meter not found: %s", featureIn.MeterSlug),
 					)
 				}
 
-				return nil, err
+				return  featureIn, err
 			}
 
 			if err := validateMeterAggregation(meter); err != nil {
-				return nil, commonhttp.NewHTTPError(http.StatusBadRequest, err)
+				return  featureIn, commonhttp.NewHTTPError(http.StatusBadRequest, err)
 			}
-			return featureWithNS, nil
+			return featureIn, nil
 		},
-		func(ctx context.Context, in featureWithNamespace) (credit.Feature, error) {
-			// Let's make sure we are not allowing the ID to be specified externally
-			in.Request.ID = nil
-
-			return h.CreditConnector.CreateFeature(ctx, in.Namespace, in.Request)
-		},
+		h.CreditConnector.CreateFeature,
 		commonhttp.JSONResponseEncoderWithStatus[credit.Feature](http.StatusCreated),
 		httptransport.AppendOptions(
 			h.Options,
 			httptransport.WithOperationName("createFeature"),
 		)...,
-	).ServeHTTP(w, r)
+	)
 }
 
 func validateMeterAggregation(meter models.Meter) error {
@@ -128,42 +137,50 @@ func validateMeterAggregation(meter models.Meter) error {
 	)
 }
 
-type featureListWithNamespace *namespacedriver.Wrapped[credit.ListFeaturesParams]
+type ListFeaturesHandler httptransport.Handler[credit.ListFeaturesParams, []credit.Feature]
 
-func (h *handler) ListFeatures(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	httptransport.NewHandler[featureListWithNamespace, []credit.Feature](
-		func(ctx context.Context, r *http.Request) (featureListWithNamespace, error) {
-			// TODO: add get arguments (limit, offset, archived)
-			return namespacedriver.Wrap(ctx, credit.ListFeaturesParams{}, h.NamespaceDecoder)
+func (h *builder) ListFeatures() ListFeaturesHandler {
+	return httptransport.NewHandler(
+		func(ctx context.Context, r *http.Request) (credit.ListFeaturesParams, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return credit.ListFeaturesParams{}, err 
+			}
+			return credit.ListFeaturesParams{
+				Namespace: ns,
+			}, nil
 		},
-		func(ctx context.Context, request featureListWithNamespace) ([]credit.Feature, error) {
-			return h.CreditConnector.ListFeatures(ctx, request.Namespace, request.Request)
-		},
+		h.CreditConnector.ListFeatures,
 		commonhttp.JSONResponseEncoder,
 		httptransport.AppendOptions(
 			h.Options,
 			httptransport.WithOperationName("listFeatures"),
 		)...,
-	).ServeHTTP(w, r)
+	)
 }
 
-func (h *handler) DeleteFeature(ctx context.Context, w http.ResponseWriter, r *http.Request, featureID api.FeatureID) {
-	httptransport.NewHandler[featureIDWithNamespace, any](
-		func(ctx context.Context, r *http.Request) (featureIDWithNamespace, error) {
-			featureIDWithNs, err := namespacedriver.Wrap(ctx, featureID, h.NamespaceDecoder)
-			if err != nil {
-				return nil, err
+type DeleteFeatureHandler httptransport.HandlerWithArgs[credit.NamespacedID, any, api.FeatureID]
+
+func (h *builder) DeleteFeature() DeleteFeatureHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, featureID api.FeatureID) (credit.NamespacedID, error) {
+			id := credit.NamespacedID{
+				ID: featureID,
 			}
 
-			if _, err := h.CreditConnector.GetFeature(ctx, featureIDWithNs.Namespace, featureID); err != nil {
-				return nil, err
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return id, err
 			}
-			return featureIDWithNs, nil
+
+			id.Namespace = ns
+			
+			if _, err := h.CreditConnector.GetFeature(ctx, id); err != nil {
+				return id, err
+			}
+			return id, nil
 		},
-		func(ctx context.Context, request featureIDWithNamespace) (any, error) {
-			return nil,
-				h.CreditConnector.DeleteFeature(ctx, request.Namespace, request.Request)
-		},
+		operation.AsNoResponseOperation(h.CreditConnector.DeleteFeature),
 		func(ctx context.Context, w http.ResponseWriter, response any) error {
 			w.WriteHeader(http.StatusNoContent)
 			return nil
@@ -179,5 +196,5 @@ func (h *handler) DeleteFeature(ctx context.Context, w http.ResponseWriter, r *h
 				return false
 			}),
 		)...,
-	).ServeHTTP(w, r)
+	)
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
-type Handler = creditdriver.Handler
+type Handler = creditdriver.Handlers
 
 func New(
 	creditConnector credit.Connector,
@@ -16,7 +16,7 @@ func New(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	options ...httptransport.HandlerOption,
 ) Handler {
-	return creditdriver.NewHandler(
+	return creditdriver.New(
 		creditConnector,
 		meterRepository,
 		namespaceDecoder,
