@@ -22,36 +22,35 @@ type balanceQueryPeriod struct {
 
 func (a *PostgresConnector) GetBalance(
 	ctx context.Context,
-	namespace string,
-	ledgerID ulid.ULID,
+	ledgerID credit.NamespacedID,
 	cutline time.Time,
 ) (credit.Balance, error) {
 	// TODO: wrap into transaction
-	hw, err := a.GetHighWatermark(ctx, namespace, ledgerID)
+	hw, err := a.GetHighWatermark(ctx, ledgerID)
 	if err != nil {
 		return credit.Balance{}, fmt.Errorf("get high watermark: %w", err)
 	}
 
-	balance, _, err := a.getBalance(ctx, namespace, ledgerID, hw.Time, cutline)
+	balance, _, err := a.getBalance(ctx, ledgerID, hw.Time, cutline)
 	return balance, err
 }
 
 func (a *PostgresConnector) getBalance(
 	ctx context.Context,
-	namespace string,
-	ledgerID ulid.ULID,
+	ledgerID credit.NamespacedID,
 	from time.Time,
 	to time.Time,
 ) (credit.Balance, credit.LedgerEntryList, error) {
 	ledgerEntries := credit.NewLedgerEntryList()
 
-	ledger, err := a.getLedger(ctx, namespace, ledgerID)
+	ledger, err := a.getLedger(ctx, ledgerID)
 	if err != nil {
 		return credit.Balance{}, ledgerEntries, err
 	}
 
-	grants, err := a.ListGrants(ctx, namespace, credit.ListGrantsParams{
-		LedgerIDs:   []ulid.ULID{ledgerID},
+	grants, err := a.ListGrants(ctx, credit.ListGrantsParams{
+		Namespace:   ledger.Namespace,
+		LedgerIDs:   []ulid.ULID{ledgerID.ID},
 		From:        &from,
 		To:          &to,
 		IncludeVoid: true,
@@ -74,8 +73,8 @@ func (a *PostgresConnector) getBalance(
 			featureID := *grant.FeatureID
 			if _, ok := features[featureID]; !ok {
 				feature, err := a.GetFeature(ctx, credit.NamespacedID{
-					Namespace: namespace,
-					ID: featureID})
+					Namespace: ledgerID.Namespace,
+					ID:        featureID})
 				if err != nil {
 					return credit.Balance{}, ledgerEntries, fmt.Errorf("get feature: %w", err)
 				}
@@ -90,7 +89,7 @@ func (a *PostgresConnector) getBalance(
 	for _, feature := range features {
 		meterSlug := feature.MeterSlug
 		if _, ok := meters[meterSlug]; !ok {
-			meter, err := a.meterRepository.GetMeterByIDOrSlug(ctx, namespace, meterSlug)
+			meter, err := a.meterRepository.GetMeterByIDOrSlug(ctx, ledgerID.Namespace, meterSlug)
 			if err != nil {
 				return credit.Balance{}, ledgerEntries, fmt.Errorf("get meter: %w", err)
 			}
@@ -231,7 +230,7 @@ func (a *PostgresConnector) getBalance(
 			queryCacheKey := queryKeyByParams(meter.Slug, queryParams.FilterGroupBy)
 			if _, ok := queryCache[queryCacheKey]; !ok {
 				// Query usage
-				rows, err := a.streamingConnector.QueryMeter(ctx, namespace, meter.Slug, queryParams)
+				rows, err := a.streamingConnector.QueryMeter(ctx, ledgerID.Namespace, meter.Slug, queryParams)
 				if err != nil {
 					return credit.Balance{}, ledgerEntries, fmt.Errorf("query meter: %w", err)
 				}
@@ -310,7 +309,7 @@ func (a *PostgresConnector) getBalance(
 	}
 
 	return credit.Balance{
-		LedgerID:        ledgerID,
+		LedgerID:        ledgerID.ID,
 		Subject:         ledger.Subject,
 		Metadata:        ledger.Metadata,
 		FeatureBalances: featureBalances,

@@ -4,16 +4,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/oklog/ulid/v2"
-
 	"github.com/openmeterio/openmeter/internal/credit"
 	db_credit "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 )
 
 func (a *PostgresConnector) GetHistory(
 	ctx context.Context,
-	namespace string,
-	ledgerID ulid.ULID,
+	ledgerID credit.NamespacedID,
 	from time.Time,
 	to time.Time,
 	limit int,
@@ -53,7 +50,7 @@ func (a *PostgresConnector) GetHistory(
 
 	balanceFrom := from
 	for _, balanceTo := range resets {
-		_, entries, err := a.getBalance(ctx, namespace, ledgerID, balanceFrom, balanceTo)
+		_, entries, err := a.getBalance(ctx, ledgerID, balanceFrom, balanceTo)
 		if err != nil {
 			return ledgerEntries, err
 		}

@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/oklog/ulid/v2"
-
 	"github.com/openmeterio/openmeter/internal/credit"
 )
 
@@ -22,38 +20,38 @@ func NewConnector() credit.Connector {
 }
 
 // Ledger
-func (c *Connector) CreateLedger(ctx context.Context, namespace string, ledger credit.Ledger) (credit.Ledger, error) {
+func (c *Connector) CreateLedger(ctx context.Context, ledger credit.Ledger) (credit.Ledger, error) {
 	return credit.Ledger{}, fmt.Errorf("not implemented")
 }
-func (c *Connector) ListLedgers(ctx context.Context, namespace string, params credit.ListLedgersParams) ([]credit.Ledger, error) {
+func (c *Connector) ListLedgers(ctx context.Context, params credit.ListLedgersParams) ([]credit.Ledger, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
 // Grant
-func (c *Connector) CreateGrant(ctx context.Context, namespace string, grant credit.Grant) (credit.Grant, error) {
+func (c *Connector) CreateGrant(ctx context.Context, grant credit.Grant) (credit.Grant, error) {
 	return credit.Grant{}, fmt.Errorf("not implemented")
 }
-func (c *Connector) VoidGrant(ctx context.Context, namespace string, grant credit.Grant) (credit.Grant, error) {
+func (c *Connector) VoidGrant(ctx context.Context, grant credit.Grant) (credit.Grant, error) {
 	return credit.Grant{}, fmt.Errorf("not implemented")
 }
-func (c *Connector) ListGrants(ctx context.Context, namespace string, params credit.ListGrantsParams) ([]credit.Grant, error) {
+func (c *Connector) ListGrants(ctx context.Context, params credit.ListGrantsParams) ([]credit.Grant, error) {
 	return nil, fmt.Errorf("not implemented")
 }
-func (c *Connector) GetGrant(ctx context.Context, namespace string, id ulid.ULID) (credit.Grant, error) {
+func (c *Connector) GetGrant(ctx context.Context, grantID credit.NamespacedID) (credit.Grant, error) {
 	return credit.Grant{}, fmt.Errorf("not implemented")
 }
 
 // Credit
-func (c *Connector) GetBalance(ctx context.Context, namespace string, ledgerID ulid.ULID, cutline time.Time) (credit.Balance, error) {
+func (c *Connector) GetBalance(ctx context.Context, ledgerID credit.NamespacedID, cutline time.Time) (credit.Balance, error) {
 	return credit.Balance{}, fmt.Errorf("not implemented")
 }
-func (c *Connector) GetHistory(ctx context.Context, namespace string, ledgerID ulid.ULID, from time.Time, to time.Time, limit int) (credit.LedgerEntryList, error) {
+func (c *Connector) GetHistory(ctx context.Context, ledgerID credit.NamespacedID, from time.Time, to time.Time, limit int) (credit.LedgerEntryList, error) {
 	return credit.LedgerEntryList{}, fmt.Errorf("not implemented")
 }
-func (c *Connector) GetHighWatermark(ctx context.Context, namespace string, ledgerID ulid.ULID) (credit.HighWatermark, error) {
+func (c *Connector) GetHighWatermark(ctx context.Context, ledgerID credit.NamespacedID) (credit.HighWatermark, error) {
 	return credit.HighWatermark{}, fmt.Errorf("not implemented")
 }
-func (c *Connector) Reset(ctx context.Context, namespace string, reset credit.Reset) (credit.Reset, []credit.Grant, error) {
+func (c *Connector) Reset(ctx context.Context, reset credit.Reset) (credit.Reset, []credit.Grant, error) {
 	return credit.Reset{}, []credit.Grant{}, fmt.Errorf("not implemented")
 }
 

@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/oklog/ulid/v2"
-
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_ledger "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
@@ -13,9 +11,9 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func (c *PostgresConnector) CreateLedger(ctx context.Context, namespace string, ledgerIn credit.Ledger) (credit.Ledger, error) {
+func (c *PostgresConnector) CreateLedger(ctx context.Context, ledgerIn credit.Ledger) (credit.Ledger, error) {
 	entity, err := c.db.Ledger.Create().
-		SetNamespace(namespace).
+		SetNamespace(ledgerIn.Namespace).
 		SetMetadata(ledgerIn.Metadata).
 		SetSubject(ledgerIn.Subject).
 		SetHighwatermark(defaultHighwatermark).
@@ -25,7 +23,7 @@ func (c *PostgresConnector) CreateLedger(ctx context.Context, namespace string, 
 		// This cannot happen in the same transaction as the previous Create
 		// as the transaction is aborted at this stage
 		existingLedgerEntity, err := c.db.Ledger.Query().
-			Where(db_ledger.Namespace(namespace)).
+			Where(db_ledger.Namespace(ledgerIn.Namespace)).
 			Where(db_ledger.Subject(ledgerIn.Subject)).
 			Only(ctx)
 
@@ -33,8 +31,7 @@ func (c *PostgresConnector) CreateLedger(ctx context.Context, namespace string, 
 			return credit.Ledger{}, fmt.Errorf("cannot query existing ledger: %w", err)
 		}
 		return credit.Ledger{}, &credit.LedgerAlreadyExistsError{
-			Namespace: namespace,
-			Ledger:    mapDBLedgerToModel(existingLedgerEntity),
+			Ledger: mapDBLedgerToModel(existingLedgerEntity),
 		}
 	}
 
@@ -46,11 +43,12 @@ func (c *PostgresConnector) CreateLedger(ctx context.Context, namespace string, 
 
 }
 
-func (c *PostgresConnector) ListLedgers(ctx context.Context, namespace string, params credit.ListLedgersParams) ([]credit.Ledger, error) {
+func (c *PostgresConnector) ListLedgers(ctx context.Context, params credit.ListLedgersParams) ([]credit.Ledger, error) {
 	query := c.db.Ledger.Query().
 		Order(
 			db_ledger.ByCreatedAt(),
-		)
+		).
+		Where(db_ledger.Namespace(params.Namespace))
 
 	if len(params.Subjects) > 0 {
 		query = query.Where(
@@ -77,17 +75,18 @@ func (c *PostgresConnector) ListLedgers(ctx context.Context, namespace string, p
 	return slicesx.Map(dbLedgers, mapDBLedgerToModel), nil
 }
 
-func (c *PostgresConnector) getLedger(ctx context.Context, namespace string, ledgerID ulid.ULID) (*db.Ledger, error) {
+func (c *PostgresConnector) getLedger(ctx context.Context, ledgerID credit.NamespacedID) (*db.Ledger, error) {
 	return c.db.Ledger.Query().
-		Where(db_ledger.Namespace(namespace)).
-		Where(db_ledger.ID(pgulid.Wrap(ledgerID))).
+		Where(db_ledger.Namespace(ledgerID.Namespace)).
+		Where(db_ledger.ID(pgulid.Wrap(ledgerID.ID))).
 		Only(ctx)
 }
 
 func mapDBLedgerToModel(ledger *db.Ledger) credit.Ledger {
 	return credit.Ledger{
-		ID:       ledger.ID.ULID,
-		Subject:  ledger.Subject,
-		Metadata: ledger.Metadata,
+		Namespace: ledger.Namespace,
+		ID:        ledger.ID.ULID,
+		Subject:   ledger.Subject,
+		Metadata:  ledger.Metadata,
 	}
 }

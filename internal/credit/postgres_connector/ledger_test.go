@@ -31,8 +31,9 @@ func TestLedgerCreation(t *testing.T) {
 
 	t.Run("CreateLedger", func(t *testing.T) {
 		// let's provision a ledger
-		ledger, err := connector.CreateLedger(context.Background(), namespace, credit.Ledger{
-			Subject: ledgerSubject,
+		ledger, err := connector.CreateLedger(context.Background(), credit.Ledger{
+			Namespace: namespace,
+			Subject:   ledgerSubject,
 		})
 
 		assert.NoError(t, err)
@@ -41,8 +42,9 @@ func TestLedgerCreation(t *testing.T) {
 	})
 
 	t.Run("CreateDuplicateLedger", func(t *testing.T) {
-		_, err := connector.CreateLedger(context.Background(), namespace, credit.Ledger{
-			Subject: ledgerSubject,
+		_, err := connector.CreateLedger(context.Background(), credit.Ledger{
+			Namespace: namespace,
+			Subject:   ledgerSubject,
 		})
 
 		assert.Error(t, err)
@@ -50,7 +52,6 @@ func TestLedgerCreation(t *testing.T) {
 		details, ok := err.(*credit.LedgerAlreadyExistsError)
 		assert.True(t, ok, "We got an already exists error")
 		assert.Equal(t, &credit.LedgerAlreadyExistsError{
-			Namespace: namespace,
 			Ledger: credit.Ledger{
 				Subject: ledgerSubject,
 				ID:      existingLedgerID,

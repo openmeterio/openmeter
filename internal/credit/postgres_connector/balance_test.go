@@ -53,13 +53,14 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should return balance",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				feature := createFeature(t, connector, namespace, featureIn1)
+				feature := createFeature(t, connector, featureIn1)
 				// We need to truncate the time to workaround pgx driver timezone issue
 				// We also move it to the past to avoid timezone issues
 				t1 := time.Now().Truncate(time.Hour * 24).Add(-time.Hour * 24)
 				t2 := t1.Add(time.Hour).Truncate(0)
 
-				grant, err := connector.CreateGrant(ctx, namespace, credit.Grant{
+				grant, err := connector.CreateGrant(ctx, credit.Grant{
+					Namespace:   namespace,
 					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
 					Type:        credit.GrantTypeUsage,
@@ -81,7 +82,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				})
 
 				// Get balance
-				balance, err := connector.GetBalance(ctx, namespace, ledger.ID, t2)
+				balance, err := connector.GetBalance(ctx, credit.NewNamespacedID(namespace, ledger.ID), t2)
 				assert.NoError(t, err)
 
 				// Assert balance
@@ -108,19 +109,21 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should return balance after reset",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				feature := createFeature(t, connector, namespace, featureIn1)
+				feature := createFeature(t, connector, featureIn1)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 				t3, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:03:00Z", time.UTC)
 
 				reset := credit.Reset{
+					Namespace:   namespace,
 					LedgerID:    ledger.ID,
 					EffectiveAt: t1,
 				}
-				_, _, err := connector.Reset(ctx, namespace, reset)
+				_, _, err := connector.Reset(ctx, reset)
 				assert.NoError(t, err)
 
-				grant, err := connector.CreateGrant(ctx, namespace, credit.Grant{
+				grant, err := connector.CreateGrant(ctx, credit.Grant{
+					Namespace:   namespace,
 					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
 					Type:        credit.GrantTypeUsage,
@@ -142,7 +145,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				})
 
 				// Get balance
-				balance, err := connector.GetBalance(ctx, namespace, ledger.ID, t3)
+				balance, err := connector.GetBalance(ctx, credit.NewNamespacedID(ledger.Namespace, ledger.ID), t3)
 				assert.NoError(t, err)
 
 				// FIXME
@@ -172,18 +175,20 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should exclude voided grant from balance",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				feature := createFeature(t, connector, namespace, featureIn1)
+				feature := createFeature(t, connector, featureIn1)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 
 				reset := credit.Reset{
+					Namespace:   namespace,
 					LedgerID:    ledger.ID,
 					EffectiveAt: t1,
 				}
-				_, _, err := connector.Reset(ctx, namespace, reset)
+				_, _, err := connector.Reset(ctx, reset)
 				assert.NoError(t, err)
 
-				grant, err := connector.CreateGrant(ctx, namespace, credit.Grant{
+				grant, err := connector.CreateGrant(ctx, credit.Grant{
+					Namespace:   namespace,
 					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
 					Type:        credit.GrantTypeUsage,
@@ -197,7 +202,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				_, err = connector.VoidGrant(ctx, namespace, grant)
+				_, err = connector.VoidGrant(ctx, grant)
 				assert.NoError(t, err)
 
 				streamingConnector.addRow(meter1.Slug, models.MeterQueryRow{
@@ -208,7 +213,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				})
 
 				// Get balance
-				balance, err := connector.GetBalance(ctx, namespace, ledger.ID, t2)
+				balance, err := connector.GetBalance(ctx, credit.NewNamespacedID(namespace, ledger.ID), t2)
 				assert.NoError(t, err)
 
 				// Assert balance
@@ -225,11 +230,12 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should burn down grant with highest priority first",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				feature := createFeature(t, connector, namespace, featureIn1)
+				feature := createFeature(t, connector, featureIn1)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 
-				grant1, err := connector.CreateGrant(ctx, namespace, credit.Grant{
+				grant1, err := connector.CreateGrant(ctx, credit.Grant{
+					Namespace:   namespace,
 					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
 					Type:        credit.GrantTypeUsage,
@@ -243,7 +249,8 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				grant2, err := connector.CreateGrant(ctx, namespace, credit.Grant{
+				grant2, err := connector.CreateGrant(ctx, credit.Grant{
+					Namespace:   namespace,
 					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
 					Type:        credit.GrantTypeUsage,
@@ -265,7 +272,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				})
 
 				// Get balance
-				balance, err := connector.GetBalance(ctx, namespace, ledger.ID, t2)
+				balance, err := connector.GetBalance(ctx, credit.NewNamespacedID(namespace, ledger.ID), t2)
 				assert.NoError(t, err)
 
 				// FIXME
@@ -300,11 +307,12 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should burn down grant that expires first",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				feature := createFeature(t, connector, namespace, featureIn1)
+				feature := createFeature(t, connector, featureIn1)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 
-				grant1, err := connector.CreateGrant(ctx, namespace, credit.Grant{
+				grant1, err := connector.CreateGrant(ctx, credit.Grant{
+					Namespace:   namespace,
 					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
 					Type:        credit.GrantTypeUsage,
@@ -318,7 +326,8 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				grant2, err := connector.CreateGrant(ctx, namespace, credit.Grant{
+				grant2, err := connector.CreateGrant(ctx, credit.Grant{
+					Namespace:   namespace,
 					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
 					Type:        credit.GrantTypeUsage,
@@ -340,7 +349,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				})
 
 				// Get balance
-				balance, err := connector.GetBalance(ctx, namespace, ledger.ID, t2)
+				balance, err := connector.GetBalance(ctx, credit.NewNamespacedID(namespace, ledger.ID), t2)
 				assert.NoError(t, err)
 
 				// FIXME
@@ -375,12 +384,13 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should burn down the right feature",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				feature1 := createFeature(t, connector, namespace, featureIn1)
-				feature2 := createFeature(t, connector, namespace, featureIn2)
+				feature1 := createFeature(t, connector, featureIn1)
+				feature2 := createFeature(t, connector, featureIn2)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 
-				grant1, err := connector.CreateGrant(ctx, namespace, credit.Grant{
+				grant1, err := connector.CreateGrant(ctx, credit.Grant{
+					Namespace:   namespace,
 					LedgerID:    ledger.ID,
 					FeatureID:   feature1.ID,
 					Type:        credit.GrantTypeUsage,
@@ -394,7 +404,8 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				grant2, err := connector.CreateGrant(ctx, namespace, credit.Grant{
+				grant2, err := connector.CreateGrant(ctx, credit.Grant{
+					Namespace:   namespace,
 					LedgerID:    ledger.ID,
 					FeatureID:   feature2.ID,
 					Type:        credit.GrantTypeUsage,
@@ -422,7 +433,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				})
 
 				// Get balance
-				balance, err := connector.GetBalance(ctx, namespace, ledger.ID, t2)
+				balance, err := connector.GetBalance(ctx, credit.NewNamespacedID(namespace, ledger.ID), t2)
 				assert.NoError(t, err)
 
 				// FIXME
@@ -467,8 +478,9 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository)
 
 			// let's provision a ledger
-			ledger, err := connector.CreateLedger(context.Background(), namespace, credit.Ledger{
-				Subject: ulid.Make().String(),
+			ledger, err := connector.CreateLedger(context.Background(), credit.Ledger{
+				Namespace: namespace,
+				Subject:   ulid.Make().String(),
 			})
 
 			assert.NoError(t, err)

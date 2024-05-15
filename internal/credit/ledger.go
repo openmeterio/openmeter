@@ -10,6 +10,7 @@ import (
 )
 
 type Ledger struct {
+	Namespace string `json:"-"`
 	// ID is the ID of the ledger instance
 	ID ulid.ULID `json:"id,omitempty"`
 

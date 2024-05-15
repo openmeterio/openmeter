@@ -41,7 +41,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 			description: "Should return ledger entries",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				feature := createFeature(t, connector, namespace, featureIn)
+				feature := createFeature(t, connector, featureIn)
 				// We need to truncate the time to workaround pgx driver timezone issue
 				// We also move it to the past to avoid timezone issues
 				t1 := time.Now().Truncate(time.Hour * 24).Add(-time.Hour * 24).In(time.UTC)
@@ -49,7 +49,8 @@ func TestPostgresConnectorLedger(t *testing.T) {
 				t3 := t2.Add(time.Hour).Truncate(0).In(time.UTC)
 				t4 := t3.Add(time.Hour).Truncate(0).In(time.UTC)
 
-				grant1, err := connector.CreateGrant(ctx, namespace, credit.Grant{
+				grant1, err := connector.CreateGrant(ctx, credit.Grant{
+					Namespace:   namespace,
 					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
 					Type:        credit.GrantTypeUsage,
@@ -66,7 +67,8 @@ func TestPostgresConnectorLedger(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				grant2, err := connector.CreateGrant(ctx, namespace, credit.Grant{
+				grant2, err := connector.CreateGrant(ctx, credit.Grant{
+					Namespace:   namespace,
 					LedgerID:    ledger.ID,
 					FeatureID:   feature.ID,
 					Type:        credit.GrantTypeUsage,
@@ -84,7 +86,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 				assert.NoError(t, err)
 
 				// Void grant2
-				_, err = connector.VoidGrant(ctx, namespace, grant2)
+				_, err = connector.VoidGrant(ctx, grant2)
 				assert.NoError(t, err)
 
 				usage := 1.0
@@ -97,14 +99,15 @@ func TestPostgresConnectorLedger(t *testing.T) {
 					GroupBy:   map[string]*string{},
 				})
 
-				reset, rolloverGrants, err := connector.Reset(ctx, namespace, credit.Reset{
+				reset, rolloverGrants, err := connector.Reset(ctx, credit.Reset{
+					Namespace:   namespace,
 					LedgerID:    ledger.ID,
 					EffectiveAt: t3,
 				})
 				assert.NoError(t, err)
 
 				// Get ledger
-				ledgerList, err := connector.GetHistory(ctx, namespace, ledger.ID, t1, t4, 0)
+				ledgerList, err := connector.GetHistory(ctx, credit.NewNamespacedID(namespace, ledger.ID), t1, t4, 0)
 				assert.NoError(t, err)
 
 				// Expected
@@ -173,8 +176,9 @@ func TestPostgresConnectorLedger(t *testing.T) {
 			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository)
 
 			// let's provision a ledger
-			ledger, err := connector.CreateLedger(context.Background(), namespace, credit.Ledger{
-				Subject: ulid.Make().String(),
+			ledger, err := connector.CreateLedger(context.Background(), credit.Ledger{
+				Namespace: namespace,
+				Subject:   ulid.Make().String(),
 			})
 
 			assert.NoError(t, err)

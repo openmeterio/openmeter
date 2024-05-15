@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/oklog/ulid/v2"
-
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_ledger "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
@@ -57,10 +55,10 @@ func transaction[R any](ctx context.Context, connector TransactionManager, callb
 }
 
 // mutationTransaction is a generic to perform atomic mutations on the ledger.
-func mutationTransaction[R any](ctx context.Context, connector *PostgresConnector, namespace string, ledgerID ulid.ULID, callback func(tx *db.Tx, ledgerEntity *db.Ledger) (*R, error)) (*R, error) {
+func mutationTransaction[R any](ctx context.Context, connector *PostgresConnector, ledgerID credit.NamespacedID, callback func(tx *db.Tx, ledgerEntity *db.Ledger) (*R, error)) (*R, error) {
 	// Start a transaction and lock the ledger for the subject
 	return transaction(ctx, connector, func(tx *db.Tx) (*R, error) {
-		ledgerEntity, err := lockLedger(tx, ctx, namespace, ledgerID)
+		ledgerEntity, err := lockLedger(tx, ctx, ledgerID)
 		if err != nil {
 			return nil, err
 		}
@@ -70,11 +68,11 @@ func mutationTransaction[R any](ctx context.Context, connector *PostgresConnecto
 }
 
 // lockLedger locks the ledger for the given namespace and subject to avoid concurrent updates
-func lockLedger(tx *db.Tx, ctx context.Context, namespace string, ledgerID ulid.ULID) (*db.Ledger, error) {
+func lockLedger(tx *db.Tx, ctx context.Context, ledgerID credit.NamespacedID) (*db.Ledger, error) {
 	// Lock ledger for the subject with pessimistic update
 	ledgerEntity, err := tx.Ledger.Query().
-		Where(db_ledger.Namespace(namespace)).
-		Where(db_ledger.ID(pgulid.Wrap(ledgerID))).
+		Where(db_ledger.Namespace(ledgerID.Namespace)).
+		Where(db_ledger.ID(pgulid.Wrap(ledgerID.ID))).
 
 		// We use the ForUpdate method to tell ent to ask our DB to lock
 		// the returned records for update.
@@ -84,14 +82,12 @@ func lockLedger(tx *db.Tx, ctx context.Context, namespace string, ledgerID ulid.
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, &credit.LedgerNotFoundError{
-				Namespace: namespace,
-				LedgerID:  ledgerID,
+				LedgerID: ledgerID.ID,
 			}
 		}
 		if strings.Contains(err.Error(), pgLockNotAvailableErrorCode) {
 			return nil, &credit.LockErrNotObtainedError{
-				Namespace: namespace,
-				ID:        ledgerID,
+				ID: ledgerID.ID,
 			}
 		}
 		return nil, err

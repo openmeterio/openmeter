@@ -96,6 +96,7 @@ func (GrantRolloverType) Values() (kinds []string) {
 
 // Reset is used to reset the balance of a specific subject.
 type Reset struct {
+	Namespace string `json:"-"`
 	// ID is the readonly identifies of a reset.
 	ID *ulid.ULID `json:"id,omitempty"`
 
@@ -113,6 +114,7 @@ func (c Reset) Render(w http.ResponseWriter, r *http.Request) error {
 
 // Grant is used to increase balance of specific subjects.
 type Grant struct {
+	Namespace string `json:"-"`
 	// ID is the readonly identifies of a grant.
 	ID *ulid.ULID `json:"id,omitempty"`
 
@@ -226,19 +228,17 @@ func (e *LockErrNotObtainedError) Error() string {
 }
 
 type LedgerAlreadyExistsError struct {
-	Namespace string
-	Ledger    Ledger
+	Ledger Ledger
 }
 
 func (e *LedgerAlreadyExistsError) Error() string {
-	return fmt.Sprintf("ledger (%s.%s) already exitst for subject %s", e.Namespace, e.Ledger.ID, e.Ledger.Subject)
+	return fmt.Sprintf("ledger %s already exitst for subject %s", e.Ledger.ID, e.Ledger.Subject)
 }
 
 type LedgerNotFoundError struct {
-	Namespace string
-	LedgerID  ulid.ULID
+	LedgerID ulid.ULID
 }
 
 func (e *LedgerNotFoundError) Error() string {
-	return fmt.Sprintf("ledger (%s.%s) not found", e.Namespace, e.LedgerID.String())
+	return fmt.Sprintf("ledger %s not found", e.LedgerID.String())
 }

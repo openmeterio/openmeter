@@ -30,8 +30,12 @@ func TestTransaction(t *testing.T) {
 			test: func(t *testing.T, connector PostgresConnector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
 
+				ledgerID := credit.NamespacedID{
+					Namespace: namespace,
+					ID:        ledger.ID,
+				}
 				// 1. Should succeed to obtain lock
-				_, err := mutationTransaction(ctx, &connector, namespace, ledger.ID, func(tx *db.Tx, ledgerEntity *db.Ledger) (*db.Ledger, error) {
+				_, err := mutationTransaction(ctx, &connector, ledgerID, func(tx *db.Tx, ledgerEntity *db.Ledger) (*db.Ledger, error) {
 					return ledgerEntity, nil
 				})
 				assert.NoError(t, err)
@@ -39,7 +43,7 @@ func TestTransaction(t *testing.T) {
 				// 2.1. Lock ledger
 				tx, err := db_client.Tx(ctx)
 				assert.NoError(t, err)
-				_, err = lockLedger(tx, ctx, namespace, ledger.ID)
+				_, err = lockLedger(tx, ctx, ledgerID)
 				assert.NoError(t, err)
 
 				var wg sync.WaitGroup
@@ -49,7 +53,7 @@ func TestTransaction(t *testing.T) {
 
 				// 2.2. Should wait until ledger is locked (waiting for 2.3. to unlock ledger)
 				go func() {
-					_, err := mutationTransaction(ctx, &connector, namespace, ledger.ID, func(tx *db.Tx, ledgerEntity *db.Ledger) (*db.Ledger, error) {
+					_, err := mutationTransaction(ctx, &connector, ledgerID, func(tx *db.Tx, ledgerEntity *db.Ledger) (*db.Ledger, error) {
 						return ledgerEntity, nil
 					})
 					wg.Done()
@@ -74,7 +78,7 @@ func TestTransaction(t *testing.T) {
 				assert.NoError(t, commitErr)
 
 				// 3. Should succeed to obtain lock after commit
-				_, err = mutationTransaction(ctx, &connector, namespace, ledger.ID, func(tx *db.Tx, ledgerEntity *db.Ledger) (*db.Ledger, error) {
+				_, err = mutationTransaction(ctx, &connector, ledgerID, func(tx *db.Tx, ledgerEntity *db.Ledger) (*db.Ledger, error) {
 					return ledgerEntity, nil
 				})
 				assert.NoError(t, err)
@@ -85,21 +89,24 @@ func TestTransaction(t *testing.T) {
 			description: "Should respect context cancel in locks",
 			test: func(t *testing.T, connector PostgresConnector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-
+				ledgerID := credit.NamespacedID{
+					Namespace: namespace,
+					ID:        ledger.ID,
+				}
 				// 1.1. Lock ledger
 				// Limit the time to wait to obtain the lock
 				ctxLock, cancelLock := context.WithCancel(ctx)
 
 				tx, err := db_client.Tx(ctxLock)
 				assert.NoError(t, err)
-				_, err = lockLedger(tx, ctxLock, namespace, ledger.ID)
+				_, err = lockLedger(tx, ctxLock, ledgerID)
 				assert.NoError(t, err)
 
 				// 1.2. Lock will timeout
 				cancelLock()
 
 				// 2.2. Should wait until ledger is locked (waiting for 1.2. to unlock ledger)
-				_, err = mutationTransaction(ctx, &connector, namespace, ledger.ID, func(tx *db.Tx, ledgerEntity *db.Ledger) (*db.Ledger, error) {
+				_, err = mutationTransaction(ctx, &connector, ledgerID, func(tx *db.Tx, ledgerEntity *db.Ledger) (*db.Ledger, error) {
 					return ledgerEntity, nil
 				})
 				assert.NoError(t, err)
@@ -123,8 +130,9 @@ func TestTransaction(t *testing.T) {
 				meterRepository:    meterRepository,
 			}
 			// let's provision a ledger
-			ledger, err := connector.CreateLedger(context.Background(), namespace, credit.Ledger{
-				Subject: ulid.Make().String(),
+			ledger, err := connector.CreateLedger(context.Background(), credit.Ledger{
+				Namespace: namespace,
+				Subject:   ulid.Make().String(),
 			})
 
 			assert.NoError(t, err)

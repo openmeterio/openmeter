@@ -8,6 +8,7 @@ import (
 )
 
 type ListGrantsParams struct {
+	Namespace         string
 	LedgerIDs         []ulid.ULID
 	From              *time.Time
 	To                *time.Time
@@ -22,9 +23,10 @@ type ListFeaturesParams struct {
 }
 
 type ListLedgersParams struct {
-	Subjects []string
-	Offset   int
-	Limit    int
+	Namespace string
+	Subjects  []string
+	Offset    int
+	Limit     int
 }
 
 type NamespacedID struct {
@@ -32,23 +34,29 @@ type NamespacedID struct {
 	ID        ulid.ULID
 }
 
+func NewNamespacedID(ns string, id ulid.ULID) NamespacedID {
+	return NamespacedID{
+		Namespace: ns,
+		ID:        id,
+	}
+}
 
 type Connector interface {
 	// Ledger
-	CreateLedger(ctx context.Context, namespace string, ledger Ledger) (Ledger, error)
-	ListLedgers(ctx context.Context, namespace string, params ListLedgersParams) ([]Ledger, error)
+	CreateLedger(ctx context.Context, ledger Ledger) (Ledger, error)
+	ListLedgers(ctx context.Context, params ListLedgersParams) ([]Ledger, error)
 
 	// Grant
-	CreateGrant(ctx context.Context, namespace string, grant Grant) (Grant, error)
-	VoidGrant(ctx context.Context, namespace string, grant Grant) (Grant, error)
-	ListGrants(ctx context.Context, namespace string, params ListGrantsParams) ([]Grant, error)
-	GetGrant(ctx context.Context, namespace string, id ulid.ULID) (Grant, error)
+	CreateGrant(ctx context.Context, grant Grant) (Grant, error)
+	VoidGrant(ctx context.Context, grant Grant) (Grant, error)
+	ListGrants(ctx context.Context, params ListGrantsParams) ([]Grant, error)
+	GetGrant(ctx context.Context, grantID NamespacedID) (Grant, error)
 
 	// Credit
-	GetBalance(ctx context.Context, namespace string, ledgerID ulid.ULID, cutline time.Time) (Balance, error)
-	GetHistory(ctx context.Context, namespace string, ledgerID ulid.ULID, from time.Time, to time.Time, limit int) (LedgerEntryList, error)
-	GetHighWatermark(ctx context.Context, namespace string, ledgerID ulid.ULID) (HighWatermark, error)
-	Reset(ctx context.Context, namespace string, reset Reset) (Reset, []Grant, error)
+	GetBalance(ctx context.Context, ledgerID NamespacedID, cutline time.Time) (Balance, error)
+	GetHistory(ctx context.Context, ledgerID NamespacedID, from time.Time, to time.Time, limit int) (LedgerEntryList, error)
+	GetHighWatermark(ctx context.Context, ledgerID NamespacedID) (HighWatermark, error)
+	Reset(ctx context.Context, reset Reset) (Reset, []Grant, error)
 
 	// Feature
 	CreateFeature(ctx context.Context, feature Feature) (Feature, error)
