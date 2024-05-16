@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 )
 

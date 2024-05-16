@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/oklog/ulid/v2"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -24,8 +25,10 @@ func (b *builder) ListLedgerGrants() ListLedgerGrantsHandler {
 			}
 
 			request := credit.ListGrantsParams{
-				Namespace: ns,
-				Limit:     defaultx.WithDefault(queryIn.Limit, DefaultLedgerQueryLimit),
+				Namespace:         ns,
+				FromHighWatermark: true,
+				IncludeVoid:       true,
+				Limit:             defaultx.WithDefault(queryIn.Limit, DefaultLedgerQueryLimit),
 			}
 
 			if queryIn.LedgerID != nil {
@@ -58,9 +61,11 @@ func (b *builder) ListLedgerGrantsByLedger() ListLedgerGrantsByLedgerHandler {
 			}
 
 			request := credit.ListGrantsParams{
-				Namespace: ns,
-				LedgerIDs: []ulid.ULID{queryIn.LedgerID},
-				Limit:     defaultx.WithDefault(queryIn.Params.Limit, DefaultLedgerQueryLimit),
+				Namespace:         ns,
+				LedgerIDs:         []ulid.ULID{queryIn.LedgerID},
+				FromHighWatermark: true,
+				IncludeVoid:       true,
+				Limit:             defaultx.WithDefault(queryIn.Params.Limit, DefaultLedgerQueryLimit),
 			}
 			return request, nil
 		},
