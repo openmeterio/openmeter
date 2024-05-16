@@ -1,6 +1,9 @@
 package credit
 
-import "github.com/openmeterio/openmeter/internal/credit"
+import (
+	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit/creditdriver"
+)
 
 type Ledger = credit.Ledger
 type Grant = credit.Grant
@@ -15,3 +18,9 @@ type Connector = credit.Connector
 type ListGrantsParams = credit.ListGrantsParams
 type ListFeaturesParams = credit.ListFeaturesParams
 type ListLedgersParams = credit.ListLedgersParams
+
+type GetLedgerHistoryRequest = creditdriver.GetLedgerHistoryRequest
+type GetLedgerBalanceRequest = creditdriver.GetLedgerBalanceRequest
+type GetLedgerBalaceHandlerParams = creditdriver.GetLedgerBalaceHandlerParams
+type GrantPathParams = creditdriver.GrantPathParams
+type ListLedgerGrantsByLedgerParams = creditdriver.ListLedgerGrantsByLedgerParams
