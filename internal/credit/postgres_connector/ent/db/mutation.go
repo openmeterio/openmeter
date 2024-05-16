@@ -16,7 +16,6 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/predicate"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 const (
@@ -38,11 +37,11 @@ type CreditEntryMutation struct {
 	config
 	op                         Op
 	typ                        string
-	id                         *pgulid.ULID
+	id                         *string
 	created_at                 *time.Time
 	updated_at                 *time.Time
 	namespace                  *string
-	ledger_id                  *pgulid.ULID
+	ledger_id                  *string
 	entry_type                 *credit.EntryType
 	_type                      *credit.GrantType
 	amount                     *float64
@@ -59,11 +58,11 @@ type CreditEntryMutation struct {
 	addrollover_max_amount     *float64
 	metadata                   *map[string]string
 	clearedFields              map[string]struct{}
-	parent                     *pgulid.ULID
+	parent                     *string
 	clearedparent              bool
-	children                   *pgulid.ULID
+	children                   *string
 	clearedchildren            bool
-	feature                    *pgulid.ULID
+	feature                    *string
 	clearedfeature             bool
 	done                       bool
 	oldValue                   func(context.Context) (*CreditEntry, error)
@@ -90,7 +89,7 @@ func newCreditEntryMutation(c config, op Op, opts ...creditentryOption) *CreditE
 }
 
 // withCreditEntryID sets the ID field of the mutation.
-func withCreditEntryID(id pgulid.ULID) creditentryOption {
+func withCreditEntryID(id string) creditentryOption {
 	return func(m *CreditEntryMutation) {
 		var (
 			err   error
@@ -142,13 +141,13 @@ func (m CreditEntryMutation) Tx() (*Tx, error) {
 
 // SetID sets the value of the id field. Note that this
 // operation is only accepted on creation of CreditEntry entities.
-func (m *CreditEntryMutation) SetID(id pgulid.ULID) {
+func (m *CreditEntryMutation) SetID(id string) {
 	m.id = &id
 }
 
 // ID returns the ID value in the mutation. Note that the ID is only available
 // if it was provided to the builder or after it was returned from the database.
-func (m *CreditEntryMutation) ID() (id pgulid.ULID, exists bool) {
+func (m *CreditEntryMutation) ID() (id string, exists bool) {
 	if m.id == nil {
 		return
 	}
@@ -159,12 +158,12 @@ func (m *CreditEntryMutation) ID() (id pgulid.ULID, exists bool) {
 // That means, if the mutation is applied within a transaction with an isolation level such
 // as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
 // or updated by the mutation.
-func (m *CreditEntryMutation) IDs(ctx context.Context) ([]pgulid.ULID, error) {
+func (m *CreditEntryMutation) IDs(ctx context.Context) ([]string, error) {
 	switch {
 	case m.op.Is(OpUpdateOne | OpDeleteOne):
 		id, exists := m.ID()
 		if exists {
-			return []pgulid.ULID{id}, nil
+			return []string{id}, nil
 		}
 		fallthrough
 	case m.op.Is(OpUpdate | OpDelete):
@@ -283,12 +282,12 @@ func (m *CreditEntryMutation) ResetNamespace() {
 }
 
 // SetLedgerID sets the "ledger_id" field.
-func (m *CreditEntryMutation) SetLedgerID(pg pgulid.ULID) {
-	m.ledger_id = &pg
+func (m *CreditEntryMutation) SetLedgerID(s string) {
+	m.ledger_id = &s
 }
 
 // LedgerID returns the value of the "ledger_id" field in the mutation.
-func (m *CreditEntryMutation) LedgerID() (r pgulid.ULID, exists bool) {
+func (m *CreditEntryMutation) LedgerID() (r string, exists bool) {
 	v := m.ledger_id
 	if v == nil {
 		return
@@ -299,7 +298,7 @@ func (m *CreditEntryMutation) LedgerID() (r pgulid.ULID, exists bool) {
 // OldLedgerID returns the old "ledger_id" field's value of the CreditEntry entity.
 // If the CreditEntry object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CreditEntryMutation) OldLedgerID(ctx context.Context) (v pgulid.ULID, err error) {
+func (m *CreditEntryMutation) OldLedgerID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldLedgerID is only allowed on UpdateOne operations")
 	}
@@ -404,12 +403,12 @@ func (m *CreditEntryMutation) ResetType() {
 }
 
 // SetFeatureID sets the "feature_id" field.
-func (m *CreditEntryMutation) SetFeatureID(pg pgulid.ULID) {
-	m.feature = &pg
+func (m *CreditEntryMutation) SetFeatureID(s string) {
+	m.feature = &s
 }
 
 // FeatureID returns the value of the "feature_id" field in the mutation.
-func (m *CreditEntryMutation) FeatureID() (r pgulid.ULID, exists bool) {
+func (m *CreditEntryMutation) FeatureID() (r string, exists bool) {
 	v := m.feature
 	if v == nil {
 		return
@@ -420,7 +419,7 @@ func (m *CreditEntryMutation) FeatureID() (r pgulid.ULID, exists bool) {
 // OldFeatureID returns the old "feature_id" field's value of the CreditEntry entity.
 // If the CreditEntry object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CreditEntryMutation) OldFeatureID(ctx context.Context) (v *pgulid.ULID, err error) {
+func (m *CreditEntryMutation) OldFeatureID(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldFeatureID is only allowed on UpdateOne operations")
 	}
@@ -951,12 +950,12 @@ func (m *CreditEntryMutation) ResetMetadata() {
 }
 
 // SetParentID sets the "parent_id" field.
-func (m *CreditEntryMutation) SetParentID(pg pgulid.ULID) {
-	m.parent = &pg
+func (m *CreditEntryMutation) SetParentID(s string) {
+	m.parent = &s
 }
 
 // ParentID returns the value of the "parent_id" field in the mutation.
-func (m *CreditEntryMutation) ParentID() (r pgulid.ULID, exists bool) {
+func (m *CreditEntryMutation) ParentID() (r string, exists bool) {
 	v := m.parent
 	if v == nil {
 		return
@@ -967,7 +966,7 @@ func (m *CreditEntryMutation) ParentID() (r pgulid.ULID, exists bool) {
 // OldParentID returns the old "parent_id" field's value of the CreditEntry entity.
 // If the CreditEntry object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CreditEntryMutation) OldParentID(ctx context.Context) (v *pgulid.ULID, err error) {
+func (m *CreditEntryMutation) OldParentID(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldParentID is only allowed on UpdateOne operations")
 	}
@@ -1013,7 +1012,7 @@ func (m *CreditEntryMutation) ParentCleared() bool {
 // ParentIDs returns the "parent" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
 // ParentID instead. It exists only for internal usage by the builders.
-func (m *CreditEntryMutation) ParentIDs() (ids []pgulid.ULID) {
+func (m *CreditEntryMutation) ParentIDs() (ids []string) {
 	if id := m.parent; id != nil {
 		ids = append(ids, *id)
 	}
@@ -1027,7 +1026,7 @@ func (m *CreditEntryMutation) ResetParent() {
 }
 
 // SetChildrenID sets the "children" edge to the CreditEntry entity by id.
-func (m *CreditEntryMutation) SetChildrenID(id pgulid.ULID) {
+func (m *CreditEntryMutation) SetChildrenID(id string) {
 	m.children = &id
 }
 
@@ -1042,7 +1041,7 @@ func (m *CreditEntryMutation) ChildrenCleared() bool {
 }
 
 // ChildrenID returns the "children" edge ID in the mutation.
-func (m *CreditEntryMutation) ChildrenID() (id pgulid.ULID, exists bool) {
+func (m *CreditEntryMutation) ChildrenID() (id string, exists bool) {
 	if m.children != nil {
 		return *m.children, true
 	}
@@ -1052,7 +1051,7 @@ func (m *CreditEntryMutation) ChildrenID() (id pgulid.ULID, exists bool) {
 // ChildrenIDs returns the "children" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
 // ChildrenID instead. It exists only for internal usage by the builders.
-func (m *CreditEntryMutation) ChildrenIDs() (ids []pgulid.ULID) {
+func (m *CreditEntryMutation) ChildrenIDs() (ids []string) {
 	if id := m.children; id != nil {
 		ids = append(ids, *id)
 	}
@@ -1079,7 +1078,7 @@ func (m *CreditEntryMutation) FeatureCleared() bool {
 // FeatureIDs returns the "feature" edge IDs in the mutation.
 // Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
 // FeatureID instead. It exists only for internal usage by the builders.
-func (m *CreditEntryMutation) FeatureIDs() (ids []pgulid.ULID) {
+func (m *CreditEntryMutation) FeatureIDs() (ids []string) {
 	if id := m.feature; id != nil {
 		ids = append(ids, *id)
 	}
@@ -1294,7 +1293,7 @@ func (m *CreditEntryMutation) SetField(name string, value ent.Value) error {
 		m.SetNamespace(v)
 		return nil
 	case creditentry.FieldLedgerID:
-		v, ok := value.(pgulid.ULID)
+		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -1315,7 +1314,7 @@ func (m *CreditEntryMutation) SetField(name string, value ent.Value) error {
 		m.SetType(v)
 		return nil
 	case creditentry.FieldFeatureID:
-		v, ok := value.(pgulid.ULID)
+		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -1385,7 +1384,7 @@ func (m *CreditEntryMutation) SetField(name string, value ent.Value) error {
 		m.SetMetadata(v)
 		return nil
 	case creditentry.FieldParentID:
-		v, ok := value.(pgulid.ULID)
+		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -1724,7 +1723,7 @@ type FeatureMutation struct {
 	config
 	op                     Op
 	typ                    string
-	id                     *pgulid.ULID
+	id                     *string
 	created_at             *time.Time
 	updated_at             *time.Time
 	namespace              *string
@@ -1733,8 +1732,8 @@ type FeatureMutation struct {
 	meter_group_by_filters *map[string]string
 	archived               *bool
 	clearedFields          map[string]struct{}
-	credit_grants          map[pgulid.ULID]struct{}
-	removedcredit_grants   map[pgulid.ULID]struct{}
+	credit_grants          map[string]struct{}
+	removedcredit_grants   map[string]struct{}
 	clearedcredit_grants   bool
 	done                   bool
 	oldValue               func(context.Context) (*Feature, error)
@@ -1761,7 +1760,7 @@ func newFeatureMutation(c config, op Op, opts ...featureOption) *FeatureMutation
 }
 
 // withFeatureID sets the ID field of the mutation.
-func withFeatureID(id pgulid.ULID) featureOption {
+func withFeatureID(id string) featureOption {
 	return func(m *FeatureMutation) {
 		var (
 			err   error
@@ -1813,13 +1812,13 @@ func (m FeatureMutation) Tx() (*Tx, error) {
 
 // SetID sets the value of the id field. Note that this
 // operation is only accepted on creation of Feature entities.
-func (m *FeatureMutation) SetID(id pgulid.ULID) {
+func (m *FeatureMutation) SetID(id string) {
 	m.id = &id
 }
 
 // ID returns the ID value in the mutation. Note that the ID is only available
 // if it was provided to the builder or after it was returned from the database.
-func (m *FeatureMutation) ID() (id pgulid.ULID, exists bool) {
+func (m *FeatureMutation) ID() (id string, exists bool) {
 	if m.id == nil {
 		return
 	}
@@ -1830,12 +1829,12 @@ func (m *FeatureMutation) ID() (id pgulid.ULID, exists bool) {
 // That means, if the mutation is applied within a transaction with an isolation level such
 // as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
 // or updated by the mutation.
-func (m *FeatureMutation) IDs(ctx context.Context) ([]pgulid.ULID, error) {
+func (m *FeatureMutation) IDs(ctx context.Context) ([]string, error) {
 	switch {
 	case m.op.Is(OpUpdateOne | OpDeleteOne):
 		id, exists := m.ID()
 		if exists {
-			return []pgulid.ULID{id}, nil
+			return []string{id}, nil
 		}
 		fallthrough
 	case m.op.Is(OpUpdate | OpDelete):
@@ -2111,9 +2110,9 @@ func (m *FeatureMutation) ResetArchived() {
 }
 
 // AddCreditGrantIDs adds the "credit_grants" edge to the CreditEntry entity by ids.
-func (m *FeatureMutation) AddCreditGrantIDs(ids ...pgulid.ULID) {
+func (m *FeatureMutation) AddCreditGrantIDs(ids ...string) {
 	if m.credit_grants == nil {
-		m.credit_grants = make(map[pgulid.ULID]struct{})
+		m.credit_grants = make(map[string]struct{})
 	}
 	for i := range ids {
 		m.credit_grants[ids[i]] = struct{}{}
@@ -2131,9 +2130,9 @@ func (m *FeatureMutation) CreditGrantsCleared() bool {
 }
 
 // RemoveCreditGrantIDs removes the "credit_grants" edge to the CreditEntry entity by IDs.
-func (m *FeatureMutation) RemoveCreditGrantIDs(ids ...pgulid.ULID) {
+func (m *FeatureMutation) RemoveCreditGrantIDs(ids ...string) {
 	if m.removedcredit_grants == nil {
-		m.removedcredit_grants = make(map[pgulid.ULID]struct{})
+		m.removedcredit_grants = make(map[string]struct{})
 	}
 	for i := range ids {
 		delete(m.credit_grants, ids[i])
@@ -2142,7 +2141,7 @@ func (m *FeatureMutation) RemoveCreditGrantIDs(ids ...pgulid.ULID) {
 }
 
 // RemovedCreditGrants returns the removed IDs of the "credit_grants" edge to the CreditEntry entity.
-func (m *FeatureMutation) RemovedCreditGrantsIDs() (ids []pgulid.ULID) {
+func (m *FeatureMutation) RemovedCreditGrantsIDs() (ids []string) {
 	for id := range m.removedcredit_grants {
 		ids = append(ids, id)
 	}
@@ -2150,7 +2149,7 @@ func (m *FeatureMutation) RemovedCreditGrantsIDs() (ids []pgulid.ULID) {
 }
 
 // CreditGrantsIDs returns the "credit_grants" edge IDs in the mutation.
-func (m *FeatureMutation) CreditGrantsIDs() (ids []pgulid.ULID) {
+func (m *FeatureMutation) CreditGrantsIDs() (ids []string) {
 	for id := range m.credit_grants {
 		ids = append(ids, id)
 	}
@@ -2495,7 +2494,7 @@ type LedgerMutation struct {
 	config
 	op            Op
 	typ           string
-	id            *pgulid.ULID
+	id            *string
 	created_at    *time.Time
 	updated_at    *time.Time
 	namespace     *string
@@ -2528,7 +2527,7 @@ func newLedgerMutation(c config, op Op, opts ...ledgerOption) *LedgerMutation {
 }
 
 // withLedgerID sets the ID field of the mutation.
-func withLedgerID(id pgulid.ULID) ledgerOption {
+func withLedgerID(id string) ledgerOption {
 	return func(m *LedgerMutation) {
 		var (
 			err   error
@@ -2580,13 +2579,13 @@ func (m LedgerMutation) Tx() (*Tx, error) {
 
 // SetID sets the value of the id field. Note that this
 // operation is only accepted on creation of Ledger entities.
-func (m *LedgerMutation) SetID(id pgulid.ULID) {
+func (m *LedgerMutation) SetID(id string) {
 	m.id = &id
 }
 
 // ID returns the ID value in the mutation. Note that the ID is only available
 // if it was provided to the builder or after it was returned from the database.
-func (m *LedgerMutation) ID() (id pgulid.ULID, exists bool) {
+func (m *LedgerMutation) ID() (id string, exists bool) {
 	if m.id == nil {
 		return
 	}
@@ -2597,12 +2596,12 @@ func (m *LedgerMutation) ID() (id pgulid.ULID, exists bool) {
 // That means, if the mutation is applied within a transaction with an isolation level such
 // as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
 // or updated by the mutation.
-func (m *LedgerMutation) IDs(ctx context.Context) ([]pgulid.ULID, error) {
+func (m *LedgerMutation) IDs(ctx context.Context) ([]string, error) {
 	switch {
 	case m.op.Is(OpUpdateOne | OpDeleteOne):
 		id, exists := m.ID()
 		if exists {
-			return []pgulid.ULID{id}, nil
+			return []string{id}, nil
 		}
 		fallthrough
 	case m.op.Is(OpUpdate | OpDelete):

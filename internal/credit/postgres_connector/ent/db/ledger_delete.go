@@ -40,7 +40,7 @@ func (ld *LedgerDelete) ExecX(ctx context.Context) int {
 }
 
 func (ld *LedgerDelete) sqlExec(ctx context.Context) (int, error) {
-	_spec := sqlgraph.NewDeleteSpec(ledger.Table, sqlgraph.NewFieldSpec(ledger.FieldID, field.TypeOther))
+	_spec := sqlgraph.NewDeleteSpec(ledger.Table, sqlgraph.NewFieldSpec(ledger.FieldID, field.TypeString))
 	if ps := ld.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {

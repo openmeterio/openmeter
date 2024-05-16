@@ -30,7 +30,7 @@ func TestTransaction(t *testing.T) {
 			test: func(t *testing.T, connector PostgresConnector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
 
-				ledgerID := credit.NamespacedID{
+				ledgerID := credit.NamespacedLedgerID{
 					Namespace: namespace,
 					ID:        ledger.ID,
 				}
@@ -89,7 +89,7 @@ func TestTransaction(t *testing.T) {
 			description: "Should respect context cancel in locks",
 			test: func(t *testing.T, connector PostgresConnector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				ledgerID := credit.NamespacedID{
+				ledgerID := credit.NamespacedLedgerID{
 					Namespace: namespace,
 					ID:        ledger.ID,
 				}

@@ -7,17 +7,15 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
-	"github.com/oklog/ulid/v2"
 
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_credit "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 func (c *PostgresConnector) CreateGrant(ctx context.Context, grantIn credit.Grant) (credit.Grant, error) {
-	grant, err := mutationTransaction(ctx, c, credit.NewNamespacedID(grantIn.Namespace, grantIn.LedgerID), func(tx *db.Tx, ledgerEntity *db.Ledger) (*credit.Grant, error) {
+	grant, err := mutationTransaction(ctx, c, credit.NewNamespacedLedgerID(grantIn.Namespace, grantIn.LedgerID), func(tx *db.Tx, ledgerEntity *db.Ledger) (*credit.Grant, error) {
 		// Check if the reset is in the future
 		err := checkAfterHighWatermark(grantIn.EffectiveAt, ledgerEntity)
 		if err != nil {
@@ -29,12 +27,12 @@ func (c *PostgresConnector) CreateGrant(ctx context.Context, grantIn credit.Gran
 
 		q := tx.CreditEntry.Create().
 			SetNamespace(grantIn.Namespace).
-			SetNillableID(pgulid.Ptr(grantIn.ID)).
-			SetLedgerID(pgulid.Wrap(grantIn.LedgerID)).
+			SetNillableID((*string)(grantIn.ID)).
+			SetLedgerID(string(grantIn.LedgerID)).
 			SetEntryType(credit.EntryTypeGrant).
 			SetType(grantIn.Type).
-			SetNillableParentID(pgulid.Ptr(grantIn.ParentID)).
-			SetNillableFeatureID(pgulid.Ptr(grantIn.FeatureID)).
+			SetNillableParentID((*string)(grantIn.ParentID)).
+			SetNillableFeatureID((*string)(grantIn.FeatureID)).
 			SetAmount(grantIn.Amount).
 			SetPriority(grantIn.Priority).
 			SetEffectiveAt(grantIn.EffectiveAt).
@@ -67,7 +65,7 @@ func (c *PostgresConnector) CreateGrant(ctx context.Context, grantIn credit.Gran
 }
 
 func (c *PostgresConnector) VoidGrant(ctx context.Context, grantIn credit.Grant) (credit.Grant, error) {
-	grant, err := mutationTransaction(ctx, c, credit.NewNamespacedID(grantIn.Namespace, grantIn.LedgerID), func(tx *db.Tx, ledgerEntity *db.Ledger) (*credit.Grant, error) {
+	grant, err := mutationTransaction(ctx, c, credit.NewNamespacedLedgerID(grantIn.Namespace, grantIn.LedgerID), func(tx *db.Tx, ledgerEntity *db.Ledger) (*credit.Grant, error) {
 		// Check if the reset is in the future
 		err := checkAfterHighWatermark(grantIn.EffectiveAt, ledgerEntity)
 		if err != nil {
@@ -76,7 +74,7 @@ func (c *PostgresConnector) VoidGrant(ctx context.Context, grantIn credit.Grant)
 		}
 
 		// Get balance to check if grant can be voided: not partially or fully used yet
-		balance, err := c.GetBalance(ctx, credit.NewNamespacedID(grantIn.Namespace, grantIn.LedgerID), time.Now())
+		balance, err := c.GetBalance(ctx, credit.NewNamespacedLedgerID(grantIn.Namespace, grantIn.LedgerID), time.Now())
 		if err != nil {
 			return nil, err
 		}
@@ -102,7 +100,7 @@ func (c *PostgresConnector) VoidGrant(ctx context.Context, grantIn credit.Grant)
 		entity, err := tx.CreditEntry.Query().
 			Where(
 				db_credit.Namespace(grantIn.Namespace),
-				db_credit.ID(pgulid.Wrap(*grantIn.ID)),
+				db_credit.ID(string(*grantIn.ID)),
 			).
 			Only(ctx)
 		if err != nil {
@@ -152,8 +150,8 @@ func (c *PostgresConnector) ListGrants(ctx context.Context, params credit.ListGr
 			db_credit.Namespace(params.Namespace),
 		)
 	if len(params.LedgerIDs) > 0 {
-		q = q.Where(db_credit.LedgerIDIn(slicesx.Map(params.LedgerIDs, func(id ulid.ULID) pgulid.ULID {
-			return pgulid.Wrap(id)
+		q = q.Where(db_credit.LedgerIDIn(slicesx.Map(params.LedgerIDs, func(id credit.LedgerID) string {
+			return string(id)
 		})...))
 	}
 	// equal?
@@ -235,20 +233,20 @@ func (c *PostgresConnector) ListGrants(ctx context.Context, params credit.ListGr
 	return list, nil
 }
 
-func (c *PostgresConnector) GetGrant(ctx context.Context, grantID credit.NamespacedID) (credit.Grant, error) {
+func (c *PostgresConnector) GetGrant(ctx context.Context, grantID credit.NamespacedGrantID) (credit.Grant, error) {
 	entity, err := c.db.CreditEntry.Query().Where(
 		db_credit.Or(
 			// grant
 			db_credit.And(
 				db_credit.Namespace(grantID.Namespace),
-				db_credit.ID(pgulid.Wrap(grantID.ID)),
+				db_credit.ID(string(grantID.ID)),
 				db_credit.EntryTypeEQ(credit.EntryTypeGrant),
 				db_credit.Not(db_credit.HasChildren()),
 			),
 			// void grant
 			db_credit.And(
 				db_credit.Namespace(grantID.Namespace),
-				db_credit.HasParentWith(db_credit.ID(pgulid.Wrap(grantID.ID))),
+				db_credit.HasParentWith(db_credit.ID(string(grantID.ID))),
 				db_credit.EntryTypeEQ(credit.EntryTypeVoidGrant),
 			),
 		),
@@ -275,11 +273,11 @@ func mapGrantEntity(entry *db.CreditEntry) (credit.Grant, error) {
 
 	grant := credit.Grant{
 		Namespace:   entry.Namespace,
-		ID:          &entry.ID.ULID,
-		ParentID:    entry.ParentID.ULIDPointer(),
-		LedgerID:    entry.LedgerID.ULID,
+		ID:          (*credit.GrantID)(&entry.ID),
+		ParentID:    (*credit.GrantID)(entry.ParentID),
+		LedgerID:    credit.LedgerID(entry.LedgerID),
 		Type:        *entry.Type,
-		FeatureID:   entry.FeatureID.ULIDPointer(),
+		FeatureID:   (*credit.FeatureID)(entry.FeatureID),
 		Amount:      *entry.Amount,
 		Priority:    entry.Priority,
 		EffectiveAt: entry.EffectiveAt.In(time.UTC),

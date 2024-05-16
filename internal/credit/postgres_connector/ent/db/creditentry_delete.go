@@ -40,7 +40,7 @@ func (ced *CreditEntryDelete) ExecX(ctx context.Context) int {
 }
 
 func (ced *CreditEntryDelete) sqlExec(ctx context.Context) (int, error) {
-	_spec := sqlgraph.NewDeleteSpec(creditentry.Table, sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeOther))
+	_spec := sqlgraph.NewDeleteSpec(creditentry.Table, sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString))
 	if ps := ced.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {

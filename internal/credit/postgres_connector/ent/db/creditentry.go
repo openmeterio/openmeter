@@ -13,14 +13,13 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 // CreditEntry is the model entity for the CreditEntry schema.
 type CreditEntry struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID pgulid.ULID `json:"id,omitempty"`
+	ID string `json:"id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -28,13 +27,13 @@ type CreditEntry struct {
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
 	// LedgerID holds the value of the "ledger_id" field.
-	LedgerID pgulid.ULID `json:"ledger_id,omitempty"`
+	LedgerID string `json:"ledger_id,omitempty"`
 	// EntryType holds the value of the "entry_type" field.
 	EntryType credit.EntryType `json:"entry_type,omitempty"`
 	// Type holds the value of the "type" field.
 	Type *credit.GrantType `json:"type,omitempty"`
 	// FeatureID holds the value of the "feature_id" field.
-	FeatureID *pgulid.ULID `json:"feature_id,omitempty"`
+	FeatureID *string `json:"feature_id,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount *float64 `json:"amount,omitempty"`
 	// Priority holds the value of the "priority" field.
@@ -54,7 +53,7 @@ type CreditEntry struct {
 	// Metadata holds the value of the "metadata" field.
 	Metadata map[string]string `json:"metadata,omitempty"`
 	// ParentID holds the value of the "parent_id" field.
-	ParentID *pgulid.ULID `json:"parent_id,omitempty"`
+	ParentID *string `json:"parent_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CreditEntryQuery when eager-loading is set.
 	Edges        CreditEntryEdges `json:"edges"`
@@ -112,17 +111,13 @@ func (*CreditEntry) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case creditentry.FieldFeatureID, creditentry.FieldParentID:
-			values[i] = &sql.NullScanner{S: new(pgulid.ULID)}
 		case creditentry.FieldMetadata:
 			values[i] = new([]byte)
-		case creditentry.FieldID, creditentry.FieldLedgerID:
-			values[i] = new(pgulid.ULID)
 		case creditentry.FieldAmount, creditentry.FieldRolloverMaxAmount:
 			values[i] = new(sql.NullFloat64)
 		case creditentry.FieldPriority, creditentry.FieldExpirationPeriodCount:
 			values[i] = new(sql.NullInt64)
-		case creditentry.FieldNamespace, creditentry.FieldEntryType, creditentry.FieldType, creditentry.FieldExpirationPeriodDuration, creditentry.FieldRolloverType:
+		case creditentry.FieldID, creditentry.FieldNamespace, creditentry.FieldLedgerID, creditentry.FieldEntryType, creditentry.FieldType, creditentry.FieldFeatureID, creditentry.FieldExpirationPeriodDuration, creditentry.FieldRolloverType, creditentry.FieldParentID:
 			values[i] = new(sql.NullString)
 		case creditentry.FieldCreatedAt, creditentry.FieldUpdatedAt, creditentry.FieldEffectiveAt, creditentry.FieldExpirationAt:
 			values[i] = new(sql.NullTime)
@@ -142,10 +137,10 @@ func (ce *CreditEntry) assignValues(columns []string, values []any) error {
 	for i := range columns {
 		switch columns[i] {
 		case creditentry.FieldID:
-			if value, ok := values[i].(*pgulid.ULID); !ok {
+			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
-			} else if value != nil {
-				ce.ID = *value
+			} else if value.Valid {
+				ce.ID = value.String
 			}
 		case creditentry.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -166,10 +161,10 @@ func (ce *CreditEntry) assignValues(columns []string, values []any) error {
 				ce.Namespace = value.String
 			}
 		case creditentry.FieldLedgerID:
-			if value, ok := values[i].(*pgulid.ULID); !ok {
+			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field ledger_id", values[i])
-			} else if value != nil {
-				ce.LedgerID = *value
+			} else if value.Valid {
+				ce.LedgerID = value.String
 			}
 		case creditentry.FieldEntryType:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -185,11 +180,11 @@ func (ce *CreditEntry) assignValues(columns []string, values []any) error {
 				*ce.Type = credit.GrantType(value.String)
 			}
 		case creditentry.FieldFeatureID:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
+			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field feature_id", values[i])
 			} else if value.Valid {
-				ce.FeatureID = new(pgulid.ULID)
-				*ce.FeatureID = *value.S.(*pgulid.ULID)
+				ce.FeatureID = new(string)
+				*ce.FeatureID = value.String
 			}
 		case creditentry.FieldAmount:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
@@ -254,11 +249,11 @@ func (ce *CreditEntry) assignValues(columns []string, values []any) error {
 				}
 			}
 		case creditentry.FieldParentID:
-			if value, ok := values[i].(*sql.NullScanner); !ok {
+			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field parent_id", values[i])
 			} else if value.Valid {
-				ce.ParentID = new(pgulid.ULID)
-				*ce.ParentID = *value.S.(*pgulid.ULID)
+				ce.ParentID = new(string)
+				*ce.ParentID = value.String
 			}
 		default:
 			ce.selectValues.Set(columns[i], values[i])
@@ -321,7 +316,7 @@ func (ce *CreditEntry) String() string {
 	builder.WriteString(ce.Namespace)
 	builder.WriteString(", ")
 	builder.WriteString("ledger_id=")
-	builder.WriteString(fmt.Sprintf("%v", ce.LedgerID))
+	builder.WriteString(ce.LedgerID)
 	builder.WriteString(", ")
 	builder.WriteString("entry_type=")
 	builder.WriteString(fmt.Sprintf("%v", ce.EntryType))
@@ -333,7 +328,7 @@ func (ce *CreditEntry) String() string {
 	builder.WriteString(", ")
 	if v := ce.FeatureID; v != nil {
 		builder.WriteString("feature_id=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
+		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	if v := ce.Amount; v != nil {
@@ -377,7 +372,7 @@ func (ce *CreditEntry) String() string {
 	builder.WriteString(", ")
 	if v := ce.ParentID; v != nil {
 		builder.WriteString("parent_id=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
+		builder.WriteString(*v)
 	}
 	builder.WriteByte(')')
 	return builder.String()

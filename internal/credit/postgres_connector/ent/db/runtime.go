@@ -8,7 +8,6 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/schema"
 )
 
@@ -48,7 +47,7 @@ func init() {
 	// creditentryDescID is the schema descriptor for id field.
 	creditentryDescID := creditentryMixinFields0[0].Descriptor()
 	// creditentry.DefaultID holds the default value on creation for the id field.
-	creditentry.DefaultID = creditentryDescID.Default.(func() pgulid.ULID)
+	creditentry.DefaultID = creditentryDescID.Default.(func() string)
 	featureMixin := schema.Feature{}.Mixin()
 	featureMixinFields0 := featureMixin[0].Fields()
 	_ = featureMixinFields0
@@ -85,7 +84,7 @@ func init() {
 	// featureDescID is the schema descriptor for id field.
 	featureDescID := featureMixinFields0[0].Descriptor()
 	// feature.DefaultID holds the default value on creation for the id field.
-	feature.DefaultID = featureDescID.Default.(func() pgulid.ULID)
+	feature.DefaultID = featureDescID.Default.(func() string)
 	ledgerMixin := schema.Ledger{}.Mixin()
 	ledgerMixinFields0 := ledgerMixin[0].Fields()
 	_ = ledgerMixinFields0
@@ -118,5 +117,5 @@ func init() {
 	// ledgerDescID is the schema descriptor for id field.
 	ledgerDescID := ledgerMixinFields1[0].Descriptor()
 	// ledger.DefaultID holds the default value on creation for the id field.
-	ledger.DefaultID = ledgerDescID.Default.(func() pgulid.ULID)
+	ledger.DefaultID = ledgerDescID.Default.(func() string)
 }

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 const (
@@ -65,7 +64,7 @@ var (
 	// DefaultHighwatermark holds the default value on creation for the "highwatermark" field.
 	DefaultHighwatermark func() time.Time
 	// DefaultID holds the default value on creation for the "id" field.
-	DefaultID func() pgulid.ULID
+	DefaultID func() string
 )
 
 // OrderOption defines the ordering options for the Ledger queries.

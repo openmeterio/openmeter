@@ -13,7 +13,6 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 // LedgerCreate is the builder for creating a Ledger entity.
@@ -85,15 +84,15 @@ func (lc *LedgerCreate) SetNillableHighwatermark(t *time.Time) *LedgerCreate {
 }
 
 // SetID sets the "id" field.
-func (lc *LedgerCreate) SetID(pg pgulid.ULID) *LedgerCreate {
-	lc.mutation.SetID(pg)
+func (lc *LedgerCreate) SetID(s string) *LedgerCreate {
+	lc.mutation.SetID(s)
 	return lc
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (lc *LedgerCreate) SetNillableID(pg *pgulid.ULID) *LedgerCreate {
-	if pg != nil {
-		lc.SetID(*pg)
+func (lc *LedgerCreate) SetNillableID(s *string) *LedgerCreate {
+	if s != nil {
+		lc.SetID(*s)
 	}
 	return lc
 }
@@ -193,10 +192,10 @@ func (lc *LedgerCreate) sqlSave(ctx context.Context) (*Ledger, error) {
 		return nil, err
 	}
 	if _spec.ID.Value != nil {
-		if id, ok := _spec.ID.Value.(*pgulid.ULID); ok {
-			_node.ID = *id
-		} else if err := _node.ID.Scan(_spec.ID.Value); err != nil {
-			return nil, err
+		if id, ok := _spec.ID.Value.(string); ok {
+			_node.ID = id
+		} else {
+			return nil, fmt.Errorf("unexpected Ledger.ID type: %T", _spec.ID.Value)
 		}
 	}
 	lc.mutation.id = &_node.ID
@@ -207,12 +206,12 @@ func (lc *LedgerCreate) sqlSave(ctx context.Context) (*Ledger, error) {
 func (lc *LedgerCreate) createSpec() (*Ledger, *sqlgraph.CreateSpec) {
 	var (
 		_node = &Ledger{config: lc.config}
-		_spec = sqlgraph.NewCreateSpec(ledger.Table, sqlgraph.NewFieldSpec(ledger.FieldID, field.TypeOther))
+		_spec = sqlgraph.NewCreateSpec(ledger.Table, sqlgraph.NewFieldSpec(ledger.FieldID, field.TypeString))
 	)
 	_spec.OnConflict = lc.conflict
 	if id, ok := lc.mutation.ID(); ok {
 		_node.ID = id
-		_spec.ID.Value = &id
+		_spec.ID.Value = id
 	}
 	if value, ok := lc.mutation.CreatedAt(); ok {
 		_spec.SetField(ledger.FieldCreatedAt, field.TypeTime, value)
@@ -454,7 +453,7 @@ func (u *LedgerUpsertOne) ExecX(ctx context.Context) {
 }
 
 // Exec executes the UPSERT query and returns the inserted/updated ID.
-func (u *LedgerUpsertOne) ID(ctx context.Context) (id pgulid.ULID, err error) {
+func (u *LedgerUpsertOne) ID(ctx context.Context) (id string, err error) {
 	if u.create.driver.Dialect() == dialect.MySQL {
 		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
 		// fields from the database since MySQL does not support the RETURNING clause.
@@ -468,7 +467,7 @@ func (u *LedgerUpsertOne) ID(ctx context.Context) (id pgulid.ULID, err error) {
 }
 
 // IDX is like ID, but panics if an error occurs.
-func (u *LedgerUpsertOne) IDX(ctx context.Context) pgulid.ULID {
+func (u *LedgerUpsertOne) IDX(ctx context.Context) string {
 	id, err := u.ID(ctx)
 	if err != nil {
 		panic(err)

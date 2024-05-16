@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/predicate"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 // FeatureQuery is the builder for querying Feature entities.
@@ -109,8 +108,8 @@ func (fq *FeatureQuery) FirstX(ctx context.Context) *Feature {
 
 // FirstID returns the first Feature ID from the query.
 // Returns a *NotFoundError when no Feature ID was found.
-func (fq *FeatureQuery) FirstID(ctx context.Context) (id pgulid.ULID, err error) {
-	var ids []pgulid.ULID
+func (fq *FeatureQuery) FirstID(ctx context.Context) (id string, err error) {
+	var ids []string
 	if ids, err = fq.Limit(1).IDs(setContextOp(ctx, fq.ctx, "FirstID")); err != nil {
 		return
 	}
@@ -122,7 +121,7 @@ func (fq *FeatureQuery) FirstID(ctx context.Context) (id pgulid.ULID, err error)
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (fq *FeatureQuery) FirstIDX(ctx context.Context) pgulid.ULID {
+func (fq *FeatureQuery) FirstIDX(ctx context.Context) string {
 	id, err := fq.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -160,8 +159,8 @@ func (fq *FeatureQuery) OnlyX(ctx context.Context) *Feature {
 // OnlyID is like Only, but returns the only Feature ID in the query.
 // Returns a *NotSingularError when more than one Feature ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (fq *FeatureQuery) OnlyID(ctx context.Context) (id pgulid.ULID, err error) {
-	var ids []pgulid.ULID
+func (fq *FeatureQuery) OnlyID(ctx context.Context) (id string, err error) {
+	var ids []string
 	if ids, err = fq.Limit(2).IDs(setContextOp(ctx, fq.ctx, "OnlyID")); err != nil {
 		return
 	}
@@ -177,7 +176,7 @@ func (fq *FeatureQuery) OnlyID(ctx context.Context) (id pgulid.ULID, err error) 
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (fq *FeatureQuery) OnlyIDX(ctx context.Context) pgulid.ULID {
+func (fq *FeatureQuery) OnlyIDX(ctx context.Context) string {
 	id, err := fq.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -205,7 +204,7 @@ func (fq *FeatureQuery) AllX(ctx context.Context) []*Feature {
 }
 
 // IDs executes the query and returns a list of Feature IDs.
-func (fq *FeatureQuery) IDs(ctx context.Context) (ids []pgulid.ULID, err error) {
+func (fq *FeatureQuery) IDs(ctx context.Context) (ids []string, err error) {
 	if fq.ctx.Unique == nil && fq.path != nil {
 		fq.Unique(true)
 	}
@@ -217,7 +216,7 @@ func (fq *FeatureQuery) IDs(ctx context.Context) (ids []pgulid.ULID, err error) 
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (fq *FeatureQuery) IDsX(ctx context.Context) []pgulid.ULID {
+func (fq *FeatureQuery) IDsX(ctx context.Context) []string {
 	ids, err := fq.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -410,7 +409,7 @@ func (fq *FeatureQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Feat
 
 func (fq *FeatureQuery) loadCreditGrants(ctx context.Context, query *CreditEntryQuery, nodes []*Feature, init func(*Feature), assign func(*Feature, *CreditEntry)) error {
 	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[pgulid.ULID]*Feature)
+	nodeids := make(map[string]*Feature)
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
@@ -455,7 +454,7 @@ func (fq *FeatureQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (fq *FeatureQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(feature.Table, feature.Columns, sqlgraph.NewFieldSpec(feature.FieldID, field.TypeOther))
+	_spec := sqlgraph.NewQuerySpec(feature.Table, feature.Columns, sqlgraph.NewFieldSpec(feature.FieldID, field.TypeString))
 	_spec.From = fq.sql
 	if unique := fq.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
