@@ -1,0 +1,27 @@
+name: Snapshot
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    environment: dev
+    needs: artifacts
+
+    steps:
+      - name: Build
+        uses: dagger/dagger-for-github@96374d4565476519ead3e2881953c8a5a5ea3f55 # v5.5.0
+        with:
+          verb: call
+          module: github.com/${{ github.repository }}@${{ github.ref }}
+          args: --ref ${{ github.ref }} snapshot --stainless-token env:STAINLESS_TOKEN
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          version: "0.11.4"
+        env:
+          STAINLESS_TOKEN: ${{ secrets.STAINLESS_TOKEN }}
