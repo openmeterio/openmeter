@@ -53,8 +53,9 @@ func TestLedgerCreation(t *testing.T) {
 		assert.True(t, ok, "We got an already exists error")
 		assert.Equal(t, &credit.LedgerAlreadyExistsError{
 			Ledger: credit.Ledger{
-				Subject: ledgerSubject,
-				ID:      existingLedgerID,
+				Namespace: "default",
+				Subject:   ledgerSubject,
+				ID:        existingLedgerID,
 			},
 		}, details)
 	})

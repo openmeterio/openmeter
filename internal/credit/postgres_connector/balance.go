@@ -31,6 +31,14 @@ func (a *PostgresConnector) GetBalance(
 		return credit.Balance{}, fmt.Errorf("get high watermark: %w", err)
 	}
 
+	if cutline.Before(hw.Time) {
+		return credit.Balance{}, &credit.HighWatermarBeforeError{
+			Namespace:     ledgerID.Namespace,
+			LedgerID:      ledgerID.ID,
+			HighWatermark: hw.Time,
+		}
+	}
+
 	balance, _, err := a.getBalance(ctx, ledgerID, hw.Time, cutline)
 	return balance, err
 }

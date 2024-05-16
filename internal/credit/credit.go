@@ -214,7 +214,7 @@ type HighWatermarBeforeError struct {
 }
 
 func (e *HighWatermarBeforeError) Error() string {
-	return fmt.Sprintf("ledger action for ledger %s.%s must be after highwatermark: %s", e.Namespace, e.LedgerID.String(), e.HighWatermark.Format(time.RFC3339))
+	return fmt.Sprintf("ledger action for ledger %s must be after highwatermark: %s", e.LedgerID.String(), e.HighWatermark.Format(time.RFC3339))
 }
 
 // LockErrNotObtainedError is returned when a lock cannot be obtained.

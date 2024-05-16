@@ -2,6 +2,7 @@ package postgres_connector
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -72,6 +73,26 @@ func (c *PostgresConnector) VoidGrant(ctx context.Context, grantIn credit.Grant)
 		if err != nil {
 			// Typed error do not wrap
 			return nil, err
+		}
+
+		// Get balance to check if grant can be voided: not partially or fully used yet
+		balance, err := c.GetBalance(ctx, credit.NewNamespacedID(grantIn.Namespace, grantIn.LedgerID), time.Now())
+		if err != nil {
+			return nil, err
+		}
+
+		if grantIn.ID == nil {
+			return nil, errors.New("grant ID is required")
+		}
+
+		for _, entry := range balance.GrantBalances {
+			if *entry.Grant.ID == *grantIn.ID {
+				if entry.Balance != grantIn.Amount {
+					return nil, fmt.Errorf("grant has been used, cannot void: %s", *grantIn.ID)
+				}
+				break
+			}
+
 		}
 
 		if grantIn.ID == nil {

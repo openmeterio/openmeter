@@ -475,6 +475,9 @@ func TestPostgresConnectorBalances(t *testing.T) {
 
 			// Note: lock manager cannot be shared between tests as these parallel tests write the same ledger
 			streamingConnector := newMockStreamingConnector()
+			// Initialize streaming connector with data points at time.Zero
+			streamingConnector.addRow(meter1.Slug, models.MeterQueryRow{})
+			streamingConnector.addRow(meter2.Slug, models.MeterQueryRow{})
 			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository)
 
 			// let's provision a ledger

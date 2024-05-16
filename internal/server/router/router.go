@@ -58,13 +58,17 @@ type Router struct {
 var _ api.ServerInterface = (*Router)(nil)
 
 func NewRouter(config Config) (*Router, error) {
-	return &Router{
+	router := &Router{
 		config: config,
-		CreditHandlers: creditdriver.New(
+	}
+
+	if config.CreditConnector != nil {
+		router.CreditHandlers = creditdriver.New(
 			config.CreditConnector,
 			config.Meters,
 			namespacedriver.StaticNamespaceDecoder("default"),
 			httptransport.WithErrorHandler(config.ErrorHandler),
-		),
-	}, nil
+		)
+	}
+	return router, nil
 }

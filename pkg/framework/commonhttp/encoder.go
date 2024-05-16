@@ -43,6 +43,13 @@ func JSONResponseEncoderWithStatus[Response any](statusCode int) httptransport.R
 	}
 }
 
+func EmptyResponseEncoder[Response any](statusCode int) httptransport.ResponseEncoder[Response] {
+	return func(ctx context.Context, w http.ResponseWriter, r Response) error {
+		w.WriteHeader(statusCode)
+		return nil
+	}
+}
+
 type ErrorWithHTTPStatusCode struct {
 	error
 	StatusCode int

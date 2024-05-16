@@ -232,7 +232,14 @@ func TestPostgresConnectorGrants(t *testing.T) {
 			databaseClient := db.NewClient(db.Driver(driver))
 			defer databaseClient.Close()
 			// Note: lock manager cannot be shared between tests as these parallel tests write the same ledger
-			connector := NewPostgresConnector(slog.Default(), databaseClient, nil, meterRepository)
+			streamingConnector := newMockStreamingConnector()
+			for _, meter := range meters {
+				streamingConnector.addRow(meter.Slug, models.MeterQueryRow{
+					Value: 0,
+				})
+			}
+
+			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository)
 
 			// let's provision a ledger
 			ledger, err := connector.CreateLedger(context.Background(), credit.Ledger{

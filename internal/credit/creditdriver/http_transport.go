@@ -17,6 +17,19 @@ type Handlers struct {
 	CreateLedger     CreateLedgerHandler
 	ListLedgers      ListLedgersHandler
 	GetLedgerHistory GetLedgerHistoryHandler
+
+	// Reset
+	ResetLedger ResetLedgerHandler
+
+	// Grant
+	ListLedgerGrants         ListLedgerGrantsHandler
+	ListLedgerGrantsByLedger ListLedgerGrantsByLedgerHandler
+	CreateLedgerGrant        CreateLedgerGrantHandler
+	VoidLedgerGrant          VoidLedgerGrantHandler
+	GetLedgerGrant           GetLedgerGrantHandler
+
+	// Balances
+	GetLedgerBalance GetLedgerBalanceHandler
 }
 
 func New(
@@ -42,6 +55,19 @@ func New(
 		CreateLedger:     builder.CreateLedger(),
 		ListLedgers:      builder.ListLedgers(),
 		GetLedgerHistory: builder.GetLedgerHistory(),
+
+		// Reset
+		ResetLedger: builder.ResetLedger(),
+
+		// Grants
+		ListLedgerGrants:         builder.ListLedgerGrants(),
+		ListLedgerGrantsByLedger: builder.ListLedgerGrantsByLedger(),
+		CreateLedgerGrant:        builder.CreateLedgerGrant(),
+		VoidLedgerGrant:          builder.VoidLedgerGrant(),
+		GetLedgerGrant:           builder.GetLedgerGrant(),
+
+		// Balances
+		GetLedgerBalance: builder.GetLedgerBalance(),
 	}
 }
 
