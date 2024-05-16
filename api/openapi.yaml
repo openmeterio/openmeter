@@ -768,7 +768,7 @@ paths:
         "401":
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
-          $ref: "#/components/responses/UnexpectedProblemResponse"                  
+          $ref: "#/components/responses/UnexpectedProblemResponse"
     post:
       operationId: createLedger
       summary: Creates the specified ledger
@@ -797,8 +797,8 @@ paths:
         "409":
           $ref: "#/components/responses/LedgerAlreadyExistsProblemResponse"
         default:
-          $ref: "#/components/responses/UnexpectedProblemResponse"    
-        
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+
   /api/v1/ledgers/{ledgerID}/balance:
     get:
       operationId: getLedgerBalance
@@ -968,7 +968,7 @@ paths:
       description: |
         Create a grant on a specific ledger.
       parameters:
-        - $ref: "#/components/parameters/ledgerID"        
+        - $ref: "#/components/parameters/ledgerID"
       tags:
         - Entitlements (Experimental)
       requestBody:
@@ -1214,7 +1214,7 @@ components:
           example: AI Tokens
         meterSlug:
           description: |
-              The meter that the feature is associated with and decreases grants by usage.
+            The meter that the feature is associated with and decreases grants by usage.
           type: string
           example: tokens_total
         meterGroupByFilters:
@@ -1322,7 +1322,7 @@ components:
         - $ref: "#/components/schemas/CreateLedger"
         - type: object
           required:
-          - id
+            - id
           properties:
             id:
               description: |
@@ -1551,24 +1551,24 @@ components:
         path: github.com/openmeterio/openmeter/internal/credit
       x-go-type: credit.Grant
       allOf:
-      - $ref: "#/components/schemas/CreateLedgerGrantRequest"
-      - type: object
-        required:
-        - subject
-        properties:
-          subject:
-            description: |
-              The subject to grant the amount to.
-            type: string
-            example: customer-id
-            readOnly: true
-          expiresAt:
-            readOnly: true
-            description: |
-              The expiration date of the grant.
-            type: string
-            format: date-time
-            example: "2023-01-01T00:00:00Z"
+        - $ref: "#/components/schemas/CreateLedgerGrantRequest"
+        - type: object
+          required:
+            - subject
+          properties:
+            subject:
+              description: |
+                The subject to grant the amount to.
+              type: string
+              example: customer-id
+              readOnly: true
+            expiresAt:
+              readOnly: true
+              description: |
+                The expiration date of the grant.
+              type: string
+              format: date-time
+              example: "2023-01-01T00:00:00Z"
     LedgerGrantType:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit
