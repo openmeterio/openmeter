@@ -11,8 +11,6 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    environment: dev
-    needs: artifacts
 
     steps:
       - name: Build
