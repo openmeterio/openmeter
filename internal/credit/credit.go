@@ -236,7 +236,7 @@ type LockErrNotObtainedError struct {
 }
 
 func (e *LockErrNotObtainedError) Error() string {
-	return fmt.Sprintf("lock not obtained ledger %s.%s", e.Namespace, e.ID)
+	return fmt.Sprintf("lock not obtained ledger %s", e.ID)
 }
 
 type LedgerAlreadyExistsError struct {
