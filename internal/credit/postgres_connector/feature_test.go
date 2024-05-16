@@ -63,12 +63,12 @@ func TestFeature(t *testing.T) {
 			description: "Get a feature from the database",
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
 				ctx := context.Background()
-				featureIn, err := connector.CreateFeature(ctx,  testFeature)
+				featureIn, err := connector.CreateFeature(ctx, testFeature)
 				assert.NoError(t, err)
 
 				featureOut, err := connector.GetFeature(ctx, credit.NamespacedID{
 					Namespace: namespace,
-					ID: *featureIn.ID})
+					ID:        *featureIn.ID})
 				assert.NoError(t, err)
 
 				expected := featureIn
@@ -82,12 +82,12 @@ func TestFeature(t *testing.T) {
 			description: "Delete a feature in the database",
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client) {
 				ctx := context.Background()
-				p, err := connector.CreateFeature(ctx,  testFeature)
+				p, err := connector.CreateFeature(ctx, testFeature)
 				assert.NoError(t, err)
 
-				pFeatureID := credit.NamespacedID {
+				pFeatureID := credit.NamespacedID{
 					Namespace: namespace,
-					ID: *p.ID,
+					ID:        *p.ID,
 				}
 				err = connector.DeleteFeature(ctx, pFeatureID)
 				assert.NoError(t, err)

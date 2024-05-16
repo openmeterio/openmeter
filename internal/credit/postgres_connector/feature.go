@@ -11,7 +11,7 @@ import (
 )
 
 // CreateFeature creates a feature.
-func (c *PostgresConnector) CreateFeature(ctx context.Context,featureIn credit.Feature) (credit.Feature, error) {
+func (c *PostgresConnector) CreateFeature(ctx context.Context, featureIn credit.Feature) (credit.Feature, error) {
 	query := c.db.Feature.Create().
 		SetNillableID(pgulid.Ptr(featureIn.ID)).
 		SetName(featureIn.Name).
@@ -37,7 +37,7 @@ func (c *PostgresConnector) DeleteFeature(ctx context.Context, id credit.Namespa
 		SetArchived(true).
 		Where(db_feature.ID(pgulid.Wrap(id.ID))).
 		Where(db_feature.Namespace(id.Namespace)).
-	Exec(ctx)
+		Exec(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return &credit.FeatureNotFoundError{ID: id.ID}
@@ -50,7 +50,7 @@ func (c *PostgresConnector) DeleteFeature(ctx context.Context, id credit.Namespa
 }
 
 // ListFeatures lists features.
-func (c *PostgresConnector) ListFeatures(ctx context.Context,  params credit.ListFeaturesParams) ([]credit.Feature, error) {
+func (c *PostgresConnector) ListFeatures(ctx context.Context, params credit.ListFeaturesParams) ([]credit.Feature, error) {
 	query := c.db.Feature.Query().
 		Where(db_feature.Namespace(params.Namespace))
 
