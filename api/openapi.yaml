@@ -1487,19 +1487,12 @@ components:
       description: |
         Grants are used to increase balance of specific subjects.
       required:
-        - id
         - type
         - amount
         - featureID
         - effectiveAt
         - expiration
       properties:
-        id:
-          description: |
-            Readonly unique ULID identifier of the grant.
-          readOnly: true
-          type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         type:
           $ref: "#/components/schemas/LedgerGrantType"
         amount:
@@ -1555,7 +1548,14 @@ components:
         - type: object
           required:
             - subject
+            - id
           properties:
+            id:
+              description: |
+                Readonly unique ULID identifier of the grant.
+              readOnly: true
+              type: string
+              example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
             subject:
               description: |
                 The subject to grant the amount to.
