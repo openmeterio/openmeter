@@ -761,6 +761,17 @@ paths:
           description: Start returning ledgers from this offset
           schema:
             type: integer
+        - name: orderBy
+          in: query
+          required: false
+          description: Order by field
+          schema:
+            type: string
+            enum:
+              - subject
+              - createdAt
+              - id
+          default: id
       responses:
         "200":
           description: List of the matching ledgers.

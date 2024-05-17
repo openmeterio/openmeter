@@ -20,12 +20,21 @@ type ListFeaturesParams struct {
 	IncludeArchived bool
 }
 
+type LedgerOrderBy string
+
+const (
+	LedgerOrderByCreatedAt LedgerOrderBy = "created_at"
+	LedgerOrderBySubject   LedgerOrderBy = "subject"
+	LedgerOrderByID        LedgerOrderBy = "id"
+)
+
 type ListLedgersParams struct {
 	Namespace   string
 	Subjects    []string
 	SubjectLike string
 	Offset      int
 	Limit       int
+	OrderBy     LedgerOrderBy
 }
 
 type Connector interface {

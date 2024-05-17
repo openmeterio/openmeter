@@ -119,11 +119,6 @@ type Reset struct {
 	EffectiveAt time.Time `json:"effectiveAt"`
 }
 
-// Render implements the chi renderer interface.
-func (c Reset) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
-}
-
 // Grant is used to increase balance of specific subjects.
 type Grant struct {
 	Namespace string `json:"-"`

@@ -44,9 +44,6 @@ func (c *PostgresConnector) CreateLedger(ctx context.Context, ledgerIn credit.Le
 
 func (c *PostgresConnector) ListLedgers(ctx context.Context, params credit.ListLedgersParams) ([]credit.Ledger, error) {
 	query := c.db.Ledger.Query().
-		Order(
-			db_ledger.ByCreatedAt(),
-		).
 		Where(db_ledger.Namespace(params.Namespace))
 
 	if len(params.Subjects) > 0 {
@@ -66,6 +63,21 @@ func (c *PostgresConnector) ListLedgers(ctx context.Context, params credit.ListL
 	if params.SubjectLike != "" {
 		query = query.Where(
 			db_ledger.SubjectContainsFold(params.SubjectLike),
+		)
+	}
+
+	switch params.OrderBy {
+	case credit.LedgerOrderByCreatedAt:
+		query = query.Order(
+			db_ledger.ByCreatedAt(),
+		)
+	case credit.LedgerOrderBySubject:
+		query = query.Order(
+			db_ledger.BySubject(),
+		)
+	default:
+		query = query.Order(
+			db_ledger.ByID(),
 		)
 	}
 

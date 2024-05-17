@@ -2,7 +2,6 @@ package credit
 
 import (
 	"encoding/json"
-	"net/http"
 	"sort"
 	"time"
 )
@@ -32,11 +31,6 @@ type Ledger struct {
 
 	// CreatedAt is the time the ledger was created
 	CreatedAt time.Time `json:"createdAt"`
-}
-
-// Render implements the chi renderer interface.
-func (c Ledger) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
 }
 
 type LedgerEntryType string
@@ -84,11 +78,6 @@ type Period struct {
 	To   time.Time `json:"to"`
 }
 
-// Render implements the chi renderer interface.
-func (c LedgerEntry) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
-}
-
 func NewLedgerEntryList() LedgerEntryList {
 	return LedgerEntryList{
 		list: []LedgerEntry{},
@@ -97,10 +86,6 @@ func NewLedgerEntryList() LedgerEntryList {
 
 type LedgerEntryList struct {
 	list []LedgerEntry
-}
-
-func (c LedgerEntryList) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
 }
 
 func (f LedgerEntryList) GetEntries() []LedgerEntry {

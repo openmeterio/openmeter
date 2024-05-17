@@ -2,7 +2,7 @@ package credit
 
 import (
 	"fmt"
-	"net/http"
+	"time"
 )
 
 // FeatureID is the unique identifier for a feature.
@@ -45,9 +45,7 @@ type Feature struct {
 
 	// Read-only fields
 	Archived *bool `json:"archived,omitempty"`
-}
 
-// Render implements the chi renderer interface.
-func (c Feature) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 }
