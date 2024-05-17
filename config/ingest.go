@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/spf13/viper"
@@ -31,14 +30,6 @@ type KafkaIngestConfiguration struct {
 	SaslPassword        string
 	Partitions          int
 	EventsTopicTemplate string
-	BrokerAddressFamily string
-	// SocketKeepAliveEnable defines if TCP socket keep-alive is enabled to prevent closing idle connections
-	// by Kafka brokers.
-	SocketKeepAliveEnable bool
-	// MetadataMaxAge defines the time interval after the metadata cache (brokers, partitions) becomes invalid.
-	// Keeping this parameter low forces the client to refresh metadata more frequently which helps with
-	// detecting changes in the Kafka cluster (broker, partition, leader changes) faster.
-	MetadataMaxAge time.Duration
 }
 
 // CreateKafkaConfig creates a Kafka config map.
@@ -53,9 +44,7 @@ func (c KafkaIngestConfiguration) CreateKafkaConfig() kafka.ConfigMap {
 	// This is needed when using localhost brokers on OSX,
 	// since the OSX resolver will return the IPv6 addresses first.
 	// See: https://github.com/openmeterio/openmeter/issues/321
-	if c.BrokerAddressFamily != "" {
-		config["broker.address.family"] = c.BrokerAddressFamily
-	} else if strings.Contains(c.Broker, "localhost") || strings.Contains(c.Broker, "127.0.0.1") {
+	if strings.Contains(c.Broker, "localhost") || strings.Contains(c.Broker, "127.0.0.1") {
 		config["broker.address.family"] = "v4"
 	}
 
@@ -73,14 +62,6 @@ func (c KafkaIngestConfiguration) CreateKafkaConfig() kafka.ConfigMap {
 
 	if c.SaslPassword != "" {
 		config["sasl.password"] = c.SaslPassword
-	}
-
-	if c.SocketKeepAliveEnable {
-		config["socket.keepalive.enable"] = c.SocketKeepAliveEnable
-	}
-
-	if c.MetadataMaxAge != 0 {
-		config["metadata.max.age.ms"] = c.MetadataMaxAge
 	}
 
 	return config
@@ -108,6 +89,4 @@ func ConfigureIngest(v *viper.Viper) {
 	v.SetDefault("ingest.kafka.saslPassword", "")
 	v.SetDefault("ingest.kafka.partitions", 1)
 	v.SetDefault("ingest.kafka.eventsTopicTemplate", "om_%s_events")
-	v.SetDefault("ingest.kafka.socketKeepAliveEnable", false)
-	v.SetDefault("ingest.kafka.metadataMaxAge", 180*time.Second)
 }

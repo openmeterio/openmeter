@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"os"
+	"os/signal"
 	"regexp"
 	"sort"
-	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/avast/retry-go/v4"
@@ -33,7 +35,7 @@ type SinkMessage struct {
 
 type Sink struct {
 	config            SinkConfig
-	isRunning         atomic.Bool
+	running           bool
 	buffer            *SinkBuffer
 	flushTimer        *time.Timer
 	flushEventCounter metric.Int64Counter
@@ -111,11 +113,12 @@ func NewSink(config SinkConfig) (*Sink, error) {
 
 // flush flushes the 1. buffer to storage, 2. sets dedupe and 3. store the offset
 // called when max wait time or min commit count reached
-func (s *Sink) flush(ctx context.Context) error {
+func (s *Sink) flush() error {
+	ctx := context.TODO()
 	logger := s.config.Logger.With("operation", "flush")
 
 	s.clearFlushTimer()
-	defer s.setFlushTimer(ctx)
+	defer s.setFlushTimer()
 
 	// Nothing to flush
 	if s.buffer.Size() == 0 {
@@ -322,7 +325,9 @@ func (s *Sink) dedupeSet(ctx context.Context, messages []SinkMessage) error {
 	return nil
 }
 
-func (s *Sink) getNamespaces(ctx context.Context) (*NamespaceStore, error) {
+func (s *Sink) getNamespaces() (*NamespaceStore, error) {
+	ctx := context.TODO()
+
 	meters, err := s.config.MeterRepository.ListAllMeters(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get meters: %s", err)
@@ -336,9 +341,9 @@ func (s *Sink) getNamespaces(ctx context.Context) (*NamespaceStore, error) {
 	return namespaceStore, nil
 }
 
-func (s *Sink) subscribeToNamespaces(ctx context.Context) error {
+func (s *Sink) subscribeToNamespaces() error {
 	logger := s.config.Logger.With("operation", "subscribeToNamespaces")
-	ns, err := s.getNamespaces(ctx)
+	ns, err := s.getNamespaces()
 	if err != nil {
 		return fmt.Errorf("failed to get namespaces: %s", err)
 	}
@@ -367,17 +372,20 @@ func (s *Sink) subscribeToNamespaces(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("failed to subscribe to topics: %s", err)
 		}
+		if err != nil {
+			return fmt.Errorf("failed to subscribe to topics: %s", err)
+		}
 	}
 
 	return nil
 }
 
 // Periodically flush even if MinCommitCount threshold not reached yet but MaxCommitWait time elapsed
-func (s *Sink) setFlushTimer(ctx context.Context) {
+func (s *Sink) setFlushTimer() {
 	logger := s.config.Logger.With("operation", "setFlushTimer")
 
 	flush := func() {
-		err := s.flush(ctx)
+		err := s.flush()
 		if err != nil {
 			// TODO: should we panic?
 			logger.Error("failed to flush", "err", err)
@@ -396,16 +404,16 @@ func (s *Sink) clearFlushTimer() {
 }
 
 // Run starts the Kafka consumer and sinks the events to Clickhouse
-func (s *Sink) Run(ctx context.Context) error {
-	if s.isRunning.Load() {
-		return nil
-	}
-
+func (s *Sink) Run() error {
+	ctx := context.TODO()
 	logger := s.config.Logger.With("operation", "run")
 	logger.Info("starting sink")
 
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+
 	// Fetch namespaces and meters and subscribe to them
-	err := s.subscribeToNamespaces(ctx)
+	err := s.subscribeToNamespaces()
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to namespaces: %s", err)
 	}
@@ -413,7 +421,7 @@ func (s *Sink) Run(ctx context.Context) error {
 	// Periodically refetch namespaces and meters
 	var refetch func()
 	refetch = func() {
-		err := s.subscribeToNamespaces(ctx)
+		err := s.subscribeToNamespaces()
 		if err != nil {
 			// TODO: should we panic?
 			logger.Error("failed to subscribe to namespaces", "err", err)
@@ -423,16 +431,16 @@ func (s *Sink) Run(ctx context.Context) error {
 	s.namespaceRefetch = time.AfterFunc(s.config.NamespaceRefetch, refetch)
 
 	// Reset state
-	s.isRunning.Store(true)
+	s.running = true
 
 	// Start flush timer, this will be cleared and restarted by flush
-	s.setFlushTimer(ctx)
+	s.setFlushTimer()
 
-	for s.isRunning.Load() {
+	for s.running {
 		select {
-		case <-ctx.Done():
-			return fmt.Errorf("context canceled: %w", ctx.Err())
-
+		case sig := <-sigchan:
+			logger.Error("caught signal, terminating", "sig", sig)
+			s.running = false
 		default:
 			ev := s.config.Consumer.Poll(100)
 			if ev == nil {
@@ -444,7 +452,7 @@ func (s *Sink) Run(ctx context.Context) error {
 				sinkMessage := SinkMessage{
 					KafkaMessage: e,
 				}
-				namespace, kafkaCloudEvent, err := s.parseMessage(ctx, e)
+				namespace, kafkaCloudEvent, err := s.ParseMessage(e)
 				if err != nil {
 					if perr, ok := err.(*ProcessingError); ok {
 						sinkMessage.Error = perr
@@ -464,7 +472,7 @@ func (s *Sink) Run(ctx context.Context) error {
 
 				// Flush buffer and commit messages
 				if s.buffer.Size() >= s.config.MinCommitCount {
-					err = s.flush(ctx)
+					err = s.flush()
 					if err != nil {
 						// Stop processing, non-recoverable error
 						return fmt.Errorf("failed to flush: %w", err)
@@ -484,7 +492,8 @@ func (s *Sink) Run(ctx context.Context) error {
 		}
 	}
 
-	return nil
+	logger.Info("closing sink")
+	return s.Close()
 }
 
 func (s *Sink) pause() error {
@@ -584,13 +593,15 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 		// Remove messages for revoked partitions from buffer
 		s.buffer.RemoveByPartitions(e.Partitions)
 	default:
-		logger.Error("unexpected event type", "event", e)
+		logger.Error("unxpected event type", "event", e)
 	}
 
 	return nil
 }
 
-func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (string, *serializer.CloudEventsKafkaPayload, error) {
+func (s *Sink) ParseMessage(e *kafka.Message) (string, *serializer.CloudEventsKafkaPayload, error) {
+	ctx := context.TODO()
+
 	// Get Namespace
 	namespace, err := getNamespace(*e.TopicPartition.Topic)
 	if err != nil {
@@ -628,21 +639,18 @@ func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (string, *ser
 	return namespace, &kafkaCloudEvent, err
 }
 
-func (s *Sink) Close() {
-	if !s.isRunning.Load() {
-		return
-	}
-
+func (s *Sink) Close() error {
 	s.config.Logger.Info("closing sink")
-	s.isRunning.Store(false)
 
+	s.running = false
 	if s.namespaceRefetch != nil {
-		_ = s.namespaceRefetch.Stop()
+		s.namespaceRefetch.Stop()
+	}
+	if s.flushTimer != nil {
+		s.flushTimer.Stop()
 	}
 
-	if s.flushTimer != nil {
-		_ = s.flushTimer.Stop()
-	}
+	return nil
 }
 
 // getNamespace from topic
