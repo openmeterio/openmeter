@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -100,18 +101,31 @@ func validateMeterAggregation(meter models.Meter) error {
 	)
 }
 
-type ListFeaturesHandler httptransport.Handler[credit.ListFeaturesParams, []credit.Feature]
+type ListFeaturesHandler httptransport.HandlerWithArgs[credit.ListFeaturesParams, []credit.Feature, api.ListFeaturesParams]
 
 func (b *builder) ListFeatures() ListFeaturesHandler {
-	return httptransport.NewHandler(
-		func(ctx context.Context, r *http.Request) (credit.ListFeaturesParams, error) {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, apiParams api.ListFeaturesParams) (credit.ListFeaturesParams, error) {
 			ns, err := b.resolveNamespace(ctx)
 			if err != nil {
 				return credit.ListFeaturesParams{}, err
 			}
-			return credit.ListFeaturesParams{
-				Namespace: ns,
-			}, nil
+			params := credit.ListFeaturesParams{
+				Namespace:       ns,
+				IncludeArchived: defaultx.WithDefault(apiParams.IncludeArchived, false),
+				Offset:          defaultx.WithDefault(apiParams.Offset, DefaultLedgerQueryLimit),
+				Limit:           defaultx.WithDefault(apiParams.Limit, DefaultLedgerQueryLimit),
+				OrderBy:         defaultx.WithDefault((*credit.FeatureOrderBy)(apiParams.OrderBy), credit.FeatureOrderByID),
+			}
+
+			if params.Limit > MaxLedgerQueryLimit {
+				return params, commonhttp.NewHTTPError(
+					http.StatusBadRequest,
+					fmt.Errorf("limit must be less than or equal to %d", MaxLedgerQueryLimit),
+				)
+			}
+
+			return params, nil
 		},
 		b.CreditConnector.ListFeatures,
 		commonhttp.JSONResponseEncoder,

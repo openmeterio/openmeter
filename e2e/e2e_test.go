@@ -579,7 +579,7 @@ func TestCredit(t *testing.T) {
 		effectiveAt, _ := time.Parse(time.RFC3339, "2024-01-01T00:01:00Z")
 
 		// Get feature
-		featureListResp, err := client.ListFeaturesWithResponse(context.Background())
+		featureListResp, err := client.ListFeaturesWithResponse(context.Background(), nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, featureListResp.StatusCode())
 		require.NotNil(t, featureListResp.JSON200)
@@ -637,7 +637,7 @@ func TestCredit(t *testing.T) {
 		grant := grants[0]
 
 		// Get feature
-		featureListResp, err := client.ListFeaturesWithResponse(context.Background())
+		featureListResp, err := client.ListFeaturesWithResponse(context.Background(), nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, featureListResp.StatusCode())
 		require.NotNil(t, featureListResp.JSON200)
@@ -683,7 +683,7 @@ func TestCredit(t *testing.T) {
 		parentGrant := parentGrants[0]
 
 		// Get feature
-		featureListResp, err := client.ListFeaturesWithResponse(context.Background())
+		featureListResp, err := client.ListFeaturesWithResponse(context.Background(), nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, featureListResp.StatusCode())
 		require.NotNil(t, featureListResp.JSON200)

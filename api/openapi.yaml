@@ -634,6 +634,41 @@ paths:
         List features.
       tags:
         - Entitlements (Experimental)
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Number of features to return. Default is 25.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 1000
+            example: 1000
+        - name: offset
+          in: query
+          required: false
+          description: Start returning features from this offset.
+          schema:
+            type: integer
+        - name: orderBy
+          in: query
+          required: false
+          description: Order by field
+          schema:
+            type: string
+            enum:
+              - id
+              - createdAt
+              - updatedAt
+          default: id
+        - name: includeArchived
+          in: query
+          required: false
+          description: Include archived features.
+          schema:
+            type: boolean
+            default: false
       responses:
         "200":
           description: List of features.
@@ -1249,6 +1284,20 @@ components:
             If the feature is archived, it will not be used for grants or usage.
           type: boolean
           example: false
+        createdAt:
+          readOnly: true
+          description: |
+            The time the feature was created.
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        updatedAt:
+          readOnly: true
+          description: |
+            The time the feature was last updated.
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
     CreateLedger:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit

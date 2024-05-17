@@ -15,9 +15,20 @@ type ListGrantsParams struct {
 	Limit             int
 }
 
+type FeatureOrderBy string
+
+const (
+	FeatureOrderByCreatedAt FeatureOrderBy = "created_at"
+	FeatureOrderByUpdatedAt FeatureOrderBy = "updated_at"
+	FeatureOrderByID        FeatureOrderBy = "id"
+)
+
 type ListFeaturesParams struct {
 	Namespace       string
 	IncludeArchived bool
+	Offset          int
+	Limit           int
+	OrderBy         FeatureOrderBy
 }
 
 type LedgerOrderBy string

@@ -59,6 +59,23 @@ func (c *PostgresConnector) ListFeatures(ctx context.Context, params credit.List
 		query = query.Where(db_feature.ArchivedEQ(false))
 	}
 
+	if params.Limit > 0 {
+		query = query.Limit(params.Limit)
+	}
+
+	if params.Offset > 0 {
+		query = query.Offset(params.Offset)
+	}
+
+	switch params.OrderBy {
+	case credit.FeatureOrderByCreatedAt:
+		query = query.Order(db_feature.ByCreatedAt())
+	case credit.FeatureOrderByUpdatedAt:
+		query = query.Order(db_feature.ByUpdatedAt())
+	default:
+		query = query.Order(db_feature.ByID())
+	}
+
 	entities, err := query.All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list entities: %w", err)

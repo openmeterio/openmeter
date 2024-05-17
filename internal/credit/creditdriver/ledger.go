@@ -69,10 +69,12 @@ func (b *builder) ListLedgers() ListLedgersHandler {
 			}
 
 			req := credit.ListLedgersParams{
-				Namespace: ns,
-				Subjects:  defaultx.WithDefault(params.Subject, nil),
-				Offset:    defaultx.WithDefault(params.Offset, 0),
-				Limit:     defaultx.WithDefault(params.Limit, DefaultLedgerQueryLimit),
+				Namespace:   ns,
+				Subjects:    defaultx.WithDefault(params.Subject, nil),
+				SubjectLike: defaultx.WithDefault(params.SubjectSimilarTo, ""),
+				Offset:      defaultx.WithDefault(params.Offset, 0),
+				Limit:       defaultx.WithDefault(params.Limit, DefaultLedgerQueryLimit),
+				OrderBy:     defaultx.WithDefault((*credit.LedgerOrderBy)(params.OrderBy), credit.LedgerOrderByID),
 			}
 			return req, nil
 		},
