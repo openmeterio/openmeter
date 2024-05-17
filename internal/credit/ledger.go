@@ -105,6 +105,20 @@ func (f LedgerEntryList) GetEntries() []LedgerEntry {
 	return list
 }
 
+func (f LedgerEntryList) Len() int {
+	return len(f.list)
+}
+
+func (f LedgerEntryList) Truncate(limit int) LedgerEntryList {
+	if limit >= len(f.list) {
+		return f
+	}
+
+	return LedgerEntryList{
+		list: f.list[:limit],
+	}
+}
+
 func (f LedgerEntryList) MarshalJSON() ([]byte, error) {
 	list := f.GetEntries()
 	return json.Marshal(&list)

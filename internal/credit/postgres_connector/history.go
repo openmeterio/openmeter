@@ -27,10 +27,6 @@ func (a *PostgresConnector) GetHistory(
 		db_credit.ByCreatedAt(),
 	)
 
-	if limit > 0 {
-		query = query.Limit(limit)
-	}
-
 	entities, err := query.All(ctx)
 	if err != nil {
 		return ledgerEntries, err
@@ -56,6 +52,11 @@ func (a *PostgresConnector) GetHistory(
 		}
 		ledgerEntries.Append(entries)
 		balanceFrom = balanceTo
+	}
+
+	// Because of the logic here, we may have more entries than the limit
+	if limit > 0 && ledgerEntries.Len() > limit {
+		ledgerEntries = ledgerEntries.Truncate(limit)
 	}
 
 	return ledgerEntries, nil

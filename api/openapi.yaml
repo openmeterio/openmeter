@@ -635,22 +635,8 @@ paths:
       tags:
         - Entitlements (Experimental)
       parameters:
-        - name: limit
-          in: query
-          required: false
-          description: Number of features to return. Default is 25.
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 1000
-            default: 1000
-            example: 1000
-        - name: offset
-          in: query
-          required: false
-          description: Start returning features from this offset.
-          schema:
-            type: integer
+        - $ref: "#/components/parameters/ledgerQueryLimit"
+        - $ref: "#/components/parameters/ledgerQueryOffset"
         - name: orderBy
           in: query
           required: false
@@ -780,22 +766,8 @@ paths:
             type: string
             description: |
               A text fragment to search for.
-        - name: limit
-          in: query
-          required: false
-          description: Number of ledgers to return
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 1000
-            default: 1000
-            example: 1000
-        - name: offset
-          in: query
-          required: false
-          description: Start returning ledgers from this offset
-          schema:
-            type: integer
+        - $ref: "#/components/parameters/ledgerQueryLimit"
+        - $ref: "#/components/parameters/ledgerQueryOffset"
         - name: orderBy
           in: query
           required: false
@@ -2067,6 +2039,16 @@ components:
         minimum: 1
         maximum: 1000
         default: 1000
+        example: 100
+    ledgerQueryOffset:
+      name: offset
+      in: query
+      required: false
+      description: Number of entries to skip
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
         example: 100
     queryFrom:
       name: from
