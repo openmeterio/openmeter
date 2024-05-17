@@ -162,6 +162,9 @@ type Grant struct {
 
 	// Void The voided date.
 	Void bool `json:"void"`
+
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 }
 
 func (c Grant) ExpirationDate() time.Time {

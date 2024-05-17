@@ -113,7 +113,7 @@ func (b *builder) ListFeatures() ListFeaturesHandler {
 			params := credit.ListFeaturesParams{
 				Namespace:       ns,
 				IncludeArchived: defaultx.WithDefault(apiParams.IncludeArchived, false),
-				Offset:          defaultx.WithDefault(apiParams.Offset, DefaultLedgerQueryLimit),
+				Offset:          defaultx.WithDefault(apiParams.Offset, 0),
 				Limit:           defaultx.WithDefault(apiParams.Limit, DefaultLedgerQueryLimit),
 				OrderBy:         defaultx.WithDefault((*credit.FeatureOrderBy)(apiParams.OrderBy), credit.FeatureOrderByID),
 			}

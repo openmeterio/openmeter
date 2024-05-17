@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	meter_internal "github.com/openmeterio/openmeter/internal/meter"
+	"github.com/openmeterio/openmeter/pkg/convertx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -55,6 +56,12 @@ func TestFeature(t *testing.T) {
 				expected := featureIn
 				archived := false
 				expected.Archived = &archived
+
+				assert.NotEmpty(t, *featureOut.CreatedAt)
+				assert.NotEmpty(t, *featureOut.UpdatedAt)
+
+				expected.CreatedAt = featureOut.CreatedAt
+				expected.UpdatedAt = featureOut.UpdatedAt
 				assert.Equal(t, expected, featureOut)
 			},
 		},
@@ -70,8 +77,14 @@ func TestFeature(t *testing.T) {
 				assert.NoError(t, err)
 
 				expected := featureIn
-				archived := false
-				expected.Archived = &archived
+				expected.Archived = convertx.ToPointer(false)
+
+				assert.NotEmpty(t, *featureOut.CreatedAt)
+				assert.NotEmpty(t, *featureOut.UpdatedAt)
+
+				expected.CreatedAt = featureOut.CreatedAt
+				expected.UpdatedAt = featureOut.UpdatedAt
+
 				assert.Equal(t, expected, featureOut)
 			},
 		},
@@ -108,8 +121,13 @@ func TestFeature(t *testing.T) {
 				assert.Len(t, features, 1)
 
 				expected := feature
-				archived := false
-				expected.Archived = &archived
+				expected.Archived = convertx.ToPointer(false)
+
+				assert.NotEmpty(t, *features[0].CreatedAt)
+				assert.NotEmpty(t, *features[0].UpdatedAt)
+
+				expected.CreatedAt = features[0].CreatedAt
+				expected.UpdatedAt = features[0].UpdatedAt
 				assert.Equal(t, []credit.Feature{expected}, features)
 			},
 		},

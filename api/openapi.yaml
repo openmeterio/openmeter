@@ -647,7 +647,7 @@ paths:
               - id
               - createdAt
               - updatedAt
-          default: id
+            default: id
         - name: includeArchived
           in: query
           required: false
@@ -778,7 +778,7 @@ paths:
               - subject
               - createdAt
               - id
-          default: id
+            default: id
       responses:
         "200":
           description: List of the matching ledgers.
@@ -1585,6 +1585,20 @@ components:
             type: string
           example:
             stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
+        createdAt:
+          readOnly: true
+          description: |
+            The time the grant was created.
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        updatedAt:
+          readOnly: true
+          description: |
+            The time the grant was last updated.
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
     LedgerGrantResponse:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit
