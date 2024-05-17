@@ -323,7 +323,9 @@ func (s *Sink) dedupeSet(ctx context.Context, messages []SinkMessage) error {
 	return nil
 }
 
-func (s *Sink) getNamespaces(ctx context.Context) (*NamespaceStore, error) {
+func (s *Sink) getNamespaces() (*NamespaceStore, error) {
+	ctx := context.TODO()
+
 	meters, err := s.config.MeterRepository.ListAllMeters(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get meters: %s", err)
@@ -337,9 +339,9 @@ func (s *Sink) getNamespaces(ctx context.Context) (*NamespaceStore, error) {
 	return namespaceStore, nil
 }
 
-func (s *Sink) subscribeToNamespaces(ctx context.Context) error {
+func (s *Sink) subscribeToNamespaces() error {
 	logger := s.config.Logger.With("operation", "subscribeToNamespaces")
-	ns, err := s.getNamespaces(ctx)
+	ns, err := s.getNamespaces()
 	if err != nil {
 		return fmt.Errorf("failed to get namespaces: %s", err)
 	}
@@ -365,6 +367,9 @@ func (s *Sink) subscribeToNamespaces(ctx context.Context) error {
 		logger.Info("new namespaces detected, subscribing to topics", "topics", topics)
 
 		err = s.config.Consumer.SubscribeTopics(topics, s.rebalance)
+		if err != nil {
+			return fmt.Errorf("failed to subscribe to topics: %s", err)
+		}
 		if err != nil {
 			return fmt.Errorf("failed to subscribe to topics: %s", err)
 		}
@@ -406,7 +411,7 @@ func (s *Sink) Run(ctx context.Context) error {
 	logger.Info("starting sink")
 
 	// Fetch namespaces and meters and subscribe to them
-	err := s.subscribeToNamespaces(ctx)
+	err := s.subscribeToNamespaces()
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to namespaces: %s", err)
 	}
@@ -414,7 +419,7 @@ func (s *Sink) Run(ctx context.Context) error {
 	// Periodically refetch namespaces and meters
 	var refetch func()
 	refetch = func() {
-		err := s.subscribeToNamespaces(ctx)
+		err := s.subscribeToNamespaces()
 		if err != nil {
 			// TODO: should we panic?
 			logger.Error("failed to subscribe to namespaces", "err", err)
