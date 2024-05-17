@@ -384,18 +384,31 @@ def build_query_portal_meter_request(
     return HttpRequest(method="GET", url=_url, params=_params, headers=_headers, **kwargs)
 
 
-def build_list_features_request(**kwargs: Any) -> HttpRequest:
+def build_list_features_request(
+    *, limit: int = 1000, offset: int = 0, order_by: str = "id", include_archived: bool = False, **kwargs: Any
+) -> HttpRequest:
     _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+    _params = case_insensitive_dict(kwargs.pop("params", {}) or {})
 
     accept = _headers.pop("Accept", "application/json, application/problem+json")
 
     # Construct URL
     _url = "/api/v1/features"
 
+    # Construct parameters
+    if limit is not None:
+        _params["limit"] = _SERIALIZER.query("limit", limit, "int", maximum=1000, minimum=1)
+    if offset is not None:
+        _params["offset"] = _SERIALIZER.query("offset", offset, "int", minimum=0)
+    if order_by is not None:
+        _params["orderBy"] = _SERIALIZER.query("order_by", order_by, "str")
+    if include_archived is not None:
+        _params["includeArchived"] = _SERIALIZER.query("include_archived", include_archived, "bool")
+
     # Construct headers
     _headers["Accept"] = _SERIALIZER.header("accept", accept, "str")
 
-    return HttpRequest(method="GET", url=_url, headers=_headers, **kwargs)
+    return HttpRequest(method="GET", url=_url, params=_params, headers=_headers, **kwargs)
 
 
 def build_create_feature_request(**kwargs: Any) -> HttpRequest:
@@ -454,7 +467,13 @@ def build_delete_feature_request(feature_id: str, **kwargs: Any) -> HttpRequest:
 
 
 def build_list_ledgers_request(
-    *, subject: Optional[List[str]] = None, limit: int = 1000, offset: Optional[int] = None, **kwargs: Any
+    *,
+    subject: Optional[List[str]] = None,
+    subject_similar_to: Optional[str] = None,
+    limit: int = 1000,
+    offset: int = 0,
+    order_by: str = "id",
+    **kwargs: Any
 ) -> HttpRequest:
     _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
     _params = case_insensitive_dict(kwargs.pop("params", {}) or {})
@@ -467,10 +486,14 @@ def build_list_ledgers_request(
     # Construct parameters
     if subject is not None:
         _params["subject"] = _SERIALIZER.query("subject", subject, "[str]")
+    if subject_similar_to is not None:
+        _params["subjectSimilarTo"] = _SERIALIZER.query("subject_similar_to", subject_similar_to, "str")
     if limit is not None:
         _params["limit"] = _SERIALIZER.query("limit", limit, "int", maximum=1000, minimum=1)
     if offset is not None:
-        _params["offset"] = _SERIALIZER.query("offset", offset, "int")
+        _params["offset"] = _SERIALIZER.query("offset", offset, "int", minimum=0)
+    if order_by is not None:
+        _params["orderBy"] = _SERIALIZER.query("order_by", order_by, "str")
 
     # Construct headers
     _headers["Accept"] = _SERIALIZER.header("accept", accept, "str")
@@ -526,6 +549,7 @@ def build_get_ledger_history_request(
     *,
     from_parameter: datetime.datetime,
     limit: int = 1000,
+    offset: int = 0,
     to: Optional[datetime.datetime] = None,
     **kwargs: Any
 ) -> HttpRequest:
@@ -545,6 +569,8 @@ def build_get_ledger_history_request(
     # Construct parameters
     if limit is not None:
         _params["limit"] = _SERIALIZER.query("limit", limit, "int", maximum=1000, minimum=1)
+    if offset is not None:
+        _params["offset"] = _SERIALIZER.query("offset", offset, "int", minimum=0)
     _params["from"] = _SERIALIZER.query("from_parameter", from_parameter, "iso-8601")
     if to is not None:
         _params["to"] = _SERIALIZER.query("to", to, "iso-8601")
@@ -2505,12 +2531,23 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         return cast(Union[JSON, str], deserialized)  # type: ignore
 
     @distributed_trace
-    def list_features(self, **kwargs: Any) -> List[JSON]:
+    def list_features(
+        self, *, limit: int = 1000, offset: int = 0, order_by: str = "id", include_archived: bool = False, **kwargs: Any
+    ) -> List[JSON]:
         # pylint: disable=line-too-long
         """List features.
 
         List features.
 
+        :keyword limit: Number of entries to return. Default value is 1000.
+        :paramtype limit: int
+        :keyword offset: Number of entries to skip. Default value is 0.
+        :paramtype offset: int
+        :keyword order_by: Order by field. Known values are: "id", "createdAt", and "updatedAt".
+         Default value is "id".
+        :paramtype order_by: str
+        :keyword include_archived: Include archived features. Default value is False.
+        :paramtype include_archived: bool
         :return: list of JSON object
         :rtype: list[JSON]
         :raises ~azure.core.exceptions.HttpResponseError:
@@ -2526,12 +2563,16 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         "name": "str",  # The name of the feature. Required.
                         "archived": bool,  # Optional. If the feature is archived, it will
                           not be used for grants or usage.
+                        "createdAt": "2020-02-20 00:00:00",  # Optional. The time the feature
+                          was created.
                         "id": "str",  # Optional. Readonly unique ULID identifier of the
                           feature.
                         "meterGroupByFilters": {
                             "str": "str"  # Optional. Optional meter group by filters.
                               Useful if the meter scope is broader than what feature tracks.
-                        }
+                        },
+                        "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the feature
+                          was last updated.
                     }
                 ]
         """
@@ -2549,6 +2590,10 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
 
         _request = build_list_features_request(
+            limit=limit,
+            offset=offset,
+            order_by=order_by,
+            include_archived=include_archived,
             headers=_headers,
             params=_params,
         )
@@ -2603,11 +2648,15 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "name": "str",  # The name of the feature. Required.
                     "archived": bool,  # Optional. If the feature is archived, it will not be
                       used for grants or usage.
+                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the feature was
+                      created.
                     "id": "str",  # Optional. Readonly unique ULID identifier of the feature.
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
                           the meter scope is broader than what feature tracks.
-                    }
+                    },
+                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the feature was last
+                      updated.
                 }
 
                 # response body for status code(s): 201
@@ -2617,11 +2666,15 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "name": "str",  # The name of the feature. Required.
                     "archived": bool,  # Optional. If the feature is archived, it will not be
                       used for grants or usage.
+                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the feature was
+                      created.
                     "id": "str",  # Optional. Readonly unique ULID identifier of the feature.
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
                           the meter scope is broader than what feature tracks.
-                    }
+                    },
+                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the feature was last
+                      updated.
                 }
         """
 
@@ -2651,11 +2704,15 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "name": "str",  # The name of the feature. Required.
                     "archived": bool,  # Optional. If the feature is archived, it will not be
                       used for grants or usage.
+                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the feature was
+                      created.
                     "id": "str",  # Optional. Readonly unique ULID identifier of the feature.
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
                           the meter scope is broader than what feature tracks.
-                    }
+                    },
+                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the feature was last
+                      updated.
                 }
         """
 
@@ -2682,11 +2739,15 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "name": "str",  # The name of the feature. Required.
                     "archived": bool,  # Optional. If the feature is archived, it will not be
                       used for grants or usage.
+                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the feature was
+                      created.
                     "id": "str",  # Optional. Readonly unique ULID identifier of the feature.
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
                           the meter scope is broader than what feature tracks.
-                    }
+                    },
+                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the feature was last
+                      updated.
                 }
 
                 # response body for status code(s): 201
@@ -2696,11 +2757,15 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "name": "str",  # The name of the feature. Required.
                     "archived": bool,  # Optional. If the feature is archived, it will not be
                       used for grants or usage.
+                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the feature was
+                      created.
                     "id": "str",  # Optional. Readonly unique ULID identifier of the feature.
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
                           the meter scope is broader than what feature tracks.
-                    }
+                    },
+                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the feature was last
+                      updated.
                 }
         """
         error_map = {
@@ -2782,11 +2847,15 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "name": "str",  # The name of the feature. Required.
                     "archived": bool,  # Optional. If the feature is archived, it will not be
                       used for grants or usage.
+                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the feature was
+                      created.
                     "id": "str",  # Optional. Readonly unique ULID identifier of the feature.
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
                           the meter scope is broader than what feature tracks.
-                    }
+                    },
+                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the feature was last
+                      updated.
                 }
         """
         error_map = {
@@ -2882,18 +2951,31 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
     @distributed_trace
     def list_ledgers(
-        self, *, subject: Optional[List[str]] = None, limit: int = 1000, offset: Optional[int] = None, **kwargs: Any
+        self,
+        *,
+        subject: Optional[List[str]] = None,
+        subject_similar_to: Optional[str] = None,
+        limit: int = 1000,
+        offset: int = 0,
+        order_by: str = "id",
+        **kwargs: Any
     ) -> List[JSON]:
         """List the already defined ledgers.
 
         List the already defined ledgers.
 
-        :keyword subject: Query a specific ledger. Default value is None.
+        :keyword subject: Query ledgers specific to subjects. Default value is None.
         :paramtype subject: list[str]
-        :keyword limit: Number of ledgers to return. Default value is 1000.
+        :keyword subject_similar_to: Query ledgers with subjects that are similar to the provided text.
+         Default value is None.
+        :paramtype subject_similar_to: str
+        :keyword limit: Number of entries to return. Default value is 1000.
         :paramtype limit: int
-        :keyword offset: Start returning ledgers from this offset. Default value is None.
+        :keyword offset: Number of entries to skip. Default value is 0.
         :paramtype offset: int
+        :keyword order_by: Order by field. Known values are: "subject", "createdAt", and "id". Default
+         value is "id".
+        :paramtype order_by: str
         :return: list of JSON object
         :rtype: list[JSON]
         :raises ~azure.core.exceptions.HttpResponseError:
@@ -2908,6 +2990,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           Required.
                         "subject": "str",  # The metering subject this ledger used to track
                           grants for. Required.
+                        "createdAt": "2020-02-20 00:00:00",  # Optional. The time the ledger
+                          was created.
                         "metadata": {
                             "str": "str"  # Optional. Dictionary of :code:`<string>`.
                         }
@@ -2930,8 +3014,10 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         _request = build_list_ledgers_request(
             subject=subject,
+            subject_similar_to=subject_similar_to,
             limit=limit,
             offset=offset,
+            order_by=order_by,
             headers=_headers,
             params=_params,
         )
@@ -2992,6 +3078,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "id": "str",  # Readonly unique ULID identifier of the ledger. Required.
                     "subject": "str",  # The metering subject this ledger used to track grants
                       for. Required.
+                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the ledger was
+                      created.
                     "metadata": {
                         "str": "str"  # Optional. Dictionary of :code:`<string>`.
                     }
@@ -3011,6 +3099,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           Required.
                         "subject": "str",  # The metering subject this ledger used to track
                           grants for. Required.
+                        "createdAt": "2020-02-20 00:00:00",  # Optional. The time the ledger
+                          was created.
                         "metadata": {
                             "str": "str"  # Optional. Dictionary of :code:`<string>`.
                         }
@@ -3043,6 +3133,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "id": "str",  # Readonly unique ULID identifier of the ledger. Required.
                     "subject": "str",  # The metering subject this ledger used to track grants
                       for. Required.
+                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the ledger was
+                      created.
                     "metadata": {
                         "str": "str"  # Optional. Dictionary of :code:`<string>`.
                     }
@@ -3062,6 +3154,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           Required.
                         "subject": "str",  # The metering subject this ledger used to track
                           grants for. Required.
+                        "createdAt": "2020-02-20 00:00:00",  # Optional. The time the ledger
+                          was created.
                         "metadata": {
                             "str": "str"  # Optional. Dictionary of :code:`<string>`.
                         }
@@ -3100,6 +3194,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "id": "str",  # Readonly unique ULID identifier of the ledger. Required.
                     "subject": "str",  # The metering subject this ledger used to track grants
                       for. Required.
+                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the ledger was
+                      created.
                     "metadata": {
                         "str": "str"  # Optional. Dictionary of :code:`<string>`.
                     }
@@ -3119,6 +3215,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           Required.
                         "subject": "str",  # The metering subject this ledger used to track
                           grants for. Required.
+                        "createdAt": "2020-02-20 00:00:00",  # Optional. The time the ledger
+                          was created.
                         "metadata": {
                             "str": "str"  # Optional. Dictionary of :code:`<string>`.
                         }
@@ -3233,6 +3331,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                               balance by the amount in the unit of the associated meter. Required.
                               "USAGE"
                             "balance": 0.0,  # Optional. The balance of the grant.
+                            "createdAt": "2020-02-20 00:00:00",  # Optional. The time the
+                              grant was created.
                             "expiresAt": "2020-02-20 00:00:00",  # Optional. The
                               expiration date of the grant.
                             "metadata": {
@@ -3255,7 +3355,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                                   Required. Known values are: "REMAINING_AMOUNT" and "ORIGINAL_AMOUNT".
                                 "maxAmount": 0.0  # Optional. Maximum amount to
                                   rollover.
-                            }
+                            },
+                            "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the
+                              grant was last updated.
                         }
                     ],
                     "features": [
@@ -3266,13 +3368,17 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                             "archived": bool,  # Optional. If the feature is archived, it
                               will not be used for grants or usage.
                             "balance": 0.0,  # Optional. The balance of the feature.
+                            "createdAt": "2020-02-20 00:00:00",  # Optional. The time the
+                              feature was created.
                             "id": "str",  # Optional. Readonly unique ULID identifier of
                               the feature.
                             "meterGroupByFilters": {
                                 "str": "str"  # Optional. Optional meter group by
                                   filters. Useful if the meter scope is broader than what feature
                                   tracks.
-                            }
+                            },
+                            "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the
+                              feature was last updated.
                         }
                     ]
                 }
@@ -3328,6 +3434,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         *,
         from_parameter: datetime.datetime,
         limit: int = 1000,
+        offset: int = 0,
         to: Optional[datetime.datetime] = None,
         **kwargs: Any
     ) -> List[JSON]:
@@ -3342,6 +3449,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         :paramtype from_parameter: ~datetime.datetime
         :keyword limit: Number of entries to return. Default value is 1000.
         :paramtype limit: int
+        :keyword offset: Number of entries to skip. Default value is 0.
+        :paramtype offset: int
         :keyword to: End of time range to query ledger: date-time in RFC 3339 format. Defaults to now.
          Default value is None.
         :paramtype to: ~datetime.datetime
@@ -3389,6 +3498,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             ledger_id=ledger_id,
             from_parameter=from_parameter,
             limit=limit,
+            offset=offset,
             to=to,
             headers=_headers,
             params=_params,
@@ -3616,6 +3726,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         "subject": "str",  # The subject to grant the amount to. Required.
                         "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by
                           the amount in the unit of the associated meter. Required. "USAGE"
+                        "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant
+                          was created.
                         "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date
                           of the grant.
                         "metadata": {
@@ -3636,7 +3748,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                               Rollover re-applies the full grant amount. Required. Known values are:
                               "REMAINING_AMOUNT" and "ORIGINAL_AMOUNT".
                             "maxAmount": 0.0  # Optional. Maximum amount to rollover.
-                        }
+                        },
+                        "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the grant
+                          was last updated.
                     }
                 ]
         """
@@ -3724,6 +3838,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         "subject": "str",  # The subject to grant the amount to. Required.
                         "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by
                           the amount in the unit of the associated meter. Required. "USAGE"
+                        "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant
+                          was created.
                         "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date
                           of the grant.
                         "metadata": {
@@ -3744,7 +3860,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                               Rollover re-applies the full grant amount. Required. Known values are:
                               "REMAINING_AMOUNT" and "ORIGINAL_AMOUNT".
                             "maxAmount": 0.0  # Optional. Maximum amount to rollover.
-                        }
+                        },
+                        "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the grant
+                          was last updated.
                     }
                 ]
         """
@@ -3828,9 +3946,10 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     },
                     "featureID": "str",  # The unique feature ULID that the grant is associated
                       with, if any. Required.
-                    "id": "str",  # Readonly unique ULID identifier of the grant. Required.
                     "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
                       amount in the unit of the associated meter. Required. "USAGE"
+                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant was
+                      created.
                     "metadata": {
                         "str": "str"  # Optional. Dictionary of :code:`<string>`.
                     },
@@ -3849,7 +3968,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           full grant amount. Required. Known values are: "REMAINING_AMOUNT" and
                           "ORIGINAL_AMOUNT".
                         "maxAmount": 0.0  # Optional. Maximum amount to rollover.
-                    }
+                    },
+                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the grant was last
+                      updated.
                 }
 
                 # response body for status code(s): 201
@@ -3868,6 +3989,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "subject": "str",  # The subject to grant the amount to. Required.
                     "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
                       amount in the unit of the associated meter. Required. "USAGE"
+                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant was
+                      created.
                     "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
                       grant.
                     "metadata": {
@@ -3888,7 +4011,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           full grant amount. Required. Known values are: "REMAINING_AMOUNT" and
                           "ORIGINAL_AMOUNT".
                         "maxAmount": 0.0  # Optional. Maximum amount to rollover.
-                    }
+                    },
+                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the grant was last
+                      updated.
                 }
         """
 
@@ -3931,6 +4056,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "subject": "str",  # The subject to grant the amount to. Required.
                     "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
                       amount in the unit of the associated meter. Required. "USAGE"
+                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant was
+                      created.
                     "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
                       grant.
                     "metadata": {
@@ -3951,7 +4078,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           full grant amount. Required. Known values are: "REMAINING_AMOUNT" and
                           "ORIGINAL_AMOUNT".
                         "maxAmount": 0.0  # Optional. Maximum amount to rollover.
-                    }
+                    },
+                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the grant was last
+                      updated.
                 }
         """
 
@@ -3985,9 +4114,10 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     },
                     "featureID": "str",  # The unique feature ULID that the grant is associated
                       with, if any. Required.
-                    "id": "str",  # Readonly unique ULID identifier of the grant. Required.
                     "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
                       amount in the unit of the associated meter. Required. "USAGE"
+                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant was
+                      created.
                     "metadata": {
                         "str": "str"  # Optional. Dictionary of :code:`<string>`.
                     },
@@ -4006,7 +4136,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           full grant amount. Required. Known values are: "REMAINING_AMOUNT" and
                           "ORIGINAL_AMOUNT".
                         "maxAmount": 0.0  # Optional. Maximum amount to rollover.
-                    }
+                    },
+                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the grant was last
+                      updated.
                 }
 
                 # response body for status code(s): 201
@@ -4025,6 +4157,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "subject": "str",  # The subject to grant the amount to. Required.
                     "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
                       amount in the unit of the associated meter. Required. "USAGE"
+                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant was
+                      created.
                     "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
                       grant.
                     "metadata": {
@@ -4045,7 +4179,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           full grant amount. Required. Known values are: "REMAINING_AMOUNT" and
                           "ORIGINAL_AMOUNT".
                         "maxAmount": 0.0  # Optional. Maximum amount to rollover.
-                    }
+                    },
+                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the grant was last
+                      updated.
                 }
         """
         error_map = {
@@ -4138,6 +4274,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "subject": "str",  # The subject to grant the amount to. Required.
                     "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
                       amount in the unit of the associated meter. Required. "USAGE"
+                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant was
+                      created.
                     "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
                       grant.
                     "metadata": {
@@ -4158,7 +4296,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           full grant amount. Required. Known values are: "REMAINING_AMOUNT" and
                           "ORIGINAL_AMOUNT".
                         "maxAmount": 0.0  # Optional. Maximum amount to rollover.
-                    }
+                    },
+                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the grant was last
+                      updated.
                 }
         """
         error_map = {
