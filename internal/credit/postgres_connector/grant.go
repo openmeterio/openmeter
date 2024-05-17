@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_credit "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
-	"github.com/openmeterio/openmeter/pkg/convertx"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -288,8 +287,8 @@ func mapGrantEntity(entry *db.CreditEntry) (credit.Grant, error) {
 		},
 		Metadata:  entry.Metadata,
 		Void:      entry.EntryType == credit.EntryTypeVoidGrant,
-		CreatedAt: convertx.ToPointer(entry.CreatedAt.In(time.UTC)),
-		UpdatedAt: convertx.ToPointer(entry.UpdatedAt.In(time.UTC)),
+		CreatedAt: convert.ToPointer(entry.CreatedAt.In(time.UTC)),
+		UpdatedAt: convert.ToPointer(entry.UpdatedAt.In(time.UTC)),
 	}
 	if entry.RolloverType != nil {
 		grant.Rollover = &credit.GrantRollover{

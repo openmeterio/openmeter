@@ -2,6 +2,7 @@ package credit
 
 import (
 	"encoding/json"
+	"slices"
 	"sort"
 	"time"
 )
@@ -89,8 +90,7 @@ type LedgerEntryList struct {
 }
 
 func (f LedgerEntryList) GetEntries() []LedgerEntry {
-	list := make([]LedgerEntry, len(f.list))
-	_ = copy(list, f.list)
+	list := slices.Clone(f.list)
 
 	// Sort ledger entries by time
 	sort.Slice(list, func(i, j int) bool {

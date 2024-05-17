@@ -8,7 +8,6 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_feature "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
-	"github.com/openmeterio/openmeter/pkg/convertx"
 )
 
 // CreateFeature creates a feature.
@@ -117,8 +116,8 @@ func mapFeatureEntity(entity *db.Feature) credit.Feature {
 		Name:      entity.Name,
 		MeterSlug: entity.MeterSlug,
 		Archived:  &entity.Archived,
-		CreatedAt: convertx.ToPointer(entity.CreatedAt.In(time.UTC)),
-		UpdatedAt: convertx.ToPointer(entity.UpdatedAt.In(time.UTC)),
+		CreatedAt: convert.ToPointer(entity.CreatedAt.In(time.UTC)),
+		UpdatedAt: convert.ToPointer(entity.UpdatedAt.In(time.UTC)),
 	}
 
 	if len(entity.MeterGroupByFilters) > 0 {

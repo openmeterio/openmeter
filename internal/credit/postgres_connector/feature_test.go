@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	meter_internal "github.com/openmeterio/openmeter/internal/meter"
-	"github.com/openmeterio/openmeter/pkg/convertx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -77,7 +76,7 @@ func TestFeature(t *testing.T) {
 				assert.NoError(t, err)
 
 				expected := featureIn
-				expected.Archived = convertx.ToPointer(false)
+				expected.Archived = convert.ToPointer(false)
 
 				assert.NotEmpty(t, *featureOut.CreatedAt)
 				assert.NotEmpty(t, *featureOut.UpdatedAt)
@@ -121,7 +120,7 @@ func TestFeature(t *testing.T) {
 				assert.Len(t, features, 1)
 
 				expected := feature
-				expected.Archived = convertx.ToPointer(false)
+				expected.Archived = convert.ToPointer(false)
 
 				assert.NotEmpty(t, *features[0].CreatedAt)
 				assert.NotEmpty(t, *features[0].UpdatedAt)
