@@ -151,7 +151,10 @@ func TestPostgresConnectorReset(t *testing.T) {
 				assert.Len(t, rolloverGrants, 1)
 
 				// Grants after reset should be the same as rollover grants
-				assert.Equal(t, removeTimestampsFromGrants(rolloverGrants), removeTimestampsFromGrants(grants))
+				assert.Equal(t,
+					removeTimestampsFromGrants(rolloverGrants),
+					removeTimestampsFromGrants(grants),
+				)
 			},
 		},
 		{

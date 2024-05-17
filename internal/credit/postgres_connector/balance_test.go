@@ -86,22 +86,25 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				assert.NoError(t, err)
 
 				// Assert balance
-				assert.Equal(t, removeTimestampsFromBalance(credit.Balance{
-					LedgerID: ledger.ID,
-					Subject:  ledger.Subject,
-					FeatureBalances: []credit.FeatureBalance{
-						{
-							Feature: feature,
-							Balance: 99,
+				assert.Equal(t,
+					removeTimestampsFromBalance(credit.Balance{
+						LedgerID: ledger.ID,
+						Subject:  ledger.Subject,
+						FeatureBalances: []credit.FeatureBalance{
+							{
+								Feature: feature,
+								Balance: 99,
+							},
 						},
-					},
-					GrantBalances: []credit.GrantBalance{
-						{
-							Grant:   grant,
-							Balance: 99,
+						GrantBalances: []credit.GrantBalance{
+							{
+								Grant:   grant,
+								Balance: 99,
+							},
 						},
-					},
-				}), removeTimestampsFromBalance(balance))
+					}),
+					removeTimestampsFromBalance(balance),
+				)
 			},
 		},
 		{
@@ -469,16 +472,17 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				)
 
 				assert.ElementsMatch(t,
-					removeTimestampsFromGrantBalances([]credit.GrantBalance{
-						{
-							Grant:   grant1,
-							Balance: 99,
-						},
-						{
-							Grant:   grant2,
-							Balance: 90,
-						},
-					}),
+					removeTimestampsFromGrantBalances(
+						[]credit.GrantBalance{
+							{
+								Grant:   grant1,
+								Balance: 99,
+							},
+							{
+								Grant:   grant2,
+								Balance: 90,
+							},
+						}),
 					removeTimestampsFromGrantBalances(balance.GrantBalances),
 				)
 			},
