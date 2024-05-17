@@ -730,14 +730,21 @@ paths:
         - name: subject
           in: query
           required: false
-          description: Query a specific ledger
+          description: Query ledgers specific to subjects.
           schema:
             type: array
             items:
               type: string
               description: |
                 A metering subject to list the ledger of.
-
+        - name: subjectSimilarTo
+          in: query
+          required: false
+          description: Query ledgers with subjects that are similar to the provided text.
+          schema:
+            type: string
+            description: |
+              A text fragment to search for.
         - name: limit
           in: query
           required: false
@@ -1330,6 +1337,12 @@ components:
               readOnly: true
               type: string
               example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+            createdAt:
+              description: |
+                The time the ledger was created.
+              type: string
+              format: date-time
+              example: "2023-01-01T00:00:00Z"
     LedgerEntry:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit

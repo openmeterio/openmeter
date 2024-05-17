@@ -63,6 +63,12 @@ func (c *PostgresConnector) ListLedgers(ctx context.Context, params credit.ListL
 		query = query.Offset(params.Offset)
 	}
 
+	if params.SubjectLike != "" {
+		query = query.Where(
+			db_ledger.SubjectContainsFold(params.SubjectLike),
+		)
+	}
+
 	dbLedgers, err := query.All(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -87,5 +93,6 @@ func mapDBLedgerToModel(ledger *db.Ledger) credit.Ledger {
 		ID:        credit.LedgerID(ledger.ID),
 		Subject:   ledger.Subject,
 		Metadata:  ledger.Metadata,
+		CreatedAt: ledger.CreatedAt,
 	}
 }

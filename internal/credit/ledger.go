@@ -29,6 +29,9 @@ type Ledger struct {
 	Subject string `json:"subject"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
+
+	// CreatedAt is the time the ledger was created
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 // Render implements the chi renderer interface.

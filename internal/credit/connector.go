@@ -21,10 +21,11 @@ type ListFeaturesParams struct {
 }
 
 type ListLedgersParams struct {
-	Namespace string
-	Subjects  []string
-	Offset    int
-	Limit     int
+	Namespace   string
+	Subjects    []string
+	SubjectLike string
+	Offset      int
+	Limit       int
 }
 
 type Connector interface {
