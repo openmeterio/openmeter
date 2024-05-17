@@ -216,7 +216,8 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				assert.NoError(t, err)
 				assert.ElementsMatch(t,
 					removeTimestampsFromGrants([]credit.Grant{grant_s1_2, grant_s2_1}),
-					removeTimestampsFromGrants(gs))
+					removeTimestampsFromGrants(gs),
+				)
 				// ledger-1's non-void grants
 				gs, err = connector.ListGrants(ctx, credit.ListGrantsParams{
 					Namespace: namespace,
@@ -225,7 +226,8 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				assert.NoError(t, err)
 				assert.ElementsMatch(t,
 					removeTimestampsFromGrants([]credit.Grant{grant_s1_2}),
-					removeTimestampsFromGrants(gs))
+					removeTimestampsFromGrants(gs),
+				)
 				// all ledger' grants, including void grants
 				gs, err = connector.ListGrants(ctx, credit.ListGrantsParams{
 					Namespace:   namespace,
@@ -234,7 +236,8 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				assert.NoError(t, err)
 				assert.ElementsMatch(t,
 					removeTimestampsFromGrants([]credit.Grant{grant_s1_2, grant_s2_1, void_grant_s1_1}),
-					removeTimestampsFromGrants(gs))
+					removeTimestampsFromGrants(gs),
+				)
 			},
 		},
 	}

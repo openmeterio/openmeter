@@ -169,7 +169,9 @@ func TestPostgresConnectorBalances(t *testing.T) {
 									Balance: 99,
 								},
 							},
-						}), removeTimestampsFromBalance(balance))
+						}),
+					removeTimestampsFromBalance(balance),
+				)
 			},
 		},
 		{
@@ -304,7 +306,8 @@ func TestPostgresConnectorBalances(t *testing.T) {
 								},
 							},
 						}),
-					removeTimestampsFromBalance(balance))
+					removeTimestampsFromBalance(balance),
+				)
 			},
 		},
 		{
@@ -384,7 +387,8 @@ func TestPostgresConnectorBalances(t *testing.T) {
 								},
 							},
 						}),
-					removeTimestampsFromBalance(balance))
+					removeTimestampsFromBalance(balance),
+				)
 			},
 		},
 		{
@@ -449,17 +453,20 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				balance.GrantBalances[1].Grant.EffectiveAt = grant2.EffectiveAt
 
 				// Assert balance
-				assert.ElementsMatch(t, removeTimestampsFromFeatureBalances(
-					[]credit.FeatureBalance{
-						{
-							Feature: feature1,
-							Balance: 99,
-						},
-						{
-							Feature: feature2,
-							Balance: 90,
-						},
-					}), removeTimestampsFromFeatureBalances(balance.FeatureBalances))
+				assert.ElementsMatch(t,
+					removeTimestampsFromFeatureBalances(
+						[]credit.FeatureBalance{
+							{
+								Feature: feature1,
+								Balance: 99,
+							},
+							{
+								Feature: feature2,
+								Balance: 90,
+							},
+						}),
+					removeTimestampsFromFeatureBalances(balance.FeatureBalances),
+				)
 
 				assert.ElementsMatch(t,
 					removeTimestampsFromGrantBalances([]credit.GrantBalance{
@@ -471,7 +478,9 @@ func TestPostgresConnectorBalances(t *testing.T) {
 							Grant:   grant2,
 							Balance: 90,
 						},
-					}), removeTimestampsFromGrantBalances(balance.GrantBalances))
+					}),
+					removeTimestampsFromGrantBalances(balance.GrantBalances),
+				)
 			},
 		},
 	}
