@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"syscall"
@@ -39,14 +38,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-const (
-	defaultShutdownTimeout = 5 * time.Second
-)
-
 var otelName string = "openmeter.io/sink-worker"
 
 func main() {
 	v, flags := viper.New(), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
+	ctx := context.Background()
 
 	config.Configure(v, flags)
 
@@ -81,12 +77,8 @@ func main() {
 		panic(err)
 	}
 
-	// Setup main context covering the application lifecycle and ensure that the context is canceled on process exit.
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	extraResources, _ := resource.New(
-		ctx,
+		context.Background(),
 		resource.WithContainer(),
 		resource.WithAttributes(
 			semconv.ServiceName("openmeter-sink-worker"),
@@ -108,18 +100,13 @@ func main() {
 	telemetryRouter.Mount("/debug", middleware.Profiler())
 
 	// Initialize OTel Metrics
-	otelMeterProvider, err := conf.Telemetry.Metrics.NewMeterProvider(ctx, res)
+	otelMeterProvider, err := conf.Telemetry.Metrics.NewMeterProvider(context.Background(), res)
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
 	}
 	defer func() {
-		// Use dedicated context with timeout for shutdown as parent context might be canceled
-		// by the time the execution reaches this stage.
-		ctx, cancel := context.WithTimeout(context.Background(), defaultShutdownTimeout)
-		defer cancel()
-
-		if err := otelMeterProvider.Shutdown(ctx); err != nil {
+		if err := otelMeterProvider.Shutdown(context.Background()); err != nil {
 			logger.Error("shutting down meter provider: %v", err)
 		}
 	}()
@@ -131,18 +118,13 @@ func main() {
 	}
 
 	// Initialize OTel Tracer
-	otelTracerProvider, err := conf.Telemetry.Trace.NewTracerProvider(ctx, res)
+	otelTracerProvider, err := conf.Telemetry.Trace.NewTracerProvider(context.Background(), res)
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
 	}
 	defer func() {
-		// Use dedicated context with timeout for shutdown as parent context might be canceled
-		// by the time the execution reaches this stage.
-		ctx, cancel := context.WithTimeout(context.Background(), defaultShutdownTimeout)
-		defer cancel()
-
-		if err := otelTracerProvider.Shutdown(ctx); err != nil {
+		if err := otelTracerProvider.Shutdown(context.Background()); err != nil {
 			logger.Error("shutting down tracer provider", "error", err)
 		}
 	}()
@@ -180,51 +162,42 @@ func main() {
 		logger.Error("failed to initialize sink worker", "error", err)
 		os.Exit(1)
 	}
-	defer sink.Close()
-
-	// Set up telemetry server
-	server := &http.Server{
-		Addr:    conf.Telemetry.Address,
-		Handler: telemetryRouter,
-		BaseContext: func(_ net.Listener) context.Context {
-			return ctx
-		},
-	}
-	defer server.Close()
 
 	var group run.Group
-	// Add sink worker to run group
-	group.Add(
-		func() error { return sink.Run(ctx) },
-		func(err error) { sink.Close() },
-	)
 
-	// Add telemetry server to run group
-	group.Add(
-		func() error { return server.ListenAndServe() },
-		func(err error) { _ = server.Shutdown(ctx) },
-	)
+	// Set up telemetry server
+	{
+		server := &http.Server{
+			Addr:    conf.Telemetry.Address,
+			Handler: telemetryRouter,
+		}
+		defer server.Close()
+
+		group.Add(
+			func() error { return server.ListenAndServe() },
+			func(err error) { _ = server.Shutdown(ctx) },
+		)
+	}
+
+	// Starting sink worker
+	{
+		defer sink.Close()
+
+		group.Add(
+			func() error { return sink.Run() },
+			func(err error) { _ = sink.Close() },
+		)
+	}
 
 	// Setup signal handler
 	group.Add(run.SignalHandler(ctx, syscall.SIGINT, syscall.SIGTERM))
 
-	// Run actors
 	err = group.Run()
-
-	var exitCode int
 	if e := (run.SignalError{}); errors.As(err, &e) {
-		logger.Info("received signal: shutting down", slog.String("signal", e.Signal.String()))
-		switch e.Signal {
-		case syscall.SIGTERM:
-		default:
-			exitCode = 130
-		}
+		slog.Info("received signal; shutting down", slog.String("signal", e.Signal.String()))
 	} else if !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("application stopped due to error", slog.String("error", err.Error()))
-		exitCode = 1
 	}
-
-	os.Exit(exitCode)
 }
 
 func initClickHouseClient(config config.Configuration) (clickhouse.Conn, error) {

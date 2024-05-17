@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"os"
+	"os/signal"
 	"regexp"
 	"sort"
-	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/avast/retry-go/v4"
@@ -33,7 +35,7 @@ type SinkMessage struct {
 
 type Sink struct {
 	config            SinkConfig
-	isRunning         atomic.Bool
+	running           bool
 	buffer            *SinkBuffer
 	flushTimer        *time.Timer
 	flushEventCounter metric.Int64Counter
@@ -402,13 +404,13 @@ func (s *Sink) clearFlushTimer() {
 }
 
 // Run starts the Kafka consumer and sinks the events to Clickhouse
-func (s *Sink) Run(ctx context.Context) error {
-	if s.isRunning.Load() {
-		return nil
-	}
-
+func (s *Sink) Run() error {
+	ctx := context.TODO()
 	logger := s.config.Logger.With("operation", "run")
 	logger.Info("starting sink")
+
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
 	// Fetch namespaces and meters and subscribe to them
 	err := s.subscribeToNamespaces()
@@ -429,16 +431,16 @@ func (s *Sink) Run(ctx context.Context) error {
 	s.namespaceRefetch = time.AfterFunc(s.config.NamespaceRefetch, refetch)
 
 	// Reset state
-	s.isRunning.Store(true)
+	s.running = true
 
 	// Start flush timer, this will be cleared and restarted by flush
 	s.setFlushTimer()
 
-	for s.isRunning.Load() {
+	for s.running {
 		select {
-		case <-ctx.Done():
-			return fmt.Errorf("context canceled: %w", ctx.Err())
-
+		case sig := <-sigchan:
+			logger.Error("caught signal, terminating", "sig", sig)
+			s.running = false
 		default:
 			ev := s.config.Consumer.Poll(100)
 			if ev == nil {
@@ -450,7 +452,7 @@ func (s *Sink) Run(ctx context.Context) error {
 				sinkMessage := SinkMessage{
 					KafkaMessage: e,
 				}
-				namespace, kafkaCloudEvent, err := s.parseMessage(ctx, e)
+				namespace, kafkaCloudEvent, err := s.ParseMessage(e)
 				if err != nil {
 					if perr, ok := err.(*ProcessingError); ok {
 						sinkMessage.Error = perr
@@ -490,7 +492,8 @@ func (s *Sink) Run(ctx context.Context) error {
 		}
 	}
 
-	return nil
+	logger.Info("closing sink")
+	return s.Close()
 }
 
 func (s *Sink) pause() error {
@@ -590,13 +593,15 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 		// Remove messages for revoked partitions from buffer
 		s.buffer.RemoveByPartitions(e.Partitions)
 	default:
-		logger.Error("unexpected event type", "event", e)
+		logger.Error("unxpected event type", "event", e)
 	}
 
 	return nil
 }
 
-func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (string, *serializer.CloudEventsKafkaPayload, error) {
+func (s *Sink) ParseMessage(e *kafka.Message) (string, *serializer.CloudEventsKafkaPayload, error) {
+	ctx := context.TODO()
+
 	// Get Namespace
 	namespace, err := getNamespace(*e.TopicPartition.Topic)
 	if err != nil {
@@ -634,21 +639,18 @@ func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (string, *ser
 	return namespace, &kafkaCloudEvent, err
 }
 
-func (s *Sink) Close() {
-	if !s.isRunning.Load() {
-		return
-	}
-
+func (s *Sink) Close() error {
 	s.config.Logger.Info("closing sink")
-	s.isRunning.Store(false)
 
+	s.running = false
 	if s.namespaceRefetch != nil {
-		_ = s.namespaceRefetch.Stop()
+		s.namespaceRefetch.Stop()
+	}
+	if s.flushTimer != nil {
+		s.flushTimer.Stop()
 	}
 
-	if s.flushTimer != nil {
-		_ = s.flushTimer.Stop()
-	}
+	return nil
 }
 
 // getNamespace from topic
