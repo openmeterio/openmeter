@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/spf13/viper"
@@ -32,13 +31,6 @@ type KafkaIngestConfiguration struct {
 	Partitions          int
 	EventsTopicTemplate string
 	BrokerAddressFamily string
-	// SocketKeepAliveEnable defines if TCP socket keep-alive is enabled to prevent closing idle connections
-	// by Kafka brokers.
-	SocketKeepAliveEnable bool
-	// MetadataMaxAge defines the time interval after the metadata cache (brokers, partitions) becomes invalid.
-	// Keeping this parameter low forces the client to refresh metadata more frequently which helps with
-	// detecting changes in the Kafka cluster (broker, partition, leader changes) faster.
-	MetadataMaxAge time.Duration
 }
 
 // CreateKafkaConfig creates a Kafka config map.
@@ -75,14 +67,6 @@ func (c KafkaIngestConfiguration) CreateKafkaConfig() kafka.ConfigMap {
 		config["sasl.password"] = c.SaslPassword
 	}
 
-	if c.SocketKeepAliveEnable {
-		config["socket.keepalive.enable"] = c.SocketKeepAliveEnable
-	}
-
-	if c.MetadataMaxAge != 0 {
-		config["metadata.max.age.ms"] = c.MetadataMaxAge
-	}
-
 	return config
 }
 
@@ -108,6 +92,4 @@ func ConfigureIngest(v *viper.Viper) {
 	v.SetDefault("ingest.kafka.saslPassword", "")
 	v.SetDefault("ingest.kafka.partitions", 1)
 	v.SetDefault("ingest.kafka.eventsTopicTemplate", "om_%s_events")
-	v.SetDefault("ingest.kafka.socketKeepAliveEnable", false)
-	v.SetDefault("ingest.kafka.metadataMaxAge", 180*time.Second)
 }
