@@ -111,11 +111,12 @@ func NewSink(config SinkConfig) (*Sink, error) {
 
 // flush flushes the 1. buffer to storage, 2. sets dedupe and 3. store the offset
 // called when max wait time or min commit count reached
-func (s *Sink) flush(ctx context.Context) error {
+func (s *Sink) flush() error {
+	ctx := context.TODO()
 	logger := s.config.Logger.With("operation", "flush")
 
 	s.clearFlushTimer()
-	defer s.setFlushTimer(ctx)
+	defer s.setFlushTimer()
 
 	// Nothing to flush
 	if s.buffer.Size() == 0 {
@@ -373,11 +374,11 @@ func (s *Sink) subscribeToNamespaces(ctx context.Context) error {
 }
 
 // Periodically flush even if MinCommitCount threshold not reached yet but MaxCommitWait time elapsed
-func (s *Sink) setFlushTimer(ctx context.Context) {
+func (s *Sink) setFlushTimer() {
 	logger := s.config.Logger.With("operation", "setFlushTimer")
 
 	flush := func() {
-		err := s.flush(ctx)
+		err := s.flush()
 		if err != nil {
 			// TODO: should we panic?
 			logger.Error("failed to flush", "err", err)
@@ -426,7 +427,7 @@ func (s *Sink) Run(ctx context.Context) error {
 	s.isRunning.Store(true)
 
 	// Start flush timer, this will be cleared and restarted by flush
-	s.setFlushTimer(ctx)
+	s.setFlushTimer()
 
 	for s.isRunning.Load() {
 		select {
@@ -464,7 +465,7 @@ func (s *Sink) Run(ctx context.Context) error {
 
 				// Flush buffer and commit messages
 				if s.buffer.Size() >= s.config.MinCommitCount {
-					err = s.flush(ctx)
+					err = s.flush()
 					if err != nil {
 						// Stop processing, non-recoverable error
 						return fmt.Errorf("failed to flush: %w", err)
