@@ -30,7 +30,6 @@ type KafkaIngestConfiguration struct {
 	SaslPassword        string
 	Partitions          int
 	EventsTopicTemplate string
-	BrokerAddressFamily string
 }
 
 // CreateKafkaConfig creates a Kafka config map.
@@ -45,9 +44,7 @@ func (c KafkaIngestConfiguration) CreateKafkaConfig() kafka.ConfigMap {
 	// This is needed when using localhost brokers on OSX,
 	// since the OSX resolver will return the IPv6 addresses first.
 	// See: https://github.com/openmeterio/openmeter/issues/321
-	if c.BrokerAddressFamily != "" {
-		config["broker.address.family"] = c.BrokerAddressFamily
-	} else if strings.Contains(c.Broker, "localhost") || strings.Contains(c.Broker, "127.0.0.1") {
+	if strings.Contains(c.Broker, "localhost") || strings.Contains(c.Broker, "127.0.0.1") {
 		config["broker.address.family"] = "v4"
 	}
 
