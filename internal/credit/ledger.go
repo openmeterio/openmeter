@@ -2,7 +2,7 @@ package credit
 
 import (
 	"encoding/json"
-	"net/http"
+	"slices"
 	"sort"
 	"time"
 )
@@ -29,11 +29,9 @@ type Ledger struct {
 	Subject string `json:"subject"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
-}
 
-// Render implements the chi renderer interface.
-func (c Ledger) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	// CreatedAt is the time the ledger was created
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 type LedgerEntryType string
@@ -81,11 +79,6 @@ type Period struct {
 	To   time.Time `json:"to"`
 }
 
-// Render implements the chi renderer interface.
-func (c LedgerEntry) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
-}
-
 func NewLedgerEntryList() LedgerEntryList {
 	return LedgerEntryList{
 		list: []LedgerEntry{},
@@ -96,13 +89,8 @@ type LedgerEntryList struct {
 	list []LedgerEntry
 }
 
-func (c LedgerEntryList) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
-}
-
 func (f LedgerEntryList) GetEntries() []LedgerEntry {
-	list := make([]LedgerEntry, len(f.list))
-	_ = copy(list, f.list)
+	list := slices.Clone(f.list)
 
 	// Sort ledger entries by time
 	sort.Slice(list, func(i, j int) bool {
@@ -115,6 +103,32 @@ func (f LedgerEntryList) GetEntries() []LedgerEntry {
 	})
 
 	return list
+}
+
+func (f LedgerEntryList) Len() int {
+	return len(f.list)
+}
+
+// Truncate removes all entries after the limit.
+func (f LedgerEntryList) Truncate(limit int) LedgerEntryList {
+	if limit >= len(f.list) {
+		return f
+	}
+
+	return LedgerEntryList{
+		list: f.list[:limit],
+	}
+}
+
+// Skip removes the first n entries.
+func (f LedgerEntryList) Skip(n int) LedgerEntryList {
+	if n >= len(f.list) {
+		return LedgerEntryList{}
+	}
+
+	return LedgerEntryList{
+		list: f.list[n:],
+	}
 }
 
 func (f LedgerEntryList) MarshalJSON() ([]byte, error) {

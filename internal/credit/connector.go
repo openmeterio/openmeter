@@ -15,16 +15,42 @@ type ListGrantsParams struct {
 	Limit             int
 }
 
+type FeatureOrderBy string
+
+const (
+	FeatureOrderByCreatedAt FeatureOrderBy = "created_at"
+	FeatureOrderByUpdatedAt FeatureOrderBy = "updated_at"
+	FeatureOrderByID        FeatureOrderBy = "id"
+)
+
 type ListFeaturesParams struct {
 	Namespace       string
 	IncludeArchived bool
+	Offset          int
+	Limit           int
+	OrderBy         FeatureOrderBy
 }
 
+type LedgerOrderBy string
+
+const (
+	LedgerOrderByCreatedAt LedgerOrderBy = "created_at"
+	LedgerOrderBySubject   LedgerOrderBy = "subject"
+	LedgerOrderByID        LedgerOrderBy = "id"
+)
+
 type ListLedgersParams struct {
-	Namespace string
-	Subjects  []string
-	Offset    int
-	Limit     int
+	Namespace   string
+	Subjects    []string
+	SubjectLike string
+	Offset      int
+	Limit       int
+	OrderBy     LedgerOrderBy
+}
+
+type Pagination struct {
+	Offset int
+	Limit  int
 }
 
 type Connector interface {
@@ -40,7 +66,7 @@ type Connector interface {
 
 	// Credit
 	GetBalance(ctx context.Context, ledgerID NamespacedLedgerID, cutline time.Time) (Balance, error)
-	GetHistory(ctx context.Context, ledgerID NamespacedLedgerID, from time.Time, to time.Time, limit int) (LedgerEntryList, error)
+	GetHistory(ctx context.Context, ledgerID NamespacedLedgerID, from time.Time, to time.Time, pagination Pagination) (LedgerEntryList, error)
 	GetHighWatermark(ctx context.Context, ledgerID NamespacedLedgerID) (HighWatermark, error)
 	Reset(ctx context.Context, reset Reset) (Reset, []Grant, error)
 

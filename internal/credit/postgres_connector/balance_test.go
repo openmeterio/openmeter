@@ -86,22 +86,25 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				assert.NoError(t, err)
 
 				// Assert balance
-				assert.Equal(t, credit.Balance{
-					LedgerID: ledger.ID,
-					Subject:  ledger.Subject,
-					FeatureBalances: []credit.FeatureBalance{
-						{
-							Feature: feature,
-							Balance: 99,
+				assert.Equal(t,
+					removeTimestampsFromBalance(credit.Balance{
+						LedgerID: ledger.ID,
+						Subject:  ledger.Subject,
+						FeatureBalances: []credit.FeatureBalance{
+							{
+								Feature: feature,
+								Balance: 99,
+							},
 						},
-					},
-					GrantBalances: []credit.GrantBalance{
-						{
-							Grant:   grant,
-							Balance: 99,
+						GrantBalances: []credit.GrantBalance{
+							{
+								Grant:   grant,
+								Balance: 99,
+							},
 						},
-					},
-				}, balance)
+					}),
+					removeTimestampsFromBalance(balance),
+				)
 			},
 		},
 		{
@@ -152,22 +155,26 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				balance.GrantBalances[0].Grant.EffectiveAt = grant.EffectiveAt
 
 				// Assert balance
-				assert.Equal(t, credit.Balance{
-					LedgerID: ledger.ID,
-					Subject:  ledger.Subject,
-					FeatureBalances: []credit.FeatureBalance{
-						{
-							Feature: feature,
-							Balance: 99,
-						},
-					},
-					GrantBalances: []credit.GrantBalance{
-						{
-							Grant:   grant,
-							Balance: 99,
-						},
-					},
-				}, balance)
+				assert.Equal(t,
+					removeTimestampsFromBalance(
+						credit.Balance{
+							LedgerID: ledger.ID,
+							Subject:  ledger.Subject,
+							FeatureBalances: []credit.FeatureBalance{
+								{
+									Feature: feature,
+									Balance: 99,
+								},
+							},
+							GrantBalances: []credit.GrantBalance{
+								{
+									Grant:   grant,
+									Balance: 99,
+								},
+							},
+						}),
+					removeTimestampsFromBalance(balance),
+				)
 			},
 		},
 		{
@@ -280,26 +287,30 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				balance.GrantBalances[1].Grant.EffectiveAt = grant2.EffectiveAt
 
 				// Assert balance
-				assert.Equal(t, credit.Balance{
-					LedgerID: ledger.ID,
-					Subject:  ledger.Subject,
-					FeatureBalances: []credit.FeatureBalance{
-						{
-							Feature: feature,
-							Balance: 90,
-						},
-					},
-					GrantBalances: []credit.GrantBalance{
-						{
-							Grant:   grant1,
-							Balance: 0,
-						},
-						{
-							Grant:   grant2,
-							Balance: 90,
-						},
-					},
-				}, balance)
+				assert.Equal(t,
+					removeTimestampsFromBalance(
+						credit.Balance{
+							LedgerID: ledger.ID,
+							Subject:  ledger.Subject,
+							FeatureBalances: []credit.FeatureBalance{
+								{
+									Feature: feature,
+									Balance: 90,
+								},
+							},
+							GrantBalances: []credit.GrantBalance{
+								{
+									Grant:   grant1,
+									Balance: 0,
+								},
+								{
+									Grant:   grant2,
+									Balance: 90,
+								},
+							},
+						}),
+					removeTimestampsFromBalance(balance),
+				)
 			},
 		},
 		{
@@ -357,26 +368,30 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				balance.GrantBalances[1].Grant.EffectiveAt = grant2.EffectiveAt
 
 				// Assert balance
-				assert.Equal(t, credit.Balance{
-					LedgerID: ledger.ID,
-					Subject:  ledger.Subject,
-					FeatureBalances: []credit.FeatureBalance{
-						{
-							Feature: feature,
-							Balance: 90,
-						},
-					},
-					GrantBalances: []credit.GrantBalance{
-						{
-							Grant:   grant1,
-							Balance: 0,
-						},
-						{
-							Grant:   grant2,
-							Balance: 90,
-						},
-					},
-				}, balance)
+				assert.Equal(t,
+					removeTimestampsFromBalance(
+						credit.Balance{
+							LedgerID: ledger.ID,
+							Subject:  ledger.Subject,
+							FeatureBalances: []credit.FeatureBalance{
+								{
+									Feature: feature,
+									Balance: 90,
+								},
+							},
+							GrantBalances: []credit.GrantBalance{
+								{
+									Grant:   grant1,
+									Balance: 0,
+								},
+								{
+									Grant:   grant2,
+									Balance: 90,
+								},
+							},
+						}),
+					removeTimestampsFromBalance(balance),
+				)
 			},
 		},
 		{
@@ -441,27 +456,35 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				balance.GrantBalances[1].Grant.EffectiveAt = grant2.EffectiveAt
 
 				// Assert balance
-				assert.ElementsMatch(t, []credit.FeatureBalance{
-					{
-						Feature: feature1,
-						Balance: 99,
-					},
-					{
-						Feature: feature2,
-						Balance: 90,
-					},
-				}, balance.FeatureBalances)
+				assert.ElementsMatch(t,
+					removeTimestampsFromFeatureBalances(
+						[]credit.FeatureBalance{
+							{
+								Feature: feature1,
+								Balance: 99,
+							},
+							{
+								Feature: feature2,
+								Balance: 90,
+							},
+						}),
+					removeTimestampsFromFeatureBalances(balance.FeatureBalances),
+				)
 
-				assert.ElementsMatch(t, []credit.GrantBalance{
-					{
-						Grant:   grant1,
-						Balance: 99,
-					},
-					{
-						Grant:   grant2,
-						Balance: 90,
-					},
-				}, balance.GrantBalances)
+				assert.ElementsMatch(t,
+					removeTimestampsFromGrantBalances(
+						[]credit.GrantBalance{
+							{
+								Grant:   grant1,
+								Balance: 99,
+							},
+							{
+								Grant:   grant2,
+								Balance: 90,
+							},
+						}),
+					removeTimestampsFromGrantBalances(balance.GrantBalances),
+				)
 			},
 		},
 	}
@@ -537,4 +560,26 @@ func (m *mockStreamingConnector) QueryMeter(ctx context.Context, namespace strin
 
 func (m *mockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meterSlug string, from *time.Time, to *time.Time) ([]string, error) {
 	return []string{}, nil
+}
+
+func removeTimestampsFromBalance(balance credit.Balance) credit.Balance {
+	balance.FeatureBalances = removeTimestampsFromFeatureBalances(balance.FeatureBalances)
+	balance.GrantBalances = removeTimestampsFromGrantBalances(balance.GrantBalances)
+	return balance
+}
+
+func removeTimestampsFromGrantBalances(grantBalances []credit.GrantBalance) []credit.GrantBalance {
+	for i := range grantBalances {
+		grantBalances[i].Grant.CreatedAt = nil
+		grantBalances[i].Grant.UpdatedAt = nil
+	}
+	return grantBalances
+}
+
+func removeTimestampsFromFeatureBalances(featureBalances []credit.FeatureBalance) []credit.FeatureBalance {
+	for i := range featureBalances {
+		featureBalances[i].Feature.CreatedAt = nil
+		featureBalances[i].Feature.UpdatedAt = nil
+	}
+	return featureBalances
 }

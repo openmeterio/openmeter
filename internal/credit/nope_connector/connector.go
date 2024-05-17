@@ -45,7 +45,7 @@ func (c *Connector) GetGrant(ctx context.Context, grantID credit.NamespacedGrant
 func (c *Connector) GetBalance(ctx context.Context, ledgerID credit.NamespacedLedgerID, cutline time.Time) (credit.Balance, error) {
 	return credit.Balance{}, fmt.Errorf("not implemented")
 }
-func (c *Connector) GetHistory(ctx context.Context, ledgerID credit.NamespacedLedgerID, from time.Time, to time.Time, limit int) (credit.LedgerEntryList, error) {
+func (c *Connector) GetHistory(ctx context.Context, ledgerID credit.NamespacedLedgerID, from time.Time, to time.Time, pagination credit.Pagination) (credit.LedgerEntryList, error) {
 	return credit.LedgerEntryList{}, fmt.Errorf("not implemented")
 }
 func (c *Connector) GetHighWatermark(ctx context.Context, ledgerID credit.NamespacedLedgerID) (credit.HighWatermark, error) {

@@ -119,11 +119,6 @@ type Reset struct {
 	EffectiveAt time.Time `json:"effectiveAt"`
 }
 
-// Render implements the chi renderer interface.
-func (c Reset) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
-}
-
 // Grant is used to increase balance of specific subjects.
 type Grant struct {
 	Namespace string `json:"-"`
@@ -167,6 +162,9 @@ type Grant struct {
 
 	// Void The voided date.
 	Void bool `json:"void"`
+
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 }
 
 func (c Grant) ExpirationDate() time.Time {
@@ -236,7 +234,7 @@ type LockErrNotObtainedError struct {
 }
 
 func (e *LockErrNotObtainedError) Error() string {
-	return fmt.Sprintf("lock not obtained ledger %s.%s", e.Namespace, e.ID)
+	return fmt.Sprintf("lock not obtained ledger %s", e.ID)
 }
 
 type LedgerAlreadyExistsError struct {

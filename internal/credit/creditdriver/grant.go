@@ -91,6 +91,17 @@ func (b *builder) CreateLedgerGrant() CreateLedgerGrantHandler {
 				return grant, err
 			}
 
+			_, err = b.CreditConnector.GetFeature(ctx, credit.NewNamespacedFeatureID(ns, *grant.FeatureID))
+			if err != nil {
+				if _, ok := err.(*credit.FeatureNotFoundError); ok {
+					return grant, commonhttp.NewHTTPError(
+						http.StatusBadRequest,
+						fmt.Errorf("feature not found: %s", *grant.FeatureID),
+					)
+				}
+				return grant, err
+			}
+
 			grant.LedgerID = arg
 			grant.Namespace = ns
 			return grant, nil

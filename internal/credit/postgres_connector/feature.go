@@ -3,10 +3,12 @@ package postgres_connector
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_feature "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
+	"github.com/openmeterio/openmeter/pkg/convert"
 )
 
 // CreateFeature creates a feature.
@@ -57,6 +59,23 @@ func (c *PostgresConnector) ListFeatures(ctx context.Context, params credit.List
 		query = query.Where(db_feature.ArchivedEQ(false))
 	}
 
+	if params.Limit > 0 {
+		query = query.Limit(params.Limit)
+	}
+
+	if params.Offset > 0 {
+		query = query.Offset(params.Offset)
+	}
+
+	switch params.OrderBy {
+	case credit.FeatureOrderByCreatedAt:
+		query = query.Order(db_feature.ByCreatedAt())
+	case credit.FeatureOrderByUpdatedAt:
+		query = query.Order(db_feature.ByUpdatedAt())
+	default:
+		query = query.Order(db_feature.ByID())
+	}
+
 	entities, err := query.All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list entities: %w", err)
@@ -98,6 +117,8 @@ func mapFeatureEntity(entity *db.Feature) credit.Feature {
 		Name:      entity.Name,
 		MeterSlug: entity.MeterSlug,
 		Archived:  &entity.Archived,
+		CreatedAt: convert.ToPointer(entity.CreatedAt.In(time.UTC)),
+		UpdatedAt: convert.ToPointer(entity.UpdatedAt.In(time.UTC)),
 	}
 
 	if len(entity.MeterGroupByFilters) > 0 {

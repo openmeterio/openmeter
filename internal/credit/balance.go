@@ -23,17 +23,7 @@ type GrantBalance struct {
 	Balance float64 `json:"balance"`
 }
 
-// Render implements the chi renderer interface.
-func (c GrantBalance) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
-}
-
 type FeatureBalance struct {
 	Feature
 	Balance float64 `json:"balance"`
-}
-
-// Render implements the chi renderer interface.
-func (c FeatureBalance) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
 }

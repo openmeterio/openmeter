@@ -536,7 +536,12 @@ func TestCredit(t *testing.T) {
 			Archived: &archived,
 		}
 
-		assert.Equal(t, expected, resp.JSON201)
+		require.NotEmpty(t, *resp.JSON201.CreatedAt)
+		require.NotEmpty(t, *resp.JSON201.UpdatedAt)
+		resp.JSON201.CreatedAt = nil
+		resp.JSON201.UpdatedAt = nil
+
+		require.Equal(t, expected, resp.JSON201)
 	})
 
 	var ledgerID credit.LedgerID
@@ -566,6 +571,9 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusConflict, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
 
+		require.NotEmpty(t, resp.ApplicationproblemJSON409.ConflictingEntity.CreatedAt)
+		resp.ApplicationproblemJSON409.ConflictingEntity.CreatedAt = time.Time{}
+
 		require.Equal(t,
 			credit.Ledger{
 				ID:       ledgerID,
@@ -579,7 +587,7 @@ func TestCredit(t *testing.T) {
 		effectiveAt, _ := time.Parse(time.RFC3339, "2024-01-01T00:01:00Z")
 
 		// Get feature
-		featureListResp, err := client.ListFeaturesWithResponse(context.Background())
+		featureListResp, err := client.ListFeaturesWithResponse(context.Background(), nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, featureListResp.StatusCode())
 		require.NotNil(t, featureListResp.JSON200)
@@ -606,6 +614,9 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", resp.Body)
 
+		require.NotEmpty(t, resp.JSON201.CreatedAt)
+		require.NotEmpty(t, resp.JSON201.UpdatedAt)
+
 		expected := &credit.Grant{
 			ID:          resp.JSON201.ID,
 			LedgerID:    ledgerID,
@@ -621,9 +632,11 @@ func TestCredit(t *testing.T) {
 				Duration: "DAY",
 				Count:    1,
 			},
+			CreatedAt: resp.JSON201.CreatedAt,
+			UpdatedAt: resp.JSON201.UpdatedAt,
 		}
 
-		assert.Equal(t, expected, resp.JSON201)
+		require.Equal(t, expected, resp.JSON201)
 	})
 
 	t.Run("Balance", func(t *testing.T) {
@@ -637,7 +650,7 @@ func TestCredit(t *testing.T) {
 		grant := grants[0]
 
 		// Get feature
-		featureListResp, err := client.ListFeaturesWithResponse(context.Background())
+		featureListResp, err := client.ListFeaturesWithResponse(context.Background(), nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, featureListResp.StatusCode())
 		require.NotNil(t, featureListResp.JSON200)
@@ -683,7 +696,7 @@ func TestCredit(t *testing.T) {
 		parentGrant := parentGrants[0]
 
 		// Get feature
-		featureListResp, err := client.ListFeaturesWithResponse(context.Background())
+		featureListResp, err := client.ListFeaturesWithResponse(context.Background(), nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, featureListResp.StatusCode())
 		require.NotNil(t, featureListResp.JSON200)
@@ -733,9 +746,11 @@ func TestCredit(t *testing.T) {
 					Duration: "DAY",
 					Count:    1,
 				},
+				CreatedAt: grants[0].CreatedAt,
+				UpdatedAt: grants[0].UpdatedAt,
 			},
 		}
 
-		assert.Equal(t, expected, resp.JSON200)
+		require.Equal(t, expected, resp.JSON200)
 	})
 }

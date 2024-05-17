@@ -634,6 +634,27 @@ paths:
         List features.
       tags:
         - Entitlements (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/ledgerQueryLimit"
+        - $ref: "#/components/parameters/ledgerQueryOffset"
+        - name: orderBy
+          in: query
+          required: false
+          description: Order by field
+          schema:
+            type: string
+            enum:
+              - id
+              - createdAt
+              - updatedAt
+            default: id
+        - name: includeArchived
+          in: query
+          required: false
+          description: Include archived features.
+          schema:
+            type: boolean
+            default: false
       responses:
         "200":
           description: List of features.
@@ -730,30 +751,34 @@ paths:
         - name: subject
           in: query
           required: false
-          description: Query a specific ledger
+          description: Query ledgers specific to subjects.
           schema:
             type: array
             items:
               type: string
               description: |
                 A metering subject to list the ledger of.
-
-        - name: limit
+        - name: subjectSimilarTo
           in: query
           required: false
-          description: Number of ledgers to return
+          description: Query ledgers with subjects that are similar to the provided text.
           schema:
-            type: integer
-            minimum: 1
-            maximum: 1000
-            default: 1000
-            example: 1000
-        - name: offset
+            type: string
+            description: |
+              A text fragment to search for.
+        - $ref: "#/components/parameters/ledgerQueryLimit"
+        - $ref: "#/components/parameters/ledgerQueryOffset"
+        - name: orderBy
           in: query
           required: false
-          description: Start returning ledgers from this offset
+          description: Order by field
           schema:
-            type: integer
+            type: string
+            enum:
+              - subject
+              - createdAt
+              - id
+            default: id
       responses:
         "200":
           description: List of the matching ledgers.
@@ -843,6 +868,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/ledgerID"
         - $ref: "#/components/parameters/ledgerQueryLimit"
+        - $ref: "#/components/parameters/ledgerQueryOffset"
         - name: from
           in: query
           required: true
@@ -1231,6 +1257,20 @@ components:
             If the feature is archived, it will not be used for grants or usage.
           type: boolean
           example: false
+        createdAt:
+          readOnly: true
+          description: |
+            The time the feature was created.
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        updatedAt:
+          readOnly: true
+          description: |
+            The time the feature was last updated.
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
     CreateLedger:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit
@@ -1330,6 +1370,12 @@ components:
               readOnly: true
               type: string
               example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+            createdAt:
+              description: |
+                The time the ledger was created.
+              type: string
+              format: date-time
+              example: "2023-01-01T00:00:00Z"
     LedgerEntry:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit
@@ -1487,19 +1533,12 @@ components:
       description: |
         Grants are used to increase balance of specific subjects.
       required:
-        - id
         - type
         - amount
         - featureID
         - effectiveAt
         - expiration
       properties:
-        id:
-          description: |
-            Readonly unique ULID identifier of the grant.
-          readOnly: true
-          type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         type:
           $ref: "#/components/schemas/LedgerGrantType"
         amount:
@@ -1546,6 +1585,20 @@ components:
             type: string
           example:
             stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
+        createdAt:
+          readOnly: true
+          description: |
+            The time the grant was created.
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        updatedAt:
+          readOnly: true
+          description: |
+            The time the grant was last updated.
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
     LedgerGrantResponse:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit
@@ -1555,7 +1608,14 @@ components:
         - type: object
           required:
             - subject
+            - id
           properties:
+            id:
+              description: |
+                Readonly unique ULID identifier of the grant.
+              readOnly: true
+              type: string
+              example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
             subject:
               description: |
                 The subject to grant the amount to.
@@ -1994,6 +2054,16 @@ components:
         minimum: 1
         maximum: 1000
         default: 1000
+        example: 100
+    ledgerQueryOffset:
+      name: offset
+      in: query
+      required: false
+      description: Number of entries to skip
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
         example: 100
     queryFrom:
       name: from
