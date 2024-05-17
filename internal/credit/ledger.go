@@ -5,14 +5,25 @@ import (
 	"net/http"
 	"sort"
 	"time"
-
-	"github.com/oklog/ulid/v2"
 )
+
+type LedgerID string
+type NamespacedLedgerID struct {
+	Namespace string
+	ID        LedgerID
+}
+
+func NewNamespacedLedgerID(namespace string, id LedgerID) NamespacedLedgerID {
+	return NamespacedLedgerID{
+		Namespace: namespace,
+		ID:        id,
+	}
+}
 
 type Ledger struct {
 	Namespace string `json:"-"`
 	// ID is the ID of the ledger instance
-	ID ulid.ULID `json:"id,omitempty"`
+	ID LedgerID `json:"id,omitempty"`
 
 	// Subject specifies which metering subject this ledger is referring to
 	Subject string `json:"subject"`
@@ -57,10 +68,10 @@ func (LedgerEntryType) Values() (kinds []string) {
 
 // LedgerEntry is a credit ledger entry.
 type LedgerEntry struct {
-	ID        *ulid.ULID      `json:"id,omitempty"`
+	ID        *GrantID        `json:"id,omitempty"`
 	Type      LedgerEntryType `json:"type"`
 	Time      time.Time       `json:"time"`
-	FeatureID *ulid.ULID      `json:"featureId,omitempty"`
+	FeatureID *FeatureID      `json:"featureId,omitempty"`
 	Amount    *float64        `json:"amount,omitempty"`
 	Period    *Period         `json:"period,omitempty"`
 }

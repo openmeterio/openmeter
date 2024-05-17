@@ -12,7 +12,9 @@ type Reset = credit.Reset
 type Feature = credit.Feature
 type Balance = credit.Balance
 type LedgerEntryList = credit.LedgerEntryList
-type NamespacedID = credit.NamespacedID
+type NamespacedLedgerID = credit.NamespacedLedgerID
+type NamespacedGrantID = credit.NamespacedGrantID
+type NamespacedFeatureID = credit.NamespacedFeatureID
 
 type Connector = credit.Connector
 type ListGrantsParams = credit.ListGrantsParams

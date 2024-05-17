@@ -10,11 +10,11 @@ import (
 var (
 	// CreditEntriesColumns holds the columns for the "credit_entries" table.
 	CreditEntriesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeOther, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "namespace", Type: field.TypeString},
-		{Name: "ledger_id", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "ledger_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "entry_type", Type: field.TypeEnum, Enums: []string{"GRANT", "VOID_GRANT", "RESET"}},
 		{Name: "type", Type: field.TypeEnum, Nullable: true, Enums: []string{"USAGE"}},
 		{Name: "amount", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
@@ -26,8 +26,8 @@ var (
 		{Name: "rollover_type", Type: field.TypeEnum, Nullable: true, Enums: []string{"ORIGINAL_AMOUNT", "REMAINING_AMOUNT"}},
 		{Name: "rollover_max_amount", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true},
-		{Name: "parent_id", Type: field.TypeOther, Unique: true, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "feature_id", Type: field.TypeOther, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "parent_id", Type: field.TypeString, Unique: true, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "feature_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// CreditEntriesTable holds the schema information for the "credit_entries" table.
 	CreditEntriesTable = &schema.Table{
@@ -58,7 +58,7 @@ var (
 	}
 	// FeaturesColumns holds the columns for the "features" table.
 	FeaturesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeOther, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "namespace", Type: field.TypeString},
@@ -82,7 +82,7 @@ var (
 	}
 	// LedgersColumns holds the columns for the "ledgers" table.
 	LedgersColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeOther, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "namespace", Type: field.TypeString},

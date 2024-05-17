@@ -2,13 +2,11 @@ package credit
 
 import (
 	"net/http"
-
-	"github.com/oklog/ulid/v2"
 )
 
 // Balance of a subject in a credit.
 type Balance struct {
-	LedgerID        ulid.ULID         `json:"id"`
+	LedgerID        LedgerID          `json:"id"`
 	Metadata        map[string]string `json:"metadata,omitempty"`
 	Subject         string            `json:"subject"`
 	FeatureBalances []FeatureBalance  `json:"featureBalances"`

@@ -8,8 +8,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/mixin"
 	"github.com/oklog/ulid/v2"
-
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 // IDMixin adds the ID field to the schema
@@ -20,9 +18,9 @@ type IDMixin struct {
 // Fields of the IDMixin.
 func (IDMixin) Fields() []ent.Field {
 	return []ent.Field{
-		field.Other("id", pgulid.ULID{}).
-			Default(func() pgulid.ULID {
-				return pgulid.ULID{ULID: ulid.Make()}
+		field.String("id").
+			DefaultFunc(func() string {
+				return ulid.Make().String()
 			}).
 			Unique().
 			Immutable().

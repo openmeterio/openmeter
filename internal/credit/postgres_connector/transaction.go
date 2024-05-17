@@ -8,7 +8,6 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_ledger "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 // https://www.postgresql.org/docs/current/errcodes-appendix.html
@@ -55,7 +54,7 @@ func transaction[R any](ctx context.Context, connector TransactionManager, callb
 }
 
 // mutationTransaction is a generic to perform atomic mutations on the ledger.
-func mutationTransaction[R any](ctx context.Context, connector *PostgresConnector, ledgerID credit.NamespacedID, callback func(tx *db.Tx, ledgerEntity *db.Ledger) (*R, error)) (*R, error) {
+func mutationTransaction[R any](ctx context.Context, connector *PostgresConnector, ledgerID credit.NamespacedLedgerID, callback func(tx *db.Tx, ledgerEntity *db.Ledger) (*R, error)) (*R, error) {
 	// Start a transaction and lock the ledger for the subject
 	return transaction(ctx, connector, func(tx *db.Tx) (*R, error) {
 		ledgerEntity, err := lockLedger(tx, ctx, ledgerID)
@@ -68,11 +67,11 @@ func mutationTransaction[R any](ctx context.Context, connector *PostgresConnecto
 }
 
 // lockLedger locks the ledger for the given namespace and subject to avoid concurrent updates
-func lockLedger(tx *db.Tx, ctx context.Context, ledgerID credit.NamespacedID) (*db.Ledger, error) {
+func lockLedger(tx *db.Tx, ctx context.Context, ledgerID credit.NamespacedLedgerID) (*db.Ledger, error) {
 	// Lock ledger for the subject with pessimistic update
 	ledgerEntity, err := tx.Ledger.Query().
 		Where(db_ledger.Namespace(ledgerID.Namespace)).
-		Where(db_ledger.ID(pgulid.Wrap(ledgerID.ID))).
+		Where(db_ledger.ID(string(ledgerID.ID))).
 
 		// We use the ForUpdate method to tell ent to ask our DB to lock
 		// the returned records for update.

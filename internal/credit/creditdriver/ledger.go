@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/oklog/ulid/v2"
-
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -91,7 +89,7 @@ type GetLedgerHistoryRequest struct {
 	api.GetLedgerHistoryParams
 	// Namespace is filled by the request encoder
 	Namespace string
-	LedgerID  ulid.ULID
+	LedgerID  api.LedgerID
 }
 
 type GetLedgerHistoryHandler httptransport.HandlerWithArgs[GetLedgerHistoryRequest, credit.LedgerEntryList, GetLedgerHistoryRequest]
@@ -110,7 +108,7 @@ func (b *builder) GetLedgerHistory() GetLedgerHistoryHandler {
 		func(ctx context.Context, req GetLedgerHistoryRequest) (credit.LedgerEntryList, error) {
 			return b.CreditConnector.GetHistory(
 				ctx,
-				credit.NewNamespacedID(req.Namespace, req.LedgerID),
+				credit.NewNamespacedLedgerID(req.Namespace, req.LedgerID),
 				req.From,
 				defaultx.WithDefault(req.To, time.Now()),
 				defaultx.WithDefault(req.Limit, DefaultLedgerQueryLimit),

@@ -1508,9 +1508,9 @@ components:
           type: number
           example: 100
         featureID:
-          x-go-type: ulid.ULID
+          x-go-type: credit.FeatureID
           x-go-type-import:
-            path: github.com/oklog/ulid/v2
+            path: github.com/openmeterio/openmeter/internal/credit
           description: |
             The unique feature ULID that the grant is associated with, if any.
           type: string
@@ -1959,9 +1959,9 @@ components:
       schema:
         type: string
         example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-        x-go-type: ulid.ULID
+        x-go-type: credit.FeatureID
         x-go-type-import:
-          path: github.com/oklog/ulid/v2
+          path: github.com/openmeterio/openmeter/internal/credit
     ledgerGrantID:
       name: ledgerGrantID
       description: A unique identifier for a ledger grant.
@@ -1970,18 +1970,18 @@ components:
       schema:
         type: string
         example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-        x-go-type: ulid.ULID
+        x-go-type: credit.GrantID
         x-go-type-import:
-          path: github.com/oklog/ulid/v2
+          path: github.com/openmeterio/openmeter/internal/credit
     ledgerID:
       name: ledgerID
       in: path
       required: true
       description: A unique identifier for a ledger.
       schema:
-        x-go-type: ulid.ULID
+        x-go-type: credit.LedgerID
         x-go-type-import:
-          path: github.com/oklog/ulid/v2
+          path: github.com/openmeterio/openmeter/internal/credit
         type: string
         example: "customer-id"
     ledgerQueryLimit:
@@ -2046,9 +2046,9 @@ components:
       required: false
       schema:
         type: string
-        x-go-type: ulid.ULID
+        x-go-type: credit.LedgerID
         x-go-type-import:
-          path: github.com/oklog/ulid/v2
+          path: github.com/openmeterio/openmeter/internal/credit
       example: 01HX6VK5C498B3ABY9PR1069PP
     queryFilterSubject:
       name: subject

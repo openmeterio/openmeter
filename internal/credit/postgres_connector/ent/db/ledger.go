@@ -11,14 +11,13 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 // Ledger is the model entity for the Ledger schema.
 type Ledger struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID pgulid.ULID `json:"id,omitempty"`
+	ID string `json:"id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -41,9 +40,7 @@ func (*Ledger) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case ledger.FieldMetadata:
 			values[i] = new([]byte)
-		case ledger.FieldID:
-			values[i] = new(pgulid.ULID)
-		case ledger.FieldNamespace, ledger.FieldSubject:
+		case ledger.FieldID, ledger.FieldNamespace, ledger.FieldSubject:
 			values[i] = new(sql.NullString)
 		case ledger.FieldCreatedAt, ledger.FieldUpdatedAt, ledger.FieldHighwatermark:
 			values[i] = new(sql.NullTime)
@@ -63,10 +60,10 @@ func (l *Ledger) assignValues(columns []string, values []any) error {
 	for i := range columns {
 		switch columns[i] {
 		case ledger.FieldID:
-			if value, ok := values[i].(*pgulid.ULID); !ok {
+			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
-			} else if value != nil {
-				l.ID = *value
+			} else if value.Valid {
+				l.ID = value.String
 			}
 		case ledger.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {

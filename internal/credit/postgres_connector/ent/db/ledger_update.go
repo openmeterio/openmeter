@@ -102,7 +102,7 @@ func (lu *LedgerUpdate) defaults() {
 }
 
 func (lu *LedgerUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	_spec := sqlgraph.NewUpdateSpec(ledger.Table, ledger.Columns, sqlgraph.NewFieldSpec(ledger.FieldID, field.TypeOther))
+	_spec := sqlgraph.NewUpdateSpec(ledger.Table, ledger.Columns, sqlgraph.NewFieldSpec(ledger.FieldID, field.TypeString))
 	if ps := lu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -229,7 +229,7 @@ func (luo *LedgerUpdateOne) defaults() {
 }
 
 func (luo *LedgerUpdateOne) sqlSave(ctx context.Context) (_node *Ledger, err error) {
-	_spec := sqlgraph.NewUpdateSpec(ledger.Table, ledger.Columns, sqlgraph.NewFieldSpec(ledger.FieldID, field.TypeOther))
+	_spec := sqlgraph.NewUpdateSpec(ledger.Table, ledger.Columns, sqlgraph.NewFieldSpec(ledger.FieldID, field.TypeString))
 	id, ok := luo.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "Ledger.id" for update`)}

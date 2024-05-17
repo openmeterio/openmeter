@@ -11,7 +11,6 @@ import (
 	"entgo.io/ent/schema/index"
 
 	"github.com/openmeterio/openmeter/internal/credit"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 type CreditEntry struct {
@@ -30,12 +29,12 @@ func (CreditEntry) Mixin() []ent.Mixin {
 func (CreditEntry) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("namespace").NotEmpty().Immutable(),
-		field.Other("ledger_id", pgulid.ULID{}).Immutable().SchemaType(map[string]string{
+		field.String("ledger_id").Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
 		field.Enum("entry_type").GoType(credit.EntryType("")).Immutable(),
 		field.Enum("type").GoType(credit.GrantType("")).Optional().Nillable().Immutable(),
-		field.Other("feature_id", pgulid.ULID{}).Optional().Nillable().Immutable().SchemaType(map[string]string{
+		field.String("feature_id").Optional().Nillable().Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
 		field.Float("amount").Optional().Nillable().Immutable().SchemaType(map[string]string{
@@ -54,7 +53,7 @@ func (CreditEntry) Fields() []ent.Field {
 		}),
 		field.JSON("metadata", map[string]string{}).Optional(),
 		// Rollover or void grants will have a parent_id
-		field.Other("parent_id", pgulid.ULID{}).Optional().Nillable().Immutable().SchemaType(map[string]string{
+		field.String("parent_id").Optional().Nillable().Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
 	}

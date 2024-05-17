@@ -7,7 +7,6 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_ledger "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -75,17 +74,17 @@ func (c *PostgresConnector) ListLedgers(ctx context.Context, params credit.ListL
 	return slicesx.Map(dbLedgers, mapDBLedgerToModel), nil
 }
 
-func (c *PostgresConnector) getLedger(ctx context.Context, ledgerID credit.NamespacedID) (*db.Ledger, error) {
+func (c *PostgresConnector) getLedger(ctx context.Context, ledgerID credit.NamespacedLedgerID) (*db.Ledger, error) {
 	return c.db.Ledger.Query().
 		Where(db_ledger.Namespace(ledgerID.Namespace)).
-		Where(db_ledger.ID(pgulid.Wrap(ledgerID.ID))).
+		Where(db_ledger.ID(string(ledgerID.ID))).
 		Only(ctx)
 }
 
 func mapDBLedgerToModel(ledger *db.Ledger) credit.Ledger {
 	return credit.Ledger{
 		Namespace: ledger.Namespace,
-		ID:        ledger.ID.ULID,
+		ID:        credit.LedgerID(ledger.ID),
 		Subject:   ledger.Subject,
 		Metadata:  ledger.Metadata,
 	}

@@ -18,7 +18,7 @@ type GetLedgerBalaceHandlerParams struct {
 }
 
 type GetLedgerBalanceRequest struct {
-	LedgerID credit.NamespacedID
+	LedgerID credit.NamespacedLedgerID
 	Cutline  time.Time
 }
 
@@ -33,7 +33,7 @@ func (b *builder) GetLedgerBalance() GetLedgerBalanceHandler {
 			}
 
 			return GetLedgerBalanceRequest{
-				LedgerID: credit.NewNamespacedID(ns, queryIn.LedgerID),
+				LedgerID: credit.NewNamespacedLedgerID(ns, queryIn.LedgerID),
 				Cutline:  defaultx.WithDefault(queryIn.QueryParams.Time, time.Now()),
 			}, nil
 		},

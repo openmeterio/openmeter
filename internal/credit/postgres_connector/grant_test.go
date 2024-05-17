@@ -91,13 +91,13 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				g, err := connector.CreateGrant(ctx, grant)
 				assert.NoError(t, err)
 				// should return the grant
-				g2, err := connector.GetGrant(ctx, credit.NewNamespacedID(namespace, *g.ID))
+				g2, err := connector.GetGrant(ctx, credit.NewNamespacedGrantID(namespace, *g.ID))
 				assert.NoError(t, err)
 				assert.Equal(t, g, g2)
 				v, err := connector.VoidGrant(ctx, g)
 				assert.NoError(t, err)
 				// should return the void grant
-				g3, err := connector.GetGrant(ctx, credit.NewNamespacedID(namespace, *g.ID))
+				g3, err := connector.GetGrant(ctx, credit.NewNamespacedGrantID(namespace, *g.ID))
 				assert.NoError(t, err)
 				assert.Equal(t, v, g3)
 				// assert count
@@ -119,7 +119,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
 				p := createFeature(t, connector, features[0])
-				id := ulid.MustNew(ulid.Now(), nil)
+				id := credit.GrantID(ulid.MustNew(ulid.Now(), nil).String())
 				grant := credit.Grant{
 					Namespace:   namespace,
 					ID:          &id,
@@ -210,7 +210,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				// ledger-1's non-void grants
 				gs, err = connector.ListGrants(ctx, credit.ListGrantsParams{
 					Namespace: namespace,
-					LedgerIDs: []ulid.ULID{ledger1.ID},
+					LedgerIDs: []credit.LedgerID{ledger1.ID},
 				})
 				assert.NoError(t, err)
 				assert.ElementsMatch(t, []credit.Grant{grant_s1_2}, gs)

@@ -10,7 +10,7 @@ import (
 
 func (a *PostgresConnector) GetHistory(
 	ctx context.Context,
-	ledgerID credit.NamespacedID,
+	ledgerID credit.NamespacedLedgerID,
 	from time.Time,
 	to time.Time,
 	limit int,

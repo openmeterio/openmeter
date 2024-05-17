@@ -107,7 +107,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 				assert.NoError(t, err)
 
 				// Get ledger
-				ledgerList, err := connector.GetHistory(ctx, credit.NewNamespacedID(namespace, ledger.ID), t1, t4, 0)
+				ledgerList, err := connector.GetHistory(ctx, credit.NewNamespacedLedgerID(namespace, ledger.ID), t1, t4, 0)
 				assert.NoError(t, err)
 
 				// Expected

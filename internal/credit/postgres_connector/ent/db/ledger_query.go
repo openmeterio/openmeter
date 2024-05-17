@@ -13,7 +13,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/predicate"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 // LedgerQuery is the builder for querying Ledger entities.
@@ -84,8 +83,8 @@ func (lq *LedgerQuery) FirstX(ctx context.Context) *Ledger {
 
 // FirstID returns the first Ledger ID from the query.
 // Returns a *NotFoundError when no Ledger ID was found.
-func (lq *LedgerQuery) FirstID(ctx context.Context) (id pgulid.ULID, err error) {
-	var ids []pgulid.ULID
+func (lq *LedgerQuery) FirstID(ctx context.Context) (id string, err error) {
+	var ids []string
 	if ids, err = lq.Limit(1).IDs(setContextOp(ctx, lq.ctx, "FirstID")); err != nil {
 		return
 	}
@@ -97,7 +96,7 @@ func (lq *LedgerQuery) FirstID(ctx context.Context) (id pgulid.ULID, err error) 
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (lq *LedgerQuery) FirstIDX(ctx context.Context) pgulid.ULID {
+func (lq *LedgerQuery) FirstIDX(ctx context.Context) string {
 	id, err := lq.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -135,8 +134,8 @@ func (lq *LedgerQuery) OnlyX(ctx context.Context) *Ledger {
 // OnlyID is like Only, but returns the only Ledger ID in the query.
 // Returns a *NotSingularError when more than one Ledger ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (lq *LedgerQuery) OnlyID(ctx context.Context) (id pgulid.ULID, err error) {
-	var ids []pgulid.ULID
+func (lq *LedgerQuery) OnlyID(ctx context.Context) (id string, err error) {
+	var ids []string
 	if ids, err = lq.Limit(2).IDs(setContextOp(ctx, lq.ctx, "OnlyID")); err != nil {
 		return
 	}
@@ -152,7 +151,7 @@ func (lq *LedgerQuery) OnlyID(ctx context.Context) (id pgulid.ULID, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (lq *LedgerQuery) OnlyIDX(ctx context.Context) pgulid.ULID {
+func (lq *LedgerQuery) OnlyIDX(ctx context.Context) string {
 	id, err := lq.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -180,7 +179,7 @@ func (lq *LedgerQuery) AllX(ctx context.Context) []*Ledger {
 }
 
 // IDs executes the query and returns a list of Ledger IDs.
-func (lq *LedgerQuery) IDs(ctx context.Context) (ids []pgulid.ULID, err error) {
+func (lq *LedgerQuery) IDs(ctx context.Context) (ids []string, err error) {
 	if lq.ctx.Unique == nil && lq.path != nil {
 		lq.Unique(true)
 	}
@@ -192,7 +191,7 @@ func (lq *LedgerQuery) IDs(ctx context.Context) (ids []pgulid.ULID, err error) {
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (lq *LedgerQuery) IDsX(ctx context.Context) []pgulid.ULID {
+func (lq *LedgerQuery) IDsX(ctx context.Context) []string {
 	ids, err := lq.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -373,7 +372,7 @@ func (lq *LedgerQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (lq *LedgerQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(ledger.Table, ledger.Columns, sqlgraph.NewFieldSpec(ledger.FieldID, field.TypeOther))
+	_spec := sqlgraph.NewQuerySpec(ledger.Table, ledger.Columns, sqlgraph.NewFieldSpec(ledger.FieldID, field.TypeString))
 	_spec.From = lq.sql
 	if unique := lq.ctx.Unique; unique != nil {
 		_spec.Unique = *unique

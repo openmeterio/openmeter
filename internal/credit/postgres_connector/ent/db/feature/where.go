@@ -8,52 +8,61 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/predicate"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 // ID filters vertices based on their ID field.
-func ID(id pgulid.ULID) predicate.Feature {
+func ID(id string) predicate.Feature {
 	return predicate.Feature(sql.FieldEQ(FieldID, id))
 }
 
 // IDEQ applies the EQ predicate on the ID field.
-func IDEQ(id pgulid.ULID) predicate.Feature {
+func IDEQ(id string) predicate.Feature {
 	return predicate.Feature(sql.FieldEQ(FieldID, id))
 }
 
 // IDNEQ applies the NEQ predicate on the ID field.
-func IDNEQ(id pgulid.ULID) predicate.Feature {
+func IDNEQ(id string) predicate.Feature {
 	return predicate.Feature(sql.FieldNEQ(FieldID, id))
 }
 
 // IDIn applies the In predicate on the ID field.
-func IDIn(ids ...pgulid.ULID) predicate.Feature {
+func IDIn(ids ...string) predicate.Feature {
 	return predicate.Feature(sql.FieldIn(FieldID, ids...))
 }
 
 // IDNotIn applies the NotIn predicate on the ID field.
-func IDNotIn(ids ...pgulid.ULID) predicate.Feature {
+func IDNotIn(ids ...string) predicate.Feature {
 	return predicate.Feature(sql.FieldNotIn(FieldID, ids...))
 }
 
 // IDGT applies the GT predicate on the ID field.
-func IDGT(id pgulid.ULID) predicate.Feature {
+func IDGT(id string) predicate.Feature {
 	return predicate.Feature(sql.FieldGT(FieldID, id))
 }
 
 // IDGTE applies the GTE predicate on the ID field.
-func IDGTE(id pgulid.ULID) predicate.Feature {
+func IDGTE(id string) predicate.Feature {
 	return predicate.Feature(sql.FieldGTE(FieldID, id))
 }
 
 // IDLT applies the LT predicate on the ID field.
-func IDLT(id pgulid.ULID) predicate.Feature {
+func IDLT(id string) predicate.Feature {
 	return predicate.Feature(sql.FieldLT(FieldID, id))
 }
 
 // IDLTE applies the LTE predicate on the ID field.
-func IDLTE(id pgulid.ULID) predicate.Feature {
+func IDLTE(id string) predicate.Feature {
 	return predicate.Feature(sql.FieldLTE(FieldID, id))
+}
+
+// IDEqualFold applies the EqualFold predicate on the ID field.
+func IDEqualFold(id string) predicate.Feature {
+	return predicate.Feature(sql.FieldEqualFold(FieldID, id))
+}
+
+// IDContainsFold applies the ContainsFold predicate on the ID field.
+func IDContainsFold(id string) predicate.Feature {
+	return predicate.Feature(sql.FieldContainsFold(FieldID, id))
 }
 
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.

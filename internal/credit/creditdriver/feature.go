@@ -13,17 +13,17 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type GetFeatureHandler httptransport.HandlerWithArgs[credit.NamespacedID, credit.Feature, api.FeatureID]
+type GetFeatureHandler httptransport.HandlerWithArgs[credit.NamespacedFeatureID, credit.Feature, api.FeatureID]
 
 func (b *builder) GetFeature() GetFeatureHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, featureID api.FeatureID) (credit.NamespacedID, error) {
+		func(ctx context.Context, r *http.Request, featureID api.FeatureID) (credit.NamespacedFeatureID, error) {
 			ns, err := b.resolveNamespace(ctx)
 			if err != nil {
-				return credit.NamespacedID{}, err
+				return credit.NamespacedFeatureID{}, err
 			}
 
-			return credit.NamespacedID{
+			return credit.NamespacedFeatureID{
 				Namespace: ns,
 				ID:        featureID,
 			}, nil
@@ -122,12 +122,12 @@ func (b *builder) ListFeatures() ListFeaturesHandler {
 	)
 }
 
-type DeleteFeatureHandler httptransport.HandlerWithArgs[credit.NamespacedID, any, api.FeatureID]
+type DeleteFeatureHandler httptransport.HandlerWithArgs[credit.NamespacedFeatureID, any, api.FeatureID]
 
 func (b *builder) DeleteFeature() DeleteFeatureHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, featureID api.FeatureID) (credit.NamespacedID, error) {
-			id := credit.NamespacedID{
+		func(ctx context.Context, r *http.Request, featureID api.FeatureID) (credit.NamespacedFeatureID, error) {
+			id := credit.NamespacedFeatureID{
 				ID: featureID,
 			}
 

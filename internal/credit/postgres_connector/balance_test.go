@@ -82,7 +82,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				})
 
 				// Get balance
-				balance, err := connector.GetBalance(ctx, credit.NewNamespacedID(namespace, ledger.ID), t2)
+				balance, err := connector.GetBalance(ctx, credit.NewNamespacedLedgerID(namespace, ledger.ID), t2)
 				assert.NoError(t, err)
 
 				// Assert balance
@@ -145,7 +145,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				})
 
 				// Get balance
-				balance, err := connector.GetBalance(ctx, credit.NewNamespacedID(ledger.Namespace, ledger.ID), t3)
+				balance, err := connector.GetBalance(ctx, credit.NewNamespacedLedgerID(ledger.Namespace, ledger.ID), t3)
 				assert.NoError(t, err)
 
 				// FIXME
@@ -213,7 +213,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				})
 
 				// Get balance
-				balance, err := connector.GetBalance(ctx, credit.NewNamespacedID(namespace, ledger.ID), t2)
+				balance, err := connector.GetBalance(ctx, credit.NewNamespacedLedgerID(namespace, ledger.ID), t2)
 				assert.NoError(t, err)
 
 				// Assert balance
@@ -272,7 +272,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				})
 
 				// Get balance
-				balance, err := connector.GetBalance(ctx, credit.NewNamespacedID(namespace, ledger.ID), t2)
+				balance, err := connector.GetBalance(ctx, credit.NewNamespacedLedgerID(namespace, ledger.ID), t2)
 				assert.NoError(t, err)
 
 				// FIXME
@@ -349,7 +349,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				})
 
 				// Get balance
-				balance, err := connector.GetBalance(ctx, credit.NewNamespacedID(namespace, ledger.ID), t2)
+				balance, err := connector.GetBalance(ctx, credit.NewNamespacedLedgerID(namespace, ledger.ID), t2)
 				assert.NoError(t, err)
 
 				// FIXME
@@ -433,7 +433,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				})
 
 				// Get balance
-				balance, err := connector.GetBalance(ctx, credit.NewNamespacedID(namespace, ledger.ID), t2)
+				balance, err := connector.GetBalance(ctx, credit.NewNamespacedLedgerID(namespace, ledger.ID), t2)
 				assert.NoError(t, err)
 
 				// FIXME

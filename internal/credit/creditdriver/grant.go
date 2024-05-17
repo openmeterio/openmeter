@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/oklog/ulid/v2"
-
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -32,7 +30,7 @@ func (b *builder) ListLedgerGrants() ListLedgerGrantsHandler {
 			}
 
 			if queryIn.LedgerID != nil {
-				request.LedgerIDs = []ulid.ULID{*queryIn.LedgerID}
+				request.LedgerIDs = []credit.LedgerID{*queryIn.LedgerID}
 			}
 			return request, nil
 		},
@@ -46,7 +44,7 @@ func (b *builder) ListLedgerGrants() ListLedgerGrantsHandler {
 }
 
 type ListLedgerGrantsByLedgerParams struct {
-	LedgerID ulid.ULID
+	LedgerID credit.LedgerID
 	Params   api.ListLedgerGrantsByLedgerParams
 }
 
@@ -62,7 +60,7 @@ func (b *builder) ListLedgerGrantsByLedger() ListLedgerGrantsByLedgerHandler {
 
 			request := credit.ListGrantsParams{
 				Namespace:         ns,
-				LedgerIDs:         []ulid.ULID{queryIn.LedgerID},
+				LedgerIDs:         []credit.LedgerID{queryIn.LedgerID},
 				FromHighWatermark: true,
 				IncludeVoid:       true,
 				Limit:             defaultx.WithDefault(queryIn.Params.Limit, DefaultLedgerQueryLimit),
@@ -82,7 +80,7 @@ type CreateLedgerGrantHandler httptransport.HandlerWithArgs[credit.Grant, credit
 
 func (b *builder) CreateLedgerGrant() CreateLedgerGrantHandler {
 	return httptransport.NewHandlerWithArgs[credit.Grant, credit.Grant, api.LedgerID](
-		func(ctx context.Context, r *http.Request, arg ulid.ULID) (credit.Grant, error) {
+		func(ctx context.Context, r *http.Request, arg api.LedgerID) (credit.Grant, error) {
 			grant := credit.Grant{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &grant); err != nil {
 				return grant, err
@@ -134,8 +132,8 @@ func (b *builder) CreateLedgerGrant() CreateLedgerGrantHandler {
 }
 
 type GrantPathParams struct {
-	LedgerID api.LedgerID // TODO: use this instead of generic ulid
-	GrantID  ulid.ULID
+	LedgerID api.LedgerID
+	GrantID  api.LedgerGrantID
 }
 
 type VoidLedgerGrantHandler httptransport.HandlerWithArgs[credit.Grant, credit.Grant, GrantPathParams]
@@ -148,7 +146,7 @@ func (b *builder) VoidLedgerGrant() VoidLedgerGrantHandler {
 				return credit.Grant{}, err
 			}
 
-			grant, err := b.CreditConnector.GetGrant(ctx, credit.NewNamespacedID(ns, in.GrantID))
+			grant, err := b.CreditConnector.GetGrant(ctx, credit.NewNamespacedGrantID(ns, in.GrantID))
 			if err != nil {
 				if _, ok := err.(*credit.GrantNotFoundError); ok {
 					return credit.Grant{}, &credit.GrantNotFoundError{GrantID: in.GrantID}
@@ -209,17 +207,17 @@ func (b *builder) VoidLedgerGrant() VoidLedgerGrantHandler {
 	)
 }
 
-type GetLedgerGrantHandler httptransport.HandlerWithArgs[credit.NamespacedID, credit.Grant, GrantPathParams]
+type GetLedgerGrantHandler httptransport.HandlerWithArgs[credit.NamespacedGrantID, credit.Grant, GrantPathParams]
 
 func (b *builder) GetLedgerGrant() GetLedgerGrantHandler {
-	return httptransport.NewHandlerWithArgs[credit.NamespacedID, credit.Grant, GrantPathParams](
-		func(ctx context.Context, r *http.Request, in GrantPathParams) (credit.NamespacedID, error) {
+	return httptransport.NewHandlerWithArgs[credit.NamespacedGrantID, credit.Grant, GrantPathParams](
+		func(ctx context.Context, r *http.Request, in GrantPathParams) (credit.NamespacedGrantID, error) {
 			ns, err := b.resolveNamespace(ctx)
 			if err != nil {
-				return credit.NamespacedID{}, err
+				return credit.NamespacedGrantID{}, err
 			}
 
-			return credit.NewNamespacedID(ns, in.GrantID), nil
+			return credit.NewNamespacedGrantID(ns, in.GrantID), nil
 		},
 		b.CreditConnector.GetGrant,
 		commonhttp.JSONResponseEncoder[credit.Grant],

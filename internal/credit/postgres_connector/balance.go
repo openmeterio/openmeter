@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/oklog/ulid/v2"
-
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -22,7 +20,7 @@ type balanceQueryPeriod struct {
 
 func (a *PostgresConnector) GetBalance(
 	ctx context.Context,
-	ledgerID credit.NamespacedID,
+	ledgerID credit.NamespacedLedgerID,
 	cutline time.Time,
 ) (credit.Balance, error) {
 	// TODO: wrap into transaction
@@ -45,7 +43,7 @@ func (a *PostgresConnector) GetBalance(
 
 func (a *PostgresConnector) getBalance(
 	ctx context.Context,
-	ledgerID credit.NamespacedID,
+	ledgerID credit.NamespacedLedgerID,
 	from time.Time,
 	to time.Time,
 ) (credit.Balance, credit.LedgerEntryList, error) {
@@ -58,7 +56,7 @@ func (a *PostgresConnector) getBalance(
 
 	grants, err := a.ListGrants(ctx, credit.ListGrantsParams{
 		Namespace:   ledger.Namespace,
-		LedgerIDs:   []ulid.ULID{ledgerID.ID},
+		LedgerIDs:   []credit.LedgerID{ledgerID.ID},
 		From:        &from,
 		To:          &to,
 		IncludeVoid: true,
@@ -68,7 +66,7 @@ func (a *PostgresConnector) getBalance(
 	}
 
 	// Get features in grants
-	features := map[ulid.ULID]credit.Feature{}
+	features := map[credit.FeatureID]credit.Feature{}
 	for _, grant := range grants {
 		if grant.Void {
 			ledgerEntries.AddVoidGrant(grant)
@@ -80,9 +78,7 @@ func (a *PostgresConnector) getBalance(
 		if grant.FeatureID != nil {
 			featureID := *grant.FeatureID
 			if _, ok := features[featureID]; !ok {
-				feature, err := a.GetFeature(ctx, credit.NamespacedID{
-					Namespace: ledgerID.Namespace,
-					ID:        featureID})
+				feature, err := a.GetFeature(ctx, credit.NewNamespacedFeatureID(ledgerID.Namespace, featureID))
 				if err != nil {
 					return credit.Balance{}, ledgerEntries, fmt.Errorf("get feature: %w", err)
 				}
@@ -291,7 +287,7 @@ func (a *PostgresConnector) getBalance(
 	}
 
 	// Aggregate grant balances by feature
-	featureBalancesMap := map[ulid.ULID]credit.FeatureBalance{}
+	featureBalancesMap := map[credit.FeatureID]credit.FeatureBalance{}
 	for _, grantBalance := range grantBalances {
 		if grantBalance.FeatureID == nil {
 			continue

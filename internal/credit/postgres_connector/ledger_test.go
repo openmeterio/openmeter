@@ -27,7 +27,7 @@ func TestLedgerCreation(t *testing.T) {
 
 	ledgerSubject := ulid.Make().String() // ~ random string
 	namespace := "default"
-	existingLedgerID := ulid.ULID{}
+	existingLedgerID := credit.LedgerID("")
 
 	t.Run("CreateLedger", func(t *testing.T) {
 		// let's provision a ledger

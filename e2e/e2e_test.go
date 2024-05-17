@@ -10,7 +10,6 @@ import (
 
 	"github.com/brianvoe/gofakeit/v6"
 	cloudevents "github.com/cloudevents/sdk-go/v2/event"
-	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -540,7 +539,7 @@ func TestCredit(t *testing.T) {
 		assert.Equal(t, expected, resp.JSON201)
 	})
 
-	ledgerID := ulid.ULID{}
+	var ledgerID credit.LedgerID
 	ledgerMeta := map[string]string{
 		"test": "data",
 	}

@@ -66,9 +66,7 @@ func TestFeature(t *testing.T) {
 				featureIn, err := connector.CreateFeature(ctx, testFeature)
 				assert.NoError(t, err)
 
-				featureOut, err := connector.GetFeature(ctx, credit.NamespacedID{
-					Namespace: namespace,
-					ID:        *featureIn.ID})
+				featureOut, err := connector.GetFeature(ctx, credit.NewNamespacedFeatureID(namespace, *featureIn.ID))
 				assert.NoError(t, err)
 
 				expected := featureIn
@@ -85,10 +83,7 @@ func TestFeature(t *testing.T) {
 				p, err := connector.CreateFeature(ctx, testFeature)
 				assert.NoError(t, err)
 
-				pFeatureID := credit.NamespacedID{
-					Namespace: namespace,
-					ID:        *p.ID,
-				}
+				pFeatureID := credit.NewNamespacedFeatureID(namespace, *p.ID)
 				err = connector.DeleteFeature(ctx, pFeatureID)
 				assert.NoError(t, err)
 

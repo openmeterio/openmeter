@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 // CreditEntryCreate is the builder for creating a CreditEntry entity.
@@ -61,8 +60,8 @@ func (cec *CreditEntryCreate) SetNamespace(s string) *CreditEntryCreate {
 }
 
 // SetLedgerID sets the "ledger_id" field.
-func (cec *CreditEntryCreate) SetLedgerID(pg pgulid.ULID) *CreditEntryCreate {
-	cec.mutation.SetLedgerID(pg)
+func (cec *CreditEntryCreate) SetLedgerID(s string) *CreditEntryCreate {
+	cec.mutation.SetLedgerID(s)
 	return cec
 }
 
@@ -87,15 +86,15 @@ func (cec *CreditEntryCreate) SetNillableType(ct *credit.GrantType) *CreditEntry
 }
 
 // SetFeatureID sets the "feature_id" field.
-func (cec *CreditEntryCreate) SetFeatureID(pg pgulid.ULID) *CreditEntryCreate {
-	cec.mutation.SetFeatureID(pg)
+func (cec *CreditEntryCreate) SetFeatureID(s string) *CreditEntryCreate {
+	cec.mutation.SetFeatureID(s)
 	return cec
 }
 
 // SetNillableFeatureID sets the "feature_id" field if the given value is not nil.
-func (cec *CreditEntryCreate) SetNillableFeatureID(pg *pgulid.ULID) *CreditEntryCreate {
-	if pg != nil {
-		cec.SetFeatureID(*pg)
+func (cec *CreditEntryCreate) SetNillableFeatureID(s *string) *CreditEntryCreate {
+	if s != nil {
+		cec.SetFeatureID(*s)
 	}
 	return cec
 }
@@ -219,29 +218,29 @@ func (cec *CreditEntryCreate) SetMetadata(m map[string]string) *CreditEntryCreat
 }
 
 // SetParentID sets the "parent_id" field.
-func (cec *CreditEntryCreate) SetParentID(pg pgulid.ULID) *CreditEntryCreate {
-	cec.mutation.SetParentID(pg)
+func (cec *CreditEntryCreate) SetParentID(s string) *CreditEntryCreate {
+	cec.mutation.SetParentID(s)
 	return cec
 }
 
 // SetNillableParentID sets the "parent_id" field if the given value is not nil.
-func (cec *CreditEntryCreate) SetNillableParentID(pg *pgulid.ULID) *CreditEntryCreate {
-	if pg != nil {
-		cec.SetParentID(*pg)
+func (cec *CreditEntryCreate) SetNillableParentID(s *string) *CreditEntryCreate {
+	if s != nil {
+		cec.SetParentID(*s)
 	}
 	return cec
 }
 
 // SetID sets the "id" field.
-func (cec *CreditEntryCreate) SetID(pg pgulid.ULID) *CreditEntryCreate {
-	cec.mutation.SetID(pg)
+func (cec *CreditEntryCreate) SetID(s string) *CreditEntryCreate {
+	cec.mutation.SetID(s)
 	return cec
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (cec *CreditEntryCreate) SetNillableID(pg *pgulid.ULID) *CreditEntryCreate {
-	if pg != nil {
-		cec.SetID(*pg)
+func (cec *CreditEntryCreate) SetNillableID(s *string) *CreditEntryCreate {
+	if s != nil {
+		cec.SetID(*s)
 	}
 	return cec
 }
@@ -252,13 +251,13 @@ func (cec *CreditEntryCreate) SetParent(c *CreditEntry) *CreditEntryCreate {
 }
 
 // SetChildrenID sets the "children" edge to the CreditEntry entity by ID.
-func (cec *CreditEntryCreate) SetChildrenID(id pgulid.ULID) *CreditEntryCreate {
+func (cec *CreditEntryCreate) SetChildrenID(id string) *CreditEntryCreate {
 	cec.mutation.SetChildrenID(id)
 	return cec
 }
 
 // SetNillableChildrenID sets the "children" edge to the CreditEntry entity by ID if the given value is not nil.
-func (cec *CreditEntryCreate) SetNillableChildrenID(id *pgulid.ULID) *CreditEntryCreate {
+func (cec *CreditEntryCreate) SetNillableChildrenID(id *string) *CreditEntryCreate {
 	if id != nil {
 		cec = cec.SetChildrenID(*id)
 	}
@@ -395,10 +394,10 @@ func (cec *CreditEntryCreate) sqlSave(ctx context.Context) (*CreditEntry, error)
 		return nil, err
 	}
 	if _spec.ID.Value != nil {
-		if id, ok := _spec.ID.Value.(*pgulid.ULID); ok {
-			_node.ID = *id
-		} else if err := _node.ID.Scan(_spec.ID.Value); err != nil {
-			return nil, err
+		if id, ok := _spec.ID.Value.(string); ok {
+			_node.ID = id
+		} else {
+			return nil, fmt.Errorf("unexpected CreditEntry.ID type: %T", _spec.ID.Value)
 		}
 	}
 	cec.mutation.id = &_node.ID
@@ -409,12 +408,12 @@ func (cec *CreditEntryCreate) sqlSave(ctx context.Context) (*CreditEntry, error)
 func (cec *CreditEntryCreate) createSpec() (*CreditEntry, *sqlgraph.CreateSpec) {
 	var (
 		_node = &CreditEntry{config: cec.config}
-		_spec = sqlgraph.NewCreateSpec(creditentry.Table, sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeOther))
+		_spec = sqlgraph.NewCreateSpec(creditentry.Table, sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString))
 	)
 	_spec.OnConflict = cec.conflict
 	if id, ok := cec.mutation.ID(); ok {
 		_node.ID = id
-		_spec.ID.Value = &id
+		_spec.ID.Value = id
 	}
 	if value, ok := cec.mutation.CreatedAt(); ok {
 		_spec.SetField(creditentry.FieldCreatedAt, field.TypeTime, value)
@@ -429,7 +428,7 @@ func (cec *CreditEntryCreate) createSpec() (*CreditEntry, *sqlgraph.CreateSpec) 
 		_node.Namespace = value
 	}
 	if value, ok := cec.mutation.LedgerID(); ok {
-		_spec.SetField(creditentry.FieldLedgerID, field.TypeOther, value)
+		_spec.SetField(creditentry.FieldLedgerID, field.TypeString, value)
 		_node.LedgerID = value
 	}
 	if value, ok := cec.mutation.EntryType(); ok {
@@ -484,7 +483,7 @@ func (cec *CreditEntryCreate) createSpec() (*CreditEntry, *sqlgraph.CreateSpec) 
 			Columns: []string{creditentry.ParentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeOther),
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -501,7 +500,7 @@ func (cec *CreditEntryCreate) createSpec() (*CreditEntry, *sqlgraph.CreateSpec) 
 			Columns: []string{creditentry.ChildrenColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeOther),
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -517,7 +516,7 @@ func (cec *CreditEntryCreate) createSpec() (*CreditEntry, *sqlgraph.CreateSpec) 
 			Columns: []string{creditentry.FeatureColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(feature.FieldID, field.TypeOther),
+				IDSpec: sqlgraph.NewFieldSpec(feature.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -752,7 +751,7 @@ func (u *CreditEntryUpsertOne) ExecX(ctx context.Context) {
 }
 
 // Exec executes the UPSERT query and returns the inserted/updated ID.
-func (u *CreditEntryUpsertOne) ID(ctx context.Context) (id pgulid.ULID, err error) {
+func (u *CreditEntryUpsertOne) ID(ctx context.Context) (id string, err error) {
 	if u.create.driver.Dialect() == dialect.MySQL {
 		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
 		// fields from the database since MySQL does not support the RETURNING clause.
@@ -766,7 +765,7 @@ func (u *CreditEntryUpsertOne) ID(ctx context.Context) (id pgulid.ULID, err erro
 }
 
 // IDX is like ID, but panics if an error occurs.
-func (u *CreditEntryUpsertOne) IDX(ctx context.Context) pgulid.ULID {
+func (u *CreditEntryUpsertOne) IDX(ctx context.Context) string {
 	id, err := u.ID(ctx)
 	if err != nil {
 		panic(err)

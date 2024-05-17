@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/oklog/ulid/v2"
-
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -19,7 +17,7 @@ type ResetLedgerHandler httptransport.HandlerWithArgs[credit.Reset, credit.Reset
 
 func (b *builder) ResetLedger() ResetLedgerHandler {
 	return httptransport.NewHandlerWithArgs[credit.Reset, credit.Reset, api.LedgerID](
-		func(ctx context.Context, r *http.Request, ledgerID ulid.ULID) (credit.Reset, error) {
+		func(ctx context.Context, r *http.Request, ledgerID api.LedgerID) (credit.Reset, error) {
 			resetIn := credit.Reset{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &resetIn); err != nil {
 				return resetIn, err

@@ -11,7 +11,6 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -32,25 +31,25 @@ func TestWatermark(t *testing.T) {
 				ctx := context.Background()
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 
-				ledgerID := ulid.Make()
+				ledgerID := ulid.Make().String()
 
 				_, err := db_client.Ledger.
 					Create().
-					SetID(pgulid.Wrap(ledgerID)).
+					SetID(string(ledgerID)).
 					SetSubject(ulid.Make().String()).
 					SetNamespace(namespace).
 					SetHighwatermark(t1).
 					Save(ctx)
 				assert.NoError(t, err)
 
-				hw, err := connector.GetHighWatermark(ctx, credit.NamespacedID{
+				hw, err := connector.GetHighWatermark(ctx, credit.NamespacedLedgerID{
 					Namespace: namespace,
-					ID:        ledgerID,
+					ID:        credit.LedgerID(ledgerID),
 				})
 				assert.NoError(t, err)
 
 				expected := credit.HighWatermark{
-					LedgerID: ledgerID,
+					LedgerID: credit.LedgerID(ledgerID),
 					Time:     t1,
 				}
 				assert.Equal(t, expected.LedgerID, hw.LedgerID)
@@ -69,10 +68,7 @@ func TestWatermark(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				hw, err := connector.GetHighWatermark(ctx, credit.NamespacedID{
-					Namespace: namespace,
-					ID:        ledger.ID,
-				})
+				hw, err := connector.GetHighWatermark(ctx, credit.NewNamespacedLedgerID(namespace, ledger.ID))
 				assert.NoError(t, err)
 
 				expected := credit.HighWatermark{
@@ -90,10 +86,10 @@ func TestWatermark(t *testing.T) {
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 				t3, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:03:00Z", time.UTC)
 
-				ledgerID := ulid.Make()
+				ledgerID := ulid.Make().String()
 
 				ledger := db.Ledger{
-					ID:            pgulid.Wrap(ledgerID),
+					ID:            ledgerID,
 					Namespace:     namespace,
 					Highwatermark: t2,
 				}
@@ -101,7 +97,7 @@ func TestWatermark(t *testing.T) {
 				err := checkAfterHighWatermark(t1, &ledger)
 				expected := &credit.HighWatermarBeforeError{
 					Namespace:     namespace,
-					LedgerID:      ledgerID,
+					LedgerID:      credit.LedgerID(ledgerID),
 					HighWatermark: t2,
 				}
 				assert.Equal(t, expected, err, "should return error when time is before high watermark")

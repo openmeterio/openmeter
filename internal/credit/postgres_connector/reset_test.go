@@ -76,7 +76,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 				assert.NotNil(t, reset.ID)
 
 				// Get high watermark
-				highWatermark, err := connector.GetHighWatermark(ctx, credit.NamespacedID{
+				highWatermark, err := connector.GetHighWatermark(ctx, credit.NamespacedLedgerID{
 					Namespace: namespace,
 					ID:        ledger.ID,
 				})
@@ -89,7 +89,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 				// Get grants
 				grants, err := connector.ListGrants(ctx, credit.ListGrantsParams{
 					Namespace:         namespace,
-					LedgerIDs:         []ulid.ULID{ledger.ID},
+					LedgerIDs:         []credit.LedgerID{ledger.ID},
 					FromHighWatermark: true,
 				})
 				assert.NoError(t, err)
@@ -144,7 +144,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 				// Get grants
 				grants, err := connector.ListGrants(ctx, credit.ListGrantsParams{
 					Namespace:         namespace,
-					LedgerIDs:         []ulid.ULID{ledger.ID},
+					LedgerIDs:         []credit.LedgerID{ledger.ID},
 					FromHighWatermark: true,
 				})
 				assert.NoError(t, err)
@@ -203,7 +203,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 				// Get grants
 				grants, err := connector.ListGrants(ctx, credit.ListGrantsParams{
 					Namespace:         namespace,
-					LedgerIDs:         []ulid.ULID{ledger.ID},
+					LedgerIDs:         []credit.LedgerID{ledger.ID},
 					FromHighWatermark: true,
 				})
 				assert.NoError(t, err)

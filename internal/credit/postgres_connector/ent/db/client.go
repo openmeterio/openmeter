@@ -10,7 +10,6 @@ import (
 	"reflect"
 
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/migrate"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
@@ -279,7 +278,7 @@ func (c *CreditEntryClient) UpdateOne(ce *CreditEntry) *CreditEntryUpdateOne {
 }
 
 // UpdateOneID returns an update builder for the given id.
-func (c *CreditEntryClient) UpdateOneID(id pgulid.ULID) *CreditEntryUpdateOne {
+func (c *CreditEntryClient) UpdateOneID(id string) *CreditEntryUpdateOne {
 	mutation := newCreditEntryMutation(c.config, OpUpdateOne, withCreditEntryID(id))
 	return &CreditEntryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
@@ -296,7 +295,7 @@ func (c *CreditEntryClient) DeleteOne(ce *CreditEntry) *CreditEntryDeleteOne {
 }
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *CreditEntryClient) DeleteOneID(id pgulid.ULID) *CreditEntryDeleteOne {
+func (c *CreditEntryClient) DeleteOneID(id string) *CreditEntryDeleteOne {
 	builder := c.Delete().Where(creditentry.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
@@ -313,12 +312,12 @@ func (c *CreditEntryClient) Query() *CreditEntryQuery {
 }
 
 // Get returns a CreditEntry entity by its id.
-func (c *CreditEntryClient) Get(ctx context.Context, id pgulid.ULID) (*CreditEntry, error) {
+func (c *CreditEntryClient) Get(ctx context.Context, id string) (*CreditEntry, error) {
 	return c.Query().Where(creditentry.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
-func (c *CreditEntryClient) GetX(ctx context.Context, id pgulid.ULID) *CreditEntry {
+func (c *CreditEntryClient) GetX(ctx context.Context, id string) *CreditEntry {
 	obj, err := c.Get(ctx, id)
 	if err != nil {
 		panic(err)
@@ -460,7 +459,7 @@ func (c *FeatureClient) UpdateOne(f *Feature) *FeatureUpdateOne {
 }
 
 // UpdateOneID returns an update builder for the given id.
-func (c *FeatureClient) UpdateOneID(id pgulid.ULID) *FeatureUpdateOne {
+func (c *FeatureClient) UpdateOneID(id string) *FeatureUpdateOne {
 	mutation := newFeatureMutation(c.config, OpUpdateOne, withFeatureID(id))
 	return &FeatureUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
@@ -477,7 +476,7 @@ func (c *FeatureClient) DeleteOne(f *Feature) *FeatureDeleteOne {
 }
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *FeatureClient) DeleteOneID(id pgulid.ULID) *FeatureDeleteOne {
+func (c *FeatureClient) DeleteOneID(id string) *FeatureDeleteOne {
 	builder := c.Delete().Where(feature.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
@@ -494,12 +493,12 @@ func (c *FeatureClient) Query() *FeatureQuery {
 }
 
 // Get returns a Feature entity by its id.
-func (c *FeatureClient) Get(ctx context.Context, id pgulid.ULID) (*Feature, error) {
+func (c *FeatureClient) Get(ctx context.Context, id string) (*Feature, error) {
 	return c.Query().Where(feature.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
-func (c *FeatureClient) GetX(ctx context.Context, id pgulid.ULID) *Feature {
+func (c *FeatureClient) GetX(ctx context.Context, id string) *Feature {
 	obj, err := c.Get(ctx, id)
 	if err != nil {
 		panic(err)
@@ -609,7 +608,7 @@ func (c *LedgerClient) UpdateOne(l *Ledger) *LedgerUpdateOne {
 }
 
 // UpdateOneID returns an update builder for the given id.
-func (c *LedgerClient) UpdateOneID(id pgulid.ULID) *LedgerUpdateOne {
+func (c *LedgerClient) UpdateOneID(id string) *LedgerUpdateOne {
 	mutation := newLedgerMutation(c.config, OpUpdateOne, withLedgerID(id))
 	return &LedgerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
@@ -626,7 +625,7 @@ func (c *LedgerClient) DeleteOne(l *Ledger) *LedgerDeleteOne {
 }
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *LedgerClient) DeleteOneID(id pgulid.ULID) *LedgerDeleteOne {
+func (c *LedgerClient) DeleteOneID(id string) *LedgerDeleteOne {
 	builder := c.Delete().Where(ledger.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
@@ -643,12 +642,12 @@ func (c *LedgerClient) Query() *LedgerQuery {
 }
 
 // Get returns a Ledger entity by its id.
-func (c *LedgerClient) Get(ctx context.Context, id pgulid.ULID) (*Ledger, error) {
+func (c *LedgerClient) Get(ctx context.Context, id string) (*Ledger, error) {
 	return c.Query().Where(ledger.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
-func (c *LedgerClient) GetX(ctx context.Context, id pgulid.ULID) *Ledger {
+func (c *LedgerClient) GetX(ctx context.Context, id string) *Ledger {
 	obj, err := c.Get(ctx, id)
 	if err != nil {
 		panic(err)

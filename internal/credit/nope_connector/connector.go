@@ -37,18 +37,18 @@ func (c *Connector) VoidGrant(ctx context.Context, grant credit.Grant) (credit.G
 func (c *Connector) ListGrants(ctx context.Context, params credit.ListGrantsParams) ([]credit.Grant, error) {
 	return nil, fmt.Errorf("not implemented")
 }
-func (c *Connector) GetGrant(ctx context.Context, grantID credit.NamespacedID) (credit.Grant, error) {
+func (c *Connector) GetGrant(ctx context.Context, grantID credit.NamespacedGrantID) (credit.Grant, error) {
 	return credit.Grant{}, fmt.Errorf("not implemented")
 }
 
 // Credit
-func (c *Connector) GetBalance(ctx context.Context, ledgerID credit.NamespacedID, cutline time.Time) (credit.Balance, error) {
+func (c *Connector) GetBalance(ctx context.Context, ledgerID credit.NamespacedLedgerID, cutline time.Time) (credit.Balance, error) {
 	return credit.Balance{}, fmt.Errorf("not implemented")
 }
-func (c *Connector) GetHistory(ctx context.Context, ledgerID credit.NamespacedID, from time.Time, to time.Time, limit int) (credit.LedgerEntryList, error) {
+func (c *Connector) GetHistory(ctx context.Context, ledgerID credit.NamespacedLedgerID, from time.Time, to time.Time, limit int) (credit.LedgerEntryList, error) {
 	return credit.LedgerEntryList{}, fmt.Errorf("not implemented")
 }
-func (c *Connector) GetHighWatermark(ctx context.Context, ledgerID credit.NamespacedID) (credit.HighWatermark, error) {
+func (c *Connector) GetHighWatermark(ctx context.Context, ledgerID credit.NamespacedLedgerID) (credit.HighWatermark, error) {
 	return credit.HighWatermark{}, fmt.Errorf("not implemented")
 }
 func (c *Connector) Reset(ctx context.Context, reset credit.Reset) (credit.Reset, []credit.Grant, error) {
@@ -59,12 +59,12 @@ func (c *Connector) Reset(ctx context.Context, reset credit.Reset) (credit.Reset
 func (c *Connector) CreateFeature(ctx context.Context, feature credit.Feature) (credit.Feature, error) {
 	return credit.Feature{}, fmt.Errorf("not implemented")
 }
-func (c *Connector) DeleteFeature(ctx context.Context, featureID credit.NamespacedID) error {
+func (c *Connector) DeleteFeature(ctx context.Context, featureID credit.NamespacedFeatureID) error {
 	return fmt.Errorf("not implemented")
 }
 func (c *Connector) ListFeatures(ctx context.Context, params credit.ListFeaturesParams) ([]credit.Feature, error) {
 	return nil, fmt.Errorf("not implemented")
 }
-func (c *Connector) GetFeature(ctx context.Context, featureID credit.NamespacedID) (credit.Feature, error) {
+func (c *Connector) GetFeature(ctx context.Context, featureID credit.NamespacedFeatureID) (credit.Feature, error) {
 	return credit.Feature{}, fmt.Errorf("not implemented")
 }

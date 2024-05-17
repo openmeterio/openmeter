@@ -8,7 +8,6 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 type resetWithRollovedGrants struct {
@@ -19,7 +18,7 @@ type resetWithRollovedGrants struct {
 // Reset resets the ledger for the subject.
 // Rolls over grants with rollover configuration.
 func (c *PostgresConnector) Reset(ctx context.Context, reset credit.Reset) (credit.Reset, []credit.Grant, error) {
-	ledgerID := credit.NewNamespacedID(reset.Namespace, reset.LedgerID)
+	ledgerID := credit.NewNamespacedLedgerID(reset.Namespace, reset.LedgerID)
 
 	result, err := mutationTransaction(
 		ctx,
@@ -78,7 +77,7 @@ func (c *PostgresConnector) Reset(ctx context.Context, reset credit.Reset) (cred
 			createEntities := []*db.CreditEntryCreate{
 				tx.CreditEntry.Create().
 					SetNamespace(reset.Namespace).
-					SetLedgerID(pgulid.Wrap(reset.LedgerID)).
+					SetLedgerID(string(reset.LedgerID)).
 					SetEntryType(credit.EntryTypeReset).
 					SetEffectiveAt(reset.EffectiveAt),
 			}
@@ -87,11 +86,11 @@ func (c *PostgresConnector) Reset(ctx context.Context, reset credit.Reset) (cred
 			for _, grant := range rolloverGrants {
 				grantEntityCreate := tx.CreditEntry.Create().
 					SetNamespace(reset.Namespace).
-					SetLedgerID(pgulid.Wrap(grant.LedgerID)).
+					SetLedgerID(string(grant.LedgerID)).
 					SetEntryType(credit.EntryTypeGrant).
 					SetType(grant.Type).
-					SetNillableParentID(pgulid.Ptr(grant.ParentID)).
-					SetNillableFeatureID(pgulid.Ptr(grant.FeatureID)).
+					SetNillableParentID((*string)(grant.ParentID)).
+					SetNillableFeatureID((*string)(grant.FeatureID)).
 					SetAmount(grant.Amount).
 					SetPriority(grant.Priority).
 					SetEffectiveAt(grant.EffectiveAt).
@@ -157,8 +156,8 @@ func mapResetEntity(entry *db.CreditEntry) (credit.Reset, error) {
 
 	reset := credit.Reset{
 		Namespace:   entry.Namespace,
-		ID:          &entry.ID.ULID,
-		LedgerID:    entry.LedgerID.ULID,
+		ID:          (*credit.GrantID)(&entry.ID),
+		LedgerID:    credit.LedgerID(entry.LedgerID),
 		EffectiveAt: entry.EffectiveAt.In(time.UTC),
 	}
 

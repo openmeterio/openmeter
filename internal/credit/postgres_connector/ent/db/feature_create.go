@@ -14,7 +14,6 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 // FeatureCreate is the builder for creating a Feature entity.
@@ -92,28 +91,28 @@ func (fc *FeatureCreate) SetNillableArchived(b *bool) *FeatureCreate {
 }
 
 // SetID sets the "id" field.
-func (fc *FeatureCreate) SetID(pg pgulid.ULID) *FeatureCreate {
-	fc.mutation.SetID(pg)
+func (fc *FeatureCreate) SetID(s string) *FeatureCreate {
+	fc.mutation.SetID(s)
 	return fc
 }
 
 // SetNillableID sets the "id" field if the given value is not nil.
-func (fc *FeatureCreate) SetNillableID(pg *pgulid.ULID) *FeatureCreate {
-	if pg != nil {
-		fc.SetID(*pg)
+func (fc *FeatureCreate) SetNillableID(s *string) *FeatureCreate {
+	if s != nil {
+		fc.SetID(*s)
 	}
 	return fc
 }
 
 // AddCreditGrantIDs adds the "credit_grants" edge to the CreditEntry entity by IDs.
-func (fc *FeatureCreate) AddCreditGrantIDs(ids ...pgulid.ULID) *FeatureCreate {
+func (fc *FeatureCreate) AddCreditGrantIDs(ids ...string) *FeatureCreate {
 	fc.mutation.AddCreditGrantIDs(ids...)
 	return fc
 }
 
 // AddCreditGrants adds the "credit_grants" edges to the CreditEntry entity.
 func (fc *FeatureCreate) AddCreditGrants(c ...*CreditEntry) *FeatureCreate {
-	ids := make([]pgulid.ULID, len(c))
+	ids := make([]string, len(c))
 	for i := range c {
 		ids[i] = c[i].ID
 	}
@@ -223,10 +222,10 @@ func (fc *FeatureCreate) sqlSave(ctx context.Context) (*Feature, error) {
 		return nil, err
 	}
 	if _spec.ID.Value != nil {
-		if id, ok := _spec.ID.Value.(*pgulid.ULID); ok {
-			_node.ID = *id
-		} else if err := _node.ID.Scan(_spec.ID.Value); err != nil {
-			return nil, err
+		if id, ok := _spec.ID.Value.(string); ok {
+			_node.ID = id
+		} else {
+			return nil, fmt.Errorf("unexpected Feature.ID type: %T", _spec.ID.Value)
 		}
 	}
 	fc.mutation.id = &_node.ID
@@ -237,12 +236,12 @@ func (fc *FeatureCreate) sqlSave(ctx context.Context) (*Feature, error) {
 func (fc *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 	var (
 		_node = &Feature{config: fc.config}
-		_spec = sqlgraph.NewCreateSpec(feature.Table, sqlgraph.NewFieldSpec(feature.FieldID, field.TypeOther))
+		_spec = sqlgraph.NewCreateSpec(feature.Table, sqlgraph.NewFieldSpec(feature.FieldID, field.TypeString))
 	)
 	_spec.OnConflict = fc.conflict
 	if id, ok := fc.mutation.ID(); ok {
 		_node.ID = id
-		_spec.ID.Value = &id
+		_spec.ID.Value = id
 	}
 	if value, ok := fc.mutation.CreatedAt(); ok {
 		_spec.SetField(feature.FieldCreatedAt, field.TypeTime, value)
@@ -280,7 +279,7 @@ func (fc *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 			Columns: []string{feature.CreditGrantsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeOther),
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -530,7 +529,7 @@ func (u *FeatureUpsertOne) ExecX(ctx context.Context) {
 }
 
 // Exec executes the UPSERT query and returns the inserted/updated ID.
-func (u *FeatureUpsertOne) ID(ctx context.Context) (id pgulid.ULID, err error) {
+func (u *FeatureUpsertOne) ID(ctx context.Context) (id string, err error) {
 	if u.create.driver.Dialect() == dialect.MySQL {
 		// In case of "ON CONFLICT", there is no way to get back non-numeric ID
 		// fields from the database since MySQL does not support the RETURNING clause.
@@ -544,7 +543,7 @@ func (u *FeatureUpsertOne) ID(ctx context.Context) (id pgulid.ULID, err error) {
 }
 
 // IDX is like ID, but panics if an error occurs.
-func (u *FeatureUpsertOne) IDX(ctx context.Context) pgulid.ULID {
+func (u *FeatureUpsertOne) IDX(ctx context.Context) string {
 	id, err := u.ID(ctx)
 	if err != nil {
 		panic(err)

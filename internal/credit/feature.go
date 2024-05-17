@@ -3,12 +3,25 @@ package credit
 import (
 	"fmt"
 	"net/http"
-
-	"github.com/oklog/ulid/v2"
 )
 
+// FeatureID is the unique identifier for a feature.
+type FeatureID string
+
+type NamespacedFeatureID struct {
+	Namespace string
+	ID        FeatureID
+}
+
+func NewNamespacedFeatureID(namespace string, id FeatureID) NamespacedFeatureID {
+	return NamespacedFeatureID{
+		Namespace: namespace,
+		ID:        id,
+	}
+}
+
 type FeatureNotFoundError struct {
-	ID ulid.ULID
+	ID FeatureID
 }
 
 func (e *FeatureNotFoundError) Error() string {
@@ -19,7 +32,7 @@ func (e *FeatureNotFoundError) Error() string {
 // For example: CPU-Hours, Tokens, API Calls, etc.
 type Feature struct {
 	Namespace string     `json:"-"`
-	ID        *ulid.ULID `json:"id,omitempty"`
+	ID        *FeatureID `json:"id,omitempty"`
 
 	// Name The name of the feature.
 	Name string `json:"name"`

@@ -15,7 +15,6 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/predicate"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/pgulid"
 )
 
 // CreditEntryQuery is the builder for querying CreditEntry entities.
@@ -155,8 +154,8 @@ func (ceq *CreditEntryQuery) FirstX(ctx context.Context) *CreditEntry {
 
 // FirstID returns the first CreditEntry ID from the query.
 // Returns a *NotFoundError when no CreditEntry ID was found.
-func (ceq *CreditEntryQuery) FirstID(ctx context.Context) (id pgulid.ULID, err error) {
-	var ids []pgulid.ULID
+func (ceq *CreditEntryQuery) FirstID(ctx context.Context) (id string, err error) {
+	var ids []string
 	if ids, err = ceq.Limit(1).IDs(setContextOp(ctx, ceq.ctx, "FirstID")); err != nil {
 		return
 	}
@@ -168,7 +167,7 @@ func (ceq *CreditEntryQuery) FirstID(ctx context.Context) (id pgulid.ULID, err e
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (ceq *CreditEntryQuery) FirstIDX(ctx context.Context) pgulid.ULID {
+func (ceq *CreditEntryQuery) FirstIDX(ctx context.Context) string {
 	id, err := ceq.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -206,8 +205,8 @@ func (ceq *CreditEntryQuery) OnlyX(ctx context.Context) *CreditEntry {
 // OnlyID is like Only, but returns the only CreditEntry ID in the query.
 // Returns a *NotSingularError when more than one CreditEntry ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (ceq *CreditEntryQuery) OnlyID(ctx context.Context) (id pgulid.ULID, err error) {
-	var ids []pgulid.ULID
+func (ceq *CreditEntryQuery) OnlyID(ctx context.Context) (id string, err error) {
+	var ids []string
 	if ids, err = ceq.Limit(2).IDs(setContextOp(ctx, ceq.ctx, "OnlyID")); err != nil {
 		return
 	}
@@ -223,7 +222,7 @@ func (ceq *CreditEntryQuery) OnlyID(ctx context.Context) (id pgulid.ULID, err er
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (ceq *CreditEntryQuery) OnlyIDX(ctx context.Context) pgulid.ULID {
+func (ceq *CreditEntryQuery) OnlyIDX(ctx context.Context) string {
 	id, err := ceq.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -251,7 +250,7 @@ func (ceq *CreditEntryQuery) AllX(ctx context.Context) []*CreditEntry {
 }
 
 // IDs executes the query and returns a list of CreditEntry IDs.
-func (ceq *CreditEntryQuery) IDs(ctx context.Context) (ids []pgulid.ULID, err error) {
+func (ceq *CreditEntryQuery) IDs(ctx context.Context) (ids []string, err error) {
 	if ceq.ctx.Unique == nil && ceq.path != nil {
 		ceq.Unique(true)
 	}
@@ -263,7 +262,7 @@ func (ceq *CreditEntryQuery) IDs(ctx context.Context) (ids []pgulid.ULID, err er
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (ceq *CreditEntryQuery) IDsX(ctx context.Context) []pgulid.ULID {
+func (ceq *CreditEntryQuery) IDsX(ctx context.Context) []string {
 	ids, err := ceq.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -492,8 +491,8 @@ func (ceq *CreditEntryQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 }
 
 func (ceq *CreditEntryQuery) loadParent(ctx context.Context, query *CreditEntryQuery, nodes []*CreditEntry, init func(*CreditEntry), assign func(*CreditEntry, *CreditEntry)) error {
-	ids := make([]pgulid.ULID, 0, len(nodes))
-	nodeids := make(map[pgulid.ULID][]*CreditEntry)
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*CreditEntry)
 	for i := range nodes {
 		if nodes[i].ParentID == nil {
 			continue
@@ -525,7 +524,7 @@ func (ceq *CreditEntryQuery) loadParent(ctx context.Context, query *CreditEntryQ
 }
 func (ceq *CreditEntryQuery) loadChildren(ctx context.Context, query *CreditEntryQuery, nodes []*CreditEntry, init func(*CreditEntry), assign func(*CreditEntry, *CreditEntry)) error {
 	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[pgulid.ULID]*CreditEntry)
+	nodeids := make(map[string]*CreditEntry)
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
@@ -554,8 +553,8 @@ func (ceq *CreditEntryQuery) loadChildren(ctx context.Context, query *CreditEntr
 	return nil
 }
 func (ceq *CreditEntryQuery) loadFeature(ctx context.Context, query *FeatureQuery, nodes []*CreditEntry, init func(*CreditEntry), assign func(*CreditEntry, *Feature)) error {
-	ids := make([]pgulid.ULID, 0, len(nodes))
-	nodeids := make(map[pgulid.ULID][]*CreditEntry)
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*CreditEntry)
 	for i := range nodes {
 		if nodes[i].FeatureID == nil {
 			continue
@@ -599,7 +598,7 @@ func (ceq *CreditEntryQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (ceq *CreditEntryQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(creditentry.Table, creditentry.Columns, sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeOther))
+	_spec := sqlgraph.NewQuerySpec(creditentry.Table, creditentry.Columns, sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString))
 	_spec.From = ceq.sql
 	if unique := ceq.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
