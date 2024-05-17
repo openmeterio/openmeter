@@ -13,7 +13,7 @@ func (a *PostgresConnector) GetHistory(
 	ledgerID credit.NamespacedLedgerID,
 	from time.Time,
 	to time.Time,
-	limit int,
+	pagination credit.Pagination,
 ) (credit.LedgerEntryList, error) {
 	ledgerEntries := credit.NewLedgerEntryList()
 
@@ -54,9 +54,14 @@ func (a *PostgresConnector) GetHistory(
 		balanceFrom = balanceTo
 	}
 
-	// Because of the logic here, we may have more entries than the limit
-	if limit > 0 && ledgerEntries.Len() > limit {
-		ledgerEntries = ledgerEntries.Truncate(limit)
+	// Because of the above we cannot really limit the query from the db side,
+	// so we are "emulating" the limit here
+	if pagination.Offset > 0 {
+		ledgerEntries = ledgerEntries.Skip(pagination.Offset)
+	}
+
+	if pagination.Limit > 0 && ledgerEntries.Len() > pagination.Limit {
+		ledgerEntries = ledgerEntries.Truncate(pagination.Limit)
 	}
 
 	return ledgerEntries, nil

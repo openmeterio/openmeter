@@ -113,7 +113,10 @@ func (b *builder) GetLedgerHistory() GetLedgerHistoryHandler {
 				credit.NewNamespacedLedgerID(req.Namespace, req.LedgerID),
 				req.From,
 				defaultx.WithDefault(req.To, time.Now()),
-				defaultx.WithDefault(req.Limit, DefaultLedgerQueryLimit),
+				credit.Pagination{
+					Limit:  defaultx.WithDefault(req.Limit, DefaultLedgerQueryLimit),
+					Offset: defaultx.WithDefault(req.Offset, 0),
+				},
 			)
 		},
 		commonhttp.JSONResponseEncoder,

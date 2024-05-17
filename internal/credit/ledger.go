@@ -109,6 +109,7 @@ func (f LedgerEntryList) Len() int {
 	return len(f.list)
 }
 
+// Truncate removes all entries after the limit.
 func (f LedgerEntryList) Truncate(limit int) LedgerEntryList {
 	if limit >= len(f.list) {
 		return f
@@ -116,6 +117,17 @@ func (f LedgerEntryList) Truncate(limit int) LedgerEntryList {
 
 	return LedgerEntryList{
 		list: f.list[:limit],
+	}
+}
+
+// Skip removes the first n entries.
+func (f LedgerEntryList) Skip(n int) LedgerEntryList {
+	if n >= len(f.list) {
+		return LedgerEntryList{}
+	}
+
+	return LedgerEntryList{
+		list: f.list[n:],
 	}
 }
 

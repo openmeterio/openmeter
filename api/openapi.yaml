@@ -868,6 +868,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/ledgerID"
         - $ref: "#/components/parameters/ledgerQueryLimit"
+        - $ref: "#/components/parameters/ledgerQueryOffset"
         - name: from
           in: query
           required: true

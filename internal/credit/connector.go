@@ -48,6 +48,11 @@ type ListLedgersParams struct {
 	OrderBy     LedgerOrderBy
 }
 
+type Pagination struct {
+	Offset int
+	Limit  int
+}
+
 type Connector interface {
 	// Ledger
 	CreateLedger(ctx context.Context, ledger Ledger) (Ledger, error)
@@ -61,7 +66,7 @@ type Connector interface {
 
 	// Credit
 	GetBalance(ctx context.Context, ledgerID NamespacedLedgerID, cutline time.Time) (Balance, error)
-	GetHistory(ctx context.Context, ledgerID NamespacedLedgerID, from time.Time, to time.Time, limit int) (LedgerEntryList, error)
+	GetHistory(ctx context.Context, ledgerID NamespacedLedgerID, from time.Time, to time.Time, pagination Pagination) (LedgerEntryList, error)
 	GetHighWatermark(ctx context.Context, ledgerID NamespacedLedgerID) (HighWatermark, error)
 	Reset(ctx context.Context, reset Reset) (Reset, []Grant, error)
 
