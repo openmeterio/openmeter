@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	meter_internal "github.com/openmeterio/openmeter/internal/meter"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 

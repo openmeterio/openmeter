@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_feature "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
+	"github.com/openmeterio/openmeter/pkg/convert"
 )
 
 // CreateFeature creates a feature.
