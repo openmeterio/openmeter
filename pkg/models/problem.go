@@ -28,7 +28,7 @@ const (
 
 // Problem is the RFC 7807 response body.
 type Problem interface {
-	Respond(w http.ResponseWriter, r *http.Request)
+	Respond(w http.ResponseWriter)
 	Error() string
 	ProblemType() ProblemType
 	ProblemTitle() string
@@ -78,12 +78,12 @@ func (p *StatusProblem) ProblemTitle() string {
 }
 
 // Respond will render the problem as JSON to the provided ResponseWriter.
-func (p *StatusProblem) Respond(w http.ResponseWriter, r *http.Request) {
-	RespondProblem(p, w, r)
+func (p *StatusProblem) Respond(w http.ResponseWriter) {
+	RespondProblem(p, w)
 }
 
 // Respond will render the problem as JSON to the provided ResponseWriter.
-func RespondProblem(problem Problem, w http.ResponseWriter, r *http.Request) {
+func RespondProblem(problem Problem, w http.ResponseWriter) {
 	// Respond
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)

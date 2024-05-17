@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/oklog/ulid/v2"
-
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_ledger "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
@@ -16,18 +14,18 @@ import (
 var defaultHighwatermark, _ = time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
 
 // GetHighWatermark returns the high watermark for the given credit and subject pair.
-func (c *PostgresConnector) GetHighWatermark(ctx context.Context, namespace string, ledgerID ulid.ULID) (credit.HighWatermark, error) {
+func (c *PostgresConnector) GetHighWatermark(ctx context.Context, ledgerID credit.NamespacedID) (credit.HighWatermark, error) {
 	ledgerEntity, err := c.db.Ledger.Query().
 		Where(
-			db_ledger.ID(pgulid.Wrap(ledgerID)),
-			db_ledger.Namespace(namespace),
+			db_ledger.ID(pgulid.Wrap(ledgerID.ID)),
+			db_ledger.Namespace(ledgerID.Namespace),
 		).
 		Only(ctx)
 
 	if err != nil {
 		if db.IsNotFound(err) {
 			return credit.HighWatermark{
-				LedgerID: ledgerID,
+				LedgerID: ledgerID.ID,
 				Time:     defaultHighwatermark,
 			}, nil
 		}
@@ -36,7 +34,7 @@ func (c *PostgresConnector) GetHighWatermark(ctx context.Context, namespace stri
 	}
 
 	return credit.HighWatermark{
-		LedgerID: ledgerID,
+		LedgerID: ledgerID.ID,
 		Time:     ledgerEntity.Highwatermark.In(time.UTC),
 	}, nil
 }

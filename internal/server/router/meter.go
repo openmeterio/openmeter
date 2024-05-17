@@ -22,7 +22,7 @@ func (a *Router) ListMeters(w http.ResponseWriter, r *http.Request) {
 		err := fmt.Errorf("list meters: %w", err)
 
 		a.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 
 		return
 	}
@@ -40,7 +40,7 @@ func (a *Router) CreateMeter(w http.ResponseWriter, r *http.Request) {
 
 	err := fmt.Errorf("not implemented: manage meters via config or checkout OpenMeter Cloud")
 
-	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w, r)
+	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w)
 }
 
 func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string) {
@@ -50,7 +50,7 @@ func (a *Router) DeleteMeter(w http.ResponseWriter, r *http.Request, meterIdOrSl
 	err := fmt.Errorf("not implemented: manage meters via config or checkout OpenMeter Cloud")
 
 	a.config.ErrorHandler.HandleContext(ctx, err)
-	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w, r)
+	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w)
 }
 
 func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug string) {
@@ -63,12 +63,12 @@ func (a *Router) GetMeter(w http.ResponseWriter, r *http.Request, meterIdOrSlug 
 
 	// TODO: remove once meter model pointer is removed
 	if e := (&models.MeterNotFoundError{}); errors.As(err, &e) {
-		models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w)
 
 		return
 	} else if err != nil {
 		err := fmt.Errorf("get meter: %w", err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 
 		return
 	}

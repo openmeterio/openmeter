@@ -44,6 +44,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
+	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/internal/server"
 	"github.com/openmeterio/openmeter/internal/server/authenticator"
 	"github.com/openmeterio/openmeter/internal/server/router"
@@ -269,7 +270,7 @@ func main() {
 	}
 	ingestHandler := ingestdriver.NewIngestEventsHandler(
 		ingestService.IngestEvents,
-		ingestdriver.StaticNamespaceDecoder(namespaceManager.GetDefaultNamespace()),
+		namespacedriver.StaticNamespaceDecoder(namespaceManager.GetDefaultNamespace()),
 		nil,
 		errorsx.NewContextHandler(errorsx.NewAppHandler(errorsx.NewSlogHandler(logger))),
 	)

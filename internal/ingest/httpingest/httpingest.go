@@ -61,7 +61,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, namespace str
 		err, handled = h.processBatchRequest(ctx, w, r, namespace)
 	default:
 		// this should never happen
-		models.NewStatusProblem(ctx, errors.New("invalid content type: "+contentType), http.StatusBadRequest).Respond(w, r)
+		models.NewStatusProblem(ctx, errors.New("invalid content type: "+contentType), http.StatusBadRequest).Respond(w)
 		handled = true
 	}
 
@@ -71,7 +71,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, namespace str
 
 	if err != nil {
 		h.config.ErrorHandler.HandleContext(ctx, err)
-		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w, r)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 
 		return
 	}
@@ -84,7 +84,7 @@ func (h Handler) processBatchRequest(ctx context.Context, w http.ResponseWriter,
 
 	err := json.NewDecoder(r.Body).Decode(&events)
 	if err != nil {
-		models.NewStatusProblem(ctx, fmt.Errorf("parsing event: %w", err), http.StatusBadRequest).Respond(w, r)
+		models.NewStatusProblem(ctx, fmt.Errorf("parsing event: %w", err), http.StatusBadRequest).Respond(w)
 
 		return nil, true
 	}
@@ -104,7 +104,7 @@ func (h Handler) processSingleRequest(ctx context.Context, w http.ResponseWriter
 
 	err := json.NewDecoder(r.Body).Decode(&event)
 	if err != nil {
-		models.NewStatusProblem(ctx, fmt.Errorf("parsing event: %w", err), http.StatusBadRequest).Respond(w, r)
+		models.NewStatusProblem(ctx, fmt.Errorf("parsing event: %w", err), http.StatusBadRequest).Respond(w)
 
 		return nil, true
 	}

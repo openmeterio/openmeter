@@ -12,8 +12,8 @@ type LedgerAlreadyExistsProblemResponse struct {
 	ConflictingEntity Ledger `json:"conflictingEntity"`
 }
 
-func (p *LedgerAlreadyExistsProblemResponse) Respond(w http.ResponseWriter, r *http.Request) {
-	models.RespondProblem(p, w, r)
+func (p *LedgerAlreadyExistsProblemResponse) Respond(w http.ResponseWriter) {
+	models.RespondProblem(p, w)
 }
 
 func NewLedgerAlreadyExistsProblem(ctx context.Context, err error, existingEntry Ledger) models.Problem {

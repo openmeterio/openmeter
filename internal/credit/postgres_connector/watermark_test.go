@@ -43,7 +43,10 @@ func TestWatermark(t *testing.T) {
 					Save(ctx)
 				assert.NoError(t, err)
 
-				hw, err := connector.GetHighWatermark(ctx, namespace, ledgerID)
+				hw, err := connector.GetHighWatermark(ctx, credit.NamespacedID{
+					Namespace: namespace,
+					ID:        ledgerID,
+				})
 				assert.NoError(t, err)
 
 				expected := credit.HighWatermark{
@@ -60,12 +63,16 @@ func TestWatermark(t *testing.T) {
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
 
-				ledger, err := connector.CreateLedger(ctx, namespace, credit.Ledger{
-					Subject: subject,
+				ledger, err := connector.CreateLedger(ctx, credit.Ledger{
+					Namespace: namespace,
+					Subject:   subject,
 				})
 				assert.NoError(t, err)
 
-				hw, err := connector.GetHighWatermark(ctx, namespace, ledger.ID)
+				hw, err := connector.GetHighWatermark(ctx, credit.NamespacedID{
+					Namespace: namespace,
+					ID:        ledger.ID,
+				})
 				assert.NoError(t, err)
 
 				expected := credit.HighWatermark{

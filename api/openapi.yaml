@@ -1260,7 +1260,7 @@ components:
       type: object
       # TODO: until https://github.com/deepmap/oapi-codegen/pull/1610 is not merged, we
       # need to copy the Problem schema here
-      # 
+      #
       # Afterwards the schema should be this
       #allOf:
       #- $ref: "#/components/schemas/Problem"
@@ -1446,7 +1446,7 @@ components:
     LedgerGrantBalance:
       # TODO: until https://github.com/deepmap/oapi-codegen/pull/1610 is not merged, the
       # generated go type will be invalid (it will be credit.Grant instead of GrantBalance).
-      # 
+      #
       # Given that we are not using this type as a return type of a call, this is just
       # an inconsistency we can ignore.
       x-go-type-import:
@@ -1464,7 +1464,7 @@ components:
     FeatureBalance:
       # TODO: until https://github.com/deepmap/oapi-codegen/pull/1610 is not merged, the
       # generated go type will be invalid (it will be credit.Feature instead of FeatureBalance).
-      # 
+      #
       # Given that we are not using this type as a return type of a call, this is just
       # an inconsistency we can ignore.
       x-go-type-import:

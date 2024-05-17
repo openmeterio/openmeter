@@ -17,6 +17,7 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/ingest/ingestdriver"
+	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 )
 
@@ -30,7 +31,7 @@ func TestIngestEvents(t *testing.T) {
 
 	handler := ingestdriver.NewIngestEventsHandler(
 		service.IngestEvents,
-		ingestdriver.StaticNamespaceDecoder("test"),
+		namespacedriver.StaticNamespaceDecoder("test"),
 		nil,
 		errorsx.NewContextHandler(errorsx.NopHandler{}),
 	)
@@ -78,7 +79,7 @@ func TestIngestEvents_InvalidEvent(t *testing.T) {
 
 	handler := ingestdriver.NewIngestEventsHandler(
 		service.IngestEvents,
-		ingestdriver.StaticNamespaceDecoder("test"),
+		namespacedriver.StaticNamespaceDecoder("test"),
 		nil,
 		errorsx.NewContextHandler(errorsx.NopHandler{}),
 	)
@@ -102,7 +103,7 @@ func TestBatchHandler(t *testing.T) {
 
 	handler := ingestdriver.NewIngestEventsHandler(
 		service.IngestEvents,
-		ingestdriver.StaticNamespaceDecoder("test"),
+		namespacedriver.StaticNamespaceDecoder("test"),
 		nil,
 		errorsx.NewContextHandler(errorsx.NopHandler{}),
 	)

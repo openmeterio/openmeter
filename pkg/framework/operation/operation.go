@@ -20,3 +20,23 @@ type Operation[Request any, Response any] func(ctx context.Context, request Requ
 func Name(ctx context.Context) (string, bool) {
 	return operation.Name(ctx)
 }
+
+// AsNoResponseOperation wraps a func (context.Context, request Request) error typed function as an operation
+// useful for Delete like methods
+func AsNoResponseOperation[Request any](f func(ctx context.Context, request Request) error) Operation[Request, any] {
+	return func(ctx context.Context, request Request) (any, error) {
+		return nil, f(ctx, request)
+	}
+}
+
+// Compose can be used to chain two operations together (e.g. get something, then update it).
+func Compose[Request any, Intermediate any, Response any](op1 Operation[Request, Intermediate], op2 Operation[Intermediate, Response]) Operation[Request, Response] {
+	return func(ctx context.Context, request Request) (Response, error) {
+		intermediate, err := op1(ctx, request)
+		if err != nil {
+			var defaultResponse Response
+			return defaultResponse, err
+		}
+		return op2(ctx, intermediate)
+	}
+}

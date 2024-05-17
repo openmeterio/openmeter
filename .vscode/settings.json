@@ -3,6 +3,8 @@
     "editor.formatOnSave": false
   },
   "go.testEnvVars": {
-    "TZ": "UTC"
+    "TZ": "UTC",
+    "POSTGRES_HOST": "127.0.0.1",
+    "OPENMETER_ADDRESS": "http://127.0.0.1:8888",
   }
 }

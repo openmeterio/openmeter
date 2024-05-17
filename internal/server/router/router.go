@@ -10,11 +10,14 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit/creditdriver"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
+	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/internal/server/authenticator"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
+	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
 func init() {
@@ -47,14 +50,25 @@ type Config struct {
 }
 
 type Router struct {
-	config Config
+	CreditHandlers creditdriver.Handlers
+	config         Config
 }
 
 // Make sure we conform to ServerInterface
 var _ api.ServerInterface = (*Router)(nil)
 
 func NewRouter(config Config) (*Router, error) {
-	return &Router{
+	router := &Router{
 		config: config,
-	}, nil
+	}
+
+	if config.CreditConnector != nil {
+		router.CreditHandlers = creditdriver.New(
+			config.CreditConnector,
+			config.Meters,
+			namespacedriver.StaticNamespaceDecoder("default"),
+			httptransport.WithErrorHandler(config.ErrorHandler),
+		)
+	}
+	return router, nil
 }
