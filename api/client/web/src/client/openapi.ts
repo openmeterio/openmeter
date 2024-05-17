@@ -392,6 +392,20 @@ export interface components {
        * @example false
        */
       archived?: boolean
+      /**
+       * Format: date-time
+       * @description The time the feature was created.
+       *
+       * @example 2023-01-01T00:00:00Z
+       */
+      createdAt?: string
+      /**
+       * Format: date-time
+       * @description The time the feature was last updated.
+       *
+       * @example 2023-01-01T00:00:00Z
+       */
+      updatedAt?: string
     }
     /**
      * @description A ledger represented in open meter. A ledger must be assigned to a single
@@ -463,6 +477,13 @@ export interface components {
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
       id: string
+      /**
+       * Format: date-time
+       * @description The time the ledger was created.
+       *
+       * @example 2023-01-01T00:00:00Z
+       */
+      createdAt?: string
     }
     /** @description A ledger entry. */
     LedgerEntry: {
@@ -551,12 +572,6 @@ export interface components {
     }
     /** @description Grants are used to increase balance of specific subjects. */
     CreateLedgerGrantRequest: {
-      /**
-       * @description Readonly unique ULID identifier of the grant.
-       *
-       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
-       */
-      id: string
       type: components['schemas']['LedgerGrantType']
       /**
        * @description The amount to grant. Can be positive or negative number.
@@ -599,8 +614,28 @@ export interface components {
       metadata?: {
         [key: string]: string
       }
+      /**
+       * Format: date-time
+       * @description The time the grant was created.
+       *
+       * @example 2023-01-01T00:00:00Z
+       */
+      createdAt?: string
+      /**
+       * Format: date-time
+       * @description The time the grant was last updated.
+       *
+       * @example 2023-01-01T00:00:00Z
+       */
+      updatedAt?: string
     }
     LedgerGrantResponse: components['schemas']['CreateLedgerGrantRequest'] & {
+      /**
+       * @description Readonly unique ULID identifier of the grant.
+       *
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      id: string
       /**
        * @description The subject to grant the amount to.
        *
@@ -953,6 +988,8 @@ export interface components {
     ledgerID: string
     /** @description Number of entries to return */
     ledgerQueryLimit?: number
+    /** @description Number of entries to skip */
+    ledgerQueryOffset?: number
     /**
      * @description Start date-time in RFC 3339 format.
      * Inclusive.
@@ -1410,6 +1447,16 @@ export interface operations {
    * @description List features.
    */
   listFeatures: {
+    parameters: {
+      query?: {
+        limit?: components['parameters']['ledgerQueryLimit']
+        offset?: components['parameters']['ledgerQueryOffset']
+        /** @description Order by field */
+        orderBy?: 'id' | 'createdAt' | 'updatedAt'
+        /** @description Include archived features. */
+        includeArchived?: boolean
+      }
+    }
     responses: {
       /** @description List of features. */
       200: {
@@ -1494,12 +1541,14 @@ export interface operations {
   listLedgers: {
     parameters: {
       query?: {
-        /** @description Query a specific ledger */
+        /** @description Query ledgers specific to subjects. */
         subject?: string[]
-        /** @description Number of ledgers to return */
-        limit?: number
-        /** @description Start returning ledgers from this offset */
-        offset?: number
+        /** @description Query ledgers with subjects that are similar to the provided text. */
+        subjectSimilarTo?: string
+        limit?: components['parameters']['ledgerQueryLimit']
+        offset?: components['parameters']['ledgerQueryOffset']
+        /** @description Order by field */
+        orderBy?: 'subject' | 'createdAt' | 'id'
       }
     }
     responses: {
@@ -1572,6 +1621,7 @@ export interface operations {
     parameters: {
       query: {
         limit?: components['parameters']['ledgerQueryLimit']
+        offset?: components['parameters']['ledgerQueryOffset']
         /** @description Start of time range to query ledger: date-time in RFC 3339 format. */
         from: string
         /** @description End of time range to query ledger: date-time in RFC 3339 format. Defaults to now. */
