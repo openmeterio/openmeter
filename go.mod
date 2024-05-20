@@ -21,7 +21,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/huandu/go-sqlbuilder v1.27.1
+	github.com/huandu/go-sqlbuilder v1.27.2
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/lmittmann/tint v1.0.4
 	github.com/mattn/go-sqlite3 v1.14.22

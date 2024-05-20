@@ -726,8 +726,8 @@ github.com/hexops/gotextdiff v1.0.3 h1:gitA9+qJrrTCsiCl7+kh75nPqQt1cx4ZkudSTLoUq
 github.com/hexops/gotextdiff v1.0.3/go.mod h1:pSWU5MAI3yDq+fZBTazCSJysOMbxWL1BSow5/V2vxeg=
 github.com/huandu/go-assert v1.1.5 h1:fjemmA7sSfYHJD7CUqs9qTwwfdNAx7/j2/ZlHXzNB3c=
 github.com/huandu/go-assert v1.1.5/go.mod h1:yOLvuqZwmcHIC5rIzrBhT7D3Q9c3GFnd0JrPVhn/06U=
-github.com/huandu/go-sqlbuilder v1.27.1 h1:7UU/3EMIQYYX8wn+L7BNcGVz1aEs5TPNOVFd7ryrPos=
-github.com/huandu/go-sqlbuilder v1.27.1/go.mod h1:nUVmMitjOmn/zacMLXT0d3Yd3RHoO2K+vy906JzqxMI=
+github.com/huandu/go-sqlbuilder v1.27.2 h1:A2HpH6rDkrsDVjzgCoVZ8IutGba0x6uZh0GexQZM2a0=
+github.com/huandu/go-sqlbuilder v1.27.2/go.mod h1:nUVmMitjOmn/zacMLXT0d3Yd3RHoO2K+vy906JzqxMI=
 github.com/huandu/xstrings v1.3.2 h1:L18LIDzqlW6xN2rEkpdV8+oL/IXWJ1APd+vsdYy4Wdw=
 github.com/huandu/xstrings v1.3.2/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq4ovT0aE=
 github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
