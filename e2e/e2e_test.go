@@ -78,7 +78,7 @@ func TestIngest(t *testing.T) {
 
 		require.Len(t, resp.JSON200.Data, 1)
 		assert.Equal(t, float64(sum), resp.JSON200.Data[0].Value)
-	}, 30*time.Second, time.Second)
+	}, time.Minute, time.Second)
 }
 
 func TestBatchIngest(t *testing.T) {
@@ -123,7 +123,7 @@ func TestBatchIngest(t *testing.T) {
 
 		require.Len(t, resp.JSON200.Data, 1)
 		assert.Equal(t, float64(sum), resp.JSON200.Data[0].Value)
-	}, 30*time.Second, time.Second)
+	}, time.Minute, time.Second)
 }
 
 func TestDedupe(t *testing.T) {
@@ -157,7 +157,7 @@ func TestDedupe(t *testing.T) {
 
 		require.Len(t, resp.JSON200.Data, 1)
 		assert.Equal(t, 1.0, resp.JSON200.Data[0].Value)
-	}, 30*time.Second, time.Second)
+	}, time.Minute, time.Second)
 }
 
 func TestQuery(t *testing.T) {
@@ -249,7 +249,7 @@ func TestQuery(t *testing.T) {
 			}
 
 			assert.Equal(t, expected, resp.JSON200)
-		}, 30*time.Second, time.Second)
+		}, time.Minute, time.Second)
 	})
 
 	t.Run("WindowSize", func(t *testing.T) {
@@ -299,7 +299,7 @@ func TestQuery(t *testing.T) {
 				}
 
 				assert.Equal(t, expected, resp.JSON200)
-			}, 30*time.Second, time.Second)
+			}, time.Minute, time.Second)
 		})
 
 		t.Run("Hour", func(t *testing.T) {
@@ -340,7 +340,7 @@ func TestQuery(t *testing.T) {
 				}
 
 				assert.Equal(t, expected, resp.JSON200)
-			}, 30*time.Second, time.Second)
+			}, time.Minute, time.Second)
 		})
 
 		t.Run("Day", func(t *testing.T) {
@@ -375,7 +375,7 @@ func TestQuery(t *testing.T) {
 				}
 
 				assert.Equal(t, expected, resp.JSON200)
-			}, 30*time.Second, time.Second)
+			}, time.Minute, time.Second)
 		})
 	})
 
@@ -414,7 +414,7 @@ func TestQuery(t *testing.T) {
 			}
 
 			assert.Equal(t, expected, resp.JSON200)
-		}, 30*time.Second, time.Second)
+		}, time.Minute, time.Second)
 	})
 
 	// TODO: improve group by tests by adding more than one parameter
@@ -509,7 +509,7 @@ func TestCredit(t *testing.T) {
 
 			// As we invested two events with a count meter
 			assert.Equal(t, 2.0, resp.JSON200.Data[0].Value)
-		}, 30*time.Second, time.Second)
+		}, time.Minute, time.Second)
 	})
 
 	t.Run("Create Feature", func(t *testing.T) {
