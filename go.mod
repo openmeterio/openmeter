@@ -2,6 +2,8 @@ module github.com/openmeterio/openmeter
 
 go 1.22.0
 
+replace github.com/getkin/kin-openapi => github.com/getkin/kin-openapi v0.123.0
+
 require (
 	entgo.io/ent v0.13.1
 	github.com/AppsFlyer/go-sundheit v0.5.0
