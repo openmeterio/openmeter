@@ -12,7 +12,7 @@ const (
 	goBuildVersion = goVersion + "-alpine3.19@sha256:cdc86d9f363e8786845bea2040312b4efa321b828acdeb26f393faa864d887b0"
 	xxBaseImage    = "tonistiigi/xx:1.4.0@sha256:0cd3f05c72d6c9b038eb135f91376ee1169ef3a330d34e418e65e2a5c2e9c0d4"
 
-	golangciLintVersion = "v1.57.2"
+	golangciLintVersion = "v1.58.2"
 	spectralVersion     = "6.11"
 	kafkaVersion        = "3.6"
 	clickhouseVersion   = "23.3.9.55"
