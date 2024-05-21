@@ -140,7 +140,7 @@ func main() {
 		defer cancel()
 
 		if err := otelMeterProvider.Shutdown(ctx); err != nil {
-			logger.Error("shutting down meter provider: %v", err)
+			logger.Error("shutting down meter provider", slog.String("error", err.Error()))
 		}
 	}()
 	otel.SetMeterProvider(otelMeterProvider)
@@ -163,7 +163,7 @@ func main() {
 		defer cancel()
 
 		if err := otelTracerProvider.Shutdown(ctx); err != nil {
-			logger.Error("shutting down tracer provider", "error", err)
+			logger.Error("shutting down tracer provider", slog.String("error", err.Error()))
 		}
 	}()
 

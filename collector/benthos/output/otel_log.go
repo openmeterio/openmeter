@@ -75,7 +75,7 @@ func (out *otelLogOutput) Connect(ctx context.Context) error {
 		out.conn = nil
 	}
 
-	conn, err := grpc.DialContext(ctx, out.address, grpc.WithBlock(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(out.address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return err
 	}

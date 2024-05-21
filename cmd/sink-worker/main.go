@@ -107,7 +107,7 @@ func main() {
 	}
 	defer func() {
 		if err := otelMeterProvider.Shutdown(context.Background()); err != nil {
-			logger.Error("shutting down meter provider: %v", err)
+			logger.Error("shutting down meter provider", slog.String("error", err.Error()))
 		}
 	}()
 	otel.SetMeterProvider(otelMeterProvider)
@@ -125,7 +125,7 @@ func main() {
 	}
 	defer func() {
 		if err := otelTracerProvider.Shutdown(context.Background()); err != nil {
-			logger.Error("shutting down tracer provider", "error", err)
+			logger.Error("shutting down tracer provider", slog.String("error", err.Error()))
 		}
 	}()
 
