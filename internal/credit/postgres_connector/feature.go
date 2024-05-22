@@ -28,7 +28,7 @@ func (c *PostgresConnector) CreateFeature(ctx context.Context, featureIn credit.
 
 	if featureIn.MeterGroupByFilters != nil {
 		// validate that the MeterGroupByFilters point to actual meter groupbys
-		for filterProp, _ := range *featureIn.MeterGroupByFilters {
+		for filterProp := range *featureIn.MeterGroupByFilters {
 			if _, ok := meter.GroupBy[filterProp]; !ok {
 				meterGroupByColumns := make([]string, 0, len(meter.GroupBy))
 				for k := range meter.GroupBy {
