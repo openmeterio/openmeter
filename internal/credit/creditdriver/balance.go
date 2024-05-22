@@ -22,10 +22,16 @@ type GetLedgerBalanceRequest struct {
 	Cutline  time.Time
 }
 
-type GetLedgerBalanceHandler httptransport.HandlerWithArgs[GetLedgerBalanceRequest, credit.Balance, GetLedgerBalaceHandlerParams]
+type GetLedgerBalanceHandlerResponse struct {
+	credit.Balance
+	LastReset time.Time `json:"lastReset"`
+	LedgerID  string    `json:"ledgerID"`
+}
+
+type GetLedgerBalanceHandler httptransport.HandlerWithArgs[GetLedgerBalanceRequest, GetLedgerBalanceHandlerResponse, GetLedgerBalaceHandlerParams]
 
 func (b *builder) GetLedgerBalance() GetLedgerBalanceHandler {
-	return httptransport.NewHandlerWithArgs[GetLedgerBalanceRequest, credit.Balance, GetLedgerBalaceHandlerParams](
+	return httptransport.NewHandlerWithArgs[GetLedgerBalanceRequest, GetLedgerBalanceHandlerResponse, GetLedgerBalaceHandlerParams](
 		func(ctx context.Context, r *http.Request, queryIn GetLedgerBalaceHandlerParams) (GetLedgerBalanceRequest, error) {
 			ns, err := b.resolveNamespace(ctx)
 			if err != nil {
@@ -37,10 +43,20 @@ func (b *builder) GetLedgerBalance() GetLedgerBalanceHandler {
 				Cutline:  defaultx.WithDefault(queryIn.QueryParams.Time, time.Now()),
 			}, nil
 		},
-		func(ctx context.Context, request GetLedgerBalanceRequest) (credit.Balance, error) {
-			return b.CreditConnector.GetBalance(ctx, request.LedgerID, request.Cutline)
+		func(ctx context.Context, request GetLedgerBalanceRequest) (GetLedgerBalanceHandlerResponse, error) {
+			balance, err := b.CreditConnector.GetBalance(ctx, request.LedgerID, request.Cutline)
+			if err != nil {
+				return GetLedgerBalanceHandlerResponse{}, err
+			}
+			highWatermark, err := b.CreditConnector.GetHighWatermark(ctx, request.LedgerID)
+			res := GetLedgerBalanceHandlerResponse{
+				Balance:   balance,
+				LedgerID:  string(balance.LedgerID),
+				LastReset: highWatermark.Time,
+			}
+			return res, err
 		},
-		commonhttp.JSONResponseEncoder[credit.Balance],
+		commonhttp.JSONResponseEncoder[GetLedgerBalanceHandlerResponse],
 		httptransport.AppendOptions(
 			b.Options,
 			httptransport.WithOperationName("getLedgerBalance"),

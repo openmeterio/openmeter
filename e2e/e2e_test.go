@@ -513,7 +513,7 @@ func TestCredit(t *testing.T) {
 	})
 
 	t.Run("Create Feature", func(t *testing.T) {
-		resp, err := client.CreateFeatureWithResponse(context.Background(), api.Feature{
+		resp, err := client.CreateFeatureWithResponse(context.Background(), api.CreateFeatureRequest{
 			Name:      "Credit Test Feature",
 			MeterSlug: "credit_test_meter",
 			MeterGroupByFilters: &map[string]string{
@@ -524,10 +524,10 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
 
-		featureId := resp.JSON201.ID
+		featureId := resp.JSON201.Id
 		archived := false
 		expected := &api.Feature{
-			ID:        featureId,
+			Id:        featureId,
 			Name:      "Credit Test Feature",
 			MeterSlug: "credit_test_meter",
 			MeterGroupByFilters: &map[string]string{
@@ -593,20 +593,20 @@ func TestCredit(t *testing.T) {
 		require.NotNil(t, featureListResp.JSON200)
 		require.Len(t, *featureListResp.JSON200, 1)
 		features := *featureListResp.JSON200
-		featureId := features[0].ID
+		featureId := features[0].Id
+		priority := 1
 
 		// Create grant
 		resp, err := client.CreateLedgerGrantWithResponse(context.Background(), ledgerID, api.CreateLedgerGrantRequest{
-			Type:        credit.GrantTypeUsage,
-			LedgerID:    ledgerID,
-			FeatureID:   featureId,
+			Type:        api.LedgerGrantTypeUsage,
+			FeatureID:   *featureId,
 			Amount:      100,
-			Priority:    1,
+			Priority:    &priority,
 			EffectiveAt: effectiveAt,
 			Rollover: &api.LedgerGrantRollover{
 				Type: credit.GrantRolloverTypeRemainingAmount,
 			},
-			Expiration: api.LedgerGrantExpirationPeriod{
+			Expiration: &api.LedgerGrantExpirationPeriod{
 				Duration: "DAY",
 				Count:    1,
 			},
@@ -617,18 +617,18 @@ func TestCredit(t *testing.T) {
 		require.NotEmpty(t, resp.JSON201.CreatedAt)
 		require.NotEmpty(t, resp.JSON201.UpdatedAt)
 
-		expected := &credit.Grant{
-			ID:          resp.JSON201.ID,
-			LedgerID:    ledgerID,
-			Type:        credit.GrantTypeUsage,
-			FeatureID:   featureId,
+		expected := &api.LedgerGrantResponse{
+			Id:          resp.JSON201.Id,
+			ExpiresAt:   resp.JSON201.ExpiresAt,
+			Type:        api.LedgerGrantTypeUsage,
+			FeatureID:   *featureId,
 			Amount:      100,
-			Priority:    1,
+			Priority:    &priority,
 			EffectiveAt: effectiveAt,
 			Rollover: &api.LedgerGrantRollover{
 				Type: credit.GrantRolloverTypeRemainingAmount,
 			},
-			Expiration: api.LedgerGrantExpirationPeriod{
+			Expiration: &api.LedgerGrantExpirationPeriod{
 				Duration: "DAY",
 				Count:    1,
 			},
@@ -662,20 +662,43 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 
+		lastReset := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC).Truncate(time.Second)
+
 		expected := &api.LedgerBalance{
-			LedgerID: ledgerID,
-			Subject:  subject,
-			Metadata: ledgerMeta,
-			FeatureBalances: []credit.FeatureBalance{
+			LastReset: &lastReset,
+			Subject:   subject,
+			Metadata:  &ledgerMeta,
+			FeatureBalances: []api.FeatureBalance{
 				{
-					Feature: feature,
-					Balance: 99,
+					Archived:            feature.Archived,
+					CreatedAt:           feature.CreatedAt,
+					Id:                  feature.Id,
+					MeterGroupByFilters: feature.MeterGroupByFilters,
+					MeterSlug:           feature.MeterSlug,
+					Name:                feature.Name,
+					UpdatedAt:           feature.UpdatedAt,
+					Balance:             99,
+					Usage:               1,
 				},
 			},
-			GrantBalances: []credit.GrantBalance{
+			GrantBalances: []api.LedgerGrantBalance{
 				{
-					Grant:   grant,
-					Balance: 99,
+					Id:          grant.Id,
+					Type:        api.LedgerGrantTypeUsage,
+					Balance:     99,
+					Amount:      100,
+					EffectiveAt: grant.EffectiveAt,
+					Expiration: &api.LedgerGrantExpirationPeriod{
+						Duration: "DAY",
+						Count:    1,
+					},
+					ExpiresAt: grant.ExpiresAt,
+					FeatureID: *feature.Id,
+					Metadata:  grant.Metadata,
+					Priority:  grant.Priority,
+					Rollover:  grant.Rollover,
+					UpdatedAt: grant.UpdatedAt,
+					CreatedAt: grant.CreatedAt,
 				},
 			},
 		}
@@ -702,7 +725,7 @@ func TestCredit(t *testing.T) {
 		require.NotNil(t, featureListResp.JSON200)
 		require.Len(t, *featureListResp.JSON200, 1)
 		features := *featureListResp.JSON200
-		featureId := features[0].ID
+		featureId := features[0].Id
 
 		// Reset credit
 		resetResp, err := client.ResetLedgerWithResponse(context.Background(), ledgerID, api.LedgerReset{
@@ -728,24 +751,26 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode(), "response body: %s", string(resp.Body))
 
+		priority := 1
+
 		grants := *resp.JSON200
 		expected := &[]api.LedgerGrantResponse{
 			{
-				ID:          grants[0].ID,
-				ParentID:    parentGrant.ID,
-				LedgerID:    ledgerID,
-				Type:        credit.GrantTypeUsage,
-				FeatureID:   featureId,
+				Id:          grants[0].Id,
+				ParentId:    parentGrant.Id,
+				Type:        api.LedgerGrantTypeUsage,
+				FeatureID:   *featureId,
 				Amount:      99,
-				Priority:    1,
+				Priority:    &priority,
 				EffectiveAt: effectiveAt,
 				Rollover: &api.LedgerGrantRollover{
 					Type: credit.GrantRolloverTypeRemainingAmount,
 				},
-				Expiration: api.LedgerGrantExpirationPeriod{
+				Expiration: &api.LedgerGrantExpirationPeriod{
 					Duration: "DAY",
 					Count:    1,
 				},
+				ExpiresAt: grants[0].ExpiresAt,
 				CreatedAt: grants[0].CreatedAt,
 				UpdatedAt: grants[0].UpdatedAt,
 			},

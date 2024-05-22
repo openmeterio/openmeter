@@ -94,6 +94,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 							{
 								Feature: feature,
 								Balance: 99,
+								Usage:   1,
 							},
 						},
 						GrantBalances: []credit.GrantBalance{
@@ -164,6 +165,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 								{
 									Feature: feature,
 									Balance: 99,
+									Usage:   1,
 								},
 							},
 							GrantBalances: []credit.GrantBalance{
@@ -296,6 +298,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 								{
 									Feature: feature,
 									Balance: 90,
+									Usage:   20,
 								},
 							},
 							GrantBalances: []credit.GrantBalance{
@@ -377,6 +380,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 								{
 									Feature: feature,
 									Balance: 90,
+									Usage:   20,
 								},
 							},
 							GrantBalances: []credit.GrantBalance{
@@ -462,10 +466,12 @@ func TestPostgresConnectorBalances(t *testing.T) {
 							{
 								Feature: feature1,
 								Balance: 99,
+								Usage:   1,
 							},
 							{
 								Feature: feature2,
 								Balance: 90,
+								Usage:   10,
 							},
 						}),
 					removeTimestampsFromFeatureBalances(balance.FeatureBalances),

@@ -68,6 +68,10 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				g.ID = nil
 				assert.NotEmpty(t, *g.CreatedAt)
 				assert.NotEmpty(t, *g.UpdatedAt)
+
+				// Calculate ExpirationAt
+				grant.ExpiresAt = grant.Expiration.GetExpiration(grant.EffectiveAt)
+
 				assert.Equal(t, removeTimestampsFromGrant(g), grant)
 			},
 		},

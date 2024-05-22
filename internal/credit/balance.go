@@ -26,4 +26,5 @@ type GrantBalance struct {
 type FeatureBalance struct {
 	Feature
 	Balance float64 `json:"balance"`
+	Usage   float64 `json:"usage"`
 }
