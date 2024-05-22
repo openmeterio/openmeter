@@ -28,6 +28,15 @@ func (e *FeatureNotFoundError) Error() string {
 	return fmt.Sprintf("feature not found: %s", e.ID)
 }
 
+type FeatureInvalidFiltersError struct {
+	RequestedFilters    map[string]string
+	MeterGroupByColumns []string
+}
+
+func (e *FeatureInvalidFiltersError) Error() string {
+	return fmt.Sprintf("invalid filters for feature: %v, available columns: %v", e.RequestedFilters, e.MeterGroupByColumns)
+}
+
 // Feature is a feature or service offered to a customer.
 // For example: CPU-Hours, Tokens, API Calls, etc.
 type Feature struct {

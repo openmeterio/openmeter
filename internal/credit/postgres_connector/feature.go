@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_feature "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // CreateFeature creates a feature.
@@ -19,7 +20,26 @@ func (c *PostgresConnector) CreateFeature(ctx context.Context, featureIn credit.
 		SetNamespace(featureIn.Namespace).
 		SetMeterSlug(featureIn.MeterSlug)
 
+	// validate that the meter exists
+	meter, err := c.meterRepository.GetMeterByIDOrSlug(ctx, featureIn.Namespace, featureIn.MeterSlug)
+	if err != nil {
+		return credit.Feature{}, &models.MeterNotFoundError{MeterSlug: featureIn.MeterSlug}
+	}
+
 	if featureIn.MeterGroupByFilters != nil {
+		// validate that the MeterGroupByFilters point to actual meter groupbys
+		for filterProp, _ := range *featureIn.MeterGroupByFilters {
+			if _, ok := meter.GroupBy[filterProp]; !ok {
+				meterGroupByColumns := make([]string, 0, len(meter.GroupBy))
+				for k := range meter.GroupBy {
+					meterGroupByColumns = append(meterGroupByColumns, k)
+				}
+				return credit.Feature{}, &credit.FeatureInvalidFiltersError{
+					RequestedFilters:    *featureIn.MeterGroupByFilters,
+					MeterGroupByColumns: meterGroupByColumns,
+				}
+			}
+		}
 		query.SetMeterGroupByFilters(*featureIn.MeterGroupByFilters)
 	}
 
