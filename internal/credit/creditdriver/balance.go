@@ -28,10 +28,10 @@ type GetLedgerBalanceHandlerResponse struct {
 	LedgerID  string    `json:"ledgerID"`
 }
 
-type GetLedgerBalanceHandler httptransport.HandlerWithArgs[GetLedgerBalanceRequest, GetLedgerBalanceHandlerResponse, GetLedgerBalaceHandlerParams]
+type GetLedgerBalanceHandler httptransport.HandlerWithArgs[GetLedgerBalanceRequest, api.LedgerBalance, GetLedgerBalaceHandlerParams]
 
 func (b *builder) GetLedgerBalance() GetLedgerBalanceHandler {
-	return httptransport.NewHandlerWithArgs[GetLedgerBalanceRequest, GetLedgerBalanceHandlerResponse, GetLedgerBalaceHandlerParams](
+	return httptransport.NewHandlerWithArgs[GetLedgerBalanceRequest, api.LedgerBalance, GetLedgerBalaceHandlerParams](
 		func(ctx context.Context, r *http.Request, queryIn GetLedgerBalaceHandlerParams) (GetLedgerBalanceRequest, error) {
 			ns, err := b.resolveNamespace(ctx)
 			if err != nil {
@@ -43,20 +43,15 @@ func (b *builder) GetLedgerBalance() GetLedgerBalanceHandler {
 				Cutline:  defaultx.WithDefault(queryIn.QueryParams.Time, time.Now()),
 			}, nil
 		},
-		func(ctx context.Context, request GetLedgerBalanceRequest) (GetLedgerBalanceHandlerResponse, error) {
+		func(ctx context.Context, request GetLedgerBalanceRequest) (api.LedgerBalance, error) {
 			balance, err := b.CreditConnector.GetBalance(ctx, request.LedgerID, request.Cutline)
 			if err != nil {
-				return GetLedgerBalanceHandlerResponse{}, err
+				return api.LedgerBalance{}, err
 			}
 			highWatermark, err := b.CreditConnector.GetHighWatermark(ctx, request.LedgerID)
-			res := GetLedgerBalanceHandlerResponse{
-				Balance:   balance,
-				LedgerID:  string(balance.LedgerID),
-				LastReset: highWatermark.Time,
-			}
-			return res, err
+			return mapBalanceToAPI(balance, highWatermark), err
 		},
-		commonhttp.JSONResponseEncoder[GetLedgerBalanceHandlerResponse],
+		commonhttp.JSONResponseEncoder[api.LedgerBalance],
 		httptransport.AppendOptions(
 			b.Options,
 			httptransport.WithOperationName("getLedgerBalance"),
@@ -76,4 +71,74 @@ func (b *builder) GetLedgerBalance() GetLedgerBalanceHandler {
 				return false
 			}))...,
 	)
+}
+
+func mapBalanceToAPI(balance credit.Balance, highwatermark credit.HighWatermark) api.LedgerBalance {
+	var featureBalances []api.FeatureBalance = make([]api.FeatureBalance, 0, len(balance.FeatureBalances))
+	for _, featureBalance := range balance.FeatureBalances {
+		featureBalances = append(featureBalances, mapFeatureBalanceToAPI(featureBalance))
+	}
+
+	var grantBalances []api.LedgerGrantBalance = make([]api.LedgerGrantBalance, 0, len(balance.GrantBalances))
+	for _, grantBalance := range balance.GrantBalances {
+		grantBalances = append(grantBalances, mapGrantBalanceToAPI(grantBalance))
+	}
+
+	return api.LedgerBalance{
+		FeatureBalances: featureBalances,
+		GrantBalances:   grantBalances,
+		LastReset:       &highwatermark.Time,
+		Metadata:        &balance.Metadata,
+		Subject:         balance.Subject,
+	}
+}
+
+func mapFeatureBalanceToAPI(featureBalance credit.FeatureBalance) api.FeatureBalance {
+	id := new(string)
+	if featureBalance.ID != nil {
+		*id = string(*featureBalance.ID)
+	}
+	return api.FeatureBalance{
+		Archived:            featureBalance.Archived,
+		CreatedAt:           featureBalance.CreatedAt,
+		Id:                  id,
+		MeterGroupByFilters: featureBalance.MeterGroupByFilters,
+		MeterSlug:           featureBalance.MeterSlug,
+		Name:                featureBalance.Name,
+		UpdatedAt:           featureBalance.UpdatedAt,
+		Usage:               float32(featureBalance.Usage),
+		Balance:             float32(featureBalance.Balance),
+	}
+}
+
+func mapGrantBalanceToAPI(grantBalance credit.GrantBalance) api.LedgerGrantBalance {
+	id := new(string)
+	if grantBalance.ID != nil {
+		*id = string(*grantBalance.ID)
+	}
+	parentId := new(string)
+	if grantBalance.ParentID != nil {
+		*parentId = string(*grantBalance.ParentID)
+	}
+	priority := int(grantBalance.Priority)
+
+	return api.LedgerGrantBalance{
+		Amount:      float32(grantBalance.Amount),
+		Balance:     float32(grantBalance.Balance),
+		CreatedAt:   grantBalance.CreatedAt,
+		EffectiveAt: grantBalance.EffectiveAt,
+		Expiration: &api.LedgerGrantExpirationPeriod{
+			Count:    int(grantBalance.Expiration.Count),
+			Duration: api.LedgerGrantExpirationPeriodDuration(grantBalance.Expiration.Duration),
+		},
+		ExpiresAt: &grantBalance.ExpiresAt,
+		FeatureID: string(*grantBalance.FeatureID),
+		Id:        id,
+		Metadata:  &grantBalance.Metadata,
+		ParentId:  parentId,
+		Priority:  &priority,
+		Rollover:  grantBalance.Rollover,
+		Type:      api.LedgerGrantType(grantBalance.Type),
+		UpdatedAt: grantBalance.UpdatedAt,
+	}
 }
