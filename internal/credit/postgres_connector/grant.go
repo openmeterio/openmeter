@@ -222,7 +222,7 @@ func (c *PostgresConnector) ListGrants(ctx context.Context, params credit.ListGr
 		return nil, fmt.Errorf("failed to list grants: %w", err)
 	}
 
-	var list []credit.Grant
+	list := make([]credit.Grant, 0, len(entities))
 	for _, entity := range entities {
 		grant, err := mapGrantEntity(entity)
 		if err != nil {

@@ -101,7 +101,7 @@ func (c *PostgresConnector) ListFeatures(ctx context.Context, params credit.List
 		return nil, fmt.Errorf("failed to list entities: %w", err)
 	}
 
-	var list []credit.Feature
+	list := make([]credit.Feature, 0, len(entities))
 	for _, entity := range entities {
 		feature := mapFeatureEntity(entity)
 		list = append(list, feature)
