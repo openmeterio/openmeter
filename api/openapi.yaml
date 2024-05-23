@@ -1632,6 +1632,7 @@ components:
         - type: object
           required:
             - id
+            - void
           properties:
             id:
               description: |
@@ -1639,6 +1640,12 @@ components:
               readOnly: true
               type: string
               example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+            void:
+              description: |
+                If the grant is voided, it will not be applied to the subject's balance anymore.
+              type: boolean
+              readOnly: true
+              example: false
             expiresAt:
               readOnly: true
               description: |
