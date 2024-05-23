@@ -25,7 +25,7 @@ func (b *builder) ListLedgerGrants() ListLedgerGrantsHandler {
 			request := credit.ListGrantsParams{
 				Namespace:         ns,
 				FromHighWatermark: true,
-				IncludeVoid:       true,
+				IncludeVoid:       defaultx.WithDefault(queryIn.IncludeVoids, false),
 				Limit:             defaultx.WithDefault(queryIn.Limit, DefaultLedgerQueryLimit),
 			}
 
@@ -62,7 +62,7 @@ func (b *builder) ListLedgerGrantsByLedger() ListLedgerGrantsByLedgerHandler {
 				Namespace:         ns,
 				LedgerIDs:         []credit.LedgerID{queryIn.LedgerID},
 				FromHighWatermark: true,
-				IncludeVoid:       true,
+				IncludeVoid:       defaultx.WithDefault(queryIn.Params.IncludeVoids, false),
 				Limit:             defaultx.WithDefault(queryIn.Params.Limit, DefaultLedgerQueryLimit),
 			}
 			return request, nil

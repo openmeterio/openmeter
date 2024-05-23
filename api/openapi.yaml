@@ -947,6 +947,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/queryFilterLedgerID"
         - $ref: "#/components/parameters/ledgerQueryLimit"
+        - $ref: "#/components/parameters/ledgerIncludeVoids"
       responses:
         "200":
           description: List of ledger grants.
@@ -973,6 +974,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/ledgerID"
         - $ref: "#/components/parameters/ledgerQueryLimit"
+        - $ref: "#/components/parameters/ledgerIncludeVoids"
       responses:
         "200":
           description: List of ledger grants created.
@@ -2052,6 +2054,15 @@ components:
           path: github.com/openmeterio/openmeter/internal/credit
         type: string
         example: "customer-id"
+    ledgerIncludeVoids:
+      name: includeVoids
+      in: query
+      required: false
+      description: Include void entries in the response.
+      schema:
+        type: boolean
+        default: false
+        example: true
     ledgerQueryLimit:
       name: limit
       in: query
