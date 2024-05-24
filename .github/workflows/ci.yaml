@@ -125,10 +125,6 @@ jobs:
       - name: Check commit messages
         run: nix develop --impure .#ci -c pre-commit run --hook-stage manual
 
-      - name: Stop Engine
-        run: docker stop -t 300 $(docker ps --filter name="dagger-engine-*" -q)
-        if: always()
-
   license-check:
     name: License check
     runs-on: ubuntu-latest

@@ -58,12 +58,22 @@ sink-worker: ## Run sink-worker
 .PHONY: test
 test: ## Run tests
 	$(call print-target)
-	dagger call --source .:default test
+	$(DAGGER_BIN) call --source .:default test
+
+.PHONY: test-e2e
+test-e2e: ## Run end-to-end tests
+	$(call print-target)
+	$(DAGGER_BIN) call --source .:default test etoe
 
 .PHONY: lint
 lint: ## Run linters
 	$(call print-target)
-	dagger call --source .:default lint all
+	$(DAGGER_BIN) call --source .:default lint all
+
+.PHONY: license-check
+license-check: ## Run license check
+	$(LICENSEI_BIN) check
+	$(LICENSEI_BIN) header
 
 .PHONY: fmt
 fmt: ## Format code
