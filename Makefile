@@ -63,7 +63,7 @@ test: ## Run tests
 .PHONY: test-e2e
 test-e2e: ## Run end-to-end tests
 	$(call print-target)
-	$(DAGGER_BIN) call --source .:default test etoe
+	$(DAGGER_BIN) call --source .:default etoe
 
 .PHONY: lint
 lint: ## Run linters

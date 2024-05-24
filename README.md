@@ -114,6 +114,7 @@ make up
 ```
 
 Run project components:
+
 ```sh
 make sink-worker
 make server
@@ -130,6 +131,7 @@ Run tests:
 
 ```sh
 make test
+make test-e2e
 ```
 
 Run linters:
@@ -143,7 +145,9 @@ Some linter violations can automatically be fixed:
 ```shell
 make fmt
 ```
+
 Generate go code:
+
 ```shell
 make generate
 ```
