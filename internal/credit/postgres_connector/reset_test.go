@@ -40,7 +40,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 			description: "Should move high watermark ahead",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				feature := createFeature(t, connector, featureIn)
+				feature := th.createFeature(t, connector, featureIn)
 				// We need to truncate the time to workaround pgx driver timezone issue
 				// We also move it to the past to avoid timezone issues
 				t1 := time.Now().In(time.UTC).Truncate(time.Hour * 24).Add(-time.Hour * 24)
@@ -104,7 +104,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 			description: "Should rollover grants with original amount",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				feature := createFeature(t, connector, featureIn)
+				feature := th.createFeature(t, connector, featureIn)
 				// We need to truncate the time to workaround pgx driver timezone issue
 				t1 := time.Now().Truncate(time.Hour * 24)
 				t2 := t1.Add(time.Hour).Truncate(0)
@@ -152,8 +152,8 @@ func TestPostgresConnectorReset(t *testing.T) {
 
 				// Grants after reset should be the same as rollover grants
 				assert.Equal(t,
-					removeTimestampsFromGrants(rolloverGrants),
-					removeTimestampsFromGrants(grants),
+					th.removeTimestampsFromGrants(rolloverGrants),
+					th.removeTimestampsFromGrants(grants),
 				)
 			},
 		},
@@ -162,7 +162,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 			description: "Should rollover grants with remaining amount",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				feature := createFeature(t, connector, featureIn)
+				feature := th.createFeature(t, connector, featureIn)
 				// We need to truncate the time to workaround pgx driver timezone issue
 				t1 := time.Now().Truncate(time.Hour * 24)
 				t2 := t1.Add(time.Hour).Truncate(0)
@@ -217,8 +217,8 @@ func TestPostgresConnectorReset(t *testing.T) {
 
 				// Assert: grants after reset should be the same as rollover grants
 				assert.Equal(t,
-					removeTimestampsFromGrants(rolloverGrants),
-					removeTimestampsFromGrants(grants),
+					th.removeTimestampsFromGrants(rolloverGrants),
+					th.removeTimestampsFromGrants(grants),
 				)
 			},
 		},

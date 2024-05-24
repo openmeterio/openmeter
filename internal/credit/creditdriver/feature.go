@@ -94,6 +94,10 @@ func (b *builder) CreateFeature() CreateFeatureHandler {
 					models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w)
 					return true
 				}
+				if _, ok := err.(*credit.FeatureWithNameAlreadyExistsError); ok {
+					models.NewStatusProblem(ctx, err, http.StatusConflict).Respond(w)
+					return true
+				}
 				return false
 			}),
 		)...,

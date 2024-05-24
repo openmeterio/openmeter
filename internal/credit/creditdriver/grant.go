@@ -91,7 +91,7 @@ func (b *builder) CreateLedgerGrant() CreateLedgerGrantHandler {
 				return grant, err
 			}
 
-			_, err = b.CreditConnector.GetFeature(ctx, credit.NewNamespacedFeatureID(ns, *grant.FeatureID))
+			feature, err := b.CreditConnector.GetFeature(ctx, credit.NewNamespacedFeatureID(ns, *grant.FeatureID))
 			if err != nil {
 				if _, ok := err.(*credit.FeatureNotFoundError); ok {
 					return grant, commonhttp.NewHTTPError(
@@ -100,6 +100,13 @@ func (b *builder) CreateLedgerGrant() CreateLedgerGrantHandler {
 					)
 				}
 				return grant, err
+			}
+
+			if feature.Archived != nil && *feature.Archived {
+				return grant, commonhttp.NewHTTPError(
+					http.StatusBadRequest,
+					fmt.Errorf("feature is archived: %s", *grant.FeatureID),
+				)
 			}
 
 			grant.LedgerID = arg

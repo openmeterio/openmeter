@@ -1385,9 +1385,6 @@ components:
               format: date-time
               example: "2023-01-01T00:00:00Z"
     LedgerEntry:
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.LedgerEntry
       type: object
       description: |
         A ledger entry.
@@ -1395,6 +1392,9 @@ components:
         - id
         - type
         - time
+        - featureID
+        - amount
+        - period
       properties:
         id:
           description: |
@@ -1415,12 +1415,14 @@ components:
             The amount to apply. Can be positive or negative number. If applicable.
           type: number
           example: 100
+        featureID:
+          description: |
+            The unique feature ULID that the entry is associated with, if any.
+          type: string
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         period:
           $ref: "#/components/schemas/Period"
     Period:
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.Period
       type: object
       description: |
         A time period
@@ -1441,9 +1443,6 @@ components:
           format: date-time
           example: "2023-01-01T00:00:00Z"
     LedgerEntryType:
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.LedgerEntryType
       type: string
       enum:
         - GRANT

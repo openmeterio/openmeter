@@ -43,6 +43,23 @@ func (c *PostgresConnector) CreateFeature(ctx context.Context, featureIn credit.
 		query.SetMeterGroupByFilters(*featureIn.MeterGroupByFilters)
 	}
 
+	// validate that the feature name is uniq among active features
+	r, err := c.db.Feature.Query().
+		Where(db_feature.Namespace(featureIn.Namespace)).
+		Where(db_feature.Name(featureIn.Name)).
+		Where(db_feature.Archived(false)).
+		All(ctx)
+
+	if err != nil {
+		return credit.Feature{}, fmt.Errorf("failed to query for existing features: %w", err)
+	}
+
+	if len(r) > 0 {
+		foundFeature := r[0]
+		return credit.Feature{},
+			&credit.FeatureWithNameAlreadyExistsError{Name: featureIn.Name, ID: credit.FeatureID(foundFeature.ID)}
+	}
+
 	entity, err := query.Save(ctx)
 	if err != nil {
 		return credit.Feature{}, fmt.Errorf("failed to create feature: %w", err)

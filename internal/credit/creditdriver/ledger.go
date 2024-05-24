@@ -94,10 +94,10 @@ type GetLedgerHistoryRequest struct {
 	LedgerID  api.LedgerID
 }
 
-type GetLedgerHistoryHandler httptransport.HandlerWithArgs[GetLedgerHistoryRequest, credit.LedgerEntryList, GetLedgerHistoryRequest]
+type GetLedgerHistoryHandler httptransport.HandlerWithArgs[GetLedgerHistoryRequest, []api.LedgerEntry, GetLedgerHistoryRequest]
 
 func (b *builder) GetLedgerHistory() GetLedgerHistoryHandler {
-	return httptransport.NewHandlerWithArgs[GetLedgerHistoryRequest, credit.LedgerEntryList, GetLedgerHistoryRequest](
+	return httptransport.NewHandlerWithArgs[GetLedgerHistoryRequest, []api.LedgerEntry, GetLedgerHistoryRequest](
 		func(ctx context.Context, r *http.Request, in GetLedgerHistoryRequest) (GetLedgerHistoryRequest, error) {
 			ns, err := b.resolveNamespace(ctx)
 			if err != nil {
@@ -107,8 +107,8 @@ func (b *builder) GetLedgerHistory() GetLedgerHistoryHandler {
 			in.Namespace = ns
 			return in, nil
 		},
-		func(ctx context.Context, req GetLedgerHistoryRequest) (credit.LedgerEntryList, error) {
-			return b.CreditConnector.GetHistory(
+		func(ctx context.Context, req GetLedgerHistoryRequest) ([]api.LedgerEntry, error) {
+			ledgerEntryList, err := b.CreditConnector.GetHistory(
 				ctx,
 				credit.NewNamespacedLedgerID(req.Namespace, req.LedgerID),
 				req.From,
@@ -118,6 +118,14 @@ func (b *builder) GetLedgerHistory() GetLedgerHistoryHandler {
 					Offset: defaultx.WithDefault(req.Offset, 0),
 				},
 			)
+			if err != nil {
+				return nil, err
+			}
+			res := make([]api.LedgerEntry, 0, ledgerEntryList.Len())
+			for _, entry := range ledgerEntryList.GetEntries() {
+				res = append(res, mapLedgerEntry(entry))
+			}
+			return res, nil
 		},
 		commonhttp.JSONResponseEncoder,
 		httptransport.AppendOptions(
@@ -125,4 +133,34 @@ func (b *builder) GetLedgerHistory() GetLedgerHistoryHandler {
 			httptransport.WithOperationName("getLedgerHistory"),
 		)...,
 	)
+}
+
+func mapLedgerEntry(entry credit.LedgerEntry) api.LedgerEntry {
+	var entryId *string
+	var featureId string
+	var amount float32
+	var period api.Period
+	if entry.ID != nil {
+		entryId = (*string)(entry.ID)
+	}
+	if entry.FeatureID != nil {
+		featureId = string(*entry.FeatureID)
+	}
+	if entry.Amount != nil {
+		amount = float32(*entry.Amount)
+	}
+	if entry.Period != nil {
+		period = api.Period{
+			From: entry.Period.From,
+			To:   entry.Period.To,
+		}
+	}
+	return api.LedgerEntry{
+		Id:        entryId,
+		Type:      api.LedgerEntryType(entry.Type),
+		Time:      entry.Time,
+		FeatureID: featureId,
+		Amount:    amount,
+		Period:    period,
+	}
 }
