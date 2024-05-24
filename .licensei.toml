@@ -38,7 +38,7 @@ ignored = [
 ]
 
 [header]
-ignorePaths = [".devenv", ".direnv", "vendor", "client", ".gen"]
+ignorePaths = [".devenv", ".direnv", "vendor", "client", ".gen", "internal/credit/postgres_connector/ent/db"]
 ignoreFiles = ["*.gen.go"]
 template = """// Copyright © :YEAR: Tailfin Cloud Inc.
 //
