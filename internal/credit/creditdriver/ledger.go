@@ -137,17 +137,9 @@ func (b *builder) GetLedgerHistory() GetLedgerHistoryHandler {
 
 func mapLedgerEntry(entry credit.LedgerEntry) api.LedgerEntry {
 	var entryId *string
-	var featureId string
-	var amount float32
 	var period *api.Period
 	if entry.ID != nil {
 		entryId = (*string)(entry.ID)
-	}
-	if entry.FeatureID != nil {
-		featureId = string(*entry.FeatureID)
-	}
-	if entry.Amount != nil {
-		amount = float32(*entry.Amount)
 	}
 	if entry.Period != nil {
 		period = &api.Period{
@@ -159,8 +151,8 @@ func mapLedgerEntry(entry credit.LedgerEntry) api.LedgerEntry {
 		Id:        entryId,
 		Type:      api.LedgerEntryType(entry.Type),
 		Time:      entry.Time,
-		FeatureID: featureId,
-		Amount:    amount,
+		FeatureID: string(defaultx.WithDefault(entry.FeatureID, credit.FeatureID(""))),
+		Amount:    defaultx.WithDefault(entry.Amount, 0),
 		Period:    period,
 	}
 }

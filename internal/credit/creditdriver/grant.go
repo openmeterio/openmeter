@@ -41,24 +41,7 @@ func (b *builder) ListLedgerGrants() ListLedgerGrantsHandler {
 			}
 			resp := make([]api.LedgerGrantWithLedgerIDResponse, 0, len(grants))
 			for _, grant := range grants {
-				mapped := mapGrantToAPI(grant)
-				resp = append(resp, api.LedgerGrantWithLedgerIDResponse{
-					Amount:      mapped.Amount,
-					CreatedAt:   mapped.CreatedAt,
-					EffectiveAt: mapped.EffectiveAt,
-					Expiration:  mapped.Expiration,
-					ExpiresAt:   mapped.ExpiresAt,
-					FeatureID:   mapped.FeatureID,
-					Id:          mapped.Id,
-					LedgerID:    string(grant.LedgerID),
-					Metadata:    mapped.Metadata,
-					ParentId:    mapped.ParentId,
-					Priority:    mapped.Priority,
-					Rollover:    mapped.Rollover,
-					Type:        mapped.Type,
-					UpdatedAt:   mapped.UpdatedAt,
-					Void:        mapped.Void,
-				})
+				resp = append(resp, mapGrantWithBalanceToAPI(grant))
 			}
 			return resp, nil
 		},
@@ -295,16 +278,10 @@ func (b *builder) GetLedgerGrant() GetLedgerGrantHandler {
 }
 
 func mapGrantToAPI(grant credit.Grant) api.LedgerGrantResponse {
-	var featureID string
-
-	if grant.FeatureID != nil {
-		featureID = string(*grant.FeatureID)
-	}
-
 	priority := int(grant.Priority)
 
 	return api.LedgerGrantResponse{
-		Amount:      float32(grant.Amount),
+		Amount:      grant.Amount,
 		CreatedAt:   grant.CreatedAt,
 		EffectiveAt: grant.EffectiveAt,
 		Expiration: &api.LedgerGrantExpirationPeriod{
@@ -312,8 +289,33 @@ func mapGrantToAPI(grant credit.Grant) api.LedgerGrantResponse {
 			Duration: api.LedgerGrantExpirationPeriodDuration(grant.Expiration.Duration),
 		},
 		ExpiresAt: &grant.ExpiresAt,
-		FeatureID: featureID,
+		FeatureID: string(defaultx.WithDefault(grant.FeatureID, credit.FeatureID(""))),
 		Id:        (*string)(grant.ID),
+		Metadata:  &grant.Metadata,
+		ParentId:  (*string)(grant.ParentID),
+		Priority:  &priority,
+		Rollover:  grant.Rollover,
+		Type:      api.LedgerGrantType(grant.Type),
+		UpdatedAt: grant.UpdatedAt,
+		Void:      &grant.Void,
+	}
+}
+
+func mapGrantWithBalanceToAPI(grant credit.Grant) api.LedgerGrantWithLedgerIDResponse {
+	priority := int(grant.Priority)
+
+	return api.LedgerGrantWithLedgerIDResponse{
+		Amount:      grant.Amount,
+		CreatedAt:   grant.CreatedAt,
+		EffectiveAt: grant.EffectiveAt,
+		Expiration: &api.LedgerGrantExpirationPeriod{
+			Count:    int(grant.Expiration.Count),
+			Duration: api.LedgerGrantExpirationPeriodDuration(grant.Expiration.Duration),
+		},
+		ExpiresAt: &grant.ExpiresAt,
+		FeatureID: string(defaultx.WithDefault(grant.FeatureID, credit.FeatureID(""))),
+		Id:        (*string)(grant.ID),
+		LedgerID:  string(grant.LedgerID),
 		Metadata:  &grant.Metadata,
 		ParentId:  (*string)(grant.ParentID),
 		Priority:  &priority,

@@ -1413,6 +1413,7 @@ components:
           description: |
             The amount to apply. Can be positive or negative number. If applicable.
           type: number
+          format: double
           example: 100
         featureID:
           description: |
@@ -1527,6 +1528,7 @@ components:
               description: |
                 The balance of the grant.
               type: number
+              format: double
               example: 100
     FeatureBalance:
       # TODO: until https://github.com/deepmap/oapi-codegen/pull/1610 is not merged, the
@@ -1545,11 +1547,13 @@ components:
               description: |
                 The balance of the feature.
               type: number
+              format: double
               example: 100
             usage:
               description: |
                 The usage of the feature.
               type: number
+              format: double
               example: 100
     CreateLedgerGrantRequest:
       type: object
@@ -1568,6 +1572,7 @@ components:
           description: |
             The amount to grant. Can be positive or negative number.
           type: number
+          format: double
           example: 100
         featureID:
           description: |
@@ -1652,7 +1657,7 @@ components:
               format: date-time
               example: "2023-01-01T00:00:00Z"
     LedgerGrantWithLedgerIDResponse:
-      allof:
+      allOf:
         - $ref: "#/components/schemas/LedgerGrantResponse"
         - type: object
           required:

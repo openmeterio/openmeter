@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/test_helpers"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -41,7 +42,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 			description: "Should return ledger entries",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				feature := th.createFeature(t, connector, featureIn)
+				feature := test_helpers.CreateFeature(t, connector, featureIn)
 				// We need to truncate the time to workaround pgx driver timezone issue
 				// We also move it to the past to avoid timezone issues
 				t1 := time.Now().Truncate(time.Hour * 24).Add(-time.Hour * 24).In(time.UTC)

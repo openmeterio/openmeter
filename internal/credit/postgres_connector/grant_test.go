@@ -11,6 +11,7 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/test_helpers"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -44,7 +45,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 			description: "Create a grant in the database",
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				p := th.createFeature(t, connector, features[0])
+				p := test_helpers.CreateFeature(t, connector, features[0])
 				grant := credit.Grant{
 					Namespace:   namespace,
 					LedgerID:    ledger.ID,
@@ -72,7 +73,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				// Calculate ExpirationAt
 				grant.ExpiresAt = grant.Expiration.GetExpiration(grant.EffectiveAt)
 
-				assert.Equal(t, th.removeTimestampsFromGrant(g), grant)
+				assert.Equal(t, test_helpers.RemoveTimestampsFromGrant(g), grant)
 			},
 		},
 		{
@@ -80,7 +81,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 			description: "Void a grant in the database and get the latest grant for an ID",
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				p := th.createFeature(t, connector, features[0])
+				p := test_helpers.CreateFeature(t, connector, features[0])
 				grant := credit.Grant{
 					Namespace:   namespace,
 					LedgerID:    ledger.ID,
@@ -99,7 +100,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				// should return the grant
 				g2, err := connector.GetGrant(ctx, credit.NewNamespacedGrantID(namespace, *g.ID))
 				assert.NoError(t, err)
-				th.assertGrantsEqual(t, g, g2)
+				test_helpers.AssertGrantsEqual(t, g, g2)
 
 				// So that in postgres the created_at and updated_at are different
 				time.Sleep(1 * time.Millisecond)
@@ -108,7 +109,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				// should return the void grant
 				g3, err := connector.GetGrant(ctx, credit.NewNamespacedGrantID(namespace, *g.ID))
 				assert.NoError(t, err)
-				th.assertGrantsEqual(t, v, g3)
+				test_helpers.AssertGrantsEqual(t, v, g3)
 				// assert count
 				assert.Equal(t, 2, db_client.CreditEntry.Query().CountX(ctx))
 				// assert fields
@@ -122,7 +123,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				assert.NotEmpty(t, *v.CreatedAt)
 				assert.NotEmpty(t, *v.UpdatedAt)
 
-				th.assertGrantsEqual(t, v, grant)
+				test_helpers.AssertGrantsEqual(t, v, grant)
 			},
 		},
 		{
@@ -130,7 +131,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 			description: "Void a grant that does not exist",
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				p := th.createFeature(t, connector, features[0])
+				p := test_helpers.CreateFeature(t, connector, features[0])
 				id := credit.GrantID(ulid.MustNew(ulid.Now(), nil).String())
 				grant := credit.Grant{
 					Namespace:   namespace,
@@ -163,7 +164,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				assert.NoError(t, err)
 
 				ctx := context.Background()
-				p := th.createFeature(t, connector, features[0])
+				p := test_helpers.CreateFeature(t, connector, features[0])
 				grant_s1_1 := credit.Grant{
 					Namespace:   namespace,
 					LedgerID:    ledger1.ID,
@@ -219,8 +220,8 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				})
 				assert.NoError(t, err)
 				assert.ElementsMatch(t,
-					th.removeTimestampsFromGrants([]credit.Grant{grant_s1_2, grant_s2_1}),
-					th.removeTimestampsFromGrants(gs),
+					test_helpers.RemoveTimestampsFromGrants([]credit.Grant{grant_s1_2, grant_s2_1}),
+					test_helpers.RemoveTimestampsFromGrants(gs),
 				)
 				// ledger-1's non-void grants
 				gs, err = connector.ListGrants(ctx, credit.ListGrantsParams{
@@ -229,8 +230,8 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				})
 				assert.NoError(t, err)
 				assert.ElementsMatch(t,
-					th.removeTimestampsFromGrants([]credit.Grant{grant_s1_2}),
-					th.removeTimestampsFromGrants(gs),
+					test_helpers.RemoveTimestampsFromGrants([]credit.Grant{grant_s1_2}),
+					test_helpers.RemoveTimestampsFromGrants(gs),
 				)
 				// all ledger' grants, including void grants
 				gs, err = connector.ListGrants(ctx, credit.ListGrantsParams{
@@ -239,8 +240,8 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				})
 				assert.NoError(t, err)
 				assert.ElementsMatch(t,
-					th.removeTimestampsFromGrants([]credit.Grant{grant_s1_2, grant_s2_1, void_grant_s1_1}),
-					th.removeTimestampsFromGrants(gs),
+					test_helpers.RemoveTimestampsFromGrants([]credit.Grant{grant_s1_2, grant_s2_1, void_grant_s1_1}),
+					test_helpers.RemoveTimestampsFromGrants(gs),
 				)
 			},
 		},

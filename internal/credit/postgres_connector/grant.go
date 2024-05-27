@@ -272,12 +272,12 @@ func mapGrantEntity(entry *db.CreditEntry) (credit.Grant, error) {
 		return credit.Grant{}, fmt.Errorf("entry type must be grant: %s", entry.EntryType)
 	}
 
-	rollover := &credit.GrantRollover{}
+	var rollover *credit.GrantRollover
 	if entry.RolloverType != nil && entry.RolloverMaxAmount != nil {
-		rollover.Type = *entry.RolloverType
-		rollover.MaxAmount = entry.RolloverMaxAmount
-	} else {
-		rollover = nil
+		rollover = &credit.GrantRollover{
+			Type:      *entry.RolloverType,
+			MaxAmount: entry.RolloverMaxAmount,
+		}
 	}
 
 	expiresAt := time.Time{}

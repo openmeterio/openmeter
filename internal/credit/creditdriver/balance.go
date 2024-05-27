@@ -22,12 +22,6 @@ type GetLedgerBalanceRequest struct {
 	Cutline  time.Time
 }
 
-type GetLedgerBalanceHandlerResponse struct {
-	credit.Balance
-	LastReset time.Time `json:"lastReset"`
-	LedgerID  string    `json:"ledgerID"`
-}
-
 type GetLedgerBalanceHandler httptransport.HandlerWithArgs[GetLedgerBalanceRequest, api.LedgerBalance, GetLedgerBalaceHandlerParams]
 
 func (b *builder) GetLedgerBalance() GetLedgerBalanceHandler {
@@ -108,8 +102,8 @@ func mapFeatureBalanceToAPI(featureBalance credit.FeatureBalance) api.FeatureBal
 		MeterSlug:           featureBalance.MeterSlug,
 		Name:                featureBalance.Name,
 		UpdatedAt:           featureBalance.UpdatedAt,
-		Usage:               float32(featureBalance.Usage),
-		Balance:             float32(featureBalance.Balance),
+		Usage:               featureBalance.Usage,
+		Balance:             featureBalance.Balance,
 	}
 }
 
@@ -129,8 +123,8 @@ func mapGrantBalanceToAPI(grantBalance credit.GrantBalance) api.LedgerGrantBalan
 	priority := int(grantBalance.Priority)
 
 	return api.LedgerGrantBalance{
-		Amount:      float32(grantBalance.Amount),
-		Balance:     float32(grantBalance.Balance),
+		Amount:      grantBalance.Amount,
+		Balance:     grantBalance.Balance,
 		CreatedAt:   grantBalance.CreatedAt,
 		EffectiveAt: grantBalance.EffectiveAt,
 		Expiration: &api.LedgerGrantExpirationPeriod{
