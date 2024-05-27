@@ -758,7 +758,7 @@ func TestCredit(t *testing.T) {
 		fBool := false
 
 		grants := *resp.JSON200
-		expected := &[]api.LedgerGrantResponse{
+		expected := &[]api.LedgerGrantWithLedgerIDResponse{
 			{
 				Id:          grants[0].Id,
 				ParentId:    parentGrant.Id,
@@ -774,6 +774,7 @@ func TestCredit(t *testing.T) {
 					Duration: "DAY",
 					Count:    1,
 				},
+				LedgerID:  grants[0].LedgerID,
 				ExpiresAt: grants[0].ExpiresAt,
 				CreatedAt: grants[0].CreatedAt,
 				UpdatedAt: grants[0].UpdatedAt,

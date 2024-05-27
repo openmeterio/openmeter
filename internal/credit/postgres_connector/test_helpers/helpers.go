@@ -4,8 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/openmeterio/openmeter/internal/credit"
 )
 
 func CreateFeature(t *testing.T, connector credit.Connector, feature credit.Feature) credit.Feature {
