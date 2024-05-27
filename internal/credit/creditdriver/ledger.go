@@ -139,7 +139,7 @@ func mapLedgerEntry(entry credit.LedgerEntry) api.LedgerEntry {
 	var entryId *string
 	var featureId string
 	var amount float32
-	var period api.Period
+	var period *api.Period
 	if entry.ID != nil {
 		entryId = (*string)(entry.ID)
 	}
@@ -150,7 +150,7 @@ func mapLedgerEntry(entry credit.LedgerEntry) api.LedgerEntry {
 		amount = float32(*entry.Amount)
 	}
 	if entry.Period != nil {
-		period = api.Period{
+		period = &api.Period{
 			From: entry.Period.From,
 			To:   entry.Period.To,
 		}

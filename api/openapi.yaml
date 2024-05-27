@@ -1394,7 +1394,6 @@ components:
         - time
         - featureID
         - amount
-        - period
       properties:
         id:
           description: |

@@ -617,6 +617,8 @@ func TestCredit(t *testing.T) {
 		require.NotEmpty(t, resp.JSON201.CreatedAt)
 		require.NotEmpty(t, resp.JSON201.UpdatedAt)
 
+		fBool := false
+
 		expected := &api.LedgerGrantResponse{
 			Id:          resp.JSON201.Id,
 			ExpiresAt:   resp.JSON201.ExpiresAt,
@@ -634,6 +636,7 @@ func TestCredit(t *testing.T) {
 			},
 			CreatedAt: resp.JSON201.CreatedAt,
 			UpdatedAt: resp.JSON201.UpdatedAt,
+			Void:      &fBool,
 		}
 
 		require.Equal(t, expected, resp.JSON201)
@@ -752,6 +755,7 @@ func TestCredit(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp.StatusCode(), "response body: %s", string(resp.Body))
 
 		priority := 1
+		fBool := false
 
 		grants := *resp.JSON200
 		expected := &[]api.LedgerGrantResponse{
@@ -773,6 +777,7 @@ func TestCredit(t *testing.T) {
 				ExpiresAt: grants[0].ExpiresAt,
 				CreatedAt: grants[0].CreatedAt,
 				UpdatedAt: grants[0].UpdatedAt,
+				Void:      &fBool,
 			},
 		}
 
