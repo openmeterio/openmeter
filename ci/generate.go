@@ -23,7 +23,7 @@ func (m *Generate) PythonSdk() *Directory {
 	// Autorest is incompatible with latest node version
 	return dag.Container().
 		From("node:22-alpine").
-		WithExec([]string{"apk", "add", "python3", "py3-pip"}).
+		WithExec([]string{"apk", "add", "python3", "py3-pip", "py3-setuptools"}).
 		WithExec([]string{"npm", "install", "-g", "autorest"}).
 		WithDirectory("/work", m.Source.Directory("api")).
 		WithWorkdir("/work/client/python").
