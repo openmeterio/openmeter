@@ -12,10 +12,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
-type ListLedgerGrantsHandler httptransport.HandlerWithArgs[credit.ListGrantsParams, []credit.Grant, api.ListLedgerGrantsParams]
+type ListLedgerGrantsHandler httptransport.HandlerWithArgs[credit.ListGrantsParams, []api.LedgerGrantWithLedgerIDResponse, api.ListLedgerGrantsParams]
 
 func (b *builder) ListLedgerGrants() ListLedgerGrantsHandler {
-	return httptransport.NewHandlerWithArgs[credit.ListGrantsParams, []credit.Grant, api.ListLedgerGrantsParams](
+	return httptransport.NewHandlerWithArgs[credit.ListGrantsParams, []api.LedgerGrantWithLedgerIDResponse, api.ListLedgerGrantsParams](
 		func(ctx context.Context, r *http.Request, queryIn api.ListLedgerGrantsParams) (credit.ListGrantsParams, error) {
 			ns, err := b.resolveNamespace(ctx)
 			if err != nil {
@@ -34,7 +34,34 @@ func (b *builder) ListLedgerGrants() ListLedgerGrantsHandler {
 			}
 			return request, nil
 		},
-		b.CreditConnector.ListGrants,
+		func(ctx context.Context, request credit.ListGrantsParams) ([]api.LedgerGrantWithLedgerIDResponse, error) {
+			grants, err := b.CreditConnector.ListGrants(ctx, request)
+			if err != nil {
+				return nil, err
+			}
+			resp := make([]api.LedgerGrantWithLedgerIDResponse, 0, len(grants))
+			for _, grant := range grants {
+				mapped := mapGrantToAPI(grant)
+				resp = append(resp, api.LedgerGrantWithLedgerIDResponse{
+					Amount:      mapped.Amount,
+					CreatedAt:   mapped.CreatedAt,
+					EffectiveAt: mapped.EffectiveAt,
+					Expiration:  mapped.Expiration,
+					ExpiresAt:   mapped.ExpiresAt,
+					FeatureID:   mapped.FeatureID,
+					Id:          mapped.Id,
+					LedgerID:    string(grant.LedgerID),
+					Metadata:    mapped.Metadata,
+					ParentId:    mapped.ParentId,
+					Priority:    mapped.Priority,
+					Rollover:    mapped.Rollover,
+					Type:        mapped.Type,
+					UpdatedAt:   mapped.UpdatedAt,
+					Void:        mapped.Void,
+				})
+			}
+			return resp, nil
+		},
 		commonhttp.JSONResponseEncoder,
 		httptransport.AppendOptions(
 			b.Options,
@@ -48,10 +75,10 @@ type ListLedgerGrantsByLedgerParams struct {
 	Params   api.ListLedgerGrantsByLedgerParams
 }
 
-type ListLedgerGrantsByLedgerHandler httptransport.HandlerWithArgs[credit.ListGrantsParams, []credit.Grant, ListLedgerGrantsByLedgerParams]
+type ListLedgerGrantsByLedgerHandler httptransport.HandlerWithArgs[credit.ListGrantsParams, []api.LedgerGrantResponse, ListLedgerGrantsByLedgerParams]
 
 func (b *builder) ListLedgerGrantsByLedger() ListLedgerGrantsByLedgerHandler {
-	return httptransport.NewHandlerWithArgs[credit.ListGrantsParams, []credit.Grant, ListLedgerGrantsByLedgerParams](
+	return httptransport.NewHandlerWithArgs[credit.ListGrantsParams, []api.LedgerGrantResponse, ListLedgerGrantsByLedgerParams](
 		func(ctx context.Context, r *http.Request, queryIn ListLedgerGrantsByLedgerParams) (credit.ListGrantsParams, error) {
 			ns, err := b.resolveNamespace(ctx)
 			if err != nil {
@@ -67,7 +94,17 @@ func (b *builder) ListLedgerGrantsByLedger() ListLedgerGrantsByLedgerHandler {
 			}
 			return request, nil
 		},
-		b.CreditConnector.ListGrants,
+		func(ctx context.Context, request credit.ListGrantsParams) ([]api.LedgerGrantResponse, error) {
+			grants, err := b.CreditConnector.ListGrants(ctx, request)
+			if err != nil {
+				return nil, err
+			}
+			resp := make([]api.LedgerGrantResponse, 0, len(grants))
+			for _, grant := range grants {
+				resp = append(resp, mapGrantToAPI(grant))
+			}
+			return resp, nil
+		},
 		commonhttp.JSONResponseEncoder,
 		httptransport.AppendOptions(
 			b.Options,
@@ -255,4 +292,34 @@ func (b *builder) GetLedgerGrant() GetLedgerGrantHandler {
 			),
 		)...,
 	)
+}
+
+func mapGrantToAPI(grant credit.Grant) api.LedgerGrantResponse {
+	var featureID string
+
+	if grant.FeatureID != nil {
+		featureID = string(*grant.FeatureID)
+	}
+
+	priority := int(grant.Priority)
+
+	return api.LedgerGrantResponse{
+		Amount:      float32(grant.Amount),
+		CreatedAt:   grant.CreatedAt,
+		EffectiveAt: grant.EffectiveAt,
+		Expiration: &api.LedgerGrantExpirationPeriod{
+			Count:    int(grant.Expiration.Count),
+			Duration: api.LedgerGrantExpirationPeriodDuration(grant.Expiration.Duration),
+		},
+		ExpiresAt: &grant.ExpiresAt,
+		FeatureID: featureID,
+		Id:        (*string)(grant.ID),
+		Metadata:  &grant.Metadata,
+		ParentId:  (*string)(grant.ParentID),
+		Priority:  &priority,
+		Rollover:  grant.Rollover,
+		Type:      api.LedgerGrantType(grant.Type),
+		UpdatedAt: grant.UpdatedAt,
+		Void:      &grant.Void,
+	}
 }

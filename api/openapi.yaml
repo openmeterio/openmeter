@@ -956,7 +956,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/LedgerGrantResponse"
+                  $ref: "#/components/schemas/LedgerGrantWithLedgerIDResponse"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
@@ -1651,6 +1651,16 @@ components:
               type: string
               format: date-time
               example: "2023-01-01T00:00:00Z"
+    LedgerGrantWithLedgerIDResponse:
+      allof:
+        - $ref: "#/components/schemas/LedgerGrantResponse"
+        - type: object
+          required:
+            - ledgerID
+          properties:
+            ledgerID:
+              type: string
+              description: The ledger ID.
     LedgerGrantType:
       description: |
         The grant type:
