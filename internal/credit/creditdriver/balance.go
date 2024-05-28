@@ -91,8 +91,6 @@ func mapFeatureBalanceToAPI(featureBalance credit.FeatureBalance) api.FeatureBal
 	id := new(string)
 	if featureBalance.ID != nil {
 		*id = string(*featureBalance.ID)
-	} else {
-		id = nil
 	}
 	return api.FeatureBalance{
 		Archived:            featureBalance.Archived,
@@ -108,17 +106,13 @@ func mapFeatureBalanceToAPI(featureBalance credit.FeatureBalance) api.FeatureBal
 }
 
 func mapGrantBalanceToAPI(grantBalance credit.GrantBalance) api.LedgerGrantBalance {
-	id := new(string)
+	var id *string
 	if grantBalance.ID != nil {
 		*id = string(*grantBalance.ID)
-	} else {
-		id = nil
 	}
-	parentId := new(string)
+	var parentId *string
 	if grantBalance.ParentID != nil {
 		*parentId = string(*grantBalance.ParentID)
-	} else {
-		parentId = nil
 	}
 	priority := int(grantBalance.Priority)
 

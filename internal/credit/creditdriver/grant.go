@@ -12,10 +12,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
-type ListLedgerGrantsHandler httptransport.HandlerWithArgs[credit.ListGrantsParams, []api.LedgerGrantWithLedgerIDResponse, api.ListLedgerGrantsParams]
+type ListLedgerGrantsHandler httptransport.HandlerWithArgs[credit.ListGrantsParams, []api.LedgerGrantResponse, api.ListLedgerGrantsParams]
 
 func (b *builder) ListLedgerGrants() ListLedgerGrantsHandler {
-	return httptransport.NewHandlerWithArgs[credit.ListGrantsParams, []api.LedgerGrantWithLedgerIDResponse, api.ListLedgerGrantsParams](
+	return httptransport.NewHandlerWithArgs[credit.ListGrantsParams, []api.LedgerGrantResponse, api.ListLedgerGrantsParams](
 		func(ctx context.Context, r *http.Request, queryIn api.ListLedgerGrantsParams) (credit.ListGrantsParams, error) {
 			ns, err := b.resolveNamespace(ctx)
 			if err != nil {
@@ -34,12 +34,12 @@ func (b *builder) ListLedgerGrants() ListLedgerGrantsHandler {
 			}
 			return request, nil
 		},
-		func(ctx context.Context, request credit.ListGrantsParams) ([]api.LedgerGrantWithLedgerIDResponse, error) {
+		func(ctx context.Context, request credit.ListGrantsParams) ([]api.LedgerGrantResponse, error) {
 			grants, err := b.CreditConnector.ListGrants(ctx, request)
 			if err != nil {
 				return nil, err
 			}
-			resp := make([]api.LedgerGrantWithLedgerIDResponse, 0, len(grants))
+			resp := make([]api.LedgerGrantResponse, 0, len(grants))
 			for _, grant := range grants {
 				resp = append(resp, mapGrantWithBalanceToAPI(grant))
 			}
@@ -301,10 +301,10 @@ func mapGrantToAPI(grant credit.Grant) api.LedgerGrantResponse {
 	}
 }
 
-func mapGrantWithBalanceToAPI(grant credit.Grant) api.LedgerGrantWithLedgerIDResponse {
+func mapGrantWithBalanceToAPI(grant credit.Grant) api.LedgerGrantResponse {
 	priority := int(grant.Priority)
 
-	return api.LedgerGrantWithLedgerIDResponse{
+	return api.LedgerGrantResponse{
 		Amount:      grant.Amount,
 		CreatedAt:   grant.CreatedAt,
 		EffectiveAt: grant.EffectiveAt,

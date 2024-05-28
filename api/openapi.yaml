@@ -956,7 +956,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/LedgerGrantWithLedgerIDResponse"
+                  $ref: "#/components/schemas/LedgerGrantResponse"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
@@ -1636,12 +1636,17 @@ components:
           required:
             - id
             - void
+            - ledgerID
           properties:
             id:
               description: |
                 Readonly unique ULID identifier of the grant.
               readOnly: true
               type: string
+              example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+            ledgerID:
+              type: string
+              description: The ledger ID.
               example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
             void:
               description: |
@@ -1656,16 +1661,6 @@ components:
               type: string
               format: date-time
               example: "2023-01-01T00:00:00Z"
-    LedgerGrantWithLedgerIDResponse:
-      allOf:
-        - $ref: "#/components/schemas/LedgerGrantResponse"
-        - type: object
-          required:
-            - ledgerID
-          properties:
-            ledgerID:
-              type: string
-              description: The ledger ID.
     LedgerGrantType:
       description: |
         The grant type:
