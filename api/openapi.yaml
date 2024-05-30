@@ -1417,7 +1417,7 @@ components:
           example: 100
         featureID:
           description: |
-            The unique feature ULID that the entry is associated with, if any.
+            The unique feature ULID that the entry is associated with.
           type: string
           example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         period:
