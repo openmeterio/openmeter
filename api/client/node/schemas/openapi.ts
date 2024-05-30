@@ -357,13 +357,7 @@ export interface components {
      * @description A feature is a feature or service offered to a customer.
      * For example: CPU-Hours, Tokens, API Calls, etc.
      */
-    Feature: {
-      /**
-       * @description Readonly unique ULID identifier of the feature.
-       *
-       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
-       */
-      id?: string
+    CreateFeatureRequest: {
       /**
        * @description The name of the feature.
        *
@@ -392,6 +386,18 @@ export interface components {
        * @example false
        */
       archived?: boolean
+    }
+    /**
+     * @description A feature is a feature or service offered to a customer.
+     * For example: CPU-Hours, Tokens, API Calls, etc.
+     */
+    Feature: components['schemas']['CreateFeatureRequest'] & {
+      /**
+       * @description Readonly unique ULID identifier of the feature.
+       *
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      id: string
       /**
        * Format: date-time
        * @description The time the feature was created.
@@ -502,11 +508,18 @@ export interface components {
        */
       time: string
       /**
+       * Format: double
        * @description The amount to apply. Can be positive or negative number. If applicable.
        *
        * @example 100
        */
-      amount?: number
+      amount: number
+      /**
+       * @description The unique feature ULID that the entry is associated with.
+       *
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      featureID: string
       period?: components['schemas']['Period']
     }
     /** @description A time period */
@@ -534,9 +547,30 @@ export interface components {
     /** @description Balance of a subject. */
     LedgerBalance: {
       /** @description Features with balances. */
-      features?: components['schemas']['FeatureBalance'][]
+      featureBalances: components['schemas']['FeatureBalance'][]
       /** @description The grants applied to the subject. */
-      grants: components['schemas']['LedgerGrantBalance'][]
+      grantBalances: components['schemas']['LedgerGrantBalance'][]
+      /**
+       * @example {
+       *   "stripePaymentId": "pi_4OrAkhLvyihio9p51h9iiFnB"
+       * }
+       */
+      metadata?: {
+        [key: string]: string
+      }
+      /**
+       * @description The subject of the ledger.
+       *
+       * @example subject-1
+       */
+      subject: string
+      /**
+       * Format: date-time
+       * @description The last reset of the ledger.
+       *
+       * @example 2023-01-01T00:00:00Z
+       */
+      lastReset?: string
     }
     /** @description Ledger reset configuration. */
     LedgerReset: {
@@ -556,24 +590,34 @@ export interface components {
     }
     LedgerGrantBalance: components['schemas']['LedgerGrantResponse'] & {
       /**
+       * Format: double
        * @description The balance of the grant.
        *
        * @example 100
        */
-      balance?: number
+      balance: number
     }
     FeatureBalance: components['schemas']['Feature'] & {
       /**
+       * Format: double
        * @description The balance of the feature.
        *
        * @example 100
        */
-      balance?: number
+      balance: number
+      /**
+       * Format: double
+       * @description The usage of the feature.
+       *
+       * @example 100
+       */
+      usage: number
     }
     /** @description Grants are used to increase balance of specific subjects. */
     CreateLedgerGrantRequest: {
       type: components['schemas']['LedgerGrantType']
       /**
+       * Format: double
        * @description The amount to grant. Can be positive or negative number.
        *
        * @example 100
@@ -615,6 +659,12 @@ export interface components {
         [key: string]: string
       }
       /**
+       * @description The parent grant ULID that the grant is associated with, if any.
+       *
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      parentId?: string
+      /**
        * Format: date-time
        * @description The time the grant was created.
        *
@@ -637,11 +687,16 @@ export interface components {
        */
       id: string
       /**
-       * @description The subject to grant the amount to.
-       *
-       * @example customer-id
+       * @description The ledger ID.
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
-      subject: string
+      ledgerID: string
+      /**
+       * @description If the grant is voided, it will not be applied to the subject's balance anymore.
+       *
+       * @example false
+       */
+      void: boolean
       /**
        * Format: date-time
        * @description The expiration date of the grant.
@@ -986,6 +1041,8 @@ export interface components {
     ledgerGrantID: string
     /** @description A unique identifier for a ledger. */
     ledgerID: string
+    /** @description Include void entries in the response. */
+    ledgerIncludeVoids?: boolean
     /** @description Number of entries to return */
     ledgerQueryLimit?: number
     /** @description Number of entries to skip */
@@ -1476,7 +1533,7 @@ export interface operations {
     /** @description The feature to create. */
     requestBody: {
       content: {
-        'application/json': components['schemas']['Feature']
+        'application/json': components['schemas']['CreateFeatureRequest']
       }
     }
     responses: {
@@ -1681,6 +1738,7 @@ export interface operations {
       query?: {
         ledgerID?: components['parameters']['queryFilterLedgerID']
         limit?: components['parameters']['ledgerQueryLimit']
+        includeVoids?: components['parameters']['ledgerIncludeVoids']
       }
     }
     responses: {
@@ -1703,6 +1761,7 @@ export interface operations {
     parameters: {
       query?: {
         limit?: components['parameters']['ledgerQueryLimit']
+        includeVoids?: components['parameters']['ledgerIncludeVoids']
       }
       path: {
         ledgerID: components['parameters']['ledgerID']
