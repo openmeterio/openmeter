@@ -297,11 +297,13 @@ func (a *PostgresConnector) getBalance(
 
 		if featureBalance, ok := featureBalancesMap[featureId]; ok {
 			featureBalance.Balance += grantBalance.Balance
+			featureBalance.Usage += grantBalance.Amount - grantBalance.Balance
 			featureBalancesMap[featureId] = featureBalance
 		} else {
 			featureBalancesMap[featureId] = credit.FeatureBalance{
 				Feature: feature,
 				Balance: grantBalance.Balance,
+				Usage:   grantBalance.Amount - grantBalance.Balance,
 			}
 		}
 	}

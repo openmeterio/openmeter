@@ -222,7 +222,7 @@ func (c *PostgresConnector) ListGrants(ctx context.Context, params credit.ListGr
 		return nil, fmt.Errorf("failed to list grants: %w", err)
 	}
 
-	var list []credit.Grant
+	list := make([]credit.Grant, 0, len(entities))
 	for _, entity := range entities {
 		grant, err := mapGrantEntity(entity)
 		if err != nil {
@@ -272,6 +272,19 @@ func mapGrantEntity(entry *db.CreditEntry) (credit.Grant, error) {
 		return credit.Grant{}, fmt.Errorf("entry type must be grant: %s", entry.EntryType)
 	}
 
+	var rollover *credit.GrantRollover
+	if entry.RolloverType != nil && entry.RolloverMaxAmount != nil {
+		rollover = &credit.GrantRollover{
+			Type:      *entry.RolloverType,
+			MaxAmount: entry.RolloverMaxAmount,
+		}
+	}
+
+	expiresAt := time.Time{}
+	if entry.ExpirationAt != nil {
+		expiresAt = entry.ExpirationAt.In(time.UTC)
+	}
+
 	grant := credit.Grant{
 		Namespace:   entry.Namespace,
 		ID:          (*credit.GrantID)(&entry.ID),
@@ -286,6 +299,8 @@ func mapGrantEntity(entry *db.CreditEntry) (credit.Grant, error) {
 			Duration: *entry.ExpirationPeriodDuration,
 			Count:    *entry.ExpirationPeriodCount,
 		},
+		ExpiresAt: expiresAt,
+		Rollover:  rollover,
 		Metadata:  entry.Metadata,
 		Void:      entry.EntryType == credit.EntryTypeVoidGrant,
 		CreatedAt: convert.ToPointer(entry.CreatedAt.In(time.UTC)),

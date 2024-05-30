@@ -11,10 +11,6 @@
   ],
   "dependencies": [
     {
-      "name": "stainless",
-      "source": "github.com/sagikazarmark/daggerverse/stainless@8ba370b4aba45c4d2c9de7f4b2d89f2bdbd8f46e"
-    },
-    {
       "name": "archivist",
       "source": "github.com/sagikazarmark/daggerverse/archivist@b45dbd7448bb967aca4a538af9ce7f042abf0316"
     },
@@ -53,6 +49,10 @@
     {
       "name": "spectral",
       "source": "github.com/sagikazarmark/daggerverse/spectral@b45dbd7448bb967aca4a538af9ce7f042abf0316"
+    },
+    {
+      "name": "stainless",
+      "source": "github.com/sagikazarmark/daggerverse/stainless@8ba370b4aba45c4d2c9de7f4b2d89f2bdbd8f46e"
     }
   ],
   "source": "ci",

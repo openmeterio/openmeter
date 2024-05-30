@@ -28,6 +28,26 @@ func (e *FeatureNotFoundError) Error() string {
 	return fmt.Sprintf("feature not found: %s", e.ID)
 }
 
+type FeatureInvalidFiltersError struct {
+	RequestedFilters    map[string]string
+	MeterGroupByColumns []string
+}
+
+func (e *FeatureInvalidFiltersError) Error() string {
+	return fmt.Sprintf("invalid filters for feature: %v, available columns: %v", e.RequestedFilters, e.MeterGroupByColumns)
+}
+
+type FeatureWithNameAlreadyExistsError struct {
+	Name string
+	ID   FeatureID
+}
+
+func (e *FeatureWithNameAlreadyExistsError) Error() string {
+	// Is it an issue that we leak ID on another Feature here?
+	// Shouldn't be an isue as it's namespaced.
+	return fmt.Sprintf("feature %s with name %s already exists", e.ID, e.Name)
+}
+
 // Feature is a feature or service offered to a customer.
 // For example: CPU-Hours, Tokens, API Calls, etc.
 type Feature struct {

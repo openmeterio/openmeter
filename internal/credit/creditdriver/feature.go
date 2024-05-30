@@ -85,6 +85,21 @@ func (b *builder) CreateFeature() CreateFeatureHandler {
 		httptransport.AppendOptions(
 			b.Options,
 			httptransport.WithOperationName("createFeature"),
+			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {
+				if _, ok := err.(*credit.FeatureInvalidFiltersError); ok {
+					models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
+					return true
+				}
+				if _, ok := err.(*models.MeterNotFoundError); ok {
+					models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w)
+					return true
+				}
+				if _, ok := err.(*credit.FeatureWithNameAlreadyExistsError); ok {
+					models.NewStatusProblem(ctx, err, http.StatusConflict).Respond(w)
+					return true
+				}
+				return false
+			}),
 		)...,
 	)
 }

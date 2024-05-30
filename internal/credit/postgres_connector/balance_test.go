@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/test_helpers"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -53,7 +54,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should return balance",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				feature := createFeature(t, connector, featureIn1)
+				feature := test_helpers.CreateFeature(t, connector, featureIn1)
 				// We need to truncate the time to workaround pgx driver timezone issue
 				// We also move it to the past to avoid timezone issues
 				t1 := time.Now().Truncate(time.Hour * 24).Add(-time.Hour * 24)
@@ -94,6 +95,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 							{
 								Feature: feature,
 								Balance: 99,
+								Usage:   1,
 							},
 						},
 						GrantBalances: []credit.GrantBalance{
@@ -112,7 +114,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should return balance after reset",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				feature := createFeature(t, connector, featureIn1)
+				feature := test_helpers.CreateFeature(t, connector, featureIn1)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 				t3, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:03:00Z", time.UTC)
@@ -164,6 +166,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 								{
 									Feature: feature,
 									Balance: 99,
+									Usage:   1,
 								},
 							},
 							GrantBalances: []credit.GrantBalance{
@@ -182,7 +185,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should exclude voided grant from balance",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				feature := createFeature(t, connector, featureIn1)
+				feature := test_helpers.CreateFeature(t, connector, featureIn1)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 
@@ -237,7 +240,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should burn down grant with highest priority first",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				feature := createFeature(t, connector, featureIn1)
+				feature := test_helpers.CreateFeature(t, connector, featureIn1)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 
@@ -296,6 +299,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 								{
 									Feature: feature,
 									Balance: 90,
+									Usage:   20,
 								},
 							},
 							GrantBalances: []credit.GrantBalance{
@@ -318,7 +322,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should burn down grant that expires first",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				feature := createFeature(t, connector, featureIn1)
+				feature := test_helpers.CreateFeature(t, connector, featureIn1)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 
@@ -377,6 +381,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 								{
 									Feature: feature,
 									Balance: 90,
+									Usage:   20,
 								},
 							},
 							GrantBalances: []credit.GrantBalance{
@@ -399,8 +404,8 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should burn down the right feature",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				feature1 := createFeature(t, connector, featureIn1)
-				feature2 := createFeature(t, connector, featureIn2)
+				feature1 := test_helpers.CreateFeature(t, connector, featureIn1)
+				feature2 := test_helpers.CreateFeature(t, connector, featureIn2)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 
@@ -462,10 +467,12 @@ func TestPostgresConnectorBalances(t *testing.T) {
 							{
 								Feature: feature1,
 								Balance: 99,
+								Usage:   1,
 							},
 							{
 								Feature: feature2,
 								Balance: 90,
+								Usage:   10,
 							},
 						}),
 					removeTimestampsFromFeatureBalances(balance.FeatureBalances),

@@ -7,15 +7,16 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
-type ListLedgerGrantsHandler httptransport.HandlerWithArgs[credit.ListGrantsParams, []credit.Grant, api.ListLedgerGrantsParams]
+type ListLedgerGrantsHandler httptransport.HandlerWithArgs[credit.ListGrantsParams, []api.LedgerGrantResponse, api.ListLedgerGrantsParams]
 
 func (b *builder) ListLedgerGrants() ListLedgerGrantsHandler {
-	return httptransport.NewHandlerWithArgs[credit.ListGrantsParams, []credit.Grant, api.ListLedgerGrantsParams](
+	return httptransport.NewHandlerWithArgs[credit.ListGrantsParams, []api.LedgerGrantResponse, api.ListLedgerGrantsParams](
 		func(ctx context.Context, r *http.Request, queryIn api.ListLedgerGrantsParams) (credit.ListGrantsParams, error) {
 			ns, err := b.resolveNamespace(ctx)
 			if err != nil {
@@ -25,7 +26,7 @@ func (b *builder) ListLedgerGrants() ListLedgerGrantsHandler {
 			request := credit.ListGrantsParams{
 				Namespace:         ns,
 				FromHighWatermark: true,
-				IncludeVoid:       true,
+				IncludeVoid:       defaultx.WithDefault(queryIn.IncludeVoids, false),
 				Limit:             defaultx.WithDefault(queryIn.Limit, DefaultLedgerQueryLimit),
 			}
 
@@ -34,7 +35,17 @@ func (b *builder) ListLedgerGrants() ListLedgerGrantsHandler {
 			}
 			return request, nil
 		},
-		b.CreditConnector.ListGrants,
+		func(ctx context.Context, request credit.ListGrantsParams) ([]api.LedgerGrantResponse, error) {
+			grants, err := b.CreditConnector.ListGrants(ctx, request)
+			if err != nil {
+				return nil, err
+			}
+			resp := make([]api.LedgerGrantResponse, 0, len(grants))
+			for _, grant := range grants {
+				resp = append(resp, mapGrantWithBalanceToAPI(grant))
+			}
+			return resp, nil
+		},
 		commonhttp.JSONResponseEncoder,
 		httptransport.AppendOptions(
 			b.Options,
@@ -48,10 +59,10 @@ type ListLedgerGrantsByLedgerParams struct {
 	Params   api.ListLedgerGrantsByLedgerParams
 }
 
-type ListLedgerGrantsByLedgerHandler httptransport.HandlerWithArgs[credit.ListGrantsParams, []credit.Grant, ListLedgerGrantsByLedgerParams]
+type ListLedgerGrantsByLedgerHandler httptransport.HandlerWithArgs[credit.ListGrantsParams, []api.LedgerGrantResponse, ListLedgerGrantsByLedgerParams]
 
 func (b *builder) ListLedgerGrantsByLedger() ListLedgerGrantsByLedgerHandler {
-	return httptransport.NewHandlerWithArgs[credit.ListGrantsParams, []credit.Grant, ListLedgerGrantsByLedgerParams](
+	return httptransport.NewHandlerWithArgs[credit.ListGrantsParams, []api.LedgerGrantResponse, ListLedgerGrantsByLedgerParams](
 		func(ctx context.Context, r *http.Request, queryIn ListLedgerGrantsByLedgerParams) (credit.ListGrantsParams, error) {
 			ns, err := b.resolveNamespace(ctx)
 			if err != nil {
@@ -62,12 +73,22 @@ func (b *builder) ListLedgerGrantsByLedger() ListLedgerGrantsByLedgerHandler {
 				Namespace:         ns,
 				LedgerIDs:         []credit.LedgerID{queryIn.LedgerID},
 				FromHighWatermark: true,
-				IncludeVoid:       true,
+				IncludeVoid:       defaultx.WithDefault(queryIn.Params.IncludeVoids, false),
 				Limit:             defaultx.WithDefault(queryIn.Params.Limit, DefaultLedgerQueryLimit),
 			}
 			return request, nil
 		},
-		b.CreditConnector.ListGrants,
+		func(ctx context.Context, request credit.ListGrantsParams) ([]api.LedgerGrantResponse, error) {
+			grants, err := b.CreditConnector.ListGrants(ctx, request)
+			if err != nil {
+				return nil, err
+			}
+			resp := make([]api.LedgerGrantResponse, 0, len(grants))
+			for _, grant := range grants {
+				resp = append(resp, mapGrantToAPI(grant))
+			}
+			return resp, nil
+		},
 		commonhttp.JSONResponseEncoder,
 		httptransport.AppendOptions(
 			b.Options,
@@ -91,7 +112,7 @@ func (b *builder) CreateLedgerGrant() CreateLedgerGrantHandler {
 				return grant, err
 			}
 
-			_, err = b.CreditConnector.GetFeature(ctx, credit.NewNamespacedFeatureID(ns, *grant.FeatureID))
+			feature, err := b.CreditConnector.GetFeature(ctx, credit.NewNamespacedFeatureID(ns, *grant.FeatureID))
 			if err != nil {
 				if _, ok := err.(*credit.FeatureNotFoundError); ok {
 					return grant, commonhttp.NewHTTPError(
@@ -100,6 +121,13 @@ func (b *builder) CreateLedgerGrant() CreateLedgerGrantHandler {
 					)
 				}
 				return grant, err
+			}
+
+			if feature.Archived != nil && *feature.Archived {
+				return grant, commonhttp.NewHTTPError(
+					http.StatusBadRequest,
+					fmt.Errorf("feature is archived: %s", *grant.FeatureID),
+				)
 			}
 
 			grant.LedgerID = arg
@@ -248,4 +276,32 @@ func (b *builder) GetLedgerGrant() GetLedgerGrantHandler {
 			),
 		)...,
 	)
+}
+
+func mapGrantToAPI(grant credit.Grant) api.LedgerGrantResponse {
+	return api.LedgerGrantResponse{
+		Amount:      grant.Amount,
+		CreatedAt:   grant.CreatedAt,
+		EffectiveAt: grant.EffectiveAt,
+		Expiration: &api.LedgerGrantExpirationPeriod{
+			Count:    int(grant.Expiration.Count),
+			Duration: api.LedgerGrantExpirationPeriodDuration(grant.Expiration.Duration),
+		},
+		ExpiresAt: &grant.ExpiresAt,
+		FeatureID: string(defaultx.WithDefault(grant.FeatureID, credit.FeatureID(""))),
+		Id:        (*string)(grant.ID),
+		Metadata:  &grant.Metadata,
+		ParentId:  (*string)(grant.ParentID),
+		Priority:  convert.ToPointer(int(grant.Priority)),
+		Rollover:  grant.Rollover,
+		Type:      api.LedgerGrantType(grant.Type),
+		UpdatedAt: grant.UpdatedAt,
+		Void:      &grant.Void,
+	}
+}
+
+func mapGrantWithBalanceToAPI(grant credit.Grant) api.LedgerGrantResponse {
+	res := mapGrantToAPI(grant)
+	res.LedgerID = string(grant.LedgerID)
+	return res
 }

@@ -681,7 +681,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Feature"
+              $ref: "#/components/schemas/CreateFeatureRequest"
       responses:
         "201":
           description: Feature created.
@@ -947,6 +947,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/queryFilterLedgerID"
         - $ref: "#/components/parameters/ledgerQueryLimit"
+        - $ref: "#/components/parameters/ledgerIncludeVoids"
       responses:
         "200":
           description: List of ledger grants.
@@ -973,6 +974,7 @@ paths:
       parameters:
         - $ref: "#/components/parameters/ledgerID"
         - $ref: "#/components/parameters/ledgerQueryLimit"
+        - $ref: "#/components/parameters/ledgerIncludeVoids"
       responses:
         "200":
           description: List of ledger grants created.
@@ -1214,10 +1216,7 @@ components:
             tokens: "1234"
             model: "gpt-4-turbo"
         validationError: "meter not found for event"
-    Feature:
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.Feature
+    CreateFeatureRequest:
       type: object
       description: |
         A feature is a feature or service offered to a customer.
@@ -1227,12 +1226,6 @@ components:
         - meterSlug
       additionalProperties: false
       properties:
-        id:
-          readOnly: true
-          description: |
-            Readonly unique ULID identifier of the feature.
-          type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         name:
           description: |
             The name of the feature.
@@ -1257,20 +1250,35 @@ components:
             If the feature is archived, it will not be used for grants or usage.
           type: boolean
           example: false
-        createdAt:
-          readOnly: true
-          description: |
-            The time the feature was created.
-          type: string
-          format: date-time
-          example: "2023-01-01T00:00:00Z"
-        updatedAt:
-          readOnly: true
-          description: |
-            The time the feature was last updated.
-          type: string
-          format: date-time
-          example: "2023-01-01T00:00:00Z"
+    Feature:
+      type: object
+      description: |
+        A feature is a feature or service offered to a customer.
+        For example: CPU-Hours, Tokens, API Calls, etc.
+      allOf:
+        - $ref: "#/components/schemas/CreateFeatureRequest"
+        - type: object
+          required:
+            - id
+          properties:
+            id:
+              description: |
+                Readonly unique ULID identifier of the feature.
+              readOnly: true
+              type: string
+              example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+            createdAt:
+              description: |
+                The time the feature was created.
+              type: string
+              format: date-time
+              example: "2023-01-01T00:00:00Z"
+            updatedAt:
+              description: |
+                The time the feature was last updated.
+              type: string
+              format: date-time
+              example: "2023-01-01T00:00:00Z"
     CreateLedger:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit
@@ -1377,9 +1385,6 @@ components:
               format: date-time
               example: "2023-01-01T00:00:00Z"
     LedgerEntry:
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.LedgerEntry
       type: object
       description: |
         A ledger entry.
@@ -1387,6 +1392,8 @@ components:
         - id
         - type
         - time
+        - featureID
+        - amount
       properties:
         id:
           description: |
@@ -1406,13 +1413,16 @@ components:
           description: |
             The amount to apply. Can be positive or negative number. If applicable.
           type: number
+          format: double
           example: 100
+        featureID:
+          description: |
+            The unique feature ULID that the entry is associated with.
+          type: string
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         period:
           $ref: "#/components/schemas/Period"
     Period:
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.Period
       type: object
       description: |
         A time period
@@ -1433,9 +1443,6 @@ components:
           format: date-time
           example: "2023-01-01T00:00:00Z"
     LedgerEntryType:
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.LedgerEntryType
       type: string
       enum:
         - GRANT
@@ -1444,28 +1451,44 @@ components:
         - GRANT_USAGE
       example: GRANT
     LedgerBalance:
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.Balance
       type: object
       description: |
         Balance of a subject.
       required:
-        - amount
-        - grants
+        - featureBalances
+        - grantBalances
+        - subject
       properties:
-        features:
+        featureBalances:
           description: |
             Features with balances.
           type: array
           items:
             $ref: "#/components/schemas/FeatureBalance"
-        grants:
+        grantBalances:
           description: |
             The grants applied to the subject.
           type: array
           items:
             $ref: "#/components/schemas/LedgerGrantBalance"
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
+        subject:
+          description: |
+            The subject of the ledger.
+          type: string
+          example: "subject-1"
+        lastReset:
+          description: |
+            The last reset of the ledger.
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+
     LedgerReset:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit
@@ -1495,17 +1518,17 @@ components:
       #
       # Given that we are not using this type as a return type of a call, this is just
       # an inconsistency we can ignore.
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.GrantBalance
       allOf:
         - $ref: "#/components/schemas/LedgerGrantResponse"
         - type: object
+          required:
+            - balance
           properties:
             balance:
               description: |
                 The balance of the grant.
               type: number
+              format: double
               example: 100
     FeatureBalance:
       # TODO: until https://github.com/deepmap/oapi-codegen/pull/1610 is not merged, the
@@ -1513,22 +1536,26 @@ components:
       #
       # Given that we are not using this type as a return type of a call, this is just
       # an inconsistency we can ignore.
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.FeatureBalance
       allOf:
         - $ref: "#/components/schemas/Feature"
         - type: object
+          required:
+            - balance
+            - usage
           properties:
             balance:
               description: |
                 The balance of the feature.
               type: number
+              format: double
+              example: 100
+            usage:
+              description: |
+                The usage of the feature.
+              type: number
+              format: double
               example: 100
     CreateLedgerGrantRequest:
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.Grant
       type: object
       description: |
         Grants are used to increase balance of specific subjects.
@@ -1545,11 +1572,9 @@ components:
           description: |
             The amount to grant. Can be positive or negative number.
           type: number
+          format: double
           example: 100
         featureID:
-          x-go-type: credit.FeatureID
-          x-go-type-import:
-            path: github.com/openmeterio/openmeter/internal/credit
           description: |
             The unique feature ULID that the grant is associated with, if any.
           type: string
@@ -1585,6 +1610,11 @@ components:
             type: string
           example:
             stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
+        parentId:
+          description: |
+            The parent grant ULID that the grant is associated with, if any.
+          type: string
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         createdAt:
           readOnly: true
           description: |
@@ -1600,15 +1630,13 @@ components:
           format: date-time
           example: "2023-01-01T00:00:00Z"
     LedgerGrantResponse:
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.Grant
       allOf:
         - $ref: "#/components/schemas/CreateLedgerGrantRequest"
         - type: object
           required:
-            - subject
             - id
+            - void
+            - ledgerID
           properties:
             id:
               description: |
@@ -1616,12 +1644,16 @@ components:
               readOnly: true
               type: string
               example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-            subject:
-              description: |
-                The subject to grant the amount to.
+            ledgerID:
               type: string
-              example: customer-id
+              description: The ledger ID.
+              example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+            void:
+              description: |
+                If the grant is voided, it will not be applied to the subject's balance anymore.
+              type: boolean
               readOnly: true
+              example: false
             expiresAt:
               readOnly: true
               description: |
@@ -1630,13 +1662,12 @@ components:
               format: date-time
               example: "2023-01-01T00:00:00Z"
     LedgerGrantType:
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.GrantType
       description: |
         The grant type:
         - `USAGE` - Increase balance by the amount in the unit of the associated meter.
       type: string
+      x-enumNames:
+        - LedgerGrantTypeUsage
       enum:
         - USAGE
       example: USAGE
@@ -1670,9 +1701,6 @@ components:
         - ORIGINAL_AMOUNT
       example: ORIGINAL_AMOUNT
     LedgerGrantExpirationPeriod:
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.ExpirationPeriod
       type: object
       description: |
         Expiration period of a ledger grant.
@@ -1681,9 +1709,6 @@ components:
         - count
       properties:
         duration:
-          x-go-type-import:
-            path: github.com/openmeterio/openmeter/internal/credit
-          x-go-type: credit.ExpirationPeriodDuration
           description: |
             The expiration period duration like month.
           type: string
@@ -2044,6 +2069,15 @@ components:
           path: github.com/openmeterio/openmeter/internal/credit
         type: string
         example: "customer-id"
+    ledgerIncludeVoids:
+      name: includeVoids
+      in: query
+      required: false
+      description: Include void entries in the response.
+      schema:
+        type: boolean
+        default: false
+        example: true
     ledgerQueryLimit:
       name: limit
       in: query
