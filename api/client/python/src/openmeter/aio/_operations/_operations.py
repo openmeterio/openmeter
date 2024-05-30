@@ -1915,6 +1915,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 # response body for status code(s): 200
                 response == [
                     {
+                        "id": "str",  # Readonly unique ULID identifier of the feature.
+                          Required.
                         "meterSlug": "str",  # The meter that the feature is associated with
                           and decreases grants by usage. Required.
                         "name": "str",  # The name of the feature. Required.
@@ -1922,8 +1924,6 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           not be used for grants or usage.
                         "createdAt": "2020-02-20 00:00:00",  # Optional. The time the feature
                           was created.
-                        "id": "str",  # Optional. Readonly unique ULID identifier of the
-                          feature.
                         "meterGroupByFilters": {
                             "str": "str"  # Optional. Optional meter group by filters.
                               Useful if the meter scope is broader than what feature tracks.
@@ -2005,19 +2005,15 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "name": "str",  # The name of the feature. Required.
                     "archived": bool,  # Optional. If the feature is archived, it will not be
                       used for grants or usage.
-                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the feature was
-                      created.
-                    "id": "str",  # Optional. Readonly unique ULID identifier of the feature.
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
                           the meter scope is broader than what feature tracks.
-                    },
-                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the feature was last
-                      updated.
+                    }
                 }
 
                 # response body for status code(s): 201
                 response == {
+                    "id": "str",  # Readonly unique ULID identifier of the feature. Required.
                     "meterSlug": "str",  # The meter that the feature is associated with and
                       decreases grants by usage. Required.
                     "name": "str",  # The name of the feature. Required.
@@ -2025,7 +2021,6 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                       used for grants or usage.
                     "createdAt": "2020-02-20 00:00:00",  # Optional. The time the feature was
                       created.
-                    "id": "str",  # Optional. Readonly unique ULID identifier of the feature.
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
                           the meter scope is broader than what feature tracks.
@@ -2056,6 +2051,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
                 # response body for status code(s): 201
                 response == {
+                    "id": "str",  # Readonly unique ULID identifier of the feature. Required.
                     "meterSlug": "str",  # The meter that the feature is associated with and
                       decreases grants by usage. Required.
                     "name": "str",  # The name of the feature. Required.
@@ -2063,7 +2059,6 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                       used for grants or usage.
                     "createdAt": "2020-02-20 00:00:00",  # Optional. The time the feature was
                       created.
-                    "id": "str",  # Optional. Readonly unique ULID identifier of the feature.
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
                           the meter scope is broader than what feature tracks.
@@ -2096,19 +2091,15 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "name": "str",  # The name of the feature. Required.
                     "archived": bool,  # Optional. If the feature is archived, it will not be
                       used for grants or usage.
-                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the feature was
-                      created.
-                    "id": "str",  # Optional. Readonly unique ULID identifier of the feature.
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
                           the meter scope is broader than what feature tracks.
-                    },
-                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the feature was last
-                      updated.
+                    }
                 }
 
                 # response body for status code(s): 201
                 response == {
+                    "id": "str",  # Readonly unique ULID identifier of the feature. Required.
                     "meterSlug": "str",  # The meter that the feature is associated with and
                       decreases grants by usage. Required.
                     "name": "str",  # The name of the feature. Required.
@@ -2116,7 +2107,6 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                       used for grants or usage.
                     "createdAt": "2020-02-20 00:00:00",  # Optional. The time the feature was
                       created.
-                    "id": "str",  # Optional. Readonly unique ULID identifier of the feature.
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
                           the meter scope is broader than what feature tracks.
@@ -2199,6 +2189,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
                 # response body for status code(s): 200
                 response == {
+                    "id": "str",  # Readonly unique ULID identifier of the feature. Required.
                     "meterSlug": "str",  # The meter that the feature is associated with and
                       decreases grants by usage. Required.
                     "name": "str",  # The name of the feature. Required.
@@ -2206,7 +2197,6 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                       used for grants or usage.
                     "createdAt": "2020-02-20 00:00:00",  # Optional. The time the feature was
                       created.
-                    "id": "str",  # Optional. Readonly unique ULID identifier of the feature.
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
                           the meter scope is broader than what feature tracks.
@@ -2669,10 +2659,33 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
                 # response body for status code(s): 200
                 response == {
-                    "grants": [
+                    "featureBalances": [
+                        {
+                            "balance": 0.0,  # The balance of the feature. Required.
+                            "id": "str",  # Readonly unique ULID identifier of the
+                              feature. Required.
+                            "meterSlug": "str",  # The meter that the feature is
+                              associated with and decreases grants by usage. Required.
+                            "name": "str",  # The name of the feature. Required.
+                            "usage": 0.0,  # The usage of the feature. Required.
+                            "archived": bool,  # Optional. If the feature is archived, it
+                              will not be used for grants or usage.
+                            "createdAt": "2020-02-20 00:00:00",  # Optional. The time the
+                              feature was created.
+                            "meterGroupByFilters": {
+                                "str": "str"  # Optional. Optional meter group by
+                                  filters. Useful if the meter scope is broader than what feature
+                                  tracks.
+                            },
+                            "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the
+                              feature was last updated.
+                        }
+                    ],
+                    "grantBalances": [
                         {
                             "amount": 0.0,  # The amount to grant. Can be positive or
                               negative number. Required.
+                            "balance": 0.0,  # The balance of the grant. Required.
                             "effectiveAt": "2020-02-20 00:00:00",  # The effective date.
                               Required.
                             "expiration": {
@@ -2686,12 +2699,12 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                               is associated with, if any. Required.
                             "id": "str",  # Readonly unique ULID identifier of the grant.
                               Required.
-                            "subject": "str",  # The subject to grant the amount to.
-                              Required.
+                            "ledgerID": "str",  # The ledger ID. Required.
                             "type": "str",  # The grant type:   * ``USAGE`` - Increase
                               balance by the amount in the unit of the associated meter. Required.
                               "USAGE"
-                            "balance": 0.0,  # Optional. The balance of the grant.
+                            "void": bool,  # If the grant is voided, it will not be
+                              applied to the subject's balance anymore. Required.
                             "createdAt": "2020-02-20 00:00:00",  # Optional. The time the
                               grant was created.
                             "expiresAt": "2020-02-20 00:00:00",  # Optional. The
@@ -2700,6 +2713,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                                 "str": "str"  # Optional. Dictionary of
                                   :code:`<string>`.
                             },
+                            "parentId": "str",  # Optional. The parent grant ULID that
+                              the grant is associated with, if any.
                             "priority": 1,  # Optional. Default value is 1. The priority
                               of the grant. Grants with higher priority are applied first. Priority is
                               a positive decimal numbers. With lower numbers indicating higher
@@ -2721,27 +2736,12 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                               grant was last updated.
                         }
                     ],
-                    "features": [
-                        {
-                            "meterSlug": "str",  # The meter that the feature is
-                              associated with and decreases grants by usage. Required.
-                            "name": "str",  # The name of the feature. Required.
-                            "archived": bool,  # Optional. If the feature is archived, it
-                              will not be used for grants or usage.
-                            "balance": 0.0,  # Optional. The balance of the feature.
-                            "createdAt": "2020-02-20 00:00:00",  # Optional. The time the
-                              feature was created.
-                            "id": "str",  # Optional. Readonly unique ULID identifier of
-                              the feature.
-                            "meterGroupByFilters": {
-                                "str": "str"  # Optional. Optional meter group by
-                                  filters. Useful if the meter scope is broader than what feature
-                                  tracks.
-                            },
-                            "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the
-                              feature was last updated.
-                        }
-                    ]
+                    "subject": "str",  # The subject of the ledger. Required.
+                    "lastReset": "2020-02-20 00:00:00",  # Optional. The last reset of the
+                      ledger.
+                    "metadata": {
+                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
+                    }
                 }
         """
         error_map = {
@@ -2825,14 +2825,16 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 # response body for status code(s): 200
                 response == [
                     {
+                        "amount": 0.0,  # The amount to apply. Can be positive or negative
+                          number. If applicable. Required.
+                        "featureID": "str",  # The unique feature ULID that the entry is
+                          associated with. Required.
                         "id": "str",  # Readonly unique ULID identifier of the ledger entry.
                           Required.
                         "time": "2020-02-20 00:00:00",  # The time the ledger entry was
                           created. Required.
                         "type": "str",  # Required. Known values are: "GRANT", "VOID",
                           "RESET", and "GRANT_USAGE".
-                        "amount": 0.0,  # Optional. The amount to apply. Can be positive or
-                          negative number. If applicable.
                         "period": {
                             "from": "2020-02-20 00:00:00",  # Period start time where the
                               amount was applied. If applicable. Required.
@@ -3048,7 +3050,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
     @distributed_trace_async
     async def list_ledger_grants(
-        self, *, ledger_id: Optional[str] = None, limit: int = 1000, **kwargs: Any
+        self, *, ledger_id: Optional[str] = None, limit: int = 1000, include_voids: bool = False, **kwargs: Any
     ) -> List[JSON]:
         # pylint: disable=line-too-long
         """List grants for multiple ledgers.
@@ -3061,6 +3063,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         :paramtype ledger_id: str
         :keyword limit: Number of entries to return. Default value is 1000.
         :paramtype limit: int
+        :keyword include_voids: Include void entries in the response. Default value is False.
+        :paramtype include_voids: bool
         :return: list of JSON object
         :rtype: list[JSON]
         :raises ~azure.core.exceptions.HttpResponseError:
@@ -3086,9 +3090,11 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           associated with, if any. Required.
                         "id": "str",  # Readonly unique ULID identifier of the grant.
                           Required.
-                        "subject": "str",  # The subject to grant the amount to. Required.
+                        "ledgerID": "str",  # The ledger ID. Required.
                         "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by
                           the amount in the unit of the associated meter. Required. "USAGE"
+                        "void": bool,  # If the grant is voided, it will not be applied to
+                          the subject's balance anymore. Required.
                         "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant
                           was created.
                         "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date
@@ -3096,6 +3102,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         "metadata": {
                             "str": "str"  # Optional. Dictionary of :code:`<string>`.
                         },
+                        "parentId": "str",  # Optional. The parent grant ULID that the grant
+                          is associated with, if any.
                         "priority": 1,  # Optional. Default value is 1. The priority of the
                           grant. Grants with higher priority are applied first. Priority is a positive
                           decimal numbers. With lower numbers indicating higher importance. For
@@ -3134,6 +3142,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         _request = build_list_ledger_grants_request(
             ledger_id=ledger_id,
             limit=limit,
+            include_voids=include_voids,
             headers=_headers,
             params=_params,
         )
@@ -3163,7 +3172,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         return cast(List[JSON], deserialized)  # type: ignore
 
     @distributed_trace_async
-    async def list_ledger_grants_by_ledger(self, ledger_id: str, *, limit: int = 1000, **kwargs: Any) -> List[JSON]:
+    async def list_ledger_grants_by_ledger(
+        self, ledger_id: str, *, limit: int = 1000, include_voids: bool = False, **kwargs: Any
+    ) -> List[JSON]:
         # pylint: disable=line-too-long
         """List ledger grants.
 
@@ -3173,6 +3184,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         :type ledger_id: str
         :keyword limit: Number of entries to return. Default value is 1000.
         :paramtype limit: int
+        :keyword include_voids: Include void entries in the response. Default value is False.
+        :paramtype include_voids: bool
         :return: list of JSON object
         :rtype: list[JSON]
         :raises ~azure.core.exceptions.HttpResponseError:
@@ -3198,9 +3211,11 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           associated with, if any. Required.
                         "id": "str",  # Readonly unique ULID identifier of the grant.
                           Required.
-                        "subject": "str",  # The subject to grant the amount to. Required.
+                        "ledgerID": "str",  # The ledger ID. Required.
                         "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by
                           the amount in the unit of the associated meter. Required. "USAGE"
+                        "void": bool,  # If the grant is voided, it will not be applied to
+                          the subject's balance anymore. Required.
                         "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant
                           was created.
                         "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date
@@ -3208,6 +3223,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         "metadata": {
                             "str": "str"  # Optional. Dictionary of :code:`<string>`.
                         },
+                        "parentId": "str",  # Optional. The parent grant ULID that the grant
+                          is associated with, if any.
                         "priority": 1,  # Optional. Default value is 1. The priority of the
                           grant. Grants with higher priority are applied first. Priority is a positive
                           decimal numbers. With lower numbers indicating higher importance. For
@@ -3246,6 +3263,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         _request = build_list_ledger_grants_by_ledger_request(
             ledger_id=ledger_id,
             limit=limit,
+            include_voids=include_voids,
             headers=_headers,
             params=_params,
         )
@@ -3316,6 +3334,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "metadata": {
                         "str": "str"  # Optional. Dictionary of :code:`<string>`.
                     },
+                    "parentId": "str",  # Optional. The parent grant ULID that the grant is
+                      associated with, if any.
                     "priority": 1,  # Optional. Default value is 1. The priority of the grant.
                       Grants with higher priority are applied first. Priority is a positive decimal
                       numbers. With lower numbers indicating higher importance. For example, a priority
@@ -3349,9 +3369,11 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "featureID": "str",  # The unique feature ULID that the grant is associated
                       with, if any. Required.
                     "id": "str",  # Readonly unique ULID identifier of the grant. Required.
-                    "subject": "str",  # The subject to grant the amount to. Required.
+                    "ledgerID": "str",  # The ledger ID. Required.
                     "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
                       amount in the unit of the associated meter. Required. "USAGE"
+                    "void": bool,  # If the grant is voided, it will not be applied to the
+                      subject's balance anymore. Required.
                     "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant was
                       created.
                     "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
@@ -3359,6 +3381,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "metadata": {
                         "str": "str"  # Optional. Dictionary of :code:`<string>`.
                     },
+                    "parentId": "str",  # Optional. The parent grant ULID that the grant is
+                      associated with, if any.
                     "priority": 1,  # Optional. Default value is 1. The priority of the grant.
                       Grants with higher priority are applied first. Priority is a positive decimal
                       numbers. With lower numbers indicating higher importance. For example, a priority
@@ -3416,9 +3440,11 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "featureID": "str",  # The unique feature ULID that the grant is associated
                       with, if any. Required.
                     "id": "str",  # Readonly unique ULID identifier of the grant. Required.
-                    "subject": "str",  # The subject to grant the amount to. Required.
+                    "ledgerID": "str",  # The ledger ID. Required.
                     "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
                       amount in the unit of the associated meter. Required. "USAGE"
+                    "void": bool,  # If the grant is voided, it will not be applied to the
+                      subject's balance anymore. Required.
                     "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant was
                       created.
                     "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
@@ -3426,6 +3452,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "metadata": {
                         "str": "str"  # Optional. Dictionary of :code:`<string>`.
                     },
+                    "parentId": "str",  # Optional. The parent grant ULID that the grant is
+                      associated with, if any.
                     "priority": 1,  # Optional. Default value is 1. The priority of the grant.
                       Grants with higher priority are applied first. Priority is a positive decimal
                       numbers. With lower numbers indicating higher importance. For example, a priority
@@ -3484,6 +3512,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "metadata": {
                         "str": "str"  # Optional. Dictionary of :code:`<string>`.
                     },
+                    "parentId": "str",  # Optional. The parent grant ULID that the grant is
+                      associated with, if any.
                     "priority": 1,  # Optional. Default value is 1. The priority of the grant.
                       Grants with higher priority are applied first. Priority is a positive decimal
                       numbers. With lower numbers indicating higher importance. For example, a priority
@@ -3517,9 +3547,11 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "featureID": "str",  # The unique feature ULID that the grant is associated
                       with, if any. Required.
                     "id": "str",  # Readonly unique ULID identifier of the grant. Required.
-                    "subject": "str",  # The subject to grant the amount to. Required.
+                    "ledgerID": "str",  # The ledger ID. Required.
                     "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
                       amount in the unit of the associated meter. Required. "USAGE"
+                    "void": bool,  # If the grant is voided, it will not be applied to the
+                      subject's balance anymore. Required.
                     "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant was
                       created.
                     "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
@@ -3527,6 +3559,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "metadata": {
                         "str": "str"  # Optional. Dictionary of :code:`<string>`.
                     },
+                    "parentId": "str",  # Optional. The parent grant ULID that the grant is
+                      associated with, if any.
                     "priority": 1,  # Optional. Default value is 1. The priority of the grant.
                       Grants with higher priority are applied first. Priority is a positive decimal
                       numbers. With lower numbers indicating higher importance. For example, a priority
@@ -3634,9 +3668,11 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "featureID": "str",  # The unique feature ULID that the grant is associated
                       with, if any. Required.
                     "id": "str",  # Readonly unique ULID identifier of the grant. Required.
-                    "subject": "str",  # The subject to grant the amount to. Required.
+                    "ledgerID": "str",  # The ledger ID. Required.
                     "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
                       amount in the unit of the associated meter. Required. "USAGE"
+                    "void": bool,  # If the grant is voided, it will not be applied to the
+                      subject's balance anymore. Required.
                     "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant was
                       created.
                     "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
@@ -3644,6 +3680,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "metadata": {
                         "str": "str"  # Optional. Dictionary of :code:`<string>`.
                     },
+                    "parentId": "str",  # Optional. The parent grant ULID that the grant is
+                      associated with, if any.
                     "priority": 1,  # Optional. Default value is 1. The priority of the grant.
                       Grants with higher priority are applied first. Priority is a positive decimal
                       numbers. With lower numbers indicating higher importance. For example, a priority
