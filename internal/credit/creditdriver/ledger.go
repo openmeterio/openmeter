@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -136,11 +137,7 @@ func (b *builder) GetLedgerHistory() GetLedgerHistoryHandler {
 }
 
 func mapLedgerEntry(entry credit.LedgerEntry) api.LedgerEntry {
-	var entryId *string
 	var period *api.Period
-	if entry.ID != nil {
-		entryId = (*string)(entry.ID)
-	}
 	if entry.Period != nil {
 		period = &api.Period{
 			From: entry.Period.From,
@@ -148,7 +145,7 @@ func mapLedgerEntry(entry credit.LedgerEntry) api.LedgerEntry {
 		}
 	}
 	return api.LedgerEntry{
-		Id:        entryId,
+		Id:        convert.ToStringLike[credit.GrantID, string](entry.ID),
 		Type:      api.LedgerEntryType(entry.Type),
 		Time:      entry.Time,
 		FeatureID: string(defaultx.WithDefault(entry.FeatureID, credit.FeatureID(""))),

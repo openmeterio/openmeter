@@ -302,26 +302,7 @@ func mapGrantToAPI(grant credit.Grant) api.LedgerGrantResponse {
 }
 
 func mapGrantWithBalanceToAPI(grant credit.Grant) api.LedgerGrantResponse {
-	priority := int(grant.Priority)
-
-	return api.LedgerGrantResponse{
-		Amount:      grant.Amount,
-		CreatedAt:   grant.CreatedAt,
-		EffectiveAt: grant.EffectiveAt,
-		Expiration: &api.LedgerGrantExpirationPeriod{
-			Count:    int(grant.Expiration.Count),
-			Duration: api.LedgerGrantExpirationPeriodDuration(grant.Expiration.Duration),
-		},
-		ExpiresAt: &grant.ExpiresAt,
-		FeatureID: string(defaultx.WithDefault(grant.FeatureID, credit.FeatureID(""))),
-		Id:        (*string)(grant.ID),
-		LedgerID:  string(grant.LedgerID),
-		Metadata:  &grant.Metadata,
-		ParentId:  (*string)(grant.ParentID),
-		Priority:  &priority,
-		Rollover:  grant.Rollover,
-		Type:      api.LedgerGrantType(grant.Type),
-		UpdatedAt: grant.UpdatedAt,
-		Void:      &grant.Void,
-	}
+	res := mapGrantToAPI(grant)
+	res.LedgerID = string(grant.LedgerID)
+	return res
 }

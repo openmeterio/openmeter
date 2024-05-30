@@ -625,6 +625,7 @@ func TestCredit(t *testing.T) {
 			Type:        api.LedgerGrantTypeUsage,
 			FeatureID:   *featureId,
 			Amount:      100,
+			LedgerID:    string(ledgerID),
 			Priority:    &priority,
 			EffectiveAt: effectiveAt,
 			Rollover: &api.LedgerGrantRollover{
@@ -697,6 +698,7 @@ func TestCredit(t *testing.T) {
 					},
 					ExpiresAt: grant.ExpiresAt,
 					FeatureID: *feature.Id,
+					ParentId:  grant.ParentId,
 					Metadata:  grant.Metadata,
 					Priority:  grant.Priority,
 					Rollover:  grant.Rollover,

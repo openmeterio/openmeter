@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -88,14 +89,10 @@ func mapBalanceToAPI(balance credit.Balance, highwatermark credit.HighWatermark)
 }
 
 func mapFeatureBalanceToAPI(featureBalance credit.FeatureBalance) api.FeatureBalance {
-	id := new(string)
-	if featureBalance.ID != nil {
-		*id = string(*featureBalance.ID)
-	}
 	return api.FeatureBalance{
 		Archived:            featureBalance.Archived,
 		CreatedAt:           featureBalance.CreatedAt,
-		Id:                  id,
+		Id:                  convert.ToStringLike[credit.FeatureID, string](featureBalance.ID),
 		MeterGroupByFilters: featureBalance.MeterGroupByFilters,
 		MeterSlug:           featureBalance.MeterSlug,
 		Name:                featureBalance.Name,
@@ -106,14 +103,6 @@ func mapFeatureBalanceToAPI(featureBalance credit.FeatureBalance) api.FeatureBal
 }
 
 func mapGrantBalanceToAPI(grantBalance credit.GrantBalance) api.LedgerGrantBalance {
-	var id *string
-	if grantBalance.ID != nil {
-		*id = string(*grantBalance.ID)
-	}
-	var parentId *string
-	if grantBalance.ParentID != nil {
-		*parentId = string(*grantBalance.ParentID)
-	}
 	priority := int(grantBalance.Priority)
 
 	return api.LedgerGrantBalance{
@@ -127,9 +116,9 @@ func mapGrantBalanceToAPI(grantBalance credit.GrantBalance) api.LedgerGrantBalan
 		},
 		ExpiresAt: &grantBalance.ExpiresAt,
 		FeatureID: string(*grantBalance.FeatureID),
-		Id:        id,
+		Id:        convert.ToStringLike[credit.GrantID, string](grantBalance.ID),
 		Metadata:  &grantBalance.Metadata,
-		ParentId:  parentId,
+		ParentId:  convert.ToStringLike[credit.GrantID, string](grantBalance.ParentID),
 		Priority:  &priority,
 		Rollover:  grantBalance.Rollover,
 		Type:      api.LedgerGrantType(grantBalance.Type),
