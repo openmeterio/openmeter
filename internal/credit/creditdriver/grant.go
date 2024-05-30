@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -278,8 +279,6 @@ func (b *builder) GetLedgerGrant() GetLedgerGrantHandler {
 }
 
 func mapGrantToAPI(grant credit.Grant) api.LedgerGrantResponse {
-	priority := int(grant.Priority)
-
 	return api.LedgerGrantResponse{
 		Amount:      grant.Amount,
 		CreatedAt:   grant.CreatedAt,
@@ -293,7 +292,7 @@ func mapGrantToAPI(grant credit.Grant) api.LedgerGrantResponse {
 		Id:        (*string)(grant.ID),
 		Metadata:  &grant.Metadata,
 		ParentId:  (*string)(grant.ParentID),
-		Priority:  &priority,
+		Priority:  convert.ToPointer(int(grant.Priority)),
 		Rollover:  grant.Rollover,
 		Type:      api.LedgerGrantType(grant.Type),
 		UpdatedAt: grant.UpdatedAt,
