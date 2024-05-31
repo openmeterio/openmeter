@@ -2,6 +2,7 @@ package postgres_connector
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"testing"
 	"time"
@@ -662,6 +663,418 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			},
 		},
 		{
+			name:        "Should not calculate usage twice",
+			description: `We should not calculate usage twice when multiple grants were issued for the same period.`,
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
+				start, err := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
+				assert.NoError(t, err)
+				subject := ulid.Make().String()
+				ledgerID := credit.LedgerID(ulid.Make().String())
+
+				// Create Ledger
+				ledger, err := connector.CreateLedger(context.Background(), credit.Ledger{
+					Namespace: namespace,
+					ID:        ledgerID,
+					Subject:   subject,
+					CreatedAt: start,
+				})
+				assert.NoError(t, err)
+
+				// Register Usage
+				usage1 := models.MeterQueryRow{
+					Value:       1,
+					WindowStart: start,
+					WindowEnd:   start.Add(time.Minute),
+					GroupBy:     map[string]*string{},
+				}
+				streamingConnector.addRow(meter1.Slug, usage1)
+
+				usage2 := models.MeterQueryRow{
+					Value:       1,
+					WindowStart: start.Add(time.Minute),
+					WindowEnd:   start.Add(time.Minute * 2),
+					GroupBy:     map[string]*string{},
+				}
+				streamingConnector.addRow(meter1.Slug, usage2)
+
+				at10s := start.Add(time.Second * 10)
+				at20s := start.Add(time.Second * 20)
+				at1m := start.Add(time.Minute)
+				at1m10s := start.Add(time.Minute).Add(time.Second * 10)
+
+				// Create Feature & Grant
+				feature := test_helpers.CreateFeature(t, connector, featureIn1)
+				grant1, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: at10s,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &at10s,
+					UpdatedAt: &at10s,
+				})
+
+				assert.NoError(t, err)
+				grant2, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: at20s,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &at20s,
+					UpdatedAt: &at20s,
+				})
+
+				assert.NoError(t, err)
+				grant3, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: at1m,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &at1m,
+					UpdatedAt: &at1m,
+				})
+
+				assert.NoError(t, err)
+				grant4, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: at1m10s,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &at10s,
+					UpdatedAt: &at10s,
+				})
+
+				assert.NoError(t, err)
+
+				// Get Balance
+				balance, err := connector.GetBalance(context.Background(), credit.NewNamespacedLedgerID(namespace, ledger.ID), start.Add(time.Minute))
+				assert.NoError(t, err)
+
+				featureBalance := balance.FeatureBalances[0].Balance
+				grantedAmount := grant1.Amount + grant2.Amount + grant3.Amount + grant4.Amount
+				usedAmount := 1.0
+
+				assert.Equal(t, grantedAmount-usedAmount, featureBalance)
+			},
+		},
+		{
+			name:        "Balance should be consistent accross usage periods",
+			description: `Usage numbers read should be consistent accross resets. If you add up the calculated usage for each period it should be equal to the sum of the usage reported.`,
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
+				start, err := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
+				assert.NoError(t, err)
+				subject := ulid.Make().String()
+				ledgerID := credit.LedgerID(ulid.Make().String())
+
+				// Create Ledger
+				ledger, err := connector.CreateLedger(context.Background(), credit.Ledger{
+					Namespace: namespace,
+					ID:        ledgerID,
+					Subject:   subject,
+					CreatedAt: start,
+				})
+				assert.NoError(t, err)
+
+				feature := test_helpers.CreateFeature(t, connector, featureIn1)
+
+				resetTime := start.Add(time.Hour).Add(time.Second * 30)
+				resetTimeTruncated := resetTime.Truncate(time.Minute)
+
+				grant1Time := resetTime.Add(-time.Minute)
+				// Register Usage & Grant for First Usage Period
+				grant1, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: grant1Time,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &grant1Time,
+					UpdatedAt: &grant1Time,
+				})
+				assert.NoError(t, err)
+
+				periodOneUsage1 := models.MeterQueryRow{
+					Value:       1,
+					WindowStart: resetTimeTruncated,
+					WindowEnd:   resetTimeTruncated.Add(time.Minute),
+					GroupBy:     map[string]*string{},
+				}
+				streamingConnector.addRow(meter1.Slug, periodOneUsage1)
+
+				// Get Balance at very end of period one
+				balance, err := connector.GetBalance(context.Background(), credit.NewNamespacedLedgerID(namespace, ledger.ID), resetTime)
+				assert.NoError(t, err)
+
+				periodOneBalance := balance.FeatureBalances[0].Balance
+				periodOneGranted := grant1.Amount
+				periodOneUsage := periodOneGranted - periodOneBalance
+
+				assert.Equal(t, periodOneUsage, 1.0)
+
+				//
+				//
+				// Start of Second Usage Period
+				//
+				//
+
+				_, _, err = connector.Reset(context.Background(), credit.Reset{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					EffectiveAt: resetTime,
+				})
+				assert.NoError(t, err)
+
+				// Register Usage & Grant for Second Usage Period
+				grant2Time := resetTime.Add(time.Second * 5)
+				grant3Time := resetTime.Add(time.Minute).Add(time.Second * 5)
+
+				periodTwoUsage1 := models.MeterQueryRow{
+					Value:       2,
+					WindowStart: periodOneUsage1.WindowStart,
+					WindowEnd:   periodOneUsage1.WindowEnd,
+					GroupBy:     map[string]*string{},
+				}
+				err = streamingConnector.setRows(meter1.Slug, func(_ []models.MeterQueryRow) []models.MeterQueryRow {
+					return []models.MeterQueryRow{periodTwoUsage1}
+				})
+				assert.NoError(t, err)
+
+				grant2, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: grant2Time,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &grant2Time,
+					UpdatedAt: &grant2Time,
+				})
+				assert.NoError(t, err)
+
+				periodTwoUsage2 := models.MeterQueryRow{
+					Value:       1,
+					WindowStart: resetTimeTruncated.Add(time.Minute),
+					WindowEnd:   resetTimeTruncated.Add(time.Minute * 2),
+					GroupBy:     map[string]*string{},
+				}
+				streamingConnector.addRow(meter1.Slug, periodTwoUsage2)
+
+				grant3, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: grant3Time,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &grant3Time,
+					UpdatedAt: &grant3Time,
+				})
+				assert.NoError(t, err)
+
+				// Get Balance well into period two
+				balance, err = connector.GetBalance(context.Background(), credit.NewNamespacedLedgerID(namespace, ledger.ID), resetTime.Add(time.Hour))
+				assert.NoError(t, err)
+
+				periodTwoBalance := balance.FeatureBalances[0].Balance
+				periodTwoGranted := grant2.Amount + grant3.Amount
+				periodTwoUsage := periodTwoGranted - periodTwoBalance
+
+				assert.Equal(t, periodTwoUsage, 2.0)
+
+				// Total Usage should be equal to the sum of the two periods
+				totalUsage := periodOneUsage + periodTwoUsage
+				assert.Equal(t, totalUsage, periodOneUsage1.Value+periodTwoUsage1.Value+periodTwoUsage2.Value)
+			},
+		},
+		{
+			name:        "Balance should be consistent accross usage periods",
+			description: `Usage numbers read should be consistent accross resets. If you add up the calculated usage for each period it should be equal to the sum of the usage reported.`,
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
+				start, err := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
+				assert.NoError(t, err)
+				subject := ulid.Make().String()
+				ledgerID := credit.LedgerID(ulid.Make().String())
+
+				// Create Ledger
+				ledger, err := connector.CreateLedger(context.Background(), credit.Ledger{
+					Namespace: namespace,
+					ID:        ledgerID,
+					Subject:   subject,
+					CreatedAt: start,
+				})
+				assert.NoError(t, err)
+
+				feature := test_helpers.CreateFeature(t, connector, featureIn1)
+
+				resetTime := start.Add(time.Hour).Add(time.Second * 30)
+				resetTimeTruncated := resetTime.Truncate(time.Minute)
+
+				grant1Time := resetTime.Add(-time.Minute)
+				// Register Usage & Grant for First Usage Period
+				grant1, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: grant1Time,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &grant1Time,
+					UpdatedAt: &grant1Time,
+				})
+				assert.NoError(t, err)
+
+				periodOneUsage1 := models.MeterQueryRow{
+					Value:       1,
+					WindowStart: resetTimeTruncated,
+					WindowEnd:   resetTimeTruncated.Add(time.Minute),
+					GroupBy:     map[string]*string{},
+				}
+				streamingConnector.addRow(meter1.Slug, periodOneUsage1)
+
+				// Get Balance at very end of period one
+				balance, err := connector.GetBalance(context.Background(), credit.NewNamespacedLedgerID(namespace, ledger.ID), resetTime)
+				assert.NoError(t, err)
+
+				periodOneBalance := balance.FeatureBalances[0].Balance
+				periodOneGranted := grant1.Amount
+				periodOneUsage := periodOneGranted - periodOneBalance
+
+				assert.Equal(t, periodOneUsage, 1.0)
+
+				//
+				//
+				// Start of Second Usage Period
+				//
+				//
+
+				_, _, err = connector.Reset(context.Background(), credit.Reset{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					EffectiveAt: resetTime,
+				})
+				assert.NoError(t, err)
+
+				// Register Usage & Grant for Second Usage Period
+				grant2Time := resetTime.Add(time.Second * 5)
+				grant3Time := resetTime.Add(time.Minute).Add(time.Second * 5)
+
+				periodTwoUsage1 := models.MeterQueryRow{
+					Value:       2,
+					WindowStart: periodOneUsage1.WindowStart,
+					WindowEnd:   periodOneUsage1.WindowEnd,
+					GroupBy:     map[string]*string{},
+				}
+				err = streamingConnector.setRows(meter1.Slug, func(_ []models.MeterQueryRow) []models.MeterQueryRow {
+					return []models.MeterQueryRow{periodTwoUsage1}
+				})
+				assert.NoError(t, err)
+
+				grant2, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: grant2Time,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &grant2Time,
+					UpdatedAt: &grant2Time,
+				})
+				assert.NoError(t, err)
+
+				periodTwoUsage2 := models.MeterQueryRow{
+					Value:       1,
+					WindowStart: resetTimeTruncated.Add(time.Minute),
+					WindowEnd:   resetTimeTruncated.Add(time.Minute * 2),
+					GroupBy:     map[string]*string{},
+				}
+				streamingConnector.addRow(meter1.Slug, periodTwoUsage2)
+
+				grant3, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: grant3Time,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &grant3Time,
+					UpdatedAt: &grant3Time,
+				})
+				assert.NoError(t, err)
+
+				// Get Balance well into period two
+				balance, err = connector.GetBalance(context.Background(), credit.NewNamespacedLedgerID(namespace, ledger.ID), resetTime.Add(time.Hour))
+				assert.NoError(t, err)
+
+				periodTwoBalance := balance.FeatureBalances[0].Balance
+				periodTwoGranted := grant2.Amount + grant3.Amount
+				periodTwoUsage := periodTwoGranted - periodTwoBalance
+
+				assert.Equal(t, periodTwoUsage, 2.0)
+
+				// Total Usage should be equal to the sum of the two periods
+				totalUsage := periodOneUsage + periodTwoUsage
+				assert.Equal(t, totalUsage, periodOneUsage1.Value+periodTwoUsage1.Value+periodTwoUsage2.Value)
+			},
+		},
+		{
 			name:        "Should burn down grant created in same minute as usage was reported",
 			description: `If usage is reported within the same minute as the grant is created, the grant should be burned down. Testing with priority.`,
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
@@ -812,16 +1225,16 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				balance, err := connector.GetBalance(context.Background(), credit.NewNamespacedLedgerID(namespace, ledger.ID), start.Add(time.Minute*5))
 				assert.NoError(t, err)
 
-				var grant2FromBalance *credit.GrantBalance
+				var grantFromBalance *credit.GrantBalance
 				for _, gb := range balance.GrantBalances {
 
 					if *gb.Grant.ID == *grant.ID {
-						grant2FromBalance = &gb
+						grantFromBalance = &gb
 					}
 				}
-				assert.NotNil(t, grant2FromBalance)
+				assert.NotNil(t, grantFromBalance)
 
-				grantBalance := grant2FromBalance.Balance
+				grantBalance := grantFromBalance.Balance
 				usedAmount := usage1.Value
 
 				// grant should be burnt down
@@ -1054,6 +1467,14 @@ func (m *mockStreamingConnector) addRow(meterSlug string, row models.MeterQueryR
 	m.rows[meterSlug] = append(m.rows[meterSlug], row)
 }
 
+func (m *mockStreamingConnector) setRows(meterSlug string, fn func(rows []models.MeterQueryRow) []models.MeterQueryRow) error {
+	if _, ok := m.rows[meterSlug]; !ok {
+		return fmt.Errorf("Meter not found")
+	}
+	m.rows[meterSlug] = fn(m.rows[meterSlug])
+	return nil
+}
+
 func (m *mockStreamingConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
 	return []api.IngestedEvent{}, nil
 }
@@ -1073,7 +1494,7 @@ func (m *mockStreamingConnector) QueryMeter(ctx context.Context, namespace strin
 	}
 
 	for _, row := range m.rows[meterSlug] {
-		if (row.WindowStart.Equal(*params.From) || row.WindowStart.After(*params.From)) && (row.WindowEnd.Equal(*params.To) || row.WindowEnd.Before(*params.To)) {
+		if row.WindowStart.Equal(*params.From) && row.WindowEnd.Equal(*params.To) {
 			rows = append(rows, row)
 		}
 	}
