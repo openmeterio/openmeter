@@ -30,7 +30,7 @@ jobs:
           verb: call
           args: --source .:default generate web-sdk -o api/client/web
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: "0.11.4"
+          version: "0.11.6"
 
       - name: Open pull request
         uses: peter-evans/create-pull-request@v6
