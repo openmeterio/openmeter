@@ -120,7 +120,7 @@ func (m *Binary) Api(
 }
 
 func (m *Binary) api(platform Platform, version string) *File {
-	return m.buildCross(platform, version, "./cmd/server")
+	return m.buildCross(platform, version, "./cmd/server").WithName("server")
 }
 
 // Build the sink worker binary.
@@ -133,7 +133,7 @@ func (m *Binary) SinkWorker(
 }
 
 func (m *Binary) sinkWorker(platform Platform, version string) *File {
-	return m.buildCross(platform, version, "./cmd/sink-worker")
+	return m.buildCross(platform, version, "./cmd/sink-worker").WithName("sink-worker")
 }
 
 func (m *Binary) buildCross(platform Platform, version string, pkg string) *File {
@@ -141,30 +141,23 @@ func (m *Binary) buildCross(platform Platform, version string, pkg string) *File
 		version = "unknown"
 	}
 
-	goContainer := dag.Go(GoOpts{
-		Container: goModule().
-			WithEnvVariable("TARGETPLATFORM", string(platform)).
-			WithCgoEnabled().
-			Container().
-			WithDirectory("/", dag.Container().From(xxBaseImage).Rootfs()).
-			WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "make", "git", "curl", "clang", "lld"}).
-			WithExec([]string{"xx-apk", "add", "--update", "--no-cache", "musl-dev", "gcc"}).
-			WithExec([]string{"xx-go", "--wrap"}),
-	})
+	goMod := goModuleCross(platform)
 
-	binary := goContainer.
+	binary := goMod.
 		WithSource(m.Source).
 		Build(GoWithSourceBuildOpts{
 			Pkg:      pkg,
 			Trimpath: true,
 			Tags:     []string{"musl"},
-			RawArgs: []string{
-				"-ldflags",
-				"-s -w -linkmode external -extldflags \"-static\" -X main.version=" + version,
+			Ldflags: []string{
+				"-s", "-w",
+				"-linkmode", "external",
+				"-extldflags", `"-static"`,
+				"-X", "main.version=" + version,
 			},
 		})
 
-	return goContainer.
+	return goMod.
 		Container().
 		WithFile("/out/binary", binary).
 		WithExec([]string{"xx-verify", "/out/binary"}).
@@ -181,7 +174,7 @@ func (m *Binary) BenthosCollector(
 }
 
 func (m *Binary) benthosCollector(platform Platform, version string) *File {
-	return m.build(platform, version, "./cmd/benthos-collector")
+	return m.build(platform, version, "./cmd/benthos-collector").WithName("benthos")
 }
 
 func (m *Binary) build(platform Platform, version string, pkg string) *File {
@@ -193,12 +186,11 @@ func (m *Binary) build(platform Platform, version string, pkg string) *File {
 		WithSource(m.Source).
 		WithPlatform(platform).
 		Build(GoWithSourceBuildOpts{
-			Name:     "benthos",
 			Pkg:      pkg,
 			Trimpath: true,
-			RawArgs: []string{
-				"-ldflags",
-				"-s -w -X main.version=" + version,
+			Ldflags: []string{
+				"-s", "-w",
+				"-X", "main.version=" + version,
 			},
 		})
 }
@@ -207,6 +199,19 @@ func goModule() *Go {
 	return dag.Go(GoOpts{Version: goBuildVersion}).
 		WithModuleCache(dag.CacheVolume("openmeter-go-mod-v2")).
 		WithBuildCache(dag.CacheVolume("openmeter-go-build-v2"))
+}
+
+func goModuleCross(platform Platform) *Go {
+	container := goModule().
+		WithCgoEnabled(). // TODO: set env var instead?
+		Container().
+		WithEnvVariable("TARGETPLATFORM", string(platform)).
+		WithDirectory("/", dag.Container().From(xxBaseImage).Rootfs()).
+		WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "make", "git", "curl", "clang", "lld"}).
+		WithExec([]string{"xx-apk", "add", "--update", "--no-cache", "musl-dev", "gcc"}).
+		WithExec([]string{"xx-go", "--wrap"})
+
+	return dag.Go(GoOpts{Container: container})
 }
 
 func (m *Build) HelmChart(
