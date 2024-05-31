@@ -10,6 +10,7 @@ import (
 	db_ledger "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
 )
 
+// This is probably a bad idea to have a hardcoded start date since which we consider usage.
 var defaultHighwatermark, _ = time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
 
 // GetHighWatermark returns the high watermark for the given credit and subject pair.

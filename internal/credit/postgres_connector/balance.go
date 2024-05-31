@@ -106,7 +106,11 @@ func (a *PostgresConnector) getBalance(
 	// We need to do this to burn down grants in the correct order.
 
 	// Find pivot dates first (effective and expiration dates in range)
-	dates := []time.Time{}
+	startDate := from
+	if ledger.CreatedAt.After(from) {
+		startDate = ledger.CreatedAt
+	}
+	dates := []time.Time{startDate}
 	grantBalances := []credit.GrantBalance{}
 	for _, grant := range grants {
 		if grant.Void {
@@ -190,7 +194,7 @@ func (a *PostgresConnector) getBalance(
 			if expiresAt.Before(period.From) {
 				continue
 			}
-			if grantBalance.EffectiveAt.After(period.To) {
+			if grantBalance.EffectiveAt.After(period.To.Truncate(time.Minute)) {
 				continue
 			}
 
@@ -217,7 +221,8 @@ func (a *PostgresConnector) getBalance(
 				// TODO: do we want this to be settable in ledger
 				FilterSubject: []string{ledger.Subject},
 			}
-			queryParams.From = &period.From
+			fromMinute := period.From.Truncate(time.Minute)
+			queryParams.From = &fromMinute
 			queryParams.To = &period.To
 			queryParams.Aggregation = meter.Aggregation
 
