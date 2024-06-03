@@ -36,7 +36,7 @@ type MockStreamingConnector struct {
 	params MockStreamingConnectorParams
 }
 
-func (m *MockStreamingConnector) AddResponse(meterSlug string, value float64, at time.Time) {
+func (m *MockStreamingConnector) AddSimpleEvent(meterSlug string, value float64, at time.Time) {
 	m.events[meterSlug] = append(m.events[meterSlug], SimpleEvent{
 		MeterSlug: meterSlug,
 		Value:     value,
@@ -44,7 +44,7 @@ func (m *MockStreamingConnector) AddResponse(meterSlug string, value float64, at
 	})
 }
 
-func (m *MockStreamingConnector) SetResponses(meterSlug string, fn func(events []SimpleEvent) []SimpleEvent) {
+func (m *MockStreamingConnector) SetSimpleEvents(meterSlug string, fn func(events []SimpleEvent) []SimpleEvent) {
 	if _, ok := m.events[meterSlug]; !ok {
 		m.events[meterSlug] = []SimpleEvent{}
 	}
@@ -107,7 +107,7 @@ func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params *strea
 
 		if (eventWindowStart.After(from) || eventWindowStart.Equal(from)) &&
 			(eventWindowEnd.Before(to) || eventWindowEnd.Equal(to)) {
-			// Add support for more aggregation types
+			// TODO: Add support for more aggregation types
 			value += row.Value
 		}
 	}
