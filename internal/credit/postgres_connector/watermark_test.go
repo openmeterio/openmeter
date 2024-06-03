@@ -9,8 +9,11 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
+	om_testutils "github.com/openmeterio/openmeter/internal/testutils"
+
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/testutils"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -22,12 +25,12 @@ func TestWatermark(t *testing.T) {
 	tt := []struct {
 		name        string
 		description string
-		test        func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client)
+		test        func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client)
 	}{
 		{
 			name:        "GetHighWatermark",
 			description: "Should return highwatermark",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 
@@ -59,7 +62,7 @@ func TestWatermark(t *testing.T) {
 		{
 			name:        "GetDefaultHighWatermark",
 			description: "Should return default highwatermark",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
 				ctx := context.Background()
 
 				ledger, err := connector.CreateLedger(ctx, credit.Ledger{
@@ -81,7 +84,7 @@ func TestWatermark(t *testing.T) {
 		{
 			name:        "checkAfterHighWatermark",
 			description: "Should check if time is after high watermark",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client) {
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 				t3, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:03:00Z", time.UTC)
@@ -114,12 +117,15 @@ func TestWatermark(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.description)
-			driver := initDB(t)
+			driver := om_testutils.InitPostgresDB(t)
 			databaseClient := db.NewClient(db.Driver(driver))
 			defer databaseClient.Close()
 
+			old, err := time.Parse(time.RFC3339, "2020-01-01T00:00:00Z")
+			assert.NoError(t, err)
+
 			// Note: lock manager cannot be shared between tests as these parallel tests write the same ledger
-			streamingConnector := newMockStreamingConnector()
+			streamingConnector := testutils.NewMockStreamingConnector(t, testutils.MockStreamingConnectorParams{DefaultHighwatermark: old})
 			meterRepository := meter_model.NewInMemoryRepository([]models.Meter{})
 			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository)
 

@@ -5,12 +5,16 @@ import (
 	"log/slog"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
+	om_testutils "github.com/openmeterio/openmeter/internal/testutils"
+
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/testutils"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -22,12 +26,12 @@ func TestTransaction(t *testing.T) {
 	tt := []struct {
 		name        string
 		description string
-		test        func(t *testing.T, connector PostgresConnector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger)
+		test        func(t *testing.T, connector PostgresConnector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client, ledger credit.Ledger)
 	}{
 		{
 			name:        "Lock",
 			description: "Should manage locks correctly",
-			test: func(t *testing.T, connector PostgresConnector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
+			test: func(t *testing.T, connector PostgresConnector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
 
 				ledgerID := credit.NamespacedLedgerID{
@@ -87,7 +91,7 @@ func TestTransaction(t *testing.T) {
 		{
 			name:        "LockWithCancel",
 			description: "Should respect context cancel in locks",
-			test: func(t *testing.T, connector PostgresConnector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
+			test: func(t *testing.T, connector PostgresConnector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
 				ledgerID := credit.NamespacedLedgerID{
 					Namespace: namespace,
@@ -117,12 +121,15 @@ func TestTransaction(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.description)
-			driver := initDB(t)
+			driver := om_testutils.InitPostgresDB(t)
 			databaseClient := db.NewClient(db.Driver(driver))
 			defer databaseClient.Close()
 
+			old, err := time.Parse(time.RFC3339, "2020-01-01T00:00:00Z")
+			assert.NoError(t, err)
+
 			// Note: lock manager cannot be shared between tests as these parallel tests write the same ledger
-			streamingConnector := newMockStreamingConnector()
+			streamingConnector := testutils.NewMockStreamingConnector(t, testutils.MockStreamingConnectorParams{DefaultHighwatermark: old})
 			connector := PostgresConnector{
 				logger:             slog.Default(),
 				db:                 databaseClient,

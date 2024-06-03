@@ -9,9 +9,11 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
+	om_testutils "github.com/openmeterio/openmeter/internal/testutils"
+
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/test_helpers"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/testutils"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -34,14 +36,14 @@ func TestPostgresConnectorReset(t *testing.T) {
 	tt := []struct {
 		name        string
 		description string
-		test        func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger)
+		test        func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client, ledger credit.Ledger)
 	}{
 		{
 			name:        "Reset",
 			description: "Should move high watermark ahead",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				feature := test_helpers.CreateFeature(t, connector, featureIn)
+				feature := testutils.CreateFeature(t, connector, featureIn)
 				// We need to truncate the time to workaround pgx driver timezone issue
 				// We also move it to the past to avoid timezone issues
 				t1 := time.Now().In(time.UTC).Truncate(time.Hour * 24).Add(-time.Hour * 24)
@@ -65,7 +67,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 
 				// We need to add a row to the streaming connector as we call balance in the reset
 				// even though there is no grant to rollover
-				streamingConnector.addRow(meter.Slug, models.MeterQueryRow{})
+				streamingConnector.AddRow(meter.Slug, models.MeterQueryRow{})
 
 				// Reset
 				reset, rolloverGrants, err := connector.Reset(ctx, credit.Reset{
@@ -103,9 +105,9 @@ func TestPostgresConnectorReset(t *testing.T) {
 		{
 			name:        "ResetWithFullRollover",
 			description: "Should rollover grants with original amount",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				feature := test_helpers.CreateFeature(t, connector, featureIn)
+				feature := testutils.CreateFeature(t, connector, featureIn)
 				// We need to truncate the time to workaround pgx driver timezone issue
 				t1 := time.Now().Truncate(time.Hour * 24)
 				t2 := t1.Add(time.Hour).Truncate(0)
@@ -131,7 +133,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 
 				// We need to add a row to the streaming connector as we call balance in the reset
 				// even though rollover grant is original amount
-				streamingConnector.addRow(meter.Slug, models.MeterQueryRow{})
+				streamingConnector.AddRow(meter.Slug, models.MeterQueryRow{})
 
 				// Reset
 				_, rolloverGrants, err := connector.Reset(ctx, credit.Reset{
@@ -153,17 +155,17 @@ func TestPostgresConnectorReset(t *testing.T) {
 
 				// Grants after reset should be the same as rollover grants
 				assert.Equal(t,
-					test_helpers.RemoveTimestampsFromGrants(rolloverGrants),
-					test_helpers.RemoveTimestampsFromGrants(grants),
+					testutils.RemoveTimestampsFromGrants(rolloverGrants),
+					testutils.RemoveTimestampsFromGrants(grants),
 				)
 			},
 		},
 		{
 			name:        "ResetWithRemainingRollover",
 			description: "Should rollover grants with remaining amount",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				feature := test_helpers.CreateFeature(t, connector, featureIn)
+				feature := testutils.CreateFeature(t, connector, featureIn)
 				// We need to truncate the time to workaround pgx driver timezone issue
 				t1 := time.Now().Truncate(time.Hour * 24)
 				t2 := t1.Add(time.Hour).Truncate(0)
@@ -188,7 +190,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 				assert.NoError(t, err)
 
 				usage := 1.0
-				streamingConnector.addRow(meter.Slug, models.MeterQueryRow{
+				streamingConnector.AddRow(meter.Slug, models.MeterQueryRow{
 					Value: usage,
 					// Grant 1's effective time is t1, so usage starts from t1
 					WindowStart: t1,
@@ -218,8 +220,8 @@ func TestPostgresConnectorReset(t *testing.T) {
 
 				// Assert: grants after reset should be the same as rollover grants
 				assert.Equal(t,
-					test_helpers.RemoveTimestampsFromGrants(rolloverGrants),
-					test_helpers.RemoveTimestampsFromGrants(grants),
+					testutils.RemoveTimestampsFromGrants(rolloverGrants),
+					testutils.RemoveTimestampsFromGrants(grants),
 				)
 			},
 		},
@@ -228,12 +230,15 @@ func TestPostgresConnectorReset(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.description)
-			driver := initDB(t)
+			driver := om_testutils.InitPostgresDB(t)
 			databaseClient := db.NewClient(db.Driver(driver))
 			defer databaseClient.Close()
 
+			old, err := time.Parse(time.RFC3339, "2020-01-01T00:00:00Z")
+			assert.NoError(t, err)
+
 			// Note: lock manager cannot be shared between tests as these parallel tests write the same ledger
-			streamingConnector := newMockStreamingConnector()
+			streamingConnector := testutils.NewMockStreamingConnector(t, testutils.MockStreamingConnectorParams{DefaultHighwatermark: old})
 			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository)
 
 			// let's provision a ledger

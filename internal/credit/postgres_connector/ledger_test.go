@@ -4,25 +4,32 @@ import (
 	"context"
 	"log/slog"
 	"testing"
+	"time"
 
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
+	om_testutils "github.com/openmeterio/openmeter/internal/testutils"
+
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/testutils"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestLedgerCreation(t *testing.T) {
 
-	driver := initDB(t)
+	driver := om_testutils.InitPostgresDB(t)
 	databaseClient := db.NewClient(db.Driver(driver))
 	defer databaseClient.Close()
 
 	meterRepository := meter.NewInMemoryRepository([]models.Meter{})
 
-	streamingConnector := newMockStreamingConnector()
+	old, err := time.Parse(time.RFC3339, "2020-01-01T00:00:00Z")
+	assert.NoError(t, err)
+
+	streamingConnector := testutils.NewMockStreamingConnector(t, testutils.MockStreamingConnectorParams{DefaultHighwatermark: old})
 	connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository)
 
 	ledgerSubject := ulid.Make().String() // ~ random string

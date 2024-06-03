@@ -9,9 +9,11 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
+	om_testutils "github.com/openmeterio/openmeter/internal/testutils"
+
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/test_helpers"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/testutils"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -35,14 +37,14 @@ func TestPostgresConnectorLedger(t *testing.T) {
 	tt := []struct {
 		name        string
 		description string
-		test        func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger)
+		test        func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client, ledger credit.Ledger)
 	}{
 		{
 			name:        "GetHistory",
 			description: "Should return ledger entries",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				feature := test_helpers.CreateFeature(t, connector, featureIn)
+				feature := testutils.CreateFeature(t, connector, featureIn)
 				// We need to truncate the time to workaround pgx driver timezone issue
 				// We also move it to the past to avoid timezone issues
 				t1 := time.Now().Truncate(time.Hour * 24).Add(-time.Hour * 24).In(time.UTC)
@@ -91,7 +93,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 				assert.NoError(t, err)
 
 				usage := 1.0
-				streamingConnector.addRow(meter.Slug, models.MeterQueryRow{
+				streamingConnector.AddRow(meter.Slug, models.MeterQueryRow{
 					Value: usage,
 					// Grant 1's effective time is t1, so usage starts from t1
 					WindowStart: t1,
@@ -168,13 +170,16 @@ func TestPostgresConnectorLedger(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.description)
-			driver := initDB(t)
+			driver := om_testutils.InitPostgresDB(t)
 			databaseClient := db.NewClient(db.Driver(driver))
 			defer databaseClient.Close()
 
+			old, err := time.Parse(time.RFC3339, "2020-01-01T00:00:00Z")
+			assert.NoError(t, err)
+
 			// Note: lock manager cannot be shared between tests as these parallel tests write the same ledger
-			streamingConnector := newMockStreamingConnector()
-			streamingConnector.addRow(meter.Slug, models.MeterQueryRow{
+			streamingConnector := testutils.NewMockStreamingConnector(t, testutils.MockStreamingConnectorParams{DefaultHighwatermark: old})
+			streamingConnector.AddRow(meter.Slug, models.MeterQueryRow{
 				Value: 0,
 			})
 			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository)

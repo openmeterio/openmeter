@@ -9,9 +9,11 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
+	om_testutils "github.com/openmeterio/openmeter/internal/testutils"
+
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/test_helpers"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/testutils"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -45,7 +47,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 			description: "Create a grant in the database",
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				p := test_helpers.CreateFeature(t, connector, features[0])
+				p := testutils.CreateFeature(t, connector, features[0])
 				grant := credit.Grant{
 					Namespace:   namespace,
 					LedgerID:    ledger.ID,
@@ -73,7 +75,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				// Calculate ExpirationAt
 				grant.ExpiresAt = grant.Expiration.GetExpiration(grant.EffectiveAt)
 
-				assert.Equal(t, test_helpers.RemoveTimestampsFromGrant(g), grant)
+				assert.Equal(t, testutils.RemoveTimestampsFromGrant(g), grant)
 			},
 		},
 		{
@@ -81,7 +83,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 			description: "Void a grant in the database and get the latest grant for an ID",
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				p := test_helpers.CreateFeature(t, connector, features[0])
+				p := testutils.CreateFeature(t, connector, features[0])
 				grant := credit.Grant{
 					Namespace:   namespace,
 					LedgerID:    ledger.ID,
@@ -100,7 +102,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				// should return the grant
 				g2, err := connector.GetGrant(ctx, credit.NewNamespacedGrantID(namespace, *g.ID))
 				assert.NoError(t, err)
-				test_helpers.AssertGrantsEqual(t, g, g2)
+				testutils.AssertGrantsEqual(t, g, g2)
 
 				// So that in postgres the created_at and updated_at are different
 				time.Sleep(1 * time.Millisecond)
@@ -109,7 +111,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				// should return the void grant
 				g3, err := connector.GetGrant(ctx, credit.NewNamespacedGrantID(namespace, *g.ID))
 				assert.NoError(t, err)
-				test_helpers.AssertGrantsEqual(t, v, g3)
+				testutils.AssertGrantsEqual(t, v, g3)
 				// assert count
 				assert.Equal(t, 2, db_client.CreditEntry.Query().CountX(ctx))
 				// assert fields
@@ -123,7 +125,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				assert.NotEmpty(t, *v.CreatedAt)
 				assert.NotEmpty(t, *v.UpdatedAt)
 
-				test_helpers.AssertGrantsEqual(t, v, grant)
+				testutils.AssertGrantsEqual(t, v, grant)
 			},
 		},
 		{
@@ -131,7 +133,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 			description: "Void a grant that does not exist",
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
-				p := test_helpers.CreateFeature(t, connector, features[0])
+				p := testutils.CreateFeature(t, connector, features[0])
 				id := credit.GrantID(ulid.MustNew(ulid.Now(), nil).String())
 				grant := credit.Grant{
 					Namespace:   namespace,
@@ -164,7 +166,7 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				assert.NoError(t, err)
 
 				ctx := context.Background()
-				p := test_helpers.CreateFeature(t, connector, features[0])
+				p := testutils.CreateFeature(t, connector, features[0])
 				grant_s1_1 := credit.Grant{
 					Namespace:   namespace,
 					LedgerID:    ledger1.ID,
@@ -220,8 +222,8 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				})
 				assert.NoError(t, err)
 				assert.ElementsMatch(t,
-					test_helpers.RemoveTimestampsFromGrants([]credit.Grant{grant_s1_2, grant_s2_1}),
-					test_helpers.RemoveTimestampsFromGrants(gs),
+					testutils.RemoveTimestampsFromGrants([]credit.Grant{grant_s1_2, grant_s2_1}),
+					testutils.RemoveTimestampsFromGrants(gs),
 				)
 				// ledger-1's non-void grants
 				gs, err = connector.ListGrants(ctx, credit.ListGrantsParams{
@@ -230,8 +232,8 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				})
 				assert.NoError(t, err)
 				assert.ElementsMatch(t,
-					test_helpers.RemoveTimestampsFromGrants([]credit.Grant{grant_s1_2}),
-					test_helpers.RemoveTimestampsFromGrants(gs),
+					testutils.RemoveTimestampsFromGrants([]credit.Grant{grant_s1_2}),
+					testutils.RemoveTimestampsFromGrants(gs),
 				)
 				// all ledger' grants, including void grants
 				gs, err = connector.ListGrants(ctx, credit.ListGrantsParams{
@@ -240,8 +242,8 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				})
 				assert.NoError(t, err)
 				assert.ElementsMatch(t,
-					test_helpers.RemoveTimestampsFromGrants([]credit.Grant{grant_s1_2, grant_s2_1, void_grant_s1_1}),
-					test_helpers.RemoveTimestampsFromGrants(gs),
+					testutils.RemoveTimestampsFromGrants([]credit.Grant{grant_s1_2, grant_s2_1, void_grant_s1_1}),
+					testutils.RemoveTimestampsFromGrants(gs),
 				)
 			},
 		},
@@ -250,13 +252,15 @@ func TestPostgresConnectorGrants(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.description)
-			driver := initDB(t)
+			driver := om_testutils.InitPostgresDB(t)
 			databaseClient := db.NewClient(db.Driver(driver))
 			defer databaseClient.Close()
 			// Note: lock manager cannot be shared between tests as these parallel tests write the same ledger
-			streamingConnector := newMockStreamingConnector()
+			old, err := time.Parse(time.RFC3339, "2020-01-01T00:00:00Z")
+			assert.NoError(t, err)
+			streamingConnector := testutils.NewMockStreamingConnector(t, testutils.MockStreamingConnectorParams{DefaultHighwatermark: old})
 			for _, meter := range meters {
-				streamingConnector.addRow(meter.Slug, models.MeterQueryRow{
+				streamingConnector.AddRow(meter.Slug, models.MeterQueryRow{
 					Value: 0,
 				})
 			}
