@@ -74,37 +74,22 @@ func (a *PostgresConnector) getBalance(
 
 	// Get features in grants
 	features := map[credit.FeatureID]credit.Feature{}
-	{
-		// We should displays features that'll have active balances in the next window
-		// to avoid confusion
-		toPlusWindow := to.Add(a.config.WindowSize)
-		grants, err := a.ListGrants(ctx, credit.ListGrantsParams{
-			Namespace:   ledger.Namespace,
-			LedgerIDs:   []credit.LedgerID{ledgerID.ID},
-			From:        &from,
-			To:          &toPlusWindow,
-			IncludeVoid: true,
-		})
-		if err != nil {
-			return credit.Balance{}, ledgerEntries, fmt.Errorf("list grants: %w", err)
+	for _, grant := range grants {
+		if grant.Void {
+			ledgerEntries.AddVoidGrant(grant)
+			continue
 		}
-		for _, grant := range grants {
-			if grant.Void {
-				ledgerEntries.AddVoidGrant(grant)
-				continue
-			}
 
-			ledgerEntries.AddGrant(grant)
+		ledgerEntries.AddGrant(grant)
 
-			if grant.FeatureID != nil {
-				featureID := *grant.FeatureID
-				if _, ok := features[featureID]; !ok {
-					feature, err := a.GetFeature(ctx, credit.NewNamespacedFeatureID(ledgerID.Namespace, featureID))
-					if err != nil {
-						return credit.Balance{}, ledgerEntries, fmt.Errorf("get feature: %w", err)
-					}
-					features[featureID] = feature
+		if grant.FeatureID != nil {
+			featureID := *grant.FeatureID
+			if _, ok := features[featureID]; !ok {
+				feature, err := a.GetFeature(ctx, credit.NewNamespacedFeatureID(ledgerID.Namespace, featureID))
+				if err != nil {
+					return credit.Balance{}, ledgerEntries, fmt.Errorf("get feature: %w", err)
 				}
+				features[featureID] = feature
 			}
 		}
 	}
@@ -313,14 +298,6 @@ func (a *PostgresConnector) getBalance(
 
 	// Aggregate grant balances by feature
 	featureBalancesMap := map[credit.FeatureID]credit.FeatureBalance{}
-	for _, feature := range features {
-		featureBalancesMap[*feature.ID] = credit.FeatureBalance{
-			Feature: feature,
-			Balance: 0,
-			Usage:   0,
-		}
-
-	}
 	for _, grantBalance := range grantBalances {
 		if grantBalance.FeatureID == nil {
 			continue
