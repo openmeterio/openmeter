@@ -40,19 +40,45 @@ func TestPostgresConnectorReset(t *testing.T) {
 		test        func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client, ledger credit.Ledger)
 	}{
 		{
-			name:        "Should return error if reset date is not truncated to minute",
-			description: "Should return error if reset date is not truncated to minute",
+			name:        "Shoul truncate effectiveAt to windowSize",
+			description: "Should have effectiveAt of start of current window",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
-				start, err := time.Parse(time.RFC3339, "2020-01-01T00:00:00Z")
-				assert.NoError(t, err)
-				start = start.Truncate(time.Second)
 				ctx := context.Background()
-				_, _, err = connector.Reset(ctx, credit.Reset{
+				feature := testutils.CreateFeature(t, connector, featureIn)
+				// We need to truncate the time to workaround pgx driver timezone issue
+				// We also move it to the past to avoid timezone issues
+				t1 := time.Now().In(time.UTC).Truncate(time.Hour * 24).Add(-time.Hour * 24)
+				resetTime := t1.Add(time.Hour * 6).Add(time.Second * 30)
+
+				_, err := connector.CreateGrant(ctx, credit.Grant{
 					Namespace:   namespace,
 					LedgerID:    ledger.ID,
-					EffectiveAt: start.Add(time.Second),
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: t1,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationMonth,
+						Count:    1,
+					},
 				})
-				assert.ErrorContains(t, err, "reset time must be truncated")
+				assert.NoError(t, err)
+
+				// We need to add a row to the streaming connector as we call balance in the reset
+				// even though there is no grant to rollover
+				streamingConnector.AddRow(meter.Slug, models.MeterQueryRow{})
+
+				// Reset
+				reset, _, err := connector.Reset(ctx, credit.Reset{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					EffectiveAt: resetTime,
+				})
+				assert.NoError(t, err)
+
+				assert.Equal(t, resetTime.Truncate(windowSize), reset.EffectiveAt)
+
 			},
 		},
 		{

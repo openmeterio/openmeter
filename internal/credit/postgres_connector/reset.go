@@ -20,9 +20,9 @@ type resetWithRollovedGrants struct {
 func (c *PostgresConnector) Reset(ctx context.Context, reset credit.Reset) (credit.Reset, []credit.Grant, error) {
 	ledgerID := credit.NewNamespacedLedgerID(reset.Namespace, reset.LedgerID)
 
-	// Validate the reset time
-	if !reset.EffectiveAt.Truncate(c.config.WindowSize).Equal(reset.EffectiveAt) {
-		return credit.Reset{}, nil, fmt.Errorf("reset time must be truncated, got: %s", reset.EffectiveAt)
+	// Truncate EffectiveAt to the window size
+	if effAt := reset.EffectiveAt.Truncate(c.config.WindowSize); effAt != reset.EffectiveAt {
+		reset.EffectiveAt = effAt
 	}
 
 	result, err := mutationTransaction(
