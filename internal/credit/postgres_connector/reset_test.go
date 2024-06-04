@@ -9,16 +9,17 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
-	om_testutils "github.com/openmeterio/openmeter/internal/testutils"
-
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/testutils"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
+	om_testutils "github.com/openmeterio/openmeter/internal/testutils"
+	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestPostgresConnectorReset(t *testing.T) {
+	windowSize := time.Minute
 	namespace := "default"
 	meter := models.Meter{
 		Namespace:   namespace,
@@ -38,6 +39,22 @@ func TestPostgresConnectorReset(t *testing.T) {
 		description string
 		test        func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client, ledger credit.Ledger)
 	}{
+		{
+			name:        "Should return error if reset date is not truncated to minute",
+			description: "Should return error if reset date is not truncated to minute",
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
+				start, err := time.Parse(time.RFC3339, "2020-01-01T00:00:00Z")
+				assert.NoError(t, err)
+				start = start.Truncate(time.Second)
+				ctx := context.Background()
+				_, _, err = connector.Reset(ctx, credit.Reset{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					EffectiveAt: start.Add(time.Second),
+				})
+				assert.ErrorContains(t, err, "reset time must be truncated")
+			},
+		},
 		{
 			name:        "Reset",
 			description: "Should move high watermark ahead",
@@ -225,8 +242,139 @@ func TestPostgresConnectorReset(t *testing.T) {
 				)
 			},
 		},
+		{
+			name:        "Should rollover grants up to rollover.MaxAmount",
+			description: "Should rollover grants up to rollover.MaxAmount",
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
+				ctx := context.Background()
+				feature := testutils.CreateFeature(t, connector, featureIn)
+				// We need to truncate the time to workaround pgx driver timezone issue
+				t1 := time.Now().Truncate(time.Hour * 24)
+				t2 := t1.Add(time.Hour).Truncate(0)
+				t3 := t2.Add(time.Hour).Truncate(0)
+
+				grant1, err := connector.CreateGrant(ctx, credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: t1,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationMonth,
+						Count:    1,
+					},
+					Rollover: &credit.GrantRollover{
+						Type:      credit.GrantRolloverTypeRemainingAmount,
+						MaxAmount: testutils.ToPtr(50.0),
+					},
+				})
+				assert.NoError(t, err)
+
+				usage := 10.0
+				streamingConnector.AddRow(meter.Slug, models.MeterQueryRow{
+					Value: usage,
+					// Grant 1's effective time is t1, so usage starts from t1
+					WindowStart: t1,
+					// Reset time is t3, so usage ends at t3
+					WindowEnd: t3,
+					GroupBy:   map[string]*string{},
+				})
+
+				_, rolloverGrants, err := connector.Reset(ctx, credit.Reset{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					EffectiveAt: t3,
+				})
+				assert.NoError(t, err)
+
+				// Get grants
+				grants, err := connector.ListGrants(ctx, credit.ListGrantsParams{
+					Namespace:         namespace,
+					LedgerIDs:         []credit.LedgerID{ledger.ID},
+					FromHighWatermark: true,
+				})
+				assert.NoError(t, err)
+
+				// Assert remaining amount
+				assert.NotEqual(t, grant1.Amount-usage, rolloverGrants[0].Amount)
+				assert.Equal(t, defaultx.WithDefault(grant1.Rollover.MaxAmount, -1), rolloverGrants[0].Amount)
+
+				// Assert: grants after reset should be the same as rollover grants
+				assert.Equal(t,
+					testutils.RemoveTimestampsFromGrants(rolloverGrants),
+					testutils.RemoveTimestampsFromGrants(grants),
+				)
+			},
+		},
+		{
+			name:        "Should create grants truncated to windowsize when rolling over",
+			description: "Higher precision grants are not supported",
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
+				ctx := context.Background()
+				feature := testutils.CreateFeature(t, connector, featureIn)
+				t1 := time.Now().Truncate(time.Hour * 24)
+				t2 := t1.Add(time.Hour).Truncate(0)
+				t3 := t2.Add(time.Hour).Truncate(0)
+
+				_, err := connector.CreateGrant(ctx, credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: t1,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationMonth,
+						Count:    1,
+					},
+					Rollover: &credit.GrantRollover{
+						Type: credit.GrantRolloverTypeRemainingAmount,
+					},
+				})
+				assert.NoError(t, err)
+
+				usage := 1.0
+				streamingConnector.AddRow(meter.Slug, models.MeterQueryRow{
+					Value: usage,
+					// Grant 1's effective time is t1, so usage starts from t1
+					WindowStart: t1,
+					// Reset time is t3, so usage ends at t3
+					WindowEnd: t3,
+					GroupBy:   map[string]*string{},
+				})
+
+				_, rolloverGrants, err := connector.Reset(ctx, credit.Reset{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					EffectiveAt: t3,
+				})
+				assert.NoError(t, err)
+
+				assert.Greater(t, len(rolloverGrants), 0)
+				for _, grant := range rolloverGrants {
+					assert.Equal(t, grant.EffectiveAt.Truncate(windowSize), grant.EffectiveAt)
+				}
+
+				// Get grants
+				grants, err := connector.ListGrants(ctx, credit.ListGrantsParams{
+					Namespace:         namespace,
+					LedgerIDs:         []credit.LedgerID{ledger.ID},
+					FromHighWatermark: true,
+				})
+				assert.NoError(t, err)
+
+				assert.Greater(t, len(grants), 0)
+				for _, grant := range grants {
+					assert.Equal(t, grant.EffectiveAt.Truncate(windowSize), grant.EffectiveAt)
+				}
+			},
+		},
 	}
 	for _, tc := range tt {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.description)
@@ -239,7 +387,9 @@ func TestPostgresConnectorReset(t *testing.T) {
 
 			// Note: lock manager cannot be shared between tests as these parallel tests write the same ledger
 			streamingConnector := testutils.NewMockStreamingConnector(t, testutils.MockStreamingConnectorParams{DefaultHighwatermark: old})
-			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository)
+			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository, PostgresConnectorConfig{
+				WindowSize: windowSize,
+			})
 
 			// let's provision a ledger
 			ledger, err := connector.CreateLedger(context.Background(), credit.Ledger{

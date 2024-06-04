@@ -8,8 +8,9 @@ import (
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/migrate"
 	"github.com/peterldowns/pgtestdb"
+
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/migrate"
 )
 
 // EntMigrator is a migrator for pgtestdb.

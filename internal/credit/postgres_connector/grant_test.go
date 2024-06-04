@@ -9,16 +9,16 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
-	om_testutils "github.com/openmeterio/openmeter/internal/testutils"
-
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/testutils"
 	"github.com/openmeterio/openmeter/internal/meter"
+	om_testutils "github.com/openmeterio/openmeter/internal/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestPostgresConnectorGrants(t *testing.T) {
+	windowSize := time.Minute
 	namespace := "default"
 
 	meters := []models.Meter{
@@ -43,11 +43,52 @@ func TestPostgresConnectorGrants(t *testing.T) {
 		test        func(t *testing.T, connector credit.Connector, db_client *db.Client, ledger credit.Ledger)
 	}{
 		{
+			name:        "Should truncate grant effectiveAt to windowsize",
+			description: "EffectiveAt should be the end date of the window the input falls into",
+			test: func(t *testing.T, connector credit.Connector, db_client *db.Client, ledger credit.Ledger) {
+				ctx := context.Background()
+				p := testutils.CreateFeature(t, connector, features[0])
+
+				effectiveTime := effectiveTime.Truncate(windowSize)
+				inpEffectiveTime := effectiveTime.Add(windowSize / 2)
+
+				grant := credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   p.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: inpEffectiveTime,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationDay,
+						Count:    1,
+					},
+				}
+				_, err := connector.CreateGrant(ctx, grant)
+				assert.NoError(t, err)
+
+				grants, err := connector.ListGrants(ctx, credit.ListGrantsParams{
+					Namespace:         namespace,
+					LedgerIDs:         []credit.LedgerID{ledger.ID},
+					From:              testutils.ToPtr(effectiveTime.Add(-windowSize * 2)),
+					To:                testutils.ToPtr(effectiveTime.Add(windowSize * 2)),
+					FromHighWatermark: false,
+					IncludeVoid:       true,
+				})
+				assert.NoError(t, err)
+
+				assert.Equal(t, 1, len(grants))
+				assert.Equal(t, effectiveTime.Add(windowSize), grants[0].EffectiveAt)
+			},
+		},
+		{
 			name:        "CreateGrant",
 			description: "Create a grant in the database",
 			test: func(t *testing.T, connector credit.Connector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
 				p := testutils.CreateFeature(t, connector, features[0])
+				effectiveTime := effectiveTime.Truncate(windowSize)
 				grant := credit.Grant{
 					Namespace:   namespace,
 					LedgerID:    ledger.ID,
@@ -265,7 +306,9 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				})
 			}
 
-			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository)
+			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository, PostgresConnectorConfig{
+				WindowSize: windowSize,
+			})
 
 			// let's provision a ledger
 			ledger, err := connector.CreateLedger(context.Background(), credit.Ledger{

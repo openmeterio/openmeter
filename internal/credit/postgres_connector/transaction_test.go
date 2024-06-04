@@ -10,12 +10,11 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
-	om_testutils "github.com/openmeterio/openmeter/internal/testutils"
-
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/testutils"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
+	om_testutils "github.com/openmeterio/openmeter/internal/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 

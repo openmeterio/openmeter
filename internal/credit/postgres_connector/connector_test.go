@@ -3,6 +3,7 @@ package postgres_connector
 import (
 	"log/slog"
 	"testing"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
@@ -36,7 +37,9 @@ func TestConnector(t *testing.T) {
 			driver := testutils.InitPostgresDB(t)
 			databaseClient := db.NewClient(db.Driver(driver))
 			defer databaseClient.Close()
-			connector := NewPostgresConnector(slog.Default(), databaseClient, nil, meterRepository)
+			connector := NewPostgresConnector(slog.Default(), databaseClient, nil, meterRepository, PostgresConnectorConfig{
+				WindowSize: time.Minute,
+			})
 			tc.test(t, connector, databaseClient)
 		})
 	}

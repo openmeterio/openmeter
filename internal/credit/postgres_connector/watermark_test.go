@@ -9,12 +9,11 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
-	om_testutils "github.com/openmeterio/openmeter/internal/testutils"
-
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/testutils"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
+	om_testutils "github.com/openmeterio/openmeter/internal/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -127,7 +126,9 @@ func TestWatermark(t *testing.T) {
 			// Note: lock manager cannot be shared between tests as these parallel tests write the same ledger
 			streamingConnector := testutils.NewMockStreamingConnector(t, testutils.MockStreamingConnectorParams{DefaultHighwatermark: old})
 			meterRepository := meter_model.NewInMemoryRepository([]models.Meter{})
-			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository)
+			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository, PostgresConnectorConfig{
+				WindowSize: time.Minute,
+			})
 
 			tc.test(t, connector, streamingConnector, databaseClient)
 		})

@@ -310,6 +310,9 @@ func main() {
 			creditDbClient,
 			streamingConnector,
 			meterRepository,
+			postgres_credit.PostgresConnectorConfig{
+				WindowSize: time.Minute,
+			},
 		)
 		if err != nil {
 			logger.Error("failed to initialize entitlements support", "error", err)

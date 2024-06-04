@@ -20,6 +20,11 @@ type resetWithRollovedGrants struct {
 func (c *PostgresConnector) Reset(ctx context.Context, reset credit.Reset) (credit.Reset, []credit.Grant, error) {
 	ledgerID := credit.NewNamespacedLedgerID(reset.Namespace, reset.LedgerID)
 
+	// Validate the reset time
+	if !reset.EffectiveAt.Truncate(c.config.WindowSize).Equal(reset.EffectiveAt) {
+		return credit.Reset{}, nil, fmt.Errorf("reset time must be truncated, got: %s", reset.EffectiveAt)
+	}
+
 	result, err := mutationTransaction(
 		ctx,
 		c,
@@ -54,8 +59,13 @@ func (c *PostgresConnector) Reset(ctx context.Context, reset credit.Reset) (cred
 				case credit.GrantRolloverTypeOriginalAmount:
 					// Nothing to do, we rollover the original amount
 				case credit.GrantRolloverTypeRemainingAmount:
-					// We rollover the remaining amount
-					grant.Amount = grantBalance.Balance
+					if grant.Rollover.MaxAmount != nil {
+						// We roll over up to the max amount
+						grant.Amount = math.Min(*grant.Rollover.MaxAmount, grant.Amount)
+					} else {
+						// We rollover the remaining amount
+						grant.Amount = grantBalance.Balance
+					}
 				}
 				if grant.Rollover.MaxAmount != nil {
 					grant.Amount = math.Max(*grant.Rollover.MaxAmount, grant.Amount)

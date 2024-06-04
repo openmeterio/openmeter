@@ -24,6 +24,11 @@ func (c *PostgresConnector) CreateGrant(ctx context.Context, grantIn credit.Gran
 			return nil, err
 		}
 
+		// truncate effeectiveAt to start of next window
+		if truncated := grantIn.EffectiveAt.Truncate(c.config.WindowSize); !truncated.Equal(grantIn.EffectiveAt) {
+			grantIn.EffectiveAt = truncated.Add(c.config.WindowSize)
+		}
+
 		// TODO: validate namespace for not being empty (at all places)
 
 		q := tx.CreditEntry.Create().

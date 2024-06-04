@@ -9,12 +9,11 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
-	om_testutils "github.com/openmeterio/openmeter/internal/testutils"
-
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/testutils"
 	"github.com/openmeterio/openmeter/internal/meter"
+	om_testutils "github.com/openmeterio/openmeter/internal/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -30,7 +29,9 @@ func TestLedgerCreation(t *testing.T) {
 	assert.NoError(t, err)
 
 	streamingConnector := testutils.NewMockStreamingConnector(t, testutils.MockStreamingConnectorParams{DefaultHighwatermark: old})
-	connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository)
+	connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository, PostgresConnectorConfig{
+		WindowSize: time.Minute,
+	})
 
 	ledgerSubject := ulid.Make().String() // ~ random string
 	namespace := "default"
