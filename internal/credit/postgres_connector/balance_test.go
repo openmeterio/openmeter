@@ -45,7 +45,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 		Name:      "feature-2",
 	}
 
-	oldSetup := func(streamingConnector *testutils.MockStreamingConnector, connector credit.Connector) (credit.Ledger, error) {
+	sharedSetup := func(streamingConnector *testutils.MockStreamingConnector, connector credit.Connector) (credit.Ledger, error) {
 		// Initialize streaming connector with data points at time.Zero
 		streamingConnector.AddRow(meter1.Slug, models.MeterQueryRow{})
 		streamingConnector.AddRow(meter2.Slug, models.MeterQueryRow{})
@@ -69,7 +69,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should return balance",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
 				t.Parallel()
-				ledger, err := oldSetup(streamingConnector, connector)
+				ledger, err := sharedSetup(streamingConnector, connector)
 				assert.NoError(t, err)
 				ctx := context.Background()
 				feature := testutils.CreateFeature(t, connector, featureIn1)
@@ -132,7 +132,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should return balance after reset",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
 				t.Parallel()
-				ledger, err := oldSetup(streamingConnector, connector)
+				ledger, err := sharedSetup(streamingConnector, connector)
 				assert.NoError(t, err)
 				ctx := context.Background()
 				feature := testutils.CreateFeature(t, connector, featureIn1)
@@ -206,7 +206,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should exclude voided grant from balance",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
 				t.Parallel()
-				ledger, err := oldSetup(streamingConnector, connector)
+				ledger, err := sharedSetup(streamingConnector, connector)
 				assert.NoError(t, err)
 				ctx := context.Background()
 				feature := testutils.CreateFeature(t, connector, featureIn1)
@@ -264,7 +264,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should burn down grant with highest priority first",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
 				t.Parallel()
-				ledger, err := oldSetup(streamingConnector, connector)
+				ledger, err := sharedSetup(streamingConnector, connector)
 				assert.NoError(t, err)
 				ctx := context.Background()
 				feature := testutils.CreateFeature(t, connector, featureIn1)
@@ -349,7 +349,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should burn down grant that expires first",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
 				t.Parallel()
-				ledger, err := oldSetup(streamingConnector, connector)
+				ledger, err := sharedSetup(streamingConnector, connector)
 				assert.NoError(t, err)
 				ctx := context.Background()
 				feature := testutils.CreateFeature(t, connector, featureIn1)
@@ -434,7 +434,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 			description: "Should burn down the right feature",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
 				t.Parallel()
-				ledger, err := oldSetup(streamingConnector, connector)
+				ledger, err := sharedSetup(streamingConnector, connector)
 				assert.NoError(t, err)
 				ctx := context.Background()
 				feature1 := testutils.CreateFeature(t, connector, featureIn1)
