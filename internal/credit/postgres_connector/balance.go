@@ -65,6 +65,13 @@ func (a *PostgresConnector) getBalance(
 		return credit.Balance{}, ledgerEntries, fmt.Errorf("list grants: %w", err)
 	}
 
+	for _, grant := range grants {
+		effectiveAtMinute := grant.EffectiveAt.Truncate(a.config.WindowSize)
+		if ok := grant.EffectiveAt.Equal(effectiveAtMinute); !ok {
+			return credit.Balance{}, ledgerEntries, fmt.Errorf("grant effectiveAt is not truncated")
+		}
+	}
+
 	// Get features in grants
 	features := map[credit.FeatureID]credit.Feature{}
 	for _, grant := range grants {
@@ -106,7 +113,7 @@ func (a *PostgresConnector) getBalance(
 	// We need to do this to burn down grants in the correct order.
 
 	// Find pivot dates first (effective and expiration dates in range)
-	dates := []time.Time{}
+	dates := []time.Time{from}
 	grantBalances := []credit.GrantBalance{}
 	for _, grant := range grants {
 		if grant.Void {
@@ -176,8 +183,30 @@ func (a *PostgresConnector) getBalance(
 		return grantBalances[i].Priority < grantBalances[j].Priority
 	})
 
+	firstGrantsOfFeature := map[credit.FeatureID]credit.GrantBalance{}
+
+	{
+
+		sorted := make([]credit.GrantBalance, len(grantBalances))
+		copy(sorted, grantBalances)
+
+		sort.Slice(sorted, func(i, j int) bool {
+			return sorted[i].EffectiveAt.Before(sorted[j].EffectiveAt)
+		})
+
+		for _, grantBalance := range sorted {
+			if grantBalance.FeatureID == nil {
+				continue
+			}
+			featureId := *grantBalance.FeatureID
+			if _, ok := firstGrantsOfFeature[featureId]; !ok {
+				firstGrantsOfFeature[featureId] = grantBalance
+			}
+		}
+	}
+
 	// Query usage for each period
-	for _, period := range periods {
+	for periodIndex, period := range periods {
 		queryCache := map[string]float64{}
 		carryOverAmount := map[string]float64{}
 
@@ -191,6 +220,23 @@ func (a *PostgresConnector) getBalance(
 				continue
 			}
 			if grantBalance.EffectiveAt.After(period.To) {
+				continue
+			}
+
+			// We want to attribute already present usage on the ledger to the first grant of a feature
+
+			isFirstPeriod := periodIndex == 0
+			isFirstGrantOfFeature := false
+			if grantBalance.FeatureID != nil {
+				featureId := *grantBalance.FeatureID
+				if _, ok := firstGrantsOfFeature[featureId]; ok {
+					if firstGrantsOfFeature[featureId].Grant.ID == grantBalance.Grant.ID {
+						isFirstGrantOfFeature = true
+					}
+				}
+			}
+
+			if !isFirstGrantOfFeature && !isFirstPeriod && grantBalance.EffectiveAt.Equal(period.To) {
 				continue
 			}
 

@@ -20,6 +20,12 @@ type resetWithRollovedGrants struct {
 func (c *PostgresConnector) Reset(ctx context.Context, reset credit.Reset) (credit.Reset, []credit.Grant, error) {
 	ledgerID := credit.NewNamespacedLedgerID(reset.Namespace, reset.LedgerID)
 
+	// All metering information is stored in windowSize chunks,
+	// so we cannot do accurate calculations unless we follow that same windowing.
+	// We don't allow resets to happen in the future, so they have to take effect at the start
+	// of the window.
+	reset.EffectiveAt = reset.EffectiveAt.Truncate(c.config.WindowSize)
+
 	result, err := mutationTransaction(
 		ctx,
 		c,
@@ -54,8 +60,13 @@ func (c *PostgresConnector) Reset(ctx context.Context, reset credit.Reset) (cred
 				case credit.GrantRolloverTypeOriginalAmount:
 					// Nothing to do, we rollover the original amount
 				case credit.GrantRolloverTypeRemainingAmount:
-					// We rollover the remaining amount
-					grant.Amount = grantBalance.Balance
+					if grant.Rollover.MaxAmount != nil {
+						// We roll over up to the max amount
+						grant.Amount = math.Min(*grant.Rollover.MaxAmount, grant.Amount)
+					} else {
+						// We rollover the remaining amount
+						grant.Amount = grantBalance.Balance
+					}
 				}
 				if grant.Rollover.MaxAmount != nil {
 					grant.Amount = math.Max(*grant.Rollover.MaxAmount, grant.Amount)

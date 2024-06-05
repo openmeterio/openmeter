@@ -9,16 +9,17 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/test_helpers"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/enttest"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/testutils"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
-	"github.com/openmeterio/openmeter/internal/streaming"
+	om_tetsutils "github.com/openmeterio/openmeter/internal/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 func TestPostgresConnectorBalances(t *testing.T) {
+	windowSize := time.Minute
 	namespace := "default"
 	meter1 := models.Meter{
 		Namespace:   namespace,
@@ -44,17 +45,34 @@ func TestPostgresConnectorBalances(t *testing.T) {
 		Name:      "feature-2",
 	}
 
+	sharedSetup := func(streamingConnector *testutils.MockStreamingConnector, connector credit.Connector) (credit.Ledger, error) {
+		// Initialize streaming connector with data points at time.Zero
+		streamingConnector.AddRow(meter1.Slug, models.MeterQueryRow{})
+		streamingConnector.AddRow(meter2.Slug, models.MeterQueryRow{})
+
+		// let's provision a ledger
+		ledger, err := connector.CreateLedger(context.Background(), credit.Ledger{
+			Namespace: namespace,
+			Subject:   ulid.Make().String(),
+		})
+
+		return ledger, err
+	}
+
 	tt := []struct {
 		name        string
 		description string
-		test        func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger)
+		test        func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client)
 	}{
 		{
 			name:        "GetBalance",
 			description: "Should return balance",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
+				t.Parallel()
+				ledger, err := sharedSetup(streamingConnector, connector)
+				assert.NoError(t, err)
 				ctx := context.Background()
-				feature := test_helpers.CreateFeature(t, connector, featureIn1)
+				feature := testutils.CreateFeature(t, connector, featureIn1)
 				// We need to truncate the time to workaround pgx driver timezone issue
 				// We also move it to the past to avoid timezone issues
 				t1 := time.Now().Truncate(time.Hour * 24).Add(-time.Hour * 24)
@@ -75,7 +93,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				streamingConnector.addRow(meter1.Slug, models.MeterQueryRow{
+				streamingConnector.AddRow(meter1.Slug, models.MeterQueryRow{
 					Value:       1,
 					WindowStart: t1,
 					WindowEnd:   t2,
@@ -88,7 +106,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 
 				// Assert balance
 				assert.Equal(t,
-					removeTimestampsFromBalance(credit.Balance{
+					testutils.RemoveTimestampsFromBalance(credit.Balance{
 						LedgerID: ledger.ID,
 						Subject:  ledger.Subject,
 						FeatureBalances: []credit.FeatureBalance{
@@ -105,16 +123,19 @@ func TestPostgresConnectorBalances(t *testing.T) {
 							},
 						},
 					}),
-					removeTimestampsFromBalance(balance),
+					testutils.RemoveTimestampsFromBalance(balance),
 				)
 			},
 		},
 		{
 			name:        "GetBalanceWithReset",
 			description: "Should return balance after reset",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
+				t.Parallel()
+				ledger, err := sharedSetup(streamingConnector, connector)
+				assert.NoError(t, err)
 				ctx := context.Background()
-				feature := test_helpers.CreateFeature(t, connector, featureIn1)
+				feature := testutils.CreateFeature(t, connector, featureIn1)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 				t3, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:03:00Z", time.UTC)
@@ -124,7 +145,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 					LedgerID:    ledger.ID,
 					EffectiveAt: t1,
 				}
-				_, _, err := connector.Reset(ctx, reset)
+				_, _, err = connector.Reset(ctx, reset)
 				assert.NoError(t, err)
 
 				grant, err := connector.CreateGrant(ctx, credit.Grant{
@@ -142,7 +163,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				streamingConnector.addRow(meter1.Slug, models.MeterQueryRow{
+				streamingConnector.AddRow(meter1.Slug, models.MeterQueryRow{
 					Value:       1,
 					WindowStart: t2,
 					WindowEnd:   t3,
@@ -158,7 +179,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 
 				// Assert balance
 				assert.Equal(t,
-					removeTimestampsFromBalance(
+					testutils.RemoveTimestampsFromBalance(
 						credit.Balance{
 							LedgerID: ledger.ID,
 							Subject:  ledger.Subject,
@@ -176,16 +197,19 @@ func TestPostgresConnectorBalances(t *testing.T) {
 								},
 							},
 						}),
-					removeTimestampsFromBalance(balance),
+					testutils.RemoveTimestampsFromBalance(balance),
 				)
 			},
 		},
 		{
 			name:        "GetBalanceWithVoidGrant",
 			description: "Should exclude voided grant from balance",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
+				t.Parallel()
+				ledger, err := sharedSetup(streamingConnector, connector)
+				assert.NoError(t, err)
 				ctx := context.Background()
-				feature := test_helpers.CreateFeature(t, connector, featureIn1)
+				feature := testutils.CreateFeature(t, connector, featureIn1)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 
@@ -194,7 +218,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 					LedgerID:    ledger.ID,
 					EffectiveAt: t1,
 				}
-				_, _, err := connector.Reset(ctx, reset)
+				_, _, err = connector.Reset(ctx, reset)
 				assert.NoError(t, err)
 
 				grant, err := connector.CreateGrant(ctx, credit.Grant{
@@ -215,7 +239,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				_, err = connector.VoidGrant(ctx, grant)
 				assert.NoError(t, err)
 
-				streamingConnector.addRow(meter1.Slug, models.MeterQueryRow{
+				streamingConnector.AddRow(meter1.Slug, models.MeterQueryRow{
 					Value:       1,
 					WindowStart: t1,
 					WindowEnd:   t2,
@@ -238,9 +262,12 @@ func TestPostgresConnectorBalances(t *testing.T) {
 		{
 			name:        "GetBalanceWithPiorities",
 			description: "Should burn down grant with highest priority first",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
+				t.Parallel()
+				ledger, err := sharedSetup(streamingConnector, connector)
+				assert.NoError(t, err)
 				ctx := context.Background()
-				feature := test_helpers.CreateFeature(t, connector, featureIn1)
+				feature := testutils.CreateFeature(t, connector, featureIn1)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 
@@ -274,7 +301,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				streamingConnector.addRow(meter1.Slug, models.MeterQueryRow{
+				streamingConnector.AddRow(meter1.Slug, models.MeterQueryRow{
 					Value:       20,
 					WindowStart: t1,
 					WindowEnd:   t2,
@@ -291,7 +318,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 
 				// Assert balance
 				assert.Equal(t,
-					removeTimestampsFromBalance(
+					testutils.RemoveTimestampsFromBalance(
 						credit.Balance{
 							LedgerID: ledger.ID,
 							Subject:  ledger.Subject,
@@ -313,16 +340,19 @@ func TestPostgresConnectorBalances(t *testing.T) {
 								},
 							},
 						}),
-					removeTimestampsFromBalance(balance),
+					testutils.RemoveTimestampsFromBalance(balance),
 				)
 			},
 		},
 		{
 			name:        "GetBalanceWithDifferentGrantExpiration",
 			description: "Should burn down grant that expires first",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
+				t.Parallel()
+				ledger, err := sharedSetup(streamingConnector, connector)
+				assert.NoError(t, err)
 				ctx := context.Background()
-				feature := test_helpers.CreateFeature(t, connector, featureIn1)
+				feature := testutils.CreateFeature(t, connector, featureIn1)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 
@@ -356,7 +386,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				streamingConnector.addRow(meter1.Slug, models.MeterQueryRow{
+				streamingConnector.AddRow(meter1.Slug, models.MeterQueryRow{
 					Value:       20,
 					WindowStart: t1,
 					WindowEnd:   t2,
@@ -373,7 +403,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 
 				// Assert balance
 				assert.Equal(t,
-					removeTimestampsFromBalance(
+					testutils.RemoveTimestampsFromBalance(
 						credit.Balance{
 							LedgerID: ledger.ID,
 							Subject:  ledger.Subject,
@@ -395,17 +425,20 @@ func TestPostgresConnectorBalances(t *testing.T) {
 								},
 							},
 						}),
-					removeTimestampsFromBalance(balance),
+					testutils.RemoveTimestampsFromBalance(balance),
 				)
 			},
 		},
 		{
 			name:        "GetBalanceWithMultipleFeatures",
 			description: "Should burn down the right feature",
-			test: func(t *testing.T, connector credit.Connector, streamingConnector *mockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
+				t.Parallel()
+				ledger, err := sharedSetup(streamingConnector, connector)
+				assert.NoError(t, err)
 				ctx := context.Background()
-				feature1 := test_helpers.CreateFeature(t, connector, featureIn1)
-				feature2 := test_helpers.CreateFeature(t, connector, featureIn2)
+				feature1 := testutils.CreateFeature(t, connector, featureIn1)
+				feature2 := testutils.CreateFeature(t, connector, featureIn2)
 				t1, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:01:00Z", time.UTC)
 				t2, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
 
@@ -439,13 +472,13 @@ func TestPostgresConnectorBalances(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				streamingConnector.addRow(meter1.Slug, models.MeterQueryRow{
+				streamingConnector.AddRow(meter1.Slug, models.MeterQueryRow{
 					Value:       1,
 					WindowStart: t1,
 					WindowEnd:   t2,
 					GroupBy:     map[string]*string{},
 				})
-				streamingConnector.addRow(meter2.Slug, models.MeterQueryRow{
+				streamingConnector.AddRow(meter2.Slug, models.MeterQueryRow{
 					Value:       10,
 					WindowStart: t1,
 					WindowEnd:   t2,
@@ -462,7 +495,7 @@ func TestPostgresConnectorBalances(t *testing.T) {
 
 				// Assert balance
 				assert.ElementsMatch(t,
-					removeTimestampsFromFeatureBalances(
+					testutils.RemoveTimestampsFromFeatureBalances(
 						[]credit.FeatureBalance{
 							{
 								Feature: feature1,
@@ -475,11 +508,11 @@ func TestPostgresConnectorBalances(t *testing.T) {
 								Usage:   10,
 							},
 						}),
-					removeTimestampsFromFeatureBalances(balance.FeatureBalances),
+					testutils.RemoveTimestampsFromFeatureBalances(balance.FeatureBalances),
 				)
 
 				assert.ElementsMatch(t,
-					removeTimestampsFromGrantBalances(
+					testutils.RemoveTimestampsFromGrantBalances(
 						[]credit.GrantBalance{
 							{
 								Grant:   grant1,
@@ -490,103 +523,927 @@ func TestPostgresConnectorBalances(t *testing.T) {
 								Balance: 90,
 							},
 						}),
-					removeTimestampsFromGrantBalances(balance.GrantBalances),
+					testutils.RemoveTimestampsFromGrantBalances(balance.GrantBalances),
 				)
+			},
+		},
+		{
+			name:        "Should include usage between ledger creation and first grant",
+			description: `The ledger can exist before the first grant is created so we should account for that usage.`,
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
+				start, err := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
+				assert.NoError(t, err)
+				subject := ulid.Make().String()
+				ledgerID := credit.LedgerID(ulid.Make().String())
+
+				// Create Ledger
+
+				ledger, err := connector.CreateLedger(context.Background(), credit.Ledger{
+					Namespace: namespace,
+					ID:        ledgerID,
+					Subject:   subject,
+					CreatedAt: start,
+				})
+				assert.NoError(t, err)
+
+				streamingConnector.AddSimpleEvent(meter1.Slug, 1, start.Add(time.Minute).Add(time.Second*30))
+
+				at3m := start.Add(time.Minute * 3)
+
+				// Create Feature & Grant
+				feature := testutils.CreateFeature(t, connector, featureIn1)
+				grant, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: at3m,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &at3m,
+					UpdatedAt: &at3m,
+				})
+
+				assert.NoError(t, err)
+
+				// Get Balance
+				balance, err := connector.GetBalance(context.Background(), credit.NewNamespacedLedgerID(namespace, ledger.ID), start.Add(time.Minute*10))
+				assert.NoError(t, err)
+				assert.Equal(t, 1, len(balance.FeatureBalances))
+
+				featureBalance := balance.FeatureBalances[0].Balance
+				grantedAmount := grant.Amount
+				usedAmount := 1.0
+
+				assert.Equal(t, grantedAmount-usedAmount, featureBalance)
+			},
+		},
+		{
+			name:        "Should include usage between ledger creation and first grant for all features",
+			description: `The ledger can exist before the first grant is created so we should account for that usage.`,
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
+				start, err := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
+				assert.NoError(t, err)
+				subject := ulid.Make().String()
+				ledgerID := credit.LedgerID(ulid.Make().String())
+
+				// Create Ledger
+
+				ledger, err := connector.CreateLedger(context.Background(), credit.Ledger{
+					Namespace: namespace,
+					ID:        ledgerID,
+					Subject:   subject,
+					CreatedAt: start,
+				})
+				assert.NoError(t, err)
+
+				streamingConnector.AddSimpleEvent(meter1.Slug, 1, start.Add(time.Minute).Add(time.Second*30))
+				streamingConnector.AddSimpleEvent(meter2.Slug, 1, start.Add(time.Minute).Add(time.Second*30))
+
+				at3m := start.Add(time.Minute * 3)
+				at4m := start.Add(time.Minute * 4)
+
+				// Create Feature & Grant
+				feature1 := testutils.CreateFeature(t, connector, featureIn1)
+				feature2 := testutils.CreateFeature(t, connector, featureIn2)
+				grant1, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature1.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: at3m,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &at3m,
+					UpdatedAt: &at3m,
+				})
+
+				assert.NoError(t, err)
+				grant2, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature2.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: at3m,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &at3m,
+					UpdatedAt: &at3m,
+				})
+				assert.NoError(t, err)
+
+				// Create later grants
+				grant3, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature1.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: at4m,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &at4m,
+					UpdatedAt: &at4m,
+				})
+				assert.NoError(t, err)
+				grant4, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature2.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: at4m,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &at4m,
+					UpdatedAt: &at4m,
+				})
+
+				assert.NoError(t, err)
+
+				// Get Balance
+				balance, err := connector.GetBalance(context.Background(), credit.NewNamespacedLedgerID(namespace, ledger.ID), start.Add(time.Minute*10))
+				assert.NoError(t, err)
+				assert.Equal(t, 2, len(balance.FeatureBalances))
+
+				var feature1Balance, feature2Balance float64
+				for _, featureBalance := range balance.FeatureBalances {
+					// compare with Name as it's mock test data
+					if featureBalance.Feature.Name == feature1.Name {
+						feature1Balance = featureBalance.Balance
+					} else if featureBalance.Feature.Name == feature2.Name {
+						feature2Balance = featureBalance.Balance
+					}
+				}
+
+				idPtrsEQ := func(a, b *credit.GrantID) bool {
+					if a == nil && b == nil {
+						return true
+					}
+					if a == nil || b == nil {
+						return false
+					}
+					return *a == *b
+				}
+
+				var grant1Balance, grant2Balance, grant3Balance, grant4Balance float64
+				for _, grantBalance := range balance.GrantBalances {
+					if idPtrsEQ(grantBalance.Grant.ID, grant1.ID) {
+						grant1Balance = grantBalance.Balance
+					} else if idPtrsEQ(grantBalance.Grant.ID, grant2.ID) {
+						grant2Balance = grantBalance.Balance
+					} else if idPtrsEQ(grantBalance.Grant.ID, grant3.ID) {
+						grant3Balance = grantBalance.Balance
+					} else if idPtrsEQ(grantBalance.Grant.ID, grant4.ID) {
+						grant4Balance = grantBalance.Balance
+					}
+				}
+
+				// Assert features are burnt down
+				assert.Equal(t, grant1.Amount+grant3.Amount-1.0, feature1Balance)
+				assert.Equal(t, grant2.Amount+grant4.Amount-1.0, feature2Balance)
+
+				// Assert the first grant is burnt down
+				assert.Equal(t, grant1.Amount-1.0, grant1Balance)
+				assert.Equal(t, grant2.Amount-1.0, grant2Balance)
+				assert.Equal(t, grant3.Amount, grant3Balance)
+				assert.Equal(t, grant4.Amount, grant4Balance)
+
+			},
+		},
+		{
+			name:        "Should not include usage before ledger creation",
+			description: `The meters can exist before the ledger is created but we should not account for that usage.`,
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
+				start, err := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
+				assert.NoError(t, err)
+				subject := ulid.Make().String()
+				ledgerID := credit.LedgerID(ulid.Make().String())
+
+				// Create Ledger
+
+				ledger, err := connector.CreateLedger(context.Background(), credit.Ledger{
+					Namespace: namespace,
+					ID:        ledgerID,
+					Subject:   subject,
+					CreatedAt: start.Add(time.Minute * 3),
+				})
+				assert.NoError(t, err)
+
+				// Register Usage
+				streamingConnector.AddSimpleEvent(meter1.Slug, 1, ledger.CreatedAt.Add(-time.Second))
+
+				at3m := start.Add(time.Minute * 3)
+				at4m := start.Add(time.Minute * 4)
+
+				// Create Feature & Grant
+				feature := testutils.CreateFeature(t, connector, featureIn1)
+				grant, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: at3m,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &at3m,
+					UpdatedAt: &at3m,
+				})
+
+				assert.NoError(t, err)
+
+				// Get Balance
+				balance, err := connector.GetBalance(context.Background(), credit.NewNamespacedLedgerID(namespace, ledger.ID), at4m)
+				assert.NoError(t, err)
+
+				featureBalance := balance.FeatureBalances[0].Balance
+				grantedAmount := grant.Amount
+				usedAmount := 0.0
+
+				assert.Equal(t, grantedAmount-usedAmount, featureBalance)
+			},
+		},
+		{
+			name: "Should not calculate usage twice",
+			description: `
+            We should not calculate usage twice if two grants fit for given period.
+            (origi: We should not calculate usage twice when multiple grants were issued for the same period. - no longer applicable)
+            `,
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
+				start, err := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
+				assert.NoError(t, err)
+				subject := ulid.Make().String()
+				ledgerID := credit.LedgerID(ulid.Make().String())
+
+				// Create Ledger
+				ledger, err := connector.CreateLedger(context.Background(), credit.Ledger{
+					Namespace: namespace,
+					ID:        ledgerID,
+					Subject:   subject,
+					CreatedAt: start,
+				})
+				assert.NoError(t, err)
+
+				at1m := start.Add(time.Minute)
+
+				at3m := start.Add(time.Minute * 3)
+
+				// Create Feature & Grant
+				feature := testutils.CreateFeature(t, connector, featureIn1)
+				grant1, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: at1m,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &at1m,
+					UpdatedAt: &at1m,
+				})
+
+				assert.NoError(t, err)
+				grant2, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: at1m,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &at1m,
+					UpdatedAt: &at1m,
+				})
+
+				assert.NoError(t, err)
+				grant3, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: at1m,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &at1m,
+					UpdatedAt: &at1m,
+				})
+
+				assert.NoError(t, err)
+				grant4, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: at1m,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &start,
+					UpdatedAt: &start,
+				})
+
+				assert.NoError(t, err)
+
+				streamingConnector.SetSimpleEvents(meter1.Slug, func(_ []testutils.SimpleEvent) []testutils.SimpleEvent {
+					// 1. value=1 for window [start, start+1m]
+					// 2. value=1 for window [start+1m, start+2m]
+					return []testutils.SimpleEvent{
+						{Value: 1, Time: start.Add(time.Minute).Add(-time.Second)},
+						{Value: 1, Time: start.Add(time.Minute * 2).Add(-time.Second)},
+					}
+				})
+
+				// Get Balance
+				balance, err := connector.GetBalance(context.Background(), credit.NewNamespacedLedgerID(namespace, ledger.ID), at3m)
+				assert.NoError(t, err)
+
+				featureBalance := balance.FeatureBalances[0].Balance
+				grantedAmount := grant1.Amount + grant2.Amount + grant3.Amount + grant4.Amount
+				usedAmount := 2.0
+
+				assert.Equal(t, grantedAmount-usedAmount, featureBalance)
+			},
+		},
+		{
+			name:        "Balance should be consistent across usage periods",
+			description: `Usage numbers read should be consistent across resets. If you add up the calculated usage for each period it should be equal to the sum of the usage reported.`,
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
+				start, err := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
+				assert.NoError(t, err)
+				start = start.Truncate(windowSize)
+				subject := ulid.Make().String()
+				ledgerID := credit.LedgerID(ulid.Make().String())
+
+				// Create Ledger
+				ledger, err := connector.CreateLedger(context.Background(), credit.Ledger{
+					Namespace: namespace,
+					ID:        ledgerID,
+					Subject:   subject,
+					CreatedAt: start,
+				})
+				assert.NoError(t, err)
+
+				feature := testutils.CreateFeature(t, connector, featureIn1)
+
+				resetTime := start.Add(time.Hour)
+
+				grant1Time := resetTime.Add(-time.Minute)
+				// Register Usage & Grant for First Usage Period
+				grant1, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: grant1Time,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &grant1Time,
+					UpdatedAt: &grant1Time,
+				})
+				assert.NoError(t, err)
+
+				streamingConnector.AddSimpleEvent(meter1.Slug, 1, resetTime.Add(-time.Second))
+
+				// Get Balance at very end of period one
+				balance, err := connector.GetBalance(context.Background(), credit.NewNamespacedLedgerID(namespace, ledger.ID), resetTime)
+				assert.NoError(t, err)
+
+				periodOneBalance := balance.FeatureBalances[0].Balance
+				periodOneGranted := grant1.Amount
+				periodOneUsage := periodOneGranted - periodOneBalance
+
+				assert.Equal(t, periodOneUsage, 1.0)
+
+				//
+				//
+				// Start of Second Usage Period
+				//
+				//
+
+				_, _, err = connector.Reset(context.Background(), credit.Reset{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					EffectiveAt: resetTime,
+				})
+				assert.NoError(t, err)
+
+				// Register Usage & Grant for Second Usage Period
+				grant2Time := resetTime.Add(time.Minute)
+				grant3Time := resetTime.Add(time.Minute * 2)
+
+				streamingConnector.AddSimpleEvent(meter1.Slug, 1, resetTime.Add(time.Second))
+
+				grant2, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: grant2Time,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &grant2Time,
+					UpdatedAt: &grant2Time,
+				})
+				assert.NoError(t, err)
+
+				streamingConnector.AddSimpleEvent(meter1.Slug, 1, resetTime.Add(time.Minute).Add(time.Second))
+
+				grant3, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: grant3Time,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &grant3Time,
+					UpdatedAt: &grant3Time,
+				})
+				assert.NoError(t, err)
+
+				// Get Balance well into period two
+				balance, err = connector.GetBalance(context.Background(), credit.NewNamespacedLedgerID(namespace, ledger.ID), resetTime.Add(time.Hour))
+				assert.NoError(t, err)
+
+				periodTwoBalance := balance.FeatureBalances[0].Balance
+				periodTwoGranted := grant2.Amount + grant3.Amount
+				periodTwoUsage := periodTwoGranted - periodTwoBalance
+
+				assert.Equal(t, periodTwoUsage, 2.0)
+
+				// Total Usage should be equal to the sum of the two periods
+				totalUsage := periodOneUsage + periodTwoUsage
+				assert.Equal(t, totalUsage, 3.0)
+			},
+		},
+		{
+			name:        "Should not burn down higher priority grant with usage before it's effective at date",
+			description: `Testing on longer timescale`,
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
+				start, err := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
+				assert.NoError(t, err)
+				subject := ulid.Make().String()
+				ledgerID := credit.LedgerID(ulid.Make().String())
+
+				// Create Ledger
+
+				ledger, err := connector.CreateLedger(context.Background(), credit.Ledger{
+					Namespace: namespace,
+					ID:        ledgerID,
+					Subject:   subject,
+					CreatedAt: start.Add(time.Minute),
+				})
+				assert.NoError(t, err)
+
+				at3m := start.Add(time.Minute * 3)
+				at1h := start.Add(time.Hour)
+
+				// Create Feature
+				feature := testutils.CreateFeature(t, connector, featureIn1)
+				// Create two grants, later with higher prio
+				grant1, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: at3m,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &at3m,
+					UpdatedAt: &at3m,
+				})
+				assert.NoError(t, err)
+
+				grant2, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    0,
+					EffectiveAt: at1h,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &at3m,
+					UpdatedAt: &at3m,
+				})
+				assert.NoError(t, err)
+
+				// Register Usage
+				streamingConnector.AddSimpleEvent(meter1.Slug, 1, start.Add(time.Minute*3).Add(time.Second))
+
+				// Get Balance
+				balance, err := connector.GetBalance(context.Background(), credit.NewNamespacedLedgerID(namespace, ledger.ID), at1h.Add(time.Minute))
+				assert.NoError(t, err)
+
+				var grant2FromBalance *credit.GrantBalance
+				for _, gb := range balance.GrantBalances {
+
+					if *gb.Grant.ID == *grant2.ID {
+						grant2FromBalance = &gb
+					}
+				}
+				assert.NotNil(t, grant2FromBalance)
+
+				var grant1FromBalance *credit.GrantBalance
+				for _, gb := range balance.GrantBalances {
+					if *gb.Grant.ID == *grant1.ID {
+						grant1FromBalance = &gb
+					}
+				}
+				assert.NotNil(t, grant1FromBalance)
+
+				usedAmount := 1.0
+
+				// grant2 should NOT be burnt down
+				assert.Equal(t, grant2.Amount, grant2FromBalance.Balance)
+				// grant1 should be burnt down
+				assert.Equal(t, grant1.Amount-usedAmount, grant1FromBalance.Balance)
+			},
+		},
+		{
+			name:        "Should not burn down higher priority grant with usage reported in minute before it's effective at date",
+			description: `Testing in adjacent minutes`,
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
+				start, err := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
+				assert.NoError(t, err)
+				subject := ulid.Make().String()
+				ledgerID := credit.LedgerID(ulid.Make().String())
+
+				// Create Ledger
+
+				ledger, err := connector.CreateLedger(context.Background(), credit.Ledger{
+					Namespace: namespace,
+					ID:        ledgerID,
+					Subject:   subject,
+					CreatedAt: start.Add(time.Minute),
+				})
+				assert.NoError(t, err)
+
+				at3m := start.Add(time.Minute * 3)
+				at4m := start.Add(time.Minute * 4)
+
+				// Create Feature
+				feature := testutils.CreateFeature(t, connector, featureIn1)
+				// Create two grants, later with higher prio
+				grant1, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: at3m,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &at3m,
+					UpdatedAt: &at3m,
+				})
+				assert.NoError(t, err)
+
+				grant2, err := connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    0,
+					EffectiveAt: at4m,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &at4m,
+					UpdatedAt: &at4m,
+				})
+				assert.NoError(t, err)
+
+				// Register Usage
+				streamingConnector.AddSimpleEvent(meter1.Slug, 1, at4m.Add(-time.Second*30))
+
+				// Get Balance
+				balance, err := connector.GetBalance(context.Background(), credit.NewNamespacedLedgerID(namespace, ledger.ID), at4m.Add(time.Minute*10))
+				assert.NoError(t, err)
+
+				var grant2FromBalance *credit.GrantBalance
+				for _, gb := range balance.GrantBalances {
+
+					if *gb.Grant.ID == *grant2.ID {
+						grant2FromBalance = &gb
+					}
+				}
+				assert.NotNil(t, grant2FromBalance)
+
+				var grant1FromBalance *credit.GrantBalance
+				for _, gb := range balance.GrantBalances {
+					if *gb.Grant.ID == *grant1.ID {
+						grant1FromBalance = &gb
+					}
+				}
+				assert.NotNil(t, grant1FromBalance)
+
+				usedAmount := 1.0
+
+				// grant1 should be burnt down
+				assert.Equal(t, grant1.Amount-usedAmount, grant1FromBalance.Balance)
+				// grant2 should not be burnt down
+				assert.Equal(t, grant2.Amount, grant2FromBalance.Balance)
+			},
+		},
+		{
+			name:        "Should return future grants and features that have balance by time of querying",
+			description: `Querying for future should be alloved if usage is registered`,
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
+				subject := ulid.Make().String()
+				ledgerID := credit.LedgerID(ulid.Make().String())
+
+				now := time.Now().Truncate(windowSize)
+
+				// Create Ledger
+
+				ledger, err := connector.CreateLedger(context.Background(), credit.Ledger{
+					Namespace: namespace,
+					ID:        ledgerID,
+					Subject:   subject,
+					CreatedAt: now.Add(time.Minute),
+				})
+				assert.NoError(t, err)
+				future := now.Add(windowSize * 10)
+
+				// Create Feature
+				feature1 := testutils.CreateFeature(t, connector, featureIn1)
+				feature2 := testutils.CreateFeature(t, connector, featureIn2)
+				// Create two grants
+				_, err = connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature1.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: future,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &future,
+					UpdatedAt: &future,
+				})
+				assert.NoError(t, err)
+
+				_, err = connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature2.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    0,
+					EffectiveAt: future,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &future,
+					UpdatedAt: &future,
+				})
+				assert.NoError(t, err)
+
+				// Register Usage
+				streamingConnector.AddSimpleEvent(meter1.Slug, 1, now.Add(time.Second*30))
+				streamingConnector.AddSimpleEvent(meter2.Slug, 1, now.Add(time.Second*30))
+
+				// Get Balance
+				balance, err := connector.GetBalance(context.Background(), credit.NewNamespacedLedgerID(namespace, ledger.ID), future.Add(windowSize*2))
+				assert.NoError(t, err)
+
+				// Both features and grants should be listed
+				assert.Equal(t, 2, len(balance.FeatureBalances))
+				assert.Equal(t, 2, len(balance.GrantBalances))
+			},
+		},
+		{
+			name:        "Should return future grants and features that have balance by time of querying even if no usage is registered",
+			description: `Querying for future should be alloved without usage too`,
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client) {
+				subject := ulid.Make().String()
+				ledgerID := credit.LedgerID(ulid.Make().String())
+
+				now := time.Now().Truncate(windowSize)
+
+				// Create Ledger
+
+				ledger, err := connector.CreateLedger(context.Background(), credit.Ledger{
+					Namespace: namespace,
+					ID:        ledgerID,
+					Subject:   subject,
+					CreatedAt: now.Add(time.Minute),
+				})
+				assert.NoError(t, err)
+				future := now.Add(windowSize * 10)
+
+				// Create Feature
+				feature1 := testutils.CreateFeature(t, connector, featureIn1)
+				feature2 := testutils.CreateFeature(t, connector, featureIn2)
+				// Create two grants
+				_, err = connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature1.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: future,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &future,
+					UpdatedAt: &future,
+				})
+				assert.NoError(t, err)
+
+				_, err = connector.CreateGrant(context.Background(), credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature2.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    0,
+					EffectiveAt: future,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationYear,
+						Count:    1,
+					},
+					CreatedAt: &future,
+					UpdatedAt: &future,
+				})
+				assert.NoError(t, err)
+
+				// Register Usage to past (wont get returned by query mock)
+				streamingConnector.AddSimpleEvent(meter1.Slug, 1, now.Add(-windowSize*100))
+				streamingConnector.AddSimpleEvent(meter2.Slug, 1, now.Add(-windowSize*100))
+
+				// Get Balance
+				balance, err := connector.GetBalance(context.Background(), credit.NewNamespacedLedgerID(namespace, ledger.ID), future.Add(windowSize*2))
+				assert.NoError(t, err)
+
+				// Both features and grants should be listed
+				assert.Equal(t, 2, len(balance.FeatureBalances))
+				assert.Equal(t, 2, len(balance.GrantBalances))
 			},
 		},
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
 			t.Log(tc.description)
-			driver := initDB(t)
-			databaseClient := db.NewClient(db.Driver(driver))
+			driver := om_tetsutils.InitPostgresDB(t)
+			databaseClient := enttest.NewClient(t, enttest.WithOptions(db.Driver(driver)))
 			defer databaseClient.Close()
 
-			// Note: lock manager cannot be shared between tests as these parallel tests write the same ledger
-			streamingConnector := newMockStreamingConnector()
-			// Initialize streaming connector with data points at time.Zero
-			streamingConnector.addRow(meter1.Slug, models.MeterQueryRow{})
-			streamingConnector.addRow(meter2.Slug, models.MeterQueryRow{})
-			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository)
-
-			// let's provision a ledger
-			ledger, err := connector.CreateLedger(context.Background(), credit.Ledger{
-				Namespace: namespace,
-				Subject:   ulid.Make().String(),
-			})
-
+			old, err := time.Parse(time.RFC3339, "2020-01-01T00:00:00Z")
 			assert.NoError(t, err)
 
-			tc.test(t, connector, streamingConnector, databaseClient, ledger)
+			streamingConnector := testutils.NewMockStreamingConnector(t, testutils.MockStreamingConnectorParams{DefaultHighwatermark: old})
+			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository, PostgresConnectorConfig{
+				WindowSize: windowSize,
+			})
+
+			tc.test(t, connector, streamingConnector, databaseClient)
 		})
 	}
-}
 
-func newMockStreamingConnector() *mockStreamingConnector {
-	return &mockStreamingConnector{
-		rows: map[string][]models.MeterQueryRow{},
-	}
-}
+	t.Run("Should return error if grant has invalid effectiveAt date", func(t *testing.T) {
+		driver := om_tetsutils.InitPostgresDB(t)
+		databaseClient := enttest.NewClient(t, enttest.WithOptions(db.Driver(driver)))
+		defer databaseClient.Close()
 
-type mockStreamingConnector struct {
-	rows map[string][]models.MeterQueryRow
-}
+		old, err := time.Parse(time.RFC3339, "2020-01-01T00:00:00Z")
+		assert.NoError(t, err)
 
-// TODO: ideally we would use github.com/stretchr/testify/mock for this
-func (m *mockStreamingConnector) addRow(meterSlug string, row models.MeterQueryRow) {
-	m.rows[meterSlug] = append(m.rows[meterSlug], row)
-}
+		now, err := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
+		now = now.Truncate(windowSize)
+		assert.NoError(t, err)
 
-func (m *mockStreamingConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
-	return []api.IngestedEvent{}, nil
-}
+		streamingConnector := testutils.NewMockStreamingConnector(t, testutils.MockStreamingConnectorParams{DefaultHighwatermark: old})
+		pgConnector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository, PostgresConnectorConfig{
+			WindowSize: windowSize,
+		})
 
-func (m *mockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error {
-	return nil
-}
+		// Create Ledger
 
-func (m *mockStreamingConnector) DeleteMeter(ctx context.Context, namespace string, meterSlug string) error {
-	return nil
-}
+		subject := ulid.Make().String()
+		ledgerID := credit.LedgerID(ulid.Make().String())
+		ledger, err := pgConnector.CreateLedger(context.Background(), credit.Ledger{
+			Namespace: namespace,
+			ID:        ledgerID,
+			Subject:   subject,
+			CreatedAt: now.Add(time.Minute),
+		})
+		assert.NoError(t, err)
 
-func (m *mockStreamingConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
-	rows := []models.MeterQueryRow{}
-	if _, ok := m.rows[meterSlug]; !ok {
-		return rows, &models.MeterNotFoundError{MeterSlug: meterSlug}
-	}
+		// Create Feature
+		feature := testutils.CreateFeature(t, pgConnector, featureIn1)
 
-	for _, row := range m.rows[meterSlug] {
-		if row.WindowStart.Equal(*params.From) && row.WindowEnd.Equal(*params.To) {
-			rows = append(rows, row)
+		grantIn := credit.Grant{
+			Namespace:   namespace,
+			LedgerID:    ledger.ID,
+			FeatureID:   feature.ID,
+			Type:        credit.GrantTypeUsage,
+			Amount:      100,
+			Priority:    1,
+			EffectiveAt: now.Add(time.Second),
+			Expiration: credit.ExpirationPeriod{
+				Duration: credit.ExpirationPeriodDurationYear,
+				Count:    1,
+			},
+			CreatedAt: &now,
+			UpdatedAt: &now,
 		}
-	}
 
-	return rows, nil
-}
+		// Create invalid Grant
+		q := databaseClient.CreditEntry.Create().
+			SetNamespace(grantIn.Namespace).
+			SetNillableID((*string)(grantIn.ID)).
+			SetLedgerID(string(grantIn.LedgerID)).
+			SetEntryType(credit.EntryTypeGrant).
+			SetType(grantIn.Type).
+			SetNillableParentID((*string)(grantIn.ParentID)).
+			SetNillableFeatureID((*string)(grantIn.FeatureID)).
+			SetAmount(grantIn.Amount).
+			SetPriority(grantIn.Priority).
+			SetEffectiveAt(grantIn.EffectiveAt).
+			SetExpirationPeriodDuration(grantIn.Expiration.Duration).
+			SetExpirationPeriodCount(grantIn.Expiration.Count).
+			SetExpirationAt(grantIn.Expiration.GetExpiration(grantIn.EffectiveAt)).
+			SetMetadata(grantIn.Metadata)
+		if grantIn.Rollover != nil {
+			q = q.SetRolloverType(grantIn.Rollover.Type).
+				SetNillableRolloverMaxAmount(grantIn.Rollover.MaxAmount)
+		}
 
-func (m *mockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meterSlug string, from *time.Time, to *time.Time) ([]string, error) {
-	return []string{}, nil
-}
+		_, err = q.Save(context.TODO())
+		assert.NoError(t, err)
 
-func removeTimestampsFromBalance(balance credit.Balance) credit.Balance {
-	balance.FeatureBalances = removeTimestampsFromFeatureBalances(balance.FeatureBalances)
-	balance.GrantBalances = removeTimestampsFromGrantBalances(balance.GrantBalances)
-	return balance
-}
+		_, err = pgConnector.GetBalance(context.Background(), credit.NewNamespacedLedgerID(namespace, ledger.ID), now.Add(time.Minute*10))
 
-func removeTimestampsFromGrantBalances(grantBalances []credit.GrantBalance) []credit.GrantBalance {
-	for i := range grantBalances {
-		grantBalances[i].Grant.CreatedAt = nil
-		grantBalances[i].Grant.UpdatedAt = nil
-	}
-	return grantBalances
-}
-
-func removeTimestampsFromFeatureBalances(featureBalances []credit.FeatureBalance) []credit.FeatureBalance {
-	for i := range featureBalances {
-		featureBalances[i].Feature.CreatedAt = nil
-		featureBalances[i].Feature.UpdatedAt = nil
-	}
-	return featureBalances
+		assert.Error(t, err)
+		assert.ErrorContains(t, err, "grant effectiveAt is not truncated")
+	})
 }

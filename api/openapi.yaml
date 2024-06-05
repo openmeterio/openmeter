@@ -1509,6 +1509,7 @@ components:
         effectiveAt:
           description: |
             The time to reset the ledger. It cannot be in the future.
+            The value will be floored to metering windowSize (minute).
           type: string
           format: date-time
           example: "2023-01-01T00:00:00Z"
@@ -1594,7 +1595,7 @@ components:
           example: 1
         effectiveAt:
           description: |
-            The effective date.
+            The effective time. Provided value will be ceiled to metering windowSize (minute).
           type: string
           format: date-time
           example: "2023-01-01T00:00:00Z"

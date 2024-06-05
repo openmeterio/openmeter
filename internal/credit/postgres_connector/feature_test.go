@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"testing"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
@@ -11,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	meter_internal "github.com/openmeterio/openmeter/internal/meter"
+	"github.com/openmeterio/openmeter/internal/testutils"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -136,10 +138,12 @@ func TestFeature(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			t.Log(tc.description)
-			driver := initDB(t)
+			driver := testutils.InitPostgresDB(t)
 			databaseClient := db.NewClient(db.Driver(driver))
 			defer databaseClient.Close()
-			connector := NewPostgresConnector(slog.Default(), databaseClient, nil, meterRepository)
+			connector := NewPostgresConnector(slog.Default(), databaseClient, nil, meterRepository, PostgresConnectorConfig{
+				WindowSize: time.Minute,
+			})
 			tc.test(t, connector, databaseClient)
 		})
 	}

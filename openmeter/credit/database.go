@@ -2,6 +2,7 @@ package credit
 
 import (
 	"log/slog"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 
@@ -23,6 +24,8 @@ func NewConnector(
 	meterRepository meter.Repository,
 ) Connector {
 	return postgres_connector.NewPostgresConnector(
-		logger, db.NewClient(db.Driver(driver)), streamingConnector, meterRepository,
+		logger, db.NewClient(db.Driver(driver)), streamingConnector, meterRepository, postgres_connector.PostgresConnectorConfig{
+			WindowSize: time.Minute,
+		},
 	)
 }
