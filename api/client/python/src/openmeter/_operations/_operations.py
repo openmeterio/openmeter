@@ -3329,8 +3329,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                             "amount": 0.0,  # The amount to grant. Can be positive or
                               negative number. Required.
                             "balance": 0.0,  # The balance of the grant. Required.
-                            "effectiveAt": "2020-02-20 00:00:00",  # The effective date.
-                              Required.
+                            "effectiveAt": "2020-02-20 00:00:00",  # The effective time.
+                              Provided value will be ceiled to metering windowSize (minute). Required.
                             "expiration": {
                                 "count": 0,  # The expiration period count like 12
                                   months. Required.
@@ -3538,6 +3538,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
     def reset_ledger(
         self, ledger_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> JSON:
+        # pylint: disable=line-too-long
         """Reset the ledger's balance.
 
         Resets the ledger's balances to zero for a specific subject and re-apply active grants with
@@ -3560,14 +3561,16 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 # JSON input template you can fill out and use as your body input.
                 body = {
                     "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the ledger. It
-                      cannot be in the future. Required.
+                      cannot be in the future. The value will be floored to metering windowSize
+                      (minute). Required.
                     "id": "str"  # Readonly unique ULID identifier of the reset. Required.
                 }
 
                 # response body for status code(s): 201
                 response == {
                     "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the ledger. It
-                      cannot be in the future. Required.
+                      cannot be in the future. The value will be floored to metering windowSize
+                      (minute). Required.
                     "id": "str"  # Readonly unique ULID identifier of the reset. Required.
                 }
         """
@@ -3576,6 +3579,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
     def reset_ledger(
         self, ledger_id: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> JSON:
+        # pylint: disable=line-too-long
         """Reset the ledger's balance.
 
         Resets the ledger's balances to zero for a specific subject and re-apply active grants with
@@ -3598,13 +3602,15 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 # response body for status code(s): 201
                 response == {
                     "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the ledger. It
-                      cannot be in the future. Required.
+                      cannot be in the future. The value will be floored to metering windowSize
+                      (minute). Required.
                     "id": "str"  # Readonly unique ULID identifier of the reset. Required.
                 }
         """
 
     @distributed_trace
     def reset_ledger(self, ledger_id: str, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
+        # pylint: disable=line-too-long
         """Reset the ledger's balance.
 
         Resets the ledger's balances to zero for a specific subject and re-apply active grants with
@@ -3624,14 +3630,16 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 # JSON input template you can fill out and use as your body input.
                 body = {
                     "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the ledger. It
-                      cannot be in the future. Required.
+                      cannot be in the future. The value will be floored to metering windowSize
+                      (minute). Required.
                     "id": "str"  # Readonly unique ULID identifier of the reset. Required.
                 }
 
                 # response body for status code(s): 201
                 response == {
                     "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the ledger. It
-                      cannot be in the future. Required.
+                      cannot be in the future. The value will be floored to metering windowSize
+                      (minute). Required.
                     "id": "str"  # Readonly unique ULID identifier of the reset. Required.
                 }
         """
@@ -3720,8 +3728,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     {
                         "amount": 0.0,  # The amount to grant. Can be positive or negative
                           number. Required.
-                        "effectiveAt": "2020-02-20 00:00:00",  # The effective date.
-                          Required.
+                        "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided
+                          value will be ceiled to metering windowSize (minute). Required.
                         "expiration": {
                             "count": 0,  # The expiration period count like 12 months.
                               Required.
@@ -3841,8 +3849,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     {
                         "amount": 0.0,  # The amount to grant. Can be positive or negative
                           number. Required.
-                        "effectiveAt": "2020-02-20 00:00:00",  # The effective date.
-                          Required.
+                        "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided
+                          value will be ceiled to metering windowSize (minute). Required.
                         "expiration": {
                             "count": 0,  # The expiration period count like 12 months.
                               Required.
@@ -3962,7 +3970,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 body = {
                     "amount": 0.0,  # The amount to grant. Can be positive or negative number.
                       Required.
-                    "effectiveAt": "2020-02-20 00:00:00",  # The effective date. Required.
+                    "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided value
+                      will be ceiled to metering windowSize (minute). Required.
                     "expiration": {
                         "count": 0,  # The expiration period count like 12 months. Required.
                         "duration": "str"  # The expiration period duration like month.
@@ -4003,7 +4012,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 response == {
                     "amount": 0.0,  # The amount to grant. Can be positive or negative number.
                       Required.
-                    "effectiveAt": "2020-02-20 00:00:00",  # The effective date. Required.
+                    "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided value
+                      will be ceiled to metering windowSize (minute). Required.
                     "expiration": {
                         "count": 0,  # The expiration period count like 12 months. Required.
                         "duration": "str"  # The expiration period duration like month.
@@ -4074,7 +4084,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 response == {
                     "amount": 0.0,  # The amount to grant. Can be positive or negative number.
                       Required.
-                    "effectiveAt": "2020-02-20 00:00:00",  # The effective date. Required.
+                    "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided value
+                      will be ceiled to metering windowSize (minute). Required.
                     "expiration": {
                         "count": 0,  # The expiration period count like 12 months. Required.
                         "duration": "str"  # The expiration period duration like month.
@@ -4140,7 +4151,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 body = {
                     "amount": 0.0,  # The amount to grant. Can be positive or negative number.
                       Required.
-                    "effectiveAt": "2020-02-20 00:00:00",  # The effective date. Required.
+                    "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided value
+                      will be ceiled to metering windowSize (minute). Required.
                     "expiration": {
                         "count": 0,  # The expiration period count like 12 months. Required.
                         "duration": "str"  # The expiration period duration like month.
@@ -4181,7 +4193,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 response == {
                     "amount": 0.0,  # The amount to grant. Can be positive or negative number.
                       Required.
-                    "effectiveAt": "2020-02-20 00:00:00",  # The effective date. Required.
+                    "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided value
+                      will be ceiled to metering windowSize (minute). Required.
                     "expiration": {
                         "count": 0,  # The expiration period count like 12 months. Required.
                         "duration": "str"  # The expiration period duration like month.
@@ -4302,7 +4315,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 response == {
                     "amount": 0.0,  # The amount to grant. Can be positive or negative number.
                       Required.
-                    "effectiveAt": "2020-02-20 00:00:00",  # The effective date. Required.
+                    "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided value
+                      will be ceiled to metering windowSize (minute). Required.
                     "expiration": {
                         "count": 0,  # The expiration period count like 12 months. Required.
                         "duration": "str"  # The expiration period duration like month.
