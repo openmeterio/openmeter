@@ -583,6 +583,7 @@ export interface components {
       /**
        * Format: date-time
        * @description The time to reset the ledger. It cannot be in the future.
+       * The value will be floored to metering windowSize (minute).
        *
        * @example 2023-01-01T00:00:00Z
        */
@@ -643,7 +644,7 @@ export interface components {
       priority?: number
       /**
        * Format: date-time
-       * @description The effective date.
+       * @description The effective time. Provided value will be ceiled to metering windowSize (minute).
        *
        * @example 2023-01-01T00:00:00Z
        */
