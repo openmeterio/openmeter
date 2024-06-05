@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/internal/streaming"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -31,16 +32,16 @@ func TestMockStreamingConnector(t *testing.T) {
 		{
 			Name: "Should return error if meter not found",
 			Query: &streaming.QueryParams{
-				From: ToPtr(now.Add(-time.Hour)),
-				To:   ToPtr(now),
+				From: convert.ToPointer(now.Add(-time.Hour)),
+				To:   convert.ToPointer(now),
 			},
 			ExpectedError: &models.MeterNotFoundError{MeterSlug: defaultMeterSlug},
 		},
 		{
 			Name: "Should error if meter exists but doesnt match",
 			Query: &streaming.QueryParams{
-				From: ToPtr(now.Add(-time.Hour)),
-				To:   ToPtr(now),
+				From: convert.ToPointer(now.Add(-time.Hour)),
+				To:   convert.ToPointer(now),
 			},
 			ExpectedError: &models.MeterNotFoundError{MeterSlug: defaultMeterSlug},
 			Events:        []SimpleEvent{{MeterSlug: ulid.Make().String(), Value: 0, Time: now}},
@@ -48,8 +49,8 @@ func TestMockStreamingConnector(t *testing.T) {
 		{
 			Name: "Should return empty rows if no rows and no events",
 			Query: &streaming.QueryParams{
-				From: ToPtr(now.Add(-time.Hour)),
-				To:   ToPtr(now),
+				From: convert.ToPointer(now.Add(-time.Hour)),
+				To:   convert.ToPointer(now),
 			},
 			Expected: []models.MeterQueryRow{{
 				Value:       0,
@@ -64,8 +65,8 @@ func TestMockStreamingConnector(t *testing.T) {
 		{
 			Name: "Should return exact row",
 			Query: &streaming.QueryParams{
-				From: ToPtr(now.Add(-time.Hour)),
-				To:   ToPtr(now),
+				From: convert.ToPointer(now.Add(-time.Hour)),
+				To:   convert.ToPointer(now),
 			},
 			Expected: []models.MeterQueryRow{{
 				Value:       1,
@@ -83,8 +84,8 @@ func TestMockStreamingConnector(t *testing.T) {
 		{
 			Name: "Should return event sum",
 			Query: &streaming.QueryParams{
-				From: ToPtr(now.Add(-time.Hour)),
-				To:   ToPtr(now),
+				From: convert.ToPointer(now.Add(-time.Hour)),
+				To:   convert.ToPointer(now),
 			},
 			Expected: []models.MeterQueryRow{{
 				Value:       5,
@@ -100,8 +101,8 @@ func TestMockStreamingConnector(t *testing.T) {
 		{
 			Name: "Should aggregate events as if they were windowed",
 			Query: &streaming.QueryParams{
-				From: ToPtr(now.Truncate(time.Minute).Add(time.Second * 30).Add(-time.Minute * 2)),
-				To:   ToPtr(now.Truncate(time.Minute).Add(time.Second * 30)),
+				From: convert.ToPointer(now.Truncate(time.Minute).Add(time.Second * 30).Add(-time.Minute * 2)),
+				To:   convert.ToPointer(now.Truncate(time.Minute).Add(time.Second * 30)),
 			},
 			Expected: []models.MeterQueryRow{{
 				Value:       2,

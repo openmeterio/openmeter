@@ -20,10 +20,11 @@ type resetWithRollovedGrants struct {
 func (c *PostgresConnector) Reset(ctx context.Context, reset credit.Reset) (credit.Reset, []credit.Grant, error) {
 	ledgerID := credit.NewNamespacedLedgerID(reset.Namespace, reset.LedgerID)
 
-	// Truncate EffectiveAt to the window size
-	if effAt := reset.EffectiveAt.Truncate(c.config.WindowSize); effAt != reset.EffectiveAt {
-		reset.EffectiveAt = effAt
-	}
+	// All metering information is stored in windowSize chunks,
+	// so we cannot do accurate calculations unless we follow that same windowing.
+	// We don't allow resets to happen in the future, so they have to take effect at the start
+	// of the window.
+	reset.EffectiveAt = reset.EffectiveAt.Truncate(c.config.WindowSize)
 
 	result, err := mutationTransaction(
 		ctx,

@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/testutils"
 	"github.com/openmeterio/openmeter/internal/meter"
 	om_testutils "github.com/openmeterio/openmeter/internal/testutils"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -71,8 +72,8 @@ func TestPostgresConnectorGrants(t *testing.T) {
 				grants, err := connector.ListGrants(ctx, credit.ListGrantsParams{
 					Namespace:         namespace,
 					LedgerIDs:         []credit.LedgerID{ledger.ID},
-					From:              testutils.ToPtr(effectiveTime.Add(-windowSize * 2)),
-					To:                testutils.ToPtr(effectiveTime.Add(windowSize * 2)),
+					From:              convert.ToPointer(effectiveTime.Add(-windowSize * 2)),
+					To:                convert.ToPointer(effectiveTime.Add(windowSize * 2)),
 					FromHighWatermark: false,
 					IncludeVoid:       true,
 				})

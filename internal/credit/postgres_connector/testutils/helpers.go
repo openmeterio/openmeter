@@ -56,7 +56,3 @@ func RemoveTimestampsFromFeatureBalances(featureBalances []credit.FeatureBalance
 	}
 	return featureBalances
 }
-
-func ToPtr[D any](s D) *D {
-	return &s
-}

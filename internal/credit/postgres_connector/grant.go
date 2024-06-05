@@ -24,7 +24,10 @@ func (c *PostgresConnector) CreateGrant(ctx context.Context, grantIn credit.Gran
 			return nil, err
 		}
 
-		// truncate effeectiveAt to start of next window
+		// All metering information is stored in windowSize chunks,
+		// so we cannot do accurate calculations unless we follow that same windowing.
+		// We don't want grants to retroactively apply, so they always take effect at the start of the
+		// next window.
 		if truncated := grantIn.EffectiveAt.Truncate(c.config.WindowSize); !truncated.Equal(grantIn.EffectiveAt) {
 			grantIn.EffectiveAt = truncated.Add(c.config.WindowSize)
 		}

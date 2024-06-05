@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/testutils"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
 	om_testutils "github.com/openmeterio/openmeter/internal/testutils"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -40,7 +41,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 		test        func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client, ledger credit.Ledger)
 	}{
 		{
-			name:        "Shoul truncate effectiveAt to windowSize",
+			name:        "Should truncate effectiveAt to windowSize",
 			description: "Should have effectiveAt of start of current window",
 			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
 				ctx := context.Background()
@@ -293,7 +294,7 @@ func TestPostgresConnectorReset(t *testing.T) {
 					},
 					Rollover: &credit.GrantRollover{
 						Type:      credit.GrantRolloverTypeRemainingAmount,
-						MaxAmount: testutils.ToPtr(50.0),
+						MaxAmount: convert.ToPointer(50.0),
 					},
 				})
 				assert.NoError(t, err)
