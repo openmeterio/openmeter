@@ -199,5 +199,14 @@ func (f *Feature) String() string {
 	return builder.String()
 }
 
+func (f *Feature) Test() *Feature {
+	_tx, ok := f.config.driver.(*txDriver)
+	if !ok {
+		panic("feature: Feature is not a transactional entity")
+	}
+	f.config.driver = _tx.drv
+	return f
+}
+
 // Features is a parsable slice of Feature.
 type Features []*Feature

@@ -1,0 +1,53 @@
+
+{{ $pkg := base $.Config.Package }}
+{{ template "header" $ }}
+
+{{ define "model/additional" }}
+
+
+{{ $receiver := $.Receiver }}
+{{ $pkg := $.Package }}
+
+func ({{ $receiver}}  *{{ $.Name }}) Test() *{{ $.Name }} {
+	_tx, ok := {{ $receiver }}.config.driver.(*txDriver)
+	if !ok {
+		panic("{{ $pkg }}: {{ $.Name }} is not a transactional entity")
+	}
+	{{ $receiver }}.config.driver = _tx.drv
+	return {{ $receiver }}
+}
+{{ end }}
+
+
+
+{{ range $n := $.Nodes }}
+
+{{ $mutation := $n.MutationName }}
+
+// CDCIDs returns the ids of the records that were affected by the mutation with any type, so that
+// the cdc engine can fetch those.
+func (m *{{ $mutation }})CDCIDs(ctx context.Context) ([]any, error) {
+    // The m.IDs() only return data for other mutations, but not OpCreate, so let's handle it
+    // as an exception case.
+    if m.Op() == ent.OpCreate {
+        id, exists := m.ID()
+        if !exists {
+            return nil, nil
+        }
+        return []any{id}, nil
+    }
+
+	ids, err := m.IDs(ctx)
+    if err != nil {
+        return nil, err
+    }
+
+    res := make([]any, len(ids))
+    for idx, id := range ids {
+        res[idx] = id
+    }
+
+    return res, nil
+}
+
+{{ end }}

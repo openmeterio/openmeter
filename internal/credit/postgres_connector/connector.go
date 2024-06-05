@@ -4,6 +4,8 @@ import (
 	"log/slog"
 	"time"
 
+	"entgo.io/ent"
+	"github.com/openmeterio/openmeter/internal/cdc"
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	"github.com/openmeterio/openmeter/internal/meter"
@@ -32,6 +34,8 @@ func NewPostgresConnector(
 	meterRepository meter.Repository,
 	config PostgresConnectorConfig,
 ) credit.Connector {
+
+	db.Use(ent.Hook(cdc.NewMutationSink().MutatorFunc()))
 	connector := PostgresConnector{
 		logger:             logger,
 		db:                 db,

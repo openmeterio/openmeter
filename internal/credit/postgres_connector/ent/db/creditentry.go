@@ -378,5 +378,14 @@ func (ce *CreditEntry) String() string {
 	return builder.String()
 }
 
+func (ce *CreditEntry) Test() *CreditEntry {
+	_tx, ok := ce.config.driver.(*txDriver)
+	if !ok {
+		panic("creditentry: CreditEntry is not a transactional entity")
+	}
+	ce.config.driver = _tx.drv
+	return ce
+}
+
 // CreditEntries is a parsable slice of CreditEntry.
 type CreditEntries []*CreditEntry

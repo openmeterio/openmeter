@@ -160,5 +160,14 @@ func (l *Ledger) String() string {
 	return builder.String()
 }
 
+func (l *Ledger) Test() *Ledger {
+	_tx, ok := l.config.driver.(*txDriver)
+	if !ok {
+		panic("ledger: Ledger is not a transactional entity")
+	}
+	l.config.driver = _tx.drv
+	return l
+}
+
 // Ledgers is a parsable slice of Ledger.
 type Ledgers []*Ledger
