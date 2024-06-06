@@ -46,10 +46,19 @@ func TestPostgresConnectorLedger(t *testing.T) {
 				feature := testutils.CreateFeature(t, connector, featureIn)
 				// We need to truncate the time to workaround pgx driver timezone issue
 				// We also move it to the past to avoid timezone issues
-				t1 := time.Now().Truncate(time.Hour * 24).Add(-time.Hour * 24).In(time.UTC)
+				t0 := time.Now().Truncate(time.Hour * 24).Add(-time.Hour * 24).In(time.UTC)
+				t1 := t0.Add(time.Hour).Truncate(0).In(time.UTC)
 				t2 := t1.Add(time.Hour).Truncate(0).In(time.UTC)
 				t3 := t2.Add(time.Hour).Truncate(0).In(time.UTC)
 				t4 := t3.Add(time.Hour).Truncate(0).In(time.UTC)
+				t5 := t4.Add(time.Hour).Truncate(0).In(time.UTC)
+
+				reset0, _, err := connector.Reset(ctx, credit.Reset{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					EffectiveAt: t0,
+				})
+				assert.NoError(t, err)
 
 				grant1, err := connector.CreateGrant(ctx, credit.Grant{
 					Namespace:   namespace,
@@ -108,8 +117,26 @@ func TestPostgresConnectorLedger(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
+				grant3, err := connector.CreateGrant(ctx, credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: t4,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationMonth,
+						Count:    1,
+					},
+					Rollover: &credit.GrantRollover{
+						Type: credit.GrantRolloverTypeOriginalAmount,
+					},
+				})
+				assert.NoError(t, err)
+
 				// Get ledger
-				ledgerList, err := connector.GetHistory(ctx, credit.NewNamespacedLedgerID(namespace, ledger.ID), t1, t4, credit.Pagination{})
+				ledgerList, err := connector.GetHistory(ctx, credit.NewNamespacedLedgerID(namespace, ledger.ID), t0, t5, credit.Pagination{})
 				assert.NoError(t, err)
 
 				// Expected
@@ -119,6 +146,12 @@ func TestPostgresConnectorLedger(t *testing.T) {
 
 				// Assert balance
 				assert.Equal(t, []credit.LedgerEntry{
+					// First Reset
+					{
+						ID:   reset0.ID,
+						Type: credit.LedgerEntryTypeReset,
+						Time: t0,
+					},
 					// Original grant
 					{
 						ID:        grant1.ID,
@@ -147,7 +180,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 							To:   t3,
 						},
 					},
-					// Reset
+					// Second Reset
 					{
 						ID:   reset.ID,
 						Type: credit.LedgerEntryTypeReset,
@@ -160,6 +193,14 @@ func TestPostgresConnectorLedger(t *testing.T) {
 						Time:      t3,
 						FeatureID: feature.ID,
 						Amount:    &reamingAmount,
+					},
+					// Another grant
+					{
+						ID:        grant3.ID,
+						Type:      credit.LedgerEntryTypeGrant,
+						Time:      t4,
+						FeatureID: feature.ID,
+						Amount:    &grant3.Amount,
 					},
 				}, ledgerEntries)
 			},
