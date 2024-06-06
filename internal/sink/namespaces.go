@@ -37,9 +37,9 @@ func (n *NamespaceStore) AddMeter(meter models.Meter) {
 }
 
 // ValidateEvent validates a single event by matching it with the corresponding meter if any
-func (a *NamespaceStore) ValidateEvent(_ context.Context, m *SinkMessage) {
-	namespaceStore := a.namespaces[m.Namespace]
-	if namespaceStore == nil {
+func (n *NamespaceStore) ValidateEvent(_ context.Context, m *SinkMessage) {
+	namespaceStore, ok := n.namespaces[m.Namespace]
+	if !ok || namespaceStore == nil {
 		// We drop events from unknown org
 		m.Status = ProcessingStatus{
 			State: DROP,
@@ -49,20 +49,18 @@ func (a *NamespaceStore) ValidateEvent(_ context.Context, m *SinkMessage) {
 		return
 	}
 
-	// Validate a single event against multiple meters
-	var foundMeter bool
+	// Collect all meters associated with the event and validate event against them
 	for _, meter := range namespaceStore.Meters {
 		if meter.EventType == m.Serialized.Type {
-			foundMeter = true
-			validateEventWithMeter(meter, m)
-			if m.Status.Error != nil {
-				return
+			m.Meters = append(m.Meters, meter)
+			// Validating the event until the first error
+			if m.Status.Error == nil {
+				validateEventWithMeter(meter, m)
 			}
-			// A single event can match multiple meters so we cannot break the loop early
 		}
 	}
 
-	if !foundMeter {
+	if len(m.Meters) <= 0 {
 		// Mark as invalid so we can show it to the user
 		m.Status = ProcessingStatus{
 			State: INVALID,

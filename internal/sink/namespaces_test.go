@@ -12,7 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func TestNamespaStore(t *testing.T) {
+func TestNamespaceStore(t *testing.T) {
 	ctx := context.Background()
 	namespaces := sink.NewNamespaceStore()
 
