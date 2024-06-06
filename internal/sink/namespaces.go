@@ -37,32 +37,33 @@ func (n *NamespaceStore) AddMeter(meter models.Meter) {
 }
 
 // ValidateEvent validates a single event by matching it with the corresponding meter if any
-func (a *NamespaceStore) ValidateEvent(ctx context.Context, event serializer.CloudEventsKafkaPayload, namespace string) error {
+func (a *NamespaceStore) ValidateEvent(ctx context.Context, event serializer.CloudEventsKafkaPayload, namespace string) ([]*models.Meter, error) {
 	namespaceStore := a.namespaces[namespace]
 	if namespaceStore == nil {
 		// We drop events from unknown org
-		return NewProcessingError(fmt.Sprintf("namespace not found: %s", namespace), DROP)
+		return nil, NewProcessingError(fmt.Sprintf("namespace not found: %s", namespace), DROP)
 	}
 
 	// Validate a single event against multiple meters
-	var foundMeter bool
-	for _, meter := range namespaceStore.Meters {
+	affectedMeters := []*models.Meter{}
+	for idx, meter := range namespaceStore.Meters {
+		meter := meter
 		if meter.EventType == event.Type {
-			foundMeter = true
+			affectedMeters = append(affectedMeters, &namespaceStore.Meters[idx])
 			err := validateEventWithMeter(meter, event)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			// A single event can match multiple meters so we cannot break the loop early
 		}
 	}
 
-	if !foundMeter {
+	if len(affectedMeters) == 0 {
 		// Mark as invalid so we can show it to the user
-		return NewProcessingError(fmt.Sprintf("no meter found for event type: %s", event.Type), INVALID)
+		return nil, NewProcessingError(fmt.Sprintf("no meter found for event type: %s", event.Type), INVALID)
 	}
 
-	return nil
+	return affectedMeters, nil
 }
 
 // validateEventWithMeter validates a single event against a single meter
