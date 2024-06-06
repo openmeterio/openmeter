@@ -118,6 +118,7 @@ func (b *builder) GetLedgerHistory() GetLedgerHistoryHandler {
 					Limit:  defaultx.WithDefault(req.Limit, DefaultLedgerQueryLimit),
 					Offset: defaultx.WithDefault(req.Offset, 0),
 				},
+				nil,
 			)
 			if err != nil {
 				return nil, err

@@ -3,6 +3,8 @@ package credit
 import (
 	"context"
 	"time"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type ListGrantsParams struct {
@@ -53,6 +55,11 @@ type Pagination struct {
 	Limit  int
 }
 
+type WindowParams struct {
+	WindowSize     models.WindowSize
+	WindowTimeZone time.Location
+}
+
 type Connector interface {
 	// Ledger
 	CreateLedger(ctx context.Context, ledger Ledger) (Ledger, error)
@@ -66,7 +73,7 @@ type Connector interface {
 
 	// Credit
 	GetBalance(ctx context.Context, ledgerID NamespacedLedgerID, cutline time.Time) (Balance, error)
-	GetHistory(ctx context.Context, ledgerID NamespacedLedgerID, from time.Time, to time.Time, pagination Pagination) (LedgerEntryList, error)
+	GetHistory(ctx context.Context, ledgerID NamespacedLedgerID, from time.Time, to time.Time, pagination Pagination, windowParams *WindowParams) (LedgerEntryList, error)
 	GetHighWatermark(ctx context.Context, ledgerID NamespacedLedgerID) (HighWatermark, error)
 	Reset(ctx context.Context, reset Reset) (Reset, []Grant, error)
 

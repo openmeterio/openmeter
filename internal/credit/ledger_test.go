@@ -97,7 +97,7 @@ func TestLedgerEntryList(t *testing.T) {
 			name:        "GetEntriesWithGrantUsage",
 			description: "Should add grant usage to ledger entries",
 			test: func(t *testing.T, entryList *LedgerEntryList) {
-				entryList.AddGrantUsage(grantBalance1, t1, t2, usage)
+				entryList.AddGrantUsage(grantBalance1.ID, grantBalance1.FeatureID, t1, t2, usage)
 				expected := []LedgerEntry{
 					{
 						ID:        grantBalance1.Grant.ID,
@@ -134,7 +134,7 @@ func TestLedgerEntryList(t *testing.T) {
 			name:        "GetEntriesOrdering",
 			description: "Should order ledger entries by type and time",
 			test: func(t *testing.T, entryList *LedgerEntryList) {
-				entryList.AddGrantUsage(grantBalance1, t1, t2, usage)
+				entryList.AddGrantUsage(grantBalance1.ID, grantBalance1.FeatureID, t1, t2, usage)
 				entryList.AddReset(reset1)
 				entryList.AddVoidGrant(voidGrant1)
 				entryList.AddGrant(grant1)

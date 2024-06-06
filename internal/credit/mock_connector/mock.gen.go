@@ -156,18 +156,18 @@ func (mr *MockConnectorMockRecorder) GetHighWatermark(arg0, arg1 interface{}) *g
 }
 
 // GetHistory mocks base method.
-func (m *MockConnector) GetHistory(arg0 context.Context, arg1 credit.NamespacedLedgerID, arg2, arg3 time.Time, arg4 credit.Pagination) (credit.LedgerEntryList, error) {
+func (m *MockConnector) GetHistory(arg0 context.Context, arg1 credit.NamespacedLedgerID, arg2, arg3 time.Time, arg4 credit.Pagination, arg5 *credit.WindowParams) (credit.LedgerEntryList, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHistory", arg0, arg1, arg2, arg3, arg4)
+	ret := m.ctrl.Call(m, "GetHistory", arg0, arg1, arg2, arg3, arg4, arg5)
 	ret0, _ := ret[0].(credit.LedgerEntryList)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetHistory indicates an expected call of GetHistory.
-func (mr *MockConnectorMockRecorder) GetHistory(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+func (mr *MockConnectorMockRecorder) GetHistory(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHistory", reflect.TypeOf((*MockConnector)(nil).GetHistory), arg0, arg1, arg2, arg3, arg4)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHistory", reflect.TypeOf((*MockConnector)(nil).GetHistory), arg0, arg1, arg2, arg3, arg4, arg5)
 }
 
 // ListFeatures mocks base method.

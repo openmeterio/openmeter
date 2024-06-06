@@ -105,6 +105,10 @@ func (f LedgerEntryList) GetEntries() []LedgerEntry {
 	return list
 }
 
+func (f *LedgerEntryList) AddEntry(e LedgerEntry) {
+	f.list = append(f.list, e)
+}
+
 func (f LedgerEntryList) Len() int {
 	return len(f.list)
 }
@@ -168,17 +172,17 @@ func (c *LedgerEntryList) AddReset(reset Reset) {
 	})
 }
 
-func (c *LedgerEntryList) AddGrantUsage(grantBalance GrantBalance, from time.Time, to time.Time, amount float64) {
+func (c *LedgerEntryList) AddGrantUsage(grantId *GrantID, featureId *FeatureID, from time.Time, to time.Time, amount float64) {
 	now := time.Now()
 	if to.After(now) {
 		to = now
 	}
 
 	c.list = append(c.list, LedgerEntry{
-		ID:        grantBalance.ID,
+		ID:        grantId,
 		Type:      LedgerEntryTypeGrantUsage,
 		Time:      to,
-		FeatureID: grantBalance.FeatureID,
+		FeatureID: featureId,
 		Amount:    &amount,
 		Period: &Period{
 			From: from,

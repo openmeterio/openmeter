@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/testutils"
 	meter_model "github.com/openmeterio/openmeter/internal/meter"
 	om_testutils "github.com/openmeterio/openmeter/internal/testutils"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -136,7 +137,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 				assert.NoError(t, err)
 
 				// Get ledger
-				ledgerList, err := connector.GetHistory(ctx, credit.NewNamespacedLedgerID(namespace, ledger.ID), t0, t5, credit.Pagination{})
+				ledgerList, err := connector.GetHistory(ctx, credit.NewNamespacedLedgerID(namespace, ledger.ID), t0, t5, credit.Pagination{}, nil)
 				assert.NoError(t, err)
 
 				// Expected
@@ -205,6 +206,141 @@ func TestPostgresConnectorLedger(t *testing.T) {
 				}, ledgerEntries)
 			},
 		},
+		{
+			name:        "GetHistoryWindowed",
+			description: "Should return windowed data for ledger entries",
+			test: func(t *testing.T, connector credit.Connector, streamingConnector *testutils.MockStreamingConnector, db_client *db.Client, ledger credit.Ledger) {
+				ctx := context.Background()
+				feature := testutils.CreateFeature(t, connector, featureIn)
+
+				// We need to truncate the time to workaround pgx driver timezone issue
+				// We also move it to the past to avoid timezone issues
+				start := time.Now().Truncate(time.Hour * 24).Add(-time.Hour * 24).In(time.UTC)
+				t1 := start.Add(time.Hour).Truncate(0).In(time.UTC)
+				t2 := t1.Add(time.Hour * 2).Truncate(0).In(time.UTC) // 2 hours
+				end := t2.Add(time.Hour).Truncate(0).In(time.UTC)
+
+				grant1, err := connector.CreateGrant(ctx, credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    2,
+					EffectiveAt: t1,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationMonth,
+						Count:    1,
+					},
+					Rollover: &credit.GrantRollover{
+						Type: credit.GrantRolloverTypeRemainingAmount,
+					},
+				})
+				assert.NoError(t, err)
+
+				grant2, err := connector.CreateGrant(ctx, credit.Grant{
+					Namespace:   namespace,
+					LedgerID:    ledger.ID,
+					FeatureID:   feature.ID,
+					Type:        credit.GrantTypeUsage,
+					Amount:      100,
+					Priority:    1,
+					EffectiveAt: t2,
+					Expiration: credit.ExpirationPeriod{
+						Duration: credit.ExpirationPeriodDurationMonth,
+						Count:    1,
+					},
+					Rollover: &credit.GrantRollover{
+						Type: credit.GrantRolloverTypeOriginalAmount,
+					},
+				})
+				assert.NoError(t, err)
+
+				streamingConnector.AddSimpleEvent(meter.Slug, 1.0, t1.Add(-time.Minute))
+				streamingConnector.AddSimpleEvent(meter.Slug, 1.0, t2.Add(-time.Minute))
+				streamingConnector.AddSimpleEvent(meter.Slug, 1.0, t2.Add(time.Minute))
+
+				// Get ledger
+				ledgerList, err := connector.GetHistory(ctx, credit.NewNamespacedLedgerID(namespace, ledger.ID), start, end, credit.Pagination{}, &credit.WindowParams{
+					WindowSize:     models.WindowSizeHour,
+					WindowTimeZone: *time.UTC,
+				})
+				assert.NoError(t, err)
+
+				// Expected
+				ledgerEntries := ledgerList.GetEntries()
+
+				// Assert balance
+				expected := []credit.LedgerEntry{
+					// Usage before first grant
+					{
+						ID:        grant1.ID, // by balance rules it will get deducted of this
+						Type:      credit.LedgerEntryTypeGrantUsage,
+						Time:      t1,
+						FeatureID: feature.ID,
+						Amount:    convert.ToPointer(-1.0),
+						Period: &credit.Period{
+							From: start,
+							To:   t1,
+						},
+					},
+					// Grant 1
+					{
+						ID:        grant1.ID,
+						Type:      credit.LedgerEntryTypeGrant,
+						Time:      t1,
+						FeatureID: feature.ID,
+						Amount:    &grant1.Amount,
+					},
+					// Empty window due to windowing (no usage)
+					{
+						ID:        grant1.ID,
+						Type:      credit.LedgerEntryTypeGrantUsage,
+						Time:      t1.Add(time.Hour),
+						FeatureID: feature.ID,
+						Amount:    convert.ToPointer(0.0),
+						Period: &credit.Period{
+							From: t1,
+							To:   t1.Add(time.Hour),
+						},
+					},
+					// Usage between grants
+					{
+						ID:        grant1.ID,
+						Type:      credit.LedgerEntryTypeGrantUsage,
+						Time:      t2,
+						FeatureID: feature.ID,
+						Amount:    convert.ToPointer(-1.0),
+						Period: &credit.Period{
+							From: t1.Add(time.Hour),
+							To:   t2,
+						},
+					},
+					// Grant 2
+					{
+						ID:        grant2.ID,
+						Type:      credit.LedgerEntryTypeGrant,
+						Time:      t2,
+						FeatureID: feature.ID,
+						Amount:    &grant2.Amount,
+					},
+					// Usage after second grant
+					{
+						ID:        grant2.ID,
+						Type:      credit.LedgerEntryTypeGrantUsage,
+						Time:      end,
+						FeatureID: feature.ID,
+						Amount:    convert.ToPointer(-1.0),
+						Period: &credit.Period{
+							From: t2,
+							To:   end,
+						},
+					},
+				}
+				assert.Equal(t, len(expected), len(ledgerEntries))
+				assert.Equal(t, expected, ledgerEntries)
+			},
+		},
 	}
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
@@ -219,9 +355,8 @@ func TestPostgresConnectorLedger(t *testing.T) {
 
 			// Note: lock manager cannot be shared between tests as these parallel tests write the same ledger
 			streamingConnector := testutils.NewMockStreamingConnector(t, testutils.MockStreamingConnectorParams{DefaultHighwatermark: old})
-			streamingConnector.AddRow(meter.Slug, models.MeterQueryRow{
-				Value: 0,
-			})
+			// add event so meter is found
+			streamingConnector.AddSimpleEvent(meter.Slug, 0, old.Add(-time.Hour))
 			connector := NewPostgresConnector(slog.Default(), databaseClient, streamingConnector, meterRepository, PostgresConnectorConfig{
 				WindowSize: time.Minute,
 			})

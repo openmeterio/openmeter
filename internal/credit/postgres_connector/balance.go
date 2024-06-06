@@ -326,7 +326,7 @@ func (a *PostgresConnector) getBalance(
 				amount = 0
 			}
 
-			ledgerEntries.AddGrantUsage(*grantBalance, period.From, ledgerTime, ledgerAmount)
+			ledgerEntries.AddGrantUsage(grantBalance.ID, grantBalance.FeatureID, period.From, ledgerTime, ledgerAmount)
 
 			carryOverAmount[carryOverKey] += amount
 		}
