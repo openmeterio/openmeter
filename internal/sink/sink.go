@@ -290,12 +290,12 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) err
 	// Storage Batch insert
 	if len(batch) > 0 {
 		storageCtx, storageSpan := s.config.Tracer.Start(persistCtx, "storage-batch-insert")
+		defer storageSpan.End()
 		err := s.config.Storage.BatchInsert(storageCtx, batch)
 		if err != nil {
 			// Returning and error means we will retry the whole batch again
 			storageSpan.SetStatus(codes.Error, "failure")
 			storageSpan.RecordError(err)
-			storageSpan.End()
 			return fmt.Errorf("failed to sink to storage: %s", err)
 		}
 		logger.Debug("succeeded to sink to storage", "buffer size", len(messages))
