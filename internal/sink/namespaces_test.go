@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func TestNamespaStore(t *testing.T) {
+func TestNamespaceStore(t *testing.T) {
 	ctx := context.Background()
 	namespaces := sink.NewNamespaceStore()
 
@@ -31,11 +31,27 @@ func TestNamespaStore(t *testing.T) {
 
 	namespaces.AddMeter(meter1)
 
+	meter2 := models.Meter{
+		Namespace:   "default",
+		Slug:        "m2",
+		Description: "",
+		Aggregation: "COUNT",
+		EventType:   "api-calls",
+		GroupBy: map[string]string{
+			"method": "$.method",
+			"path":   "$.path",
+		},
+		WindowSize: models.WindowSizeMinute,
+	}
+
+	namespaces.AddMeter(meter2)
+
 	tests := []struct {
-		description string
-		namespace   string
-		event       serializer.CloudEventsKafkaPayload
-		want        error
+		description    string
+		namespace      string
+		event          serializer.CloudEventsKafkaPayload
+		affectedMeters []*models.Meter
+		want           error
 	}{
 		{
 			description: "should return error with non existing namespace",
@@ -94,19 +110,24 @@ func TestNamespaStore(t *testing.T) {
 				Type: "api-calls",
 				Data: `{"duration_ms": 100, "method": "GET", "path": "/api/v1"}`,
 			},
-			want: nil,
+			affectedMeters: []*models.Meter{&meter1, &meter2},
+			want:           nil,
 		},
 	}
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run("", func(t *testing.T) {
-			err := namespaces.ValidateEvent(ctx, tt.event, tt.namespace)
-			if tt.want == nil {
+			affectedMeters, err := namespaces.ValidateEvent(ctx, tt.event, tt.namespace)
+			if tt.want != nil {
+				assert.Equal(t, tt.want, err)
+			} else {
 				assert.Nil(t, err)
-				return
 			}
-			assert.Equal(t, tt.want, err)
+
+			if len(tt.affectedMeters) != 0 || len(affectedMeters) != 0 {
+				assert.Equal(t, tt.affectedMeters, affectedMeters)
+			}
 		})
 	}
 }
