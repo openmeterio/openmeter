@@ -23,15 +23,17 @@ import (
 	"github.com/openmeterio/openmeter/internal/meter"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 	kafkastats "github.com/openmeterio/openmeter/pkg/kafka/metrics/stats"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var namespaceTopicRegexp = regexp.MustCompile(`^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$`)
 
 type SinkMessage struct {
-	Namespace    string
-	KafkaMessage *kafka.Message
-	Serialized   *serializer.CloudEventsKafkaPayload
-	Error        *ProcessingError
+	Namespace      string
+	KafkaMessage   *kafka.Message
+	Serialized     *serializer.CloudEventsKafkaPayload
+	AffectedMeters []*models.Meter
+	Error          *ProcessingError
 }
 
 type Sink struct {
@@ -68,6 +70,10 @@ type SinkConfig struct {
 	NamespaceRefetch time.Duration
 	// OnFlushSuccess is an optional lifecycle hook
 	OnFlushSuccess func(string, int64)
+
+	// BatchHookOnFlushSuccess is an optional lifecycle hook if an external party wishes to
+	// performa additional operations on the batch of messages that were successfully flushed.
+	BatchHookOnFlushSuccess func([]SinkMessage)
 }
 
 func NewSink(config SinkConfig) (*Sink, error) {
@@ -264,6 +270,13 @@ func (s *Sink) reportFlushMetrics(ctx context.Context, messages []SinkMessage) e
 		for namespace, count := range namespacesReport {
 			s.config.OnFlushSuccess(namespace, count)
 		}
+	}
+
+	if s.config.BatchHookOnFlushSuccess != nil {
+		// There's no guarantee that this won't get interrupted by a shutdown signal
+		// if that happens, then this batch is skipped, so make sure upon sink-worker restart
+		// the dependant referrential caches are rebuilt.
+		s.config.BatchHookOnFlushSuccess(messages)
 	}
 
 	return nil
@@ -475,7 +488,7 @@ func (s *Sink) Run(ctx context.Context) error {
 				sinkMessage := SinkMessage{
 					KafkaMessage: e,
 				}
-				namespace, kafkaCloudEvent, err := s.ParseMessage(ctx, e)
+				parsedMessage, err := s.ParseMessage(ctx, e)
 				if err != nil {
 					if perr, ok := err.(*ProcessingError); ok {
 						sinkMessage.Error = perr
@@ -483,15 +496,17 @@ func (s *Sink) Run(ctx context.Context) error {
 						return fmt.Errorf("failed to parse message: %w", err)
 					}
 				}
-				sinkMessage.Namespace = namespace
-				sinkMessage.Serialized = kafkaCloudEvent
+
+				sinkMessage.Namespace = parsedMessage.Namespace
+				sinkMessage.Serialized = &parsedMessage.KafkaCloudEvent
+				sinkMessage.AffectedMeters = parsedMessage.AffectedMeters
 
 				// Message counter
-				namespaceAttr := attribute.String("namespace", namespace)
+				namespaceAttr := attribute.String("namespace", sinkMessage.Namespace)
 				s.messageCounter.Add(ctx, 1, metric.WithAttributes(namespaceAttr))
 
 				s.buffer.Add(sinkMessage)
-				logger.Debug("event added to buffer", "partition", e.TopicPartition.Partition, "offset", e.TopicPartition.Offset, "event", kafkaCloudEvent)
+				logger.Debug("event added to buffer", "partition", e.TopicPartition.Partition, "offset", e.TopicPartition.Offset, "event", sinkMessage.KafkaMessage)
 
 				// Flush buffer and commit messages
 				if s.buffer.Size() >= s.config.MinCommitCount {
@@ -650,42 +665,51 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 	return nil
 }
 
-func (s *Sink) ParseMessage(ctx context.Context, e *kafka.Message) (string, *serializer.CloudEventsKafkaPayload, error) {
+type ParsedMessage struct {
+	Namespace       string
+	KafkaCloudEvent serializer.CloudEventsKafkaPayload
+	AffectedMeters  []*models.Meter
+}
+
+func (s *Sink) ParseMessage(ctx context.Context, e *kafka.Message) (ParsedMessage, error) {
+	var err error
+
+	result := ParsedMessage{}
+
 	// Get Namespace
-	namespace, err := getNamespace(*e.TopicPartition.Topic)
+	result.Namespace, err = getNamespace(*e.TopicPartition.Topic)
 	if err != nil {
-		return "", nil, NewProcessingError(fmt.Sprintf("failed to get namespace from topic: %s, %s", *e.TopicPartition.Topic, err), DROP)
+		return result, NewProcessingError(fmt.Sprintf("failed to get namespace from topic: %s, %s", *e.TopicPartition.Topic, err), DROP)
 	}
 
 	// Parse Kafka Event
-	var kafkaCloudEvent serializer.CloudEventsKafkaPayload
-	err = json.Unmarshal(e.Value, &kafkaCloudEvent)
+	err = json.Unmarshal(e.Value, &result.KafkaCloudEvent)
 	if err != nil {
 		// We should never have events we can't json parse, so we drop them
-		return namespace, &kafkaCloudEvent, NewProcessingError(fmt.Sprintf("failed to json parse kafka message: %s", err), DROP)
+		return result, NewProcessingError(fmt.Sprintf("failed to json parse kafka message: %s", err), DROP)
 	}
 
 	// Dedupe, this stores key in store which means if sink fails and restarts it will not process the same message again
 	// Dedupe is an optional dependency so we check if it's set
 	if s.config.Deduplicator != nil {
 		isUnique, err := s.config.Deduplicator.CheckUnique(ctx, dedupe.Item{
-			Namespace: namespace,
-			ID:        kafkaCloudEvent.Id,
-			Source:    kafkaCloudEvent.Source,
+			Namespace: result.Namespace,
+			ID:        result.KafkaCloudEvent.Id,
+			Source:    result.KafkaCloudEvent.Source,
 		})
 		if err != nil {
 			// Stop processing, non-recoverable error
-			return namespace, &kafkaCloudEvent, fmt.Errorf("failed to check uniqueness of kafka message: %w", err)
+			return result, fmt.Errorf("failed to check uniqueness of kafka message: %w", err)
 		}
 
 		if !isUnique {
-			return namespace, &kafkaCloudEvent, NewProcessingError("skipping non unique message", DROP)
+			return result, NewProcessingError("skipping non unique message", DROP)
 		}
 	}
 
 	// Validation
-	err = s.namespaceStore.ValidateEvent(ctx, kafkaCloudEvent, namespace)
-	return namespace, &kafkaCloudEvent, err
+	result.AffectedMeters, err = s.namespaceStore.ValidateEvent(ctx, result.KafkaCloudEvent, result.Namespace)
+	return result, err
 }
 
 func (s *Sink) Close() error {
