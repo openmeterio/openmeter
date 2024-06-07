@@ -107,13 +107,31 @@ func (a *PostgresConnector) GetHistory(
 						return ledgerEntries, fmt.Errorf("meter not found")
 					}
 
+					windowSizeToDuration := func(windowSize models.WindowSize) time.Duration {
+						switch windowSize {
+						case models.WindowSizeMinute:
+							return time.Minute
+						case models.WindowSizeHour:
+							return time.Hour
+						case models.WindowSizeDay:
+							return time.Hour * 24
+						default:
+							return 0
+						}
+					}
+
 					queryParams := streaming.QueryParams{
-						From:           &entry.Period.From,
-						To:             &entry.Period.To,
-						WindowSize:     &windowParams.WindowSize,
-						WindowTimeZone: &windowParams.WindowTimeZone,
-						FilterSubject:  []string{ledger.Subject},
-						Aggregation:    meter.Aggregation,
+						From:          &entry.Period.From,
+						To:            &entry.Period.To,
+						FilterSubject: []string{ledger.Subject},
+						Aggregation:   meter.Aggregation,
+					}
+
+					// check if windowsize is larger than queried period
+					queryDuration := entry.Period.To.Sub(entry.Period.From)
+					if queryDuration > windowSizeToDuration(windowParams.WindowSize) {
+						queryParams.From = &entry.Period.From
+						queryParams.To = &entry.Period.To
 					}
 
 					if feature.MeterGroupByFilters != nil {
@@ -123,10 +141,16 @@ func (a *PostgresConnector) GetHistory(
 						}
 					}
 
-					rows, err := a.streamingConnector.QueryMeter(ctx, feature.Namespace, feature.MeterSlug, &queryParams)
+					if err := queryParams.Validate(meter.WindowSize); err != nil {
+						err := fmt.Errorf("meter %s cannot be queried with parameters: %w", meter.Slug, err)
+						return ledgerEntries, err
+					}
+
+					rows, err := a.streamingConnector.QueryMeter(ctx, meter.Namespace, meter.Slug, &queryParams)
 					if err != nil {
 						return ledgerEntries, err
 					}
+
 					if len(rows) == 0 {
 						return ledgerEntries, fmt.Errorf("no usage found for meter %s in period %s to %s", feature.MeterSlug, entry.Period.From.Format(time.RFC3339), entry.Period.To.Format(time.RFC3339))
 					}
