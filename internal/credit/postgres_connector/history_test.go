@@ -142,7 +142,6 @@ func TestPostgresConnectorLedger(t *testing.T) {
 
 				// Expected
 				ledgerEntries := ledgerList.GetEntries()
-				ledgerUsage := -1 * usage
 				reamingAmount := grant1.Amount - usage
 
 				// Assert balance
@@ -175,7 +174,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 						Type:      credit.LedgerEntryTypeGrantUsage,
 						Time:      t3,
 						FeatureID: feature.ID,
-						Amount:    &ledgerUsage,
+						Amount:    &usage,
 						Period: &credit.Period{
 							From: t1,
 							To:   t3,
@@ -278,7 +277,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 						Type:      credit.LedgerEntryTypeGrantUsage,
 						Time:      t1,
 						FeatureID: feature.ID,
-						Amount:    convert.ToPointer(-1.0),
+						Amount:    convert.ToPointer(1.0),
 						Period: &credit.Period{
 							From: start,
 							To:   t1,
@@ -310,7 +309,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 						Type:      credit.LedgerEntryTypeGrantUsage,
 						Time:      t2,
 						FeatureID: feature.ID,
-						Amount:    convert.ToPointer(-1.0),
+						Amount:    convert.ToPointer(1.0),
 						Period: &credit.Period{
 							From: t1.Add(time.Hour),
 							To:   t2,
@@ -330,7 +329,7 @@ func TestPostgresConnectorLedger(t *testing.T) {
 						Type:      credit.LedgerEntryTypeGrantUsage,
 						Time:      end,
 						FeatureID: feature.ID,
-						Amount:    convert.ToPointer(-1.0),
+						Amount:    convert.ToPointer(1.0),
 						Period: &credit.Period{
 							From: t2,
 							To:   end,

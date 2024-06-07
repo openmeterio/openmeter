@@ -3,6 +3,7 @@ package postgres_connector
 import (
 	"context"
 	"fmt"
+	"math"
 	"slices"
 	"sort"
 	"strings"
@@ -314,21 +315,17 @@ func (a *PostgresConnector) getBalance(
 			if ledgerTime.After(time.Now()) {
 				ledgerTime = time.Now()
 			}
-			ledgerAmount := -amount
 
-			// Burn down the grant and apply to the balance
-			if amount > grantBalance.Balance {
-				amount -= grantBalance.Balance
-				ledgerAmount = amount * -1
-				grantBalance.Balance = 0
-			} else {
-				grantBalance.Balance -= amount
-				amount = 0
-			}
+			burnable := math.Min(grantBalance.Balance, amount)
 
-			ledgerEntries.AddGrantUsage(grantBalance.ID, grantBalance.FeatureID, period.From, ledgerTime, ledgerAmount)
+			// decrement grant balance
+			grantBalance.Balance -= burnable
 
-			carryOverAmount[carryOverKey] += amount
+			// store value by which it was decremented
+			ledgerEntries.AddGrantUsage(grantBalance.ID, grantBalance.FeatureID, period.From, ledgerTime, burnable)
+
+			// add remainder as carryover
+			carryOverAmount[carryOverKey] += amount - burnable
 		}
 	}
 

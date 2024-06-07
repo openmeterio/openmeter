@@ -128,7 +128,7 @@ func (a *PostgresConnector) GetHistory(
 					}
 
 					for _, row := range rows {
-						ledgerEntries.AddGrantUsage(entry.ID, entry.FeatureID, row.WindowStart, row.WindowEnd, -row.Value)
+						ledgerEntries.AddGrantUsage(entry.ID, entry.FeatureID, row.WindowStart, row.WindowEnd, row.Value)
 					}
 				} else {
 					ledgerEntries.AddEntry(entry)
