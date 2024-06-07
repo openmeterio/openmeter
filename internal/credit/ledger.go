@@ -7,6 +7,7 @@ import (
 	"time"
 
 	dec "github.com/alpacahq/alpacadecimal"
+
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 )
 

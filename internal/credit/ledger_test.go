@@ -4,8 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/openmeterio/openmeter/pkg/convert"
 )
 
 func TestLedgerEntryList(t *testing.T) {

@@ -869,6 +869,8 @@ paths:
         - $ref: "#/components/parameters/ledgerID"
         - $ref: "#/components/parameters/ledgerQueryLimit"
         - $ref: "#/components/parameters/ledgerQueryOffset"
+        - $ref: "#/components/parameters/queryWindowSize"
+        - $ref: "#/components/parameters/queryWindowTimeZone"
         - name: from
           in: query
           required: true

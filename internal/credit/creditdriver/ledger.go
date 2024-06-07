@@ -3,6 +3,7 @@ package creditdriver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -109,6 +110,24 @@ func (b *builder) GetLedgerHistory() GetLedgerHistoryHandler {
 			return in, nil
 		},
 		func(ctx context.Context, req GetLedgerHistoryRequest) ([]api.LedgerEntry, error) {
+			var windowParams *credit.WindowParams
+			if req.WindowSize != nil {
+				windowParams = &credit.WindowParams{
+					WindowSize:     *req.WindowSize,
+					WindowTimeZone: *time.UTC,
+				}
+				if tz, err := time.LoadLocation(
+					defaultx.WithDefault(req.WindowTimeZone, "UTC"),
+				); err == nil {
+					windowParams.WindowTimeZone = *tz
+				} else {
+					return []api.LedgerEntry{}, commonhttp.NewHTTPError(
+						http.StatusBadRequest,
+						fmt.Errorf("invalid time zone: %w", err),
+					)
+				}
+			}
+
 			ledgerEntryList, err := b.CreditConnector.GetHistory(
 				ctx,
 				credit.NewNamespacedLedgerID(req.Namespace, req.LedgerID),
@@ -118,7 +137,7 @@ func (b *builder) GetLedgerHistory() GetLedgerHistoryHandler {
 					Limit:  defaultx.WithDefault(req.Limit, DefaultLedgerQueryLimit),
 					Offset: defaultx.WithDefault(req.Offset, 0),
 				},
-				nil,
+				windowParams,
 			)
 			if err != nil {
 				return nil, err
