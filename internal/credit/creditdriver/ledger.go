@@ -124,7 +124,7 @@ func (b *builder) GetLedgerHistory() GetLedgerHistoryHandler {
 				return nil, err
 			}
 			res := make([]api.LedgerEntry, 0, ledgerEntryList.Len())
-			for _, entry := range ledgerEntryList.GetEntries() {
+			for _, entry := range ledgerEntryList.GetSerializedHistory() {
 				res = append(res, mapLedgerEntry(entry))
 			}
 			return res, nil
@@ -146,11 +146,12 @@ func mapLedgerEntry(entry credit.LedgerEntry) api.LedgerEntry {
 		}
 	}
 	return api.LedgerEntry{
-		Id:        convert.ToStringLike[credit.GrantID, string](entry.ID),
-		Type:      api.LedgerEntryType(entry.Type),
-		Time:      entry.Time,
-		FeatureID: string(defaultx.WithDefault(entry.FeatureID, credit.FeatureID(""))),
-		Amount:    defaultx.WithDefault(entry.Amount, 0),
-		Period:    period,
+		Id:                       convert.ToStringLike[credit.GrantID, string](entry.ID),
+		Type:                     api.LedgerEntryType(entry.Type),
+		Time:                     entry.Time,
+		FeatureID:                string(defaultx.WithDefault(entry.FeatureID, credit.FeatureID(""))),
+		Amount:                   defaultx.WithDefault(entry.Amount, 0),
+		AccumulatedBalanceChange: entry.AccumulatedBalanceChange,
+		Period:                   period,
 	}
 }

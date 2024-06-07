@@ -141,40 +141,44 @@ func TestPostgresConnectorLedger(t *testing.T) {
 				assert.NoError(t, err)
 
 				// Expected
-				ledgerEntries := ledgerList.GetEntries()
+				ledgerEntries := ledgerList.GetSerializedHistory()
 				reamingAmount := grant1.Amount - usage
 
 				// Assert balance
 				assert.Equal(t, []credit.LedgerEntry{
 					// First Reset
 					{
-						ID:   reset0.ID,
-						Type: credit.LedgerEntryTypeReset,
-						Time: t0,
+						ID:                       reset0.ID,
+						Type:                     credit.LedgerEntryTypeReset,
+						AccumulatedBalanceChange: 0.0,
+						Time:                     t0,
 					},
 					// Original grant
 					{
-						ID:        grant1.ID,
-						Type:      credit.LedgerEntryTypeGrant,
-						Time:      t1,
-						FeatureID: feature.ID,
-						Amount:    &grant1.Amount,
+						ID:                       grant1.ID,
+						Type:                     credit.LedgerEntryTypeGrant,
+						Time:                     t1,
+						FeatureID:                feature.ID,
+						Amount:                   &grant1.Amount,
+						AccumulatedBalanceChange: grant1.Amount,
 					},
 					// Void
 					{
-						ID:        grant2.ID,
-						Type:      credit.LedgerEntryTypeVoid,
-						Time:      t2,
-						FeatureID: feature.ID,
-						Amount:    &grant2.Amount,
+						ID:                       grant2.ID,
+						Type:                     credit.LedgerEntryTypeVoid,
+						Time:                     t2,
+						FeatureID:                feature.ID,
+						Amount:                   &grant2.Amount,
+						AccumulatedBalanceChange: grant1.Amount - grant2.Amount,
 					},
 					// Usage
 					{
-						ID:        grant1.ID,
-						Type:      credit.LedgerEntryTypeGrantUsage,
-						Time:      t3,
-						FeatureID: feature.ID,
-						Amount:    &usage,
+						ID:                       grant1.ID,
+						Type:                     credit.LedgerEntryTypeGrantUsage,
+						Time:                     t3,
+						FeatureID:                feature.ID,
+						Amount:                   &usage,
+						AccumulatedBalanceChange: grant1.Amount - grant2.Amount - usage,
 						Period: &credit.Period{
 							From: t1,
 							To:   t3,
@@ -182,25 +186,28 @@ func TestPostgresConnectorLedger(t *testing.T) {
 					},
 					// Second Reset
 					{
-						ID:   reset.ID,
-						Type: credit.LedgerEntryTypeReset,
-						Time: t3,
+						ID:                       reset.ID,
+						Type:                     credit.LedgerEntryTypeReset,
+						Time:                     t3,
+						AccumulatedBalanceChange: 0.0,
 					},
 					// Rolled over grant
 					{
-						ID:        rolloverGrants[0].ID,
-						Type:      credit.LedgerEntryTypeGrant,
-						Time:      t3,
-						FeatureID: feature.ID,
-						Amount:    &reamingAmount,
+						ID:                       rolloverGrants[0].ID,
+						Type:                     credit.LedgerEntryTypeGrant,
+						Time:                     t3,
+						FeatureID:                feature.ID,
+						Amount:                   &reamingAmount,
+						AccumulatedBalanceChange: reamingAmount,
 					},
 					// Another grant
 					{
-						ID:        grant3.ID,
-						Type:      credit.LedgerEntryTypeGrant,
-						Time:      t4,
-						FeatureID: feature.ID,
-						Amount:    &grant3.Amount,
+						ID:                       grant3.ID,
+						Type:                     credit.LedgerEntryTypeGrant,
+						Time:                     t4,
+						FeatureID:                feature.ID,
+						Amount:                   &grant3.Amount,
+						AccumulatedBalanceChange: reamingAmount + grant3.Amount,
 					},
 				}, ledgerEntries)
 			},
@@ -267,17 +274,18 @@ func TestPostgresConnectorLedger(t *testing.T) {
 				assert.NoError(t, err)
 
 				// Expected
-				ledgerEntries := ledgerList.GetEntries()
+				ledgerEntries := ledgerList.GetSerializedHistory()
 
 				// Assert balance
 				expected := []credit.LedgerEntry{
 					// Usage before first grant
 					{
-						ID:        grant1.ID, // by balance rules it will get deducted of this
-						Type:      credit.LedgerEntryTypeGrantUsage,
-						Time:      t1,
-						FeatureID: feature.ID,
-						Amount:    convert.ToPointer(1.0),
+						ID:                       grant1.ID, // by balance rules it will get deducted of this
+						Type:                     credit.LedgerEntryTypeGrantUsage,
+						Time:                     t1,
+						FeatureID:                feature.ID,
+						Amount:                   convert.ToPointer(1.0),
+						AccumulatedBalanceChange: -1.0,
 						Period: &credit.Period{
 							From: start,
 							To:   t1,
@@ -285,19 +293,21 @@ func TestPostgresConnectorLedger(t *testing.T) {
 					},
 					// Grant 1
 					{
-						ID:        grant1.ID,
-						Type:      credit.LedgerEntryTypeGrant,
-						Time:      t1,
-						FeatureID: feature.ID,
-						Amount:    &grant1.Amount,
+						ID:                       grant1.ID,
+						Type:                     credit.LedgerEntryTypeGrant,
+						Time:                     t1,
+						FeatureID:                feature.ID,
+						Amount:                   &grant1.Amount,
+						AccumulatedBalanceChange: grant1.Amount - 1.0,
 					},
 					// Empty window due to windowing (no usage)
 					{
-						ID:        grant1.ID,
-						Type:      credit.LedgerEntryTypeGrantUsage,
-						Time:      t1.Add(time.Hour),
-						FeatureID: feature.ID,
-						Amount:    convert.ToPointer(0.0),
+						ID:                       grant1.ID,
+						Type:                     credit.LedgerEntryTypeGrantUsage,
+						Time:                     t1.Add(time.Hour),
+						FeatureID:                feature.ID,
+						Amount:                   convert.ToPointer(0.0),
+						AccumulatedBalanceChange: grant1.Amount - 1.0,
 						Period: &credit.Period{
 							From: t1,
 							To:   t1.Add(time.Hour),
@@ -305,11 +315,12 @@ func TestPostgresConnectorLedger(t *testing.T) {
 					},
 					// Usage between grants
 					{
-						ID:        grant1.ID,
-						Type:      credit.LedgerEntryTypeGrantUsage,
-						Time:      t2,
-						FeatureID: feature.ID,
-						Amount:    convert.ToPointer(1.0),
+						ID:                       grant1.ID,
+						Type:                     credit.LedgerEntryTypeGrantUsage,
+						Time:                     t2,
+						FeatureID:                feature.ID,
+						Amount:                   convert.ToPointer(1.0),
+						AccumulatedBalanceChange: grant1.Amount - 2.0,
 						Period: &credit.Period{
 							From: t1.Add(time.Hour),
 							To:   t2,
@@ -317,19 +328,21 @@ func TestPostgresConnectorLedger(t *testing.T) {
 					},
 					// Grant 2
 					{
-						ID:        grant2.ID,
-						Type:      credit.LedgerEntryTypeGrant,
-						Time:      t2,
-						FeatureID: feature.ID,
-						Amount:    &grant2.Amount,
+						ID:                       grant2.ID,
+						Type:                     credit.LedgerEntryTypeGrant,
+						Time:                     t2,
+						FeatureID:                feature.ID,
+						Amount:                   &grant2.Amount,
+						AccumulatedBalanceChange: grant1.Amount - 2.0 + grant2.Amount,
 					},
 					// Usage after second grant
 					{
-						ID:        grant2.ID,
-						Type:      credit.LedgerEntryTypeGrantUsage,
-						Time:      end,
-						FeatureID: feature.ID,
-						Amount:    convert.ToPointer(1.0),
+						ID:                       grant2.ID,
+						Type:                     credit.LedgerEntryTypeGrantUsage,
+						Time:                     end,
+						FeatureID:                feature.ID,
+						Amount:                   convert.ToPointer(1.0),
+						AccumulatedBalanceChange: grant1.Amount - 2.0 + grant2.Amount - 1.0,
 						Period: &credit.Period{
 							From: t2,
 							To:   end,

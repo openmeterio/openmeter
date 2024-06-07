@@ -1394,6 +1394,7 @@ components:
         - time
         - featureID
         - amount
+        - accumulatedBalanceChange
       properties:
         id:
           description: |
@@ -1412,6 +1413,14 @@ components:
         amount:
           description: |
             The amount to apply. Can be positive or negative number. If applicable.
+          type: number
+          format: double
+          example: 100
+        accumulatedBalanceChange:
+          description: |
+            The accumulated amount since the start of the queried period.
+            Value for first entry is the signed amount of the first entry.
+            Pagination does not affect accumulation.
           type: number
           format: double
           example: 100

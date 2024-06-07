@@ -89,10 +89,14 @@ func (a *PostgresConnector) GetHistory(
 		if windowParams != nil {
 			// for each balance period we get query the windowed usage data
 			// from the streaming connector for all usage type entries
-			entryList := entries.GetEntries()
+			entryList := entries.GetSerializedHistory()
 
 			for _, entry := range entryList {
 				if entry.Type == credit.LedgerEntryTypeGrantUsage {
+					if entry.ID == nil || entry.FeatureID == nil {
+						return ledgerEntries, fmt.Errorf("inconsistency error, GrantUsage doesn't have ID or FeatureID")
+					}
+
 					feature, ok := featureMap[*entry.FeatureID]
 					if !ok {
 						return ledgerEntries, fmt.Errorf("feature not found")
@@ -128,7 +132,7 @@ func (a *PostgresConnector) GetHistory(
 					}
 
 					for _, row := range rows {
-						ledgerEntries.AddGrantUsage(entry.ID, entry.FeatureID, row.WindowStart, row.WindowEnd, row.Value)
+						ledgerEntries.AddGrantUsage(*entry.ID, *entry.FeatureID, row.WindowStart, row.WindowEnd, row.Value)
 					}
 				} else {
 					ledgerEntries.AddEntry(entry)

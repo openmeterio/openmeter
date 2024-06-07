@@ -322,7 +322,10 @@ func (a *PostgresConnector) getBalance(
 			grantBalance.Balance -= burnable
 
 			// store value by which it was decremented
-			ledgerEntries.AddGrantUsage(grantBalance.ID, grantBalance.FeatureID, period.From, ledgerTime, burnable)
+			if grantBalance.ID == nil || grantBalance.FeatureID == nil {
+				return credit.Balance{}, ledgerEntries, fmt.Errorf("inconsistency error, GrantUsage doesn't have ID or FeatureID")
+			}
+			ledgerEntries.AddGrantUsage(*grantBalance.ID, *grantBalance.FeatureID, period.From, ledgerTime, burnable)
 
 			// add remainder as carryover
 			carryOverAmount[carryOverKey] += amount - burnable

@@ -5,6 +5,9 @@ import (
 	"slices"
 	"sort"
 	"time"
+
+	dec "github.com/alpacahq/alpacadecimal"
+	"github.com/openmeterio/openmeter/pkg/defaultx"
 )
 
 type LedgerID string
@@ -66,12 +69,13 @@ func (LedgerEntryType) Values() (kinds []string) {
 
 // LedgerEntry is a credit ledger entry.
 type LedgerEntry struct {
-	ID        *GrantID        `json:"id,omitempty"`
-	Type      LedgerEntryType `json:"type"`
-	Time      time.Time       `json:"time"`
-	FeatureID *FeatureID      `json:"featureId,omitempty"`
-	Amount    *float64        `json:"amount,omitempty"`
-	Period    *Period         `json:"period,omitempty"`
+	ID                       *GrantID        `json:"id,omitempty"`
+	Type                     LedgerEntryType `json:"type"`
+	Time                     time.Time       `json:"time"`
+	FeatureID                *FeatureID      `json:"featureId,omitempty"`
+	Amount                   *float64        `json:"amount,omitempty"`
+	AccumulatedBalanceChange float64         `json:"accumulatedBalanceChange,omitempty"`
+	Period                   *Period         `json:"period,omitempty"`
 }
 
 type Period struct {
@@ -89,7 +93,7 @@ type LedgerEntryList struct {
 	list []LedgerEntry
 }
 
-func (f LedgerEntryList) GetEntries() []LedgerEntry {
+func (f LedgerEntryList) GetSerializedHistory() []LedgerEntry {
 	list := slices.Clone(f.list)
 
 	// Sort ledger entries by time
@@ -101,6 +105,26 @@ func (f LedgerEntryList) GetEntries() []LedgerEntry {
 
 		return list[i].Time.Before(list[j].Time)
 	})
+
+	accumulatedDifference := dec.NewFromInt(0)
+
+	for i := range list {
+		entry := &list[i]
+		amount := dec.NewFromFloat(defaultx.WithDefault(entry.Amount, 0))
+		switch entry.Type {
+		case LedgerEntryTypeGrantUsage:
+			accumulatedDifference = accumulatedDifference.Sub(amount)
+		case LedgerEntryTypeGrant:
+			accumulatedDifference = accumulatedDifference.Add(amount)
+		case LedgerEntryTypeVoid:
+			accumulatedDifference = accumulatedDifference.Sub(amount)
+		case LedgerEntryTypeReset:
+			accumulatedDifference = dec.NewFromInt(0)
+		}
+
+		v, _ := accumulatedDifference.Float64() // we ignore exactness here
+		entry.AccumulatedBalanceChange = v
+	}
 
 	return list
 }
@@ -136,7 +160,7 @@ func (f LedgerEntryList) Skip(n int) LedgerEntryList {
 }
 
 func (f LedgerEntryList) MarshalJSON() ([]byte, error) {
-	list := f.GetEntries()
+	list := f.GetSerializedHistory()
 	return json.Marshal(&list)
 }
 
@@ -172,17 +196,17 @@ func (c *LedgerEntryList) AddReset(reset Reset) {
 	})
 }
 
-func (c *LedgerEntryList) AddGrantUsage(grantId *GrantID, featureId *FeatureID, from time.Time, to time.Time, amount float64) {
+func (c *LedgerEntryList) AddGrantUsage(grantId GrantID, featureId FeatureID, from time.Time, to time.Time, amount float64) {
 	now := time.Now()
 	if to.After(now) {
 		to = now
 	}
 
 	c.list = append(c.list, LedgerEntry{
-		ID:        grantId,
+		ID:        &grantId,
 		Type:      LedgerEntryTypeGrantUsage,
 		Time:      to,
-		FeatureID: featureId,
+		FeatureID: &featureId,
 		Amount:    &amount,
 		Period: &Period{
 			From: from,
