@@ -1,6 +1,6 @@
 'use client'
 
-import { OpenMeterContext, type OpenMeterConfig } from './context'
+import { OpenMeterContext, type OpenMeterConfig } from './context.js'
 
 export function OpenMeterProvider({
   children,

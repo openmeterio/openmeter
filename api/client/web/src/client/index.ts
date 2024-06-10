@@ -1,5 +1,5 @@
 import { Fetcher } from 'openapi-typescript-fetch'
-import { paths, components } from './openapi'
+import { paths, components } from './openapi.js'
 
 export type WindowSize = components['schemas']['WindowSize']
 export type MeterQueryRow = components['schemas']['MeterQueryRow']
