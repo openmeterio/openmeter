@@ -775,6 +775,38 @@ paths:
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
+  /api/v1/grants/{grantId}:
+    delete:
+      operationId: voidGrant
+      summary: Delete a grant
+      description: |
+        Void (delete) a grant. A grant can only be deleted if it hasn't been used.
+      tags:
+        - Entitlements (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/grantId"
+      responses:
+        "204":
+          description: Grant has been voided.
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "409":
+          description: Grant has been used and cannot be voided.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+              example:
+                type: "urn:problem-type:conflict"
+                title: "Conflict"
+                status: 409
+                detail: "grant already used"
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
   /api/v1/subjects/{subjectIdOrKey}/entitlements:
     post:
       operationId: createEntitlement
@@ -818,6 +850,11 @@ paths:
                         description: The id of the existing entitlement.
                         type: string
                         example: "01G65Z755AFWAKHE12NY0CQ9FH"
+              example:
+                type: "urn:problem-type:conflict"
+                title: "Conflict"
+                status: 409
+                detail: "already entitled to feature"
         "501":
           $ref: "#/components/responses/NotImplementedProblemResponse"
         default:
