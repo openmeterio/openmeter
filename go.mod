@@ -15,7 +15,7 @@ require (
 	github.com/cloudevents/sdk-go/v2 v2.15.2
 	github.com/confluentinc/confluent-kafka-go/v2 v2.4.0
 	github.com/deepmap/oapi-codegen/v2 v2.1.0
-	github.com/getkin/kin-openapi v0.123.0
+	github.com/getkin/kin-openapi v0.124.0
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/go-chi/cors v1.2.1
 	github.com/go-chi/render v1.0.3
@@ -30,7 +30,7 @@ require (
 	github.com/lmittmann/tint v1.0.4
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/oapi-codegen/nethttp-middleware v1.0.1
+	github.com/oapi-codegen/nethttp-middleware v1.0.2
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/oklog/run v1.1.0
 	github.com/oklog/ulid/v2 v2.1.0
