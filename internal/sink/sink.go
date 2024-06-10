@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"regexp"
 	"sort"
+	"sync"
 	"syscall"
 	"time"
 
@@ -42,6 +43,8 @@ type Sink struct {
 	messageCounter    metric.Int64Counter
 	namespaceStore    *NamespaceStore
 	namespaceRefetch  *time.Timer
+
+	mu sync.Mutex
 }
 
 type SinkConfig struct {
@@ -122,8 +125,23 @@ func (s *Sink) flush() error {
 
 	// Nothing to flush
 	if s.buffer.Size() == 0 {
+		logger.Debug("buffer is empty: nothing to flush")
 		return nil
 	}
+
+	// Use mutex locking to avoid interruption of Sink during flush operation in order to avoid
+	// inconsistent state where data is already stored in storage (Clickhouse), but not in
+	// Kafka or Redis which would result in stored events being reprocessed which would violate
+	// "exactly once" guarantee.
+	logger.Debug("acquiring lock to prevent closing sink during flush operation")
+	s.mu.Lock()
+	defer func() {
+		s.mu.Unlock()
+		logger.Debug("releasing lock")
+	}()
+
+	ctx, lockSpan := s.config.Tracer.Start(ctx, "flush-lock")
+	defer lockSpan.End()
 
 	// Pause partitions to avoid processing new messages while we flush
 	err := s.pause()
@@ -272,12 +290,12 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) err
 	// Storage Batch insert
 	if len(batch) > 0 {
 		storageCtx, storageSpan := s.config.Tracer.Start(persistCtx, "storage-batch-insert")
+		defer storageSpan.End()
 		err := s.config.Storage.BatchInsert(storageCtx, batch)
 		if err != nil {
 			// Returning and error means we will retry the whole batch again
 			storageSpan.SetStatus(codes.Error, "failure")
 			storageSpan.RecordError(err)
-			storageSpan.End()
 			return fmt.Errorf("failed to sink to storage: %s", err)
 		}
 		logger.Debug("succeeded to sink to storage", "buffer size", len(messages))
@@ -640,7 +658,20 @@ func (s *Sink) ParseMessage(e *kafka.Message) (string, *serializer.CloudEventsKa
 }
 
 func (s *Sink) Close() error {
-	s.config.Logger.Info("closing sink")
+	logger := s.config.Logger.With("operation", "close")
+
+	logger.Info("closing sink")
+
+	// Use mutex locking to avoid interruption Sink during flush operation in order to avoid
+	// inconsistent state where data is already stored in storage (Clickhouse), but not in
+	// Kafka or Redis which would result in stored events being reprocessed which would violate
+	// "exactly once" guarantee.
+	logger.Debug("acquiring lock to prevent closing sink during flush operation")
+	s.mu.Lock()
+	defer func() {
+		s.mu.Unlock()
+		logger.Debug("releasing lock")
+	}()
 
 	s.running = false
 	if s.namespaceRefetch != nil {
