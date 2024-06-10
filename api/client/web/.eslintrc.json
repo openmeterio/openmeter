@@ -20,8 +20,7 @@
     "prettier",
     "eslint:recommended",
     "plugin:import/recommended",
-    "plugin:@typescript-eslint/recommended",
-    "plugin:vitest/recommended"
+    "plugin:@typescript-eslint/recommended"
   ],
   "rules": {
     "no-mixed-spaces-and-tabs": "warn",

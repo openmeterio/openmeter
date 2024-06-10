@@ -1,8 +1,8 @@
 'use client'
 
 import { useContext, useMemo } from 'react'
-import { OpenMeterClient } from '../client'
-import { OpenMeterContext } from './context'
+import { OpenMeterClient } from '../client/index.js'
+import { OpenMeterContext } from './context.js'
 
 export function useOpenMeter() {
   const context = useContext(OpenMeterContext)
