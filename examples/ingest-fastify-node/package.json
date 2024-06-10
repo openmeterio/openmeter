@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@fastify/cookie": "^8.3.0",
-    "@fastify/session": "^10.4.0",
+    "@fastify/session": "^10.9.0",
     "@openmeter/sdk": "1.0.0-beta.6",
     "fastify": "^4.20.0",
     "ts-node": "^10.9.1",
