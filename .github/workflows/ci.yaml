@@ -236,9 +236,22 @@ jobs:
 
       - name: Run pipeline
         uses: dagger/dagger-for-github@158efd19b6af5ff000289d6c7c507ada3c7b3b9b # v5.8.0
+        timeout-minutes: 40
         with:
           verb: call
           module: github.com/${{ github.repository }}@${{ github.ref }}
           args: --ref ${{ github.ref }} ci
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
+
+      - name: Export Dagger Engine logs
+        run: docker logs $(docker ps -q -f name=dagger-engine-) > engine.log
+        if: always()
+
+      - name: Upload Dagger Engine logs as artifact
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        if: always()
+        with:
+          name: "Dagger Engine logs"
+          path: engine.log
+          retention-days: 14
