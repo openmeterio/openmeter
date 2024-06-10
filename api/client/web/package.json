@@ -43,26 +43,26 @@
     "prepublishOnly": "pnpm run generate && pnpm run build && pnpm run lint && pnpm run test"
   },
   "devDependencies": {
-    "@testing-library/react": "^14.1.2",
+    "@testing-library/react": "^16.0.0",
     "@types/node": "^20.12.12",
     "@types/react": "^18.3.3",
-    "@typescript-eslint/eslint-plugin": "6.9.0",
-    "@typescript-eslint/parser": "6.9.0",
+    "@typescript-eslint/eslint-plugin": "7.12.0",
+    "@typescript-eslint/parser": "7.12.0",
     "eslint": "8.52.0",
     "eslint-config-prettier": "9.1.0",
     "eslint-formatter-pretty": "5.0.0",
     "eslint-import-resolver-typescript": "3.6.1",
     "eslint-plugin-import": "2.29.1",
-    "eslint-plugin-unused-imports": "3.0.0",
-    "eslint-plugin-vitest": "^0.3.10",
-    "jsdom": "^22.1.0",
+    "eslint-plugin-unused-imports": "4.0.0",
+    "eslint-plugin-vitest": "^0.5.4",
+    "jsdom": "^24.1.0",
     "openapi-typescript": "6.7.6",
-    "prettier": "3.2.5",
+    "prettier": "3.3.1",
     "react": "18.3.1",
     "rimraf": "5.0.7",
-    "typescript": "5.2.2",
-    "undici": "^5.27.2",
-    "vitest": "^0.34.6"
+    "typescript": "5.4.5",
+    "undici": "^6.18.2",
+    "vitest": "^1.6.0"
   },
   "dependencies": {
     "openapi-typescript-fetch": "^1.1.3"
