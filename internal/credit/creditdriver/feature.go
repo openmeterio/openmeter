@@ -106,11 +106,11 @@ func (b *builder) CreateFeature() CreateFeatureHandler {
 
 func validateMeterAggregation(meter models.Meter) error {
 	switch meter.Aggregation {
-	case models.MeterAggregationCount, models.MeterAggregationUniqueCount, models.MeterAggregationSum:
+	case models.MeterAggregationCount, models.MeterAggregationSum:
 		return nil
 	}
 
-	return fmt.Errorf("meter %s's aggregation is %s but features can only be created for SUM, COUNT, UNIQUE_COUNT MeterRepository",
+	return fmt.Errorf("meter %s's aggregation is %s but features can only be created for SUM, COUNT MeterRepository",
 		meter.Slug,
 		meter.Aggregation,
 	)
