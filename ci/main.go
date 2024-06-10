@@ -8,8 +8,8 @@ import (
 
 const (
 	// Alpine is required for our current build (due to Kafka and CGO), but it doesn't seem to work well with golangci-lint
-	goVersion      = "1.22.3"
-	goBuildVersion = goVersion + "-alpine3.19@sha256:f1fe698725f6ed14eb944dc587591f134632ed47fc0732ec27c7642adbe90618"
+	goVersion      = "1.22.4"
+	goBuildVersion = goVersion + "-alpine3.19@sha256:65b5d2d0a312fd9ef65551ad7f9cb5db1f209b7517ef6d5625cfd29248bc6c85"
 	xxBaseImage    = "tonistiigi/xx:1.4.0@sha256:0cd3f05c72d6c9b038eb135f91376ee1169ef3a330d34e418e65e2a5c2e9c0d4"
 
 	golangciLintVersion = "v1.59.0"
