@@ -52,6 +52,20 @@ jobs:
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
 
+      - name: Export Dagger Engine logs
+        run: docker logs $(docker container list --all --filter 'name=^dagger-engine-*' --format '{{.Names}}') > engine.stdout.log 2> engine.stderr.log
+        if: always()
+
+      - name: Upload Dagger Engine logs as artifact
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        if: always()
+        with:
+          name: "[${{ github.job }}] Dagger Engine logs"
+          path: |
+            engine.stdout.log
+            engine.stderr.log
+          retention-days: 14
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -65,6 +79,20 @@ jobs:
           args: --ref ${{ github.ref }} lint all
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
+
+      - name: Export Dagger Engine logs
+        run: docker logs $(docker container list --all --filter 'name=^dagger-engine-*' --format '{{.Names}}') > engine.stdout.log 2> engine.stderr.log
+        if: always()
+
+      - name: Upload Dagger Engine logs as artifact
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        if: always()
+        with:
+          name: "[${{ github.job }}] Dagger Engine logs"
+          path: |
+            engine.stdout.log
+            engine.stderr.log
+          retention-days: 14
 
   commit-hooks:
     name: Commit hooks
@@ -214,6 +242,20 @@ jobs:
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
 
+      - name: Export Dagger Engine logs
+        run: docker logs $(docker container list --all --filter 'name=^dagger-engine-*' --format '{{.Names}}') > engine.stdout.log 2> engine.stderr.log
+        if: always()
+
+      - name: Upload Dagger Engine logs as artifact
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        if: always()
+        with:
+          name: "[${{ github.job }}] Dagger Engine logs"
+          path: |
+            engine.stdout.log
+            engine.stderr.log
+          retention-days: 14
+
   dagger:
     name: CI
     runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
@@ -245,13 +287,15 @@ jobs:
           version: ${{ env.DAGGER_VERSION }}
 
       - name: Export Dagger Engine logs
-        run: docker logs $(docker container list --all --filter 'name=^dagger-engine-*' --format '{{.Names}}') > engine.log
+        run: docker logs $(docker container list --all --filter 'name=^dagger-engine-*' --format '{{.Names}}') > engine.stdout.log 2> engine.stderr.log
         if: always()
 
       - name: Upload Dagger Engine logs as artifact
         uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
         if: always()
         with:
-          name: "Dagger Engine logs"
-          path: engine.log
+          name: "[${{ github.job }}] Dagger Engine logs"
+          path: |
+            engine.stdout.log
+            engine.stderr.log
           retention-days: 14
