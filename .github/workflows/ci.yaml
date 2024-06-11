@@ -245,7 +245,7 @@ jobs:
           version: ${{ env.DAGGER_VERSION }}
 
       - name: Export Dagger Engine logs
-        run: docker logs $(docker ps -q -f name=dagger-engine-) > engine.log
+        run: docker logs $(docker container list --all --filter 'name=^dagger-engine-*' --format '{{.Names}}') > engine.log
         if: always()
 
       - name: Upload Dagger Engine logs as artifact
