@@ -8,14 +8,15 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
+	kafkametrics "github.com/openmeterio/openmeter/internal/kafka/metrics"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 )
 
 // Collector is a receiver of events that handles sending those events to a downstream Kafka broker.
 type Collector = kafkaingest.Collector
 
-func KafkaProducerGroup(ctx context.Context, producer *kafka.Producer, logger *slog.Logger) (execute func() error, interrupt func(error)) {
-	return kafkaingest.KafkaProducerGroup(ctx, producer, logger)
+func KafkaProducerGroup(ctx context.Context, producer *kafka.Producer, logger *slog.Logger, kafkaMetrics *kafkametrics.Metrics) (execute func() error, interrupt func(error)) {
+	return kafkaingest.KafkaProducerGroup(ctx, producer, logger, kafkaMetrics)
 }
 
 func NewCollector(

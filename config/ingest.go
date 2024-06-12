@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/spf13/viper"
@@ -30,6 +31,8 @@ type KafkaIngestConfiguration struct {
 	SaslPassword        string
 	Partitions          int
 	EventsTopicTemplate string
+
+	StatsInterval time.Duration
 }
 
 // CreateKafkaConfig creates a Kafka config map.
@@ -64,6 +67,10 @@ func (c KafkaIngestConfiguration) CreateKafkaConfig() kafka.ConfigMap {
 		config["sasl.password"] = c.SaslPassword
 	}
 
+	if c.StatsInterval > 0 {
+		config["statistics.interval.ms"] = int(c.StatsInterval.Milliseconds())
+	}
+
 	return config
 }
 
@@ -75,6 +82,10 @@ func (c KafkaIngestConfiguration) Validate() error {
 
 	if c.EventsTopicTemplate == "" {
 		return errors.New("events topic template is required")
+	}
+
+	if c.StatsInterval > 0 && c.StatsInterval < 5*time.Second {
+		return errors.New("StatsInterval must be >=5s")
 	}
 
 	return nil

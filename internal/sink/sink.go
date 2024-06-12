@@ -22,6 +22,8 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/dedupe"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
+	kafkametrics "github.com/openmeterio/openmeter/internal/kafka/metrics"
+	kafkastats "github.com/openmeterio/openmeter/internal/kafka/metrics/stats"
 	"github.com/openmeterio/openmeter/internal/meter"
 )
 
@@ -43,6 +45,8 @@ type Sink struct {
 	messageCounter    metric.Int64Counter
 	namespaceStore    *NamespaceStore
 	namespaceRefetch  *time.Timer
+
+	kafkaMetrics *kafkametrics.Metrics
 
 	mu sync.Mutex
 }
@@ -103,12 +107,18 @@ func NewSink(config SinkConfig) (*Sink, error) {
 		return nil, fmt.Errorf("failed to create events counter: %w", err)
 	}
 
+	kafkaMetrics, err := kafkametrics.New(config.MetricMeter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Kafka client metrics: %w", err)
+	}
+
 	sink := &Sink{
 		config:            config,
 		buffer:            NewSinkBuffer(),
 		namespaceStore:    NewNamespaceStore(),
 		flushEventCounter: flushEventCounter,
 		messageCounter:    messageCounter,
+		kafkaMetrics:      kafkaMetrics,
 	}
 
 	return sink, nil
@@ -504,6 +514,24 @@ func (s *Sink) Run() error {
 			case kafka.OffsetsCommitted:
 				// do nothing, this is an ack of the periodic offset commit
 				logger.Debug("kafka offset committed", "offset", e.Offsets)
+			case *kafka.Stats:
+				// Report Kafka client metrics
+				if s.kafkaMetrics == nil {
+					continue
+				}
+
+				go func() {
+					var stats kafkastats.Stats
+
+					if err = json.Unmarshal([]byte(e.String()), &stats); err != nil {
+						logger.Warn("failed to unmarshal Kafka client stats", slog.String("err", err.Error()))
+					}
+
+					ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+					defer cancel()
+
+					s.kafkaMetrics.Add(ctx, &stats)
+				}()
 			default:
 				logger.Debug("kafka ignored event", "event", e)
 			}

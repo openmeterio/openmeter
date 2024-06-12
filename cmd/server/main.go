@@ -42,6 +42,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
+	kafkametrics "github.com/openmeterio/openmeter/internal/kafka/metrics"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
@@ -430,8 +431,14 @@ func initKafkaIngest(ctx context.Context, config config.Configuration, logger *s
 		return nil, nil, fmt.Errorf("init kafka ingest: %w", err)
 	}
 
+	// Initialize Kafka Client Statistics reporter
+	kafkaMetrics, err := kafkametrics.New(metricMeter)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create Kafka client metrics: %w", err)
+	}
+
 	// TODO: move kafkaingest.KafkaProducerGroup to pkg/kafka
-	group.Add(kafkaingest.KafkaProducerGroup(ctx, producer, logger))
+	group.Add(kafkaingest.KafkaProducerGroup(ctx, producer, logger, kafkaMetrics))
 
 	go pkgkafka.ConsumeLogChannel(producer, logger.WithGroup("kafka").WithGroup("producer"))
 
