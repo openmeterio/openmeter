@@ -12,24 +12,23 @@ import (
 type BalanceConnector interface {
 	GetBalanceOfOwner(owner NamespacedGrantOwner, at time.Time) (float64, error)
 	GetBalanceHistoryOfOwner(owner NamespacedGrantOwner, params BalanceHistoryParams) (GrantBurnDownHistory, error)
-	ResetUsageForOwner(owner NamespacedGrantOwner) error
+	ResetUsageForOwner(owner NamespacedGrantOwner, at time.Time) error
 }
-
-type GetOwnerQueryParamsFn func(owner NamespacedGrantOwner) (namespace string, defaultParams streaming.QueryParams, err error)
 
 type BalanceHistoryParams struct {
 	From time.Time
 	To   time.Time
 }
 
-func NewBalanceConnector(gc GrantConnector, sc streaming.Connector, getOwnerQuery GetOwnerQueryParamsFn) BalanceConnector {
-	return &balanceConnector{gc: gc, sc: sc, getOwnerQuery: getOwnerQuery}
+func NewBalanceConnector(gc GrantConnector, gbc GrantBalanceConnector, oc OwnerConnector, sc streaming.Connector) BalanceConnector {
+	return &balanceConnector{gc: gc, gbc: gbc, oc: oc, sc: sc}
 }
 
 type balanceConnector struct {
-	gc            GrantConnector
-	sc            streaming.Connector
-	getOwnerQuery GetOwnerQueryParamsFn
+	gc  GrantConnector
+	gbc GrantBalanceConnector
+	oc  OwnerConnector
+	sc  streaming.Connector
 }
 
 var _ BalanceConnector = &balanceConnector{}
@@ -44,16 +43,24 @@ func (m *balanceConnector) GetBalanceOfOwner(owner NamespacedGrantOwner, at time
 }
 
 func (m *balanceConnector) GetBalanceHistoryOfOwner(owner NamespacedGrantOwner, params BalanceHistoryParams) (GrantBurnDownHistory, error) {
+	// get last valid grantbalances
+	// get all relevant grants
+	// run engine and calculate grantbalance
+	// store new grantbalance (& history)
+	// return history
 	return GrantBurnDownHistory{}, nil
 }
 
-func (m *balanceConnector) ResetUsageForOwner(owner NamespacedGrantOwner) error {
+func (m *balanceConnector) ResetUsageForOwner(owner NamespacedGrantOwner, at time.Time) error {
+	// definitely do in transsaction
+	// check if reset is possible (after last reset)
+	// get all grants for rollover
 	return nil
 }
 
 // returns owner specific QueryUsageFn
 func (m *balanceConnector) getQueryUsageFn(ctx context.Context, owner NamespacedGrantOwner) (QueryUsageFn, error) {
-	meterSlug, ownerParams, err := m.getOwnerQuery(owner)
+	meterSlug, ownerParams, err := m.oc.GetOwnerQueryParams(owner)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get query params for owner %v: %w", owner, err)
 	}
