@@ -19,7 +19,6 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 	"github.com/oapi-codegen/runtime"
-	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -429,7 +428,7 @@ type WindowSize = models.WindowSize
 type FeatureID = interface{}
 
 // LedgerGrantID defines model for ledgerGrantID.
-type LedgerGrantID = credit.GrantID
+type LedgerGrantID = interface{}
 
 // LedgerID defines model for ledgerID.
 type LedgerID = interface{}

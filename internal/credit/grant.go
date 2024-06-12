@@ -8,12 +8,15 @@ import (
 )
 
 type GrantID string
-
-type GrantOwner string
-
 type NamespacedGrantID struct {
 	Namespace string
 	ID        GrantID
+}
+
+type GrantOwner string
+type NamespacedGrantOwner struct {
+	Namespace string
+	ID        GrantOwner
 }
 
 func NewNamespacedGrantID(namespace string, id GrantID) NamespacedGrantID {
