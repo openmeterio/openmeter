@@ -29,9 +29,9 @@ type CreditEntry struct {
 	// LedgerID holds the value of the "ledger_id" field.
 	LedgerID string `json:"ledger_id,omitempty"`
 	// EntryType holds the value of the "entry_type" field.
-	EntryType credit.EntryType `json:"entry_type,omitempty"`
+	EntryType credit.DELETEME_EntryType `json:"entry_type,omitempty"`
 	// Type holds the value of the "type" field.
-	Type *credit.GrantType `json:"type,omitempty"`
+	Type *credit.DELETEME_GrantType `json:"type,omitempty"`
 	// FeatureID holds the value of the "feature_id" field.
 	FeatureID *string `json:"feature_id,omitempty"`
 	// Amount holds the value of the "amount" field.
@@ -170,14 +170,14 @@ func (ce *CreditEntry) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field entry_type", values[i])
 			} else if value.Valid {
-				ce.EntryType = credit.EntryType(value.String)
+				ce.EntryType = credit.DELETEME_EntryType(value.String)
 			}
 		case creditentry.FieldType:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field type", values[i])
 			} else if value.Valid {
-				ce.Type = new(credit.GrantType)
-				*ce.Type = credit.GrantType(value.String)
+				ce.Type = new(credit.DELETEME_GrantType)
+				*ce.Type = credit.DELETEME_GrantType(value.String)
 			}
 		case creditentry.FieldFeatureID:
 			if value, ok := values[i].(*sql.NullString); !ok {

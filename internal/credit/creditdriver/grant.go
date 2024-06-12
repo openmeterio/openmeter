@@ -112,25 +112,25 @@ func (b *builder) CreateLedgerGrant() CreateLedgerGrantHandler {
 				return grant, err
 			}
 
-			feature, err := b.CreditConnector.GetFeature(ctx, credit.NewNamespacedFeatureID(ns, *grant.FeatureID))
-			if err != nil {
-				if _, ok := err.(*credit.FeatureNotFoundError); ok {
-					return grant, commonhttp.NewHTTPError(
-						http.StatusBadRequest,
-						fmt.Errorf("feature not found: %s", *grant.FeatureID),
-					)
-				}
-				return grant, err
-			}
+			// feature, err := b.CreditConnector.GetFeature(ctx, credit.NewNamespacedFeatureID(ns, *grant.FeatureID))
+			// if err != nil {
+			// 	if _, ok := err.(*credit.FeatureNotFoundError); ok {
+			// 		return grant, commonhttp.NewHTTPError(
+			// 			http.StatusBadRequest,
+			// 			fmt.Errorf("feature not found: %s", *&grant.EntitlementID),
+			// 		)
+			// 	}
+			// 	return grant, err
+			// }
 
-			if feature.Archived != nil && *feature.Archived {
-				return grant, commonhttp.NewHTTPError(
-					http.StatusBadRequest,
-					fmt.Errorf("feature is archived: %s", *grant.FeatureID),
-				)
-			}
+			// if feature.Archived != nil && *feature.Archived {
+			// 	return grant, commonhttp.NewHTTPError(
+			// 		http.StatusBadRequest,
+			// 		fmt.Errorf("feature is archived: %s", *grant.FeatureID),
+			// 	)
+			// }
 
-			grant.LedgerID = arg
+			// grant.LedgerID = arg
 			grant.Namespace = ns
 			return grant, nil
 		},
@@ -197,9 +197,9 @@ func (b *builder) VoidLedgerGrant() VoidLedgerGrantHandler {
 				return credit.Grant{}, &credit.GrantNotFoundError{GrantID: in.GrantID}
 			}
 
-			if grant.LedgerID != in.LedgerID {
-				return credit.Grant{}, &credit.GrantNotFoundError{GrantID: in.GrantID}
-			}
+			// if grant.LedgerID != in.LedgerID {
+			// 	return credit.Grant{}, &credit.GrantNotFoundError{GrantID: in.GrantID}
+			// }
 
 			if grant.Void {
 				return grant, commonhttp.NewHTTPError(
@@ -288,13 +288,13 @@ func mapGrantToAPI(grant credit.Grant) api.LedgerGrantResponse {
 			Duration: api.LedgerGrantExpirationPeriodDuration(grant.Expiration.Duration),
 		},
 		ExpiresAt: &grant.ExpiresAt,
-		FeatureID: string(defaultx.WithDefault(grant.FeatureID, credit.FeatureID(""))),
-		Id:        (*string)(grant.ID),
-		Metadata:  &grant.Metadata,
-		ParentId:  (*string)(grant.ParentID),
-		Priority:  convert.ToPointer(int(grant.Priority)),
-		Rollover:  grant.Rollover,
-		Type:      api.LedgerGrantType(grant.Type),
+		// FeatureID: string(defaultx.WithDefault(grant.FeatureID, credit.FeatureID(""))),
+		Id:       (*string)(grant.ID),
+		Metadata: &grant.Metadata,
+		ParentId: (*string)(grant.ParentID),
+		Priority: convert.ToPointer(int(grant.Priority)),
+		Rollover: grant.Rollover,
+		// Type:      api.LedgerGrantType(grant.Type),
 		UpdatedAt: grant.UpdatedAt,
 		Void:      &grant.Void,
 	}
@@ -302,6 +302,6 @@ func mapGrantToAPI(grant credit.Grant) api.LedgerGrantResponse {
 
 func mapGrantWithBalanceToAPI(grant credit.Grant) api.LedgerGrantResponse {
 	res := mapGrantToAPI(grant)
-	res.LedgerID = string(grant.LedgerID)
+	// res.LedgerID = string(grant.LedgerID)
 	return res
 }

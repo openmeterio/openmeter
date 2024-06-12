@@ -68,7 +68,7 @@ func (b *builder) GetLedgerBalance() GetLedgerBalanceHandler {
 	)
 }
 
-func mapBalanceToAPI(balance credit.Balance, highwatermark credit.HighWatermark) api.LedgerBalance {
+func mapBalanceToAPI(balance credit.DELETEME_Balance, highwatermark credit.HighWatermark) api.LedgerBalance {
 	var featureBalances []api.FeatureBalance = make([]api.FeatureBalance, 0, len(balance.FeatureBalances))
 	for _, featureBalance := range balance.FeatureBalances {
 		featureBalances = append(featureBalances, mapFeatureBalanceToAPI(featureBalance))
@@ -88,7 +88,7 @@ func mapBalanceToAPI(balance credit.Balance, highwatermark credit.HighWatermark)
 	}
 }
 
-func mapFeatureBalanceToAPI(featureBalance credit.FeatureBalance) api.FeatureBalance {
+func mapFeatureBalanceToAPI(featureBalance credit.DELETEME_FeatureBalance) api.FeatureBalance {
 	return api.FeatureBalance{
 		Archived:            featureBalance.Archived,
 		CreatedAt:           featureBalance.CreatedAt,
@@ -102,7 +102,7 @@ func mapFeatureBalanceToAPI(featureBalance credit.FeatureBalance) api.FeatureBal
 	}
 }
 
-func mapGrantBalanceToAPI(grantBalance credit.GrantBalance) api.LedgerGrantBalance {
+func mapGrantBalanceToAPI(grantBalance credit.DELETEME_GrantBalance) api.LedgerGrantBalance {
 	priority := int(grantBalance.Priority)
 
 	return api.LedgerGrantBalance{
@@ -115,13 +115,13 @@ func mapGrantBalanceToAPI(grantBalance credit.GrantBalance) api.LedgerGrantBalan
 			Duration: api.LedgerGrantExpirationPeriodDuration(grantBalance.Expiration.Duration),
 		},
 		ExpiresAt: &grantBalance.ExpiresAt,
-		FeatureID: string(*grantBalance.FeatureID),
-		Id:        convert.ToStringLike[credit.GrantID, string](grantBalance.ID),
-		Metadata:  &grantBalance.Metadata,
-		ParentId:  convert.ToStringLike[credit.GrantID, string](grantBalance.ParentID),
-		Priority:  &priority,
-		Rollover:  grantBalance.Rollover,
-		Type:      api.LedgerGrantType(grantBalance.Type),
+		// FeatureID: string(*grantBalance.FeatureID),
+		Id:       convert.ToStringLike[credit.GrantID, string](grantBalance.ID),
+		Metadata: &grantBalance.Metadata,
+		ParentId: convert.ToStringLike[credit.GrantID, string](grantBalance.ParentID),
+		Priority: &priority,
+		Rollover: grantBalance.Rollover,
+		// Type:      api.LedgerGrantType(grantBalance.Type),
 		UpdatedAt: grantBalance.UpdatedAt,
 	}
 }

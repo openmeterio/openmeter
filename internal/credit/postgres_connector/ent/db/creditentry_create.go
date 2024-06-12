@@ -66,19 +66,19 @@ func (cec *CreditEntryCreate) SetLedgerID(s string) *CreditEntryCreate {
 }
 
 // SetEntryType sets the "entry_type" field.
-func (cec *CreditEntryCreate) SetEntryType(ct credit.EntryType) *CreditEntryCreate {
+func (cec *CreditEntryCreate) SetEntryType(ct credit.DELETEME_EntryType) *CreditEntryCreate {
 	cec.mutation.SetEntryType(ct)
 	return cec
 }
 
 // SetType sets the "type" field.
-func (cec *CreditEntryCreate) SetType(ct credit.GrantType) *CreditEntryCreate {
+func (cec *CreditEntryCreate) SetType(ct credit.DELETEME_GrantType) *CreditEntryCreate {
 	cec.mutation.SetType(ct)
 	return cec
 }
 
 // SetNillableType sets the "type" field if the given value is not nil.
-func (cec *CreditEntryCreate) SetNillableType(ct *credit.GrantType) *CreditEntryCreate {
+func (cec *CreditEntryCreate) SetNillableType(ct *credit.DELETEME_GrantType) *CreditEntryCreate {
 	if ct != nil {
 		cec.SetType(*ct)
 	}

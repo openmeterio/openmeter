@@ -351,12 +351,12 @@ type LedgerGrantResponse struct {
 }
 
 // LedgerGrantRollover Grant rollover configuration.
-type LedgerGrantRollover = credit.GrantRollover
+type LedgerGrantRollover = interface{}
 
 // LedgerGrantRolloverType The rollover type to use:
 // - `REMAINING_AMOUNT` - Rollover remaining amount.
 // - `ORIGINAL_AMOUNT` - Rollover re-applies the full grant amount.
-type LedgerGrantRolloverType = credit.GrantRolloverType
+type LedgerGrantRolloverType = interface{}
 
 // LedgerGrantType The grant type:
 // - `USAGE` - Increase balance by the amount in the unit of the associated meter.

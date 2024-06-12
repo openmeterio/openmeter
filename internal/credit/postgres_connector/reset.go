@@ -3,7 +3,6 @@ package postgres_connector
 import (
 	"context"
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
@@ -52,33 +51,33 @@ func (c *PostgresConnector) Reset(ctx context.Context, reset credit.Reset) (cred
 				grant := grantBalance.Grant
 
 				// Do not rollover grants without rollover
-				if grant.Rollover == nil {
-					continue
-				}
+				// if grant.Rollover == nil {
+				// 	continue
+				// }
 
-				switch grant.Rollover.Type {
-				case credit.GrantRolloverTypeOriginalAmount:
-					// Nothing to do, we rollover the original amount
-				case credit.GrantRolloverTypeRemainingAmount:
-					if grant.Rollover.MaxAmount != nil {
-						// We roll over up to the max amount
-						grant.Amount = math.Min(*grant.Rollover.MaxAmount, grant.Amount)
-					} else {
-						// We rollover the remaining amount
-						grant.Amount = grantBalance.Balance
-					}
-				}
-				if grant.Rollover.MaxAmount != nil {
-					grant.Amount = math.Max(*grant.Rollover.MaxAmount, grant.Amount)
-				}
-				// Skip grants with zero amount, amount never goes negative
-				if grant.Amount == 0 {
-					continue
-				}
+				// switch grant.Rollover.Type {
+				// case credit.GrantRolloverTypeOriginalAmount:
+				// 	// Nothing to do, we rollover the original amount
+				// case credit.GrantRolloverTypeRemainingAmount:
+				// 	if grant.Rollover.MaxAmount != nil {
+				// 		// We roll over up to the max amount
+				// 		grant.Amount = math.Min(*grant.Rollover.MaxAmount, grant.Amount)
+				// 	} else {
+				// 		// We rollover the remaining amount
+				// 		grant.Amount = grantBalance.Balance
+				// 	}
+				// }
+				// if grant.Rollover.MaxAmount != nil {
+				// 	grant.Amount = math.Max(*grant.Rollover.MaxAmount, grant.Amount)
+				// }
+				// // Skip grants with zero amount, amount never goes negative
+				// if grant.Amount == 0 {
+				// 	continue
+				// }
 
-				// Set the parent ID to the grant ID we are rolling over
-				grant.ParentID = grant.ID
-				grant.EffectiveAt = reset.EffectiveAt
+				// // Set the parent ID to the grant ID we are rolling over
+				// grant.ParentID = grant.ID
+				// grant.EffectiveAt = reset.EffectiveAt
 
 				// Append grant to rollover grants
 				rolloverGrants = append(rolloverGrants, grant)
@@ -97,11 +96,11 @@ func (c *PostgresConnector) Reset(ctx context.Context, reset credit.Reset) (cred
 			for _, grant := range rolloverGrants {
 				grantEntityCreate := tx.CreditEntry.Create().
 					SetNamespace(reset.Namespace).
-					SetLedgerID(string(grant.LedgerID)).
+					// SetLedgerID(string(grant.LedgerID)).
 					SetEntryType(credit.EntryTypeGrant).
-					SetType(grant.Type).
+					// SetType(grant.Type).
 					SetNillableParentID((*string)(grant.ParentID)).
-					SetNillableFeatureID((*string)(grant.FeatureID)).
+					// SetNillableFeatureID((*string)(grant.FeatureID)).
 					SetAmount(grant.Amount).
 					SetPriority(grant.Priority).
 					SetEffectiveAt(grant.EffectiveAt).
@@ -109,11 +108,11 @@ func (c *PostgresConnector) Reset(ctx context.Context, reset credit.Reset) (cred
 					SetExpirationPeriodCount(grant.Expiration.Count).
 					SetMetadata(grant.Metadata)
 
-				if grant.Rollover != nil {
-					grantEntityCreate = grantEntityCreate.
-						SetNillableRolloverMaxAmount(grant.Rollover.MaxAmount).
-						SetRolloverType(grant.Rollover.Type)
-				}
+				// if grant.Rollover != nil {
+				// 	grantEntityCreate = grantEntityCreate.
+				// 		SetNillableRolloverMaxAmount(grant.Rollover.MaxAmount).
+				// 		SetRolloverType(grant.Rollover.Type)
+				// }
 
 				createEntities = append(createEntities, grantEntityCreate)
 
