@@ -3,12 +3,13 @@ package credit
 import (
 	"time"
 
-	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type GrantID string
+
+type GrantOwner string
 
 type NamespacedGrantID struct {
 	Namespace string
@@ -22,7 +23,7 @@ func NewNamespacedGrantID(namespace string, id GrantID) NamespacedGrantID {
 	}
 }
 
-// Grant is an immutable definition used to increase the balance of an entitlement.
+// Grant is an immutable definition used to increase balance.
 type Grant struct {
 	models.ManagedModel
 	models.NamespacedModel
@@ -30,11 +31,11 @@ type Grant struct {
 	// ID is the readonly identifies of a grant.
 	ID GrantID `json:"id,omitempty"`
 
+	// Generic Owner reference
+	OwnerID GrantOwner `json:"owner"`
+
 	// Parent ID is the readonly identifies of the grant's parent if any.
 	ParentID *GrantID `json:"parentID,omitempty"`
-
-	// Subject The subject to grant the amount to.
-	EntitlementID entitlement.EntitlementID `json:"entitlementId"`
 
 	// Amount The amount to grant. Can be positive or negative number.
 	Amount float64 `json:"amount"`

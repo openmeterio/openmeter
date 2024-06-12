@@ -10,9 +10,8 @@ import (
 
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/openmeterio/openmeter/internal/credit"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/testutils"
-	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/streaming"
+	"github.com/openmeterio/openmeter/internal/streaming/testutils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,11 +23,10 @@ func TestEngine(t *testing.T) {
 
 	grant1 := makeGrant(credit.Grant{
 
-		ID:            "grant-1",
-		EntitlementID: "entitlement-1",
-		Amount:        100.0,
-		Priority:      1,
-		EffectiveAt:   t1,
+		ID:          "grant-1",
+		Amount:      100.0,
+		Priority:    1,
+		EffectiveAt: t1,
 		Expiration: credit.ExpirationPeriod{
 			Duration: credit.ExpirationPeriodDurationDay,
 			Count:    30,
@@ -44,11 +42,10 @@ func TestEngine(t *testing.T) {
 
 	grant2 := makeGrant(credit.Grant{
 
-		ID:            "grant-2",
-		EntitlementID: "entitlement-1",
-		Amount:        100.0,
-		Priority:      1,
-		EffectiveAt:   t1,
+		ID:          "grant-2",
+		Amount:      100.0,
+		Priority:    1,
+		EffectiveAt: t1,
 		Expiration: credit.ExpirationPeriod{
 			Duration: credit.ExpirationPeriodDurationDay,
 			Count:    30,
@@ -618,11 +615,10 @@ func TestEngine(t *testing.T) {
 				grants := make([]credit.Grant, numOfGrants)
 				for i := 0; i < numOfGrants; i++ {
 					grant := credit.Grant{
-						ID:            credit.GrantID(fmt.Sprintf("grant-%d", i)),
-						EntitlementID: entitlement.EntitlementID("entitlement-1"),
-						Amount:        float64(gofakeit.IntRange(10000, 1000000)), // input value limited to ints
-						Priority:      gofakeit.Uint8(),
-						EffectiveAt:   gofakeit.DateRange(start, end).Truncate(granularity),
+						ID:          credit.GrantID(fmt.Sprintf("grant-%d", i)),
+						Amount:      float64(gofakeit.IntRange(10000, 1000000)), // input value limited to ints
+						Priority:    gofakeit.Uint8(),
+						EffectiveAt: gofakeit.DateRange(start, end).Truncate(granularity),
 						Expiration: credit.ExpirationPeriod{
 							Duration: credit.ExpirationPeriodDurationDay,
 							Count:    gofakeit.Uint8(),
@@ -700,11 +696,10 @@ func TestEngine(t *testing.T) {
 				grants := make([]credit.Grant, numOfGrants)
 				for i := 0; i < numOfGrants; i++ {
 					grant := credit.Grant{
-						ID:            credit.GrantID(fmt.Sprintf("grant-%d", i)),
-						EntitlementID: entitlement.EntitlementID("entitlement-1"),
-						Amount:        float64(gofakeit.IntRange(10000, 1000000)), // input value limited to ints
-						Priority:      gofakeit.Uint8(),
-						EffectiveAt:   gofakeit.DateRange(start, end).Truncate(granularity),
+						ID:          credit.GrantID(fmt.Sprintf("grant-%d", i)),
+						Amount:      float64(gofakeit.IntRange(10000, 1000000)), // input value limited to ints
+						Priority:    gofakeit.Uint8(),
+						EffectiveAt: gofakeit.DateRange(start, end).Truncate(granularity),
 						Expiration: credit.ExpirationPeriod{
 							Duration: credit.ExpirationPeriodDurationDay,
 							Count:    gofakeit.Uint8(),

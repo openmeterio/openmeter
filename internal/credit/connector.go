@@ -2,77 +2,38 @@ package credit
 
 import (
 	"context"
-	"time"
 )
 
-type ListGrantsParams struct {
-	Namespace         string
-	LedgerIDs         []LedgerID
-	From              *time.Time
-	To                *time.Time
-	FromHighWatermark bool
-	IncludeVoid       bool
-	Limit             int
-}
-
-type FeatureOrderBy string
-
-const (
-	FeatureOrderByCreatedAt FeatureOrderBy = "created_at"
-	FeatureOrderByUpdatedAt FeatureOrderBy = "updated_at"
-	FeatureOrderByID        FeatureOrderBy = "id"
-)
-
-type ListFeaturesParams struct {
-	Namespace       string
-	IncludeArchived bool
-	Offset          int
-	Limit           int
-	OrderBy         FeatureOrderBy
-}
-
-type LedgerOrderBy string
-
-const (
-	LedgerOrderByCreatedAt LedgerOrderBy = "created_at"
-	LedgerOrderBySubject   LedgerOrderBy = "subject"
-	LedgerOrderByID        LedgerOrderBy = "id"
-)
-
-type ListLedgersParams struct {
-	Namespace   string
-	Subjects    []string
-	SubjectLike string
-	Offset      int
-	Limit       int
-	OrderBy     LedgerOrderBy
-}
-
-type Pagination struct {
-	Offset int
-	Limit  int
-}
-
+// Generic Connector to interface with Credit Capabilities
 type Connector interface {
-	// Ledger
-	CreateLedger(ctx context.Context, ledger Ledger) (Ledger, error)
-	ListLedgers(ctx context.Context, params ListLedgersParams) ([]Ledger, error)
+	// TODO: do we need management APIs separate from entitlements?
+	// if so then credits in general can be persisted and managed separately.
+	// if not then we can just use entitlements for everything.
 
-	// Grant
+	// Grant Management
 	CreateGrant(ctx context.Context, grant Grant) (Grant, error)
-	VoidGrant(ctx context.Context, grant Grant) (Grant, error)
+	VoidGrant(ctx context.Context, grantID NamespacedGrantID) error // TODO: do we need this even, maybe call it DeleteGrant?
 	ListGrants(ctx context.Context, params ListGrantsParams) ([]Grant, error)
 	GetGrant(ctx context.Context, grantID NamespacedGrantID) (Grant, error)
 
-	// Credit
-	GetBalance(ctx context.Context, ledgerID NamespacedLedgerID, cutline time.Time) (DELETEME_Balance, error)
-	GetHistory(ctx context.Context, ledgerID NamespacedLedgerID, from time.Time, to time.Time, pagination Pagination) (LedgerEntryList, error)
-	GetHighWatermark(ctx context.Context, ledgerID NamespacedLedgerID) (HighWatermark, error)
-	Reset(ctx context.Context, reset Reset) (Reset, []Grant, error)
+	// // Balance & Usage
+	// GetGrantUsageHistory(ctx context.Context, grantID GrantID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
+}
 
-	// Feature
-	CreateFeature(ctx context.Context, feature Feature) (Feature, error)
-	DeleteFeature(ctx context.Context, featureID NamespacedFeatureID) error
-	ListFeatures(ctx context.Context, params ListFeaturesParams) ([]Feature, error)
-	GetFeature(ctx context.Context, featureID NamespacedFeatureID) (Feature, error)
+type GrantOrderBy string
+
+const (
+	GrantOrderByCreatedAt   GrantOrderBy = "created_at"
+	GrantOrderByUpdatedAt   GrantOrderBy = "updated_at"
+	GrantOrderByExpiresAt   GrantOrderBy = "expires_at"
+	GrantOrderByEffectiveAt GrantOrderBy = "effective_at"
+)
+
+type ListGrantsParams struct {
+	Namespace      string
+	OwnerID        GrantOwner
+	IncludeDeleted bool
+	Offset         int
+	Limit          int
+	OrderBy        GrantOrderBy
 }

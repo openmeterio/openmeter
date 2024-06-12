@@ -84,7 +84,7 @@ type CreateFeatureRequest struct {
 
 // CreateLedger A ledger represented in open meter. A ledger must be assigned to a single
 // subject.
-type CreateLedger = credit.Ledger
+type CreateLedger = interface{}
 
 // CreateLedgerGrantRequest Grants are used to increase balance of specific subjects.
 type CreateLedgerGrantRequest struct {
@@ -192,10 +192,10 @@ type IngestedEvent struct {
 }
 
 // Ledger defines model for Ledger.
-type Ledger = credit.Ledger
+type Ledger = interface{}
 
 // LedgerAlreadyExistsProblem Ledger Exists
-type LedgerAlreadyExistsProblem = credit.LedgerAlreadyExistsProblemResponse
+type LedgerAlreadyExistsProblem = interface{}
 
 // LedgerBalance Balance of a subject.
 type LedgerBalance struct {
@@ -363,7 +363,7 @@ type LedgerGrantRolloverType = interface{}
 type LedgerGrantType string
 
 // LedgerReset Ledger reset configuration.
-type LedgerReset = credit.Reset
+type LedgerReset = interface{}
 
 // Meter A meter is a configuration that defines how to match and aggregate events.
 type Meter = models.Meter
@@ -426,13 +426,13 @@ type Subject struct {
 type WindowSize = models.WindowSize
 
 // FeatureID defines model for featureID.
-type FeatureID = credit.FeatureID
+type FeatureID = interface{}
 
 // LedgerGrantID defines model for ledgerGrantID.
 type LedgerGrantID = credit.GrantID
 
 // LedgerID defines model for ledgerID.
-type LedgerID = credit.LedgerID
+type LedgerID = interface{}
 
 // LedgerIncludeVoids defines model for ledgerIncludeVoids.
 type LedgerIncludeVoids = bool
@@ -452,7 +452,7 @@ type MeterIdOrSlug = IdOrSlug
 type QueryFilterGroupBy map[string]string
 
 // QueryFilterLedgerID defines model for queryFilterLedgerID.
-type QueryFilterLedgerID = credit.LedgerID
+type QueryFilterLedgerID = interface{}
 
 // QueryFilterSubject defines model for queryFilterSubject.
 type QueryFilterSubject = []string

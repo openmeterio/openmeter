@@ -1,4 +1,6 @@
-package credit
+package productcatalog
+
+// TODO: Move to product catalog once released
 
 import (
 	"fmt"

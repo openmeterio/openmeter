@@ -1,69 +1,73 @@
 package credit
 
 import (
-	"fmt"
 	"time"
 )
 
-type GrantNotFoundError struct {
-	GrantID GrantID
+type Period struct {
+	From time.Time `json:"from"`
+	To   time.Time `json:"to"`
 }
 
-func (e *GrantNotFoundError) Error() string {
-	return fmt.Sprintf("grant not found: %s", e.GrantID)
-}
+// type GrantNotFoundError struct {
+// 	GrantID GrantID
+// }
 
-// Reset is used to reset the balance of a specific subject.
-type Reset struct {
-	Namespace string `json:"-"`
-	// ID is the readonly identifies of a reset.
-	ID *GrantID `json:"id,omitempty"`
+// func (e *GrantNotFoundError) Error() string {
+// 	return fmt.Sprintf("grant not found: %s", e.GrantID)
+// }
 
-	// Subject The subject to grant the amount to.
-	LedgerID LedgerID `json:"ledgerID"`
+// // Reset is used to reset the balance of a specific subject.
+// type Reset struct {
+// 	Namespace string `json:"-"`
+// 	// ID is the readonly identifies of a reset.
+// 	ID *GrantID `json:"id,omitempty"`
 
-	// EffectiveAt The effective date, cannot be in the future.
-	EffectiveAt time.Time `json:"effectiveAt"`
-}
+// 	// Subject The subject to grant the amount to.
+// 	LedgerID LedgerID `json:"ledgerID"`
 
-type HighWatermark struct {
-	LedgerID LedgerID  `ch:"ledger_id"`
-	Time     time.Time `ch:"time"`
-}
+// 	// EffectiveAt The effective date, cannot be in the future.
+// 	EffectiveAt time.Time `json:"effectiveAt"`
+// }
 
-// HighWatermarBeforeError is returned when a lock cannot be obtained.
-type HighWatermarBeforeError struct {
-	Namespace     string
-	LedgerID      LedgerID
-	HighWatermark time.Time
-}
+// type HighWatermark struct {
+// 	LedgerID LedgerID  `ch:"ledger_id"`
+// 	Time     time.Time `ch:"time"`
+// }
 
-func (e *HighWatermarBeforeError) Error() string {
-	return fmt.Sprintf("ledger action for ledger %s must be after highwatermark: %s", e.LedgerID, e.HighWatermark.Format(time.RFC3339))
-}
+// // HighWatermarBeforeError is returned when a lock cannot be obtained.
+// type HighWatermarBeforeError struct {
+// 	Namespace     string
+// 	LedgerID      LedgerID
+// 	HighWatermark time.Time
+// }
 
-// LockErrNotObtainedError is returned when a lock cannot be obtained.
-type LockErrNotObtainedError struct {
-	Namespace string
-	ID        LedgerID
-}
+// func (e *HighWatermarBeforeError) Error() string {
+// 	return fmt.Sprintf("ledger action for ledger %s must be after highwatermark: %s", e.LedgerID, e.HighWatermark.Format(time.RFC3339))
+// }
 
-func (e *LockErrNotObtainedError) Error() string {
-	return fmt.Sprintf("lock not obtained ledger %s", e.ID)
-}
+// // LockErrNotObtainedError is returned when a lock cannot be obtained.
+// type LockErrNotObtainedError struct {
+// 	Namespace string
+// 	ID        LedgerID
+// }
 
-type LedgerAlreadyExistsError struct {
-	Ledger Ledger
-}
+// func (e *LockErrNotObtainedError) Error() string {
+// 	return fmt.Sprintf("lock not obtained ledger %s", e.ID)
+// }
 
-func (e *LedgerAlreadyExistsError) Error() string {
-	return fmt.Sprintf("ledger %s already exitst for subject %s", e.Ledger.ID, e.Ledger.Subject)
-}
+// type LedgerAlreadyExistsError struct {
+// 	Ledger Ledger
+// }
 
-type LedgerNotFoundError struct {
-	LedgerID LedgerID
-}
+// func (e *LedgerAlreadyExistsError) Error() string {
+// 	return fmt.Sprintf("ledger %s already exitst for subject %s", e.Ledger.ID, e.Ledger.Subject)
+// }
 
-func (e *LedgerNotFoundError) Error() string {
-	return fmt.Sprintf("ledger %s not found", e.LedgerID)
-}
+// type LedgerNotFoundError struct {
+// 	LedgerID LedgerID
+// }
+
+// func (e *LedgerNotFoundError) Error() string {
+// 	return fmt.Sprintf("ledger %s not found", e.LedgerID)
+// }
