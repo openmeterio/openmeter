@@ -1,5 +1,10 @@
 package credit
 
+import (
+	"fmt"
+	"sort"
+)
+
 type SegmentTerminationReason struct {
 	PriorityChange bool
 	Recurrence     []GrantID
@@ -47,10 +52,55 @@ type GrantBurnDownHistorySegment struct {
 	GrantUsages        []GrantUsage             // Grant usages in the segment order by grant priority
 }
 
-type GrantBurnDownHistory struct {
-	Segments []GrantBurnDownHistorySegment
+// Returns GrantBalanceMap at the end of the segment
+func (s GrantBurnDownHistorySegment) ApplyUsage() GrantBalanceMap {
+	balance := s.BalanceAtStart.Copy()
+	for _, u := range s.GrantUsages {
+		balance.Burn(u.GrantID, u.Usage)
+	}
+	return balance
 }
 
-func (g *GrantBurnDownHistory) Append(segment GrantBurnDownHistorySegment) {
-	g.Segments = append(g.Segments, segment)
+func NewGrantBurnDownHistory(segments []GrantBurnDownHistorySegment) (*GrantBurnDownHistory, error) {
+	s := make([]GrantBurnDownHistorySegment, len(segments))
+	copy(s, segments)
+
+	// sort segments by time
+	sort.Slice(s, func(i, j int) bool {
+		return s[i].Period.From.Before(s[j].Period.From)
+	})
+
+	// validate no two segments overlap
+	for i := range s {
+		if i == 0 {
+			continue
+		}
+
+		if s[i-1].To.After(s[i].From) {
+			return nil, fmt.Errorf("segments %d and %d overlap", i-1, i)
+		}
+	}
+
+	return &GrantBurnDownHistory{segments: s}, nil
+}
+
+type GrantBurnDownHistory struct {
+	segments []GrantBurnDownHistorySegment
+}
+
+func (g *GrantBurnDownHistory) Segments() []GrantBurnDownHistorySegment {
+	return g.segments
+}
+
+func (g *GrantBurnDownHistory) TotalUsage() float64 {
+	var total float64
+	for _, s := range g.segments {
+		total += s.TotalUsage
+	}
+	return total
+}
+
+func (g *GrantBurnDownHistory) Overage() float64 {
+	lastSegment := g.segments[len(g.segments)-1]
+	return lastSegment.Overage
 }

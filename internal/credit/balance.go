@@ -19,3 +19,12 @@ func (g GrantBalanceMap) Burn(grantID GrantID, amount float64) {
 func (g GrantBalanceMap) Set(grantID GrantID, amount float64) {
 	g[grantID] = amount
 }
+
+// returns the combined balance of all grants
+func (g GrantBalanceMap) Balance() float64 {
+	var balance float64
+	for _, v := range g {
+		balance += v
+	}
+	return balance
+}

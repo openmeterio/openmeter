@@ -1,8 +1,16 @@
 package entitlement
 
+import "github.com/openmeterio/openmeter/pkg/models"
+
 type EntitlementID string
+type NamespacedEntitlementID struct {
+	Namespace string
+	ID        EntitlementID
+}
 
 type Entitlement struct {
+	models.NamespacedModel
+	models.ManagedModel
 	// ID is the readonly identifies of a entitlement.
 	ID EntitlementID `json:"id,omitempty"`
 }
