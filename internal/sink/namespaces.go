@@ -12,6 +12,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+const (
+	defaultMatchingMetersCapacity = 4
+)
+
 type MeterStore struct {
 	Meters []models.Meter
 }
@@ -45,11 +49,10 @@ func (a *NamespaceStore) ValidateEvent(ctx context.Context, event serializer.Clo
 	}
 
 	// Validate a single event against multiple meters
-	affectedMeters := []*models.Meter{}
+	matchingMeter := make([]*models.Meter, 0, defaultMatchingMetersCapacity)
 	for idx, meter := range namespaceStore.Meters {
-		meter := meter
 		if meter.EventType == event.Type {
-			affectedMeters = append(affectedMeters, &namespaceStore.Meters[idx])
+			matchingMeter = append(matchingMeter, &namespaceStore.Meters[idx])
 			err := validateEventWithMeter(meter, event)
 			if err != nil {
 				return nil, err
@@ -58,12 +61,12 @@ func (a *NamespaceStore) ValidateEvent(ctx context.Context, event serializer.Clo
 		}
 	}
 
-	if len(affectedMeters) == 0 {
+	if len(matchingMeter) == 0 {
 		// Mark as invalid so we can show it to the user
 		return nil, NewProcessingError(fmt.Sprintf("no meter found for event type: %s", event.Type), INVALID)
 	}
 
-	return affectedMeters, nil
+	return matchingMeter, nil
 }
 
 // validateEventWithMeter validates a single event against a single meter

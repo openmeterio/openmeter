@@ -29,11 +29,12 @@ import (
 var namespaceTopicRegexp = regexp.MustCompile(`^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$`)
 
 type SinkMessage struct {
-	Namespace      string
-	KafkaMessage   *kafka.Message
-	Serialized     *serializer.CloudEventsKafkaPayload
-	AffectedMeters []*models.Meter
-	Error          *ProcessingError
+	Namespace    string
+	KafkaMessage *kafka.Message
+	Serialized   *serializer.CloudEventsKafkaPayload
+	// Meters contains the list of meters this message affects
+	Meters []*models.Meter
+	Error  *ProcessingError
 }
 
 type Sink struct {
@@ -49,6 +50,10 @@ type Sink struct {
 
 	mu        sync.Mutex
 	isRunning atomic.Bool
+}
+
+type FlushSuccessEvent struct {
+	Messages []SinkMessage
 }
 
 type SinkConfig struct {
@@ -68,12 +73,9 @@ type SinkConfig struct {
 	// this information is used to configure which topics the consumer subscribes and
 	// the meter configs used in event validation.
 	NamespaceRefetch time.Duration
-	// OnFlushSuccess is an optional lifecycle hook
-	OnFlushSuccess func(string, int64)
-
-	// BatchHookOnFlushSuccess is an optional lifecycle hook if an external party wishes to
-	// performa additional operations on the batch of messages that were successfully flushed.
-	BatchHookOnFlushSuccess func([]SinkMessage)
+	// OnFlushSuccess is an optional lifecycle hook, to prevent blocking the main sink logic
+	// this is always called in a go routine.
+	OnFlushSuccess func(FlushSuccessEvent)
 }
 
 func NewSink(config SinkConfig) (*Sink, error) {
@@ -244,14 +246,10 @@ func (s *Sink) flush(ctx context.Context) error {
 
 // reportFlushMetrics reports metrics to OTel
 func (s *Sink) reportFlushMetrics(ctx context.Context, messages []SinkMessage) error {
-	namespacesReport := map[string]int64{}
 
 	for _, message := range messages {
 		namespaceAttr := attribute.String("namespace", message.Namespace)
 		statusAttr := attribute.String("status", "success")
-
-		// Count events per namespace
-		namespacesReport[message.Namespace]++
 
 		if message.Error != nil {
 			switch message.Error.ProcessingControl {
@@ -267,16 +265,9 @@ func (s *Sink) reportFlushMetrics(ctx context.Context, messages []SinkMessage) e
 	}
 
 	if s.config.OnFlushSuccess != nil {
-		for namespace, count := range namespacesReport {
-			s.config.OnFlushSuccess(namespace, count)
-		}
-	}
-
-	if s.config.BatchHookOnFlushSuccess != nil {
-		// There's no guarantee that this won't get interrupted by a shutdown signal
-		// if that happens, then this batch is skipped, so make sure upon sink-worker restart
-		// the dependant referrential caches are rebuilt.
-		s.config.BatchHookOnFlushSuccess(messages)
+		go s.config.OnFlushSuccess(FlushSuccessEvent{
+			Messages: messages,
+		})
 	}
 
 	return nil
@@ -499,7 +490,7 @@ func (s *Sink) Run(ctx context.Context) error {
 
 				sinkMessage.Namespace = parsedMessage.Namespace
 				sinkMessage.Serialized = &parsedMessage.KafkaCloudEvent
-				sinkMessage.AffectedMeters = parsedMessage.AffectedMeters
+				sinkMessage.Meters = parsedMessage.Meters
 
 				// Message counter
 				namespaceAttr := attribute.String("namespace", sinkMessage.Namespace)
@@ -668,7 +659,7 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 type ParsedMessage struct {
 	Namespace       string
 	KafkaCloudEvent serializer.CloudEventsKafkaPayload
-	AffectedMeters  []*models.Meter
+	Meters          []*models.Meter
 }
 
 func (s *Sink) ParseMessage(ctx context.Context, e *kafka.Message) (ParsedMessage, error) {
@@ -708,7 +699,7 @@ func (s *Sink) ParseMessage(ctx context.Context, e *kafka.Message) (ParsedMessag
 	}
 
 	// Validation
-	result.AffectedMeters, err = s.namespaceStore.ValidateEvent(ctx, result.KafkaCloudEvent, result.Namespace)
+	result.Meters, err = s.namespaceStore.ValidateEvent(ctx, result.KafkaCloudEvent, result.Namespace)
 	return result, err
 }
 
