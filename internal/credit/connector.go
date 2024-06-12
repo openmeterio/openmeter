@@ -65,7 +65,7 @@ type Connector interface {
 	GetGrant(ctx context.Context, grantID NamespacedGrantID) (Grant, error)
 
 	// Credit
-	GetBalance(ctx context.Context, ledgerID NamespacedLedgerID, cutline time.Time) (Balance, error)
+	GetBalance(ctx context.Context, ledgerID NamespacedLedgerID, cutline time.Time) (DELETEME_Balance, error)
 	GetHistory(ctx context.Context, ledgerID NamespacedLedgerID, from time.Time, to time.Time, pagination Pagination) (LedgerEntryList, error)
 	GetHighWatermark(ctx context.Context, ledgerID NamespacedLedgerID) (HighWatermark, error)
 	Reset(ctx context.Context, reset Reset) (Reset, []Grant, error)

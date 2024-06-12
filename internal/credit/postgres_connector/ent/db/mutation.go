@@ -42,8 +42,8 @@ type CreditEntryMutation struct {
 	updated_at                 *time.Time
 	namespace                  *string
 	ledger_id                  *string
-	entry_type                 *credit.EntryType
-	_type                      *credit.GrantType
+	entry_type                 *credit.DELETEME_EntryType
+	_type                      *credit.DELETEME_GrantType
 	amount                     *float64
 	addamount                  *float64
 	priority                   *uint8
@@ -318,12 +318,12 @@ func (m *CreditEntryMutation) ResetLedgerID() {
 }
 
 // SetEntryType sets the "entry_type" field.
-func (m *CreditEntryMutation) SetEntryType(ct credit.EntryType) {
+func (m *CreditEntryMutation) SetEntryType(ct credit.DELETEME_EntryType) {
 	m.entry_type = &ct
 }
 
 // EntryType returns the value of the "entry_type" field in the mutation.
-func (m *CreditEntryMutation) EntryType() (r credit.EntryType, exists bool) {
+func (m *CreditEntryMutation) EntryType() (r credit.DELETEME_EntryType, exists bool) {
 	v := m.entry_type
 	if v == nil {
 		return
@@ -334,7 +334,7 @@ func (m *CreditEntryMutation) EntryType() (r credit.EntryType, exists bool) {
 // OldEntryType returns the old "entry_type" field's value of the CreditEntry entity.
 // If the CreditEntry object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CreditEntryMutation) OldEntryType(ctx context.Context) (v credit.EntryType, err error) {
+func (m *CreditEntryMutation) OldEntryType(ctx context.Context) (v credit.DELETEME_EntryType, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldEntryType is only allowed on UpdateOne operations")
 	}
@@ -354,12 +354,12 @@ func (m *CreditEntryMutation) ResetEntryType() {
 }
 
 // SetType sets the "type" field.
-func (m *CreditEntryMutation) SetType(ct credit.GrantType) {
+func (m *CreditEntryMutation) SetType(ct credit.DELETEME_GrantType) {
 	m._type = &ct
 }
 
 // GetType returns the value of the "type" field in the mutation.
-func (m *CreditEntryMutation) GetType() (r credit.GrantType, exists bool) {
+func (m *CreditEntryMutation) GetType() (r credit.DELETEME_GrantType, exists bool) {
 	v := m._type
 	if v == nil {
 		return
@@ -370,7 +370,7 @@ func (m *CreditEntryMutation) GetType() (r credit.GrantType, exists bool) {
 // OldType returns the old "type" field's value of the CreditEntry entity.
 // If the CreditEntry object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CreditEntryMutation) OldType(ctx context.Context) (v *credit.GrantType, err error) {
+func (m *CreditEntryMutation) OldType(ctx context.Context) (v *credit.DELETEME_GrantType, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldType is only allowed on UpdateOne operations")
 	}
@@ -1300,14 +1300,14 @@ func (m *CreditEntryMutation) SetField(name string, value ent.Value) error {
 		m.SetLedgerID(v)
 		return nil
 	case creditentry.FieldEntryType:
-		v, ok := value.(credit.EntryType)
+		v, ok := value.(credit.DELETEME_EntryType)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetEntryType(v)
 		return nil
 	case creditentry.FieldType:
-		v, ok := value.(credit.GrantType)
+		v, ok := value.(credit.DELETEME_GrantType)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

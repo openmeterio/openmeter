@@ -142,21 +142,18 @@ func (c *LedgerEntryList) Append(other LedgerEntryList) {
 
 func (c *LedgerEntryList) AddGrant(grant Grant) {
 	c.list = append(c.list, LedgerEntry{
-		ID:        grant.ID,
-		Type:      LedgerEntryTypeGrant,
-		Time:      grant.EffectiveAt,
-		FeatureID: grant.FeatureID,
-		Amount:    &grant.Amount,
+		Type: LedgerEntryTypeGrant,
+		Time: grant.EffectiveAt,
+		// Amount: &grant.Amount,
 	})
 }
 
 func (c *LedgerEntryList) AddVoidGrant(grant Grant) {
 	c.list = append(c.list, LedgerEntry{
-		ID:        grant.ParentID,
-		Type:      LedgerEntryTypeVoid,
-		Time:      grant.EffectiveAt,
-		FeatureID: grant.FeatureID,
-		Amount:    &grant.Amount,
+		ID:   grant.ParentID,
+		Type: LedgerEntryTypeVoid,
+		Time: grant.EffectiveAt,
+		// Amount: &grant.Amount,
 	})
 }
 
@@ -168,18 +165,16 @@ func (c *LedgerEntryList) AddReset(reset Reset) {
 	})
 }
 
-func (c *LedgerEntryList) AddGrantUsage(grantBalance GrantBalance, from time.Time, to time.Time, amount float64) {
+func (c *LedgerEntryList) AddGrantUsage(grantBalance DELETEME_GrantBalance, from time.Time, to time.Time, amount float64) {
 	now := time.Now()
 	if to.After(now) {
 		to = now
 	}
 
 	c.list = append(c.list, LedgerEntry{
-		ID:        grantBalance.ID,
-		Type:      LedgerEntryTypeGrantUsage,
-		Time:      to,
-		FeatureID: grantBalance.FeatureID,
-		Amount:    &amount,
+		Type:   LedgerEntryTypeGrantUsage,
+		Time:   to,
+		Amount: &amount,
 		Period: &Period{
 			From: from,
 			To:   to,

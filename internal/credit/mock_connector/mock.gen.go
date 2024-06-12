@@ -96,10 +96,10 @@ func (mr *MockConnectorMockRecorder) DeleteFeature(arg0, arg1 interface{}) *gomo
 }
 
 // GetBalance mocks base method.
-func (m *MockConnector) GetBalance(arg0 context.Context, arg1 credit.NamespacedLedgerID, arg2 time.Time) (credit.Balance, error) {
+func (m *MockConnector) GetBalance(arg0 context.Context, arg1 credit.NamespacedLedgerID, arg2 time.Time) (credit.DELETEME_Balance, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBalance", arg0, arg1, arg2)
-	ret0, _ := ret[0].(credit.Balance)
+	ret0, _ := ret[0].(credit.DELETEME_Balance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

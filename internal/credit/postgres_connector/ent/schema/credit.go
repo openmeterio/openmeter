@@ -32,8 +32,8 @@ func (CreditEntry) Fields() []ent.Field {
 		field.String("ledger_id").Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
-		field.Enum("entry_type").GoType(credit.EntryType("")).Immutable(),
-		field.Enum("type").GoType(credit.GrantType("")).Optional().Nillable().Immutable(),
+		field.Enum("entry_type").GoType(credit.DELETEME_EntryType("")).Immutable(),
+		field.Enum("type").GoType(credit.DELETEME_GrantType("")).Optional().Nillable().Immutable(),
 		field.String("feature_id").Optional().Nillable().Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),

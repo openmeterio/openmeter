@@ -22,15 +22,15 @@ func (a *PostgresConnector) GetBalance(
 	ctx context.Context,
 	ledgerID credit.NamespacedLedgerID,
 	cutline time.Time,
-) (credit.Balance, error) {
+) (credit.DELETEME_Balance, error) {
 	// TODO: wrap into transaction
 	hw, err := a.GetHighWatermark(ctx, ledgerID)
 	if err != nil {
-		return credit.Balance{}, fmt.Errorf("get high watermark: %w", err)
+		return credit.DELETEME_Balance{}, fmt.Errorf("get high watermark: %w", err)
 	}
 
 	if cutline.Before(hw.Time) {
-		return credit.Balance{}, &credit.HighWatermarBeforeError{
+		return credit.DELETEME_Balance{}, &credit.HighWatermarBeforeError{
 			Namespace:     ledgerID.Namespace,
 			LedgerID:      ledgerID.ID,
 			HighWatermark: hw.Time,
@@ -46,12 +46,12 @@ func (a *PostgresConnector) getBalance(
 	ledgerID credit.NamespacedLedgerID,
 	from time.Time,
 	to time.Time,
-) (credit.Balance, credit.LedgerEntryList, error) {
+) (credit.DELETEME_Balance, credit.LedgerEntryList, error) {
 	ledgerEntries := credit.NewLedgerEntryList()
 
 	ledger, err := a.getLedger(ctx, ledgerID)
 	if err != nil {
-		return credit.Balance{}, ledgerEntries, err
+		return credit.DELETEME_Balance{}, ledgerEntries, err
 	}
 
 	grants, err := a.ListGrants(ctx, credit.ListGrantsParams{
@@ -62,36 +62,36 @@ func (a *PostgresConnector) getBalance(
 		IncludeVoid: true,
 	})
 	if err != nil {
-		return credit.Balance{}, ledgerEntries, fmt.Errorf("list grants: %w", err)
+		return credit.DELETEME_Balance{}, ledgerEntries, fmt.Errorf("list grants: %w", err)
 	}
 
 	for _, grant := range grants {
 		effectiveAtMinute := grant.EffectiveAt.Truncate(a.config.WindowSize)
 		if ok := grant.EffectiveAt.Equal(effectiveAtMinute); !ok {
-			return credit.Balance{}, ledgerEntries, fmt.Errorf("grant effectiveAt is not truncated")
+			return credit.DELETEME_Balance{}, ledgerEntries, fmt.Errorf("grant effectiveAt is not truncated")
 		}
 	}
 
 	// Get features in grants
 	features := map[credit.FeatureID]credit.Feature{}
 	for _, grant := range grants {
-		if grant.Void {
-			ledgerEntries.AddVoidGrant(grant)
-			continue
-		}
+		// if grant.Void {
+		// 	ledgerEntries.AddVoidGrant(grant)
+		// 	continue
+		// }
 
 		ledgerEntries.AddGrant(grant)
 
-		if grant.FeatureID != nil {
-			featureID := *grant.FeatureID
-			if _, ok := features[featureID]; !ok {
-				feature, err := a.GetFeature(ctx, credit.NewNamespacedFeatureID(ledgerID.Namespace, featureID))
-				if err != nil {
-					return credit.Balance{}, ledgerEntries, fmt.Errorf("get feature: %w", err)
-				}
-				features[featureID] = feature
-			}
-		}
+		// if grant.FeatureID != nil {
+		// 	featureID := *grant.FeatureID
+		// 	if _, ok := features[featureID]; !ok {
+		// 		feature, err := a.GetFeature(ctx, credit.NewNamespacedFeatureID(ledgerID.Namespace, featureID))
+		// 		if err != nil {
+		// 			return credit.Balance{}, ledgerEntries, fmt.Errorf("get feature: %w", err)
+		// 		}
+		// 		features[featureID] = feature
+		// 	}
+		// }
 	}
 
 	// Get meters for features
@@ -102,7 +102,7 @@ func (a *PostgresConnector) getBalance(
 		if _, ok := meters[meterSlug]; !ok {
 			meter, err := a.meterRepository.GetMeterByIDOrSlug(ctx, ledgerID.Namespace, meterSlug)
 			if err != nil {
-				return credit.Balance{}, ledgerEntries, fmt.Errorf("get meter: %w", err)
+				return credit.DELETEME_Balance{}, ledgerEntries, fmt.Errorf("get meter: %w", err)
 			}
 			meters[meterSlug] = meter
 		}
@@ -114,13 +114,13 @@ func (a *PostgresConnector) getBalance(
 
 	// Find pivot dates first (effective and expiration dates in range)
 	dates := []time.Time{from}
-	grantBalances := []credit.GrantBalance{}
+	grantBalances := []credit.DELETEME_GrantBalance{}
 	for _, grant := range grants {
-		if grant.Void {
-			continue
-		}
+		// if grant.Void {
+		// 	continue
+		// }
 
-		grantBalances = append(grantBalances, credit.GrantBalance{
+		grantBalances = append(grantBalances, credit.DELETEME_GrantBalance{
 			Grant:   grant,
 			Balance: grant.Amount,
 		})
@@ -159,50 +159,50 @@ func (a *PostgresConnector) getBalance(
 	// 3. Grants with earlier expiration date are burned down first
 
 	// 3. Grants with earlier expiration date are burned down first
-	sort.Slice(grantBalances, func(i, j int) bool {
-		return grantBalances[i].ExpirationDate().Unix() < grantBalances[j].ExpirationDate().Unix()
-	})
+	// sort.Slice(grantBalances, func(i, j int) bool {
+	// 	return grantBalances[i].ExpirationDate().Unix() < grantBalances[j].ExpirationDate().Unix()
+	// })
 
 	// 2. Order grant balances by feature
 	// grants with feature are applied first
-	sort.Slice(grantBalances, func(i, j int) bool {
-		a := 1
-		b := 1
-		if grantBalances[i].FeatureID != nil {
-			a = 0
-		}
-		if grantBalances[j].FeatureID != nil {
-			b = 0
-		}
+	// sort.Slice(grantBalances, func(i, j int) bool {
+	// 	a := 1
+	// 	b := 1
+	// 	if grantBalances[i].FeatureID != nil {
+	// 		a = 0
+	// 	}
+	// 	if grantBalances[j].FeatureID != nil {
+	// 		b = 0
+	// 	}
 
-		return a < b
-	})
+	// 	return a < b
+	// })
 
 	// 1. Order grant balances by priority
 	sort.Slice(grantBalances, func(i, j int) bool {
 		return grantBalances[i].Priority < grantBalances[j].Priority
 	})
 
-	firstGrantsOfFeature := map[credit.FeatureID]credit.GrantBalance{}
+	// firstGrantsOfFeature := map[credit.FeatureID]credit.GrantBalance{}
 
 	{
 
-		sorted := make([]credit.GrantBalance, len(grantBalances))
+		sorted := make([]credit.DELETEME_GrantBalance, len(grantBalances))
 		copy(sorted, grantBalances)
 
 		sort.Slice(sorted, func(i, j int) bool {
 			return sorted[i].EffectiveAt.Before(sorted[j].EffectiveAt)
 		})
 
-		for _, grantBalance := range sorted {
-			if grantBalance.FeatureID == nil {
-				continue
-			}
-			featureId := *grantBalance.FeatureID
-			if _, ok := firstGrantsOfFeature[featureId]; !ok {
-				firstGrantsOfFeature[featureId] = grantBalance
-			}
-		}
+		// for _, grantBalance := range sorted {
+		// if grantBalance.FeatureID == nil {
+		// 	continue
+		// }
+		// featureId := *grantBalance.FeatureID
+		// if _, ok := firstGrantsOfFeature[featureId]; !ok {
+		// 	firstGrantsOfFeature[featureId] = grantBalance
+		// }
+		// }
 	}
 
 	// Query usage for each period
@@ -215,7 +215,7 @@ func (a *PostgresConnector) getBalance(
 			grantBalance := &grantBalances[i]
 
 			// Skip grants that does not apply to this period
-			expiresAt := grantBalance.ExpirationDate()
+			expiresAt := grantBalance.GetExpiration()
 			if expiresAt.Before(period.From) {
 				continue
 			}
@@ -227,34 +227,34 @@ func (a *PostgresConnector) getBalance(
 
 			isFirstPeriod := periodIndex == 0
 			isFirstGrantOfFeature := false
-			if grantBalance.FeatureID != nil {
-				featureId := *grantBalance.FeatureID
-				if _, ok := firstGrantsOfFeature[featureId]; ok {
-					if firstGrantsOfFeature[featureId].Grant.ID == grantBalance.Grant.ID {
-						isFirstGrantOfFeature = true
-					}
-				}
-			}
+			// if grantBalance.FeatureID != nil {
+			// 	featureId := *grantBalance.FeatureID
+			// 	if _, ok := firstGrantsOfFeature[featureId]; ok {
+			// 		if firstGrantsOfFeature[featureId].Grant.ID == grantBalance.Grant.ID {
+			// 			isFirstGrantOfFeature = true
+			// 		}
+			// 	}
+			// }
 
 			if !isFirstGrantOfFeature && !isFirstPeriod && grantBalance.EffectiveAt.Equal(period.To) {
 				continue
 			}
 
 			// Grants without feature are not implemented yet
-			if grantBalance.FeatureID == nil {
-				return credit.Balance{}, ledgerEntries, fmt.Errorf("not implemented: grants without feature")
-			}
+			// if grantBalance.FeatureID == nil {
+			// 	return credit.Balance{}, ledgerEntries, fmt.Errorf("not implemented: grants without feature")
+			// }
 
 			// Get feature
-			if _, ok := features[*grantBalance.FeatureID]; !ok {
-				return credit.Balance{}, ledgerEntries, fmt.Errorf("feature not found: %s", *grantBalance.FeatureID)
-			}
-			p := features[*grantBalance.FeatureID]
-			feature = &p
+			// if _, ok := features[*grantBalance.FeatureID]; !ok {
+			// 	return credit.Balance{}, ledgerEntries, fmt.Errorf("feature not found: %s", *grantBalance.FeatureID)
+			// }
+			// p := features[*grantBalance.FeatureID]
+			// feature = &p
 
 			// Get meter
 			if _, ok := meters[feature.MeterSlug]; !ok {
-				return credit.Balance{}, ledgerEntries, fmt.Errorf("meter not found: %s", feature.MeterSlug)
+				return credit.DELETEME_Balance{}, ledgerEntries, fmt.Errorf("meter not found: %s", feature.MeterSlug)
 			}
 			meter := meters[feature.MeterSlug]
 
@@ -282,10 +282,10 @@ func (a *PostgresConnector) getBalance(
 				// Query usage
 				rows, err := a.streamingConnector.QueryMeter(ctx, ledgerID.Namespace, meter.Slug, queryParams)
 				if err != nil {
-					return credit.Balance{}, ledgerEntries, fmt.Errorf("query meter: %w", err)
+					return credit.DELETEME_Balance{}, ledgerEntries, fmt.Errorf("query meter: %w", err)
 				}
 				if len(rows) > 1 {
-					return credit.Balance{}, ledgerEntries, fmt.Errorf("unexpected number of usage rows")
+					return credit.DELETEME_Balance{}, ledgerEntries, fmt.Errorf("unexpected number of usage rows")
 				}
 
 				// Get usage amount
@@ -333,34 +333,34 @@ func (a *PostgresConnector) getBalance(
 	}
 
 	// Aggregate grant balances by feature
-	featureBalancesMap := map[credit.FeatureID]credit.FeatureBalance{}
-	for _, grantBalance := range grantBalances {
-		if grantBalance.FeatureID == nil {
-			continue
-		}
-		featureId := *grantBalance.FeatureID
-		feature := features[featureId]
+	featureBalancesMap := map[credit.FeatureID]credit.DELETEME_FeatureBalance{}
+	// for _, grantBalance := range grantBalances {
+	// if grantBalance.FeatureID == nil {
+	// 	continue
+	// }
+	// featureId := *grantBalance.FeatureID
+	// feature := features[featureId]
 
-		if featureBalance, ok := featureBalancesMap[featureId]; ok {
-			featureBalance.Balance += grantBalance.Balance
-			featureBalance.Usage += grantBalance.Amount - grantBalance.Balance
-			featureBalancesMap[featureId] = featureBalance
-		} else {
-			featureBalancesMap[featureId] = credit.FeatureBalance{
-				Feature: feature,
-				Balance: grantBalance.Balance,
-				Usage:   grantBalance.Amount - grantBalance.Balance,
-			}
-		}
-	}
+	// if featureBalance, ok := featureBalancesMap[featureId]; ok {
+	// 	featureBalance.Balance += grantBalance.Balance
+	// 	featureBalance.Usage += grantBalance.Amount - grantBalance.Balance
+	// 	featureBalancesMap[featureId] = featureBalance
+	// } else {
+	// 	featureBalancesMap[featureId] = credit.FeatureBalance{
+	// 		Feature: feature,
+	// 		Balance: grantBalance.Balance,
+	// 		Usage:   grantBalance.Amount - grantBalance.Balance,
+	// 	}
+	// }
+	// }
 
 	// Convert map to slice
-	featureBalances := []credit.FeatureBalance{}
+	featureBalances := []credit.DELETEME_FeatureBalance{}
 	for _, featureBalance := range featureBalancesMap {
 		featureBalances = append(featureBalances, featureBalance)
 	}
 
-	return credit.Balance{
+	return credit.DELETEME_Balance{
 		LedgerID:        ledgerID.ID,
 		Subject:         ledger.Subject,
 		Metadata:        ledger.Metadata,

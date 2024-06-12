@@ -337,19 +337,19 @@ func LedgerIDContainsFold(v string) predicate.CreditEntry {
 }
 
 // EntryTypeEQ applies the EQ predicate on the "entry_type" field.
-func EntryTypeEQ(v credit.EntryType) predicate.CreditEntry {
+func EntryTypeEQ(v credit.DELETEME_EntryType) predicate.CreditEntry {
 	vc := v
 	return predicate.CreditEntry(sql.FieldEQ(FieldEntryType, vc))
 }
 
 // EntryTypeNEQ applies the NEQ predicate on the "entry_type" field.
-func EntryTypeNEQ(v credit.EntryType) predicate.CreditEntry {
+func EntryTypeNEQ(v credit.DELETEME_EntryType) predicate.CreditEntry {
 	vc := v
 	return predicate.CreditEntry(sql.FieldNEQ(FieldEntryType, vc))
 }
 
 // EntryTypeIn applies the In predicate on the "entry_type" field.
-func EntryTypeIn(vs ...credit.EntryType) predicate.CreditEntry {
+func EntryTypeIn(vs ...credit.DELETEME_EntryType) predicate.CreditEntry {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -358,7 +358,7 @@ func EntryTypeIn(vs ...credit.EntryType) predicate.CreditEntry {
 }
 
 // EntryTypeNotIn applies the NotIn predicate on the "entry_type" field.
-func EntryTypeNotIn(vs ...credit.EntryType) predicate.CreditEntry {
+func EntryTypeNotIn(vs ...credit.DELETEME_EntryType) predicate.CreditEntry {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -367,19 +367,19 @@ func EntryTypeNotIn(vs ...credit.EntryType) predicate.CreditEntry {
 }
 
 // TypeEQ applies the EQ predicate on the "type" field.
-func TypeEQ(v credit.GrantType) predicate.CreditEntry {
+func TypeEQ(v credit.DELETEME_GrantType) predicate.CreditEntry {
 	vc := v
 	return predicate.CreditEntry(sql.FieldEQ(FieldType, vc))
 }
 
 // TypeNEQ applies the NEQ predicate on the "type" field.
-func TypeNEQ(v credit.GrantType) predicate.CreditEntry {
+func TypeNEQ(v credit.DELETEME_GrantType) predicate.CreditEntry {
 	vc := v
 	return predicate.CreditEntry(sql.FieldNEQ(FieldType, vc))
 }
 
 // TypeIn applies the In predicate on the "type" field.
-func TypeIn(vs ...credit.GrantType) predicate.CreditEntry {
+func TypeIn(vs ...credit.DELETEME_GrantType) predicate.CreditEntry {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -388,7 +388,7 @@ func TypeIn(vs ...credit.GrantType) predicate.CreditEntry {
 }
 
 // TypeNotIn applies the NotIn predicate on the "type" field.
-func TypeNotIn(vs ...credit.GrantType) predicate.CreditEntry {
+func TypeNotIn(vs ...credit.DELETEME_GrantType) predicate.CreditEntry {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]

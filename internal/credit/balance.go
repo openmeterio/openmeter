@@ -1,30 +1,21 @@
 package credit
 
-import (
-	"net/http"
-)
+// Represents a point in time balance of grants
+type GrantBalanceMap map[GrantID]float64
 
-// Balance of a subject in a credit.
-type Balance struct {
-	LedgerID        LedgerID          `json:"id"`
-	Metadata        map[string]string `json:"metadata,omitempty"`
-	Subject         string            `json:"subject"`
-	FeatureBalances []FeatureBalance  `json:"featureBalances"`
-	GrantBalances   []GrantBalance    `json:"grantBalances"`
+func (g GrantBalanceMap) Copy() GrantBalanceMap {
+	r := make(GrantBalanceMap, len(g))
+	for k, v := range g {
+		r[k] = v
+	}
+	return r
 }
 
-// Render implements the chi renderer interface.
-func (c Balance) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
+func (g GrantBalanceMap) Burn(grantID GrantID, amount float64) {
+	balance := g[grantID]
+	g[grantID] = balance - amount
 }
 
-type GrantBalance struct {
-	Grant
-	Balance float64 `json:"balance"`
-}
-
-type FeatureBalance struct {
-	Feature
-	Balance float64 `json:"balance"`
-	Usage   float64 `json:"usage"`
+func (g GrantBalanceMap) Set(grantID GrantID, amount float64) {
+	g[grantID] = amount
 }

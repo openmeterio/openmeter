@@ -2,7 +2,6 @@ package postgres_connector
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -11,12 +10,11 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_credit "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
-	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 func (c *PostgresConnector) CreateGrant(ctx context.Context, grantIn credit.Grant) (credit.Grant, error) {
-	grant, err := mutationTransaction(ctx, c, credit.NewNamespacedLedgerID(grantIn.Namespace, grantIn.LedgerID), func(tx *db.Tx, ledgerEntity *db.Ledger) (*credit.Grant, error) {
+	grant, err := mutationTransaction(ctx, c, credit.NewNamespacedLedgerID(grantIn.Namespace, "grantIn.LedgerID"), func(tx *db.Tx, ledgerEntity *db.Ledger) (*credit.Grant, error) {
 		// Check if the reset is in the future
 		err := checkAfterHighWatermark(grantIn.EffectiveAt, ledgerEntity)
 		if err != nil {
@@ -36,12 +34,12 @@ func (c *PostgresConnector) CreateGrant(ctx context.Context, grantIn credit.Gran
 
 		q := tx.CreditEntry.Create().
 			SetNamespace(grantIn.Namespace).
-			SetNillableID((*string)(grantIn.ID)).
-			SetLedgerID(string(grantIn.LedgerID)).
+			// SetNillableID((*string)(grantIn.ID)).
+			// SetLedgerID(string(grantIn.LedgerID)).
 			SetEntryType(credit.EntryTypeGrant).
-			SetType(grantIn.Type).
+			// SetType(grantIn.Type).
 			SetNillableParentID((*string)(grantIn.ParentID)).
-			SetNillableFeatureID((*string)(grantIn.FeatureID)).
+			// SetNillableFeatureID((*string)(grantIn.FeatureID)).
 			SetAmount(grantIn.Amount).
 			SetPriority(grantIn.Priority).
 			SetEffectiveAt(grantIn.EffectiveAt).
@@ -49,10 +47,10 @@ func (c *PostgresConnector) CreateGrant(ctx context.Context, grantIn credit.Gran
 			SetExpirationPeriodCount(grantIn.Expiration.Count).
 			SetExpirationAt(grantIn.Expiration.GetExpiration(grantIn.EffectiveAt)).
 			SetMetadata(grantIn.Metadata)
-		if grantIn.Rollover != nil {
-			q = q.SetRolloverType(grantIn.Rollover.Type).
-				SetNillableRolloverMaxAmount(grantIn.Rollover.MaxAmount)
-		}
+		// if grantIn.Rollover != nil {
+		// 	q = q.SetRolloverType(grantIn.Rollover.Type).
+		// 		SetNillableRolloverMaxAmount(grantIn.Rollover.MaxAmount)
+		// }
 		entity, err := q.Save(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create grant: %w", err)
@@ -74,7 +72,7 @@ func (c *PostgresConnector) CreateGrant(ctx context.Context, grantIn credit.Gran
 }
 
 func (c *PostgresConnector) VoidGrant(ctx context.Context, grantIn credit.Grant) (credit.Grant, error) {
-	grant, err := mutationTransaction(ctx, c, credit.NewNamespacedLedgerID(grantIn.Namespace, grantIn.LedgerID), func(tx *db.Tx, ledgerEntity *db.Ledger) (*credit.Grant, error) {
+	grant, err := mutationTransaction(ctx, c, credit.NewNamespacedLedgerID(grantIn.Namespace, "grantIn.LedgerID"), func(tx *db.Tx, ledgerEntity *db.Ledger) (*credit.Grant, error) {
 		// Check if the reset is in the future
 		err := checkAfterHighWatermark(grantIn.EffectiveAt, ledgerEntity)
 		if err != nil {
@@ -83,38 +81,38 @@ func (c *PostgresConnector) VoidGrant(ctx context.Context, grantIn credit.Grant)
 		}
 
 		// Get balance to check if grant can be voided: not partially or fully used yet
-		balance, err := c.GetBalance(ctx, credit.NewNamespacedLedgerID(grantIn.Namespace, grantIn.LedgerID), time.Now())
+		balance, err := c.GetBalance(ctx, credit.NewNamespacedLedgerID(grantIn.Namespace, "grantIn.LedgerID"), time.Now())
 		if err != nil {
 			return nil, err
 		}
 
-		if grantIn.ID == nil {
-			return nil, errors.New("grant ID is required")
-		}
+		// if grantIn.ID == nil {
+		// 	return nil, errors.New("grant ID is required")
+		// }
 
 		for _, entry := range balance.GrantBalances {
-			if *entry.Grant.ID == *grantIn.ID {
+			if entry.Grant.ID == grantIn.ID {
 				if entry.Balance != grantIn.Amount {
-					return nil, fmt.Errorf("grant has been used, cannot void: %s", *grantIn.ID)
+					return nil, fmt.Errorf("grant has been used, cannot void: %s", grantIn.ID)
 				}
 				break
 			}
 
 		}
 
-		if grantIn.ID == nil {
-			return nil, fmt.Errorf("grant ID is required")
-		}
+		// if grantIn.ID == nil {
+		// 	return nil, fmt.Errorf("grant ID is required")
+		// }
 
 		entity, err := tx.CreditEntry.Query().
 			Where(
 				db_credit.Namespace(grantIn.Namespace),
-				db_credit.ID(string(*grantIn.ID)),
+				db_credit.ID(string(grantIn.ID)),
 			).
 			Only(ctx)
 		if err != nil {
 			if db.IsNotFound(err) {
-				return nil, &credit.GrantNotFoundError{GrantID: *grantIn.ID}
+				return nil, &credit.GrantNotFoundError{GrantID: grantIn.ID}
 			}
 
 			return nil, fmt.Errorf("failed to void grant: %w", err)
@@ -280,13 +278,13 @@ func mapGrantEntity(entry *db.CreditEntry) (credit.Grant, error) {
 		return credit.Grant{}, fmt.Errorf("entry type must be grant: %s", entry.EntryType)
 	}
 
-	var rollover *credit.GrantRollover
-	if entry.RolloverType != nil && entry.RolloverMaxAmount != nil {
-		rollover = &credit.GrantRollover{
-			Type:      *entry.RolloverType,
-			MaxAmount: entry.RolloverMaxAmount,
-		}
-	}
+	// var rollover *credit.GrantRollover
+	// if entry.RolloverType != nil && entry.RolloverMaxAmount != nil {
+	// 	rollover = &credit.GrantRollover{
+	// 		Type:      *entry.RolloverType,
+	// 		MaxAmount: entry.RolloverMaxAmount,
+	// 	}
+	// }
 
 	expiresAt := time.Time{}
 	if entry.ExpirationAt != nil {
@@ -294,12 +292,12 @@ func mapGrantEntity(entry *db.CreditEntry) (credit.Grant, error) {
 	}
 
 	grant := credit.Grant{
-		Namespace:   entry.Namespace,
-		ID:          (*credit.GrantID)(&entry.ID),
-		ParentID:    (*credit.GrantID)(entry.ParentID),
-		LedgerID:    credit.LedgerID(entry.LedgerID),
-		Type:        *entry.Type,
-		FeatureID:   (*credit.FeatureID)(entry.FeatureID),
+		// Namespace:   entry.Namespace,
+		ID:       (credit.GrantID)(entry.ID),
+		ParentID: (*credit.GrantID)(entry.ParentID),
+		// LedgerID:    credit.LedgerID(entry.LedgerID),
+		// Type:        *entry.Type,
+		// FeatureID:   (*credit.FeatureID)(entry.FeatureID),
 		Amount:      *entry.Amount,
 		Priority:    entry.Priority,
 		EffectiveAt: entry.EffectiveAt.In(time.UTC),
@@ -308,20 +306,20 @@ func mapGrantEntity(entry *db.CreditEntry) (credit.Grant, error) {
 			Count:    *entry.ExpirationPeriodCount,
 		},
 		ExpiresAt: expiresAt,
-		Rollover:  rollover,
-		Metadata:  entry.Metadata,
-		Void:      entry.EntryType == credit.EntryTypeVoidGrant,
-		CreatedAt: convert.ToPointer(entry.CreatedAt.In(time.UTC)),
-		UpdatedAt: convert.ToPointer(entry.UpdatedAt.In(time.UTC)),
+		// Rollover:  rollover,
+		Metadata: entry.Metadata,
+		// Void:      entry.EntryType == credit.EntryTypeVoidGrant,
+		// CreatedAt: convert.ToPointer(entry.CreatedAt.In(time.UTC)),
+		// UpdatedAt: convert.ToPointer(entry.UpdatedAt.In(time.UTC)),
 	}
-	if entry.RolloverType != nil {
-		grant.Rollover = &credit.GrantRollover{
-			Type: *entry.RolloverType,
-		}
-		if entry.RolloverMaxAmount != nil {
-			grant.Rollover.MaxAmount = entry.RolloverMaxAmount
-		}
-	}
+	// if entry.RolloverType != nil {
+	// 	grant.Rollover = &credit.GrantRollover{
+	// 		Type: *entry.RolloverType,
+	// 	}
+	// 	if entry.RolloverMaxAmount != nil {
+	// 		grant.Rollover.MaxAmount = entry.RolloverMaxAmount
+	// 	}
+	// }
 
 	return grant, nil
 }

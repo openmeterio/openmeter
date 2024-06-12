@@ -14,31 +14,27 @@ func TestLedgerEntryList(t *testing.T) {
 
 	ledgerID := LedgerID("01HX6RYGQHXPZDHMK2MHHG5BV6")
 
-	featureId1 := FeatureID("01HX6RYPN9H1ZY2G2502MADK8N")
+	// featureId1 := FeatureID("01HX6RYPN9H1ZY2G2502MADK8N")
 	grantId1 := GrantID("01HX6RZ7E1NRYW1BTCTY2S5VS4")
 
 	grant1 := Grant{
-		ID:          &grantId1,
-		LedgerID:    ledgerID,
+		// ID:          &grantId1,
 		Amount:      100,
 		EffectiveAt: t1,
 		Priority:    0,
-		FeatureID:   &featureId1,
 	}
 
-	voidGrantId1 := GrantID("01HX6RY3ABY3ET3JS215ZK0NSJ")
+	// voidGrantId1 := GrantID("01HX6RY3ABY3ET3JS215ZK0NSJ")
 	voidGrant1 := Grant{
-		ID:          &voidGrantId1,
+		// ID:          &voidGrantId1,
 		ParentID:    &grantId1,
-		LedgerID:    ledgerID,
 		Amount:      100,
 		EffectiveAt: t2,
 		Priority:    0,
-		FeatureID:   &featureId1,
-		Void:        true,
+		// Void:        true,
 	}
 
-	grantBalance1 := GrantBalance{
+	grantBalance1 := DELETEME_GrantBalance{
 		Grant:   grant1,
 		Balance: 100,
 	}
@@ -65,11 +61,10 @@ func TestLedgerEntryList(t *testing.T) {
 
 				expected := []LedgerEntry{
 					{
-						ID:        grant1.ID,
-						FeatureID: grant1.FeatureID,
-						Type:      LedgerEntryTypeGrant,
-						Time:      t1,
-						Amount:    &grant1.Amount,
+						// ID:     grant1.ID,
+						Type:   LedgerEntryTypeGrant,
+						Time:   t1,
+						Amount: &grant1.Amount,
 					},
 				}
 				assert.Equal(t, expected, entryList.GetEntries())
@@ -83,11 +78,10 @@ func TestLedgerEntryList(t *testing.T) {
 
 				expected := []LedgerEntry{
 					{
-						ID:        voidGrant1.ParentID,
-						FeatureID: voidGrant1.FeatureID,
-						Type:      LedgerEntryTypeVoid,
-						Time:      t2,
-						Amount:    &voidGrant1.Amount,
+						ID:     voidGrant1.ParentID,
+						Type:   LedgerEntryTypeVoid,
+						Time:   t2,
+						Amount: &voidGrant1.Amount,
 					},
 				}
 				assert.Equal(t, expected, entryList.GetEntries())
@@ -100,11 +94,10 @@ func TestLedgerEntryList(t *testing.T) {
 				entryList.AddGrantUsage(grantBalance1, t1, t2, usage)
 				expected := []LedgerEntry{
 					{
-						ID:        grantBalance1.Grant.ID,
-						FeatureID: grantBalance1.FeatureID,
-						Type:      LedgerEntryTypeGrantUsage,
-						Time:      t2,
-						Amount:    &usage,
+						// ID:     grantBalance1.Grant.ID,
+						Type:   LedgerEntryTypeGrantUsage,
+						Time:   t2,
+						Amount: &usage,
 						Period: &Period{
 							From: t1,
 							To:   t2,
@@ -141,29 +134,26 @@ func TestLedgerEntryList(t *testing.T) {
 
 				expected := []LedgerEntry{
 					{
-						ID:        grant1.ID,
-						FeatureID: grant1.FeatureID,
-						Type:      LedgerEntryTypeGrant,
-						Time:      t1,
-						Amount:    &grant1.Amount,
+						// ID:     grant1.ID,
+						Type:   LedgerEntryTypeGrant,
+						Time:   t1,
+						Amount: &grant1.Amount,
 					},
 					{
-						ID:        grantBalance1.Grant.ID,
-						FeatureID: grantBalance1.FeatureID,
-						Type:      LedgerEntryTypeGrantUsage,
-						Time:      t2,
-						Amount:    &usage,
+						// ID:     grantBalance1.Grant.ID,
+						Type:   LedgerEntryTypeGrantUsage,
+						Time:   t2,
+						Amount: &usage,
 						Period: &Period{
 							From: t1,
 							To:   t2,
 						},
 					},
 					{
-						ID:        voidGrant1.ParentID,
-						FeatureID: voidGrant1.FeatureID,
-						Type:      LedgerEntryTypeVoid,
-						Time:      t2,
-						Amount:    &voidGrant1.Amount,
+						ID:     voidGrant1.ParentID,
+						Type:   LedgerEntryTypeVoid,
+						Time:   t2,
+						Amount: &voidGrant1.Amount,
 					},
 					{
 						ID:   reset1.ID,

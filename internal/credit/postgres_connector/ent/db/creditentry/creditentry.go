@@ -125,7 +125,7 @@ var (
 )
 
 // EntryTypeValidator is a validator for the "entry_type" field enum values. It is called by the builders before save.
-func EntryTypeValidator(et credit.EntryType) error {
+func EntryTypeValidator(et credit.DELETEME_EntryType) error {
 	switch et {
 	case "GRANT", "VOID_GRANT", "RESET":
 		return nil
@@ -135,7 +135,7 @@ func EntryTypeValidator(et credit.EntryType) error {
 }
 
 // TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
-func TypeValidator(_type credit.GrantType) error {
+func TypeValidator(_type credit.DELETEME_GrantType) error {
 	switch _type {
 	case "USAGE":
 		return nil
