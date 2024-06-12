@@ -9,7 +9,7 @@ import (
 type Sink = sink.Sink
 type SinkConfig = sink.SinkConfig
 type Storage = sink.Storage
-type SinkMessage = sink.SinkMessage
+type FlushSuccessEvent = sink.FlushSuccessEvent
 type ClickHouseStorage = sink.ClickHouseStorage
 type ClickHouseStorageConfig = sink.ClickHouseStorageConfig
 
