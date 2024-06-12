@@ -8,6 +8,8 @@ import (
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/spf13/viper"
+
+	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 )
 
 type IngestConfiguration struct {
@@ -32,7 +34,19 @@ type KafkaIngestConfiguration struct {
 	Partitions          int
 	EventsTopicTemplate string
 
-	StatsInterval time.Duration
+	StatsInterval pkgkafka.TimeDurationMilliSeconds
+
+	// BrokerAddressFamily defines the IP address family to be used for network communication with Kafka cluster
+	BrokerAddressFamily pkgkafka.BrokerAddressFamily
+	// SocketKeepAliveEnable defines if TCP socket keep-alive is enabled to prevent closing idle connections
+	// by Kafka brokers.
+	SocketKeepAliveEnabled bool
+	// TopicMetadataRefreshInterval defines how frequently the Kafka client needs to fetch metadata information
+	// (brokers, topic, partitions, etc) from the Kafka cluster.
+	// The 5 minutes default value is appropriate for mostly static Kafka clusters, but needs to be lowered
+	// in case of large clusters where changes are more frequent.
+	// This value must not be set to value lower than 10s.
+	TopicMetadataRefreshInterval pkgkafka.TimeDurationMilliSeconds
 }
 
 // CreateKafkaConfig creates a Kafka config map.
@@ -47,8 +61,10 @@ func (c KafkaIngestConfiguration) CreateKafkaConfig() kafka.ConfigMap {
 	// This is needed when using localhost brokers on OSX,
 	// since the OSX resolver will return the IPv6 addresses first.
 	// See: https://github.com/openmeterio/openmeter/issues/321
-	if strings.Contains(c.Broker, "localhost") || strings.Contains(c.Broker, "127.0.0.1") {
-		config["broker.address.family"] = "v4"
+	if c.BrokerAddressFamily != "" {
+		config["broker.address.family"] = c.BrokerAddressFamily
+	} else if strings.Contains(c.Broker, "localhost") || strings.Contains(c.Broker, "127.0.0.1") {
+		config["broker.address.family"] = pkgkafka.BrokerAddressFamilyIPv4
 	}
 
 	if c.SecurityProtocol != "" {
@@ -68,7 +84,20 @@ func (c KafkaIngestConfiguration) CreateKafkaConfig() kafka.ConfigMap {
 	}
 
 	if c.StatsInterval > 0 {
-		config["statistics.interval.ms"] = int(c.StatsInterval.Milliseconds())
+		config["statistics.interval.ms"] = c.StatsInterval
+	}
+
+	if c.SocketKeepAliveEnabled {
+		config["socket.keepalive.enable"] = c.SocketKeepAliveEnabled
+	}
+
+	// The `topic.metadata.refresh.interval.ms` defines the frequency the Kafka client needs to retrieve metadata
+	// from Kafka cluster. While `metadata.max.age.ms` defines the interval after the metadata cache maintained
+	// on client side becomes invalid. Setting the former will automatically adjust the value of the latter to avoid
+	// misconfiguration where the entries in metadata cache are evicted prior metadata refresh.
+	if c.TopicMetadataRefreshInterval > 0 {
+		config["topic.metadata.refresh.interval.ms"] = c.TopicMetadataRefreshInterval
+		config["metadata.max.age.ms"] = 3 * c.TopicMetadataRefreshInterval
 	}
 
 	return config
@@ -84,8 +113,12 @@ func (c KafkaIngestConfiguration) Validate() error {
 		return errors.New("events topic template is required")
 	}
 
-	if c.StatsInterval > 0 && c.StatsInterval < 5*time.Second {
+	if c.StatsInterval > 0 && c.StatsInterval.Duration() < 5*time.Second {
 		return errors.New("StatsInterval must be >=5s")
+	}
+
+	if c.TopicMetadataRefreshInterval > 0 && c.TopicMetadataRefreshInterval.Duration() < 10*time.Second {
+		return errors.New("topic metadata refresh interval must be >=10s")
 	}
 
 	return nil

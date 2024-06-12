@@ -9,6 +9,13 @@ telemetry:
 #    # To enable stats reporting set this value to >=5s.
 #    # Setting this value to 0 makes reporting explicitly disabled.
 #    statsInterval: 5s
+#    # Set IP address family used for communicating with Kafka cluster
+#    brokerAddressFamily: v4
+#    # Use this configuration parameter to define how frequently the local metadata cache needs to be updated.
+#    # It cannot be lower than 10 seconds.
+#    topicMetadataRefreshInterval: 1m
+#    # Use this config parameter to enable TCP keep-alive in order to prevent the Kafka broker to close idle network connection.
+#    socketKeepAliveEnabled: true
 
 # dedupe:
 #   enabled: true

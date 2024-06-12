@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 
+	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -83,6 +84,11 @@ func TestComplete(t *testing.T) {
 				SaslPassword:        "pass",
 				Partitions:          1,
 				EventsTopicTemplate: "om_%s_events",
+
+				BrokerAddressFamily:          pkgkafka.BrokerAddressFamilyAny,
+				TopicMetadataRefreshInterval: pkgkafka.TimeDurationMilliSeconds(time.Minute),
+				StatsInterval:                pkgkafka.TimeDurationMilliSeconds(5 * time.Second),
+				SocketKeepAliveEnabled:       true,
 			},
 		},
 		Aggregation: AggregationConfiguration{
