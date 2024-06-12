@@ -1,23 +1,13 @@
 package credit
 
-import (
-	"context"
-)
+import "context"
 
-// Generic Connector to interface with Credit Capabilities
-type Connector interface {
-	// TODO: do we need management APIs separate from entitlements?
-	// if so then credits in general can be persisted and managed separately.
-	// if not then we can just use entitlements for everything.
-
-	// Grant Management
+// Generic grant connector interface for accessing grants from persistence or network.
+type GrantConnector interface {
 	CreateGrant(ctx context.Context, grant Grant) (Grant, error)
-	VoidGrant(ctx context.Context, grantID NamespacedGrantID) error // TODO: do we need this even, maybe call it DeleteGrant?
+	VoidGrant(ctx context.Context, grantID NamespacedGrantID) error
 	ListGrants(ctx context.Context, params ListGrantsParams) ([]Grant, error)
 	GetGrant(ctx context.Context, grantID NamespacedGrantID) (Grant, error)
-
-	// // Balance & Usage
-	// GetGrantUsageHistory(ctx context.Context, grantID GrantID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
 }
 
 type GrantOrderBy string

@@ -13,7 +13,9 @@ type Engine interface {
 	Run(grants []Grant, startingBalances GrantBalanceMap, startingOverage float64, period Period) (endingBalances GrantBalanceMap, endingOverage float64, history []GrantBurnDownHistorySegment, err error)
 }
 
-func NewEngine(getFeatureUsage func(from, to time.Time) (float64, error)) Engine {
+type QueryUsageFn func(from, to time.Time) (float64, error)
+
+func NewEngine(getFeatureUsage QueryUsageFn) Engine {
 	return &engine{
 		getFeatureUsage: getFeatureUsage,
 	}
@@ -28,7 +30,7 @@ type engine struct {
 	// Map of all grants that are active at the relevant period at some point.
 	grantsMap map[GrantID]Grant
 	// Returns the total feature usage in the queried period
-	getFeatureUsage func(from, to time.Time) (float64, error)
+	getFeatureUsage QueryUsageFn
 	// granularity     models.WindowSize // TODO: implement
 
 	// Whether the engine was able to execute all calculations exactly
