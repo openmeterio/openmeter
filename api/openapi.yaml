@@ -1463,9 +1463,6 @@ components:
       allOf:
         - $ref: "#/components/schemas/FeatureCreateInputs"
         - $ref: "#/components/schemas/SharedMetaFields"
-    EntitlementType:
-      type: string
-      enum: [metered, static, boolean]
     Entitlement:
       oneOf:
         - $ref: "#/components/schemas/MeteredEntitlement"
@@ -1806,7 +1803,11 @@ components:
             - $ref: "#/components/schemas/ExpirationPeriod"
         maxRolloverAmount:
           description: |
-            The maximum amount of the grant that can be rolled over.
+            The maximum amount of the grant that can be rolled over. Defaults to 0.
+
+            - maxAmount = {original_amount} -> rollover original amount
+            - maxAmount = 0 -> no rollover
+            - maxAmount = 90 -> rollover 90 max
 
             If it's larger than 0 then the grant's balance will be the MAX(maxRollover, balance) + amount.
           type: number
