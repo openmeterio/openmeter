@@ -1698,7 +1698,6 @@ components:
           description: |
             The maximum amount of the grant that can be rolled over.
 
-            If it's 0 then at the next iteration the gran's balance will be the original amount.
             If it's larger than 0 then the grant's balance will be the MAX(maxRollover, balance) + amount.
           type: number
           format: double
