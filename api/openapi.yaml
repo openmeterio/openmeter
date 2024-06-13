@@ -859,9 +859,9 @@ paths:
           application/json:
             schema:
               oneOf:
-                - $ref: "#/components/schemas/MeteredEntitlementCreateInputs"
-                - $ref: "#/components/schemas/StaticEntitlementCreateInputs"
-                - $ref: "#/components/schemas/BooleanEntitlementCreateInputs"
+                - $ref: "#/components/schemas/EntitlementMeteredCreateInputs"
+                - $ref: "#/components/schemas/EntitlementStaticCreateInputs"
+                - $ref: "#/components/schemas/EntitlementBooleanCreateInputs"
       responses:
         "201":
           description: Entitlement created.
@@ -1465,21 +1465,21 @@ components:
         - $ref: "#/components/schemas/SharedMetaFields"
     Entitlement:
       oneOf:
-        - $ref: "#/components/schemas/MeteredEntitlement"
-        - $ref: "#/components/schemas/StaticEntitlement"
-        - $ref: "#/components/schemas/BooleanEntitlement"
+        - $ref: "#/components/schemas/EntitlementMetered"
+        - $ref: "#/components/schemas/EntitlementStatic"
+        - $ref: "#/components/schemas/EntitlementBoolean"
       discriminator:
         propertyName: type
         mapping:
-          metered: "#/components/schemas/MeteredEntitlement"
-          static: "#/components/schemas/StaticEntitlement"
-          boolean: "#/components/schemas/BooleanEntitlement"
-    MeteredEntitlement:
+          metered: "#/components/schemas/EntitlementMetered"
+          static: "#/components/schemas/EntitlementStatic"
+          boolean: "#/components/schemas/EntitlementBoolean"
+    EntitlementMetered:
       type: object
       description: |
         Entitles a subject to use a feature.
       allOf:
-        - $ref: "#/components/schemas/MeteredEntitlementCreateInputs"
+        - $ref: "#/components/schemas/EntitlementMeteredCreateInputs"
         - $ref: "#/components/schemas/SharedMetaFields"
         - type: object
           properties:
@@ -1489,7 +1489,7 @@ components:
               type: string
               readOnly: true
               example: customer-id
-    MeteredEntitlementCreateInputs:
+    EntitlementMeteredCreateInputs:
       type: object
       description: |
         Entitles a subject to use a feature.
@@ -1510,14 +1510,14 @@ components:
           type: object
           additionalProperties:
             type: string
-    StaticEntitlement:
+    EntitlementStatic:
       type: object
       description: |
         Entitles a subject to use a feature.
       allOf:
-        - $ref: "#/components/schemas/StaticEntitlementCreateInputs"
+        - $ref: "#/components/schemas/EntitlementStaticCreateInputs"
         - $ref: "#/components/schemas/SharedMetaFields"
-    StaticEntitlementCreateInputs:
+    EntitlementStaticCreateInputs:
       type: object
       description: |
         Entitles a subject to use a feature.
@@ -1541,14 +1541,14 @@ components:
           type: object
           additionalProperties:
             type: string
-    BooleanEntitlement:
+    EntitlementBoolean:
       type: object
       description: |
         Entitles a subject to use a feature.
       allOf:
-        - $ref: "#/components/schemas/BooleanEntitlementCreateInputs"
+        - $ref: "#/components/schemas/EntitlementBooleanCreateInputs"
         - $ref: "#/components/schemas/SharedMetaFields"
-    BooleanEntitlementCreateInputs:
+    EntitlementBooleanCreateInputs:
       type: object
       description: |
         Entitles a subject to use a feature.
