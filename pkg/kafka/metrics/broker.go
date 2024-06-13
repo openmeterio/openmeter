@@ -7,7 +7,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
-	"github.com/openmeterio/openmeter/internal/kafka/metrics/stats"
+	"github.com/openmeterio/openmeter/pkg/kafka/metrics/stats"
 )
 
 type BrokerMetrics struct {

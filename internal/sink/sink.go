@@ -22,9 +22,9 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/dedupe"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
-	kafkametrics "github.com/openmeterio/openmeter/internal/kafka/metrics"
-	kafkastats "github.com/openmeterio/openmeter/internal/kafka/metrics/stats"
 	"github.com/openmeterio/openmeter/internal/meter"
+	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
+	kafkastats "github.com/openmeterio/openmeter/pkg/kafka/metrics/stats"
 )
 
 var namespaceTopicRegexp = regexp.MustCompile(`^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$`)
