@@ -126,7 +126,31 @@ func TestEngine(t *testing.T) {
 
 				res, _, _, err := engine.Run(
 					[]credit.Grant{grant},
-					credit.GrantBalanceMap{}, 0, credit.Period{
+					credit.GrantBalanceMap{
+						grant.ID: 100.0,
+					}, 0, credit.Period{
+						From: t1,
+						To:   t1.AddDate(0, 0, 5),
+					})
+
+				assert.NoError(t, err)
+				assert.Equal(t, 0.0, res[grant1.ID])
+			},
+		},
+		{
+			name: "Return 0 balance for deleted grant",
+			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+				use(50.0, t1.Add(time.Hour))
+				grant := grant1
+				grant.EffectiveAt = t1
+				grant.DeletedAt = &t1
+				grant = makeGrant(grant)
+
+				res, _, _, err := engine.Run(
+					[]credit.Grant{grant},
+					credit.GrantBalanceMap{
+						grant.ID: 100.0,
+					}, 0, credit.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 5),
 					})
@@ -147,7 +171,9 @@ func TestEngine(t *testing.T) {
 
 				res, _, _, err := engine.Run(
 					[]credit.Grant{grant},
-					credit.GrantBalanceMap{}, 0, credit.Period{
+					credit.GrantBalanceMap{
+						grant.ID: 100.0,
+					}, 0, credit.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 5),
 					})
@@ -777,13 +803,6 @@ func TestEngine(t *testing.T) {
 				}
 
 				assert.Equal(t, singleEngineResult, balances)
-				// t.Log(numOfEngines, numOfGrants, numOfUsageEvents, runLength.String())
-				// t.Logf("\n")
-				// t.Log(slicesx.Map(grants, func(g credit.Grant) string {
-				// 	return fmt.Sprintf("%s: %v", g.ID, g.Recurrence)
-				// }))
-				// t.Logf("\n")
-				// t.Log(periods)
 			},
 		},
 	}

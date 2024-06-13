@@ -22,6 +22,8 @@ func (c *PostgresConnector) CreateGrant(ctx context.Context, grantIn credit.Gran
 			return nil, err
 		}
 
+		c.db.BeginTx()
+
 		// All metering information is stored in windowSize chunks,
 		// so we cannot do accurate calculations unless we follow that same windowing.
 		// We don't want grants to retroactively apply, so they always take effect at the start of the

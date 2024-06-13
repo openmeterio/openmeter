@@ -425,7 +425,7 @@ type Subject struct {
 type WindowSize = models.WindowSize
 
 // FeatureID defines model for featureID.
-type FeatureID = interface{}
+type FeatureID = string
 
 // LedgerGrantID defines model for ledgerGrantID.
 type LedgerGrantID = interface{}
