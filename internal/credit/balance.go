@@ -1,5 +1,7 @@
 package credit
 
+import "time"
+
 // Represents a point in time balance of grants
 type GrantBalanceMap map[GrantID]float64
 
@@ -27,4 +29,18 @@ func (g GrantBalanceMap) Balance() float64 {
 		balance += v
 	}
 	return balance
+}
+
+func NewGrantBalanceMapFromStartingGrants(grants []Grant) GrantBalanceMap {
+	m := GrantBalanceMap{}
+	for _, g := range grants {
+		m[g.ID] = g.Amount
+	}
+	return m
+}
+
+type GrantBalanceSnapshot struct {
+	Balances GrantBalanceMap
+	Overage  float64
+	At       time.Time
 }

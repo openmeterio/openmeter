@@ -5,10 +5,16 @@ package productcatalog
 import (
 	"fmt"
 	"time"
+
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // FeatureID is the unique identifier for a feature.
 type FeatureID string
+
+func (id FeatureID) String() string {
+	return string(id)
+}
 
 type NamespacedFeatureID struct {
 	Namespace string
@@ -50,11 +56,28 @@ func (e *FeatureWithNameAlreadyExistsError) Error() string {
 	return fmt.Sprintf("feature %s with name %s already exists", e.ID, e.Name)
 }
 
+type FeatureInvalidMeterAggregationError struct {
+	MeterSlug         string
+	Aggregation       models.MeterAggregation
+	ValidAggregations []models.MeterAggregation
+}
+
+func (e *FeatureInvalidMeterAggregationError) Error() string {
+	validAggregations := ""
+	for i, validAggregation := range e.ValidAggregations {
+		if i > 0 {
+			validAggregations += ", "
+		}
+		validAggregations += string(validAggregation)
+	}
+	return fmt.Sprintf("meter %s's aggregation is %s but features can only be created for %s", e.MeterSlug, e.Aggregation, validAggregations)
+}
+
 // Feature is a feature or service offered to a customer.
 // For example: CPU-Hours, Tokens, API Calls, etc.
 type Feature struct {
-	Namespace string     `json:"-"`
-	ID        *FeatureID `json:"id,omitempty"`
+	Namespace string    `json:"-"`
+	ID        FeatureID `json:"id,omitempty"`
 
 	// Name The name of the feature.
 	Name string `json:"name"`
@@ -66,8 +89,8 @@ type Feature struct {
 	MeterGroupByFilters *map[string]string `json:"meterGroupByFilters,omitempty"`
 
 	// Read-only fields
-	Archived *bool `json:"archived,omitempty"`
+	Archived bool `json:"archived,omitempty"`
 
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt,omitempty"`
 }

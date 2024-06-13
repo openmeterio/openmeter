@@ -3,11 +3,13 @@ package credit
 import (
 	"fmt"
 	"sort"
+	"time"
 )
 
 type SegmentTerminationReason struct {
 	PriorityChange bool
 	Recurrence     []GrantID
+	UsageReset     bool
 }
 
 type GrantUsageTerminationReason string
@@ -103,4 +105,18 @@ func (g *GrantBurnDownHistory) TotalUsage() float64 {
 func (g *GrantBurnDownHistory) Overage() float64 {
 	lastSegment := g.segments[len(g.segments)-1]
 	return lastSegment.Overage
+}
+
+// Returns the last segment that can be saved
+func (g *GrantBurnDownHistory) GetLastSaveableAt(at time.Time) (GrantBurnDownHistorySegment, error) {
+	gracePeriod := time.Hour // TODO: make this configurable
+
+	for i := len(g.segments) - 1; i >= 0; i-- {
+		segment := g.segments[i]
+		if segment.To.Add(gracePeriod).Before(at) {
+			return segment, nil
+		}
+	}
+
+	return GrantBurnDownHistorySegment{}, fmt.Errorf("no segment can be saved at %s with gracePeriod %s", at, gracePeriod)
 }

@@ -3,7 +3,6 @@ package credit
 import (
 	"time"
 
-	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -73,8 +72,10 @@ func (c Grant) GetExpiration() time.Time {
 }
 
 func (c Grant) ActiveAt(t time.Time) bool {
-	if defaultx.WithDefault(c.DeletedAt, t).Before(t) {
-		return false
+	if c.DeletedAt != nil {
+		if c.DeletedAt.Before(t) || c.DeletedAt.Equal(t) {
+			return false
+		}
 	}
 	return (c.EffectiveAt.Before(t) || c.EffectiveAt.Equal(t)) && c.ExpiresAt.After(t)
 }
