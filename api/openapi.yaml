@@ -1044,6 +1044,7 @@ paths:
           $ref: "#/components/responses/NotImplementedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
+  # TODO: should this be /value to be compatible with all three entitlement types
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/balance:
     get:
       operationId: getEntitlementBalance
@@ -1425,7 +1426,7 @@ components:
           description: |
             The type of the feature.
              - metered: The feature is metered and have a balance or limit per subject. Granting on the feature will increase the balance.
-             - static: The feature can hold a static string value that can differ between subjects. For example "frequency_daily".
+             - static: The feature can hold a static JSON parsable value that can differ between subjects. For example "frequency_daily".
              - boolean: The feature expresses if a feature is enabled for certain subjects. For example Enterprise SSO
           $ref: "#/components/schemas/FeatureType"
           example: metered
@@ -1534,7 +1535,7 @@ components:
           example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         value:
           description: |
-            The value of the entitlement.
+            The JSON parsable value of the entitlement.
           type: string
           example: frequency_daily
         metadata:
