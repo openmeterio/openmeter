@@ -2,8 +2,10 @@ package kafkaingest
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
@@ -11,6 +13,8 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
+	kafkametrics "github.com/openmeterio/openmeter/internal/kafka/metrics"
+	kafkastats "github.com/openmeterio/openmeter/internal/kafka/metrics/stats"
 )
 
 // Collector is a receiver of events that handles sending those events to a downstream Kafka broker.
@@ -104,7 +108,7 @@ func (s Collector) Close() {
 	s.Producer.Close()
 }
 
-func KafkaProducerGroup(ctx context.Context, producer *kafka.Producer, logger *slog.Logger) (execute func() error, interrupt func(error)) {
+func KafkaProducerGroup(ctx context.Context, producer *kafka.Producer, logger *slog.Logger, kafkaMetrics *kafkametrics.Metrics) (execute func() error, interrupt func(error)) {
 	ctx, cancel := context.WithCancel(ctx)
 	return func() error {
 			for {
@@ -122,6 +126,24 @@ func KafkaProducerGroup(ctx context.Context, producer *kafka.Producer, logger *s
 						} else {
 							logger.Debug("kafka message delivered", "topic", *m.TopicPartition.Topic, "partition", m.TopicPartition.Partition, "offset", m.TopicPartition.Offset)
 						}
+					case *kafka.Stats:
+						// Report Kafka client metrics
+						if kafkaMetrics == nil {
+							continue
+						}
+
+						go func() {
+							var stats kafkastats.Stats
+
+							if err := json.Unmarshal([]byte(e.String()), &stats); err != nil {
+								logger.Warn("failed to unmarshal Kafka client stats", slog.String("err", err.Error()))
+							}
+
+							ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+							defer cancel()
+
+							kafkaMetrics.Add(ctx, &stats)
+						}()
 					case kafka.Error:
 						// Generic client instance-level errors, such as
 						// broker connection failures, authentication issues, etc.

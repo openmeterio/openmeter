@@ -4,6 +4,12 @@ telemetry:
   log:
     level: debug
 
+#ingest:
+#  kafka:
+#    # To enable stats reporting set this value to >=5s.
+#    # Setting this value to 0 makes reporting explicitly disabled.
+#    statsInterval: 5s
+
 # dedupe:
 #   enabled: true
 #   driver: redis
