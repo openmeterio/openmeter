@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -31,26 +32,44 @@ const (
 	PortalTokenAuthScopes      = "PortalTokenAuth.Scopes"
 )
 
-// Defines values for LedgerEntryType.
+// Defines values for ExpirationPeriodDuration.
 const (
-	GRANT      LedgerEntryType = "GRANT"
-	GRANTUSAGE LedgerEntryType = "GRANT_USAGE"
-	RESET      LedgerEntryType = "RESET"
-	VOID       LedgerEntryType = "VOID"
+	ExpirationPeriodDurationDAY   ExpirationPeriodDuration = "DAY"
+	ExpirationPeriodDurationHOUR  ExpirationPeriodDuration = "HOUR"
+	ExpirationPeriodDurationMONTH ExpirationPeriodDuration = "MONTH"
+	ExpirationPeriodDurationWEEK  ExpirationPeriodDuration = "WEEK"
+	ExpirationPeriodDurationYEAR  ExpirationPeriodDuration = "YEAR"
 )
 
-// Defines values for LedgerGrantExpirationPeriodDuration.
+// Defines values for FeatureType.
 const (
-	DAY   LedgerGrantExpirationPeriodDuration = "DAY"
-	HOUR  LedgerGrantExpirationPeriodDuration = "HOUR"
-	MONTH LedgerGrantExpirationPeriodDuration = "MONTH"
-	WEEK  LedgerGrantExpirationPeriodDuration = "WEEK"
-	YEAR  LedgerGrantExpirationPeriodDuration = "YEAR"
+	Boolean FeatureType = "boolean"
+	Metered FeatureType = "metered"
+	Static  FeatureType = "static"
 )
 
-// Defines values for LedgerGrantType.
+// Defines values for GrantBurnDownHistorySegmentPeriodTerminationReason.
 const (
-	LedgerGrantTypeUsage LedgerGrantType = "USAGE"
+	ENDOFQUERYING           GrantBurnDownHistorySegmentPeriodTerminationReason = "END_OF_QUERYING"
+	GRANTBURNTDOWN          GrantBurnDownHistorySegmentPeriodTerminationReason = "GRANT_BURNT_DOWN"
+	GRANTEXPIRED            GrantBurnDownHistorySegmentPeriodTerminationReason = "GRANT_EXPIRED"
+	GRANTWITHHIGHERPRIORITY GrantBurnDownHistorySegmentPeriodTerminationReason = "GRANT_WITH_HIGHER_PRIORITY"
+	USAGERESET              GrantBurnDownHistorySegmentPeriodTerminationReason = "USAGE_RESET"
+)
+
+// Defines values for RecurringPeriodEnum.
+const (
+	BILLING RecurringPeriodEnum = "BILLING"
+	DAILY   RecurringPeriodEnum = "DAILY"
+	MONTHLY RecurringPeriodEnum = "MONTHLY"
+	WEEKLY  RecurringPeriodEnum = "WEEKLY"
+	YEARLY  RecurringPeriodEnum = "YEARLY"
+)
+
+// Defines values for ListEntitlementsParamsOrderBy.
+const (
+	ListEntitlementsParamsOrderByCreatedAt ListEntitlementsParamsOrderBy = "createdAt"
+	ListEntitlementsParamsOrderByUpdatedAt ListEntitlementsParamsOrderBy = "updatedAt"
 )
 
 // Defines values for ListFeaturesParamsOrderBy.
@@ -60,51 +79,114 @@ const (
 	ListFeaturesParamsOrderByUpdatedAt ListFeaturesParamsOrderBy = "updatedAt"
 )
 
-// Defines values for ListLedgersParamsOrderBy.
+// Defines values for ListGrantsParamsOrderBy.
 const (
-	ListLedgersParamsOrderByCreatedAt ListLedgersParamsOrderBy = "createdAt"
-	ListLedgersParamsOrderById        ListLedgersParamsOrderBy = "id"
-	ListLedgersParamsOrderBySubject   ListLedgersParamsOrderBy = "subject"
+	ListGrantsParamsOrderByCreatedAt ListGrantsParamsOrderBy = "createdAt"
+	ListGrantsParamsOrderById        ListGrantsParamsOrderBy = "id"
+	ListGrantsParamsOrderByUpdatedAt ListGrantsParamsOrderBy = "updatedAt"
 )
 
-// CreateFeatureRequest A feature is a feature or service offered to a customer.
-// For example: CPU-Hours, Tokens, API Calls, etc.
-type CreateFeatureRequest struct {
-	// Archived If the feature is archived, it will not be used for grants or usage.
-	Archived *bool `json:"archived,omitempty"`
+// Defines values for ListEntitlementGrantsParamsOrderBy.
+const (
+	ListEntitlementGrantsParamsOrderByCreatedAt ListEntitlementGrantsParamsOrderBy = "createdAt"
+	ListEntitlementGrantsParamsOrderById        ListEntitlementGrantsParamsOrderBy = "id"
+	ListEntitlementGrantsParamsOrderByUpdatedAt ListEntitlementGrantsParamsOrderBy = "updatedAt"
+)
 
-	// MeterGroupByFilters Optional meter group by filters. Useful if the meter scope is broader than what feature tracks.
-	MeterGroupByFilters *map[string]string `json:"meterGroupByFilters,omitempty"`
+// Defines values for GetEntitlementHistoryParamsWindowSize.
+const (
+	GetEntitlementHistoryParamsWindowSizeDAY    GetEntitlementHistoryParamsWindowSize = "DAY"
+	GetEntitlementHistoryParamsWindowSizeHOUR   GetEntitlementHistoryParamsWindowSize = "HOUR"
+	GetEntitlementHistoryParamsWindowSizeMINUTE GetEntitlementHistoryParamsWindowSize = "MINUTE"
+)
 
-	// MeterSlug The meter that the feature is associated with and decreases grants by usage.
-	MeterSlug string `json:"meterSlug"`
+// BalanceHistoryWindow A window of balance history.
+type BalanceHistoryWindow struct {
+	// BalanceAtEnd The entitlement balance at the end of the period.
+	BalanceAtEnd *float64 `json:"balanceAtEnd,omitempty"`
 
-	// Name The name of the feature.
-	Name string `json:"name"`
+	// BalanceAtStart The entitlement balance at the start of the period.
+	BalanceAtStart *float64 `json:"balanceAtStart,omitempty"`
+
+	// GrantBurnDownHistory The grant burn down history in the period.
+	//
+	// GrantBurnDownHistory ends if balance reaches 0.
+	GrantBurnDownHistory *GrantBurnDownHistory `json:"grantBurnDownHistory,omitempty"`
+
+	// Period A time period
+	Period *Period `json:"period,omitempty"`
+
+	// Usage The total usage of the feature in the period.
+	Usage *float64 `json:"usage,omitempty"`
 }
 
-// CreateLedger A ledger represented in open meter. A ledger must be assigned to a single
-// subject.
-type CreateLedger = credit.Ledger
-
-// CreateLedgerGrantRequest Grants are used to increase balance of specific subjects.
-type CreateLedgerGrantRequest struct {
-	// Amount The amount to grant. Can be positive or negative number.
-	Amount float64 `json:"amount"`
-
-	// CreatedAt The time the grant was created.
+// BooleanEntitlement defines model for BooleanEntitlement.
+type BooleanEntitlement struct {
+	// CreatedAt The date and time the resource was created.
 	CreatedAt *time.Time `json:"createdAt,omitempty"`
 
-	// EffectiveAt The effective date.
-	EffectiveAt time.Time                    `json:"effectiveAt"`
-	Expiration  *LedgerGrantExpirationPeriod `json:"expiration,omitempty"`
+	// DeletedAt The date and time the resource was deleted.
+	DeletedAt *time.Time `json:"deletedAt"`
 
-	// FeatureID The unique feature ULID that the grant is associated with, if any.
-	FeatureID string             `json:"featureID"`
-	Metadata  *map[string]string `json:"metadata,omitempty"`
+	// FeatureId The feature to grant.
+	FeatureId string `json:"featureId"`
 
-	// ParentId The parent grant ULID that the grant is associated with, if any.
-	ParentId *string `json:"parentId,omitempty"`
+	// Id Readonly unique ULID identifier.
+	Id *string `json:"id,omitempty"`
+
+	// Metadata Additional metadata for the feature.
+	Metadata *map[string]string `json:"metadata,omitempty"`
+
+	// UpdatedAt The date and time the resource was last updated.
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+}
+
+// BooleanEntitlementCreateInputs Entitles a subject to use a feature.
+type BooleanEntitlementCreateInputs struct {
+	// FeatureId The feature to grant.
+	FeatureId string `json:"featureId"`
+
+	// Metadata Additional metadata for the feature.
+	Metadata *map[string]string `json:"metadata,omitempty"`
+}
+
+// Entitlement defines model for Entitlement.
+type Entitlement struct {
+	union json.RawMessage
+}
+
+// EntitlementGrant defines model for EntitlementGrant.
+type EntitlementGrant struct {
+	// Amount The amount to grant. Should be a positive number.
+	Amount float64 `json:"amount"`
+
+	// CreatedAt The date and time the resource was created.
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+	// DeletedAt The date and time the resource was deleted.
+	DeletedAt *time.Time `json:"deletedAt"`
+
+	// EffectiveAt The effective time. Provided value will be ceiled to metering windowSize (minute).
+	EffectiveAt time.Time `json:"effectiveAt"`
+
+	// EntitlementId The unique entitlement ULID that the grant is associated with.
+	EntitlementId *string          `json:"entitlementId,omitempty"`
+	Expiration    ExpirationPeriod `json:"expiration"`
+
+	// ExpiresAt The expiration date of the grant.
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+
+	// Id Readonly unique ULID identifier.
+	Id *string `json:"id,omitempty"`
+
+	// MaxRolloverAmount The maximum amount of the grant that can be rolled over.
+	//
+	// If it's larger than 0 then the grant's balance will be the MAX(maxRollover, balance) + amount.
+	MaxRolloverAmount *float64           `json:"maxRolloverAmount,omitempty"`
+	Metadata          *map[string]string `json:"metadata,omitempty"`
+
+	// NextRecurrence The next time the grant will recurr.
+	NextRecurrence *time.Time `json:"nextRecurrence,omitempty"`
 
 	// Priority The priority of the grant. Grants with higher priority are applied first.
 	// Priority is a positive decimal numbers. With lower numbers indicating higher importance.
@@ -114,73 +196,170 @@ type CreateLedgerGrantRequest struct {
 	// In the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.
 	Priority *int `json:"priority,omitempty"`
 
-	// Rollover Grant rollover configuration.
-	Rollover *LedgerGrantRollover `json:"rollover,omitempty"`
+	// Recurrence Recurrence of the grant.
+	Recurrence *struct {
+		// MaxRolloverAmount The maximum amount of the grant that can be rolled over.
+		//
+		// If it's 0 then at the next iteration the gran's balance will be the original amount.
+		// If it's larger than 0 then the grant's balance will be the MAX(maxRollover, balance) + amount.
+		MaxRolloverAmount *float64 `json:"maxRolloverAmount,omitempty"`
 
-	// Type The grant type:
-	// - `USAGE` - Increase balance by the amount in the unit of the associated meter.
-	Type LedgerGrantType `json:"type"`
+		// Period Recurring period of an entitlement.
+		Period RecurringPeriod `json:"period"`
+	} `json:"recurrence,omitempty"`
 
-	// UpdatedAt The time the grant was last updated.
+	// SubjectKey The subject that is granted the entitlement.
+	SubjectKey *string `json:"subjectKey,omitempty"`
+
+	// UpdatedAt The date and time the resource was last updated.
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+}
+
+// EntitlementGrantCreateInput Grants are used to increase balance of specific subjects.
+type EntitlementGrantCreateInput struct {
+	// Amount The amount to grant. Should be a positive number.
+	Amount float64 `json:"amount"`
+
+	// EffectiveAt The effective time. Provided value will be ceiled to metering windowSize (minute).
+	EffectiveAt time.Time        `json:"effectiveAt"`
+	Expiration  ExpirationPeriod `json:"expiration"`
+
+	// MaxRolloverAmount The maximum amount of the grant that can be rolled over.
+	//
+	// If it's larger than 0 then the grant's balance will be the MAX(maxRollover, balance) + amount.
+	MaxRolloverAmount *float64           `json:"maxRolloverAmount,omitempty"`
+	Metadata          *map[string]string `json:"metadata,omitempty"`
+
+	// Priority The priority of the grant. Grants with higher priority are applied first.
+	// Priority is a positive decimal numbers. With lower numbers indicating higher importance.
+	// For example, a priority of 1 is more urgent than a priority of 2.
+	// When there are several grants available for the same subject, the system selects the grant with the highest priority.
+	// In cases where grants share the same priority level, the grant closest to its expiration will be used first.
+	// In the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.
+	Priority *int `json:"priority,omitempty"`
+
+	// Recurrence Recurrence of the grant.
+	Recurrence *struct {
+		// MaxRolloverAmount The maximum amount of the grant that can be rolled over.
+		//
+		// If it's 0 then at the next iteration the gran's balance will be the original amount.
+		// If it's larger than 0 then the grant's balance will be the MAX(maxRollover, balance) + amount.
+		MaxRolloverAmount *float64 `json:"maxRolloverAmount,omitempty"`
+
+		// Period Recurring period of an entitlement.
+		Period RecurringPeriod `json:"period"`
+	} `json:"recurrence,omitempty"`
 }
 
 // Event CloudEvents Specification JSON Schema
 type Event = event.Event
+
+// ExpirationPeriod Expiration period of a ledger grant.
+type ExpirationPeriod struct {
+	// Count The expiration period count like 12 months.
+	Count int `json:"count"`
+
+	// Duration The expiration period duration like month.
+	Duration ExpirationPeriodDuration `json:"duration"`
+}
+
+// ExpirationPeriodDuration The expiration period duration like month.
+type ExpirationPeriodDuration string
 
 // Feature defines model for Feature.
 type Feature struct {
 	// Archived If the feature is archived, it will not be used for grants or usage.
 	Archived *bool `json:"archived,omitempty"`
 
-	// CreatedAt The time the feature was created.
+	// CreatedAt The date and time the resource was created.
 	CreatedAt *time.Time `json:"createdAt,omitempty"`
 
-	// Id Readonly unique ULID identifier of the feature.
+	// DeletedAt The date and time the resource was deleted.
+	DeletedAt *time.Time `json:"deletedAt"`
+
+	// Id Readonly unique ULID identifier.
 	Id *string `json:"id,omitempty"`
+
+	// Key The unique key of the feature to reference it from your application.
+	Key string `json:"key"`
+
+	// Metadata Additional metadata for the feature.
+	Metadata *map[string]string `json:"metadata,omitempty"`
 
 	// MeterGroupByFilters Optional meter group by filters. Useful if the meter scope is broader than what feature tracks.
 	MeterGroupByFilters *map[string]string `json:"meterGroupByFilters,omitempty"`
 
 	// MeterSlug The meter that the feature is associated with and decreases grants by usage.
-	MeterSlug string `json:"meterSlug"`
+	MeterSlug *string `json:"meterSlug,omitempty"`
 
 	// Name The name of the feature.
 	Name string `json:"name"`
 
-	// UpdatedAt The time the feature was last updated.
+	// Type The type of the feature.
+	Type *FeatureType `json:"type,omitempty"`
+
+	// UpdatedAt The date and time the resource was last updated.
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 }
 
-// FeatureBalance defines model for FeatureBalance.
-type FeatureBalance struct {
+// FeatureCreateInputs A feature is a feature or service offered to a customer.
+// For example: CPU-Hours, Tokens, API Calls, etc.
+type FeatureCreateInputs struct {
 	// Archived If the feature is archived, it will not be used for grants or usage.
 	Archived *bool `json:"archived,omitempty"`
 
-	// Balance The balance of the feature.
-	Balance float64 `json:"balance"`
+	// Key The unique key of the feature to reference it from your application.
+	Key string `json:"key"`
 
-	// CreatedAt The time the feature was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
-
-	// Id Readonly unique ULID identifier of the feature.
-	Id *string `json:"id,omitempty"`
+	// Metadata Additional metadata for the feature.
+	Metadata *map[string]string `json:"metadata,omitempty"`
 
 	// MeterGroupByFilters Optional meter group by filters. Useful if the meter scope is broader than what feature tracks.
 	MeterGroupByFilters *map[string]string `json:"meterGroupByFilters,omitempty"`
 
 	// MeterSlug The meter that the feature is associated with and decreases grants by usage.
-	MeterSlug string `json:"meterSlug"`
+	MeterSlug *string `json:"meterSlug,omitempty"`
 
 	// Name The name of the feature.
 	Name string `json:"name"`
 
-	// UpdatedAt The time the feature was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
-
-	// Usage The usage of the feature.
-	Usage float64 `json:"usage"`
+	// Type The type of the feature.
+	Type *FeatureType `json:"type,omitempty"`
 }
+
+// FeatureType The type of the feature.
+type FeatureType string
+
+// GrantBurnDownHistory The grant burn down history in the period.
+//
+// GrantBurnDownHistory ends if balance reaches 0.
+type GrantBurnDownHistory = []GrantBurnDownHistorySegment
+
+// GrantBurnDownHistorySegment A segment of the grant burn down history.
+//
+// A given segment represents the usage of a grant in a specific period.
+type GrantBurnDownHistorySegment struct {
+	// BalanceAtEnd The entitlement balance at the end of the period.
+	BalanceAtEnd *float64 `json:"balanceAtEnd,omitempty"`
+
+	// BalanceAtStart The entitlement balance at the start of the period.
+	BalanceAtStart *float64 `json:"balanceAtStart,omitempty"`
+
+	// GrantId The id of the grant that was burnt down.
+	GrantId *string `json:"grantId,omitempty"`
+
+	// Period A time period
+	Period *Period `json:"period,omitempty"`
+
+	// PeriodTerminationReason The reason why a new period was started.
+	PeriodTerminationReason *GrantBurnDownHistorySegmentPeriodTerminationReason `json:"periodTerminationReason,omitempty"`
+
+	// Usage The usage of the grant in the period.
+	Usage *float64 `json:"usage,omitempty"`
+}
+
+// GrantBurnDownHistorySegmentPeriodTerminationReason The reason why a new period was started.
+type GrantBurnDownHistorySegmentPeriodTerminationReason string
 
 // IdOrSlug A unique identifier.
 type IdOrSlug = string
@@ -191,180 +370,6 @@ type IngestedEvent struct {
 	Event           Event   `json:"event"`
 	ValidationError *string `json:"validationError,omitempty"`
 }
-
-// Ledger defines model for Ledger.
-type Ledger = credit.Ledger
-
-// LedgerAlreadyExistsProblem Ledger Exists
-type LedgerAlreadyExistsProblem = credit.LedgerAlreadyExistsProblemResponse
-
-// LedgerBalance Balance of a subject.
-type LedgerBalance struct {
-	// FeatureBalances Features with balances.
-	FeatureBalances []FeatureBalance `json:"featureBalances"`
-
-	// GrantBalances The grants applied to the subject.
-	GrantBalances []LedgerGrantBalance `json:"grantBalances"`
-
-	// LastReset The last reset of the ledger.
-	LastReset *time.Time         `json:"lastReset,omitempty"`
-	Metadata  *map[string]string `json:"metadata,omitempty"`
-
-	// Subject The subject of the ledger.
-	Subject string `json:"subject"`
-}
-
-// LedgerEntry A ledger entry.
-type LedgerEntry struct {
-	// Amount The amount to apply. Can be positive or negative number. If applicable.
-	Amount float64 `json:"amount"`
-
-	// FeatureID The unique feature ULID that the entry is associated with, if any.
-	FeatureID string `json:"featureID"`
-
-	// Id Readonly unique ULID identifier of the ledger entry.
-	Id *string `json:"id,omitempty"`
-
-	// Period A time period
-	Period *Period `json:"period,omitempty"`
-
-	// Time The time the ledger entry was created.
-	Time time.Time       `json:"time"`
-	Type LedgerEntryType `json:"type"`
-}
-
-// LedgerEntryType defines model for LedgerEntryType.
-type LedgerEntryType string
-
-// LedgerGrantBalance defines model for LedgerGrantBalance.
-type LedgerGrantBalance struct {
-	// Amount The amount to grant. Can be positive or negative number.
-	Amount float64 `json:"amount"`
-
-	// Balance The balance of the grant.
-	Balance float64 `json:"balance"`
-
-	// CreatedAt The time the grant was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
-
-	// EffectiveAt The effective date.
-	EffectiveAt time.Time                    `json:"effectiveAt"`
-	Expiration  *LedgerGrantExpirationPeriod `json:"expiration,omitempty"`
-
-	// ExpiresAt The expiration date of the grant.
-	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
-
-	// FeatureID The unique feature ULID that the grant is associated with, if any.
-	FeatureID string `json:"featureID"`
-
-	// Id Readonly unique ULID identifier of the grant.
-	Id *string `json:"id,omitempty"`
-
-	// LedgerID The ledger ID.
-	LedgerID string             `json:"ledgerID"`
-	Metadata *map[string]string `json:"metadata,omitempty"`
-
-	// ParentId The parent grant ULID that the grant is associated with, if any.
-	ParentId *string `json:"parentId,omitempty"`
-
-	// Priority The priority of the grant. Grants with higher priority are applied first.
-	// Priority is a positive decimal numbers. With lower numbers indicating higher importance.
-	// For example, a priority of 1 is more urgent than a priority of 2.
-	// When there are several grants available for the same subject, the system selects the grant with the highest priority.
-	// In cases where grants share the same priority level, the grant closest to its expiration will be used first.
-	// In the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.
-	Priority *int `json:"priority,omitempty"`
-
-	// Rollover Grant rollover configuration.
-	Rollover *LedgerGrantRollover `json:"rollover,omitempty"`
-
-	// Type The grant type:
-	// - `USAGE` - Increase balance by the amount in the unit of the associated meter.
-	Type LedgerGrantType `json:"type"`
-
-	// UpdatedAt The time the grant was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
-
-	// Void If the grant is voided, it will not be applied to the subject's balance anymore.
-	Void *bool `json:"void,omitempty"`
-}
-
-// LedgerGrantExpirationPeriod Expiration period of a ledger grant.
-type LedgerGrantExpirationPeriod struct {
-	// Count The expiration period count like 12 months.
-	Count int `json:"count"`
-
-	// Duration The expiration period duration like month.
-	Duration LedgerGrantExpirationPeriodDuration `json:"duration"`
-}
-
-// LedgerGrantExpirationPeriodDuration The expiration period duration like month.
-type LedgerGrantExpirationPeriodDuration string
-
-// LedgerGrantResponse defines model for LedgerGrantResponse.
-type LedgerGrantResponse struct {
-	// Amount The amount to grant. Can be positive or negative number.
-	Amount float64 `json:"amount"`
-
-	// CreatedAt The time the grant was created.
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
-
-	// EffectiveAt The effective date.
-	EffectiveAt time.Time                    `json:"effectiveAt"`
-	Expiration  *LedgerGrantExpirationPeriod `json:"expiration,omitempty"`
-
-	// ExpiresAt The expiration date of the grant.
-	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
-
-	// FeatureID The unique feature ULID that the grant is associated with, if any.
-	FeatureID string `json:"featureID"`
-
-	// Id Readonly unique ULID identifier of the grant.
-	Id *string `json:"id,omitempty"`
-
-	// LedgerID The ledger ID.
-	LedgerID string             `json:"ledgerID"`
-	Metadata *map[string]string `json:"metadata,omitempty"`
-
-	// ParentId The parent grant ULID that the grant is associated with, if any.
-	ParentId *string `json:"parentId,omitempty"`
-
-	// Priority The priority of the grant. Grants with higher priority are applied first.
-	// Priority is a positive decimal numbers. With lower numbers indicating higher importance.
-	// For example, a priority of 1 is more urgent than a priority of 2.
-	// When there are several grants available for the same subject, the system selects the grant with the highest priority.
-	// In cases where grants share the same priority level, the grant closest to its expiration will be used first.
-	// In the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.
-	Priority *int `json:"priority,omitempty"`
-
-	// Rollover Grant rollover configuration.
-	Rollover *LedgerGrantRollover `json:"rollover,omitempty"`
-
-	// Type The grant type:
-	// - `USAGE` - Increase balance by the amount in the unit of the associated meter.
-	Type LedgerGrantType `json:"type"`
-
-	// UpdatedAt The time the grant was last updated.
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
-
-	// Void If the grant is voided, it will not be applied to the subject's balance anymore.
-	Void *bool `json:"void,omitempty"`
-}
-
-// LedgerGrantRollover Grant rollover configuration.
-type LedgerGrantRollover = credit.GrantRollover
-
-// LedgerGrantRolloverType The rollover type to use:
-// - `REMAINING_AMOUNT` - Rollover remaining amount.
-// - `ORIGINAL_AMOUNT` - Rollover re-applies the full grant amount.
-type LedgerGrantRolloverType = credit.GrantRolloverType
-
-// LedgerGrantType The grant type:
-// - `USAGE` - Increase balance by the amount in the unit of the associated meter.
-type LedgerGrantType string
-
-// LedgerReset Ledger reset configuration.
-type LedgerReset = credit.Reset
 
 // Meter A meter is a configuration that defines how to match and aggregate events.
 type Meter = models.Meter
@@ -384,6 +389,45 @@ type MeterQueryResult struct {
 
 // MeterQueryRow A row in the result of a meter query.
 type MeterQueryRow = models.MeterQueryRow
+
+// MeteredEntitlement defines model for MeteredEntitlement.
+type MeteredEntitlement struct {
+	// CreatedAt The date and time the resource was created.
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+	// DeletedAt The date and time the resource was deleted.
+	DeletedAt *time.Time `json:"deletedAt"`
+
+	// FeatureId The feature to grant.
+	FeatureId string `json:"featureId"`
+
+	// Id Readonly unique ULID identifier.
+	Id *string `json:"id,omitempty"`
+
+	// Metadata Additional metadata for the feature.
+	Metadata *map[string]string `json:"metadata,omitempty"`
+
+	// SubjectKey The subject that is entitled to use the feature.
+	SubjectKey *string `json:"subjectKey,omitempty"`
+
+	// UpdatedAt The date and time the resource was last updated.
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+
+	// UsagePeriod Recurring period of an entitlement.
+	UsagePeriod *RecurringPeriod `json:"usagePeriod,omitempty"`
+}
+
+// MeteredEntitlementCreateInputs Entitles a subject to use a feature.
+type MeteredEntitlementCreateInputs struct {
+	// FeatureId The feature to grant.
+	FeatureId string `json:"featureId"`
+
+	// Metadata Additional metadata for the feature.
+	Metadata *map[string]string `json:"metadata,omitempty"`
+
+	// UsagePeriod Recurring period of an entitlement.
+	UsagePeriod *RecurringPeriod `json:"usagePeriod,omitempty"`
+}
 
 // Period A time period
 type Period struct {
@@ -412,6 +456,96 @@ type PortalToken struct {
 // Additional properties specific to the problem type may be present.
 type Problem = models.StatusProblem
 
+// RecurringPeriod Recurring period of an entitlement.
+type RecurringPeriod struct {
+	// Anchor An arbitrary anchor to base the recurring period on.
+	Anchor *time.Time `json:"anchor,omitempty"`
+
+	// Interval List of pre-defined periods that can be used for recurring & scheduling.
+	//
+	// DAILY:      Every day
+	// # MONDAY:     Every Monday
+	// # TUESDAY:    Every Tuesday
+	// # WEDNESDAY:  Every Wednesday
+	// # THURSDAY:   Every Thursday
+	// # FRIDAY:     Every Friday
+	// # SATURDAY:   Every Saturday
+	// # SUNDAY:     Every Sunday
+	// WEEKLY:     Every week
+	// MONTHLY:    Every month
+	// YEARLY:     Every year
+	// BILLING:    Every billing cycle
+	Interval *RecurringPeriodEnum `json:"interval,omitempty"`
+}
+
+// RecurringPeriodEnum List of pre-defined periods that can be used for recurring & scheduling.
+//
+// DAILY:      Every day
+// # MONDAY:     Every Monday
+// # TUESDAY:    Every Tuesday
+// # WEDNESDAY:  Every Wednesday
+// # THURSDAY:   Every Thursday
+// # FRIDAY:     Every Friday
+// # SATURDAY:   Every Saturday
+// # SUNDAY:     Every Sunday
+// WEEKLY:     Every week
+// MONTHLY:    Every month
+// YEARLY:     Every year
+// BILLING:    Every billing cycle
+type RecurringPeriodEnum string
+
+// SharedMetaFields Metadata fields for a resource.
+// These fields are automatically populated by the system for the entities we manage.
+type SharedMetaFields struct {
+	// CreatedAt The date and time the resource was created.
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+	// DeletedAt The date and time the resource was deleted.
+	DeletedAt *time.Time `json:"deletedAt"`
+
+	// Id Readonly unique ULID identifier.
+	Id *string `json:"id,omitempty"`
+
+	// UpdatedAt The date and time the resource was last updated.
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+}
+
+// StaticEntitlement defines model for StaticEntitlement.
+type StaticEntitlement struct {
+	// CreatedAt The date and time the resource was created.
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+	// DeletedAt The date and time the resource was deleted.
+	DeletedAt *time.Time `json:"deletedAt"`
+
+	// FeatureId The feature to grant.
+	FeatureId string `json:"featureId"`
+
+	// Id Readonly unique ULID identifier.
+	Id *string `json:"id,omitempty"`
+
+	// Metadata Additional metadata for the feature.
+	Metadata *map[string]string `json:"metadata,omitempty"`
+
+	// UpdatedAt The date and time the resource was last updated.
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+
+	// Value The value of the entitlement.
+	Value *string `json:"value,omitempty"`
+}
+
+// StaticEntitlementCreateInputs Entitles a subject to use a feature.
+type StaticEntitlementCreateInputs struct {
+	// FeatureId The feature to grant.
+	FeatureId string `json:"featureId"`
+
+	// Metadata Additional metadata for the feature.
+	Metadata *map[string]string `json:"metadata,omitempty"`
+
+	// Value The value of the entitlement.
+	Value *string `json:"value,omitempty"`
+}
+
 // Subject A subject is a unique identifier for a user or entity.
 type Subject struct {
 	CurrentPeriodEnd   *time.Time              `json:"currentPeriodEnd"`
@@ -426,23 +560,20 @@ type Subject struct {
 // WindowSize Aggregation window size.
 type WindowSize = models.WindowSize
 
-// FeatureID defines model for featureID.
-type FeatureID = credit.FeatureID
+// WindowedBalanceHistory The windowed balance history.
+type WindowedBalanceHistory = []BalanceHistoryWindow
 
-// LedgerGrantID defines model for ledgerGrantID.
-type LedgerGrantID = credit.GrantID
+// EntitlementId defines model for entitlementId.
+type EntitlementId = string
 
-// LedgerID defines model for ledgerID.
-type LedgerID = credit.LedgerID
+// FeatureId defines model for featureId.
+type FeatureId = credit.FeatureID
 
-// LedgerIncludeVoids defines model for ledgerIncludeVoids.
-type LedgerIncludeVoids = bool
+// GrantId defines model for grantId.
+type GrantId = credit.GrantID
 
-// LedgerQueryLimit defines model for ledgerQueryLimit.
-type LedgerQueryLimit = int
-
-// LedgerQueryOffset defines model for ledgerQueryOffset.
-type LedgerQueryOffset = int
+// IncludeDeleted defines model for includeDeleted.
+type IncludeDeleted = bool
 
 // MeterIdOrSlug A unique identifier.
 type MeterIdOrSlug = IdOrSlug
@@ -452,9 +583,6 @@ type MeterIdOrSlug = IdOrSlug
 // Usage: `?filterGroupBy[type]=input&filterGroupBy[model]=gpt-4`
 type QueryFilterGroupBy map[string]string
 
-// QueryFilterLedgerID defines model for queryFilterLedgerID.
-type QueryFilterLedgerID = credit.LedgerID
-
 // QueryFilterSubject defines model for queryFilterSubject.
 type QueryFilterSubject = []string
 
@@ -463,6 +591,12 @@ type QueryFrom = time.Time
 
 // QueryGroupBy defines model for queryGroupBy.
 type QueryGroupBy = []string
+
+// QueryLimit defines model for queryLimit.
+type QueryLimit = int
+
+// QueryOffset defines model for queryOffset.
+type QueryOffset = int
 
 // QueryTo defines model for queryTo.
 type QueryTo = time.Time
@@ -480,9 +614,6 @@ type SubjectIdOrKey = string
 // Additional properties specific to the problem type may be present.
 type BadRequestProblemResponse = Problem
 
-// LedgerAlreadyExistsProblemResponse Ledger Exists
-type LedgerAlreadyExistsProblemResponse = LedgerAlreadyExistsProblem
-
 // NotFoundProblemResponse A Problem Details object (RFC 7807).
 // Additional properties specific to the problem type may be present.
 type NotFoundProblemResponse = Problem
@@ -498,6 +629,21 @@ type UnauthorizedProblemResponse = Problem
 // UnexpectedProblemResponse A Problem Details object (RFC 7807).
 // Additional properties specific to the problem type may be present.
 type UnexpectedProblemResponse = Problem
+
+// ListEntitlementsParams defines parameters for ListEntitlements.
+type ListEntitlementsParams struct {
+	// Limit Number of entries to return
+	Limit *QueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Number of entries to skip
+	Offset *QueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// OrderBy Order by field
+	OrderBy *ListEntitlementsParamsOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+}
+
+// ListEntitlementsParamsOrderBy defines parameters for ListEntitlements.
+type ListEntitlementsParamsOrderBy string
 
 // ListEventsParams defines parameters for ListEvents.
 type ListEventsParams struct {
@@ -519,10 +665,10 @@ type IngestEventsApplicationCloudeventsBatchPlusJSONBody = []Event
 // ListFeaturesParams defines parameters for ListFeatures.
 type ListFeaturesParams struct {
 	// Limit Number of entries to return
-	Limit *LedgerQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+	Limit *QueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
 
 	// Offset Number of entries to skip
-	Offset *LedgerQueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
+	Offset *QueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
 
 	// OrderBy Order by field
 	OrderBy *ListFeaturesParamsOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
@@ -534,70 +680,28 @@ type ListFeaturesParams struct {
 // ListFeaturesParamsOrderBy defines parameters for ListFeatures.
 type ListFeaturesParamsOrderBy string
 
-// ListLedgersParams defines parameters for ListLedgers.
-type ListLedgersParams struct {
-	// Subject Query ledgers specific to subjects.
-	Subject *[]string `form:"subject,omitempty" json:"subject,omitempty"`
-
-	// SubjectSimilarTo Query ledgers with subjects that are similar to the provided text.
-	SubjectSimilarTo *string `form:"subjectSimilarTo,omitempty" json:"subjectSimilarTo,omitempty"`
-
+// ListGrantsParams defines parameters for ListGrants.
+type ListGrantsParams struct {
 	// Limit Number of entries to return
-	Limit *LedgerQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+	Limit *QueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
 
 	// Offset Number of entries to skip
-	Offset *LedgerQueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
+	Offset *QueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
 
 	// OrderBy Order by field
-	OrderBy *ListLedgersParamsOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
-}
+	OrderBy *ListGrantsParamsOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 
-// ListLedgersParamsOrderBy defines parameters for ListLedgers.
-type ListLedgersParamsOrderBy string
+	// IncludeDeleted Include deleted entries.
+	IncludeDeleted *IncludeDeleted `form:"includeDeleted,omitempty" json:"includeDeleted,omitempty"`
 
-// ListLedgerGrantsParams defines parameters for ListLedgerGrants.
-type ListLedgerGrantsParams struct {
-	// LedgerID Filtering and group by multiple subjects.
+	// Subject Filtering by multiple subjects.
 	//
-	// Usage: `?ledgerID=01HX6VK5C498B3ABY9PR1069PP`
-	LedgerID *QueryFilterLedgerID `form:"ledgerID,omitempty" json:"ledgerID,omitempty"`
-
-	// Limit Number of entries to return
-	Limit *LedgerQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
-
-	// IncludeVoids Include void entries in the response.
-	IncludeVoids *LedgerIncludeVoids `form:"includeVoids,omitempty" json:"includeVoids,omitempty"`
+	// Usage: ?subject=customer-1&subject=customer-2
+	Subject *QueryFilterSubject `form:"subject,omitempty" json:"subject,omitempty"`
 }
 
-// GetLedgerBalanceParams defines parameters for GetLedgerBalance.
-type GetLedgerBalanceParams struct {
-	// Time Point of time to query balances: date-time in RFC 3339 format. Defaults to now.
-	Time *time.Time `form:"time,omitempty" json:"time,omitempty"`
-}
-
-// ListLedgerGrantsByLedgerParams defines parameters for ListLedgerGrantsByLedger.
-type ListLedgerGrantsByLedgerParams struct {
-	// Limit Number of entries to return
-	Limit *LedgerQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
-
-	// IncludeVoids Include void entries in the response.
-	IncludeVoids *LedgerIncludeVoids `form:"includeVoids,omitempty" json:"includeVoids,omitempty"`
-}
-
-// GetLedgerHistoryParams defines parameters for GetLedgerHistory.
-type GetLedgerHistoryParams struct {
-	// Limit Number of entries to return
-	Limit *LedgerQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
-
-	// Offset Number of entries to skip
-	Offset *LedgerQueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
-
-	// From Start of time range to query ledger: date-time in RFC 3339 format.
-	From time.Time `form:"from" json:"from"`
-
-	// To End of time range to query ledger: date-time in RFC 3339 format. Defaults to now.
-	To *time.Time `form:"to,omitempty" json:"to,omitempty"`
-}
+// ListGrantsParamsOrderBy defines parameters for ListGrants.
+type ListGrantsParamsOrderBy string
 
 // QueryMeterParams defines parameters for QueryMeter.
 type QueryMeterParams struct {
@@ -668,6 +772,60 @@ type InvalidatePortalTokensJSONBody struct {
 // UpsertSubjectJSONBody defines parameters for UpsertSubject.
 type UpsertSubjectJSONBody = []Subject
 
+// ListSubjectEntitlementsParams defines parameters for ListSubjectEntitlements.
+type ListSubjectEntitlementsParams struct {
+	// IncludeDeleted Include deleted entries.
+	IncludeDeleted *IncludeDeleted `form:"includeDeleted,omitempty" json:"includeDeleted,omitempty"`
+}
+
+// CreateEntitlementJSONBody defines parameters for CreateEntitlement.
+type CreateEntitlementJSONBody struct {
+	union json.RawMessage
+}
+
+// GetEntitlementBalanceParams defines parameters for GetEntitlementBalance.
+type GetEntitlementBalanceParams struct {
+	// Time Point of time to query balances: date-time in RFC 3339 format. Defaults to now.
+	Time *time.Time `form:"time,omitempty" json:"time,omitempty"`
+}
+
+// ListEntitlementGrantsParams defines parameters for ListEntitlementGrants.
+type ListEntitlementGrantsParams struct {
+	// IncludeDeleted Include deleted entries.
+	IncludeDeleted *IncludeDeleted `form:"includeDeleted,omitempty" json:"includeDeleted,omitempty"`
+
+	// OrderBy Order by field
+	OrderBy *ListEntitlementGrantsParamsOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+}
+
+// ListEntitlementGrantsParamsOrderBy defines parameters for ListEntitlementGrants.
+type ListEntitlementGrantsParamsOrderBy string
+
+// GetEntitlementHistoryParams defines parameters for GetEntitlementHistory.
+type GetEntitlementHistoryParams struct {
+	// From Start of time range to query entitlement: date-time in RFC 3339 format.
+	// Gets truncated to the granularity of the underlying meter.
+	From time.Time `form:"from" json:"from"`
+
+	// To End of time range to query entitlement: date-time in RFC 3339 format. Defaults to now.
+	// If not now then gets truncated to the granularity of the underlying meter.
+	To *time.Time `form:"to,omitempty" json:"to,omitempty"`
+
+	// WindowSize Size of the time window to group the history by. Cannot be shorter than meter granularity.
+	WindowSize *GetEntitlementHistoryParamsWindowSize `form:"windowSize,omitempty" json:"windowSize,omitempty"`
+}
+
+// GetEntitlementHistoryParamsWindowSize defines parameters for GetEntitlementHistory.
+type GetEntitlementHistoryParamsWindowSize string
+
+// ResetEntitlementUsageJSONBody defines parameters for ResetEntitlementUsage.
+type ResetEntitlementUsageJSONBody struct {
+	// EffectiveAt The time at which the reset takes effect, defaults to now.
+	// The reset cannot be in the future.
+	// The provided value is truncated to the granularity of the underlying meter.
+	EffectiveAt *time.Time `json:"effectiveAt,omitempty"`
+}
+
 // IngestEventsApplicationCloudeventsPlusJSONRequestBody defines body for IngestEvents for application/cloudevents+json ContentType.
 type IngestEventsApplicationCloudeventsPlusJSONRequestBody = Event
 
@@ -675,16 +833,7 @@ type IngestEventsApplicationCloudeventsPlusJSONRequestBody = Event
 type IngestEventsApplicationCloudeventsBatchPlusJSONRequestBody = IngestEventsApplicationCloudeventsBatchPlusJSONBody
 
 // CreateFeatureJSONRequestBody defines body for CreateFeature for application/json ContentType.
-type CreateFeatureJSONRequestBody = CreateFeatureRequest
-
-// CreateLedgerJSONRequestBody defines body for CreateLedger for application/json ContentType.
-type CreateLedgerJSONRequestBody = CreateLedger
-
-// CreateLedgerGrantJSONRequestBody defines body for CreateLedgerGrant for application/json ContentType.
-type CreateLedgerGrantJSONRequestBody = CreateLedgerGrantRequest
-
-// ResetLedgerJSONRequestBody defines body for ResetLedger for application/json ContentType.
-type ResetLedgerJSONRequestBody = LedgerReset
+type CreateFeatureJSONRequestBody = FeatureCreateInputs
 
 // CreateMeterJSONRequestBody defines body for CreateMeter for application/json ContentType.
 type CreateMeterJSONRequestBody = Meter
@@ -697,6 +846,134 @@ type InvalidatePortalTokensJSONRequestBody InvalidatePortalTokensJSONBody
 
 // UpsertSubjectJSONRequestBody defines body for UpsertSubject for application/json ContentType.
 type UpsertSubjectJSONRequestBody = UpsertSubjectJSONBody
+
+// CreateEntitlementJSONRequestBody defines body for CreateEntitlement for application/json ContentType.
+type CreateEntitlementJSONRequestBody CreateEntitlementJSONBody
+
+// CreateGrantJSONRequestBody defines body for CreateGrant for application/json ContentType.
+type CreateGrantJSONRequestBody = EntitlementGrantCreateInput
+
+// ResetEntitlementUsageJSONRequestBody defines body for ResetEntitlementUsage for application/json ContentType.
+type ResetEntitlementUsageJSONRequestBody ResetEntitlementUsageJSONBody
+
+// AsMeteredEntitlement returns the union data inside the Entitlement as a MeteredEntitlement
+func (t Entitlement) AsMeteredEntitlement() (MeteredEntitlement, error) {
+	var body MeteredEntitlement
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromMeteredEntitlement overwrites any union data inside the Entitlement as the provided MeteredEntitlement
+func (t *Entitlement) FromMeteredEntitlement(v MeteredEntitlement) error {
+	v.Type = "metered"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeMeteredEntitlement performs a merge with any union data inside the Entitlement, using the provided MeteredEntitlement
+func (t *Entitlement) MergeMeteredEntitlement(v MeteredEntitlement) error {
+	v.Type = "metered"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsStaticEntitlement returns the union data inside the Entitlement as a StaticEntitlement
+func (t Entitlement) AsStaticEntitlement() (StaticEntitlement, error) {
+	var body StaticEntitlement
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromStaticEntitlement overwrites any union data inside the Entitlement as the provided StaticEntitlement
+func (t *Entitlement) FromStaticEntitlement(v StaticEntitlement) error {
+	v.Type = "static"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeStaticEntitlement performs a merge with any union data inside the Entitlement, using the provided StaticEntitlement
+func (t *Entitlement) MergeStaticEntitlement(v StaticEntitlement) error {
+	v.Type = "static"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsBooleanEntitlement returns the union data inside the Entitlement as a BooleanEntitlement
+func (t Entitlement) AsBooleanEntitlement() (BooleanEntitlement, error) {
+	var body BooleanEntitlement
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromBooleanEntitlement overwrites any union data inside the Entitlement as the provided BooleanEntitlement
+func (t *Entitlement) FromBooleanEntitlement(v BooleanEntitlement) error {
+	v.Type = "boolean"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeBooleanEntitlement performs a merge with any union data inside the Entitlement, using the provided BooleanEntitlement
+func (t *Entitlement) MergeBooleanEntitlement(v BooleanEntitlement) error {
+	v.Type = "boolean"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t Entitlement) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t Entitlement) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "boolean":
+		return t.AsBooleanEntitlement()
+	case "metered":
+		return t.AsMeteredEntitlement()
+	case "static":
+		return t.AsStaticEntitlement()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t Entitlement) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *Entitlement) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -771,6 +1048,9 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+	// ListEntitlements request
+	ListEntitlements(ctx context.Context, params *ListEntitlementsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListEvents request
 	ListEvents(ctx context.Context, params *ListEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -790,46 +1070,16 @@ type ClientInterface interface {
 	CreateFeature(ctx context.Context, body CreateFeatureJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteFeature request
-	DeleteFeature(ctx context.Context, featureID FeatureID, reqEditors ...RequestEditorFn) (*http.Response, error)
+	DeleteFeature(ctx context.Context, featureId FeatureId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetFeature request
-	GetFeature(ctx context.Context, featureID FeatureID, reqEditors ...RequestEditorFn) (*http.Response, error)
+	GetFeature(ctx context.Context, featureId FeatureId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// ListLedgers request
-	ListLedgers(ctx context.Context, params *ListLedgersParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// ListGrants request
+	ListGrants(ctx context.Context, params *ListGrantsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// CreateLedgerWithBody request with any body
-	CreateLedgerWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	CreateLedger(ctx context.Context, body CreateLedgerJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ListLedgerGrants request
-	ListLedgerGrants(ctx context.Context, params *ListLedgerGrantsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetLedgerBalance request
-	GetLedgerBalance(ctx context.Context, ledgerID LedgerID, params *GetLedgerBalanceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ListLedgerGrantsByLedger request
-	ListLedgerGrantsByLedger(ctx context.Context, ledgerID LedgerID, params *ListLedgerGrantsByLedgerParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// CreateLedgerGrantWithBody request with any body
-	CreateLedgerGrantWithBody(ctx context.Context, ledgerID LedgerID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	CreateLedgerGrant(ctx context.Context, ledgerID LedgerID, body CreateLedgerGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// VoidLedgerGrant request
-	VoidLedgerGrant(ctx context.Context, ledgerID LedgerID, ledgerGrantID LedgerGrantID, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetLedgerGrant request
-	GetLedgerGrant(ctx context.Context, ledgerID LedgerID, ledgerGrantID LedgerGrantID, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetLedgerHistory request
-	GetLedgerHistory(ctx context.Context, ledgerID LedgerID, params *GetLedgerHistoryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ResetLedgerWithBody request with any body
-	ResetLedgerWithBody(ctx context.Context, ledgerID LedgerID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	ResetLedger(ctx context.Context, ledgerID LedgerID, body ResetLedgerJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// VoidGrant request
+	VoidGrant(ctx context.Context, grantId GrantId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListMeters request
 	ListMeters(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -880,6 +1130,51 @@ type ClientInterface interface {
 
 	// GetSubject request
 	GetSubject(ctx context.Context, subjectIdOrKey SubjectIdOrKey, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListSubjectEntitlements request
+	ListSubjectEntitlements(ctx context.Context, subjectIdOrKey SubjectIdOrKey, params *ListSubjectEntitlementsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateEntitlementWithBody request with any body
+	CreateEntitlementWithBody(ctx context.Context, subjectIdOrKey SubjectIdOrKey, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateEntitlement(ctx context.Context, subjectIdOrKey SubjectIdOrKey, body CreateEntitlementJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteEntitlement request
+	DeleteEntitlement(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetEntitlement request
+	GetEntitlement(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetEntitlementBalance request
+	GetEntitlementBalance(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, params *GetEntitlementBalanceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListEntitlementGrants request
+	ListEntitlementGrants(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, params *ListEntitlementGrantsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateGrantWithBody request with any body
+	CreateGrantWithBody(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateGrant(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, body CreateGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetEntitlementHistory request
+	GetEntitlementHistory(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, params *GetEntitlementHistoryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ResetEntitlementUsageWithBody request with any body
+	ResetEntitlementUsageWithBody(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	ResetEntitlementUsage(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, body ResetEntitlementUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+func (c *Client) ListEntitlements(ctx context.Context, params *ListEntitlementsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListEntitlementsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 func (c *Client) ListEvents(ctx context.Context, params *ListEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -966,8 +1261,8 @@ func (c *Client) CreateFeature(ctx context.Context, body CreateFeatureJSONReques
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteFeature(ctx context.Context, featureID FeatureID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteFeatureRequest(c.Server, featureID)
+func (c *Client) DeleteFeature(ctx context.Context, featureId FeatureId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteFeatureRequest(c.Server, featureId)
 	if err != nil {
 		return nil, err
 	}
@@ -978,8 +1273,8 @@ func (c *Client) DeleteFeature(ctx context.Context, featureID FeatureID, reqEdit
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetFeature(ctx context.Context, featureID FeatureID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetFeatureRequest(c.Server, featureID)
+func (c *Client) GetFeature(ctx context.Context, featureId FeatureId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetFeatureRequest(c.Server, featureId)
 	if err != nil {
 		return nil, err
 	}
@@ -990,8 +1285,8 @@ func (c *Client) GetFeature(ctx context.Context, featureID FeatureID, reqEditors
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListLedgers(ctx context.Context, params *ListLedgersParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListLedgersRequest(c.Server, params)
+func (c *Client) ListGrants(ctx context.Context, params *ListGrantsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListGrantsRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -1002,140 +1297,8 @@ func (c *Client) ListLedgers(ctx context.Context, params *ListLedgersParams, req
 	return c.Client.Do(req)
 }
 
-func (c *Client) CreateLedgerWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateLedgerRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) CreateLedger(ctx context.Context, body CreateLedgerJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateLedgerRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ListLedgerGrants(ctx context.Context, params *ListLedgerGrantsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListLedgerGrantsRequest(c.Server, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetLedgerBalance(ctx context.Context, ledgerID LedgerID, params *GetLedgerBalanceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetLedgerBalanceRequest(c.Server, ledgerID, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ListLedgerGrantsByLedger(ctx context.Context, ledgerID LedgerID, params *ListLedgerGrantsByLedgerParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListLedgerGrantsByLedgerRequest(c.Server, ledgerID, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) CreateLedgerGrantWithBody(ctx context.Context, ledgerID LedgerID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateLedgerGrantRequestWithBody(c.Server, ledgerID, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) CreateLedgerGrant(ctx context.Context, ledgerID LedgerID, body CreateLedgerGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateLedgerGrantRequest(c.Server, ledgerID, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) VoidLedgerGrant(ctx context.Context, ledgerID LedgerID, ledgerGrantID LedgerGrantID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewVoidLedgerGrantRequest(c.Server, ledgerID, ledgerGrantID)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetLedgerGrant(ctx context.Context, ledgerID LedgerID, ledgerGrantID LedgerGrantID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetLedgerGrantRequest(c.Server, ledgerID, ledgerGrantID)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetLedgerHistory(ctx context.Context, ledgerID LedgerID, params *GetLedgerHistoryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetLedgerHistoryRequest(c.Server, ledgerID, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ResetLedgerWithBody(ctx context.Context, ledgerID LedgerID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewResetLedgerRequestWithBody(c.Server, ledgerID, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ResetLedger(ctx context.Context, ledgerID LedgerID, body ResetLedgerJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewResetLedgerRequest(c.Server, ledgerID, body)
+func (c *Client) VoidGrant(ctx context.Context, grantId GrantId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewVoidGrantRequest(c.Server, grantId)
 	if err != nil {
 		return nil, err
 	}
@@ -1360,6 +1523,231 @@ func (c *Client) GetSubject(ctx context.Context, subjectIdOrKey SubjectIdOrKey, 
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+func (c *Client) ListSubjectEntitlements(ctx context.Context, subjectIdOrKey SubjectIdOrKey, params *ListSubjectEntitlementsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListSubjectEntitlementsRequest(c.Server, subjectIdOrKey, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateEntitlementWithBody(ctx context.Context, subjectIdOrKey SubjectIdOrKey, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateEntitlementRequestWithBody(c.Server, subjectIdOrKey, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateEntitlement(ctx context.Context, subjectIdOrKey SubjectIdOrKey, body CreateEntitlementJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateEntitlementRequest(c.Server, subjectIdOrKey, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteEntitlement(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteEntitlementRequest(c.Server, subjectIdOrKey, entitlementId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetEntitlement(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetEntitlementRequest(c.Server, subjectIdOrKey, entitlementId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetEntitlementBalance(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, params *GetEntitlementBalanceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetEntitlementBalanceRequest(c.Server, subjectIdOrKey, entitlementId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListEntitlementGrants(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, params *ListEntitlementGrantsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListEntitlementGrantsRequest(c.Server, subjectIdOrKey, entitlementId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateGrantWithBody(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateGrantRequestWithBody(c.Server, subjectIdOrKey, entitlementId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateGrant(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, body CreateGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateGrantRequest(c.Server, subjectIdOrKey, entitlementId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetEntitlementHistory(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, params *GetEntitlementHistoryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetEntitlementHistoryRequest(c.Server, subjectIdOrKey, entitlementId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ResetEntitlementUsageWithBody(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewResetEntitlementUsageRequestWithBody(c.Server, subjectIdOrKey, entitlementId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ResetEntitlementUsage(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, body ResetEntitlementUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewResetEntitlementUsageRequest(c.Server, subjectIdOrKey, entitlementId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NewListEntitlementsRequest generates requests for ListEntitlements
+func NewListEntitlementsRequest(server string, params *ListEntitlementsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/entitlements")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OrderBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }
 
 // NewListEventsRequest generates requests for ListEvents
@@ -1632,12 +2020,12 @@ func NewCreateFeatureRequestWithBody(server string, contentType string, body io.
 }
 
 // NewDeleteFeatureRequest generates requests for DeleteFeature
-func NewDeleteFeatureRequest(server string, featureID FeatureID) (*http.Request, error) {
+func NewDeleteFeatureRequest(server string, featureId FeatureId) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "featureID", runtime.ParamLocationPath, featureID)
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "featureId", runtime.ParamLocationPath, featureId)
 	if err != nil {
 		return nil, err
 	}
@@ -1666,12 +2054,12 @@ func NewDeleteFeatureRequest(server string, featureID FeatureID) (*http.Request,
 }
 
 // NewGetFeatureRequest generates requests for GetFeature
-func NewGetFeatureRequest(server string, featureID FeatureID) (*http.Request, error) {
+func NewGetFeatureRequest(server string, featureId FeatureId) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "featureID", runtime.ParamLocationPath, featureID)
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "featureId", runtime.ParamLocationPath, featureId)
 	if err != nil {
 		return nil, err
 	}
@@ -1699,8 +2087,8 @@ func NewGetFeatureRequest(server string, featureID FeatureID) (*http.Request, er
 	return req, nil
 }
 
-// NewListLedgersRequest generates requests for ListLedgers
-func NewListLedgersRequest(server string, params *ListLedgersParams) (*http.Request, error) {
+// NewListGrantsRequest generates requests for ListGrants
+func NewListGrantsRequest(server string, params *ListGrantsParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -1708,7 +2096,7 @@ func NewListLedgersRequest(server string, params *ListLedgersParams) (*http.Requ
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/api/v1/ledgers")
+	operationPath := fmt.Sprintf("/api/v1/grants")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -1720,38 +2108,6 @@ func NewListLedgersRequest(server string, params *ListLedgersParams) (*http.Requ
 
 	if params != nil {
 		queryValues := queryURL.Query()
-
-		if params.Subject != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "subject", runtime.ParamLocationQuery, *params.Subject); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.SubjectSimilarTo != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "subjectSimilarTo", runtime.ParamLocationQuery, *params.SubjectSimilarTo); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
 
 		if params.Limit != nil {
 
@@ -1801,82 +2157,9 @@ func NewListLedgersRequest(server string, params *ListLedgersParams) (*http.Requ
 
 		}
 
-		queryURL.RawQuery = queryValues.Encode()
-	}
+		if params.IncludeDeleted != nil {
 
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewCreateLedgerRequest calls the generic CreateLedger builder with application/json body
-func NewCreateLedgerRequest(server string, body CreateLedgerJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewCreateLedgerRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewCreateLedgerRequestWithBody generates requests for CreateLedger with any type of body
-func NewCreateLedgerRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/ledgers")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewListLedgerGrantsRequest generates requests for ListLedgerGrants
-func NewListLedgerGrantsRequest(server string, params *ListLedgerGrantsParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/ledgers/grants")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.LedgerID != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "ledgerID", runtime.ParamLocationQuery, *params.LedgerID); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "includeDeleted", runtime.ParamLocationQuery, *params.IncludeDeleted); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -1890,25 +2173,9 @@ func NewListLedgerGrantsRequest(server string, params *ListLedgerGrantsParams) (
 
 		}
 
-		if params.Limit != nil {
+		if params.Subject != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.IncludeVoids != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "includeVoids", runtime.ParamLocationQuery, *params.IncludeVoids); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "subject", runtime.ParamLocationQuery, *params.Subject); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -1933,13 +2200,13 @@ func NewListLedgerGrantsRequest(server string, params *ListLedgerGrantsParams) (
 	return req, nil
 }
 
-// NewGetLedgerBalanceRequest generates requests for GetLedgerBalance
-func NewGetLedgerBalanceRequest(server string, ledgerID LedgerID, params *GetLedgerBalanceParams) (*http.Request, error) {
+// NewVoidGrantRequest generates requests for VoidGrant
+func NewVoidGrantRequest(server string, grantId GrantId) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ledgerID", runtime.ParamLocationPath, ledgerID)
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "grantId", runtime.ParamLocationPath, grantId)
 	if err != nil {
 		return nil, err
 	}
@@ -1949,189 +2216,7 @@ func NewGetLedgerBalanceRequest(server string, ledgerID LedgerID, params *GetLed
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/api/v1/ledgers/%s/balance", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.Time != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "time", runtime.ParamLocationQuery, *params.Time); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewListLedgerGrantsByLedgerRequest generates requests for ListLedgerGrantsByLedger
-func NewListLedgerGrantsByLedgerRequest(server string, ledgerID LedgerID, params *ListLedgerGrantsByLedgerParams) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ledgerID", runtime.ParamLocationPath, ledgerID)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/ledgers/%s/grants", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.Limit != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.IncludeVoids != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "includeVoids", runtime.ParamLocationQuery, *params.IncludeVoids); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewCreateLedgerGrantRequest calls the generic CreateLedgerGrant builder with application/json body
-func NewCreateLedgerGrantRequest(server string, ledgerID LedgerID, body CreateLedgerGrantJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewCreateLedgerGrantRequestWithBody(server, ledgerID, "application/json", bodyReader)
-}
-
-// NewCreateLedgerGrantRequestWithBody generates requests for CreateLedgerGrant with any type of body
-func NewCreateLedgerGrantRequestWithBody(server string, ledgerID LedgerID, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ledgerID", runtime.ParamLocationPath, ledgerID)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/ledgers/%s/grants", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewVoidLedgerGrantRequest generates requests for VoidLedgerGrant
-func NewVoidLedgerGrantRequest(server string, ledgerID LedgerID, ledgerGrantID LedgerGrantID) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ledgerID", runtime.ParamLocationPath, ledgerID)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "ledgerGrantID", runtime.ParamLocationPath, ledgerGrantID)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/ledgers/%s/grants/%s", pathParam0, pathParam1)
+	operationPath := fmt.Sprintf("/api/v1/grants/%s", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -2145,194 +2230,6 @@ func NewVoidLedgerGrantRequest(server string, ledgerID LedgerID, ledgerGrantID L
 	if err != nil {
 		return nil, err
 	}
-
-	return req, nil
-}
-
-// NewGetLedgerGrantRequest generates requests for GetLedgerGrant
-func NewGetLedgerGrantRequest(server string, ledgerID LedgerID, ledgerGrantID LedgerGrantID) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ledgerID", runtime.ParamLocationPath, ledgerID)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "ledgerGrantID", runtime.ParamLocationPath, ledgerGrantID)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/ledgers/%s/grants/%s", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewGetLedgerHistoryRequest generates requests for GetLedgerHistory
-func NewGetLedgerHistoryRequest(server string, ledgerID LedgerID, params *GetLedgerHistoryParams) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ledgerID", runtime.ParamLocationPath, ledgerID)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/ledgers/%s/history", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.Limit != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Offset != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, params.From); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		if params.To != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "to", runtime.ParamLocationQuery, *params.To); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewResetLedgerRequest calls the generic ResetLedger builder with application/json body
-func NewResetLedgerRequest(server string, ledgerID LedgerID, body ResetLedgerJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewResetLedgerRequestWithBody(server, ledgerID, "application/json", bodyReader)
-}
-
-// NewResetLedgerRequestWithBody generates requests for ResetLedger with any type of body
-func NewResetLedgerRequestWithBody(server string, ledgerID LedgerID, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ledgerID", runtime.ParamLocationPath, ledgerID)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/api/v1/ledgers/%s/reset", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -3058,6 +2955,532 @@ func NewGetSubjectRequest(server string, subjectIdOrKey SubjectIdOrKey) (*http.R
 	return req, nil
 }
 
+// NewListSubjectEntitlementsRequest generates requests for ListSubjectEntitlements
+func NewListSubjectEntitlementsRequest(server string, subjectIdOrKey SubjectIdOrKey, params *ListSubjectEntitlementsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "subjectIdOrKey", runtime.ParamLocationPath, subjectIdOrKey)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/subjects/%s/entitlements", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.IncludeDeleted != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "includeDeleted", runtime.ParamLocationQuery, *params.IncludeDeleted); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateEntitlementRequest calls the generic CreateEntitlement builder with application/json body
+func NewCreateEntitlementRequest(server string, subjectIdOrKey SubjectIdOrKey, body CreateEntitlementJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateEntitlementRequestWithBody(server, subjectIdOrKey, "application/json", bodyReader)
+}
+
+// NewCreateEntitlementRequestWithBody generates requests for CreateEntitlement with any type of body
+func NewCreateEntitlementRequestWithBody(server string, subjectIdOrKey SubjectIdOrKey, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "subjectIdOrKey", runtime.ParamLocationPath, subjectIdOrKey)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/subjects/%s/entitlements", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteEntitlementRequest generates requests for DeleteEntitlement
+func NewDeleteEntitlementRequest(server string, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "subjectIdOrKey", runtime.ParamLocationPath, subjectIdOrKey)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "entitlementId", runtime.ParamLocationPath, entitlementId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/subjects/%s/entitlements/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetEntitlementRequest generates requests for GetEntitlement
+func NewGetEntitlementRequest(server string, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "subjectIdOrKey", runtime.ParamLocationPath, subjectIdOrKey)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "entitlementId", runtime.ParamLocationPath, entitlementId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/subjects/%s/entitlements/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetEntitlementBalanceRequest generates requests for GetEntitlementBalance
+func NewGetEntitlementBalanceRequest(server string, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, params *GetEntitlementBalanceParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "subjectIdOrKey", runtime.ParamLocationPath, subjectIdOrKey)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "entitlementId", runtime.ParamLocationPath, entitlementId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/subjects/%s/entitlements/%s/balance", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Time != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "time", runtime.ParamLocationQuery, *params.Time); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListEntitlementGrantsRequest generates requests for ListEntitlementGrants
+func NewListEntitlementGrantsRequest(server string, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, params *ListEntitlementGrantsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "subjectIdOrKey", runtime.ParamLocationPath, subjectIdOrKey)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "entitlementId", runtime.ParamLocationPath, entitlementId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/subjects/%s/entitlements/%s/grants", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.IncludeDeleted != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "includeDeleted", runtime.ParamLocationQuery, *params.IncludeDeleted); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OrderBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateGrantRequest calls the generic CreateGrant builder with application/json body
+func NewCreateGrantRequest(server string, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, body CreateGrantJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateGrantRequestWithBody(server, subjectIdOrKey, entitlementId, "application/json", bodyReader)
+}
+
+// NewCreateGrantRequestWithBody generates requests for CreateGrant with any type of body
+func NewCreateGrantRequestWithBody(server string, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "subjectIdOrKey", runtime.ParamLocationPath, subjectIdOrKey)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "entitlementId", runtime.ParamLocationPath, entitlementId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/subjects/%s/entitlements/%s/grants", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetEntitlementHistoryRequest generates requests for GetEntitlementHistory
+func NewGetEntitlementHistoryRequest(server string, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, params *GetEntitlementHistoryParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "subjectIdOrKey", runtime.ParamLocationPath, subjectIdOrKey)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "entitlementId", runtime.ParamLocationPath, entitlementId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/subjects/%s/entitlements/%s/history", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, params.From); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		if params.To != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "to", runtime.ParamLocationQuery, *params.To); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.WindowSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "windowSize", runtime.ParamLocationQuery, *params.WindowSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewResetEntitlementUsageRequest calls the generic ResetEntitlementUsage builder with application/json body
+func NewResetEntitlementUsageRequest(server string, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, body ResetEntitlementUsageJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewResetEntitlementUsageRequestWithBody(server, subjectIdOrKey, entitlementId, "application/json", bodyReader)
+}
+
+// NewResetEntitlementUsageRequestWithBody generates requests for ResetEntitlementUsage with any type of body
+func NewResetEntitlementUsageRequestWithBody(server string, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "subjectIdOrKey", runtime.ParamLocationPath, subjectIdOrKey)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "entitlementId", runtime.ParamLocationPath, entitlementId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/subjects/%s/entitlements/%s/reset", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -3101,6 +3524,9 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
+	// ListEntitlementsWithResponse request
+	ListEntitlementsWithResponse(ctx context.Context, params *ListEntitlementsParams, reqEditors ...RequestEditorFn) (*ListEntitlementsResponse, error)
+
 	// ListEventsWithResponse request
 	ListEventsWithResponse(ctx context.Context, params *ListEventsParams, reqEditors ...RequestEditorFn) (*ListEventsResponse, error)
 
@@ -3120,46 +3546,16 @@ type ClientWithResponsesInterface interface {
 	CreateFeatureWithResponse(ctx context.Context, body CreateFeatureJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateFeatureResponse, error)
 
 	// DeleteFeatureWithResponse request
-	DeleteFeatureWithResponse(ctx context.Context, featureID FeatureID, reqEditors ...RequestEditorFn) (*DeleteFeatureResponse, error)
+	DeleteFeatureWithResponse(ctx context.Context, featureId FeatureId, reqEditors ...RequestEditorFn) (*DeleteFeatureResponse, error)
 
 	// GetFeatureWithResponse request
-	GetFeatureWithResponse(ctx context.Context, featureID FeatureID, reqEditors ...RequestEditorFn) (*GetFeatureResponse, error)
+	GetFeatureWithResponse(ctx context.Context, featureId FeatureId, reqEditors ...RequestEditorFn) (*GetFeatureResponse, error)
 
-	// ListLedgersWithResponse request
-	ListLedgersWithResponse(ctx context.Context, params *ListLedgersParams, reqEditors ...RequestEditorFn) (*ListLedgersResponse, error)
+	// ListGrantsWithResponse request
+	ListGrantsWithResponse(ctx context.Context, params *ListGrantsParams, reqEditors ...RequestEditorFn) (*ListGrantsResponse, error)
 
-	// CreateLedgerWithBodyWithResponse request with any body
-	CreateLedgerWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateLedgerResponse, error)
-
-	CreateLedgerWithResponse(ctx context.Context, body CreateLedgerJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateLedgerResponse, error)
-
-	// ListLedgerGrantsWithResponse request
-	ListLedgerGrantsWithResponse(ctx context.Context, params *ListLedgerGrantsParams, reqEditors ...RequestEditorFn) (*ListLedgerGrantsResponse, error)
-
-	// GetLedgerBalanceWithResponse request
-	GetLedgerBalanceWithResponse(ctx context.Context, ledgerID LedgerID, params *GetLedgerBalanceParams, reqEditors ...RequestEditorFn) (*GetLedgerBalanceResponse, error)
-
-	// ListLedgerGrantsByLedgerWithResponse request
-	ListLedgerGrantsByLedgerWithResponse(ctx context.Context, ledgerID LedgerID, params *ListLedgerGrantsByLedgerParams, reqEditors ...RequestEditorFn) (*ListLedgerGrantsByLedgerResponse, error)
-
-	// CreateLedgerGrantWithBodyWithResponse request with any body
-	CreateLedgerGrantWithBodyWithResponse(ctx context.Context, ledgerID LedgerID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateLedgerGrantResponse, error)
-
-	CreateLedgerGrantWithResponse(ctx context.Context, ledgerID LedgerID, body CreateLedgerGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateLedgerGrantResponse, error)
-
-	// VoidLedgerGrantWithResponse request
-	VoidLedgerGrantWithResponse(ctx context.Context, ledgerID LedgerID, ledgerGrantID LedgerGrantID, reqEditors ...RequestEditorFn) (*VoidLedgerGrantResponse, error)
-
-	// GetLedgerGrantWithResponse request
-	GetLedgerGrantWithResponse(ctx context.Context, ledgerID LedgerID, ledgerGrantID LedgerGrantID, reqEditors ...RequestEditorFn) (*GetLedgerGrantResponse, error)
-
-	// GetLedgerHistoryWithResponse request
-	GetLedgerHistoryWithResponse(ctx context.Context, ledgerID LedgerID, params *GetLedgerHistoryParams, reqEditors ...RequestEditorFn) (*GetLedgerHistoryResponse, error)
-
-	// ResetLedgerWithBodyWithResponse request with any body
-	ResetLedgerWithBodyWithResponse(ctx context.Context, ledgerID LedgerID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResetLedgerResponse, error)
-
-	ResetLedgerWithResponse(ctx context.Context, ledgerID LedgerID, body ResetLedgerJSONRequestBody, reqEditors ...RequestEditorFn) (*ResetLedgerResponse, error)
+	// VoidGrantWithResponse request
+	VoidGrantWithResponse(ctx context.Context, grantId GrantId, reqEditors ...RequestEditorFn) (*VoidGrantResponse, error)
 
 	// ListMetersWithResponse request
 	ListMetersWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListMetersResponse, error)
@@ -3210,6 +3606,63 @@ type ClientWithResponsesInterface interface {
 
 	// GetSubjectWithResponse request
 	GetSubjectWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, reqEditors ...RequestEditorFn) (*GetSubjectResponse, error)
+
+	// ListSubjectEntitlementsWithResponse request
+	ListSubjectEntitlementsWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, params *ListSubjectEntitlementsParams, reqEditors ...RequestEditorFn) (*ListSubjectEntitlementsResponse, error)
+
+	// CreateEntitlementWithBodyWithResponse request with any body
+	CreateEntitlementWithBodyWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateEntitlementResponse, error)
+
+	CreateEntitlementWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, body CreateEntitlementJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateEntitlementResponse, error)
+
+	// DeleteEntitlementWithResponse request
+	DeleteEntitlementWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, reqEditors ...RequestEditorFn) (*DeleteEntitlementResponse, error)
+
+	// GetEntitlementWithResponse request
+	GetEntitlementWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, reqEditors ...RequestEditorFn) (*GetEntitlementResponse, error)
+
+	// GetEntitlementBalanceWithResponse request
+	GetEntitlementBalanceWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, params *GetEntitlementBalanceParams, reqEditors ...RequestEditorFn) (*GetEntitlementBalanceResponse, error)
+
+	// ListEntitlementGrantsWithResponse request
+	ListEntitlementGrantsWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, params *ListEntitlementGrantsParams, reqEditors ...RequestEditorFn) (*ListEntitlementGrantsResponse, error)
+
+	// CreateGrantWithBodyWithResponse request with any body
+	CreateGrantWithBodyWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateGrantResponse, error)
+
+	CreateGrantWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, body CreateGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateGrantResponse, error)
+
+	// GetEntitlementHistoryWithResponse request
+	GetEntitlementHistoryWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, params *GetEntitlementHistoryParams, reqEditors ...RequestEditorFn) (*GetEntitlementHistoryResponse, error)
+
+	// ResetEntitlementUsageWithBodyWithResponse request with any body
+	ResetEntitlementUsageWithBodyWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResetEntitlementUsageResponse, error)
+
+	ResetEntitlementUsageWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, body ResetEntitlementUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*ResetEntitlementUsageResponse, error)
+}
+
+type ListEntitlementsResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *[]Entitlement
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r ListEntitlementsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListEntitlementsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
 }
 
 type ListEventsResponse struct {
@@ -3360,17 +3813,16 @@ func (r GetFeatureResponse) StatusCode() int {
 	return 0
 }
 
-type ListLedgersResponse struct {
+type ListGrantsResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
-	JSON200                       *[]Ledger
-	ApplicationproblemJSON400     *BadRequestProblemResponse
+	JSON200                       *[]EntitlementGrant
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
 // Status returns HTTPResponse.Status
-func (r ListLedgersResponse) Status() string {
+func (r ListGrantsResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3378,225 +3830,25 @@ func (r ListLedgersResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r ListLedgersResponse) StatusCode() int {
+func (r ListGrantsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type CreateLedgerResponse struct {
+type VoidGrantResponse struct {
 	Body                          []byte
 	HTTPResponse                  *http.Response
-	JSON201                       *Ledger
-	ApplicationproblemJSON400     *BadRequestProblemResponse
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON409     *LedgerAlreadyExistsProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r CreateLedgerResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r CreateLedgerResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type ListLedgerGrantsResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *[]LedgerGrantResponse
-	ApplicationproblemJSON400     *BadRequestProblemResponse
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r ListLedgerGrantsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ListLedgerGrantsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetLedgerBalanceResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *LedgerBalance
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r GetLedgerBalanceResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetLedgerBalanceResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type ListLedgerGrantsByLedgerResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *[]LedgerGrantResponse
-	ApplicationproblemJSON400     *BadRequestProblemResponse
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r ListLedgerGrantsByLedgerResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ListLedgerGrantsByLedgerResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type CreateLedgerGrantResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON201                       *LedgerGrantResponse
-	ApplicationproblemJSON400     *BadRequestProblemResponse
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r CreateLedgerGrantResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r CreateLedgerGrantResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type VoidLedgerGrantResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r VoidLedgerGrantResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r VoidLedgerGrantResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetLedgerGrantResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *LedgerGrantResponse
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r GetLedgerGrantResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetLedgerGrantResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetLedgerHistoryResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON200                       *[]LedgerEntry
-	ApplicationproblemJSON401     *UnauthorizedProblemResponse
-	ApplicationproblemJSON404     *NotFoundProblemResponse
-	ApplicationproblemJSONDefault *UnexpectedProblemResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r GetLedgerHistoryResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetLedgerHistoryResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type ResetLedgerResponse struct {
-	Body                          []byte
-	HTTPResponse                  *http.Response
-	JSON201                       *LedgerReset
 	ApplicationproblemJSON400     *BadRequestProblemResponse
 	ApplicationproblemJSON401     *UnauthorizedProblemResponse
 	ApplicationproblemJSON404     *NotFoundProblemResponse
+	JSON409                       *Problem
 	ApplicationproblemJSONDefault *UnexpectedProblemResponse
 }
 
 // Status returns HTTPResponse.Status
-func (r ResetLedgerResponse) Status() string {
+func (r VoidGrantResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3604,7 +3856,7 @@ func (r ResetLedgerResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r ResetLedgerResponse) StatusCode() int {
+func (r VoidGrantResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -3960,6 +4212,317 @@ func (r GetSubjectResponse) StatusCode() int {
 	return 0
 }
 
+type ListSubjectEntitlementsResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *[]Entitlement
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r ListSubjectEntitlementsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListSubjectEntitlementsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateEntitlementResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON201                       *Entitlement
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	JSON409                       *models.StatusProblem
+	ApplicationproblemJSON501     *NotImplementedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateEntitlementResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateEntitlementResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteEntitlementResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteEntitlementResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteEntitlementResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetEntitlementResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		// LastReset The last time usage was reset.
+		LastReset *time.Time `json:"lastReset,omitempty"`
+		union     json.RawMessage
+	}
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r GetEntitlementResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetEntitlementResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetEntitlementBalanceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		// Balance The balance of the entitlement, can be negative.
+		Balance *float64 `json:"balance,omitempty"`
+
+		// GrantsUsed The list of grants contributing to the balance.
+		GrantsUsed *[]struct {
+			// Amount The amount to grant. Should be a positive number.
+			Amount float64 `json:"amount"`
+
+			// CreatedAt The date and time the resource was created.
+			CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+			// DeletedAt The date and time the resource was deleted.
+			DeletedAt *time.Time `json:"deletedAt"`
+
+			// EffectiveAt The effective time. Provided value will be ceiled to metering windowSize (minute).
+			EffectiveAt time.Time `json:"effectiveAt"`
+
+			// EntitlementId The unique entitlement ULID that the grant is associated with.
+			EntitlementId *string          `json:"entitlementId,omitempty"`
+			Expiration    ExpirationPeriod `json:"expiration"`
+
+			// ExpiresAt The expiration date of the grant.
+			ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+
+			// Id Readonly unique ULID identifier.
+			Id *string `json:"id,omitempty"`
+
+			// MaxRolloverAmount The maximum amount of the grant that can be rolled over.
+			//
+			// If it's larger than 0 then the grant's balance will be the MAX(maxRollover, balance) + amount.
+			MaxRolloverAmount *float64           `json:"maxRolloverAmount,omitempty"`
+			Metadata          *map[string]string `json:"metadata,omitempty"`
+
+			// NextRecurrence The next time the grant will recurr.
+			NextRecurrence *time.Time `json:"nextRecurrence,omitempty"`
+
+			// Priority The priority of the grant. Grants with higher priority are applied first.
+			// Priority is a positive decimal numbers. With lower numbers indicating higher importance.
+			// For example, a priority of 1 is more urgent than a priority of 2.
+			// When there are several grants available for the same subject, the system selects the grant with the highest priority.
+			// In cases where grants share the same priority level, the grant closest to its expiration will be used first.
+			// In the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.
+			Priority *int `json:"priority,omitempty"`
+
+			// Recurrence Recurrence of the grant.
+			Recurrence *struct {
+				// MaxRolloverAmount The maximum amount of the grant that can be rolled over.
+				//
+				// If it's 0 then at the next iteration the gran's balance will be the original amount.
+				// If it's larger than 0 then the grant's balance will be the MAX(maxRollover, balance) + amount.
+				MaxRolloverAmount *float64 `json:"maxRolloverAmount,omitempty"`
+
+				// Period Recurring period of an entitlement.
+				Period RecurringPeriod `json:"period"`
+			} `json:"recurrence,omitempty"`
+
+			// SubjectKey The subject that is granted the entitlement.
+			SubjectKey *string `json:"subjectKey,omitempty"`
+
+			// UpdatedAt The date and time the resource was last updated.
+			UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+
+			// Usage The amount by which this grant was used in the queried period.
+			Usage *float64 `json:"usage,omitempty"`
+		} `json:"grantsUsed,omitempty"`
+
+		// Usage Total usage of the feature in the queried period. Includes overages.
+		Usage *float64 `json:"usage,omitempty"`
+	}
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r GetEntitlementBalanceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetEntitlementBalanceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListEntitlementGrantsResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *[]EntitlementGrant
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r ListEntitlementGrantsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListEntitlementGrantsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateGrantResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON201                       *EntitlementGrant
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON501     *NotImplementedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateGrantResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateGrantResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetEntitlementHistoryResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		union json.RawMessage
+	}
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r GetEntitlementHistoryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetEntitlementHistoryResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ResetEntitlementUsageResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r ResetEntitlementUsageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ResetEntitlementUsageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ListEntitlementsWithResponse request returning *ListEntitlementsResponse
+func (c *ClientWithResponses) ListEntitlementsWithResponse(ctx context.Context, params *ListEntitlementsParams, reqEditors ...RequestEditorFn) (*ListEntitlementsResponse, error) {
+	rsp, err := c.ListEntitlements(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListEntitlementsResponse(rsp)
+}
+
 // ListEventsWithResponse request returning *ListEventsResponse
 func (c *ClientWithResponses) ListEventsWithResponse(ctx context.Context, params *ListEventsParams, reqEditors ...RequestEditorFn) (*ListEventsResponse, error) {
 	rsp, err := c.ListEvents(ctx, params, reqEditors...)
@@ -4021,8 +4584,8 @@ func (c *ClientWithResponses) CreateFeatureWithResponse(ctx context.Context, bod
 }
 
 // DeleteFeatureWithResponse request returning *DeleteFeatureResponse
-func (c *ClientWithResponses) DeleteFeatureWithResponse(ctx context.Context, featureID FeatureID, reqEditors ...RequestEditorFn) (*DeleteFeatureResponse, error) {
-	rsp, err := c.DeleteFeature(ctx, featureID, reqEditors...)
+func (c *ClientWithResponses) DeleteFeatureWithResponse(ctx context.Context, featureId FeatureId, reqEditors ...RequestEditorFn) (*DeleteFeatureResponse, error) {
+	rsp, err := c.DeleteFeature(ctx, featureId, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -4030,126 +4593,30 @@ func (c *ClientWithResponses) DeleteFeatureWithResponse(ctx context.Context, fea
 }
 
 // GetFeatureWithResponse request returning *GetFeatureResponse
-func (c *ClientWithResponses) GetFeatureWithResponse(ctx context.Context, featureID FeatureID, reqEditors ...RequestEditorFn) (*GetFeatureResponse, error) {
-	rsp, err := c.GetFeature(ctx, featureID, reqEditors...)
+func (c *ClientWithResponses) GetFeatureWithResponse(ctx context.Context, featureId FeatureId, reqEditors ...RequestEditorFn) (*GetFeatureResponse, error) {
+	rsp, err := c.GetFeature(ctx, featureId, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParseGetFeatureResponse(rsp)
 }
 
-// ListLedgersWithResponse request returning *ListLedgersResponse
-func (c *ClientWithResponses) ListLedgersWithResponse(ctx context.Context, params *ListLedgersParams, reqEditors ...RequestEditorFn) (*ListLedgersResponse, error) {
-	rsp, err := c.ListLedgers(ctx, params, reqEditors...)
+// ListGrantsWithResponse request returning *ListGrantsResponse
+func (c *ClientWithResponses) ListGrantsWithResponse(ctx context.Context, params *ListGrantsParams, reqEditors ...RequestEditorFn) (*ListGrantsResponse, error) {
+	rsp, err := c.ListGrants(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseListLedgersResponse(rsp)
+	return ParseListGrantsResponse(rsp)
 }
 
-// CreateLedgerWithBodyWithResponse request with arbitrary body returning *CreateLedgerResponse
-func (c *ClientWithResponses) CreateLedgerWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateLedgerResponse, error) {
-	rsp, err := c.CreateLedgerWithBody(ctx, contentType, body, reqEditors...)
+// VoidGrantWithResponse request returning *VoidGrantResponse
+func (c *ClientWithResponses) VoidGrantWithResponse(ctx context.Context, grantId GrantId, reqEditors ...RequestEditorFn) (*VoidGrantResponse, error) {
+	rsp, err := c.VoidGrant(ctx, grantId, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseCreateLedgerResponse(rsp)
-}
-
-func (c *ClientWithResponses) CreateLedgerWithResponse(ctx context.Context, body CreateLedgerJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateLedgerResponse, error) {
-	rsp, err := c.CreateLedger(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCreateLedgerResponse(rsp)
-}
-
-// ListLedgerGrantsWithResponse request returning *ListLedgerGrantsResponse
-func (c *ClientWithResponses) ListLedgerGrantsWithResponse(ctx context.Context, params *ListLedgerGrantsParams, reqEditors ...RequestEditorFn) (*ListLedgerGrantsResponse, error) {
-	rsp, err := c.ListLedgerGrants(ctx, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseListLedgerGrantsResponse(rsp)
-}
-
-// GetLedgerBalanceWithResponse request returning *GetLedgerBalanceResponse
-func (c *ClientWithResponses) GetLedgerBalanceWithResponse(ctx context.Context, ledgerID LedgerID, params *GetLedgerBalanceParams, reqEditors ...RequestEditorFn) (*GetLedgerBalanceResponse, error) {
-	rsp, err := c.GetLedgerBalance(ctx, ledgerID, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetLedgerBalanceResponse(rsp)
-}
-
-// ListLedgerGrantsByLedgerWithResponse request returning *ListLedgerGrantsByLedgerResponse
-func (c *ClientWithResponses) ListLedgerGrantsByLedgerWithResponse(ctx context.Context, ledgerID LedgerID, params *ListLedgerGrantsByLedgerParams, reqEditors ...RequestEditorFn) (*ListLedgerGrantsByLedgerResponse, error) {
-	rsp, err := c.ListLedgerGrantsByLedger(ctx, ledgerID, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseListLedgerGrantsByLedgerResponse(rsp)
-}
-
-// CreateLedgerGrantWithBodyWithResponse request with arbitrary body returning *CreateLedgerGrantResponse
-func (c *ClientWithResponses) CreateLedgerGrantWithBodyWithResponse(ctx context.Context, ledgerID LedgerID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateLedgerGrantResponse, error) {
-	rsp, err := c.CreateLedgerGrantWithBody(ctx, ledgerID, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCreateLedgerGrantResponse(rsp)
-}
-
-func (c *ClientWithResponses) CreateLedgerGrantWithResponse(ctx context.Context, ledgerID LedgerID, body CreateLedgerGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateLedgerGrantResponse, error) {
-	rsp, err := c.CreateLedgerGrant(ctx, ledgerID, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCreateLedgerGrantResponse(rsp)
-}
-
-// VoidLedgerGrantWithResponse request returning *VoidLedgerGrantResponse
-func (c *ClientWithResponses) VoidLedgerGrantWithResponse(ctx context.Context, ledgerID LedgerID, ledgerGrantID LedgerGrantID, reqEditors ...RequestEditorFn) (*VoidLedgerGrantResponse, error) {
-	rsp, err := c.VoidLedgerGrant(ctx, ledgerID, ledgerGrantID, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseVoidLedgerGrantResponse(rsp)
-}
-
-// GetLedgerGrantWithResponse request returning *GetLedgerGrantResponse
-func (c *ClientWithResponses) GetLedgerGrantWithResponse(ctx context.Context, ledgerID LedgerID, ledgerGrantID LedgerGrantID, reqEditors ...RequestEditorFn) (*GetLedgerGrantResponse, error) {
-	rsp, err := c.GetLedgerGrant(ctx, ledgerID, ledgerGrantID, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetLedgerGrantResponse(rsp)
-}
-
-// GetLedgerHistoryWithResponse request returning *GetLedgerHistoryResponse
-func (c *ClientWithResponses) GetLedgerHistoryWithResponse(ctx context.Context, ledgerID LedgerID, params *GetLedgerHistoryParams, reqEditors ...RequestEditorFn) (*GetLedgerHistoryResponse, error) {
-	rsp, err := c.GetLedgerHistory(ctx, ledgerID, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetLedgerHistoryResponse(rsp)
-}
-
-// ResetLedgerWithBodyWithResponse request with arbitrary body returning *ResetLedgerResponse
-func (c *ClientWithResponses) ResetLedgerWithBodyWithResponse(ctx context.Context, ledgerID LedgerID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResetLedgerResponse, error) {
-	rsp, err := c.ResetLedgerWithBody(ctx, ledgerID, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseResetLedgerResponse(rsp)
-}
-
-func (c *ClientWithResponses) ResetLedgerWithResponse(ctx context.Context, ledgerID LedgerID, body ResetLedgerJSONRequestBody, reqEditors ...RequestEditorFn) (*ResetLedgerResponse, error) {
-	rsp, err := c.ResetLedger(ctx, ledgerID, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseResetLedgerResponse(rsp)
+	return ParseVoidGrantResponse(rsp)
 }
 
 // ListMetersWithResponse request returning *ListMetersResponse
@@ -4308,6 +4775,151 @@ func (c *ClientWithResponses) GetSubjectWithResponse(ctx context.Context, subjec
 		return nil, err
 	}
 	return ParseGetSubjectResponse(rsp)
+}
+
+// ListSubjectEntitlementsWithResponse request returning *ListSubjectEntitlementsResponse
+func (c *ClientWithResponses) ListSubjectEntitlementsWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, params *ListSubjectEntitlementsParams, reqEditors ...RequestEditorFn) (*ListSubjectEntitlementsResponse, error) {
+	rsp, err := c.ListSubjectEntitlements(ctx, subjectIdOrKey, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListSubjectEntitlementsResponse(rsp)
+}
+
+// CreateEntitlementWithBodyWithResponse request with arbitrary body returning *CreateEntitlementResponse
+func (c *ClientWithResponses) CreateEntitlementWithBodyWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateEntitlementResponse, error) {
+	rsp, err := c.CreateEntitlementWithBody(ctx, subjectIdOrKey, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateEntitlementResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateEntitlementWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, body CreateEntitlementJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateEntitlementResponse, error) {
+	rsp, err := c.CreateEntitlement(ctx, subjectIdOrKey, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateEntitlementResponse(rsp)
+}
+
+// DeleteEntitlementWithResponse request returning *DeleteEntitlementResponse
+func (c *ClientWithResponses) DeleteEntitlementWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, reqEditors ...RequestEditorFn) (*DeleteEntitlementResponse, error) {
+	rsp, err := c.DeleteEntitlement(ctx, subjectIdOrKey, entitlementId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteEntitlementResponse(rsp)
+}
+
+// GetEntitlementWithResponse request returning *GetEntitlementResponse
+func (c *ClientWithResponses) GetEntitlementWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, reqEditors ...RequestEditorFn) (*GetEntitlementResponse, error) {
+	rsp, err := c.GetEntitlement(ctx, subjectIdOrKey, entitlementId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetEntitlementResponse(rsp)
+}
+
+// GetEntitlementBalanceWithResponse request returning *GetEntitlementBalanceResponse
+func (c *ClientWithResponses) GetEntitlementBalanceWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, params *GetEntitlementBalanceParams, reqEditors ...RequestEditorFn) (*GetEntitlementBalanceResponse, error) {
+	rsp, err := c.GetEntitlementBalance(ctx, subjectIdOrKey, entitlementId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetEntitlementBalanceResponse(rsp)
+}
+
+// ListEntitlementGrantsWithResponse request returning *ListEntitlementGrantsResponse
+func (c *ClientWithResponses) ListEntitlementGrantsWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, params *ListEntitlementGrantsParams, reqEditors ...RequestEditorFn) (*ListEntitlementGrantsResponse, error) {
+	rsp, err := c.ListEntitlementGrants(ctx, subjectIdOrKey, entitlementId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListEntitlementGrantsResponse(rsp)
+}
+
+// CreateGrantWithBodyWithResponse request with arbitrary body returning *CreateGrantResponse
+func (c *ClientWithResponses) CreateGrantWithBodyWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateGrantResponse, error) {
+	rsp, err := c.CreateGrantWithBody(ctx, subjectIdOrKey, entitlementId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateGrantResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateGrantWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, body CreateGrantJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateGrantResponse, error) {
+	rsp, err := c.CreateGrant(ctx, subjectIdOrKey, entitlementId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateGrantResponse(rsp)
+}
+
+// GetEntitlementHistoryWithResponse request returning *GetEntitlementHistoryResponse
+func (c *ClientWithResponses) GetEntitlementHistoryWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, params *GetEntitlementHistoryParams, reqEditors ...RequestEditorFn) (*GetEntitlementHistoryResponse, error) {
+	rsp, err := c.GetEntitlementHistory(ctx, subjectIdOrKey, entitlementId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetEntitlementHistoryResponse(rsp)
+}
+
+// ResetEntitlementUsageWithBodyWithResponse request with arbitrary body returning *ResetEntitlementUsageResponse
+func (c *ClientWithResponses) ResetEntitlementUsageWithBodyWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResetEntitlementUsageResponse, error) {
+	rsp, err := c.ResetEntitlementUsageWithBody(ctx, subjectIdOrKey, entitlementId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseResetEntitlementUsageResponse(rsp)
+}
+
+func (c *ClientWithResponses) ResetEntitlementUsageWithResponse(ctx context.Context, subjectIdOrKey SubjectIdOrKey, entitlementId EntitlementId, body ResetEntitlementUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*ResetEntitlementUsageResponse, error) {
+	rsp, err := c.ResetEntitlementUsage(ctx, subjectIdOrKey, entitlementId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseResetEntitlementUsageResponse(rsp)
+}
+
+// ParseListEntitlementsResponse parses an HTTP response from a ListEntitlementsWithResponse call
+func ParseListEntitlementsResponse(rsp *http.Response) (*ListEntitlementsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListEntitlementsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []Entitlement
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseListEventsResponse parses an HTTP response from a ListEventsWithResponse call
@@ -4578,33 +5190,26 @@ func ParseGetFeatureResponse(rsp *http.Response) (*GetFeatureResponse, error) {
 	return response, nil
 }
 
-// ParseListLedgersResponse parses an HTTP response from a ListLedgersWithResponse call
-func ParseListLedgersResponse(rsp *http.Response) (*ListLedgersResponse, error) {
+// ParseListGrantsResponse parses an HTTP response from a ListGrantsWithResponse call
+func ParseListGrantsResponse(rsp *http.Response) (*ListGrantsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &ListLedgersResponse{
+	response := &ListGrantsResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []Ledger
+		var dest []EntitlementGrant
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
 		var dest UnauthorizedProblemResponse
@@ -4625,27 +5230,20 @@ func ParseListLedgersResponse(rsp *http.Response) (*ListLedgersResponse, error) 
 	return response, nil
 }
 
-// ParseCreateLedgerResponse parses an HTTP response from a CreateLedgerWithResponse call
-func ParseCreateLedgerResponse(rsp *http.Response) (*CreateLedgerResponse, error) {
+// ParseVoidGrantResponse parses an HTTP response from a VoidGrantWithResponse call
+func ParseVoidGrantResponse(rsp *http.Response) (*VoidGrantResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &CreateLedgerResponse{
+	response := &VoidGrantResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest Ledger
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON201 = &dest
-
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
 		var dest BadRequestProblemResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -4659,389 +5257,20 @@ func ParseCreateLedgerResponse(rsp *http.Response) (*CreateLedgerResponse, error
 			return nil, err
 		}
 		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
-		var dest LedgerAlreadyExistsProblemResponse
+		var dest Problem
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.ApplicationproblemJSON409 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseListLedgerGrantsResponse parses an HTTP response from a ListLedgerGrantsWithResponse call
-func ParseListLedgerGrantsResponse(rsp *http.Response) (*ListLedgerGrantsResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ListLedgerGrantsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []LedgerGrantResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetLedgerBalanceResponse parses an HTTP response from a GetLedgerBalanceWithResponse call
-func ParseGetLedgerBalanceResponse(rsp *http.Response) (*GetLedgerBalanceResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetLedgerBalanceResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest LedgerBalance
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseListLedgerGrantsByLedgerResponse parses an HTTP response from a ListLedgerGrantsByLedgerWithResponse call
-func ParseListLedgerGrantsByLedgerResponse(rsp *http.Response) (*ListLedgerGrantsByLedgerResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ListLedgerGrantsByLedgerResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []LedgerGrantResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseCreateLedgerGrantResponse parses an HTTP response from a CreateLedgerGrantWithResponse call
-func ParseCreateLedgerGrantResponse(rsp *http.Response) (*CreateLedgerGrantResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &CreateLedgerGrantResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest LedgerGrantResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON201 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseVoidLedgerGrantResponse parses an HTTP response from a VoidLedgerGrantWithResponse call
-func ParseVoidLedgerGrantResponse(rsp *http.Response) (*VoidLedgerGrantResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &VoidLedgerGrantResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetLedgerGrantResponse parses an HTTP response from a GetLedgerGrantWithResponse call
-func ParseGetLedgerGrantResponse(rsp *http.Response) (*GetLedgerGrantResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetLedgerGrantResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest LedgerGrantResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetLedgerHistoryResponse parses an HTTP response from a GetLedgerHistoryWithResponse call
-func ParseGetLedgerHistoryResponse(rsp *http.Response) (*GetLedgerHistoryResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetLedgerHistoryResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []LedgerEntry
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
-		var dest UnexpectedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSONDefault = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseResetLedgerResponse parses an HTTP response from a ResetLedgerWithResponse call
-func ParseResetLedgerResponse(rsp *http.Response) (*ResetLedgerResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ResetLedgerResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest LedgerReset
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON201 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequestProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundProblemResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.ApplicationproblemJSON404 = &dest
+		response.JSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest UnexpectedProblemResponse
@@ -5712,157 +5941,681 @@ func ParseGetSubjectResponse(rsp *http.Response) (*GetSubjectResponse, error) {
 	return response, nil
 }
 
+// ParseListSubjectEntitlementsResponse parses an HTTP response from a ListSubjectEntitlementsWithResponse call
+func ParseListSubjectEntitlementsResponse(rsp *http.Response) (*ListSubjectEntitlementsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListSubjectEntitlementsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []Entitlement
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateEntitlementResponse parses an HTTP response from a CreateEntitlementWithResponse call
+func ParseCreateEntitlementResponse(rsp *http.Response) (*CreateEntitlementResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateEntitlementResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Entitlement
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest models.StatusProblem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 501:
+		var dest NotImplementedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON501 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteEntitlementResponse parses an HTTP response from a DeleteEntitlementWithResponse call
+func ParseDeleteEntitlementResponse(rsp *http.Response) (*DeleteEntitlementResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteEntitlementResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetEntitlementResponse parses an HTTP response from a GetEntitlementWithResponse call
+func ParseGetEntitlementResponse(rsp *http.Response) (*GetEntitlementResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetEntitlementResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			// LastReset The last time usage was reset.
+			LastReset *time.Time `json:"lastReset,omitempty"`
+			union     json.RawMessage
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetEntitlementBalanceResponse parses an HTTP response from a GetEntitlementBalanceWithResponse call
+func ParseGetEntitlementBalanceResponse(rsp *http.Response) (*GetEntitlementBalanceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetEntitlementBalanceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			// Balance The balance of the entitlement, can be negative.
+			Balance *float64 `json:"balance,omitempty"`
+
+			// GrantsUsed The list of grants contributing to the balance.
+			GrantsUsed *[]struct {
+				// Amount The amount to grant. Should be a positive number.
+				Amount float64 `json:"amount"`
+
+				// CreatedAt The date and time the resource was created.
+				CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+				// DeletedAt The date and time the resource was deleted.
+				DeletedAt *time.Time `json:"deletedAt"`
+
+				// EffectiveAt The effective time. Provided value will be ceiled to metering windowSize (minute).
+				EffectiveAt time.Time `json:"effectiveAt"`
+
+				// EntitlementId The unique entitlement ULID that the grant is associated with.
+				EntitlementId *string          `json:"entitlementId,omitempty"`
+				Expiration    ExpirationPeriod `json:"expiration"`
+
+				// ExpiresAt The expiration date of the grant.
+				ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+
+				// Id Readonly unique ULID identifier.
+				Id *string `json:"id,omitempty"`
+
+				// MaxRolloverAmount The maximum amount of the grant that can be rolled over.
+				//
+				// If it's larger than 0 then the grant's balance will be the MAX(maxRollover, balance) + amount.
+				MaxRolloverAmount *float64           `json:"maxRolloverAmount,omitempty"`
+				Metadata          *map[string]string `json:"metadata,omitempty"`
+
+				// NextRecurrence The next time the grant will recurr.
+				NextRecurrence *time.Time `json:"nextRecurrence,omitempty"`
+
+				// Priority The priority of the grant. Grants with higher priority are applied first.
+				// Priority is a positive decimal numbers. With lower numbers indicating higher importance.
+				// For example, a priority of 1 is more urgent than a priority of 2.
+				// When there are several grants available for the same subject, the system selects the grant with the highest priority.
+				// In cases where grants share the same priority level, the grant closest to its expiration will be used first.
+				// In the case of two grants have identical priorities and expiration dates, the system will use the grant that was created first.
+				Priority *int `json:"priority,omitempty"`
+
+				// Recurrence Recurrence of the grant.
+				Recurrence *struct {
+					// MaxRolloverAmount The maximum amount of the grant that can be rolled over.
+					//
+					// If it's 0 then at the next iteration the gran's balance will be the original amount.
+					// If it's larger than 0 then the grant's balance will be the MAX(maxRollover, balance) + amount.
+					MaxRolloverAmount *float64 `json:"maxRolloverAmount,omitempty"`
+
+					// Period Recurring period of an entitlement.
+					Period RecurringPeriod `json:"period"`
+				} `json:"recurrence,omitempty"`
+
+				// SubjectKey The subject that is granted the entitlement.
+				SubjectKey *string `json:"subjectKey,omitempty"`
+
+				// UpdatedAt The date and time the resource was last updated.
+				UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+
+				// Usage The amount by which this grant was used in the queried period.
+				Usage *float64 `json:"usage,omitempty"`
+			} `json:"grantsUsed,omitempty"`
+
+			// Usage Total usage of the feature in the queried period. Includes overages.
+			Usage *float64 `json:"usage,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListEntitlementGrantsResponse parses an HTTP response from a ListEntitlementGrantsWithResponse call
+func ParseListEntitlementGrantsResponse(rsp *http.Response) (*ListEntitlementGrantsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListEntitlementGrantsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []EntitlementGrant
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateGrantResponse parses an HTTP response from a CreateGrantWithResponse call
+func ParseCreateGrantResponse(rsp *http.Response) (*CreateGrantResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateGrantResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest EntitlementGrant
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 501:
+		var dest NotImplementedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON501 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetEntitlementHistoryResponse parses an HTTP response from a GetEntitlementHistoryWithResponse call
+func ParseGetEntitlementHistoryResponse(rsp *http.Response) (*GetEntitlementHistoryResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetEntitlementHistoryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			union json.RawMessage
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseResetEntitlementUsageResponse parses an HTTP response from a ResetEntitlementUsageWithResponse call
+func ParseResetEntitlementUsageResponse(rsp *http.Response) (*ResetEntitlementUsageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ResetEntitlementUsageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

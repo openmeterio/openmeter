@@ -858,7 +858,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/EntitlementCreateInputs"
+              oneOf:
+                - $ref: "#/components/schemas/MeteredEntitlementCreateInputs"
+                - $ref: "#/components/schemas/StaticEntitlementCreateInputs"
+                - $ref: "#/components/schemas/BooleanEntitlementCreateInputs"
       responses:
         "201":
           description: Entitlement created.
@@ -1394,21 +1397,38 @@ components:
             tokens: "1234"
             model: "gpt-4-turbo"
         validationError: "meter not found for event"
+    FeatureType:
+      description: The type of the feature.
+      type: string
+      enum: [metered, static, boolean]
     FeatureCreateInputs:
       type: object
       description: |
         A feature is a feature or service offered to a customer.
         For example: CPU-Hours, Tokens, API Calls, etc.
       required:
+        - key
         - name
-        - meterSlug
       additionalProperties: false
       properties:
+        key:
+          description: |
+            The unique key of the feature to reference it from your application.
+          type: string
+          example: gpt4_tokens
         name:
           description: |
             The name of the feature.
           type: string
           example: AI Tokens
+        type:
+          description: |
+            The type of the feature.
+             - metered: The feature is metered and have a balance or limit per subject. Granting on the feature will increase the balance.
+             - static: The feature can hold a static string value that can differ between subjects. For example "frequency_daily".
+             - boolean: The feature expresses if a feature is enabled for certain subjects. For example Enterprise SSO
+          $ref: "#/components/schemas/FeatureType"
+          example: metered
         meterSlug:
           description: |
             The meter that the feature is associated with and decreases grants by usage.
@@ -1422,6 +1442,12 @@ components:
             type: string
           example:
             model: gpt-4
+        metadata:
+          description: |
+            Additional metadata for the feature.
+          type: object
+          additionalProperties:
+            type: string
         archived:
           readOnly: true
           description: |
@@ -1436,7 +1462,36 @@ components:
       allOf:
         - $ref: "#/components/schemas/FeatureCreateInputs"
         - $ref: "#/components/schemas/SharedMetaFields"
-    EntitlementCreateInputs:
+    EntitlementType:
+      type: string
+      enum: [metered, static, boolean]
+    Entitlement:
+      oneOf:
+        - $ref: "#/components/schemas/MeteredEntitlement"
+        - $ref: "#/components/schemas/StaticEntitlement"
+        - $ref: "#/components/schemas/BooleanEntitlement"
+      discriminator:
+        propertyName: type
+        mapping:
+          metered: "#/components/schemas/MeteredEntitlement"
+          static: "#/components/schemas/StaticEntitlement"
+          boolean: "#/components/schemas/BooleanEntitlement"
+    MeteredEntitlement:
+      type: object
+      description: |
+        Entitles a subject to use a feature.
+      allOf:
+        - $ref: "#/components/schemas/MeteredEntitlementCreateInputs"
+        - $ref: "#/components/schemas/SharedMetaFields"
+        - type: object
+          properties:
+            subjectKey:
+              description: |
+                The subject that is entitled to use the feature.
+              type: string
+              readOnly: true
+              example: customer-id
+    MeteredEntitlementCreateInputs:
       type: object
       description: |
         Entitles a subject to use a feature.
@@ -1449,29 +1504,71 @@ components:
             The feature to grant.
           type: string
           example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-        measureUsageFrom:
-          description: |
-            The timestamp to measure usage from.
-          type: string
-          format: date-time
-          example: "2023-01-01T00:00:00Z"
         usagePeriod:
           $ref: "#/components/schemas/RecurringPeriod"
-    Entitlement:
+        metadata:
+          description: |
+            Additional metadata for the feature.
+          type: object
+          additionalProperties:
+            type: string
+    StaticEntitlement:
       type: object
       description: |
         Entitles a subject to use a feature.
       allOf:
-        - $ref: "#/components/schemas/EntitlementCreateInputs"
+        - $ref: "#/components/schemas/StaticEntitlementCreateInputs"
         - $ref: "#/components/schemas/SharedMetaFields"
-        - type: object
-          properties:
-            subjectKey:
-              description: |
-                The subject that is entitled to use the feature.
-              type: string
-              readOnly: true
-              example: customer-id
+    StaticEntitlementCreateInputs:
+      type: object
+      description: |
+        Entitles a subject to use a feature.
+      required:
+        - featureId
+      additionalProperties: false
+      properties:
+        featureId:
+          description: |
+            The feature to grant.
+          type: string
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+        value:
+          description: |
+            The value of the entitlement.
+          type: string
+          example: frequency_daily
+        metadata:
+          description: |
+            Additional metadata for the feature.
+          type: object
+          additionalProperties:
+            type: string
+    BooleanEntitlement:
+      type: object
+      description: |
+        Entitles a subject to use a feature.
+      allOf:
+        - $ref: "#/components/schemas/BooleanEntitlementCreateInputs"
+        - $ref: "#/components/schemas/SharedMetaFields"
+    BooleanEntitlementCreateInputs:
+      type: object
+      description: |
+        Entitles a subject to use a feature.
+      required:
+        - featureId
+      additionalProperties: false
+      properties:
+        featureId:
+          description: |
+            The feature to grant.
+          type: string
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+        metadata:
+          description: |
+            Additional metadata for the feature.
+          type: object
+          additionalProperties:
+            type: string
     # Might be changed later
     GrantBurnDownHistorySegment:
       type: object
@@ -1631,6 +1728,18 @@ components:
         anchor:
           description: |
             An arbitrary anchor to base the recurring period on.
+          type: string
+          format: date-time
+        currentPeriodStart:
+          description: |
+            The start of the current period.
+          readOnly: true
+          type: string
+          format: date-time
+        currentPeriodEnd:
+          description: |
+            The end of the current period.
+          readOnly: true
           type: string
           format: date-time
     LedgerReset:
