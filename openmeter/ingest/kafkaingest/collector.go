@@ -8,8 +8,8 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
-	kafkametrics "github.com/openmeterio/openmeter/internal/kafka/metrics"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
+	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 )
 
 // Collector is a receiver of events that handles sending those events to a downstream Kafka broker.
