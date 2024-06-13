@@ -625,6 +625,41 @@ paths:
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
+  # Entitlement
+  /api/v1/entitlements:
+    get:
+      operationId: listEntitlements
+      summary: List entitlements
+      description: List entitlements.
+      tags:
+        - Entitlements (Experimental)
+      parameters:
+        # TODO: add search capabilities
+        - $ref: "#/components/parameters/queryLimit"
+        - $ref: "#/components/parameters/queryOffset"
+        - name: orderBy
+          in: query
+          required: false
+          description: Order by field
+          schema:
+            type: string
+            enum:
+              - createdAt
+              - updatedAt
+            default: createdAt
+      responses:
+        "200":
+          description: List of entitlements.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Entitlement"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
   # Feature
   /api/v1/features:
     get:
@@ -860,7 +895,7 @@ paths:
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
     get:
-      operationId: listEntitlements
+      operationId: listSubjectEntitlements
       summary: List entitlements
       description: |
         List all entitlements for a subject.
@@ -1550,33 +1585,54 @@ components:
           type: string
           format: date-time
           example: "2023-01-01T00:00:00Z"
-    RecurringPeriod:
+    RecurringPeriodEnum:
       type: string
       description: |
         List of pre-defined periods that can be used for recurring & scheduling.
 
         DAILY:      Every day
-        MONDAY:     Every Monday
-        TUESDAY:    Every Tuesday
-        WEDNESDAY:  Every Wednesday
-        THURSDAY:   Every Thursday
-        FRIDAY:     Every Friday
-        SATURDAY:   Every Saturday
-        SUNDAY:     Every Sunday
+        # MONDAY:     Every Monday
+        # TUESDAY:    Every Tuesday
+        # WEDNESDAY:  Every Wednesday
+        # THURSDAY:   Every Thursday
+        # FRIDAY:     Every Friday
+        # SATURDAY:   Every Saturday
+        # SUNDAY:     Every Sunday
+        WEEKLY:     Every week
         MONTHLY:    Every month
+        YEARLY:     Every year
         BILLING:    Every billing cycle
       enum:
         - DAILY
-        - MONDAY
-        - TUESDAY
-        - WEDNESDAY
-        - THURSDAY
-        - FRIDAY
-        - SATURDAY
-        - SUNDAY
+        # - MONDAY
+        # - TUESDAY
+        # - WEDNESDAY
+        # - THURSDAY
+        # - FRIDAY
+        # - SATURDAY
+        # - SUNDAY
+        - WEEKLY
         - MONTHLY
+        - YEARLY
         - BILLING
 
+    RecurringPeriod:
+      type: object
+      description: |
+        Recurring period of an entitlement.
+      required:
+        - period
+        - count
+      properties:
+        interval:
+          description: |
+            The recurring period like month.
+          $ref: "#/components/schemas/RecurringPeriodEnum"
+        anchor:
+          description: |
+            An arbitrary anchor to base the recurring period on.
+          type: string
+          format: date-time
     LedgerReset:
       x-go-type-import:
         path: github.com/openmeterio/openmeter/internal/credit
@@ -1638,28 +1694,42 @@ components:
         expiration:
           allOf:
             - $ref: "#/components/schemas/ExpirationPeriod"
-        rollover:
-          anyOf:
-            - type: boolean
-            - type: object
-              properties:
-                maxAmount:
-                  description: |
-                    The maximum amount of the grant that can be rolled over.
-                  type: number
-                  format: double
-                  example: 100
+        maxRolloverAmount:
+          description: |
+            The maximum amount of the grant that can be rolled over.
+
+            If it's 0 then at the next iteration the gran's balance will be the original amount.
+            If it's larger than 0 then the grant's balance will be the MAX(maxRollover, balance) + amount.
+          type: number
+          format: double
+          default: 0
+          example: 100
         metadata:
           type: object
           additionalProperties:
             type: string
           example:
             stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
-        parentId:
+        recurrence:
+          type: object
           description: |
-            The parent grant ULID that the grant is associated with, if any.
-          type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+            Recurrence of the grant.
+          required:
+            - period
+          properties:
+            period:
+              description: |
+                The recurring period like month.
+              $ref: "#/components/schemas/RecurringPeriod"
+            maxRolloverAmount:
+              description: |
+                The maximum amount of the grant that can be rolled over.
+
+                If it's 0 then at the next iteration the gran's balance will be the original amount.
+                If it's larger than 0 then the grant's balance will be the MAX(maxRollover, balance) + amount.
+              type: number
+              format: double
+              example: 100
     EntitlementGrant:
       allOf:
         - $ref: "#/components/schemas/EntitlementGrantCreateInput"
@@ -1681,6 +1751,12 @@ components:
                 The subject that is granted the entitlement.
               type: string
               example: customer-id
+            nextRecurrence:
+              description: |
+                The next time the grant will recurr.
+              type: string
+              format: date-time
+              example: "2023-01-01T00:00:00Z"
             expiresAt:
               readOnly: true
               description: |
