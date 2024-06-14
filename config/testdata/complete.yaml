@@ -35,6 +35,10 @@ ingest:
     saslUsername: user
     saslPassword: pass
     partitions: 1
+    statsInterval: 5s
+    brokerAddressFamily: any
+    socketKeepAliveEnabled: true
+    topicMetadataRefreshInterval: 1m
 
 aggregation:
   clickhouse:
