@@ -17,3 +17,11 @@ type NamespaceNotFoundError struct {
 func (e *NamespaceNotFoundError) Error() string {
 	return fmt.Sprintf("namespace not found: %s", e.Namespace)
 }
+
+type GenericUserError struct {
+	Message string
+}
+
+func (e *GenericUserError) Error() string {
+	return e.Message
+}

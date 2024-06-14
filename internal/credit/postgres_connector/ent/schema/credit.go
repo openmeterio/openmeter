@@ -32,8 +32,8 @@ func (CreditEntry) Fields() []ent.Field {
 		field.String("ledger_id").Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
-		field.Enum("entry_type").GoType(credit.DELETEME_EntryType("")).Immutable(),
-		field.Enum("type").GoType(credit.DELETEME_GrantType("")).Optional().Nillable().Immutable(),
+		// field.Enum("entry_type").GoType(credit.DELETEME_EntryType("")).Immutable(),
+		// field.Enum("type").GoType(credit.DELETEME_GrantType("")).Optional().Nillable().Immutable(),
 		field.String("feature_id").Optional().Nillable().Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
@@ -47,7 +47,7 @@ func (CreditEntry) Fields() []ent.Field {
 		field.Uint8("expiration_period_count").Optional().Nillable().Immutable(),
 		field.Time("expiration_at").Optional().Nillable().Immutable(),
 		// Rollover
-		field.Enum("rollover_type").GoType(credit.GrantRolloverType("")).Optional().Nillable().Immutable(),
+		// field.Enum("rollover_type").GoType(credit.GrantRolloverType("")).Optional().Nillable().Immutable(),
 		field.Float("rollover_max_amount").Optional().Nillable().Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "numeric",
 		}),

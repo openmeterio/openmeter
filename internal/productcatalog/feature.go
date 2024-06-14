@@ -89,7 +89,7 @@ type Feature struct {
 	MeterGroupByFilters *map[string]string `json:"meterGroupByFilters,omitempty"`
 
 	// Read-only fields
-	Archived bool `json:"archived,omitempty"`
+	ArchivedAt *time.Time `json:"archivedAt,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt,omitempty"`
 	UpdatedAt time.Time `json:"updatedAt,omitempty"`

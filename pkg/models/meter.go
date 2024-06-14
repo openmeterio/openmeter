@@ -211,6 +211,24 @@ func (m *Meter) Validate() error {
 	return nil
 }
 
+func (m *Meter) SupportsWindowSize(w *WindowSize) error {
+	// Ensure `from` and `to` aligns with query param window size if any
+	if w != nil {
+		// Ensure query param window size is not smaller than meter window size
+		switch m.WindowSize {
+		case WindowSizeHour:
+			if w != nil && *w == WindowSizeMinute {
+				return fmt.Errorf("cannot query meter with window size %s on window size %s", m.WindowSize, *w)
+			}
+		case WindowSizeDay:
+			if w != nil && (*w == WindowSizeMinute || *w == WindowSizeHour) {
+				return fmt.Errorf("cannot query meter with window size %s on window size %s", m.WindowSize, *w)
+			}
+		}
+	}
+	return nil
+}
+
 func (m *Meter) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }

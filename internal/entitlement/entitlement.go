@@ -1,6 +1,11 @@
 package entitlement
 
-import "github.com/openmeterio/openmeter/pkg/models"
+import (
+	"time"
+
+	"github.com/openmeterio/openmeter/internal/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/models"
+)
 
 type EntitlementID string
 type NamespacedEntitlementID struct {
@@ -12,7 +17,9 @@ type Entitlement struct {
 	models.NamespacedModel
 	models.ManagedModel
 	// ID is the readonly identifies of a entitlement.
-	ID EntitlementID `json:"id,omitempty"`
+	ID               EntitlementID            `json:"id,omitempty"`
+	FeatureID        productcatalog.FeatureID `json:"featureId,omitempty"`
+	MeasureUsageFrom time.Time                `json:"measureUsageFrom,omitempty"`
 }
 
 // What an entitlement does

@@ -36,9 +36,6 @@ type Grant struct {
 	// Generic Owner reference
 	OwnerID GrantOwner `json:"owner"`
 
-	// Parent ID is the readonly identifies of the grant's parent if any.
-	ParentID *GrantID `json:"parentID,omitempty"`
-
 	// Amount The amount to grant. Can be positive or negative number.
 	Amount float64 `json:"amount"`
 
@@ -59,6 +56,9 @@ type Grant struct {
 
 	Metadata map[string]string `json:"metadata,omitempty"`
 
+	// For user initiated voiding of the grant.
+	VoidedAt *time.Time `json:"voidedAt,omitempty"`
+
 	// How much of the grant can be rolled over after a reset operation.
 	ResetMaxRollover float64 `json:"resetMaxRollover"`
 
@@ -67,17 +67,36 @@ type Grant struct {
 }
 
 // Calculates expiration from effectiveAt and Expiration.
-func (c Grant) GetExpiration() time.Time {
-	return c.Expiration.GetExpiration(c.EffectiveAt)
+func (g Grant) GetExpiration() time.Time {
+	return g.Expiration.GetExpiration(g.EffectiveAt)
 }
 
-func (c Grant) ActiveAt(t time.Time) bool {
-	if c.DeletedAt != nil {
-		if c.DeletedAt.Before(t) || c.DeletedAt.Equal(t) {
+func (g Grant) ActiveAt(t time.Time) bool {
+	if g.DeletedAt != nil {
+		if g.DeletedAt.Before(t) || g.DeletedAt.Equal(t) {
 			return false
 		}
 	}
-	return (c.EffectiveAt.Before(t) || c.EffectiveAt.Equal(t)) && c.ExpiresAt.After(t)
+	if g.VoidedAt != nil {
+		if g.VoidedAt.Before(t) || g.VoidedAt.Equal(t) {
+			return false
+		}
+	}
+	return (g.EffectiveAt.Before(t) || g.EffectiveAt.Equal(t)) && g.ExpiresAt.After(t)
+}
+
+func (g Grant) GetNamespacedID() NamespacedGrantID {
+	return NamespacedGrantID{
+		Namespace: g.Namespace,
+		ID:        g.ID,
+	}
+}
+
+func (g Grant) GetNamespacedOwner() NamespacedGrantOwner {
+	return NamespacedGrantOwner{
+		Namespace: g.Namespace,
+		ID:        g.OwnerID,
+	}
 }
 
 // // Render implements the chi renderer interface.

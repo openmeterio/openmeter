@@ -97,6 +97,18 @@ const (
 	RecurrencePeriodYearly  RecurrencePeriod = "YEARLY"
 )
 
+func (RecurrencePeriod) Values() (kinds []string) {
+	for _, s := range []RecurrencePeriod{
+		RecurrencePeriodDaily,
+		RecurrencePeriodWeekly,
+		RecurrencePeriodMonthly,
+		RecurrencePeriodYearly,
+	} {
+		kinds = append(kinds, string(s))
+	}
+	return
+}
+
 func (rp RecurrencePeriod) IsValid() bool {
 	switch rp {
 	case RecurrencePeriodDaily,

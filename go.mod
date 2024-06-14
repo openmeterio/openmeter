@@ -1,6 +1,6 @@
 module github.com/openmeterio/openmeter
 
-go 1.22.4
+go 1.22.0
 
 replace github.com/getkin/kin-openapi => github.com/getkin/kin-openapi v0.123.0
 

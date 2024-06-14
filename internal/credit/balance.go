@@ -44,3 +44,7 @@ type GrantBalanceSnapshot struct {
 	Overage  float64
 	At       time.Time
 }
+
+func (g GrantBalanceSnapshot) Balance() float64 {
+	return g.Balances.Balance()
+}
