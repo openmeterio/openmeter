@@ -141,16 +141,14 @@ func main() {
 
 	// Configure health checker
 	healthChecker := health.New(health.WithCheckListeners(gosundheit.NewLogger(logger.With(slog.String("component", "healthcheck")))))
-	{
-		handler := healthhttp.HandleHealthJSON(healthChecker)
-		telemetryRouter.Handle("/healthz", handler)
+	handler := healthhttp.HandleHealthJSON(healthChecker)
+	telemetryRouter.Handle("/healthz", handler)
 
-		// Kubernetes style health checks
-		telemetryRouter.HandleFunc("/healthz/live", func(w http.ResponseWriter, _ *http.Request) {
-			_, _ = w.Write([]byte("ok"))
-		})
-		telemetryRouter.Handle("/healthz/ready", handler)
-	}
+	// Kubernetes style health checks
+	telemetryRouter.HandleFunc("/healthz/live", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("ok"))
+	})
+	telemetryRouter.Handle("/healthz/ready", handler)
 
 	logger.Info("starting OpenMeter sink worker", "config", map[string]string{
 		"telemetry.address":   conf.Telemetry.Address,
@@ -168,39 +166,39 @@ func main() {
 		logger.Error("failed to initialize sink worker", "error", err)
 		os.Exit(1)
 	}
-
-	var group run.Group
+	defer func() {
+		_ = sink.Close()
+	}()
 
 	// Set up telemetry server
-	{
-		server := &http.Server{
-			Addr:    conf.Telemetry.Address,
-			Handler: telemetryRouter,
-			BaseContext: func(_ net.Listener) context.Context {
-				return ctx
-			},
-		}
-		defer server.Close()
-
-		group.Add(
-			func() error { return server.ListenAndServe() },
-			func(err error) { _ = server.Shutdown(ctx) },
-		)
+	server := &http.Server{
+		Addr:    conf.Telemetry.Address,
+		Handler: telemetryRouter,
+		BaseContext: func(_ net.Listener) context.Context {
+			return ctx
+		},
 	}
+	defer func() {
+		_ = server.Close()
+	}()
 
-	// Starting sink worker
-	{
-		defer sink.Close()
+	var group run.Group
+	// Add sink worker to run group
+	group.Add(
+		func() error { return sink.Run(ctx) },
+		func(err error) { _ = sink.Close() },
+	)
 
-		group.Add(
-			func() error { return sink.Run(ctx) },
-			func(err error) { _ = sink.Close() },
-		)
-	}
+	// Add telemetry server to run group
+	group.Add(
+		func() error { return server.ListenAndServe() },
+		func(err error) { _ = server.Shutdown(ctx) },
+	)
 
 	// Setup signal handler
 	group.Add(run.SignalHandler(ctx, syscall.SIGINT, syscall.SIGTERM))
 
+	// Run actors
 	err = group.Run()
 
 	if e := (run.SignalError{}); errors.As(err, &e) {
