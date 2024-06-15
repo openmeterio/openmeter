@@ -6,20 +6,14 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type GrantID string
-type NamespacedGrantID struct {
-	Namespace string
-	ID        GrantID
-}
-
 type GrantOwner string
 type NamespacedGrantOwner struct {
 	Namespace string
 	ID        GrantOwner
 }
 
-func NewNamespacedGrantID(namespace string, id GrantID) NamespacedGrantID {
-	return NamespacedGrantID{
+func NewNamespacedGrantID(namespace string, id string) models.NamespacedID {
+	return models.NamespacedID{
 		Namespace: namespace,
 		ID:        id,
 	}
@@ -31,7 +25,7 @@ type Grant struct {
 	models.NamespacedModel
 
 	// ID is the readonly identifies of a grant.
-	ID GrantID `json:"id,omitempty"`
+	ID string `json:"id,omitempty"`
 
 	// Generic Owner reference
 	OwnerID GrantOwner `json:"owner"`
@@ -85,8 +79,8 @@ func (g Grant) ActiveAt(t time.Time) bool {
 	return (g.EffectiveAt.Before(t) || g.EffectiveAt.Equal(t)) && g.ExpiresAt.After(t)
 }
 
-func (g Grant) GetNamespacedID() NamespacedGrantID {
-	return NamespacedGrantID{
+func (g Grant) GetNamespacedID() models.NamespacedID {
+	return models.NamespacedID{
 		Namespace: g.Namespace,
 		ID:        g.ID,
 	}

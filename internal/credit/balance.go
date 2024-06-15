@@ -3,7 +3,7 @@ package credit
 import "time"
 
 // Represents a point in time balance of grants
-type GrantBalanceMap map[GrantID]float64
+type GrantBalanceMap map[string]float64
 
 func (g GrantBalanceMap) Copy() GrantBalanceMap {
 	r := make(GrantBalanceMap, len(g))
@@ -13,12 +13,12 @@ func (g GrantBalanceMap) Copy() GrantBalanceMap {
 	return r
 }
 
-func (g GrantBalanceMap) Burn(grantID GrantID, amount float64) {
+func (g GrantBalanceMap) Burn(grantID string, amount float64) {
 	balance := g[grantID]
 	g[grantID] = balance - amount
 }
 
-func (g GrantBalanceMap) Set(grantID GrantID, amount float64) {
+func (g GrantBalanceMap) Set(grantID string, amount float64) {
 	g[grantID] = amount
 }
 

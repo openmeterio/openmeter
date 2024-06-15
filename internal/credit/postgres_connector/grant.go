@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
 	db_credit "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -240,7 +241,7 @@ func (c *PostgresConnector) ListGrants(ctx context.Context, params credit.ListGr
 	return list, nil
 }
 
-func (c *PostgresConnector) GetGrant(ctx context.Context, grantID credit.NamespacedGrantID) (credit.Grant, error) {
+func (c *PostgresConnector) GetGrant(ctx context.Context, grantID models.NamespacedID) (credit.Grant, error) {
 	entity, err := c.db.CreditEntry.Query().Where(
 		db_credit.Or(
 			// grant

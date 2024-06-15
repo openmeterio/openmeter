@@ -28,7 +28,7 @@ type engine struct {
 	// List of all grants that are active at the relevant period at some point.
 	grants []Grant
 	// Map of all grants that are active at the relevant period at some point.
-	grantsMap map[GrantID]Grant
+	grantsMap map[string]Grant
 	// Returns the total feature usage in the queried period
 	getFeatureUsage QueryUsageFn
 	// granularity     models.WindowSize // TODO: implement
@@ -42,7 +42,7 @@ var _ Engine = (*engine)(nil)
 
 func (e *engine) setup(grants []Grant) {
 	e.grants = grants
-	e.grantsMap = make(map[GrantID]Grant)
+	e.grantsMap = make(map[string]Grant)
 	for _, grant := range grants {
 		e.grantsMap[grant.ID] = grant
 	}
@@ -69,9 +69,9 @@ func (e *engine) Run(grants []Grant, startingBalances GrantBalanceMap, overage f
 	balancesAtPhaseStart := startingBalances.Copy()
 
 	rePrioritize := false
-	recurredGrants := []GrantID{}
+	recurredGrants := []string{}
 
-	grantMap := make(map[GrantID]Grant)
+	grantMap := make(map[string]Grant)
 	for _, grant := range e.grants {
 		grantMap[grant.ID] = grant
 	}
@@ -228,7 +228,7 @@ func (e *engine) GetPhases(period Period) ([]burnPhase, error) {
 	if len(recurrenceTimes) == 0 {
 		recurrenceTimes = []struct {
 			time     time.Time
-			grantIDs []GrantID
+			grantIDs []string
 		}{}
 	}
 
@@ -335,11 +335,11 @@ func (e *engine) getGrantActivityChanges(period Period) []time.Time {
 // Get all times grants recurr in the period.
 func (e *engine) getGrantRecurrenceTimes(period Period) ([]struct {
 	time     time.Time
-	grantIDs []GrantID
+	grantIDs []string
 }, error) {
 	times := []struct {
 		time    time.Time
-		grantID GrantID
+		grantID string
 	}{}
 	grantsWithRecurrence := slicesx.Filter(e.grants, func(grant Grant) bool {
 		return grant.Recurrence != nil
@@ -357,7 +357,7 @@ func (e *engine) getGrantRecurrenceTimes(period Period) ([]struct {
 		for i.Before(period.To) && grant.ActiveAt(i) {
 			times = append(times, struct {
 				time    time.Time
-				grantID GrantID
+				grantID string
 			}{time: i, grantID: grant.ID})
 			i, err = grant.Recurrence.Next(i)
 			if err != nil {
@@ -374,15 +374,15 @@ func (e *engine) getGrantRecurrenceTimes(period Period) ([]struct {
 	// dedupe times by time
 	deduped := []struct {
 		time     time.Time
-		grantIDs []GrantID
+		grantIDs []string
 	}{}
 	for _, t := range times {
 		// if the last deduped time is not the same as the current time, add a new deduped time
 		if len(deduped) == 0 || !deduped[len(deduped)-1].time.Equal(t.time) {
 			deduped = append(deduped, struct {
 				time     time.Time
-				grantIDs []GrantID
-			}{time: t.time, grantIDs: []GrantID{t.grantID}})
+				grantIDs []string
+			}{time: t.time, grantIDs: []string{t.grantID}})
 			// if the last deduped time is the same as the current time, add the grantID to the last deduped time
 		} else {
 			deduped[len(deduped)-1].grantIDs = append(deduped[len(deduped)-1].grantIDs, t.grantID)
@@ -395,7 +395,7 @@ type burnPhase struct {
 	from time.Time
 	to   time.Time
 	// The ID of the grant that recurred marking the end of this phase (if any)
-	grantsRecurredAtEnd []GrantID
+	grantsRecurredAtEnd []string
 	// If priority order changes at the end of this phase
 	priorityChange bool
 }

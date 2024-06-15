@@ -37,11 +37,11 @@ func init() {
 	// creditentry.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
 	creditentry.NamespaceValidator = creditentryDescNamespace.Validators[0].(func(string) error)
 	// creditentryDescPriority is the schema descriptor for priority field.
-	creditentryDescPriority := creditentryFields[6].Descriptor()
+	creditentryDescPriority := creditentryFields[4].Descriptor()
 	// creditentry.DefaultPriority holds the default value on creation for the priority field.
 	creditentry.DefaultPriority = creditentryDescPriority.Default.(uint8)
 	// creditentryDescEffectiveAt is the schema descriptor for effective_at field.
-	creditentryDescEffectiveAt := creditentryFields[7].Descriptor()
+	creditentryDescEffectiveAt := creditentryFields[5].Descriptor()
 	// creditentry.DefaultEffectiveAt holds the default value on creation for the effective_at field.
 	creditentry.DefaultEffectiveAt = creditentryDescEffectiveAt.Default.(func() time.Time)
 	// creditentryDescID is the schema descriptor for id field.

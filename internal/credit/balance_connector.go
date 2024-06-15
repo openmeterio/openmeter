@@ -120,7 +120,7 @@ func (m *balanceConnector) GetBalanceHistoryOfOwner(ctx context.Context, owner N
 	times = append(times, startTimes...)
 	times = append(times, params.To)
 
-	periods := PeriodsFromTimes(times)
+	periods := SortedPeriodsFromDedupedTimes(times)
 	historySegments := make([]GrantBurnDownHistorySegment, 0, len(periods))
 
 	// collect al history segments through all periods

@@ -42,8 +42,6 @@ type CreditEntryMutation struct {
 	updated_at                 *time.Time
 	namespace                  *string
 	ledger_id                  *string
-	entry_type                 *credit.DELETEME_EntryType
-	_type                      *credit.DELETEME_GrantType
 	amount                     *float64
 	addamount                  *float64
 	priority                   *uint8
@@ -53,7 +51,6 @@ type CreditEntryMutation struct {
 	expiration_period_count    *uint8
 	addexpiration_period_count *int8
 	expiration_at              *time.Time
-	rollover_type              *credit.GrantRolloverType
 	rollover_max_amount        *float64
 	addrollover_max_amount     *float64
 	metadata                   *map[string]string
@@ -315,91 +312,6 @@ func (m *CreditEntryMutation) OldLedgerID(ctx context.Context) (v string, err er
 // ResetLedgerID resets all changes to the "ledger_id" field.
 func (m *CreditEntryMutation) ResetLedgerID() {
 	m.ledger_id = nil
-}
-
-// SetEntryType sets the "entry_type" field.
-func (m *CreditEntryMutation) SetEntryType(ct credit.DELETEME_EntryType) {
-	m.entry_type = &ct
-}
-
-// EntryType returns the value of the "entry_type" field in the mutation.
-func (m *CreditEntryMutation) EntryType() (r credit.DELETEME_EntryType, exists bool) {
-	v := m.entry_type
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldEntryType returns the old "entry_type" field's value of the CreditEntry entity.
-// If the CreditEntry object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CreditEntryMutation) OldEntryType(ctx context.Context) (v credit.DELETEME_EntryType, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldEntryType is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldEntryType requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldEntryType: %w", err)
-	}
-	return oldValue.EntryType, nil
-}
-
-// ResetEntryType resets all changes to the "entry_type" field.
-func (m *CreditEntryMutation) ResetEntryType() {
-	m.entry_type = nil
-}
-
-// SetType sets the "type" field.
-func (m *CreditEntryMutation) SetType(ct credit.DELETEME_GrantType) {
-	m._type = &ct
-}
-
-// GetType returns the value of the "type" field in the mutation.
-func (m *CreditEntryMutation) GetType() (r credit.DELETEME_GrantType, exists bool) {
-	v := m._type
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldType returns the old "type" field's value of the CreditEntry entity.
-// If the CreditEntry object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CreditEntryMutation) OldType(ctx context.Context) (v *credit.DELETEME_GrantType, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldType is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldType requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldType: %w", err)
-	}
-	return oldValue.Type, nil
-}
-
-// ClearType clears the value of the "type" field.
-func (m *CreditEntryMutation) ClearType() {
-	m._type = nil
-	m.clearedFields[creditentry.FieldType] = struct{}{}
-}
-
-// TypeCleared returns if the "type" field was cleared in this mutation.
-func (m *CreditEntryMutation) TypeCleared() bool {
-	_, ok := m.clearedFields[creditentry.FieldType]
-	return ok
-}
-
-// ResetType resets all changes to the "type" field.
-func (m *CreditEntryMutation) ResetType() {
-	m._type = nil
-	delete(m.clearedFields, creditentry.FieldType)
 }
 
 // SetFeatureID sets the "feature_id" field.
@@ -781,55 +693,6 @@ func (m *CreditEntryMutation) ResetExpirationAt() {
 	delete(m.clearedFields, creditentry.FieldExpirationAt)
 }
 
-// SetRolloverType sets the "rollover_type" field.
-func (m *CreditEntryMutation) SetRolloverType(crt credit.GrantRolloverType) {
-	m.rollover_type = &crt
-}
-
-// RolloverType returns the value of the "rollover_type" field in the mutation.
-func (m *CreditEntryMutation) RolloverType() (r credit.GrantRolloverType, exists bool) {
-	v := m.rollover_type
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldRolloverType returns the old "rollover_type" field's value of the CreditEntry entity.
-// If the CreditEntry object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CreditEntryMutation) OldRolloverType(ctx context.Context) (v *credit.GrantRolloverType, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldRolloverType is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldRolloverType requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldRolloverType: %w", err)
-	}
-	return oldValue.RolloverType, nil
-}
-
-// ClearRolloverType clears the value of the "rollover_type" field.
-func (m *CreditEntryMutation) ClearRolloverType() {
-	m.rollover_type = nil
-	m.clearedFields[creditentry.FieldRolloverType] = struct{}{}
-}
-
-// RolloverTypeCleared returns if the "rollover_type" field was cleared in this mutation.
-func (m *CreditEntryMutation) RolloverTypeCleared() bool {
-	_, ok := m.clearedFields[creditentry.FieldRolloverType]
-	return ok
-}
-
-// ResetRolloverType resets all changes to the "rollover_type" field.
-func (m *CreditEntryMutation) ResetRolloverType() {
-	m.rollover_type = nil
-	delete(m.clearedFields, creditentry.FieldRolloverType)
-}
-
 // SetRolloverMaxAmount sets the "rollover_max_amount" field.
 func (m *CreditEntryMutation) SetRolloverMaxAmount(f float64) {
 	m.rollover_max_amount = &f
@@ -1125,7 +988,7 @@ func (m *CreditEntryMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CreditEntryMutation) Fields() []string {
-	fields := make([]string, 0, 17)
+	fields := make([]string, 0, 14)
 	if m.created_at != nil {
 		fields = append(fields, creditentry.FieldCreatedAt)
 	}
@@ -1137,12 +1000,6 @@ func (m *CreditEntryMutation) Fields() []string {
 	}
 	if m.ledger_id != nil {
 		fields = append(fields, creditentry.FieldLedgerID)
-	}
-	if m.entry_type != nil {
-		fields = append(fields, creditentry.FieldEntryType)
-	}
-	if m._type != nil {
-		fields = append(fields, creditentry.FieldType)
 	}
 	if m.feature != nil {
 		fields = append(fields, creditentry.FieldFeatureID)
@@ -1164,9 +1021,6 @@ func (m *CreditEntryMutation) Fields() []string {
 	}
 	if m.expiration_at != nil {
 		fields = append(fields, creditentry.FieldExpirationAt)
-	}
-	if m.rollover_type != nil {
-		fields = append(fields, creditentry.FieldRolloverType)
 	}
 	if m.rollover_max_amount != nil {
 		fields = append(fields, creditentry.FieldRolloverMaxAmount)
@@ -1193,10 +1047,6 @@ func (m *CreditEntryMutation) Field(name string) (ent.Value, bool) {
 		return m.Namespace()
 	case creditentry.FieldLedgerID:
 		return m.LedgerID()
-	case creditentry.FieldEntryType:
-		return m.EntryType()
-	case creditentry.FieldType:
-		return m.GetType()
 	case creditentry.FieldFeatureID:
 		return m.FeatureID()
 	case creditentry.FieldAmount:
@@ -1211,8 +1061,6 @@ func (m *CreditEntryMutation) Field(name string) (ent.Value, bool) {
 		return m.ExpirationPeriodCount()
 	case creditentry.FieldExpirationAt:
 		return m.ExpirationAt()
-	case creditentry.FieldRolloverType:
-		return m.RolloverType()
 	case creditentry.FieldRolloverMaxAmount:
 		return m.RolloverMaxAmount()
 	case creditentry.FieldMetadata:
@@ -1236,10 +1084,6 @@ func (m *CreditEntryMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldNamespace(ctx)
 	case creditentry.FieldLedgerID:
 		return m.OldLedgerID(ctx)
-	case creditentry.FieldEntryType:
-		return m.OldEntryType(ctx)
-	case creditentry.FieldType:
-		return m.OldType(ctx)
 	case creditentry.FieldFeatureID:
 		return m.OldFeatureID(ctx)
 	case creditentry.FieldAmount:
@@ -1254,8 +1098,6 @@ func (m *CreditEntryMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldExpirationPeriodCount(ctx)
 	case creditentry.FieldExpirationAt:
 		return m.OldExpirationAt(ctx)
-	case creditentry.FieldRolloverType:
-		return m.OldRolloverType(ctx)
 	case creditentry.FieldRolloverMaxAmount:
 		return m.OldRolloverMaxAmount(ctx)
 	case creditentry.FieldMetadata:
@@ -1298,20 +1140,6 @@ func (m *CreditEntryMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetLedgerID(v)
-		return nil
-	case creditentry.FieldEntryType:
-		v, ok := value.(credit.DELETEME_EntryType)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetEntryType(v)
-		return nil
-	case creditentry.FieldType:
-		v, ok := value.(credit.DELETEME_GrantType)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetType(v)
 		return nil
 	case creditentry.FieldFeatureID:
 		v, ok := value.(string)
@@ -1361,13 +1189,6 @@ func (m *CreditEntryMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetExpirationAt(v)
-		return nil
-	case creditentry.FieldRolloverType:
-		v, ok := value.(credit.GrantRolloverType)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetRolloverType(v)
 		return nil
 	case creditentry.FieldRolloverMaxAmount:
 		v, ok := value.(float64)
@@ -1471,9 +1292,6 @@ func (m *CreditEntryMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *CreditEntryMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(creditentry.FieldType) {
-		fields = append(fields, creditentry.FieldType)
-	}
 	if m.FieldCleared(creditentry.FieldFeatureID) {
 		fields = append(fields, creditentry.FieldFeatureID)
 	}
@@ -1488,9 +1306,6 @@ func (m *CreditEntryMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(creditentry.FieldExpirationAt) {
 		fields = append(fields, creditentry.FieldExpirationAt)
-	}
-	if m.FieldCleared(creditentry.FieldRolloverType) {
-		fields = append(fields, creditentry.FieldRolloverType)
 	}
 	if m.FieldCleared(creditentry.FieldRolloverMaxAmount) {
 		fields = append(fields, creditentry.FieldRolloverMaxAmount)
@@ -1515,9 +1330,6 @@ func (m *CreditEntryMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *CreditEntryMutation) ClearField(name string) error {
 	switch name {
-	case creditentry.FieldType:
-		m.ClearType()
-		return nil
 	case creditentry.FieldFeatureID:
 		m.ClearFeatureID()
 		return nil
@@ -1532,9 +1344,6 @@ func (m *CreditEntryMutation) ClearField(name string) error {
 		return nil
 	case creditentry.FieldExpirationAt:
 		m.ClearExpirationAt()
-		return nil
-	case creditentry.FieldRolloverType:
-		m.ClearRolloverType()
 		return nil
 	case creditentry.FieldRolloverMaxAmount:
 		m.ClearRolloverMaxAmount()
@@ -1565,12 +1374,6 @@ func (m *CreditEntryMutation) ResetField(name string) error {
 	case creditentry.FieldLedgerID:
 		m.ResetLedgerID()
 		return nil
-	case creditentry.FieldEntryType:
-		m.ResetEntryType()
-		return nil
-	case creditentry.FieldType:
-		m.ResetType()
-		return nil
 	case creditentry.FieldFeatureID:
 		m.ResetFeatureID()
 		return nil
@@ -1591,9 +1394,6 @@ func (m *CreditEntryMutation) ResetField(name string) error {
 		return nil
 	case creditentry.FieldExpirationAt:
 		m.ResetExpirationAt()
-		return nil
-	case creditentry.FieldRolloverType:
-		m.ResetRolloverType()
 		return nil
 	case creditentry.FieldRolloverMaxAmount:
 		m.ResetRolloverMaxAmount()

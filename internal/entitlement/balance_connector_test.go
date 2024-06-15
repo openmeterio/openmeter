@@ -6,23 +6,24 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
-	credit_postgres_adapter "github.com/openmeterio/openmeter/internal/credit/postgres_adapter"
-	credit_postgres_adapter_db "github.com/openmeterio/openmeter/internal/credit/postgres_adapter/ent/db"
+	credit_postgres_adapter "github.com/openmeterio/openmeter/internal/credit/postgresadapter"
+	credit_postgres_adapter_db "github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db"
 	"github.com/openmeterio/openmeter/internal/entitlement"
-	feature_postgres_adapter "github.com/openmeterio/openmeter/internal/productcatalog/postgres_adapter"
-	feature_postgres_adapter_db "github.com/openmeterio/openmeter/internal/productcatalog/postgres_adapter/ent/db"
+	feature_postgres_adapter "github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter"
+	feature_postgres_adapter_db "github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter/ent/db"
 	streaming_testutils "github.com/openmeterio/openmeter/internal/streaming/testutils"
 	"github.com/openmeterio/openmeter/internal/testutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/stretchr/testify/assert"
 )
 
 type mockEDBAdapter struct {
-	entitlements map[entitlement.NamespacedEntitlementID]entitlement.Entitlement
+	entitlements map[models.NamespacedID]entitlement.Entitlement
 }
 
 var _ entitlement.EntitlementDBConnector = (*mockEDBAdapter)(nil)
 
-func (m *mockEDBAdapter) GetEntitlement(ctx context.Context, id entitlement.NamespacedEntitlementID) (*entitlement.Entitlement, error) {
+func (m *mockEDBAdapter) GetEntitlement(ctx context.Context, id models.NamespacedID) (*entitlement.Entitlement, error) {
 	entitl, ok := m.entitlements[id]
 	if !ok {
 		return nil, &entitlement.EntitlementNotFoundError{EntitlementID: id}
@@ -47,7 +48,7 @@ func TestE2E(t *testing.T) {
 	owner := entitlement.NewEntitlementGrantOwnerAdapter(
 		featureDB,
 		&mockEDBAdapter{
-			entitlements: map[entitlement.NamespacedEntitlementID]entitlement.Entitlement{
+			entitlements: map[models.NamespacedID]entitlement.Entitlement{
 				{Namespace: "ns1", ID: "ent1"}: {
 					ID: "ent1",
 				},
@@ -80,7 +81,7 @@ func TestE2E(t *testing.T) {
 
 	queryTime := t1.AddDate(0, 0, 1)
 
-	entBalance, err := connector.GetEntitlementBalance(context.Background(), entitlement.NamespacedEntitlementID{Namespace: "ns1", ID: "ent1"}, queryTime)
+	entBalance, err := connector.GetEntitlementBalance(context.Background(), models.NamespacedID{Namespace: "ns1", ID: "ent1"}, queryTime)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, entBalance)

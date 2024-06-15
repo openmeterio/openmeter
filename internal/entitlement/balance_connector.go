@@ -7,14 +7,15 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/streaming"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type EntitlementBalance struct {
-	EntitlementID EntitlementID `json:"entitlementId"`
-	Balance       float64       `json:"balance"`
-	UsageInPeriod float64       `json:"usageInPeriod"`
-	Overage       float64       `json:"overage"`
-	StartOfPeriod time.Time     `json:"startOfPeriod"`
+	EntitlementID string    `json:"entitlementId"`
+	Balance       float64   `json:"balance"`
+	UsageInPeriod float64   `json:"usageInPeriod"`
+	Overage       float64   `json:"overage"`
+	StartOfPeriod time.Time `json:"startOfPeriod"`
 }
 
 type EntitlementBalanceHistoryWindow struct {
@@ -29,8 +30,8 @@ type EntitlementBalanceHistoryWindow struct {
 type EntitlementGrantID string
 
 type EntitlementBalanceConnector interface {
-	GetEntitlementBalance(ctx context.Context, entitlementID NamespacedEntitlementID, at time.Time) (EntitlementBalance, error)
-	// GetEntitlementBalanceHistory(ctx context.Context, entitlementID NamespacedEntitlementID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
+	GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (EntitlementBalance, error)
+	// GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
 	// GetEntitlementGrantBalanceHistory(ctx context.Context, entitlementGrantID EntitlementGrantID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
 }
 
@@ -52,7 +53,7 @@ func NewEntitlementBalanceConnector(
 	}
 }
 
-func (e *entitlementBalanceConnector) GetEntitlementBalance(ctx context.Context, entitlementID NamespacedEntitlementID, at time.Time) (EntitlementBalance, error) {
+func (e *entitlementBalanceConnector) GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (EntitlementBalance, error) {
 	nsOwner := credit.NamespacedGrantOwner{
 		Namespace: entitlementID.Namespace,
 		ID:        credit.GrantOwner(entitlementID.ID),

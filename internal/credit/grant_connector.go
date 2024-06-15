@@ -20,10 +20,10 @@ type CreateGrantInput struct {
 
 type GrantConnector interface {
 	CreateGrant(ctx context.Context, owner NamespacedGrantOwner, grant CreateGrantInput) (Grant, error)
-	VoidGrant(ctx context.Context, grantID NamespacedGrantID) error
+	VoidGrant(ctx context.Context, grantID models.NamespacedID) error
 	ListGrants(ctx context.Context, params ListGrantsParams) ([]Grant, error)
 	ListActiveGrantsBetween(ctx context.Context, owner NamespacedGrantOwner, from, to time.Time) ([]Grant, error)
-	GetGrant(ctx context.Context, grantID NamespacedGrantID) (Grant, error)
+	GetGrant(ctx context.Context, grantID models.NamespacedID) (Grant, error)
 }
 
 type GrantOrderBy string
@@ -62,11 +62,11 @@ type DBCreateGrantInput struct {
 // Might be that credit operations in general are more tighlty linked than assumed here
 type GrantDBConnector interface {
 	CreateGrant(ctx context.Context, grant DBCreateGrantInput) (Grant, error)
-	VoidGrant(ctx context.Context, grantID NamespacedGrantID) error
+	VoidGrant(ctx context.Context, grantID models.NamespacedID) error
 	ListGrants(ctx context.Context, params ListGrantsParams) ([]Grant, error)
 	// ListActiveGrantsBetween returns all grants that are active at any point between the given time range.
 	ListActiveGrantsBetween(ctx context.Context, owner NamespacedGrantOwner, from, to time.Time) ([]Grant, error)
-	GetGrant(ctx context.Context, grantID NamespacedGrantID) (Grant, error)
+	GetGrant(ctx context.Context, grantID models.NamespacedID) (Grant, error)
 }
 
 type grantConnector struct {
@@ -113,7 +113,7 @@ func (m *grantConnector) CreateGrant(ctx context.Context, owner NamespacedGrantO
 	})
 }
 
-func (m *grantConnector) VoidGrant(ctx context.Context, grantID NamespacedGrantID) error {
+func (m *grantConnector) VoidGrant(ctx context.Context, grantID models.NamespacedID) error {
 	// can we void grants that have been used?
 	_, err := m.db.GetGrant(ctx, grantID)
 	if err != nil {
@@ -131,12 +131,12 @@ func (m *grantConnector) ListActiveGrantsBetween(ctx context.Context, owner Name
 	return m.db.ListActiveGrantsBetween(ctx, owner, from, to)
 }
 
-func (m *grantConnector) GetGrant(ctx context.Context, grantID NamespacedGrantID) (Grant, error) {
+func (m *grantConnector) GetGrant(ctx context.Context, grantID models.NamespacedID) (Grant, error) {
 	return m.db.GetGrant(ctx, grantID)
 }
 
 type GrantNotFoundError struct {
-	GrantID GrantID
+	GrantID string
 }
 
 func (e *GrantNotFoundError) Error() string {

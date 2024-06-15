@@ -642,7 +642,7 @@ func TestEngine(t *testing.T) {
 				grants := make([]credit.Grant, numOfGrants)
 				for i := 0; i < numOfGrants; i++ {
 					grant := credit.Grant{
-						ID:          credit.GrantID(fmt.Sprintf("grant-%d", i)),
+						ID:          fmt.Sprintf("grant-%d", i),
 						Amount:      float64(gofakeit.IntRange(10000, 1000000)), // input value limited to ints
 						Priority:    gofakeit.Uint8(),
 						EffectiveAt: gofakeit.DateRange(start, end).Truncate(granularity),
@@ -723,7 +723,7 @@ func TestEngine(t *testing.T) {
 				grants := make([]credit.Grant, numOfGrants)
 				for i := 0; i < numOfGrants; i++ {
 					grant := credit.Grant{
-						ID:          credit.GrantID(fmt.Sprintf("grant-%d", i)),
+						ID:          fmt.Sprintf("grant-%d", i),
 						Amount:      float64(gofakeit.IntRange(10000, 1000000)), // input value limited to ints
 						Priority:    gofakeit.Uint8(),
 						EffectiveAt: gofakeit.DateRange(start, end).Truncate(granularity),

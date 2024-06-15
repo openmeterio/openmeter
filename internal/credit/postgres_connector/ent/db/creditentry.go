@@ -28,10 +28,6 @@ type CreditEntry struct {
 	Namespace string `json:"namespace,omitempty"`
 	// LedgerID holds the value of the "ledger_id" field.
 	LedgerID string `json:"ledger_id,omitempty"`
-	// EntryType holds the value of the "entry_type" field.
-	EntryType credit.DELETEME_EntryType `json:"entry_type,omitempty"`
-	// Type holds the value of the "type" field.
-	Type *credit.DELETEME_GrantType `json:"type,omitempty"`
 	// FeatureID holds the value of the "feature_id" field.
 	FeatureID *string `json:"feature_id,omitempty"`
 	// Amount holds the value of the "amount" field.
@@ -46,8 +42,6 @@ type CreditEntry struct {
 	ExpirationPeriodCount *uint8 `json:"expiration_period_count,omitempty"`
 	// ExpirationAt holds the value of the "expiration_at" field.
 	ExpirationAt *time.Time `json:"expiration_at,omitempty"`
-	// RolloverType holds the value of the "rollover_type" field.
-	RolloverType *credit.GrantRolloverType `json:"rollover_type,omitempty"`
 	// RolloverMaxAmount holds the value of the "rollover_max_amount" field.
 	RolloverMaxAmount *float64 `json:"rollover_max_amount,omitempty"`
 	// Metadata holds the value of the "metadata" field.
@@ -117,7 +111,7 @@ func (*CreditEntry) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullFloat64)
 		case creditentry.FieldPriority, creditentry.FieldExpirationPeriodCount:
 			values[i] = new(sql.NullInt64)
-		case creditentry.FieldID, creditentry.FieldNamespace, creditentry.FieldLedgerID, creditentry.FieldEntryType, creditentry.FieldType, creditentry.FieldFeatureID, creditentry.FieldExpirationPeriodDuration, creditentry.FieldRolloverType, creditentry.FieldParentID:
+		case creditentry.FieldID, creditentry.FieldNamespace, creditentry.FieldLedgerID, creditentry.FieldFeatureID, creditentry.FieldExpirationPeriodDuration, creditentry.FieldParentID:
 			values[i] = new(sql.NullString)
 		case creditentry.FieldCreatedAt, creditentry.FieldUpdatedAt, creditentry.FieldEffectiveAt, creditentry.FieldExpirationAt:
 			values[i] = new(sql.NullTime)
@@ -166,19 +160,6 @@ func (ce *CreditEntry) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				ce.LedgerID = value.String
 			}
-		case creditentry.FieldEntryType:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field entry_type", values[i])
-			} else if value.Valid {
-				ce.EntryType = credit.DELETEME_EntryType(value.String)
-			}
-		case creditentry.FieldType:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field type", values[i])
-			} else if value.Valid {
-				ce.Type = new(credit.DELETEME_GrantType)
-				*ce.Type = credit.DELETEME_GrantType(value.String)
-			}
 		case creditentry.FieldFeatureID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field feature_id", values[i])
@@ -225,13 +206,6 @@ func (ce *CreditEntry) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				ce.ExpirationAt = new(time.Time)
 				*ce.ExpirationAt = value.Time
-			}
-		case creditentry.FieldRolloverType:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field rollover_type", values[i])
-			} else if value.Valid {
-				ce.RolloverType = new(credit.GrantRolloverType)
-				*ce.RolloverType = credit.GrantRolloverType(value.String)
 			}
 		case creditentry.FieldRolloverMaxAmount:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
@@ -318,14 +292,6 @@ func (ce *CreditEntry) String() string {
 	builder.WriteString("ledger_id=")
 	builder.WriteString(ce.LedgerID)
 	builder.WriteString(", ")
-	builder.WriteString("entry_type=")
-	builder.WriteString(fmt.Sprintf("%v", ce.EntryType))
-	builder.WriteString(", ")
-	if v := ce.Type; v != nil {
-		builder.WriteString("type=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
-	builder.WriteString(", ")
 	if v := ce.FeatureID; v != nil {
 		builder.WriteString("feature_id=")
 		builder.WriteString(*v)
@@ -355,11 +321,6 @@ func (ce *CreditEntry) String() string {
 	if v := ce.ExpirationAt; v != nil {
 		builder.WriteString("expiration_at=")
 		builder.WriteString(v.Format(time.ANSIC))
-	}
-	builder.WriteString(", ")
-	if v := ce.RolloverType; v != nil {
-		builder.WriteString("rollover_type=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
 	if v := ce.RolloverMaxAmount; v != nil {

@@ -336,76 +336,6 @@ func LedgerIDContainsFold(v string) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldContainsFold(FieldLedgerID, v))
 }
 
-// EntryTypeEQ applies the EQ predicate on the "entry_type" field.
-func EntryTypeEQ(v credit.DELETEME_EntryType) predicate.CreditEntry {
-	vc := v
-	return predicate.CreditEntry(sql.FieldEQ(FieldEntryType, vc))
-}
-
-// EntryTypeNEQ applies the NEQ predicate on the "entry_type" field.
-func EntryTypeNEQ(v credit.DELETEME_EntryType) predicate.CreditEntry {
-	vc := v
-	return predicate.CreditEntry(sql.FieldNEQ(FieldEntryType, vc))
-}
-
-// EntryTypeIn applies the In predicate on the "entry_type" field.
-func EntryTypeIn(vs ...credit.DELETEME_EntryType) predicate.CreditEntry {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.CreditEntry(sql.FieldIn(FieldEntryType, v...))
-}
-
-// EntryTypeNotIn applies the NotIn predicate on the "entry_type" field.
-func EntryTypeNotIn(vs ...credit.DELETEME_EntryType) predicate.CreditEntry {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.CreditEntry(sql.FieldNotIn(FieldEntryType, v...))
-}
-
-// TypeEQ applies the EQ predicate on the "type" field.
-func TypeEQ(v credit.DELETEME_GrantType) predicate.CreditEntry {
-	vc := v
-	return predicate.CreditEntry(sql.FieldEQ(FieldType, vc))
-}
-
-// TypeNEQ applies the NEQ predicate on the "type" field.
-func TypeNEQ(v credit.DELETEME_GrantType) predicate.CreditEntry {
-	vc := v
-	return predicate.CreditEntry(sql.FieldNEQ(FieldType, vc))
-}
-
-// TypeIn applies the In predicate on the "type" field.
-func TypeIn(vs ...credit.DELETEME_GrantType) predicate.CreditEntry {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.CreditEntry(sql.FieldIn(FieldType, v...))
-}
-
-// TypeNotIn applies the NotIn predicate on the "type" field.
-func TypeNotIn(vs ...credit.DELETEME_GrantType) predicate.CreditEntry {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.CreditEntry(sql.FieldNotIn(FieldType, v...))
-}
-
-// TypeIsNil applies the IsNil predicate on the "type" field.
-func TypeIsNil() predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldIsNull(FieldType))
-}
-
-// TypeNotNil applies the NotNil predicate on the "type" field.
-func TypeNotNil() predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldNotNull(FieldType))
-}
-
 // FeatureIDEQ applies the EQ predicate on the "feature_id" field.
 func FeatureIDEQ(v string) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldEQ(FieldFeatureID, v))
@@ -749,46 +679,6 @@ func ExpirationAtIsNil() predicate.CreditEntry {
 // ExpirationAtNotNil applies the NotNil predicate on the "expiration_at" field.
 func ExpirationAtNotNil() predicate.CreditEntry {
 	return predicate.CreditEntry(sql.FieldNotNull(FieldExpirationAt))
-}
-
-// RolloverTypeEQ applies the EQ predicate on the "rollover_type" field.
-func RolloverTypeEQ(v credit.GrantRolloverType) predicate.CreditEntry {
-	vc := v
-	return predicate.CreditEntry(sql.FieldEQ(FieldRolloverType, vc))
-}
-
-// RolloverTypeNEQ applies the NEQ predicate on the "rollover_type" field.
-func RolloverTypeNEQ(v credit.GrantRolloverType) predicate.CreditEntry {
-	vc := v
-	return predicate.CreditEntry(sql.FieldNEQ(FieldRolloverType, vc))
-}
-
-// RolloverTypeIn applies the In predicate on the "rollover_type" field.
-func RolloverTypeIn(vs ...credit.GrantRolloverType) predicate.CreditEntry {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.CreditEntry(sql.FieldIn(FieldRolloverType, v...))
-}
-
-// RolloverTypeNotIn applies the NotIn predicate on the "rollover_type" field.
-func RolloverTypeNotIn(vs ...credit.GrantRolloverType) predicate.CreditEntry {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.CreditEntry(sql.FieldNotIn(FieldRolloverType, v...))
-}
-
-// RolloverTypeIsNil applies the IsNil predicate on the "rollover_type" field.
-func RolloverTypeIsNil() predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldIsNull(FieldRolloverType))
-}
-
-// RolloverTypeNotNil applies the NotNil predicate on the "rollover_type" field.
-func RolloverTypeNotNil() predicate.CreditEntry {
-	return predicate.CreditEntry(sql.FieldNotNull(FieldRolloverType))
 }
 
 // RolloverMaxAmountEQ applies the EQ predicate on the "rollover_max_amount" field.

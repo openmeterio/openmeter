@@ -9,27 +9,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// FeatureID is the unique identifier for a feature.
-type FeatureID string
-
-func (id FeatureID) String() string {
-	return string(id)
-}
-
-type NamespacedFeatureID struct {
-	Namespace string
-	ID        FeatureID
-}
-
-func NewNamespacedFeatureID(namespace string, id FeatureID) NamespacedFeatureID {
-	return NamespacedFeatureID{
-		Namespace: namespace,
-		ID:        id,
-	}
-}
-
 type FeatureNotFoundError struct {
-	ID FeatureID
+	ID string
 }
 
 func (e *FeatureNotFoundError) Error() string {
@@ -47,7 +28,7 @@ func (e *FeatureInvalidFiltersError) Error() string {
 
 type FeatureWithNameAlreadyExistsError struct {
 	Name string
-	ID   FeatureID
+	ID   string
 }
 
 func (e *FeatureWithNameAlreadyExistsError) Error() string {
@@ -76,8 +57,8 @@ func (e *FeatureInvalidMeterAggregationError) Error() string {
 // Feature is a feature or service offered to a customer.
 // For example: CPU-Hours, Tokens, API Calls, etc.
 type Feature struct {
-	Namespace string    `json:"-"`
-	ID        FeatureID `json:"id,omitempty"`
+	Namespace string `json:"-"`
+	ID        string `json:"id,omitempty"`
 
 	// Name The name of the feature.
 	Name string `json:"name"`

@@ -65,26 +65,6 @@ func (cec *CreditEntryCreate) SetLedgerID(s string) *CreditEntryCreate {
 	return cec
 }
 
-// SetEntryType sets the "entry_type" field.
-func (cec *CreditEntryCreate) SetEntryType(ct credit.DELETEME_EntryType) *CreditEntryCreate {
-	cec.mutation.SetEntryType(ct)
-	return cec
-}
-
-// SetType sets the "type" field.
-func (cec *CreditEntryCreate) SetType(ct credit.DELETEME_GrantType) *CreditEntryCreate {
-	cec.mutation.SetType(ct)
-	return cec
-}
-
-// SetNillableType sets the "type" field if the given value is not nil.
-func (cec *CreditEntryCreate) SetNillableType(ct *credit.DELETEME_GrantType) *CreditEntryCreate {
-	if ct != nil {
-		cec.SetType(*ct)
-	}
-	return cec
-}
-
 // SetFeatureID sets the "feature_id" field.
 func (cec *CreditEntryCreate) SetFeatureID(s string) *CreditEntryCreate {
 	cec.mutation.SetFeatureID(s)
@@ -179,20 +159,6 @@ func (cec *CreditEntryCreate) SetExpirationAt(t time.Time) *CreditEntryCreate {
 func (cec *CreditEntryCreate) SetNillableExpirationAt(t *time.Time) *CreditEntryCreate {
 	if t != nil {
 		cec.SetExpirationAt(*t)
-	}
-	return cec
-}
-
-// SetRolloverType sets the "rollover_type" field.
-func (cec *CreditEntryCreate) SetRolloverType(crt credit.GrantRolloverType) *CreditEntryCreate {
-	cec.mutation.SetRolloverType(crt)
-	return cec
-}
-
-// SetNillableRolloverType sets the "rollover_type" field if the given value is not nil.
-func (cec *CreditEntryCreate) SetNillableRolloverType(crt *credit.GrantRolloverType) *CreditEntryCreate {
-	if crt != nil {
-		cec.SetRolloverType(*crt)
 	}
 	return cec
 }
@@ -350,19 +316,6 @@ func (cec *CreditEntryCreate) check() error {
 	if _, ok := cec.mutation.LedgerID(); !ok {
 		return &ValidationError{Name: "ledger_id", err: errors.New(`db: missing required field "CreditEntry.ledger_id"`)}
 	}
-	if _, ok := cec.mutation.EntryType(); !ok {
-		return &ValidationError{Name: "entry_type", err: errors.New(`db: missing required field "CreditEntry.entry_type"`)}
-	}
-	if v, ok := cec.mutation.EntryType(); ok {
-		if err := creditentry.EntryTypeValidator(v); err != nil {
-			return &ValidationError{Name: "entry_type", err: fmt.Errorf(`db: validator failed for field "CreditEntry.entry_type": %w`, err)}
-		}
-	}
-	if v, ok := cec.mutation.GetType(); ok {
-		if err := creditentry.TypeValidator(v); err != nil {
-			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "CreditEntry.type": %w`, err)}
-		}
-	}
 	if _, ok := cec.mutation.Priority(); !ok {
 		return &ValidationError{Name: "priority", err: errors.New(`db: missing required field "CreditEntry.priority"`)}
 	}
@@ -372,11 +325,6 @@ func (cec *CreditEntryCreate) check() error {
 	if v, ok := cec.mutation.ExpirationPeriodDuration(); ok {
 		if err := creditentry.ExpirationPeriodDurationValidator(v); err != nil {
 			return &ValidationError{Name: "expiration_period_duration", err: fmt.Errorf(`db: validator failed for field "CreditEntry.expiration_period_duration": %w`, err)}
-		}
-	}
-	if v, ok := cec.mutation.RolloverType(); ok {
-		if err := creditentry.RolloverTypeValidator(v); err != nil {
-			return &ValidationError{Name: "rollover_type", err: fmt.Errorf(`db: validator failed for field "CreditEntry.rollover_type": %w`, err)}
 		}
 	}
 	return nil
@@ -431,14 +379,6 @@ func (cec *CreditEntryCreate) createSpec() (*CreditEntry, *sqlgraph.CreateSpec) 
 		_spec.SetField(creditentry.FieldLedgerID, field.TypeString, value)
 		_node.LedgerID = value
 	}
-	if value, ok := cec.mutation.EntryType(); ok {
-		_spec.SetField(creditentry.FieldEntryType, field.TypeEnum, value)
-		_node.EntryType = value
-	}
-	if value, ok := cec.mutation.GetType(); ok {
-		_spec.SetField(creditentry.FieldType, field.TypeEnum, value)
-		_node.Type = &value
-	}
 	if value, ok := cec.mutation.Amount(); ok {
 		_spec.SetField(creditentry.FieldAmount, field.TypeFloat64, value)
 		_node.Amount = &value
@@ -462,10 +402,6 @@ func (cec *CreditEntryCreate) createSpec() (*CreditEntry, *sqlgraph.CreateSpec) 
 	if value, ok := cec.mutation.ExpirationAt(); ok {
 		_spec.SetField(creditentry.FieldExpirationAt, field.TypeTime, value)
 		_node.ExpirationAt = &value
-	}
-	if value, ok := cec.mutation.RolloverType(); ok {
-		_spec.SetField(creditentry.FieldRolloverType, field.TypeEnum, value)
-		_node.RolloverType = &value
 	}
 	if value, ok := cec.mutation.RolloverMaxAmount(); ok {
 		_spec.SetField(creditentry.FieldRolloverMaxAmount, field.TypeFloat64, value)
@@ -633,12 +569,6 @@ func (u *CreditEntryUpsertOne) UpdateNewValues() *CreditEntryUpsertOne {
 		if _, exists := u.create.mutation.LedgerID(); exists {
 			s.SetIgnore(creditentry.FieldLedgerID)
 		}
-		if _, exists := u.create.mutation.EntryType(); exists {
-			s.SetIgnore(creditentry.FieldEntryType)
-		}
-		if _, exists := u.create.mutation.GetType(); exists {
-			s.SetIgnore(creditentry.FieldType)
-		}
 		if _, exists := u.create.mutation.FeatureID(); exists {
 			s.SetIgnore(creditentry.FieldFeatureID)
 		}
@@ -659,9 +589,6 @@ func (u *CreditEntryUpsertOne) UpdateNewValues() *CreditEntryUpsertOne {
 		}
 		if _, exists := u.create.mutation.ExpirationAt(); exists {
 			s.SetIgnore(creditentry.FieldExpirationAt)
-		}
-		if _, exists := u.create.mutation.RolloverType(); exists {
-			s.SetIgnore(creditentry.FieldRolloverType)
 		}
 		if _, exists := u.create.mutation.RolloverMaxAmount(); exists {
 			s.SetIgnore(creditentry.FieldRolloverMaxAmount)
@@ -927,12 +854,6 @@ func (u *CreditEntryUpsertBulk) UpdateNewValues() *CreditEntryUpsertBulk {
 			if _, exists := b.mutation.LedgerID(); exists {
 				s.SetIgnore(creditentry.FieldLedgerID)
 			}
-			if _, exists := b.mutation.EntryType(); exists {
-				s.SetIgnore(creditentry.FieldEntryType)
-			}
-			if _, exists := b.mutation.GetType(); exists {
-				s.SetIgnore(creditentry.FieldType)
-			}
 			if _, exists := b.mutation.FeatureID(); exists {
 				s.SetIgnore(creditentry.FieldFeatureID)
 			}
@@ -953,9 +874,6 @@ func (u *CreditEntryUpsertBulk) UpdateNewValues() *CreditEntryUpsertBulk {
 			}
 			if _, exists := b.mutation.ExpirationAt(); exists {
 				s.SetIgnore(creditentry.FieldExpirationAt)
-			}
-			if _, exists := b.mutation.RolloverType(); exists {
-				s.SetIgnore(creditentry.FieldRolloverType)
 			}
 			if _, exists := b.mutation.RolloverMaxAmount(); exists {
 				s.SetIgnore(creditentry.FieldRolloverMaxAmount)

@@ -19,9 +19,9 @@ type FeatureConnector interface {
 	// Feature Management
 	CreateFeature(ctx context.Context, feature CreateFeatureInputs) (Feature, error)
 	// Should just use deletedAt, there's no real "archiving"
-	ArchiveFeature(ctx context.Context, featureID NamespacedFeatureID) error
+	ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error
 	ListFeatures(ctx context.Context, params ListFeaturesParams) ([]Feature, error)
-	GetFeature(ctx context.Context, featureID NamespacedFeatureID) (Feature, error)
+	GetFeature(ctx context.Context, featureID models.NamespacedID) (Feature, error)
 }
 
 type FeatureOrderBy string
@@ -48,10 +48,10 @@ type DBCreateFeatureInputs struct {
 
 type FeatureDBConnector interface {
 	CreateFeature(ctx context.Context, feature DBCreateFeatureInputs) (Feature, error)
-	ArchiveFeature(ctx context.Context, featureID NamespacedFeatureID) error
+	ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error
 	ListFeatures(ctx context.Context, params ListFeaturesParams) ([]Feature, error)
 	FindByName(ctx context.Context, namespace string, name string, includeArchived bool) ([]Feature, error)
-	GetByID(ctx context.Context, featureID NamespacedFeatureID) (Feature, error)
+	GetByID(ctx context.Context, featureID models.NamespacedID) (Feature, error)
 }
 
 type featureConnector struct {
@@ -102,7 +102,7 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 	})
 }
 
-func (c *featureConnector) ArchiveFeature(ctx context.Context, featureID NamespacedFeatureID) error {
+func (c *featureConnector) ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error {
 	_, err := c.GetFeature(ctx, featureID)
 	if err != nil {
 		return err
@@ -114,7 +114,7 @@ func (c *featureConnector) ListFeatures(ctx context.Context, params ListFeatures
 	return c.db.ListFeatures(ctx, params)
 }
 
-func (c *featureConnector) GetFeature(ctx context.Context, featureID NamespacedFeatureID) (Feature, error) {
+func (c *featureConnector) GetFeature(ctx context.Context, featureID models.NamespacedID) (Feature, error) {
 	feature, err := c.db.GetByID(ctx, featureID)
 	if err != nil {
 		return Feature{}, err

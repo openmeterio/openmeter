@@ -13,14 +13,14 @@ type Connector interface {
 	GetEntitlementsOfSubject(ctx context.Context, subjectKey models.SubjectKey) ([]Entitlement, error)
 
 	// Balance & Usage
-	GetEntitlementBalance(ctx context.Context, entitlementID NamespacedEntitlementID) (EntitlementBalance, error)
-	GetEntitlementBalanceHistory(ctx context.Context, entitlementID NamespacedEntitlementID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
+	GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID) (EntitlementBalance, error)
+	GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
 	GetEntitlementGrantBalanceHistory(ctx context.Context, entitlementGrantID EntitlementGrantID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
 
-	ResetEntitlementUsage(ctx context.Context, entitlementID NamespacedEntitlementID) error
+	ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID) error
 
 	// Reset Scheduling
-	ChangeEntitlementUsageResetSchedule(ctx context.Context, entitlementID NamespacedEntitlementID, schedule Schedule) (Schedule, error)
+	ChangeEntitlementUsageResetSchedule(ctx context.Context, entitlementID models.NamespacedID, schedule Schedule) (Schedule, error)
 }
 
 type BalanceHistoryParams struct {

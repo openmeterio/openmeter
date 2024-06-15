@@ -8,7 +8,7 @@ import (
 
 type SegmentTerminationReason struct {
 	PriorityChange bool
-	Recurrence     []GrantID
+	Recurrence     []string // Grant IDs
 	UsageReset     bool
 }
 
@@ -32,7 +32,7 @@ func (GrantUsageTerminationReason) IsValid(reason GrantUsageTerminationReason) b
 }
 
 type GrantUsage struct {
-	GrantID           GrantID
+	GrantID           string
 	Usage             float64
 	TerminationReason GrantUsageTerminationReason
 }

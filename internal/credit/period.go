@@ -21,7 +21,7 @@ func (p Period) Contains(t time.Time) bool {
 }
 
 // Returns a list of non-overlapping periods between the sorted times.
-func PeriodsFromTimes(ts []time.Time) []Period {
+func SortedPeriodsFromDedupedTimes(ts []time.Time) []Period {
 	if len(ts) < 2 {
 		return nil
 	}

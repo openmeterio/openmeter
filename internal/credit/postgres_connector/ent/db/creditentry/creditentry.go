@@ -24,10 +24,6 @@ const (
 	FieldNamespace = "namespace"
 	// FieldLedgerID holds the string denoting the ledger_id field in the database.
 	FieldLedgerID = "ledger_id"
-	// FieldEntryType holds the string denoting the entry_type field in the database.
-	FieldEntryType = "entry_type"
-	// FieldType holds the string denoting the type field in the database.
-	FieldType = "type"
 	// FieldFeatureID holds the string denoting the feature_id field in the database.
 	FieldFeatureID = "feature_id"
 	// FieldAmount holds the string denoting the amount field in the database.
@@ -42,8 +38,6 @@ const (
 	FieldExpirationPeriodCount = "expiration_period_count"
 	// FieldExpirationAt holds the string denoting the expiration_at field in the database.
 	FieldExpirationAt = "expiration_at"
-	// FieldRolloverType holds the string denoting the rollover_type field in the database.
-	FieldRolloverType = "rollover_type"
 	// FieldRolloverMaxAmount holds the string denoting the rollover_max_amount field in the database.
 	FieldRolloverMaxAmount = "rollover_max_amount"
 	// FieldMetadata holds the string denoting the metadata field in the database.
@@ -82,8 +76,6 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldNamespace,
 	FieldLedgerID,
-	FieldEntryType,
-	FieldType,
 	FieldFeatureID,
 	FieldAmount,
 	FieldPriority,
@@ -91,7 +83,6 @@ var Columns = []string{
 	FieldExpirationPeriodDuration,
 	FieldExpirationPeriodCount,
 	FieldExpirationAt,
-	FieldRolloverType,
 	FieldRolloverMaxAmount,
 	FieldMetadata,
 	FieldParentID,
@@ -124,26 +115,6 @@ var (
 	DefaultID func() string
 )
 
-// EntryTypeValidator is a validator for the "entry_type" field enum values. It is called by the builders before save.
-func EntryTypeValidator(et credit.DELETEME_EntryType) error {
-	switch et {
-	case "GRANT", "VOID_GRANT", "RESET":
-		return nil
-	default:
-		return fmt.Errorf("creditentry: invalid enum value for entry_type field: %q", et)
-	}
-}
-
-// TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
-func TypeValidator(_type credit.DELETEME_GrantType) error {
-	switch _type {
-	case "USAGE":
-		return nil
-	default:
-		return fmt.Errorf("creditentry: invalid enum value for type field: %q", _type)
-	}
-}
-
 // ExpirationPeriodDurationValidator is a validator for the "expiration_period_duration" field enum values. It is called by the builders before save.
 func ExpirationPeriodDurationValidator(epd credit.ExpirationPeriodDuration) error {
 	switch epd {
@@ -151,16 +122,6 @@ func ExpirationPeriodDurationValidator(epd credit.ExpirationPeriodDuration) erro
 		return nil
 	default:
 		return fmt.Errorf("creditentry: invalid enum value for expiration_period_duration field: %q", epd)
-	}
-}
-
-// RolloverTypeValidator is a validator for the "rollover_type" field enum values. It is called by the builders before save.
-func RolloverTypeValidator(rt credit.GrantRolloverType) error {
-	switch rt {
-	case "ORIGINAL_AMOUNT", "REMAINING_AMOUNT":
-		return nil
-	default:
-		return fmt.Errorf("creditentry: invalid enum value for rollover_type field: %q", rt)
 	}
 }
 
@@ -190,16 +151,6 @@ func ByNamespace(opts ...sql.OrderTermOption) OrderOption {
 // ByLedgerID orders the results by the ledger_id field.
 func ByLedgerID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldLedgerID, opts...).ToFunc()
-}
-
-// ByEntryType orders the results by the entry_type field.
-func ByEntryType(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldEntryType, opts...).ToFunc()
-}
-
-// ByType orders the results by the type field.
-func ByType(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldType, opts...).ToFunc()
 }
 
 // ByFeatureID orders the results by the feature_id field.
@@ -235,11 +186,6 @@ func ByExpirationPeriodCount(opts ...sql.OrderTermOption) OrderOption {
 // ByExpirationAt orders the results by the expiration_at field.
 func ByExpirationAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldExpirationAt, opts...).ToFunc()
-}
-
-// ByRolloverType orders the results by the rollover_type field.
-func ByRolloverType(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldRolloverType, opts...).ToFunc()
 }
 
 // ByRolloverMaxAmount orders the results by the rollover_max_amount field.
