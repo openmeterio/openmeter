@@ -66,18 +66,21 @@ func main() {
 
 	err := v.ReadInConfig()
 	if err != nil && !errors.As(err, &viper.ConfigFileNotFoundError{}) {
-		panic(err)
+		slog.Error("failed to read configuration", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
 	var conf config.Configuration
 	err = v.Unmarshal(&conf, viper.DecodeHook(config.DecodeHook()))
 	if err != nil {
-		panic(err)
+		slog.Error("failed to unmarshal configuration", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
 	err = conf.Validate()
 	if err != nil {
-		panic(err)
+		slog.Error("invalid configuration", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
 	extraResources, _ := resource.New(
@@ -105,11 +108,11 @@ func main() {
 	// Initialize OTel Metrics
 	otelMeterProvider, err := conf.Telemetry.Metrics.NewMeterProvider(ctx, res)
 	if err != nil {
-		logger.Error(err.Error())
+		logger.Error("failed to initialize OpenTelemetry Metrics provider", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 	defer func() {
-		if err := otelMeterProvider.Shutdown(ctx); err != nil {
+		if err = otelMeterProvider.Shutdown(ctx); err != nil {
 			logger.Error("shutting down meter provider", slog.String("error", err.Error()))
 		}
 	}()
@@ -123,11 +126,11 @@ func main() {
 	// Initialize OTel Tracer
 	otelTracerProvider, err := conf.Telemetry.Trace.NewTracerProvider(ctx, res)
 	if err != nil {
-		logger.Error(err.Error())
+		logger.Error("failed to initialize OpenTelemetry Trace provider", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 	defer func() {
-		if err := otelTracerProvider.Shutdown(ctx); err != nil {
+		if err = otelTracerProvider.Shutdown(ctx); err != nil {
 			logger.Error("shutting down tracer provider", slog.String("error", err.Error()))
 		}
 	}()
