@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"syscall"
@@ -41,8 +42,10 @@ import (
 var otelName string = "openmeter.io/sink-worker"
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	v, flags := viper.New(), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
-	ctx := context.Background()
 
 	config.Configure(v, flags)
 
@@ -78,7 +81,7 @@ func main() {
 	}
 
 	extraResources, _ := resource.New(
-		context.Background(),
+		ctx,
 		resource.WithContainer(),
 		resource.WithAttributes(
 			semconv.ServiceName("openmeter-sink-worker"),
@@ -100,13 +103,13 @@ func main() {
 	telemetryRouter.Mount("/debug", middleware.Profiler())
 
 	// Initialize OTel Metrics
-	otelMeterProvider, err := conf.Telemetry.Metrics.NewMeterProvider(context.Background(), res)
+	otelMeterProvider, err := conf.Telemetry.Metrics.NewMeterProvider(ctx, res)
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
 	}
 	defer func() {
-		if err := otelMeterProvider.Shutdown(context.Background()); err != nil {
+		if err := otelMeterProvider.Shutdown(ctx); err != nil {
 			logger.Error("shutting down meter provider", slog.String("error", err.Error()))
 		}
 	}()
@@ -118,13 +121,13 @@ func main() {
 	}
 
 	// Initialize OTel Tracer
-	otelTracerProvider, err := conf.Telemetry.Trace.NewTracerProvider(context.Background(), res)
+	otelTracerProvider, err := conf.Telemetry.Trace.NewTracerProvider(ctx, res)
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
 	}
 	defer func() {
-		if err := otelTracerProvider.Shutdown(context.Background()); err != nil {
+		if err := otelTracerProvider.Shutdown(ctx); err != nil {
 			logger.Error("shutting down tracer provider", slog.String("error", err.Error()))
 		}
 	}()
@@ -170,6 +173,9 @@ func main() {
 		server := &http.Server{
 			Addr:    conf.Telemetry.Address,
 			Handler: telemetryRouter,
+			BaseContext: func(_ net.Listener) context.Context {
+				return ctx
+			},
 		}
 		defer server.Close()
 
@@ -184,7 +190,7 @@ func main() {
 		defer sink.Close()
 
 		group.Add(
-			func() error { return sink.Run() },
+			func() error { return sink.Run(ctx) },
 			func(err error) { _ = sink.Close() },
 		)
 	}

@@ -126,12 +126,11 @@ func NewSink(config SinkConfig) (*Sink, error) {
 
 // flush flushes the 1. buffer to storage, 2. sets dedupe and 3. store the offset
 // called when max wait time or min commit count reached
-func (s *Sink) flush() error {
-	ctx := context.TODO()
+func (s *Sink) flush(ctx context.Context) error {
 	logger := s.config.Logger.With("operation", "flush")
 
 	s.clearFlushTimer()
-	defer s.setFlushTimer()
+	defer s.setFlushTimer(ctx)
 
 	// Nothing to flush
 	if s.buffer.Size() == 0 {
@@ -353,9 +352,7 @@ func (s *Sink) dedupeSet(ctx context.Context, messages []SinkMessage) error {
 	return nil
 }
 
-func (s *Sink) getNamespaces() (*NamespaceStore, error) {
-	ctx := context.TODO()
-
+func (s *Sink) getNamespaces(ctx context.Context) (*NamespaceStore, error) {
 	meters, err := s.config.MeterRepository.ListAllMeters(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get meters: %s", err)
@@ -369,9 +366,9 @@ func (s *Sink) getNamespaces() (*NamespaceStore, error) {
 	return namespaceStore, nil
 }
 
-func (s *Sink) subscribeToNamespaces() error {
+func (s *Sink) subscribeToNamespaces(ctx context.Context) error {
 	logger := s.config.Logger.With("operation", "subscribeToNamespaces")
-	ns, err := s.getNamespaces()
+	ns, err := s.getNamespaces(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get namespaces: %s", err)
 	}
@@ -409,11 +406,11 @@ func (s *Sink) subscribeToNamespaces() error {
 }
 
 // Periodically flush even if MinCommitCount threshold not reached yet but MaxCommitWait time elapsed
-func (s *Sink) setFlushTimer() {
+func (s *Sink) setFlushTimer(ctx context.Context) {
 	logger := s.config.Logger.With("operation", "setFlushTimer")
 
 	flush := func() {
-		err := s.flush()
+		err := s.flush(ctx)
 		if err != nil {
 			// TODO: should we panic?
 			logger.Error("failed to flush", "err", err)
@@ -432,8 +429,7 @@ func (s *Sink) clearFlushTimer() {
 }
 
 // Run starts the Kafka consumer and sinks the events to Clickhouse
-func (s *Sink) Run() error {
-	ctx := context.TODO()
+func (s *Sink) Run(ctx context.Context) error {
 	logger := s.config.Logger.With("operation", "run")
 	logger.Info("starting sink")
 
@@ -441,7 +437,7 @@ func (s *Sink) Run() error {
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
 	// Fetch namespaces and meters and subscribe to them
-	err := s.subscribeToNamespaces()
+	err := s.subscribeToNamespaces(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to namespaces: %s", err)
 	}
@@ -449,7 +445,7 @@ func (s *Sink) Run() error {
 	// Periodically refetch namespaces and meters
 	var refetch func()
 	refetch = func() {
-		err := s.subscribeToNamespaces()
+		err := s.subscribeToNamespaces(ctx)
 		if err != nil {
 			// TODO: should we panic?
 			logger.Error("failed to subscribe to namespaces", "err", err)
@@ -462,7 +458,7 @@ func (s *Sink) Run() error {
 	s.running = true
 
 	// Start flush timer, this will be cleared and restarted by flush
-	s.setFlushTimer()
+	s.setFlushTimer(ctx)
 
 	for s.running {
 		select {
@@ -480,7 +476,7 @@ func (s *Sink) Run() error {
 				sinkMessage := SinkMessage{
 					KafkaMessage: e,
 				}
-				namespace, kafkaCloudEvent, err := s.ParseMessage(e)
+				namespace, kafkaCloudEvent, err := s.ParseMessage(ctx, e)
 				if err != nil {
 					if perr, ok := err.(*ProcessingError); ok {
 						sinkMessage.Error = perr
@@ -500,7 +496,7 @@ func (s *Sink) Run() error {
 
 				// Flush buffer and commit messages
 				if s.buffer.Size() >= s.config.MinCommitCount {
-					err = s.flush()
+					err = s.flush(ctx)
 					if err != nil {
 						// Stop processing, non-recoverable error
 						return fmt.Errorf("failed to flush: %w", err)
@@ -645,9 +641,7 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 	return nil
 }
 
-func (s *Sink) ParseMessage(e *kafka.Message) (string, *serializer.CloudEventsKafkaPayload, error) {
-	ctx := context.TODO()
-
+func (s *Sink) ParseMessage(ctx context.Context, e *kafka.Message) (string, *serializer.CloudEventsKafkaPayload, error) {
 	// Get Namespace
 	namespace, err := getNamespace(*e.TopicPartition.Topic)
 	if err != nil {
