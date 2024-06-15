@@ -31,12 +31,31 @@ func (g GrantBalanceMap) Balance() float64 {
 	return balance
 }
 
-func NewGrantBalanceMapFromStartingGrants(grants []Grant) GrantBalanceMap {
-	m := GrantBalanceMap{}
-	for _, g := range grants {
-		m[g.ID] = g.Amount
+// Whether the contents of the GrantBalanceMap exactly matches
+// the list of provided grants.
+// Return false if it has additional grants or if it misses any grants
+func (g GrantBalanceMap) ExactlyForGrants(grants []Grant) bool {
+	gmap := map[string]struct{}{}
+	for _, grant := range grants {
+		gmap[grant.ID] = struct{}{}
 	}
-	return m
+
+	if len(gmap) != len(g) {
+		return false
+	}
+
+	for k := range gmap {
+		if _, ok := g[k]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func (g GrantBalanceMap) OverrideWith(gbm GrantBalanceMap) {
+	for k, v := range gbm {
+		g[k] = v
+	}
 }
 
 type GrantBalanceSnapshot struct {

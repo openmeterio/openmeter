@@ -67,14 +67,13 @@ func TestEngine(t *testing.T) {
 		run  func(t *testing.T, engine credit.Engine, use addUsageFunc)
 	}{
 		{
-			name: "Should error if already run",
+			name: "Should return the same result on subsequent runs",
 			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
-				// burn down with usage after grant effectiveAt
 				use(120, t1.Add(time.Hour))
 				g1 := grant1
 				g1 = makeGrant(g1)
 
-				engine.Run(
+				b1, o1, s1, err1 := engine.Run(
 					[]credit.Grant{g1},
 					credit.GrantBalanceMap{
 						g1.ID: 100.0,
@@ -84,19 +83,88 @@ func TestEngine(t *testing.T) {
 						From: t1,
 						To:   t1.AddDate(0, 0, 1).Add(time.Hour),
 					})
+				assert.NoError(t, err1)
 
+				b2, o2, s2, err2 := engine.Run(
+					[]credit.Grant{g1},
+					credit.GrantBalanceMap{
+						g1.ID: 100.0,
+					},
+					0,
+					credit.Period{
+						From: t1,
+						To:   t1.AddDate(0, 0, 1).Add(time.Hour),
+					})
+				assert.NoError(t, err2)
+
+				assert.Equal(t, b1, b2)
+				assert.Equal(t, o1, o2)
+				assert.Equal(t, s1, s2)
+			},
+		},
+		{
+			name: "Reports overage if there are no grants",
+			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+				use(50.0, t1.Add(time.Hour))
+				res, overage, segments, err := engine.Run(
+					[]credit.Grant{},
+					credit.GrantBalanceMap{}, 0, credit.Period{
+						From: t1,
+						To:   t1.AddDate(0, 0, 30),
+					})
+
+				assert.NoError(t, err)
+				assert.Equal(t, 50.0, overage)
+				assert.Equal(t, credit.GrantBalanceMap{}, res)
+				assert.Equal(t, []credit.GrantBurnDownHistorySegment{
+					{
+						BalanceAtStart: credit.GrantBalanceMap{},
+						GrantUsages:    []credit.GrantUsage{},
+						Period: credit.Period{
+							From: t1,
+							To:   t1.AddDate(0, 0, 30),
+						},
+						TerminationReasons: credit.SegmentTerminationReason{},
+						TotalUsage:         50.0,
+						Overage:            50.0,
+					},
+				}, segments)
+			},
+		},
+		{
+			name: "Errors if balance was provided for nonexistent grants",
+			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+				use(50.0, t1.Add(time.Hour))
 				_, _, _, err := engine.Run(
-					[]credit.Grant{g1},
+					[]credit.Grant{},
 					credit.GrantBalanceMap{
-						g1.ID: 100.0,
-					},
-					0,
-					credit.Period{
+						grant1.ID: 100.0,
+					}, 0, credit.Period{
 						From: t1,
-						To:   t1.AddDate(0, 0, 1).Add(time.Hour),
+						To:   t1.AddDate(0, 0, 30),
 					})
 
-				assert.Error(t, err, "engine has already run")
+				assert.Error(t, err)
+			},
+		},
+		{
+			name: "Errors on missing balance for one of the grants",
+			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+				use(50.0, t1.Add(time.Hour))
+				g1 := grant1
+				g1 = makeGrant(g1)
+				g2 := grant2
+				g2 = makeGrant(g2)
+				_, _, _, err := engine.Run(
+					[]credit.Grant{g1, g2},
+					credit.GrantBalanceMap{
+						grant1.ID: 100.0,
+					}, 0, credit.Period{
+						From: t1,
+						To:   t1.AddDate(0, 0, 30),
+					})
+
+				assert.Error(t, err)
 			},
 		},
 		{
@@ -220,10 +288,10 @@ func TestEngine(t *testing.T) {
 				grant.Expiration.Count = 30
 				grant = makeGrant(grant)
 
-				res, _, _, err := engine.Run(
+				res, _, segments, err := engine.Run(
 					[]credit.Grant{grant},
 					credit.GrantBalanceMap{
-						grant.ID: 100.0,
+						grant.ID: 0.0,
 					},
 					0,
 					credit.Period{
@@ -233,6 +301,11 @@ func TestEngine(t *testing.T) {
 
 				assert.NoError(t, err)
 				assert.Equal(t, 50.0, res[grant1.ID])
+
+				// sets correct starting balance for grant in segment
+				assert.Len(t, segments, 2)
+				assert.Equal(t, 0.0, segments[0].BalanceAtStart[grant.ID])
+				assert.Equal(t, grant.Amount, segments[1].BalanceAtStart[grant.ID])
 			},
 		},
 		{

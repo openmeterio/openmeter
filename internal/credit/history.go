@@ -2,6 +2,7 @@ package credit
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"time"
 )
@@ -107,16 +108,30 @@ func (g *GrantBurnDownHistory) Overage() float64 {
 	return lastSegment.Overage
 }
 
-// Returns the last segment that can be saved
+// Returns the last segment that can be saved, taking the following into account:
+//
+//  1. We can save a segment if it is older than graceperiod.
+//  2. At the end of a segment history changes: s1.endBalance <> s2.startBalance. This means only the
+//     starting values can be saved credibly.
 func (g *GrantBurnDownHistory) GetLastSaveableAt(at time.Time) (GrantBurnDownHistorySegment, error) {
 	gracePeriod := time.Hour // TODO: make this configurable
 
 	for i := len(g.segments) - 1; i >= 0; i-- {
 		segment := g.segments[i]
-		if segment.To.Add(gracePeriod).Before(at) {
+		if segment.From.Add(gracePeriod).Before(at) {
 			return segment, nil
 		}
 	}
 
 	return GrantBurnDownHistorySegment{}, fmt.Errorf("no segment can be saved at %s with gracePeriod %s", at, gracePeriod)
+}
+
+// Creates a GrantBalanceSnapshot from the starting state of the segment
+func (s *GrantBurnDownHistorySegment) ToSnapshot() GrantBalanceSnapshot {
+	overageAtStart := math.Max(0, s.Overage-s.TotalUsage)
+	return GrantBalanceSnapshot{
+		Overage:  overageAtStart,
+		Balances: s.BalanceAtStart,
+		At:       s.From,
+	}
 }

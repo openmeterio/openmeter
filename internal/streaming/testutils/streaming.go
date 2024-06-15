@@ -84,40 +84,78 @@ func (m *MockStreamingConnector) QueryMeter(ctx context.Context, namespace strin
 		if err != nil {
 			return rows, err
 		}
-		rows = append(rows, row)
+		rows = append(rows, row...)
 	}
 
 	return rows, nil
 }
 
+func windowSizeToDuration(windowSize models.WindowSize) time.Duration {
+	return windowSize.Duration()
+}
+
 // We approximate the actual logic by a simple filter + aggregation for most cases
-func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params *streaming.QueryParams) (models.MeterQueryRow, error) {
+func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	events, ok := m.events[meterSlug]
 	from := defaultx.WithDefault(params.From, m.params.DefaultHighwatermark)
 	to := defaultx.WithDefault(params.To, time.Now())
 	if !ok {
-		return models.MeterQueryRow{}, &models.MeterNotFoundError{MeterSlug: meterSlug}
+		return []models.MeterQueryRow{}, &models.MeterNotFoundError{MeterSlug: meterSlug}
 	}
 
-	var value float64
-	for _, row := range events {
-		eventWindowStart := row.Time.Truncate(time.Minute)
-		// windowend is exclusive when doing this rounding
-		eventWindowEnd := eventWindowStart.Add(time.Minute)
+	rows := make([]models.MeterQueryRow, 0)
 
-		if (eventWindowStart.After(from) || eventWindowStart.Equal(from)) &&
-			(eventWindowEnd.Before(to) || eventWindowEnd.Equal(to)) {
-			// TODO: Add support for more aggregation types
-			value += row.Value
+	if params.WindowSize != nil && params.WindowTimeZone != nil {
+		// prepopulate windows based on windowsize, from and to (TODO: windowtimezone will be ignored)
+		numOfSecondsBetweenToAndFrom := int(to.Sub(from).Seconds())
+		numOfWindows := int(numOfSecondsBetweenToAndFrom / int(windowSizeToDuration(*params.WindowSize).Seconds()))
+
+		for i := 0; i < numOfWindows; i++ {
+			rows = append(rows, models.MeterQueryRow{
+				Value:       0,
+				WindowStart: from.Add(time.Duration(time.Duration(i*int(windowSizeToDuration(*params.WindowSize))).Seconds()) * time.Second),
+				WindowEnd:   from.Add(time.Duration(time.Duration((i+1)*int(windowSizeToDuration(*params.WindowSize))).Seconds()) * time.Second),
+				GroupBy:     map[string]*string{},
+			})
 		}
+
+		if numOfWindows == 0 {
+			rows = append(rows, models.MeterQueryRow{
+				Value:       0,
+				WindowStart: from,
+				WindowEnd:   to,
+				GroupBy:     map[string]*string{},
+			})
+		}
+
+	} else {
+		rows = append(rows, models.MeterQueryRow{
+			Value:       0,
+			WindowStart: from,
+			WindowEnd:   to,
+			GroupBy:     map[string]*string{},
+		})
 	}
 
-	return models.MeterQueryRow{
-		Value:       value,
-		WindowStart: *params.From,
-		WindowEnd:   *params.To,
-		GroupBy:     map[string]*string{},
-	}, nil
+	for i := range rows {
+		row := &rows[i]
+		var value float64
+		for _, event := range events {
+			eventWindowStart := event.Time.Truncate(time.Minute)
+			// windowend is exclusive when doing this rounding
+			eventWindowEnd := eventWindowStart.Add(time.Minute)
+
+			if (eventWindowStart.After(row.WindowStart) || eventWindowStart.Equal(row.WindowStart)) &&
+				(eventWindowEnd.Before(row.WindowEnd) || eventWindowEnd.Equal(row.WindowEnd)) {
+				// TODO: Add support for more aggregation types
+				value += event.Value
+			}
+		}
+		rows[i].Value = value
+
+	}
+
+	return rows, nil
 }
 
 func (m *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meterSlug string, from *time.Time, to *time.Time) ([]string, error) {

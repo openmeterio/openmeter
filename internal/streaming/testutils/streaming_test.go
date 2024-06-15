@@ -131,6 +131,64 @@ func TestMockStreamingConnector(t *testing.T) {
 				{MeterSlug: defaultMeterSlug, Value: 1, Time: now.Truncate(time.Minute).Add(time.Second * 31)},
 			},
 		},
+		{
+			Name: "Should return events windowed",
+			Query: &streaming.QueryParams{
+				From:           convert.ToPointer(now.Add(-time.Minute * 3)),
+				To:             convert.ToPointer(now),
+				WindowSize:     convert.ToPointer(models.WindowSizeMinute),
+				WindowTimeZone: time.UTC,
+			},
+			Expected: []models.MeterQueryRow{
+				{
+					Value:       1,
+					WindowStart: now.Add(-time.Minute * 3),
+					WindowEnd:   now.Add(-time.Minute * 2),
+					GroupBy:     map[string]*string{},
+				},
+				{
+					Value:       2,
+					WindowStart: now.Add(-time.Minute * 2),
+					WindowEnd:   now.Add(-time.Minute),
+					GroupBy:     map[string]*string{},
+				},
+				{
+					Value:       5,
+					WindowStart: now.Add(-time.Minute),
+					WindowEnd:   now,
+					GroupBy:     map[string]*string{},
+				},
+			},
+			Events: []SimpleEvent{
+				{MeterSlug: defaultMeterSlug, Value: 1, Time: now.Add(-time.Minute * 2).Add(-time.Second * 2)},
+				{MeterSlug: defaultMeterSlug, Value: 2, Time: now.Add(-time.Minute * 2).Add(time.Second * 2)},
+				{MeterSlug: defaultMeterSlug, Value: 2, Time: now.Add(-time.Minute)},
+				{MeterSlug: defaultMeterSlug, Value: 3, Time: now.Add(-time.Second)},
+			},
+		},
+		{
+			Name: "Should return row for queried period if window is larger than period",
+			Query: &streaming.QueryParams{
+				From:           convert.ToPointer(now.Add(-time.Minute * 3)),
+				To:             convert.ToPointer(now),
+				WindowSize:     convert.ToPointer(models.WindowSizeHour),
+				WindowTimeZone: time.UTC,
+			},
+			Expected: []models.MeterQueryRow{
+				{
+					Value:       8,
+					WindowStart: now.Add(-time.Minute * 3),
+					WindowEnd:   now,
+					GroupBy:     map[string]*string{},
+				},
+			},
+			Events: []SimpleEvent{
+				{MeterSlug: defaultMeterSlug, Value: 1, Time: now.Add(-time.Minute * 2).Add(-time.Second * 2)},
+				{MeterSlug: defaultMeterSlug, Value: 2, Time: now.Add(-time.Minute * 2).Add(time.Second * 2)},
+				{MeterSlug: defaultMeterSlug, Value: 2, Time: now.Add(-time.Minute)},
+				{MeterSlug: defaultMeterSlug, Value: 3, Time: now.Add(-time.Second)},
+			},
+		},
 	}
 
 	for _, tc := range tt {

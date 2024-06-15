@@ -80,7 +80,7 @@ func NewGrantConnector(oc OwnerConnector, db GrantDBConnector, granularity time.
 }
 
 func (m *grantConnector) CreateGrant(ctx context.Context, owner NamespacedGrantOwner, input CreateGrantInput) (Grant, error) {
-	periodStart, err := m.oc.GetCurrentUsagePeriodStartAt(ctx, owner, time.Now())
+	periodStart, err := m.oc.GetUsagePeriodStartAt(ctx, owner, time.Now())
 	if err != nil {
 		return Grant{}, err
 	}

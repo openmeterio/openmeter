@@ -10,8 +10,8 @@ import (
 
 type EntitlementDBConnector interface {
 	// Entitlement Management
-	// CreateEntitlement(ctx context.Context, entitlement Entitlement) (Entitlement, error)
 	// GetEntitlementsOfSubject(ctx context.Context, subjectKey models.SubjectKey) ([]Entitlement, error)
+	CreateEntitlement(ctx context.Context, entitlement CreateEntitlementInputs) (*Entitlement, error)
 	GetEntitlement(ctx context.Context, entitlementID models.NamespacedID) (*Entitlement, error)
 }
 

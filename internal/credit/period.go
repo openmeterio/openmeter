@@ -16,8 +16,9 @@ func (p Period) Duration() time.Duration {
 	return p.To.Sub(p.From)
 }
 
+// Inclusive at both strat and end
 func (p Period) Contains(t time.Time) bool {
-	return t.After(p.From) && t.Before(p.To)
+	return (t.After(p.From) || t.Equal(p.From)) && (t.Before(p.To) || t.Equal(p.To))
 }
 
 // Returns a list of non-overlapping periods between the sorted times.

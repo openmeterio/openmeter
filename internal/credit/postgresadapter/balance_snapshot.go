@@ -36,11 +36,12 @@ func (b *balanceSnapshotAdapter) GetLatestValidAt(ctx context.Context, owner cre
 			db_balancesnapshot.AtLTE(at),
 			db_balancesnapshot.DeletedAtIsNil(),
 		).
-		Order(db_balancesnapshot.ByAt(sql.OrderDesc())).
+		// in case there were multiple snapshots for the same time return the newest one
+		Order(db_balancesnapshot.ByAt(sql.OrderDesc()), db_balancesnapshot.ByUpdatedAt(sql.OrderDesc())).
 		First(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return credit.GrantBalanceSnapshot{}, credit.GrantBalanceNoSavedBalanceForOwnerError{Owner: owner, Time: at}
+			return credit.GrantBalanceSnapshot{}, &credit.GrantBalanceNoSavedBalanceForOwnerError{Owner: owner, Time: at}
 		}
 		return credit.GrantBalanceSnapshot{}, err
 	}
@@ -68,6 +69,6 @@ func mapBalanceSnapshotEntity(entity *db.BalanceSnapshot) credit.GrantBalanceSna
 	return credit.GrantBalanceSnapshot{
 		Balances: entity.GrantBalances,
 		Overage:  entity.Overage,
-		At:       entity.At,
+		At:       entity.At.In(time.UTC),
 	}
 }

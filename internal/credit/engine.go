@@ -23,12 +23,8 @@ func NewEngine(getFeatureUsage QueryUsageFn) Engine {
 
 // engine burns down grants based on usage following the rules of Grant BurnDown.
 type engine struct {
-	// An engine can only be run once
-	hasRun bool
 	// List of all grants that are active at the relevant period at some point.
 	grants []Grant
-	// Map of all grants that are active at the relevant period at some point.
-	grantsMap map[string]Grant
 	// Returns the total feature usage in the queried period
 	getFeatureUsage QueryUsageFn
 	// granularity     models.WindowSize // TODO: implement
@@ -40,22 +36,13 @@ type engine struct {
 // Ensure engine implements Engine
 var _ Engine = (*engine)(nil)
 
-func (e *engine) setup(grants []Grant) {
-	e.grants = grants
-	e.grantsMap = make(map[string]Grant)
-	for _, grant := range grants {
-		e.grantsMap[grant.ID] = grant
-	}
-	e.hasRun = true
-}
-
 // Burns down all grants in the defined period by the usage amounts.
 func (e *engine) Run(grants []Grant, startingBalances GrantBalanceMap, overage float64, period Period) (GrantBalanceMap, float64, []GrantBurnDownHistorySegment, error) {
-	if e.hasRun {
-		return nil, 0, nil, fmt.Errorf("engine has already run")
-	} else {
-		e.setup(grants)
+	if !startingBalances.ExactlyForGrants(grants) {
+		return nil, 0, nil, fmt.Errorf("provided grants and balances don't pair up")
 	}
+
+	e.grants = grants
 	phases, err := e.GetPhases(period)
 	if err != nil {
 		return nil, 0, nil, fmt.Errorf("failed to get burn phases: %w", err)
@@ -66,7 +53,20 @@ func (e *engine) Run(grants []Grant, startingBalances GrantBalanceMap, overage f
 		return nil, 0, nil, fmt.Errorf("failed to prioritize grants: %w", err)
 	}
 
+	// Only respect balances that we know the grants of, otherwise we cannot guarantee
+	// that the output balance is correct for said grants.
 	balancesAtPhaseStart := startingBalances.Copy()
+	{
+		knownGrants := make(map[string]struct{})
+		for _, grant := range grants {
+			knownGrants[grant.ID] = struct{}{}
+		}
+		for grantID := range balancesAtPhaseStart {
+			if _, ok := knownGrants[grantID]; !ok {
+				delete(balancesAtPhaseStart, grantID)
+			}
+		}
+	}
 
 	rePrioritize := false
 	recurredGrants := []string{}
@@ -79,15 +79,6 @@ func (e *engine) Run(grants []Grant, startingBalances GrantBalanceMap, overage f
 	segments := make([]GrantBurnDownHistorySegment, 0, len(phases))
 
 	for _, phase := range phases {
-		segment := GrantBurnDownHistorySegment{
-			Period:         Period{From: phase.from, To: phase.to},
-			BalanceAtStart: balancesAtPhaseStart.Copy(),
-			TerminationReasons: SegmentTerminationReason{
-				PriorityChange: phase.priorityChange,
-				Recurrence:     phase.grantsRecurredAtEnd,
-			},
-		}
-
 		// reprioritize grants if needed
 		if rePrioritize {
 			err = prioritizeGrants(e.grants)
@@ -127,6 +118,15 @@ func (e *engine) Run(grants []Grant, startingBalances GrantBalanceMap, overage f
 			if grant.EffectiveAt.Equal(phase.from) {
 				balancesAtPhaseStart[grant.ID] = grant.Amount
 			}
+		}
+
+		segment := GrantBurnDownHistorySegment{
+			Period:         Period{From: phase.from, To: phase.to},
+			BalanceAtStart: balancesAtPhaseStart.Copy(),
+			TerminationReasons: SegmentTerminationReason{
+				PriorityChange: phase.priorityChange,
+				Recurrence:     phase.grantsRecurredAtEnd,
+			},
 		}
 
 		// query feature usage in the burning phase
@@ -405,7 +405,9 @@ type burnPhase struct {
 // 2. Grants with earlier expiration date are burned down first
 func prioritizeGrants(grants []Grant) error {
 	if len(grants) == 0 {
-		return fmt.Errorf("no grants to prioritize")
+		// we don't do a thing, return early
+		// return fmt.Errorf("no grants to prioritize")
+		return nil
 	}
 
 	// 2. Grants with earlier expiration date are burned down first

@@ -7,6 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db"
 	db_grant "github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db/grant"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -107,12 +108,12 @@ func (g *grantDBADapter) ListActiveGrantsBetween(ctx context.Context, owner cred
 		Where(db_grant.And(db_grant.OwnerID(owner.ID), db_grant.Namespace(owner.Namespace))).
 		Where(
 			db_grant.Or(
-				db_grant.EffectiveAtLT(to),
-				db_grant.ExpiresAtGT(from),
+				db_grant.And(db_grant.EffectiveAtLT(from), db_grant.ExpiresAtGT(from)),
+				db_grant.And(db_grant.EffectiveAtGTE(from), db_grant.EffectiveAtLT(to)),
 			),
 		).Where(
-		db_grant.DeletedAtGTE(to),
-		db_grant.VoidedAtGTE(to),
+		db_grant.Or(db_grant.DeletedAtGTE(to), db_grant.DeletedAtIsNil()),
+		db_grant.Or(db_grant.VoidedAtGTE(to), db_grant.VoidedAtIsNil()),
 	)
 
 	entities, err := query.All(ctx)
@@ -143,8 +144,9 @@ func (g *grantDBADapter) GetGrant(ctx context.Context, grantID models.Namespaced
 func mapGrantEntity(entity *db.Grant) credit.Grant {
 	g := credit.Grant{
 		ManagedModel: models.ManagedModel{
-			CreatedAt: entity.CreatedAt,
-			UpdatedAt: entity.UpdatedAt,
+			CreatedAt: entity.CreatedAt.In(time.UTC),
+			UpdatedAt: entity.UpdatedAt.In(time.UTC),
+			DeletedAt: convert.SafeToUTC(entity.DeletedAt),
 		},
 		NamespacedModel: models.NamespacedModel{
 			Namespace: entity.Namespace,
@@ -153,7 +155,7 @@ func mapGrantEntity(entity *db.Grant) credit.Grant {
 		OwnerID:          credit.GrantOwner(entity.OwnerID),
 		Amount:           entity.Amount,
 		Priority:         entity.Priority,
-		VoidedAt:         entity.VoidedAt,
+		VoidedAt:         convert.SafeToUTC(entity.VoidedAt),
 		EffectiveAt:      entity.EffectiveAt,
 		Expiration:       entity.Expiration,
 		ExpiresAt:        entity.ExpiresAt,
@@ -164,7 +166,7 @@ func mapGrantEntity(entity *db.Grant) credit.Grant {
 	if entity.RecurrencePeriod != nil && entity.RecurrenceAnchor != nil {
 		g.Recurrence = &credit.Recurrence{
 			Period: *entity.RecurrencePeriod,
-			Anchor: *entity.RecurrenceAnchor,
+			Anchor: *convert.SafeToUTC(entity.RecurrenceAnchor),
 		}
 
 		if entity.RecurrenceMaxRollover != nil {

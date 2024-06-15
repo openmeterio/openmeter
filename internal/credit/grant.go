@@ -12,10 +12,11 @@ type NamespacedGrantOwner struct {
 	ID        GrantOwner
 }
 
-func NewNamespacedGrantID(namespace string, id string) models.NamespacedID {
+// Casts the NamespacedGrantOwner to a NamespacedID. Owner might not be a valid ID.
+func (n NamespacedGrantOwner) NamespacedID() models.NamespacedID {
 	return models.NamespacedID{
-		Namespace: namespace,
-		ID:        id,
+		Namespace: n.Namespace,
+		ID:        string(n.ID),
 	}
 }
 

@@ -7,6 +7,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+type CreateEntitlementInputs struct {
+	Namespace        string
+	FeatureID        string
+	MeasureUsageFrom time.Time
+}
+
 type Entitlement struct {
 	models.NamespacedModel
 	models.ManagedModel

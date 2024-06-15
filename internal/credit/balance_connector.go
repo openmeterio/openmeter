@@ -45,10 +45,7 @@ func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner Namespac
 		return nil, err
 	}
 
-	// TODO: this can support historical queries. For those we need to get the start time of the usage period at the time of querying.
-	// if the last valid snapshot is before that start then we cannot calculate as we cant calculate over resets.
-
-	periodStart, err := m.oc.GetCurrentUsagePeriodStartAt(ctx, owner, at)
+	periodStart, err := m.oc.GetUsagePeriodStartAt(ctx, owner, at)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current usage period start for owner %s at %s: %w", owner.ID, at, err)
 	}
@@ -64,6 +61,18 @@ func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner Namespac
 	if err != nil {
 		return nil, fmt.Errorf("failed to list active grants at %s for owner %s: %w", at, owner.ID, err)
 	}
+	// these grants might not be present in the starting balance so lets fill them
+	for _, grant := range grants {
+		if _, ok := balance.Balances[grant.ID]; !ok {
+			if grant.ActiveAt(balance.At) {
+				// This is only possible in case the grant becomes active exactly at the start of the current period
+				balance.Balances.Set(grant.ID, grant.Amount)
+			} else {
+				balance.Balances.Set(grant.ID, 0.0)
+			}
+		}
+	}
+
 	// run engine and calculate grantbalance
 	queryFn, err := m.getQueryUsageFn(ctx, owner)
 	if err != nil {
@@ -89,15 +98,16 @@ func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner Namespac
 		return nil, fmt.Errorf("failed to create grant burn down history: %w", err)
 	}
 
-	// TODO: don't just save last segment, save entire history
+	// FIXME: It can be the case that we never actually save anything if the history has a single segment.
+	// In practice what we can save is the balance at the last activation or recurrence event
+	// as those demark segments.
+	//
+	// If we want to we can cheat that by artificially introducing a segment through the engine at the end
+	// just so it can be saved...
 	if saveable, err := history.GetLastSaveableAt(at); err == nil {
 		// save snapshot at end of segment
 		m.bsc.Save(ctx, owner, []GrantBalanceSnapshot{
-			{
-				At:       saveable.To,
-				Balances: saveable.ApplyUsage(),
-				Overage:  saveable.Overage,
-			},
+			saveable.ToSnapshot(),
 		})
 	}
 
@@ -125,7 +135,7 @@ func (m *balanceConnector) GetBalanceHistoryOfOwner(ctx context.Context, owner N
 
 	// collect al history segments through all periods
 	for _, period := range periods {
-		// get last valid grantbalances
+		// get last valid grantbalances at start of period (eq balance at start of period)
 		balance, err := m.getLatestValidBalanceSnapshotForOwnerAt(ctx, owner, period.From)
 		if err != nil {
 			return GrantBurnDownHistory{}, err
@@ -141,6 +151,18 @@ func (m *balanceConnector) GetBalanceHistoryOfOwner(ctx context.Context, owner N
 
 		// get all relevant grants
 		grants, err := m.gc.ListActiveGrantsBetween(ctx, owner, period.From, period.To)
+		// these grants might not be present in the starting balance so lets fill them
+		for _, grant := range grants {
+			if _, ok := balance.Balances[grant.ID]; !ok {
+				if grant.ActiveAt(period.From) {
+					// This is only possible in case the grant becomes active exactly at the start of the current period
+					balance.Balances.Set(grant.ID, grant.Amount)
+				} else {
+					balance.Balances.Set(grant.ID, 0.0)
+				}
+			}
+		}
+
 		if err != nil {
 			return GrantBurnDownHistory{}, err
 		}
@@ -185,7 +207,7 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 	//      - in practiec we'll just create a new transacting instance that all clients can use
 
 	// check if reset is possible (after last reset)
-	periodStart, err := m.oc.GetCurrentUsagePeriodStartAt(ctx, owner, time.Now())
+	periodStart, err := m.oc.GetUsagePeriodStartAt(ctx, owner, time.Now())
 	if err != nil {
 		return fmt.Errorf("failed to get current usage period start for owner %s at %s: %w", owner.ID, at, err)
 	}
@@ -260,26 +282,34 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 func (m *balanceConnector) getLatestValidBalanceSnapshotForOwnerAt(ctx context.Context, owner NamespacedGrantOwner, at time.Time) (GrantBalanceSnapshot, error) {
 	balance, err := m.bsc.GetLatestValidAt(ctx, owner, at)
 	if err != nil {
-		if _, ok := err.(GrantBalanceNoSavedBalanceForOwnerError); ok {
+		if _, ok := err.(*GrantBalanceNoSavedBalanceForOwnerError); ok {
 			// if no snapshot is found we have to calculate from start of time on all grants and usage
 			m.logger.Info(fmt.Sprintf("no saved balance found for owner %s before %s, calculating from start of time", owner.ID, at))
 
-			grants, err := m.gc.ListGrants(ctx, ListGrantsParams{
-				Namespace:      owner.Namespace,
-				OwnerID:        &owner.ID,
-				IncludeDeleted: true,
-			})
-			if err != nil {
-				return balance, fmt.Errorf("failed to list grants for owner %s: %w", owner.ID, err)
-			}
 			startOfMeasurement, err := m.oc.GetStartOfMeasurement(ctx, owner)
 			if err != nil {
 				return balance, fmt.Errorf("failed to get start of measurement for owner %s: %w", owner.ID, err)
 			}
 
+			grants, err := m.gc.ListActiveGrantsBetween(ctx, owner, startOfMeasurement, at)
+			if err != nil {
+				return balance, fmt.Errorf("failed to list grants for owner %s: %w", owner.ID, err)
+			}
+
+			balances := GrantBalanceMap{}
+			for _, grant := range grants {
+				if grant.ActiveAt(startOfMeasurement) {
+					// Grants that are active at the start will have full balance
+					balances.Set(grant.ID, grant.Amount)
+				} else {
+					// Grants that are not active at the start won't have a balance
+					balances.Set(grant.ID, 0.0)
+				}
+			}
+
 			balance = GrantBalanceSnapshot{
 				At:       startOfMeasurement,
-				Balances: NewGrantBalanceMapFromStartingGrants(grants),
+				Balances: balances,
 				Overage:  0.0, // There cannot be overage at the start of measurement
 			}
 		} else {
