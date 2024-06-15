@@ -709,6 +709,13 @@ func (s *Sink) Close() error {
 		s.flushTimer.Stop()
 	}
 
+	if s.config.Consumer != nil {
+		logger.Info("closing Kafka consumer")
+		if err := s.config.Consumer.Close(); err != nil {
+			logger.Error("failed to close consumer client", slog.String("err", err.Error()))
+		}
+	}
+
 	return nil
 }
 
