@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/avast/retry-go/v4"
@@ -35,7 +36,6 @@ type SinkMessage struct {
 
 type Sink struct {
 	config            SinkConfig
-	running           bool
 	buffer            *SinkBuffer
 	flushTimer        *time.Timer
 	flushEventCounter metric.Int64Counter
@@ -45,7 +45,8 @@ type Sink struct {
 
 	kafkaMetrics *kafkametrics.Metrics
 
-	mu sync.Mutex
+	mu        sync.Mutex
+	isRunning atomic.Bool
 }
 
 type SinkConfig struct {
@@ -427,6 +428,10 @@ func (s *Sink) clearFlushTimer() {
 
 // Run starts the Kafka consumer and sinks the events to Clickhouse
 func (s *Sink) Run(ctx context.Context) error {
+	if s.isRunning.Load() {
+		return nil
+	}
+
 	logger := s.config.Logger.With("operation", "run")
 	logger.Info("starting sink")
 
@@ -449,12 +454,12 @@ func (s *Sink) Run(ctx context.Context) error {
 	s.namespaceRefetch = time.AfterFunc(s.config.NamespaceRefetch, refetch)
 
 	// Reset state
-	s.running = true
+	s.isRunning.Store(true)
 
 	// Start flush timer, this will be cleared and restarted by flush
 	s.setFlushTimer(ctx)
 
-	for s.running {
+	for s.isRunning.Load() {
 		select {
 		case <-ctx.Done():
 			return fmt.Errorf("context canceled: %w", ctx.Err())
@@ -674,8 +679,11 @@ func (s *Sink) ParseMessage(ctx context.Context, e *kafka.Message) (string, *ser
 }
 
 func (s *Sink) Close() error {
-	logger := s.config.Logger.With("operation", "close")
+	if !s.isRunning.Load() {
+		return nil
+	}
 
+	logger := s.config.Logger.With("operation", "close")
 	logger.Info("closing sink")
 
 	// Use mutex locking to avoid interruption Sink during flush operation in order to avoid
@@ -689,11 +697,15 @@ func (s *Sink) Close() error {
 		logger.Debug("releasing lock")
 	}()
 
-	s.running = false
+	s.isRunning.Store(false)
+
 	if s.namespaceRefetch != nil {
+		logger.Info("stopping namespace fetcher")
 		s.namespaceRefetch.Stop()
 	}
+
 	if s.flushTimer != nil {
+		logger.Info("stopping flush timer")
 		s.flushTimer.Stop()
 	}
 
