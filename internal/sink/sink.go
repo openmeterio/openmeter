@@ -5,12 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"os"
-	"os/signal"
 	"regexp"
 	"sort"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/avast/retry-go/v4"
@@ -433,9 +430,6 @@ func (s *Sink) Run(ctx context.Context) error {
 	logger := s.config.Logger.With("operation", "run")
 	logger.Info("starting sink")
 
-	sigchan := make(chan os.Signal, 1)
-	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
-
 	// Fetch namespaces and meters and subscribe to them
 	err := s.subscribeToNamespaces(ctx)
 	if err != nil {
@@ -462,9 +456,9 @@ func (s *Sink) Run(ctx context.Context) error {
 
 	for s.running {
 		select {
-		case sig := <-sigchan:
-			logger.Error("caught signal, terminating", "sig", sig)
-			s.running = false
+		case <-ctx.Done():
+			return fmt.Errorf("context canceled: %w", ctx.Err())
+
 		default:
 			ev := s.config.Consumer.Poll(100)
 			if ev == nil {
