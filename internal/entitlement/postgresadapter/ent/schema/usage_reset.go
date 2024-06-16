@@ -33,7 +33,6 @@ func (UsageReset) Fields() []ent.Field {
 }
 
 // Indexes of the UsageReset.
-// TODO: Atlas support will add the possibility to set dialect specific index implementations
 func (UsageReset) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "entitlement_id"),

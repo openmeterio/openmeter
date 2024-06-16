@@ -41,7 +41,6 @@ func (BalanceSnapshot) Fields() []ent.Field {
 }
 
 // Indexes of the BalanceSnapshot.
-// TODO: Atlas support will add the possibility to set dialect specific index implementations
 func (BalanceSnapshot) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "at"),

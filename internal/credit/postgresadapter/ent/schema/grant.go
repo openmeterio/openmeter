@@ -48,7 +48,6 @@ func (Grant) Fields() []ent.Field {
 }
 
 // Indexes of the Grant.
-// TODO: Atlas support will add the possibility to set dialect specific index implementations
 func (Grant) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "owner_id"),
@@ -57,7 +56,6 @@ func (Grant) Indexes() []ent.Index {
 }
 
 // Edges of the Grant define the relations to other entities.
-// TODO: edges currently don't exist as credits are not explicitly related to other entities
 func (Grant) Edges() []ent.Edge {
 	return []ent.Edge{}
 }

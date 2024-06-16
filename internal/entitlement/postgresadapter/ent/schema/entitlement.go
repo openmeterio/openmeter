@@ -34,7 +34,6 @@ func (Entitlement) Fields() []ent.Field {
 }
 
 // Indexes of the Entitlement.
-// TODO: Atlas support will add the possibility to set dialect specific index implementations
 func (Entitlement) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "id"),

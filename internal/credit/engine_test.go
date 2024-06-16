@@ -593,7 +593,6 @@ func TestEngine(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			// TODO: use a different mock
 			streamingConnector := testutils.NewMockStreamingConnector(t, testutils.MockStreamingConnectorParams{DefaultHighwatermark: farInPast})
 
 			queryFeatureUsage := func(from, to time.Time) (float64, error) {
@@ -878,7 +877,6 @@ func TestEngine(t *testing.T) {
 		for i := 0; i < int(math.Min(float64(tc.repeat), 1.0)); i++ {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
-				// TODO: use a different mock
 				streamingConnector := testutils.NewMockStreamingConnector(t, testutils.MockStreamingConnectorParams{DefaultHighwatermark: farInPast})
 
 				queryFeatureUsage := func(from, to time.Time) (float64, error) {

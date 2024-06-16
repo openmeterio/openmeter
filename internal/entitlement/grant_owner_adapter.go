@@ -76,10 +76,8 @@ func (e *entitlementGrantOwner) GetStartOfMeasurement(ctx context.Context, owner
 }
 
 func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner credit.NamespacedGrantOwner, at time.Time) (time.Time, error) {
-	// TODO: implement this!
-
-	// if this is the first period then return start of measurement, otherwise calculate based on anchor
-	// to know if this is the first period check if usage has been reset
+	// If this is the first period then return start of measurement, otherwise calculate based on anchor.
+	// To know if this is the first period check if usage has been reset.
 
 	lastUsageReset, err := e.urdb.GetLastAt(ctx, owner.NamespacedID(), at)
 	if _, ok := err.(*UsageResetNotFoundError); ok {

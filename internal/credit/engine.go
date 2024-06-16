@@ -27,7 +27,7 @@ type engine struct {
 	grants []Grant
 	// Returns the total feature usage in the queried period
 	getFeatureUsage QueryUsageFn
-	// granularity     models.WindowSize // TODO: implement
+	// granularity     models.WindowSize // TODO: add granularity checks for all resources?
 
 	// Whether the engine was able to execute all calculations exactly
 	calcsExact bool // TODO: add public API and checking
@@ -88,16 +88,14 @@ func (e *engine) Run(grants []Grant, startingBalances GrantBalanceMap, overage f
 			rePrioritize = false
 		}
 
-		// reset recurring grant balances to full amount
+		// reset recurring grant balances
 		if len(recurredGrants) > 0 {
-			// TODO: its not super neat, maybe have a separate entity with balance...
 			for _, grantID := range recurredGrants {
 				grant, ok := grantMap[grantID]
 				if !ok {
 					return nil, 0, nil, fmt.Errorf("failed to get grant with id %s", grantID)
 				}
-				// TODO: handle grant recurrence rollover settings!
-				balancesAtPhaseStart.Set(grant.ID, grant.Amount)
+				balancesAtPhaseStart.Set(grant.ID, grant.RecurrenceBalance(balancesAtPhaseStart[grantID]))
 			}
 		}
 
@@ -210,8 +208,6 @@ func (e *engine) BurnDownGrants(startingBalances GrantBalanceMap, prioritized []
 //
 // Note that grant balance does not effect the burndown order if we simply ignore grants that don't
 // have balance while burning down.
-//
-// TODO: rounding?
 func (e *engine) GetPhases(period Period) ([]burnPhase, error) {
 	activityChanges := e.getGrantActivityChanges(period)
 	recurrenceTimes, err := e.getGrantRecurrenceTimes(period)

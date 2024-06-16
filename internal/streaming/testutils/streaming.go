@@ -12,6 +12,7 @@ import (
 )
 
 type MockStreamingConnectorParams struct {
+	// TODO: get rid of this, it's not used anymore
 	DefaultHighwatermark time.Time
 }
 
