@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"syscall"
@@ -41,8 +42,10 @@ import (
 var otelName string = "openmeter.io/sink-worker"
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	v, flags := viper.New(), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
-	ctx := context.Background()
 
 	config.Configure(v, flags)
 
@@ -63,22 +66,25 @@ func main() {
 
 	err := v.ReadInConfig()
 	if err != nil && !errors.As(err, &viper.ConfigFileNotFoundError{}) {
-		panic(err)
+		slog.Error("failed to read configuration", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
 	var conf config.Configuration
 	err = v.Unmarshal(&conf, viper.DecodeHook(config.DecodeHook()))
 	if err != nil {
-		panic(err)
+		slog.Error("failed to unmarshal configuration", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
 	err = conf.Validate()
 	if err != nil {
-		panic(err)
+		slog.Error("invalid configuration", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
 	extraResources, _ := resource.New(
-		context.Background(),
+		ctx,
 		resource.WithContainer(),
 		resource.WithAttributes(
 			semconv.ServiceName("openmeter-sink-worker"),
@@ -100,13 +106,13 @@ func main() {
 	telemetryRouter.Mount("/debug", middleware.Profiler())
 
 	// Initialize OTel Metrics
-	otelMeterProvider, err := conf.Telemetry.Metrics.NewMeterProvider(context.Background(), res)
+	otelMeterProvider, err := conf.Telemetry.Metrics.NewMeterProvider(ctx, res)
 	if err != nil {
-		logger.Error(err.Error())
+		logger.Error("failed to initialize OpenTelemetry Metrics provider", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 	defer func() {
-		if err := otelMeterProvider.Shutdown(context.Background()); err != nil {
+		if err = otelMeterProvider.Shutdown(ctx); err != nil {
 			logger.Error("shutting down meter provider", slog.String("error", err.Error()))
 		}
 	}()
@@ -118,13 +124,13 @@ func main() {
 	}
 
 	// Initialize OTel Tracer
-	otelTracerProvider, err := conf.Telemetry.Trace.NewTracerProvider(context.Background(), res)
+	otelTracerProvider, err := conf.Telemetry.Trace.NewTracerProvider(ctx, res)
 	if err != nil {
-		logger.Error(err.Error())
+		logger.Error("failed to initialize OpenTelemetry Trace provider", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 	defer func() {
-		if err := otelTracerProvider.Shutdown(context.Background()); err != nil {
+		if err = otelTracerProvider.Shutdown(ctx); err != nil {
 			logger.Error("shutting down tracer provider", slog.String("error", err.Error()))
 		}
 	}()
@@ -135,16 +141,14 @@ func main() {
 
 	// Configure health checker
 	healthChecker := health.New(health.WithCheckListeners(gosundheit.NewLogger(logger.With(slog.String("component", "healthcheck")))))
-	{
-		handler := healthhttp.HandleHealthJSON(healthChecker)
-		telemetryRouter.Handle("/healthz", handler)
+	handler := healthhttp.HandleHealthJSON(healthChecker)
+	telemetryRouter.Handle("/healthz", handler)
 
-		// Kubernetes style health checks
-		telemetryRouter.HandleFunc("/healthz/live", func(w http.ResponseWriter, _ *http.Request) {
-			_, _ = w.Write([]byte("ok"))
-		})
-		telemetryRouter.Handle("/healthz/ready", handler)
-	}
+	// Kubernetes style health checks
+	telemetryRouter.HandleFunc("/healthz/live", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("ok"))
+	})
+	telemetryRouter.Handle("/healthz/ready", handler)
 
 	logger.Info("starting OpenMeter sink worker", "config", map[string]string{
 		"telemetry.address":   conf.Telemetry.Address,
@@ -162,41 +166,46 @@ func main() {
 		logger.Error("failed to initialize sink worker", "error", err)
 		os.Exit(1)
 	}
-
-	var group run.Group
+	defer func() {
+		_ = sink.Close()
+	}()
 
 	// Set up telemetry server
-	{
-		server := &http.Server{
-			Addr:    conf.Telemetry.Address,
-			Handler: telemetryRouter,
-		}
-		defer server.Close()
-
-		group.Add(
-			func() error { return server.ListenAndServe() },
-			func(err error) { _ = server.Shutdown(ctx) },
-		)
+	server := &http.Server{
+		Addr:    conf.Telemetry.Address,
+		Handler: telemetryRouter,
+		BaseContext: func(_ net.Listener) context.Context {
+			return ctx
+		},
 	}
+	defer func() {
+		_ = server.Close()
+	}()
 
-	// Starting sink worker
-	{
-		defer sink.Close()
+	var group run.Group
+	// Add sink worker to run group
+	group.Add(
+		func() error { return sink.Run(ctx) },
+		func(err error) { _ = sink.Close() },
+	)
 
-		group.Add(
-			func() error { return sink.Run() },
-			func(err error) { _ = sink.Close() },
-		)
-	}
+	// Add telemetry server to run group
+	group.Add(
+		func() error { return server.ListenAndServe() },
+		func(err error) { _ = server.Shutdown(ctx) },
+	)
 
 	// Setup signal handler
 	group.Add(run.SignalHandler(ctx, syscall.SIGINT, syscall.SIGTERM))
 
+	// Run actors
 	err = group.Run()
+
 	if e := (run.SignalError{}); errors.As(err, &e) {
-		slog.Info("received signal; shutting down", slog.String("signal", e.Signal.String()))
+		logger.Info("received signal: shutting down", slog.String("signal", e.Signal.String()))
 	} else if !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("application stopped due to error", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 }
 
