@@ -502,10 +502,20 @@ func (s *Sink) Run(ctx context.Context) error {
 					}
 				}
 			case kafka.Error:
-				// Errors should generally be considered
-				// informational, the client will try to
-				// automatically recover.
-				logger.Error("kafka error", "code", e.Code(), "event", e)
+				attrs := []any{
+					slog.Int("code", int(e.Code())),
+					slog.String("error", e.Error()),
+				}
+
+				// Log Kafka client "local" errors on warning level as those are mostly informational and the client is
+				// able to handle/recover from them automatically.
+				// See: https://github.com/confluentinc/librdkafka/blob/master/src/rdkafka.h#L415
+				if e.Code() <= -100 {
+					logger.Warn("kafka local error", attrs...)
+				} else {
+					logger.Error("kafka broker error", attrs...)
+				}
+
 			case kafka.OffsetsCommitted:
 				// do nothing, this is an ack of the periodic offset commit
 				logger.Debug("kafka offset committed", "offset", e.Offsets)
