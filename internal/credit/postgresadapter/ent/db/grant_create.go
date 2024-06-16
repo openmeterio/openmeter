@@ -142,20 +142,6 @@ func (gc *GrantCreate) SetResetMaxRollover(f float64) *GrantCreate {
 	return gc
 }
 
-// SetRecurrenceMaxRollover sets the "recurrence_max_rollover" field.
-func (gc *GrantCreate) SetRecurrenceMaxRollover(f float64) *GrantCreate {
-	gc.mutation.SetRecurrenceMaxRollover(f)
-	return gc
-}
-
-// SetNillableRecurrenceMaxRollover sets the "recurrence_max_rollover" field if the given value is not nil.
-func (gc *GrantCreate) SetNillableRecurrenceMaxRollover(f *float64) *GrantCreate {
-	if f != nil {
-		gc.SetRecurrenceMaxRollover(*f)
-	}
-	return gc
-}
-
 // SetRecurrencePeriod sets the "recurrence_period" field.
 func (gc *GrantCreate) SetRecurrencePeriod(cp credit.RecurrencePeriod) *GrantCreate {
 	gc.mutation.SetRecurrencePeriod(cp)
@@ -381,10 +367,6 @@ func (gc *GrantCreate) createSpec() (*Grant, *sqlgraph.CreateSpec) {
 		_spec.SetField(grant.FieldResetMaxRollover, field.TypeFloat64, value)
 		_node.ResetMaxRollover = value
 	}
-	if value, ok := gc.mutation.RecurrenceMaxRollover(); ok {
-		_spec.SetField(grant.FieldRecurrenceMaxRollover, field.TypeFloat64, value)
-		_node.RecurrenceMaxRollover = &value
-	}
 	if value, ok := gc.mutation.RecurrencePeriod(); ok {
 		_spec.SetField(grant.FieldRecurrencePeriod, field.TypeEnum, value)
 		_node.RecurrencePeriod = &value
@@ -539,9 +521,6 @@ func (u *GrantUpsertOne) UpdateNewValues() *GrantUpsertOne {
 		}
 		if _, exists := u.create.mutation.ResetMaxRollover(); exists {
 			s.SetIgnore(grant.FieldResetMaxRollover)
-		}
-		if _, exists := u.create.mutation.RecurrenceMaxRollover(); exists {
-			s.SetIgnore(grant.FieldRecurrenceMaxRollover)
 		}
 		if _, exists := u.create.mutation.RecurrencePeriod(); exists {
 			s.SetIgnore(grant.FieldRecurrencePeriod)
@@ -848,9 +827,6 @@ func (u *GrantUpsertBulk) UpdateNewValues() *GrantUpsertBulk {
 			}
 			if _, exists := b.mutation.ResetMaxRollover(); exists {
 				s.SetIgnore(grant.FieldResetMaxRollover)
-			}
-			if _, exists := b.mutation.RecurrenceMaxRollover(); exists {
-				s.SetIgnore(grant.FieldRecurrenceMaxRollover)
 			}
 			if _, exists := b.mutation.RecurrencePeriod(); exists {
 				s.SetIgnore(grant.FieldRecurrencePeriod)

@@ -41,8 +41,6 @@ const (
 	FieldVoidedAt = "voided_at"
 	// FieldResetMaxRollover holds the string denoting the reset_max_rollover field in the database.
 	FieldResetMaxRollover = "reset_max_rollover"
-	// FieldRecurrenceMaxRollover holds the string denoting the recurrence_max_rollover field in the database.
-	FieldRecurrenceMaxRollover = "recurrence_max_rollover"
 	// FieldRecurrencePeriod holds the string denoting the recurrence_period field in the database.
 	FieldRecurrencePeriod = "recurrence_period"
 	// FieldRecurrenceAnchor holds the string denoting the recurrence_anchor field in the database.
@@ -67,7 +65,6 @@ var Columns = []string{
 	FieldExpiresAt,
 	FieldVoidedAt,
 	FieldResetMaxRollover,
-	FieldRecurrenceMaxRollover,
 	FieldRecurrencePeriod,
 	FieldRecurrenceAnchor,
 }
@@ -168,11 +165,6 @@ func ByVoidedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByResetMaxRollover orders the results by the reset_max_rollover field.
 func ByResetMaxRollover(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldResetMaxRollover, opts...).ToFunc()
-}
-
-// ByRecurrenceMaxRollover orders the results by the recurrence_max_rollover field.
-func ByRecurrenceMaxRollover(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldRecurrenceMaxRollover, opts...).ToFunc()
 }
 
 // ByRecurrencePeriod orders the results by the recurrence_period field.

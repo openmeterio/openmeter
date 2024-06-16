@@ -134,9 +134,6 @@ func (gu *GrantUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if gu.mutation.VoidedAtCleared() {
 		_spec.ClearField(grant.FieldVoidedAt, field.TypeTime)
 	}
-	if gu.mutation.RecurrenceMaxRolloverCleared() {
-		_spec.ClearField(grant.FieldRecurrenceMaxRollover, field.TypeFloat64)
-	}
 	if gu.mutation.RecurrencePeriodCleared() {
 		_spec.ClearField(grant.FieldRecurrencePeriod, field.TypeEnum)
 	}
@@ -298,9 +295,6 @@ func (guo *GrantUpdateOne) sqlSave(ctx context.Context) (_node *Grant, err error
 	}
 	if guo.mutation.VoidedAtCleared() {
 		_spec.ClearField(grant.FieldVoidedAt, field.TypeTime)
-	}
-	if guo.mutation.RecurrenceMaxRolloverCleared() {
-		_spec.ClearField(grant.FieldRecurrenceMaxRollover, field.TypeFloat64)
 	}
 	if guo.mutation.RecurrencePeriodCleared() {
 		_spec.ClearField(grant.FieldRecurrencePeriod, field.TypeEnum)

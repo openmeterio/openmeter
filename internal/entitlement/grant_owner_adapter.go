@@ -116,6 +116,9 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriod(ctx context.Context, owner
 
 	// Save usage reset
 	return e.urdb.Save(ctx, UsageResetTime{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: owner.Namespace,
+		},
 		EntitlementID: owner.NamespacedID().ID,
 		ResetTime:     at,
 	})

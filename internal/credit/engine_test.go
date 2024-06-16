@@ -410,9 +410,8 @@ func TestEngine(t *testing.T) {
 				g1 := grant1
 				g1.EffectiveAt = t1
 				g1.Recurrence = &credit.Recurrence{
-					Period:            credit.RecurrencePeriodDaily,
-					Anchor:            t1,
-					MaxRolloverAmount: -1, // currently unused
+					Period: credit.RecurrencePeriodDaily,
+					Anchor: t1,
 				}
 				g1 = makeGrant(g1)
 
@@ -455,9 +454,8 @@ func TestEngine(t *testing.T) {
 				g2.EffectiveAt = tg2
 				g2.Priority = 1
 				g2.Recurrence = &credit.Recurrence{
-					Period:            credit.RecurrencePeriodWeekly,
-					Anchor:            tg2r,
-					MaxRolloverAmount: -1, // currently unused
+					Period: credit.RecurrencePeriodWeekly,
+					Anchor: tg2r,
 				}
 				g2 = makeGrant(g2)
 
@@ -503,9 +501,8 @@ func TestEngine(t *testing.T) {
 				g2.EffectiveAt = tg2
 				g2.Priority = 1
 				g2.Recurrence = &credit.Recurrence{
-					Period:            credit.RecurrencePeriodWeekly,
-					Anchor:            tg2r,
-					MaxRolloverAmount: -1, // currently unused
+					Period: credit.RecurrencePeriodWeekly,
+					Anchor: tg2r,
 				}
 				g2 = makeGrant(g2)
 
@@ -558,9 +555,8 @@ func TestEngine(t *testing.T) {
 				g2.Expiration.Count = 2
 				g2.Expiration.Duration = credit.ExpirationPeriodDurationMonth
 				g2.Recurrence = &credit.Recurrence{
-					Period:            credit.RecurrencePeriodWeekly,
-					Anchor:            tg2r,
-					MaxRolloverAmount: -1, // currently unused
+					Period: credit.RecurrencePeriodWeekly,
+					Anchor: tg2r,
 				}
 				g2 = makeGrant(g2)
 
@@ -727,9 +723,8 @@ func TestEngine(t *testing.T) {
 
 					if gofakeit.Bool() {
 						grant.Recurrence = &credit.Recurrence{
-							Period:            credit.RecurrencePeriodDaily,
-							Anchor:            gofakeit.DateRange(start, end).Truncate(granularity),
-							MaxRolloverAmount: -1, // currently unused
+							Period: credit.RecurrencePeriodDaily,
+							Anchor: gofakeit.DateRange(start, end).Truncate(granularity),
 						}
 					}
 					grants[i] = makeGrant(grant)
@@ -808,9 +803,8 @@ func TestEngine(t *testing.T) {
 
 					if gofakeit.Bool() {
 						grant.Recurrence = &credit.Recurrence{
-							Period:            credit.RecurrencePeriodDaily,
-							Anchor:            gofakeit.DateRange(start, end).Truncate(granularity),
-							MaxRolloverAmount: -1, // currently unused
+							Period: credit.RecurrencePeriodDaily,
+							Anchor: gofakeit.DateRange(start, end).Truncate(granularity),
 						}
 					}
 					grants[i] = makeGrant(grant)

@@ -36,7 +36,6 @@ func (g *grantDBADapter) CreateGrant(ctx context.Context, grant credit.DBCreateG
 
 	if grant.Recurrence != nil {
 		command = command.
-			SetNillableRecurrenceMaxRollover(&grant.Recurrence.MaxRolloverAmount).
 			SetNillableRecurrencePeriod(&grant.Recurrence.Period).
 			SetNillableRecurrenceAnchor(&grant.Recurrence.Anchor)
 	}
@@ -167,10 +166,6 @@ func mapGrantEntity(entity *db.Grant) credit.Grant {
 		g.Recurrence = &credit.Recurrence{
 			Period: *entity.RecurrencePeriod,
 			Anchor: *convert.SafeToUTC(entity.RecurrenceAnchor),
-		}
-
-		if entity.RecurrenceMaxRollover != nil {
-			g.Recurrence.MaxRolloverAmount = *entity.RecurrenceMaxRollover
 		}
 	}
 

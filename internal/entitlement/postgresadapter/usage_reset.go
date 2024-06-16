@@ -24,6 +24,7 @@ func NewPostgresUsageResetDBAdapter(db *db.Client) entitlement.UsageResetDBConne
 func (a *usageResetDBAdapter) Save(ctx context.Context, usageResetTime entitlement.UsageResetTime) error {
 	_, err := a.db.UsageReset.Create().
 		SetEntitlementID(usageResetTime.EntitlementID).
+		SetNamespace(usageResetTime.Namespace).
 		SetResetTime(usageResetTime.ResetTime).
 		Save(ctx)
 	return err

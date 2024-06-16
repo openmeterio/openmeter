@@ -882,33 +882,31 @@ func (m *BalanceSnapshotMutation) ResetEdge(name string) error {
 // GrantMutation represents an operation that mutates the Grant nodes in the graph.
 type GrantMutation struct {
 	config
-	op                         Op
-	typ                        string
-	id                         *string
-	namespace                  *string
-	metadata                   *map[string]string
-	created_at                 *time.Time
-	updated_at                 *time.Time
-	deleted_at                 *time.Time
-	owner_id                   *credit.GrantOwner
-	amount                     *float64
-	addamount                  *float64
-	priority                   *uint8
-	addpriority                *int8
-	effective_at               *time.Time
-	expiration                 *credit.ExpirationPeriod
-	expires_at                 *time.Time
-	voided_at                  *time.Time
-	reset_max_rollover         *float64
-	addreset_max_rollover      *float64
-	recurrence_max_rollover    *float64
-	addrecurrence_max_rollover *float64
-	recurrence_period          *credit.RecurrencePeriod
-	recurrence_anchor          *time.Time
-	clearedFields              map[string]struct{}
-	done                       bool
-	oldValue                   func(context.Context) (*Grant, error)
-	predicates                 []predicate.Grant
+	op                    Op
+	typ                   string
+	id                    *string
+	namespace             *string
+	metadata              *map[string]string
+	created_at            *time.Time
+	updated_at            *time.Time
+	deleted_at            *time.Time
+	owner_id              *credit.GrantOwner
+	amount                *float64
+	addamount             *float64
+	priority              *uint8
+	addpriority           *int8
+	effective_at          *time.Time
+	expiration            *credit.ExpirationPeriod
+	expires_at            *time.Time
+	voided_at             *time.Time
+	reset_max_rollover    *float64
+	addreset_max_rollover *float64
+	recurrence_period     *credit.RecurrencePeriod
+	recurrence_anchor     *time.Time
+	clearedFields         map[string]struct{}
+	done                  bool
+	oldValue              func(context.Context) (*Grant, error)
+	predicates            []predicate.Grant
 }
 
 var _ ent.Mutation = (*GrantMutation)(nil)
@@ -1582,76 +1580,6 @@ func (m *GrantMutation) ResetResetMaxRollover() {
 	m.addreset_max_rollover = nil
 }
 
-// SetRecurrenceMaxRollover sets the "recurrence_max_rollover" field.
-func (m *GrantMutation) SetRecurrenceMaxRollover(f float64) {
-	m.recurrence_max_rollover = &f
-	m.addrecurrence_max_rollover = nil
-}
-
-// RecurrenceMaxRollover returns the value of the "recurrence_max_rollover" field in the mutation.
-func (m *GrantMutation) RecurrenceMaxRollover() (r float64, exists bool) {
-	v := m.recurrence_max_rollover
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldRecurrenceMaxRollover returns the old "recurrence_max_rollover" field's value of the Grant entity.
-// If the Grant object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GrantMutation) OldRecurrenceMaxRollover(ctx context.Context) (v *float64, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldRecurrenceMaxRollover is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldRecurrenceMaxRollover requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldRecurrenceMaxRollover: %w", err)
-	}
-	return oldValue.RecurrenceMaxRollover, nil
-}
-
-// AddRecurrenceMaxRollover adds f to the "recurrence_max_rollover" field.
-func (m *GrantMutation) AddRecurrenceMaxRollover(f float64) {
-	if m.addrecurrence_max_rollover != nil {
-		*m.addrecurrence_max_rollover += f
-	} else {
-		m.addrecurrence_max_rollover = &f
-	}
-}
-
-// AddedRecurrenceMaxRollover returns the value that was added to the "recurrence_max_rollover" field in this mutation.
-func (m *GrantMutation) AddedRecurrenceMaxRollover() (r float64, exists bool) {
-	v := m.addrecurrence_max_rollover
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ClearRecurrenceMaxRollover clears the value of the "recurrence_max_rollover" field.
-func (m *GrantMutation) ClearRecurrenceMaxRollover() {
-	m.recurrence_max_rollover = nil
-	m.addrecurrence_max_rollover = nil
-	m.clearedFields[grant.FieldRecurrenceMaxRollover] = struct{}{}
-}
-
-// RecurrenceMaxRolloverCleared returns if the "recurrence_max_rollover" field was cleared in this mutation.
-func (m *GrantMutation) RecurrenceMaxRolloverCleared() bool {
-	_, ok := m.clearedFields[grant.FieldRecurrenceMaxRollover]
-	return ok
-}
-
-// ResetRecurrenceMaxRollover resets all changes to the "recurrence_max_rollover" field.
-func (m *GrantMutation) ResetRecurrenceMaxRollover() {
-	m.recurrence_max_rollover = nil
-	m.addrecurrence_max_rollover = nil
-	delete(m.clearedFields, grant.FieldRecurrenceMaxRollover)
-}
-
 // SetRecurrencePeriod sets the "recurrence_period" field.
 func (m *GrantMutation) SetRecurrencePeriod(cp credit.RecurrencePeriod) {
 	m.recurrence_period = &cp
@@ -1784,7 +1712,7 @@ func (m *GrantMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GrantMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 15)
 	if m.namespace != nil {
 		fields = append(fields, grant.FieldNamespace)
 	}
@@ -1823,9 +1751,6 @@ func (m *GrantMutation) Fields() []string {
 	}
 	if m.reset_max_rollover != nil {
 		fields = append(fields, grant.FieldResetMaxRollover)
-	}
-	if m.recurrence_max_rollover != nil {
-		fields = append(fields, grant.FieldRecurrenceMaxRollover)
 	}
 	if m.recurrence_period != nil {
 		fields = append(fields, grant.FieldRecurrencePeriod)
@@ -1867,8 +1792,6 @@ func (m *GrantMutation) Field(name string) (ent.Value, bool) {
 		return m.VoidedAt()
 	case grant.FieldResetMaxRollover:
 		return m.ResetMaxRollover()
-	case grant.FieldRecurrenceMaxRollover:
-		return m.RecurrenceMaxRollover()
 	case grant.FieldRecurrencePeriod:
 		return m.RecurrencePeriod()
 	case grant.FieldRecurrenceAnchor:
@@ -1908,8 +1831,6 @@ func (m *GrantMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldVoidedAt(ctx)
 	case grant.FieldResetMaxRollover:
 		return m.OldResetMaxRollover(ctx)
-	case grant.FieldRecurrenceMaxRollover:
-		return m.OldRecurrenceMaxRollover(ctx)
 	case grant.FieldRecurrencePeriod:
 		return m.OldRecurrencePeriod(ctx)
 	case grant.FieldRecurrenceAnchor:
@@ -2014,13 +1935,6 @@ func (m *GrantMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetResetMaxRollover(v)
 		return nil
-	case grant.FieldRecurrenceMaxRollover:
-		v, ok := value.(float64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetRecurrenceMaxRollover(v)
-		return nil
 	case grant.FieldRecurrencePeriod:
 		v, ok := value.(credit.RecurrencePeriod)
 		if !ok {
@@ -2052,9 +1966,6 @@ func (m *GrantMutation) AddedFields() []string {
 	if m.addreset_max_rollover != nil {
 		fields = append(fields, grant.FieldResetMaxRollover)
 	}
-	if m.addrecurrence_max_rollover != nil {
-		fields = append(fields, grant.FieldRecurrenceMaxRollover)
-	}
 	return fields
 }
 
@@ -2069,8 +1980,6 @@ func (m *GrantMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedPriority()
 	case grant.FieldResetMaxRollover:
 		return m.AddedResetMaxRollover()
-	case grant.FieldRecurrenceMaxRollover:
-		return m.AddedRecurrenceMaxRollover()
 	}
 	return nil, false
 }
@@ -2101,13 +2010,6 @@ func (m *GrantMutation) AddField(name string, value ent.Value) error {
 		}
 		m.AddResetMaxRollover(v)
 		return nil
-	case grant.FieldRecurrenceMaxRollover:
-		v, ok := value.(float64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddRecurrenceMaxRollover(v)
-		return nil
 	}
 	return fmt.Errorf("unknown Grant numeric field %s", name)
 }
@@ -2124,9 +2026,6 @@ func (m *GrantMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(grant.FieldVoidedAt) {
 		fields = append(fields, grant.FieldVoidedAt)
-	}
-	if m.FieldCleared(grant.FieldRecurrenceMaxRollover) {
-		fields = append(fields, grant.FieldRecurrenceMaxRollover)
 	}
 	if m.FieldCleared(grant.FieldRecurrencePeriod) {
 		fields = append(fields, grant.FieldRecurrencePeriod)
@@ -2156,9 +2055,6 @@ func (m *GrantMutation) ClearField(name string) error {
 		return nil
 	case grant.FieldVoidedAt:
 		m.ClearVoidedAt()
-		return nil
-	case grant.FieldRecurrenceMaxRollover:
-		m.ClearRecurrenceMaxRollover()
 		return nil
 	case grant.FieldRecurrencePeriod:
 		m.ClearRecurrencePeriod()
@@ -2212,9 +2108,6 @@ func (m *GrantMutation) ResetField(name string) error {
 		return nil
 	case grant.FieldResetMaxRollover:
 		m.ResetResetMaxRollover()
-		return nil
-	case grant.FieldRecurrenceMaxRollover:
-		m.ResetRecurrenceMaxRollover()
 		return nil
 	case grant.FieldRecurrencePeriod:
 		m.ResetRecurrencePeriod()

@@ -60,7 +60,6 @@ var (
 		{Name: "expires_at", Type: field.TypeTime},
 		{Name: "voided_at", Type: field.TypeTime, Nullable: true},
 		{Name: "reset_max_rollover", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric"}},
-		{Name: "recurrence_max_rollover", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "recurrence_period", Type: field.TypeEnum, Nullable: true, Enums: []string{"DAILY", "WEEKLY", "MONTHLY", "YEARLY"}},
 		{Name: "recurrence_anchor", Type: field.TypeTime, Nullable: true},
 	}

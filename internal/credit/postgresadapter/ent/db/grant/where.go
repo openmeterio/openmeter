@@ -121,11 +121,6 @@ func ResetMaxRollover(v float64) predicate.Grant {
 	return predicate.Grant(sql.FieldEQ(FieldResetMaxRollover, v))
 }
 
-// RecurrenceMaxRollover applies equality check predicate on the "recurrence_max_rollover" field. It's identical to RecurrenceMaxRolloverEQ.
-func RecurrenceMaxRollover(v float64) predicate.Grant {
-	return predicate.Grant(sql.FieldEQ(FieldRecurrenceMaxRollover, v))
-}
-
 // RecurrenceAnchor applies equality check predicate on the "recurrence_anchor" field. It's identical to RecurrenceAnchorEQ.
 func RecurrenceAnchor(v time.Time) predicate.Grant {
 	return predicate.Grant(sql.FieldEQ(FieldRecurrenceAnchor, v))
@@ -668,56 +663,6 @@ func ResetMaxRolloverLT(v float64) predicate.Grant {
 // ResetMaxRolloverLTE applies the LTE predicate on the "reset_max_rollover" field.
 func ResetMaxRolloverLTE(v float64) predicate.Grant {
 	return predicate.Grant(sql.FieldLTE(FieldResetMaxRollover, v))
-}
-
-// RecurrenceMaxRolloverEQ applies the EQ predicate on the "recurrence_max_rollover" field.
-func RecurrenceMaxRolloverEQ(v float64) predicate.Grant {
-	return predicate.Grant(sql.FieldEQ(FieldRecurrenceMaxRollover, v))
-}
-
-// RecurrenceMaxRolloverNEQ applies the NEQ predicate on the "recurrence_max_rollover" field.
-func RecurrenceMaxRolloverNEQ(v float64) predicate.Grant {
-	return predicate.Grant(sql.FieldNEQ(FieldRecurrenceMaxRollover, v))
-}
-
-// RecurrenceMaxRolloverIn applies the In predicate on the "recurrence_max_rollover" field.
-func RecurrenceMaxRolloverIn(vs ...float64) predicate.Grant {
-	return predicate.Grant(sql.FieldIn(FieldRecurrenceMaxRollover, vs...))
-}
-
-// RecurrenceMaxRolloverNotIn applies the NotIn predicate on the "recurrence_max_rollover" field.
-func RecurrenceMaxRolloverNotIn(vs ...float64) predicate.Grant {
-	return predicate.Grant(sql.FieldNotIn(FieldRecurrenceMaxRollover, vs...))
-}
-
-// RecurrenceMaxRolloverGT applies the GT predicate on the "recurrence_max_rollover" field.
-func RecurrenceMaxRolloverGT(v float64) predicate.Grant {
-	return predicate.Grant(sql.FieldGT(FieldRecurrenceMaxRollover, v))
-}
-
-// RecurrenceMaxRolloverGTE applies the GTE predicate on the "recurrence_max_rollover" field.
-func RecurrenceMaxRolloverGTE(v float64) predicate.Grant {
-	return predicate.Grant(sql.FieldGTE(FieldRecurrenceMaxRollover, v))
-}
-
-// RecurrenceMaxRolloverLT applies the LT predicate on the "recurrence_max_rollover" field.
-func RecurrenceMaxRolloverLT(v float64) predicate.Grant {
-	return predicate.Grant(sql.FieldLT(FieldRecurrenceMaxRollover, v))
-}
-
-// RecurrenceMaxRolloverLTE applies the LTE predicate on the "recurrence_max_rollover" field.
-func RecurrenceMaxRolloverLTE(v float64) predicate.Grant {
-	return predicate.Grant(sql.FieldLTE(FieldRecurrenceMaxRollover, v))
-}
-
-// RecurrenceMaxRolloverIsNil applies the IsNil predicate on the "recurrence_max_rollover" field.
-func RecurrenceMaxRolloverIsNil() predicate.Grant {
-	return predicate.Grant(sql.FieldIsNull(FieldRecurrenceMaxRollover))
-}
-
-// RecurrenceMaxRolloverNotNil applies the NotNil predicate on the "recurrence_max_rollover" field.
-func RecurrenceMaxRolloverNotNil() predicate.Grant {
-	return predicate.Grant(sql.FieldNotNull(FieldRecurrenceMaxRollover))
 }
 
 // RecurrencePeriodEQ applies the EQ predicate on the "recurrence_period" field.

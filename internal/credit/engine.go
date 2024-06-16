@@ -92,7 +92,6 @@ func (e *engine) Run(grants []Grant, startingBalances GrantBalanceMap, overage f
 		if len(recurredGrants) > 0 {
 			// TODO: its not super neat, maybe have a separate entity with balance...
 			for _, grantID := range recurredGrants {
-				grant := grantMap[grantID]
 				grant, ok := grantMap[grantID]
 				if !ok {
 					return nil, 0, nil, fmt.Errorf("failed to get grant with id %s", grantID)

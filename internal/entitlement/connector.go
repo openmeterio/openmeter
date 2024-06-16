@@ -12,11 +12,11 @@ type Connector interface {
 	GetEntitlementsOfSubject(ctx context.Context, subjectKey models.SubjectKey) ([]Entitlement, error)
 
 	// Balance & Usage
-	GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID) (EntitlementBalance, error)
-	GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
-	GetEntitlementGrantBalanceHistory(ctx context.Context, entitlementGrantID EntitlementGrantID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
+	// GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID) (EntitlementBalance, error)
+	// GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
+	// ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID) error
 
-	ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID) error
+	GetEntitlementGrantBalanceHistory(ctx context.Context, entitlementGrantID EntitlementGrantID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
 
 	// Reset Scheduling
 	ChangeEntitlementUsageResetSchedule(ctx context.Context, entitlementID models.NamespacedID, schedule Schedule) (Schedule, error)

@@ -48,8 +48,9 @@ type BalanceHistoryParams struct {
 }
 
 type EntitlementBalanceConnector interface {
-	GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (EntitlementBalance, error)
+	GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error)
 	GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
+	ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID, resetAT time.Time) (balanceAfterReset *EntitlementBalance, err error)
 
 	// GetEntitlementGrantBalanceHistory(ctx context.Context, entitlementGrantID EntitlementGrantID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
 }
@@ -72,24 +73,24 @@ func NewEntitlementBalanceConnector(
 	}
 }
 
-func (e *entitlementBalanceConnector) GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (EntitlementBalance, error) {
+func (e *entitlementBalanceConnector) GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error) {
 	nsOwner := credit.NamespacedGrantOwner{
 		Namespace: entitlementID.Namespace,
 		ID:        credit.GrantOwner(entitlementID.ID),
 	}
 	res, err := e.bc.GetBalanceOfOwner(ctx, nsOwner, at)
 	if err != nil {
-		return EntitlementBalance{}, fmt.Errorf("failed to get balance of entitlement %s: %w", entitlementID.ID, err)
+		return nil, fmt.Errorf("failed to get balance of entitlement %s: %w", entitlementID.ID, err)
 	}
 
 	meterSlug, params, err := e.oc.GetOwnerQueryParams(ctx, nsOwner)
 	if err != nil {
-		return EntitlementBalance{}, fmt.Errorf("failed to get owner query params: %w", err)
+		return nil, fmt.Errorf("failed to get owner query params: %w", err)
 	}
 
 	startOfPeriod, err := e.oc.GetUsagePeriodStartAt(ctx, nsOwner, at)
 	if err != nil {
-		return EntitlementBalance{}, fmt.Errorf("failed to get current usage period start at: %w", err)
+		return nil, fmt.Errorf("failed to get current usage period start at: %w", err)
 	}
 
 	params.From = &startOfPeriod
@@ -97,7 +98,7 @@ func (e *entitlementBalanceConnector) GetEntitlementBalance(ctx context.Context,
 
 	rows, err := e.sc.QueryMeter(ctx, entitlementID.Namespace, meterSlug, params)
 	if err != nil {
-		return EntitlementBalance{}, fmt.Errorf("failed to query meter: %w", err)
+		return nil, fmt.Errorf("failed to query meter: %w", err)
 	}
 
 	// TODO: refactor, assert 1 row
@@ -106,7 +107,7 @@ func (e *entitlementBalanceConnector) GetEntitlementBalance(ctx context.Context,
 		usage += row.Value
 	}
 
-	return EntitlementBalance{
+	return &EntitlementBalance{
 		EntitlementID: entitlementID.ID,
 		Balance:       res.Balance(),
 		UsageInPeriod: usage,
@@ -211,4 +212,25 @@ func (e *entitlementBalanceConnector) GetEntitlementBalanceHistory(ctx context.C
 	}
 
 	return windows, nil
+}
+
+// This is just a wrapper around credot.BalanceConnector.ResetUsageForOwner
+func (e *entitlementBalanceConnector) ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID, resetAt time.Time) (*EntitlementBalance, error) {
+	owner := credit.NamespacedGrantOwner{
+		Namespace: entitlementID.Namespace,
+		ID:        credit.GrantOwner(entitlementID.ID),
+	}
+
+	balanceAfterReset, err := e.bc.ResetUsageForOwner(ctx, owner, resetAt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to reset usage for entitlement %s: %w", entitlementID.ID, err)
+	}
+
+	return &EntitlementBalance{
+		EntitlementID: entitlementID.ID,
+		Balance:       balanceAfterReset.Balance(),
+		UsageInPeriod: 0.0, // you cannot have usage right after a reset
+		Overage:       balanceAfterReset.Overage,
+		StartOfPeriod: resetAt,
+	}, nil
 }

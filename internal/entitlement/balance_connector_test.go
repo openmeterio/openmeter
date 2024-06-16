@@ -100,7 +100,39 @@ func TestGetEntitlementBalance(t *testing.T) {
 		{
 			name: "Should return overage until very first grant after reset",
 			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
-				t.Skip("TODO: Implement test we need reset")
+				ctx := context.Background()
+				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+
+				// create featute in db
+				feature, err := deps.featureDB.CreateFeature(ctx, exampleFeature)
+				assert.NoError(t, err)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feature)
+				inp.MeasureUsageFrom = startTime
+				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
+				assert.NoError(t, err)
+
+				// add dummy usage so meter is found
+				deps.streaming.AddSimpleEvent(meterSlug, 0, startTime.Add(-time.Minute))
+
+				// reset (empty) entitlement
+				resetTime := startTime.Add(time.Hour * 5)
+				_, err = connector.ResetEntitlementUsage(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, resetTime)
+				assert.NoError(t, err)
+
+				// usage on ledger that will be deducted
+				deps.streaming.AddSimpleEvent(meterSlug, 600, resetTime.Add(time.Minute))
+
+				// get balance with overage
+				queryTime := resetTime.Add(time.Hour)
+				entBalance, err := connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, queryTime)
+
+				assert.NoError(t, err)
+				assert.Equal(t, 600.0, entBalance.UsageInPeriod)
+				assert.Equal(t, 600.0, entBalance.Overage)
+				assert.Equal(t, 0.0, entBalance.Balance)
+
 			},
 		},
 		{
@@ -384,12 +416,256 @@ func TestGetEntitlementHistory(t *testing.T) {
 	}
 }
 
+func TestResetEntitlementUsage(t *testing.T) {
+	namespace := "ns1"
+	meterSlug := "meter1"
+
+	exampleFeature := productcatalog.DBCreateFeatureInputs{
+		Namespace:           namespace,
+		Name:                "feature1",
+		MeterSlug:           meterSlug,
+		MeterGroupByFilters: &map[string]string{},
+	}
+
+	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementInputs {
+		t.Helper()
+		return entitlement.CreateEntitlementInputs{
+			Namespace:        namespace,
+			FeatureID:        feature.ID,
+			MeasureUsageFrom: testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z"), // old, override in tests
+		}
+	}
+
+	tt := []struct {
+		name string
+		run  func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies)
+	}{
+		{
+			name: "Should allow resetting usage for the first time with no grants",
+			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+				ctx := context.Background()
+				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+
+				// create featute in db
+				feature, err := deps.featureDB.CreateFeature(ctx, exampleFeature)
+				assert.NoError(t, err)
+
+				resetTime := startTime.Add(time.Hour * 3)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feature)
+				inp.MeasureUsageFrom = startTime
+				entitlement, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
+				assert.NoError(t, err)
+
+				// some usage on ledger, should be inconsequential
+				deps.streaming.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Minute))
+
+				startingBalance, err := connector.ResetEntitlementUsage(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, resetTime)
+				assert.NoError(t, err)
+
+				assert.Equal(t, 0.0, startingBalance.UsageInPeriod) // cannot be usage
+				assert.Equal(t, 0.0, startingBalance.Balance)       // no balance as there are no grants
+				assert.Equal(t, 0.0, startingBalance.Overage)       // cannot be overage
+			},
+		},
+		{
+			name: "Should error if requested reset time is before start of measurement",
+			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+				ctx := context.Background()
+				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+
+				// create featute in db
+				feature, err := deps.featureDB.CreateFeature(ctx, exampleFeature)
+				assert.NoError(t, err)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feature)
+				inp.MeasureUsageFrom = startTime
+				entitlement, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
+				assert.NoError(t, err)
+
+				// some usage on ledger, should be inconsequential
+				deps.streaming.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Minute))
+
+				// resetTime before start of measurement
+				resetTime := startTime.Add(-time.Hour)
+				_, err = connector.ResetEntitlementUsage(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, resetTime)
+				assert.ErrorContains(t, err, "before current usage period start")
+			},
+		},
+		{
+			name: "Should error if requested reset time is before current period start",
+			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+				ctx := context.Background()
+				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+
+				// create featute in db
+				feature, err := deps.featureDB.CreateFeature(ctx, exampleFeature)
+				assert.NoError(t, err)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feature)
+				inp.MeasureUsageFrom = startTime
+				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
+				assert.NoError(t, err)
+
+				// some usage on ledger, should be inconsequential
+				deps.streaming.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Minute))
+
+				// save a reset time
+				priorResetTime := startTime.Add(time.Hour)
+				err = deps.usageResetDB.Save(ctx, entitlement.UsageResetTime{
+					NamespacedModel: models.NamespacedModel{Namespace: namespace},
+					ResetTime:       priorResetTime,
+					EntitlementID:   ent.ID,
+				})
+				assert.NoError(t, err)
+
+				// resetTime before prior reset time
+				resetTime := priorResetTime.Add(-time.Minute)
+				_, err = connector.ResetEntitlementUsage(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, resetTime)
+				assert.ErrorContains(t, err, "before current usage period start")
+			},
+		},
+		{
+			name: "Should invalidate snapshots after the reset time",
+			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+				ctx := context.Background()
+				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+
+				// create featute in db
+				feature, err := deps.featureDB.CreateFeature(ctx, exampleFeature)
+				assert.NoError(t, err)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feature)
+				inp.MeasureUsageFrom = startTime
+				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
+				assert.NoError(t, err)
+
+				// we force snapshot creation the intended way by checking the balance
+
+				// issue grant
+				g1, err := deps.grantDB.CreateGrant(ctx, credit.DBCreateGrantInput{
+					OwnerID:     credit.GrantOwner(ent.ID),
+					Namespace:   namespace,
+					Amount:      1000,
+					Priority:    1,
+					EffectiveAt: startTime.Add(time.Hour * 2),
+					ExpiresAt:   startTime.AddDate(0, 0, 3),
+				})
+				assert.NoError(t, err)
+
+				// some usage on ledger, should be inconsequential
+				deps.streaming.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Minute))
+
+				queryTime := startTime.Add(time.Hour * 5) // over grace period
+				// we get the balance to force snapshot creation
+				_, err = connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, queryTime)
+				assert.NoError(t, err)
+
+				// for sanity check that snapshot was created (at g1.EffectiveAt)
+				owner := credit.NamespacedGrantOwner{
+					Namespace: namespace,
+					ID:        credit.GrantOwner(ent.ID),
+				}
+				snap, err := deps.balanceSnapshotDB.GetLatestValidAt(ctx, owner, queryTime)
+				assert.NoError(t, err)
+
+				assert.Equal(t, g1.EffectiveAt, snap.At)
+
+				// resetTime before snapshot
+				resetTime := snap.At.Add(-time.Minute)
+				_, err = connector.ResetEntitlementUsage(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, resetTime)
+
+				assert.NoError(t, err)
+			},
+		},
+		{
+			name: "Should return starting balance after reset with rolled over grant values",
+			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+				ctx := context.Background()
+				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+
+				// create featute in db
+				feature, err := deps.featureDB.CreateFeature(ctx, exampleFeature)
+				assert.NoError(t, err)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feature)
+				inp.MeasureUsageFrom = startTime
+				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
+				assert.NoError(t, err)
+
+				// issue grants
+				g1, err := deps.grantDB.CreateGrant(ctx, credit.DBCreateGrantInput{
+					OwnerID:          credit.GrantOwner(ent.ID),
+					Namespace:        namespace,
+					Amount:           1000,
+					Priority:         1,
+					EffectiveAt:      startTime.Add(time.Hour * 2),
+					ExpiresAt:        startTime.AddDate(0, 0, 3),
+					ResetMaxRollover: 1000, // full amount can be rolled over
+				})
+				assert.NoError(t, err)
+
+				g2, err := deps.grantDB.CreateGrant(ctx, credit.DBCreateGrantInput{
+					OwnerID:          credit.GrantOwner(ent.ID),
+					Namespace:        namespace,
+					Amount:           1000,
+					Priority:         3,
+					EffectiveAt:      startTime.Add(time.Hour * 2),
+					ExpiresAt:        startTime.AddDate(0, 0, 3),
+					ResetMaxRollover: 100, // full amount can be rolled over
+				})
+				assert.NoError(t, err)
+
+				// usage on ledger that will be deducted from g1
+				deps.streaming.AddSimpleEvent(meterSlug, 600, startTime.Add(time.Minute))
+
+				// resetTime before snapshot
+				resetTime := startTime.Add(time.Hour * 5)
+				balanceAfterReset, err := connector.ResetEntitlementUsage(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, resetTime)
+
+				assert.NoError(t, err)
+				assert.Equal(t, 0.0, balanceAfterReset.UsageInPeriod) // 0 usage right after reset
+				assert.Equal(t, 500.0, balanceAfterReset.Balance)     // 1000 - 600 = 400 rolled over + MAX(1000 - 0, 100)=100 = 500
+				assert.Equal(t, 0.0, balanceAfterReset.Overage)       // no overage
+				assert.Equal(t, resetTime, balanceAfterReset.StartOfPeriod)
+
+				// get detailed balance from credit connector to check individual grant balances
+				creditBalance, err := deps.creditBalance.GetBalanceOfOwner(ctx, credit.NamespacedGrantOwner{
+					Namespace: namespace,
+					ID:        credit.GrantOwner(ent.ID),
+				}, resetTime)
+				assert.NoError(t, err)
+
+				assert.Equal(t, credit.GrantBalanceMap{
+					g1.ID: 400,
+					g2.ID: 100,
+				}, creditBalance.Balances)
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			connector, deps := setupConnector(t)
+			tc.run(t, connector, deps)
+		})
+	}
+}
+
 type testDependencies struct {
 	featureDB         productcatalog.FeatureDBConnector
 	entitlementDB     entitlement.EntitlementDBConnector
 	usageResetDB      entitlement.UsageResetDBConnector
 	grantDB           credit.GrantDBConnector
 	balanceSnapshotDB credit.BalanceSnapshotDBConnector
+	creditBalance     credit.BalanceConnector
 	streaming         *streaming_testutils.MockStreamingConnector
 }
 
@@ -459,6 +735,7 @@ func setupConnector(t *testing.T) (entitlement.EntitlementBalanceConnector, *tes
 		usageResetDB:      usageresetDB,
 		grantDB:           grantDbConn,
 		balanceSnapshotDB: balanceSnapshotDbConn,
+		creditBalance:     balance,
 		streaming:         streaming,
 	}
 }

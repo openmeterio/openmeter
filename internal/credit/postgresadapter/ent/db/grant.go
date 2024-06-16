@@ -45,8 +45,6 @@ type Grant struct {
 	VoidedAt *time.Time `json:"voided_at,omitempty"`
 	// ResetMaxRollover holds the value of the "reset_max_rollover" field.
 	ResetMaxRollover float64 `json:"reset_max_rollover,omitempty"`
-	// RecurrenceMaxRollover holds the value of the "recurrence_max_rollover" field.
-	RecurrenceMaxRollover *float64 `json:"recurrence_max_rollover,omitempty"`
 	// RecurrencePeriod holds the value of the "recurrence_period" field.
 	RecurrencePeriod *credit.RecurrencePeriod `json:"recurrence_period,omitempty"`
 	// RecurrenceAnchor holds the value of the "recurrence_anchor" field.
@@ -61,7 +59,7 @@ func (*Grant) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case grant.FieldMetadata, grant.FieldExpiration:
 			values[i] = new([]byte)
-		case grant.FieldAmount, grant.FieldResetMaxRollover, grant.FieldRecurrenceMaxRollover:
+		case grant.FieldAmount, grant.FieldResetMaxRollover:
 			values[i] = new(sql.NullFloat64)
 		case grant.FieldPriority:
 			values[i] = new(sql.NullInt64)
@@ -174,13 +172,6 @@ func (gr *Grant) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				gr.ResetMaxRollover = value.Float64
 			}
-		case grant.FieldRecurrenceMaxRollover:
-			if value, ok := values[i].(*sql.NullFloat64); !ok {
-				return fmt.Errorf("unexpected type %T for field recurrence_max_rollover", values[i])
-			} else if value.Valid {
-				gr.RecurrenceMaxRollover = new(float64)
-				*gr.RecurrenceMaxRollover = value.Float64
-			}
 		case grant.FieldRecurrencePeriod:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field recurrence_period", values[i])
@@ -273,11 +264,6 @@ func (gr *Grant) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("reset_max_rollover=")
 	builder.WriteString(fmt.Sprintf("%v", gr.ResetMaxRollover))
-	builder.WriteString(", ")
-	if v := gr.RecurrenceMaxRollover; v != nil {
-		builder.WriteString("recurrence_max_rollover=")
-		builder.WriteString(fmt.Sprintf("%v", *v))
-	}
 	builder.WriteString(", ")
 	if v := gr.RecurrencePeriod; v != nil {
 		builder.WriteString("recurrence_period=")

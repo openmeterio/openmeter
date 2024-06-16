@@ -6,8 +6,7 @@ import (
 )
 
 type Recurrence struct {
-	MaxRolloverAmount float64          `json:"maxRolloverAmount"`
-	Period            RecurrencePeriod `json:"period"`
+	Period RecurrencePeriod `json:"period"`
 	// Anchor can be an arbitrary anchor time for the recurrence.
 	// It does not have to be the last or the next time.
 	Anchor time.Time `json:"anchor"`

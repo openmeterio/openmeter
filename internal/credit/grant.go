@@ -1,6 +1,7 @@
 package credit
 
 import (
+	"math"
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -78,6 +79,23 @@ func (g Grant) ActiveAt(t time.Time) bool {
 		}
 	}
 	return (g.EffectiveAt.Before(t) || g.EffectiveAt.Equal(t)) && g.ExpiresAt.After(t)
+}
+
+// Calculates the new balance after a recurrence from the current balance
+func (g Grant) RecurrenceBalance(currentBalance float64) float64 {
+	// if it was wrongfully called on a non-recurring grant do nothing
+	if g.Recurrence == nil {
+		return currentBalance
+	}
+
+	// We have no rollover settings for recurring grants
+	return g.Amount
+}
+
+// Calculates the new balance after a rollover from the current balance
+func (g Grant) RolloverBalance(currentBalance float64) float64 {
+	// At a rollover the maximum balance that can remain is the ResetMaxRollover
+	return math.Min(g.ResetMaxRollover, currentBalance)
 }
 
 func (g Grant) GetNamespacedID() models.NamespacedID {

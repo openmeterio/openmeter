@@ -42,9 +42,6 @@ func (Grant) Fields() []ent.Field {
 		field.Float("reset_max_rollover").Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "numeric",
 		}),
-		field.Float("recurrence_max_rollover").Optional().Nillable().Immutable().SchemaType(map[string]string{
-			dialect.Postgres: "numeric",
-		}),
 		field.Enum("recurrence_period").Optional().Nillable().GoType(credit.RecurrencePeriod("")).Immutable(),
 		field.Time("recurrence_anchor").Optional().Nillable().Immutable(),
 	}

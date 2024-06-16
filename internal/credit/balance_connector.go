@@ -14,7 +14,7 @@ import (
 type BalanceConnector interface {
 	GetBalanceOfOwner(ctx context.Context, owner NamespacedGrantOwner, at time.Time) (*GrantBalanceSnapshot, error)
 	GetBalanceHistoryOfOwner(ctx context.Context, owner NamespacedGrantOwner, params BalanceHistoryParams) (GrantBurnDownHistory, error)
-	ResetUsageForOwner(ctx context.Context, owner NamespacedGrantOwner, at time.Time) error
+	ResetUsageForOwner(ctx context.Context, owner NamespacedGrantOwner, at time.Time) (balanceAfterReset *GrantBalanceSnapshot, err error)
 }
 
 type BalanceHistoryParams struct {
@@ -104,6 +104,8 @@ func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner Namespac
 	//
 	// If we want to we can cheat that by artificially introducing a segment through the engine at the end
 	// just so it can be saved...
+	//
+	// FIXME: we should do this comparison not with the queried time but the current time...
 	if saveable, err := history.GetLastSaveableAt(at); err == nil {
 		// save snapshot at end of segment
 		m.bsc.Save(ctx, owner, []GrantBalanceSnapshot{
@@ -198,7 +200,7 @@ func (m *balanceConnector) GetBalanceHistoryOfOwner(ctx context.Context, owner N
 	}, nil
 }
 
-func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner NamespacedGrantOwner, at time.Time) error {
+func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner NamespacedGrantOwner, at time.Time) (*GrantBalanceSnapshot, error) {
 	// definitely do in transsaction
 	//      - also don't forget about locking on a per owner basis
 	//      - to do connectors neeed to be able to accept a transaction object
@@ -209,15 +211,15 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 	// check if reset is possible (after last reset)
 	periodStart, err := m.oc.GetUsagePeriodStartAt(ctx, owner, time.Now())
 	if err != nil {
-		return fmt.Errorf("failed to get current usage period start for owner %s at %s: %w", owner.ID, at, err)
+		return nil, fmt.Errorf("failed to get current usage period start for owner %s at %s: %w", owner.ID, at, err)
 	}
 	if at.Before(periodStart) {
-		return fmt.Errorf("reset at %s is before current usage period start %s", at, periodStart)
+		return nil, fmt.Errorf("reset at %s is before current usage period start %s", at, periodStart)
 	}
 
 	balance, err := m.getLatestValidBalanceSnapshotForOwnerAt(ctx, owner, at)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if balance.At.Before(periodStart) {
@@ -225,21 +227,21 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 		//
 		// The engine doesn't manage rollovers at usage reset so it cannot be used to calculate GrantBurnDown accross resets.
 		// FIXME: this is theoretically possible, we need to handle it, add capability to ledger.
-		return fmt.Errorf("last valid balance snapshot %s is before current period start at %s, no snapshot was created for reset", balance.At, periodStart)
+		return nil, fmt.Errorf("last valid balance snapshot %s is before current period start at %s, no snapshot was created for reset", balance.At, periodStart)
 	}
 
 	grants, err := m.gc.ListActiveGrantsBetween(ctx, owner, balance.At, at)
 	if err != nil {
-		return fmt.Errorf("failed to list active grants at %s for owner %s: %w", at, owner.ID, err)
+		return nil, fmt.Errorf("failed to list active grants at %s for owner %s: %w", at, owner.ID, err)
 	}
 
 	queryFn, err := m.getQueryUsageFn(ctx, owner)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	engine := NewEngine(queryFn)
 
-	endingBalance, overage, _, err := engine.Run(
+	endingBalance, _, _, err := engine.Run(
 		grants,
 		balance.Balances,
 		balance.Overage,
@@ -250,29 +252,43 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 	)
 
 	if err != nil {
-		return fmt.Errorf("failed to calculate balance for reset: %w", err)
+		return nil, fmt.Errorf("failed to calculate balance for reset: %w", err)
 	}
 
-	// TODO: ROLLOVER at usage reset!
+	grantMap := make(map[string]Grant, len(grants))
+	for _, grant := range grants {
+		grantMap[grant.ID] = grant
+	}
 
-	// we don't have a grace period at reset, we aways save the exact balance and overage
-	// for the provided timestamp
-	err = m.bsc.Save(ctx, owner, []GrantBalanceSnapshot{
-		{
-			At:       at,
-			Balances: endingBalance,
-			Overage:  overage,
-		},
-	})
+	// We have to roll over the grants and save the starting balance for the next period
+	// at the reset time.
+	startingBalance := endingBalance.Copy()
+	for grantID, grantBalance := range endingBalance {
+		grant, ok := grantMap[grantID]
+		// inconcistency check, shouldn't happen
+		if !ok {
+			return nil, fmt.Errorf("attempting to roll over unknown grant %s", grantID)
+		}
+		startingBalance.Set(grantID, grant.RolloverBalance(grantBalance))
+	}
+
+	startingSnapshot := GrantBalanceSnapshot{
+		At:       at,
+		Balances: startingBalance,
+		Overage:  0.0, // Overage is forgiven at reset
+	}
+
+	err = m.bsc.Save(ctx, owner, []GrantBalanceSnapshot{startingSnapshot})
 	if err != nil {
-		return fmt.Errorf("failed to save balance for owner %s at %s: %w", owner.ID, at, err)
+		return nil, fmt.Errorf("failed to save balance for owner %s at %s: %w", owner.ID, at, err)
 	}
 
 	err = m.oc.EndCurrentUsagePeriod(ctx, owner, at)
 	if err != nil {
-		return fmt.Errorf("failed to end current usage period for owner %s at %s: %w", owner.ID, at, err)
+		return nil, fmt.Errorf("failed to end current usage period for owner %s at %s: %w", owner.ID, at, err)
 	}
-	return nil
+
+	return &startingSnapshot, nil
 }
 
 // Fetches the last valid snapshot for an owner.
