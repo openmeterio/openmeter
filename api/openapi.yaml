@@ -1248,7 +1248,7 @@ components:
           format: date-time
           description: The date and time the resource was deleted.
           readOnly: true
-          example: "2023-01-01T00:00:00Z"
+          example: null
     Problem:
       type: object
       description: |-
@@ -1463,6 +1463,138 @@ components:
       allOf:
         - $ref: "#/components/schemas/FeatureCreateInputs"
         - $ref: "#/components/schemas/SharedMetaFields"
+    # Entitlement has 3 subtypes
+    EntitlementCreateSharedFields:
+      type: object
+      required:
+        - featureId
+      properties:
+        fearureId:
+          description: |
+            The feature the subject is entitled to use
+          type: string
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+        metadata:
+          description: |
+            Additional metadata for the feature.
+          type: object
+          additionalProperties:
+            type: string
+        usagePeriod:
+          $ref: "#/components/schemas/RecurringPeriod"
+    EntitlementSharedFields:
+      allOf:
+        - $ref: "#/components/schemas/SharedMetaFields"
+        - $ref: "#/components/schemas/EntitlementCreateSharedFields"
+        - type: object
+          required:
+            - subjectKey
+          properties:
+            subjectkey:
+              description: The identifier key unique to the subject
+              type: string
+              example: customer-1
+            usagePeriod:
+              description: |
+                Represents a usage period, mostly used for analytics and data visualization.
+              $ref: "#/components/schemas/RecurringPeriod"
+    EntitlementMeteredCreateInputs:
+      allOf:
+        - $ref: "#/components/schemas/EntitlementCreateSharedFields"
+        - type: object
+          description: |
+            Metered entitlement where access is determined based on feature usage.
+          required:
+            - type
+          properties:
+            type:
+              type: string
+              enum:
+                - metered
+              example: metered
+            unlimited:
+              type: boolean
+              default: false
+              description: |
+                If unlimited=true the subject can use the feature an unlimited amount.
+        - oneOf:
+          - type: object
+            additionalProperties: false
+          - type: object
+            additionalProperties: false
+            required:
+              - usagePeriod
+            properties:
+              usagePeriod:
+                $ref: "#/components/schemas/RecurringPeriod"
+              resetUsageByUsagePeriod:
+                type: boolean
+                description: |
+                  Automatically reset usage in the access calculation based on usage period.
+              # Mixed feelings about adding this, i probably wouldn't
+              usageGrantsByUsagePeriod:
+                type: array
+                minItems: 1
+                items:
+                  $ref: "#/components/schemas/EntitlementGrantCreateInput"
+
+    EntitlementMetered:
+      type: object
+      description: |
+        Entitles a subject to use a feature.
+      allOf:
+        - $ref: "#/components/schemas/EntitlementMeteredCreateInputs"
+        - $ref: "#/components/schemas/EntitlementSharedFields"
+    EntitlementStaticCreateInputs:
+      allOf:
+        - $ref: "#/components/schemas/EntitlementCreateSharedFields"
+        - type: object
+          description: |
+            Static entitlement good for representing feature configuration.
+          required:
+            - type
+            - value
+          additionalProperties: false
+          properties:
+            type:
+              type: string
+              enum:
+                - static
+              example: static
+            value:
+              description: |
+                The JSON parsable value of the entitlement.
+              type: string
+              example: frequency_daily
+    EntitlementStatic:
+      type: object
+      description: |
+        Entitles a subject to use a feature.
+      allOf:
+        - $ref: "#/components/schemas/EntitlementStaticCreateInputs"
+        - $ref: "#/components/schemas/EntitlementSharedFields"
+    EntitlementBooleanCreateInputs:
+      allOf:
+        - $ref: "#/components/schemas/EntitlementCreateSharedFields"
+        - type: object
+          description: |
+            Entitles a subject to use a feature.
+          required:
+            - type
+          additionalProperties: false
+          properties:
+            type:
+              type: string
+              enum:
+                - boolean
+              example: boolean
+    EntitlementBoolean:
+      type: object
+      description: |
+        Entitles a subject to use a feature.
+      allOf:
+        - $ref: "#/components/schemas/EntitlementBooleanCreateInputs"
+        - $ref: "#/components/schemas/EntitlementSharedFields"
     Entitlement:
       oneOf:
         - $ref: "#/components/schemas/EntitlementMetered"
@@ -1474,99 +1606,6 @@ components:
           metered: "#/components/schemas/EntitlementMetered"
           static: "#/components/schemas/EntitlementStatic"
           boolean: "#/components/schemas/EntitlementBoolean"
-    EntitlementMetered:
-      type: object
-      description: |
-        Entitles a subject to use a feature.
-      allOf:
-        - $ref: "#/components/schemas/EntitlementMeteredCreateInputs"
-        - $ref: "#/components/schemas/SharedMetaFields"
-        - type: object
-          properties:
-            subjectKey:
-              description: |
-                The subject that is entitled to use the feature.
-              type: string
-              readOnly: true
-              example: customer-id
-    EntitlementMeteredCreateInputs:
-      type: object
-      description: |
-        Entitles a subject to use a feature.
-      required:
-        - featureId
-      additionalProperties: false
-      properties:
-        featureId:
-          description: |
-            The feature to grant.
-          type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-        usagePeriod:
-          $ref: "#/components/schemas/RecurringPeriod"
-        metadata:
-          description: |
-            Additional metadata for the feature.
-          type: object
-          additionalProperties:
-            type: string
-    EntitlementStatic:
-      type: object
-      description: |
-        Entitles a subject to use a feature.
-      allOf:
-        - $ref: "#/components/schemas/EntitlementStaticCreateInputs"
-        - $ref: "#/components/schemas/SharedMetaFields"
-    EntitlementStaticCreateInputs:
-      type: object
-      description: |
-        Entitles a subject to use a feature.
-      required:
-        - featureId
-      additionalProperties: false
-      properties:
-        featureId:
-          description: |
-            The feature to grant.
-          type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-        value:
-          description: |
-            The JSON parsable value of the entitlement.
-          type: string
-          example: frequency_daily
-        metadata:
-          description: |
-            Additional metadata for the feature.
-          type: object
-          additionalProperties:
-            type: string
-    EntitlementBoolean:
-      type: object
-      description: |
-        Entitles a subject to use a feature.
-      allOf:
-        - $ref: "#/components/schemas/EntitlementBooleanCreateInputs"
-        - $ref: "#/components/schemas/SharedMetaFields"
-    EntitlementBooleanCreateInputs:
-      type: object
-      description: |
-        Entitles a subject to use a feature.
-      required:
-        - featureId
-      additionalProperties: false
-      properties:
-        featureId:
-          description: |
-            The feature to grant.
-          type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-        metadata:
-          description: |
-            Additional metadata for the feature.
-          type: object
-          additionalProperties:
-            type: string
     # Might be changed later
     GrantBurnDownHistorySegment:
       type: object
@@ -1716,8 +1755,8 @@ components:
       description: |
         Recurring period of an entitlement.
       required:
-        - period
-        - count
+        - interval
+        - anchor
       properties:
         interval:
           description: |
@@ -1728,42 +1767,6 @@ components:
             An arbitrary anchor to base the recurring period on.
           type: string
           format: date-time
-        currentPeriodStart:
-          description: |
-            The start of the current period.
-          readOnly: true
-          type: string
-          format: date-time
-        currentPeriodEnd:
-          description: |
-            The end of the current period.
-          readOnly: true
-          type: string
-          format: date-time
-    LedgerReset:
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.Reset
-      type: object
-      description: |
-        Ledger reset configuration.
-      required:
-        - id
-        - effectiveAt
-      properties:
-        id:
-          description: |
-            Readonly unique ULID identifier of the reset.
-          readOnly: true
-          type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-        effectiveAt:
-          description: |
-            The time to reset the ledger. It cannot be in the future.
-            The value will be floored to metering windowSize (minute).
-          type: string
-          format: date-time
-          example: "2023-01-01T00:00:00Z"
     EntitlementGrantCreateInput:
       type: object
       description: |
@@ -1877,7 +1880,7 @@ components:
     ExpirationPeriod:
       type: object
       description: |
-        Expiration period of a ledger grant.
+        Expiration period of a grant.
       required:
         - duration
         - count
@@ -2218,40 +2221,20 @@ components:
       schema:
         type: string
         example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-        x-go-type: credit.FeatureID
-        x-go-type-import:
-          path: github.com/openmeterio/openmeter/internal/credit
     grantId:
       name: grantId
-      description: A unique identifier for a ledger grant.
+      description: A unique identifier for a grant.
       in: path
       required: true
       schema:
         type: string
         example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-        x-go-type: credit.GrantID
-        x-go-type-import:
-          path: github.com/openmeterio/openmeter/internal/credit
-    ledgerId:
-      name: ledgerId
-      in: path
-      required: true
-      description: A unique identifier for a ledger.
-      schema:
-        x-go-type: credit.LedgerID
-        x-go-type-import:
-          path: github.com/openmeterio/openmeter/internal/credit
-        type: string
-        example: "customer-id"
     entitlementId:
       name: entitlementId
       in: path
       required: true
       description: A unique ULID for an entitlement.
       schema:
-        # x-go-type: credit.EntitlementID
-        # x-go-type-import:
-        #   path: github.com/openmeterio/openmeter/internal/credit
         type: string
         example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
     includeDeleted:
