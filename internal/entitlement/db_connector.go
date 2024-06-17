@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -13,12 +14,18 @@ type EntitlementDBConnector interface {
 	// GetEntitlementsOfSubject(ctx context.Context, subjectKey models.SubjectKey) ([]Entitlement, error)
 	CreateEntitlement(ctx context.Context, entitlement CreateEntitlementInputs) (*Entitlement, error)
 	GetEntitlement(ctx context.Context, entitlementID models.NamespacedID) (*Entitlement, error)
+
+	entutils.TxCreator
+	entutils.TxUser[EntitlementDBConnector]
 }
 
 type UsageResetDBConnector interface {
 	Save(ctx context.Context, usageResetTime UsageResetTime) error
 	GetLastAt(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*UsageResetTime, error)
 	GetBetween(ctx context.Context, entitlementID models.NamespacedID, from time.Time, to time.Time) ([]UsageResetTime, error)
+
+	entutils.TxCreator
+	entutils.TxUser[UsageResetDBConnector]
 }
 
 type UsageResetNotFoundError struct {

@@ -42,7 +42,6 @@ func (Entitlement) Indexes() []ent.Index {
 }
 
 // Edges of the Entitlement define the relations to other entities.
-// TOOD: link to entitlements
 func (Entitlement) Edges() []ent.Edge {
 	return []ent.Edge{
 		// link to usage_reset as that references entitlement

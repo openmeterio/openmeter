@@ -10,6 +10,8 @@ import (
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/peterldowns/pgtestdb"
 
+	_ "github.com/jackc/pgx/v5/stdlib" // pgx database driver
+
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/migrate"
 )
 

@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/openmeterio/openmeter/internal/meter"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -52,6 +53,9 @@ type FeatureDBConnector interface {
 	ListFeatures(ctx context.Context, params ListFeaturesParams) ([]Feature, error)
 	FindByName(ctx context.Context, namespace string, name string, includeArchived bool) ([]Feature, error)
 	GetByID(ctx context.Context, featureID models.NamespacedID) (Feature, error)
+
+	entutils.TxCreator
+	entutils.TxUser[FeatureDBConnector]
 }
 
 type featureConnector struct {
