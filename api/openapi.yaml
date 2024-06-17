@@ -1045,9 +1045,9 @@ paths:
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
   # TODO: should this be /value to be compatible with all three entitlement types
-  /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/balance:
+  /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value:
     get:
-      operationId: getEntitlementBalance
+      operationId: getEntitlementValue
       summary: Get the balance of a specific entitlement.
       description: |
         Get the balance of a specific entitlement.
@@ -1055,51 +1055,54 @@ paths:
         - Entitlements (Experimental)
       parameters:
         - $ref: "#/components/parameters/subjectIdOrKey"
-        - $ref: "#/components/parameters/entitlementId"
+        - $ref: "#/components/parameters/entitlementIdOrFeatureKey"
         - name: time
           in: query
           required: false
           description: |
-            Point of time to query balances: date-time in RFC 3339 format. Defaults to now.
+            Point of time to check value: date-time in RFC 3339 format. Defaults to now.
           schema:
             type: string
             format: date-time
             example: "2023-01-01T00:00:00Z"
       responses:
         "200":
-          description: The entitlement balance.
+          description: The entitlement value.
           content:
             application/json:
               schema:
                 type: object
+                required:
+                  - hasAccess
                 properties:
+                  hasAccess:
+                    description: Whether the subject has access to the feature.
+                    readOnly: true
+                    type: boolean
+                    example: true
                   balance:
-                    description: The balance of the entitlement, can be negative.
+                    description: The balance of a metered entitlement.
                     readOnly: true
                     type: number
                     format: double
                     example: 100
                   usage:
-                    description: Total usage of the feature in the queried period. Includes overages.
+                    description: Total usage of the feature in the period. Includes overages.
                     readOnly: true
                     type: number
                     format: double
                     example: 50
-                  grantsUsed:
-                    description: The list of grants contributing to the balance.
+                  overage:
+                    description: The overage of a metered entitlement.
                     readOnly: true
-                    type: array
-                    items:
-                      allOf:
-                        - $ref: "#/components/schemas/EntitlementGrant"
-                        - type: object
-                          properties:
-                            usage:
-                              description: The amount by which this grant was used in the queried period.
-                              readOnly: true
-                              type: number
-                              format: double
-                              example: 50
+                    type: number
+                    format: double
+                    example: 0
+                  config:
+                    description: The JSON parseable configuration value of a static entitlement.
+                    readOnly: true
+                    type: string
+                    example: "{\"key1\": \"value1\"}"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
@@ -1108,6 +1111,7 @@ paths:
           $ref: "#/components/responses/NotFoundProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
+
   /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history:
     get:
       operationId: getEntitlementHistory
@@ -1115,9 +1119,8 @@ paths:
       description: |
         Get the balance history of a specific entitlement.
 
-        If windowing is specified then groups the history by the window size starting from "to". The windows are inclusive at their start and exclusive at their end. The last chunk may be smaller than the window size and is inclusive at both ends.
-
-        If windowing is not specified then the returns a continous history.
+        The windows are inclusive at their start and exclusive at their end.
+        The last window may be smaller than the window size and is inclusive at both ends.
       tags:
         - Entitlements (Experimental)
       parameters:
@@ -1145,7 +1148,7 @@ paths:
             example: "2023-01-01T00:00:00Z"
         - name: windowSize
           in: query
-          required: false
+          required: true
           description: |
             Size of the time window to group the history by. Cannot be shorter than meter granularity.
           schema:
@@ -1154,6 +1157,7 @@ paths:
               - MINUTE
               - HOUR
               - DAY
+        - $ref: "#/components/parameters/queryWindowTimeZone"
       responses:
         "200":
           description: |
@@ -1161,9 +1165,7 @@ paths:
           content:
             application/json:
               schema:
-                oneOf:
-                  - $ref: "#/components/schemas/GrantBurnDownHistory"
-                  - $ref: "#/components/schemas/WindowedBalanceHistory"
+                $ref: "#/components/schemas/WindowedBalanceHistory"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
@@ -1398,63 +1400,70 @@ components:
             tokens: "1234"
             model: "gpt-4-turbo"
         validationError: "meter not found for event"
-    FeatureType:
-      description: The type of the feature.
-      type: string
-      enum: [metered, static, boolean]
     FeatureCreateInputs:
-      type: object
-      description: |
-        A feature is a feature or service offered to a customer.
-        For example: CPU-Hours, Tokens, API Calls, etc.
-      required:
-        - key
-        - name
-      additionalProperties: false
-      properties:
-        key:
+      allOf:
+        - type: object
           description: |
-            The unique key of the feature to reference it from your application.
-          type: string
-          example: gpt4_tokens
-        name:
-          description: |
-            The name of the feature.
-          type: string
-          example: AI Tokens
-        type:
-          description: |
-            The type of the feature.
-             - metered: The feature is metered and have a balance or limit per subject. Granting on the feature will increase the balance.
-             - static: The feature can hold a static JSON parsable value that can differ between subjects. For example "frequency_daily".
-             - boolean: The feature expresses if a feature is enabled for certain subjects. For example Enterprise SSO
-          $ref: "#/components/schemas/FeatureType"
-          example: metered
-        meterSlug:
-          description: |
-            The meter that the feature is associated with and decreases grants by usage.
-          type: string
-          example: tokens_total
-        meterGroupByFilters:
-          description: |
-            Optional meter group by filters. Useful if the meter scope is broader than what feature tracks.
-          type: object
-          additionalProperties:
-            type: string
-          example:
-            model: gpt-4
-        metadata:
-          description: |
-            Additional metadata for the feature.
-          type: object
-          additionalProperties:
-            type: string
-        archived:
-          readOnly: true
-          description: |
-            If the feature is archived, it will not be used for grants or usage.
-          type: boolean
-          example: false
+            A feature is a feature or service offered to a customer.
+            For example: CPU-Hours, Tokens, API Calls, etc.
+          required:
+            - key
+            - name
+          additionalProperties: false
+          properties:
+            key:
+              description: |
+                The unique key of the feature to reference it from your application.
+              type: string
+              example: gpt4_tokens
+            name:
+              description: |
+                The name of the feature.
+              type: string
+              example: AI Tokens
+            metadata:
+              description: |
+                Additional metadata for the feature.
+              type: object
+              additionalProperties:
+                type: string
+            archived:
+              readOnly: true
+              description: |
+                If the feature is archived, it will not be used for grants or usage.
+              type: boolean
+              example: false
+        - anyOf:
+          - type: object
+            required:
+              - meterSlug
+            properties:
+              meterSlug:
+                description: |
+                  The meter that the feature is associated with and decreases grants by usage.
+                  If present, the usage of the feature can be metered.
+                type: string
+                example: tokens_total
+              meterGroupByFilters:
+                description: |
+                  Optional meter group by filters. Useful if the meter scope is broader than what feature tracks.
+                type: object
+                additionalProperties:
+                  type: string
+                example:
+                  model: gpt-4
+          # # We'll introduce this later
+          # - type: object
+          #   properties:
+          #     valueSchema:
+          #       description: |
+          #         The JSON Schema validating the value of the entitlement
+          #       type: string
+          #       example: |
+          #         {
+          #           "type": "string",
+          #           "enum": ["daily", "weekly", "monthly"]
+          #         }
     Feature:
       type: object
       description: |
@@ -1506,6 +1515,7 @@ components:
             Metered entitlement where access is determined based on feature usage.
           required:
             - type
+            - usagePeriod
           properties:
             type:
               type: string
@@ -1517,26 +1527,30 @@ components:
               default: false
               description: |
                 If unlimited=true the subject can use the feature an unlimited amount.
+            usagePeriod:
+                $ref: "#/components/schemas/RecurringPeriod"
         - oneOf:
           - type: object
             additionalProperties: false
-          - type: object
-            additionalProperties: false
-            required:
-              - usagePeriod
             properties:
-              usagePeriod:
-                $ref: "#/components/schemas/RecurringPeriod"
               resetUsageByUsagePeriod:
                 type: boolean
                 description: |
                   Automatically reset usage in the access calculation based on usage period.
-              # Mixed feelings about adding this, i probably wouldn't
-              usageGrantsByUsagePeriod:
-                type: array
-                minItems: 1
-                items:
-                  $ref: "#/components/schemas/EntitlementGrantCreateInput"
+          - type: object
+            additionalProperties: false
+            required:
+              - resetUsageByUsagePeriod
+            properties:
+              resetUsageByUsagePeriod:
+                type: boolean
+                description: |
+                  Automatically reset usage in the access calculation based on usage period.
+              # Mixed feelings about adding this, rest is not an intend driven convention
+              issueAfterReset:
+                type: number
+                description: |
+                  You can issue usage automatically after reset. This usage is not rolled over.
 
     EntitlementMetered:
       type: object
@@ -1553,7 +1567,7 @@ components:
             Static entitlement good for representing feature configuration.
           required:
             - type
-            - value
+            - config
           additionalProperties: false
           properties:
             type:
@@ -1561,11 +1575,11 @@ components:
               enum:
                 - static
               example: static
-            value:
+            config:
               description: |
-                The JSON parsable value of the entitlement.
+                The JSON parsable config of the entitlement.
               type: string
-              example: frequency_daily
+              example: "{\"key1\": \"value1\"}"
     EntitlementStatic:
       type: object
       description: |
@@ -1629,6 +1643,13 @@ components:
           format: double
           readOnly: true
           example: 100
+        overage:
+          description: |
+            Overuse that wasn't covered by grants.
+          type: number
+          format: double
+          readOnly: true
+          example: 25
         balanceAtStart:
           description: |
             The entitlement balance at the start of the period.
@@ -1636,6 +1657,15 @@ components:
           format: double
           readOnly: true
           example: 100
+        grantBalancesAtStart:
+          description: |
+            The balance breakdown of each active grant at the start of the period: GrantID: Balance
+          type: object
+          additionalProperties:
+            type: number
+          readOnly: true
+          example:
+            01ARZ3NDEKTSV4RRFFQ69G5FAV: 100
         balanceAtEnd:
           description: |
             The entitlement balance at the end of the period.
@@ -1643,23 +1673,38 @@ components:
           format: double
           readOnly: true
           example: 100
-        periodTerminationReason:
+        grantBalancesAtEnd:
           description: |
-            The reason why a new period was started.
-          type: string
+            The balance breakdown of each active grant at the start of the period: GrantID: Balance
+          type: object
+          additionalProperties:
+            type: number
           readOnly: true
-          enum:
-            - GRANT_BURNT_DOWN
-            - GRANT_EXPIRED
-            - GRANT_WITH_HIGHER_PRIORITY
-            - USAGE_RESET
-            - END_OF_QUERYING
+          example:
+            01ARZ3NDEKTSV4RRFFQ69G5FAV: 100
+        grantUsages:
+          description: |
+            Which grants were actually burnt down in the period and by what amount.
+          type: array
+          readOnly: true
+          items:
+            type: object
+            properties:
+              grantId:
+                description: |
+                  The id of the grant.
+                type: string
+                example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+              usage:
+                description: |
+                  The usage of the grant.
+                type: number
+                format: double
+                example: 100
     GrantBurnDownHistory:
       type: array
       description: |
             The grant burn down history in the period.
-
-            GrantBurnDownHistory ends if balance reaches 0.
       items:
         $ref: "#/components/schemas/GrantBurnDownHistorySegment"
     # Might be changed later
@@ -2237,6 +2282,14 @@ components:
       schema:
         type: string
         example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    entitlementIdOrFeatureKey:
+      name: entitlementIdOrFeatureKey
+      in: path
+      required: true
+      description: The id of the entitlement or the key of the feature.
+      schema:
+        type: string
+        example: 01ARZ3NDEKTSV4RRFFQ69G5FAV or gpt4_tokens
     includeDeleted:
       name: includeDeleted
       in: query
