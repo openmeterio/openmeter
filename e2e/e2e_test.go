@@ -742,8 +742,7 @@ func TestCredit(t *testing.T) {
 
 		reset := resetResp.JSON201
 		expectedReset := &api.LedgerReset{
-			ID:          reset.ID,
-			LedgerID:    ledgerID,
+			Id:          reset.Id,
 			EffectiveAt: effectiveAt,
 		}
 		assert.Equal(t, expectedReset, resetResp.JSON201)

@@ -1490,9 +1490,6 @@ components:
           example: "2023-01-01T00:00:00Z"
 
     LedgerReset:
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.Reset
       type: object
       description: |
         Ledger reset configuration.

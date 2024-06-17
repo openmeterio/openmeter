@@ -13,10 +13,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
-type ResetLedgerHandler httptransport.HandlerWithArgs[credit.Reset, credit.Reset, api.LedgerID]
+type ResetLedgerHandler httptransport.HandlerWithArgs[credit.Reset, api.LedgerReset, api.LedgerID]
 
 func (b *builder) ResetLedger() ResetLedgerHandler {
-	return httptransport.NewHandlerWithArgs[credit.Reset, credit.Reset, api.LedgerID](
+	return httptransport.NewHandlerWithArgs[credit.Reset, api.LedgerReset, api.LedgerID](
 		func(ctx context.Context, r *http.Request, ledgerID api.LedgerID) (credit.Reset, error) {
 			resetIn := credit.Reset{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &resetIn); err != nil {
@@ -40,11 +40,12 @@ func (b *builder) ResetLedger() ResetLedgerHandler {
 			resetIn.LedgerID = ledgerID
 			return resetIn, nil
 		},
-		func(ctx context.Context, request credit.Reset) (credit.Reset, error) {
+		func(ctx context.Context, request credit.Reset) (api.LedgerReset, error) {
 			reset, _, err := b.CreditConnector.Reset(ctx, request)
-			return reset, err
+
+			return mapResetToAPI(reset), err
 		},
-		commonhttp.JSONResponseEncoderWithStatus[credit.Reset](http.StatusCreated),
+		commonhttp.JSONResponseEncoderWithStatus[api.LedgerReset](http.StatusCreated),
 		httptransport.AppendOptions(
 			b.Options,
 			httptransport.WithOperationName("resetLedger"),
@@ -70,4 +71,11 @@ func (b *builder) ResetLedger() ResetLedgerHandler {
 			),
 		)...,
 	)
+}
+
+func mapResetToAPI(in credit.Reset) api.LedgerReset {
+	return api.LedgerReset{
+		Id:          (*string)(in.ID),
+		EffectiveAt: in.EffectiveAt,
+	}
 }
