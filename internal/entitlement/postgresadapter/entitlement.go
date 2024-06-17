@@ -2,6 +2,7 @@ package postgresadapter
 
 import (
 	"context"
+	"strings"
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db"
@@ -65,4 +66,30 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 		FeatureID:        e.FeatureID,
 		MeasureUsageFrom: e.MeasureUsageFrom,
 	}
+}
+
+func (a *entitlementDBAdapter) LockEntitlementForTx(ctx context.Context, entitlementID models.NamespacedID) error {
+	// TODO: check if we're actually in a transaction
+	pgLockNotAvailableErrorCode := "55P03"
+
+	_, err := a.db.Entitlement.Query().
+		Where(
+			db_entitlement.ID(entitlementID.ID),
+			db_entitlement.Namespace(entitlementID.Namespace),
+		).
+		ForUpdate().
+		Only(ctx)
+
+	if err != nil {
+		if db.IsNotFound(err) {
+			return &entitlement.EntitlementNotFoundError{
+				EntitlementID: entitlementID,
+			}
+		}
+		if strings.Contains(err.Error(), pgLockNotAvailableErrorCode) {
+			// TODO: return a more specific error
+			return err
+		}
+	}
+	return err
 }

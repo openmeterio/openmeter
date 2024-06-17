@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/internal/streaming"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -120,4 +121,33 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriod(ctx context.Context, owner
 		EntitlementID: owner.NamespacedID().ID,
 		ResetTime:     at,
 	})
+}
+
+// FIXME: this is a terrible hack, write generic Atomicity stuff for connectors...
+func (e *entitlementGrantOwner) EndCurrentUsagePeriodTx(ctx context.Context, tx *entutils.TxDriver, owner credit.NamespacedGrantOwner, at time.Time) error {
+	_, err := entutils.RunInTransaction(ctx, tx, func(ctx context.Context, tx *entutils.TxDriver) (*interface{}, error) {
+		// Check if time is after current start time. If so then we can end the period
+		currentStartAt, err := e.GetUsagePeriodStartAt(ctx, owner, at)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get current usage period start time: %w", err)
+		}
+		if at.Before(currentStartAt) || at.Equal(currentStartAt) {
+			return nil, fmt.Errorf("can only end usage period after current period start time")
+		}
+
+		// Save usage reset
+		return nil, e.urdb.WithTx(ctx, tx).Save(ctx, UsageResetTime{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: owner.Namespace,
+			},
+			EntitlementID: owner.NamespacedID().ID,
+			ResetTime:     at,
+		})
+	})
+	return err
+}
+
+// FIXME: this is a terrible hack using select for udpate...
+func (e *entitlementGrantOwner) LockOwnerForTx(ctx context.Context, tx *entutils.TxDriver, owner credit.NamespacedGrantOwner) error {
+	return e.edb.WithTx(ctx, tx).LockEntitlementForTx(ctx, owner.NamespacedID())
 }

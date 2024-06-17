@@ -15,6 +15,9 @@ type EntitlementDBConnector interface {
 	CreateEntitlement(ctx context.Context, entitlement CreateEntitlementInputs) (*Entitlement, error)
 	GetEntitlement(ctx context.Context, entitlementID models.NamespacedID) (*Entitlement, error)
 
+	//FIXME: This is a terrbile hack
+	LockEntitlementForTx(ctx context.Context, entitlementID models.NamespacedID) error
+
 	entutils.TxCreator
 	entutils.TxUser[EntitlementDBConnector]
 }

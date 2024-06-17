@@ -109,7 +109,7 @@ func TestTransaction(t *testing.T) {
 				ctx := context.Background()
 				var ent1Id string
 				var ent2Id string
-				_, err := entutils.RunInTransaction(ctx, db1Adapter, func(ctx context.Context, tx *entutils.TxDriver) (*interface{}, error) {
+				_, err := entutils.StartAndRunTx(ctx, db1Adapter, func(ctx context.Context, tx *entutils.TxDriver) (*interface{}, error) {
 					// create entities
 					ec1, err := db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
 						ID:            "1",
@@ -161,7 +161,7 @@ func TestTransaction(t *testing.T) {
 				ctx := context.Background()
 				var ent1Id string
 				var ent2Id string
-				_, err := entutils.RunInTransaction(ctx, db1Adapter, func(ctx context.Context, tx *entutils.TxDriver) (*interface{}, error) {
+				_, err := entutils.StartAndRunTx(ctx, db1Adapter, func(ctx context.Context, tx *entutils.TxDriver) (*interface{}, error) {
 					// create entities
 					ec1, err := db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
 						ID:            "1",
@@ -223,7 +223,7 @@ func TestTransaction(t *testing.T) {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					_, err := entutils.RunInTransaction(ctx, db1Adapter, func(ctx context.Context, tx *entutils.TxDriver) (*interface{}, error) {
+					_, err := entutils.StartAndRunTx(ctx, db1Adapter, func(ctx context.Context, tx *entutils.TxDriver) (*interface{}, error) {
 						// create entities
 						ec1, err := db1Adapter.WithTx(ctx, tx).Save(ctx, &db1.Example1{
 							ID:            "1",

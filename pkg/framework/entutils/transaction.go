@@ -18,7 +18,10 @@ type RawEntConfig struct {
 	Log func(...any)
 
 	// Hooks and interceptors are excluded in transaction handling
-	// due to differing types
+	// due to differing types.
+	//
+	// TODO: implement them in the templating when creating the new transactional client
+	// from this RawEntConfig.
 
 	// // hooks to execute on mutations.
 	// hooks *hooks
@@ -126,12 +129,16 @@ type TxUser[T any] interface {
 	WithTx(ctx context.Context, tx *TxDriver) T
 }
 
-func RunInTransaction[R any](ctx context.Context, src TxCreator, cb func(ctx context.Context, tx *TxDriver) (*R, error)) (*R, error) {
+func StartAndRunTx[R any](ctx context.Context, src TxCreator, cb func(ctx context.Context, tx *TxDriver) (*R, error)) (*R, error) {
 	txCtx, txDriver, err := src.Tx(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start transaction: %w", err)
 	}
 
+	return RunInTransaction(txCtx, txDriver, cb)
+}
+
+func RunInTransaction[R any](txCtx context.Context, txDriver *TxDriver, cb func(ctx context.Context, tx *TxDriver) (*R, error)) (*R, error) {
 	defer func() {
 		if r := recover(); r != nil {
 			// roll back the tx for all downstream (WithTx) clients

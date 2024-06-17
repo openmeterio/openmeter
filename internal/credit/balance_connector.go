@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/streaming"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
 // Generic connector for balance related operations.
@@ -40,7 +41,7 @@ var _ BalanceConnector = &balanceConnector{}
 
 func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner NamespacedGrantOwner, at time.Time) (*GrantBalanceSnapshot, error) {
 	// get last valid grantbalances
-	balance, err := m.getLatestValidBalanceSnapshotForOwnerAt(ctx, owner, at)
+	balance, err := m.getLastValidBalanceSnapshotForOwnerAt(ctx, owner, at)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +139,7 @@ func (m *balanceConnector) GetBalanceHistoryOfOwner(ctx context.Context, owner N
 	// collect al history segments through all periods
 	for _, period := range periods {
 		// get last valid grantbalances at start of period (eq balance at start of period)
-		balance, err := m.getLatestValidBalanceSnapshotForOwnerAt(ctx, owner, period.From)
+		balance, err := m.getLastValidBalanceSnapshotForOwnerAt(ctx, owner, period.From)
 		if err != nil {
 			return GrantBurnDownHistory{}, err
 		}
@@ -201,13 +202,7 @@ func (m *balanceConnector) GetBalanceHistoryOfOwner(ctx context.Context, owner N
 }
 
 func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner NamespacedGrantOwner, at time.Time) (*GrantBalanceSnapshot, error) {
-	// definitely do in transsaction
-	//      - also don't forget about locking on a per owner basis
-	//      - to do connectors neeed to be able to accept a transaction object
-	//      -  we can just shadow the endb transaction object
-	//      - all schema specific capabilities of the generated clients can be reattached
-	//      - in practiec we'll just create a new transacting instance that all clients can use
-
+	// TODO: enforce granularity (truncate)
 	// check if reset is possible (after last reset)
 	periodStart, err := m.oc.GetUsagePeriodStartAt(ctx, owner, time.Now())
 	if err != nil {
@@ -217,7 +212,7 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 		return nil, fmt.Errorf("reset at %s is before current usage period start %s", at, periodStart)
 	}
 
-	balance, err := m.getLatestValidBalanceSnapshotForOwnerAt(ctx, owner, at)
+	balance, err := m.getLastValidBalanceSnapshotForOwnerAt(ctx, owner, at)
 	if err != nil {
 		return nil, err
 	}
@@ -278,14 +273,31 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 		Overage:  0.0, // Overage is forgiven at reset
 	}
 
-	err = m.bsc.Save(ctx, owner, []GrantBalanceSnapshot{startingSnapshot})
-	if err != nil {
-		return nil, fmt.Errorf("failed to save balance for owner %s at %s: %w", owner.ID, at, err)
-	}
+	// FIXME: this is a bad hack to be able to pass around transactions on the connector level.
+	// We should introduce an abstraction, maybe an AtomicOperation with something like an AtimicityGuarantee
+	// (these would practically mirror entutils.TxUser & entutils.TxDriver) and then write an implementation of the
+	// using the ent transactions we have.
+	_, err = entutils.StartAndRunTx(ctx, m.bsc, func(txCtx context.Context, tx *entutils.TxDriver) (*GrantBalanceSnapshot, error) {
+		err := m.oc.LockOwnerForTx(ctx, tx, owner)
+		if err != nil {
+			return nil, fmt.Errorf("failed to lock owner %s: %w", owner.ID, err)
+		}
 
-	err = m.oc.EndCurrentUsagePeriod(ctx, owner, at)
+		err = m.bsc.WithTx(txCtx, tx).Save(ctx, owner, []GrantBalanceSnapshot{startingSnapshot})
+		if err != nil {
+			return nil, fmt.Errorf("failed to save balance for owner %s at %s: %w", owner.ID, at, err)
+		}
+
+		err = m.oc.EndCurrentUsagePeriodTx(ctx, tx, owner, at)
+		if err != nil {
+			return nil, fmt.Errorf("failed to end current usage period for owner %s at %s: %w", owner.ID, at, err)
+		}
+
+		return nil, nil
+	})
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to end current usage period for owner %s at %s: %w", owner.ID, at, err)
+		return nil, err
 	}
 
 	return &startingSnapshot, nil
@@ -295,7 +307,7 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 //
 // If no snapshot exists returns a default snapshot for measurement start to recalculate the entire history
 // in case no usable snapshot was found.
-func (m *balanceConnector) getLatestValidBalanceSnapshotForOwnerAt(ctx context.Context, owner NamespacedGrantOwner, at time.Time) (GrantBalanceSnapshot, error) {
+func (m *balanceConnector) getLastValidBalanceSnapshotForOwnerAt(ctx context.Context, owner NamespacedGrantOwner, at time.Time) (GrantBalanceSnapshot, error) {
 	balance, err := m.bsc.GetLatestValidAt(ctx, owner, at)
 	if err != nil {
 		if _, ok := err.(*GrantBalanceNoSavedBalanceForOwnerError); ok {

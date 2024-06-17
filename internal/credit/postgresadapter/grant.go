@@ -21,7 +21,7 @@ func NewPostgresGrantDBAdapter(db *db.Client) credit.GrantDBConnector {
 	}
 }
 
-func (g *grantDBADapter) CreateGrant(ctx context.Context, grant credit.DBCreateGrantInput) (credit.Grant, error) {
+func (g *grantDBADapter) CreateGrant(ctx context.Context, grant credit.DBCreateGrantInput) (*credit.Grant, error) {
 	// TODO: transaction and locking
 	command := g.db.Grant.Create().
 		SetOwnerID(grant.OwnerID).
@@ -42,10 +42,12 @@ func (g *grantDBADapter) CreateGrant(ctx context.Context, grant credit.DBCreateG
 
 	ent, err := command.Save(ctx)
 	if err != nil {
-		return credit.Grant{}, err
+		return nil, err
 	}
 
-	return mapGrantEntity(ent), nil
+	mapped := mapGrantEntity(ent)
+
+	return &mapped, nil
 }
 
 // translates to a delete

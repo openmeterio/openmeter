@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -19,7 +20,7 @@ type CreateGrantInput struct {
 }
 
 type GrantConnector interface {
-	CreateGrant(ctx context.Context, owner NamespacedGrantOwner, grant CreateGrantInput) (Grant, error)
+	CreateGrant(ctx context.Context, owner NamespacedGrantOwner, grant CreateGrantInput) (*Grant, error)
 	VoidGrant(ctx context.Context, grantID models.NamespacedID) error
 	ListGrants(ctx context.Context, params ListGrantsParams) ([]Grant, error)
 	ListActiveGrantsBetween(ctx context.Context, owner NamespacedGrantOwner, from, to time.Time) ([]Grant, error)
@@ -61,17 +62,21 @@ type DBCreateGrantInput struct {
 // FIXME: separating these interfaces (connector & dbconnector) as is doesnt really make sense for grants
 // Might be that credit operations in general are more tighlty linked than assumed here
 type GrantDBConnector interface {
-	CreateGrant(ctx context.Context, grant DBCreateGrantInput) (Grant, error)
+	CreateGrant(ctx context.Context, grant DBCreateGrantInput) (*Grant, error)
 	VoidGrant(ctx context.Context, grantID models.NamespacedID) error
 	ListGrants(ctx context.Context, params ListGrantsParams) ([]Grant, error)
 	// ListActiveGrantsBetween returns all grants that are active at any point between the given time range.
 	ListActiveGrantsBetween(ctx context.Context, owner NamespacedGrantOwner, from, to time.Time) ([]Grant, error)
 	GetGrant(ctx context.Context, grantID models.NamespacedID) (Grant, error)
+
+	entutils.TxCreator
+	entutils.TxUser[GrantDBConnector]
 }
 
 type grantConnector struct {
 	oc          OwnerConnector
 	db          GrantDBConnector
+	bsdb        BalanceSnapshotDBConnector
 	granularity time.Duration
 }
 
@@ -79,14 +84,14 @@ func NewGrantConnector(oc OwnerConnector, db GrantDBConnector, granularity time.
 	return &grantConnector{oc: oc, db: db, granularity: granularity}
 }
 
-func (m *grantConnector) CreateGrant(ctx context.Context, owner NamespacedGrantOwner, input CreateGrantInput) (Grant, error) {
+func (m *grantConnector) CreateGrant(ctx context.Context, owner NamespacedGrantOwner, input CreateGrantInput) (*Grant, error) {
 	periodStart, err := m.oc.GetUsagePeriodStartAt(ctx, owner, time.Now())
 	if err != nil {
-		return Grant{}, err
+		return nil, err
 	}
 
 	if input.EffectiveAt.Before(periodStart) {
-		return Grant{}, &models.GenericUserError{Message: "grant effective date is before the current usage period"}
+		return nil, &models.GenericUserError{Message: "grant effective date is before the current usage period"}
 	}
 
 	// All metering information is stored in windowSize chunks,
@@ -98,29 +103,58 @@ func (m *grantConnector) CreateGrant(ctx context.Context, owner NamespacedGrantO
 	if truncated := input.EffectiveAt.Truncate(m.granularity); !truncated.Equal(input.EffectiveAt) {
 		input.EffectiveAt = truncated.Add(m.granularity)
 	}
+	if input.Recurrence != nil {
+		if truncated := input.Recurrence.Anchor.Truncate(m.granularity); !truncated.Equal(input.Recurrence.Anchor) {
+			input.Recurrence.Anchor = truncated.Add(m.granularity)
+		}
+	}
 
-	return m.db.CreateGrant(ctx, DBCreateGrantInput{
-		OwnerID:          owner.ID,
-		Namespace:        owner.Namespace,
-		Amount:           input.Amount,
-		Priority:         input.Priority,
-		EffectiveAt:      input.EffectiveAt,
-		Expiration:       input.Expiration,
-		ExpiresAt:        input.Expiration.GetExpiration(input.EffectiveAt),
-		Metadata:         input.Metadata,
-		ResetMaxRollover: input.ResetMaxRollover,
-		Recurrence:       input.Recurrence,
+	return entutils.StartAndRunTx(ctx, m.db, func(ctx context.Context, tx *entutils.TxDriver) (*Grant, error) {
+		m.oc.LockOwnerForTx(ctx, tx, owner)
+		grant, err := m.db.WithTx(ctx, tx).CreateGrant(ctx, DBCreateGrantInput{
+			OwnerID:          owner.ID,
+			Namespace:        owner.Namespace,
+			Amount:           input.Amount,
+			Priority:         input.Priority,
+			EffectiveAt:      input.EffectiveAt,
+			Expiration:       input.Expiration,
+			ExpiresAt:        input.Expiration.GetExpiration(input.EffectiveAt),
+			Metadata:         input.Metadata,
+			ResetMaxRollover: input.ResetMaxRollover,
+			Recurrence:       input.Recurrence,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
+		// invalidate snapshots
+		err = m.bsdb.WithTx(ctx, tx).InvalidateAfter(ctx, owner, grant.EffectiveAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to invalidate snapshots after %s: %w", grant.EffectiveAt, err)
+		}
+
+		return grant, err
 	})
 }
 
 func (m *grantConnector) VoidGrant(ctx context.Context, grantID models.NamespacedID) error {
 	// can we void grants that have been used?
-	_, err := m.db.GetGrant(ctx, grantID)
+	grant, err := m.db.GetGrant(ctx, grantID)
 	if err != nil {
 		return err
 	}
 
-	return m.db.VoidGrant(ctx, grantID)
+	owner := NamespacedGrantOwner{Namespace: grantID.Namespace, ID: grant.OwnerID}
+
+	_, err = entutils.StartAndRunTx(ctx, m.db, func(ctx context.Context, tx *entutils.TxDriver) (*interface{}, error) {
+		err := m.oc.LockOwnerForTx(ctx, tx, owner)
+		if err != nil {
+			return nil, err
+		}
+		return nil, m.db.WithTx(ctx, tx).VoidGrant(ctx, grantID)
+	})
+	return err
 }
 
 func (m *grantConnector) ListGrants(ctx context.Context, params ListGrantsParams) ([]Grant, error) {
