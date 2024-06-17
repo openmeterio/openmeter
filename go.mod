@@ -62,7 +62,7 @@ require (
 	google.golang.org/protobuf v1.34.1
 	k8s.io/apimachinery v0.30.2
 	k8s.io/client-go v0.30.2
-	sigs.k8s.io/controller-runtime v0.18.3
+	sigs.k8s.io/controller-runtime v0.18.4
 )
 
 require (
