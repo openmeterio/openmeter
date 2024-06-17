@@ -56,6 +56,11 @@ type FlushSuccessEvent struct {
 	Messages []SinkMessage
 }
 
+type FlushEventHandler interface {
+	OnFlushSuccess(event FlushSuccessEvent)
+	Shutdown() error
+}
+
 type SinkConfig struct {
 	Logger          *slog.Logger
 	Tracer          trace.Tracer
@@ -75,7 +80,7 @@ type SinkConfig struct {
 	NamespaceRefetch time.Duration
 	// OnFlushSuccess is an optional lifecycle hook, to prevent blocking the main sink logic
 	// this is always called in a go routine.
-	OnFlushSuccess func(FlushSuccessEvent)
+	FlushEventHandler FlushEventHandler
 }
 
 func NewSink(config SinkConfig) (*Sink, error) {
@@ -264,8 +269,8 @@ func (s *Sink) reportFlushMetrics(ctx context.Context, messages []SinkMessage) e
 		s.flushEventCounter.Add(ctx, 1, metric.WithAttributes(namespaceAttr, statusAttr))
 	}
 
-	if s.config.OnFlushSuccess != nil {
-		go s.config.OnFlushSuccess(FlushSuccessEvent{
+	if s.config.FlushEventHandler != nil {
+		go s.config.FlushEventHandler.OnFlushSuccess(FlushSuccessEvent{
 			Messages: messages,
 		})
 	}
@@ -738,6 +743,13 @@ func (s *Sink) Close() error {
 		logger.Info("closing Kafka consumer")
 		if err := s.config.Consumer.Close(); err != nil {
 			logger.Error("failed to close consumer client", slog.String("err", err.Error()))
+		}
+	}
+
+	if s.config.FlushEventHandler != nil {
+		logger.Info("shutting down flush success handlers")
+		if err := s.config.FlushEventHandler.Shutdown(); err != nil {
+			logger.Error("failed to shutdown flush success handlers", slog.String("err", err.Error()))
 		}
 	}
 

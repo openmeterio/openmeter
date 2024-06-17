@@ -10,6 +10,7 @@ type Sink = sink.Sink
 type SinkConfig = sink.SinkConfig
 type Storage = sink.Storage
 type FlushSuccessEvent = sink.FlushSuccessEvent
+type FlushEventHandler = sink.FlushEventHandler
 type ClickHouseStorage = sink.ClickHouseStorage
 type ClickHouseStorageConfig = sink.ClickHouseStorageConfig
 
