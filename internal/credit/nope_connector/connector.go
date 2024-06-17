@@ -26,6 +26,9 @@ func (c *Connector) CreateLedger(ctx context.Context, ledger credit.Ledger) (cre
 func (c *Connector) ListLedgers(ctx context.Context, params credit.ListLedgersParams) ([]credit.Ledger, error) {
 	return nil, fmt.Errorf("not implemented")
 }
+func (c *Connector) GetLedgerAffectedByMeterSubject(ctx context.Context, namespace, meterSlug, subject string) (*credit.Ledger, error) {
+	return nil, fmt.Errorf("not implemented")
+}
 
 // Grant
 func (c *Connector) CreateGrant(ctx context.Context, grant credit.Grant) (credit.Grant, error) {

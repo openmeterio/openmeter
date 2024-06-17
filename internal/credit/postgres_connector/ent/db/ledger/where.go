@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/predicate"
 )
 
@@ -347,6 +348,29 @@ func HighwatermarkLT(v time.Time) predicate.Ledger {
 // HighwatermarkLTE applies the LTE predicate on the "highwatermark" field.
 func HighwatermarkLTE(v time.Time) predicate.Ledger {
 	return predicate.Ledger(sql.FieldLTE(FieldHighwatermark, v))
+}
+
+// HasCreditGrants applies the HasEdge predicate on the "credit_grants" edge.
+func HasCreditGrants() predicate.Ledger {
+	return predicate.Ledger(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, CreditGrantsTable, CreditGrantsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCreditGrantsWith applies the HasEdge predicate on the "credit_grants" edge with a given conditions (other predicates).
+func HasCreditGrantsWith(preds ...predicate.CreditEntry) predicate.Ledger {
+	return predicate.Ledger(func(s *sql.Selector) {
+		step := newCreditGrantsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

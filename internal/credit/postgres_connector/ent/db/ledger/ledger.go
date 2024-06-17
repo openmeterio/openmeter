@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -25,8 +26,17 @@ const (
 	FieldMetadata = "metadata"
 	// FieldHighwatermark holds the string denoting the highwatermark field in the database.
 	FieldHighwatermark = "highwatermark"
+	// EdgeCreditGrants holds the string denoting the credit_grants edge name in mutations.
+	EdgeCreditGrants = "credit_grants"
 	// Table holds the table name of the ledger in the database.
 	Table = "ledgers"
+	// CreditGrantsTable is the table that holds the credit_grants relation/edge.
+	CreditGrantsTable = "credit_entries"
+	// CreditGrantsInverseTable is the table name for the CreditEntry entity.
+	// It exists in this package in order to avoid circular dependency with the "creditentry" package.
+	CreditGrantsInverseTable = "credit_entries"
+	// CreditGrantsColumn is the table column denoting the credit_grants relation/edge.
+	CreditGrantsColumn = "ledger_id"
 )
 
 // Columns holds all SQL columns for ledger fields.
@@ -98,4 +108,25 @@ func BySubject(opts ...sql.OrderTermOption) OrderOption {
 // ByHighwatermark orders the results by the highwatermark field.
 func ByHighwatermark(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldHighwatermark, opts...).ToFunc()
+}
+
+// ByCreditGrantsCount orders the results by credit_grants count.
+func ByCreditGrantsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newCreditGrantsStep(), opts...)
+	}
+}
+
+// ByCreditGrants orders the results by credit_grants terms.
+func ByCreditGrants(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCreditGrantsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newCreditGrantsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CreditGrantsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CreditGrantsTable, CreditGrantsColumn),
+	)
 }

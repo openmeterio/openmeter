@@ -14,7 +14,6 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "namespace", Type: field.TypeString},
-		{Name: "ledger_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "entry_type", Type: field.TypeEnum, Enums: []string{"GRANT", "VOID_GRANT", "RESET"}},
 		{Name: "type", Type: field.TypeEnum, Nullable: true, Enums: []string{"USAGE"}},
 		{Name: "amount", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "numeric"}},
@@ -28,6 +27,7 @@ var (
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true},
 		{Name: "parent_id", Type: field.TypeString, Unique: true, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "feature_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "ledger_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// CreditEntriesTable holds the schema information for the "credit_entries" table.
 	CreditEntriesTable = &schema.Table{
@@ -37,22 +37,28 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "credit_entries_credit_entries_children",
-				Columns:    []*schema.Column{CreditEntriesColumns[16]},
+				Columns:    []*schema.Column{CreditEntriesColumns[15]},
 				RefColumns: []*schema.Column{CreditEntriesColumns[0]},
 				OnDelete:   schema.Restrict,
 			},
 			{
 				Symbol:     "credit_entries_features_credit_grants",
-				Columns:    []*schema.Column{CreditEntriesColumns[17]},
+				Columns:    []*schema.Column{CreditEntriesColumns[16]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.Restrict,
+			},
+			{
+				Symbol:     "credit_entries_ledgers_credit_grants",
+				Columns:    []*schema.Column{CreditEntriesColumns[17]},
+				RefColumns: []*schema.Column{LedgersColumns[0]},
+				OnDelete:   schema.Cascade,
 			},
 		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "creditentry_namespace_ledger_id",
 				Unique:  false,
-				Columns: []*schema.Column{CreditEntriesColumns[3], CreditEntriesColumns[4]},
+				Columns: []*schema.Column{CreditEntriesColumns[3], CreditEntriesColumns[17]},
 			},
 		},
 	}
@@ -114,4 +120,5 @@ var (
 func init() {
 	CreditEntriesTable.ForeignKeys[0].RefTable = CreditEntriesTable
 	CreditEntriesTable.ForeignKeys[1].RefTable = FeaturesTable
+	CreditEntriesTable.ForeignKeys[2].RefTable = LedgersTable
 }

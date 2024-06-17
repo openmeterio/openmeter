@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
 )
 
 // CreditEntry is the model entity for the CreditEntry schema.
@@ -68,9 +69,11 @@ type CreditEntryEdges struct {
 	Children *CreditEntry `json:"children,omitempty"`
 	// Feature holds the value of the feature edge.
 	Feature *Feature `json:"feature,omitempty"`
+	// Ledger holds the value of the ledger edge.
+	Ledger *Ledger `json:"ledger,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // ParentOrErr returns the Parent value or an error if the edge
@@ -104,6 +107,17 @@ func (e CreditEntryEdges) FeatureOrErr() (*Feature, error) {
 		return nil, &NotFoundError{label: feature.Label}
 	}
 	return nil, &NotLoadedError{edge: "feature"}
+}
+
+// LedgerOrErr returns the Ledger value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e CreditEntryEdges) LedgerOrErr() (*Ledger, error) {
+	if e.Ledger != nil {
+		return e.Ledger, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: ledger.Label}
+	}
+	return nil, &NotLoadedError{edge: "ledger"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -281,6 +295,11 @@ func (ce *CreditEntry) QueryChildren() *CreditEntryQuery {
 // QueryFeature queries the "feature" edge of the CreditEntry entity.
 func (ce *CreditEntry) QueryFeature() *FeatureQuery {
 	return NewCreditEntryClient(ce.config).QueryFeature(ce)
+}
+
+// QueryLedger queries the "ledger" edge of the CreditEntry entity.
+func (ce *CreditEntry) QueryLedger() *LedgerQuery {
+	return NewCreditEntryClient(ce.config).QueryLedger(ce)
 }
 
 // Update returns a builder for updating this CreditEntry.

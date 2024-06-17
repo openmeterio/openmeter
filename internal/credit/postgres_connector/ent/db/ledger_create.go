@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
 )
 
@@ -95,6 +96,21 @@ func (lc *LedgerCreate) SetNillableID(s *string) *LedgerCreate {
 		lc.SetID(*s)
 	}
 	return lc
+}
+
+// AddCreditGrantIDs adds the "credit_grants" edge to the CreditEntry entity by IDs.
+func (lc *LedgerCreate) AddCreditGrantIDs(ids ...string) *LedgerCreate {
+	lc.mutation.AddCreditGrantIDs(ids...)
+	return lc
+}
+
+// AddCreditGrants adds the "credit_grants" edges to the CreditEntry entity.
+func (lc *LedgerCreate) AddCreditGrants(c ...*CreditEntry) *LedgerCreate {
+	ids := make([]string, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return lc.AddCreditGrantIDs(ids...)
 }
 
 // Mutation returns the LedgerMutation object of the builder.
@@ -236,6 +252,22 @@ func (lc *LedgerCreate) createSpec() (*Ledger, *sqlgraph.CreateSpec) {
 	if value, ok := lc.mutation.Highwatermark(); ok {
 		_spec.SetField(ledger.FieldHighwatermark, field.TypeTime, value)
 		_node.Highwatermark = value
+	}
+	if nodes := lc.mutation.CreditGrantsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledger.CreditGrantsTable,
+			Columns: []string{ledger.CreditGrantsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

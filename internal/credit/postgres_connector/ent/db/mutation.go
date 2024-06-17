@@ -41,7 +41,6 @@ type CreditEntryMutation struct {
 	created_at                 *time.Time
 	updated_at                 *time.Time
 	namespace                  *string
-	ledger_id                  *string
 	entry_type                 *credit.EntryType
 	_type                      *credit.GrantType
 	amount                     *float64
@@ -64,6 +63,8 @@ type CreditEntryMutation struct {
 	clearedchildren            bool
 	feature                    *string
 	clearedfeature             bool
+	ledger                     *string
+	clearedledger              bool
 	done                       bool
 	oldValue                   func(context.Context) (*CreditEntry, error)
 	predicates                 []predicate.CreditEntry
@@ -283,12 +284,12 @@ func (m *CreditEntryMutation) ResetNamespace() {
 
 // SetLedgerID sets the "ledger_id" field.
 func (m *CreditEntryMutation) SetLedgerID(s string) {
-	m.ledger_id = &s
+	m.ledger = &s
 }
 
 // LedgerID returns the value of the "ledger_id" field in the mutation.
 func (m *CreditEntryMutation) LedgerID() (r string, exists bool) {
-	v := m.ledger_id
+	v := m.ledger
 	if v == nil {
 		return
 	}
@@ -314,7 +315,7 @@ func (m *CreditEntryMutation) OldLedgerID(ctx context.Context) (v string, err er
 
 // ResetLedgerID resets all changes to the "ledger_id" field.
 func (m *CreditEntryMutation) ResetLedgerID() {
-	m.ledger_id = nil
+	m.ledger = nil
 }
 
 // SetEntryType sets the "entry_type" field.
@@ -1091,6 +1092,33 @@ func (m *CreditEntryMutation) ResetFeature() {
 	m.clearedfeature = false
 }
 
+// ClearLedger clears the "ledger" edge to the Ledger entity.
+func (m *CreditEntryMutation) ClearLedger() {
+	m.clearedledger = true
+	m.clearedFields[creditentry.FieldLedgerID] = struct{}{}
+}
+
+// LedgerCleared reports if the "ledger" edge to the Ledger entity was cleared.
+func (m *CreditEntryMutation) LedgerCleared() bool {
+	return m.clearedledger
+}
+
+// LedgerIDs returns the "ledger" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// LedgerID instead. It exists only for internal usage by the builders.
+func (m *CreditEntryMutation) LedgerIDs() (ids []string) {
+	if id := m.ledger; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetLedger resets all changes to the "ledger" edge.
+func (m *CreditEntryMutation) ResetLedger() {
+	m.ledger = nil
+	m.clearedledger = false
+}
+
 // Where appends a list predicates to the CreditEntryMutation builder.
 func (m *CreditEntryMutation) Where(ps ...predicate.CreditEntry) {
 	m.predicates = append(m.predicates, ps...)
@@ -1135,7 +1163,7 @@ func (m *CreditEntryMutation) Fields() []string {
 	if m.namespace != nil {
 		fields = append(fields, creditentry.FieldNamespace)
 	}
-	if m.ledger_id != nil {
+	if m.ledger != nil {
 		fields = append(fields, creditentry.FieldLedgerID)
 	}
 	if m.entry_type != nil {
@@ -1610,7 +1638,7 @@ func (m *CreditEntryMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CreditEntryMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.parent != nil {
 		edges = append(edges, creditentry.EdgeParent)
 	}
@@ -1619,6 +1647,9 @@ func (m *CreditEntryMutation) AddedEdges() []string {
 	}
 	if m.feature != nil {
 		edges = append(edges, creditentry.EdgeFeature)
+	}
+	if m.ledger != nil {
+		edges = append(edges, creditentry.EdgeLedger)
 	}
 	return edges
 }
@@ -1639,13 +1670,17 @@ func (m *CreditEntryMutation) AddedIDs(name string) []ent.Value {
 		if id := m.feature; id != nil {
 			return []ent.Value{*id}
 		}
+	case creditentry.EdgeLedger:
+		if id := m.ledger; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *CreditEntryMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	return edges
 }
 
@@ -1657,7 +1692,7 @@ func (m *CreditEntryMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CreditEntryMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.clearedparent {
 		edges = append(edges, creditentry.EdgeParent)
 	}
@@ -1666,6 +1701,9 @@ func (m *CreditEntryMutation) ClearedEdges() []string {
 	}
 	if m.clearedfeature {
 		edges = append(edges, creditentry.EdgeFeature)
+	}
+	if m.clearedledger {
+		edges = append(edges, creditentry.EdgeLedger)
 	}
 	return edges
 }
@@ -1680,6 +1718,8 @@ func (m *CreditEntryMutation) EdgeCleared(name string) bool {
 		return m.clearedchildren
 	case creditentry.EdgeFeature:
 		return m.clearedfeature
+	case creditentry.EdgeLedger:
+		return m.clearedledger
 	}
 	return false
 }
@@ -1697,6 +1737,9 @@ func (m *CreditEntryMutation) ClearEdge(name string) error {
 	case creditentry.EdgeFeature:
 		m.ClearFeature()
 		return nil
+	case creditentry.EdgeLedger:
+		m.ClearLedger()
+		return nil
 	}
 	return fmt.Errorf("unknown CreditEntry unique edge %s", name)
 }
@@ -1713,6 +1756,9 @@ func (m *CreditEntryMutation) ResetEdge(name string) error {
 		return nil
 	case creditentry.EdgeFeature:
 		m.ResetFeature()
+		return nil
+	case creditentry.EdgeLedger:
+		m.ResetLedger()
 		return nil
 	}
 	return fmt.Errorf("unknown CreditEntry edge %s", name)
@@ -2492,19 +2538,22 @@ func (m *FeatureMutation) ResetEdge(name string) error {
 // LedgerMutation represents an operation that mutates the Ledger nodes in the graph.
 type LedgerMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *string
-	created_at    *time.Time
-	updated_at    *time.Time
-	namespace     *string
-	subject       *string
-	metadata      *map[string]string
-	highwatermark *time.Time
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*Ledger, error)
-	predicates    []predicate.Ledger
+	op                   Op
+	typ                  string
+	id                   *string
+	created_at           *time.Time
+	updated_at           *time.Time
+	namespace            *string
+	subject              *string
+	metadata             *map[string]string
+	highwatermark        *time.Time
+	clearedFields        map[string]struct{}
+	credit_grants        map[string]struct{}
+	removedcredit_grants map[string]struct{}
+	clearedcredit_grants bool
+	done                 bool
+	oldValue             func(context.Context) (*Ledger, error)
+	predicates           []predicate.Ledger
 }
 
 var _ ent.Mutation = (*LedgerMutation)(nil)
@@ -2840,6 +2889,60 @@ func (m *LedgerMutation) ResetHighwatermark() {
 	m.highwatermark = nil
 }
 
+// AddCreditGrantIDs adds the "credit_grants" edge to the CreditEntry entity by ids.
+func (m *LedgerMutation) AddCreditGrantIDs(ids ...string) {
+	if m.credit_grants == nil {
+		m.credit_grants = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.credit_grants[ids[i]] = struct{}{}
+	}
+}
+
+// ClearCreditGrants clears the "credit_grants" edge to the CreditEntry entity.
+func (m *LedgerMutation) ClearCreditGrants() {
+	m.clearedcredit_grants = true
+}
+
+// CreditGrantsCleared reports if the "credit_grants" edge to the CreditEntry entity was cleared.
+func (m *LedgerMutation) CreditGrantsCleared() bool {
+	return m.clearedcredit_grants
+}
+
+// RemoveCreditGrantIDs removes the "credit_grants" edge to the CreditEntry entity by IDs.
+func (m *LedgerMutation) RemoveCreditGrantIDs(ids ...string) {
+	if m.removedcredit_grants == nil {
+		m.removedcredit_grants = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.credit_grants, ids[i])
+		m.removedcredit_grants[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedCreditGrants returns the removed IDs of the "credit_grants" edge to the CreditEntry entity.
+func (m *LedgerMutation) RemovedCreditGrantsIDs() (ids []string) {
+	for id := range m.removedcredit_grants {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// CreditGrantsIDs returns the "credit_grants" edge IDs in the mutation.
+func (m *LedgerMutation) CreditGrantsIDs() (ids []string) {
+	for id := range m.credit_grants {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetCreditGrants resets all changes to the "credit_grants" edge.
+func (m *LedgerMutation) ResetCreditGrants() {
+	m.credit_grants = nil
+	m.clearedcredit_grants = false
+	m.removedcredit_grants = nil
+}
+
 // Where appends a list predicates to the LedgerMutation builder.
 func (m *LedgerMutation) Where(ps ...predicate.Ledger) {
 	m.predicates = append(m.predicates, ps...)
@@ -3067,48 +3170,84 @@ func (m *LedgerMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *LedgerMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.credit_grants != nil {
+		edges = append(edges, ledger.EdgeCreditGrants)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *LedgerMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case ledger.EdgeCreditGrants:
+		ids := make([]ent.Value, 0, len(m.credit_grants))
+		for id := range m.credit_grants {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *LedgerMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.removedcredit_grants != nil {
+		edges = append(edges, ledger.EdgeCreditGrants)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *LedgerMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case ledger.EdgeCreditGrants:
+		ids := make([]ent.Value, 0, len(m.removedcredit_grants))
+		for id := range m.removedcredit_grants {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *LedgerMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedcredit_grants {
+		edges = append(edges, ledger.EdgeCreditGrants)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *LedgerMutation) EdgeCleared(name string) bool {
+	switch name {
+	case ledger.EdgeCreditGrants:
+		return m.clearedcredit_grants
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *LedgerMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown Ledger unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *LedgerMutation) ResetEdge(name string) error {
+	switch name {
+	case ledger.EdgeCreditGrants:
+		m.ResetCreditGrants()
+		return nil
+	}
 	return fmt.Errorf("unknown Ledger edge %s", name)
 }

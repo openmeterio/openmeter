@@ -112,7 +112,18 @@ func (ceu *CreditEntryUpdate) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (ceu *CreditEntryUpdate) check() error {
+	if _, ok := ceu.mutation.LedgerID(); ceu.mutation.LedgerCleared() && !ok {
+		return errors.New(`db: clearing a required unique edge "CreditEntry.ledger"`)
+	}
+	return nil
+}
+
 func (ceu *CreditEntryUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := ceu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(creditentry.Table, creditentry.Columns, sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString))
 	if ps := ceu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -297,7 +308,18 @@ func (ceuo *CreditEntryUpdateOne) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (ceuo *CreditEntryUpdateOne) check() error {
+	if _, ok := ceuo.mutation.LedgerID(); ceuo.mutation.LedgerCleared() && !ok {
+		return errors.New(`db: clearing a required unique edge "CreditEntry.ledger"`)
+	}
+	return nil
+}
+
 func (ceuo *CreditEntryUpdateOne) sqlSave(ctx context.Context) (_node *CreditEntry, err error) {
+	if err := ceuo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(creditentry.Table, creditentry.Columns, sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString))
 	id, ok := ceuo.mutation.ID()
 	if !ok {

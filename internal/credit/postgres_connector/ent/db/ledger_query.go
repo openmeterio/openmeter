@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -11,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/predicate"
 )
@@ -18,11 +20,12 @@ import (
 // LedgerQuery is the builder for querying Ledger entities.
 type LedgerQuery struct {
 	config
-	ctx        *QueryContext
-	order      []ledger.OrderOption
-	inters     []Interceptor
-	predicates []predicate.Ledger
-	modifiers  []func(*sql.Selector)
+	ctx              *QueryContext
+	order            []ledger.OrderOption
+	inters           []Interceptor
+	predicates       []predicate.Ledger
+	withCreditGrants *CreditEntryQuery
+	modifiers        []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -57,6 +60,28 @@ func (lq *LedgerQuery) Unique(unique bool) *LedgerQuery {
 func (lq *LedgerQuery) Order(o ...ledger.OrderOption) *LedgerQuery {
 	lq.order = append(lq.order, o...)
 	return lq
+}
+
+// QueryCreditGrants chains the current query on the "credit_grants" edge.
+func (lq *LedgerQuery) QueryCreditGrants() *CreditEntryQuery {
+	query := (&CreditEntryClient{config: lq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := lq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := lq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledger.Table, ledger.FieldID, selector),
+			sqlgraph.To(creditentry.Table, creditentry.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledger.CreditGrantsTable, ledger.CreditGrantsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(lq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Ledger entity from the query.
@@ -246,15 +271,27 @@ func (lq *LedgerQuery) Clone() *LedgerQuery {
 		return nil
 	}
 	return &LedgerQuery{
-		config:     lq.config,
-		ctx:        lq.ctx.Clone(),
-		order:      append([]ledger.OrderOption{}, lq.order...),
-		inters:     append([]Interceptor{}, lq.inters...),
-		predicates: append([]predicate.Ledger{}, lq.predicates...),
+		config:           lq.config,
+		ctx:              lq.ctx.Clone(),
+		order:            append([]ledger.OrderOption{}, lq.order...),
+		inters:           append([]Interceptor{}, lq.inters...),
+		predicates:       append([]predicate.Ledger{}, lq.predicates...),
+		withCreditGrants: lq.withCreditGrants.Clone(),
 		// clone intermediate query.
 		sql:  lq.sql.Clone(),
 		path: lq.path,
 	}
+}
+
+// WithCreditGrants tells the query-builder to eager-load the nodes that are connected to
+// the "credit_grants" edge. The optional arguments are used to configure the query builder of the edge.
+func (lq *LedgerQuery) WithCreditGrants(opts ...func(*CreditEntryQuery)) *LedgerQuery {
+	query := (&CreditEntryClient{config: lq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	lq.withCreditGrants = query
+	return lq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -333,8 +370,11 @@ func (lq *LedgerQuery) prepareQuery(ctx context.Context) error {
 
 func (lq *LedgerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Ledger, error) {
 	var (
-		nodes = []*Ledger{}
-		_spec = lq.querySpec()
+		nodes       = []*Ledger{}
+		_spec       = lq.querySpec()
+		loadedTypes = [1]bool{
+			lq.withCreditGrants != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Ledger).scanValues(nil, columns)
@@ -342,6 +382,7 @@ func (lq *LedgerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Ledge
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Ledger{config: lq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if len(lq.modifiers) > 0 {
@@ -356,7 +397,45 @@ func (lq *LedgerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Ledge
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := lq.withCreditGrants; query != nil {
+		if err := lq.loadCreditGrants(ctx, query, nodes,
+			func(n *Ledger) { n.Edges.CreditGrants = []*CreditEntry{} },
+			func(n *Ledger, e *CreditEntry) { n.Edges.CreditGrants = append(n.Edges.CreditGrants, e) }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (lq *LedgerQuery) loadCreditGrants(ctx context.Context, query *CreditEntryQuery, nodes []*Ledger, init func(*Ledger), assign func(*Ledger, *CreditEntry)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Ledger)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(creditentry.FieldLedgerID)
+	}
+	query.Where(predicate.CreditEntry(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(ledger.CreditGrantsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.LedgerID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "ledger_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (lq *LedgerQuery) sqlCount(ctx context.Context) (int, error) {

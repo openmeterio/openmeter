@@ -57,6 +57,7 @@ type Connector interface {
 	// Ledger
 	CreateLedger(ctx context.Context, ledger Ledger) (Ledger, error)
 	ListLedgers(ctx context.Context, params ListLedgersParams) ([]Ledger, error)
+	GetLedgerAffectedByMeterSubject(ctx context.Context, namespace, meterSlug, subject string) (*Ledger, error)
 
 	// Grant
 	CreateGrant(ctx context.Context, grant Grant) (Grant, error)

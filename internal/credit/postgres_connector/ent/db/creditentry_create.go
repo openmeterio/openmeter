@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
 )
 
 // CreditEntryCreate is the builder for creating a CreditEntry entity.
@@ -274,6 +275,11 @@ func (cec *CreditEntryCreate) SetFeature(f *Feature) *CreditEntryCreate {
 	return cec.SetFeatureID(f.ID)
 }
 
+// SetLedger sets the "ledger" edge to the Ledger entity.
+func (cec *CreditEntryCreate) SetLedger(l *Ledger) *CreditEntryCreate {
+	return cec.SetLedgerID(l.ID)
+}
+
 // Mutation returns the CreditEntryMutation object of the builder.
 func (cec *CreditEntryCreate) Mutation() *CreditEntryMutation {
 	return cec.mutation
@@ -379,6 +385,9 @@ func (cec *CreditEntryCreate) check() error {
 			return &ValidationError{Name: "rollover_type", err: fmt.Errorf(`db: validator failed for field "CreditEntry.rollover_type": %w`, err)}
 		}
 	}
+	if _, ok := cec.mutation.LedgerID(); !ok {
+		return &ValidationError{Name: "ledger", err: errors.New(`db: missing required edge "CreditEntry.ledger"`)}
+	}
 	return nil
 }
 
@@ -426,10 +435,6 @@ func (cec *CreditEntryCreate) createSpec() (*CreditEntry, *sqlgraph.CreateSpec) 
 	if value, ok := cec.mutation.Namespace(); ok {
 		_spec.SetField(creditentry.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
-	}
-	if value, ok := cec.mutation.LedgerID(); ok {
-		_spec.SetField(creditentry.FieldLedgerID, field.TypeString, value)
-		_node.LedgerID = value
 	}
 	if value, ok := cec.mutation.EntryType(); ok {
 		_spec.SetField(creditentry.FieldEntryType, field.TypeEnum, value)
@@ -523,6 +528,23 @@ func (cec *CreditEntryCreate) createSpec() (*CreditEntry, *sqlgraph.CreateSpec) 
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.FeatureID = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := cec.mutation.LedgerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   creditentry.LedgerTable,
+			Columns: []string{creditentry.LedgerColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(ledger.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.LedgerID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

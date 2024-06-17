@@ -56,6 +56,8 @@ const (
 	EdgeChildren = "children"
 	// EdgeFeature holds the string denoting the feature edge name in mutations.
 	EdgeFeature = "feature"
+	// EdgeLedger holds the string denoting the ledger edge name in mutations.
+	EdgeLedger = "ledger"
 	// Table holds the table name of the creditentry in the database.
 	Table = "credit_entries"
 	// ParentTable is the table that holds the parent relation/edge.
@@ -73,6 +75,13 @@ const (
 	FeatureInverseTable = "features"
 	// FeatureColumn is the table column denoting the feature relation/edge.
 	FeatureColumn = "feature_id"
+	// LedgerTable is the table that holds the ledger relation/edge.
+	LedgerTable = "credit_entries"
+	// LedgerInverseTable is the table name for the Ledger entity.
+	// It exists in this package in order to avoid circular dependency with the "ledger" package.
+	LedgerInverseTable = "ledgers"
+	// LedgerColumn is the table column denoting the ledger relation/edge.
+	LedgerColumn = "ledger_id"
 )
 
 // Columns holds all SQL columns for creditentry fields.
@@ -272,6 +281,13 @@ func ByFeatureField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newFeatureStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByLedgerField orders the results by ledger field.
+func ByLedgerField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newLedgerStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newParentStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -291,5 +307,12 @@ func newFeatureStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(FeatureInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, FeatureTable, FeatureColumn),
+	)
+}
+func newLedgerStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(LedgerInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, LedgerTable, LedgerColumn),
 	)
 }

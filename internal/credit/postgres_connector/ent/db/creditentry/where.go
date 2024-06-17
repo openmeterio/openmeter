@@ -995,6 +995,29 @@ func HasFeatureWith(preds ...predicate.Feature) predicate.CreditEntry {
 	})
 }
 
+// HasLedger applies the HasEdge predicate on the "ledger" edge.
+func HasLedger() predicate.CreditEntry {
+	return predicate.CreditEntry(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, LedgerTable, LedgerColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasLedgerWith applies the HasEdge predicate on the "ledger" edge with a given conditions (other predicates).
+func HasLedgerWith(preds ...predicate.Ledger) predicate.CreditEntry {
+	return predicate.CreditEntry(func(s *sql.Selector) {
+		step := newLedgerStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.CreditEntry) predicate.CreditEntry {
 	return predicate.CreditEntry(sql.AndPredicates(predicates...))

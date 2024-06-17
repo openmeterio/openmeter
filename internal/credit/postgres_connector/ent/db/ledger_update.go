@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/predicate"
 )
@@ -60,9 +61,45 @@ func (lu *LedgerUpdate) SetNillableHighwatermark(t *time.Time) *LedgerUpdate {
 	return lu
 }
 
+// AddCreditGrantIDs adds the "credit_grants" edge to the CreditEntry entity by IDs.
+func (lu *LedgerUpdate) AddCreditGrantIDs(ids ...string) *LedgerUpdate {
+	lu.mutation.AddCreditGrantIDs(ids...)
+	return lu
+}
+
+// AddCreditGrants adds the "credit_grants" edges to the CreditEntry entity.
+func (lu *LedgerUpdate) AddCreditGrants(c ...*CreditEntry) *LedgerUpdate {
+	ids := make([]string, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return lu.AddCreditGrantIDs(ids...)
+}
+
 // Mutation returns the LedgerMutation object of the builder.
 func (lu *LedgerUpdate) Mutation() *LedgerMutation {
 	return lu.mutation
+}
+
+// ClearCreditGrants clears all "credit_grants" edges to the CreditEntry entity.
+func (lu *LedgerUpdate) ClearCreditGrants() *LedgerUpdate {
+	lu.mutation.ClearCreditGrants()
+	return lu
+}
+
+// RemoveCreditGrantIDs removes the "credit_grants" edge to CreditEntry entities by IDs.
+func (lu *LedgerUpdate) RemoveCreditGrantIDs(ids ...string) *LedgerUpdate {
+	lu.mutation.RemoveCreditGrantIDs(ids...)
+	return lu
+}
+
+// RemoveCreditGrants removes "credit_grants" edges to CreditEntry entities.
+func (lu *LedgerUpdate) RemoveCreditGrants(c ...*CreditEntry) *LedgerUpdate {
+	ids := make([]string, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return lu.RemoveCreditGrantIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -122,6 +159,51 @@ func (lu *LedgerUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := lu.mutation.Highwatermark(); ok {
 		_spec.SetField(ledger.FieldHighwatermark, field.TypeTime, value)
 	}
+	if lu.mutation.CreditGrantsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledger.CreditGrantsTable,
+			Columns: []string{ledger.CreditGrantsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lu.mutation.RemovedCreditGrantsIDs(); len(nodes) > 0 && !lu.mutation.CreditGrantsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledger.CreditGrantsTable,
+			Columns: []string{ledger.CreditGrantsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lu.mutation.CreditGrantsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledger.CreditGrantsTable,
+			Columns: []string{ledger.CreditGrantsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, lu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{ledger.Label}
@@ -174,9 +256,45 @@ func (luo *LedgerUpdateOne) SetNillableHighwatermark(t *time.Time) *LedgerUpdate
 	return luo
 }
 
+// AddCreditGrantIDs adds the "credit_grants" edge to the CreditEntry entity by IDs.
+func (luo *LedgerUpdateOne) AddCreditGrantIDs(ids ...string) *LedgerUpdateOne {
+	luo.mutation.AddCreditGrantIDs(ids...)
+	return luo
+}
+
+// AddCreditGrants adds the "credit_grants" edges to the CreditEntry entity.
+func (luo *LedgerUpdateOne) AddCreditGrants(c ...*CreditEntry) *LedgerUpdateOne {
+	ids := make([]string, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return luo.AddCreditGrantIDs(ids...)
+}
+
 // Mutation returns the LedgerMutation object of the builder.
 func (luo *LedgerUpdateOne) Mutation() *LedgerMutation {
 	return luo.mutation
+}
+
+// ClearCreditGrants clears all "credit_grants" edges to the CreditEntry entity.
+func (luo *LedgerUpdateOne) ClearCreditGrants() *LedgerUpdateOne {
+	luo.mutation.ClearCreditGrants()
+	return luo
+}
+
+// RemoveCreditGrantIDs removes the "credit_grants" edge to CreditEntry entities by IDs.
+func (luo *LedgerUpdateOne) RemoveCreditGrantIDs(ids ...string) *LedgerUpdateOne {
+	luo.mutation.RemoveCreditGrantIDs(ids...)
+	return luo
+}
+
+// RemoveCreditGrants removes "credit_grants" edges to CreditEntry entities.
+func (luo *LedgerUpdateOne) RemoveCreditGrants(c ...*CreditEntry) *LedgerUpdateOne {
+	ids := make([]string, len(c))
+	for i := range c {
+		ids[i] = c[i].ID
+	}
+	return luo.RemoveCreditGrantIDs(ids...)
 }
 
 // Where appends a list predicates to the LedgerUpdate builder.
@@ -265,6 +383,51 @@ func (luo *LedgerUpdateOne) sqlSave(ctx context.Context) (_node *Ledger, err err
 	}
 	if value, ok := luo.mutation.Highwatermark(); ok {
 		_spec.SetField(ledger.FieldHighwatermark, field.TypeTime, value)
+	}
+	if luo.mutation.CreditGrantsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledger.CreditGrantsTable,
+			Columns: []string{ledger.CreditGrantsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := luo.mutation.RemovedCreditGrantsIDs(); len(nodes) > 0 && !luo.mutation.CreditGrantsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledger.CreditGrantsTable,
+			Columns: []string{ledger.CreditGrantsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := luo.mutation.CreditGrantsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   ledger.CreditGrantsTable,
+			Columns: []string{ledger.CreditGrantsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(creditentry.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Ledger{config: luo.config}
 	_spec.Assign = _node.assignValues

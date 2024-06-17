@@ -81,5 +81,11 @@ func (CreditEntry) Edges() []ent.Edge {
 			Field("feature_id").
 			Unique().
 			Immutable(),
+		edge.From("ledger", Ledger.Type).
+			Ref("credit_grants").
+			Field("ledger_id").
+			Required().
+			Unique().
+			Immutable(),
 	}
 }

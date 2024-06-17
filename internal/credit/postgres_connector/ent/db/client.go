@@ -373,6 +373,22 @@ func (c *CreditEntryClient) QueryFeature(ce *CreditEntry) *FeatureQuery {
 	return query
 }
 
+// QueryLedger queries the ledger edge of a CreditEntry.
+func (c *CreditEntryClient) QueryLedger(ce *CreditEntry) *LedgerQuery {
+	query := (&LedgerClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ce.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(creditentry.Table, creditentry.FieldID, id),
+			sqlgraph.To(ledger.Table, ledger.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, creditentry.LedgerTable, creditentry.LedgerColumn),
+		)
+		fromV = sqlgraph.Neighbors(ce.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *CreditEntryClient) Hooks() []Hook {
 	return c.hooks.CreditEntry
@@ -653,6 +669,22 @@ func (c *LedgerClient) GetX(ctx context.Context, id string) *Ledger {
 		panic(err)
 	}
 	return obj
+}
+
+// QueryCreditGrants queries the credit_grants edge of a Ledger.
+func (c *LedgerClient) QueryCreditGrants(l *Ledger) *CreditEntryQuery {
+	query := (&CreditEntryClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := l.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(ledger.Table, ledger.FieldID, id),
+			sqlgraph.To(creditentry.Table, creditentry.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ledger.CreditGrantsTable, ledger.CreditGrantsColumn),
+		)
+		fromV = sqlgraph.Neighbors(l.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.

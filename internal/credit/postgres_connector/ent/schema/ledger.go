@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 )
@@ -38,5 +40,13 @@ func (Ledger) Fields() []ent.Field {
 func (Ledger) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "subject").Unique(),
+	}
+}
+
+func (Ledger) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.
+			To("credit_grants", CreditEntry.Type).
+			Annotations(entsql.OnDelete(entsql.Cascade)),
 	}
 }

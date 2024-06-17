@@ -6,6 +6,7 @@ import (
 )
 
 type Ledger = credit.Ledger
+type LedgerID = credit.LedgerID
 type Grant = credit.Grant
 type HighWatermark = credit.HighWatermark
 type Reset = credit.Reset
@@ -15,6 +16,8 @@ type LedgerEntryList = credit.LedgerEntryList
 type NamespacedLedgerID = credit.NamespacedLedgerID
 type NamespacedGrantID = credit.NamespacedGrantID
 type NamespacedFeatureID = credit.NamespacedFeatureID
+
+type Pagination = credit.Pagination
 
 type Connector = credit.Connector
 type ListGrantsParams = credit.ListGrantsParams

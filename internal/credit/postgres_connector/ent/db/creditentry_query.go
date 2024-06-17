@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/predicate"
 )
 
@@ -27,6 +28,7 @@ type CreditEntryQuery struct {
 	withParent   *CreditEntryQuery
 	withChildren *CreditEntryQuery
 	withFeature  *FeatureQuery
+	withLedger   *LedgerQuery
 	modifiers    []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -123,6 +125,28 @@ func (ceq *CreditEntryQuery) QueryFeature() *FeatureQuery {
 			sqlgraph.From(creditentry.Table, creditentry.FieldID, selector),
 			sqlgraph.To(feature.Table, feature.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, creditentry.FeatureTable, creditentry.FeatureColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(ceq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryLedger chains the current query on the "ledger" edge.
+func (ceq *CreditEntryQuery) QueryLedger() *LedgerQuery {
+	query := (&LedgerClient{config: ceq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := ceq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := ceq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(creditentry.Table, creditentry.FieldID, selector),
+			sqlgraph.To(ledger.Table, ledger.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, creditentry.LedgerTable, creditentry.LedgerColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(ceq.driver.Dialect(), step)
 		return fromU, nil
@@ -325,6 +349,7 @@ func (ceq *CreditEntryQuery) Clone() *CreditEntryQuery {
 		withParent:   ceq.withParent.Clone(),
 		withChildren: ceq.withChildren.Clone(),
 		withFeature:  ceq.withFeature.Clone(),
+		withLedger:   ceq.withLedger.Clone(),
 		// clone intermediate query.
 		sql:  ceq.sql.Clone(),
 		path: ceq.path,
@@ -361,6 +386,17 @@ func (ceq *CreditEntryQuery) WithFeature(opts ...func(*FeatureQuery)) *CreditEnt
 		opt(query)
 	}
 	ceq.withFeature = query
+	return ceq
+}
+
+// WithLedger tells the query-builder to eager-load the nodes that are connected to
+// the "ledger" edge. The optional arguments are used to configure the query builder of the edge.
+func (ceq *CreditEntryQuery) WithLedger(opts ...func(*LedgerQuery)) *CreditEntryQuery {
+	query := (&LedgerClient{config: ceq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	ceq.withLedger = query
 	return ceq
 }
 
@@ -442,10 +478,11 @@ func (ceq *CreditEntryQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	var (
 		nodes       = []*CreditEntry{}
 		_spec       = ceq.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			ceq.withParent != nil,
 			ceq.withChildren != nil,
 			ceq.withFeature != nil,
+			ceq.withLedger != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -484,6 +521,12 @@ func (ceq *CreditEntryQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	if query := ceq.withFeature; query != nil {
 		if err := ceq.loadFeature(ctx, query, nodes, nil,
 			func(n *CreditEntry, e *Feature) { n.Edges.Feature = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := ceq.withLedger; query != nil {
+		if err := ceq.loadLedger(ctx, query, nodes, nil,
+			func(n *CreditEntry, e *Ledger) { n.Edges.Ledger = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -584,6 +627,35 @@ func (ceq *CreditEntryQuery) loadFeature(ctx context.Context, query *FeatureQuer
 	}
 	return nil
 }
+func (ceq *CreditEntryQuery) loadLedger(ctx context.Context, query *LedgerQuery, nodes []*CreditEntry, init func(*CreditEntry), assign func(*CreditEntry, *Ledger)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*CreditEntry)
+	for i := range nodes {
+		fk := nodes[i].LedgerID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(ledger.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "ledger_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (ceq *CreditEntryQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := ceq.querySpec()
@@ -618,6 +690,9 @@ func (ceq *CreditEntryQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if ceq.withFeature != nil {
 			_spec.Node.AddColumnOnce(creditentry.FieldFeatureID)
+		}
+		if ceq.withLedger != nil {
+			_spec.Node.AddColumnOnce(creditentry.FieldLedgerID)
 		}
 	}
 	if ps := ceq.predicates; len(ps) > 0 {

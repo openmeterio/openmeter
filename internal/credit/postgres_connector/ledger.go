@@ -6,7 +6,11 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/creditentry"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/feature"
+	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
 	db_ledger "github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/ledger"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -90,6 +94,46 @@ func (c *PostgresConnector) ListLedgers(ctx context.Context, params credit.ListL
 	}
 
 	return slicesx.Map(dbLedgers, mapDBLedgerToModel), nil
+}
+
+func (c *PostgresConnector) GetLedgerAffectedByMeterSubject(ctx context.Context, namespace, meterSlug, subject string) (*credit.Ledger, error) {
+	// TODO: I cannot figure out how to add a simple ledger.effective_at >= ledger.highwatermark condition, so I'm going to leave it as is as this is a temporary solution
+	// either way.
+	ledger, err := c.db.Ledger.Query().
+		Where(
+			ledger.Subject(subject),
+			ledger.Namespace(namespace),
+		).First(ctx)
+
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	activeGrant, err := c.db.Debug().CreditEntry.Query().
+		Where(
+			creditentry.And(
+				creditentry.LedgerID(ledger.ID),
+				creditentry.Namespace(namespace),
+				creditentry.HasFeatureWith(
+					feature.MeterSlug(meterSlug),
+				),
+				creditentry.EffectiveAtGTE(ledger.Highwatermark),
+			),
+		).
+		WithLedger().
+		First(ctx)
+
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return convert.ToPointer(mapDBLedgerToModel(activeGrant.Edges.Ledger)), nil
 }
 
 func (c *PostgresConnector) getLedger(ctx context.Context, ledgerID credit.NamespacedLedgerID) (*db.Ledger, error) {

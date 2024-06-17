@@ -30,7 +30,28 @@ type Ledger struct {
 	Metadata map[string]string `json:"metadata,omitempty"`
 	// Highwatermark holds the value of the "highwatermark" field.
 	Highwatermark time.Time `json:"highwatermark,omitempty"`
-	selectValues  sql.SelectValues
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the LedgerQuery when eager-loading is set.
+	Edges        LedgerEdges `json:"edges"`
+	selectValues sql.SelectValues
+}
+
+// LedgerEdges holds the relations/edges for other nodes in the graph.
+type LedgerEdges struct {
+	// CreditGrants holds the value of the credit_grants edge.
+	CreditGrants []*CreditEntry `json:"credit_grants,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// CreditGrantsOrErr returns the CreditGrants value or an error if the edge
+// was not loaded in eager-loading.
+func (e LedgerEdges) CreditGrantsOrErr() ([]*CreditEntry, error) {
+	if e.loadedTypes[0] {
+		return e.CreditGrants, nil
+	}
+	return nil, &NotLoadedError{edge: "credit_grants"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -114,6 +135,11 @@ func (l *Ledger) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (l *Ledger) Value(name string) (ent.Value, error) {
 	return l.selectValues.Get(name)
+}
+
+// QueryCreditGrants queries the "credit_grants" edge of the Ledger entity.
+func (l *Ledger) QueryCreditGrants() *CreditEntryQuery {
+	return NewLedgerClient(l.config).QueryCreditGrants(l)
 }
 
 // Update returns a builder for updating this Ledger.

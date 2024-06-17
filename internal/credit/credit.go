@@ -108,7 +108,7 @@ func (GrantRolloverType) Values() (kinds []string) {
 
 // Reset is used to reset the balance of a specific subject.
 type Reset struct {
-	Namespace string `json:"-"`
+	Namespace string `json:"namespace,omitempty"`
 	// ID is the readonly identifies of a reset.
 	ID *GrantID `json:"id,omitempty"`
 
@@ -121,7 +121,7 @@ type Reset struct {
 
 // Grant is used to increase balance of specific subjects.
 type Grant struct {
-	Namespace string `json:"-"`
+	Namespace string `json:"namespace,omitempty"`
 	// ID is the readonly identifies of a grant.
 	ID *GrantID `json:"id,omitempty"`
 
