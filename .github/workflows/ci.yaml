@@ -57,7 +57,7 @@ jobs:
         if: always()
 
       - name: Upload Dagger Engine logs as artifact
-        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         if: always()
         with:
           name: "[${{ github.job }}] Dagger Engine logs"
@@ -85,7 +85,7 @@ jobs:
         if: always()
 
       - name: Upload Dagger Engine logs as artifact
-        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         if: always()
         with:
           name: "[${{ github.job }}] Dagger Engine logs"
@@ -247,7 +247,7 @@ jobs:
         if: always()
 
       - name: Upload Dagger Engine logs as artifact
-        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         if: always()
         with:
           name: "[${{ github.job }}] Dagger Engine logs"
@@ -291,7 +291,7 @@ jobs:
         if: always()
 
       - name: Upload Dagger Engine logs as artifact
-        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         if: always()
         with:
           name: "[${{ github.job }}] Dagger Engine logs"
