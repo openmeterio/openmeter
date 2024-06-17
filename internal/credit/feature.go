@@ -51,7 +51,7 @@ func (e *FeatureWithNameAlreadyExistsError) Error() string {
 // Feature is a feature or service offered to a customer.
 // For example: CPU-Hours, Tokens, API Calls, etc.
 type Feature struct {
-	Namespace string     `json:"-"`
+	Namespace string     `json:"namespace,omitempty"`
 	ID        *FeatureID `json:"id,omitempty"`
 
 	// Name The name of the feature.

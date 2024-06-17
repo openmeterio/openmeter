@@ -21,7 +21,7 @@ func NewNamespacedLedgerID(namespace string, id LedgerID) NamespacedLedgerID {
 }
 
 type Ledger struct {
-	Namespace string `json:"-"`
+	Namespace string `json:"namespace,omitempty"`
 	// ID is the ID of the ledger instance
 	ID LedgerID `json:"id,omitempty"`
 
