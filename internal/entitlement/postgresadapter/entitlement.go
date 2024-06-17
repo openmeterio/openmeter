@@ -52,6 +52,27 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlemen
 	return mapEntitlementEntity(res), nil
 }
 
+func (a *entitlementDBAdapter) GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]entitlement.Entitlement, error) {
+	res, err := a.db.Entitlement.Query().
+		Where(
+			db_entitlement.SubjectKey(string(subjectKey)),
+			db_entitlement.Namespace(namespace),
+		).
+		All(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]entitlement.Entitlement, 0, len(res))
+	for _, e := range res {
+		result = append(result, *mapEntitlementEntity(e))
+	}
+
+	return result, nil
+
+}
+
 func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 	return &entitlement.Entitlement{
 		NamespacedModel: models.NamespacedModel{

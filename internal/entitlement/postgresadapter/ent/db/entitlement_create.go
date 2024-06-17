@@ -84,6 +84,12 @@ func (ec *EntitlementCreate) SetFeatureID(s string) *EntitlementCreate {
 	return ec
 }
 
+// SetSubjectKey sets the "subject_key" field.
+func (ec *EntitlementCreate) SetSubjectKey(s string) *EntitlementCreate {
+	ec.mutation.SetSubjectKey(s)
+	return ec
+}
+
 // SetMeasureUsageFrom sets the "measure_usage_from" field.
 func (ec *EntitlementCreate) SetMeasureUsageFrom(t time.Time) *EntitlementCreate {
 	ec.mutation.SetMeasureUsageFrom(t)
@@ -187,6 +193,9 @@ func (ec *EntitlementCreate) check() error {
 	if _, ok := ec.mutation.FeatureID(); !ok {
 		return &ValidationError{Name: "feature_id", err: errors.New(`db: missing required field "Entitlement.feature_id"`)}
 	}
+	if _, ok := ec.mutation.SubjectKey(); !ok {
+		return &ValidationError{Name: "subject_key", err: errors.New(`db: missing required field "Entitlement.subject_key"`)}
+	}
 	if _, ok := ec.mutation.MeasureUsageFrom(); !ok {
 		return &ValidationError{Name: "measure_usage_from", err: errors.New(`db: missing required field "Entitlement.measure_usage_from"`)}
 	}
@@ -249,6 +258,10 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 	if value, ok := ec.mutation.FeatureID(); ok {
 		_spec.SetField(entitlement.FieldFeatureID, field.TypeString, value)
 		_node.FeatureID = value
+	}
+	if value, ok := ec.mutation.SubjectKey(); ok {
+		_spec.SetField(entitlement.FieldSubjectKey, field.TypeString, value)
+		_node.SubjectKey = value
 	}
 	if value, ok := ec.mutation.MeasureUsageFrom(); ok {
 		_spec.SetField(entitlement.FieldMeasureUsageFrom, field.TypeTime, value)
@@ -395,6 +408,9 @@ func (u *EntitlementUpsertOne) UpdateNewValues() *EntitlementUpsertOne {
 		}
 		if _, exists := u.create.mutation.FeatureID(); exists {
 			s.SetIgnore(entitlement.FieldFeatureID)
+		}
+		if _, exists := u.create.mutation.SubjectKey(); exists {
+			s.SetIgnore(entitlement.FieldSubjectKey)
 		}
 		if _, exists := u.create.mutation.MeasureUsageFrom(); exists {
 			s.SetIgnore(entitlement.FieldMeasureUsageFrom)
@@ -677,6 +693,9 @@ func (u *EntitlementUpsertBulk) UpdateNewValues() *EntitlementUpsertBulk {
 			}
 			if _, exists := b.mutation.FeatureID(); exists {
 				s.SetIgnore(entitlement.FieldFeatureID)
+			}
+			if _, exists := b.mutation.SubjectKey(); exists {
+				s.SetIgnore(entitlement.FieldSubjectKey)
 			}
 			if _, exists := b.mutation.MeasureUsageFrom(); exists {
 				s.SetIgnore(entitlement.FieldMeasureUsageFrom)

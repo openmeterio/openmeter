@@ -90,6 +90,11 @@ func FeatureID(v string) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldFeatureID, v))
 }
 
+// SubjectKey applies equality check predicate on the "subject_key" field. It's identical to SubjectKeyEQ.
+func SubjectKey(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldSubjectKey, v))
+}
+
 // MeasureUsageFrom applies equality check predicate on the "measure_usage_from" field. It's identical to MeasureUsageFromEQ.
 func MeasureUsageFrom(v time.Time) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldMeasureUsageFrom, v))
@@ -363,6 +368,71 @@ func FeatureIDEqualFold(v string) predicate.Entitlement {
 // FeatureIDContainsFold applies the ContainsFold predicate on the "feature_id" field.
 func FeatureIDContainsFold(v string) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldContainsFold(FieldFeatureID, v))
+}
+
+// SubjectKeyEQ applies the EQ predicate on the "subject_key" field.
+func SubjectKeyEQ(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldSubjectKey, v))
+}
+
+// SubjectKeyNEQ applies the NEQ predicate on the "subject_key" field.
+func SubjectKeyNEQ(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNEQ(FieldSubjectKey, v))
+}
+
+// SubjectKeyIn applies the In predicate on the "subject_key" field.
+func SubjectKeyIn(vs ...string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIn(FieldSubjectKey, vs...))
+}
+
+// SubjectKeyNotIn applies the NotIn predicate on the "subject_key" field.
+func SubjectKeyNotIn(vs ...string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotIn(FieldSubjectKey, vs...))
+}
+
+// SubjectKeyGT applies the GT predicate on the "subject_key" field.
+func SubjectKeyGT(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGT(FieldSubjectKey, v))
+}
+
+// SubjectKeyGTE applies the GTE predicate on the "subject_key" field.
+func SubjectKeyGTE(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGTE(FieldSubjectKey, v))
+}
+
+// SubjectKeyLT applies the LT predicate on the "subject_key" field.
+func SubjectKeyLT(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLT(FieldSubjectKey, v))
+}
+
+// SubjectKeyLTE applies the LTE predicate on the "subject_key" field.
+func SubjectKeyLTE(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLTE(FieldSubjectKey, v))
+}
+
+// SubjectKeyContains applies the Contains predicate on the "subject_key" field.
+func SubjectKeyContains(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldContains(FieldSubjectKey, v))
+}
+
+// SubjectKeyHasPrefix applies the HasPrefix predicate on the "subject_key" field.
+func SubjectKeyHasPrefix(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldHasPrefix(FieldSubjectKey, v))
+}
+
+// SubjectKeyHasSuffix applies the HasSuffix predicate on the "subject_key" field.
+func SubjectKeyHasSuffix(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldHasSuffix(FieldSubjectKey, v))
+}
+
+// SubjectKeyEqualFold applies the EqualFold predicate on the "subject_key" field.
+func SubjectKeyEqualFold(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEqualFold(FieldSubjectKey, v))
+}
+
+// SubjectKeyContainsFold applies the ContainsFold predicate on the "subject_key" field.
+func SubjectKeyContainsFold(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldContainsFold(FieldSubjectKey, v))
 }
 
 // MeasureUsageFromEQ applies the EQ predicate on the "measure_usage_from" field.

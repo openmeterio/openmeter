@@ -27,6 +27,7 @@ func TestCreateFeature(t *testing.T) {
 	testFeature := productcatalog.DBCreateFeatureInputs{
 		Namespace: namespace,
 		Name:      "feature-1",
+		Key:       "feature-1",
 		MeterSlug: meter.Slug,
 		MeterGroupByFilters: &map[string]string{
 			"key": "value",
@@ -92,8 +93,10 @@ func TestCreateFeature(t *testing.T) {
 				ctx := context.Background()
 				featureIn1 := testFeature
 				featureIn1.Name = "feature-3"
+				featureIn1.Key = "feature-3"
 				featureIn2 := testFeature
 				featureIn2.Name = "feature-2"
+				featureIn2.Key = "feature-2"
 
 				_, err := connector.CreateFeature(ctx, featureIn1)
 				assert.NoError(t, err)
@@ -159,8 +162,10 @@ func TestCreateFeature(t *testing.T) {
 				ctx := context.Background()
 				featureIn1 := testFeature
 				featureIn1.Name = "feature-1"
+				featureIn1.Key = "feature-1"
 				featureIn2 := testFeature
-				featureIn2.Name = "feature-1"
+				featureIn2.Name = "feature-2"
+				featureIn2.Key = "feature-2"
 
 				_, err := connector.CreateFeature(ctx, featureIn1)
 				assert.NoError(t, err)
@@ -168,28 +173,24 @@ func TestCreateFeature(t *testing.T) {
 				_, err = connector.CreateFeature(ctx, featureIn2)
 				assert.NoError(t, err)
 
-				features, err := connector.FindByName(ctx, namespace, "feature-1", false)
+				foundFeature, err := connector.FindByKey(ctx, namespace, "feature-1", false)
 				assert.NoError(t, err)
 
-				assert.Len(t, features, 2)
-				assert.Equal(t, "feature-1", features[0].Name)
-				assert.Equal(t, "feature-1", features[1].Name)
+				assert.Equal(t, "feature-1", foundFeature.Name)
 
 				err = connector.ArchiveFeature(ctx, models.NamespacedID{
 					Namespace: namespace,
-					ID:        features[0].ID,
+					ID:        foundFeature.ID,
 				})
 				assert.NoError(t, err)
 
-				features, err = connector.FindByName(ctx, namespace, "feature-1", false)
+				_, err = connector.FindByKey(ctx, namespace, "feature-1", false)
+				assert.Error(t, err)
+
+				foundFeature, err = connector.FindByKey(ctx, namespace, "feature-1", true)
 				assert.NoError(t, err)
 
-				assert.Len(t, features, 1)
-
-				features, err = connector.FindByName(ctx, namespace, "feature-1", true)
-				assert.NoError(t, err)
-
-				assert.Len(t, features, 2)
+				assert.Equal(t, "feature-1", foundFeature.Name)
 			},
 		},
 	}

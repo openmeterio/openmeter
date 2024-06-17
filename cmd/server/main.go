@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	entDialectSQL "entgo.io/ent/dialect/sql"
 	health "github.com/AppsFlyer/go-sundheit"
 	healthhttp "github.com/AppsFlyer/go-sundheit/http"
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -35,9 +36,11 @@ import (
 
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/internal/credit"
-	nope_credit "github.com/openmeterio/openmeter/internal/credit/nope_connector"
-	postgres_credit "github.com/openmeterio/openmeter/internal/credit/postgres_connector"
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db"
+	creditpgadapter "github.com/openmeterio/openmeter/internal/credit/postgresadapter"
+	creditdb "github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db"
+	"github.com/openmeterio/openmeter/internal/entitlement"
+	entitlementpgadapter "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter"
+	entitlementdb "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db"
 	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
@@ -45,6 +48,9 @@ import (
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/internal/productcatalog"
+	productcatalogpgadapter "github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter"
+	productcatalogdb "github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter/ent/db"
 	"github.com/openmeterio/openmeter/internal/server"
 	"github.com/openmeterio/openmeter/internal/server/authenticator"
 	"github.com/openmeterio/openmeter/internal/server/router"
@@ -52,6 +58,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
@@ -69,7 +76,7 @@ func main() {
 	v, flags := viper.New(), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
 	ctx := context.Background()
 
-	config.Configure(v, flags)
+	config.SetViperDefaults(v, flags)
 
 	flags.String("config", "", "Configuration file")
 	flags.Bool("version", false, "Show version information")
@@ -286,48 +293,56 @@ func main() {
 		}
 	}
 
+	var entitlementConnector entitlement.EntitlementConnector
+	var featureConnector productcatalog.FeatureConnector
 	// Initialize Postgres
-	var creditDbClient *db.Client
-	if conf.Postgres.URL != "" {
-		creditDbClient, err = postgres_credit.Open(conf.Postgres.URL)
+	if conf.Entitlements.Enabled {
+		pgClients, err := initPGClients(ctx, conf.Postgres)
 		if err != nil {
-			logger.Error("failed to open postgres connection", "error", err)
+			logger.Error("failed to initialize postgres clients", "error", err)
 			os.Exit(1)
 		}
+		logger.Info("Postgres clients initialized")
 
-		// TODO: use versioned migrations
-		// https://entgo.io/docs/versioned-migrations
-		if err := creditDbClient.Schema.Create(context.Background()); err != nil {
-			logger.Error("failed to migrate database", "error", err)
-			os.Exit(1)
-		}
+		// db adapters
+		featureDBAdapter := productcatalogpgadapter.NewPostgresFeatureDBAdapter(pgClients.productcatalogDBClient, logger)
+		entitlementDBAdapter := entitlementpgadapter.NewPostgresEntitlementDBAdapter(pgClients.entitlementDBClient)
+		usageResetDBAdapter := entitlementpgadapter.NewPostgresUsageResetDBAdapter(pgClients.entitlementDBClient)
+		grantDBAdapter := creditpgadapter.NewPostgresGrantDBAdapter(pgClients.creditDBClient)
+		balanceSnashotDBAdapter := creditpgadapter.NewPostgresBalanceSnapshotDBAdapter(pgClients.creditDBClient)
+
+		// connectors
+		featureConnector = productcatalog.NewFeatureConnector(featureDBAdapter, meterRepository)
+		entitlementOwnerConnector := entitlement.NewEntitlementGrantOwnerAdapter(
+			featureDBAdapter,
+			entitlementDBAdapter,
+			usageResetDBAdapter,
+			logger,
+		)
+		creditBalanceConnector := credit.NewBalanceConnector(
+			grantDBAdapter,
+			balanceSnashotDBAdapter,
+			entitlementOwnerConnector,
+			streamingConnector,
+			logger,
+		)
+		entitlementBalanceConnector := entitlement.NewEntitlementBalanceConnector(
+			streamingConnector,
+			entitlementOwnerConnector,
+			creditBalanceConnector,
+		)
+		entitlementConnector = entitlement.NewEntitlementConnector(
+			entitlementBalanceConnector,
+			entitlementDBAdapter,
+			featureConnector,
+		)
 	}
 
 	// Initialize Credit
-	var creditConnector credit.Connector
-	if conf.Entitlements.Enabled {
-		creditConnector = postgres_credit.NewPostgresConnector(
-			logger,
-			creditDbClient,
-			streamingConnector,
-			meterRepository,
-			postgres_credit.PostgresConnectorConfig{
-				WindowSize: time.Minute,
-			},
-		)
-		if err != nil {
-			logger.Error("failed to initialize entitlements support", "error", err)
-			os.Exit(1)
-		}
-		logger.Info("entitlements support enabled")
-	} else {
-		creditConnector = nope_credit.NewConnector()
-		logger.Info("entitlements support disabled")
-	}
+	// TODO: manage opt-in module loading (entitlements)
 
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{
-			CreditConnector:     creditConnector,
 			NamespaceManager:    namespaceManager,
 			StreamingConnector:  streamingConnector,
 			IngestHandler:       ingestHandler,
@@ -335,6 +350,11 @@ func main() {
 			PortalTokenStrategy: portalTokenStrategy,
 			PortalCORSEnabled:   conf.Portal.CORS.Enabled,
 			ErrorHandler:        errorsx.NewAppHandler(errorsx.NewSlogHandler(logger)),
+			// deps
+			FeatureConnector:     featureConnector,
+			EntitlementConnector: entitlementConnector,
+			// modules
+			EntitlementsEnabled: conf.Entitlements.Enabled,
 		},
 		RouterHook: func(r chi.Router) {
 			r.Use(func(h http.Handler) http.Handler {
@@ -532,4 +552,57 @@ func initNamespace(config config.Configuration, namespaces ...namespace.Handler)
 	}
 	slog.Info("default namespace created")
 	return namespaceManager, nil
+}
+
+func initPGClients(ctx context.Context, config config.PostgresConfig) (*struct {
+	driver                 *entDialectSQL.Driver
+	entitlementDBClient    *entitlementdb.Client
+	productcatalogDBClient *productcatalogdb.Client
+	creditDBClient         *creditdb.Client
+}, error) {
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid postgres config: %w", err)
+	}
+	driver, err := entutils.GetPGDriver(config.URL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init postgres driver: %w", err)
+	}
+
+	// initialize clients
+	entitlementDBClient, err := entitlementpgadapter.NewClient(driver)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init entitlement db client: %w", err)
+	}
+	productcatalogDBClient, err := productcatalogpgadapter.NewClient(driver)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init productcatalog db client: %w", err)
+	}
+	creditDBClient, err := creditpgadapter.NewClient(driver)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init credit db client: %w", err)
+	}
+
+	// run migrations
+	// TODO: use versioned migrations: https://entgo.io/docs/versioned-migrations
+	if err := creditDBClient.Schema.Create(context.Background()); err != nil {
+		return nil, fmt.Errorf("failed to migrate credit db: %w", err)
+	}
+	if err := entitlementDBClient.Schema.Create(context.Background()); err != nil {
+		return nil, fmt.Errorf("failed to migrate entitlement db: %w", err)
+	}
+	if err := productcatalogDBClient.Schema.Create(context.Background()); err != nil {
+		return nil, fmt.Errorf("failed to migrate productcatalog db: %w", err)
+	}
+
+	return &struct {
+		driver                 *entDialectSQL.Driver
+		entitlementDBClient    *entitlementdb.Client
+		productcatalogDBClient *productcatalogdb.Client
+		creditDBClient         *creditdb.Client
+	}{
+		driver:                 driver,
+		entitlementDBClient:    entitlementDBClient,
+		productcatalogDBClient: productcatalogDBClient,
+		creditDBClient:         creditDBClient,
+	}, nil
 }

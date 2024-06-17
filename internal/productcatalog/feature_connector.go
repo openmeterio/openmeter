@@ -10,10 +10,11 @@ import (
 )
 
 type CreateFeatureInputs struct {
-	Name                string
-	Namespace           string
-	MeterSlug           string
-	MeterGroupByFilters *map[string]string
+	Name                string             `json:"name"`
+	Key                 string             `json:"key"`
+	Namespace           string             `json:"namespace"`
+	MeterSlug           string             `json:"meterSlug"`
+	MeterGroupByFilters *map[string]string `json:"meterGroupByFilters"`
 }
 
 type FeatureConnector interface {
@@ -42,6 +43,7 @@ type ListFeaturesParams struct {
 
 type DBCreateFeatureInputs struct {
 	Name                string
+	Key                 string
 	Namespace           string
 	MeterSlug           string
 	MeterGroupByFilters *map[string]string
@@ -51,7 +53,7 @@ type FeatureDBConnector interface {
 	CreateFeature(ctx context.Context, feature DBCreateFeatureInputs) (Feature, error)
 	ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error
 	ListFeatures(ctx context.Context, params ListFeaturesParams) ([]Feature, error)
-	FindByName(ctx context.Context, namespace string, name string, includeArchived bool) ([]Feature, error)
+	FindByKey(ctx context.Context, namespace string, key string, includeArchived bool) (*Feature, error)
 	GetByID(ctx context.Context, featureID models.NamespacedID) (Feature, error)
 
 	entutils.TxCreator
@@ -63,9 +65,13 @@ type featureConnector struct {
 	meterRepo meter.Repository
 }
 
-func NewFeatureConnector(db FeatureDBConnector) FeatureConnector {
+func NewFeatureConnector(
+	db FeatureDBConnector,
+	meterRepo meter.Repository,
+) FeatureConnector {
 	return &featureConnector{
-		db: db,
+		db:        db,
+		meterRepo: meterRepo,
 	}
 }
 
@@ -88,18 +94,19 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 		return Feature{}, err
 	}
 
-	nameMatches, err := c.db.FindByName(ctx, feature.Namespace, feature.Name, false)
+	found, err := c.db.FindByKey(ctx, feature.Namespace, feature.Name, false)
 	if err != nil {
-		return Feature{}, err
-	}
-
-	if len(nameMatches) > 0 {
-		return Feature{}, &FeatureWithNameAlreadyExistsError{Name: feature.Name, ID: nameMatches[0].ID}
+		if _, ok := err.(*FeatureNotFoundError); !ok {
+			return Feature{}, err
+		}
+	} else {
+		return Feature{}, &FeatureWithNameAlreadyExistsError{Name: feature.Name, ID: found.ID}
 	}
 
 	//nolint:staticcheck Interface might change
 	return c.db.CreateFeature(ctx, DBCreateFeatureInputs{
 		Name:                feature.Name,
+		Key:                 feature.Key,
 		Namespace:           feature.Namespace,
 		MeterSlug:           feature.MeterSlug,
 		MeterGroupByFilters: feature.MeterGroupByFilters,

@@ -26,11 +26,17 @@ func NewPostgresFeatureDBAdapter(db *db.Client, logger *slog.Logger) productcata
 }
 
 func (c *featureDBAdapter) CreateFeature(ctx context.Context, feature productcatalog.DBCreateFeatureInputs) (productcatalog.Feature, error) {
-	entity, err := c.db.Feature.Create().
+	query := c.db.Feature.Create().
 		SetName(feature.Name).
+		SetKey(feature.Key).
 		SetNamespace(feature.Namespace).
-		SetMeterSlug(feature.MeterSlug).
-		SetMeterGroupByFilters(*feature.MeterGroupByFilters).
+		SetMeterSlug(feature.MeterSlug)
+
+	if feature.MeterGroupByFilters != nil {
+		query = query.SetMeterGroupByFilters(*feature.MeterGroupByFilters)
+	}
+
+	entity, err := query.
 		Save(ctx)
 
 	if err != nil {
@@ -40,26 +46,26 @@ func (c *featureDBAdapter) CreateFeature(ctx context.Context, feature productcat
 	return mapFeatureEntity(entity), nil
 }
 
-func (c *featureDBAdapter) FindByName(ctx context.Context, namespace string, name string, includeArchived bool) ([]productcatalog.Feature, error) {
+func (c *featureDBAdapter) FindByKey(ctx context.Context, namespace string, key string, includeArchived bool) (*productcatalog.Feature, error) {
 	query := c.db.Feature.Query().
 		Where(db_feature.Namespace(namespace)).
-		Where(db_feature.Name(name))
+		Where(db_feature.Key(key))
 
 	if !includeArchived {
 		query = query.Where(db_feature.ArchivedAtIsNil())
 	}
 
-	entities, err := query.All(ctx)
+	entity, err := query.Only(ctx)
 	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, &productcatalog.FeatureNotFoundError{ID: key}
+		}
 		return nil, err
 	}
 
-	features := make([]productcatalog.Feature, 0, len(entities))
-	for _, entity := range entities {
-		features = append(features, mapFeatureEntity(entity))
-	}
+	res := mapFeatureEntity(entity)
 
-	return features, nil
+	return &res, nil
 }
 
 func (c *featureDBAdapter) ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error {
@@ -143,6 +149,7 @@ func mapFeatureEntity(entity *db.Feature) productcatalog.Feature {
 		ID:         entity.ID,
 		Namespace:  entity.Namespace,
 		Name:       entity.Name,
+		Key:        entity.Key,
 		MeterSlug:  entity.MeterSlug,
 		ArchivedAt: entity.ArchivedAt,
 		CreatedAt:  entity.CreatedAt.In(time.UTC),

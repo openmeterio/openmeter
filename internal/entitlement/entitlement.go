@@ -9,8 +9,8 @@ import (
 
 type CreateEntitlementInputs struct {
 	Namespace        string
-	FeatureID        string
-	MeasureUsageFrom time.Time
+	FeatureID        string    `json:"featureId"`
+	MeasureUsageFrom time.Time `json:"measureUsageFrom,omitempty"`
 }
 
 type Entitlement struct {
@@ -19,6 +19,7 @@ type Entitlement struct {
 	ID               string    `json:"id,omitempty"`
 	FeatureID        string    `json:"featureId,omitempty"`
 	MeasureUsageFrom time.Time `json:"measureUsageFrom,omitempty"`
+	SubjectKey       string    `json:"subjectKey,omitempty"`
 }
 
 type EntitlementNotFoundError struct {
@@ -33,4 +34,11 @@ type UsageResetTime struct {
 	models.NamespacedModel
 	ResetTime     time.Time
 	EntitlementID string
+}
+
+type EntitlementValue struct {
+	HasAccess bool    `json:"hasAccess"`
+	Balance   float64 `json:"balance"`
+	Usage     float64 `json:"usage"`
+	Overage   float64 `json:"overage"`
 }

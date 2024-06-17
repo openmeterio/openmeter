@@ -29,6 +29,7 @@ func (Entitlement) Fields() []ent.Field {
 		field.String("feature_id").Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
+		field.String("subject_key").Immutable(),
 		field.Time("measure_usage_from").Immutable(),
 	}
 }
@@ -37,6 +38,8 @@ func (Entitlement) Fields() []ent.Field {
 func (Entitlement) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "id"),
+		index.Fields("namespace", "subject_key"),
+		index.Fields("namespace", "id", "subject_key"),
 		index.Fields("namespace", "feature_id", "id"),
 	}
 }

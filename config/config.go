@@ -65,6 +65,10 @@ func (c Configuration) Validate() error {
 		return fmt.Errorf("portal: %w", err)
 	}
 
+	if err := c.Entitlements.Validate(); err != nil {
+		return fmt.Errorf("entitlements: %w", err)
+	}
+
 	for _, m := range c.Meters {
 		// Namespace is not configurable on per meter level
 		m.Namespace = c.Namespace.Default
@@ -82,8 +86,7 @@ func (c Configuration) Validate() error {
 	return nil
 }
 
-// Configure configures some defaults in the Viper instance.
-func Configure(v *viper.Viper, flags *pflag.FlagSet) {
+func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	// Viper settings
 	v.AddConfigPath(".")
 

@@ -60,6 +60,8 @@ type Feature struct {
 
 	// Name The name of the feature.
 	Name string `json:"name"`
+	// Key The unique key of the feature.
+	Key string `json:"key"`
 
 	// MeterSlug The meter that the feature is associated with and decreases grants by usage.
 	MeterSlug string `json:"meterSlug,omitempty"`

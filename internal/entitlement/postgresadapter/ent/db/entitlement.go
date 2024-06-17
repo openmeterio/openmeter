@@ -30,6 +30,8 @@ type Entitlement struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// FeatureID holds the value of the "feature_id" field.
 	FeatureID string `json:"feature_id,omitempty"`
+	// SubjectKey holds the value of the "subject_key" field.
+	SubjectKey string `json:"subject_key,omitempty"`
 	// MeasureUsageFrom holds the value of the "measure_usage_from" field.
 	MeasureUsageFrom time.Time `json:"measure_usage_from,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -63,7 +65,7 @@ func (*Entitlement) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case entitlement.FieldMetadata:
 			values[i] = new([]byte)
-		case entitlement.FieldID, entitlement.FieldNamespace, entitlement.FieldFeatureID:
+		case entitlement.FieldID, entitlement.FieldNamespace, entitlement.FieldFeatureID, entitlement.FieldSubjectKey:
 			values[i] = new(sql.NullString)
 		case entitlement.FieldCreatedAt, entitlement.FieldUpdatedAt, entitlement.FieldDeletedAt, entitlement.FieldMeasureUsageFrom:
 			values[i] = new(sql.NullTime)
@@ -126,6 +128,12 @@ func (e *Entitlement) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field feature_id", values[i])
 			} else if value.Valid {
 				e.FeatureID = value.String
+			}
+		case entitlement.FieldSubjectKey:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field subject_key", values[i])
+			} else if value.Valid {
+				e.SubjectKey = value.String
 			}
 		case entitlement.FieldMeasureUsageFrom:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -193,6 +201,9 @@ func (e *Entitlement) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("feature_id=")
 	builder.WriteString(e.FeatureID)
+	builder.WriteString(", ")
+	builder.WriteString("subject_key=")
+	builder.WriteString(e.SubjectKey)
 	builder.WriteString(", ")
 	builder.WriteString("measure_usage_from=")
 	builder.WriteString(e.MeasureUsageFrom.Format(time.ANSIC))

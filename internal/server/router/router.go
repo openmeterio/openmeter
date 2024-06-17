@@ -9,11 +9,13 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/internal/credit"
-	"github.com/openmeterio/openmeter/internal/credit/creditdriver"
+	"github.com/openmeterio/openmeter/internal/entitlement"
+	entitlement_httpdriver "github.com/openmeterio/openmeter/internal/entitlement/httpdriver"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/internal/productcatalog"
+	productcatalog_httpdriver "github.com/openmeterio/openmeter/internal/productcatalog/httpdriver"
 	"github.com/openmeterio/openmeter/internal/server/authenticator"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
@@ -39,7 +41,6 @@ type IngestHandler interface {
 }
 
 type Config struct {
-	CreditConnector     credit.Connector
 	NamespaceManager    *namespace.Manager
 	StreamingConnector  streaming.Connector
 	IngestHandler       http.Handler
@@ -47,11 +48,20 @@ type Config struct {
 	PortalCORSEnabled   bool
 	PortalTokenStrategy *authenticator.PortalTokenStrategy
 	ErrorHandler        errorsx.Handler
+
+	// deps
+	FeatureConnector     productcatalog.FeatureConnector
+	EntitlementConnector entitlement.EntitlementConnector
+
+	// FIXME: implement generic module management, loading, etc...
+	EntitlementsEnabled bool
 }
 
 type Router struct {
-	CreditHandlers creditdriver.Handlers
-	config         Config
+	config Config
+
+	featureHandler     productcatalog_httpdriver.FeatureHandler
+	entitlementHandler entitlement_httpdriver.EntitlementHandler
 }
 
 // Make sure we conform to ServerInterface
@@ -62,13 +72,19 @@ func NewRouter(config Config) (*Router, error) {
 		config: config,
 	}
 
-	if config.CreditConnector != nil {
-		router.CreditHandlers = creditdriver.New(
-			config.CreditConnector,
-			config.Meters,
+	if config.EntitlementsEnabled {
+		router.featureHandler = productcatalog_httpdriver.NewFeatureHandler(
+			config.FeatureConnector,
+			namespacedriver.StaticNamespaceDecoder("default"),
+			httptransport.WithErrorHandler(config.ErrorHandler),
+		)
+
+		router.entitlementHandler = entitlement_httpdriver.NewEntitlementHandler(
+			config.EntitlementConnector,
 			namespacedriver.StaticNamespaceDecoder("default"),
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
 	}
+
 	return router, nil
 }

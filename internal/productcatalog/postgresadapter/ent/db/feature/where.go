@@ -89,6 +89,11 @@ func Name(v string) predicate.Feature {
 	return predicate.Feature(sql.FieldEQ(FieldName, v))
 }
 
+// Key applies equality check predicate on the "key" field. It's identical to KeyEQ.
+func Key(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldKey, v))
+}
+
 // MeterSlug applies equality check predicate on the "meter_slug" field. It's identical to MeterSlugEQ.
 func MeterSlug(v string) predicate.Feature {
 	return predicate.Feature(sql.FieldEQ(FieldMeterSlug, v))
@@ -357,6 +362,71 @@ func NameEqualFold(v string) predicate.Feature {
 // NameContainsFold applies the ContainsFold predicate on the "name" field.
 func NameContainsFold(v string) predicate.Feature {
 	return predicate.Feature(sql.FieldContainsFold(FieldName, v))
+}
+
+// KeyEQ applies the EQ predicate on the "key" field.
+func KeyEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEQ(FieldKey, v))
+}
+
+// KeyNEQ applies the NEQ predicate on the "key" field.
+func KeyNEQ(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldNEQ(FieldKey, v))
+}
+
+// KeyIn applies the In predicate on the "key" field.
+func KeyIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldIn(FieldKey, vs...))
+}
+
+// KeyNotIn applies the NotIn predicate on the "key" field.
+func KeyNotIn(vs ...string) predicate.Feature {
+	return predicate.Feature(sql.FieldNotIn(FieldKey, vs...))
+}
+
+// KeyGT applies the GT predicate on the "key" field.
+func KeyGT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGT(FieldKey, v))
+}
+
+// KeyGTE applies the GTE predicate on the "key" field.
+func KeyGTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldGTE(FieldKey, v))
+}
+
+// KeyLT applies the LT predicate on the "key" field.
+func KeyLT(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLT(FieldKey, v))
+}
+
+// KeyLTE applies the LTE predicate on the "key" field.
+func KeyLTE(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldLTE(FieldKey, v))
+}
+
+// KeyContains applies the Contains predicate on the "key" field.
+func KeyContains(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContains(FieldKey, v))
+}
+
+// KeyHasPrefix applies the HasPrefix predicate on the "key" field.
+func KeyHasPrefix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasPrefix(FieldKey, v))
+}
+
+// KeyHasSuffix applies the HasSuffix predicate on the "key" field.
+func KeyHasSuffix(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldHasSuffix(FieldKey, v))
+}
+
+// KeyEqualFold applies the EqualFold predicate on the "key" field.
+func KeyEqualFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldEqualFold(FieldKey, v))
+}
+
+// KeyContainsFold applies the ContainsFold predicate on the "key" field.
+func KeyContainsFold(v string) predicate.Feature {
+	return predicate.Feature(sql.FieldContainsFold(FieldKey, v))
 }
 
 // MeterSlugEQ applies the EQ predicate on the "meter_slug" field.

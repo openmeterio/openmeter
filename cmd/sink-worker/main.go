@@ -47,7 +47,7 @@ func main() {
 
 	v, flags := viper.New(), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
 
-	config.Configure(v, flags)
+	config.SetViperDefaults(v, flags)
 
 	flags.String("config", "", "Configuration file")
 	flags.Bool("version", false, "Show version information")

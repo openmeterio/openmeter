@@ -26,6 +26,8 @@ const (
 	FieldDeletedAt = "deleted_at"
 	// FieldFeatureID holds the string denoting the feature_id field in the database.
 	FieldFeatureID = "feature_id"
+	// FieldSubjectKey holds the string denoting the subject_key field in the database.
+	FieldSubjectKey = "subject_key"
 	// FieldMeasureUsageFrom holds the string denoting the measure_usage_from field in the database.
 	FieldMeasureUsageFrom = "measure_usage_from"
 	// EdgeUsageReset holds the string denoting the usage_reset edge name in mutations.
@@ -50,6 +52,7 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldDeletedAt,
 	FieldFeatureID,
+	FieldSubjectKey,
 	FieldMeasureUsageFrom,
 }
 
@@ -107,6 +110,11 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByFeatureID orders the results by the feature_id field.
 func ByFeatureID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFeatureID, opts...).ToFunc()
+}
+
+// BySubjectKey orders the results by the subject_key field.
+func BySubjectKey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSubjectKey, opts...).ToFunc()
 }
 
 // ByMeasureUsageFrom orders the results by the measure_usage_from field.

@@ -77,6 +77,12 @@ func (fc *FeatureCreate) SetName(s string) *FeatureCreate {
 	return fc
 }
 
+// SetKey sets the "key" field.
+func (fc *FeatureCreate) SetKey(s string) *FeatureCreate {
+	fc.mutation.SetKey(s)
+	return fc
+}
+
 // SetMeterSlug sets the "meter_slug" field.
 func (fc *FeatureCreate) SetMeterSlug(s string) *FeatureCreate {
 	fc.mutation.SetMeterSlug(s)
@@ -190,6 +196,14 @@ func (fc *FeatureCreate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "Feature.name": %w`, err)}
 		}
 	}
+	if _, ok := fc.mutation.Key(); !ok {
+		return &ValidationError{Name: "key", err: errors.New(`db: missing required field "Feature.key"`)}
+	}
+	if v, ok := fc.mutation.Key(); ok {
+		if err := feature.KeyValidator(v); err != nil {
+			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "Feature.key": %w`, err)}
+		}
+	}
 	if _, ok := fc.mutation.MeterSlug(); !ok {
 		return &ValidationError{Name: "meter_slug", err: errors.New(`db: missing required field "Feature.meter_slug"`)}
 	}
@@ -253,6 +267,10 @@ func (fc *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 	if value, ok := fc.mutation.Name(); ok {
 		_spec.SetField(feature.FieldName, field.TypeString, value)
 		_node.Name = value
+	}
+	if value, ok := fc.mutation.Key(); ok {
+		_spec.SetField(feature.FieldKey, field.TypeString, value)
+		_node.Key = value
 	}
 	if value, ok := fc.mutation.MeterSlug(); ok {
 		_spec.SetField(feature.FieldMeterSlug, field.TypeString, value)
@@ -418,6 +436,9 @@ func (u *FeatureUpsertOne) UpdateNewValues() *FeatureUpsertOne {
 		}
 		if _, exists := u.create.mutation.Namespace(); exists {
 			s.SetIgnore(feature.FieldNamespace)
+		}
+		if _, exists := u.create.mutation.Key(); exists {
+			s.SetIgnore(feature.FieldKey)
 		}
 		if _, exists := u.create.mutation.MeterSlug(); exists {
 			s.SetIgnore(feature.FieldMeterSlug)
@@ -732,6 +753,9 @@ func (u *FeatureUpsertBulk) UpdateNewValues() *FeatureUpsertBulk {
 			}
 			if _, exists := b.mutation.Namespace(); exists {
 				s.SetIgnore(feature.FieldNamespace)
+			}
+			if _, exists := b.mutation.Key(); exists {
+				s.SetIgnore(feature.FieldKey)
 			}
 			if _, exists := b.mutation.MeterSlug(); exists {
 				s.SetIgnore(feature.FieldMeterSlug)

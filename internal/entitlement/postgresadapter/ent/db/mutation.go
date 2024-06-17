@@ -41,6 +41,7 @@ type EntitlementMutation struct {
 	updated_at         *time.Time
 	deleted_at         *time.Time
 	feature_id         *string
+	subject_key        *string
 	measure_usage_from *time.Time
 	clearedFields      map[string]struct{}
 	usage_reset        map[string]struct{}
@@ -397,6 +398,42 @@ func (m *EntitlementMutation) ResetFeatureID() {
 	m.feature_id = nil
 }
 
+// SetSubjectKey sets the "subject_key" field.
+func (m *EntitlementMutation) SetSubjectKey(s string) {
+	m.subject_key = &s
+}
+
+// SubjectKey returns the value of the "subject_key" field in the mutation.
+func (m *EntitlementMutation) SubjectKey() (r string, exists bool) {
+	v := m.subject_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSubjectKey returns the old "subject_key" field's value of the Entitlement entity.
+// If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EntitlementMutation) OldSubjectKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSubjectKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSubjectKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSubjectKey: %w", err)
+	}
+	return oldValue.SubjectKey, nil
+}
+
+// ResetSubjectKey resets all changes to the "subject_key" field.
+func (m *EntitlementMutation) ResetSubjectKey() {
+	m.subject_key = nil
+}
+
 // SetMeasureUsageFrom sets the "measure_usage_from" field.
 func (m *EntitlementMutation) SetMeasureUsageFrom(t time.Time) {
 	m.measure_usage_from = &t
@@ -521,7 +558,7 @@ func (m *EntitlementMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *EntitlementMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.namespace != nil {
 		fields = append(fields, entitlement.FieldNamespace)
 	}
@@ -539,6 +576,9 @@ func (m *EntitlementMutation) Fields() []string {
 	}
 	if m.feature_id != nil {
 		fields = append(fields, entitlement.FieldFeatureID)
+	}
+	if m.subject_key != nil {
+		fields = append(fields, entitlement.FieldSubjectKey)
 	}
 	if m.measure_usage_from != nil {
 		fields = append(fields, entitlement.FieldMeasureUsageFrom)
@@ -563,6 +603,8 @@ func (m *EntitlementMutation) Field(name string) (ent.Value, bool) {
 		return m.DeletedAt()
 	case entitlement.FieldFeatureID:
 		return m.FeatureID()
+	case entitlement.FieldSubjectKey:
+		return m.SubjectKey()
 	case entitlement.FieldMeasureUsageFrom:
 		return m.MeasureUsageFrom()
 	}
@@ -586,6 +628,8 @@ func (m *EntitlementMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldDeletedAt(ctx)
 	case entitlement.FieldFeatureID:
 		return m.OldFeatureID(ctx)
+	case entitlement.FieldSubjectKey:
+		return m.OldSubjectKey(ctx)
 	case entitlement.FieldMeasureUsageFrom:
 		return m.OldMeasureUsageFrom(ctx)
 	}
@@ -638,6 +682,13 @@ func (m *EntitlementMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetFeatureID(v)
+		return nil
+	case entitlement.FieldSubjectKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSubjectKey(v)
 		return nil
 	case entitlement.FieldMeasureUsageFrom:
 		v, ok := value.(time.Time)
@@ -727,6 +778,9 @@ func (m *EntitlementMutation) ResetField(name string) error {
 		return nil
 	case entitlement.FieldFeatureID:
 		m.ResetFeatureID()
+		return nil
+	case entitlement.FieldSubjectKey:
+		m.ResetSubjectKey()
 		return nil
 	case entitlement.FieldMeasureUsageFrom:
 		m.ResetMeasureUsageFrom()

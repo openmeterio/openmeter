@@ -24,6 +24,7 @@ func (Feature) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("namespace").NotEmpty().Immutable(),
 		field.String("name").NotEmpty(),
+		field.String("key").NotEmpty().Immutable().Unique(),
 		field.String("meter_slug").NotEmpty().Immutable(),
 		field.JSON("meter_group_by_filters", map[string]string{}).Optional(),
 		field.Time("archived_at").Optional().Nillable(),

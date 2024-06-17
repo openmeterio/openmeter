@@ -38,6 +38,7 @@ type FeatureMutation struct {
 	deleted_at             *time.Time
 	namespace              *string
 	name                   *string
+	key                    *string
 	meter_slug             *string
 	meter_group_by_filters *map[string]string
 	archived_at            *time.Time
@@ -344,6 +345,42 @@ func (m *FeatureMutation) ResetName() {
 	m.name = nil
 }
 
+// SetKey sets the "key" field.
+func (m *FeatureMutation) SetKey(s string) {
+	m.key = &s
+}
+
+// Key returns the value of the "key" field in the mutation.
+func (m *FeatureMutation) Key() (r string, exists bool) {
+	v := m.key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKey returns the old "key" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FeatureMutation) OldKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKey: %w", err)
+	}
+	return oldValue.Key, nil
+}
+
+// ResetKey resets all changes to the "key" field.
+func (m *FeatureMutation) ResetKey() {
+	m.key = nil
+}
+
 // SetMeterSlug sets the "meter_slug" field.
 func (m *FeatureMutation) SetMeterSlug(s string) {
 	m.meter_slug = &s
@@ -512,7 +549,7 @@ func (m *FeatureMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *FeatureMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 9)
 	if m.created_at != nil {
 		fields = append(fields, feature.FieldCreatedAt)
 	}
@@ -527,6 +564,9 @@ func (m *FeatureMutation) Fields() []string {
 	}
 	if m.name != nil {
 		fields = append(fields, feature.FieldName)
+	}
+	if m.key != nil {
+		fields = append(fields, feature.FieldKey)
 	}
 	if m.meter_slug != nil {
 		fields = append(fields, feature.FieldMeterSlug)
@@ -555,6 +595,8 @@ func (m *FeatureMutation) Field(name string) (ent.Value, bool) {
 		return m.Namespace()
 	case feature.FieldName:
 		return m.Name()
+	case feature.FieldKey:
+		return m.Key()
 	case feature.FieldMeterSlug:
 		return m.MeterSlug()
 	case feature.FieldMeterGroupByFilters:
@@ -580,6 +622,8 @@ func (m *FeatureMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldNamespace(ctx)
 	case feature.FieldName:
 		return m.OldName(ctx)
+	case feature.FieldKey:
+		return m.OldKey(ctx)
 	case feature.FieldMeterSlug:
 		return m.OldMeterSlug(ctx)
 	case feature.FieldMeterGroupByFilters:
@@ -629,6 +673,13 @@ func (m *FeatureMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetName(v)
+		return nil
+	case feature.FieldKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKey(v)
 		return nil
 	case feature.FieldMeterSlug:
 		v, ok := value.(string)
@@ -735,6 +786,9 @@ func (m *FeatureMutation) ResetField(name string) error {
 		return nil
 	case feature.FieldName:
 		m.ResetName()
+		return nil
+	case feature.FieldKey:
+		m.ResetKey()
 		return nil
 	case feature.FieldMeterSlug:
 		m.ResetMeterSlug()

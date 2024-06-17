@@ -28,6 +28,8 @@ type Feature struct {
 	Namespace string `json:"namespace,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
+	// Key holds the value of the "key" field.
+	Key string `json:"key,omitempty"`
 	// MeterSlug holds the value of the "meter_slug" field.
 	MeterSlug string `json:"meter_slug,omitempty"`
 	// MeterGroupByFilters holds the value of the "meter_group_by_filters" field.
@@ -44,7 +46,7 @@ func (*Feature) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case feature.FieldMeterGroupByFilters:
 			values[i] = new([]byte)
-		case feature.FieldID, feature.FieldNamespace, feature.FieldName, feature.FieldMeterSlug:
+		case feature.FieldID, feature.FieldNamespace, feature.FieldName, feature.FieldKey, feature.FieldMeterSlug:
 			values[i] = new(sql.NullString)
 		case feature.FieldCreatedAt, feature.FieldUpdatedAt, feature.FieldDeletedAt, feature.FieldArchivedAt:
 			values[i] = new(sql.NullTime)
@@ -99,6 +101,12 @@ func (f *Feature) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
 			} else if value.Valid {
 				f.Name = value.String
+			}
+		case feature.FieldKey:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field key", values[i])
+			} else if value.Valid {
+				f.Key = value.String
 			}
 		case feature.FieldMeterSlug:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -173,6 +181,9 @@ func (f *Feature) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(f.Name)
+	builder.WriteString(", ")
+	builder.WriteString("key=")
+	builder.WriteString(f.Key)
 	builder.WriteString(", ")
 	builder.WriteString("meter_slug=")
 	builder.WriteString(f.MeterSlug)

@@ -11,7 +11,7 @@ import (
 
 type EntitlementDBConnector interface {
 	// Entitlement Management
-	// GetEntitlementsOfSubject(ctx context.Context, subjectKey models.SubjectKey) ([]Entitlement, error)
+	GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]Entitlement, error)
 	CreateEntitlement(ctx context.Context, entitlement CreateEntitlementInputs) (*Entitlement, error)
 	GetEntitlement(ctx context.Context, entitlementID models.NamespacedID) (*Entitlement, error)
 

@@ -16,6 +16,7 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString},
+		{Name: "key", Type: field.TypeString, Unique: true},
 		{Name: "meter_slug", Type: field.TypeString},
 		{Name: "meter_group_by_filters", Type: field.TypeJSON, Nullable: true},
 		{Name: "archived_at", Type: field.TypeTime, Nullable: true},
