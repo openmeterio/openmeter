@@ -2,6 +2,7 @@ package sink_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -33,80 +34,113 @@ func TestNamespaStore(t *testing.T) {
 
 	tests := []struct {
 		description string
-		namespace   string
-		event       serializer.CloudEventsKafkaPayload
-		want        error
+		event       sink.SinkMessage
+		want        sink.ProcessingStatus
 	}{
 		{
 			description: "should return error with non existing namespace",
-			namespace:   "non-existing-namespace",
-			event:       serializer.CloudEventsKafkaPayload{},
-			want:        sink.NewProcessingError("namespace not found: non-existing-namespace", sink.DROP),
+			event: sink.SinkMessage{
+				Namespace:  "non-existing-namespace",
+				Serialized: &serializer.CloudEventsKafkaPayload{},
+			},
+			want: sink.ProcessingStatus{
+				State: sink.DROP,
+				Error: errors.New("namespace not found: non-existing-namespace"),
+			},
 		},
 		{
 			description: "should return error with corresponding meter not found",
-			namespace:   "default",
-			event: serializer.CloudEventsKafkaPayload{
-				Type: "non-existing-event-type",
+			event: sink.SinkMessage{
+				Namespace: "default",
+				Serialized: &serializer.CloudEventsKafkaPayload{
+					Type: "non-existing-event-type",
+				},
 			},
-			want: sink.NewProcessingError("no meter found for event type: non-existing-event-type", sink.INVALID),
+			want: sink.ProcessingStatus{
+				State: sink.INVALID,
+				Error: errors.New("no meter found for event type: non-existing-event-type"),
+			},
 		},
 		{
 			description: "should return error with invalid json",
-			namespace:   "default",
-			event: serializer.CloudEventsKafkaPayload{
-				Type: "api-calls",
-				Data: `{`,
+			event: sink.SinkMessage{
+				Namespace: "default",
+				Serialized: &serializer.CloudEventsKafkaPayload{
+					Type: "api-calls",
+					Data: `{`,
+				},
 			},
-			want: sink.NewProcessingError("cannot unmarshal event data as json", sink.INVALID),
+			want: sink.ProcessingStatus{
+				State: sink.INVALID,
+				Error: errors.New("cannot unmarshal event data as json"),
+			},
 		},
 		{
 			description: "should return error with value property not found",
-			namespace:   "default",
-			event: serializer.CloudEventsKafkaPayload{
-				Type: "api-calls",
-				Data: `{"method": "GET", "path": "/api/v1"}`,
+			event: sink.SinkMessage{
+				Namespace: "default",
+				Serialized: &serializer.CloudEventsKafkaPayload{
+					Type: "api-calls",
+					Data: `{"method": "GET", "path": "/api/v1"}`,
+				},
 			},
-			want: sink.NewProcessingError("event data is missing value property at $.duration_ms", sink.INVALID),
+			want: sink.ProcessingStatus{
+				State: sink.INVALID,
+				Error: errors.New("event data is missing value property at $.duration_ms"),
+			},
 		},
 		{
 			description: "should return error when value property is null",
-			namespace:   "default",
-			event: serializer.CloudEventsKafkaPayload{
-				Type: "api-calls",
-				Data: `{"duration_ms": null, "method": "GET", "path": "/api/v1"}`,
+			event: sink.SinkMessage{
+				Namespace: "default",
+				Serialized: &serializer.CloudEventsKafkaPayload{
+					Type: "api-calls",
+					Data: `{"duration_ms": null, "method": "GET", "path": "/api/v1"}`,
+				},
 			},
-			want: sink.NewProcessingError("event data value cannot be null", sink.INVALID),
+			want: sink.ProcessingStatus{
+				State: sink.INVALID,
+				Error: errors.New("event data value cannot be null"),
+			},
 		},
 		{
 			description: "should return error when value property cannot be parsed as number",
-			namespace:   "default",
-			event: serializer.CloudEventsKafkaPayload{
-				Type: "api-calls",
-				Data: `{"duration_ms": "not a number", "method": "GET", "path": "/api/v1"}`,
+			event: sink.SinkMessage{
+				Namespace: "default",
+				Serialized: &serializer.CloudEventsKafkaPayload{
+					Type: "api-calls",
+					Data: `{"duration_ms": "not a number", "method": "GET", "path": "/api/v1"}`,
+				},
 			},
-			want: sink.NewProcessingError("event data value cannot be parsed as float64: not a number", sink.INVALID),
+			want: sink.ProcessingStatus{
+				State: sink.INVALID,
+				Error: errors.New("event data value cannot be parsed as float64: not a number"),
+			},
 		},
 		{
 			description: "should pass with valid event",
-			namespace:   "default",
-			event: serializer.CloudEventsKafkaPayload{
-				Type: "api-calls",
-				Data: `{"duration_ms": 100, "method": "GET", "path": "/api/v1"}`,
+			event: sink.SinkMessage{
+				Namespace: "default",
+				Serialized: &serializer.CloudEventsKafkaPayload{
+					Type: "api-calls",
+					Data: `{"duration_ms": 100, "method": "GET", "path": "/api/v1"}`,
+				},
 			},
-			want: nil,
+			want: sink.ProcessingStatus{
+				State: sink.OK,
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run("", func(t *testing.T) {
-			err := namespaces.ValidateEvent(ctx, tt.event, tt.namespace)
-			if tt.want == nil {
-				assert.Nil(t, err)
+			namespaces.ValidateEvent(ctx, &tt.event)
+			if tt.want.Error == nil {
+				assert.Nil(t, tt.event.Status.Error)
 				return
 			}
-			assert.Equal(t, tt.want, err)
+			assert.Equal(t, tt.want, tt.event.Status)
 		})
 	}
 }
