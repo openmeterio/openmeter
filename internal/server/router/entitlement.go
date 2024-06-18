@@ -82,3 +82,17 @@ func (a *Router) ResetEntitlementUsage(w http.ResponseWriter, r *http.Request, s
 		EntitlementID: entitlementId,
 	}).ServeHTTP(w, r)
 }
+
+// Get the balance history of a specific entitlement.
+// (GET /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history)
+func (a *Router) GetEntitlementHistory(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementId api.EntitlementId, params api.GetEntitlementHistoryParams) {
+	if !a.config.EntitlementsEnabled {
+		unimplemented.GetEntitlementHistory(w, r, subjectIdOrKey, entitlementId, params)
+		return
+	}
+	a.meteredEntitlementHandler.GetEntitlementBalanceHistory().With(httpdriver.GetEntitlementBalanceHistoryParams{
+		EntitlementID: entitlementId,
+		SubjectKey:    subjectIdOrKey,
+		Params:        params,
+	}).ServeHTTP(w, r)
+}

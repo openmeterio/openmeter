@@ -47,7 +47,7 @@ type BalanceHistoryParams struct {
 
 type EntitlementBalanceConnector interface {
 	GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error)
-	GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
+	GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, credit.GrantBurnDownHistory, error)
 	ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID, resetAt time.Time) (balanceAfterReset *EntitlementBalance, err error)
 
 	// GetEntitlementGrantBalanceHistory(ctx context.Context, entitlementGrantID EntitlementGrantID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
@@ -119,8 +119,21 @@ func (e *entitlementBalanceConnector) GetEntitlementBalance(ctx context.Context,
 	}, nil
 }
 
-func (e *entitlementBalanceConnector) GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error) {
+func (e *entitlementBalanceConnector) GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, credit.GrantBurnDownHistory, error) {
 	// TODO: we should guard against abuse, getting history is expensive
+
+	// query period cannot be before start of measuring usage
+	start, err := e.oc.GetStartOfMeasurement(ctx, credit.NamespacedGrantOwner{
+		Namespace: entitlementID.Namespace,
+		ID:        credit.GrantOwner(entitlementID.ID),
+	})
+	if err != nil {
+		return nil, credit.GrantBurnDownHistory{}, err
+	}
+
+	if params.From.Before(start) {
+		return nil, credit.GrantBurnDownHistory{}, &models.GenericUserError{Message: fmt.Sprintf("from cannot be before %s", start.UTC().Format(time.RFC3339))}
+	}
 
 	owner := credit.NamespacedGrantOwner{
 		Namespace: entitlementID.Namespace,
@@ -129,16 +142,16 @@ func (e *entitlementBalanceConnector) GetEntitlementBalanceHistory(ctx context.C
 
 	// 1. we get the burndown history
 	burndownHistory, err := e.bc.GetBalanceHistoryOfOwner(ctx, owner, credit.BalanceHistoryParams{
-		From: params.From,
-		To:   params.To,
+		From: params.From.Truncate(time.Minute),
+		To:   params.To.Truncate(time.Minute),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get balance history: %w", err)
+		return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("failed to get balance history: %w", err)
 	}
 	// 2. and we get the windowed usage data
 	meterSlug, meterParams, err := e.oc.GetOwnerQueryParams(ctx, owner)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get owner query params: %w", err)
+		return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("failed to get owner query params: %w", err)
 	}
 	meterParams.From = &params.From
 	meterParams.To = &params.To
@@ -147,7 +160,7 @@ func (e *entitlementBalanceConnector) GetEntitlementBalanceHistory(ctx context.C
 
 	meterRows, err := e.sc.QueryMeter(ctx, owner.Namespace, meterSlug, meterParams)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query meter: %w", err)
+		return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("failed to query meter: %w", err)
 	}
 	// 3. and then we merge the two
 
@@ -155,7 +168,7 @@ func (e *entitlementBalanceConnector) GetEntitlementBalanceHistory(ctx context.C
 	segments := burndownHistory.Segments()
 
 	if len(segments) == 0 {
-		return nil, fmt.Errorf("returned history is empty")
+		return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("returned history is empty")
 	}
 
 	timestampedBalances := make([]struct {
@@ -189,7 +202,7 @@ func (e *entitlementBalanceConnector) GetEntitlementBalanceHistory(ctx context.C
 			return tsb.timestamp.Before(row.WindowStart) || tsb.timestamp.Equal(row.WindowStart)
 		}, true)
 		if !ok {
-			return nil, fmt.Errorf("no balance found for time %s", row.WindowStart.Format(time.RFC3339))
+			return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("no balance found for time %s", row.WindowStart.Format(time.RFC3339))
 		}
 
 		window := EntitlementBalanceHistoryWindow{
@@ -214,7 +227,7 @@ func (e *entitlementBalanceConnector) GetEntitlementBalanceHistory(ctx context.C
 		tsBalance.overage = overage
 	}
 
-	return windows, nil
+	return windows, burndownHistory, nil
 }
 
 // This is just a wrapper around credot.BalanceConnector.ResetUsageForOwner

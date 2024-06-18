@@ -473,7 +473,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				windowedHistory, err := connector.GetEntitlementBalanceHistory(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, entitlement.BalanceHistoryParams{
+				windowedHistory, burndownHistory, err := connector.GetEntitlementBalanceHistory(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, entitlement.BalanceHistoryParams{
 					From:           startTime,
 					To:             queryTime,
 					WindowTimeZone: *time.UTC,
@@ -506,6 +506,10 @@ func TestGetEntitlementHistory(t *testing.T) {
 				// deps.streaming.AddSimpleEvent(meterSlug, 100, queryTime.Add(-time.Second))
 				assert.Equal(t, 100.0, windowedHistory[11].UsageInPeriod)
 				assert.Equal(t, 28500.0, windowedHistory[11].BalanceAtStart)
+
+				// check returned burndownhistory
+				segments := burndownHistory.Segments()
+				assert.Len(t, segments, 3)
 			},
 		},
 	}

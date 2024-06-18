@@ -3,6 +3,7 @@ package httpdriver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -21,6 +22,7 @@ type MeteredEntitlementHandler interface {
 	CreateGrant() CreateGrantHandler
 	ListEntitlementGrants() ListEntitlementGrantsHandler
 	ResetEntitlementUsage() ResetEntitlementUsageHandler
+	GetEntitlementBalanceHistory() GetEntitlementBalanceHistoryHandler
 }
 
 type meteredEntitlementHandler struct {
@@ -252,6 +254,119 @@ func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsag
 			return nil, err
 		},
 		commonhttp.EmptyResponseEncoder[interface{}](http.StatusNoContent),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {
+				if _, ok := err.(*entitlement.EntitlementNotFoundError); ok {
+					commonhttp.NewHTTPError(
+						http.StatusNotFound,
+						err,
+					).EncodeError(ctx, w)
+					return true
+				}
+				if _, ok := err.(*models.GenericUserError); ok {
+					commonhttp.NewHTTPError(
+						http.StatusBadRequest,
+						err,
+					).EncodeError(ctx, w)
+					return true
+				}
+				return false
+			}),
+		)...,
+	)
+}
+
+type GetEntitlementBalanceHistoryInputs struct {
+	ID     models.NamespacedID
+	params entitlement.BalanceHistoryParams
+}
+type GetEntitlementBalanceHistoryParams struct {
+	EntitlementID string
+	SubjectKey    string
+	Params        api.GetEntitlementHistoryParams
+}
+type GetEntitlementBalanceHistoryHandler httptransport.HandlerWithArgs[GetEntitlementBalanceHistoryInputs, api.WindowedBalanceHistory, GetEntitlementBalanceHistoryParams]
+
+func (h *meteredEntitlementHandler) GetEntitlementBalanceHistory() GetEntitlementBalanceHistoryHandler {
+	return httptransport.NewHandlerWithArgs[GetEntitlementBalanceHistoryInputs, api.WindowedBalanceHistory, GetEntitlementBalanceHistoryParams](
+		func(ctx context.Context, r *http.Request, params GetEntitlementBalanceHistoryParams) (GetEntitlementBalanceHistoryInputs, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return GetEntitlementBalanceHistoryInputs{}, err
+			}
+
+			tLocation := time.UTC
+			if params.Params.WindowTimeZone != nil {
+				tz, err := time.LoadLocation(*params.Params.WindowTimeZone)
+				if err != nil {
+					err := fmt.Errorf("invalid time zone: %w", err)
+
+					return GetEntitlementBalanceHistoryInputs{}, err
+				}
+				tLocation = tz
+			}
+
+			return GetEntitlementBalanceHistoryInputs{
+				ID: models.NamespacedID{
+					Namespace: ns,
+					ID:        params.EntitlementID,
+				},
+				params: entitlement.BalanceHistoryParams{
+					From:           params.Params.From,
+					To:             defaultx.WithDefault(params.Params.To, time.Now()),
+					WindowSize:     entitlement.WindowSize(params.Params.WindowSize),
+					WindowTimeZone: *tLocation,
+				},
+			}, nil
+		},
+		func(ctx context.Context, request GetEntitlementBalanceHistoryInputs) (api.WindowedBalanceHistory, error) {
+			windowedHistory, burndownHistory, err := h.balanceConnector.GetEntitlementBalanceHistory(ctx, request.ID, request.params)
+			windows := make([]api.BalanceHistoryWindow, 0, len(windowedHistory))
+			for _, window := range windowedHistory {
+				windows = append(windows, api.BalanceHistoryWindow{
+					BalanceAtStart: &window.BalanceAtStart,
+					Period: &api.Period{
+						From: window.From,
+						To:   window.To,
+					},
+					Usage: &window.UsageInPeriod,
+				})
+			}
+
+			segments := burndownHistory.Segments()
+			burndown := make([]api.GrantBurnDownHistorySegment, 0, len(segments))
+
+			for _, segment := range segments {
+				usages := make([]api.GrantUsageRecord, 0, len(segment.GrantUsages))
+				for _, usage := range segment.GrantUsages {
+					usages = append(usages, api.GrantUsageRecord{
+						GrantId: &usage.GrantID,
+						Usage:   &usage.Usage,
+					})
+				}
+
+				burndown = append(burndown, api.GrantBurnDownHistorySegment{
+					BalanceAtEnd:         convert.ToPointer(segment.ApplyUsage().Balance()),
+					BalanceAtStart:       convert.ToPointer(segment.BalanceAtStart.Balance()),
+					GrantBalancesAtEnd:   convert.ToPointer((map[string]float64)(segment.ApplyUsage())),
+					GrantBalancesAtStart: convert.ToPointer((map[string]float64)(segment.BalanceAtStart)),
+					GrantUsages:          &usages,
+					Overage:              &segment.Overage,
+					Usage:                &segment.TotalUsage,
+					Period: &api.Period{
+						From: segment.From,
+						To:   segment.To,
+					},
+				})
+			}
+
+			return api.WindowedBalanceHistory{
+				WindowedHistory: &windows,
+				BurndownHistory: &burndown,
+			}, err
+		},
+		commonhttp.JSONResponseEncoder[api.WindowedBalanceHistory],
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {

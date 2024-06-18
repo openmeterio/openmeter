@@ -51,7 +51,7 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 	}
 
 	// FIXME: Add default value elsewhere
-	input.MeasureUsageFrom = time.Now()
+	input.MeasureUsageFrom = time.Now().Truncate(time.Minute)
 	ent, err := c.edb.CreateEntitlement(ctx, CreateEntitlementDBInputs{
 		Namespace:        input.Namespace,
 		FeatureID:        input.FeatureID,

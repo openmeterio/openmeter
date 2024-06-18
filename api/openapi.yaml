@@ -1584,12 +1584,6 @@ components:
       properties:
         period:
           $ref: "#/components/schemas/Period"
-        grantId:
-          description: |
-            The id of the grant that was burnt down.
-          type: string
-          readOnly: true
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         usage:
           description: |
             The usage of the grant in the period.
@@ -1617,6 +1611,7 @@ components:
           type: object
           additionalProperties:
             type: number
+            format: double
           readOnly: true
           example:
             01ARZ3NDEKTSV4RRFFQ69G5FAV: 100
@@ -1633,6 +1628,7 @@ components:
           type: object
           additionalProperties:
             type: number
+            format: double
           readOnly: true
           example:
             01ARZ3NDEKTSV4RRFFQ69G5FAV: 100
@@ -1642,26 +1638,23 @@ components:
           type: array
           readOnly: true
           items:
-            type: object
-            properties:
-              grantId:
-                description: |
-                  The id of the grant.
-                type: string
-                example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-              usage:
-                description: |
-                  The usage of the grant.
-                type: number
-                format: double
-                example: 100
-    GrantBurnDownHistory:
-      type: array
-      description: |
-            The grant burn down history in the period.
-      items:
-        $ref: "#/components/schemas/GrantBurnDownHistorySegment"
+            $ref: "#/components/schemas/GrantUsageRecord"
     # Might be changed later
+    GrantUsageRecord:
+      type: object
+      properties:
+        grantId:
+          description: |
+            The id of the grant.
+          type: string
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+        usage:
+          description: |
+            The usage of the grant.
+          type: number
+          format: double
+          example: 100
+
     BalanceHistoryWindow:
       type: object
       description: |
@@ -1683,21 +1676,24 @@ components:
           format: double
           readOnly: true
           example: 100
-        balanceAtEnd:
-          description: |
-            The entitlement balance at the end of the period.
-          type: number
-          format: double
-          readOnly: true
-          example: 100
-        grantBurnDownHistory:
-          $ref: "#/components/schemas/GrantBurnDownHistory"
     WindowedBalanceHistory:
-      type: array
+      type: object
       description: |
         The windowed balance history.
-      items:
-        $ref: "#/components/schemas/BalanceHistoryWindow"
+      properties:
+        windowedHistory:
+          type: array
+          description: |
+            The windowed balance history.
+            Only returns rows for windows where there was usage.
+          items:
+            $ref: "#/components/schemas/BalanceHistoryWindow"
+        burndownHistory:
+          type: array
+          description: |
+            The grant burn down history in the period.
+          items:
+            $ref: "#/components/schemas/GrantBurnDownHistorySegment"
     Period:
       type: object
       description: |

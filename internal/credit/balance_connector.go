@@ -162,7 +162,7 @@ func (m *balanceConnector) GetBalanceHistoryOfOwner(ctx context.Context, owner N
 			return GrantBurnDownHistory{}, err
 		}
 
-		if balance.At.Before(period.From) {
+		if period.From.Before(balance.At) {
 			// This is an inconsistency check. It can only happen if we lost our snapshot for the reset.
 			//
 			// The engine doesn't manage rollovers at usage reset so it cannot be used to calculate GrantBurnDown accross resets.
