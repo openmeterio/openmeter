@@ -61,8 +61,8 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
 
 	for _, message := range q.Messages {
 		var eventErr string
-		if message.Error != nil {
-			eventErr = message.Error.Error()
+		if message.Status.Error != nil {
+			eventErr = message.Status.Error.Error()
 		}
 
 		query.Values(

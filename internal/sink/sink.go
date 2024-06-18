@@ -3,6 +3,7 @@ package sink
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"regexp"
@@ -31,7 +32,7 @@ type SinkMessage struct {
 	Namespace    string
 	KafkaMessage *kafka.Message
 	Serialized   *serializer.CloudEventsKafkaPayload
-	Error        *ProcessingError
+	Status       ProcessingStatus
 }
 
 type Sink struct {
@@ -242,21 +243,10 @@ func (s *Sink) reportFlushMetrics(ctx context.Context, messages []SinkMessage) e
 
 	for _, message := range messages {
 		namespaceAttr := attribute.String("namespace", message.Namespace)
-		statusAttr := attribute.String("status", "success")
+		statusAttr := attribute.String("status", message.Status.State.String())
 
 		// Count events per namespace
 		namespacesReport[message.Namespace]++
-
-		if message.Error != nil {
-			switch message.Error.ProcessingControl {
-			case INVALID:
-				statusAttr = attribute.String("status", "invalid")
-			case DROP:
-				statusAttr = attribute.String("status", "drop")
-			default:
-				return fmt.Errorf("unknown error type: %s", message.Error)
-			}
-		}
 		s.flushEventCounter.Add(ctx, 1, metric.WithAttributes(namespaceAttr, statusAttr))
 	}
 
@@ -279,17 +269,20 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) err
 
 	// Flter out dropped messages
 	for _, message := range messages {
-		if message.Error != nil {
-			switch message.Error.ProcessingControl {
-			case INVALID:
-				// Do nothing: include in batch
-			case DROP:
-				// Skip message from batch
-				logger.Debug("dropping message", "error", message.Error, "message", string(message.KafkaMessage.Value), "namespace", message.Namespace)
-				continue
-			default:
-				return fmt.Errorf("unknown error type: %s", message.Error)
-			}
+		switch message.Status.State {
+		case OK, INVALID:
+			// Do nothing: include in batch
+		case DROP:
+			// Skip message from batch
+			logger.Debug("dropping message",
+				slog.String("status", message.Status.State.String()),
+				slog.String("error", message.Status.Error.Error()),
+				slog.String("message", string(message.KafkaMessage.Value)),
+				slog.String("namespace", message.Namespace),
+			)
+			continue
+		default:
+			return fmt.Errorf("unknown state type: %s", message.Status.State.String())
 		}
 		batch = append(batch, message)
 	}
@@ -472,26 +465,17 @@ func (s *Sink) Run(ctx context.Context) error {
 
 			switch e := ev.(type) {
 			case *kafka.Message:
-				sinkMessage := SinkMessage{
-					KafkaMessage: e,
-				}
-				namespace, kafkaCloudEvent, err := s.ParseMessage(ctx, e)
+				sinkMessage, err := s.parseMessage(ctx, e)
 				if err != nil {
-					if perr, ok := err.(*ProcessingError); ok {
-						sinkMessage.Error = perr
-					} else {
-						return fmt.Errorf("failed to parse message: %w", err)
-					}
+					return fmt.Errorf("failed to parse message: %w", err)
 				}
-				sinkMessage.Namespace = namespace
-				sinkMessage.Serialized = kafkaCloudEvent
 
 				// Message counter
-				namespaceAttr := attribute.String("namespace", namespace)
+				namespaceAttr := attribute.String("namespace", sinkMessage.Namespace)
 				s.messageCounter.Add(ctx, 1, metric.WithAttributes(namespaceAttr))
 
-				s.buffer.Add(sinkMessage)
-				logger.Debug("event added to buffer", "partition", e.TopicPartition.Partition, "offset", e.TopicPartition.Offset, "event", kafkaCloudEvent)
+				s.buffer.Add(*sinkMessage)
+				logger.Debug("event added to buffer", "partition", e.TopicPartition.Partition, "offset", e.TopicPartition.Offset, "event", sinkMessage.Serialized)
 
 				// Flush buffer and commit messages
 				if s.buffer.Size() >= s.config.MinCommitCount {
@@ -650,20 +634,43 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 	return nil
 }
 
-func (s *Sink) ParseMessage(ctx context.Context, e *kafka.Message) (string, *serializer.CloudEventsKafkaPayload, error) {
+func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (*SinkMessage, error) {
+	if e == nil {
+		return nil, fmt.Errorf("kafka message is nil")
+	}
+
+	sinkMessage := &SinkMessage{
+		KafkaMessage: e,
+		Status: ProcessingStatus{
+			State: OK,
+		},
+	}
+
 	// Get Namespace
 	namespace, err := getNamespace(*e.TopicPartition.Topic)
 	if err != nil {
-		return "", nil, NewProcessingError(fmt.Sprintf("failed to get namespace from topic: %s, %s", *e.TopicPartition.Topic, err), DROP)
+		sinkMessage.Status = ProcessingStatus{
+			State: DROP,
+			Error: fmt.Errorf("failed to get namespace from topic: %s, %s", *e.TopicPartition.Topic, err),
+		}
+
+		return sinkMessage, nil
 	}
+	sinkMessage.Namespace = namespace
 
 	// Parse Kafka Event
-	var kafkaCloudEvent serializer.CloudEventsKafkaPayload
-	err = json.Unmarshal(e.Value, &kafkaCloudEvent)
+	kafkaCloudEvent := &serializer.CloudEventsKafkaPayload{}
+	err = json.Unmarshal(e.Value, kafkaCloudEvent)
 	if err != nil {
+		sinkMessage.Status = ProcessingStatus{
+			State: DROP,
+			Error: fmt.Errorf("failed to json parse kafka message: %w", err),
+		}
+
 		// We should never have events we can't json parse, so we drop them
-		return namespace, &kafkaCloudEvent, NewProcessingError(fmt.Sprintf("failed to json parse kafka message: %s", err), DROP)
+		return sinkMessage, nil
 	}
+	sinkMessage.Serialized = kafkaCloudEvent
 
 	// Dedupe, this stores key in store which means if sink fails and restarts it will not process the same message again
 	// Dedupe is an optional dependency so we check if it's set
@@ -675,17 +682,23 @@ func (s *Sink) ParseMessage(ctx context.Context, e *kafka.Message) (string, *ser
 		})
 		if err != nil {
 			// Stop processing, non-recoverable error
-			return namespace, &kafkaCloudEvent, fmt.Errorf("failed to check uniqueness of kafka message: %w", err)
+			return sinkMessage, fmt.Errorf("failed to check uniqueness of kafka message: %w", err)
 		}
 
 		if !isUnique {
-			return namespace, &kafkaCloudEvent, NewProcessingError("skipping non unique message", DROP)
+			sinkMessage.Status = ProcessingStatus{
+				State: DROP,
+				Error: errors.New("skipping non unique message"),
+			}
+
+			return sinkMessage, nil
 		}
 	}
 
 	// Validation
-	err = s.namespaceStore.ValidateEvent(ctx, kafkaCloudEvent, namespace)
-	return namespace, &kafkaCloudEvent, err
+	s.namespaceStore.ValidateEvent(ctx, sinkMessage)
+
+	return sinkMessage, err
 }
 
 func (s *Sink) Close() error {

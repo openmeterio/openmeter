@@ -1,6 +1,7 @@
 package sink_test
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -40,7 +41,10 @@ func TestInsertEventsQuery(t *testing.T) {
 			},
 			{
 				Namespace: "my_namespace",
-				Error:     sink.NewProcessingError("event data value cannot be parsed as float64: not a number", sink.INVALID),
+				Status: sink.ProcessingStatus{
+					State: sink.INVALID,
+					Error: errors.New("event data value cannot be parsed as float64: not a number"),
+				},
 				Serialized: &serializer.CloudEventsKafkaPayload{
 					Id:      "3",
 					Source:  "source",

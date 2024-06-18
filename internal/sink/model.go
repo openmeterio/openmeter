@@ -1,24 +1,32 @@
 package sink
 
-type ProcessingControl int32
+import "fmt"
+
+type ProcessingState int8
+
+func (c ProcessingState) String() string {
+	var state string
+	switch c {
+	case OK:
+		state = "ok"
+	case INVALID:
+		state = "invalid"
+	case DROP:
+		state = "drop"
+	default:
+		state = fmt.Sprintf("unknown(%d)", c)
+	}
+
+	return state
+}
 
 const (
-	DROP    ProcessingControl = 0
-	INVALID ProcessingControl = 1
+	OK ProcessingState = iota
+	DROP
+	INVALID
 )
 
-type ProcessingError struct {
-	Message           string
-	ProcessingControl ProcessingControl
-}
-
-func (e *ProcessingError) Error() string {
-	return e.Message
-}
-
-func NewProcessingError(msg string, control ProcessingControl) *ProcessingError {
-	return &ProcessingError{
-		Message:           msg,
-		ProcessingControl: control,
-	}
+type ProcessingStatus struct {
+	State ProcessingState
+	Error error
 }
