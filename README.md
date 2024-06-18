@@ -40,9 +40,9 @@ To engage with our community, you can use the following resources:
 
 See our examples to learn about common OpenMeter use-cases.
 
-- [Metering OpenAI Chat GPT Usage](/examples/ingest-openai-node)
-- [Metering Kubernetes Pod Execution Time](/examples/ingest-kubernetes-pod-time-go)
-- [Usage Based Billing with Stripe](/examples/export-stripe-go)
+- [Metering Kubernetes Pod Execution Time](/examples/collectors/kubernetes-pod-exec-time)
+- Usage Based Billing with Stripe ([Go](https://github.com/openmeterio/examples/tree/main/export-stripe-go), [Node](https://github.com/openmeterio/examples/tree/main/export-stripe-node))
+- [Metering based on logs](/examples/ingest-logs)
 
 ## API
 
