@@ -23,6 +23,15 @@ type Entitlement struct {
 	SubjectKey       string    `json:"subjectKey,omitempty"`
 }
 
+type EntitlementAlreadyExistsError struct {
+	FeatureID  string
+	SubjectKey string
+}
+
+func (e *EntitlementAlreadyExistsError) Error() string {
+	return fmt.Sprintf("entitlement already exists for feature %s and subject %s", e.FeatureID, e.SubjectKey)
+}
+
 type EntitlementNotFoundError struct {
 	EntitlementID models.NamespacedID
 }

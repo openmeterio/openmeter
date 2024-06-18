@@ -85,6 +85,7 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 			DeletedAt: convert.SafeToUTC(e.DeletedAt),
 		},
 		ID:               e.ID,
+		SubjectKey:       e.SubjectKey,
 		FeatureID:        e.FeatureID,
 		MeasureUsageFrom: e.MeasureUsageFrom,
 	}

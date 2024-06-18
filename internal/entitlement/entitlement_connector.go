@@ -2,6 +2,7 @@ package entitlement
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/productcatalog"
@@ -39,6 +40,16 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 	if err != nil {
 		return Entitlement{}, &productcatalog.FeatureNotFoundError{ID: input.FeatureID}
 	}
+	currentEntitlements, err := c.edb.GetEntitlementsOfSubject(ctx, input.Namespace, models.SubjectKey(input.SubjectKey))
+	if err != nil {
+		return Entitlement{}, fmt.Errorf("failed to get entitlements of subject: %w", err)
+	}
+	for _, ent := range currentEntitlements {
+		if ent.FeatureID == input.FeatureID {
+			return Entitlement{}, &EntitlementAlreadyExistsError{FeatureID: input.FeatureID, SubjectKey: input.SubjectKey}
+		}
+	}
+
 	// FIXME: Add default value elsewhere
 	input.MeasureUsageFrom = time.Now()
 	ent, err := c.edb.CreateEntitlement(ctx, input)

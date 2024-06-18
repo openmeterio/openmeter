@@ -40,10 +40,19 @@ func NewEntitlementHandler(
 	}
 }
 
-type CreateEntitlementHandler httptransport.HandlerWithArgs[entitlement.CreateEntitlementInputs, api.EntitlementMetered, string]
+// The generated api.EntitlementMetered type doesn't really follow our openapi spec
+// so we have to manually override some fields...
+// FIXME: APIs can drift due to this
+type APIEntitlementResponse struct {
+	api.EntitlementMetered
+
+	UsagePeriod *api.RecurringPeriod `json:"usagePeriod,omitempty"`
+}
+
+type CreateEntitlementHandler httptransport.HandlerWithArgs[entitlement.CreateEntitlementInputs, APIEntitlementResponse, string]
 
 func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
-	return httptransport.NewHandlerWithArgs[entitlement.CreateEntitlementInputs, api.EntitlementMetered, string](
+	return httptransport.NewHandlerWithArgs[entitlement.CreateEntitlementInputs, APIEntitlementResponse, string](
 		func(ctx context.Context, r *http.Request, subjectIdOrKey string) (entitlement.CreateEntitlementInputs, error) {
 			entitlement := entitlement.CreateEntitlementInputs{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &entitlement); err != nil {
@@ -60,21 +69,24 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 
 			return entitlement, nil
 		},
-		func(ctx context.Context, request entitlement.CreateEntitlementInputs) (api.EntitlementMetered, error) {
+		func(ctx context.Context, request entitlement.CreateEntitlementInputs) (APIEntitlementResponse, error) {
 			res, err := h.connector.CreateEntitlement(ctx, request)
-			return api.EntitlementMetered{
-				Id:         &res.ID,
-				FeatureId:  res.FeatureID,
-				CreatedAt:  &res.CreatedAt,
-				UpdatedAt:  &res.UpdatedAt,
-				DeletedAt:  res.DeletedAt,
-				Subjectkey: &res.SubjectKey,
-				Type:       "metered",
+			return APIEntitlementResponse{
+				EntitlementMetered: api.EntitlementMetered{
+					Id:         &res.ID,
+					FeatureId:  res.FeatureID,
+					CreatedAt:  &res.CreatedAt,
+					UpdatedAt:  &res.UpdatedAt,
+					DeletedAt:  res.DeletedAt,
+					Subjectkey: &res.SubjectKey,
+					Type:       "metered",
+				},
+				UsagePeriod: nil,
 			}, err
 		},
 		// api.Entitlement is a pseuo type due to the openapi magic so it has no fields
 		// FIXME: assert that the types are actually comptible...
-		commonhttp.JSONResponseEncoder[api.EntitlementMetered],
+		commonhttp.JSONResponseEncoder[APIEntitlementResponse],
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("createEntitlement"),
@@ -82,6 +94,13 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 				if _, ok := err.(*productcatalog.FeatureNotFoundError); ok {
 					commonhttp.NewHTTPError(
 						http.StatusNotFound,
+						err,
+					).EncodeError(ctx, w)
+					return true
+				}
+				if _, ok := err.(*entitlement.EntitlementAlreadyExistsError); ok {
+					commonhttp.NewHTTPError(
+						http.StatusConflict,
 						err,
 					).EncodeError(ctx, w)
 					return true
@@ -161,7 +180,7 @@ type GetEntitlementsOfSubjectParams struct {
 	Params         api.ListSubjectEntitlementsParams
 }
 
-type GetEntitlementsOfSubjectHandler httptransport.HandlerWithArgs[models.NamespacedID, []api.EntitlementMetered, GetEntitlementsOfSubjectParams]
+type GetEntitlementsOfSubjectHandler httptransport.HandlerWithArgs[models.NamespacedID, []APIEntitlementResponse, GetEntitlementsOfSubjectParams]
 
 func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOfSubjectHandler {
 	return httptransport.NewHandlerWithArgs(
@@ -176,28 +195,31 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 				ID:        params.SubjectIdOrKey, // TODO: should work with ID as well & should use params.Params values
 			}, nil
 		},
-		func(ctx context.Context, id models.NamespacedID) ([]api.EntitlementMetered, error) {
+		func(ctx context.Context, id models.NamespacedID) ([]APIEntitlementResponse, error) {
 			entitlements, err := h.connector.GetEntitlementsOfSubject(ctx, id.Namespace, models.SubjectKey(id.ID))
 			if err != nil {
 				return nil, err
 			}
 
-			res := make([]api.EntitlementMetered, len(entitlements))
+			res := make([]APIEntitlementResponse, len(entitlements))
 			for i, ent := range entitlements {
-				res[i] = api.EntitlementMetered{
-					Id:         &ent.ID,
-					FeatureId:  ent.FeatureID,
-					CreatedAt:  &ent.CreatedAt,
-					UpdatedAt:  &ent.UpdatedAt,
-					DeletedAt:  ent.DeletedAt,
-					Subjectkey: &ent.SubjectKey,
-					Type:       "metered",
+				res[i] = APIEntitlementResponse{
+					EntitlementMetered: api.EntitlementMetered{
+						Id:         &ent.ID,
+						FeatureId:  ent.FeatureID,
+						CreatedAt:  &ent.CreatedAt,
+						UpdatedAt:  &ent.UpdatedAt,
+						DeletedAt:  ent.DeletedAt,
+						Subjectkey: &ent.SubjectKey,
+						Type:       "metered",
+					},
+					UsagePeriod: nil,
 				}
 			}
 
 			return res, nil
 		},
-		commonhttp.JSONResponseEncoder[[]api.EntitlementMetered],
+		commonhttp.JSONResponseEncoder[[]APIEntitlementResponse],
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getEntitlementsOfSubject"),
