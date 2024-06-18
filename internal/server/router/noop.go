@@ -37,12 +37,6 @@ func (a *Router) GetEntitlementHistory(w http.ResponseWriter, r *http.Request, s
 	commonhttp.NewHTTPError(http.StatusNotImplemented, fmt.Errorf("not implemented")).EncodeError(context.TODO(), w)
 }
 
-// Reset entitlement
-// (POST /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/reset)
-func (a *Router) ResetEntitlementUsage(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementId api.EntitlementId) {
-	commonhttp.NewHTTPError(http.StatusNotImplemented, fmt.Errorf("not implemented")).EncodeError(context.TODO(), w)
-}
-
 // List grants
 // (GET /api/v1/grants)
 func (a *Router) ListGrants(w http.ResponseWriter, r *http.Request, params api.ListGrantsParams) {

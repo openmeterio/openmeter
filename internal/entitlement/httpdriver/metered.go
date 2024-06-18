@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
@@ -19,6 +20,7 @@ import (
 type MeteredEntitlementHandler interface {
 	CreateGrant() CreateGrantHandler
 	ListEntitlementGrants() ListEntitlementGrantsHandler
+	ResetEntitlementUsage() ResetEntitlementUsageHandler
 }
 
 type meteredEntitlementHandler struct {
@@ -192,6 +194,77 @@ func (h *meteredEntitlementHandler) ListEntitlementGrants() ListEntitlementGrant
 				if _, ok := err.(*entitlement.EntitlementNotFoundError); ok {
 					commonhttp.NewHTTPError(
 						http.StatusNotFound,
+						err,
+					).EncodeError(ctx, w)
+					return true
+				}
+				if _, ok := err.(*models.GenericUserError); ok {
+					commonhttp.NewHTTPError(
+						http.StatusBadRequest,
+						err,
+					).EncodeError(ctx, w)
+					return true
+				}
+				return false
+			}),
+		)...,
+	)
+}
+
+type ResetEntitlementUsageInputs struct {
+	EntitlementID string
+	Namespace     string
+	SubjectID     string
+	At            time.Time
+}
+type ResetEntitlementUsageParams struct {
+	EntitlementID string
+	SubjectKey    string
+}
+type ResetEntitlementUsageHandler httptransport.HandlerWithArgs[ResetEntitlementUsageInputs, interface{}, ResetEntitlementUsageParams]
+
+func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsageHandler {
+	return httptransport.NewHandlerWithArgs[ResetEntitlementUsageInputs, interface{}, ResetEntitlementUsageParams](
+		func(ctx context.Context, r *http.Request, params ResetEntitlementUsageParams) (ResetEntitlementUsageInputs, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return ResetEntitlementUsageInputs{}, err
+			}
+
+			var body api.ResetEntitlementUsageJSONBody
+
+			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
+				return ResetEntitlementUsageInputs{}, err
+			}
+
+			return ResetEntitlementUsageInputs{
+				EntitlementID: params.EntitlementID,
+				Namespace:     ns,
+				SubjectID:     params.SubjectKey,
+				At:            defaultx.WithDefault(body.EffectiveAt, time.Now()),
+			}, nil
+		},
+		func(ctx context.Context, request ResetEntitlementUsageInputs) (interface{}, error) {
+			_, err := h.balanceConnector.ResetEntitlementUsage(ctx, models.NamespacedID{
+				Namespace: request.Namespace,
+				ID:        request.EntitlementID,
+			}, request.At)
+			return nil, err
+		},
+		commonhttp.EmptyResponseEncoder[interface{}](http.StatusNoContent),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {
+				if _, ok := err.(*entitlement.EntitlementNotFoundError); ok {
+					commonhttp.NewHTTPError(
+						http.StatusNotFound,
+						err,
+					).EncodeError(ctx, w)
+					return true
+				}
+				if _, ok := err.(*models.GenericUserError); ok {
+					commonhttp.NewHTTPError(
+						http.StatusBadRequest,
 						err,
 					).EncodeError(ctx, w)
 					return true

@@ -69,3 +69,16 @@ func (a *Router) ListEntitlementGrants(w http.ResponseWriter, r *http.Request, s
 		EntitlementID: entitlementId,
 	}).ServeHTTP(w, r)
 }
+
+// Reset entitlement
+// (POST /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/reset)
+func (a *Router) ResetEntitlementUsage(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementId api.EntitlementId) {
+	if !a.config.EntitlementsEnabled {
+		unimplemented.ResetEntitlementUsage(w, r, subjectIdOrKey, entitlementId)
+		return
+	}
+	a.meteredEntitlementHandler.ResetEntitlementUsage().With(httpdriver.ResetEntitlementUsageParams{
+		SubjectKey:    subjectIdOrKey,
+		EntitlementID: entitlementId,
+	}).ServeHTTP(w, r)
+}

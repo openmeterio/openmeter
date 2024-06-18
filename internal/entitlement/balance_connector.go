@@ -48,7 +48,7 @@ type BalanceHistoryParams struct {
 type EntitlementBalanceConnector interface {
 	GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error)
 	GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
-	ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID, resetAT time.Time) (balanceAfterReset *EntitlementBalance, err error)
+	ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID, resetAt time.Time) (balanceAfterReset *EntitlementBalance, err error)
 
 	// GetEntitlementGrantBalanceHistory(ctx context.Context, entitlementGrantID EntitlementGrantID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
 	CreateGrant(ctx context.Context, entitlement models.NamespacedID, inputGrant CreateEntitlementGrantInputs) (EntitlementGrant, error)
@@ -226,7 +226,10 @@ func (e *entitlementBalanceConnector) ResetEntitlementUsage(ctx context.Context,
 
 	balanceAfterReset, err := e.bc.ResetUsageForOwner(ctx, owner, resetAt)
 	if err != nil {
-		return nil, fmt.Errorf("failed to reset usage for entitlement %s: %w", entitlementID.ID, err)
+		if _, ok := err.(*credit.OwnerNotFoundError); ok {
+			return nil, &EntitlementNotFoundError{EntitlementID: entitlementID}
+		}
+		return nil, err
 	}
 
 	return &EntitlementBalance{

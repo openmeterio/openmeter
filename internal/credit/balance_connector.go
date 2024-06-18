@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // Generic connector for balance related operations.
@@ -219,14 +220,24 @@ func (m *balanceConnector) GetBalanceHistoryOfOwner(ctx context.Context, owner N
 }
 
 func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner NamespacedGrantOwner, at time.Time) (*GrantBalanceSnapshot, error) {
+	// Cannot reset for the future
+	if at.After(time.Now()) {
+		return nil, &models.GenericUserError{Message: fmt.Sprintf("cannot reset at %s in the future", at)}
+	}
+
 	// TODO: enforce granularity (truncate)
+	at = at.Truncate(time.Minute)
+
 	// check if reset is possible (after last reset)
 	periodStart, err := m.oc.GetUsagePeriodStartAt(ctx, owner, time.Now())
 	if err != nil {
+		if _, ok := err.(*OwnerNotFoundError); ok {
+			return nil, err
+		}
 		return nil, fmt.Errorf("failed to get current usage period start for owner %s at %s: %w", owner.ID, at, err)
 	}
 	if at.Before(periodStart) {
-		return nil, fmt.Errorf("reset at %s is before current usage period start %s", at, periodStart)
+		return nil, &models.GenericUserError{Message: fmt.Sprintf("reset at %s is before current usage period start %s", at, periodStart)}
 	}
 
 	balance, err := m.getLastValidBalanceSnapshotForOwnerAt(ctx, owner, at)

@@ -634,6 +634,32 @@ func TestResetEntitlementUsage(t *testing.T) {
 			},
 		},
 		{
+			name: "Should error if requested reset time is in the future",
+			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+				ctx := context.Background()
+				now := time.Now().Truncate(time.Minute)
+				aDayAgo := now.Add(-time.Hour * 24)
+
+				// create featute in db
+				feature, err := deps.featureDB.CreateFeature(ctx, exampleFeature)
+				assert.NoError(t, err)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feature)
+				inp.MeasureUsageFrom = aDayAgo
+				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
+				assert.NoError(t, err)
+
+				// some usage on ledger, should be inconsequential
+				deps.streaming.AddSimpleEvent(meterSlug, 100, aDayAgo.Add(time.Minute))
+
+				// resetTime in future
+				resetTime := now.Add(time.Minute)
+				_, err = connector.ResetEntitlementUsage(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, resetTime)
+				assert.ErrorContains(t, err, "in the future")
+			},
+		},
+		{
 			name: "Should invalidate snapshots after the reset time",
 			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
 				ctx := context.Background()

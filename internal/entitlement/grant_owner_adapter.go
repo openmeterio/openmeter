@@ -43,7 +43,7 @@ func (e *entitlementGrantOwner) GetOwnerQueryParams(ctx context.Context, owner c
 	entitlement, err := e.edb.GetEntitlement(ctx, owner.NamespacedID())
 	if err != nil {
 		e.logger.Debug("failed to get entitlement for owner %s in namespace %s: %w", string(owner.ID), owner.Namespace, err)
-		return "", nil, credit.OwnerNotFoundError{
+		return "", nil, &credit.OwnerNotFoundError{
 			Owner:          owner,
 			AttemptedOwner: "entitlement",
 		}
@@ -78,7 +78,7 @@ func (e *entitlementGrantOwner) GetOwnerQueryParams(ctx context.Context, owner c
 func (e *entitlementGrantOwner) GetStartOfMeasurement(ctx context.Context, owner credit.NamespacedGrantOwner) (time.Time, error) {
 	entitlement, err := e.edb.GetEntitlement(ctx, owner.NamespacedID())
 	if err != nil {
-		return time.Time{}, credit.OwnerNotFoundError{
+		return time.Time{}, &credit.OwnerNotFoundError{
 			Owner:          owner,
 			AttemptedOwner: "entitlement",
 		}
