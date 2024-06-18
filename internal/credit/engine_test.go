@@ -305,7 +305,11 @@ func TestEngine(t *testing.T) {
 				// sets correct starting balance for grant in segment
 				assert.Len(t, segments, 2)
 				assert.Equal(t, 0.0, segments[0].BalanceAtStart[grant.ID])
+
+				// starting balance doesnt have overage deducted
 				assert.Equal(t, grant.Amount, segments[1].BalanceAtStart[grant.ID])
+				// but it is stored separately
+				assert.Equal(t, 25.0, segments[1].OverageAtStart)
 			},
 		},
 		{

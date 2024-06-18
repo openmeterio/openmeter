@@ -55,10 +55,10 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 	return httptransport.NewHandlerWithArgs[entitlement.CreateEntitlementInputs, APIEntitlementResponse, string](
 		func(ctx context.Context, r *http.Request, subjectIdOrKey string) (entitlement.CreateEntitlementInputs, error) {
 			entitlement := entitlement.CreateEntitlementInputs{}
+			// TODO: parse rest of the fields from the request (period, issuing, etc...)
 			if err := commonhttp.JSONRequestBodyDecoder(r, &entitlement); err != nil {
 				return entitlement, err
 			}
-			// TODO: should work with ID as well
 			entitlement.SubjectKey = subjectIdOrKey
 
 			ns, err := h.resolveNamespace(ctx)
@@ -92,6 +92,13 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 			httptransport.WithOperationName("createEntitlement"),
 			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {
 				if _, ok := err.(*productcatalog.FeatureNotFoundError); ok {
+					commonhttp.NewHTTPError(
+						http.StatusNotFound,
+						err,
+					).EncodeError(ctx, w)
+					return true
+				}
+				if _, ok := err.(*entitlement.EntitlementNotFoundError); ok {
 					commonhttp.NewHTTPError(
 						http.StatusNotFound,
 						err,

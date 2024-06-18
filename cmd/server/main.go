@@ -294,6 +294,7 @@ func main() {
 	}
 
 	var entitlementConnector entitlement.EntitlementConnector
+	var entitlementBalanceConnector entitlement.EntitlementBalanceConnector
 	var featureConnector productcatalog.FeatureConnector
 	// Initialize Postgres
 	if conf.Entitlements.Enabled {
@@ -327,10 +328,17 @@ func main() {
 			streamingConnector,
 			logger,
 		)
-		entitlementBalanceConnector := entitlement.NewEntitlementBalanceConnector(
+		creditGrantConnector := credit.NewGrantConnector(
+			entitlementOwnerConnector,
+			grantDBAdapter,
+			balanceSnashotDBAdapter,
+			time.Minute,
+		)
+		entitlementBalanceConnector = entitlement.NewEntitlementBalanceConnector(
 			streamingConnector,
 			entitlementOwnerConnector,
 			creditBalanceConnector,
+			creditGrantConnector,
 		)
 		entitlementConnector = entitlement.NewEntitlementConnector(
 			entitlementBalanceConnector,
@@ -352,8 +360,9 @@ func main() {
 			PortalCORSEnabled:   conf.Portal.CORS.Enabled,
 			ErrorHandler:        errorsx.NewAppHandler(errorsx.NewSlogHandler(logger)),
 			// deps
-			FeatureConnector:     featureConnector,
-			EntitlementConnector: entitlementConnector,
+			FeatureConnector:            featureConnector,
+			EntitlementConnector:        entitlementConnector,
+			EntitlementBalanceConnector: entitlementBalanceConnector,
 			// modules
 			EntitlementsEnabled: conf.Entitlements.Enabled,
 		},

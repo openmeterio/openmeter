@@ -1500,26 +1500,11 @@ components:
                 If unlimited=true the subject can use the feature an unlimited amount.
             usagePeriod:
                 $ref: "#/components/schemas/RecurringPeriod"
-        - oneOf:
-          - type: object
-            properties:
-              resetUsageByUsagePeriod:
-                type: boolean
-                description: |
-                  Automatically reset usage in the access calculation based on usage period.
-          - type: object
-            required:
-              - resetUsageByUsagePeriod
-            properties:
-              resetUsageByUsagePeriod:
-                type: boolean
-                description: |
-                  Automatically reset usage in the access calculation based on usage period.
-              # Mixed feelings about adding this, rest is not an intend driven convention
-              issueAfterReset:
-                type: number
-                description: |
-                  You can issue usage automatically after reset. This usage is not rolled over.
+          # Mixed feelings about adding this, rest is not an intent driven convention
+            issueAfterReset:
+              type: number
+              description: |
+                You can issue usage automatically after reset. This usage is not rolled over.
 
     EntitlementMetered:
       type: object
@@ -1838,25 +1823,8 @@ components:
           example:
             stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
         recurrence:
-          type: object
-          description: |
-            Recurrence of the grant.
-          required:
-            - period
-          properties:
-            period:
-              description: |
-                The recurring period like month.
-              $ref: "#/components/schemas/RecurringPeriod"
-            maxRolloverAmount:
-              description: |
-                The maximum amount of the grant that can be rolled over.
+          $ref: "#/components/schemas/RecurringPeriod"
 
-                If it's 0 then at the next iteration the gran's balance will be the original amount.
-                If it's larger than 0 then the grant's balance will be the MAX(maxRollover, balance) + amount.
-              type: number
-              format: double
-              example: 100
     EntitlementGrant:
       allOf:
         - $ref: "#/components/schemas/EntitlementGrantCreateInput"

@@ -50,8 +50,9 @@ type Config struct {
 	ErrorHandler        errorsx.Handler
 
 	// deps
-	FeatureConnector     productcatalog.FeatureConnector
-	EntitlementConnector entitlement.EntitlementConnector
+	FeatureConnector            productcatalog.FeatureConnector
+	EntitlementConnector        entitlement.EntitlementConnector
+	EntitlementBalanceConnector entitlement.EntitlementBalanceConnector
 
 	// FIXME: implement generic module management, loading, etc...
 	EntitlementsEnabled bool
@@ -60,8 +61,9 @@ type Config struct {
 type Router struct {
 	config Config
 
-	featureHandler     productcatalog_httpdriver.FeatureHandler
-	entitlementHandler entitlement_httpdriver.EntitlementHandler
+	featureHandler            productcatalog_httpdriver.FeatureHandler
+	entitlementHandler        entitlement_httpdriver.EntitlementHandler
+	meteredEntitlementHandler entitlement_httpdriver.MeteredEntitlementHandler
 }
 
 // Make sure we conform to ServerInterface
@@ -81,6 +83,13 @@ func NewRouter(config Config) (*Router, error) {
 
 		router.entitlementHandler = entitlement_httpdriver.NewEntitlementHandler(
 			config.EntitlementConnector,
+			namespacedriver.StaticNamespaceDecoder("default"),
+			httptransport.WithErrorHandler(config.ErrorHandler),
+		)
+
+		router.meteredEntitlementHandler = entitlement_httpdriver.NewMeteredEntitlementHandler(
+			config.EntitlementConnector,
+			config.EntitlementBalanceConnector,
 			namespacedriver.StaticNamespaceDecoder("default"),
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)

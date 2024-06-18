@@ -43,3 +43,16 @@ func (a *Router) GetEntitlementValue(w http.ResponseWriter, r *http.Request, sub
 		Params:                    params,
 	}).ServeHTTP(w, r)
 }
+
+// Create grant
+// (POST /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/grants)
+func (a *Router) CreateGrant(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementId api.EntitlementId) {
+	if !a.config.EntitlementsEnabled {
+		unimplemented.CreateGrant(w, r, subjectIdOrKey, entitlementId)
+		return
+	}
+	a.meteredEntitlementHandler.CreateGrant().With(httpdriver.CreateGrantParams{
+		SubjectKey:    subjectIdOrKey,
+		EntitlementID: entitlementId,
+	}).ServeHTTP(w, r)
+}

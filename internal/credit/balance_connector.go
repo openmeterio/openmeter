@@ -23,8 +23,23 @@ type BalanceHistoryParams struct {
 	To   time.Time
 }
 
-func NewBalanceConnector(gc GrantDBConnector, bsc BalanceSnapshotDBConnector, oc OwnerConnector, sc streaming.Connector, log *slog.Logger) BalanceConnector {
-	return &balanceConnector{gc: gc, bsc: bsc, oc: oc, sc: sc, logger: log}
+func NewBalanceConnector(
+	gc GrantDBConnector,
+	bsc BalanceSnapshotDBConnector,
+	oc OwnerConnector,
+	sc streaming.Connector,
+	log *slog.Logger,
+) BalanceConnector {
+	return &balanceConnector{
+		gc:     gc,
+		bsc:    bsc,
+		oc:     oc,
+		sc:     sc,
+		logger: log,
+
+		// TODO: make configurable
+		snapshotGracePeriod: time.Hour,
+	}
 }
 
 type balanceConnector struct {
@@ -35,6 +50,8 @@ type balanceConnector struct {
 	oc     OwnerConnector
 	sc     streaming.Connector
 	logger *slog.Logger
+
+	snapshotGracePeriod time.Duration
 }
 
 var _ BalanceConnector = &balanceConnector{}
@@ -107,11 +124,11 @@ func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner Namespac
 	// just so it can be saved...
 	//
 	// FIXME: we should do this comparison not with the queried time but the current time...
-	if saveable, err := history.GetLastSaveableAt(at); err == nil {
-		// save snapshot at end of segment
+	if snap, err := m.getLastSaveableSnapshotAt(history, balance, at); err == nil {
 		m.bsc.Save(ctx, owner, []GrantBalanceSnapshot{
-			saveable.ToSnapshot(),
+			*snap,
 		})
+
 	}
 
 	// return balance
@@ -371,4 +388,27 @@ func (m *balanceConnector) getQueryUsageFn(ctx context.Context, owner Namespaced
 		}
 		return rows[0].Value, nil
 	}, nil
+}
+
+// Returns a snapshot from the last segment that can be saved, taking the following into account:
+//
+//  1. We can save a segment if it is older than graceperiod.
+//  2. At the end of a segment history changes: s1.endBalance <> s2.startBalance. This means only the
+//     starting values can be saved credibly.
+func (m *balanceConnector) getLastSaveableSnapshotAt(history *GrantBurnDownHistory, lastValidBalance GrantBalanceSnapshot, at time.Time) (*GrantBalanceSnapshot, error) {
+	segments := history.Segments()
+
+	for i := len(segments) - 1; i >= 0; i-- {
+		segment := segments[i]
+		if segment.From.Add(m.snapshotGracePeriod).Before(at) {
+			s := segment.ToSnapshot()
+			if s.At.After(lastValidBalance.At) {
+				return &s, nil
+			} else {
+				return nil, fmt.Errorf("the last saveable snapshot at %s is before the previous last valid snapshot", s.At, lastValidBalance.At)
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("no segment can be saved at %s with gracePeriod %s", at, m.snapshotGracePeriod)
 }

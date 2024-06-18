@@ -9,10 +9,17 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+type CreateEntitlementDBInputs struct {
+	Namespace        string
+	FeatureID        string    `json:"featureId"`
+	MeasureUsageFrom time.Time `json:"measureUsageFrom,omitempty"`
+	SubjectKey       string    `json:"subjectKey"`
+}
+
 type EntitlementDBConnector interface {
 	// Entitlement Management
 	GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]Entitlement, error)
-	CreateEntitlement(ctx context.Context, entitlement CreateEntitlementInputs) (*Entitlement, error)
+	CreateEntitlement(ctx context.Context, entitlement CreateEntitlementDBInputs) (*Entitlement, error)
 	GetEntitlement(ctx context.Context, entitlementID models.NamespacedID) (*Entitlement, error)
 
 	//FIXME: This is a terrbile hack

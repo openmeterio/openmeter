@@ -37,12 +37,6 @@ func (a *Router) ListEntitlementGrants(w http.ResponseWriter, r *http.Request, s
 	commonhttp.NewHTTPError(http.StatusNotImplemented, fmt.Errorf("not implemented")).EncodeError(context.TODO(), w)
 }
 
-// Create grant
-// (POST /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/grants)
-func (a *Router) CreateGrant(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementId api.EntitlementId) {
-	commonhttp.NewHTTPError(http.StatusNotImplemented, fmt.Errorf("not implemented")).EncodeError(context.TODO(), w)
-}
-
 // Get the balance history of a specific entitlement.
 // (GET /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history)
 func (a *Router) GetEntitlementHistory(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementId api.EntitlementId, params api.GetEntitlementHistoryParams) {

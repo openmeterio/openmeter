@@ -80,8 +80,18 @@ type grantConnector struct {
 	granularity time.Duration
 }
 
-func NewGrantConnector(oc OwnerConnector, db GrantDBConnector, granularity time.Duration) GrantConnector {
-	return &grantConnector{oc: oc, db: db, granularity: granularity}
+func NewGrantConnector(
+	oc OwnerConnector,
+	db GrantDBConnector,
+	bsdb BalanceSnapshotDBConnector,
+	granularity time.Duration,
+) GrantConnector {
+	return &grantConnector{
+		oc:          oc,
+		db:          db,
+		bsdb:        bsdb,
+		granularity: granularity,
+	}
 }
 
 func (m *grantConnector) CreateGrant(ctx context.Context, owner NamespacedGrantOwner, input CreateGrantInput) (*Grant, error) {

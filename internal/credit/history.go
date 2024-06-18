@@ -2,9 +2,7 @@ package credit
 
 import (
 	"fmt"
-	"math"
 	"sort"
-	"time"
 )
 
 type SegmentTerminationReason struct {
@@ -51,6 +49,7 @@ type GrantBurnDownHistorySegment struct {
 	BalanceAtStart     GrantBalanceMap
 	TerminationReasons SegmentTerminationReason // Reason why the segment was terminated (could be multiple taking effect at same time)
 	TotalUsage         float64                  // Total usage of the feature in the Period
+	OverageAtStart     float64                  // Usage beyond what culd be burnt down from the grants in the previous segment (if any)
 	Overage            float64                  // Usage beyond what culd be burnt down from the grants
 	GrantUsages        []GrantUsage             // Grant usages in the segment order by grant priority
 }
@@ -108,29 +107,10 @@ func (g *GrantBurnDownHistory) Overage() float64 {
 	return lastSegment.Overage
 }
 
-// Returns the last segment that can be saved, taking the following into account:
-//
-//  1. We can save a segment if it is older than graceperiod.
-//  2. At the end of a segment history changes: s1.endBalance <> s2.startBalance. This means only the
-//     starting values can be saved credibly.
-func (g *GrantBurnDownHistory) GetLastSaveableAt(at time.Time) (GrantBurnDownHistorySegment, error) {
-	gracePeriod := time.Hour // TODO: make this configurable
-
-	for i := len(g.segments) - 1; i >= 0; i-- {
-		segment := g.segments[i]
-		if segment.From.Add(gracePeriod).Before(at) {
-			return segment, nil
-		}
-	}
-
-	return GrantBurnDownHistorySegment{}, fmt.Errorf("no segment can be saved at %s with gracePeriod %s", at, gracePeriod)
-}
-
 // Creates a GrantBalanceSnapshot from the starting state of the segment
 func (s *GrantBurnDownHistorySegment) ToSnapshot() GrantBalanceSnapshot {
-	overageAtStart := math.Max(0, s.Overage-s.TotalUsage)
 	return GrantBalanceSnapshot{
-		Overage:  overageAtStart,
+		Overage:  s.OverageAtStart,
 		Balances: s.BalanceAtStart,
 		At:       s.From,
 	}

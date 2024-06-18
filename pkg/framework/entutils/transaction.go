@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"runtime/debug"
 	"sync"
 
 	"entgo.io/ent/dialect"
@@ -141,9 +142,11 @@ func StartAndRunTx[R any](ctx context.Context, src TxCreator, cb func(ctx contex
 func RunInTransaction[R any](txCtx context.Context, txDriver *TxDriver, cb func(ctx context.Context, tx *TxDriver) (*R, error)) (*R, error) {
 	defer func() {
 		if r := recover(); r != nil {
+			pMsg := fmt.Sprintf("%v:\n%s", r, debug.Stack())
+
 			// roll back the tx for all downstream (WithTx) clients
 			_ = txDriver.Rollback()
-			panic(r)
+			panic(pMsg)
 		}
 	}()
 

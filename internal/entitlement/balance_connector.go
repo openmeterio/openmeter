@@ -29,8 +29,6 @@ type EntitlementBalanceHistoryWindow struct {
 	OverageAtStart float64
 }
 
-type EntitlementGrantID string
-
 type WindowSize string
 
 const (
@@ -53,23 +51,27 @@ type EntitlementBalanceConnector interface {
 	ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID, resetAT time.Time) (balanceAfterReset *EntitlementBalance, err error)
 
 	// GetEntitlementGrantBalanceHistory(ctx context.Context, entitlementGrantID EntitlementGrantID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
+	CreateGrant(ctx context.Context, entitlement models.NamespacedID, inputGrant CreateEntitlementGrantInputs) (EntitlementGrant, error)
 }
 
 type entitlementBalanceConnector struct {
 	sc streaming.Connector
 	oc credit.OwnerConnector
 	bc credit.BalanceConnector
+	gc credit.GrantConnector
 }
 
 func NewEntitlementBalanceConnector(
 	sc streaming.Connector,
 	oc credit.OwnerConnector,
 	bc credit.BalanceConnector,
+	gc credit.GrantConnector,
 ) EntitlementBalanceConnector {
 	return &entitlementBalanceConnector{
 		sc: sc,
 		oc: oc,
 		bc: bc,
+		gc: gc,
 	}
 }
 
@@ -233,4 +235,29 @@ func (e *entitlementBalanceConnector) ResetEntitlementUsage(ctx context.Context,
 		Overage:       balanceAfterReset.Overage,
 		StartOfPeriod: resetAt,
 	}, nil
+}
+
+func (e *entitlementBalanceConnector) CreateGrant(ctx context.Context, entitlement models.NamespacedID, inputGrant CreateEntitlementGrantInputs) (EntitlementGrant, error) {
+	grant, error := e.gc.CreateGrant(ctx, credit.NamespacedGrantOwner{
+		Namespace: entitlement.Namespace,
+		ID:        credit.GrantOwner(entitlement.ID),
+	}, credit.CreateGrantInput{
+		Amount:           inputGrant.Amount,
+		Priority:         inputGrant.Priority,
+		EffectiveAt:      inputGrant.EffectiveAt,
+		Expiration:       inputGrant.Expiration,
+		ResetMaxRollover: inputGrant.ResetMaxRollover,
+		Recurrence:       inputGrant.Recurrence,
+		Metadata:         inputGrant.Metadata,
+	})
+	if error != nil {
+		if _, ok := error.(credit.OwnerNotFoundError); ok {
+			return EntitlementGrant{}, &EntitlementNotFoundError{EntitlementID: entitlement}
+		}
+
+		return EntitlementGrant{}, error
+	}
+
+	g, err := GrantFromCreditGrant(*grant)
+	return *g, err
 }

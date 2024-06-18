@@ -33,9 +33,9 @@ func TestGetEntitlementBalance(t *testing.T) {
 		MeterGroupByFilters: &map[string]string{},
 	}
 
-	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementInputs {
+	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementDBInputs {
 		t.Helper()
-		return entitlement.CreateEntitlementInputs{
+		return entitlement.CreateEntitlementDBInputs{
 			Namespace:        namespace,
 			FeatureID:        feature.ID,
 			MeasureUsageFrom: testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z"), // old, override in tests
@@ -275,6 +275,107 @@ func TestGetEntitlementBalance(t *testing.T) {
 				assert.Equal(t, g2.EffectiveAt, snap2.At)
 			},
 		},
+		{
+			name: "Should not save the same snapshot over and over again",
+			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+				ctx := context.Background()
+				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+
+				// create featute in db
+				feature, err := deps.featureDB.CreateFeature(ctx, exampleFeature)
+				assert.NoError(t, err)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feature)
+				inp.MeasureUsageFrom = startTime
+				entitlement, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
+				assert.NoError(t, err)
+
+				queryTime := startTime.Add(3 * time.Hour) // longer than grace period for saving snapshots
+
+				// issue grants
+				owner := credit.NamespacedGrantOwner{
+					Namespace: namespace,
+					ID:        credit.GrantOwner(entitlement.ID),
+				}
+
+				g1, err := deps.grantDB.CreateGrant(ctx, credit.DBCreateGrantInput{
+					OwnerID:     owner.ID,
+					Namespace:   namespace,
+					Amount:      1000,
+					Priority:    2,
+					EffectiveAt: startTime,
+					ExpiresAt:   startTime.AddDate(0, 0, 3),
+				})
+				assert.NoError(t, err)
+
+				g2, err := deps.grantDB.CreateGrant(ctx, credit.DBCreateGrantInput{
+					OwnerID:     owner.ID,
+					Namespace:   namespace,
+					Amount:      1000,
+					Priority:    1,
+					EffectiveAt: startTime.Add(time.Hour),
+					ExpiresAt:   startTime.Add(time.Hour).AddDate(0, 0, 3),
+				})
+				assert.NoError(t, err)
+
+				// register usage for meter & feature
+				deps.streaming.AddSimpleEvent(meterSlug, 100, g1.EffectiveAt.Add(time.Minute*5))
+				deps.streaming.AddSimpleEvent(meterSlug, 100, g2.EffectiveAt.Add(time.Minute))
+
+				// add a balance snapshot
+				err = deps.balanceSnapshotDB.Save(
+					ctx,
+					owner, []credit.GrantBalanceSnapshot{
+						{
+							Balances: credit.GrantBalanceMap{
+								g1.ID: 750,
+							},
+							Overage: 0,
+							At:      g1.EffectiveAt.Add(time.Minute),
+						},
+					})
+				assert.NoError(t, err)
+
+				// get last vaild snapshot
+				snap1, err := deps.balanceSnapshotDB.GetLatestValidAt(ctx, owner, queryTime)
+				assert.NoError(t, err)
+
+				entBalance, err := connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, queryTime)
+				assert.NoError(t, err)
+
+				// validate balance calc for good measure
+				assert.Equal(t, 200.0, entBalance.UsageInPeriod) // in total we had 200 usage
+				assert.Equal(t, 1550.0, entBalance.Balance)      // 750 + 1000 (g2 amount) - 200 = 1550
+				assert.Equal(t, 0.0, entBalance.Overage)
+
+				snap2, err := deps.balanceSnapshotDB.GetLatestValidAt(ctx, owner, queryTime)
+				assert.NoError(t, err)
+
+				// check snapshots
+				assert.NotEqual(t, snap1.At, snap2.At)
+				assert.Equal(t, 0.0, snap2.Overage)
+				assert.Equal(t, credit.GrantBalanceMap{
+					g1.ID: 650,  // the grant that existed so far
+					g2.ID: 1000, // the grant that was added at this instant
+				}, snap2.Balances)
+				assert.Equal(t, g2.EffectiveAt, snap2.At)
+
+				// run the calc again
+				entBalance, err = connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, queryTime)
+				assert.NoError(t, err)
+
+				// validate balance calc for good measure
+				assert.Equal(t, 200.0, entBalance.UsageInPeriod) // in total we had 200 usage
+				assert.Equal(t, 1550.0, entBalance.Balance)      // 750 + 1000 (g2 amount) - 200 = 1550
+				assert.Equal(t, 0.0, entBalance.Overage)
+
+				//FIXME: we shouldn't check things that the contract is unable to tell us
+				snaps, err := deps.creditDBCLient.BalanceSnapshot.Query().All(ctx)
+				assert.NoError(t, err)
+				assert.Len(t, snaps, 2) // one for the initial and one we made last time
+			},
+		},
 	}
 
 	for _, tc := range tt {
@@ -299,9 +400,9 @@ func TestGetEntitlementHistory(t *testing.T) {
 		MeterGroupByFilters: &map[string]string{},
 	}
 
-	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementInputs {
+	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementDBInputs {
 		t.Helper()
-		return entitlement.CreateEntitlementInputs{
+		return entitlement.CreateEntitlementDBInputs{
 			Namespace:        namespace,
 			FeatureID:        feature.ID,
 			MeasureUsageFrom: testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z"), // old, override in tests
@@ -431,9 +532,9 @@ func TestResetEntitlementUsage(t *testing.T) {
 		MeterGroupByFilters: &map[string]string{},
 	}
 
-	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementInputs {
+	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementDBInputs {
 		t.Helper()
-		return entitlement.CreateEntitlementInputs{
+		return entitlement.CreateEntitlementDBInputs{
 			Namespace:        namespace,
 			FeatureID:        feature.ID,
 			MeasureUsageFrom: testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z"), // old, override in tests
@@ -656,7 +757,6 @@ func TestResetEntitlementUsage(t *testing.T) {
 	for _, tc := range tt {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
 			connector, deps := setupConnector(t)
 			tc.run(t, connector, deps)
 		})
@@ -664,6 +764,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 }
 
 type testDependencies struct {
+	creditDBCLient    *credit_postgres_adapter_db.Client
 	featureDB         productcatalog.FeatureDBConnector
 	entitlementDB     entitlement.EntitlementDBConnector
 	usageResetDB      entitlement.UsageResetDBConnector
@@ -733,13 +834,22 @@ func setupConnector(t *testing.T) (entitlement.EntitlementBalanceConnector, *tes
 		testLogger,
 	)
 
+	grant := credit.NewGrantConnector(
+		owner,
+		grantDbConn,
+		balanceSnapshotDbConn,
+		time.Minute,
+	)
+
 	connector := entitlement.NewEntitlementBalanceConnector(
 		streaming,
 		owner,
 		balance,
+		grant,
 	)
 
 	return connector, &testDependencies{
+		creditDBCLient:    grantDbClient,
 		featureDB:         featureDB,
 		entitlementDB:     entitlementDB,
 		usageResetDB:      usageresetDB,

@@ -120,6 +120,7 @@ func (e *engine) Run(grants []Grant, startingBalances GrantBalanceMap, overage f
 		segment := GrantBurnDownHistorySegment{
 			Period:         Period{From: phase.from, To: phase.to},
 			BalanceAtStart: balancesAtPhaseStart.Copy(),
+			OverageAtStart: overage,
 			TerminationReasons: SegmentTerminationReason{
 				PriorityChange: phase.priorityChange,
 				Recurrence:     phase.grantsRecurredAtEnd,
