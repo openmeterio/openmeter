@@ -317,6 +317,7 @@ func main() {
 			featureDBAdapter,
 			entitlementDBAdapter,
 			usageResetDBAdapter,
+			meterRepository,
 			logger,
 		)
 		creditBalanceConnector := credit.NewBalanceConnector(

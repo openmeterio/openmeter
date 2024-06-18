@@ -1493,7 +1493,7 @@ components:
               enum:
                 - metered
               example: metered
-            unlimited:
+            isUnlimited:
               type: boolean
               default: false
               description: |
@@ -1502,14 +1502,12 @@ components:
                 $ref: "#/components/schemas/RecurringPeriod"
         - oneOf:
           - type: object
-            additionalProperties: false
             properties:
               resetUsageByUsagePeriod:
                 type: boolean
                 description: |
                   Automatically reset usage in the access calculation based on usage period.
           - type: object
-            additionalProperties: false
             required:
               - resetUsageByUsagePeriod
             properties:
@@ -2323,7 +2321,7 @@ components:
         type: integer
         minimum: 0
         default: 0
-        example: 100
+        example: 0
     queryFrom:
       name: from
       in: query

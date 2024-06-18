@@ -43,6 +43,7 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlemen
 	res, err := a.db.Entitlement.Create().
 		SetNamespace(entitlement.Namespace).
 		SetFeatureID(entitlement.FeatureID).
+		SetSubjectKey(entitlement.SubjectKey).
 		SetMeasureUsageFrom(entitlement.MeasureUsageFrom).
 		Save(ctx)
 	if err != nil {

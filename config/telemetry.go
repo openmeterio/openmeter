@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/golang-cz/devslog"
 	"github.com/lmittmann/tint"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -318,7 +319,7 @@ type LogTelemetryConfiguration struct {
 
 // Validate validates the configuration.
 func (c LogTelemetryConfiguration) Validate() error {
-	if !slices.Contains([]string{"json", "text", "tint"}, c.Format) {
+	if !slices.Contains([]string{"json", "text", "tint", "prettydev"}, c.Format) {
 		return fmt.Errorf("invalid format: %q", c.Format)
 	}
 
@@ -340,6 +341,15 @@ func (c LogTelemetryConfiguration) NewHandler(w io.Writer) slog.Handler {
 
 	case "tint":
 		return tint.NewHandler(os.Stdout, &tint.Options{Level: c.Level})
+	case "prettydev":
+		return devslog.NewHandler(w, &devslog.Options{
+			MaxSlicePrintSize: 4,
+			SortKeys:          true,
+			TimeFormat:        "[04:05]",
+			NewLineAfterLog:   true,
+			DebugColor:        devslog.Magenta,
+			HandlerOptions:    &slog.HandlerOptions{Level: c.Level},
+		})
 	}
 
 	return slog.NewJSONHandler(w, &slog.HandlerOptions{Level: c.Level})

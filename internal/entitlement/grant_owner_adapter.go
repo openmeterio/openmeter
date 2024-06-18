@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -17,6 +18,7 @@ type entitlementGrantOwner struct {
 	fdb    productcatalog.FeatureDBConnector
 	edb    EntitlementDBConnector
 	urdb   UsageResetDBConnector
+	mr     meter.Repository
 	logger *slog.Logger
 }
 
@@ -24,12 +26,14 @@ func NewEntitlementGrantOwnerAdapter(
 	fdb productcatalog.FeatureDBConnector,
 	edb EntitlementDBConnector,
 	urdb UsageResetDBConnector,
+	mr meter.Repository,
 	logger *slog.Logger,
 ) credit.OwnerConnector {
 	return &entitlementGrantOwner{
 		fdb:    fdb,
 		edb:    edb,
 		urdb:   urdb,
+		mr:     mr,
 		logger: logger,
 	}
 }
@@ -52,7 +56,14 @@ func (e *entitlementGrantOwner) GetOwnerQueryParams(ctx context.Context, owner c
 		return "", nil, fmt.Errorf("failed to get feature of entitlement: %w", err)
 	}
 
-	queryParams := &streaming.QueryParams{}
+	meter, err := e.mr.GetMeterByIDOrSlug(ctx, feature.Namespace, feature.MeterSlug)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to get meter: %w", err)
+	}
+
+	queryParams := &streaming.QueryParams{
+		Aggregation: meter.Aggregation,
+	}
 
 	if feature.MeterGroupByFilters != nil {
 		queryParams.FilterGroupBy = map[string][]string{}

@@ -16,6 +16,7 @@ import (
 	productcatalog_postgresadapter_db "github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter/ent/db"
 	streaming_testutils "github.com/openmeterio/openmeter/internal/streaming/testutils"
 	"github.com/openmeterio/openmeter/internal/testutils"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/stretchr/testify/assert"
 )
@@ -27,6 +28,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 	exampleFeature := productcatalog.DBCreateFeatureInputs{
 		Namespace:           namespace,
 		Name:                "feature1",
+		Key:                 "feature-1",
 		MeterSlug:           meterSlug,
 		MeterGroupByFilters: &map[string]string{},
 	}
@@ -292,6 +294,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 	exampleFeature := productcatalog.DBCreateFeatureInputs{
 		Namespace:           namespace,
 		Name:                "feature1",
+		Key:                 "feature1",
 		MeterSlug:           meterSlug,
 		MeterGroupByFilters: &map[string]string{},
 	}
@@ -423,6 +426,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 	exampleFeature := productcatalog.DBCreateFeatureInputs{
 		Namespace:           namespace,
 		Name:                "feature1",
+		Key:                 "feature1",
 		MeterSlug:           meterSlug,
 		MeterGroupByFilters: &map[string]string{},
 	}
@@ -680,6 +684,11 @@ func setupConnector(t *testing.T) (entitlement.EntitlementBalanceConnector, *tes
 	streaming := streaming_testutils.NewMockStreamingConnector(t, streaming_testutils.MockStreamingConnectorParams{
 		DefaultHighwatermark: veryOld,
 	})
+	meterRepo := meter.NewInMemoryRepository([]models.Meter{{
+		Slug:        "meter1",
+		Namespace:   "ns1",
+		Aggregation: models.MeterAggregationMax,
+	}})
 
 	// create isolated pg db for tests
 	driver := testutils.InitPostgresDB(t)
@@ -712,6 +721,7 @@ func setupConnector(t *testing.T) (entitlement.EntitlementBalanceConnector, *tes
 		featureDB,
 		entitlementDB,
 		usageresetDB,
+		meterRepo,
 		testLogger,
 	)
 

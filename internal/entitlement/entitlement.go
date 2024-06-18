@@ -11,6 +11,7 @@ type CreateEntitlementInputs struct {
 	Namespace        string
 	FeatureID        string    `json:"featureId"`
 	MeasureUsageFrom time.Time `json:"measureUsageFrom,omitempty"`
+	SubjectKey       string    `json:"subjectKey"`
 }
 
 type Entitlement struct {

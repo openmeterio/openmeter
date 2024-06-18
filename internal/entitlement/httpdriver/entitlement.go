@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -20,20 +21,6 @@ type EntitlementHandler interface {
 	GetEntitlementValue() GetEntitlementValueHandler
 	GetEntitlementsOfSubjectHandler() GetEntitlementsOfSubjectHandler
 }
-
-type CreateEntitlementParams struct {
-	SubjectIdOrKey string
-}
-
-type CreateEntitlementHandler httptransport.HandlerWithArgs[entitlement.CreateEntitlementInputs, api.EntitlementMetered, CreateEntitlementParams]
-
-type GetEntitlementValueInputs struct {
-	ID models.NamespacedID
-	At time.Time
-}
-type GetEntitlementValueHandler httptransport.HandlerWithArgs[GetEntitlementValueInputs, api.EntitlementValue, EntitlementValueParams]
-
-type GetEntitlementsOfSubjectHandler httptransport.HandlerWithArgs[models.NamespacedID, []api.EntitlementMetered, string]
 
 type entitlementHandler struct {
 	namespaceDecoder namespacedriver.NamespaceDecoder
@@ -49,16 +36,21 @@ func NewEntitlementHandler(
 	return &entitlementHandler{
 		namespaceDecoder: namespaceDecoder,
 		options:          options,
+		connector:        connector,
 	}
 }
 
+type CreateEntitlementHandler httptransport.HandlerWithArgs[entitlement.CreateEntitlementInputs, api.EntitlementMetered, string]
+
 func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
-	return httptransport.NewHandlerWithArgs[entitlement.CreateEntitlementInputs, api.EntitlementMetered, CreateEntitlementParams](
-		func(ctx context.Context, r *http.Request, arg CreateEntitlementParams) (entitlement.CreateEntitlementInputs, error) {
+	return httptransport.NewHandlerWithArgs[entitlement.CreateEntitlementInputs, api.EntitlementMetered, string](
+		func(ctx context.Context, r *http.Request, subjectIdOrKey string) (entitlement.CreateEntitlementInputs, error) {
 			entitlement := entitlement.CreateEntitlementInputs{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &entitlement); err != nil {
 				return entitlement, err
 			}
+			// TODO: should work with ID as well
+			entitlement.SubjectKey = subjectIdOrKey
 
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
@@ -100,15 +92,21 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 	)
 }
 
-type EntitlementValueParams struct {
+type GetEntitlementValueParams struct {
 	SubjectIdOrKey            string
 	EntitlementIdOrFeatureKey string
 	Params                    api.GetEntitlementValueParams
 }
 
+type GetEntitlementValueInputs struct {
+	ID models.NamespacedID
+	At time.Time
+}
+type GetEntitlementValueHandler httptransport.HandlerWithArgs[GetEntitlementValueInputs, api.EntitlementValue, GetEntitlementValueParams]
+
 func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, params EntitlementValueParams) (GetEntitlementValueInputs, error) {
+		func(ctx context.Context, r *http.Request, params GetEntitlementValueParams) (GetEntitlementValueInputs, error) {
 			// TODO: use subjectIdOrKey
 
 			ns, err := h.resolveNamespace(ctx)
@@ -121,6 +119,7 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 					Namespace: ns,
 					ID:        params.EntitlementIdOrFeatureKey,
 				},
+				At: defaultx.WithDefault(params.Params.Time, time.Now()),
 			}, nil
 		},
 		func(ctx context.Context, request GetEntitlementValueInputs) (api.EntitlementValue, error) {
@@ -157,9 +156,16 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 	)
 }
 
+type GetEntitlementsOfSubjectParams struct {
+	SubjectIdOrKey string
+	Params         api.ListSubjectEntitlementsParams
+}
+
+type GetEntitlementsOfSubjectHandler httptransport.HandlerWithArgs[models.NamespacedID, []api.EntitlementMetered, GetEntitlementsOfSubjectParams]
+
 func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOfSubjectHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, subjectIdOrKey string) (models.NamespacedID, error) {
+		func(ctx context.Context, r *http.Request, params GetEntitlementsOfSubjectParams) (models.NamespacedID, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return models.NamespacedID{}, err
@@ -167,7 +173,7 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 
 			return models.NamespacedID{
 				Namespace: ns,
-				ID:        subjectIdOrKey,
+				ID:        params.SubjectIdOrKey, // TODO: should work with ID as well & should use params.Params values
 			}, nil
 		},
 		func(ctx context.Context, id models.NamespacedID) ([]api.EntitlementMetered, error) {
