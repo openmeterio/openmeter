@@ -71,7 +71,7 @@ func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner Namespac
 	if balance.At.Before(periodStart) {
 		// This is an inconsistency check. It can only happen if we lost our snapshot for the last reset.
 		//
-		// The engine doesn't manage rollovers at usage reset so it cannot be used to calculate GrantBurnDown accross resets.
+		// The engine doesn't manage rollovers at usage reset so it cannot be used to calculate GrantBurnDown across resets.
 		return nil, fmt.Errorf("last valid balance snapshot %s is before current period start at %s, no snapshot was created for reset", balance.At, periodStart)
 	}
 
@@ -126,9 +126,12 @@ func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner Namespac
 	//
 	// FIXME: we should do this comparison not with the queried time but the current time...
 	if snap, err := m.getLastSaveableSnapshotAt(history, balance, at); err == nil {
-		m.bsc.Save(ctx, owner, []GrantBalanceSnapshot{
+		err := m.bsc.Save(ctx, owner, []GrantBalanceSnapshot{
 			*snap,
 		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to save balance for owner %s at %s: %w", owner.ID, at, err)
+		}
 
 	}
 
@@ -140,9 +143,9 @@ func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner Namespac
 	}, nil
 }
 
-// Returns the joined GrantBurnDownHistory accross usage periods.
+// Returns the joined GrantBurnDownHistory across usage periods.
 func (m *balanceConnector) GetBalanceHistoryOfOwner(ctx context.Context, owner NamespacedGrantOwner, params BalanceHistoryParams) (GrantBurnDownHistory, error) {
-	// get all usage resets inbetween queryied period
+	// get all usage resets between queryied period
 	startTimes, err := m.oc.GetPeriodStartTimesBetween(ctx, owner, params.From, params.To)
 	if err != nil {
 		return GrantBurnDownHistory{}, fmt.Errorf("failed to get period start times between %s and %s for owner %s: %w", params.From, params.To, owner.ID, err)
@@ -165,7 +168,7 @@ func (m *balanceConnector) GetBalanceHistoryOfOwner(ctx context.Context, owner N
 		if period.From.Before(balance.At) {
 			// This is an inconsistency check. It can only happen if we lost our snapshot for the reset.
 			//
-			// The engine doesn't manage rollovers at usage reset so it cannot be used to calculate GrantBurnDown accross resets.
+			// The engine doesn't manage rollovers at usage reset so it cannot be used to calculate GrantBurnDown across resets.
 			// FIXME: this is theoretically possible, we need to handle it, add capability to ledger.
 			return GrantBurnDownHistory{}, fmt.Errorf("current period start %s is before last valid balance snapshot at %s, no snapshot was created for reset", period.From, balance.At)
 		}
@@ -248,7 +251,7 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 	if balance.At.Before(periodStart) {
 		// This is an inconsistency check. It can only happen if we lost our snapshot for the last reset.
 		//
-		// The engine doesn't manage rollovers at usage reset so it cannot be used to calculate GrantBurnDown accross resets.
+		// The engine doesn't manage rollovers at usage reset so it cannot be used to calculate GrantBurnDown across resets.
 		// FIXME: this is theoretically possible, we need to handle it, add capability to ledger.
 		return nil, fmt.Errorf("last valid balance snapshot %s is before current period start at %s, no snapshot was created for reset", balance.At, periodStart)
 	}
@@ -288,7 +291,7 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 	startingBalance := endingBalance.Copy()
 	for grantID, grantBalance := range endingBalance {
 		grant, ok := grantMap[grantID]
-		// inconcistency check, shouldn't happen
+		// inconsistency check, shouldn't happen
 		if !ok {
 			return nil, fmt.Errorf("attempting to roll over unknown grant %s", grantID)
 		}

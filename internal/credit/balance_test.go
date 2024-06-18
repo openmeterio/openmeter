@@ -3,8 +3,9 @@ package credit_test
 import (
 	"testing"
 
-	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/openmeterio/openmeter/internal/credit"
 )
 
 func TestGrantBalanceMap(t *testing.T) {

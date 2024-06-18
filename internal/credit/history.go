@@ -36,7 +36,7 @@ type GrantUsage struct {
 	TerminationReason GrantUsageTerminationReason
 }
 
-// GrantBurnDownHistorySegment represents the smallest segment of grant usage which we store and calcualte.
+// GrantBurnDownHistorySegment represents the smallest segment of grant usage which we store and calculate.
 //
 // A segment represents a period of time in which:
 // 1) The grant priority does not change

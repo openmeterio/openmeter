@@ -2,6 +2,7 @@ package postgresadapter
 
 import (
 	entsql "entgo.io/ent/dialect/sql"
+
 	"github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db"
 )
 

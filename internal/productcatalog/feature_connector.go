@@ -103,14 +103,7 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 		return Feature{}, &FeatureWithNameAlreadyExistsError{Name: feature.Name, ID: found.ID}
 	}
 
-	//nolint:staticcheck Interface might change
-	return c.db.CreateFeature(ctx, DBCreateFeatureInputs{
-		Name:                feature.Name,
-		Key:                 feature.Key,
-		Namespace:           feature.Namespace,
-		MeterSlug:           feature.MeterSlug,
-		MeterGroupByFilters: feature.MeterGroupByFilters,
-	})
+	return c.db.CreateFeature(ctx, DBCreateFeatureInputs(feature))
 }
 
 func (c *featureConnector) ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error {

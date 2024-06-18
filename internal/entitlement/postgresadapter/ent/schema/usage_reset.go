@@ -6,6 +6,7 @@ import (
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -41,7 +42,7 @@ func (UsageReset) Indexes() []ent.Index {
 }
 
 // Edges of the UsageReset define the relations to other entities.
-// TOOD: link to entitlements
+// TODO: link to entitlements
 func (UsageReset) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("entitlement", Entitlement.Type).

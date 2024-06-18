@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/openmeterio/openmeter/internal/credit"
 	credit_postgres_adapter "github.com/openmeterio/openmeter/internal/credit/postgresadapter"
 	credit_postgres_adapter_db "github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db"
@@ -18,7 +20,6 @@ import (
 	"github.com/openmeterio/openmeter/internal/testutils"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestGetEntitlementBalance(t *testing.T) {
@@ -462,7 +463,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				// grant inbetween windows
+				// grant between windows
 				_, err = deps.grantDB.CreateGrant(ctx, credit.DBCreateGrantInput{
 					OwnerID:     credit.GrantOwner(ent.ID),
 					Namespace:   namespace,

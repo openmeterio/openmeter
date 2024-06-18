@@ -8,11 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/openmeterio/openmeter/internal/testutils"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	db1 "github.com/openmeterio/openmeter/pkg/framework/entutils/testutils/ent1/db"
 	db2 "github.com/openmeterio/openmeter/pkg/framework/entutils/testutils/ent2/db"
-	"github.com/stretchr/testify/assert"
 )
 
 // db1Adapter and db2Adapter implement the generic SomeDB interface as DB adapters
@@ -139,7 +140,8 @@ func TestTransaction(t *testing.T) {
 					assert.NotNil(t, ent2)
 
 					// roll back
-					tx.Rollback()
+					err = tx.Rollback()
+					assert.NoError(t, err)
 					return nil, nil
 				})
 				if err != nil {

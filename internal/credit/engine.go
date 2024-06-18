@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -156,7 +157,7 @@ func (e *engine) Run(grants []Grant, startingBalances GrantBalanceMap, overage f
 // Burns down the grants of the priority sorted list. Manages overage.
 // All calculations are done during this function.
 //
-// FIXME: calcualtions happen on inexact representations as float64, this can lead to rounding errors.
+// FIXME: calculations happen on inexact representations as float64, this can lead to rounding errors.
 func (e *engine) BurnDownGrants(startingBalances GrantBalanceMap, prioritized []Grant, usage float64) (GrantBalanceMap, []GrantUsage, float64, error) {
 	balances := startingBalances.Copy()
 	uses := make([]GrantUsage, 0, len(prioritized))

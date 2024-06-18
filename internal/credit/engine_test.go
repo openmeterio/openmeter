@@ -9,10 +9,11 @@ import (
 	"time"
 
 	"github.com/brianvoe/gofakeit/v6"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/internal/streaming/testutils"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestEngine(t *testing.T) {
@@ -686,7 +687,7 @@ func TestEngine(t *testing.T) {
 		run    func(t *testing.T, queryFn func(from time.Time, to time.Time) (float64, error), use addUsageFunc)
 	}{
 		{
-			name:   "Calculating same period in 2 runs yields same result as calculatin in one run",
+			name:   "Calculating same period in 2 runs yields same result as calculations in one run",
 			repeat: 1,
 			run: func(t *testing.T, queryFn func(from time.Time, to time.Time) (float64, error), use addUsageFunc) {
 				// burn down with usage after grant effectiveAt

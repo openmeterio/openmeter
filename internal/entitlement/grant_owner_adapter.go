@@ -42,7 +42,7 @@ func (e *entitlementGrantOwner) GetOwnerQueryParams(ctx context.Context, owner c
 	// get feature of entitlement
 	entitlement, err := e.edb.GetEntitlement(ctx, owner.NamespacedID())
 	if err != nil {
-		e.logger.Debug("failed to get entitlement for owner %s in namespace %s: %w", string(owner.ID), owner.Namespace, err)
+		e.logger.Debug(fmt.Sprintf("failed to get entitlement for owner %s in namespace %s: %s", string(owner.ID), owner.Namespace, err))
 		return "", nil, &credit.OwnerNotFoundError{
 			Owner:          owner,
 			AttemptedOwner: "entitlement",

@@ -892,6 +892,7 @@ paths:
                 type: "urn:problem-type:conflict"
                 title: "Conflict"
                 status: 409
+                existingEntitlementId: "01G65Z755AFWAKHE12NY0CQ9FH"
                 detail: "already entitled to feature"
         "501":
           $ref: "#/components/responses/NotImplementedProblemResponse"
@@ -1457,8 +1458,6 @@ components:
               type: string
               example: customer-1
             usagePeriod:
-              description: |
-                Represents a usage period, mostly used for analytics and data visualization.
               $ref: "#/components/schemas/RecurringPeriod"
     EntitlementMeteredCreateInputs:
       allOf:
@@ -1736,8 +1735,6 @@ components:
         - anchor
       properties:
         interval:
-          description: |
-            The recurring period like month.
           $ref: "#/components/schemas/RecurringPeriodEnum"
         anchor:
           description: |

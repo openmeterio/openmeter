@@ -3,6 +3,7 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/schema/field"
+
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 

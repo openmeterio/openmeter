@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db"
 	db_usagereset "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db/usagereset"

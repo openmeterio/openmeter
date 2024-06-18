@@ -120,7 +120,10 @@ func (m *grantConnector) CreateGrant(ctx context.Context, owner NamespacedGrantO
 	}
 
 	return entutils.StartAndRunTx(ctx, m.db, func(ctx context.Context, tx *entutils.TxDriver) (*Grant, error) {
-		m.oc.LockOwnerForTx(ctx, tx, owner)
+		err := m.oc.LockOwnerForTx(ctx, tx, owner)
+		if err != nil {
+			return nil, err
+		}
 		grant, err := m.db.WithTx(ctx, tx).CreateGrant(ctx, DBCreateGrantInput{
 			OwnerID:          owner.ID,
 			Namespace:        owner.Namespace,
