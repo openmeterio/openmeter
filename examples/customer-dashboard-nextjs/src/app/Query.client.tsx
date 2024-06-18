@@ -1,19 +1,19 @@
-'use client'
+'use client';
 
+import type { MeterQueryRow, WindowSize } from '@openmeter/web';
+import { OpenMeterProvider, useOpenMeter } from '@openmeter/web/react';
+import { experimental_createPersister } from '@tanstack/query-persist-client-core';
 import {
   QueryClient,
   QueryClientProvider,
   useQuery,
-} from '@tanstack/react-query'
-import { experimental_createPersister } from '@tanstack/query-persist-client-core'
+} from '@tanstack/react-query';
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
   useReactTable,
-} from '@tanstack/react-table'
-import type { MeterQueryRow, WindowSize } from '@openmeter/web'
-import { OpenMeterProvider, useOpenMeter } from '@openmeter/web/react'
+} from '@tanstack/react-table';
 import {
   Chart as ChartJS,
   Colors,
@@ -23,10 +23,10 @@ import {
   LinearScale,
   Tooltip,
   PointElement,
-} from 'chart.js'
-import 'chartjs-adapter-luxon'
-import { Bar } from 'react-chartjs-2'
-import { useMemo } from 'react'
+} from 'chart.js';
+import 'chartjs-adapter-luxon';
+import { useMemo } from 'react';
+import { Bar } from 'react-chartjs-2';
 
 ChartJS.register(
   Colors,
@@ -35,10 +35,10 @@ ChartJS.register(
   TimeScale,
   TimeSeriesScale,
   Tooltip,
-  PointElement
-)
+  PointElement,
+);
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient();
 
 export function OpenMeterQuery() {
   return (
@@ -58,7 +58,7 @@ export function OpenMeterQuery() {
         </div>
       </OpenMeterPortal>
     </QueryClientProvider>
-  )
+  );
 }
 
 export function OpenMeterPortal({ children }: { children?: React.ReactNode }) {
@@ -78,7 +78,7 @@ export function OpenMeterPortal({ children }: { children?: React.ReactNode }) {
             maxAge: 30 * 60 * 1000, // 30 minutes in ms
           })
         : undefined,
-  })
+  });
 
   return (
     <OpenMeterProvider
@@ -87,31 +87,31 @@ export function OpenMeterPortal({ children }: { children?: React.ReactNode }) {
     >
       {children}
     </OpenMeterProvider>
-  )
+  );
 }
 
 type Params = {
-  meterSlug: string
-  from?: string
-  to?: string
-  windowSize?: WindowSize
-  windowTimeZone?: string
-}
+  meterSlug: string;
+  from?: string;
+  to?: string;
+  windowSize?: WindowSize;
+  windowTimeZone?: string;
+};
 
 function useOpenMeterQuery(params: Params) {
-  const openmeter = useOpenMeter()
+  const openmeter = useOpenMeter();
   return useQuery({
     queryKey: ['openmeter', 'queryPortalMeter', params],
     queryFn: async () => {
-      const { data } = await openmeter!.queryPortalMeter(params)
-      return data
+      const { data } = await openmeter!.queryPortalMeter(params);
+      return data;
     },
     // disable query when openmeter client is not initialized (token is missing)
     enabled: !!openmeter,
-  })
+  });
 }
 
-const columnHelper = createColumnHelper<MeterQueryRow>()
+const columnHelper = createColumnHelper<MeterQueryRow>();
 const columns = [
   columnHelper.accessor('windowStart', {
     id: 'windowStart',
@@ -145,16 +145,16 @@ const columns = [
         maximumFractionDigits: 2,
       }),
   }),
-]
+];
 
 export function OpenMeterQueryTable(params: Params) {
   // NOTE: error and loading states aren't handled here for brevity
-  const { data } = useOpenMeterQuery(params)
+  const { data } = useOpenMeterQuery(params);
   const table = useReactTable({
     columns,
     data: data?.data ?? [],
     getCoreRowModel: getCoreRowModel(),
-  })
+  });
 
   return (
     <table className="w-full caption-bottom border-separate border-spacing-0 bg-slate-100">
@@ -164,11 +164,11 @@ export function OpenMeterQueryTable(params: Params) {
             {headerGroup.headers.map((header) => (
               <th
                 key={header.id}
-                className="h-10 whitespace-nowrap bg-slate-200 px-2 text-left align-middle font-medium uppercase text-sm"
+                className="h-10 whitespace-nowrap bg-slate-200 px-2 text-left align-middle text-sm font-medium uppercase"
               >
                 {flexRender(
                   header.column.columnDef.header,
-                  header.getContext()
+                  header.getContext(),
                 )}
               </th>
             ))}
@@ -190,12 +190,12 @@ export function OpenMeterQueryTable(params: Params) {
         ))}
       </tbody>
     </table>
-  )
+  );
 }
 
 export function OpenMeterQueryChart(params: Params) {
   // NOTE: error and loading states aren't handled here for brevity
-  const { data } = useOpenMeterQuery(params)
+  const { data } = useOpenMeterQuery(params);
   const chartData = useMemo(
     () => ({
       label: 'Values',
@@ -209,11 +209,11 @@ export function OpenMeterQueryChart(params: Params) {
         },
       ],
     }),
-    [data]
-  )
+    [data],
+  );
 
   return (
-    <div className="bg-slate-100 rounded h-96">
+    <div className="h-96 rounded bg-slate-100">
       <Bar
         options={{
           responsive: true,
@@ -226,7 +226,7 @@ export function OpenMeterQueryChart(params: Params) {
           scales: {
             x: {
               type: 'time',
-              distribution: 'series',
+              // distribution: 'series',
               time: {
                 unit: 'day',
               },
@@ -244,5 +244,5 @@ export function OpenMeterQueryChart(params: Params) {
         data={chartData}
       />
     </div>
-  )
+  );
 }
