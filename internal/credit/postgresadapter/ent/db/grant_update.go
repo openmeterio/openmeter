@@ -66,6 +66,26 @@ func (gu *GrantUpdate) ClearDeletedAt() *GrantUpdate {
 	return gu
 }
 
+// SetVoidedAt sets the "voided_at" field.
+func (gu *GrantUpdate) SetVoidedAt(t time.Time) *GrantUpdate {
+	gu.mutation.SetVoidedAt(t)
+	return gu
+}
+
+// SetNillableVoidedAt sets the "voided_at" field if the given value is not nil.
+func (gu *GrantUpdate) SetNillableVoidedAt(t *time.Time) *GrantUpdate {
+	if t != nil {
+		gu.SetVoidedAt(*t)
+	}
+	return gu
+}
+
+// ClearVoidedAt clears the value of the "voided_at" field.
+func (gu *GrantUpdate) ClearVoidedAt() *GrantUpdate {
+	gu.mutation.ClearVoidedAt()
+	return gu
+}
+
 // Mutation returns the GrantMutation object of the builder.
 func (gu *GrantUpdate) Mutation() *GrantMutation {
 	return gu.mutation
@@ -131,6 +151,9 @@ func (gu *GrantUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if gu.mutation.DeletedAtCleared() {
 		_spec.ClearField(grant.FieldDeletedAt, field.TypeTime)
 	}
+	if value, ok := gu.mutation.VoidedAt(); ok {
+		_spec.SetField(grant.FieldVoidedAt, field.TypeTime, value)
+	}
 	if gu.mutation.VoidedAtCleared() {
 		_spec.ClearField(grant.FieldVoidedAt, field.TypeTime)
 	}
@@ -195,6 +218,26 @@ func (guo *GrantUpdateOne) SetNillableDeletedAt(t *time.Time) *GrantUpdateOne {
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (guo *GrantUpdateOne) ClearDeletedAt() *GrantUpdateOne {
 	guo.mutation.ClearDeletedAt()
+	return guo
+}
+
+// SetVoidedAt sets the "voided_at" field.
+func (guo *GrantUpdateOne) SetVoidedAt(t time.Time) *GrantUpdateOne {
+	guo.mutation.SetVoidedAt(t)
+	return guo
+}
+
+// SetNillableVoidedAt sets the "voided_at" field if the given value is not nil.
+func (guo *GrantUpdateOne) SetNillableVoidedAt(t *time.Time) *GrantUpdateOne {
+	if t != nil {
+		guo.SetVoidedAt(*t)
+	}
+	return guo
+}
+
+// ClearVoidedAt clears the value of the "voided_at" field.
+func (guo *GrantUpdateOne) ClearVoidedAt() *GrantUpdateOne {
+	guo.mutation.ClearVoidedAt()
 	return guo
 }
 
@@ -292,6 +335,9 @@ func (guo *GrantUpdateOne) sqlSave(ctx context.Context) (_node *Grant, err error
 	}
 	if guo.mutation.DeletedAtCleared() {
 		_spec.ClearField(grant.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := guo.mutation.VoidedAt(); ok {
+		_spec.SetField(grant.FieldVoidedAt, field.TypeTime, value)
 	}
 	if guo.mutation.VoidedAtCleared() {
 		_spec.ClearField(grant.FieldVoidedAt, field.TypeTime)

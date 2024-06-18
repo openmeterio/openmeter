@@ -312,6 +312,24 @@ func (e *engine) getGrantActivityChanges(period Period) []time.Time {
 		if grant.ExpiresAt.After(period.From) && (grant.ExpiresAt.Before(period.To)) {
 			activityChanges = append(activityChanges, grant.ExpiresAt)
 		}
+		// grants that are deleted in the period
+		if grant.DeletedAt != nil {
+			if grant.DeletedAt.After(period.From) && (grant.DeletedAt.Before(period.To)) {
+				activityChanges = append(activityChanges, *grant.DeletedAt)
+			}
+		}
+		// grants that are voided in the period
+		if grant.VoidedAt != nil {
+			if grant.VoidedAt.After(period.From) && (grant.VoidedAt.Before(period.To)) {
+				activityChanges = append(activityChanges, *grant.VoidedAt)
+			}
+		}
+
+	}
+
+	// FIXME: we should truncate on input but that's hard for voidedAt and deletedAt
+	for i, t := range activityChanges {
+		activityChanges[i] = t.Truncate(time.Minute)
 	}
 
 	sort.Slice(activityChanges, func(i, j int) bool {

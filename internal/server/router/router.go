@@ -9,6 +9,8 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/internal/credit"
+	credit_httpdriver "github.com/openmeterio/openmeter/internal/credit/httpdriver"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	entitlement_httpdriver "github.com/openmeterio/openmeter/internal/entitlement/httpdriver"
 	"github.com/openmeterio/openmeter/internal/meter"
@@ -53,6 +55,7 @@ type Config struct {
 	FeatureConnector            productcatalog.FeatureConnector
 	EntitlementConnector        entitlement.EntitlementConnector
 	EntitlementBalanceConnector entitlement.EntitlementBalanceConnector
+	GrantConnector              credit.GrantConnector
 
 	// FIXME: implement generic module management, loading, etc...
 	EntitlementsEnabled bool
@@ -62,6 +65,7 @@ type Router struct {
 	config Config
 
 	featureHandler            productcatalog_httpdriver.FeatureHandler
+	creditHandler             credit_httpdriver.GrantHandler
 	entitlementHandler        entitlement_httpdriver.EntitlementHandler
 	meteredEntitlementHandler entitlement_httpdriver.MeteredEntitlementHandler
 }
@@ -91,6 +95,12 @@ func NewRouter(config Config) (*Router, error) {
 			config.EntitlementConnector,
 			config.EntitlementBalanceConnector,
 			namespacedriver.StaticNamespaceDecoder("default"),
+			httptransport.WithErrorHandler(config.ErrorHandler),
+		)
+
+		router.creditHandler = credit_httpdriver.NewGrantHandler(
+			namespacedriver.StaticNamespaceDecoder("default"),
+			config.GrantConnector,
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
 	}

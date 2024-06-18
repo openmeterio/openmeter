@@ -30,15 +30,3 @@ func (a *Router) DeleteEntitlement(w http.ResponseWriter, r *http.Request, subje
 func (a *Router) GetEntitlement(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementId api.EntitlementId) {
 	commonhttp.NewHTTPError(http.StatusNotImplemented, fmt.Errorf("not implemented")).EncodeError(context.TODO(), w)
 }
-
-// List grants
-// (GET /api/v1/grants)
-func (a *Router) ListGrants(w http.ResponseWriter, r *http.Request, params api.ListGrantsParams) {
-	commonhttp.NewHTTPError(http.StatusNotImplemented, fmt.Errorf("not implemented")).EncodeError(context.TODO(), w)
-}
-
-// Delete a grant
-// (DELETE /api/v1/grants/{grantId})
-func (a *Router) VoidGrant(w http.ResponseWriter, r *http.Request, grantId api.GrantId) {
-	commonhttp.NewHTTPError(http.StatusNotImplemented, fmt.Errorf("not implemented")).EncodeError(context.TODO(), w)
-}

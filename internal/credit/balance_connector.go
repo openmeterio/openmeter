@@ -340,7 +340,7 @@ func (m *balanceConnector) getLastValidBalanceSnapshotForOwnerAt(ctx context.Con
 	if err != nil {
 		if _, ok := err.(*GrantBalanceNoSavedBalanceForOwnerError); ok {
 			// if no snapshot is found we have to calculate from start of time on all grants and usage
-			m.logger.Info(fmt.Sprintf("no saved balance found for owner %s before %s, calculating from start of time", owner.ID, at))
+			m.logger.Debug(fmt.Sprintf("no saved balance found for owner %s before %s, calculating from start of time", owner.ID, at))
 
 			startOfMeasurement, err := m.oc.GetStartOfMeasurement(ctx, owner)
 			if err != nil {
@@ -416,7 +416,7 @@ func (m *balanceConnector) getLastSaveableSnapshotAt(history *GrantBurnDownHisto
 			if s.At.After(lastValidBalance.At) {
 				return &s, nil
 			} else {
-				return nil, fmt.Errorf("the last saveable snapshot at %s is before the previous last valid snapshot", s.At, lastValidBalance.At)
+				return nil, fmt.Errorf("the last saveable snapshot at %s is before the previous last valid snapshot", s.At)
 			}
 		}
 	}

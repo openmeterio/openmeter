@@ -475,6 +475,24 @@ func (u *GrantUpsert) ClearDeletedAt() *GrantUpsert {
 	return u
 }
 
+// SetVoidedAt sets the "voided_at" field.
+func (u *GrantUpsert) SetVoidedAt(v time.Time) *GrantUpsert {
+	u.Set(grant.FieldVoidedAt, v)
+	return u
+}
+
+// UpdateVoidedAt sets the "voided_at" field to the value that was provided on create.
+func (u *GrantUpsert) UpdateVoidedAt() *GrantUpsert {
+	u.SetExcluded(grant.FieldVoidedAt)
+	return u
+}
+
+// ClearVoidedAt clears the value of the "voided_at" field.
+func (u *GrantUpsert) ClearVoidedAt() *GrantUpsert {
+	u.SetNull(grant.FieldVoidedAt)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -515,9 +533,6 @@ func (u *GrantUpsertOne) UpdateNewValues() *GrantUpsertOne {
 		}
 		if _, exists := u.create.mutation.ExpiresAt(); exists {
 			s.SetIgnore(grant.FieldExpiresAt)
-		}
-		if _, exists := u.create.mutation.VoidedAt(); exists {
-			s.SetIgnore(grant.FieldVoidedAt)
 		}
 		if _, exists := u.create.mutation.ResetMaxRollover(); exists {
 			s.SetIgnore(grant.FieldResetMaxRollover)
@@ -612,6 +627,27 @@ func (u *GrantUpsertOne) UpdateDeletedAt() *GrantUpsertOne {
 func (u *GrantUpsertOne) ClearDeletedAt() *GrantUpsertOne {
 	return u.Update(func(s *GrantUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetVoidedAt sets the "voided_at" field.
+func (u *GrantUpsertOne) SetVoidedAt(v time.Time) *GrantUpsertOne {
+	return u.Update(func(s *GrantUpsert) {
+		s.SetVoidedAt(v)
+	})
+}
+
+// UpdateVoidedAt sets the "voided_at" field to the value that was provided on create.
+func (u *GrantUpsertOne) UpdateVoidedAt() *GrantUpsertOne {
+	return u.Update(func(s *GrantUpsert) {
+		s.UpdateVoidedAt()
+	})
+}
+
+// ClearVoidedAt clears the value of the "voided_at" field.
+func (u *GrantUpsertOne) ClearVoidedAt() *GrantUpsertOne {
+	return u.Update(func(s *GrantUpsert) {
+		s.ClearVoidedAt()
 	})
 }
 
@@ -822,9 +858,6 @@ func (u *GrantUpsertBulk) UpdateNewValues() *GrantUpsertBulk {
 			if _, exists := b.mutation.ExpiresAt(); exists {
 				s.SetIgnore(grant.FieldExpiresAt)
 			}
-			if _, exists := b.mutation.VoidedAt(); exists {
-				s.SetIgnore(grant.FieldVoidedAt)
-			}
 			if _, exists := b.mutation.ResetMaxRollover(); exists {
 				s.SetIgnore(grant.FieldResetMaxRollover)
 			}
@@ -919,6 +952,27 @@ func (u *GrantUpsertBulk) UpdateDeletedAt() *GrantUpsertBulk {
 func (u *GrantUpsertBulk) ClearDeletedAt() *GrantUpsertBulk {
 	return u.Update(func(s *GrantUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetVoidedAt sets the "voided_at" field.
+func (u *GrantUpsertBulk) SetVoidedAt(v time.Time) *GrantUpsertBulk {
+	return u.Update(func(s *GrantUpsert) {
+		s.SetVoidedAt(v)
+	})
+}
+
+// UpdateVoidedAt sets the "voided_at" field to the value that was provided on create.
+func (u *GrantUpsertBulk) UpdateVoidedAt() *GrantUpsertBulk {
+	return u.Update(func(s *GrantUpsert) {
+		s.UpdateVoidedAt()
+	})
+}
+
+// ClearVoidedAt clears the value of the "voided_at" field.
+func (u *GrantUpsertBulk) ClearVoidedAt() *GrantUpsertBulk {
+	return u.Update(func(s *GrantUpsert) {
+		s.ClearVoidedAt()
 	})
 }
 

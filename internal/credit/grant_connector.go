@@ -155,6 +155,10 @@ func (m *grantConnector) VoidGrant(ctx context.Context, grantID models.Namespace
 		return err
 	}
 
+	if grant.VoidedAt != nil {
+		return &models.GenericUserError{Message: "grant already voided"}
+	}
+
 	owner := NamespacedGrantOwner{Namespace: grantID.Namespace, ID: grant.OwnerID}
 
 	_, err = entutils.StartAndRunTx(ctx, m.db, func(ctx context.Context, tx *entutils.TxDriver) (*interface{}, error) {

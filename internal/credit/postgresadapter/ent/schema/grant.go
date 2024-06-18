@@ -38,7 +38,7 @@ func (Grant) Fields() []ent.Field {
 			dialect.Postgres: "jsonb",
 		}),
 		field.Time("expires_at").Immutable(),
-		field.Time("voided_at").Optional().Nillable().Immutable(),
+		field.Time("voided_at").Optional().Nillable(),
 		field.Float("reset_max_rollover").Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "numeric",
 		}),

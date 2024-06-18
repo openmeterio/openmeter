@@ -296,6 +296,7 @@ func main() {
 	var entitlementConnector entitlement.EntitlementConnector
 	var entitlementBalanceConnector entitlement.EntitlementBalanceConnector
 	var featureConnector productcatalog.FeatureConnector
+	var creditGrantConnector credit.GrantConnector
 	// Initialize Postgres
 	if conf.Entitlements.Enabled {
 		pgClients, err := initPGClients(ctx, conf.Postgres)
@@ -328,7 +329,7 @@ func main() {
 			streamingConnector,
 			logger,
 		)
-		creditGrantConnector := credit.NewGrantConnector(
+		creditGrantConnector = credit.NewGrantConnector(
 			entitlementOwnerConnector,
 			grantDBAdapter,
 			balanceSnashotDBAdapter,
@@ -363,6 +364,7 @@ func main() {
 			FeatureConnector:            featureConnector,
 			EntitlementConnector:        entitlementConnector,
 			EntitlementBalanceConnector: entitlementBalanceConnector,
+			GrantConnector:              creditGrantConnector,
 			// modules
 			EntitlementsEnabled: conf.Entitlements.Enabled,
 		},

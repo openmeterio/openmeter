@@ -53,7 +53,9 @@ func (g *grantDBADapter) CreateGrant(ctx context.Context, grant credit.DBCreateG
 // translates to a delete
 func (g *grantDBADapter) VoidGrant(ctx context.Context, grantID models.NamespacedID) error {
 	// TODO: transaction and locking
-	command := g.db.Grant.Update().Where(db_grant.ID(string(grantID.ID)), db_grant.Namespace(grantID.Namespace)).Mutation().Client().Grant.Create().SetVoidedAt(time.Now())
+	command := g.db.Grant.Update().
+		SetVoidedAt(time.Now()).
+		Where(db_grant.ID(string(grantID.ID)), db_grant.Namespace(grantID.Namespace))
 	return command.Exec(ctx)
 }
 

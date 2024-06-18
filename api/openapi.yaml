@@ -796,7 +796,7 @@ paths:
               - updatedAt
             default: updatedAt
         - $ref: "#/components/parameters/includeDeleted"
-        - $ref: "#/components/parameters/queryFilterSubject"
+        # - $ref: "#/components/parameters/queryFilterSubject"
       responses:
         "200":
           description: List of grants.
@@ -1855,6 +1855,11 @@ components:
               type: string
               format: date-time
               example: "2023-01-01T00:00:00Z"
+            voidedAt:
+              type: string
+              format: date-time
+              description: The date and time the grant was voided (cannot be used after that).
+              readOnly: true
     EntitlementValue:
       type: object
       required:

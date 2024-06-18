@@ -117,7 +117,7 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 			if err != nil {
 				return api.EntitlementGrant{}, err
 			}
-			apiGrant := mapEntitlementGrantToAPI(request.subjectKey, &grant)
+			apiGrant := MapEntitlementGrantToAPI(&request.subjectKey, &grant)
 
 			return apiGrant, nil
 		},
@@ -182,7 +182,7 @@ func (h *meteredEntitlementHandler) ListEntitlementGrants() ListEntitlementGrant
 
 			apiGrants := make([]api.EntitlementGrant, 0, len(grants))
 			for _, grant := range grants {
-				apiGrant := mapEntitlementGrantToAPI(request.SubjectKey, &grant)
+				apiGrant := MapEntitlementGrantToAPI(&request.SubjectKey, &grant)
 
 				apiGrants = append(apiGrants, apiGrant)
 			}
@@ -399,7 +399,7 @@ func (h *meteredEntitlementHandler) resolveNamespace(ctx context.Context) (strin
 	return ns, nil
 }
 
-func mapEntitlementGrantToAPI(subjectKey string, grant *entitlement.EntitlementGrant) api.EntitlementGrant {
+func MapEntitlementGrantToAPI(subjectKey *string, grant *entitlement.EntitlementGrant) api.EntitlementGrant {
 	apiGrant := api.EntitlementGrant{
 		Amount:      grant.Amount,
 		CreatedAt:   &grant.CreatedAt,
@@ -417,7 +417,10 @@ func mapEntitlementGrantToAPI(subjectKey string, grant *entitlement.EntitlementG
 		ExpiresAt:         &grant.ExpiresAt,
 		MaxRolloverAmount: &grant.MaxRolloverAmount,
 		NextRecurrence:    grant.NextRecurrence,
-		SubjectKey:        &subjectKey,
+		VoidedAt:          grant.VoidedAt,
+	}
+	if subjectKey != nil {
+		apiGrant.SubjectKey = subjectKey
 	}
 
 	if grant.Recurrence != nil {

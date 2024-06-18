@@ -228,6 +228,64 @@ func TestEngine(t *testing.T) {
 			},
 		},
 		{
+			name: "Burns down grant until it's deleted",
+			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+				deletionTime := t1.Add(time.Hour)
+				use(50.0, deletionTime.Add(-time.Minute))
+				use(50.0, deletionTime.Add(time.Minute))
+				grant := grant1
+				grant.EffectiveAt = t1
+				grant.DeletedAt = &deletionTime
+				grant = makeGrant(grant)
+
+				res, overage, history, err := engine.Run(
+					[]credit.Grant{grant},
+					credit.GrantBalanceMap{
+						grant.ID: 100.0,
+					}, 0, credit.Period{
+						From: t1,
+						To:   t1.AddDate(0, 0, 5),
+					})
+
+				assert.NoError(t, err)
+				assert.Equal(t, 0.0, res[grant1.ID])
+				assert.Equal(t, 50.0, overage) // usage after grant deletion
+				assert.Len(t, history, 2)
+				assert.Equal(t, 50.0, history[0].TotalUsage)
+				assert.Equal(t, 50.0, history[1].TotalUsage)
+				assert.Equal(t, 0.0, history[1].BalanceAtStart[grant.ID])
+			},
+		},
+		{
+			name: "Burns down grant until it's voided",
+			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+				voidingTime := t1.Add(time.Hour)
+				use(50.0, voidingTime.Add(-time.Minute))
+				use(50.0, voidingTime.Add(time.Minute))
+				grant := grant1
+				grant.EffectiveAt = t1
+				grant.VoidedAt = &voidingTime
+				grant = makeGrant(grant)
+
+				res, overage, history, err := engine.Run(
+					[]credit.Grant{grant},
+					credit.GrantBalanceMap{
+						grant.ID: 100.0,
+					}, 0, credit.Period{
+						From: t1,
+						To:   t1.AddDate(0, 0, 5),
+					})
+
+				assert.NoError(t, err)
+				assert.Equal(t, 0.0, res[grant1.ID])
+				assert.Equal(t, 50.0, overage) // usage after grant deletion
+				assert.Len(t, history, 2)
+				assert.Equal(t, 50.0, history[0].TotalUsage)
+				assert.Equal(t, 50.0, history[1].TotalUsage)
+				assert.Equal(t, 0.0, history[1].BalanceAtStart[grant.ID])
+			},
+		},
+		{
 			name: "Return 0 balance for grant with past expiresAt",
 			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
 				use(50.0, t1.Add(time.Hour))
