@@ -56,3 +56,16 @@ func (a *Router) CreateGrant(w http.ResponseWriter, r *http.Request, subjectIdOr
 		EntitlementID: entitlementId,
 	}).ServeHTTP(w, r)
 }
+
+// List grants for an entitlement
+// (GET /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/grants)
+func (a *Router) ListEntitlementGrants(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementId api.EntitlementId, params api.ListEntitlementGrantsParams) {
+	if !a.config.EntitlementsEnabled {
+		unimplemented.ListEntitlementGrants(w, r, subjectIdOrKey, entitlementId, params)
+		return
+	}
+	a.meteredEntitlementHandler.ListEntitlementGrants().With(httpdriver.ListEntitlementGrantsParams{
+		SubjectKey:    subjectIdOrKey,
+		EntitlementID: entitlementId,
+	}).ServeHTTP(w, r)
+}

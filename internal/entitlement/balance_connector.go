@@ -52,6 +52,7 @@ type EntitlementBalanceConnector interface {
 
 	// GetEntitlementGrantBalanceHistory(ctx context.Context, entitlementGrantID EntitlementGrantID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
 	CreateGrant(ctx context.Context, entitlement models.NamespacedID, inputGrant CreateEntitlementGrantInputs) (EntitlementGrant, error)
+	ListEntitlementGrants(ctx context.Context, entitlementID models.NamespacedID) ([]EntitlementGrant, error)
 }
 
 type entitlementBalanceConnector struct {
@@ -260,4 +261,28 @@ func (e *entitlementBalanceConnector) CreateGrant(ctx context.Context, entitleme
 
 	g, err := GrantFromCreditGrant(*grant)
 	return *g, err
+}
+
+func (e *entitlementBalanceConnector) ListEntitlementGrants(ctx context.Context, entitlementID models.NamespacedID) ([]EntitlementGrant, error) {
+	// check that we own the grant
+	grants, err := e.gc.ListGrants(ctx, credit.ListGrantsParams{
+		Namespace:      entitlementID.Namespace,
+		OwnerID:        convert.ToPointer(credit.GrantOwner(entitlementID.ID)),
+		IncludeDeleted: false,
+		OrderBy:        credit.GrantOrderByCreatedAt,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	ents := make([]EntitlementGrant, 0, len(grants))
+	for _, grant := range grants {
+		g, err := GrantFromCreditGrant(grant)
+		if err != nil {
+			return nil, err
+		}
+		ents = append(ents, *g)
+	}
+
+	return ents, nil
 }

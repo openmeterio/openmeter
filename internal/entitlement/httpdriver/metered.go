@@ -18,6 +18,7 @@ import (
 
 type MeteredEntitlementHandler interface {
 	CreateGrant() CreateGrantHandler
+	ListEntitlementGrants() ListEntitlementGrantsHandler
 }
 
 type meteredEntitlementHandler struct {
@@ -53,6 +54,7 @@ type CreateGrantParams struct {
 type CreateGrantInputs struct {
 	inp         entitlement.CreateEntitlementGrantInputs
 	entitlement models.NamespacedID
+	subjectKey  string
 }
 
 type CreateGrantHandler httptransport.HandlerWithArgs[CreateGrantInputs, api.EntitlementGrant, CreateGrantParams]
@@ -61,7 +63,9 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 	return httptransport.NewHandlerWithArgs[CreateGrantInputs, api.EntitlementGrant, CreateGrantParams](
 		func(ctx context.Context, r *http.Request, params CreateGrantParams) (CreateGrantInputs, error) {
 			apiGrant := api.EntitlementGrantCreateInput{}
-			inp := CreateGrantInputs{}
+			inp := CreateGrantInputs{
+				subjectKey: params.SubjectKey,
+			}
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &apiGrant); err != nil {
 				return inp, err
@@ -91,8 +95,6 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 				},
 			}
 
-			// Metadata: apiGrant.Metadata,
-			// Recurrence: ,
 			if apiGrant.Metadata != nil {
 				inp.inp.Metadata = *apiGrant.Metadata
 			}
@@ -111,32 +113,7 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 			if err != nil {
 				return api.EntitlementGrant{}, err
 			}
-			apiGrant := api.EntitlementGrant{
-				Amount:      grant.Amount,
-				CreatedAt:   &grant.CreatedAt,
-				EffectiveAt: grant.EffectiveAt,
-				Expiration: api.ExpirationPeriod{
-					Count:    int(grant.Expiration.Count),
-					Duration: api.ExpirationPeriodDuration(grant.Expiration.Duration),
-				},
-				Id:                &grant.ID,
-				Metadata:          &grant.Metadata,
-				Priority:          convert.ToPointer(int(grant.Priority)),
-				UpdatedAt:         &grant.UpdatedAt,
-				DeletedAt:         grant.DeletedAt,
-				EntitlementId:     &grant.EntitlementID,
-				ExpiresAt:         &grant.ExpiresAt,
-				MaxRolloverAmount: &grant.MaxRolloverAmount,
-				NextRecurrence:    grant.NextRecurrence,
-				SubjectKey:        &request.entitlement.ID,
-			}
-
-			if grant.Recurrence != nil {
-				apiGrant.Recurrence = &api.RecurringPeriod{
-					Anchor:   grant.Recurrence.Anchor,
-					Interval: api.RecurringPeriodEnum(grant.Recurrence.Period),
-				}
-			}
+			apiGrant := mapEntitlementGrantToAPI(request.subjectKey, &grant)
 
 			return apiGrant, nil
 		},
@@ -164,6 +141,67 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 	)
 }
 
+type ListEntitlementGrantsParams struct {
+	EntitlementID string
+	SubjectKey    string
+}
+
+type ListEntitlementGrantInputs struct {
+	ID         models.NamespacedID
+	SubjectKey string
+}
+
+type ListEntitlementGrantsHandler httptransport.HandlerWithArgs[ListEntitlementGrantInputs, []api.EntitlementGrant, ListEntitlementGrantsParams]
+
+func (h *meteredEntitlementHandler) ListEntitlementGrants() ListEntitlementGrantsHandler {
+	return httptransport.NewHandlerWithArgs[ListEntitlementGrantInputs, []api.EntitlementGrant, ListEntitlementGrantsParams](
+		func(ctx context.Context, r *http.Request, params ListEntitlementGrantsParams) (ListEntitlementGrantInputs, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return ListEntitlementGrantInputs{}, err
+			}
+
+			return ListEntitlementGrantInputs{
+				ID: models.NamespacedID{
+					Namespace: ns,
+					ID:        params.EntitlementID,
+				},
+				SubjectKey: params.SubjectKey,
+			}, nil
+		},
+		func(ctx context.Context, request ListEntitlementGrantInputs) ([]api.EntitlementGrant, error) {
+			// TODO: validate that entitlement belongs to subject
+			grants, err := h.balanceConnector.ListEntitlementGrants(ctx, request.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			apiGrants := make([]api.EntitlementGrant, 0, len(grants))
+			for _, grant := range grants {
+				apiGrant := mapEntitlementGrantToAPI(request.SubjectKey, &grant)
+
+				apiGrants = append(apiGrants, apiGrant)
+			}
+
+			return apiGrants, nil
+		},
+		commonhttp.JSONResponseEncoder[[]api.EntitlementGrant],
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {
+				if _, ok := err.(*entitlement.EntitlementNotFoundError); ok {
+					commonhttp.NewHTTPError(
+						http.StatusNotFound,
+						err,
+					).EncodeError(ctx, w)
+					return true
+				}
+				return false
+			}),
+		)...,
+	)
+}
+
 func (h *meteredEntitlementHandler) resolveNamespace(ctx context.Context) (string, error) {
 	ns, ok := h.namespaceDecoder.GetNamespace(ctx)
 	if !ok {
@@ -171,4 +209,35 @@ func (h *meteredEntitlementHandler) resolveNamespace(ctx context.Context) (strin
 	}
 
 	return ns, nil
+}
+
+func mapEntitlementGrantToAPI(subjectKey string, grant *entitlement.EntitlementGrant) api.EntitlementGrant {
+	apiGrant := api.EntitlementGrant{
+		Amount:      grant.Amount,
+		CreatedAt:   &grant.CreatedAt,
+		EffectiveAt: grant.EffectiveAt,
+		Expiration: api.ExpirationPeriod{
+			Count:    int(grant.Expiration.Count),
+			Duration: api.ExpirationPeriodDuration(grant.Expiration.Duration),
+		},
+		Id:                &grant.ID,
+		Metadata:          &grant.Metadata,
+		Priority:          convert.ToPointer(int(grant.Priority)),
+		UpdatedAt:         &grant.UpdatedAt,
+		DeletedAt:         grant.DeletedAt,
+		EntitlementId:     &grant.EntitlementID,
+		ExpiresAt:         &grant.ExpiresAt,
+		MaxRolloverAmount: &grant.MaxRolloverAmount,
+		NextRecurrence:    grant.NextRecurrence,
+		SubjectKey:        &subjectKey,
+	}
+
+	if grant.Recurrence != nil {
+		apiGrant.Recurrence = &api.RecurringPeriod{
+			Anchor:   grant.Recurrence.Anchor,
+			Interval: api.RecurringPeriodEnum(grant.Recurrence.Period),
+		}
+	}
+
+	return apiGrant
 }
