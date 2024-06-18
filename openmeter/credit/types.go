@@ -2,27 +2,35 @@ package credit
 
 import (
 	"github.com/openmeterio/openmeter/internal/credit"
-	"github.com/openmeterio/openmeter/internal/credit/creditdriver"
 )
 
-type Ledger = credit.Ledger
+type BalanceConnector = credit.BalanceConnector
+type BalanceHistoryParams = credit.BalanceHistoryParams
+type BalanceSnapshotDBConnector = credit.BalanceSnapshotDBConnector
+type CreateGrantInput = credit.CreateGrantInput
+type DBCreateGrantInput = credit.DBCreateGrantInput
+type Engine = credit.Engine
+type ExpirationPeriod = credit.ExpirationPeriod
+type ExpirationPeriodDuration = credit.ExpirationPeriodDuration
 type Grant = credit.Grant
-type HighWatermark = credit.HighWatermark
-type Reset = credit.Reset
-type Feature = credit.Feature
-type Balance = credit.DELETEME_Balance
-type LedgerEntryList = credit.LedgerEntryList
-type NamespacedLedgerID = credit.NamespacedLedgerID
-type NamespacedGrantID = credit.NamespacedGrantID
-type NamespacedFeatureID = credit.NamespacedFeatureID
-
-type Connector = credit.Connector
+type GrantBalanceMap = credit.GrantBalanceMap
+type GrantBalanceNoSavedBalanceForOwnerError = credit.GrantBalanceNoSavedBalanceForOwnerError
+type GrantBalanceSnapshot = credit.GrantBalanceSnapshot
+type GrantBurnDownHistory = credit.GrantBurnDownHistory
+type GrantBurnDownHistorySegment = credit.GrantBurnDownHistorySegment
+type GrantConnector = credit.GrantConnector
+type GrantDBConnector = credit.GrantDBConnector
+type GrantNotFoundError = credit.GrantNotFoundError
+type GrantOrderBy = credit.GrantOrderBy
+type GrantOwner = credit.GrantOwner
+type GrantUsage = credit.GrantUsage
+type GrantUsageTerminationReason = credit.GrantUsageTerminationReason
 type ListGrantsParams = credit.ListGrantsParams
-type ListFeaturesParams = credit.ListFeaturesParams
-type ListLedgersParams = credit.ListLedgersParams
-
-type GetLedgerHistoryRequest = creditdriver.GetLedgerHistoryRequest
-type GetLedgerBalanceRequest = creditdriver.GetLedgerBalanceRequest
-type GetLedgerBalaceHandlerParams = creditdriver.GetLedgerBalaceHandlerParams
-type GrantPathParams = creditdriver.GrantPathParams
-type ListLedgerGrantsByLedgerParams = creditdriver.ListLedgerGrantsByLedgerParams
+type NamespacedGrantOwner = credit.NamespacedGrantOwner
+type OwnerConnector = credit.OwnerConnector
+type Pagination = credit.Pagination
+type Period = credit.Period
+type QueryUsageFn = credit.QueryUsageFn
+type Recurrence = credit.Recurrence
+type RecurrencePeriod = credit.RecurrencePeriod
+type SegmentTerminationReason = credit.SegmentTerminationReason

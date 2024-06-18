@@ -6,6 +6,8 @@
 /config.yaml
 /tmp/
 
+.tmp.*
+
 .DS_Store
 
 # Go workspace file

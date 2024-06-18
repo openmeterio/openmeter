@@ -41,7 +41,8 @@ func (m *Ci) Etoe(
 			Container().
 			WithServiceBinding("api", api).
 			WithServiceBinding("sink-worker", sinkWorker).
-			WithEnvVariable("OPENMETER_ADDRESS", "http://api:8080"),
+			WithEnvVariable("OPENMETER_ADDRESS", "http://api:8080").
+			WithEnvVariable("TEST_WAIT_ON_START", "true"),
 	}).
 		Exec(args)
 }

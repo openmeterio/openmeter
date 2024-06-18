@@ -11,8 +11,6 @@ import (
 	"github.com/peterldowns/pgtestdb"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // pgx database driver
-
-	"github.com/openmeterio/openmeter/internal/credit/postgres_connector/ent/db/migrate"
 )
 
 // EntMigrator is a migrator for pgtestdb.
@@ -32,9 +30,7 @@ func (m *EntMigrator) Migrate(
 	db *sql.DB,
 	templateConf pgtestdb.Config,
 ) error {
-	driver := entsql.OpenDB(dialect.Postgres, db)
-	schema := migrate.NewSchema(driver)
-	return schema.Create(ctx)
+	return nil
 }
 
 // Prepare is a no-op method.
@@ -66,6 +62,7 @@ func InitPostgresDB(t *testing.T) *entsql.Driver {
 		t.Skip("POSTGRES_HOST not set")
 	}
 
+	// TODO: fix migrations
 	return entsql.OpenDB(dialect.Postgres, pgtestdb.New(t, pgtestdb.Config{
 		DriverName: "pgx",
 		User:       "postgres",

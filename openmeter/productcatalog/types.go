@@ -1,0 +1,15 @@
+package productcatalog
+
+import "github.com/openmeterio/openmeter/internal/productcatalog"
+
+type CreateFeatureInputs productcatalog.CreateFeatureInputs
+type DBCreateFeatureInputs productcatalog.DBCreateFeatureInputs
+type Feature productcatalog.Feature
+type FeatureConnector productcatalog.FeatureConnector
+type FeatureDBConnector productcatalog.FeatureDBConnector
+type FeatureInvalidFiltersError productcatalog.FeatureInvalidFiltersError
+type FeatureInvalidMeterAggregationError productcatalog.FeatureInvalidMeterAggregationError
+type FeatureNotFoundError productcatalog.FeatureNotFoundError
+type FeatureOrderBy productcatalog.FeatureOrderBy
+type FeatureWithNameAlreadyExistsError productcatalog.FeatureWithNameAlreadyExistsError
+type ListFeaturesParams productcatalog.ListFeaturesParams

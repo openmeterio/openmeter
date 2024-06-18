@@ -1370,62 +1370,44 @@ components:
             model: "gpt-4-turbo"
         validationError: "meter not found for event"
     FeatureCreateInputs:
-      allOf:
-        - type: object
+      type: object
+      description: |
+        A feature is a feature or service offered to a customer.
+        For example: CPU-Hours, Tokens, API Calls, etc.
+      required:
+        - key
+        - name
+      properties:
+        key:
           description: |
-            A feature is a feature or service offered to a customer.
-            For example: CPU-Hours, Tokens, API Calls, etc.
-          required:
-            - key
-            - name
-          properties:
-            key:
-              description: |
-                The unique key of the feature to reference it from your application.
-              type: string
-              example: gpt4_tokens
-            name:
-              description: |
-                The name of the feature.
-              type: string
-              example: AI Tokens
-            metadata:
-              description: |
-                Additional metadata for the feature.
-              type: object
-              additionalProperties:
-                type: string
-        - anyOf:
-          - type: object
-            required:
-              - meterSlug
-            properties:
-              meterSlug:
-                description: |
-                  The meter that the feature is associated with and decreases grants by usage.
-                  If present, the usage of the feature can be metered.
-                type: string
-                example: tokens_total
-              meterGroupByFilters:
-                description: |
-                  Optional meter group by filters. Useful if the meter scope is broader than what feature tracks.
-                type: object
-                additionalProperties:
-                  type: string
-                example:
-                  model: gpt-4
-          # # We'll introduce this later
-          # - type: object
-          #   properties:
-          #     valueSchema:
-          #       description: |
-          #         The JSON Schema validating the value of the entitlement
-          #       type: string
-          #       example: |
-          #         {
-          #           "type": "string",
-          #           "enum": ["daily", "weekly", "monthly"]
-          #         }
+            The unique key of the feature to reference it from your application.
+          type: string
+          example: gpt4_tokens
+        name:
+          description: |
+            The name of the feature.
+          type: string
+          example: AI Tokens
+        metadata:
+          description: |
+            Additional metadata for the feature.
+          type: object
+          additionalProperties:
+            type: string
+        meterSlug:
+          description: |
+            The meter that the feature is associated with and decreases grants by usage.
+            If present, the usage of the feature can be metered.
+          type: string
+          example: tokens_total
+        meterGroupByFilters:
+          description: |
+            Optional meter group by filters. Useful if the meter scope is broader than what feature tracks.
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            model: gpt-4
     Feature:
       type: object
       description: |
