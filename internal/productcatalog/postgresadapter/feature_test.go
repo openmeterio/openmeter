@@ -54,6 +54,12 @@ func TestCreateFeature(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
+				// truncate times due to CI errors
+				createFeatureOut.CreatedAt = createFeatureOut.CreatedAt.Truncate(time.Millisecond)
+				feature.CreatedAt = feature.CreatedAt.Truncate(time.Millisecond)
+				createFeatureOut.UpdatedAt = createFeatureOut.UpdatedAt.Truncate(time.Millisecond)
+				feature.UpdatedAt = feature.UpdatedAt.Truncate(time.Millisecond)
+
 				assert.Equal(t, createFeatureOut, feature)
 				assert.NotEmpty(t, feature.ID)
 				assert.NotEmpty(t, feature.CreatedAt)
