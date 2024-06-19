@@ -31,13 +31,6 @@ func TestEngine(t *testing.T) {
 			Duration: credit.ExpirationPeriodDurationDay,
 			Count:    30,
 		},
-		// ExpiresAt: time.Now().AddDate(0, 0, 30),
-		// ResetMaxRollover: 1,
-		// Recurrence: credit.Recurrence{
-		// 	MaxRolloverAmount: 1,
-		// 	Period:            credit.RecurrencePeriodMonthly,
-		// 	Anchor:            time.Now().AddDate(0, 0, 0),
-		// },
 	})
 
 	grant2 := makeGrant(credit.Grant{
@@ -50,13 +43,6 @@ func TestEngine(t *testing.T) {
 			Duration: credit.ExpirationPeriodDurationDay,
 			Count:    30,
 		},
-		// ExpiresAt: time.Now().AddDate(0, 0, 30),
-		// ResetMaxRollover: 1,
-		// Recurrence: credit.Recurrence{
-		// 	MaxRolloverAmount: 1,
-		// 	Period:            credit.RecurrencePeriodMonthly,
-		// 	Anchor:            time.Now().AddDate(0, 0, 0),
-		// },
 	})
 
 	type addUsageFunc func(usage float64, at time.Time)
