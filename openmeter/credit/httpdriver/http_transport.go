@@ -1,4 +1,4 @@
-package creditdriver
+package httpdriver
 
 import (
 	"github.com/openmeterio/openmeter/internal/credit"
@@ -8,6 +8,8 @@ import (
 )
 
 type GrantHandler = httpdriver.GrantHandler
+type ListGrantsHandler = httpdriver.ListGrantsHandler
+type VoidGrantHandler = httpdriver.VoidGrantHandler
 
 func NewGrantHandler(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
