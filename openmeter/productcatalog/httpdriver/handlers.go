@@ -7,11 +7,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
-type CreateFeatureHandler httpdriver.CreateFeatureHandler
-type DeleteFeatureHandler httpdriver.DeleteFeatureHandler
-type GetFeatureHandler httpdriver.GetFeatureHandler
-type ListFeaturesHandler httpdriver.ListFeaturesHandler
-type FeatureHandler httpdriver.FeatureHandler
+type CreateFeatureHandler = httpdriver.CreateFeatureHandler
+type DeleteFeatureHandler = httpdriver.DeleteFeatureHandler
+type GetFeatureHandler = httpdriver.GetFeatureHandler
+type ListFeaturesHandler = httpdriver.ListFeaturesHandler
+type FeatureHandler = httpdriver.FeatureHandler
 
 func NewFeatureHandler(
 	connector productcatalog.FeatureConnector,
