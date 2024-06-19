@@ -10,6 +10,14 @@ import (
 type EntitlementHandler = httpdriver.EntitlementHandler
 type MeteredEntitlementHandler = httpdriver.MeteredEntitlementHandler
 
+type CreateEntitlementHandler = httpdriver.CreateEntitlementHandler
+type CreateGrantHandler = httpdriver.CreateGrantHandler
+type GetEntitlementBalanceHistoryHandler = httpdriver.GetEntitlementBalanceHistoryHandler
+type GetEntitlementValueHandler = httpdriver.GetEntitlementValueHandler
+type GetEntitlementsOfSubjectHandler = httpdriver.GetEntitlementsOfSubjectHandler
+type ListEntitlementGrantsHandler = httpdriver.ListEntitlementGrantsHandler
+type ResetEntitlementUsageHandler = httpdriver.ResetEntitlementUsageHandler
+
 func NewEntitlementHandler(
 	connector entitlement.EntitlementConnector,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
