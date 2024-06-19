@@ -23,14 +23,6 @@ type FeatureHandler interface {
 	DeleteFeature() DeleteFeatureHandler
 }
 
-type GetFeatureHandler httptransport.HandlerWithArgs[models.NamespacedID, productcatalog.Feature, string]
-
-type CreateFeatureHandler httptransport.Handler[productcatalog.CreateFeatureInputs, productcatalog.Feature]
-
-type ListFeaturesHandler httptransport.HandlerWithArgs[productcatalog.ListFeaturesParams, []productcatalog.Feature, api.ListFeaturesParams]
-
-type DeleteFeatureHandler httptransport.HandlerWithArgs[models.NamespacedID, any, string]
-
 type featureHandlers struct {
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	options          []httptransport.HandlerOption
@@ -49,9 +41,15 @@ func NewFeatureHandler(
 	}
 }
 
+type GetFeatureHandlerRequest = models.NamespacedID
+type GetFeatureHandlerResponse = productcatalog.Feature
+type GetFeatureHandlerParams = string
+
+type GetFeatureHandler httptransport.HandlerWithArgs[GetFeatureHandlerRequest, GetFeatureHandlerResponse, GetFeatureHandlerParams]
+
 func (h *featureHandlers) GetFeature() GetFeatureHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, featureID string) (models.NamespacedID, error) {
+		func(ctx context.Context, r *http.Request, featureID string) (GetFeatureHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return models.NamespacedID{}, err
@@ -62,7 +60,7 @@ func (h *featureHandlers) GetFeature() GetFeatureHandler {
 				ID:        featureID,
 			}, nil
 		},
-		func(ctx context.Context, featureId models.NamespacedID) (productcatalog.Feature, error) {
+		func(ctx context.Context, featureId GetFeatureHandlerRequest) (GetFeatureHandlerResponse, error) {
 			return h.connector.GetFeature(ctx, featureId)
 		},
 		commonhttp.JSONResponseEncoder,
@@ -79,6 +77,11 @@ func (h *featureHandlers) GetFeature() GetFeatureHandler {
 		)...,
 	)
 }
+
+type CreateFeatureHandlerRequest = productcatalog.CreateFeatureInputs
+type CreateFeatureHandlerResponse = productcatalog.Feature
+
+type CreateFeatureHandler httptransport.Handler[CreateFeatureHandlerRequest, CreateFeatureHandlerResponse]
 
 func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 	return httptransport.NewHandler(
@@ -127,9 +130,15 @@ func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 	)
 }
 
+type ListFeaturesHandlerRequest = productcatalog.ListFeaturesParams
+type ListFeaturesHandlerResponse = []productcatalog.Feature
+type ListFeaturesHandlerParams = api.ListFeaturesParams
+
+type ListFeaturesHandler httptransport.HandlerWithArgs[ListFeaturesHandlerRequest, ListFeaturesHandlerResponse, ListFeaturesHandlerParams]
+
 func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, apiParams api.ListFeaturesParams) (productcatalog.ListFeaturesParams, error) {
+		func(ctx context.Context, r *http.Request, apiParams ListFeaturesHandlerParams) (ListFeaturesHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return productcatalog.ListFeaturesParams{}, err
@@ -152,7 +161,7 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 
 			return params, nil
 		},
-		func(ctx context.Context, params productcatalog.ListFeaturesParams) ([]productcatalog.Feature, error) {
+		func(ctx context.Context, params ListFeaturesHandlerRequest) ([]productcatalog.Feature, error) {
 			return h.connector.ListFeatures(ctx, params)
 		},
 		commonhttp.JSONResponseEncoder,
@@ -163,9 +172,15 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 	)
 }
 
+type DeleteFeatureHandlerRequest = models.NamespacedID
+type DeleteFeatureHandlerResponse = interface{}
+type DeleteFeatureHandlerParams = string
+
+type DeleteFeatureHandler httptransport.HandlerWithArgs[DeleteFeatureHandlerRequest, DeleteFeatureHandlerResponse, DeleteFeatureHandlerParams]
+
 func (h *featureHandlers) DeleteFeature() DeleteFeatureHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, featureID string) (models.NamespacedID, error) {
+		func(ctx context.Context, r *http.Request, featureID DeleteFeatureHandlerParams) (DeleteFeatureHandlerRequest, error) {
 			id := models.NamespacedID{
 				ID: featureID,
 			}

@@ -14,7 +14,7 @@ func (a *Router) ListGrants(w http.ResponseWriter, r *http.Request, params api.L
 		unimplemented.ListGrants(w, r, params)
 		return
 	}
-	a.creditHandler.ListGrants().With(httpdriver.ListGrantsParams{
+	a.creditHandler.ListGrants().With(httpdriver.ListGrantsHandlerParams{
 		Params: params,
 	}).ServeHTTP(w, r)
 }
@@ -26,7 +26,7 @@ func (a *Router) VoidGrant(w http.ResponseWriter, r *http.Request, grantId api.G
 		unimplemented.VoidGrant(w, r, grantId)
 		return
 	}
-	a.creditHandler.VoidGrant().With(httpdriver.VoidGrantParams{
+	a.creditHandler.VoidGrant().With(httpdriver.VoidGrantHandlerParams{
 		ID: grantId,
 	}).ServeHTTP(w, r)
 }

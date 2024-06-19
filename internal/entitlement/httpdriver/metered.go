@@ -50,24 +50,24 @@ func NewMeteredEntitlementHandler(
 // so we have to manually override some fields...
 // FIXME: APIs can drift due to this
 
-type CreateGrantParams struct {
-	SubjectKey    string
-	EntitlementID string
-}
-
-type CreateGrantInputs struct {
+type CreateGrantHandlerRequest struct {
 	inp         entitlement.CreateEntitlementGrantInputs
 	entitlement models.NamespacedID
 	subjectKey  string
 }
+type CreateGrantHandlerResponse = api.EntitlementGrant
+type CreateGrantHandlerParams struct {
+	SubjectKey    string
+	EntitlementID string
+}
 
-type CreateGrantHandler httptransport.HandlerWithArgs[CreateGrantInputs, api.EntitlementGrant, CreateGrantParams]
+type CreateGrantHandler httptransport.HandlerWithArgs[CreateGrantHandlerRequest, CreateGrantHandlerResponse, CreateGrantHandlerParams]
 
 func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
-	return httptransport.NewHandlerWithArgs[CreateGrantInputs, api.EntitlementGrant, CreateGrantParams](
-		func(ctx context.Context, r *http.Request, params CreateGrantParams) (CreateGrantInputs, error) {
+	return httptransport.NewHandlerWithArgs[CreateGrantHandlerRequest, CreateGrantHandlerResponse, CreateGrantHandlerParams](
+		func(ctx context.Context, r *http.Request, params CreateGrantHandlerParams) (CreateGrantHandlerRequest, error) {
 			apiGrant := api.EntitlementGrantCreateInput{}
-			inp := CreateGrantInputs{
+			inp := CreateGrantHandlerRequest{
 				subjectKey: params.SubjectKey,
 			}
 
@@ -112,7 +112,7 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 
 			return inp, nil
 		},
-		func(ctx context.Context, request CreateGrantInputs) (api.EntitlementGrant, error) {
+		func(ctx context.Context, request CreateGrantHandlerRequest) (api.EntitlementGrant, error) {
 			grant, err := h.balanceConnector.CreateGrant(ctx, request.entitlement, request.inp)
 			if err != nil {
 				return api.EntitlementGrant{}, err
@@ -145,27 +145,27 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 	)
 }
 
-type ListEntitlementGrantsParams struct {
+type ListEntitlementGrantHandlerRequest struct {
+	ID         models.NamespacedID
+	SubjectKey string
+}
+type ListEntitlementGrantHandlerResponse = []api.EntitlementGrant
+type ListEntitlementGrantsHandlerParams struct {
 	EntitlementID string
 	SubjectKey    string
 }
 
-type ListEntitlementGrantInputs struct {
-	ID         models.NamespacedID
-	SubjectKey string
-}
-
-type ListEntitlementGrantsHandler httptransport.HandlerWithArgs[ListEntitlementGrantInputs, []api.EntitlementGrant, ListEntitlementGrantsParams]
+type ListEntitlementGrantsHandler httptransport.HandlerWithArgs[ListEntitlementGrantHandlerRequest, ListEntitlementGrantHandlerResponse, ListEntitlementGrantsHandlerParams]
 
 func (h *meteredEntitlementHandler) ListEntitlementGrants() ListEntitlementGrantsHandler {
-	return httptransport.NewHandlerWithArgs[ListEntitlementGrantInputs, []api.EntitlementGrant, ListEntitlementGrantsParams](
-		func(ctx context.Context, r *http.Request, params ListEntitlementGrantsParams) (ListEntitlementGrantInputs, error) {
+	return httptransport.NewHandlerWithArgs[ListEntitlementGrantHandlerRequest, ListEntitlementGrantHandlerResponse, ListEntitlementGrantsHandlerParams](
+		func(ctx context.Context, r *http.Request, params ListEntitlementGrantsHandlerParams) (ListEntitlementGrantHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return ListEntitlementGrantInputs{}, err
+				return ListEntitlementGrantHandlerRequest{}, err
 			}
 
-			return ListEntitlementGrantInputs{
+			return ListEntitlementGrantHandlerRequest{
 				ID: models.NamespacedID{
 					Namespace: ns,
 					ID:        params.EntitlementID,
@@ -173,7 +173,7 @@ func (h *meteredEntitlementHandler) ListEntitlementGrants() ListEntitlementGrant
 				SubjectKey: params.SubjectKey,
 			}, nil
 		},
-		func(ctx context.Context, request ListEntitlementGrantInputs) ([]api.EntitlementGrant, error) {
+		func(ctx context.Context, request ListEntitlementGrantHandlerRequest) ([]api.EntitlementGrant, error) {
 			// TODO: validate that entitlement belongs to subject
 			grants, err := h.balanceConnector.ListEntitlementGrants(ctx, request.ID)
 			if err != nil {
@@ -213,40 +213,41 @@ func (h *meteredEntitlementHandler) ListEntitlementGrants() ListEntitlementGrant
 	)
 }
 
-type ResetEntitlementUsageInputs struct {
+type ResetEntitlementUsageHandlerRequest struct {
 	EntitlementID string
 	Namespace     string
 	SubjectID     string
 	At            time.Time
 }
-type ResetEntitlementUsageParams struct {
+type ResetEntitlementUsageHandlerResponse = interface{}
+type ResetEntitlementUsageHandlerParams struct {
 	EntitlementID string
 	SubjectKey    string
 }
-type ResetEntitlementUsageHandler httptransport.HandlerWithArgs[ResetEntitlementUsageInputs, interface{}, ResetEntitlementUsageParams]
+type ResetEntitlementUsageHandler httptransport.HandlerWithArgs[ResetEntitlementUsageHandlerRequest, ResetEntitlementUsageHandlerResponse, ResetEntitlementUsageHandlerParams]
 
 func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsageHandler {
-	return httptransport.NewHandlerWithArgs[ResetEntitlementUsageInputs, interface{}, ResetEntitlementUsageParams](
-		func(ctx context.Context, r *http.Request, params ResetEntitlementUsageParams) (ResetEntitlementUsageInputs, error) {
+	return httptransport.NewHandlerWithArgs[ResetEntitlementUsageHandlerRequest, ResetEntitlementUsageHandlerResponse, ResetEntitlementUsageHandlerParams](
+		func(ctx context.Context, r *http.Request, params ResetEntitlementUsageHandlerParams) (ResetEntitlementUsageHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return ResetEntitlementUsageInputs{}, err
+				return ResetEntitlementUsageHandlerRequest{}, err
 			}
 
 			var body api.ResetEntitlementUsageJSONBody
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &body); err != nil {
-				return ResetEntitlementUsageInputs{}, err
+				return ResetEntitlementUsageHandlerRequest{}, err
 			}
 
-			return ResetEntitlementUsageInputs{
+			return ResetEntitlementUsageHandlerRequest{
 				EntitlementID: params.EntitlementID,
 				Namespace:     ns,
 				SubjectID:     params.SubjectKey,
 				At:            defaultx.WithDefault(body.EffectiveAt, time.Now()),
 			}, nil
 		},
-		func(ctx context.Context, request ResetEntitlementUsageInputs) (interface{}, error) {
+		func(ctx context.Context, request ResetEntitlementUsageHandlerRequest) (interface{}, error) {
 			_, err := h.balanceConnector.ResetEntitlementUsage(ctx, models.NamespacedID{
 				Namespace: request.Namespace,
 				ID:        request.EntitlementID,
@@ -277,23 +278,24 @@ func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsag
 	)
 }
 
-type GetEntitlementBalanceHistoryInputs struct {
+type GetEntitlementBalanceHistoryHandlerRequest struct {
 	ID     models.NamespacedID
 	params entitlement.BalanceHistoryParams
 }
-type GetEntitlementBalanceHistoryParams struct {
+type GetEntitlementBalanceHistoryHandlerResponse = api.WindowedBalanceHistory
+type GetEntitlementBalanceHistoryHandlerParams struct {
 	EntitlementID string
 	SubjectKey    string
 	Params        api.GetEntitlementHistoryParams
 }
-type GetEntitlementBalanceHistoryHandler httptransport.HandlerWithArgs[GetEntitlementBalanceHistoryInputs, api.WindowedBalanceHistory, GetEntitlementBalanceHistoryParams]
+type GetEntitlementBalanceHistoryHandler httptransport.HandlerWithArgs[GetEntitlementBalanceHistoryHandlerRequest, GetEntitlementBalanceHistoryHandlerResponse, GetEntitlementBalanceHistoryHandlerParams]
 
 func (h *meteredEntitlementHandler) GetEntitlementBalanceHistory() GetEntitlementBalanceHistoryHandler {
-	return httptransport.NewHandlerWithArgs[GetEntitlementBalanceHistoryInputs, api.WindowedBalanceHistory, GetEntitlementBalanceHistoryParams](
-		func(ctx context.Context, r *http.Request, params GetEntitlementBalanceHistoryParams) (GetEntitlementBalanceHistoryInputs, error) {
+	return httptransport.NewHandlerWithArgs[GetEntitlementBalanceHistoryHandlerRequest, GetEntitlementBalanceHistoryHandlerResponse, GetEntitlementBalanceHistoryHandlerParams](
+		func(ctx context.Context, r *http.Request, params GetEntitlementBalanceHistoryHandlerParams) (GetEntitlementBalanceHistoryHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return GetEntitlementBalanceHistoryInputs{}, err
+				return GetEntitlementBalanceHistoryHandlerRequest{}, err
 			}
 
 			tLocation := time.UTC
@@ -302,12 +304,12 @@ func (h *meteredEntitlementHandler) GetEntitlementBalanceHistory() GetEntitlemen
 				if err != nil {
 					err := fmt.Errorf("invalid time zone: %w", err)
 
-					return GetEntitlementBalanceHistoryInputs{}, err
+					return GetEntitlementBalanceHistoryHandlerRequest{}, err
 				}
 				tLocation = tz
 			}
 
-			return GetEntitlementBalanceHistoryInputs{
+			return GetEntitlementBalanceHistoryHandlerRequest{
 				ID: models.NamespacedID{
 					Namespace: ns,
 					ID:        params.EntitlementID,
@@ -320,7 +322,7 @@ func (h *meteredEntitlementHandler) GetEntitlementBalanceHistory() GetEntitlemen
 				},
 			}, nil
 		},
-		func(ctx context.Context, request GetEntitlementBalanceHistoryInputs) (api.WindowedBalanceHistory, error) {
+		func(ctx context.Context, request GetEntitlementBalanceHistoryHandlerRequest) (api.WindowedBalanceHistory, error) {
 			windowedHistory, burndownHistory, err := h.balanceConnector.GetEntitlementBalanceHistory(ctx, request.ID, request.params)
 			windows := make([]api.BalanceHistoryWindow, 0, len(windowedHistory))
 			for _, window := range windowedHistory {

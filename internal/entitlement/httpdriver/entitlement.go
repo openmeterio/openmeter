@@ -49,10 +49,14 @@ type APIEntitlementResponse struct {
 	UsagePeriod *api.RecurringPeriod `json:"usagePeriod,omitempty"`
 }
 
-type CreateEntitlementHandler httptransport.HandlerWithArgs[entitlement.CreateEntitlementInputs, APIEntitlementResponse, string]
+type CreateEntitlementHandlerRequest = entitlement.CreateEntitlementInputs
+type CreateEntitlementHandlerResponse = APIEntitlementResponse
+type CreateEntitlementHandlerParams = string
+
+type CreateEntitlementHandler httptransport.HandlerWithArgs[CreateEntitlementHandlerRequest, CreateEntitlementHandlerResponse, CreateEntitlementHandlerParams]
 
 func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
-	return httptransport.NewHandlerWithArgs[entitlement.CreateEntitlementInputs, APIEntitlementResponse, string](
+	return httptransport.NewHandlerWithArgs[CreateEntitlementHandlerRequest, CreateEntitlementHandlerResponse, string](
 		func(ctx context.Context, r *http.Request, subjectIdOrKey string) (entitlement.CreateEntitlementInputs, error) {
 			entitlement := entitlement.CreateEntitlementInputs{}
 			// TODO: parse rest of the fields from the request (period, issuing, etc...)
@@ -69,7 +73,7 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 
 			return entitlement, nil
 		},
-		func(ctx context.Context, request entitlement.CreateEntitlementInputs) (APIEntitlementResponse, error) {
+		func(ctx context.Context, request CreateEntitlementHandlerRequest) (APIEntitlementResponse, error) {
 			res, err := h.connector.CreateEntitlement(ctx, request)
 			return APIEntitlementResponse{
 				EntitlementMetered: api.EntitlementMetered{
@@ -118,29 +122,29 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 	)
 }
 
-type GetEntitlementValueParams struct {
+type GetEntitlementValueHandlerRequest struct {
+	ID models.NamespacedID
+	At time.Time
+}
+type GetEntitlementValueHandlerResponse = api.EntitlementValue
+type GetEntitlementValueHandlerParams struct {
 	SubjectIdOrKey            string
 	EntitlementIdOrFeatureKey string
 	Params                    api.GetEntitlementValueParams
 }
-
-type GetEntitlementValueInputs struct {
-	ID models.NamespacedID
-	At time.Time
-}
-type GetEntitlementValueHandler httptransport.HandlerWithArgs[GetEntitlementValueInputs, api.EntitlementValue, GetEntitlementValueParams]
+type GetEntitlementValueHandler httptransport.HandlerWithArgs[GetEntitlementValueHandlerRequest, GetEntitlementValueHandlerResponse, GetEntitlementValueHandlerParams]
 
 func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, params GetEntitlementValueParams) (GetEntitlementValueInputs, error) {
+		func(ctx context.Context, r *http.Request, params GetEntitlementValueHandlerParams) (GetEntitlementValueHandlerRequest, error) {
 			// TODO: use subjectIdOrKey
 
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return GetEntitlementValueInputs{}, err
+				return GetEntitlementValueHandlerRequest{}, err
 			}
 
-			return GetEntitlementValueInputs{
+			return GetEntitlementValueHandlerRequest{
 				ID: models.NamespacedID{
 					Namespace: ns,
 					ID:        params.EntitlementIdOrFeatureKey,
@@ -148,7 +152,7 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 				At: defaultx.WithDefault(params.Params.Time, time.Now()),
 			}, nil
 		},
-		func(ctx context.Context, request GetEntitlementValueInputs) (api.EntitlementValue, error) {
+		func(ctx context.Context, request GetEntitlementValueHandlerRequest) (api.EntitlementValue, error) {
 			entitlement, err := h.connector.GetEntitlementValue(ctx, models.NamespacedID{
 				Namespace: request.ID.Namespace,
 				ID:        request.ID.ID,
@@ -182,16 +186,18 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 	)
 }
 
-type GetEntitlementsOfSubjectParams struct {
+type GetEntitlementsOfSubjectHandlerRequest = models.NamespacedID
+type GetEntitlementsOfSubjectHandlerResponse = []APIEntitlementResponse
+type GetEntitlementsOfSubjectHandlerParams struct {
 	SubjectIdOrKey string
 	Params         api.ListSubjectEntitlementsParams
 }
 
-type GetEntitlementsOfSubjectHandler httptransport.HandlerWithArgs[models.NamespacedID, []APIEntitlementResponse, GetEntitlementsOfSubjectParams]
+type GetEntitlementsOfSubjectHandler httptransport.HandlerWithArgs[GetEntitlementsOfSubjectHandlerRequest, GetEntitlementsOfSubjectHandlerResponse, GetEntitlementsOfSubjectHandlerParams]
 
 func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOfSubjectHandler {
 	return httptransport.NewHandlerWithArgs(
-		func(ctx context.Context, r *http.Request, params GetEntitlementsOfSubjectParams) (models.NamespacedID, error) {
+		func(ctx context.Context, r *http.Request, params GetEntitlementsOfSubjectHandlerParams) (GetEntitlementsOfSubjectHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return models.NamespacedID{}, err
@@ -202,7 +208,7 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 				ID:        params.SubjectIdOrKey, // TODO: should work with ID as well & should use params.Params values
 			}, nil
 		},
-		func(ctx context.Context, id models.NamespacedID) ([]APIEntitlementResponse, error) {
+		func(ctx context.Context, id GetEntitlementsOfSubjectHandlerRequest) ([]APIEntitlementResponse, error) {
 			entitlements, err := h.connector.GetEntitlementsOfSubject(ctx, id.Namespace, models.SubjectKey(id.ID))
 			if err != nil {
 				return nil, err

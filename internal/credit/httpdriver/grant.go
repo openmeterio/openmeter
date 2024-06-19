@@ -39,23 +39,24 @@ func NewGrantHandler(
 	}
 }
 
-type ListGrantsInputs struct {
+type ListGrantsHandlerRequest struct {
 	params credit.ListGrantsParams
 }
-type ListGrantsParams struct {
+type ListGrantsHandlerResponse = []api.EntitlementGrant
+type ListGrantsHandlerParams struct {
 	Params api.ListGrantsParams
 }
-type ListGrantsHandler httptransport.HandlerWithArgs[ListGrantsInputs, []api.EntitlementGrant, ListGrantsParams]
+type ListGrantsHandler httptransport.HandlerWithArgs[ListGrantsHandlerRequest, ListGrantsHandlerResponse, ListGrantsHandlerParams]
 
 func (h *grantHandler) ListGrants() ListGrantsHandler {
-	return httptransport.NewHandlerWithArgs[ListGrantsInputs, []api.EntitlementGrant, ListGrantsParams](
-		func(ctx context.Context, r *http.Request, params ListGrantsParams) (ListGrantsInputs, error) {
+	return httptransport.NewHandlerWithArgs[ListGrantsHandlerRequest, []api.EntitlementGrant, ListGrantsHandlerParams](
+		func(ctx context.Context, r *http.Request, params ListGrantsHandlerParams) (ListGrantsHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return ListGrantsInputs{}, err
+				return ListGrantsHandlerRequest{}, err
 			}
 
-			return ListGrantsInputs{
+			return ListGrantsHandlerRequest{
 				params: credit.ListGrantsParams{
 					Namespace:      ns,
 					IncludeDeleted: defaultx.WithDefault(params.Params.IncludeDeleted, false),
@@ -65,7 +66,7 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 				},
 			}, nil
 		},
-		func(ctx context.Context, request ListGrantsInputs) ([]api.EntitlementGrant, error) {
+		func(ctx context.Context, request ListGrantsHandlerRequest) ([]api.EntitlementGrant, error) {
 			grants, err := h.grantConnector.ListGrants(ctx, request.params)
 			if err != nil {
 				return nil, err
@@ -102,30 +103,31 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 	)
 }
 
-type VoidGrantInputs struct {
+type VoidGrantHandlerRequest struct {
 	ID models.NamespacedID
 }
-type VoidGrantParams struct {
+type VoidGrantHandlerResponse = interface{}
+type VoidGrantHandlerParams struct {
 	ID string
 }
-type VoidGrantHandler httptransport.HandlerWithArgs[VoidGrantInputs, interface{}, VoidGrantParams]
+type VoidGrantHandler httptransport.HandlerWithArgs[VoidGrantHandlerRequest, VoidGrantHandlerResponse, VoidGrantHandlerParams]
 
 func (h *grantHandler) VoidGrant() VoidGrantHandler {
-	return httptransport.NewHandlerWithArgs[VoidGrantInputs, interface{}, VoidGrantParams](
-		func(ctx context.Context, r *http.Request, params VoidGrantParams) (VoidGrantInputs, error) {
+	return httptransport.NewHandlerWithArgs[VoidGrantHandlerRequest, VoidGrantHandlerResponse, VoidGrantHandlerParams](
+		func(ctx context.Context, r *http.Request, params VoidGrantHandlerParams) (VoidGrantHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return VoidGrantInputs{}, err
+				return VoidGrantHandlerRequest{}, err
 			}
 
-			return VoidGrantInputs{
+			return VoidGrantHandlerRequest{
 				ID: models.NamespacedID{
 					Namespace: ns,
 					ID:        params.ID,
 				},
 			}, nil
 		},
-		func(ctx context.Context, request VoidGrantInputs) (interface{}, error) {
+		func(ctx context.Context, request VoidGrantHandlerRequest) (interface{}, error) {
 			err := h.grantConnector.VoidGrant(ctx, request.ID)
 			if err != nil {
 				return nil, err
