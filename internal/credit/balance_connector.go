@@ -80,17 +80,9 @@ func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner Namespac
 	if err != nil {
 		return nil, fmt.Errorf("failed to list active grants at %s for owner %s: %w", at, owner.ID, err)
 	}
-	// these grants might not be present in the starting balance so lets fill them
-	for _, grant := range grants {
-		if _, ok := balance.Balances[grant.ID]; !ok {
-			if grant.ActiveAt(balance.At) {
-				// This is only possible in case the grant becomes active exactly at the start of the current period
-				balance.Balances.Set(grant.ID, grant.Amount)
-			} else {
-				balance.Balances.Set(grant.ID, 0.0)
-			}
-		}
-	}
+	// These grants might not be present in the starting balance so lets fill them
+	// This is only possible in case the grant becomes active exactly at the start of the current period
+	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&balance, grants, balance.At)
 
 	// run engine and calculate grantbalance
 	queryFn, err := m.getQueryUsageFn(ctx, owner)
@@ -175,17 +167,9 @@ func (m *balanceConnector) GetBalanceHistoryOfOwner(ctx context.Context, owner N
 
 		// get all relevant grants
 		grants, err := m.gc.ListActiveGrantsBetween(ctx, owner, period.From, period.To)
-		// these grants might not be present in the starting balance so lets fill them
-		for _, grant := range grants {
-			if _, ok := balance.Balances[grant.ID]; !ok {
-				if grant.ActiveAt(period.From) {
-					// This is only possible in case the grant becomes active exactly at the start of the current period
-					balance.Balances.Set(grant.ID, grant.Amount)
-				} else {
-					balance.Balances.Set(grant.ID, 0.0)
-				}
-			}
-		}
+		// These grants might not be present in the starting balance so lets fill them
+		// This is only possible in case the grant becomes active exactly at the start of the current period
+		m.populateBalanceSnapshotWithMissingGrantsActiveAt(&balance, grants, period.From)
 
 		if err != nil {
 			return GrantBurnDownHistory{}, err
@@ -260,6 +244,7 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 	if err != nil {
 		return nil, fmt.Errorf("failed to list active grants at %s for owner %s: %w", at, owner.ID, err)
 	}
+	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&balance, grants, balance.At)
 
 	queryFn, err := m.getQueryUsageFn(ctx, owner)
 	if err != nil {
@@ -425,4 +410,18 @@ func (m *balanceConnector) getLastSaveableSnapshotAt(history *GrantBurnDownHisto
 	}
 
 	return nil, fmt.Errorf("no segment can be saved at %s with gracePeriod %s", at, m.snapshotGracePeriod)
+}
+
+// Fills in the snapshot's GrantBalanceMap with the provided grants so the Engine can use them.
+func (m *balanceConnector) populateBalanceSnapshotWithMissingGrantsActiveAt(snapshot *GrantBalanceSnapshot, grants []Grant, at time.Time) error {
+	for _, grant := range grants {
+		if _, ok := snapshot.Balances[grant.ID]; !ok {
+			if grant.ActiveAt(at) {
+				snapshot.Balances.Set(grant.ID, grant.Amount)
+			} else {
+				snapshot.Balances.Set(grant.ID, 0.0)
+			}
+		}
+	}
+	return nil
 }
