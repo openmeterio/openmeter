@@ -14,7 +14,6 @@ type UsageReset struct {
 	ent.Schema
 }
 
-// Mixin of the CreditGrant.
 func (UsageReset) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.IDMixin{}, // won't be used
@@ -23,7 +22,6 @@ func (UsageReset) Mixin() []ent.Mixin {
 	}
 }
 
-// Fields of the CreditGrant.
 func (UsageReset) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("entitlement_id").Immutable().SchemaType(map[string]string{
@@ -33,7 +31,6 @@ func (UsageReset) Fields() []ent.Field {
 	}
 }
 
-// Indexes of the UsageReset.
 func (UsageReset) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "entitlement_id"),
@@ -41,8 +38,6 @@ func (UsageReset) Indexes() []ent.Index {
 	}
 }
 
-// Edges of the UsageReset define the relations to other entities.
-// TODO: link to entitlements
 func (UsageReset) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("entitlement", Entitlement.Type).

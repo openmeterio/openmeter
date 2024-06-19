@@ -14,7 +14,6 @@ type Grant struct {
 	ent.Schema
 }
 
-// Mixin of the CreditGrant.
 func (Grant) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.IDMixin{},
@@ -24,7 +23,6 @@ func (Grant) Mixin() []ent.Mixin {
 	}
 }
 
-// Fields of the CreditGrant.
 func (Grant) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("owner_id").GoType(credit.GrantOwner("")).Immutable().SchemaType(map[string]string{
@@ -48,7 +46,6 @@ func (Grant) Fields() []ent.Field {
 	}
 }
 
-// Indexes of the Grant.
 func (Grant) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "owner_id"),
@@ -56,7 +53,6 @@ func (Grant) Indexes() []ent.Index {
 	}
 }
 
-// Edges of the Grant define the relations to other entities.
 func (Grant) Edges() []ent.Edge {
 	return []ent.Edge{}
 }

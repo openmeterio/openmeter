@@ -14,7 +14,6 @@ type BalanceSnapshot struct {
 	ent.Schema
 }
 
-// Mixin of the CreditGrant.
 func (BalanceSnapshot) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.NamespaceMixin{},
@@ -22,7 +21,6 @@ func (BalanceSnapshot) Mixin() []ent.Mixin {
 	}
 }
 
-// Fields of the CreditGrant.
 func (BalanceSnapshot) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("owner_id").GoType(credit.GrantOwner("")).Immutable().SchemaType(map[string]string{
@@ -41,7 +39,6 @@ func (BalanceSnapshot) Fields() []ent.Field {
 	}
 }
 
-// Indexes of the BalanceSnapshot.
 func (BalanceSnapshot) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "at"),
@@ -50,7 +47,6 @@ func (BalanceSnapshot) Indexes() []ent.Index {
 	}
 }
 
-// Edges of the BalanceSnapshot define the relations to other entities.
 func (BalanceSnapshot) Edges() []ent.Edge {
 	return []ent.Edge{}
 }

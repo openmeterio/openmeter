@@ -14,7 +14,6 @@ type Entitlement struct {
 	ent.Schema
 }
 
-// Mixin of the CreditGrant.
 func (Entitlement) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.IDMixin{},
@@ -24,7 +23,6 @@ func (Entitlement) Mixin() []ent.Mixin {
 	}
 }
 
-// Fields of the CreditGrant.
 func (Entitlement) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("feature_id").Immutable().SchemaType(map[string]string{
@@ -35,7 +33,6 @@ func (Entitlement) Fields() []ent.Field {
 	}
 }
 
-// Indexes of the Entitlement.
 func (Entitlement) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "id"),
@@ -45,7 +42,6 @@ func (Entitlement) Indexes() []ent.Index {
 	}
 }
 
-// Edges of the Entitlement define the relations to other entities.
 func (Entitlement) Edges() []ent.Edge {
 	return []ent.Edge{
 		// link to usage_reset as that references entitlement
