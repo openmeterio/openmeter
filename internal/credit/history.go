@@ -49,7 +49,7 @@ type GrantBurnDownHistorySegment struct {
 	BalanceAtStart     GrantBalanceMap
 	TerminationReasons SegmentTerminationReason // Reason why the segment was terminated (could be multiple taking effect at same time)
 	TotalUsage         float64                  // Total usage of the feature in the Period
-	OverageAtStart     float64                  // Usage beyond what culd be burnt down from the grants in the previous segment (if any)
+	OverageAtStart     float64                  // Usage beyond what could be burnt down from the grants in the previous segment (if any)
 	Overage            float64                  // Usage beyond what cloud be burnt down from the grants
 	GrantUsages        []GrantUsage             // Grant usages in the segment order by grant priority
 }
