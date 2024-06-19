@@ -63,7 +63,7 @@ type DBCreateGrantInput struct {
 // Might be that credit operations in general are more tighlty linked than assumed here
 type GrantDBConnector interface {
 	CreateGrant(ctx context.Context, grant DBCreateGrantInput) (*Grant, error)
-	VoidGrant(ctx context.Context, grantID models.NamespacedID) error
+	VoidGrant(ctx context.Context, grantID models.NamespacedID, at time.Time) error
 	ListGrants(ctx context.Context, params ListGrantsParams) ([]Grant, error)
 	// ListActiveGrantsBetween returns all grants that are active at any point between the given time range.
 	ListActiveGrantsBetween(ctx context.Context, owner NamespacedGrantOwner, from, to time.Time) ([]Grant, error)
@@ -169,7 +169,11 @@ func (m *grantConnector) VoidGrant(ctx context.Context, grantID models.Namespace
 		if err != nil {
 			return nil, err
 		}
-		return nil, m.db.WithTx(ctx, tx).VoidGrant(ctx, grantID)
+		now := time.Now()
+		err = m.db.WithTx(ctx, tx).VoidGrant(ctx, grantID, now)
+		m.bsdb.WithTx(ctx, tx).InvalidateAfter(ctx, owner, now)
+
+		return nil, err
 	})
 	return err
 }

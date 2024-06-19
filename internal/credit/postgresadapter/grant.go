@@ -51,10 +51,10 @@ func (g *grantDBADapter) CreateGrant(ctx context.Context, grant credit.DBCreateG
 }
 
 // translates to a delete
-func (g *grantDBADapter) VoidGrant(ctx context.Context, grantID models.NamespacedID) error {
+func (g *grantDBADapter) VoidGrant(ctx context.Context, grantID models.NamespacedID, at time.Time) error {
 	// TODO: transaction and locking
 	command := g.db.Grant.Update().
-		SetVoidedAt(time.Now()).
+		SetVoidedAt(at).
 		Where(db_grant.ID(string(grantID.ID)), db_grant.Namespace(grantID.Namespace))
 	return command.Exec(ctx)
 }
