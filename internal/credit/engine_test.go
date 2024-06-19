@@ -19,7 +19,6 @@ import (
 func TestEngine(t *testing.T) {
 	t1, err := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z")
 	assert.NoError(t, err)
-	farInPast := t1.AddDate(-10, 0, 0)
 	meterSlug := "meter-1"
 
 	grant1 := makeGrant(credit.Grant{
@@ -656,7 +655,7 @@ func TestEngine(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			streamingConnector := testutils.NewMockStreamingConnector(t, testutils.MockStreamingConnectorParams{DefaultHighwatermark: farInPast})
+			streamingConnector := testutils.NewMockStreamingConnector(t)
 
 			queryFeatureUsage := func(from, to time.Time) (float64, error) {
 				rows, err := streamingConnector.QueryMeter(context.TODO(), "default", meterSlug, &streaming.QueryParams{
@@ -940,7 +939,7 @@ func TestEngine(t *testing.T) {
 		for i := 0; i < int(math.Min(float64(tc.repeat), 1.0)); i++ {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
-				streamingConnector := testutils.NewMockStreamingConnector(t, testutils.MockStreamingConnectorParams{DefaultHighwatermark: farInPast})
+				streamingConnector := testutils.NewMockStreamingConnector(t)
 
 				queryFeatureUsage := func(from, to time.Time) (float64, error) {
 					rows, err := streamingConnector.QueryMeter(context.TODO(), "default", meterSlug, &streaming.QueryParams{

@@ -193,7 +193,7 @@ func TestMockStreamingConnector(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.Name, func(t *testing.T) {
-			streamingConnector := NewMockStreamingConnector(t, MockStreamingConnectorParams{DefaultHighwatermark: now})
+			streamingConnector := NewMockStreamingConnector(t)
 
 			for _, event := range tc.Events {
 				streamingConnector.AddSimpleEvent(event.MeterSlug, event.Value, event.Time)

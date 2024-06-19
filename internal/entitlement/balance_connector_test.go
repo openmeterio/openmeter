@@ -809,13 +809,7 @@ type testDependencies struct {
 func setupConnector(t *testing.T) (entitlement.EntitlementBalanceConnector, *testDependencies) {
 	testLogger := testutils.NewLogger(t)
 
-	// TODO: Mock Streaming shouldn't need a highwatermark, thats not a streaming concept
-	veryOld, err := time.Parse(time.RFC3339, "1024-03-01T00:00:00Z")
-	assert.NoError(t, err)
-
-	streaming := streaming_testutils.NewMockStreamingConnector(t, streaming_testutils.MockStreamingConnectorParams{
-		DefaultHighwatermark: veryOld,
-	})
+	streaming := streaming_testutils.NewMockStreamingConnector(t)
 	meterRepo := meter.NewInMemoryRepository([]models.Meter{{
 		Slug:        "meter1",
 		Namespace:   "ns1",

@@ -11,17 +11,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type MockStreamingConnectorParams struct {
-	// TODO: get rid of this, it's not used anymore
-	DefaultHighwatermark time.Time
-}
-
-func NewMockStreamingConnector(t testing.TB, params MockStreamingConnectorParams) *MockStreamingConnector {
+func NewMockStreamingConnector(t testing.TB) *MockStreamingConnector {
 	t.Helper()
 	return &MockStreamingConnector{
 		rows:   map[string][]models.MeterQueryRow{},
 		events: map[string][]SimpleEvent{},
-		params: params,
 	}
 }
 
@@ -34,7 +28,6 @@ type SimpleEvent struct {
 type MockStreamingConnector struct {
 	rows   map[string][]models.MeterQueryRow
 	events map[string][]SimpleEvent
-	params MockStreamingConnectorParams
 }
 
 func (m *MockStreamingConnector) AddSimpleEvent(meterSlug string, value float64, at time.Time) {
@@ -98,7 +91,7 @@ func windowSizeToDuration(windowSize models.WindowSize) time.Duration {
 // We approximate the actual logic by a simple filter + aggregation for most cases
 func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	events, ok := m.events[meterSlug]
-	from := defaultx.WithDefault(params.From, m.params.DefaultHighwatermark)
+	from := defaultx.WithDefault(params.From, time.Now().AddDate(-10, 0, 0))
 	to := defaultx.WithDefault(params.To, time.Now())
 	if !ok {
 		return []models.MeterQueryRow{}, &models.MeterNotFoundError{MeterSlug: meterSlug}
