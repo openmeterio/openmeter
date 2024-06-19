@@ -297,9 +297,12 @@ func main() {
 	var entitlementBalanceConnector entitlement.EntitlementBalanceConnector
 	var featureConnector productcatalog.FeatureConnector
 	var creditGrantConnector credit.GrantConnector
+	var driver *entDialectSQL.Driver
+
 	// Initialize Postgres
 	if conf.Entitlements.Enabled {
-		pgClients, err := InitPGClients(ctx, conf.Postgres)
+		pgClients, err := initPGClients(ctx, conf.Postgres)
+		driver = pgClients.driver
 		if err != nil {
 			logger.Error("failed to initialize postgres clients", "error", err)
 			os.Exit(1)
@@ -347,6 +350,8 @@ func main() {
 			featureConnector,
 		)
 	}
+
+	defer driver.Close()
 
 	// Initialize Credit
 	// TODO: manage opt-in module loading (entitlements)
@@ -566,7 +571,7 @@ func initNamespace(config config.Configuration, namespaces ...namespace.Handler)
 	return namespaceManager, nil
 }
 
-func InitPGClients(ctx context.Context, config config.PostgresConfig) (*struct {
+func initPGClients(ctx context.Context, config config.PostgresConfig) (*struct {
 	driver                 *entDialectSQL.Driver
 	entitlementDBClient    *entitlementdb.Client
 	productcatalogDBClient *productcatalogdb.Client
