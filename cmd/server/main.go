@@ -299,7 +299,7 @@ func main() {
 	var creditGrantConnector credit.GrantConnector
 	// Initialize Postgres
 	if conf.Entitlements.Enabled {
-		pgClients, err := initPGClients(ctx, conf.Postgres)
+		pgClients, err := InitPGClients(ctx, conf.Postgres)
 		if err != nil {
 			logger.Error("failed to initialize postgres clients", "error", err)
 			os.Exit(1)
@@ -566,7 +566,7 @@ func initNamespace(config config.Configuration, namespaces ...namespace.Handler)
 	return namespaceManager, nil
 }
 
-func initPGClients(ctx context.Context, config config.PostgresConfig) (*struct {
+func InitPGClients(ctx context.Context, config config.PostgresConfig) (*struct {
 	driver                 *entDialectSQL.Driver
 	entitlementDBClient    *entitlementdb.Client
 	productcatalogDBClient *productcatalogdb.Client
