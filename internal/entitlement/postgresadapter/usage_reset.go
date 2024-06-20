@@ -16,7 +16,7 @@ type usageResetDBAdapter struct {
 	db *db.Client
 }
 
-func NewPostgresUsageResetDBAdapter(db *db.Client) entitlement.UsageResetDBConnector {
+func NewPostgresUsageResetRepo(db *db.Client) entitlement.UsageResetRepo {
 	return &usageResetDBAdapter{
 		db: db,
 	}

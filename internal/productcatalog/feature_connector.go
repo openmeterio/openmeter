@@ -41,7 +41,7 @@ type ListFeaturesParams struct {
 	OrderBy         FeatureOrderBy
 }
 
-type DBCreateFeatureInputs struct {
+type FeatureRepoCreateFeatureInputs struct {
 	Name                string
 	Key                 string
 	Namespace           string
@@ -49,24 +49,24 @@ type DBCreateFeatureInputs struct {
 	MeterGroupByFilters *map[string]string
 }
 
-type FeatureDBConnector interface {
-	CreateFeature(ctx context.Context, feature DBCreateFeatureInputs) (Feature, error)
+type FeatureRepo interface {
+	CreateFeature(ctx context.Context, feature FeatureRepoCreateFeatureInputs) (Feature, error)
 	ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error
 	ListFeatures(ctx context.Context, params ListFeaturesParams) ([]Feature, error)
 	FindByKey(ctx context.Context, namespace string, key string, includeArchived bool) (*Feature, error)
 	GetByID(ctx context.Context, featureID models.NamespacedID) (Feature, error)
 
 	entutils.TxCreator
-	entutils.TxUser[FeatureDBConnector]
+	entutils.TxUser[FeatureRepo]
 }
 
 type featureConnector struct {
-	db        FeatureDBConnector
+	db        FeatureRepo
 	meterRepo meter.Repository
 }
 
 func NewFeatureConnector(
-	db FeatureDBConnector,
+	db FeatureRepo,
 	meterRepo meter.Repository,
 ) FeatureConnector {
 	return &featureConnector{
@@ -103,7 +103,7 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 		return Feature{}, &FeatureWithNameAlreadyExistsError{Name: feature.Name, ID: found.ID}
 	}
 
-	return c.db.CreateFeature(ctx, DBCreateFeatureInputs(feature))
+	return c.db.CreateFeature(ctx, FeatureRepoCreateFeatureInputs(feature))
 }
 
 func (c *featureConnector) ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error {

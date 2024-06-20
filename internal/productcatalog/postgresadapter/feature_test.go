@@ -25,7 +25,7 @@ func TestCreateFeature(t *testing.T) {
 		GroupBy:   map[string]string{"key": "$.path"},
 	}
 
-	testFeature := productcatalog.DBCreateFeatureInputs{
+	testFeature := productcatalog.FeatureRepoCreateFeatureInputs{
 		Namespace: namespace,
 		Name:      "feature-1",
 		Key:       "feature-1",
@@ -37,11 +37,11 @@ func TestCreateFeature(t *testing.T) {
 
 	tt := []struct {
 		name string
-		run  func(t *testing.T, connector productcatalog.FeatureDBConnector)
+		run  func(t *testing.T, connector productcatalog.FeatureRepo)
 	}{
 		{
 			name: "Should create a feature and return the created feature with defaults",
-			run: func(t *testing.T, connector productcatalog.FeatureDBConnector) {
+			run: func(t *testing.T, connector productcatalog.FeatureRepo) {
 				ctx := context.Background()
 				featureIn := testFeature
 
@@ -71,7 +71,7 @@ func TestCreateFeature(t *testing.T) {
 		},
 		{
 			name: "Should archive a feature that exists and error on a feature that doesnt",
-			run: func(t *testing.T, connector productcatalog.FeatureDBConnector) {
+			run: func(t *testing.T, connector productcatalog.FeatureRepo) {
 				ctx := context.Background()
 				featureIn := testFeature
 
@@ -96,7 +96,7 @@ func TestCreateFeature(t *testing.T) {
 		},
 		{
 			name: "Should search and order",
-			run: func(t *testing.T, connector productcatalog.FeatureDBConnector) {
+			run: func(t *testing.T, connector productcatalog.FeatureRepo) {
 				ctx := context.Background()
 				featureIn1 := testFeature
 				featureIn1.Name = "feature-3"
@@ -165,7 +165,7 @@ func TestCreateFeature(t *testing.T) {
 		},
 		{
 			name: "Should find by name",
-			run: func(t *testing.T, connector productcatalog.FeatureDBConnector) {
+			run: func(t *testing.T, connector productcatalog.FeatureRepo) {
 				ctx := context.Background()
 				featureIn1 := testFeature
 				featureIn1.Name = "feature-1"
@@ -215,7 +215,7 @@ func TestCreateFeature(t *testing.T) {
 
 			defer dbClient.Close()
 
-			dbConnector := postgresadapter.NewPostgresFeatureDBAdapter(dbClient, testutils.NewLogger(t))
+			dbConnector := postgresadapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
 			tc.run(t, dbConnector)
 		})
 	}
@@ -230,7 +230,7 @@ func TestCreateFeature(t *testing.T) {
 			t.Fatalf("failed to migrate database %s", err)
 		}
 
-		dbConnector := postgresadapter.NewPostgresFeatureDBAdapter(dbClient, testutils.NewLogger(t))
+		dbConnector := postgresadapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
 		ctx := context.Background()
 		featureIn := testFeature
 

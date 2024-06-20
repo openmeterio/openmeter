@@ -15,13 +15,13 @@ type grantDBADapter struct {
 	db *db.Client
 }
 
-func NewPostgresGrantDBAdapter(db *db.Client) credit.GrantDBConnector {
+func NewPostgresGrantRepo(db *db.Client) credit.GrantRepo {
 	return &grantDBADapter{
 		db: db,
 	}
 }
 
-func (g *grantDBADapter) CreateGrant(ctx context.Context, grant credit.DBCreateGrantInput) (*credit.Grant, error) {
+func (g *grantDBADapter) CreateGrant(ctx context.Context, grant credit.GrantRepoCreateGrantInput) (*credit.Grant, error) {
 	// TODO: transaction and locking
 	command := g.db.Grant.Create().
 		SetOwnerID(grant.OwnerID).

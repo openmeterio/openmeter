@@ -7,6 +7,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
-func NewPostgresFeatureDBAdapter(db *DBClient, logger *slog.Logger) productcatalog.FeatureDBConnector {
-	return postgresadapter.NewPostgresFeatureDBAdapter(db, logger)
+func NewPostgresFeatureDBAdapter(db *DBClient, logger *slog.Logger) productcatalog.FeatureRepo {
+	return postgresadapter.NewPostgresFeatureRepo(db, logger)
 }

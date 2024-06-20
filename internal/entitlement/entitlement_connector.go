@@ -18,13 +18,13 @@ type EntitlementConnector interface {
 
 type entitlementConnector struct {
 	ebc EntitlementBalanceConnector
-	edb EntitlementDBConnector
+	edb EntitlementRepo
 	fc  productcatalog.FeatureConnector
 }
 
 func NewEntitlementConnector(
 	ebc EntitlementBalanceConnector,
-	edb EntitlementDBConnector,
+	edb EntitlementRepo,
 	fc productcatalog.FeatureConnector,
 ) EntitlementConnector {
 	return &entitlementConnector{
@@ -52,7 +52,7 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 
 	// FIXME: Add default value elsewhere
 	input.MeasureUsageFrom = time.Now().Truncate(time.Minute)
-	ent, err := c.edb.CreateEntitlement(ctx, CreateEntitlementDBInputs(input))
+	ent, err := c.edb.CreateEntitlement(ctx, EntitlementRepoCreateEntitlementInputs(input))
 	return *ent, err
 }
 

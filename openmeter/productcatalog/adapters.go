@@ -6,7 +6,7 @@ import (
 )
 
 func NewFeatureConnector(
-	db FeatureDBConnector,
+	db FeatureRepo,
 	meterRepo meter.Repository,
 ) FeatureConnector {
 	return productcatalog.NewFeatureConnector(db, meterRepo)

@@ -23,7 +23,7 @@ func (e *featureDBAdapter) Tx(ctx context.Context) (context.Context, *entutils.T
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
-func (e *featureDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) productcatalog.FeatureDBConnector {
+func (e *featureDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) productcatalog.FeatureRepo {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
-	return NewPostgresFeatureDBAdapter(txClient.Client(), e.logger)
+	return NewPostgresFeatureRepo(txClient.Client(), e.logger)
 }

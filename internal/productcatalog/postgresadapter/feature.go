@@ -18,14 +18,14 @@ type featureDBAdapter struct {
 	db     *db.Client
 }
 
-func NewPostgresFeatureDBAdapter(db *db.Client, logger *slog.Logger) productcatalog.FeatureDBConnector {
+func NewPostgresFeatureRepo(db *db.Client, logger *slog.Logger) productcatalog.FeatureRepo {
 	return &featureDBAdapter{
 		db:     db,
 		logger: logger,
 	}
 }
 
-func (c *featureDBAdapter) CreateFeature(ctx context.Context, feature productcatalog.DBCreateFeatureInputs) (productcatalog.Feature, error) {
+func (c *featureDBAdapter) CreateFeature(ctx context.Context, feature productcatalog.FeatureRepoCreateFeatureInputs) (productcatalog.Feature, error) {
 	query := c.db.Feature.Create().
 		SetName(feature.Name).
 		SetKey(feature.Key).

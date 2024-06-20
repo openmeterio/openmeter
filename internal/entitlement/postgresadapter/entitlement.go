@@ -15,7 +15,7 @@ type entitlementDBAdapter struct {
 	db *db.Client
 }
 
-func NewPostgresEntitlementDBAdapter(db *db.Client) entitlement.EntitlementDBConnector {
+func NewPostgresEntitlementRepo(db *db.Client) entitlement.EntitlementRepo {
 	return &entitlementDBAdapter{
 		db: db,
 	}
@@ -39,7 +39,7 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 	return mapEntitlementEntity(res), nil
 }
 
-func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlement entitlement.CreateEntitlementDBInputs) (*entitlement.Entitlement, error) {
+func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlement entitlement.EntitlementRepoCreateEntitlementInputs) (*entitlement.Entitlement, error) {
 	res, err := a.db.Entitlement.Create().
 		SetNamespace(entitlement.Namespace).
 		SetFeatureID(entitlement.FeatureID).

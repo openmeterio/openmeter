@@ -21,16 +21,16 @@ func NewEntitlementBalanceConnector(
 
 func NewEntitlementConnector(
 	ebc EntitlementBalanceConnector,
-	edb EntitlementDBConnector,
+	edb EntitlementRepo,
 	fc productcatalog.FeatureConnector,
 ) EntitlementConnector {
 	return entitlement.NewEntitlementConnector(ebc, edb, fc)
 }
 
 func NewEntitlementGrantOwnerAdapter(
-	fdb productcatalog.FeatureDBConnector,
-	edb EntitlementDBConnector,
-	urdb UsageResetDBConnector,
+	fdb productcatalog.FeatureRepo,
+	edb EntitlementRepo,
+	urdb UsageResetRepo,
 	mr meter.Repository,
 	logger *slog.Logger,
 ) credit.OwnerConnector {

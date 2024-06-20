@@ -23,9 +23,9 @@ func (e *entitlementDBAdapter) Tx(ctx context.Context) (context.Context, *entuti
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
-func (e *entitlementDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) entitlement.EntitlementDBConnector {
+func (e *entitlementDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) entitlement.EntitlementRepo {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
-	return NewPostgresEntitlementDBAdapter(txClient.Client())
+	return NewPostgresEntitlementRepo(txClient.Client())
 }
 
 func (u *usageResetDBAdapter) Tx(ctx context.Context) (context.Context, *entutils.TxDriver, error) {
@@ -38,7 +38,7 @@ func (u *usageResetDBAdapter) Tx(ctx context.Context) (context.Context, *entutil
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
-func (u *usageResetDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) entitlement.UsageResetDBConnector {
+func (u *usageResetDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) entitlement.UsageResetRepo {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
-	return NewPostgresUsageResetDBAdapter(txClient.Client())
+	return NewPostgresUsageResetRepo(txClient.Client())
 }

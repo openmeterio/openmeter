@@ -5,10 +5,10 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 )
 
-func NewPostgresEntitlementDBAdapter(db *DBClient) entitlement.EntitlementDBConnector {
-	return postgresadapter.NewPostgresEntitlementDBAdapter(db)
+func NewPostgresEntitlementDBAdapter(db *DBClient) entitlement.EntitlementRepo {
+	return postgresadapter.NewPostgresEntitlementRepo(db)
 }
 
-func NewPostgresUsageResetDBAdapter(db *DBClient) entitlement.UsageResetDBConnector {
-	return postgresadapter.NewPostgresUsageResetDBAdapter(db)
+func NewPostgresUsageResetDBAdapter(db *DBClient) entitlement.UsageResetRepo {
+	return postgresadapter.NewPostgresUsageResetRepo(db)
 }

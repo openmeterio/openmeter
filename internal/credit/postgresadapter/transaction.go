@@ -23,9 +23,9 @@ func (e *grantDBADapter) Tx(ctx context.Context) (context.Context, *entutils.TxD
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
-func (e *grantDBADapter) WithTx(ctx context.Context, tx *entutils.TxDriver) credit.GrantDBConnector {
+func (e *grantDBADapter) WithTx(ctx context.Context, tx *entutils.TxDriver) credit.GrantRepo {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
-	return NewPostgresGrantDBAdapter(txClient.Client())
+	return NewPostgresGrantRepo(txClient.Client())
 }
 
 func (e *balanceSnapshotAdapter) Tx(ctx context.Context) (context.Context, *entutils.TxDriver, error) {
@@ -38,7 +38,7 @@ func (e *balanceSnapshotAdapter) Tx(ctx context.Context) (context.Context, *entu
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
-func (e *balanceSnapshotAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) credit.BalanceSnapshotDBConnector {
+func (e *balanceSnapshotAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) credit.BalanceSnapshotConnector {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
-	return NewPostgresBalanceSnapshotDBAdapter(txClient.Client())
+	return NewPostgresBalanceSnapshotRepo(txClient.Client())
 }

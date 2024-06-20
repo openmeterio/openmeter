@@ -310,11 +310,11 @@ func main() {
 		logger.Info("Postgres clients initialized")
 
 		// db adapters
-		featureDBAdapter := productcatalogpgadapter.NewPostgresFeatureDBAdapter(pgClients.productcatalogDBClient, logger)
-		entitlementDBAdapter := entitlementpgadapter.NewPostgresEntitlementDBAdapter(pgClients.entitlementDBClient)
-		usageResetDBAdapter := entitlementpgadapter.NewPostgresUsageResetDBAdapter(pgClients.entitlementDBClient)
-		grantDBAdapter := creditpgadapter.NewPostgresGrantDBAdapter(pgClients.creditDBClient)
-		balanceSnashotDBAdapter := creditpgadapter.NewPostgresBalanceSnapshotDBAdapter(pgClients.creditDBClient)
+		featureDBAdapter := productcatalogpgadapter.NewPostgresFeatureRepo(pgClients.productcatalogDBClient, logger)
+		entitlementDBAdapter := entitlementpgadapter.NewPostgresEntitlementRepo(pgClients.entitlementDBClient)
+		usageResetDBAdapter := entitlementpgadapter.NewPostgresUsageResetRepo(pgClients.entitlementDBClient)
+		grantDBAdapter := creditpgadapter.NewPostgresGrantRepo(pgClients.creditDBClient)
+		balanceSnashotDBAdapter := creditpgadapter.NewPostgresBalanceSnapshotRepo(pgClients.creditDBClient)
 
 		// connectors
 		featureConnector = productcatalog.NewFeatureConnector(featureDBAdapter, meterRepository)

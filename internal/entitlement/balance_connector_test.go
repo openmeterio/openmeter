@@ -26,7 +26,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 	namespace := "ns1"
 	meterSlug := "meter1"
 
-	exampleFeature := productcatalog.DBCreateFeatureInputs{
+	exampleFeature := productcatalog.FeatureRepoCreateFeatureInputs{
 		Namespace:           namespace,
 		Name:                "feature1",
 		Key:                 "feature-1",
@@ -34,9 +34,9 @@ func TestGetEntitlementBalance(t *testing.T) {
 		MeterGroupByFilters: &map[string]string{},
 	}
 
-	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementDBInputs {
+	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.EntitlementRepoCreateEntitlementInputs {
 		t.Helper()
-		return entitlement.CreateEntitlementDBInputs{
+		return entitlement.EntitlementRepoCreateEntitlementInputs{
 			Namespace:        namespace,
 			FeatureID:        feature.ID,
 			MeasureUsageFrom: testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z"), // old, override in tests
@@ -161,7 +161,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				deps.streaming.AddSimpleEvent(meterSlug, 100, queryTime.Add(time.Minute))
 
 				// issue grants
-				_, err = deps.grantDB.CreateGrant(ctx, credit.DBCreateGrantInput{
+				_, err = deps.grantDB.CreateGrant(ctx, credit.GrantRepoCreateGrantInput{
 					OwnerID:     credit.GrantOwner(entitlement.ID),
 					Namespace:   namespace,
 					Amount:      1000,
@@ -171,7 +171,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				_, err = deps.grantDB.CreateGrant(ctx, credit.DBCreateGrantInput{
+				_, err = deps.grantDB.CreateGrant(ctx, credit.GrantRepoCreateGrantInput{
 					OwnerID:     credit.GrantOwner(entitlement.ID),
 					Namespace:   namespace,
 					Amount:      1000,
@@ -213,7 +213,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 					ID:        credit.GrantOwner(entitlement.ID),
 				}
 
-				g1, err := deps.grantDB.CreateGrant(ctx, credit.DBCreateGrantInput{
+				g1, err := deps.grantDB.CreateGrant(ctx, credit.GrantRepoCreateGrantInput{
 					OwnerID:     owner.ID,
 					Namespace:   namespace,
 					Amount:      1000,
@@ -223,7 +223,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				g2, err := deps.grantDB.CreateGrant(ctx, credit.DBCreateGrantInput{
+				g2, err := deps.grantDB.CreateGrant(ctx, credit.GrantRepoCreateGrantInput{
 					OwnerID:     owner.ID,
 					Namespace:   namespace,
 					Amount:      1000,
@@ -300,7 +300,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 					ID:        credit.GrantOwner(entitlement.ID),
 				}
 
-				g1, err := deps.grantDB.CreateGrant(ctx, credit.DBCreateGrantInput{
+				g1, err := deps.grantDB.CreateGrant(ctx, credit.GrantRepoCreateGrantInput{
 					OwnerID:     owner.ID,
 					Namespace:   namespace,
 					Amount:      1000,
@@ -310,7 +310,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				g2, err := deps.grantDB.CreateGrant(ctx, credit.DBCreateGrantInput{
+				g2, err := deps.grantDB.CreateGrant(ctx, credit.GrantRepoCreateGrantInput{
 					OwnerID:     owner.ID,
 					Namespace:   namespace,
 					Amount:      1000,
@@ -393,7 +393,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 	namespace := "ns1"
 	meterSlug := "meter1"
 
-	exampleFeature := productcatalog.DBCreateFeatureInputs{
+	exampleFeature := productcatalog.FeatureRepoCreateFeatureInputs{
 		Namespace:           namespace,
 		Name:                "feature1",
 		Key:                 "feature1",
@@ -401,9 +401,9 @@ func TestGetEntitlementHistory(t *testing.T) {
 		MeterGroupByFilters: &map[string]string{},
 	}
 
-	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementDBInputs {
+	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.EntitlementRepoCreateEntitlementInputs {
 		t.Helper()
-		return entitlement.CreateEntitlementDBInputs{
+		return entitlement.EntitlementRepoCreateEntitlementInputs{
 			Namespace:        namespace,
 			FeatureID:        feature.ID,
 			MeasureUsageFrom: testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z"), // old, override in tests
@@ -442,7 +442,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 
 				// issue grants
 				// grant at start
-				_, err = deps.grantDB.CreateGrant(ctx, credit.DBCreateGrantInput{
+				_, err = deps.grantDB.CreateGrant(ctx, credit.GrantRepoCreateGrantInput{
 					OwnerID:     credit.GrantOwner(ent.ID),
 					Namespace:   namespace,
 					Amount:      10000,
@@ -453,7 +453,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 				assert.NoError(t, err)
 
 				// grant falling on 3h window
-				_, err = deps.grantDB.CreateGrant(ctx, credit.DBCreateGrantInput{
+				_, err = deps.grantDB.CreateGrant(ctx, credit.GrantRepoCreateGrantInput{
 					OwnerID:     credit.GrantOwner(ent.ID),
 					Namespace:   namespace,
 					Amount:      10000,
@@ -464,7 +464,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 				assert.NoError(t, err)
 
 				// grant between windows
-				_, err = deps.grantDB.CreateGrant(ctx, credit.DBCreateGrantInput{
+				_, err = deps.grantDB.CreateGrant(ctx, credit.GrantRepoCreateGrantInput{
 					OwnerID:     credit.GrantOwner(ent.ID),
 					Namespace:   namespace,
 					Amount:      10000,
@@ -529,7 +529,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 	namespace := "ns1"
 	meterSlug := "meter1"
 
-	exampleFeature := productcatalog.DBCreateFeatureInputs{
+	exampleFeature := productcatalog.FeatureRepoCreateFeatureInputs{
 		Namespace:           namespace,
 		Name:                "feature1",
 		Key:                 "feature1",
@@ -537,9 +537,9 @@ func TestResetEntitlementUsage(t *testing.T) {
 		MeterGroupByFilters: &map[string]string{},
 	}
 
-	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementDBInputs {
+	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.EntitlementRepoCreateEntitlementInputs {
 		t.Helper()
-		return entitlement.CreateEntitlementDBInputs{
+		return entitlement.EntitlementRepoCreateEntitlementInputs{
 			Namespace:        namespace,
 			FeatureID:        feature.ID,
 			MeasureUsageFrom: testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z"), // old, override in tests
@@ -683,7 +683,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				// we force snapshot creation the intended way by checking the balance
 
 				// issue grant
-				g1, err := deps.grantDB.CreateGrant(ctx, credit.DBCreateGrantInput{
+				g1, err := deps.grantDB.CreateGrant(ctx, credit.GrantRepoCreateGrantInput{
 					OwnerID:     credit.GrantOwner(ent.ID),
 					Namespace:   namespace,
 					Amount:      1000,
@@ -735,7 +735,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.NoError(t, err)
 
 				// issue grants
-				g1, err := deps.grantDB.CreateGrant(ctx, credit.DBCreateGrantInput{
+				g1, err := deps.grantDB.CreateGrant(ctx, credit.GrantRepoCreateGrantInput{
 					OwnerID:          credit.GrantOwner(ent.ID),
 					Namespace:        namespace,
 					Amount:           1000,
@@ -746,7 +746,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				g2, err := deps.grantDB.CreateGrant(ctx, credit.DBCreateGrantInput{
+				g2, err := deps.grantDB.CreateGrant(ctx, credit.GrantRepoCreateGrantInput{
 					OwnerID:          credit.GrantOwner(ent.ID),
 					Namespace:        namespace,
 					Amount:           1000,
@@ -800,7 +800,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				assert.NoError(t, err)
 
 				// issue grants
-				g1, err := deps.grantDB.CreateGrant(ctx, credit.DBCreateGrantInput{
+				g1, err := deps.grantDB.CreateGrant(ctx, credit.GrantRepoCreateGrantInput{
 					OwnerID:          credit.GrantOwner(ent.ID),
 					Namespace:        namespace,
 					Amount:           1000,
@@ -811,7 +811,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				g2, err := deps.grantDB.CreateGrant(ctx, credit.DBCreateGrantInput{
+				g2, err := deps.grantDB.CreateGrant(ctx, credit.GrantRepoCreateGrantInput{
 					OwnerID:          credit.GrantOwner(ent.ID),
 					Namespace:        namespace,
 					Amount:           1000,
@@ -848,7 +848,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				}, creditBalance.Balances)
 
 				// issue grants taking effect after first reset
-				g3, err := deps.grantDB.CreateGrant(ctx, credit.DBCreateGrantInput{
+				g3, err := deps.grantDB.CreateGrant(ctx, credit.GrantRepoCreateGrantInput{
 					OwnerID:          credit.GrantOwner(ent.ID),
 					Namespace:        namespace,
 					Amount:           1000,
@@ -899,11 +899,11 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 type testDependencies struct {
 	creditDBCLient    *credit_postgres_adapter_db.Client
-	featureDB         productcatalog.FeatureDBConnector
-	entitlementDB     entitlement.EntitlementDBConnector
-	usageResetDB      entitlement.UsageResetDBConnector
-	grantDB           credit.GrantDBConnector
-	balanceSnapshotDB credit.BalanceSnapshotDBConnector
+	featureDB         productcatalog.FeatureRepo
+	entitlementDB     entitlement.EntitlementRepo
+	usageResetDB      entitlement.UsageResetRepo
+	grantDB           credit.GrantRepo
+	balanceSnapshotDB credit.BalanceSnapshotConnector
 	creditBalance     credit.BalanceConnector
 	streaming         *streaming_testutils.MockStreamingConnector
 }
@@ -924,15 +924,15 @@ func setupConnector(t *testing.T) (entitlement.EntitlementBalanceConnector, *tes
 
 	// build db clients
 	productcatalogDBClient := productcatalog_postgresadapter_db.NewClient(productcatalog_postgresadapter_db.Driver(driver))
-	featureDB := productcatalog_postgresadapter.NewPostgresFeatureDBAdapter(productcatalogDBClient, testLogger)
+	featureDB := productcatalog_postgresadapter.NewPostgresFeatureRepo(productcatalogDBClient, testLogger)
 
 	entitlementDBClient := entitlement_postgresadapter_db.NewClient(entitlement_postgresadapter_db.Driver(driver))
-	entitlementDB := entitlement_postgresadapter.NewPostgresEntitlementDBAdapter(entitlementDBClient)
-	usageresetDB := entitlement_postgresadapter.NewPostgresUsageResetDBAdapter(entitlementDBClient)
+	entitlementDB := entitlement_postgresadapter.NewPostgresEntitlementRepo(entitlementDBClient)
+	usageresetDB := entitlement_postgresadapter.NewPostgresUsageResetRepo(entitlementDBClient)
 
 	grantDbClient := credit_postgres_adapter_db.NewClient(credit_postgres_adapter_db.Driver(driver))
-	grantDbConn := credit_postgres_adapter.NewPostgresGrantDBAdapter(grantDbClient)
-	balanceSnapshotDbConn := credit_postgres_adapter.NewPostgresBalanceSnapshotDBAdapter(grantDbClient)
+	grantDbConn := credit_postgres_adapter.NewPostgresGrantRepo(grantDbClient)
+	balanceSnapshotDbConn := credit_postgres_adapter.NewPostgresBalanceSnapshotRepo(grantDbClient)
 
 	// migrate all clients
 	if err := productcatalogDBClient.Schema.Create(context.Background()); err != nil {

@@ -11,8 +11,8 @@ import (
 // TODO: adapters have to be exported here
 
 func NewBalanceConnector(
-	gc GrantDBConnector,
-	bsc BalanceSnapshotDBConnector,
+	gc GrantRepo,
+	bsc BalanceSnapshotConnector,
 	oc OwnerConnector,
 	sc streaming.Connector,
 	log *slog.Logger,
@@ -22,8 +22,8 @@ func NewBalanceConnector(
 
 func NewGrantConnector(
 	oc OwnerConnector,
-	db GrantDBConnector,
-	bsdb BalanceSnapshotDBConnector,
+	db GrantRepo,
+	bsdb BalanceSnapshotConnector,
 	granularity time.Duration,
 ) GrantConnector {
 	return credit.NewGrantConnector(oc, db, bsdb, granularity)

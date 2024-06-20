@@ -46,7 +46,7 @@ type ListGrantsParams struct {
 	OrderBy        GrantOrderBy
 }
 
-type DBCreateGrantInput struct {
+type GrantRepoCreateGrantInput struct {
 	OwnerID          GrantOwner
 	Namespace        string
 	Amount           float64
@@ -59,10 +59,8 @@ type DBCreateGrantInput struct {
 	Recurrence       *Recurrence
 }
 
-// FIXME: separating these interfaces (connector & dbconnector) as is doesnt really make sense for grants
-// Might be that credit operations in general are more tighlty linked than assumed here
-type GrantDBConnector interface {
-	CreateGrant(ctx context.Context, grant DBCreateGrantInput) (*Grant, error)
+type GrantRepo interface {
+	CreateGrant(ctx context.Context, grant GrantRepoCreateGrantInput) (*Grant, error)
 	VoidGrant(ctx context.Context, grantID models.NamespacedID, at time.Time) error
 	ListGrants(ctx context.Context, params ListGrantsParams) ([]Grant, error)
 	// ListActiveGrantsBetween returns all grants that are active at any point between the given time range.
@@ -70,20 +68,20 @@ type GrantDBConnector interface {
 	GetGrant(ctx context.Context, grantID models.NamespacedID) (Grant, error)
 
 	entutils.TxCreator
-	entutils.TxUser[GrantDBConnector]
+	entutils.TxUser[GrantRepo]
 }
 
 type grantConnector struct {
 	oc          OwnerConnector
-	db          GrantDBConnector
-	bsdb        BalanceSnapshotDBConnector
+	db          GrantRepo
+	bsdb        BalanceSnapshotConnector
 	granularity time.Duration
 }
 
 func NewGrantConnector(
 	oc OwnerConnector,
-	db GrantDBConnector,
-	bsdb BalanceSnapshotDBConnector,
+	db GrantRepo,
+	bsdb BalanceSnapshotConnector,
 	granularity time.Duration,
 ) GrantConnector {
 	return &grantConnector{
@@ -124,7 +122,7 @@ func (m *grantConnector) CreateGrant(ctx context.Context, owner NamespacedGrantO
 		if err != nil {
 			return nil, err
 		}
-		grant, err := m.db.WithTx(ctx, tx).CreateGrant(ctx, DBCreateGrantInput{
+		grant, err := m.db.WithTx(ctx, tx).CreateGrant(ctx, GrantRepoCreateGrantInput{
 			OwnerID:          owner.ID,
 			Namespace:        owner.Namespace,
 			Amount:           input.Amount,

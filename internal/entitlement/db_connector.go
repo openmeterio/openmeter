@@ -9,33 +9,33 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-type CreateEntitlementDBInputs struct {
+type EntitlementRepoCreateEntitlementInputs struct {
 	Namespace        string
 	FeatureID        string    `json:"featureId"`
 	MeasureUsageFrom time.Time `json:"measureUsageFrom,omitempty"`
 	SubjectKey       string    `json:"subjectKey"`
 }
 
-type EntitlementDBConnector interface {
+type EntitlementRepo interface {
 	// Entitlement Management
 	GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]Entitlement, error)
-	CreateEntitlement(ctx context.Context, entitlement CreateEntitlementDBInputs) (*Entitlement, error)
+	CreateEntitlement(ctx context.Context, entitlement EntitlementRepoCreateEntitlementInputs) (*Entitlement, error)
 	GetEntitlement(ctx context.Context, entitlementID models.NamespacedID) (*Entitlement, error)
 
 	//FIXME: This is a terrbile hack
 	LockEntitlementForTx(ctx context.Context, entitlementID models.NamespacedID) error
 
 	entutils.TxCreator
-	entutils.TxUser[EntitlementDBConnector]
+	entutils.TxUser[EntitlementRepo]
 }
 
-type UsageResetDBConnector interface {
+type UsageResetRepo interface {
 	Save(ctx context.Context, usageResetTime UsageResetTime) error
 	GetLastAt(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*UsageResetTime, error)
 	GetBetween(ctx context.Context, entitlementID models.NamespacedID, from time.Time, to time.Time) ([]UsageResetTime, error)
 
 	entutils.TxCreator
-	entutils.TxUser[UsageResetDBConnector]
+	entutils.TxUser[UsageResetRepo]
 }
 
 type UsageResetNotFoundError struct {

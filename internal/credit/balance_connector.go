@@ -25,8 +25,8 @@ type BalanceHistoryParams struct {
 }
 
 func NewBalanceConnector(
-	gc GrantDBConnector,
-	bsc BalanceSnapshotDBConnector,
+	gc GrantRepo,
+	bsc BalanceSnapshotConnector,
 	oc OwnerConnector,
 	sc streaming.Connector,
 	log *slog.Logger,
@@ -45,8 +45,8 @@ func NewBalanceConnector(
 
 type balanceConnector struct {
 	// grants and balance snapshots are managed in this same package
-	gc  GrantDBConnector
-	bsc BalanceSnapshotDBConnector
+	gc  GrantRepo
+	bsc BalanceSnapshotConnector
 	// external dependencies
 	oc     OwnerConnector
 	sc     streaming.Connector

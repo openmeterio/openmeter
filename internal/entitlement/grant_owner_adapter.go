@@ -15,17 +15,17 @@ import (
 )
 
 type entitlementGrantOwner struct {
-	fdb    productcatalog.FeatureDBConnector
-	edb    EntitlementDBConnector
-	urdb   UsageResetDBConnector
+	fdb    productcatalog.FeatureRepo
+	edb    EntitlementRepo
+	urdb   UsageResetRepo
 	mr     meter.Repository
 	logger *slog.Logger
 }
 
 func NewEntitlementGrantOwnerAdapter(
-	fdb productcatalog.FeatureDBConnector,
-	edb EntitlementDBConnector,
-	urdb UsageResetDBConnector,
+	fdb productcatalog.FeatureRepo,
+	edb EntitlementRepo,
+	urdb UsageResetRepo,
 	mr meter.Repository,
 	logger *slog.Logger,
 ) credit.OwnerConnector {
