@@ -507,6 +507,8 @@ func TestCredit(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, resp.StatusCode())
 
+			require.GreaterOrEqual(t, len(resp.JSON200.Data), 1)
+
 			// As we invested two events with a count meter
 			assert.Equal(t, 2.0, resp.JSON200.Data[0].Value)
 		}, time.Minute, time.Second)
