@@ -72,28 +72,28 @@ type GrantRepo interface {
 }
 
 type grantConnector struct {
-	oc          OwnerConnector
-	db          GrantRepo
-	bsdb        BalanceSnapshotConnector
-	granularity time.Duration
+	ownerConnector           OwnerConnector
+	grantRepo                GrantRepo
+	balanceSnapshotConnector BalanceSnapshotConnector
+	granularity              time.Duration
 }
 
 func NewGrantConnector(
-	oc OwnerConnector,
-	db GrantRepo,
-	bsdb BalanceSnapshotConnector,
+	ownerConnector OwnerConnector,
+	grantRepo GrantRepo,
+	balanceSnapshotConnector BalanceSnapshotConnector,
 	granularity time.Duration,
 ) GrantConnector {
 	return &grantConnector{
-		oc:          oc,
-		db:          db,
-		bsdb:        bsdb,
-		granularity: granularity,
+		ownerConnector:           ownerConnector,
+		grantRepo:                grantRepo,
+		balanceSnapshotConnector: balanceSnapshotConnector,
+		granularity:              granularity,
 	}
 }
 
 func (m *grantConnector) CreateGrant(ctx context.Context, owner NamespacedGrantOwner, input CreateGrantInput) (*Grant, error) {
-	periodStart, err := m.oc.GetUsagePeriodStartAt(ctx, owner, time.Now())
+	periodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, owner, time.Now())
 	if err != nil {
 		return nil, err
 	}
@@ -117,12 +117,12 @@ func (m *grantConnector) CreateGrant(ctx context.Context, owner NamespacedGrantO
 		}
 	}
 
-	return entutils.StartAndRunTx(ctx, m.db, func(ctx context.Context, tx *entutils.TxDriver) (*Grant, error) {
-		err := m.oc.LockOwnerForTx(ctx, tx, owner)
+	return entutils.StartAndRunTx(ctx, m.grantRepo, func(ctx context.Context, tx *entutils.TxDriver) (*Grant, error) {
+		err := m.ownerConnector.LockOwnerForTx(ctx, tx, owner)
 		if err != nil {
 			return nil, err
 		}
-		grant, err := m.db.WithTx(ctx, tx).CreateGrant(ctx, GrantRepoCreateGrantInput{
+		grant, err := m.grantRepo.WithTx(ctx, tx).CreateGrant(ctx, GrantRepoCreateGrantInput{
 			OwnerID:          owner.ID,
 			Namespace:        owner.Namespace,
 			Amount:           input.Amount,
@@ -140,7 +140,7 @@ func (m *grantConnector) CreateGrant(ctx context.Context, owner NamespacedGrantO
 		}
 
 		// invalidate snapshots
-		err = m.bsdb.WithTx(ctx, tx).InvalidateAfter(ctx, owner, grant.EffectiveAt)
+		err = m.balanceSnapshotConnector.WithTx(ctx, tx).InvalidateAfter(ctx, owner, grant.EffectiveAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to invalidate snapshots after %s: %w", grant.EffectiveAt, err)
 		}
@@ -151,7 +151,7 @@ func (m *grantConnector) CreateGrant(ctx context.Context, owner NamespacedGrantO
 
 func (m *grantConnector) VoidGrant(ctx context.Context, grantID models.NamespacedID) error {
 	// can we void grants that have been used?
-	grant, err := m.db.GetGrant(ctx, grantID)
+	grant, err := m.grantRepo.GetGrant(ctx, grantID)
 	if err != nil {
 		return err
 	}
@@ -162,32 +162,32 @@ func (m *grantConnector) VoidGrant(ctx context.Context, grantID models.Namespace
 
 	owner := NamespacedGrantOwner{Namespace: grantID.Namespace, ID: grant.OwnerID}
 
-	_, err = entutils.StartAndRunTx(ctx, m.db, func(ctx context.Context, tx *entutils.TxDriver) (*interface{}, error) {
-		err := m.oc.LockOwnerForTx(ctx, tx, owner)
+	_, err = entutils.StartAndRunTx(ctx, m.grantRepo, func(ctx context.Context, tx *entutils.TxDriver) (*interface{}, error) {
+		err := m.ownerConnector.LockOwnerForTx(ctx, tx, owner)
 		if err != nil {
 			return nil, err
 		}
 		now := time.Now()
-		err = m.db.WithTx(ctx, tx).VoidGrant(ctx, grantID, now)
+		err = m.grantRepo.WithTx(ctx, tx).VoidGrant(ctx, grantID, now)
 		if err != nil {
 			return nil, err
 		}
-		err = m.bsdb.WithTx(ctx, tx).InvalidateAfter(ctx, owner, now)
+		err = m.balanceSnapshotConnector.WithTx(ctx, tx).InvalidateAfter(ctx, owner, now)
 		return nil, err
 	})
 	return err
 }
 
 func (m *grantConnector) ListGrants(ctx context.Context, params ListGrantsParams) ([]Grant, error) {
-	return m.db.ListGrants(ctx, params)
+	return m.grantRepo.ListGrants(ctx, params)
 }
 
 func (m *grantConnector) ListActiveGrantsBetween(ctx context.Context, owner NamespacedGrantOwner, from, to time.Time) ([]Grant, error) {
-	return m.db.ListActiveGrantsBetween(ctx, owner, from, to)
+	return m.grantRepo.ListActiveGrantsBetween(ctx, owner, from, to)
 }
 
 func (m *grantConnector) GetGrant(ctx context.Context, grantID models.NamespacedID) (Grant, error) {
-	return m.db.GetGrant(ctx, grantID)
+	return m.grantRepo.GetGrant(ctx, grantID)
 }
 
 type GrantNotFoundError struct {

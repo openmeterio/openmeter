@@ -25,18 +25,18 @@ type BalanceHistoryParams struct {
 }
 
 func NewBalanceConnector(
-	gc GrantRepo,
-	bsc BalanceSnapshotConnector,
-	oc OwnerConnector,
-	sc streaming.Connector,
-	log *slog.Logger,
+	grantRepo GrantRepo,
+	balanceSnapshotConnector BalanceSnapshotConnector,
+	ownerConnector OwnerConnector,
+	streamingConnector streaming.Connector,
+	logger *slog.Logger,
 ) BalanceConnector {
 	return &balanceConnector{
-		gc:     gc,
-		bsc:    bsc,
-		oc:     oc,
-		sc:     sc,
-		logger: log,
+		grantRepo:                grantRepo,
+		balanceSnapshotConnector: balanceSnapshotConnector,
+		ownerConnector:           ownerConnector,
+		streamingConnector:       streamingConnector,
+		logger:                   logger,
 
 		// TODO: make configurable
 		snapshotGracePeriod: time.Hour,
@@ -45,12 +45,12 @@ func NewBalanceConnector(
 
 type balanceConnector struct {
 	// grants and balance snapshots are managed in this same package
-	gc  GrantRepo
-	bsc BalanceSnapshotConnector
+	grantRepo                GrantRepo
+	balanceSnapshotConnector BalanceSnapshotConnector
 	// external dependencies
-	oc     OwnerConnector
-	sc     streaming.Connector
-	logger *slog.Logger
+	ownerConnector     OwnerConnector
+	streamingConnector streaming.Connector
+	logger             *slog.Logger
 
 	snapshotGracePeriod time.Duration
 }
@@ -64,7 +64,7 @@ func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner Namespac
 		return nil, err
 	}
 
-	periodStart, err := m.oc.GetUsagePeriodStartAt(ctx, owner, at)
+	periodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, owner, at)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current usage period start for owner %s at %s: %w", owner.ID, at, err)
 	}
@@ -76,7 +76,7 @@ func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner Namespac
 	}
 
 	// get all relevant grants
-	grants, err := m.gc.ListActiveGrantsBetween(ctx, owner, balance.At, at)
+	grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, owner, balance.At, at)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list active grants at %s for owner %s: %w", at, owner.ID, err)
 	}
@@ -118,7 +118,7 @@ func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner Namespac
 	//
 	// FIXME: we should do this comparison not with the queried time but the current time...
 	if snap, err := m.getLastSaveableSnapshotAt(history, balance, at); err == nil {
-		err := m.bsc.Save(ctx, owner, []GrantBalanceSnapshot{
+		err := m.balanceSnapshotConnector.Save(ctx, owner, []GrantBalanceSnapshot{
 			*snap,
 		})
 		if err != nil {
@@ -138,7 +138,7 @@ func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner Namespac
 // Returns the joined GrantBurnDownHistory across usage periods.
 func (m *balanceConnector) GetBalanceHistoryOfOwner(ctx context.Context, owner NamespacedGrantOwner, params BalanceHistoryParams) (GrantBurnDownHistory, error) {
 	// get all usage resets between queryied period
-	startTimes, err := m.oc.GetPeriodStartTimesBetween(ctx, owner, params.From, params.To)
+	startTimes, err := m.ownerConnector.GetPeriodStartTimesBetween(ctx, owner, params.From, params.To)
 	if err != nil {
 		return GrantBurnDownHistory{}, fmt.Errorf("failed to get period start times between %s and %s for owner %s: %w", params.From, params.To, owner.ID, err)
 	}
@@ -166,7 +166,7 @@ func (m *balanceConnector) GetBalanceHistoryOfOwner(ctx context.Context, owner N
 		}
 
 		// get all relevant grants
-		grants, err := m.gc.ListActiveGrantsBetween(ctx, owner, period.From, period.To)
+		grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, owner, period.From, period.To)
 		// These grants might not be present in the starting balance so lets fill them
 		// This is only possible in case the grant becomes active exactly at the start of the current period
 		m.populateBalanceSnapshotWithMissingGrantsActiveAt(&balance, grants, period.From)
@@ -216,7 +216,7 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 	at = at.Truncate(time.Minute)
 
 	// check if reset is possible (after last reset)
-	periodStart, err := m.oc.GetUsagePeriodStartAt(ctx, owner, time.Now())
+	periodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, owner, time.Now())
 	if err != nil {
 		if _, ok := err.(*OwnerNotFoundError); ok {
 			return nil, err
@@ -240,7 +240,7 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 		return nil, fmt.Errorf("last valid balance snapshot %s is before current period start at %s, no snapshot was created for reset", balance.At, periodStart)
 	}
 
-	grants, err := m.gc.ListActiveGrantsBetween(ctx, owner, balance.At, at)
+	grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, owner, balance.At, at)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list active grants at %s for owner %s: %w", at, owner.ID, err)
 	}
@@ -293,18 +293,18 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 	// We should introduce an abstraction, maybe an AtomicOperation with something like an AtimicityGuarantee
 	// (these would practically mirror entutils.TxUser & entutils.TxDriver) and then write an implementation of the
 	// using the ent transactions we have.
-	_, err = entutils.StartAndRunTx(ctx, m.bsc, func(txCtx context.Context, tx *entutils.TxDriver) (*GrantBalanceSnapshot, error) {
-		err := m.oc.LockOwnerForTx(ctx, tx, owner)
+	_, err = entutils.StartAndRunTx(ctx, m.balanceSnapshotConnector, func(txCtx context.Context, tx *entutils.TxDriver) (*GrantBalanceSnapshot, error) {
+		err := m.ownerConnector.LockOwnerForTx(ctx, tx, owner)
 		if err != nil {
 			return nil, fmt.Errorf("failed to lock owner %s: %w", owner.ID, err)
 		}
 
-		err = m.bsc.WithTx(txCtx, tx).Save(ctx, owner, []GrantBalanceSnapshot{startingSnapshot})
+		err = m.balanceSnapshotConnector.WithTx(txCtx, tx).Save(ctx, owner, []GrantBalanceSnapshot{startingSnapshot})
 		if err != nil {
 			return nil, fmt.Errorf("failed to save balance for owner %s at %s: %w", owner.ID, at, err)
 		}
 
-		err = m.oc.EndCurrentUsagePeriodTx(ctx, tx, owner, at)
+		err = m.ownerConnector.EndCurrentUsagePeriodTx(ctx, tx, owner, at)
 		if err != nil {
 			return nil, err
 		}
@@ -324,18 +324,18 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 // If no snapshot exists returns a default snapshot for measurement start to recalculate the entire history
 // in case no usable snapshot was found.
 func (m *balanceConnector) getLastValidBalanceSnapshotForOwnerAt(ctx context.Context, owner NamespacedGrantOwner, at time.Time) (GrantBalanceSnapshot, error) {
-	balance, err := m.bsc.GetLatestValidAt(ctx, owner, at)
+	balance, err := m.balanceSnapshotConnector.GetLatestValidAt(ctx, owner, at)
 	if err != nil {
 		if _, ok := err.(*GrantBalanceNoSavedBalanceForOwnerError); ok {
 			// if no snapshot is found we have to calculate from start of time on all grants and usage
 			m.logger.Debug(fmt.Sprintf("no saved balance found for owner %s before %s, calculating from start of time", owner.ID, at))
 
-			startOfMeasurement, err := m.oc.GetStartOfMeasurement(ctx, owner)
+			startOfMeasurement, err := m.ownerConnector.GetStartOfMeasurement(ctx, owner)
 			if err != nil {
 				return balance, err
 			}
 
-			grants, err := m.gc.ListActiveGrantsBetween(ctx, owner, startOfMeasurement, at)
+			grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, owner, startOfMeasurement, at)
 			if err != nil {
 				return balance, err
 			}
@@ -366,7 +366,7 @@ func (m *balanceConnector) getLastValidBalanceSnapshotForOwnerAt(ctx context.Con
 
 // returns owner specific QueryUsageFn
 func (m *balanceConnector) getQueryUsageFn(ctx context.Context, owner NamespacedGrantOwner) (QueryUsageFn, error) {
-	meterSlug, ownerParams, err := m.oc.GetOwnerQueryParams(ctx, owner)
+	meterSlug, ownerParams, err := m.ownerConnector.GetOwnerQueryParams(ctx, owner)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get query params for owner %v: %w", owner, err)
 	}
@@ -375,7 +375,7 @@ func (m *balanceConnector) getQueryUsageFn(ctx context.Context, owner Namespaced
 		params := ownerParams
 		params.From = &from
 		params.To = &to
-		rows, err := m.sc.QueryMeter(context.TODO(), owner.Namespace, meterSlug, params)
+		rows, err := m.streamingConnector.QueryMeter(context.TODO(), owner.Namespace, meterSlug, params)
 		if err != nil {
 			return 0.0, fmt.Errorf("failed to query meter %s: %w", meterSlug, err)
 		}

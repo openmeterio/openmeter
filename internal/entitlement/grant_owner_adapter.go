@@ -15,32 +15,32 @@ import (
 )
 
 type entitlementGrantOwner struct {
-	fdb    productcatalog.FeatureRepo
-	edb    EntitlementRepo
-	urdb   UsageResetRepo
-	mr     meter.Repository
-	logger *slog.Logger
+	featureRepo     productcatalog.FeatureRepo
+	entitlementRepo EntitlementRepo
+	usageResetRepo  UsageResetRepo
+	meterRepo       meter.Repository
+	logger          *slog.Logger
 }
 
 func NewEntitlementGrantOwnerAdapter(
-	fdb productcatalog.FeatureRepo,
-	edb EntitlementRepo,
-	urdb UsageResetRepo,
-	mr meter.Repository,
+	featureRepo productcatalog.FeatureRepo,
+	entitlementRepo EntitlementRepo,
+	usageResetRepo UsageResetRepo,
+	meterRepo meter.Repository,
 	logger *slog.Logger,
 ) credit.OwnerConnector {
 	return &entitlementGrantOwner{
-		fdb:    fdb,
-		edb:    edb,
-		urdb:   urdb,
-		mr:     mr,
-		logger: logger,
+		featureRepo:     featureRepo,
+		entitlementRepo: entitlementRepo,
+		usageResetRepo:  usageResetRepo,
+		meterRepo:       meterRepo,
+		logger:          logger,
 	}
 }
 
 func (e *entitlementGrantOwner) GetOwnerQueryParams(ctx context.Context, owner credit.NamespacedGrantOwner) (meterSlug string, defaultParams *streaming.QueryParams, err error) {
 	// get feature of entitlement
-	entitlement, err := e.edb.GetEntitlement(ctx, owner.NamespacedID())
+	entitlement, err := e.entitlementRepo.GetEntitlement(ctx, owner.NamespacedID())
 	if err != nil {
 		e.logger.Debug(fmt.Sprintf("failed to get entitlement for owner %s in namespace %s: %s", string(owner.ID), owner.Namespace, err))
 		return "", nil, &credit.OwnerNotFoundError{
@@ -48,7 +48,7 @@ func (e *entitlementGrantOwner) GetOwnerQueryParams(ctx context.Context, owner c
 			AttemptedOwner: "entitlement",
 		}
 	}
-	feature, err := e.fdb.GetByID(ctx, models.NamespacedID{
+	feature, err := e.featureRepo.GetByID(ctx, models.NamespacedID{
 		Namespace: owner.Namespace,
 		ID:        entitlement.FeatureID,
 	})
@@ -56,7 +56,7 @@ func (e *entitlementGrantOwner) GetOwnerQueryParams(ctx context.Context, owner c
 		return "", nil, fmt.Errorf("failed to get feature of entitlement: %w", err)
 	}
 
-	meter, err := e.mr.GetMeterByIDOrSlug(ctx, feature.Namespace, feature.MeterSlug)
+	meter, err := e.meterRepo.GetMeterByIDOrSlug(ctx, feature.Namespace, feature.MeterSlug)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to get meter: %w", err)
 	}
@@ -76,7 +76,7 @@ func (e *entitlementGrantOwner) GetOwnerQueryParams(ctx context.Context, owner c
 }
 
 func (e *entitlementGrantOwner) GetStartOfMeasurement(ctx context.Context, owner credit.NamespacedGrantOwner) (time.Time, error) {
-	entitlement, err := e.edb.GetEntitlement(ctx, owner.NamespacedID())
+	entitlement, err := e.entitlementRepo.GetEntitlement(ctx, owner.NamespacedID())
 	if err != nil {
 		return time.Time{}, &credit.OwnerNotFoundError{
 			Owner:          owner,
@@ -91,7 +91,7 @@ func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner
 	// If this is the first period then return start of measurement, otherwise calculate based on anchor.
 	// To know if this is the first period check if usage has been reset.
 
-	lastUsageReset, err := e.urdb.GetLastAt(ctx, owner.NamespacedID(), at)
+	lastUsageReset, err := e.usageResetRepo.GetLastAt(ctx, owner.NamespacedID(), at)
 	if _, ok := err.(*UsageResetNotFoundError); ok {
 		return e.GetStartOfMeasurement(ctx, owner)
 	}
@@ -104,7 +104,7 @@ func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner
 
 func (e *entitlementGrantOwner) GetPeriodStartTimesBetween(ctx context.Context, owner credit.NamespacedGrantOwner, from, to time.Time) ([]time.Time, error) {
 	times := []time.Time{}
-	usageResets, err := e.urdb.GetBetween(ctx, owner.NamespacedID(), from, to)
+	usageResets, err := e.usageResetRepo.GetBetween(ctx, owner.NamespacedID(), from, to)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +125,7 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriod(ctx context.Context, owner
 	}
 
 	// Save usage reset
-	return e.urdb.Save(ctx, UsageResetTime{
+	return e.usageResetRepo.Save(ctx, UsageResetTime{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: owner.Namespace,
 		},
@@ -147,7 +147,7 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriodTx(ctx context.Context, tx 
 		}
 
 		// Save usage reset
-		return nil, e.urdb.WithTx(ctx, tx).Save(ctx, UsageResetTime{
+		return nil, e.usageResetRepo.WithTx(ctx, tx).Save(ctx, UsageResetTime{
 			NamespacedModel: models.NamespacedModel{
 				Namespace: owner.Namespace,
 			},
@@ -160,5 +160,5 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriodTx(ctx context.Context, tx 
 
 // FIXME: this is a terrible hack using select for udpate...
 func (e *entitlementGrantOwner) LockOwnerForTx(ctx context.Context, tx *entutils.TxDriver, owner credit.NamespacedGrantOwner) error {
-	return e.edb.WithTx(ctx, tx).LockEntitlementForTx(ctx, owner.NamespacedID())
+	return e.entitlementRepo.WithTx(ctx, tx).LockEntitlementForTx(ctx, owner.NamespacedID())
 }

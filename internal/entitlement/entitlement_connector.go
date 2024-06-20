@@ -17,33 +17,33 @@ type EntitlementConnector interface {
 }
 
 type entitlementConnector struct {
-	ebc EntitlementBalanceConnector
-	edb EntitlementRepo
-	fc  productcatalog.FeatureConnector
+	entitlementBalanceConnector EntitlementBalanceConnector
+	entitlementRepo             EntitlementRepo
+	featureConnector            productcatalog.FeatureConnector
 }
 
 func NewEntitlementConnector(
-	ebc EntitlementBalanceConnector,
-	edb EntitlementRepo,
-	fc productcatalog.FeatureConnector,
+	entitlementBalanceConnector EntitlementBalanceConnector,
+	entitlementRepo EntitlementRepo,
+	featureConnector productcatalog.FeatureConnector,
 ) EntitlementConnector {
 	return &entitlementConnector{
-		ebc: ebc,
-		edb: edb,
-		fc:  fc,
+		entitlementBalanceConnector: entitlementBalanceConnector,
+		entitlementRepo:             entitlementRepo,
+		featureConnector:            featureConnector,
 	}
 }
 
 func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input CreateEntitlementInputs) (Entitlement, error) {
 	// TODO: check if the feature exists, if it is compatible with the type, etc....
-	feature, err := c.fc.GetFeature(ctx, models.NamespacedID{Namespace: input.Namespace, ID: input.FeatureID})
+	feature, err := c.featureConnector.GetFeature(ctx, models.NamespacedID{Namespace: input.Namespace, ID: input.FeatureID})
 	if err != nil {
 		return Entitlement{}, &productcatalog.FeatureNotFoundError{ID: input.FeatureID}
 	}
 	if feature.ArchivedAt != nil {
 		return Entitlement{}, &models.GenericUserError{Message: "Feature is archived"}
 	}
-	currentEntitlements, err := c.edb.GetEntitlementsOfSubject(ctx, input.Namespace, models.SubjectKey(input.SubjectKey))
+	currentEntitlements, err := c.entitlementRepo.GetEntitlementsOfSubject(ctx, input.Namespace, models.SubjectKey(input.SubjectKey))
 	if err != nil {
 		return Entitlement{}, fmt.Errorf("failed to get entitlements of subject: %w", err)
 	}
@@ -55,17 +55,17 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 
 	// FIXME: Add default value elsewhere
 	input.MeasureUsageFrom = time.Now().Truncate(time.Minute)
-	ent, err := c.edb.CreateEntitlement(ctx, EntitlementRepoCreateEntitlementInputs(input))
+	ent, err := c.entitlementRepo.CreateEntitlement(ctx, EntitlementRepoCreateEntitlementInputs(input))
 	return *ent, err
 }
 
 func (c *entitlementConnector) GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]Entitlement, error) {
-	return c.edb.GetEntitlementsOfSubject(ctx, namespace, subjectKey)
+	return c.entitlementRepo.GetEntitlementsOfSubject(ctx, namespace, subjectKey)
 }
 
 func (c *entitlementConnector) GetEntitlementValue(ctx context.Context, entitlementId models.NamespacedID, at time.Time) (EntitlementValue, error) {
 	// TODO: different entitlement types
-	balance, err := c.ebc.GetEntitlementBalance(ctx, entitlementId, at)
+	balance, err := c.entitlementBalanceConnector.GetEntitlementBalance(ctx, entitlementId, at)
 
 	if err != nil {
 		return EntitlementValue{}, err

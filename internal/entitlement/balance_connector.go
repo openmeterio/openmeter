@@ -56,23 +56,23 @@ type EntitlementBalanceConnector interface {
 }
 
 type entitlementBalanceConnector struct {
-	sc streaming.Connector
-	oc credit.OwnerConnector
-	bc credit.BalanceConnector
-	gc credit.GrantConnector
+	streamingConnector streaming.Connector
+	ownerConnector     credit.OwnerConnector
+	balanceConnector   credit.BalanceConnector
+	grantConnector     credit.GrantConnector
 }
 
 func NewEntitlementBalanceConnector(
-	sc streaming.Connector,
-	oc credit.OwnerConnector,
-	bc credit.BalanceConnector,
-	gc credit.GrantConnector,
+	streamingConnector streaming.Connector,
+	ownerConnector credit.OwnerConnector,
+	balanceConnector credit.BalanceConnector,
+	grantConnector credit.GrantConnector,
 ) EntitlementBalanceConnector {
 	return &entitlementBalanceConnector{
-		sc: sc,
-		oc: oc,
-		bc: bc,
-		gc: gc,
+		streamingConnector: streamingConnector,
+		ownerConnector:     ownerConnector,
+		balanceConnector:   balanceConnector,
+		grantConnector:     grantConnector,
 	}
 }
 
@@ -81,7 +81,7 @@ func (e *entitlementBalanceConnector) GetEntitlementBalance(ctx context.Context,
 		Namespace: entitlementID.Namespace,
 		ID:        credit.GrantOwner(entitlementID.ID),
 	}
-	res, err := e.bc.GetBalanceOfOwner(ctx, nsOwner, at)
+	res, err := e.balanceConnector.GetBalanceOfOwner(ctx, nsOwner, at)
 	if err != nil {
 		if _, ok := err.(*credit.OwnerNotFoundError); ok {
 			return nil, &EntitlementNotFoundError{EntitlementID: entitlementID}
@@ -89,12 +89,12 @@ func (e *entitlementBalanceConnector) GetEntitlementBalance(ctx context.Context,
 		return nil, err
 	}
 
-	meterSlug, params, err := e.oc.GetOwnerQueryParams(ctx, nsOwner)
+	meterSlug, params, err := e.ownerConnector.GetOwnerQueryParams(ctx, nsOwner)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get owner query params: %w", err)
 	}
 
-	startOfPeriod, err := e.oc.GetUsagePeriodStartAt(ctx, nsOwner, at)
+	startOfPeriod, err := e.ownerConnector.GetUsagePeriodStartAt(ctx, nsOwner, at)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current usage period start at: %w", err)
 	}
@@ -102,7 +102,7 @@ func (e *entitlementBalanceConnector) GetEntitlementBalance(ctx context.Context,
 	params.From = &startOfPeriod
 	params.To = &at
 
-	rows, err := e.sc.QueryMeter(ctx, entitlementID.Namespace, meterSlug, params)
+	rows, err := e.streamingConnector.QueryMeter(ctx, entitlementID.Namespace, meterSlug, params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query meter: %w", err)
 	}
@@ -126,7 +126,7 @@ func (e *entitlementBalanceConnector) GetEntitlementBalanceHistory(ctx context.C
 	// TODO: we should guard against abuse, getting history is expensive
 
 	// query period cannot be before start of measuring usage
-	start, err := e.oc.GetStartOfMeasurement(ctx, credit.NamespacedGrantOwner{
+	start, err := e.ownerConnector.GetStartOfMeasurement(ctx, credit.NamespacedGrantOwner{
 		Namespace: entitlementID.Namespace,
 		ID:        credit.GrantOwner(entitlementID.ID),
 	})
@@ -144,7 +144,7 @@ func (e *entitlementBalanceConnector) GetEntitlementBalanceHistory(ctx context.C
 	}
 
 	// 1. we get the burndown history
-	burndownHistory, err := e.bc.GetBalanceHistoryOfOwner(ctx, owner, credit.BalanceHistoryParams{
+	burndownHistory, err := e.balanceConnector.GetBalanceHistoryOfOwner(ctx, owner, credit.BalanceHistoryParams{
 		From: params.From.Truncate(time.Minute),
 		To:   params.To.Truncate(time.Minute),
 	})
@@ -152,7 +152,7 @@ func (e *entitlementBalanceConnector) GetEntitlementBalanceHistory(ctx context.C
 		return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("failed to get balance history: %w", err)
 	}
 	// 2. and we get the windowed usage data
-	meterSlug, meterParams, err := e.oc.GetOwnerQueryParams(ctx, owner)
+	meterSlug, meterParams, err := e.ownerConnector.GetOwnerQueryParams(ctx, owner)
 	if err != nil {
 		return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("failed to get owner query params: %w", err)
 	}
@@ -161,7 +161,7 @@ func (e *entitlementBalanceConnector) GetEntitlementBalanceHistory(ctx context.C
 	meterParams.WindowSize = convert.ToPointer(models.WindowSize(params.WindowSize))
 	meterParams.WindowTimeZone = &params.WindowTimeZone
 
-	meterRows, err := e.sc.QueryMeter(ctx, owner.Namespace, meterSlug, meterParams)
+	meterRows, err := e.streamingConnector.QueryMeter(ctx, owner.Namespace, meterSlug, meterParams)
 	if err != nil {
 		return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("failed to query meter: %w", err)
 	}
@@ -240,7 +240,7 @@ func (e *entitlementBalanceConnector) ResetEntitlementUsage(ctx context.Context,
 		ID:        credit.GrantOwner(entitlementID.ID),
 	}
 
-	balanceAfterReset, err := e.bc.ResetUsageForOwner(ctx, owner, resetAt)
+	balanceAfterReset, err := e.balanceConnector.ResetUsageForOwner(ctx, owner, resetAt)
 	if err != nil {
 		if _, ok := err.(*credit.OwnerNotFoundError); ok {
 			return nil, &EntitlementNotFoundError{EntitlementID: entitlementID}
@@ -258,7 +258,7 @@ func (e *entitlementBalanceConnector) ResetEntitlementUsage(ctx context.Context,
 }
 
 func (e *entitlementBalanceConnector) CreateGrant(ctx context.Context, entitlement models.NamespacedID, inputGrant CreateEntitlementGrantInputs) (EntitlementGrant, error) {
-	grant, error := e.gc.CreateGrant(ctx, credit.NamespacedGrantOwner{
+	grant, error := e.grantConnector.CreateGrant(ctx, credit.NamespacedGrantOwner{
 		Namespace: entitlement.Namespace,
 		ID:        credit.GrantOwner(entitlement.ID),
 	}, credit.CreateGrantInput{
@@ -284,7 +284,7 @@ func (e *entitlementBalanceConnector) CreateGrant(ctx context.Context, entitleme
 
 func (e *entitlementBalanceConnector) ListEntitlementGrants(ctx context.Context, entitlementID models.NamespacedID) ([]EntitlementGrant, error) {
 	// check that we own the grant
-	grants, err := e.gc.ListGrants(ctx, credit.ListGrantsParams{
+	grants, err := e.grantConnector.ListGrants(ctx, credit.ListGrantsParams{
 		Namespace:      entitlementID.Namespace,
 		OwnerID:        convert.ToPointer(credit.GrantOwner(entitlementID.ID)),
 		IncludeDeleted: false,

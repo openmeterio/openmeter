@@ -61,17 +61,17 @@ type FeatureRepo interface {
 }
 
 type featureConnector struct {
-	db        FeatureRepo
-	meterRepo meter.Repository
+	featureRepo FeatureRepo
+	meterRepo   meter.Repository
 }
 
 func NewFeatureConnector(
-	db FeatureRepo,
+	featureRepo FeatureRepo,
 	meterRepo meter.Repository,
 ) FeatureConnector {
 	return &featureConnector{
-		db:        db,
-		meterRepo: meterRepo,
+		featureRepo: featureRepo,
+		meterRepo:   meterRepo,
 	}
 }
 
@@ -94,7 +94,7 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 		return Feature{}, err
 	}
 
-	found, err := c.db.FindByKey(ctx, feature.Namespace, feature.Name, false)
+	found, err := c.featureRepo.FindByKey(ctx, feature.Namespace, feature.Name, false)
 	if err != nil {
 		if _, ok := err.(*FeatureNotFoundError); !ok {
 			return Feature{}, err
@@ -103,7 +103,7 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 		return Feature{}, &FeatureWithNameAlreadyExistsError{Name: feature.Name, ID: found.ID}
 	}
 
-	return c.db.CreateFeature(ctx, FeatureRepoCreateFeatureInputs(feature))
+	return c.featureRepo.CreateFeature(ctx, FeatureRepoCreateFeatureInputs(feature))
 }
 
 func (c *featureConnector) ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error {
@@ -111,15 +111,15 @@ func (c *featureConnector) ArchiveFeature(ctx context.Context, featureID models.
 	if err != nil {
 		return err
 	}
-	return c.db.ArchiveFeature(ctx, featureID)
+	return c.featureRepo.ArchiveFeature(ctx, featureID)
 }
 
 func (c *featureConnector) ListFeatures(ctx context.Context, params ListFeaturesParams) ([]Feature, error) {
-	return c.db.ListFeatures(ctx, params)
+	return c.featureRepo.ListFeatures(ctx, params)
 }
 
 func (c *featureConnector) GetFeature(ctx context.Context, featureID models.NamespacedID) (Feature, error) {
-	feature, err := c.db.GetByID(ctx, featureID)
+	feature, err := c.featureRepo.GetByID(ctx, featureID)
 	if err != nil {
 		return Feature{}, err
 	}
