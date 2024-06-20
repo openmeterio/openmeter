@@ -28,7 +28,7 @@ func otelLogInputConfig() *service.ConfigSpec {
 	return service.NewConfigSpec().
 		Beta().
 		Categories("Services").
-		Summary("List objects in Kubernetes.").
+		Summary("Collect logs usgin the OTLP gRPC protocol.").
 		Fields(
 			service.NewStringField("address").
 				Description("OTLP gRPC endpoint"),
