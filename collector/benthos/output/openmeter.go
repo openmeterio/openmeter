@@ -5,12 +5,19 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
+	"fmt"
 	"net/http"
 
 	"github.com/benthosdev/benthos/v4/public/service"
 
 	openmeter "github.com/openmeterio/openmeter/api/client/go"
+)
+
+const (
+	urlField         = "url"
+	tokenField       = "token"
+	maxInFlightField = "max_in_flight"
+	batchingField    = "batching"
 )
 
 func openmeterOutputConfig() *service.ConfigSpec {
@@ -20,14 +27,14 @@ func openmeterOutputConfig() *service.ConfigSpec {
 		Summary("Sends events the OpenMeter ingest API.").
 		Description("").
 		Fields(
-			service.NewURLField("url").
+			service.NewURLField(urlField).
 				Description("OpenMeter API endpoint"),
-			service.NewStringField("token").
+			service.NewStringField(tokenField).
 				Description("OpenMeter API token").
 				Secret().
 				Optional(),
 
-			service.NewBatchPolicyField("batching"),
+			service.NewBatchPolicyField(batchingField),
 			service.NewOutputMaxInFlightField().Default(10),
 		)
 }
@@ -40,11 +47,11 @@ func init() {
 			maxInFlight int,
 			err error,
 		) {
-			if maxInFlight, err = conf.FieldInt("max_in_flight"); err != nil {
+			if maxInFlight, err = conf.FieldInt(maxInFlightField); err != nil {
 				return
 			}
 
-			if batchPolicy, err = conf.FieldBatchPolicy("batching"); err != nil {
+			if batchPolicy, err = conf.FieldBatchPolicy(batchingField); err != nil {
 				return
 			}
 
@@ -62,7 +69,9 @@ type openmeterOutput struct {
 }
 
 func newOpenMeterOutput(conf *service.ParsedConfig) (*openmeterOutput, error) {
-	url, err := conf.FieldString("url")
+	o := &openmeterOutput{}
+
+	url, err := conf.FieldString(urlField)
 	if err != nil {
 		return nil, err
 	}
@@ -70,8 +79,8 @@ func newOpenMeterOutput(conf *service.ParsedConfig) (*openmeterOutput, error) {
 	// TODO: custom HTTP client
 	var client openmeter.ClientWithResponsesInterface
 
-	if conf.Contains("token") {
-		token, err := conf.FieldString("token")
+	if conf.Contains(tokenField) {
+		token, err := conf.FieldString(tokenField)
 		if err != nil {
 			return nil, err
 		}
@@ -88,84 +97,82 @@ func newOpenMeterOutput(conf *service.ParsedConfig) (*openmeterOutput, error) {
 			return nil, err
 		}
 	}
+	o.client = client
 
-	return &openmeterOutput{
-		client: client,
-	}, nil
+	return o, nil
 }
 
-func (out *openmeterOutput) Connect(_ context.Context) error {
+func (o *openmeterOutput) Connect(_ context.Context) error {
 	return nil
 }
 
 // TODO: add schema validation
-func (out *openmeterOutput) WriteBatch(ctx context.Context, batch service.MessageBatch) error {
+func (o *openmeterOutput) WriteBatch(ctx context.Context, batch service.MessageBatch) error {
 	// if there is only one message use the single message endpoint
 	// otherwise use the batch endpoint
 	// if validation is enabled, try to parse the message as cloudevents first
 	//
 
-	var contentType string
-	var body io.Reader
+	var err error
+	var events []any
 
-	// No need to send a batch if there is only one message
-	if len(batch) == 1 {
-		contentType = "application/cloudevents+json"
-
-		b, err := batch[0].AsBytes()
-		if err != nil {
-			return err
+	walkFn := func(_ int, msg *service.Message) error {
+		if msg == nil {
+			return errors.New("message is nil")
 		}
 
-		body = bytes.NewReader(b)
-	} else {
-		contentType = "application/cloudevents-batch+json"
-
-		events := make([]any, 0, len(batch))
-
-		err := batch.WalkWithBatchedErrors(func(_ int, msg *service.Message) error {
-			e, err := msg.AsStructured()
-			if err != nil {
-				return err
-			}
-
-			events = append(events, e)
-
-			return nil
-		})
+		var e any
+		e, err = msg.AsStructured()
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to convert message to structed data: %w", err)
 		}
+		events = append(events, e)
 
-		var b bytes.Buffer
-
-		err = json.NewEncoder(&b).Encode(events)
-		if err != nil {
-			return err
-		}
-
-		body = &b
+		return nil
+	}
+	if err = batch.WalkWithBatchedErrors(walkFn); err != nil {
+		return fmt.Errorf("failed to process event: %w", err)
 	}
 
-	resp, err := out.client.IngestEventsWithBodyWithResponse(ctx, contentType, body)
+	if len(events) == 0 {
+		return errors.New("no valid messages found in batch")
+	}
+
+	var data any
+	var contentType string
+	if len(events) == 1 {
+		contentType = "application/cloudevents+json"
+		data = events[0]
+	} else {
+		contentType = "application/cloudevents-batch+json"
+		data = events
+	}
+
+	var body bytes.Buffer
+	err = json.NewEncoder(&body).Encode(data)
+	if err != nil {
+		return err
+	}
+
+	resp, err := o.client.IngestEventsWithBodyWithResponse(ctx, contentType, &body)
 	if err != nil {
 		return err
 	}
 
 	// TODO: improve error handling
 	if resp.StatusCode() != http.StatusNoContent {
-		if err := resp.ApplicationproblemJSON400; err != nil {
+		if err = resp.ApplicationproblemJSON400; err != nil {
 			return err
-		} else if err := resp.ApplicationproblemJSONDefault; err != nil {
+		} else if err = resp.ApplicationproblemJSONDefault; err != nil {
 			return err
+		} else {
+			return fmt.Errorf("unknown error: %w", err)
 		}
-
-		return errors.New("unknown error")
 	}
 
 	return nil
 }
 
-func (out *openmeterOutput) Close(_ context.Context) error {
+func (o *openmeterOutput) Close(_ context.Context) error {
 	return nil
 }
