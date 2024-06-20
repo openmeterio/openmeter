@@ -25,6 +25,11 @@ build-sink-worker: ## Build binary
 	$(call print-target)
 	go build -o build/sink-worker ./cmd/sink-worker
 
+.PHONY: build-benthos-collector
+build-benthos-collector: ## Build binary
+	$(call print-target)
+	go build -o build/benthos-collector ./cmd/benthos-collector
+
 config.yaml:
 	cp config.example.yaml config.yaml
 

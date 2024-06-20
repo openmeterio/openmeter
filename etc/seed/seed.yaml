@@ -56,3 +56,12 @@ output:
         output:
           stdout:
             codec: lines
+
+tracer:
+  open_telemetry_collector:
+    grpc:
+      - address: 127.0.0.1:4317
+    tags:
+      application: openmeter-output
+    sampling:
+      enabled: false
