@@ -36,9 +36,12 @@ func NewEntitlementConnector(
 
 func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input CreateEntitlementInputs) (Entitlement, error) {
 	// TODO: check if the feature exists, if it is compatible with the type, etc....
-	_, err := c.fc.GetFeature(ctx, models.NamespacedID{Namespace: input.Namespace, ID: input.FeatureID})
+	feature, err := c.fc.GetFeature(ctx, models.NamespacedID{Namespace: input.Namespace, ID: input.FeatureID})
 	if err != nil {
 		return Entitlement{}, &productcatalog.FeatureNotFoundError{ID: input.FeatureID}
+	}
+	if feature.ArchivedAt != nil {
+		return Entitlement{}, &models.GenericUserError{Message: "Feature is archived"}
 	}
 	currentEntitlements, err := c.edb.GetEntitlementsOfSubject(ctx, input.Namespace, models.SubjectKey(input.SubjectKey))
 	if err != nil {

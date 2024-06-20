@@ -33,7 +33,7 @@ func (c *featureDBAdapter) CreateFeature(ctx context.Context, feature productcat
 		SetMeterSlug(feature.MeterSlug)
 
 	if feature.MeterGroupByFilters != nil {
-		query = query.SetMeterGroupByFilters(*feature.MeterGroupByFilters)
+		query = query.SetMeterGroupByFilters(feature.MeterGroupByFilters)
 	}
 
 	entity, err := query.

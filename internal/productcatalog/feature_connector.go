@@ -10,11 +10,11 @@ import (
 )
 
 type CreateFeatureInputs struct {
-	Name                string             `json:"name"`
-	Key                 string             `json:"key"`
-	Namespace           string             `json:"namespace"`
-	MeterSlug           string             `json:"meterSlug"`
-	MeterGroupByFilters *map[string]string `json:"meterGroupByFilters"`
+	Name                string            `json:"name"`
+	Key                 string            `json:"key"`
+	Namespace           string            `json:"namespace"`
+	MeterSlug           string            `json:"meterSlug"`
+	MeterGroupByFilters map[string]string `json:"meterGroupByFilters"`
 }
 
 type FeatureConnector interface {
@@ -46,7 +46,7 @@ type FeatureRepoCreateFeatureInputs struct {
 	Key                 string
 	Namespace           string
 	MeterSlug           string
-	MeterGroupByFilters *map[string]string
+	MeterGroupByFilters map[string]string
 }
 
 type FeatureRepo interface {
@@ -129,19 +129,19 @@ func (c *featureConnector) GetFeature(ctx context.Context, featureID models.Name
 	return feature, nil
 }
 
-func (c *featureConnector) checkGroupByFilters(filters *map[string]string, meter models.Meter) error {
+func (c *featureConnector) checkGroupByFilters(filters map[string]string, meter models.Meter) error {
 	if filters == nil {
 		return nil
 	}
 
-	for filterProp := range *filters {
+	for filterProp := range filters {
 		if _, ok := meter.GroupBy[filterProp]; !ok {
 			meterGroupByColumns := make([]string, 0, len(meter.GroupBy))
 			for k := range meter.GroupBy {
 				meterGroupByColumns = append(meterGroupByColumns, k)
 			}
 			return &FeatureInvalidFiltersError{
-				RequestedFilters:    *filters,
+				RequestedFilters:    filters,
 				MeterGroupByColumns: meterGroupByColumns,
 			}
 		}

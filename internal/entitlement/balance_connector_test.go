@@ -31,7 +31,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 		Name:                "feature1",
 		Key:                 "feature-1",
 		MeterSlug:           meterSlug,
-		MeterGroupByFilters: &map[string]string{},
+		MeterGroupByFilters: map[string]string{},
 	}
 
 	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.EntitlementRepoCreateEntitlementInputs {
@@ -398,7 +398,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 		Name:                "feature1",
 		Key:                 "feature1",
 		MeterSlug:           meterSlug,
-		MeterGroupByFilters: &map[string]string{},
+		MeterGroupByFilters: map[string]string{},
 	}
 
 	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.EntitlementRepoCreateEntitlementInputs {
@@ -534,7 +534,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 		Name:                "feature1",
 		Key:                 "feature1",
 		MeterSlug:           meterSlug,
-		MeterGroupByFilters: &map[string]string{},
+		MeterGroupByFilters: map[string]string{},
 	}
 
 	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.EntitlementRepoCreateEntitlementInputs {

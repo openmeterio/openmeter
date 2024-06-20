@@ -30,7 +30,7 @@ func TestCreateFeature(t *testing.T) {
 		Name:      "feature-1",
 		Key:       "feature-1",
 		MeterSlug: meter.Slug,
-		MeterGroupByFilters: &map[string]string{
+		MeterGroupByFilters: map[string]string{
 			"key": "value",
 		},
 	}

@@ -169,8 +169,10 @@ func (m *grantConnector) VoidGrant(ctx context.Context, grantID models.Namespace
 		}
 		now := time.Now()
 		err = m.db.WithTx(ctx, tx).VoidGrant(ctx, grantID, now)
-		m.bsdb.WithTx(ctx, tx).InvalidateAfter(ctx, owner, now)
-
+		if err != nil {
+			return nil, err
+		}
+		err = m.bsdb.WithTx(ctx, tx).InvalidateAfter(ctx, owner, now)
 		return nil, err
 	})
 	return err
