@@ -464,8 +464,83 @@ func TestCredit(t *testing.T) {
 	client := initClient(t)
 	subject := "customer-1"
 	meterSlug := "credit_test_meter"
+	var featureId *api.FeatureId
 
 	const waitTime = time.Second * 4
+
+	t.Run("Create Feature", func(t *testing.T) {
+		randKey := ulid.Make().String()
+		resp, err := client.CreateFeatureWithResponse(context.Background(), api.CreateFeatureJSONRequestBody{
+			Name:      "Credit Test Feature",
+			MeterSlug: convert.ToPointer("credit_test_meter"),
+			Key:       randKey,
+			MeterGroupByFilters: &map[string]string{
+				"model": "gpt-4",
+			},
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+
+		featureId = resp.JSON201.Id
+
+		expected := &api.Feature{
+			Id:        featureId,
+			Name:      "Credit Test Feature",
+			Key:       randKey,
+			MeterSlug: convert.ToPointer("credit_test_meter"),
+			MeterGroupByFilters: &map[string]string{
+				"model": "gpt-4",
+			},
+		}
+
+		require.NotEmpty(t, *resp.JSON201.CreatedAt)
+		require.NotEmpty(t, *resp.JSON201.UpdatedAt)
+		resp.JSON201.CreatedAt = nil
+		resp.JSON201.UpdatedAt = nil
+
+		require.Equal(t, expected, resp.JSON201)
+	})
+
+	var entitlementId *string
+	var eCreatedAt *time.Time
+	t.Run("Create a Entitlement", func(t *testing.T) {
+		resp, err := client.CreateEntitlementWithResponse(context.Background(), subject, api.CreateEntitlementJSONRequestBody{
+			Type:      "metered",
+			FeatureId: *featureId,
+			UsagePeriod: api.RecurringPeriod{
+				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Interval: "MONTHLY",
+			},
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+
+		metered, err := resp.JSON201.AsEntitlementMetered()
+		require.NoError(t, err)
+
+		require.Equal(t, *metered.Subjectkey, subject)
+		entitlementId = metered.Id
+		eCreatedAt = metered.CreatedAt
+	})
+
+	t.Run("Create for same subject and feature", func(t *testing.T) {
+		resp, err := client.CreateEntitlementWithResponse(context.Background(), subject, api.CreateEntitlementJSONRequestBody{
+			Type:      "metered",
+			FeatureId: *featureId,
+			UsagePeriod: api.RecurringPeriod{
+				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Interval: "DAILY",
+			},
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusConflict, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+
+		require.NotEmpty(t, resp.ApplicationproblemJSON409.Extensions.ConflictingEntityId)
+		require.Equal(t, *entitlementId, resp.ApplicationproblemJSON409.Extensions.ConflictingEntityId)
+	})
 
 	t.Run("Ingest usage", func(t *testing.T) {
 		// Reproducible random data
@@ -491,14 +566,16 @@ func TestCredit(t *testing.T) {
 			return ev
 		}
 
+		et := eCreatedAt.Add(time.Second * 15)
+
 		// First event
 		{
-			events = append(events, newEvent("2024-01-01T00:01:00Z", "gpt-4"))
+			events = append(events, newEvent(et.Format(time.RFC3339), "gpt-4"))
 		}
 
 		// Irrelevant event (does not affect credit because of model mismatch)
 		{
-			events = append(events, newEvent("2024-01-01T00:01:00Z", "gpt-3"))
+			events = append(events, newEvent(et.Format(time.RFC3339), "gpt-3"))
 		}
 
 		// Ingore events
@@ -522,284 +599,125 @@ func TestCredit(t *testing.T) {
 			// As we invested two events with a count meter
 			assert.NotNil(c, resp.JSON200)
 			if resp.JSON200 != nil {
-				assert.Equal(c, 2.0, resp.JSON200.Data[0].Value)
+				assert.Len(c, resp.JSON200.Data, 1)
+				if len(resp.JSON200.Data) > 0 {
+					assert.Equal(c, 2.0, resp.JSON200.Data[0].Value)
+				}
 			}
 		}, waitTime, time.Second)
 	})
 
-	t.Run("Create Feature", func(t *testing.T) {
-		randKey := ulid.Make().String()
-		resp, err := client.CreateFeatureWithResponse(context.Background(), api.CreateFeatureJSONRequestBody{
-			Name:      "Credit Test Feature",
-			MeterSlug: convert.ToPointer("credit_test_meter"),
-			Key:       randKey,
-			MeterGroupByFilters: &map[string]string{
-				"model": "gpt-4",
+	t.Run("Create Grant", func(t *testing.T) {
+		effectiveAt := time.Now().Truncate(time.Minute)
+
+		priority := 1
+		maxRolloverAmount := 100.0
+
+		// Create grant
+		resp, err := client.CreateGrantWithResponse(context.Background(), subject, *entitlementId, api.EntitlementGrantCreateInput{
+			Amount:      100,
+			EffectiveAt: effectiveAt,
+			Expiration: api.ExpirationPeriod{
+				Duration: "MONTH",
+				Count:    1,
+			},
+			Priority:          &priority,
+			MaxRolloverAmount: &maxRolloverAmount,
+			Recurrence: &api.RecurringPeriod{
+				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Interval: "YEARLY",
 			},
 		})
-
 		require.NoError(t, err)
-		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", resp.Body)
 
-		featureId := resp.JSON201.Id
+		require.NotEmpty(t, resp.JSON201.UpdatedAt)
+		require.NotEmpty(t, resp.JSON201.ExpiresAt)
+		require.NotEmpty(t, resp.JSON201.CreatedAt)
+		require.NotEmpty(t, resp.JSON201.NextRecurrence)
 
-		expected := &api.Feature{
-			Id:        featureId,
-			Name:      "Credit Test Feature",
-			Key:       randKey,
-			MeterSlug: convert.ToPointer("credit_test_meter"),
-			MeterGroupByFilters: &map[string]string{
-				"model": "gpt-4",
+		expected := &api.EntitlementGrant{
+			Id:                resp.JSON201.Id,
+			Amount:            100,
+			EntitlementId:     entitlementId,
+			Priority:          &priority,
+			EffectiveAt:       effectiveAt.UTC(),
+			MaxRolloverAmount: &maxRolloverAmount,
+			SubjectKey:        &subject,
+			Expiration: api.ExpirationPeriod{
+				Duration: "MONTH",
+				Count:    1,
+			},
+			Recurrence: &api.RecurringPeriod{
+				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Interval: "YEARLY",
 			},
 		}
 
-		require.NotEmpty(t, *resp.JSON201.CreatedAt)
-		require.NotEmpty(t, *resp.JSON201.UpdatedAt)
 		resp.JSON201.CreatedAt = nil
 		resp.JSON201.UpdatedAt = nil
+		resp.JSON201.ExpiresAt = nil
+		resp.JSON201.NextRecurrence = nil
 
 		require.Equal(t, expected, resp.JSON201)
 	})
 
-	// FIXME: oapi-codegen is broken
+	t.Run("Entitlement Value", func(t *testing.T) {
+		// Get grants
+		grantListResp, err := client.ListGrantsWithResponse(context.Background(), &api.ListGrantsParams{})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, grantListResp.StatusCode())
+		require.NotNil(t, grantListResp.JSON200)
+		require.Len(t, *grantListResp.JSON200, 1)
 
-	// var entitlementId string
-	// ledgerMeta := map[string]string{
-	// 	"test": "data",
-	// }
-	// t.Run("Create Entitlement", func(t *testing.T) {
-	// 	resp, err := client.CreateEntitlementWithResponse(context.Background(), subject, api.CreateEntitlementJSONRequestBody{})
+		// Get feature
+		featureListResp, err := client.ListFeaturesWithResponse(context.Background(), nil)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, featureListResp.StatusCode())
+		require.NotNil(t, featureListResp.JSON200)
+		require.Len(t, *featureListResp.JSON200, 1)
 
-	// 	require.NoError(t, err)
-	// 	require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+		resp, err := client.GetEntitlementValueWithResponse(context.Background(), subject, *entitlementId, &api.GetEntitlementValueParams{
+			Time: convert.ToPointer(time.Now().Add(time.Minute)),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
 
-	// 	require.Equal(t, resp.JSON201.Subject, subject)
-	// 	require.Equal(t, resp.JSON201.Metadata["test"], "data")
-	// 	ledgerID = resp.JSON201.ID
-	// })
+		expected := &api.EntitlementValue{
+			Balance:   convert.ToPointer(99.0),
+			HasAccess: convert.ToPointer(true),
+			Overage:   convert.ToPointer(0.0),
+			Usage:     convert.ToPointer(1.0),
+		}
 
-	// t.Run("Create Ledger for same subject", func(t *testing.T) {
-	// 	resp, err := client.CreateLedgerWithResponse(context.Background(), api.CreateLedgerJSONRequestBody{
-	// 		Subject:  subject,
-	// 		Metadata: ledgerMeta,
-	// 	})
+		assert.Equal(t, expected, resp.JSON200)
+	})
 
-	// 	require.NoError(t, err)
-	// 	require.Equal(t, http.StatusConflict, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+	t.Run("Reset", func(t *testing.T) {
+		// we have to wait for a minute to pass so we can reset
+		time.Sleep(time.Minute)
+		effectiveAt := time.Now().Truncate(time.Minute)
 
-	// 	require.NotEmpty(t, resp.ApplicationproblemJSON409.ConflictingEntity.CreatedAt)
-	// 	resp.ApplicationproblemJSON409.ConflictingEntity.CreatedAt = time.Time{}
+		// Get grants
+		grantListResp, err := client.ListGrantsWithResponse(context.Background(), &api.ListGrantsParams{})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, grantListResp.StatusCode())
+		require.NotNil(t, grantListResp.JSON200)
+		require.Len(t, *grantListResp.JSON200, 1)
 
-	// 	require.Equal(t,
-	// 		credit.Ledger{
-	// 			ID:       ledgerID,
-	// 			Subject:  subject,
-	// 			Metadata: ledgerMeta,
-	// 		},
-	// 		resp.ApplicationproblemJSON409.ConflictingEntity)
-	// })
+		// Get feature
+		featureListResp, err := client.ListFeaturesWithResponse(context.Background(), nil)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, featureListResp.StatusCode())
+		require.NotNil(t, featureListResp.JSON200)
+		require.Len(t, *featureListResp.JSON200, 1)
 
-	// t.Run("Create Grant", func(t *testing.T) {
-	// 	effectiveAt, _ := time.Parse(time.RFC3339, "2024-01-01T00:01:00Z")
+		// Reset usage
+		resetResp, err := client.ResetEntitlementUsageWithResponse(context.Background(), subject, *entitlementId, api.ResetEntitlementUsageJSONRequestBody{
+			EffectiveAt: &effectiveAt,
+		})
 
-	// 	// Get feature
-	// 	featureListResp, err := client.ListFeaturesWithResponse(context.Background(), nil)
-	// 	require.NoError(t, err)
-	// 	require.Equal(t, http.StatusOK, featureListResp.StatusCode())
-	// 	require.NotNil(t, featureListResp.JSON200)
-	// 	require.Len(t, *featureListResp.JSON200, 1)
-	// 	features := *featureListResp.JSON200
-	// 	featureId := features[0].Id
-	// 	priority := 1
-
-	// 	// Create grant
-	// 	resp, err := client.CreateLedgerGrantWithResponse(context.Background(), ledgerID, api.CreateLedgerGrantRequest{
-	// 		Type:        api.LedgerGrantTypeUsage,
-	// 		FeatureID:   *featureId,
-	// 		Amount:      100,
-	// 		Priority:    &priority,
-	// 		EffectiveAt: effectiveAt,
-	// 		Rollover: &api.LedgerGrantRollover{
-	// 			Type: credit.GrantRolloverTypeRemainingAmount,
-	// 		},
-	// 		Expiration: &api.LedgerGrantExpirationPeriod{
-	// 			Duration: "DAY",
-	// 			Count:    1,
-	// 		},
-	// 	})
-	// 	require.NoError(t, err)
-	// 	require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", resp.Body)
-
-	// 	require.NotEmpty(t, resp.JSON201.CreatedAt)
-	// 	require.NotEmpty(t, resp.JSON201.UpdatedAt)
-
-	// 	fBool := false
-
-	// 	expected := &api.LedgerGrantResponse{
-	// 		Id:          resp.JSON201.Id,
-	// 		ExpiresAt:   resp.JSON201.ExpiresAt,
-	// 		Type:        api.LedgerGrantTypeUsage,
-	// 		FeatureID:   *featureId,
-	// 		Amount:      100,
-	// 		LedgerID:    string(ledgerID),
-	// 		Priority:    &priority,
-	// 		EffectiveAt: effectiveAt,
-	// 		Rollover: &api.LedgerGrantRollover{
-	// 			Type: credit.GrantRolloverTypeRemainingAmount,
-	// 		},
-	// 		Expiration: &api.LedgerGrantExpirationPeriod{
-	// 			Duration: "DAY",
-	// 			Count:    1,
-	// 		},
-	// 		CreatedAt: resp.JSON201.CreatedAt,
-	// 		UpdatedAt: resp.JSON201.UpdatedAt,
-	// 		Void:      &fBool,
-	// 	}
-
-	// 	require.Equal(t, expected, resp.JSON201)
-	// })
-
-	// t.Run("Balance", func(t *testing.T) {
-	// 	// Get grants
-	// 	grantListResp, err := client.ListLedgerGrantsWithResponse(context.Background(), &api.ListLedgerGrantsParams{})
-	// 	require.NoError(t, err)
-	// 	require.Equal(t, http.StatusOK, grantListResp.StatusCode())
-	// 	require.NotNil(t, grantListResp.JSON200)
-	// 	require.Len(t, *grantListResp.JSON200, 1)
-	// 	grants := *grantListResp.JSON200
-	// 	grant := grants[0]
-
-	// 	// Get feature
-	// 	featureListResp, err := client.ListFeaturesWithResponse(context.Background(), nil)
-	// 	require.NoError(t, err)
-	// 	require.Equal(t, http.StatusOK, featureListResp.StatusCode())
-	// 	require.NotNil(t, featureListResp.JSON200)
-	// 	require.Len(t, *featureListResp.JSON200, 1)
-	// 	features := *featureListResp.JSON200
-	// 	feature := features[0]
-
-	// 	resp, err := client.GetLedgerBalanceWithResponse(context.Background(), ledgerID, nil)
-	// 	require.NoError(t, err)
-	// 	require.Equal(t, http.StatusOK, resp.StatusCode())
-
-	// 	lastReset := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC).Truncate(time.Second)
-
-	// 	expected := &api.LedgerBalance{
-	// 		LastReset: &lastReset,
-	// 		Subject:   subject,
-	// 		Metadata:  &ledgerMeta,
-	// 		FeatureBalances: []api.FeatureBalance{
-	// 			{
-	// 				Archived:            feature.Archived,
-	// 				CreatedAt:           feature.CreatedAt,
-	// 				Id:                  feature.Id,
-	// 				MeterGroupByFilters: feature.MeterGroupByFilters,
-	// 				MeterSlug:           feature.MeterSlug,
-	// 				Name:                feature.Name,
-	// 				UpdatedAt:           feature.UpdatedAt,
-	// 				Balance:             99,
-	// 				Usage:               1,
-	// 			},
-	// 		},
-	// 		GrantBalances: []api.LedgerGrantBalance{
-	// 			{
-	// 				Id:          grant.Id,
-	// 				Type:        api.LedgerGrantTypeUsage,
-	// 				Balance:     99,
-	// 				Amount:      100,
-	// 				EffectiveAt: grant.EffectiveAt,
-	// 				Expiration: &api.LedgerGrantExpirationPeriod{
-	// 					Duration: "DAY",
-	// 					Count:    1,
-	// 				},
-	// 				ExpiresAt: grant.ExpiresAt,
-	// 				FeatureID: *feature.Id,
-	// 				ParentId:  grant.ParentId,
-	// 				Metadata:  grant.Metadata,
-	// 				Priority:  grant.Priority,
-	// 				Rollover:  grant.Rollover,
-	// 				UpdatedAt: grant.UpdatedAt,
-	// 				CreatedAt: grant.CreatedAt,
-	// 			},
-	// 		},
-	// 	}
-
-	// 	assert.Equal(t, expected, resp.JSON200)
-	// })
-
-	// t.Run("Reset", func(t *testing.T) {
-	// 	effectiveAt, _ := time.ParseInLocation(time.RFC3339, "2024-01-01T00:02:00Z", time.UTC)
-
-	// 	// Get grants
-	// 	parentGrantListResp, err := client.ListLedgerGrantsWithResponse(context.Background(), &api.ListLedgerGrantsParams{})
-	// 	require.NoError(t, err)
-	// 	require.Equal(t, http.StatusOK, parentGrantListResp.StatusCode())
-	// 	require.NotNil(t, parentGrantListResp.JSON200)
-	// 	require.Len(t, *parentGrantListResp.JSON200, 1)
-	// 	parentGrants := *parentGrantListResp.JSON200
-	// 	parentGrant := parentGrants[0]
-
-	// 	// Get feature
-	// 	featureListResp, err := client.ListFeaturesWithResponse(context.Background(), nil)
-	// 	require.NoError(t, err)
-	// 	require.Equal(t, http.StatusOK, featureListResp.StatusCode())
-	// 	require.NotNil(t, featureListResp.JSON200)
-	// 	require.Len(t, *featureListResp.JSON200, 1)
-	// 	features := *featureListResp.JSON200
-	// 	featureId := features[0].Id
-
-	// 	// Reset credit
-	// 	resetResp, err := client.ResetLedgerWithResponse(context.Background(), ledgerID, api.LedgerReset{
-	// 		EffectiveAt: effectiveAt,
-	// 	})
-
-	// 	require.NoError(t, err)
-	// 	require.Equal(t, http.StatusCreated, resetResp.StatusCode())
-
-	// 	reset := resetResp.JSON201
-	// 	expectedReset := &api.LedgerReset{
-	// 		ID:          reset.ID,
-	// 		LedgerID:    ledgerID,
-	// 		EffectiveAt: effectiveAt,
-	// 	}
-	// 	assert.Equal(t, expectedReset, resetResp.JSON201)
-
-	// 	// List grants
-	// 	resp, err := client.ListLedgerGrantsWithResponse(context.Background(), &api.ListLedgerGrantsParams{
-	// 		LedgerID: &ledgerID,
-	// 	})
-
-	// 	require.NoError(t, err)
-	// 	require.Equal(t, http.StatusOK, resp.StatusCode(), "response body: %s", string(resp.Body))
-
-	// 	priority := 1
-	// 	fBool := false
-
-	// 	grants := *resp.JSON200
-	// 	expected := &[]api.LedgerGrantResponse{
-	// 		{
-	// 			Id:          grants[0].Id,
-	// 			ParentId:    parentGrant.Id,
-	// 			Type:        api.LedgerGrantTypeUsage,
-	// 			FeatureID:   *featureId,
-	// 			Amount:      99,
-	// 			Priority:    &priority,
-	// 			EffectiveAt: effectiveAt,
-	// 			Rollover: &api.LedgerGrantRollover{
-	// 				Type: credit.GrantRolloverTypeRemainingAmount,
-	// 			},
-	// 			Expiration: &api.LedgerGrantExpirationPeriod{
-	// 				Duration: "DAY",
-	// 				Count:    1,
-	// 			},
-	// 			LedgerID:  grants[0].LedgerID,
-	// 			ExpiresAt: grants[0].ExpiresAt,
-	// 			CreatedAt: grants[0].CreatedAt,
-	// 			UpdatedAt: grants[0].UpdatedAt,
-	// 			Void:      &fBool,
-	// 		},
-	// 	}
-
-	// 	require.Equal(t, expected, resp.JSON200)
-	// })
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, resetResp.StatusCode())
+	})
 }

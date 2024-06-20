@@ -121,7 +121,7 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 
 			return apiGrant, nil
 		},
-		commonhttp.JSONResponseEncoder[api.EntitlementGrant],
+		commonhttp.JSONResponseEncoderWithStatus[api.EntitlementGrant](http.StatusCreated),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {

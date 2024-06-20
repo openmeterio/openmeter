@@ -49,6 +49,9 @@ type StatusProblem struct {
 	Detail string `json:"detail,omitempty"`
 	// Instance is a URI reference that identifies the specific occurrence of the problem.
 	Instance string `json:"instance,omitempty"`
+
+	// Extension fields are allowed by spec, see https://datatracker.ietf.org/doc/html/rfc7807#section-3.2
+	Extensions map[string]interface{} `json:"extensions,omitempty"`
 }
 
 var _ Problem = (*StatusProblem)(nil)
@@ -123,11 +126,12 @@ func NewStatusProblem(ctx context.Context, err error, status int) *StatusProblem
 	}
 
 	return &StatusProblem{
-		Err:      err,
-		Type:     ProblemTypeDefault,
-		Title:    http.StatusText(status),
-		Status:   status,
-		Detail:   detail,
-		Instance: instance,
+		Err:        err,
+		Type:       ProblemTypeDefault,
+		Title:      http.StatusText(status),
+		Status:     status,
+		Detail:     detail,
+		Instance:   instance,
+		Extensions: map[string]interface{}{},
 	}
 }

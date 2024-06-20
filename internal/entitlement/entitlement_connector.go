@@ -46,7 +46,7 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 	}
 	for _, ent := range currentEntitlements {
 		if ent.FeatureID == input.FeatureID {
-			return Entitlement{}, &EntitlementAlreadyExistsError{FeatureID: input.FeatureID, SubjectKey: input.SubjectKey}
+			return Entitlement{}, &EntitlementAlreadyExistsError{EntitlementID: ent.ID, FeatureID: input.FeatureID, SubjectKey: input.SubjectKey}
 		}
 	}
 

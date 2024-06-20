@@ -24,12 +24,13 @@ type Entitlement struct {
 }
 
 type EntitlementAlreadyExistsError struct {
-	FeatureID  string
-	SubjectKey string
+	EntitlementID string
+	FeatureID     string
+	SubjectKey    string
 }
 
 func (e *EntitlementAlreadyExistsError) Error() string {
-	return fmt.Sprintf("entitlement already exists for feature %s and subject %s", e.FeatureID, e.SubjectKey)
+	return fmt.Sprintf("entitlement with id %s already exists for feature %s and subject %s", e.EntitlementID, e.FeatureID, e.SubjectKey)
 }
 
 type EntitlementNotFoundError struct {

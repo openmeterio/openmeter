@@ -83,7 +83,10 @@ func (e *entitlementBalanceConnector) GetEntitlementBalance(ctx context.Context,
 	}
 	res, err := e.bc.GetBalanceOfOwner(ctx, nsOwner, at)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get balance of entitlement %s: %w", entitlementID.ID, err)
+		if _, ok := err.(*credit.OwnerNotFoundError); ok {
+			return nil, &EntitlementNotFoundError{EntitlementID: entitlementID}
+		}
+		return nil, err
 	}
 
 	meterSlug, params, err := e.oc.GetOwnerQueryParams(ctx, nsOwner)

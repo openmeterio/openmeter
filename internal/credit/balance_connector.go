@@ -306,7 +306,7 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 
 		err = m.oc.EndCurrentUsagePeriodTx(ctx, tx, owner, at)
 		if err != nil {
-			return nil, fmt.Errorf("failed to end current usage period for owner %s at %s: %w", owner.ID, at, err)
+			return nil, err
 		}
 
 		return nil, nil
@@ -332,12 +332,12 @@ func (m *balanceConnector) getLastValidBalanceSnapshotForOwnerAt(ctx context.Con
 
 			startOfMeasurement, err := m.oc.GetStartOfMeasurement(ctx, owner)
 			if err != nil {
-				return balance, fmt.Errorf("failed to get start of measurement for owner %s: %w", owner.ID, err)
+				return balance, err
 			}
 
 			grants, err := m.gc.ListActiveGrantsBetween(ctx, owner, startOfMeasurement, at)
 			if err != nil {
-				return balance, fmt.Errorf("failed to list grants for owner %s: %w", owner.ID, err)
+				return balance, err
 			}
 
 			balances := GrantBalanceMap{}

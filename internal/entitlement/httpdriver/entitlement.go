@@ -40,9 +40,7 @@ func NewEntitlementHandler(
 	}
 }
 
-// The generated api.EntitlementMetered type doesn't really follow our openapi spec
-// so we have to manually override some fields...
-// FIXME: APIs can drift due to this
+// Currently not all parts of the OpenAPI spec are implemented so we have to cheat here
 type APIEntitlementResponse struct {
 	api.EntitlementMetered
 
@@ -88,9 +86,7 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 				UsagePeriod: nil,
 			}, err
 		},
-		// api.Entitlement is a pseuo type due to the openapi magic so it has no fields
-		// FIXME: assert that the types are actually comptible...
-		commonhttp.JSONResponseEncoder[APIEntitlementResponse],
+		commonhttp.JSONResponseEncoderWithStatus[APIEntitlementResponse](http.StatusCreated),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("createEntitlement"),
@@ -109,10 +105,11 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 					).EncodeError(ctx, w)
 					return true
 				}
-				if _, ok := err.(*entitlement.EntitlementAlreadyExistsError); ok {
+				if err, ok := err.(*entitlement.EntitlementAlreadyExistsError); ok {
 					commonhttp.NewHTTPError(
 						http.StatusConflict,
 						err,
+						commonhttp.ExtendProblem("conflictingEntityId", err.EntitlementID),
 					).EncodeError(ctx, w)
 					return true
 				}
@@ -174,6 +171,13 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 			httptransport.WithOperationName("getEntitlementValue"),
 			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {
 				if _, ok := err.(*productcatalog.FeatureNotFoundError); ok {
+					commonhttp.NewHTTPError(
+						http.StatusNotFound,
+						err,
+					).EncodeError(ctx, w)
+					return true
+				}
+				if _, ok := err.(*entitlement.EntitlementNotFoundError); ok {
 					commonhttp.NewHTTPError(
 						http.StatusNotFound,
 						err,
