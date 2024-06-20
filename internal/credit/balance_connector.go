@@ -413,7 +413,7 @@ func (m *balanceConnector) getLastSaveableSnapshotAt(history *GrantBurnDownHisto
 }
 
 // Fills in the snapshot's GrantBalanceMap with the provided grants so the Engine can use them.
-func (m *balanceConnector) populateBalanceSnapshotWithMissingGrantsActiveAt(snapshot *GrantBalanceSnapshot, grants []Grant, at time.Time) error {
+func (m *balanceConnector) populateBalanceSnapshotWithMissingGrantsActiveAt(snapshot *GrantBalanceSnapshot, grants []Grant, at time.Time) {
 	for _, grant := range grants {
 		if _, ok := snapshot.Balances[grant.ID]; !ok {
 			if grant.ActiveAt(at) {
@@ -423,5 +423,4 @@ func (m *balanceConnector) populateBalanceSnapshotWithMissingGrantsActiveAt(snap
 			}
 		}
 	}
-	return nil
 }
