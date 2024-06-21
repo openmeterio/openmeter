@@ -9,6 +9,7 @@ require (
 	github.com/AppsFlyer/go-sundheit v0.5.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.25.0
 	github.com/XSAM/otelsql v0.31.0
+	github.com/alpacahq/alpacadecimal v0.0.4
 	github.com/avast/retry-go/v4 v4.6.0
 	github.com/benthosdev/benthos/v4 v4.27.0
 	github.com/brianvoe/gofakeit/v6 v6.28.0
@@ -21,14 +22,13 @@ require (
 	github.com/go-chi/render v1.0.3
 	github.com/go-slog/otelslog v0.1.0
 	github.com/go-viper/mapstructure/v2 v2.0.0
+	github.com/golang-cz/devslog v0.0.8
 	github.com/golang-jwt/jwt/v5 v5.2.1
-	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/huandu/go-sqlbuilder v1.27.3
 	github.com/jackc/pgx/v5 v5.6.0
 	github.com/lmittmann/tint v1.0.4
-	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/oapi-codegen/nethttp-middleware v1.0.2
 	github.com/oapi-codegen/runtime v1.1.1
@@ -175,7 +175,7 @@ require (
 	github.com/denisenkom/go-mssqldb v0.12.3 // indirect
 	github.com/dgraph-io/ristretto v0.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/dlclark/regexp2 v1.10.0 // indirect
+	github.com/dlclark/regexp2 v1.11.0 // indirect
 	github.com/dop251/goja v0.0.0-20231014103939-873a1496dc8e // indirect
 	github.com/dop251/goja_nodejs v0.0.0-20231122114759-e84d9a924c5c // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
@@ -184,7 +184,7 @@ require (
 	github.com/eapache/go-xerial-snappy v0.0.0-20230731223053-c322873962e3 // indirect
 	github.com/eapache/queue v1.1.0 // indirect
 	github.com/eclipse/paho.mqtt.golang v1.4.3 // indirect
-	github.com/fatih/color v1.16.0 // indirect
+	github.com/fatih/color v1.17.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.5+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
@@ -282,6 +282,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
+	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.25 // indirect
 	github.com/microsoft/gocosmos v1.1.1 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect

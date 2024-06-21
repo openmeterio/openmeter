@@ -1,30 +1,69 @@
 package credit
 
-import (
-	"net/http"
-)
+import "time"
 
-// Balance of a subject in a credit.
-type Balance struct {
-	LedgerID        LedgerID          `json:"id"`
-	Metadata        map[string]string `json:"metadata,omitempty"`
-	Subject         string            `json:"subject"`
-	FeatureBalances []FeatureBalance  `json:"featureBalances"`
-	GrantBalances   []GrantBalance    `json:"grantBalances"`
+// Represents a point in time balance of grants
+type GrantBalanceMap map[string]float64
+
+func (g GrantBalanceMap) Copy() GrantBalanceMap {
+	r := make(GrantBalanceMap, len(g))
+	for k, v := range g {
+		r[k] = v
+	}
+	return r
 }
 
-// Render implements the chi renderer interface.
-func (c Balance) Render(w http.ResponseWriter, r *http.Request) error {
-	return nil
+func (g GrantBalanceMap) Burn(grantID string, amount float64) {
+	balance := g[grantID]
+	g[grantID] = balance - amount
 }
 
-type GrantBalance struct {
-	Grant
-	Balance float64 `json:"balance"`
+func (g GrantBalanceMap) Set(grantID string, amount float64) {
+	g[grantID] = amount
 }
 
-type FeatureBalance struct {
-	Feature
-	Balance float64 `json:"balance"`
-	Usage   float64 `json:"usage"`
+// returns the combined balance of all grants
+func (g GrantBalanceMap) Balance() float64 {
+	var balance float64
+	for _, v := range g {
+		balance += v
+	}
+	return balance
+}
+
+// Whether the contents of the GrantBalanceMap exactly matches
+// the list of provided grants.
+// Return false if it has additional grants or if it misses any grants
+func (g GrantBalanceMap) ExactlyForGrants(grants []Grant) bool {
+	gmap := map[string]struct{}{}
+	for _, grant := range grants {
+		gmap[grant.ID] = struct{}{}
+	}
+
+	if len(gmap) != len(g) {
+		return false
+	}
+
+	for k := range gmap {
+		if _, ok := g[k]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func (g GrantBalanceMap) OverrideWith(gbm GrantBalanceMap) {
+	for k, v := range gbm {
+		g[k] = v
+	}
+}
+
+type GrantBalanceSnapshot struct {
+	Balances GrantBalanceMap
+	Overage  float64
+	At       time.Time
+}
+
+func (g GrantBalanceSnapshot) Balance() float64 {
+	return g.Balances.Balance()
 }

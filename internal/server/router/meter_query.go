@@ -113,7 +113,7 @@ func (a *Router) QueryMeterWithMeter(ctx context.Context, w http.ResponseWriter,
 		}
 	}
 
-	if err := queryParams.Validate(meter.WindowSize); err != nil {
+	if err := queryParams.Validate(meter); err != nil {
 		err := fmt.Errorf("invalid query parameters: %w", err)
 
 		models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)

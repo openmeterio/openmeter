@@ -17,7 +17,7 @@ import (
 func TestComplete(t *testing.T) {
 	v, flags := viper.New(), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
 
-	Configure(v, flags)
+	SetViperDefaults(v, flags)
 
 	v.SetConfigFile("testdata/complete.yaml")
 

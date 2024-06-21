@@ -4,11 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // JSONResponseEncoder encodes a response as JSON.
@@ -48,28 +46,4 @@ func EmptyResponseEncoder[Response any](statusCode int) httptransport.ResponseEn
 		w.WriteHeader(statusCode)
 		return nil
 	}
-}
-
-type ErrorWithHTTPStatusCode struct {
-	error
-	StatusCode int
-}
-
-func NewHTTPError(statusCode int, err error) ErrorWithHTTPStatusCode {
-	return ErrorWithHTTPStatusCode{
-		StatusCode: statusCode,
-		error:      err,
-	}
-}
-
-func (e ErrorWithHTTPStatusCode) EncodeError(ctx context.Context, w http.ResponseWriter) bool {
-	models.NewStatusProblem(ctx, e.error, e.StatusCode).Respond(w)
-	return true
-}
-
-// ErrorEncoder encodes an error as HTTP 500 Internal Server Error.
-func ErrorEncoder(ctx context.Context, _ error, w http.ResponseWriter) bool {
-	models.NewStatusProblem(ctx, errors.New("something went wrong"), http.StatusInternalServerError).Respond(w)
-
-	return false
 }

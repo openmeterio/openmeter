@@ -625,6 +625,41 @@ paths:
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
+  # Entitlement
+  /api/v1/entitlements:
+    get:
+      operationId: listEntitlements
+      summary: List entitlements
+      description: List entitlements.
+      tags:
+        - Entitlements (Experimental)
+      parameters:
+        # TODO: add search capabilities
+        - $ref: "#/components/parameters/queryLimit"
+        - $ref: "#/components/parameters/queryOffset"
+        - name: orderBy
+          in: query
+          required: false
+          description: Order by field
+          schema:
+            type: string
+            enum:
+              - createdAt
+              - updatedAt
+            default: createdAt
+      responses:
+        "200":
+          description: List of entitlements.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Entitlement"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
   # Feature
   /api/v1/features:
     get:
@@ -635,8 +670,8 @@ paths:
       tags:
         - Entitlements (Experimental)
       parameters:
-        - $ref: "#/components/parameters/ledgerQueryLimit"
-        - $ref: "#/components/parameters/ledgerQueryOffset"
+        - $ref: "#/components/parameters/queryLimit"
+        - $ref: "#/components/parameters/queryOffset"
         - name: orderBy
           in: query
           required: false
@@ -681,7 +716,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateFeatureRequest"
+              $ref: "#/components/schemas/FeatureCreateInputs"
       responses:
         "201":
           description: Feature created.
@@ -697,16 +732,16 @@ paths:
           $ref: "#/components/responses/NotImplementedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
-  /api/v1/features/{featureID}:
+  /api/v1/features/{featureId}:
     get:
       operationId: getFeature
       summary: Get feature
       description: |
-        Get feature by key.
+        Get feature by id.
       tags:
         - Entitlements (Experimental)
       parameters:
-        - $ref: "#/components/parameters/featureID"
+        - $ref: "#/components/parameters/featureId"
       responses:
         "200":
           description: Feature found.
@@ -728,7 +763,7 @@ paths:
       tags:
         - Entitlements (Experimental)
       parameters:
-        - $ref: "#/components/parameters/featureID"
+        - $ref: "#/components/parameters/featureId"
       responses:
         "204":
           description: Feature deleted.
@@ -738,36 +773,17 @@ paths:
           $ref: "#/components/responses/NotFoundProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
-  # Ledgers
-  /api/v1/ledgers:
+  /api/v1/grants:
     get:
-      operationId: listLedgers
-      summary: List the already defined ledgers.
+      operationId: listGrants
+      summary: List grants
       description: |
-        List the already defined ledgers.
+        List all grants.
       tags:
         - Entitlements (Experimental)
       parameters:
-        - name: subject
-          in: query
-          required: false
-          description: Query ledgers specific to subjects.
-          schema:
-            type: array
-            items:
-              type: string
-              description: |
-                A metering subject to list the ledger of.
-        - name: subjectSimilarTo
-          in: query
-          required: false
-          description: Query ledgers with subjects that are similar to the provided text.
-          schema:
-            type: string
-            description: |
-              A text fragment to search for.
-        - $ref: "#/components/parameters/ledgerQueryLimit"
-        - $ref: "#/components/parameters/ledgerQueryOffset"
+        - $ref: "#/components/parameters/queryLimit"
+        - $ref: "#/components/parameters/queryOffset"
         - name: orderBy
           in: query
           required: false
@@ -775,105 +791,294 @@ paths:
           schema:
             type: string
             enum:
-              - subject
-              - createdAt
               - id
-            default: id
+              - createdAt
+              - updatedAt
+            default: updatedAt
+        - $ref: "#/components/parameters/includeDeleted"
+        # - $ref: "#/components/parameters/queryFilterSubject"
       responses:
         "200":
-          description: List of the matching ledgers.
+          description: List of grants.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Ledger"
-        "400":
-          $ref: "#/components/responses/BadRequestProblemResponse"
+                  $ref: "#/components/schemas/EntitlementGrant"
         "401":
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
-    post:
-      operationId: createLedger
-      summary: Creates the specified ledger
+  /api/v1/grants/{grantId}:
+    delete:
+      operationId: voidGrant
+      summary: Delete a grant
       description: |
-        Create or update the specified ledger.
+        Void (delete) a grant. A grant can only be deleted if it hasn't been used.
       tags:
         - Entitlements (Experimental)
-      requestBody:
-        description: The ledger to be created
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateLedger"
+      parameters:
+        - $ref: "#/components/parameters/grantId"
       responses:
-        "201":
-          description: The created ledger.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Ledger"
+        "204":
+          description: Grant has been voided.
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         "409":
-          $ref: "#/components/responses/LedgerAlreadyExistsProblemResponse"
+          $ref: "#/components/responses/ConflictProblemResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
-
-  /api/v1/ledgers/{ledgerID}/balance:
-    get:
-      operationId: getLedgerBalance
-      summary: Get the balance of a specific subject.
+  /api/v1/subjects/{subjectIdOrKey}/entitlements:
+    post:
+      operationId: createEntitlement
+      summary: Create entitlement
       description: |
-        Get the balance of a specific subject.
+        Create an entitlement for a subject.
       tags:
         - Entitlements (Experimental)
       parameters:
-        - $ref: "#/components/parameters/ledgerID"
-        - name: time
-          in: query
-          required: false
-          description: |
-            Point of time to query balances: date-time in RFC 3339 format. Defaults to now.
-          schema:
-            type: string
-            format: date-time
-            example: "2023-01-01T00:00:00Z"
+        - $ref: "#/components/parameters/subjectIdOrKey"
+      requestBody:
+        description: The entitlement to create.
+        required: true
+        content:
+          application/json:
+            schema:
+              # Needed for go client type generation
+              # For the time being we'll need manual enforcement to make sure the values are correct
+              x-go-type: types.CreateEntitlementJSONBody
+              x-go-type-import:
+                path: github.com/openmeterio/openmeter/api/types
+              oneOf:
+                - $ref: "#/components/schemas/EntitlementMeteredCreateInputs"
+                - $ref: "#/components/schemas/EntitlementStaticCreateInputs"
+                - $ref: "#/components/schemas/EntitlementBooleanCreateInputs"
       responses:
-        "200":
-          description: Ledger balances available.
+        "201":
+          description: Entitlement created.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LedgerBalance"
+                $ref: "#/components/schemas/Entitlement"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "409":
+          $ref: "#/components/responses/ConflictProblemResponse"
+        "501":
+          $ref: "#/components/responses/NotImplementedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+    get:
+      operationId: listSubjectEntitlements
+      summary: List entitlements
+      description: |
+        List all entitlements for a subject.
+      tags:
+        - Entitlements (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/subjectIdOrKey"
+        # - $ref: "#/components/parameters/queryLimit"
+        # - $ref: "#/components/parameters/queryOffset"
+        - $ref: "#/components/parameters/includeDeleted"
+      responses:
+        "200":
+          description: List of entitlements.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Entitlement"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+  /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}:
+    get:
+      operationId: getEntitlement
+      summary: Get entitlement
+      description: |
+        Get entitlement by id.
+      tags:
+        - Entitlements (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/subjectIdOrKey"
+        - $ref: "#/components/parameters/entitlementId"
+      responses:
+        "200":
+          description: Entitlement found.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Entitlement"
+                  - type: object
+                    properties:
+                      lastReset:
+                        description: The last time usage was reset.
+                        readOnly: true
+                        type: string
+                        format: date-time
+                        example: "2023-01-01T00:00:00Z"
         "401":
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         "404":
           $ref: "#/components/responses/NotFoundProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
-  # Individual ledgers
-  /api/v1/ledgers/{ledgerID}/history:
-    get:
-      operationId: getLedgerHistory
-      summary: Get the history of a ledger
+    delete:
+      operationId: deleteEntitlement
+      summary: Delete entitlement
       description: |
-        Get the history of a specific ledger
+        Delete an entitlement by id.
       tags:
         - Entitlements (Experimental)
       parameters:
-        - $ref: "#/components/parameters/ledgerID"
-        - $ref: "#/components/parameters/ledgerQueryLimit"
-        - $ref: "#/components/parameters/ledgerQueryOffset"
+        - $ref: "#/components/parameters/subjectIdOrKey"
+        - $ref: "#/components/parameters/entitlementId"
+      responses:
+        "204":
+          description: Entitlement deleted.
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+  /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/grants:
+    get:
+      operationId: listEntitlementGrants
+      summary: List grants for an entitlement
+      description: |
+        List all grants for an entitlement.
+      tags:
+        - Entitlements (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/subjectIdOrKey"
+        - $ref: "#/components/parameters/entitlementId"
+        - $ref: "#/components/parameters/includeDeleted"
+        # - $ref: "#/components/parameters/queryLimit"
+        # - $ref: "#/components/parameters/queryOffset"
+        - name: orderBy
+          in: query
+          required: false
+          description: Order by field
+          schema:
+            type: string
+            enum:
+              - id
+              - createdAt
+              - updatedAt
+            default: updatedAt
+      responses:
+        "200":
+          description: List of grants.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EntitlementGrant"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+    post:
+      operationId: createGrant
+      summary: Create grant
+      description: |
+        Create a grant for an entitlement.
+      tags:
+        - Entitlements (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/subjectIdOrKey"
+        - $ref: "#/components/parameters/entitlementId"
+      requestBody:
+        description: The grant to create.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EntitlementGrantCreateInput"
+      responses:
+        "201":
+          description: Grant created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntitlementGrant"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "501":
+          $ref: "#/components/responses/NotImplementedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+  # TODO: should this be /value to be compatible with all three entitlement types
+  /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value:
+    get:
+      operationId: getEntitlementValue
+      summary: Get the balance of a specific entitlement.
+      description: |
+        Get the balance of a specific entitlement.
+      tags:
+        - Entitlements (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/subjectIdOrKey"
+        - $ref: "#/components/parameters/entitlementIdOrFeatureKey"
+        - name: time
+          in: query
+          required: false
+          description: |
+            Point of time to check value: date-time in RFC 3339 format. Defaults to now.
+          schema:
+            type: string
+            format: date-time
+            example: "2023-01-01T00:00:00Z"
+      responses:
+        "200":
+          description: The entitlement value.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntitlementValue"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+
+  /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history:
+    get:
+      operationId: getEntitlementHistory
+      summary: Get the balance history of a specific entitlement.
+      description: |
+        Get the balance history of a specific entitlement.
+
+        The windows are inclusive at their start and exclusive at their end.
+        The last window may be smaller than the window size and is inclusive at both ends.
+      tags:
+        - Entitlements (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/subjectIdOrKey"
+        - $ref: "#/components/parameters/entitlementId"
         - name: from
           in: query
           required: true
           description: |
-            Start of time range to query ledger: date-time in RFC 3339 format.
+            Start of time range to query entitlement: date-time in RFC 3339 format.
+            Gets truncated to the granularity of the underlying meter.
           schema:
             type: string
             format: date-time
@@ -882,182 +1087,71 @@ paths:
           in: query
           required: false
           description: |
-            End of time range to query ledger: date-time in RFC 3339 format. Defaults to now.
+            End of time range to query entitlement: date-time in RFC 3339 format. Defaults to now.
+            If not now then gets truncated to the granularity of the underlying meter.
           schema:
             type: string
             format: date-time
             example: "2023-01-01T00:00:00Z"
+        - name: windowSize
+          in: query
+          required: true
+          description: |
+            Size of the time window to group the history by. Cannot be shorter than meter granularity.
+          schema:
+            type: string
+            enum:
+              - MINUTE
+              - HOUR
+              - DAY
+        - $ref: "#/components/parameters/queryWindowTimeZone"
       responses:
         "200":
-          description: Ledger balance history.
+          description: |
+            Entitlement balance history. If windowsize is specified then the history is grouped by the window size.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/LedgerEntry"
+                $ref: "#/components/schemas/WindowedBalanceHistory"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         "404":
           $ref: "#/components/responses/NotFoundProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
-  # Ledger Reset
-  /api/v1/ledgers/{ledgerID}/reset:
+  /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/reset:
     post:
-      operationId: resetLedger
-      summary: Reset the ledger's balance
+      operationId: resetEntitlementUsage
+      summary: Reset entitlement
       description: |
-        Resets the ledger's balances to zero for a specific subject and re-apply active grants with rollover configuration.
+        Reset the entitlement usage and start a new period. Grants that can be are rolled over.
       tags:
         - Entitlements (Experimental)
       parameters:
-        - $ref: "#/components/parameters/ledgerID"
+        - $ref: "#/components/parameters/subjectIdOrKey"
+        - $ref: "#/components/parameters/entitlementId"
       requestBody:
-        description: Details for the reset.
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LedgerReset"
-      responses:
-        "201":
-          description: Ledger balance reset.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/LedgerReset"
-        "400":
-          $ref: "#/components/responses/BadRequestProblemResponse"
-        "401":
-          $ref: "#/components/responses/UnauthorizedProblemResponse"
-        "404":
-          $ref: "#/components/responses/NotFoundProblemResponse"
-        default:
-          $ref: "#/components/responses/UnexpectedProblemResponse"
-  # Ledger Grants
-  /api/v1/ledgers/grants:
-    get:
-      operationId: listLedgerGrants
-      summary: List grants for multiple ledgers.
-      description: |
-        List grants for multiple ledgers.
-      tags:
-        - Entitlements (Experimental)
-      parameters:
-        - $ref: "#/components/parameters/queryFilterLedgerID"
-        - $ref: "#/components/parameters/ledgerQueryLimit"
-        - $ref: "#/components/parameters/ledgerIncludeVoids"
-      responses:
-        "200":
-          description: List of ledger grants.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/LedgerGrantResponse"
-        "400":
-          $ref: "#/components/responses/BadRequestProblemResponse"
-        "401":
-          $ref: "#/components/responses/UnauthorizedProblemResponse"
-        default:
-          $ref: "#/components/responses/UnexpectedProblemResponse"
-  /api/v1/ledgers/{ledgerID}/grants:
-    get:
-      operationId: listLedgerGrantsByLedger
-      summary: List ledger grants
-      description: |
-        List ledger grants for a specific ledger.
-      tags:
-        - Entitlements (Experimental)
-      parameters:
-        - $ref: "#/components/parameters/ledgerID"
-        - $ref: "#/components/parameters/ledgerQueryLimit"
-        - $ref: "#/components/parameters/ledgerIncludeVoids"
-      responses:
-        "200":
-          description: List of ledger grants created.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/LedgerGrantResponse"
-        "400":
-          $ref: "#/components/responses/BadRequestProblemResponse"
-        "401":
-          $ref: "#/components/responses/UnauthorizedProblemResponse"
-        default:
-          $ref: "#/components/responses/UnexpectedProblemResponse"
-    post:
-      operationId: createLedgerGrant
-      summary: Create a grant on a specific ledger.
-      description: |
-        Create a grant on a specific ledger.
-      parameters:
-        - $ref: "#/components/parameters/ledgerID"
-      tags:
-        - Entitlements (Experimental)
-      requestBody:
-        description: The grant to create.
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateLedgerGrantRequest"
-      responses:
-        "201":
-          description: LedgerGrant created.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/LedgerGrantResponse"
-        "400":
-          $ref: "#/components/responses/BadRequestProblemResponse"
-        "401":
-          $ref: "#/components/responses/UnauthorizedProblemResponse"
-        default:
-          $ref: "#/components/responses/UnexpectedProblemResponse"
-  # Ledger Grants
-  /api/v1/ledgers/{ledgerID}/grants/{ledgerGrantID}:
-    get:
-      operationId: getLedgerGrant
-      summary: Get a single grant.
-      description: |
-        Gets the grant for a ledger by ID.
-      tags:
-        - Entitlements (Experimental)
-      parameters:
-        - $ref: "#/components/parameters/ledgerID"
-        - $ref: "#/components/parameters/ledgerGrantID"
-      responses:
-        "200":
-          description: Ledger grant found.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/LedgerGrantResponse"
-        "401":
-          $ref: "#/components/responses/UnauthorizedProblemResponse"
-        "404":
-          $ref: "#/components/responses/NotFoundProblemResponse"
-        default:
-          $ref: "#/components/responses/UnexpectedProblemResponse"
-    delete:
-      operationId: voidLedgerGrant
-      summary: Void ledger grant
-      description: |
-        Void a ledger grant by ID. Partially or fully used grants cannot be voided.
-        Voided grant won't be applied to the subject's balance anymore.
-      tags:
-        - Entitlements (Experimental)
-      parameters:
-        - $ref: "#/components/parameters/ledgerGrantID"
-        - $ref: "#/components/parameters/ledgerID"
+              type: object
+              properties:
+                effectiveAt:
+                  type: string
+                  format: date-time
+                  description: |
+                    The time at which the reset takes effect, defaults to now.
+                    The reset cannot be in the future.
+                    The provided value is truncated to the granularity of the underlying meter.
+                  example: "2023-01-01T00:00:00Z"
       responses:
         "204":
-          description: Ledger grant voided.
+          description: Entitlement reset.
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         "404":
@@ -1065,8 +1159,97 @@ paths:
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
 
+
 components:
   schemas:
+    SharedMetaFields:
+      type: object
+      description: |
+        Metadata fields for a resource.
+        These fields are automatically populated by the system for the entities we manage.
+      required:
+        - id
+        - createdAt
+        - updatedAt
+        - deletedAt
+      properties:
+        id:
+          type: string
+          description: |
+                Readonly unique ULID identifier.
+          readOnly: true
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+        createdAt:
+          type: string
+          format: date-time
+          description: The date and time the resource was created.
+          readOnly: true
+          example: "2023-01-01T00:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: The date and time the resource was last updated.
+          readOnly: true
+          example: "2023-01-01T00:00:00Z"
+        deletedAt:
+          type: string
+          nullable: true
+          format: date-time
+          description: The date and time the resource was deleted.
+          readOnly: true
+          example: null
+    ConflictProblem:
+      description: Conflict
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+          description: Type contains a URI that identifies the problem type.
+          example: "urn:problem-type:bad-request"
+        title:
+          type: string
+          description: A a short, human-readable summary of the problem type.
+          example: Bad Request
+        status:
+          type: integer
+          format: int32
+          description: The HTTP status code generated by the origin server for this occurrence of the problem.
+          minimum: 400
+          maximum: 599
+          example: 400
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence of the problem.
+          example: "body must be a JSON object"
+        instance:
+          type: string
+          format: uri
+          description: A URI reference that identifies the specific occurrence of the problem.
+          example: "urn:request:local/JMOlctsKV8-000001"
+        extensions:
+          type: object
+          required:
+            - conflictingEntityId
+          additionalProperties: false
+          properties:
+            conflictingEntityId:
+              type: string
+              description: The id of the conflicting entity.
+              example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+      additionalProperties: true
+      required:
+        - type
+        - title
+        - status
+        - detail
+      example:
+        type: "about:blank"
+        title: "Conflict"
+        status: 409
+        detail: "ledger (default.01HXVNDJR532E8GTBVSC2XK5D4) already exitst for subject subject-1"
+        instance: "urn:request:local/JMOlctsKV8-000001"
+        conflictingEntityId: 01HXVNDJR532E8GTBVSC2XK5D4
     Problem:
       type: object
       description: |-
@@ -1216,24 +1399,35 @@ components:
             tokens: "1234"
             model: "gpt-4-turbo"
         validationError: "meter not found for event"
-    CreateFeatureRequest:
+    FeatureCreateInputs:
       type: object
       description: |
         A feature is a feature or service offered to a customer.
         For example: CPU-Hours, Tokens, API Calls, etc.
       required:
+        - key
         - name
-        - meterSlug
-      additionalProperties: false
       properties:
+        key:
+          description: |
+            The unique key of the feature to reference it from your application.
+          type: string
+          example: gpt4_tokens
         name:
           description: |
             The name of the feature.
           type: string
           example: AI Tokens
+        metadata:
+          description: |
+            Additional metadata for the feature.
+          type: object
+          additionalProperties:
+            type: string
         meterSlug:
           description: |
             The meter that the feature is associated with and decreases grants by usage.
+            If present, the usage of the feature can be metered.
           type: string
           example: tokens_total
         meterGroupByFilters:
@@ -1244,184 +1438,272 @@ components:
             type: string
           example:
             model: gpt-4
-        archived:
-          readOnly: true
-          description: |
-            If the feature is archived, it will not be used for grants or usage.
-          type: boolean
-          example: false
     Feature:
       type: object
       description: |
         A feature is a feature or service offered to a customer.
         For example: CPU-Hours, Tokens, API Calls, etc.
       allOf:
-        - $ref: "#/components/schemas/CreateFeatureRequest"
         - type: object
-          required:
-            - id
           properties:
-            id:
-              description: |
-                Readonly unique ULID identifier of the feature.
+             archivedAt:
               readOnly: true
-              type: string
-              example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-            createdAt:
               description: |
-                The time the feature was created.
+                If the feature is archived, it will not be used for grants or usage.
               type: string
               format: date-time
               example: "2023-01-01T00:00:00Z"
-            updatedAt:
-              description: |
-                The time the feature was last updated.
-              type: string
-              format: date-time
-              example: "2023-01-01T00:00:00Z"
-    CreateLedger:
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.Ledger
+        - $ref: "#/components/schemas/FeatureCreateInputs"
+        - $ref: "#/components/schemas/SharedMetaFields"
+    # Entitlement has 3 subtypes
+    EntitlementCreateSharedFields:
       type: object
-      description: |
-        A ledger represented in open meter. A ledger must be assigned to a single
-        subject.
       required:
-        - subject
+        - featureId
       properties:
-        subject:
+        featureId:
           description: |
-            The metering subject this ledger used to track grants for.
+            The feature the subject is entitled to use
           type: string
+          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         metadata:
+          description: |
+            Additional metadata for the feature.
           type: object
           additionalProperties:
             type: string
-          example:
-            stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
-    LedgerAlreadyExistsProblem:
-      description: Ledger Exists
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.LedgerAlreadyExistsProblemResponse
-      type: object
-      # TODO: until https://github.com/deepmap/oapi-codegen/pull/1610 is not merged, we
-      # need to copy the Problem schema here
-      #
-      # Afterwards the schema should be this
-      #allOf:
-      #- $ref: "#/components/schemas/Problem"
-      #- type: object
-      #  properties:
-      #    conflictingEntity:
-      #      $ref: "#/components/schemas/Ledger"
-      properties:
-        type:
-          type: string
-          format: uri
-          description: Type contains a URI that identifies the problem type.
-          example: "urn:problem-type:bad-request"
-        title:
-          type: string
-          description: A a short, human-readable summary of the problem type.
-          example: Bad Request
-        status:
-          type: integer
-          format: int32
-          description: The HTTP status code generated by the origin server for this occurrence of the problem.
-          minimum: 400
-          maximum: 599
-          example: 400
-        detail:
-          type: string
-          description: A human-readable explanation specific to this occurrence of the problem.
-          example: "body must be a JSON object"
-        instance:
-          type: string
-          format: uri
-          description: A URI reference that identifies the specific occurrence of the problem.
-          example: "urn:request:local/JMOlctsKV8-000001"
-        conflictingEntity:
-          $ref: "#/components/schemas/Ledger"
-      additionalProperties: true
-      required:
-        - type
-        - title
-        - status
-        - detail
-      example:
-        type: "about:blank"
-        title: "Conflict"
-        status: 409
-        detail: "ledger (default.01HXVNDJR532E8GTBVSC2XK5D4) already exitst for subject subject-1"
-        instance: "urn:request:local/JMOlctsKV8-000001"
-        conflictingEntity:
-          id: 01HXVNDJR532E8GTBVSC2XK5D4
-          subject: "subject-1"
-    Ledger:
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.Ledger
-      type: object
-      description: |
-        A ledger represented in our system.
+        usagePeriod:
+          $ref: "#/components/schemas/RecurringPeriod"
+    EntitlementSharedFields:
       allOf:
-        - $ref: "#/components/schemas/CreateLedger"
+        - $ref: "#/components/schemas/SharedMetaFields"
+        - $ref: "#/components/schemas/EntitlementCreateSharedFields"
         - type: object
           required:
-            - id
+            - subjectKey
           properties:
-            id:
-              description: |
-                Readonly unique ULID identifier of the ledger.
-              readOnly: true
+            subjectKey:
+              description: The identifier key unique to the subject
               type: string
-              example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-            createdAt:
-              description: |
-                The time the ledger was created.
+              example: customer-1
+            usagePeriod:
+              $ref: "#/components/schemas/RecurringPeriod"
+    EntitlementMeteredCreateInputs:
+      allOf:
+        - $ref: "#/components/schemas/EntitlementCreateSharedFields"
+        - type: object
+          description: |
+            Metered entitlement where access is determined based on feature usage.
+          required:
+            - type
+            - usagePeriod
+          properties:
+            type:
               type: string
-              format: date-time
-              example: "2023-01-01T00:00:00Z"
-    LedgerEntry:
+              enum:
+                - metered
+              example: metered
+            isUnlimited:
+              type: boolean
+              default: false
+              description: |
+                If unlimited=true the subject can use the feature an unlimited amount.
+            usagePeriod:
+                $ref: "#/components/schemas/RecurringPeriod"
+          # Mixed feelings about adding this, rest is not an intent driven convention
+            issueAfterReset:
+              type: number
+              description: |
+                You can issue usage automatically after reset. This usage is not rolled over.
+
+    EntitlementMetered:
       type: object
       description: |
-        A ledger entry.
-      required:
-        - id
-        - type
-        - time
-        - featureID
-        - amount
-      properties:
-        id:
+        Entitles a subject to use a feature.
+      allOf:
+        - $ref: "#/components/schemas/EntitlementMeteredCreateInputs"
+        - $ref: "#/components/schemas/EntitlementSharedFields"
+    EntitlementStaticCreateInputs:
+      allOf:
+        - $ref: "#/components/schemas/EntitlementCreateSharedFields"
+        - type: object
           description: |
-            Readonly unique ULID identifier of the ledger entry.
+            Static entitlement good for representing feature configuration.
+          required:
+            - type
+            - config
+          additionalProperties: false
+          properties:
+            type:
+              type: string
+              enum:
+                - static
+              example: static
+            config:
+              description: |
+                The JSON parsable config of the entitlement.
+              type: string
+              example: "{\"key1\": \"value1\"}"
+    EntitlementStatic:
+      type: object
+      description: |
+        Entitles a subject to use a feature.
+      allOf:
+        - $ref: "#/components/schemas/EntitlementStaticCreateInputs"
+        - $ref: "#/components/schemas/EntitlementSharedFields"
+    EntitlementBooleanCreateInputs:
+      allOf:
+        - $ref: "#/components/schemas/EntitlementCreateSharedFields"
+        - type: object
+          description: |
+            Entitles a subject to use a feature.
+          required:
+            - type
+          additionalProperties: false
+          properties:
+            type:
+              type: string
+              enum:
+                - boolean
+              example: boolean
+    EntitlementBoolean:
+      type: object
+      description: |
+        Entitles a subject to use a feature.
+      allOf:
+        - $ref: "#/components/schemas/EntitlementBooleanCreateInputs"
+        - $ref: "#/components/schemas/EntitlementSharedFields"
+    Entitlement:
+      oneOf:
+        - $ref: "#/components/schemas/EntitlementMetered"
+        - $ref: "#/components/schemas/EntitlementStatic"
+        - $ref: "#/components/schemas/EntitlementBoolean"
+      discriminator:
+        propertyName: type
+        mapping:
+          metered: "#/components/schemas/EntitlementMetered"
+          static: "#/components/schemas/EntitlementStatic"
+          boolean: "#/components/schemas/EntitlementBoolean"
+    # Might be changed later
+    GrantBurnDownHistorySegment:
+      type: object
+      description: |
+        A segment of the grant burn down history.
+
+        A given segment represents the usage of a grant in a specific period.
+      properties:
+        period:
+          $ref: "#/components/schemas/Period"
+        usage:
+          description: |
+            The usage of the grant in the period.
+          type: number
+          format: double
           readOnly: true
+          example: 100
+        overage:
+          description: |
+            Overuse that wasn't covered by grants.
+          type: number
+          format: double
+          readOnly: true
+          example: 25
+        balanceAtStart:
+          description: |
+            The entitlement balance at the start of the period.
+          type: number
+          format: double
+          readOnly: true
+          example: 100
+        grantBalancesAtStart:
+          description: |
+            The balance breakdown of each active grant at the start of the period: GrantID: Balance
+          type: object
+          additionalProperties:
+            type: number
+            format: double
+          readOnly: true
+          example:
+            01ARZ3NDEKTSV4RRFFQ69G5FAV: 100
+        balanceAtEnd:
+          description: |
+            The entitlement balance at the end of the period.
+          type: number
+          format: double
+          readOnly: true
+          example: 100
+        grantBalancesAtEnd:
+          description: |
+            The balance breakdown of each active grant at the start of the period: GrantID: Balance
+          type: object
+          additionalProperties:
+            type: number
+            format: double
+          readOnly: true
+          example:
+            01ARZ3NDEKTSV4RRFFQ69G5FAV: 100
+        grantUsages:
+          description: |
+            Which grants were actually burnt down in the period and by what amount.
+          type: array
+          readOnly: true
+          items:
+            $ref: "#/components/schemas/GrantUsageRecord"
+    # Might be changed later
+    GrantUsageRecord:
+      type: object
+      properties:
+        grantId:
+          description: |
+            The id of the grant.
           type: string
           example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-        type:
-          $ref: "#/components/schemas/LedgerEntryType"
-        time:
+        usage:
           description: |
-            The time the ledger entry was created.
-          type: string
-          format: date-time
-          example: "2023-01-01T00:00:00Z"
-        amount:
-          description: |
-            The amount to apply. Can be positive or negative number. If applicable.
+            The usage of the grant.
           type: number
           format: double
           example: 100
-        featureID:
-          description: |
-            The unique feature ULID that the entry is associated with.
-          type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+
+    BalanceHistoryWindow:
+      type: object
+      description: |
+        A window of balance history.
+      properties:
         period:
           $ref: "#/components/schemas/Period"
+        usage:
+          description: |
+            The total usage of the feature in the period.
+          type: number
+          format: double
+          readOnly: true
+          example: 100
+        balanceAtStart:
+          description: |
+            The entitlement balance at the start of the period.
+          type: number
+          format: double
+          readOnly: true
+          example: 100
+    WindowedBalanceHistory:
+      type: object
+      description: |
+        The windowed balance history.
+      properties:
+        windowedHistory:
+          type: array
+          description: |
+            The windowed balance history.
+            Only returns rows for windows where there was usage.
+          items:
+            $ref: "#/components/schemas/BalanceHistoryWindow"
+        burndownHistory:
+          type: array
+          description: |
+            The grant burn down history in the period.
+          items:
+            $ref: "#/components/schemas/GrantBurnDownHistorySegment"
     Period:
       type: object
       description: |
@@ -1442,144 +1724,77 @@ components:
           type: string
           format: date-time
           example: "2023-01-01T00:00:00Z"
-    LedgerEntryType:
-      type: string
-      enum:
-        - GRANT
-        - VOID
-        - RESET
-        - GRANT_USAGE
-      example: GRANT
-    LedgerBalance:
-      type: object
-      description: |
-        Balance of a subject.
-      required:
-        - featureBalances
-        - grantBalances
-        - subject
-      properties:
-        featureBalances:
-          description: |
-            Features with balances.
-          type: array
-          items:
-            $ref: "#/components/schemas/FeatureBalance"
-        grantBalances:
-          description: |
-            The grants applied to the subject.
-          type: array
-          items:
-            $ref: "#/components/schemas/LedgerGrantBalance"
-        metadata:
-          type: object
-          additionalProperties:
-            type: string
-          example:
-            stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
-        subject:
-          description: |
-            The subject of the ledger.
-          type: string
-          example: "subject-1"
-        lastReset:
-          description: |
-            The last reset of the ledger.
-          type: string
-          format: date-time
-          example: "2023-01-01T00:00:00Z"
-
-    LedgerReset:
+    RecurringPeriodEnum:
+      # Needed for go client type generation
+      # For the time being we'll need manual enforcement to make sure the values are correct
+      x-go-type: types.RecurringPeriodEnum
       x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.Reset
+        path: github.com/openmeterio/openmeter/api/types
+      type: string
+      description: |
+        List of pre-defined periods that can be used for recurring & scheduling.
+
+        DAILY:      Every day
+        # MONDAY:     Every Monday
+        # TUESDAY:    Every Tuesday
+        # WEDNESDAY:  Every Wednesday
+        # THURSDAY:   Every Thursday
+        # FRIDAY:     Every Friday
+        # SATURDAY:   Every Saturday
+        # SUNDAY:     Every Sunday
+        WEEKLY:     Every week
+        MONTHLY:    Every month
+        YEARLY:     Every year
+        BILLING:    Every billing cycle
+      enum:
+        - DAILY
+        # - MONDAY
+        # - TUESDAY
+        # - WEDNESDAY
+        # - THURSDAY
+        # - FRIDAY
+        # - SATURDAY
+        # - SUNDAY
+        - WEEKLY
+        - MONTHLY
+        - YEARLY
+        - BILLING
+
+    RecurringPeriod:
+      # Needed for go client type generation
+      # For the time being we'll need manual enforcement to make sure the values are correct
+      x-go-type: types.RecurringPeriod
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/api/types
       type: object
       description: |
-        Ledger reset configuration.
+        Recurring period of an entitlement.
       required:
-        - id
-        - effectiveAt
+        - interval
+        - anchor
       properties:
-        id:
+        interval:
+          $ref: "#/components/schemas/RecurringPeriodEnum"
+        anchor:
           description: |
-            Readonly unique ULID identifier of the reset.
-          readOnly: true
-          type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-        effectiveAt:
-          description: |
-            The time to reset the ledger. It cannot be in the future.
-            The value will be floored to metering windowSize (minute).
+            An arbitrary anchor to base the recurring period on.
           type: string
           format: date-time
-          example: "2023-01-01T00:00:00Z"
-    LedgerGrantBalance:
-      # TODO: until https://github.com/deepmap/oapi-codegen/pull/1610 is not merged, the
-      # generated go type will be invalid (it will be credit.Grant instead of GrantBalance).
-      #
-      # Given that we are not using this type as a return type of a call, this is just
-      # an inconsistency we can ignore.
-      allOf:
-        - $ref: "#/components/schemas/LedgerGrantResponse"
-        - type: object
-          required:
-            - balance
-          properties:
-            balance:
-              description: |
-                The balance of the grant.
-              type: number
-              format: double
-              example: 100
-    FeatureBalance:
-      # TODO: until https://github.com/deepmap/oapi-codegen/pull/1610 is not merged, the
-      # generated go type will be invalid (it will be credit.Feature instead of FeatureBalance).
-      #
-      # Given that we are not using this type as a return type of a call, this is just
-      # an inconsistency we can ignore.
-      allOf:
-        - $ref: "#/components/schemas/Feature"
-        - type: object
-          required:
-            - balance
-            - usage
-          properties:
-            balance:
-              description: |
-                The balance of the feature.
-              type: number
-              format: double
-              example: 100
-            usage:
-              description: |
-                The usage of the feature.
-              type: number
-              format: double
-              example: 100
-    CreateLedgerGrantRequest:
+    EntitlementGrantCreateInput:
       type: object
       description: |
         Grants are used to increase balance of specific subjects.
       required:
-        - type
         - amount
-        - featureID
         - effectiveAt
-        - expiration
+        - expiration # Does it have to expire?
       properties:
-        type:
-          $ref: "#/components/schemas/LedgerGrantType"
         amount:
           description: |
-            The amount to grant. Can be positive or negative number.
+            The amount to grant. Should be a positive number.
           type: number
           format: double
           example: 100
-        featureID:
-          description: |
-            The unique feature ULID that the grant is associated with, if any.
-          type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         priority:
           description: |
             The priority of the grant. Grants with higher priority are applied first.
@@ -1600,61 +1815,57 @@ components:
           format: date-time
           example: "2023-01-01T00:00:00Z"
         expiration:
-          writeOnly: true
           allOf:
-            - $ref: "#/components/schemas/LedgerGrantExpirationPeriod"
-        rollover:
-          $ref: "#/components/schemas/LedgerGrantRollover"
+            - $ref: "#/components/schemas/ExpirationPeriod"
+        maxRolloverAmount:
+          description: |
+            The maximum amount of the grant that can be rolled over. Defaults to 0.
+
+            - maxAmount = {original_amount} -> rollover original amount
+            - maxAmount = 0 -> no rollover
+            - maxAmount = 90 -> rollover 90 max
+
+            If it's larger than 0 then the grant's balance will be the MAX(maxRollover, balance) + amount.
+          type: number
+          format: double
+          default: 0
+          example: 100
         metadata:
           type: object
           additionalProperties:
             type: string
           example:
             stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
-        parentId:
-          description: |
-            The parent grant ULID that the grant is associated with, if any.
-          type: string
-          example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-        createdAt:
-          readOnly: true
-          description: |
-            The time the grant was created.
-          type: string
-          format: date-time
-          example: "2023-01-01T00:00:00Z"
-        updatedAt:
-          readOnly: true
-          description: |
-            The time the grant was last updated.
-          type: string
-          format: date-time
-          example: "2023-01-01T00:00:00Z"
-    LedgerGrantResponse:
+        recurrence:
+          $ref: "#/components/schemas/RecurringPeriod"
+
+    EntitlementGrant:
       allOf:
-        - $ref: "#/components/schemas/CreateLedgerGrantRequest"
+        - $ref: "#/components/schemas/EntitlementGrantCreateInput"
+        - $ref: "#/components/schemas/SharedMetaFields"
         - type: object
           required:
-            - id
-            - void
-            - ledgerID
+            - subjectKey
+            - entitlementId
           properties:
-            id:
+            entitlementId:
               description: |
-                Readonly unique ULID identifier of the grant.
+                The unique entitlement ULID that the grant is associated with.
+              type: string
               readOnly: true
-              type: string
               example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-            ledgerID:
-              type: string
-              description: The ledger ID.
-              example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-            void:
+            subjectKey:
+              readOnly: true
               description: |
-                If the grant is voided, it will not be applied to the subject's balance anymore.
-              type: boolean
-              readOnly: true
-              example: false
+                The subject that is granted the entitlement.
+              type: string
+              example: customer-id
+            nextRecurrence:
+              description: |
+                The next time the grant will recurr.
+              type: string
+              format: date-time
+              example: "2023-01-01T00:00:00Z"
             expiresAt:
               readOnly: true
               description: |
@@ -1662,49 +1873,48 @@ components:
               type: string
               format: date-time
               example: "2023-01-01T00:00:00Z"
-    LedgerGrantType:
-      description: |
-        The grant type:
-        - `USAGE` - Increase balance by the amount in the unit of the associated meter.
-      type: string
-      x-enumNames:
-        - LedgerGrantTypeUsage
-      enum:
-        - USAGE
-      example: USAGE
-    LedgerGrantRollover:
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.GrantRollover
+            voidedAt:
+              type: string
+              format: date-time
+              description: The date and time the grant was voided (cannot be used after that).
+              readOnly: true
+    EntitlementValue:
       type: object
-      description: |
-        Grant rollover configuration.
       required:
-        - type
+        - hasAccess
       properties:
-        type:
-          $ref: "#/components/schemas/LedgerGrantRolloverType"
-        maxAmount:
-          description: |
-            Maximum amount to rollover.
+        hasAccess:
+          description: Whether the subject has access to the feature.
+          readOnly: true
+          type: boolean
+          example: true
+        balance:
+          description: The balance of a metered entitlement.
+          readOnly: true
           type: number
-    LedgerGrantRolloverType:
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/internal/credit
-      x-go-type: credit.GrantRolloverType
-      description: |
-        The rollover type to use:
-        - `REMAINING_AMOUNT` - Rollover remaining amount.
-        - `ORIGINAL_AMOUNT` - Rollover re-applies the full grant amount.
-      type: string
-      enum:
-        - REMAINING_AMOUNT
-        - ORIGINAL_AMOUNT
-      example: ORIGINAL_AMOUNT
-    LedgerGrantExpirationPeriod:
+          format: double
+          example: 100
+        usage:
+          description: Total usage of the feature in the period. Includes overages.
+          readOnly: true
+          type: number
+          format: double
+          example: 50
+        overage:
+          description: The overage of a metered entitlement.
+          readOnly: true
+          type: number
+          format: double
+          example: 0
+        config:
+          description: The JSON parseable configuration value of a static entitlement.
+          readOnly: true
+          type: string
+          example: "{\"key1\": \"value1\"}"
+    ExpirationPeriod:
       type: object
       description: |
-        Expiration period of a ledger grant.
+        Expiration period of a grant.
       required:
         - duration
         - count
@@ -2037,49 +2247,48 @@ components:
       schema:
         type: string
         example: "customer-id"
-    featureID:
-      name: featureID
+    featureId:
+      name: featureId
       description: A unique ULID identifier for a feature.
       in: path
       required: true
       schema:
         type: string
         example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-        x-go-type: credit.FeatureID
-        x-go-type-import:
-          path: github.com/openmeterio/openmeter/internal/credit
-    ledgerGrantID:
-      name: ledgerGrantID
-      description: A unique identifier for a ledger grant.
+    grantId:
+      name: grantId
+      description: A unique identifier for a grant.
       in: path
       required: true
       schema:
         type: string
         example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-        x-go-type: credit.GrantID
-        x-go-type-import:
-          path: github.com/openmeterio/openmeter/internal/credit
-    ledgerID:
-      name: ledgerID
+    entitlementId:
+      name: entitlementId
       in: path
       required: true
-      description: A unique identifier for a ledger.
+      description: A unique ULID for an entitlement.
       schema:
-        x-go-type: credit.LedgerID
-        x-go-type-import:
-          path: github.com/openmeterio/openmeter/internal/credit
         type: string
-        example: "customer-id"
-    ledgerIncludeVoids:
-      name: includeVoids
+        example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    entitlementIdOrFeatureKey:
+      name: entitlementIdOrFeatureKey
+      in: path
+      required: true
+      description: The id of the entitlement or the key of the feature.
+      schema:
+        type: string
+        example: 01ARZ3NDEKTSV4RRFFQ69G5FAV or gpt4_tokens
+    includeDeleted:
+      name: includeDeleted
       in: query
       required: false
-      description: Include void entries in the response.
+      description: Include deleted entries.
       schema:
         type: boolean
         default: false
         example: true
-    ledgerQueryLimit:
+    queryLimit:
       name: limit
       in: query
       required: false
@@ -2090,7 +2299,7 @@ components:
         maximum: 1000
         default: 1000
         example: 100
-    ledgerQueryOffset:
+    queryOffset:
       name: offset
       in: query
       required: false
@@ -2099,7 +2308,7 @@ components:
         type: integer
         minimum: 0
         default: 0
-        example: 100
+        example: 0
     queryFrom:
       name: from
       in: query
@@ -2141,20 +2350,6 @@ components:
         type: string
         default: UTC
         example: "America/New_York"
-    queryFilterLedgerID:
-      name: ledgerID
-      description: |
-        Filtering and group by multiple subjects.
-
-        Usage: `?ledgerID=01HX6VK5C498B3ABY9PR1069PP`
-      in: query
-      required: false
-      schema:
-        type: string
-        x-go-type: credit.LedgerID
-        x-go-type-import:
-          path: github.com/openmeterio/openmeter/internal/credit
-      example: 01HX6VK5C498B3ABY9PR1069PP
     queryFilterSubject:
       name: subject
       description: |
@@ -2199,6 +2394,22 @@ components:
           - type
 
   responses:
+    ConflictProblemResponse:
+      description: Ledger Exists
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ConflictProblem"
+          example:
+            type: "urn:problem-type:exists"
+            title: "ledger already exists"
+            status: 409
+            detail: "ledger exists"
+            conflictingEntry:
+              id: 01HXVM0S0CMZJSQ23G9MKXRQP7
+              subject: "subject-1"
+              metadata:
+                stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
     BadRequestProblemResponse:
       description: Bad Request
       content:
@@ -2221,22 +2432,6 @@ components:
             title: "Unauthorized"
             status: 401
             detail: "missing or invalid token"
-    LedgerAlreadyExistsProblemResponse:
-      description: Ledger Exists
-      content:
-        application/problem+json:
-          schema:
-            $ref: "#/components/schemas/LedgerAlreadyExistsProblem"
-          example:
-            type: "urn:problem-type:exists"
-            title: "ledger already exists"
-            status: 409
-            detail: "ledger exists"
-            conflictingEntry:
-              id: 01HXVM0S0CMZJSQ23G9MKXRQP7
-              subject: "subject-1"
-              metadata:
-                stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
     NotFoundProblemResponse:
       description: Not Found
       content:

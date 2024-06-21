@@ -163,7 +163,7 @@ func TestQueryParamsValidate(t *testing.T) {
 				WindowSize: tt.paramWindowSize,
 			}
 
-			got := p.Validate(tt.meterWindowSize)
+			got := p.Validate(models.Meter{WindowSize: tt.meterWindowSize})
 			if tt.want == nil {
 				assert.NoError(t, got)
 			} else {

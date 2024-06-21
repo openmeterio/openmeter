@@ -135,7 +135,6 @@ func errorHandlerReply(w http.ResponseWriter, r *http.Request, err error) {
 	case *api.TooManyValuesForParamError:
 		err := fmt.Errorf("too many values for param %s: %w", e.ParamName, err)
 		models.NewStatusProblem(r.Context(), err, http.StatusBadRequest).Respond(w)
-
 	default:
 		err := fmt.Errorf("unhandled server error: %w", err)
 		models.NewStatusProblem(r.Context(), err, http.StatusInternalServerError).Respond(w)
