@@ -53,7 +53,11 @@ func (n *NamespaceStore) ValidateEvent(_ context.Context, m *SinkMessage) {
 	for _, meter := range namespaceStore.Meters {
 		if meter.EventType == m.Serialized.Type {
 			m.Meters = append(m.Meters, meter)
-			// Validating the event until the first error
+			// Validating the event until the first error, as the meter becomes invalid
+			// afterwards, we don't need to validate the event against the rest.
+			//
+			// On the other hand we still want to collect the list of affected meters
+			// for the FlushEventHandler.
 			if m.Status.Error == nil {
 				validateEventWithMeter(meter, m)
 			}
