@@ -30,6 +30,11 @@ func (Entitlement) Fields() []ent.Field {
 		}),
 		field.String("subject_key").Immutable(),
 		field.Time("measure_usage_from").Immutable(),
+		field.Time("usage_period_anchor"),
+		field.String("usage_period_interval").SchemaType(map[string]string{
+			dialect.Postgres: "varchar(15)",
+		}),
+		field.Time("next_usage_period_reset_at"),
 	}
 }
 
@@ -39,6 +44,7 @@ func (Entitlement) Indexes() []ent.Index {
 		index.Fields("namespace", "subject_key"),
 		index.Fields("namespace", "id", "subject_key"),
 		index.Fields("namespace", "feature_id", "id"),
+		index.Fields("namespace", "next_usage_period_reset_at"),
 	}
 }
 

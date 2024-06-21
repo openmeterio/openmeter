@@ -30,6 +30,12 @@ const (
 	FieldSubjectKey = "subject_key"
 	// FieldMeasureUsageFrom holds the string denoting the measure_usage_from field in the database.
 	FieldMeasureUsageFrom = "measure_usage_from"
+	// FieldUsagePeriodAnchor holds the string denoting the usage_period_anchor field in the database.
+	FieldUsagePeriodAnchor = "usage_period_anchor"
+	// FieldUsagePeriodInterval holds the string denoting the usage_period_interval field in the database.
+	FieldUsagePeriodInterval = "usage_period_interval"
+	// FieldNextUsagePeriodResetAt holds the string denoting the next_usage_period_reset_at field in the database.
+	FieldNextUsagePeriodResetAt = "next_usage_period_reset_at"
 	// EdgeUsageReset holds the string denoting the usage_reset edge name in mutations.
 	EdgeUsageReset = "usage_reset"
 	// Table holds the table name of the entitlement in the database.
@@ -54,6 +60,9 @@ var Columns = []string{
 	FieldFeatureID,
 	FieldSubjectKey,
 	FieldMeasureUsageFrom,
+	FieldUsagePeriodAnchor,
+	FieldUsagePeriodInterval,
+	FieldNextUsagePeriodResetAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -120,6 +129,21 @@ func BySubjectKey(opts ...sql.OrderTermOption) OrderOption {
 // ByMeasureUsageFrom orders the results by the measure_usage_from field.
 func ByMeasureUsageFrom(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMeasureUsageFrom, opts...).ToFunc()
+}
+
+// ByUsagePeriodAnchor orders the results by the usage_period_anchor field.
+func ByUsagePeriodAnchor(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUsagePeriodAnchor, opts...).ToFunc()
+}
+
+// ByUsagePeriodInterval orders the results by the usage_period_interval field.
+func ByUsagePeriodInterval(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUsagePeriodInterval, opts...).ToFunc()
+}
+
+// ByNextUsagePeriodResetAt orders the results by the next_usage_period_reset_at field.
+func ByNextUsagePeriodResetAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldNextUsagePeriodResetAt, opts...).ToFunc()
 }
 
 // ByUsageResetCount orders the results by usage_reset count.

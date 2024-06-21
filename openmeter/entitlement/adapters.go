@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/subject"
 )
 
 func NewEntitlementBalanceConnector(
@@ -23,8 +24,9 @@ func NewEntitlementConnector(
 	ebc EntitlementBalanceConnector,
 	edb EntitlementRepo,
 	fc productcatalog.FeatureConnector,
+	billing subject.BillingConnector,
 ) EntitlementConnector {
-	return entitlement.NewEntitlementConnector(ebc, edb, fc)
+	return entitlement.NewEntitlementConnector(ebc, edb, fc, billing)
 }
 
 func NewEntitlementGrantOwnerAdapter(

@@ -426,7 +426,7 @@ func MapEntitlementGrantToAPI(subjectKey *string, grant *entitlement.Entitlement
 	}
 
 	if grant.Recurrence != nil {
-		apiGrant.Recurrence = &api.RecurringPeriod{
+		apiGrant.Recurrence = &api.RecurringPeriodCreateInputs{
 			Anchor:   grant.Recurrence.Anchor,
 			Interval: api.RecurringPeriodEnum(grant.Recurrence.Period),
 		}

@@ -5,15 +5,17 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type EntitlementRepoCreateEntitlementInputs struct {
 	Namespace        string
-	FeatureID        string    `json:"featureId"`
-	MeasureUsageFrom time.Time `json:"measureUsageFrom,omitempty"`
-	SubjectKey       string    `json:"subjectKey"`
+	FeatureID        string              `json:"featureId"`
+	MeasureUsageFrom time.Time           `json:"measureUsageFrom,omitempty"`
+	SubjectKey       string              `json:"subjectKey"`
+	UsagePeriod      api.RecurringPeriod `json:"usagePeriod,omitempty"`
 }
 
 type EntitlementRepo interface {

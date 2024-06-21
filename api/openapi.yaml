@@ -1023,8 +1023,8 @@ paths:
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
   # TODO: should this be /value to be compatible with all three entitlement types
-  /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value:
-    get:
+  ? /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value
+  : get:
       operationId: getEntitlementValue
       summary: Get the balance of a specific entitlement.
       description: |
@@ -1159,7 +1159,6 @@ paths:
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
 
-
 components:
   schemas:
     SharedMetaFields:
@@ -1176,7 +1175,7 @@ components:
         id:
           type: string
           description: |
-                Readonly unique ULID identifier.
+            Readonly unique ULID identifier.
           readOnly: true
           example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         createdAt:
@@ -1446,7 +1445,7 @@ components:
       allOf:
         - type: object
           properties:
-             archivedAt:
+            archivedAt:
               readOnly: true
               description: |
                 If the feature is archived, it will not be used for grants or usage.
@@ -1509,8 +1508,8 @@ components:
               description: |
                 If unlimited=true the subject can use the feature an unlimited amount.
             usagePeriod:
-                $ref: "#/components/schemas/RecurringPeriod"
-          # Mixed feelings about adding this, rest is not an intent driven convention
+              $ref: "#/components/schemas/RecurringPeriodCreateInputs"
+            # Mixed feelings about adding this, rest is not an intent driven convention
             issueAfterReset:
               type: number
               description: |
@@ -1543,7 +1542,7 @@ components:
               description: |
                 The JSON parsable config of the entitlement.
               type: string
-              example: "{\"key1\": \"value1\"}"
+              example: '{"key1": "value1"}'
     EntitlementStatic:
       type: object
       description: |
@@ -1760,10 +1759,10 @@ components:
         - YEARLY
         - BILLING
 
-    RecurringPeriod:
+    RecurringPeriodCreateInputs:
       # Needed for go client type generation
       # For the time being we'll need manual enforcement to make sure the values are correct
-      x-go-type: types.RecurringPeriod
+      x-go-type: types.RecurringPeriodCreateInputs
       x-go-type-import:
         path: github.com/openmeterio/openmeter/api/types
       type: object
@@ -1780,6 +1779,24 @@ components:
             An arbitrary anchor to base the recurring period on.
           type: string
           format: date-time
+    RecurringPeriod:
+      allOf:
+        - $ref: "#/components/schemas/RecurringPeriodCreateInputs"
+        - type: object
+          x-go-type: types.RecurringPeriod
+          x-go-type-import:
+            path: github.com/openmeterio/openmeter/api/types
+          description: |
+            Recurring period of an entitlement.
+          required:
+            - nextRecurrence
+          properties:
+            nextRecurrence:
+              description: |
+                The next time period will recurr.
+              type: string
+              format: date-time
+              example: "2023-01-01T00:00:00Z"
     EntitlementGrantCreateInput:
       type: object
       description: |
@@ -1837,7 +1854,7 @@ components:
           example:
             stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
         recurrence:
-          $ref: "#/components/schemas/RecurringPeriod"
+          $ref: "#/components/schemas/RecurringPeriodCreateInputs"
 
     EntitlementGrant:
       allOf:
@@ -1910,7 +1927,7 @@ components:
           description: The JSON parseable configuration value of a static entitlement.
           readOnly: true
           type: string
-          example: "{\"key1\": \"value1\"}"
+          example: '{"key1": "value1"}'
     ExpirationPeriod:
       type: object
       description: |

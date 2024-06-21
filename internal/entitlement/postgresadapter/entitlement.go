@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/openmeterio/openmeter/api/types"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db"
 	db_entitlement "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db/entitlement"
@@ -36,7 +37,7 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 		return nil, err
 	}
 
-	return mapEntitlementEntity(res), nil
+	return convert.ToPointer(mapEntitlementEntity(res)), nil
 }
 
 func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlement entitlement.EntitlementRepoCreateEntitlementInputs) (*entitlement.Entitlement, error) {
@@ -45,12 +46,15 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlemen
 		SetFeatureID(entitlement.FeatureID).
 		SetSubjectKey(entitlement.SubjectKey).
 		SetMeasureUsageFrom(entitlement.MeasureUsageFrom).
+		SetUsagePeriodAnchor(entitlement.UsagePeriod.Anchor).
+		SetUsagePeriodInterval(string(entitlement.UsagePeriod.Interval)).
+		SetNextUsagePeriodResetAt(entitlement.UsagePeriod.NextRecurrence).
 		Save(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	return mapEntitlementEntity(res), nil
+	return convert.ToPointer(mapEntitlementEntity(res)), nil
 }
 
 func (a *entitlementDBAdapter) GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]entitlement.Entitlement, error) {
@@ -67,15 +71,15 @@ func (a *entitlementDBAdapter) GetEntitlementsOfSubject(ctx context.Context, nam
 
 	result := make([]entitlement.Entitlement, 0, len(res))
 	for _, e := range res {
-		result = append(result, *mapEntitlementEntity(e))
+		result = append(result, mapEntitlementEntity(e))
 	}
 
 	return result, nil
 
 }
 
-func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
-	return &entitlement.Entitlement{
+func mapEntitlementEntity(e *db.Entitlement) entitlement.Entitlement {
+	return entitlement.Entitlement{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: e.Namespace,
 		},
@@ -83,6 +87,13 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 			CreatedAt: e.CreatedAt,
 			UpdatedAt: e.UpdatedAt,
 			DeletedAt: convert.SafeToUTC(e.DeletedAt),
+		},
+		UsagePeriod: types.RecurringPeriod{
+			RecurringPeriodCreateInputs: types.RecurringPeriodCreateInputs{
+				Anchor:   e.UsagePeriodAnchor,
+				Interval: types.RecurringPeriodEnum(e.UsagePeriodInterval),
+			},
+			NextRecurrence: e.NextUsagePeriodResetAt,
 		},
 		ID:               e.ID,
 		SubjectKey:       e.SubjectKey,

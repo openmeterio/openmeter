@@ -508,7 +508,7 @@ func TestCredit(t *testing.T) {
 		resp, err := client.CreateEntitlementWithResponse(context.Background(), subject, api.CreateEntitlementJSONRequestBody{
 			Type:      "metered",
 			FeatureId: *featureId,
-			UsagePeriod: api.RecurringPeriod{
+			UsagePeriod: api.RecurringPeriodCreateInputs{
 				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
 				Interval: "MONTHLY",
 			},
@@ -529,7 +529,7 @@ func TestCredit(t *testing.T) {
 		resp, err := client.CreateEntitlementWithResponse(context.Background(), subject, api.CreateEntitlementJSONRequestBody{
 			Type:      "metered",
 			FeatureId: *featureId,
-			UsagePeriod: api.RecurringPeriod{
+			UsagePeriod: api.RecurringPeriodCreateInputs{
 				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
 				Interval: "DAILY",
 			},
@@ -558,7 +558,7 @@ func TestCredit(t *testing.T) {
 			},
 			Priority:          &priority,
 			MaxRolloverAmount: &maxRolloverAmount,
-			Recurrence: &api.RecurringPeriod{
+			Recurrence: &api.RecurringPeriodCreateInputs{
 				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
 				Interval: "YEARLY",
 			},
@@ -583,7 +583,7 @@ func TestCredit(t *testing.T) {
 				Duration: "MONTH",
 				Count:    1,
 			},
-			Recurrence: &api.RecurringPeriod{
+			Recurrence: &api.RecurringPeriodCreateInputs{
 				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
 				Interval: "YEARLY",
 			},

@@ -56,6 +56,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/server/router"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
+	"github.com/openmeterio/openmeter/internal/subject"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -348,6 +349,7 @@ func main() {
 			entitlementBalanceConnector,
 			entitlementDBAdapter,
 			featureConnector,
+			subject.NewBillingConnector(),
 		)
 	}
 

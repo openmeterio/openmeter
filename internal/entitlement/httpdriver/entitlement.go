@@ -230,7 +230,7 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 						SubjectKey: ent.SubjectKey,
 						Type:       "metered",
 					},
-					UsagePeriod: nil,
+					UsagePeriod: &ent.UsagePeriod,
 				}
 			}
 

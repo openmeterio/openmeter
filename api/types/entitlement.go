@@ -1,6 +1,9 @@
 package types
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 type CreateEntitlementJSONBody struct {
 	// Config The JSON parsable config of the entitlement.
@@ -20,10 +23,10 @@ type CreateEntitlementJSONBody struct {
 	Type     CreateEntitlementJSONBodyType `json:"type"`
 
 	// UsagePeriod Recurring period of an entitlement.
-	UsagePeriod RecurringPeriod `json:"usagePeriod"`
+	UsagePeriod RecurringPeriodCreateInputs `json:"usagePeriod"`
 }
 
-type RecurringPeriod struct {
+type RecurringPeriodCreateInputs struct {
 	// Anchor An arbitrary anchor to base the recurring period on.
 	Anchor time.Time `json:"anchor"`
 
@@ -44,6 +47,31 @@ type RecurringPeriod struct {
 	Interval RecurringPeriodEnum `json:"interval"`
 }
 
+type RecurringPeriod struct {
+	RecurringPeriodCreateInputs
+
+	// NextRecurrence contains the next recurrance of the period.
+	NextRecurrence time.Time `json:"nextRecurrence"`
+}
+
+func (p *RecurringPeriodCreateInputs) NextRecurrence() (time.Time, error) {
+	switch p.Interval {
+	case RecurringPeriodEnum("DAILY"):
+		return p.Anchor.AddDate(0, 0, 1), nil
+	case RecurringPeriodEnum("WEEKLY"):
+		return p.Anchor.AddDate(0, 0, 7), nil
+	case RecurringPeriodEnum("MONTHLY"):
+		return p.Anchor.AddDate(0, 1, 0), nil
+	case RecurringPeriodEnum("YEARLY"):
+		return p.Anchor.AddDate(1, 0, 0), nil
+	case RecurringPeriodEnum("BILLING"):
+		// TODO: Implement billing period handling
+		return time.Time{}, errors.New("not implemented")
+	}
+
+	return time.Time{}, errors.New("invalid interval")
+}
+
 // RecurringPeriodEnum List of pre-defined periods that can be used for recurring & scheduling.
 //
 // DAILY:      Every day
@@ -59,6 +87,8 @@ type RecurringPeriod struct {
 // YEARLY:     Every year
 // BILLING:    Every billing cycle
 type RecurringPeriodEnum string
+
+const RecurringPeriodBilling RecurringPeriodEnum = "BILLING"
 
 // CreateEntitlementJSONBodyType defines parameters for CreateEntitlement.
 //
