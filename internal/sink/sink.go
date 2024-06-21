@@ -86,6 +86,10 @@ type SinkConfig struct {
 	// FlushEventHandler is an optional lifecycle hook, to prevent blocking the main sink logic
 	// this is always called in a go routine.
 	FlushEventHandler FlushEventHandler
+
+	// FlushSuccessTimeout is the timeout for the OnFlushSuccess callback, after this period the context
+	// of the callback will be canceled.
+	FlushSuccessTimeout time.Duration
 }
 
 func NewSink(config SinkConfig) (*Sink, error) {
@@ -102,6 +106,10 @@ func NewSink(config SinkConfig) (*Sink, error) {
 	}
 	if config.NamespaceRefetch == 0 {
 		config.NamespaceRefetch = 15 * time.Second
+	}
+
+	if config.FlushSuccessTimeout == 0 {
+		config.FlushSuccessTimeout = defaultOnFlushSuccessTimeout
 	}
 
 	// Initialize OTel metrics
@@ -254,14 +262,14 @@ func (s *Sink) flush(ctx context.Context) error {
 	// Call FlushEventHandler if set
 	if s.config.FlushEventHandler != nil {
 		go func() {
-			ctx, cancel := context.WithTimeout(context.Background(), defaultOnFlushSuccessTimeout)
+			ctx, cancel := context.WithTimeout(context.Background(), s.config.FlushSuccessTimeout)
 			defer cancel()
 
 			err := s.config.FlushEventHandler.OnFlushSuccess(ctx, &FlushSuccessEvent{
 				Messages: messages,
 			})
 			if err != nil {
-				logger.Error("failed to invoke OnFlushSuccess callback", slog.String("err", err.Error()))
+				logger.Error("failed to invoke OnFlushSuccess callback", "err", err)
 			}
 		}()
 	}
