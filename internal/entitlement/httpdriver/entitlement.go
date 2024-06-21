@@ -8,8 +8,10 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/entitlement"
+	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -26,11 +28,11 @@ type EntitlementHandler interface {
 type entitlementHandler struct {
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	options          []httptransport.HandlerOption
-	connector        entitlement.EntitlementConnector
+	connector        entitlement.Connector
 }
 
 func NewEntitlementHandler(
-	connector entitlement.EntitlementConnector,
+	connector entitlement.Connector,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	options ...httptransport.HandlerOption,
 ) EntitlementHandler {
@@ -99,14 +101,14 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 					).EncodeError(ctx, w)
 					return true
 				}
-				if _, ok := err.(*entitlement.EntitlementNotFoundError); ok {
+				if _, ok := err.(*entitlement.NotFoundError); ok {
 					commonhttp.NewHTTPError(
 						http.StatusNotFound,
 						err,
 					).EncodeError(ctx, w)
 					return true
 				}
-				if err, ok := err.(*entitlement.EntitlementAlreadyExistsError); ok {
+				if err, ok := err.(*entitlement.AlreadyExistsError); ok {
 					commonhttp.NewHTTPError(
 						http.StatusConflict,
 						err,
@@ -159,12 +161,18 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 				return api.EntitlementValue{}, err
 			}
 
-			return api.EntitlementValue{
-				HasAccess: &entitlement.HasAccess,
-				Balance:   &entitlement.Balance,
-				Usage:     &entitlement.Usage,
-				Overage:   &entitlement.Overage,
-			}, nil
+			switch ent := entitlement.(type) {
+			case *meteredentitlement.MeteredEntitlementValue:
+				return api.EntitlementValue{
+					HasAccess: convert.ToPointer(ent.HasAccess()),
+					Balance:   &ent.Balance,
+					Usage:     &ent.UsageInPeriod,
+					Overage:   &ent.Overage,
+				}, nil
+			default:
+				return api.EntitlementValue{}, errors.New("unknown entitlement type")
+			}
+
 		},
 		commonhttp.JSONResponseEncoder[api.EntitlementValue],
 		httptransport.AppendOptions(
@@ -178,7 +186,7 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 					).EncodeError(ctx, w)
 					return true
 				}
-				if _, ok := err.(*entitlement.EntitlementNotFoundError); ok {
+				if _, ok := err.(*entitlement.NotFoundError); ok {
 					commonhttp.NewHTTPError(
 						http.StatusNotFound,
 						err,

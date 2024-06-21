@@ -31,7 +31,7 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, &entitlement.EntitlementNotFoundError{EntitlementID: entitlementID}
+			return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
 		}
 		return nil, err
 	}
@@ -39,12 +39,16 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 	return mapEntitlementEntity(res), nil
 }
 
-func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlement entitlement.EntitlementRepoCreateEntitlementInputs) (*entitlement.Entitlement, error) {
+func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlement entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
 	res, err := a.db.Entitlement.Create().
+		SetEntitlementType(db_entitlement.EntitlementType(entitlement.EntitlementType)).
 		SetNamespace(entitlement.Namespace).
 		SetFeatureID(entitlement.FeatureID).
 		SetSubjectKey(entitlement.SubjectKey).
-		SetMeasureUsageFrom(entitlement.MeasureUsageFrom).
+		SetNillableMeasureUsageFrom(entitlement.MeasureUsageFrom).
+		SetNillableIssueAfterReset(entitlement.IssueAfterReset).
+		SetNillableIsSoftLimit(entitlement.IsSoftLimit).
+		SetNillableConfig(entitlement.Config).
 		Save(ctx)
 	if err != nil {
 		return nil, err
@@ -108,18 +112,24 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 
 func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 	return &entitlement.Entitlement{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: e.Namespace,
+		GenericProperties: entitlement.GenericProperties{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: e.Namespace,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: e.CreatedAt,
+				UpdatedAt: e.UpdatedAt,
+				DeletedAt: convert.SafeToUTC(e.DeletedAt),
+			},
+			ID:              e.ID,
+			SubjectKey:      e.SubjectKey,
+			FeatureID:       e.FeatureID,
+			EntitlementType: entitlement.EntitlementType(e.EntitlementType),
 		},
-		ManagedModel: models.ManagedModel{
-			CreatedAt: e.CreatedAt,
-			UpdatedAt: e.UpdatedAt,
-			DeletedAt: convert.SafeToUTC(e.DeletedAt),
-		},
-		ID:               e.ID,
-		SubjectKey:       e.SubjectKey,
-		FeatureID:        e.FeatureID,
 		MeasureUsageFrom: e.MeasureUsageFrom,
+		IssueAfterReset:  e.IssueAfterReset,
+		IsSoftLimit:      e.IsSoftLimit,
+		Config:           e.Config,
 	}
 }
 
@@ -137,7 +147,7 @@ func (a *entitlementDBAdapter) LockEntitlementForTx(ctx context.Context, entitle
 
 	if err != nil {
 		if db.IsNotFound(err) {
-			return &entitlement.EntitlementNotFoundError{
+			return &entitlement.NotFoundError{
 				EntitlementID: entitlementID,
 			}
 		}

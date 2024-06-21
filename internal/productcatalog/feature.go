@@ -64,7 +64,7 @@ type Feature struct {
 	Key string `json:"key"`
 
 	// MeterSlug The meter that the feature is associated with and decreases grants by usage.
-	MeterSlug string `json:"meterSlug,omitempty"`
+	MeterSlug *string `json:"meterSlug,omitempty"`
 
 	// MeterGroupByFilters Optional meter group by filters. Useful if the meter scope is broader than what feature tracks.
 	MeterGroupByFilters *map[string]string `json:"meterGroupByFilters,omitempty"`

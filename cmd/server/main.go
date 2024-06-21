@@ -39,8 +39,11 @@ import (
 	creditpgadapter "github.com/openmeterio/openmeter/internal/credit/postgresadapter"
 	creditdb "github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db"
 	"github.com/openmeterio/openmeter/internal/entitlement"
+	booleanentitlement "github.com/openmeterio/openmeter/internal/entitlement/boolean"
+	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	entitlementpgadapter "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter"
 	entitlementdb "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db"
+	staticentitlement "github.com/openmeterio/openmeter/internal/entitlement/static"
 	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
@@ -293,8 +296,8 @@ func main() {
 		}
 	}
 
-	var entitlementConnector entitlement.EntitlementConnector
-	var entitlementBalanceConnector entitlement.EntitlementBalanceConnector
+	var entitlementConnector entitlement.Connector
+	var meteredEntitlementConnector meteredentitlement.Connector
 	var featureConnector productcatalog.FeatureConnector
 	var creditGrantConnector credit.GrantConnector
 	var driver *entDialectSQL.Driver
@@ -310,44 +313,49 @@ func main() {
 		logger.Info("Postgres clients initialized")
 
 		// db adapters
-		featureDBAdapter := productcatalogpgadapter.NewPostgresFeatureRepo(pgClients.productcatalogDBClient, logger)
-		entitlementDBAdapter := entitlementpgadapter.NewPostgresEntitlementRepo(pgClients.entitlementDBClient)
-		usageResetDBAdapter := entitlementpgadapter.NewPostgresUsageResetRepo(pgClients.entitlementDBClient)
-		grantDBAdapter := creditpgadapter.NewPostgresGrantRepo(pgClients.creditDBClient)
-		balanceSnashotDBAdapter := creditpgadapter.NewPostgresBalanceSnapshotRepo(pgClients.creditDBClient)
+		featureRepo := productcatalogpgadapter.NewPostgresFeatureRepo(pgClients.productcatalogDBClient, logger)
+		entitlementRepo := entitlementpgadapter.NewPostgresEntitlementRepo(pgClients.entitlementDBClient)
+		usageResetRepo := entitlementpgadapter.NewPostgresUsageResetRepo(pgClients.entitlementDBClient)
+		grantRepo := creditpgadapter.NewPostgresGrantRepo(pgClients.creditDBClient)
+		balanceSnashotRepo := creditpgadapter.NewPostgresBalanceSnapshotRepo(pgClients.creditDBClient)
 
 		// connectors
-		featureConnector = productcatalog.NewFeatureConnector(featureDBAdapter, meterRepository)
-		entitlementOwnerConnector := entitlement.NewEntitlementGrantOwnerAdapter(
-			featureDBAdapter,
-			entitlementDBAdapter,
-			usageResetDBAdapter,
+		featureConnector = productcatalog.NewFeatureConnector(featureRepo, meterRepository)
+		entitlementOwnerConnector := meteredentitlement.NewEntitlementGrantOwnerAdapter(
+			featureRepo,
+			entitlementRepo,
+			usageResetRepo,
 			meterRepository,
 			logger,
 		)
 		creditBalanceConnector := credit.NewBalanceConnector(
-			grantDBAdapter,
-			balanceSnashotDBAdapter,
+			grantRepo,
+			balanceSnashotRepo,
 			entitlementOwnerConnector,
 			streamingConnector,
 			logger,
 		)
 		creditGrantConnector = credit.NewGrantConnector(
 			entitlementOwnerConnector,
-			grantDBAdapter,
-			balanceSnashotDBAdapter,
+			grantRepo,
+			balanceSnashotRepo,
 			time.Minute,
 		)
-		entitlementBalanceConnector = entitlement.NewEntitlementBalanceConnector(
+		meteredEntitlementConnector = meteredentitlement.NewMeteredEntitlementConnector(
 			streamingConnector,
 			entitlementOwnerConnector,
 			creditBalanceConnector,
 			creditGrantConnector,
+			entitlementRepo,
 		)
+		staticEntitlementConnector := staticentitlement.NewStaticEntitlementConnector()
+		booleanEntitlementConnector := booleanentitlement.NewBooleanEntitlementConnector()
 		entitlementConnector = entitlement.NewEntitlementConnector(
-			entitlementBalanceConnector,
-			entitlementDBAdapter,
+			entitlementRepo,
 			featureConnector,
+			meteredEntitlementConnector,
+			staticEntitlementConnector,
+			booleanEntitlementConnector,
 		)
 	}
 
@@ -368,7 +376,7 @@ func main() {
 			// deps
 			FeatureConnector:            featureConnector,
 			EntitlementConnector:        entitlementConnector,
-			EntitlementBalanceConnector: entitlementBalanceConnector,
+			EntitlementBalanceConnector: meteredEntitlementConnector,
 			GrantConnector:              creditGrantConnector,
 			// modules
 			EntitlementsEnabled: conf.Entitlements.Enabled,

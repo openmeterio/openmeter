@@ -31,7 +31,7 @@ type Feature struct {
 	// Key holds the value of the "key" field.
 	Key string `json:"key,omitempty"`
 	// MeterSlug holds the value of the "meter_slug" field.
-	MeterSlug string `json:"meter_slug,omitempty"`
+	MeterSlug *string `json:"meter_slug,omitempty"`
 	// MeterGroupByFilters holds the value of the "meter_group_by_filters" field.
 	MeterGroupByFilters map[string]string `json:"meter_group_by_filters,omitempty"`
 	// ArchivedAt holds the value of the "archived_at" field.
@@ -112,7 +112,8 @@ func (f *Feature) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field meter_slug", values[i])
 			} else if value.Valid {
-				f.MeterSlug = value.String
+				f.MeterSlug = new(string)
+				*f.MeterSlug = value.String
 			}
 		case feature.FieldMeterGroupByFilters:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -185,8 +186,10 @@ func (f *Feature) String() string {
 	builder.WriteString("key=")
 	builder.WriteString(f.Key)
 	builder.WriteString(", ")
-	builder.WriteString("meter_slug=")
-	builder.WriteString(f.MeterSlug)
+	if v := f.MeterSlug; v != nil {
+		builder.WriteString("meter_slug=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("meter_group_by_filters=")
 	builder.WriteString(fmt.Sprintf("%v", f.MeterGroupByFilters))

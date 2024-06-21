@@ -175,6 +175,9 @@ func (fu *FeatureUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := fu.mutation.Name(); ok {
 		_spec.SetField(feature.FieldName, field.TypeString, value)
 	}
+	if fu.mutation.MeterSlugCleared() {
+		_spec.ClearField(feature.FieldMeterSlug, field.TypeString)
+	}
 	if value, ok := fu.mutation.MeterGroupByFilters(); ok {
 		_spec.SetField(feature.FieldMeterGroupByFilters, field.TypeJSON, value)
 	}
@@ -383,6 +386,9 @@ func (fuo *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err e
 	}
 	if value, ok := fuo.mutation.Name(); ok {
 		_spec.SetField(feature.FieldName, field.TypeString, value)
+	}
+	if fuo.mutation.MeterSlugCleared() {
+		_spec.ClearField(feature.FieldMeterSlug, field.TypeString)
 	}
 	if value, ok := fuo.mutation.MeterGroupByFilters(); ok {
 		_spec.SetField(feature.FieldMeterGroupByFilters, field.TypeJSON, value)

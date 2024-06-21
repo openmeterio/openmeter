@@ -78,6 +78,12 @@ func (ec *EntitlementCreate) SetNillableDeletedAt(t *time.Time) *EntitlementCrea
 	return ec
 }
 
+// SetEntitlementType sets the "entitlement_type" field.
+func (ec *EntitlementCreate) SetEntitlementType(et entitlement.EntitlementType) *EntitlementCreate {
+	ec.mutation.SetEntitlementType(et)
+	return ec
+}
+
 // SetFeatureID sets the "feature_id" field.
 func (ec *EntitlementCreate) SetFeatureID(s string) *EntitlementCreate {
 	ec.mutation.SetFeatureID(s)
@@ -93,6 +99,56 @@ func (ec *EntitlementCreate) SetSubjectKey(s string) *EntitlementCreate {
 // SetMeasureUsageFrom sets the "measure_usage_from" field.
 func (ec *EntitlementCreate) SetMeasureUsageFrom(t time.Time) *EntitlementCreate {
 	ec.mutation.SetMeasureUsageFrom(t)
+	return ec
+}
+
+// SetNillableMeasureUsageFrom sets the "measure_usage_from" field if the given value is not nil.
+func (ec *EntitlementCreate) SetNillableMeasureUsageFrom(t *time.Time) *EntitlementCreate {
+	if t != nil {
+		ec.SetMeasureUsageFrom(*t)
+	}
+	return ec
+}
+
+// SetIssueAfterReset sets the "issue_after_reset" field.
+func (ec *EntitlementCreate) SetIssueAfterReset(f float64) *EntitlementCreate {
+	ec.mutation.SetIssueAfterReset(f)
+	return ec
+}
+
+// SetNillableIssueAfterReset sets the "issue_after_reset" field if the given value is not nil.
+func (ec *EntitlementCreate) SetNillableIssueAfterReset(f *float64) *EntitlementCreate {
+	if f != nil {
+		ec.SetIssueAfterReset(*f)
+	}
+	return ec
+}
+
+// SetIsSoftLimit sets the "is_soft_limit" field.
+func (ec *EntitlementCreate) SetIsSoftLimit(b bool) *EntitlementCreate {
+	ec.mutation.SetIsSoftLimit(b)
+	return ec
+}
+
+// SetNillableIsSoftLimit sets the "is_soft_limit" field if the given value is not nil.
+func (ec *EntitlementCreate) SetNillableIsSoftLimit(b *bool) *EntitlementCreate {
+	if b != nil {
+		ec.SetIsSoftLimit(*b)
+	}
+	return ec
+}
+
+// SetConfig sets the "config" field.
+func (ec *EntitlementCreate) SetConfig(s string) *EntitlementCreate {
+	ec.mutation.SetConfig(s)
+	return ec
+}
+
+// SetNillableConfig sets the "config" field if the given value is not nil.
+func (ec *EntitlementCreate) SetNillableConfig(s *string) *EntitlementCreate {
+	if s != nil {
+		ec.SetConfig(*s)
+	}
 	return ec
 }
 
@@ -190,14 +246,19 @@ func (ec *EntitlementCreate) check() error {
 	if _, ok := ec.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "Entitlement.updated_at"`)}
 	}
+	if _, ok := ec.mutation.EntitlementType(); !ok {
+		return &ValidationError{Name: "entitlement_type", err: errors.New(`db: missing required field "Entitlement.entitlement_type"`)}
+	}
+	if v, ok := ec.mutation.EntitlementType(); ok {
+		if err := entitlement.EntitlementTypeValidator(v); err != nil {
+			return &ValidationError{Name: "entitlement_type", err: fmt.Errorf(`db: validator failed for field "Entitlement.entitlement_type": %w`, err)}
+		}
+	}
 	if _, ok := ec.mutation.FeatureID(); !ok {
 		return &ValidationError{Name: "feature_id", err: errors.New(`db: missing required field "Entitlement.feature_id"`)}
 	}
 	if _, ok := ec.mutation.SubjectKey(); !ok {
 		return &ValidationError{Name: "subject_key", err: errors.New(`db: missing required field "Entitlement.subject_key"`)}
-	}
-	if _, ok := ec.mutation.MeasureUsageFrom(); !ok {
-		return &ValidationError{Name: "measure_usage_from", err: errors.New(`db: missing required field "Entitlement.measure_usage_from"`)}
 	}
 	return nil
 }
@@ -255,6 +316,10 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 		_spec.SetField(entitlement.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
+	if value, ok := ec.mutation.EntitlementType(); ok {
+		_spec.SetField(entitlement.FieldEntitlementType, field.TypeEnum, value)
+		_node.EntitlementType = value
+	}
 	if value, ok := ec.mutation.FeatureID(); ok {
 		_spec.SetField(entitlement.FieldFeatureID, field.TypeString, value)
 		_node.FeatureID = value
@@ -265,7 +330,19 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 	}
 	if value, ok := ec.mutation.MeasureUsageFrom(); ok {
 		_spec.SetField(entitlement.FieldMeasureUsageFrom, field.TypeTime, value)
-		_node.MeasureUsageFrom = value
+		_node.MeasureUsageFrom = &value
+	}
+	if value, ok := ec.mutation.IssueAfterReset(); ok {
+		_spec.SetField(entitlement.FieldIssueAfterReset, field.TypeFloat64, value)
+		_node.IssueAfterReset = &value
+	}
+	if value, ok := ec.mutation.IsSoftLimit(); ok {
+		_spec.SetField(entitlement.FieldIsSoftLimit, field.TypeBool, value)
+		_node.IsSoftLimit = &value
+	}
+	if value, ok := ec.mutation.Config(); ok {
+		_spec.SetField(entitlement.FieldConfig, field.TypeString, value)
+		_node.Config = &value
 	}
 	if nodes := ec.mutation.UsageResetIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -383,6 +460,24 @@ func (u *EntitlementUpsert) ClearDeletedAt() *EntitlementUpsert {
 	return u
 }
 
+// SetConfig sets the "config" field.
+func (u *EntitlementUpsert) SetConfig(v string) *EntitlementUpsert {
+	u.Set(entitlement.FieldConfig, v)
+	return u
+}
+
+// UpdateConfig sets the "config" field to the value that was provided on create.
+func (u *EntitlementUpsert) UpdateConfig() *EntitlementUpsert {
+	u.SetExcluded(entitlement.FieldConfig)
+	return u
+}
+
+// ClearConfig clears the value of the "config" field.
+func (u *EntitlementUpsert) ClearConfig() *EntitlementUpsert {
+	u.SetNull(entitlement.FieldConfig)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -406,6 +501,9 @@ func (u *EntitlementUpsertOne) UpdateNewValues() *EntitlementUpsertOne {
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(entitlement.FieldCreatedAt)
 		}
+		if _, exists := u.create.mutation.EntitlementType(); exists {
+			s.SetIgnore(entitlement.FieldEntitlementType)
+		}
 		if _, exists := u.create.mutation.FeatureID(); exists {
 			s.SetIgnore(entitlement.FieldFeatureID)
 		}
@@ -414,6 +512,12 @@ func (u *EntitlementUpsertOne) UpdateNewValues() *EntitlementUpsertOne {
 		}
 		if _, exists := u.create.mutation.MeasureUsageFrom(); exists {
 			s.SetIgnore(entitlement.FieldMeasureUsageFrom)
+		}
+		if _, exists := u.create.mutation.IssueAfterReset(); exists {
+			s.SetIgnore(entitlement.FieldIssueAfterReset)
+		}
+		if _, exists := u.create.mutation.IsSoftLimit(); exists {
+			s.SetIgnore(entitlement.FieldIsSoftLimit)
 		}
 	}))
 	return u
@@ -499,6 +603,27 @@ func (u *EntitlementUpsertOne) UpdateDeletedAt() *EntitlementUpsertOne {
 func (u *EntitlementUpsertOne) ClearDeletedAt() *EntitlementUpsertOne {
 	return u.Update(func(s *EntitlementUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetConfig sets the "config" field.
+func (u *EntitlementUpsertOne) SetConfig(v string) *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.SetConfig(v)
+	})
+}
+
+// UpdateConfig sets the "config" field to the value that was provided on create.
+func (u *EntitlementUpsertOne) UpdateConfig() *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.UpdateConfig()
+	})
+}
+
+// ClearConfig clears the value of the "config" field.
+func (u *EntitlementUpsertOne) ClearConfig() *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.ClearConfig()
 	})
 }
 
@@ -691,6 +816,9 @@ func (u *EntitlementUpsertBulk) UpdateNewValues() *EntitlementUpsertBulk {
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(entitlement.FieldCreatedAt)
 			}
+			if _, exists := b.mutation.EntitlementType(); exists {
+				s.SetIgnore(entitlement.FieldEntitlementType)
+			}
 			if _, exists := b.mutation.FeatureID(); exists {
 				s.SetIgnore(entitlement.FieldFeatureID)
 			}
@@ -699,6 +827,12 @@ func (u *EntitlementUpsertBulk) UpdateNewValues() *EntitlementUpsertBulk {
 			}
 			if _, exists := b.mutation.MeasureUsageFrom(); exists {
 				s.SetIgnore(entitlement.FieldMeasureUsageFrom)
+			}
+			if _, exists := b.mutation.IssueAfterReset(); exists {
+				s.SetIgnore(entitlement.FieldIssueAfterReset)
+			}
+			if _, exists := b.mutation.IsSoftLimit(); exists {
+				s.SetIgnore(entitlement.FieldIsSoftLimit)
 			}
 		}
 	}))
@@ -785,6 +919,27 @@ func (u *EntitlementUpsertBulk) UpdateDeletedAt() *EntitlementUpsertBulk {
 func (u *EntitlementUpsertBulk) ClearDeletedAt() *EntitlementUpsertBulk {
 	return u.Update(func(s *EntitlementUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetConfig sets the "config" field.
+func (u *EntitlementUpsertBulk) SetConfig(v string) *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.SetConfig(v)
+	})
+}
+
+// UpdateConfig sets the "config" field to the value that was provided on create.
+func (u *EntitlementUpsertBulk) UpdateConfig() *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.UpdateConfig()
+	})
+}
+
+// ClearConfig clears the value of the "config" field.
+func (u *EntitlementUpsertBulk) ClearConfig() *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.ClearConfig()
 	})
 }
 

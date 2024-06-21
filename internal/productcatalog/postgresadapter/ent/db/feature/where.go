@@ -484,6 +484,16 @@ func MeterSlugHasSuffix(v string) predicate.Feature {
 	return predicate.Feature(sql.FieldHasSuffix(FieldMeterSlug, v))
 }
 
+// MeterSlugIsNil applies the IsNil predicate on the "meter_slug" field.
+func MeterSlugIsNil() predicate.Feature {
+	return predicate.Feature(sql.FieldIsNull(FieldMeterSlug))
+}
+
+// MeterSlugNotNil applies the NotNil predicate on the "meter_slug" field.
+func MeterSlugNotNil() predicate.Feature {
+	return predicate.Feature(sql.FieldNotNull(FieldMeterSlug))
+}
+
 // MeterSlugEqualFold applies the EqualFold predicate on the "meter_slug" field.
 func MeterSlugEqualFold(v string) predicate.Feature {
 	return predicate.Feature(sql.FieldEqualFold(FieldMeterSlug, v))

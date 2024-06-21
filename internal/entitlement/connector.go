@@ -23,7 +23,7 @@ type ListEntitlementsParams struct {
 	OrderBy   ListEntitlementsOrderBy
 }
 
-type EntitlementConnector interface {
+type Connector interface {
 	// Entitlement Management
 	CreateEntitlement(ctx context.Context, input CreateEntitlementInputs) (Entitlement, error)
 	GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]Entitlement, error)
@@ -33,45 +33,59 @@ type EntitlementConnector interface {
 }
 
 type entitlementConnector struct {
-	entitlementBalanceConnector EntitlementBalanceConnector
-	entitlementRepo             EntitlementRepo
-	featureConnector            productcatalog.FeatureConnector
+	meteredEntitlementConnector SubTypeConnector
+	staticEntitlementConnector  SubTypeConnector
+	booleanEntitlementConnector SubTypeConnector
+
+	entitlementRepo  EntitlementRepo
+	featureConnector productcatalog.FeatureConnector
 }
 
 func NewEntitlementConnector(
-	entitlementBalanceConnector EntitlementBalanceConnector,
 	entitlementRepo EntitlementRepo,
 	featureConnector productcatalog.FeatureConnector,
-) EntitlementConnector {
+	meteredEntitlementConnector SubTypeConnector,
+	staticEntitlementConnector SubTypeConnector,
+	booleanEntitlementConnector SubTypeConnector,
+) Connector {
 	return &entitlementConnector{
-		entitlementBalanceConnector: entitlementBalanceConnector,
+		meteredEntitlementConnector: meteredEntitlementConnector,
+		staticEntitlementConnector:  staticEntitlementConnector,
+		booleanEntitlementConnector: booleanEntitlementConnector,
 		entitlementRepo:             entitlementRepo,
 		featureConnector:            featureConnector,
 	}
 }
 
 func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input CreateEntitlementInputs) (Entitlement, error) {
-	// TODO: check if the feature exists, if it is compatible with the type, etc....
 	feature, err := c.featureConnector.GetFeature(ctx, models.NamespacedID{Namespace: input.Namespace, ID: input.FeatureID})
 	if err != nil {
 		return Entitlement{}, &productcatalog.FeatureNotFoundError{ID: input.FeatureID}
 	}
-	if feature.ArchivedAt != nil {
+	if feature.ArchivedAt != nil && feature.ArchivedAt.Before(time.Now()) {
 		return Entitlement{}, &models.GenericUserError{Message: "Feature is archived"}
 	}
 	currentEntitlements, err := c.entitlementRepo.GetEntitlementsOfSubject(ctx, input.Namespace, models.SubjectKey(input.SubjectKey))
 	if err != nil {
-		return Entitlement{}, fmt.Errorf("failed to get entitlements of subject: %w", err)
+		return Entitlement{}, err
 	}
 	for _, ent := range currentEntitlements {
 		if ent.FeatureID == input.FeatureID {
-			return Entitlement{}, &EntitlementAlreadyExistsError{EntitlementID: ent.ID, FeatureID: input.FeatureID, SubjectKey: input.SubjectKey}
+			return Entitlement{}, &AlreadyExistsError{EntitlementID: ent.ID, FeatureID: input.FeatureID, SubjectKey: input.SubjectKey}
 		}
 	}
 
-	// FIXME: Add default value elsewhere
-	input.MeasureUsageFrom = time.Now().Truncate(time.Minute)
-	ent, err := c.entitlementRepo.CreateEntitlement(ctx, EntitlementRepoCreateEntitlementInputs(input))
+	connector, err := c.getTypeConnector(input)
+	if err != nil {
+		return Entitlement{}, err
+	}
+	connector.SetDefaults(&input)
+	err = connector.ValidateForFeature(&input, feature)
+	if err != nil {
+		return Entitlement{}, err
+	}
+
+	ent, err := c.entitlementRepo.CreateEntitlement(ctx, input)
 	return *ent, err
 }
 
@@ -80,21 +94,31 @@ func (c *entitlementConnector) GetEntitlementsOfSubject(ctx context.Context, nam
 }
 
 func (c *entitlementConnector) GetEntitlementValue(ctx context.Context, entitlementId models.NamespacedID, at time.Time) (EntitlementValue, error) {
-	// TODO: different entitlement types
-	balance, err := c.entitlementBalanceConnector.GetEntitlementBalance(ctx, entitlementId, at)
-
+	ent, err := c.entitlementRepo.GetEntitlement(ctx, entitlementId)
 	if err != nil {
-		return EntitlementValue{}, err
+		return nil, err
 	}
-
-	return EntitlementValue{
-		HasAccess: balance.Balance > 0,
-		Balance:   balance.Balance,
-		Usage:     balance.UsageInPeriod,
-		Overage:   balance.Overage,
-	}, nil
+	connector, err := c.getTypeConnector(ent)
+	if err != nil {
+		return nil, err
+	}
+	return connector.GetValue(ent, at)
 }
 
 func (c *entitlementConnector) ListEntitlements(ctx context.Context, params ListEntitlementsParams) ([]Entitlement, error) {
 	return c.entitlementRepo.ListEntitlements(ctx, params)
+}
+
+func (c *entitlementConnector) getTypeConnector(inp HasType) (SubTypeConnector, error) {
+	entitlementType := inp.GetType()
+	switch entitlementType {
+	case EntitlementTypeMetered:
+		return c.meteredEntitlementConnector, nil
+	case EntitlementTypeStatic:
+		return c.staticEntitlementConnector, nil
+	case EntitlementTypeBoolean:
+		return c.booleanEntitlementConnector, nil
+	default:
+		return nil, fmt.Errorf("unsupported entitlement type: %s", entitlementType)
+	}
 }

@@ -32,24 +32,29 @@ const (
 // EntitlementMutation represents an operation that mutates the Entitlement nodes in the graph.
 type EntitlementMutation struct {
 	config
-	op                 Op
-	typ                string
-	id                 *string
-	namespace          *string
-	metadata           *map[string]string
-	created_at         *time.Time
-	updated_at         *time.Time
-	deleted_at         *time.Time
-	feature_id         *string
-	subject_key        *string
-	measure_usage_from *time.Time
-	clearedFields      map[string]struct{}
-	usage_reset        map[string]struct{}
-	removedusage_reset map[string]struct{}
-	clearedusage_reset bool
-	done               bool
-	oldValue           func(context.Context) (*Entitlement, error)
-	predicates         []predicate.Entitlement
+	op                   Op
+	typ                  string
+	id                   *string
+	namespace            *string
+	metadata             *map[string]string
+	created_at           *time.Time
+	updated_at           *time.Time
+	deleted_at           *time.Time
+	entitlement_type     *entitlement.EntitlementType
+	feature_id           *string
+	subject_key          *string
+	measure_usage_from   *time.Time
+	issue_after_reset    *float64
+	addissue_after_reset *float64
+	is_soft_limit        *bool
+	_config              *string
+	clearedFields        map[string]struct{}
+	usage_reset          map[string]struct{}
+	removedusage_reset   map[string]struct{}
+	clearedusage_reset   bool
+	done                 bool
+	oldValue             func(context.Context) (*Entitlement, error)
+	predicates           []predicate.Entitlement
 }
 
 var _ ent.Mutation = (*EntitlementMutation)(nil)
@@ -362,6 +367,42 @@ func (m *EntitlementMutation) ResetDeletedAt() {
 	delete(m.clearedFields, entitlement.FieldDeletedAt)
 }
 
+// SetEntitlementType sets the "entitlement_type" field.
+func (m *EntitlementMutation) SetEntitlementType(et entitlement.EntitlementType) {
+	m.entitlement_type = &et
+}
+
+// EntitlementType returns the value of the "entitlement_type" field in the mutation.
+func (m *EntitlementMutation) EntitlementType() (r entitlement.EntitlementType, exists bool) {
+	v := m.entitlement_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEntitlementType returns the old "entitlement_type" field's value of the Entitlement entity.
+// If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EntitlementMutation) OldEntitlementType(ctx context.Context) (v entitlement.EntitlementType, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEntitlementType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEntitlementType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEntitlementType: %w", err)
+	}
+	return oldValue.EntitlementType, nil
+}
+
+// ResetEntitlementType resets all changes to the "entitlement_type" field.
+func (m *EntitlementMutation) ResetEntitlementType() {
+	m.entitlement_type = nil
+}
+
 // SetFeatureID sets the "feature_id" field.
 func (m *EntitlementMutation) SetFeatureID(s string) {
 	m.feature_id = &s
@@ -451,7 +492,7 @@ func (m *EntitlementMutation) MeasureUsageFrom() (r time.Time, exists bool) {
 // OldMeasureUsageFrom returns the old "measure_usage_from" field's value of the Entitlement entity.
 // If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *EntitlementMutation) OldMeasureUsageFrom(ctx context.Context) (v time.Time, err error) {
+func (m *EntitlementMutation) OldMeasureUsageFrom(ctx context.Context) (v *time.Time, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldMeasureUsageFrom is only allowed on UpdateOne operations")
 	}
@@ -465,9 +506,190 @@ func (m *EntitlementMutation) OldMeasureUsageFrom(ctx context.Context) (v time.T
 	return oldValue.MeasureUsageFrom, nil
 }
 
+// ClearMeasureUsageFrom clears the value of the "measure_usage_from" field.
+func (m *EntitlementMutation) ClearMeasureUsageFrom() {
+	m.measure_usage_from = nil
+	m.clearedFields[entitlement.FieldMeasureUsageFrom] = struct{}{}
+}
+
+// MeasureUsageFromCleared returns if the "measure_usage_from" field was cleared in this mutation.
+func (m *EntitlementMutation) MeasureUsageFromCleared() bool {
+	_, ok := m.clearedFields[entitlement.FieldMeasureUsageFrom]
+	return ok
+}
+
 // ResetMeasureUsageFrom resets all changes to the "measure_usage_from" field.
 func (m *EntitlementMutation) ResetMeasureUsageFrom() {
 	m.measure_usage_from = nil
+	delete(m.clearedFields, entitlement.FieldMeasureUsageFrom)
+}
+
+// SetIssueAfterReset sets the "issue_after_reset" field.
+func (m *EntitlementMutation) SetIssueAfterReset(f float64) {
+	m.issue_after_reset = &f
+	m.addissue_after_reset = nil
+}
+
+// IssueAfterReset returns the value of the "issue_after_reset" field in the mutation.
+func (m *EntitlementMutation) IssueAfterReset() (r float64, exists bool) {
+	v := m.issue_after_reset
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIssueAfterReset returns the old "issue_after_reset" field's value of the Entitlement entity.
+// If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EntitlementMutation) OldIssueAfterReset(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIssueAfterReset is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIssueAfterReset requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIssueAfterReset: %w", err)
+	}
+	return oldValue.IssueAfterReset, nil
+}
+
+// AddIssueAfterReset adds f to the "issue_after_reset" field.
+func (m *EntitlementMutation) AddIssueAfterReset(f float64) {
+	if m.addissue_after_reset != nil {
+		*m.addissue_after_reset += f
+	} else {
+		m.addissue_after_reset = &f
+	}
+}
+
+// AddedIssueAfterReset returns the value that was added to the "issue_after_reset" field in this mutation.
+func (m *EntitlementMutation) AddedIssueAfterReset() (r float64, exists bool) {
+	v := m.addissue_after_reset
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearIssueAfterReset clears the value of the "issue_after_reset" field.
+func (m *EntitlementMutation) ClearIssueAfterReset() {
+	m.issue_after_reset = nil
+	m.addissue_after_reset = nil
+	m.clearedFields[entitlement.FieldIssueAfterReset] = struct{}{}
+}
+
+// IssueAfterResetCleared returns if the "issue_after_reset" field was cleared in this mutation.
+func (m *EntitlementMutation) IssueAfterResetCleared() bool {
+	_, ok := m.clearedFields[entitlement.FieldIssueAfterReset]
+	return ok
+}
+
+// ResetIssueAfterReset resets all changes to the "issue_after_reset" field.
+func (m *EntitlementMutation) ResetIssueAfterReset() {
+	m.issue_after_reset = nil
+	m.addissue_after_reset = nil
+	delete(m.clearedFields, entitlement.FieldIssueAfterReset)
+}
+
+// SetIsSoftLimit sets the "is_soft_limit" field.
+func (m *EntitlementMutation) SetIsSoftLimit(b bool) {
+	m.is_soft_limit = &b
+}
+
+// IsSoftLimit returns the value of the "is_soft_limit" field in the mutation.
+func (m *EntitlementMutation) IsSoftLimit() (r bool, exists bool) {
+	v := m.is_soft_limit
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsSoftLimit returns the old "is_soft_limit" field's value of the Entitlement entity.
+// If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EntitlementMutation) OldIsSoftLimit(ctx context.Context) (v *bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsSoftLimit is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsSoftLimit requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsSoftLimit: %w", err)
+	}
+	return oldValue.IsSoftLimit, nil
+}
+
+// ClearIsSoftLimit clears the value of the "is_soft_limit" field.
+func (m *EntitlementMutation) ClearIsSoftLimit() {
+	m.is_soft_limit = nil
+	m.clearedFields[entitlement.FieldIsSoftLimit] = struct{}{}
+}
+
+// IsSoftLimitCleared returns if the "is_soft_limit" field was cleared in this mutation.
+func (m *EntitlementMutation) IsSoftLimitCleared() bool {
+	_, ok := m.clearedFields[entitlement.FieldIsSoftLimit]
+	return ok
+}
+
+// ResetIsSoftLimit resets all changes to the "is_soft_limit" field.
+func (m *EntitlementMutation) ResetIsSoftLimit() {
+	m.is_soft_limit = nil
+	delete(m.clearedFields, entitlement.FieldIsSoftLimit)
+}
+
+// SetConfig sets the "config" field.
+func (m *EntitlementMutation) SetConfig(s string) {
+	m._config = &s
+}
+
+// Config returns the value of the "config" field in the mutation.
+func (m *EntitlementMutation) Config() (r string, exists bool) {
+	v := m._config
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldConfig returns the old "config" field's value of the Entitlement entity.
+// If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EntitlementMutation) OldConfig(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldConfig is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldConfig requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldConfig: %w", err)
+	}
+	return oldValue.Config, nil
+}
+
+// ClearConfig clears the value of the "config" field.
+func (m *EntitlementMutation) ClearConfig() {
+	m._config = nil
+	m.clearedFields[entitlement.FieldConfig] = struct{}{}
+}
+
+// ConfigCleared returns if the "config" field was cleared in this mutation.
+func (m *EntitlementMutation) ConfigCleared() bool {
+	_, ok := m.clearedFields[entitlement.FieldConfig]
+	return ok
+}
+
+// ResetConfig resets all changes to the "config" field.
+func (m *EntitlementMutation) ResetConfig() {
+	m._config = nil
+	delete(m.clearedFields, entitlement.FieldConfig)
 }
 
 // AddUsageResetIDs adds the "usage_reset" edge to the UsageReset entity by ids.
@@ -558,7 +780,7 @@ func (m *EntitlementMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *EntitlementMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 12)
 	if m.namespace != nil {
 		fields = append(fields, entitlement.FieldNamespace)
 	}
@@ -574,6 +796,9 @@ func (m *EntitlementMutation) Fields() []string {
 	if m.deleted_at != nil {
 		fields = append(fields, entitlement.FieldDeletedAt)
 	}
+	if m.entitlement_type != nil {
+		fields = append(fields, entitlement.FieldEntitlementType)
+	}
 	if m.feature_id != nil {
 		fields = append(fields, entitlement.FieldFeatureID)
 	}
@@ -582,6 +807,15 @@ func (m *EntitlementMutation) Fields() []string {
 	}
 	if m.measure_usage_from != nil {
 		fields = append(fields, entitlement.FieldMeasureUsageFrom)
+	}
+	if m.issue_after_reset != nil {
+		fields = append(fields, entitlement.FieldIssueAfterReset)
+	}
+	if m.is_soft_limit != nil {
+		fields = append(fields, entitlement.FieldIsSoftLimit)
+	}
+	if m._config != nil {
+		fields = append(fields, entitlement.FieldConfig)
 	}
 	return fields
 }
@@ -601,12 +835,20 @@ func (m *EntitlementMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case entitlement.FieldDeletedAt:
 		return m.DeletedAt()
+	case entitlement.FieldEntitlementType:
+		return m.EntitlementType()
 	case entitlement.FieldFeatureID:
 		return m.FeatureID()
 	case entitlement.FieldSubjectKey:
 		return m.SubjectKey()
 	case entitlement.FieldMeasureUsageFrom:
 		return m.MeasureUsageFrom()
+	case entitlement.FieldIssueAfterReset:
+		return m.IssueAfterReset()
+	case entitlement.FieldIsSoftLimit:
+		return m.IsSoftLimit()
+	case entitlement.FieldConfig:
+		return m.Config()
 	}
 	return nil, false
 }
@@ -626,12 +868,20 @@ func (m *EntitlementMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldUpdatedAt(ctx)
 	case entitlement.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case entitlement.FieldEntitlementType:
+		return m.OldEntitlementType(ctx)
 	case entitlement.FieldFeatureID:
 		return m.OldFeatureID(ctx)
 	case entitlement.FieldSubjectKey:
 		return m.OldSubjectKey(ctx)
 	case entitlement.FieldMeasureUsageFrom:
 		return m.OldMeasureUsageFrom(ctx)
+	case entitlement.FieldIssueAfterReset:
+		return m.OldIssueAfterReset(ctx)
+	case entitlement.FieldIsSoftLimit:
+		return m.OldIsSoftLimit(ctx)
+	case entitlement.FieldConfig:
+		return m.OldConfig(ctx)
 	}
 	return nil, fmt.Errorf("unknown Entitlement field %s", name)
 }
@@ -676,6 +926,13 @@ func (m *EntitlementMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDeletedAt(v)
 		return nil
+	case entitlement.FieldEntitlementType:
+		v, ok := value.(entitlement.EntitlementType)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEntitlementType(v)
+		return nil
 	case entitlement.FieldFeatureID:
 		v, ok := value.(string)
 		if !ok {
@@ -697,6 +954,27 @@ func (m *EntitlementMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetMeasureUsageFrom(v)
 		return nil
+	case entitlement.FieldIssueAfterReset:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIssueAfterReset(v)
+		return nil
+	case entitlement.FieldIsSoftLimit:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsSoftLimit(v)
+		return nil
+	case entitlement.FieldConfig:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetConfig(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Entitlement field %s", name)
 }
@@ -704,13 +982,21 @@ func (m *EntitlementMutation) SetField(name string, value ent.Value) error {
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *EntitlementMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addissue_after_reset != nil {
+		fields = append(fields, entitlement.FieldIssueAfterReset)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *EntitlementMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case entitlement.FieldIssueAfterReset:
+		return m.AddedIssueAfterReset()
+	}
 	return nil, false
 }
 
@@ -719,6 +1005,13 @@ func (m *EntitlementMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *EntitlementMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case entitlement.FieldIssueAfterReset:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddIssueAfterReset(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Entitlement numeric field %s", name)
 }
@@ -732,6 +1025,18 @@ func (m *EntitlementMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(entitlement.FieldDeletedAt) {
 		fields = append(fields, entitlement.FieldDeletedAt)
+	}
+	if m.FieldCleared(entitlement.FieldMeasureUsageFrom) {
+		fields = append(fields, entitlement.FieldMeasureUsageFrom)
+	}
+	if m.FieldCleared(entitlement.FieldIssueAfterReset) {
+		fields = append(fields, entitlement.FieldIssueAfterReset)
+	}
+	if m.FieldCleared(entitlement.FieldIsSoftLimit) {
+		fields = append(fields, entitlement.FieldIsSoftLimit)
+	}
+	if m.FieldCleared(entitlement.FieldConfig) {
+		fields = append(fields, entitlement.FieldConfig)
 	}
 	return fields
 }
@@ -752,6 +1057,18 @@ func (m *EntitlementMutation) ClearField(name string) error {
 		return nil
 	case entitlement.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case entitlement.FieldMeasureUsageFrom:
+		m.ClearMeasureUsageFrom()
+		return nil
+	case entitlement.FieldIssueAfterReset:
+		m.ClearIssueAfterReset()
+		return nil
+	case entitlement.FieldIsSoftLimit:
+		m.ClearIsSoftLimit()
+		return nil
+	case entitlement.FieldConfig:
+		m.ClearConfig()
 		return nil
 	}
 	return fmt.Errorf("unknown Entitlement nullable field %s", name)
@@ -776,6 +1093,9 @@ func (m *EntitlementMutation) ResetField(name string) error {
 	case entitlement.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
+	case entitlement.FieldEntitlementType:
+		m.ResetEntitlementType()
+		return nil
 	case entitlement.FieldFeatureID:
 		m.ResetFeatureID()
 		return nil
@@ -784,6 +1104,15 @@ func (m *EntitlementMutation) ResetField(name string) error {
 		return nil
 	case entitlement.FieldMeasureUsageFrom:
 		m.ResetMeasureUsageFrom()
+		return nil
+	case entitlement.FieldIssueAfterReset:
+		m.ResetIssueAfterReset()
+		return nil
+	case entitlement.FieldIsSoftLimit:
+		m.ResetIsSoftLimit()
+		return nil
+	case entitlement.FieldConfig:
+		m.ResetConfig()
 		return nil
 	}
 	return fmt.Errorf("unknown Entitlement field %s", name)

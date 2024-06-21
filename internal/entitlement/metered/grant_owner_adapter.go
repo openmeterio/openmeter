@@ -1,4 +1,4 @@
-package entitlement
+package meteredentitlement
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/internal/streaming"
@@ -16,7 +17,7 @@ import (
 
 type entitlementGrantOwner struct {
 	featureRepo     productcatalog.FeatureRepo
-	entitlementRepo EntitlementRepo
+	entitlementRepo entitlement.EntitlementRepo
 	usageResetRepo  UsageResetRepo
 	meterRepo       meter.Repository
 	logger          *slog.Logger
@@ -24,7 +25,7 @@ type entitlementGrantOwner struct {
 
 func NewEntitlementGrantOwnerAdapter(
 	featureRepo productcatalog.FeatureRepo,
-	entitlementRepo EntitlementRepo,
+	entitlementRepo entitlement.EntitlementRepo,
 	usageResetRepo UsageResetRepo,
 	meterRepo meter.Repository,
 	logger *slog.Logger,
@@ -56,7 +57,11 @@ func (e *entitlementGrantOwner) GetOwnerQueryParams(ctx context.Context, owner c
 		return "", nil, fmt.Errorf("failed to get feature of entitlement: %w", err)
 	}
 
-	meter, err := e.meterRepo.GetMeterByIDOrSlug(ctx, feature.Namespace, feature.MeterSlug)
+	if feature.MeterSlug == nil {
+		return "", nil, fmt.Errorf("feature does not have a meter")
+	}
+
+	meter, err := e.meterRepo.GetMeterByIDOrSlug(ctx, feature.Namespace, *feature.MeterSlug)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to get meter: %w", err)
 	}
@@ -72,7 +77,7 @@ func (e *entitlementGrantOwner) GetOwnerQueryParams(ctx context.Context, owner c
 		}
 	}
 
-	return feature.MeterSlug, queryParams, nil
+	return *feature.MeterSlug, queryParams, nil
 }
 
 func (e *entitlementGrantOwner) GetStartOfMeasurement(ctx context.Context, owner credit.NamespacedGrantOwner) (time.Time, error) {
@@ -84,7 +89,12 @@ func (e *entitlementGrantOwner) GetStartOfMeasurement(ctx context.Context, owner
 		}
 	}
 
-	return entitlement.MeasureUsageFrom, nil
+	metered, err := ParseFromGenericEntitlement(entitlement)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return metered.MeasureUsageFrom, nil
 }
 
 func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner credit.NamespacedGrantOwner, at time.Time) (time.Time, error) {

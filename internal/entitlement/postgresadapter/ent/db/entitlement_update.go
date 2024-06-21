@@ -67,6 +67,26 @@ func (eu *EntitlementUpdate) ClearDeletedAt() *EntitlementUpdate {
 	return eu
 }
 
+// SetConfig sets the "config" field.
+func (eu *EntitlementUpdate) SetConfig(s string) *EntitlementUpdate {
+	eu.mutation.SetConfig(s)
+	return eu
+}
+
+// SetNillableConfig sets the "config" field if the given value is not nil.
+func (eu *EntitlementUpdate) SetNillableConfig(s *string) *EntitlementUpdate {
+	if s != nil {
+		eu.SetConfig(*s)
+	}
+	return eu
+}
+
+// ClearConfig clears the value of the "config" field.
+func (eu *EntitlementUpdate) ClearConfig() *EntitlementUpdate {
+	eu.mutation.ClearConfig()
+	return eu
+}
+
 // AddUsageResetIDs adds the "usage_reset" edge to the UsageReset entity by IDs.
 func (eu *EntitlementUpdate) AddUsageResetIDs(ids ...string) *EntitlementUpdate {
 	eu.mutation.AddUsageResetIDs(ids...)
@@ -168,6 +188,21 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if eu.mutation.DeletedAtCleared() {
 		_spec.ClearField(entitlement.FieldDeletedAt, field.TypeTime)
 	}
+	if eu.mutation.MeasureUsageFromCleared() {
+		_spec.ClearField(entitlement.FieldMeasureUsageFrom, field.TypeTime)
+	}
+	if eu.mutation.IssueAfterResetCleared() {
+		_spec.ClearField(entitlement.FieldIssueAfterReset, field.TypeFloat64)
+	}
+	if eu.mutation.IsSoftLimitCleared() {
+		_spec.ClearField(entitlement.FieldIsSoftLimit, field.TypeBool)
+	}
+	if value, ok := eu.mutation.Config(); ok {
+		_spec.SetField(entitlement.FieldConfig, field.TypeString, value)
+	}
+	if eu.mutation.ConfigCleared() {
+		_spec.ClearField(entitlement.FieldConfig, field.TypeString)
+	}
 	if eu.mutation.UsageResetCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -268,6 +303,26 @@ func (euo *EntitlementUpdateOne) SetNillableDeletedAt(t *time.Time) *Entitlement
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (euo *EntitlementUpdateOne) ClearDeletedAt() *EntitlementUpdateOne {
 	euo.mutation.ClearDeletedAt()
+	return euo
+}
+
+// SetConfig sets the "config" field.
+func (euo *EntitlementUpdateOne) SetConfig(s string) *EntitlementUpdateOne {
+	euo.mutation.SetConfig(s)
+	return euo
+}
+
+// SetNillableConfig sets the "config" field if the given value is not nil.
+func (euo *EntitlementUpdateOne) SetNillableConfig(s *string) *EntitlementUpdateOne {
+	if s != nil {
+		euo.SetConfig(*s)
+	}
+	return euo
+}
+
+// ClearConfig clears the value of the "config" field.
+func (euo *EntitlementUpdateOne) ClearConfig() *EntitlementUpdateOne {
+	euo.mutation.ClearConfig()
 	return euo
 }
 
@@ -401,6 +456,21 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 	}
 	if euo.mutation.DeletedAtCleared() {
 		_spec.ClearField(entitlement.FieldDeletedAt, field.TypeTime)
+	}
+	if euo.mutation.MeasureUsageFromCleared() {
+		_spec.ClearField(entitlement.FieldMeasureUsageFrom, field.TypeTime)
+	}
+	if euo.mutation.IssueAfterResetCleared() {
+		_spec.ClearField(entitlement.FieldIssueAfterReset, field.TypeFloat64)
+	}
+	if euo.mutation.IsSoftLimitCleared() {
+		_spec.ClearField(entitlement.FieldIsSoftLimit, field.TypeBool)
+	}
+	if value, ok := euo.mutation.Config(); ok {
+		_spec.SetField(entitlement.FieldConfig, field.TypeString, value)
+	}
+	if euo.mutation.ConfigCleared() {
+		_spec.ClearField(entitlement.FieldConfig, field.TypeString)
 	}
 	if euo.mutation.UsageResetCleared() {
 		edge := &sqlgraph.EdgeSpec{

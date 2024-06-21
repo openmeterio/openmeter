@@ -89,6 +89,14 @@ func (fc *FeatureCreate) SetMeterSlug(s string) *FeatureCreate {
 	return fc
 }
 
+// SetNillableMeterSlug sets the "meter_slug" field if the given value is not nil.
+func (fc *FeatureCreate) SetNillableMeterSlug(s *string) *FeatureCreate {
+	if s != nil {
+		fc.SetMeterSlug(*s)
+	}
+	return fc
+}
+
 // SetMeterGroupByFilters sets the "meter_group_by_filters" field.
 func (fc *FeatureCreate) SetMeterGroupByFilters(m map[string]string) *FeatureCreate {
 	fc.mutation.SetMeterGroupByFilters(m)
@@ -204,14 +212,6 @@ func (fc *FeatureCreate) check() error {
 			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "Feature.key": %w`, err)}
 		}
 	}
-	if _, ok := fc.mutation.MeterSlug(); !ok {
-		return &ValidationError{Name: "meter_slug", err: errors.New(`db: missing required field "Feature.meter_slug"`)}
-	}
-	if v, ok := fc.mutation.MeterSlug(); ok {
-		if err := feature.MeterSlugValidator(v); err != nil {
-			return &ValidationError{Name: "meter_slug", err: fmt.Errorf(`db: validator failed for field "Feature.meter_slug": %w`, err)}
-		}
-	}
 	return nil
 }
 
@@ -274,7 +274,7 @@ func (fc *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 	}
 	if value, ok := fc.mutation.MeterSlug(); ok {
 		_spec.SetField(feature.FieldMeterSlug, field.TypeString, value)
-		_node.MeterSlug = value
+		_node.MeterSlug = &value
 	}
 	if value, ok := fc.mutation.MeterGroupByFilters(); ok {
 		_spec.SetField(feature.FieldMeterGroupByFilters, field.TypeJSON, value)

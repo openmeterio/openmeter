@@ -398,7 +398,7 @@ func (m *FeatureMutation) MeterSlug() (r string, exists bool) {
 // OldMeterSlug returns the old "meter_slug" field's value of the Feature entity.
 // If the Feature object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *FeatureMutation) OldMeterSlug(ctx context.Context) (v string, err error) {
+func (m *FeatureMutation) OldMeterSlug(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldMeterSlug is only allowed on UpdateOne operations")
 	}
@@ -412,9 +412,22 @@ func (m *FeatureMutation) OldMeterSlug(ctx context.Context) (v string, err error
 	return oldValue.MeterSlug, nil
 }
 
+// ClearMeterSlug clears the value of the "meter_slug" field.
+func (m *FeatureMutation) ClearMeterSlug() {
+	m.meter_slug = nil
+	m.clearedFields[feature.FieldMeterSlug] = struct{}{}
+}
+
+// MeterSlugCleared returns if the "meter_slug" field was cleared in this mutation.
+func (m *FeatureMutation) MeterSlugCleared() bool {
+	_, ok := m.clearedFields[feature.FieldMeterSlug]
+	return ok
+}
+
 // ResetMeterSlug resets all changes to the "meter_slug" field.
 func (m *FeatureMutation) ResetMeterSlug() {
 	m.meter_slug = nil
+	delete(m.clearedFields, feature.FieldMeterSlug)
 }
 
 // SetMeterGroupByFilters sets the "meter_group_by_filters" field.
@@ -735,6 +748,9 @@ func (m *FeatureMutation) ClearedFields() []string {
 	if m.FieldCleared(feature.FieldDeletedAt) {
 		fields = append(fields, feature.FieldDeletedAt)
 	}
+	if m.FieldCleared(feature.FieldMeterSlug) {
+		fields = append(fields, feature.FieldMeterSlug)
+	}
 	if m.FieldCleared(feature.FieldMeterGroupByFilters) {
 		fields = append(fields, feature.FieldMeterGroupByFilters)
 	}
@@ -757,6 +773,9 @@ func (m *FeatureMutation) ClearField(name string) error {
 	switch name {
 	case feature.FieldDeletedAt:
 		m.ClearDeletedAt()
+		return nil
+	case feature.FieldMeterSlug:
+		m.ClearMeterSlug()
 		return nil
 	case feature.FieldMeterGroupByFilters:
 		m.ClearMeterGroupByFilters()

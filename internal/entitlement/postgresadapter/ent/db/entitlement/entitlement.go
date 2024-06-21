@@ -3,6 +3,7 @@
 package entitlement
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -24,12 +25,20 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
+	// FieldEntitlementType holds the string denoting the entitlement_type field in the database.
+	FieldEntitlementType = "entitlement_type"
 	// FieldFeatureID holds the string denoting the feature_id field in the database.
 	FieldFeatureID = "feature_id"
 	// FieldSubjectKey holds the string denoting the subject_key field in the database.
 	FieldSubjectKey = "subject_key"
 	// FieldMeasureUsageFrom holds the string denoting the measure_usage_from field in the database.
 	FieldMeasureUsageFrom = "measure_usage_from"
+	// FieldIssueAfterReset holds the string denoting the issue_after_reset field in the database.
+	FieldIssueAfterReset = "issue_after_reset"
+	// FieldIsSoftLimit holds the string denoting the is_soft_limit field in the database.
+	FieldIsSoftLimit = "is_soft_limit"
+	// FieldConfig holds the string denoting the config field in the database.
+	FieldConfig = "config"
 	// EdgeUsageReset holds the string denoting the usage_reset edge name in mutations.
 	EdgeUsageReset = "usage_reset"
 	// Table holds the table name of the entitlement in the database.
@@ -51,9 +60,13 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
+	FieldEntitlementType,
 	FieldFeatureID,
 	FieldSubjectKey,
 	FieldMeasureUsageFrom,
+	FieldIssueAfterReset,
+	FieldIsSoftLimit,
+	FieldConfig,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -78,6 +91,28 @@ var (
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
+
+// EntitlementType defines the type for the "entitlement_type" enum field.
+type EntitlementType string
+
+// EntitlementType values.
+const (
+	EntitlementTypeMetered EntitlementType = "metered"
+)
+
+func (et EntitlementType) String() string {
+	return string(et)
+}
+
+// EntitlementTypeValidator is a validator for the "entitlement_type" field enum values. It is called by the builders before save.
+func EntitlementTypeValidator(et EntitlementType) error {
+	switch et {
+	case EntitlementTypeMetered:
+		return nil
+	default:
+		return fmt.Errorf("entitlement: invalid enum value for entitlement_type field: %q", et)
+	}
+}
 
 // OrderOption defines the ordering options for the Entitlement queries.
 type OrderOption func(*sql.Selector)
@@ -107,6 +142,11 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
+// ByEntitlementType orders the results by the entitlement_type field.
+func ByEntitlementType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEntitlementType, opts...).ToFunc()
+}
+
 // ByFeatureID orders the results by the feature_id field.
 func ByFeatureID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFeatureID, opts...).ToFunc()
@@ -120,6 +160,21 @@ func BySubjectKey(opts ...sql.OrderTermOption) OrderOption {
 // ByMeasureUsageFrom orders the results by the measure_usage_from field.
 func ByMeasureUsageFrom(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMeasureUsageFrom, opts...).ToFunc()
+}
+
+// ByIssueAfterReset orders the results by the issue_after_reset field.
+func ByIssueAfterReset(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIssueAfterReset, opts...).ToFunc()
+}
+
+// ByIsSoftLimit orders the results by the is_soft_limit field.
+func ByIsSoftLimit(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsSoftLimit, opts...).ToFunc()
+}
+
+// ByConfig orders the results by the config field.
+func ByConfig(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldConfig, opts...).ToFunc()
 }
 
 // ByUsageResetCount orders the results by usage_reset count.

@@ -7,8 +7,8 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
-	"github.com/openmeterio/openmeter/internal/entitlement"
 	entitlement_httpdriver "github.com/openmeterio/openmeter/internal/entitlement/httpdriver"
+	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -74,7 +74,7 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 
 			apiGrants := make([]api.EntitlementGrant, 0, len(grants))
 			for _, grant := range grants {
-				entitlementGrant, err := entitlement.GrantFromCreditGrant(grant)
+				entitlementGrant, err := meteredentitlement.GrantFromCreditGrant(grant)
 				if err != nil {
 					return nil, err
 				}

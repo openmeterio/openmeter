@@ -3,6 +3,7 @@ package httpdriver
 import (
 	"github.com/openmeterio/openmeter/internal/entitlement/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
@@ -29,9 +30,9 @@ func NewEntitlementHandler(
 
 func NewMeteredEntitlementHandler(
 	entitlementConnector entitlement.EntitlementConnector,
-	balanceConnector entitlement.EntitlementBalanceConnector,
+	meteredEntitlementConnector meteredentitlement.Connector,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	options ...httptransport.HandlerOption,
 ) MeteredEntitlementHandler {
-	return httpdriver.NewMeteredEntitlementHandler(entitlementConnector, balanceConnector, namespaceDecoder, options...)
+	return httpdriver.NewMeteredEntitlementHandler(entitlementConnector, meteredEntitlementConnector, namespaceDecoder, options...)
 }

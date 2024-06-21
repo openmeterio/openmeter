@@ -25,11 +25,17 @@ func (Entitlement) Mixin() []ent.Mixin {
 
 func (Entitlement) Fields() []ent.Field {
 	return []ent.Field{
+		field.Enum("entitlement_type").Values("metered").Immutable(),
 		field.String("feature_id").Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
 		field.String("subject_key").Immutable(),
-		field.Time("measure_usage_from").Immutable(),
+		field.Time("measure_usage_from").Optional().Nillable().Immutable(),
+		field.Float("issue_after_reset").Optional().Nillable().Immutable(),
+		field.Bool("is_soft_limit").Optional().Nillable().Immutable(),
+		field.String("config").Optional().Nillable().SchemaType(map[string]string{
+			dialect.Postgres: "text",
+		}),
 	}
 }
 
