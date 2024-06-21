@@ -520,7 +520,7 @@ func TestCredit(t *testing.T) {
 		metered, err := resp.JSON201.AsEntitlementMetered()
 		require.NoError(t, err)
 
-		require.Equal(t, *metered.Subjectkey, subject)
+		require.Equal(t, metered.SubjectKey, subject)
 		entitlementId = metered.Id
 		eCreatedAt = metered.CreatedAt
 	})
@@ -540,6 +540,61 @@ func TestCredit(t *testing.T) {
 
 		require.NotEmpty(t, resp.ApplicationproblemJSON409.Extensions.ConflictingEntityId)
 		require.Equal(t, *entitlementId, resp.ApplicationproblemJSON409.Extensions.ConflictingEntityId)
+	})
+
+	t.Run("Create Grant", func(t *testing.T) {
+		effectiveAt := time.Now().Truncate(time.Minute)
+
+		priority := 1
+		maxRolloverAmount := 100.0
+
+		// Create grant
+		resp, err := client.CreateGrantWithResponse(context.Background(), subject, *entitlementId, api.EntitlementGrantCreateInput{
+			Amount:      100,
+			EffectiveAt: effectiveAt,
+			Expiration: api.ExpirationPeriod{
+				Duration: "MONTH",
+				Count:    1,
+			},
+			Priority:          &priority,
+			MaxRolloverAmount: &maxRolloverAmount,
+			Recurrence: &api.RecurringPeriod{
+				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Interval: "YEARLY",
+			},
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", resp.Body)
+
+		require.NotEmpty(t, resp.JSON201.UpdatedAt)
+		require.NotEmpty(t, resp.JSON201.ExpiresAt)
+		require.NotEmpty(t, resp.JSON201.CreatedAt)
+		require.NotEmpty(t, resp.JSON201.NextRecurrence)
+
+		expected := &api.EntitlementGrant{
+			Id:                resp.JSON201.Id,
+			Amount:            100,
+			EntitlementId:     entitlementId,
+			Priority:          &priority,
+			EffectiveAt:       effectiveAt.UTC(),
+			MaxRolloverAmount: &maxRolloverAmount,
+			SubjectKey:        &subject,
+			Expiration: api.ExpirationPeriod{
+				Duration: "MONTH",
+				Count:    1,
+			},
+			Recurrence: &api.RecurringPeriod{
+				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Interval: "YEARLY",
+			},
+		}
+
+		resp.JSON201.CreatedAt = nil
+		resp.JSON201.UpdatedAt = nil
+		resp.JSON201.ExpiresAt = nil
+		resp.JSON201.NextRecurrence = nil
+
+		require.Equal(t, expected, resp.JSON201)
 	})
 
 	t.Run("Ingest usage", func(t *testing.T) {
@@ -607,61 +662,6 @@ func TestCredit(t *testing.T) {
 		}, waitTime, time.Second)
 	})
 
-	t.Run("Create Grant", func(t *testing.T) {
-		effectiveAt := time.Now().Truncate(time.Minute)
-
-		priority := 1
-		maxRolloverAmount := 100.0
-
-		// Create grant
-		resp, err := client.CreateGrantWithResponse(context.Background(), subject, *entitlementId, api.EntitlementGrantCreateInput{
-			Amount:      100,
-			EffectiveAt: effectiveAt,
-			Expiration: api.ExpirationPeriod{
-				Duration: "MONTH",
-				Count:    1,
-			},
-			Priority:          &priority,
-			MaxRolloverAmount: &maxRolloverAmount,
-			Recurrence: &api.RecurringPeriod{
-				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
-				Interval: "YEARLY",
-			},
-		})
-		require.NoError(t, err)
-		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", resp.Body)
-
-		require.NotEmpty(t, resp.JSON201.UpdatedAt)
-		require.NotEmpty(t, resp.JSON201.ExpiresAt)
-		require.NotEmpty(t, resp.JSON201.CreatedAt)
-		require.NotEmpty(t, resp.JSON201.NextRecurrence)
-
-		expected := &api.EntitlementGrant{
-			Id:                resp.JSON201.Id,
-			Amount:            100,
-			EntitlementId:     entitlementId,
-			Priority:          &priority,
-			EffectiveAt:       effectiveAt.UTC(),
-			MaxRolloverAmount: &maxRolloverAmount,
-			SubjectKey:        &subject,
-			Expiration: api.ExpirationPeriod{
-				Duration: "MONTH",
-				Count:    1,
-			},
-			Recurrence: &api.RecurringPeriod{
-				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
-				Interval: "YEARLY",
-			},
-		}
-
-		resp.JSON201.CreatedAt = nil
-		resp.JSON201.UpdatedAt = nil
-		resp.JSON201.ExpiresAt = nil
-		resp.JSON201.NextRecurrence = nil
-
-		require.Equal(t, expected, resp.JSON201)
-	})
-
 	t.Run("Entitlement Value", func(t *testing.T) {
 		// Get grants
 		grantListResp, err := client.ListGrantsWithResponse(context.Background(), &api.ListGrantsParams{})
@@ -678,7 +678,7 @@ func TestCredit(t *testing.T) {
 		require.Len(t, *featureListResp.JSON200, 1)
 
 		resp, err := client.GetEntitlementValueWithResponse(context.Background(), subject, *entitlementId, &api.GetEntitlementValueParams{
-			Time: convert.ToPointer(time.Now().Add(time.Minute)),
+			Time: convert.ToPointer(eCreatedAt.Add(time.Minute)),
 		})
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode())

@@ -13,7 +13,7 @@ type CreateEntitlementJSONBody struct {
 	IsUnlimited *bool `json:"isUnlimited,omitempty"`
 
 	// IssueAfterReset You can issue usage automatically after reset. This usage is not rolled over.
-	IssueAfterReset *float32 `json:"issueAfterReset,omitempty"`
+	IssueAfterReset *float64 `json:"issueAfterReset,omitempty"`
 
 	// Metadata Additional metadata for the feature.
 	Metadata *map[string]string            `json:"metadata,omitempty"`

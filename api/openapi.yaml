@@ -1482,7 +1482,7 @@ components:
           required:
             - subjectKey
           properties:
-            subjectkey:
+            subjectKey:
               description: The identifier key unique to the subject
               type: string
               example: customer-1
