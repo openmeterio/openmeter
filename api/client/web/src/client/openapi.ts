@@ -123,6 +123,13 @@ export interface paths {
      */
     get: operations['queryPortalMeter']
   }
+  '/api/v1/entitlements': {
+    /**
+     * List entitlements
+     * @description List entitlements.
+     */
+    get: operations['listEntitlements']
+  }
   '/api/v1/features': {
     /**
      * List features
@@ -135,10 +142,10 @@ export interface paths {
      */
     post: operations['createFeature']
   }
-  '/api/v1/features/{featureID}': {
+  '/api/v1/features/{featureId}': {
     /**
      * Get feature
-     * @description Get feature by key.
+     * @description Get feature by id.
      */
     get: operations['getFeature']
     /**
@@ -147,70 +154,79 @@ export interface paths {
      */
     delete: operations['deleteFeature']
   }
-  '/api/v1/ledgers': {
+  '/api/v1/grants': {
     /**
-     * List the already defined ledgers.
-     * @description List the already defined ledgers.
+     * List grants
+     * @description List all grants.
      */
-    get: operations['listLedgers']
-    /**
-     * Creates the specified ledger
-     * @description Create or update the specified ledger.
-     */
-    post: operations['createLedger']
+    get: operations['listGrants']
   }
-  '/api/v1/ledgers/{ledgerID}/balance': {
+  '/api/v1/grants/{grantId}': {
     /**
-     * Get the balance of a specific subject.
-     * @description Get the balance of a specific subject.
+     * Delete a grant
+     * @description Void (delete) a grant. A grant can only be deleted if it hasn't been used.
      */
-    get: operations['getLedgerBalance']
+    delete: operations['voidGrant']
   }
-  '/api/v1/ledgers/{ledgerID}/history': {
+  '/api/v1/subjects/{subjectIdOrKey}/entitlements': {
     /**
-     * Get the history of a ledger
-     * @description Get the history of a specific ledger
+     * List entitlements
+     * @description List all entitlements for a subject.
      */
-    get: operations['getLedgerHistory']
+    get: operations['listSubjectEntitlements']
+    /**
+     * Create entitlement
+     * @description Create an entitlement for a subject.
+     */
+    post: operations['createEntitlement']
   }
-  '/api/v1/ledgers/{ledgerID}/reset': {
+  '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}': {
     /**
-     * Reset the ledger's balance
-     * @description Resets the ledger's balances to zero for a specific subject and re-apply active grants with rollover configuration.
+     * Get entitlement
+     * @description Get entitlement by id.
      */
-    post: operations['resetLedger']
+    get: operations['getEntitlement']
+    /**
+     * Delete entitlement
+     * @description Delete an entitlement by id.
+     */
+    delete: operations['deleteEntitlement']
   }
-  '/api/v1/ledgers/grants': {
+  '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/grants': {
     /**
-     * List grants for multiple ledgers.
-     * @description List grants for multiple ledgers.
+     * List grants for an entitlement
+     * @description List all grants for an entitlement.
      */
-    get: operations['listLedgerGrants']
+    get: operations['listEntitlementGrants']
+    /**
+     * Create grant
+     * @description Create a grant for an entitlement.
+     */
+    post: operations['createGrant']
   }
-  '/api/v1/ledgers/{ledgerID}/grants': {
+  '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value': {
     /**
-     * List ledger grants
-     * @description List ledger grants for a specific ledger.
+     * Get the balance of a specific entitlement.
+     * @description Get the balance of a specific entitlement.
      */
-    get: operations['listLedgerGrantsByLedger']
-    /**
-     * Create a grant on a specific ledger.
-     * @description Create a grant on a specific ledger.
-     */
-    post: operations['createLedgerGrant']
+    get: operations['getEntitlementValue']
   }
-  '/api/v1/ledgers/{ledgerID}/grants/{ledgerGrantID}': {
+  '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history': {
     /**
-     * Get a single grant.
-     * @description Gets the grant for a ledger by ID.
+     * Get the balance history of a specific entitlement.
+     * @description Get the balance history of a specific entitlement.
+     *
+     * The windows are inclusive at their start and exclusive at their end.
+     * The last window may be smaller than the window size and is inclusive at both ends.
      */
-    get: operations['getLedgerGrant']
+    get: operations['getEntitlementHistory']
+  }
+  '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/reset': {
     /**
-     * Void ledger grant
-     * @description Void a ledger grant by ID. Partially or fully used grants cannot be voided.
-     * Voided grant won't be applied to the subject's balance anymore.
+     * Reset entitlement
+     * @description Reset the entitlement usage and start a new period. Grants that can be are rolled over.
      */
-    delete: operations['voidLedgerGrant']
+    post: operations['resetEntitlementUsage']
   }
 }
 
@@ -218,6 +234,85 @@ export type webhooks = Record<string, never>
 
 export interface components {
   schemas: {
+    /**
+     * @description Metadata fields for a resource.
+     * These fields are automatically populated by the system for the entities we manage.
+     */
+    SharedMetaFields: {
+      /**
+       * @description Readonly unique ULID identifier.
+       *
+       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       */
+      id: string
+      /**
+       * Format: date-time
+       * @description The date and time the resource was created.
+       * @example 2023-01-01T00:00:00Z
+       */
+      createdAt: string
+      /**
+       * Format: date-time
+       * @description The date and time the resource was last updated.
+       * @example 2023-01-01T00:00:00Z
+       */
+      updatedAt: string
+      /**
+       * Format: date-time
+       * @description The date and time the resource was deleted.
+       * @example null
+       */
+      deletedAt: string | null
+    }
+    /**
+     * @description Conflict
+     * @example {
+     *   "type": "about:blank",
+     *   "title": "Conflict",
+     *   "status": 409,
+     *   "detail": "ledger (default.01HXVNDJR532E8GTBVSC2XK5D4) already exitst for subject subject-1",
+     *   "instance": "urn:request:local/JMOlctsKV8-000001",
+     *   "conflictingEntityId": "01HXVNDJR532E8GTBVSC2XK5D4"
+     * }
+     */
+    ConflictProblem: {
+      /**
+       * Format: uri
+       * @description Type contains a URI that identifies the problem type.
+       * @example urn:problem-type:bad-request
+       */
+      type: string
+      /**
+       * @description A a short, human-readable summary of the problem type.
+       * @example Bad Request
+       */
+      title: string
+      /**
+       * Format: int32
+       * @description The HTTP status code generated by the origin server for this occurrence of the problem.
+       * @example 400
+       */
+      status: number
+      /**
+       * @description A human-readable explanation specific to this occurrence of the problem.
+       * @example body must be a JSON object
+       */
+      detail: string
+      /**
+       * Format: uri
+       * @description A URI reference that identifies the specific occurrence of the problem.
+       * @example urn:request:local/JMOlctsKV8-000001
+       */
+      instance?: string
+      extensions?: {
+        /**
+         * @description The id of the conflicting entity.
+         * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+         */
+        conflictingEntityId: string
+      }
+      [key: string]: unknown
+    }
     /**
      * @description A Problem Details object (RFC 7807).
      * Additional properties specific to the problem type may be present.
@@ -357,19 +452,30 @@ export interface components {
      * @description A feature is a feature or service offered to a customer.
      * For example: CPU-Hours, Tokens, API Calls, etc.
      */
-    CreateFeatureRequest: {
+    FeatureCreateInputs: {
+      /**
+       * @description The unique key of the feature to reference it from your application.
+       *
+       * @example gpt4_tokens
+       */
+      key: string
       /**
        * @description The name of the feature.
        *
        * @example AI Tokens
        */
       name: string
+      /** @description Additional metadata for the feature. */
+      metadata?: {
+        [key: string]: string
+      }
       /**
        * @description The meter that the feature is associated with and decreases grants by usage.
+       * If present, the usage of the feature can be metered.
        *
        * @example tokens_total
        */
-      meterSlug: string
+      meterSlug?: string
       /**
        * @description Optional meter group by filters. Useful if the meter scope is broader than what feature tracks.
        *
@@ -380,147 +486,192 @@ export interface components {
       meterGroupByFilters?: {
         [key: string]: string
       }
-      /**
-       * @description If the feature is archived, it will not be used for grants or usage.
-       *
-       * @example false
-       */
-      archived?: boolean
     }
     /**
      * @description A feature is a feature or service offered to a customer.
      * For example: CPU-Hours, Tokens, API Calls, etc.
      */
-    Feature: components['schemas']['CreateFeatureRequest'] & {
+    Feature: {
       /**
-       * @description Readonly unique ULID identifier of the feature.
+       * Format: date-time
+       * @description If the feature is archived, it will not be used for grants or usage.
+       *
+       * @example 2023-01-01T00:00:00Z
+       */
+      archivedAt?: string
+    } & components['schemas']['FeatureCreateInputs'] &
+      components['schemas']['SharedMetaFields']
+    EntitlementCreateSharedFields: {
+      /**
+       * @description The feature the subject is entitled to use
        *
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
-      id: string
-      /**
-       * Format: date-time
-       * @description The time the feature was created.
-       *
-       * @example 2023-01-01T00:00:00Z
-       */
-      createdAt?: string
-      /**
-       * Format: date-time
-       * @description The time the feature was last updated.
-       *
-       * @example 2023-01-01T00:00:00Z
-       */
-      updatedAt?: string
-    }
-    /**
-     * @description A ledger represented in open meter. A ledger must be assigned to a single
-     * subject.
-     */
-    CreateLedger: {
-      /** @description The metering subject this ledger used to track grants for. */
-      subject: string
-      /**
-       * @example {
-       *   "stripePaymentId": "pi_4OrAkhLvyihio9p51h9iiFnB"
-       * }
-       */
+      featureId: string
+      /** @description Additional metadata for the feature. */
       metadata?: {
         [key: string]: string
       }
+      usagePeriod?: components['schemas']['RecurringPeriod']
     }
+    EntitlementSharedFields: components['schemas']['SharedMetaFields'] &
+      components['schemas']['EntitlementCreateSharedFields'] & {
+        /**
+         * @description The identifier key unique to the subject
+         * @example customer-1
+         */
+        subjectKey: string
+        usagePeriod?: components['schemas']['RecurringPeriod']
+      }
+    EntitlementMeteredCreateInputs: components['schemas']['EntitlementCreateSharedFields'] & {
+      /**
+       * @example metered
+       * @enum {string}
+       */
+      type: 'metered'
+      /**
+       * @description If unlimited=true the subject can use the feature an unlimited amount.
+       *
+       * @default false
+       */
+      isUnlimited?: boolean
+      usagePeriod: components['schemas']['RecurringPeriod']
+      /** @description You can issue usage automatically after reset. This usage is not rolled over. */
+      issueAfterReset?: number
+    }
+    /** @description Entitles a subject to use a feature. */
+    EntitlementMetered: components['schemas']['EntitlementMeteredCreateInputs'] &
+      components['schemas']['EntitlementSharedFields']
+    EntitlementStaticCreateInputs: components['schemas']['EntitlementCreateSharedFields'] & {
+      /**
+       * @example static
+       * @enum {string}
+       */
+      type: 'static'
+      /**
+       * @description The JSON parsable config of the entitlement.
+       *
+       * @example {"key1": "value1"}
+       */
+      config: string
+    }
+    /** @description Entitles a subject to use a feature. */
+    EntitlementStatic: components['schemas']['EntitlementStaticCreateInputs'] &
+      components['schemas']['EntitlementSharedFields']
+    EntitlementBooleanCreateInputs: components['schemas']['EntitlementCreateSharedFields'] & {
+      /**
+       * @example boolean
+       * @enum {string}
+       */
+      type: 'boolean'
+    }
+    /** @description Entitles a subject to use a feature. */
+    EntitlementBoolean: components['schemas']['EntitlementBooleanCreateInputs'] &
+      components['schemas']['EntitlementSharedFields']
+    Entitlement:
+      | components['schemas']['EntitlementMetered']
+      | components['schemas']['EntitlementStatic']
+      | components['schemas']['EntitlementBoolean']
     /**
-     * @description Ledger Exists
-     * @example {
-     *   "type": "about:blank",
-     *   "title": "Conflict",
-     *   "status": 409,
-     *   "detail": "ledger (default.01HXVNDJR532E8GTBVSC2XK5D4) already exitst for subject subject-1",
-     *   "instance": "urn:request:local/JMOlctsKV8-000001",
-     *   "conflictingEntity": {
-     *     "id": "01HXVNDJR532E8GTBVSC2XK5D4",
-     *     "subject": "subject-1"
-     *   }
-     * }
+     * @description A segment of the grant burn down history.
+     *
+     * A given segment represents the usage of a grant in a specific period.
      */
-    LedgerAlreadyExistsProblem: {
-      /**
-       * Format: uri
-       * @description Type contains a URI that identifies the problem type.
-       * @example urn:problem-type:bad-request
-       */
-      type: string
-      /**
-       * @description A a short, human-readable summary of the problem type.
-       * @example Bad Request
-       */
-      title: string
-      /**
-       * Format: int32
-       * @description The HTTP status code generated by the origin server for this occurrence of the problem.
-       * @example 400
-       */
-      status: number
-      /**
-       * @description A human-readable explanation specific to this occurrence of the problem.
-       * @example body must be a JSON object
-       */
-      detail: string
-      /**
-       * Format: uri
-       * @description A URI reference that identifies the specific occurrence of the problem.
-       * @example urn:request:local/JMOlctsKV8-000001
-       */
-      instance?: string
-      conflictingEntity?: components['schemas']['Ledger']
-      [key: string]: unknown
-    }
-    /** @description A ledger represented in our system. */
-    Ledger: components['schemas']['CreateLedger'] & {
-      /**
-       * @description Readonly unique ULID identifier of the ledger.
-       *
-       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
-       */
-      id: string
-      /**
-       * Format: date-time
-       * @description The time the ledger was created.
-       *
-       * @example 2023-01-01T00:00:00Z
-       */
-      createdAt?: string
-    }
-    /** @description A ledger entry. */
-    LedgerEntry: {
-      /**
-       * @description Readonly unique ULID identifier of the ledger entry.
-       *
-       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
-       */
-      id: string
-      type: components['schemas']['LedgerEntryType']
-      /**
-       * Format: date-time
-       * @description The time the ledger entry was created.
-       *
-       * @example 2023-01-01T00:00:00Z
-       */
-      time: string
+    GrantBurnDownHistorySegment: {
+      period?: components['schemas']['Period']
       /**
        * Format: double
-       * @description The amount to apply. Can be positive or negative number. If applicable.
+       * @description The usage of the grant in the period.
        *
        * @example 100
        */
-      amount: number
+      usage?: number
       /**
-       * @description The unique feature ULID that the entry is associated with.
+       * Format: double
+       * @description Overuse that wasn't covered by grants.
+       *
+       * @example 25
+       */
+      overage?: number
+      /**
+       * Format: double
+       * @description The entitlement balance at the start of the period.
+       *
+       * @example 100
+       */
+      balanceAtStart?: number
+      /**
+       * @description The balance breakdown of each active grant at the start of the period: GrantID: Balance
+       *
+       * @example {
+       *   "01ARZ3NDEKTSV4RRFFQ69G5FAV": 100
+       * }
+       */
+      grantBalancesAtStart?: {
+        [key: string]: number
+      }
+      /**
+       * Format: double
+       * @description The entitlement balance at the end of the period.
+       *
+       * @example 100
+       */
+      balanceAtEnd?: number
+      /**
+       * @description The balance breakdown of each active grant at the start of the period: GrantID: Balance
+       *
+       * @example {
+       *   "01ARZ3NDEKTSV4RRFFQ69G5FAV": 100
+       * }
+       */
+      grantBalancesAtEnd?: {
+        [key: string]: number
+      }
+      /** @description Which grants were actually burnt down in the period and by what amount. */
+      grantUsages?: readonly components['schemas']['GrantUsageRecord'][]
+    }
+    GrantUsageRecord: {
+      /**
+       * @description The id of the grant.
        *
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
-      featureID: string
+      grantId?: string
+      /**
+       * Format: double
+       * @description The usage of the grant.
+       *
+       * @example 100
+       */
+      usage?: number
+    }
+    /** @description A window of balance history. */
+    BalanceHistoryWindow: {
       period?: components['schemas']['Period']
+      /**
+       * Format: double
+       * @description The total usage of the feature in the period.
+       *
+       * @example 100
+       */
+      usage?: number
+      /**
+       * Format: double
+       * @description The entitlement balance at the start of the period.
+       *
+       * @example 100
+       */
+      balanceAtStart?: number
+    }
+    /** @description The windowed balance history. */
+    WindowedBalanceHistory: {
+      /**
+       * @description The windowed balance history.
+       * Only returns rows for windows where there was usage.
+       */
+      windowedHistory?: components['schemas']['BalanceHistoryWindow'][]
+      /** @description The grant burn down history in the period. */
+      burndownHistory?: components['schemas']['GrantBurnDownHistorySegment'][]
     }
     /** @description A time period */
     Period: {
@@ -540,96 +691,42 @@ export interface components {
       to: string
     }
     /**
-     * @example GRANT
+     * @description List of pre-defined periods that can be used for recurring & scheduling.
+     *
+     * DAILY:      Every day
+     * # MONDAY:     Every Monday
+     * # TUESDAY:    Every Tuesday
+     * # WEDNESDAY:  Every Wednesday
+     * # THURSDAY:   Every Thursday
+     * # FRIDAY:     Every Friday
+     * # SATURDAY:   Every Saturday
+     * # SUNDAY:     Every Sunday
+     * WEEKLY:     Every week
+     * MONTHLY:    Every month
+     * YEARLY:     Every year
+     * BILLING:    Every billing cycle
+     *
      * @enum {string}
      */
-    LedgerEntryType: 'GRANT' | 'VOID' | 'RESET' | 'GRANT_USAGE'
-    /** @description Balance of a subject. */
-    LedgerBalance: {
-      /** @description Features with balances. */
-      featureBalances: components['schemas']['FeatureBalance'][]
-      /** @description The grants applied to the subject. */
-      grantBalances: components['schemas']['LedgerGrantBalance'][]
-      /**
-       * @example {
-       *   "stripePaymentId": "pi_4OrAkhLvyihio9p51h9iiFnB"
-       * }
-       */
-      metadata?: {
-        [key: string]: string
-      }
-      /**
-       * @description The subject of the ledger.
-       *
-       * @example subject-1
-       */
-      subject: string
+    RecurringPeriodEnum: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY' | 'BILLING'
+    /** @description Recurring period of an entitlement. */
+    RecurringPeriod: {
+      interval: components['schemas']['RecurringPeriodEnum']
       /**
        * Format: date-time
-       * @description The last reset of the ledger.
-       *
-       * @example 2023-01-01T00:00:00Z
+       * @description An arbitrary anchor to base the recurring period on.
        */
-      lastReset?: string
-    }
-    /** @description Ledger reset configuration. */
-    LedgerReset: {
-      /**
-       * @description Readonly unique ULID identifier of the reset.
-       *
-       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
-       */
-      id: string
-      /**
-       * Format: date-time
-       * @description The time to reset the ledger. It cannot be in the future.
-       * The value will be floored to metering windowSize (minute).
-       *
-       * @example 2023-01-01T00:00:00Z
-       */
-      effectiveAt: string
-    }
-    LedgerGrantBalance: components['schemas']['LedgerGrantResponse'] & {
-      /**
-       * Format: double
-       * @description The balance of the grant.
-       *
-       * @example 100
-       */
-      balance: number
-    }
-    FeatureBalance: components['schemas']['Feature'] & {
-      /**
-       * Format: double
-       * @description The balance of the feature.
-       *
-       * @example 100
-       */
-      balance: number
-      /**
-       * Format: double
-       * @description The usage of the feature.
-       *
-       * @example 100
-       */
-      usage: number
+      anchor: string
     }
     /** @description Grants are used to increase balance of specific subjects. */
-    CreateLedgerGrantRequest: {
-      type: components['schemas']['LedgerGrantType']
+    EntitlementGrantCreateInput: {
       /**
        * Format: double
-       * @description The amount to grant. Can be positive or negative number.
+       * @description The amount to grant. Should be a positive number.
        *
        * @example 100
        */
       amount: number
-      /**
-       * @description The unique feature ULID that the grant is associated with, if any.
-       *
-       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
-       */
-      featureID: string
       /**
        * @description The priority of the grant. Grants with higher priority are applied first.
        * Priority is a positive decimal numbers. With lower numbers indicating higher importance.
@@ -649,8 +746,21 @@ export interface components {
        * @example 2023-01-01T00:00:00Z
        */
       effectiveAt: string
-      expiration: components['schemas']['LedgerGrantExpirationPeriod']
-      rollover?: components['schemas']['LedgerGrantRollover']
+      expiration: components['schemas']['ExpirationPeriod']
+      /**
+       * Format: double
+       * @description The maximum amount of the grant that can be rolled over. Defaults to 0.
+       *
+       * - maxAmount = {original_amount} -> rollover original amount
+       * - maxAmount = 0 -> no rollover
+       * - maxAmount = 90 -> rollover 90 max
+       *
+       * If it's larger than 0 then the grant's balance will be the MAX(maxRollover, balance) + amount.
+       *
+       * @default 0
+       * @example 100
+       */
+      maxRolloverAmount?: number
       /**
        * @example {
        *   "stripePaymentId": "pi_4OrAkhLvyihio9p51h9iiFnB"
@@ -659,78 +769,74 @@ export interface components {
       metadata?: {
         [key: string]: string
       }
-      /**
-       * @description The parent grant ULID that the grant is associated with, if any.
-       *
-       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
-       */
-      parentId?: string
-      /**
-       * Format: date-time
-       * @description The time the grant was created.
-       *
-       * @example 2023-01-01T00:00:00Z
-       */
-      createdAt?: string
-      /**
-       * Format: date-time
-       * @description The time the grant was last updated.
-       *
-       * @example 2023-01-01T00:00:00Z
-       */
-      updatedAt?: string
+      recurrence?: components['schemas']['RecurringPeriod']
     }
-    LedgerGrantResponse: components['schemas']['CreateLedgerGrantRequest'] & {
+    EntitlementGrant: components['schemas']['EntitlementGrantCreateInput'] &
+      components['schemas']['SharedMetaFields'] & {
+        /**
+         * @description The unique entitlement ULID that the grant is associated with.
+         *
+         * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+         */
+        entitlementId: string
+        /**
+         * @description The subject that is granted the entitlement.
+         *
+         * @example customer-id
+         */
+        subjectKey: string
+        /**
+         * Format: date-time
+         * @description The next time the grant will recurr.
+         *
+         * @example 2023-01-01T00:00:00Z
+         */
+        nextRecurrence?: string
+        /**
+         * Format: date-time
+         * @description The expiration date of the grant.
+         *
+         * @example 2023-01-01T00:00:00Z
+         */
+        expiresAt?: string
+        /**
+         * Format: date-time
+         * @description The date and time the grant was voided (cannot be used after that).
+         */
+        voidedAt?: string
+      }
+    EntitlementValue: {
       /**
-       * @description Readonly unique ULID identifier of the grant.
-       *
-       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       * @description Whether the subject has access to the feature.
+       * @example true
        */
-      id: string
+      hasAccess: boolean
       /**
-       * @description The ledger ID.
-       * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+       * Format: double
+       * @description The balance of a metered entitlement.
+       * @example 100
        */
-      ledgerID: string
+      balance?: number
       /**
-       * @description If the grant is voided, it will not be applied to the subject's balance anymore.
-       *
-       * @example false
+       * Format: double
+       * @description Total usage of the feature in the period. Includes overages.
+       * @example 50
        */
-      void: boolean
+      usage?: number
       /**
-       * Format: date-time
-       * @description The expiration date of the grant.
-       *
-       * @example 2023-01-01T00:00:00Z
+       * Format: double
+       * @description The overage of a metered entitlement.
+       * @example 0
        */
-      expiresAt?: string
+      overage?: number
+      /**
+       * @description The JSON parseable configuration value of a static entitlement.
+       * @example {"key1": "value1"}
+       */
+      config?: string
     }
-    /**
-     * @description The grant type:
-     * - `USAGE` - Increase balance by the amount in the unit of the associated meter.
-     *
-     * @example USAGE
-     * @enum {string}
-     */
-    LedgerGrantType: 'USAGE'
-    /** @description Grant rollover configuration. */
-    LedgerGrantRollover: {
-      type: components['schemas']['LedgerGrantRolloverType']
-      /** @description Maximum amount to rollover. */
-      maxAmount?: number
-    }
-    /**
-     * @description The rollover type to use:
-     * - `REMAINING_AMOUNT` - Rollover remaining amount.
-     * - `ORIGINAL_AMOUNT` - Rollover re-applies the full grant amount.
-     *
-     * @example ORIGINAL_AMOUNT
-     * @enum {string}
-     */
-    LedgerGrantRolloverType: 'REMAINING_AMOUNT' | 'ORIGINAL_AMOUNT'
-    /** @description Expiration period of a ledger grant. */
-    LedgerGrantExpirationPeriod: {
+    /** @description Expiration period of a grant. */
+    ExpirationPeriod: {
       /**
        * @description The expiration period duration like month.
        *
@@ -994,6 +1100,12 @@ export interface components {
     IdOrSlug: string
   }
   responses: {
+    /** @description Ledger Exists */
+    ConflictProblemResponse: {
+      content: {
+        'application/problem+json': components['schemas']['ConflictProblem']
+      }
+    }
     /** @description Bad Request */
     BadRequestProblemResponse: {
       content: {
@@ -1004,12 +1116,6 @@ export interface components {
     UnauthorizedProblemResponse: {
       content: {
         'application/problem+json': components['schemas']['Problem']
-      }
-    }
-    /** @description Ledger Exists */
-    LedgerAlreadyExistsProblemResponse: {
-      content: {
-        'application/problem+json': components['schemas']['LedgerAlreadyExistsProblem']
       }
     }
     /** @description Not Found */
@@ -1037,17 +1143,19 @@ export interface components {
     /** @description A unique identifier for a subject. */
     subjectIdOrKey: string
     /** @description A unique ULID identifier for a feature. */
-    featureID: string
-    /** @description A unique identifier for a ledger grant. */
-    ledgerGrantID: string
-    /** @description A unique identifier for a ledger. */
-    ledgerID: string
-    /** @description Include void entries in the response. */
-    ledgerIncludeVoids?: boolean
+    featureId: string
+    /** @description A unique identifier for a grant. */
+    grantId: string
+    /** @description A unique ULID for an entitlement. */
+    entitlementId: string
+    /** @description The id of the entitlement or the key of the feature. */
+    entitlementIdOrFeatureKey: string
+    /** @description Include deleted entries. */
+    includeDeleted?: boolean
     /** @description Number of entries to return */
-    ledgerQueryLimit?: number
+    queryLimit?: number
     /** @description Number of entries to skip */
-    ledgerQueryOffset?: number
+    queryOffset?: number
     /**
      * @description Start date-time in RFC 3339 format.
      * Inclusive.
@@ -1065,14 +1173,6 @@ export interface components {
      * If not specified, the UTC timezone will be used.
      */
     queryWindowTimeZone?: string
-    /**
-     * @description Filtering and group by multiple subjects.
-     *
-     * Usage: `?ledgerID=01HX6VK5C498B3ABY9PR1069PP`
-     *
-     * @example 01HX6VK5C498B3ABY9PR1069PP
-     */
-    queryFilterLedgerID?: string
     /**
      * @description Filtering by multiple subjects.
      *
@@ -1501,14 +1601,38 @@ export interface operations {
     }
   }
   /**
+   * List entitlements
+   * @description List entitlements.
+   */
+  listEntitlements: {
+    parameters: {
+      query?: {
+        limit?: components['parameters']['queryLimit']
+        offset?: components['parameters']['queryOffset']
+        /** @description Order by field */
+        orderBy?: 'createdAt' | 'updatedAt'
+      }
+    }
+    responses: {
+      /** @description List of entitlements. */
+      200: {
+        content: {
+          'application/json': components['schemas']['Entitlement'][]
+        }
+      }
+      401: components['responses']['UnauthorizedProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /**
    * List features
    * @description List features.
    */
   listFeatures: {
     parameters: {
       query?: {
-        limit?: components['parameters']['ledgerQueryLimit']
-        offset?: components['parameters']['ledgerQueryOffset']
+        limit?: components['parameters']['queryLimit']
+        offset?: components['parameters']['queryOffset']
         /** @description Order by field */
         orderBy?: 'id' | 'createdAt' | 'updatedAt'
         /** @description Include archived features. */
@@ -1534,7 +1658,7 @@ export interface operations {
     /** @description The feature to create. */
     requestBody: {
       content: {
-        'application/json': components['schemas']['CreateFeatureRequest']
+        'application/json': components['schemas']['FeatureCreateInputs']
       }
     }
     responses: {
@@ -1552,12 +1676,12 @@ export interface operations {
   }
   /**
    * Get feature
-   * @description Get feature by key.
+   * @description Get feature by id.
    */
   getFeature: {
     parameters: {
       path: {
-        featureID: components['parameters']['featureID']
+        featureId: components['parameters']['featureId']
       }
     }
     responses: {
@@ -1579,7 +1703,7 @@ export interface operations {
   deleteFeature: {
     parameters: {
       path: {
-        featureID: components['parameters']['featureID']
+        featureId: components['parameters']['featureId']
       }
     }
     responses: {
@@ -1593,77 +1717,134 @@ export interface operations {
     }
   }
   /**
-   * List the already defined ledgers.
-   * @description List the already defined ledgers.
+   * List grants
+   * @description List all grants.
    */
-  listLedgers: {
+  listGrants: {
     parameters: {
       query?: {
-        /** @description Query ledgers specific to subjects. */
-        subject?: string[]
-        /** @description Query ledgers with subjects that are similar to the provided text. */
-        subjectSimilarTo?: string
-        limit?: components['parameters']['ledgerQueryLimit']
-        offset?: components['parameters']['ledgerQueryOffset']
+        limit?: components['parameters']['queryLimit']
+        offset?: components['parameters']['queryOffset']
         /** @description Order by field */
-        orderBy?: 'subject' | 'createdAt' | 'id'
+        orderBy?: 'id' | 'createdAt' | 'updatedAt'
+        includeDeleted?: components['parameters']['includeDeleted']
       }
     }
     responses: {
-      /** @description List of the matching ledgers. */
+      /** @description List of grants. */
       200: {
         content: {
-          'application/json': components['schemas']['Ledger'][]
+          'application/json': components['schemas']['EntitlementGrant'][]
         }
       }
-      400: components['responses']['BadRequestProblemResponse']
       401: components['responses']['UnauthorizedProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
   /**
-   * Creates the specified ledger
-   * @description Create or update the specified ledger.
+   * Delete a grant
+   * @description Void (delete) a grant. A grant can only be deleted if it hasn't been used.
    */
-  createLedger: {
-    /** @description The ledger to be created */
+  voidGrant: {
+    parameters: {
+      path: {
+        grantId: components['parameters']['grantId']
+      }
+    }
+    responses: {
+      /** @description Grant has been voided. */
+      204: {
+        content: never
+      }
+      400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
+      404: components['responses']['NotFoundProblemResponse']
+      409: components['responses']['ConflictProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /**
+   * List entitlements
+   * @description List all entitlements for a subject.
+   */
+  listSubjectEntitlements: {
+    parameters: {
+      query?: {
+        includeDeleted?: components['parameters']['includeDeleted']
+      }
+      path: {
+        subjectIdOrKey: components['parameters']['subjectIdOrKey']
+      }
+    }
+    responses: {
+      /** @description List of entitlements. */
+      200: {
+        content: {
+          'application/json': components['schemas']['Entitlement'][]
+        }
+      }
+      401: components['responses']['UnauthorizedProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /**
+   * Create entitlement
+   * @description Create an entitlement for a subject.
+   */
+  createEntitlement: {
+    parameters: {
+      path: {
+        subjectIdOrKey: components['parameters']['subjectIdOrKey']
+      }
+    }
+    /** @description The entitlement to create. */
     requestBody: {
       content: {
-        'application/json': components['schemas']['CreateLedger']
+        'application/json':
+          | components['schemas']['EntitlementMeteredCreateInputs']
+          | components['schemas']['EntitlementStaticCreateInputs']
+          | components['schemas']['EntitlementBooleanCreateInputs']
       }
     }
     responses: {
-      /** @description The created ledger. */
+      /** @description Entitlement created. */
       201: {
         content: {
-          'application/json': components['schemas']['Ledger']
+          'application/json': components['schemas']['Entitlement']
         }
       }
       400: components['responses']['BadRequestProblemResponse']
       401: components['responses']['UnauthorizedProblemResponse']
-      409: components['responses']['LedgerAlreadyExistsProblemResponse']
+      409: components['responses']['ConflictProblemResponse']
+      501: components['responses']['NotImplementedProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
   /**
-   * Get the balance of a specific subject.
-   * @description Get the balance of a specific subject.
+   * Get entitlement
+   * @description Get entitlement by id.
    */
-  getLedgerBalance: {
+  getEntitlement: {
     parameters: {
-      query?: {
-        /** @description Point of time to query balances: date-time in RFC 3339 format. Defaults to now. */
-        time?: string
-      }
       path: {
-        ledgerID: components['parameters']['ledgerID']
+        subjectIdOrKey: components['parameters']['subjectIdOrKey']
+        entitlementId: components['parameters']['entitlementId']
       }
     }
     responses: {
-      /** @description Ledger balances available. */
+      /** @description Entitlement found. */
       200: {
         content: {
-          'application/json': components['schemas']['LedgerBalance']
+          'application/json': {
+            type: 'json'
+          } & Omit<components['schemas']['Entitlement'], 'type'> & {
+              /**
+               * Format: date-time
+               * @description The last time usage was reset.
+               * @example 2023-01-01T00:00:00Z
+               */
+              lastReset?: string
+            }
         }
       }
       401: components['responses']['UnauthorizedProblemResponse']
@@ -1672,29 +1853,20 @@ export interface operations {
     }
   }
   /**
-   * Get the history of a ledger
-   * @description Get the history of a specific ledger
+   * Delete entitlement
+   * @description Delete an entitlement by id.
    */
-  getLedgerHistory: {
+  deleteEntitlement: {
     parameters: {
-      query: {
-        limit?: components['parameters']['ledgerQueryLimit']
-        offset?: components['parameters']['ledgerQueryOffset']
-        /** @description Start of time range to query ledger: date-time in RFC 3339 format. */
-        from: string
-        /** @description End of time range to query ledger: date-time in RFC 3339 format. Defaults to now. */
-        to?: string
-      }
       path: {
-        ledgerID: components['parameters']['ledgerID']
+        subjectIdOrKey: components['parameters']['subjectIdOrKey']
+        entitlementId: components['parameters']['entitlementId']
       }
     }
     responses: {
-      /** @description Ledger balance history. */
-      200: {
-        content: {
-          'application/json': components['schemas']['LedgerEntry'][]
-        }
+      /** @description Entitlement deleted. */
+      204: {
+        content: never
       }
       401: components['responses']['UnauthorizedProblemResponse']
       404: components['responses']['NotFoundProblemResponse']
@@ -1702,152 +1874,164 @@ export interface operations {
     }
   }
   /**
-   * Reset the ledger's balance
-   * @description Resets the ledger's balances to zero for a specific subject and re-apply active grants with rollover configuration.
+   * List grants for an entitlement
+   * @description List all grants for an entitlement.
    */
-  resetLedger: {
-    parameters: {
-      path: {
-        ledgerID: components['parameters']['ledgerID']
-      }
-    }
-    /** @description Details for the reset. */
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['LedgerReset']
-      }
-    }
-    responses: {
-      /** @description Ledger balance reset. */
-      201: {
-        content: {
-          'application/json': components['schemas']['LedgerReset']
-        }
-      }
-      400: components['responses']['BadRequestProblemResponse']
-      401: components['responses']['UnauthorizedProblemResponse']
-      404: components['responses']['NotFoundProblemResponse']
-      default: components['responses']['UnexpectedProblemResponse']
-    }
-  }
-  /**
-   * List grants for multiple ledgers.
-   * @description List grants for multiple ledgers.
-   */
-  listLedgerGrants: {
+  listEntitlementGrants: {
     parameters: {
       query?: {
-        ledgerID?: components['parameters']['queryFilterLedgerID']
-        limit?: components['parameters']['ledgerQueryLimit']
-        includeVoids?: components['parameters']['ledgerIncludeVoids']
+        includeDeleted?: components['parameters']['includeDeleted']
+        /** @description Order by field */
+        orderBy?: 'id' | 'createdAt' | 'updatedAt'
+      }
+      path: {
+        subjectIdOrKey: components['parameters']['subjectIdOrKey']
+        entitlementId: components['parameters']['entitlementId']
       }
     }
     responses: {
-      /** @description List of ledger grants. */
+      /** @description List of grants. */
       200: {
         content: {
-          'application/json': components['schemas']['LedgerGrantResponse'][]
+          'application/json': components['schemas']['EntitlementGrant'][]
         }
       }
-      400: components['responses']['BadRequestProblemResponse']
       401: components['responses']['UnauthorizedProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
   /**
-   * List ledger grants
-   * @description List ledger grants for a specific ledger.
+   * Create grant
+   * @description Create a grant for an entitlement.
    */
-  listLedgerGrantsByLedger: {
-    parameters: {
-      query?: {
-        limit?: components['parameters']['ledgerQueryLimit']
-        includeVoids?: components['parameters']['ledgerIncludeVoids']
-      }
-      path: {
-        ledgerID: components['parameters']['ledgerID']
-      }
-    }
-    responses: {
-      /** @description List of ledger grants created. */
-      200: {
-        content: {
-          'application/json': components['schemas']['LedgerGrantResponse'][]
-        }
-      }
-      400: components['responses']['BadRequestProblemResponse']
-      401: components['responses']['UnauthorizedProblemResponse']
-      default: components['responses']['UnexpectedProblemResponse']
-    }
-  }
-  /**
-   * Create a grant on a specific ledger.
-   * @description Create a grant on a specific ledger.
-   */
-  createLedgerGrant: {
+  createGrant: {
     parameters: {
       path: {
-        ledgerID: components['parameters']['ledgerID']
+        subjectIdOrKey: components['parameters']['subjectIdOrKey']
+        entitlementId: components['parameters']['entitlementId']
       }
     }
     /** @description The grant to create. */
     requestBody: {
       content: {
-        'application/json': components['schemas']['CreateLedgerGrantRequest']
+        'application/json': components['schemas']['EntitlementGrantCreateInput']
       }
     }
     responses: {
-      /** @description LedgerGrant created. */
+      /** @description Grant created. */
       201: {
         content: {
-          'application/json': components['schemas']['LedgerGrantResponse']
+          'application/json': components['schemas']['EntitlementGrant']
         }
       }
       400: components['responses']['BadRequestProblemResponse']
       401: components['responses']['UnauthorizedProblemResponse']
+      501: components['responses']['NotImplementedProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
   /**
-   * Get a single grant.
-   * @description Gets the grant for a ledger by ID.
+   * Get the balance of a specific entitlement.
+   * @description Get the balance of a specific entitlement.
    */
-  getLedgerGrant: {
+  getEntitlementValue: {
     parameters: {
+      query?: {
+        /** @description Point of time to check value: date-time in RFC 3339 format. Defaults to now. */
+        time?: string
+      }
       path: {
-        ledgerID: components['parameters']['ledgerID']
-        ledgerGrantID: components['parameters']['ledgerGrantID']
+        subjectIdOrKey: components['parameters']['subjectIdOrKey']
+        entitlementIdOrFeatureKey: components['parameters']['entitlementIdOrFeatureKey']
       }
     }
     responses: {
-      /** @description Ledger grant found. */
+      /** @description The entitlement value. */
       200: {
         content: {
-          'application/json': components['schemas']['LedgerGrantResponse']
+          'application/json': components['schemas']['EntitlementValue']
         }
       }
+      400: components['responses']['BadRequestProblemResponse']
       401: components['responses']['UnauthorizedProblemResponse']
       404: components['responses']['NotFoundProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
   /**
-   * Void ledger grant
-   * @description Void a ledger grant by ID. Partially or fully used grants cannot be voided.
-   * Voided grant won't be applied to the subject's balance anymore.
+   * Get the balance history of a specific entitlement.
+   * @description Get the balance history of a specific entitlement.
+   *
+   * The windows are inclusive at their start and exclusive at their end.
+   * The last window may be smaller than the window size and is inclusive at both ends.
    */
-  voidLedgerGrant: {
+  getEntitlementHistory: {
     parameters: {
+      query: {
+        /**
+         * @description Start of time range to query entitlement: date-time in RFC 3339 format.
+         * Gets truncated to the granularity of the underlying meter.
+         */
+        from: string
+        /**
+         * @description End of time range to query entitlement: date-time in RFC 3339 format. Defaults to now.
+         * If not now then gets truncated to the granularity of the underlying meter.
+         */
+        to?: string
+        /** @description Size of the time window to group the history by. Cannot be shorter than meter granularity. */
+        windowSize: 'MINUTE' | 'HOUR' | 'DAY'
+        windowTimeZone?: components['parameters']['queryWindowTimeZone']
+      }
       path: {
-        ledgerGrantID: components['parameters']['ledgerGrantID']
-        ledgerID: components['parameters']['ledgerID']
+        subjectIdOrKey: components['parameters']['subjectIdOrKey']
+        entitlementId: components['parameters']['entitlementId']
       }
     }
     responses: {
-      /** @description Ledger grant voided. */
+      /** @description Entitlement balance history. If windowsize is specified then the history is grouped by the window size. */
+      200: {
+        content: {
+          'application/json': components['schemas']['WindowedBalanceHistory']
+        }
+      }
+      400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
+      404: components['responses']['NotFoundProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /**
+   * Reset entitlement
+   * @description Reset the entitlement usage and start a new period. Grants that can be are rolled over.
+   */
+  resetEntitlementUsage: {
+    parameters: {
+      path: {
+        subjectIdOrKey: components['parameters']['subjectIdOrKey']
+        entitlementId: components['parameters']['entitlementId']
+      }
+    }
+    requestBody: {
+      content: {
+        'application/json': {
+          /**
+           * Format: date-time
+           * @description The time at which the reset takes effect, defaults to now.
+           * The reset cannot be in the future.
+           * The provided value is truncated to the granularity of the underlying meter.
+           *
+           * @example 2023-01-01T00:00:00Z
+           */
+          effectiveAt?: string
+        }
+      }
+    }
+    responses: {
+      /** @description Entitlement reset. */
       204: {
         content: never
       }
+      400: components['responses']['BadRequestProblemResponse']
       401: components['responses']['UnauthorizedProblemResponse']
       404: components['responses']['NotFoundProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
