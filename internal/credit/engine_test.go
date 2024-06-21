@@ -451,6 +451,66 @@ func TestEngine(t *testing.T) {
 			},
 		},
 		{
+			name: "Burns down grant that expires first among many",
+			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+				// make lots of grants
+				nGrant := func(i int) credit.Grant {
+					return makeGrant(credit.Grant{
+						ID:          fmt.Sprintf("grant-%d", i),
+						Amount:      100.0,
+						Priority:    1,
+						EffectiveAt: t1,
+						Expiration: credit.ExpirationPeriod{
+							Duration: credit.ExpirationPeriodDurationDay,
+							Count:    30,
+						},
+					})
+				}
+
+				numGrants := 100000
+				grants := make([]credit.Grant, 0, numGrants)
+				for i := 0; i < numGrants; i++ {
+					grants = append(grants, nGrant(i))
+				}
+
+				// set exp soonner on first grant
+				grants[0].Expiration.Count = 29
+				grants[0] = makeGrant(grants[0])
+
+				gToBurn := grants[0]
+				bm := credit.GrantBalanceMap{}
+				for _, g := range grants {
+					bm[g.ID] = 100.0
+				}
+
+				// shuffle grants
+				rand.Shuffle(len(grants), func(i, j int) {
+					grants[i], grants[j] = grants[j], grants[i]
+				})
+
+				// burn down with usage after grant effectiveAt
+				use(99, t1.Add(time.Hour))
+
+				res, _, _, err := engine.Run(
+					grants,
+					bm,
+					0,
+					credit.Period{
+						From: t1,
+						To:   t1.AddDate(0, 0, 1),
+					})
+
+				assert.NoError(t, err)
+				for _, g := range grants {
+					if g.ID == gToBurn.ID {
+						assert.Equal(t, 1.0, res[g.ID])
+					} else {
+						assert.Equal(t, 100.0, res[g.ID])
+					}
+				}
+			},
+		},
+		{
 			name: "Burns down recurring grant",
 			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
 				// burn down with usage after grant effectiveAt

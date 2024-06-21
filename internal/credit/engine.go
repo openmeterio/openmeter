@@ -426,12 +426,12 @@ func prioritizeGrants(grants []Grant) error {
 	}
 
 	// 2. Grants with earlier expiration date are burned down first
-	sort.Slice(grants, func(i, j int) bool {
+	sort.SliceStable(grants, func(i, j int) bool {
 		return grants[i].GetExpiration().Unix() < grants[j].GetExpiration().Unix()
 	})
 
 	// 1. Order grant balances by priority
-	sort.Slice(grants, func(i, j int) bool {
+	sort.SliceStable(grants, func(i, j int) bool {
 		return grants[i].Priority < grants[j].Priority
 	})
 
