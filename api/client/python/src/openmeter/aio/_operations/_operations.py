@@ -23,36 +23,38 @@ from azure.core.tracing.decorator_async import distributed_trace_async
 from azure.core.utils import case_insensitive_dict
 
 from ..._operations._operations import (
+    build_create_entitlement_request,
     build_create_feature_request,
-    build_create_ledger_grant_request,
-    build_create_ledger_request,
+    build_create_grant_request,
     build_create_meter_request,
     build_create_portal_token_request,
+    build_delete_entitlement_request,
     build_delete_feature_request,
     build_delete_meter_request,
     build_delete_subject_request,
+    build_get_entitlement_history_request,
+    build_get_entitlement_request,
+    build_get_entitlement_value_request,
     build_get_feature_request,
-    build_get_ledger_balance_request,
-    build_get_ledger_grant_request,
-    build_get_ledger_history_request,
     build_get_meter_request,
     build_get_subject_request,
     build_ingest_events_request,
     build_invalidate_portal_tokens_request,
+    build_list_entitlement_grants_request,
+    build_list_entitlements_request,
     build_list_events_request,
     build_list_features_request,
-    build_list_ledger_grants_by_ledger_request,
-    build_list_ledger_grants_request,
-    build_list_ledgers_request,
+    build_list_grants_request,
     build_list_meter_subjects_request,
     build_list_meters_request,
     build_list_portal_tokens_request,
+    build_list_subject_entitlements_request,
     build_list_subjects_request,
     build_query_meter_request,
     build_query_portal_meter_request,
-    build_reset_ledger_request,
+    build_reset_entitlement_usage_request,
     build_upsert_subject_request,
-    build_void_ledger_grant_request,
+    build_void_grant_request,
 )
 from .._vendor import ClientMixinABC
 
@@ -1888,6 +1890,78 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         return cast(Union[JSON, str], deserialized)  # type: ignore
 
     @distributed_trace_async
+    async def list_entitlements(
+        self, *, limit: int = 1000, offset: int = 0, order_by: str = "createdAt", **kwargs: Any
+    ) -> List[JSON]:
+        """List entitlements.
+
+        List entitlements.
+
+        :keyword limit: Number of entries to return. Default value is 1000.
+        :paramtype limit: int
+        :keyword offset: Number of entries to skip. Default value is 0.
+        :paramtype offset: int
+        :keyword order_by: Order by field. Known values are: "createdAt" and "updatedAt". Default value
+         is "createdAt".
+        :paramtype order_by: str
+        :return: list of JSON object
+        :rtype: list[JSON]
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == [
+                    {}
+                ]
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+
+        _request = build_list_entitlements_request(
+            limit=limit,
+            offset=offset,
+            order_by=order_by,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
+
+        return cast(List[JSON], deserialized)  # type: ignore
+
+    @distributed_trace_async
     async def list_features(
         self, *, limit: int = 1000, offset: int = 0, order_by: str = "id", include_archived: bool = False, **kwargs: Any
     ) -> List[JSON]:
@@ -1915,21 +1989,29 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 # response body for status code(s): 200
                 response == [
                     {
-                        "id": "str",  # Readonly unique ULID identifier of the feature.
-                          Required.
-                        "meterSlug": "str",  # The meter that the feature is associated with
-                          and decreases grants by usage. Required.
+                        "createdAt": "2020-02-20 00:00:00",  # The date and time the resource
+                          was created. Required.
+                        "deletedAt": "2020-02-20 00:00:00",  # The date and time the resource
+                          was deleted. Required.
+                        "id": "str",  # Readonly unique ULID identifier. Required.
+                        "key": "str",  # The unique key of the feature to reference it from
+                          your application. Required.
                         "name": "str",  # The name of the feature. Required.
-                        "archived": bool,  # Optional. If the feature is archived, it will
-                          not be used for grants or usage.
-                        "createdAt": "2020-02-20 00:00:00",  # Optional. The time the feature
-                          was created.
+                        "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource
+                          was last updated. Required.
+                        "archivedAt": "2020-02-20 00:00:00",  # Optional. If the feature is
+                          archived, it will not be used for grants or usage.
+                        "metadata": {
+                            "str": "str"  # Optional. Additional metadata for the
+                              feature.
+                        },
                         "meterGroupByFilters": {
                             "str": "str"  # Optional. Optional meter group by filters.
                               Useful if the meter scope is broader than what feature tracks.
                         },
-                        "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the feature
-                          was last updated.
+                        "meterSlug": "str"  # Optional. The meter that the feature is
+                          associated with and decreases grants by usage. If present, the usage of the
+                          feature can be metered.
                     }
                 ]
         """
@@ -2000,33 +2082,45 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
                 # JSON input template you can fill out and use as your body input.
                 body = {
-                    "meterSlug": "str",  # The meter that the feature is associated with and
-                      decreases grants by usage. Required.
+                    "key": "str",  # The unique key of the feature to reference it from your
+                      application. Required.
                     "name": "str",  # The name of the feature. Required.
-                    "archived": bool,  # Optional. If the feature is archived, it will not be
-                      used for grants or usage.
-                    "meterGroupByFilters": {
-                        "str": "str"  # Optional. Optional meter group by filters. Useful if
-                          the meter scope is broader than what feature tracks.
-                    }
-                }
-
-                # response body for status code(s): 201
-                response == {
-                    "id": "str",  # Readonly unique ULID identifier of the feature. Required.
-                    "meterSlug": "str",  # The meter that the feature is associated with and
-                      decreases grants by usage. Required.
-                    "name": "str",  # The name of the feature. Required.
-                    "archived": bool,  # Optional. If the feature is archived, it will not be
-                      used for grants or usage.
-                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the feature was
-                      created.
+                    "metadata": {
+                        "str": "str"  # Optional. Additional metadata for the feature.
+                    },
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
                           the meter scope is broader than what feature tracks.
                     },
-                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the feature was last
-                      updated.
+                    "meterSlug": "str"  # Optional. The meter that the feature is associated with
+                      and decreases grants by usage. If present, the usage of the feature can be
+                      metered.
+                }
+
+                # response body for status code(s): 201
+                response == {
+                    "createdAt": "2020-02-20 00:00:00",  # The date and time the resource was
+                      created. Required.
+                    "deletedAt": "2020-02-20 00:00:00",  # The date and time the resource was
+                      deleted. Required.
+                    "id": "str",  # Readonly unique ULID identifier. Required.
+                    "key": "str",  # The unique key of the feature to reference it from your
+                      application. Required.
+                    "name": "str",  # The name of the feature. Required.
+                    "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
+                      last updated. Required.
+                    "archivedAt": "2020-02-20 00:00:00",  # Optional. If the feature is archived,
+                      it will not be used for grants or usage.
+                    "metadata": {
+                        "str": "str"  # Optional. Additional metadata for the feature.
+                    },
+                    "meterGroupByFilters": {
+                        "str": "str"  # Optional. Optional meter group by filters. Useful if
+                          the meter scope is broader than what feature tracks.
+                    },
+                    "meterSlug": "str"  # Optional. The meter that the feature is associated with
+                      and decreases grants by usage. If present, the usage of the feature can be
+                      metered.
                 }
         """
 
@@ -2051,20 +2145,28 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
                 # response body for status code(s): 201
                 response == {
-                    "id": "str",  # Readonly unique ULID identifier of the feature. Required.
-                    "meterSlug": "str",  # The meter that the feature is associated with and
-                      decreases grants by usage. Required.
+                    "createdAt": "2020-02-20 00:00:00",  # The date and time the resource was
+                      created. Required.
+                    "deletedAt": "2020-02-20 00:00:00",  # The date and time the resource was
+                      deleted. Required.
+                    "id": "str",  # Readonly unique ULID identifier. Required.
+                    "key": "str",  # The unique key of the feature to reference it from your
+                      application. Required.
                     "name": "str",  # The name of the feature. Required.
-                    "archived": bool,  # Optional. If the feature is archived, it will not be
-                      used for grants or usage.
-                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the feature was
-                      created.
+                    "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
+                      last updated. Required.
+                    "archivedAt": "2020-02-20 00:00:00",  # Optional. If the feature is archived,
+                      it will not be used for grants or usage.
+                    "metadata": {
+                        "str": "str"  # Optional. Additional metadata for the feature.
+                    },
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
                           the meter scope is broader than what feature tracks.
                     },
-                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the feature was last
-                      updated.
+                    "meterSlug": "str"  # Optional. The meter that the feature is associated with
+                      and decreases grants by usage. If present, the usage of the feature can be
+                      metered.
                 }
         """
 
@@ -2086,33 +2188,45 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
                 # JSON input template you can fill out and use as your body input.
                 body = {
-                    "meterSlug": "str",  # The meter that the feature is associated with and
-                      decreases grants by usage. Required.
+                    "key": "str",  # The unique key of the feature to reference it from your
+                      application. Required.
                     "name": "str",  # The name of the feature. Required.
-                    "archived": bool,  # Optional. If the feature is archived, it will not be
-                      used for grants or usage.
-                    "meterGroupByFilters": {
-                        "str": "str"  # Optional. Optional meter group by filters. Useful if
-                          the meter scope is broader than what feature tracks.
-                    }
-                }
-
-                # response body for status code(s): 201
-                response == {
-                    "id": "str",  # Readonly unique ULID identifier of the feature. Required.
-                    "meterSlug": "str",  # The meter that the feature is associated with and
-                      decreases grants by usage. Required.
-                    "name": "str",  # The name of the feature. Required.
-                    "archived": bool,  # Optional. If the feature is archived, it will not be
-                      used for grants or usage.
-                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the feature was
-                      created.
+                    "metadata": {
+                        "str": "str"  # Optional. Additional metadata for the feature.
+                    },
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
                           the meter scope is broader than what feature tracks.
                     },
-                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the feature was last
-                      updated.
+                    "meterSlug": "str"  # Optional. The meter that the feature is associated with
+                      and decreases grants by usage. If present, the usage of the feature can be
+                      metered.
+                }
+
+                # response body for status code(s): 201
+                response == {
+                    "createdAt": "2020-02-20 00:00:00",  # The date and time the resource was
+                      created. Required.
+                    "deletedAt": "2020-02-20 00:00:00",  # The date and time the resource was
+                      deleted. Required.
+                    "id": "str",  # Readonly unique ULID identifier. Required.
+                    "key": "str",  # The unique key of the feature to reference it from your
+                      application. Required.
+                    "name": "str",  # The name of the feature. Required.
+                    "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
+                      last updated. Required.
+                    "archivedAt": "2020-02-20 00:00:00",  # Optional. If the feature is archived,
+                      it will not be used for grants or usage.
+                    "metadata": {
+                        "str": "str"  # Optional. Additional metadata for the feature.
+                    },
+                    "meterGroupByFilters": {
+                        "str": "str"  # Optional. Optional meter group by filters. Useful if
+                          the meter scope is broader than what feature tracks.
+                    },
+                    "meterSlug": "str"  # Optional. The meter that the feature is associated with
+                      and decreases grants by usage. If present, the usage of the feature can be
+                      metered.
                 }
         """
         error_map = {
@@ -2176,7 +2290,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         # pylint: disable=line-too-long
         """Get feature.
 
-        Get feature by key.
+        Get feature by id.
 
         :param feature_id: A unique ULID identifier for a feature. Required.
         :type feature_id: str
@@ -2189,20 +2303,28 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
                 # response body for status code(s): 200
                 response == {
-                    "id": "str",  # Readonly unique ULID identifier of the feature. Required.
-                    "meterSlug": "str",  # The meter that the feature is associated with and
-                      decreases grants by usage. Required.
+                    "createdAt": "2020-02-20 00:00:00",  # The date and time the resource was
+                      created. Required.
+                    "deletedAt": "2020-02-20 00:00:00",  # The date and time the resource was
+                      deleted. Required.
+                    "id": "str",  # Readonly unique ULID identifier. Required.
+                    "key": "str",  # The unique key of the feature to reference it from your
+                      application. Required.
                     "name": "str",  # The name of the feature. Required.
-                    "archived": bool,  # Optional. If the feature is archived, it will not be
-                      used for grants or usage.
-                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the feature was
-                      created.
+                    "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
+                      last updated. Required.
+                    "archivedAt": "2020-02-20 00:00:00",  # Optional. If the feature is archived,
+                      it will not be used for grants or usage.
+                    "metadata": {
+                        "str": "str"  # Optional. Additional metadata for the feature.
+                    },
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
                           the meter scope is broader than what feature tracks.
                     },
-                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the feature was last
-                      updated.
+                    "meterSlug": "str"  # Optional. The meter that the feature is associated with
+                      and decreases grants by usage. If present, the usage of the feature can be
+                      metered.
                 }
         """
         error_map = {
@@ -2299,32 +2421,29 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             return cls(pipeline_response, None, {})  # type: ignore
 
     @distributed_trace_async
-    async def list_ledgers(
+    async def list_grants(
         self,
         *,
-        subject: Optional[List[str]] = None,
-        subject_similar_to: Optional[str] = None,
         limit: int = 1000,
         offset: int = 0,
-        order_by: str = "id",
+        order_by: str = "updatedAt",
+        include_deleted: bool = False,
         **kwargs: Any
     ) -> List[JSON]:
-        """List the already defined ledgers.
+        # pylint: disable=line-too-long
+        """List grants.
 
-        List the already defined ledgers.
+        List all grants.
 
-        :keyword subject: Query ledgers specific to subjects. Default value is None.
-        :paramtype subject: list[str]
-        :keyword subject_similar_to: Query ledgers with subjects that are similar to the provided text.
-         Default value is None.
-        :paramtype subject_similar_to: str
         :keyword limit: Number of entries to return. Default value is 1000.
         :paramtype limit: int
         :keyword offset: Number of entries to skip. Default value is 0.
         :paramtype offset: int
-        :keyword order_by: Order by field. Known values are: "subject", "createdAt", and "id". Default
-         value is "id".
+        :keyword order_by: Order by field. Known values are: "id", "createdAt", and "updatedAt".
+         Default value is "updatedAt".
         :paramtype order_by: str
+        :keyword include_deleted: Include deleted entries. Default value is False.
+        :paramtype include_deleted: bool
         :return: list of JSON object
         :rtype: list[JSON]
         :raises ~azure.core.exceptions.HttpResponseError:
@@ -2335,15 +2454,66 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 # response body for status code(s): 200
                 response == [
                     {
-                        "id": "str",  # Readonly unique ULID identifier of the ledger.
+                        "amount": 0.0,  # The amount to grant. Should be a positive number.
                           Required.
-                        "subject": "str",  # The metering subject this ledger used to track
-                          grants for. Required.
-                        "createdAt": "2020-02-20 00:00:00",  # Optional. The time the ledger
-                          was created.
+                        "createdAt": "2020-02-20 00:00:00",  # The date and time the resource
+                          was created. Required.
+                        "deletedAt": "2020-02-20 00:00:00",  # The date and time the resource
+                          was deleted. Required.
+                        "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided
+                          value will be ceiled to metering windowSize (minute). Required.
+                        "entitlementId": "str",  # The unique entitlement ULID that the grant
+                          is associated with. Required.
+                        "expiration": {
+                            "count": 0,  # The expiration period count like 12 months.
+                              Required.
+                            "duration": "str"  # The expiration period duration like
+                              month. Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and
+                              "YEAR".
+                        },
+                        "id": "str",  # Readonly unique ULID identifier. Required.
+                        "subjectKey": "str",  # The subject that is granted the entitlement.
+                          Required.
+                        "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource
+                          was last updated. Required.
+                        "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date
+                          of the grant.
+                        "maxRolloverAmount": 0,  # Optional. Default value is 0. The maximum
+                          amount of the grant that can be rolled over. Defaults to 0.   * maxAmount =
+                          {original_amount} -> rollover original amount * maxAmount = 0 -> no rollover
+                          * maxAmount = 90 -> rollover 90 max  If it's larger than 0 then the grant's
+                          balance will be the MAX(maxRollover, balance) + amount.
                         "metadata": {
                             "str": "str"  # Optional. Dictionary of :code:`<string>`.
-                        }
+                        },
+                        "nextRecurrence": "2020-02-20 00:00:00",  # Optional. The next time
+                          the grant will recurr.
+                        "priority": 1,  # Optional. Default value is 1. The priority of the
+                          grant. Grants with higher priority are applied first. Priority is a positive
+                          decimal numbers. With lower numbers indicating higher importance. For
+                          example, a priority of 1 is more urgent than a priority of 2. When there are
+                          several grants available for the same subject, the system selects the grant
+                          with the highest priority. In cases where grants share the same priority
+                          level, the grant closest to its expiration will be used first. In the case of
+                          two grants have identical priorities and expiration dates, the system will
+                          use the grant that was created first.
+                        "recurrence": {
+                            "anchor": "2020-02-20 00:00:00",  # An arbitrary anchor to
+                              base the recurring period on. Required.
+                            "interval": "str"  # List of pre-defined periods that can be
+                              used for recurring & scheduling.  DAILY:      Every day  MONDAY:
+                              Every Monday ========================  TUESDAY:    Every Tuesday
+                              =========================  WEDNESDAY:  Every Wednesday
+                              ===========================  THURSDAY:   Every Thursday
+                              ==========================  FRIDAY:     Every Friday
+                              ========================  SATURDAY:   Every Saturday
+                              ==========================  SUNDAY:     Every Sunday
+                              ========================  WEEKLY:     Every week MONTHLY:    Every month
+                              YEARLY:     Every year BILLING:    Every billing cycle. Required. Known
+                              values are: "DAILY", "WEEKLY", "MONTHLY", "YEARLY", and "BILLING".
+                        },
+                        "voidedAt": "2020-02-20 00:00:00"  # Optional. The date and time the
+                          grant was voided (cannot be used after that).
                     }
                 ]
         """
@@ -2351,7 +2521,6 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             404: ResourceNotFoundError,
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
-            400: HttpResponseError,
             401: lambda response: ClientAuthenticationError(response=response),
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
@@ -2361,12 +2530,11 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
 
-        _request = build_list_ledgers_request(
-            subject=subject,
-            subject_similar_to=subject_similar_to,
+        _request = build_list_grants_request(
             limit=limit,
             offset=offset,
             order_by=order_by,
+            include_deleted=include_deleted,
             headers=_headers,
             params=_params,
         )
@@ -2395,13 +2563,96 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         return cast(List[JSON], deserialized)  # type: ignore
 
+    @distributed_trace_async
+    async def void_grant(self, grant_id: str, **kwargs: Any) -> Optional[JSON]:
+        """Delete a grant.
+
+        Void (delete) a grant. A grant can only be deleted if it hasn't been used.
+
+        :param grant_id: A unique identifier for a grant. Required.
+        :type grant_id: str
+        :return: JSON object or None
+        :rtype: JSON or None
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 409
+                response == {
+                    "detail": "str",  # A human-readable explanation specific to this occurrence
+                      of the problem. Required.
+                    "status": 0,  # The HTTP status code generated by the origin server for this
+                      occurrence of the problem. Required.
+                    "title": "str",  # A a short, human-readable summary of the problem type.
+                      Required.
+                    "type": "str",  # Type contains a URI that identifies the problem type.
+                      Required.
+                    "extensions": {
+                        "conflictingEntityId": "str"  # The id of the conflicting entity.
+                          Required.
+                    },
+                    "instance": "str"  # Optional. A URI reference that identifies the specific
+                      occurrence of the problem.
+                }
+        """
+        error_map = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            404: lambda response: ResourceNotFoundError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[Optional[JSON]] = kwargs.pop("cls", None)
+
+        _request = build_void_grant_request(
+            grant_id=grant_id,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [204, 409]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        deserialized = None
+        if response.status_code == 409:
+            if response.content:
+                deserialized = response.json()
+            else:
+                deserialized = None
+
+        if cls:
+            return cls(pipeline_response, deserialized, {})  # type: ignore
+
+        return deserialized  # type: ignore
+
     @overload
-    async def create_ledger(self, body: JSON, *, content_type: str = "application/json", **kwargs: Any) -> JSON:
-        """Creates the specified ledger.
+    async def create_entitlement(
+        self, subject_id_or_key: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        """Create entitlement.
 
-        Create or update the specified ledger.
+        Create an entitlement for a subject.
 
-        :param body: The ledger to be created. Required.
+        :param subject_id_or_key: A unique identifier for a subject. Required.
+        :type subject_id_or_key: str
+        :param body: The entitlement to create. Required.
         :type body: JSON
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
          Default value is "application/json".
@@ -2414,25 +2665,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             .. code-block:: python
 
                 # JSON input template you can fill out and use as your body input.
-                body = {
-                    "subject": "str",  # The metering subject this ledger used to track grants
-                      for. Required.
-                    "metadata": {
-                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
-                    }
-                }
+                body = {}
 
-                # response body for status code(s): 201
-                response == {
-                    "id": "str",  # Readonly unique ULID identifier of the ledger. Required.
-                    "subject": "str",  # The metering subject this ledger used to track grants
-                      for. Required.
-                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the ledger was
-                      created.
-                    "metadata": {
-                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
-                    }
-                }
                 # response body for status code(s): 409
                 response == {
                     "detail": "str",  # A human-readable explanation specific to this occurrence
@@ -2443,16 +2677,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                       Required.
                     "type": "str",  # Type contains a URI that identifies the problem type.
                       Required.
-                    "conflictingEntity": {
-                        "id": "str",  # Readonly unique ULID identifier of the ledger.
+                    "extensions": {
+                        "conflictingEntityId": "str"  # The id of the conflicting entity.
                           Required.
-                        "subject": "str",  # The metering subject this ledger used to track
-                          grants for. Required.
-                        "createdAt": "2020-02-20 00:00:00",  # Optional. The time the ledger
-                          was created.
-                        "metadata": {
-                            "str": "str"  # Optional. Dictionary of :code:`<string>`.
-                        }
                     },
                     "instance": "str"  # Optional. A URI reference that identifies the specific
                       occurrence of the problem.
@@ -2460,12 +2687,16 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         """
 
     @overload
-    async def create_ledger(self, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any) -> JSON:
-        """Creates the specified ledger.
+    async def create_entitlement(
+        self, subject_id_or_key: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        """Create entitlement.
 
-        Create or update the specified ledger.
+        Create an entitlement for a subject.
 
-        :param body: The ledger to be created. Required.
+        :param subject_id_or_key: A unique identifier for a subject. Required.
+        :type subject_id_or_key: str
+        :param body: The entitlement to create. Required.
         :type body: IO[bytes]
         :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
          Default value is "application/json".
@@ -2477,17 +2708,6 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         Example:
             .. code-block:: python
 
-                # response body for status code(s): 201
-                response == {
-                    "id": "str",  # Readonly unique ULID identifier of the ledger. Required.
-                    "subject": "str",  # The metering subject this ledger used to track grants
-                      for. Required.
-                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the ledger was
-                      created.
-                    "metadata": {
-                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
-                    }
-                }
                 # response body for status code(s): 409
                 response == {
                     "detail": "str",  # A human-readable explanation specific to this occurrence
@@ -2498,16 +2718,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                       Required.
                     "type": "str",  # Type contains a URI that identifies the problem type.
                       Required.
-                    "conflictingEntity": {
-                        "id": "str",  # Readonly unique ULID identifier of the ledger.
+                    "extensions": {
+                        "conflictingEntityId": "str"  # The id of the conflicting entity.
                           Required.
-                        "subject": "str",  # The metering subject this ledger used to track
-                          grants for. Required.
-                        "createdAt": "2020-02-20 00:00:00",  # Optional. The time the ledger
-                          was created.
-                        "metadata": {
-                            "str": "str"  # Optional. Dictionary of :code:`<string>`.
-                        }
                     },
                     "instance": "str"  # Optional. A URI reference that identifies the specific
                       occurrence of the problem.
@@ -2515,12 +2728,14 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         """
 
     @distributed_trace_async
-    async def create_ledger(self, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
-        """Creates the specified ledger.
+    async def create_entitlement(self, subject_id_or_key: str, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
+        """Create entitlement.
 
-        Create or update the specified ledger.
+        Create an entitlement for a subject.
 
-        :param body: The ledger to be created. Is either a JSON type or a IO[bytes] type. Required.
+        :param subject_id_or_key: A unique identifier for a subject. Required.
+        :type subject_id_or_key: str
+        :param body: The entitlement to create. Is either a JSON type or a IO[bytes] type. Required.
         :type body: JSON or IO[bytes]
         :return: JSON object
         :rtype: JSON
@@ -2530,25 +2745,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             .. code-block:: python
 
                 # JSON input template you can fill out and use as your body input.
-                body = {
-                    "subject": "str",  # The metering subject this ledger used to track grants
-                      for. Required.
-                    "metadata": {
-                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
-                    }
-                }
+                body = {}
 
-                # response body for status code(s): 201
-                response == {
-                    "id": "str",  # Readonly unique ULID identifier of the ledger. Required.
-                    "subject": "str",  # The metering subject this ledger used to track grants
-                      for. Required.
-                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the ledger was
-                      created.
-                    "metadata": {
-                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
-                    }
-                }
                 # response body for status code(s): 409
                 response == {
                     "detail": "str",  # A human-readable explanation specific to this occurrence
@@ -2559,16 +2757,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                       Required.
                     "type": "str",  # Type contains a URI that identifies the problem type.
                       Required.
-                    "conflictingEntity": {
-                        "id": "str",  # Readonly unique ULID identifier of the ledger.
+                    "extensions": {
+                        "conflictingEntityId": "str"  # The id of the conflicting entity.
                           Required.
-                        "subject": "str",  # The metering subject this ledger used to track
-                          grants for. Required.
-                        "createdAt": "2020-02-20 00:00:00",  # Optional. The time the ledger
-                          was created.
-                        "metadata": {
-                            "str": "str"  # Optional. Dictionary of :code:`<string>`.
-                        }
                     },
                     "instance": "str"  # Optional. A URI reference that identifies the specific
                       occurrence of the problem.
@@ -2580,6 +2771,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             304: ResourceNotModifiedError,
             400: HttpResponseError,
             401: lambda response: ClientAuthenticationError(response=response),
+            501: HttpResponseError,
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
 
@@ -2597,7 +2789,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         else:
             _json = body
 
-        _request = build_create_ledger_request(
+        _request = build_create_entitlement_request(
+            subject_id_or_key=subject_id_or_key,
             content_type=content_type,
             json=_json,
             content=_content,
@@ -2637,19 +2830,83 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         return cast(JSON, deserialized)  # type: ignore
 
     @distributed_trace_async
-    async def get_ledger_balance(
-        self, ledger_id: str, *, time: Optional[datetime.datetime] = None, **kwargs: Any
-    ) -> JSON:
-        # pylint: disable=line-too-long
-        """Get the balance of a specific subject.
+    async def list_subject_entitlements(
+        self, subject_id_or_key: str, *, include_deleted: bool = False, **kwargs: Any
+    ) -> List[JSON]:
+        """List entitlements.
 
-        Get the balance of a specific subject.
+        List all entitlements for a subject.
 
-        :param ledger_id: A unique identifier for a ledger. Required.
-        :type ledger_id: str
-        :keyword time: Point of time to query balances: date-time in RFC 3339 format. Defaults to now.
-         Default value is None.
-        :paramtype time: ~datetime.datetime
+        :param subject_id_or_key: A unique identifier for a subject. Required.
+        :type subject_id_or_key: str
+        :keyword include_deleted: Include deleted entries. Default value is False.
+        :paramtype include_deleted: bool
+        :return: list of JSON object
+        :rtype: list[JSON]
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == [
+                    {}
+                ]
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+
+        _request = build_list_subject_entitlements_request(
+            subject_id_or_key=subject_id_or_key,
+            include_deleted=include_deleted,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
+
+        return cast(List[JSON], deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def get_entitlement(self, subject_id_or_key: str, entitlement_id: str, **kwargs: Any) -> JSON:
+        """Get entitlement.
+
+        Get entitlement by id.
+
+        :param subject_id_or_key: A unique identifier for a subject. Required.
+        :type subject_id_or_key: str
+        :param entitlement_id: A unique ULID for an entitlement. Required.
+        :type entitlement_id: str
         :return: JSON object
         :rtype: JSON
         :raises ~azure.core.exceptions.HttpResponseError:
@@ -2659,89 +2916,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
                 # response body for status code(s): 200
                 response == {
-                    "featureBalances": [
-                        {
-                            "balance": 0.0,  # The balance of the feature. Required.
-                            "id": "str",  # Readonly unique ULID identifier of the
-                              feature. Required.
-                            "meterSlug": "str",  # The meter that the feature is
-                              associated with and decreases grants by usage. Required.
-                            "name": "str",  # The name of the feature. Required.
-                            "usage": 0.0,  # The usage of the feature. Required.
-                            "archived": bool,  # Optional. If the feature is archived, it
-                              will not be used for grants or usage.
-                            "createdAt": "2020-02-20 00:00:00",  # Optional. The time the
-                              feature was created.
-                            "meterGroupByFilters": {
-                                "str": "str"  # Optional. Optional meter group by
-                                  filters. Useful if the meter scope is broader than what feature
-                                  tracks.
-                            },
-                            "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the
-                              feature was last updated.
-                        }
-                    ],
-                    "grantBalances": [
-                        {
-                            "amount": 0.0,  # The amount to grant. Can be positive or
-                              negative number. Required.
-                            "balance": 0.0,  # The balance of the grant. Required.
-                            "effectiveAt": "2020-02-20 00:00:00",  # The effective time.
-                              Provided value will be ceiled to metering windowSize (minute). Required.
-                            "expiration": {
-                                "count": 0,  # The expiration period count like 12
-                                  months. Required.
-                                "duration": "str"  # The expiration period duration
-                                  like month. Required. Known values are: "HOUR", "DAY", "WEEK",
-                                  "MONTH", and "YEAR".
-                            },
-                            "featureID": "str",  # The unique feature ULID that the grant
-                              is associated with, if any. Required.
-                            "id": "str",  # Readonly unique ULID identifier of the grant.
-                              Required.
-                            "ledgerID": "str",  # The ledger ID. Required.
-                            "type": "str",  # The grant type:   * ``USAGE`` - Increase
-                              balance by the amount in the unit of the associated meter. Required.
-                              "USAGE"
-                            "void": bool,  # If the grant is voided, it will not be
-                              applied to the subject's balance anymore. Required.
-                            "createdAt": "2020-02-20 00:00:00",  # Optional. The time the
-                              grant was created.
-                            "expiresAt": "2020-02-20 00:00:00",  # Optional. The
-                              expiration date of the grant.
-                            "metadata": {
-                                "str": "str"  # Optional. Dictionary of
-                                  :code:`<string>`.
-                            },
-                            "parentId": "str",  # Optional. The parent grant ULID that
-                              the grant is associated with, if any.
-                            "priority": 1,  # Optional. Default value is 1. The priority
-                              of the grant. Grants with higher priority are applied first. Priority is
-                              a positive decimal numbers. With lower numbers indicating higher
-                              importance. For example, a priority of 1 is more urgent than a priority
-                              of 2. When there are several grants available for the same subject, the
-                              system selects the grant with the highest priority. In cases where grants
-                              share the same priority level, the grant closest to its expiration will
-                              be used first. In the case of two grants have identical priorities and
-                              expiration dates, the system will use the grant that was created first.
-                            "rollover": {
-                                "type": "str",  # The rollover type to use:   *
-                                  ``REMAINING_AMOUNT`` - Rollover remaining amount. *
-                                  ``ORIGINAL_AMOUNT`` - Rollover re-applies the full grant amount.
-                                  Required. Known values are: "REMAINING_AMOUNT" and "ORIGINAL_AMOUNT".
-                                "maxAmount": 0.0  # Optional. Maximum amount to
-                                  rollover.
-                            },
-                            "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the
-                              grant was last updated.
-                        }
-                    ],
-                    "subject": "str",  # The subject of the ledger. Required.
-                    "lastReset": "2020-02-20 00:00:00",  # Optional. The last reset of the
-                      ledger.
-                    "metadata": {
-                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
-                    }
+                    "lastReset": "2020-02-20 00:00:00"  # Optional. The last time usage was
+                      reset.
                 }
         """
         error_map = {
@@ -2757,8 +2933,700 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         cls: ClsType[JSON] = kwargs.pop("cls", None)
 
-        _request = build_get_ledger_balance_request(
-            ledger_id=ledger_id,
+        _request = build_get_entitlement_request(
+            subject_id_or_key=subject_id_or_key,
+            entitlement_id=entitlement_id,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def delete_entitlement(  # pylint: disable=inconsistent-return-statements
+        self, subject_id_or_key: str, entitlement_id: str, **kwargs: Any
+    ) -> None:
+        """Delete entitlement.
+
+        Delete an entitlement by id.
+
+        :param subject_id_or_key: A unique identifier for a subject. Required.
+        :type subject_id_or_key: str
+        :param entitlement_id: A unique ULID for an entitlement. Required.
+        :type entitlement_id: str
+        :return: None
+        :rtype: None
+        :raises ~azure.core.exceptions.HttpResponseError:
+        """
+        error_map = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            404: lambda response: ResourceNotFoundError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[None] = kwargs.pop("cls", None)
+
+        _request = build_delete_entitlement_request(
+            subject_id_or_key=subject_id_or_key,
+            entitlement_id=entitlement_id,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [204]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if cls:
+            return cls(pipeline_response, None, {})  # type: ignore
+
+    @distributed_trace_async
+    async def list_entitlement_grants(
+        self,
+        subject_id_or_key: str,
+        entitlement_id: str,
+        *,
+        include_deleted: bool = False,
+        order_by: str = "updatedAt",
+        **kwargs: Any
+    ) -> List[JSON]:
+        # pylint: disable=line-too-long
+        """List grants for an entitlement.
+
+        List all grants for an entitlement.
+
+        :param subject_id_or_key: A unique identifier for a subject. Required.
+        :type subject_id_or_key: str
+        :param entitlement_id: A unique ULID for an entitlement. Required.
+        :type entitlement_id: str
+        :keyword include_deleted: Include deleted entries. Default value is False.
+        :paramtype include_deleted: bool
+        :keyword order_by: Order by field. Known values are: "id", "createdAt", and "updatedAt".
+         Default value is "updatedAt".
+        :paramtype order_by: str
+        :return: list of JSON object
+        :rtype: list[JSON]
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == [
+                    {
+                        "amount": 0.0,  # The amount to grant. Should be a positive number.
+                          Required.
+                        "createdAt": "2020-02-20 00:00:00",  # The date and time the resource
+                          was created. Required.
+                        "deletedAt": "2020-02-20 00:00:00",  # The date and time the resource
+                          was deleted. Required.
+                        "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided
+                          value will be ceiled to metering windowSize (minute). Required.
+                        "entitlementId": "str",  # The unique entitlement ULID that the grant
+                          is associated with. Required.
+                        "expiration": {
+                            "count": 0,  # The expiration period count like 12 months.
+                              Required.
+                            "duration": "str"  # The expiration period duration like
+                              month. Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and
+                              "YEAR".
+                        },
+                        "id": "str",  # Readonly unique ULID identifier. Required.
+                        "subjectKey": "str",  # The subject that is granted the entitlement.
+                          Required.
+                        "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource
+                          was last updated. Required.
+                        "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date
+                          of the grant.
+                        "maxRolloverAmount": 0,  # Optional. Default value is 0. The maximum
+                          amount of the grant that can be rolled over. Defaults to 0.   * maxAmount =
+                          {original_amount} -> rollover original amount * maxAmount = 0 -> no rollover
+                          * maxAmount = 90 -> rollover 90 max  If it's larger than 0 then the grant's
+                          balance will be the MAX(maxRollover, balance) + amount.
+                        "metadata": {
+                            "str": "str"  # Optional. Dictionary of :code:`<string>`.
+                        },
+                        "nextRecurrence": "2020-02-20 00:00:00",  # Optional. The next time
+                          the grant will recurr.
+                        "priority": 1,  # Optional. Default value is 1. The priority of the
+                          grant. Grants with higher priority are applied first. Priority is a positive
+                          decimal numbers. With lower numbers indicating higher importance. For
+                          example, a priority of 1 is more urgent than a priority of 2. When there are
+                          several grants available for the same subject, the system selects the grant
+                          with the highest priority. In cases where grants share the same priority
+                          level, the grant closest to its expiration will be used first. In the case of
+                          two grants have identical priorities and expiration dates, the system will
+                          use the grant that was created first.
+                        "recurrence": {
+                            "anchor": "2020-02-20 00:00:00",  # An arbitrary anchor to
+                              base the recurring period on. Required.
+                            "interval": "str"  # List of pre-defined periods that can be
+                              used for recurring & scheduling.  DAILY:      Every day  MONDAY:
+                              Every Monday ========================  TUESDAY:    Every Tuesday
+                              =========================  WEDNESDAY:  Every Wednesday
+                              ===========================  THURSDAY:   Every Thursday
+                              ==========================  FRIDAY:     Every Friday
+                              ========================  SATURDAY:   Every Saturday
+                              ==========================  SUNDAY:     Every Sunday
+                              ========================  WEEKLY:     Every week MONTHLY:    Every month
+                              YEARLY:     Every year BILLING:    Every billing cycle. Required. Known
+                              values are: "DAILY", "WEEKLY", "MONTHLY", "YEARLY", and "BILLING".
+                        },
+                        "voidedAt": "2020-02-20 00:00:00"  # Optional. The date and time the
+                          grant was voided (cannot be used after that).
+                    }
+                ]
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+
+        _request = build_list_entitlement_grants_request(
+            subject_id_or_key=subject_id_or_key,
+            entitlement_id=entitlement_id,
+            include_deleted=include_deleted,
+            order_by=order_by,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
+
+        return cast(List[JSON], deserialized)  # type: ignore
+
+    @overload
+    async def create_grant(
+        self,
+        subject_id_or_key: str,
+        entitlement_id: str,
+        body: JSON,
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
+    ) -> JSON:
+        # pylint: disable=line-too-long
+        """Create grant.
+
+        Create a grant for an entitlement.
+
+        :param subject_id_or_key: A unique identifier for a subject. Required.
+        :type subject_id_or_key: str
+        :param entitlement_id: A unique ULID for an entitlement. Required.
+        :type entitlement_id: str
+        :param body: The grant to create. Required.
+        :type body: JSON
+        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "amount": 0.0,  # The amount to grant. Should be a positive number. Required.
+                    "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided value
+                      will be ceiled to metering windowSize (minute). Required.
+                    "expiration": {
+                        "count": 0,  # The expiration period count like 12 months. Required.
+                        "duration": "str"  # The expiration period duration like month.
+                          Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
+                    },
+                    "maxRolloverAmount": 0,  # Optional. Default value is 0. The maximum amount
+                      of the grant that can be rolled over. Defaults to 0.   * maxAmount =
+                      {original_amount} -> rollover original amount * maxAmount = 0 -> no rollover *
+                      maxAmount = 90 -> rollover 90 max  If it's larger than 0 then the grant's balance
+                      will be the MAX(maxRollover, balance) + amount.
+                    "metadata": {
+                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
+                    },
+                    "priority": 1,  # Optional. Default value is 1. The priority of the grant.
+                      Grants with higher priority are applied first. Priority is a positive decimal
+                      numbers. With lower numbers indicating higher importance. For example, a priority
+                      of 1 is more urgent than a priority of 2. When there are several grants available
+                      for the same subject, the system selects the grant with the highest priority. In
+                      cases where grants share the same priority level, the grant closest to its
+                      expiration will be used first. In the case of two grants have identical
+                      priorities and expiration dates, the system will use the grant that was created
+                      first.
+                    "recurrence": {
+                        "anchor": "2020-02-20 00:00:00",  # An arbitrary anchor to base the
+                          recurring period on. Required.
+                        "interval": "str"  # List of pre-defined periods that can be used for
+                          recurring & scheduling.  DAILY:      Every day  MONDAY:     Every Monday
+                          ========================  TUESDAY:    Every Tuesday =========================
+                          WEDNESDAY:  Every Wednesday ===========================  THURSDAY:   Every
+                          Thursday ==========================  FRIDAY:     Every Friday
+                          ========================  SATURDAY:   Every Saturday
+                          ==========================  SUNDAY:     Every Sunday ========================
+                          WEEKLY:     Every week MONTHLY:    Every month YEARLY:     Every year
+                          BILLING:    Every billing cycle. Required. Known values are: "DAILY",
+                          "WEEKLY", "MONTHLY", "YEARLY", and "BILLING".
+                    }
+                }
+
+                # response body for status code(s): 201
+                response == {
+                    "amount": 0.0,  # The amount to grant. Should be a positive number. Required.
+                    "createdAt": "2020-02-20 00:00:00",  # The date and time the resource was
+                      created. Required.
+                    "deletedAt": "2020-02-20 00:00:00",  # The date and time the resource was
+                      deleted. Required.
+                    "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided value
+                      will be ceiled to metering windowSize (minute). Required.
+                    "entitlementId": "str",  # The unique entitlement ULID that the grant is
+                      associated with. Required.
+                    "expiration": {
+                        "count": 0,  # The expiration period count like 12 months. Required.
+                        "duration": "str"  # The expiration period duration like month.
+                          Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
+                    },
+                    "id": "str",  # Readonly unique ULID identifier. Required.
+                    "subjectKey": "str",  # The subject that is granted the entitlement.
+                      Required.
+                    "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
+                      last updated. Required.
+                    "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
+                      grant.
+                    "maxRolloverAmount": 0,  # Optional. Default value is 0. The maximum amount
+                      of the grant that can be rolled over. Defaults to 0.   * maxAmount =
+                      {original_amount} -> rollover original amount * maxAmount = 0 -> no rollover *
+                      maxAmount = 90 -> rollover 90 max  If it's larger than 0 then the grant's balance
+                      will be the MAX(maxRollover, balance) + amount.
+                    "metadata": {
+                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
+                    },
+                    "nextRecurrence": "2020-02-20 00:00:00",  # Optional. The next time the grant
+                      will recurr.
+                    "priority": 1,  # Optional. Default value is 1. The priority of the grant.
+                      Grants with higher priority are applied first. Priority is a positive decimal
+                      numbers. With lower numbers indicating higher importance. For example, a priority
+                      of 1 is more urgent than a priority of 2. When there are several grants available
+                      for the same subject, the system selects the grant with the highest priority. In
+                      cases where grants share the same priority level, the grant closest to its
+                      expiration will be used first. In the case of two grants have identical
+                      priorities and expiration dates, the system will use the grant that was created
+                      first.
+                    "recurrence": {
+                        "anchor": "2020-02-20 00:00:00",  # An arbitrary anchor to base the
+                          recurring period on. Required.
+                        "interval": "str"  # List of pre-defined periods that can be used for
+                          recurring & scheduling.  DAILY:      Every day  MONDAY:     Every Monday
+                          ========================  TUESDAY:    Every Tuesday =========================
+                          WEDNESDAY:  Every Wednesday ===========================  THURSDAY:   Every
+                          Thursday ==========================  FRIDAY:     Every Friday
+                          ========================  SATURDAY:   Every Saturday
+                          ==========================  SUNDAY:     Every Sunday ========================
+                          WEEKLY:     Every week MONTHLY:    Every month YEARLY:     Every year
+                          BILLING:    Every billing cycle. Required. Known values are: "DAILY",
+                          "WEEKLY", "MONTHLY", "YEARLY", and "BILLING".
+                    },
+                    "voidedAt": "2020-02-20 00:00:00"  # Optional. The date and time the grant
+                      was voided (cannot be used after that).
+                }
+        """
+
+    @overload
+    async def create_grant(
+        self,
+        subject_id_or_key: str,
+        entitlement_id: str,
+        body: IO[bytes],
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
+    ) -> JSON:
+        # pylint: disable=line-too-long
+        """Create grant.
+
+        Create a grant for an entitlement.
+
+        :param subject_id_or_key: A unique identifier for a subject. Required.
+        :type subject_id_or_key: str
+        :param entitlement_id: A unique ULID for an entitlement. Required.
+        :type entitlement_id: str
+        :param body: The grant to create. Required.
+        :type body: IO[bytes]
+        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 201
+                response == {
+                    "amount": 0.0,  # The amount to grant. Should be a positive number. Required.
+                    "createdAt": "2020-02-20 00:00:00",  # The date and time the resource was
+                      created. Required.
+                    "deletedAt": "2020-02-20 00:00:00",  # The date and time the resource was
+                      deleted. Required.
+                    "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided value
+                      will be ceiled to metering windowSize (minute). Required.
+                    "entitlementId": "str",  # The unique entitlement ULID that the grant is
+                      associated with. Required.
+                    "expiration": {
+                        "count": 0,  # The expiration period count like 12 months. Required.
+                        "duration": "str"  # The expiration period duration like month.
+                          Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
+                    },
+                    "id": "str",  # Readonly unique ULID identifier. Required.
+                    "subjectKey": "str",  # The subject that is granted the entitlement.
+                      Required.
+                    "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
+                      last updated. Required.
+                    "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
+                      grant.
+                    "maxRolloverAmount": 0,  # Optional. Default value is 0. The maximum amount
+                      of the grant that can be rolled over. Defaults to 0.   * maxAmount =
+                      {original_amount} -> rollover original amount * maxAmount = 0 -> no rollover *
+                      maxAmount = 90 -> rollover 90 max  If it's larger than 0 then the grant's balance
+                      will be the MAX(maxRollover, balance) + amount.
+                    "metadata": {
+                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
+                    },
+                    "nextRecurrence": "2020-02-20 00:00:00",  # Optional. The next time the grant
+                      will recurr.
+                    "priority": 1,  # Optional. Default value is 1. The priority of the grant.
+                      Grants with higher priority are applied first. Priority is a positive decimal
+                      numbers. With lower numbers indicating higher importance. For example, a priority
+                      of 1 is more urgent than a priority of 2. When there are several grants available
+                      for the same subject, the system selects the grant with the highest priority. In
+                      cases where grants share the same priority level, the grant closest to its
+                      expiration will be used first. In the case of two grants have identical
+                      priorities and expiration dates, the system will use the grant that was created
+                      first.
+                    "recurrence": {
+                        "anchor": "2020-02-20 00:00:00",  # An arbitrary anchor to base the
+                          recurring period on. Required.
+                        "interval": "str"  # List of pre-defined periods that can be used for
+                          recurring & scheduling.  DAILY:      Every day  MONDAY:     Every Monday
+                          ========================  TUESDAY:    Every Tuesday =========================
+                          WEDNESDAY:  Every Wednesday ===========================  THURSDAY:   Every
+                          Thursday ==========================  FRIDAY:     Every Friday
+                          ========================  SATURDAY:   Every Saturday
+                          ==========================  SUNDAY:     Every Sunday ========================
+                          WEEKLY:     Every week MONTHLY:    Every month YEARLY:     Every year
+                          BILLING:    Every billing cycle. Required. Known values are: "DAILY",
+                          "WEEKLY", "MONTHLY", "YEARLY", and "BILLING".
+                    },
+                    "voidedAt": "2020-02-20 00:00:00"  # Optional. The date and time the grant
+                      was voided (cannot be used after that).
+                }
+        """
+
+    @distributed_trace_async
+    async def create_grant(
+        self, subject_id_or_key: str, entitlement_id: str, body: Union[JSON, IO[bytes]], **kwargs: Any
+    ) -> JSON:
+        # pylint: disable=line-too-long
+        """Create grant.
+
+        Create a grant for an entitlement.
+
+        :param subject_id_or_key: A unique identifier for a subject. Required.
+        :type subject_id_or_key: str
+        :param entitlement_id: A unique ULID for an entitlement. Required.
+        :type entitlement_id: str
+        :param body: The grant to create. Is either a JSON type or a IO[bytes] type. Required.
+        :type body: JSON or IO[bytes]
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "amount": 0.0,  # The amount to grant. Should be a positive number. Required.
+                    "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided value
+                      will be ceiled to metering windowSize (minute). Required.
+                    "expiration": {
+                        "count": 0,  # The expiration period count like 12 months. Required.
+                        "duration": "str"  # The expiration period duration like month.
+                          Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
+                    },
+                    "maxRolloverAmount": 0,  # Optional. Default value is 0. The maximum amount
+                      of the grant that can be rolled over. Defaults to 0.   * maxAmount =
+                      {original_amount} -> rollover original amount * maxAmount = 0 -> no rollover *
+                      maxAmount = 90 -> rollover 90 max  If it's larger than 0 then the grant's balance
+                      will be the MAX(maxRollover, balance) + amount.
+                    "metadata": {
+                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
+                    },
+                    "priority": 1,  # Optional. Default value is 1. The priority of the grant.
+                      Grants with higher priority are applied first. Priority is a positive decimal
+                      numbers. With lower numbers indicating higher importance. For example, a priority
+                      of 1 is more urgent than a priority of 2. When there are several grants available
+                      for the same subject, the system selects the grant with the highest priority. In
+                      cases where grants share the same priority level, the grant closest to its
+                      expiration will be used first. In the case of two grants have identical
+                      priorities and expiration dates, the system will use the grant that was created
+                      first.
+                    "recurrence": {
+                        "anchor": "2020-02-20 00:00:00",  # An arbitrary anchor to base the
+                          recurring period on. Required.
+                        "interval": "str"  # List of pre-defined periods that can be used for
+                          recurring & scheduling.  DAILY:      Every day  MONDAY:     Every Monday
+                          ========================  TUESDAY:    Every Tuesday =========================
+                          WEDNESDAY:  Every Wednesday ===========================  THURSDAY:   Every
+                          Thursday ==========================  FRIDAY:     Every Friday
+                          ========================  SATURDAY:   Every Saturday
+                          ==========================  SUNDAY:     Every Sunday ========================
+                          WEEKLY:     Every week MONTHLY:    Every month YEARLY:     Every year
+                          BILLING:    Every billing cycle. Required. Known values are: "DAILY",
+                          "WEEKLY", "MONTHLY", "YEARLY", and "BILLING".
+                    }
+                }
+
+                # response body for status code(s): 201
+                response == {
+                    "amount": 0.0,  # The amount to grant. Should be a positive number. Required.
+                    "createdAt": "2020-02-20 00:00:00",  # The date and time the resource was
+                      created. Required.
+                    "deletedAt": "2020-02-20 00:00:00",  # The date and time the resource was
+                      deleted. Required.
+                    "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided value
+                      will be ceiled to metering windowSize (minute). Required.
+                    "entitlementId": "str",  # The unique entitlement ULID that the grant is
+                      associated with. Required.
+                    "expiration": {
+                        "count": 0,  # The expiration period count like 12 months. Required.
+                        "duration": "str"  # The expiration period duration like month.
+                          Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
+                    },
+                    "id": "str",  # Readonly unique ULID identifier. Required.
+                    "subjectKey": "str",  # The subject that is granted the entitlement.
+                      Required.
+                    "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
+                      last updated. Required.
+                    "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
+                      grant.
+                    "maxRolloverAmount": 0,  # Optional. Default value is 0. The maximum amount
+                      of the grant that can be rolled over. Defaults to 0.   * maxAmount =
+                      {original_amount} -> rollover original amount * maxAmount = 0 -> no rollover *
+                      maxAmount = 90 -> rollover 90 max  If it's larger than 0 then the grant's balance
+                      will be the MAX(maxRollover, balance) + amount.
+                    "metadata": {
+                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
+                    },
+                    "nextRecurrence": "2020-02-20 00:00:00",  # Optional. The next time the grant
+                      will recurr.
+                    "priority": 1,  # Optional. Default value is 1. The priority of the grant.
+                      Grants with higher priority are applied first. Priority is a positive decimal
+                      numbers. With lower numbers indicating higher importance. For example, a priority
+                      of 1 is more urgent than a priority of 2. When there are several grants available
+                      for the same subject, the system selects the grant with the highest priority. In
+                      cases where grants share the same priority level, the grant closest to its
+                      expiration will be used first. In the case of two grants have identical
+                      priorities and expiration dates, the system will use the grant that was created
+                      first.
+                    "recurrence": {
+                        "anchor": "2020-02-20 00:00:00",  # An arbitrary anchor to base the
+                          recurring period on. Required.
+                        "interval": "str"  # List of pre-defined periods that can be used for
+                          recurring & scheduling.  DAILY:      Every day  MONDAY:     Every Monday
+                          ========================  TUESDAY:    Every Tuesday =========================
+                          WEDNESDAY:  Every Wednesday ===========================  THURSDAY:   Every
+                          Thursday ==========================  FRIDAY:     Every Friday
+                          ========================  SATURDAY:   Every Saturday
+                          ==========================  SUNDAY:     Every Sunday ========================
+                          WEEKLY:     Every week MONTHLY:    Every month YEARLY:     Every year
+                          BILLING:    Every billing cycle. Required. Known values are: "DAILY",
+                          "WEEKLY", "MONTHLY", "YEARLY", and "BILLING".
+                    },
+                    "voidedAt": "2020-02-20 00:00:00"  # Optional. The date and time the grant
+                      was voided (cannot be used after that).
+                }
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            501: HttpResponseError,
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _params = kwargs.pop("params", {}) or {}
+
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        content_type = content_type or "application/json"
+        _json = None
+        _content = None
+        if isinstance(body, (IOBase, bytes)):
+            _content = body
+        else:
+            _json = body
+
+        _request = build_create_grant_request(
+            subject_id_or_key=subject_id_or_key,
+            entitlement_id=entitlement_id,
+            content_type=content_type,
+            json=_json,
+            content=_content,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [201]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def get_entitlement_value(
+        self,
+        subject_id_or_key: str,
+        entitlement_id_or_feature_key: str,
+        *,
+        time: Optional[datetime.datetime] = None,
+        **kwargs: Any
+    ) -> JSON:
+        """Get the balance of a specific entitlement.
+
+        Get the balance of a specific entitlement.
+
+        :param subject_id_or_key: A unique identifier for a subject. Required.
+        :type subject_id_or_key: str
+        :param entitlement_id_or_feature_key: The id of the entitlement or the key of the feature.
+         Required.
+        :type entitlement_id_or_feature_key: str
+        :keyword time: Point of time to check value: date-time in RFC 3339 format. Defaults to now.
+         Default value is None.
+        :paramtype time: ~datetime.datetime
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == {
+                    "hasAccess": bool,  # Whether the subject has access to the feature.
+                      Required.
+                    "balance": 0.0,  # Optional. The balance of a metered entitlement.
+                    "config": "str",  # Optional. The JSON parseable configuration value of a
+                      static entitlement.
+                    "overage": 0.0,  # Optional. The overage of a metered entitlement.
+                    "usage": 0.0  # Optional. Total usage of the feature in the period. Includes
+                      overages.
+                }
+        """
+        error_map = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            404: lambda response: ResourceNotFoundError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        _request = build_get_entitlement_value_request(
+            subject_id_or_key=subject_id_or_key,
+            entitlement_id_or_feature_key=entitlement_id_or_feature_key,
             time=time,
             headers=_headers,
             params=_params,
@@ -2789,64 +3657,108 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         return cast(JSON, deserialized)  # type: ignore
 
     @distributed_trace_async
-    async def get_ledger_history(
+    async def get_entitlement_history(
         self,
-        ledger_id: str,
+        subject_id_or_key: str,
+        entitlement_id: str,
         *,
         from_parameter: datetime.datetime,
-        limit: int = 1000,
-        offset: int = 0,
+        window_size: str,
         to: Optional[datetime.datetime] = None,
+        window_time_zone: str = "UTC",
         **kwargs: Any
-    ) -> List[JSON]:
-        """Get the history of a ledger.
+    ) -> JSON:
+        # pylint: disable=line-too-long
+        """Get the balance history of a specific entitlement.
 
-        Get the history of a specific ledger.
+        Get the balance history of a specific entitlement.
 
-        :param ledger_id: A unique identifier for a ledger. Required.
-        :type ledger_id: str
-        :keyword from_parameter: Start of time range to query ledger: date-time in RFC 3339 format.
-         Required.
+        The windows are inclusive at their start and exclusive at their end.
+        The last window may be smaller than the window size and is inclusive at both ends.
+
+        :param subject_id_or_key: A unique identifier for a subject. Required.
+        :type subject_id_or_key: str
+        :param entitlement_id: A unique ULID for an entitlement. Required.
+        :type entitlement_id: str
+        :keyword from_parameter: Start of time range to query entitlement: date-time in RFC 3339
+         format.
+         Gets truncated to the granularity of the underlying meter. Required.
         :paramtype from_parameter: ~datetime.datetime
-        :keyword limit: Number of entries to return. Default value is 1000.
-        :paramtype limit: int
-        :keyword offset: Number of entries to skip. Default value is 0.
-        :paramtype offset: int
-        :keyword to: End of time range to query ledger: date-time in RFC 3339 format. Defaults to now.
-         Default value is None.
+        :keyword window_size: Size of the time window to group the history by. Cannot be shorter than
+         meter granularity. Known values are: "MINUTE", "HOUR", and "DAY". Required.
+        :paramtype window_size: str
+        :keyword to: End of time range to query entitlement: date-time in RFC 3339 format. Defaults to
+         now.
+         If not now then gets truncated to the granularity of the underlying meter. Default value is
+         None.
         :paramtype to: ~datetime.datetime
-        :return: list of JSON object
-        :rtype: list[JSON]
+        :keyword window_time_zone: The value is the name of the time zone as defined in the IANA Time
+         Zone Database (http://www.iana.org/time-zones).
+         If not specified, the UTC timezone will be used. Default value is "UTC".
+        :paramtype window_time_zone: str
+        :return: JSON object
+        :rtype: JSON
         :raises ~azure.core.exceptions.HttpResponseError:
 
         Example:
             .. code-block:: python
 
                 # response body for status code(s): 200
-                response == [
-                    {
-                        "amount": 0.0,  # The amount to apply. Can be positive or negative
-                          number. If applicable. Required.
-                        "featureID": "str",  # The unique feature ULID that the entry is
-                          associated with. Required.
-                        "id": "str",  # Readonly unique ULID identifier of the ledger entry.
-                          Required.
-                        "time": "2020-02-20 00:00:00",  # The time the ledger entry was
-                          created. Required.
-                        "type": "str",  # Required. Known values are: "GRANT", "VOID",
-                          "RESET", and "GRANT_USAGE".
-                        "period": {
-                            "from": "2020-02-20 00:00:00",  # Period start time where the
-                              amount was applied. If applicable. Required.
-                            "to": "2020-02-20 00:00:00"  # Period end time where the
-                              amount was applied. If applicable. Required.
+                response == {
+                    "burndownHistory": [
+                        {
+                            "balanceAtEnd": 0.0,  # Optional. The entitlement balance at
+                              the end of the period.
+                            "balanceAtStart": 0.0,  # Optional. The entitlement balance
+                              at the start of the period.
+                            "grantBalancesAtEnd": {
+                                "str": 0.0  # Optional. The balance breakdown of each
+                                  active grant at the start of the period: GrantID: Balance.
+                            },
+                            "grantBalancesAtStart": {
+                                "str": 0.0  # Optional. The balance breakdown of each
+                                  active grant at the start of the period: GrantID: Balance.
+                            },
+                            "grantUsages": [
+                                {
+                                    "grantId": "str",  # Optional. The id of the
+                                      grant.
+                                    "usage": 0.0  # Optional. The usage of the
+                                      grant.
+                                }
+                            ],
+                            "overage": 0.0,  # Optional. Overuse that wasn't covered by
+                              grants.
+                            "period": {
+                                "from": "2020-02-20 00:00:00",  # Period start time
+                                  where the amount was applied. If applicable. Required.
+                                "to": "2020-02-20 00:00:00"  # Period end time where
+                                  the amount was applied. If applicable. Required.
+                            },
+                            "usage": 0.0  # Optional. The usage of the grant in the
+                              period.
                         }
-                    }
-                ]
+                    ],
+                    "windowedHistory": [
+                        {
+                            "balanceAtStart": 0.0,  # Optional. The entitlement balance
+                              at the start of the period.
+                            "period": {
+                                "from": "2020-02-20 00:00:00",  # Period start time
+                                  where the amount was applied. If applicable. Required.
+                                "to": "2020-02-20 00:00:00"  # Period end time where
+                                  the amount was applied. If applicable. Required.
+                            },
+                            "usage": 0.0  # Optional. The total usage of the feature in
+                              the period.
+                        }
+                    ]
+                }
         """
         error_map = {
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
+            400: HttpResponseError,
             401: lambda response: ClientAuthenticationError(response=response),
             404: lambda response: ResourceNotFoundError(response=response),
         }
@@ -2855,883 +3767,15 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
 
-        _request = build_get_ledger_history_request(
-            ledger_id=ledger_id,
+        _request = build_get_entitlement_history_request(
+            subject_id_or_key=subject_id_or_key,
+            entitlement_id=entitlement_id,
             from_parameter=from_parameter,
-            limit=limit,
-            offset=offset,
+            window_size=window_size,
             to=to,
-            headers=_headers,
-            params=_params,
-        )
-        _request.url = self._client.format_url(_request.url)
-
-        _stream = False
-        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
-            _request, stream=_stream, **kwargs
-        )
-
-        response = pipeline_response.http_response
-
-        if response.status_code not in [200]:
-            if _stream:
-                await response.read()  # Load the body in memory and close the socket
-            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
-            raise HttpResponseError(response=response)
-
-        if response.content:
-            deserialized = response.json()
-        else:
-            deserialized = None
-
-        if cls:
-            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
-
-        return cast(List[JSON], deserialized)  # type: ignore
-
-    @overload
-    async def reset_ledger(
-        self, ledger_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
-    ) -> JSON:
-        # pylint: disable=line-too-long
-        """Reset the ledger's balance.
-
-        Resets the ledger's balances to zero for a specific subject and re-apply active grants with
-        rollover configuration.
-
-        :param ledger_id: A unique identifier for a ledger. Required.
-        :type ledger_id: str
-        :param body: Details for the reset. Required.
-        :type body: JSON
-        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
-         Default value is "application/json".
-        :paramtype content_type: str
-        :return: JSON object
-        :rtype: JSON
-        :raises ~azure.core.exceptions.HttpResponseError:
-
-        Example:
-            .. code-block:: python
-
-                # JSON input template you can fill out and use as your body input.
-                body = {
-                    "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the ledger. It
-                      cannot be in the future. The value will be floored to metering windowSize
-                      (minute). Required.
-                    "id": "str"  # Readonly unique ULID identifier of the reset. Required.
-                }
-
-                # response body for status code(s): 201
-                response == {
-                    "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the ledger. It
-                      cannot be in the future. The value will be floored to metering windowSize
-                      (minute). Required.
-                    "id": "str"  # Readonly unique ULID identifier of the reset. Required.
-                }
-        """
-
-    @overload
-    async def reset_ledger(
-        self, ledger_id: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
-    ) -> JSON:
-        # pylint: disable=line-too-long
-        """Reset the ledger's balance.
-
-        Resets the ledger's balances to zero for a specific subject and re-apply active grants with
-        rollover configuration.
-
-        :param ledger_id: A unique identifier for a ledger. Required.
-        :type ledger_id: str
-        :param body: Details for the reset. Required.
-        :type body: IO[bytes]
-        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
-         Default value is "application/json".
-        :paramtype content_type: str
-        :return: JSON object
-        :rtype: JSON
-        :raises ~azure.core.exceptions.HttpResponseError:
-
-        Example:
-            .. code-block:: python
-
-                # response body for status code(s): 201
-                response == {
-                    "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the ledger. It
-                      cannot be in the future. The value will be floored to metering windowSize
-                      (minute). Required.
-                    "id": "str"  # Readonly unique ULID identifier of the reset. Required.
-                }
-        """
-
-    @distributed_trace_async
-    async def reset_ledger(self, ledger_id: str, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
-        # pylint: disable=line-too-long
-        """Reset the ledger's balance.
-
-        Resets the ledger's balances to zero for a specific subject and re-apply active grants with
-        rollover configuration.
-
-        :param ledger_id: A unique identifier for a ledger. Required.
-        :type ledger_id: str
-        :param body: Details for the reset. Is either a JSON type or a IO[bytes] type. Required.
-        :type body: JSON or IO[bytes]
-        :return: JSON object
-        :rtype: JSON
-        :raises ~azure.core.exceptions.HttpResponseError:
-
-        Example:
-            .. code-block:: python
-
-                # JSON input template you can fill out and use as your body input.
-                body = {
-                    "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the ledger. It
-                      cannot be in the future. The value will be floored to metering windowSize
-                      (minute). Required.
-                    "id": "str"  # Readonly unique ULID identifier of the reset. Required.
-                }
-
-                # response body for status code(s): 201
-                response == {
-                    "effectiveAt": "2020-02-20 00:00:00",  # The time to reset the ledger. It
-                      cannot be in the future. The value will be floored to metering windowSize
-                      (minute). Required.
-                    "id": "str"  # Readonly unique ULID identifier of the reset. Required.
-                }
-        """
-        error_map = {
-            409: ResourceExistsError,
-            304: ResourceNotModifiedError,
-            400: HttpResponseError,
-            401: lambda response: ClientAuthenticationError(response=response),
-            404: lambda response: ResourceNotFoundError(response=response),
-        }
-        error_map.update(kwargs.pop("error_map", {}) or {})
-
-        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
-        _params = kwargs.pop("params", {}) or {}
-
-        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
-        cls: ClsType[JSON] = kwargs.pop("cls", None)
-
-        content_type = content_type or "application/json"
-        _json = None
-        _content = None
-        if isinstance(body, (IOBase, bytes)):
-            _content = body
-        else:
-            _json = body
-
-        _request = build_reset_ledger_request(
-            ledger_id=ledger_id,
-            content_type=content_type,
-            json=_json,
-            content=_content,
-            headers=_headers,
-            params=_params,
-        )
-        _request.url = self._client.format_url(_request.url)
-
-        _stream = False
-        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
-            _request, stream=_stream, **kwargs
-        )
-
-        response = pipeline_response.http_response
-
-        if response.status_code not in [201]:
-            if _stream:
-                await response.read()  # Load the body in memory and close the socket
-            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
-            raise HttpResponseError(response=response)
-
-        if response.content:
-            deserialized = response.json()
-        else:
-            deserialized = None
-
-        if cls:
-            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
-
-        return cast(JSON, deserialized)  # type: ignore
-
-    @distributed_trace_async
-    async def list_ledger_grants(
-        self, *, ledger_id: Optional[str] = None, limit: int = 1000, include_voids: bool = False, **kwargs: Any
-    ) -> List[JSON]:
-        # pylint: disable=line-too-long
-        """List grants for multiple ledgers.
-
-        List grants for multiple ledgers.
-
-        :keyword ledger_id: Filtering and group by multiple subjects.
-
-         Usage: ``?ledgerID=01HX6VK5C498B3ABY9PR1069PP``. Default value is None.
-        :paramtype ledger_id: str
-        :keyword limit: Number of entries to return. Default value is 1000.
-        :paramtype limit: int
-        :keyword include_voids: Include void entries in the response. Default value is False.
-        :paramtype include_voids: bool
-        :return: list of JSON object
-        :rtype: list[JSON]
-        :raises ~azure.core.exceptions.HttpResponseError:
-
-        Example:
-            .. code-block:: python
-
-                # response body for status code(s): 200
-                response == [
-                    {
-                        "amount": 0.0,  # The amount to grant. Can be positive or negative
-                          number. Required.
-                        "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided
-                          value will be ceiled to metering windowSize (minute). Required.
-                        "expiration": {
-                            "count": 0,  # The expiration period count like 12 months.
-                              Required.
-                            "duration": "str"  # The expiration period duration like
-                              month. Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and
-                              "YEAR".
-                        },
-                        "featureID": "str",  # The unique feature ULID that the grant is
-                          associated with, if any. Required.
-                        "id": "str",  # Readonly unique ULID identifier of the grant.
-                          Required.
-                        "ledgerID": "str",  # The ledger ID. Required.
-                        "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by
-                          the amount in the unit of the associated meter. Required. "USAGE"
-                        "void": bool,  # If the grant is voided, it will not be applied to
-                          the subject's balance anymore. Required.
-                        "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant
-                          was created.
-                        "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date
-                          of the grant.
-                        "metadata": {
-                            "str": "str"  # Optional. Dictionary of :code:`<string>`.
-                        },
-                        "parentId": "str",  # Optional. The parent grant ULID that the grant
-                          is associated with, if any.
-                        "priority": 1,  # Optional. Default value is 1. The priority of the
-                          grant. Grants with higher priority are applied first. Priority is a positive
-                          decimal numbers. With lower numbers indicating higher importance. For
-                          example, a priority of 1 is more urgent than a priority of 2. When there are
-                          several grants available for the same subject, the system selects the grant
-                          with the highest priority. In cases where grants share the same priority
-                          level, the grant closest to its expiration will be used first. In the case of
-                          two grants have identical priorities and expiration dates, the system will
-                          use the grant that was created first.
-                        "rollover": {
-                            "type": "str",  # The rollover type to use:   *
-                              ``REMAINING_AMOUNT`` - Rollover remaining amount. * ``ORIGINAL_AMOUNT`` -
-                              Rollover re-applies the full grant amount. Required. Known values are:
-                              "REMAINING_AMOUNT" and "ORIGINAL_AMOUNT".
-                            "maxAmount": 0.0  # Optional. Maximum amount to rollover.
-                        },
-                        "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the grant
-                          was last updated.
-                    }
-                ]
-        """
-        error_map = {
-            404: ResourceNotFoundError,
-            409: ResourceExistsError,
-            304: ResourceNotModifiedError,
-            400: HttpResponseError,
-            401: lambda response: ClientAuthenticationError(response=response),
-        }
-        error_map.update(kwargs.pop("error_map", {}) or {})
-
-        _headers = kwargs.pop("headers", {}) or {}
-        _params = kwargs.pop("params", {}) or {}
-
-        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
-
-        _request = build_list_ledger_grants_request(
-            ledger_id=ledger_id,
-            limit=limit,
-            include_voids=include_voids,
-            headers=_headers,
-            params=_params,
-        )
-        _request.url = self._client.format_url(_request.url)
-
-        _stream = False
-        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
-            _request, stream=_stream, **kwargs
-        )
-
-        response = pipeline_response.http_response
-
-        if response.status_code not in [200]:
-            if _stream:
-                await response.read()  # Load the body in memory and close the socket
-            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
-            raise HttpResponseError(response=response)
-
-        if response.content:
-            deserialized = response.json()
-        else:
-            deserialized = None
-
-        if cls:
-            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
-
-        return cast(List[JSON], deserialized)  # type: ignore
-
-    @distributed_trace_async
-    async def list_ledger_grants_by_ledger(
-        self, ledger_id: str, *, limit: int = 1000, include_voids: bool = False, **kwargs: Any
-    ) -> List[JSON]:
-        # pylint: disable=line-too-long
-        """List ledger grants.
-
-        List ledger grants for a specific ledger.
-
-        :param ledger_id: A unique identifier for a ledger. Required.
-        :type ledger_id: str
-        :keyword limit: Number of entries to return. Default value is 1000.
-        :paramtype limit: int
-        :keyword include_voids: Include void entries in the response. Default value is False.
-        :paramtype include_voids: bool
-        :return: list of JSON object
-        :rtype: list[JSON]
-        :raises ~azure.core.exceptions.HttpResponseError:
-
-        Example:
-            .. code-block:: python
-
-                # response body for status code(s): 200
-                response == [
-                    {
-                        "amount": 0.0,  # The amount to grant. Can be positive or negative
-                          number. Required.
-                        "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided
-                          value will be ceiled to metering windowSize (minute). Required.
-                        "expiration": {
-                            "count": 0,  # The expiration period count like 12 months.
-                              Required.
-                            "duration": "str"  # The expiration period duration like
-                              month. Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and
-                              "YEAR".
-                        },
-                        "featureID": "str",  # The unique feature ULID that the grant is
-                          associated with, if any. Required.
-                        "id": "str",  # Readonly unique ULID identifier of the grant.
-                          Required.
-                        "ledgerID": "str",  # The ledger ID. Required.
-                        "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by
-                          the amount in the unit of the associated meter. Required. "USAGE"
-                        "void": bool,  # If the grant is voided, it will not be applied to
-                          the subject's balance anymore. Required.
-                        "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant
-                          was created.
-                        "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date
-                          of the grant.
-                        "metadata": {
-                            "str": "str"  # Optional. Dictionary of :code:`<string>`.
-                        },
-                        "parentId": "str",  # Optional. The parent grant ULID that the grant
-                          is associated with, if any.
-                        "priority": 1,  # Optional. Default value is 1. The priority of the
-                          grant. Grants with higher priority are applied first. Priority is a positive
-                          decimal numbers. With lower numbers indicating higher importance. For
-                          example, a priority of 1 is more urgent than a priority of 2. When there are
-                          several grants available for the same subject, the system selects the grant
-                          with the highest priority. In cases where grants share the same priority
-                          level, the grant closest to its expiration will be used first. In the case of
-                          two grants have identical priorities and expiration dates, the system will
-                          use the grant that was created first.
-                        "rollover": {
-                            "type": "str",  # The rollover type to use:   *
-                              ``REMAINING_AMOUNT`` - Rollover remaining amount. * ``ORIGINAL_AMOUNT`` -
-                              Rollover re-applies the full grant amount. Required. Known values are:
-                              "REMAINING_AMOUNT" and "ORIGINAL_AMOUNT".
-                            "maxAmount": 0.0  # Optional. Maximum amount to rollover.
-                        },
-                        "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the grant
-                          was last updated.
-                    }
-                ]
-        """
-        error_map = {
-            404: ResourceNotFoundError,
-            409: ResourceExistsError,
-            304: ResourceNotModifiedError,
-            400: HttpResponseError,
-            401: lambda response: ClientAuthenticationError(response=response),
-        }
-        error_map.update(kwargs.pop("error_map", {}) or {})
-
-        _headers = kwargs.pop("headers", {}) or {}
-        _params = kwargs.pop("params", {}) or {}
-
-        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
-
-        _request = build_list_ledger_grants_by_ledger_request(
-            ledger_id=ledger_id,
-            limit=limit,
-            include_voids=include_voids,
-            headers=_headers,
-            params=_params,
-        )
-        _request.url = self._client.format_url(_request.url)
-
-        _stream = False
-        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
-            _request, stream=_stream, **kwargs
-        )
-
-        response = pipeline_response.http_response
-
-        if response.status_code not in [200]:
-            if _stream:
-                await response.read()  # Load the body in memory and close the socket
-            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
-            raise HttpResponseError(response=response)
-
-        if response.content:
-            deserialized = response.json()
-        else:
-            deserialized = None
-
-        if cls:
-            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
-
-        return cast(List[JSON], deserialized)  # type: ignore
-
-    @overload
-    async def create_ledger_grant(
-        self, ledger_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
-    ) -> JSON:
-        # pylint: disable=line-too-long
-        """Create a grant on a specific ledger.
-
-        Create a grant on a specific ledger.
-
-        :param ledger_id: A unique identifier for a ledger. Required.
-        :type ledger_id: str
-        :param body: The grant to create. Required.
-        :type body: JSON
-        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
-         Default value is "application/json".
-        :paramtype content_type: str
-        :return: JSON object
-        :rtype: JSON
-        :raises ~azure.core.exceptions.HttpResponseError:
-
-        Example:
-            .. code-block:: python
-
-                # JSON input template you can fill out and use as your body input.
-                body = {
-                    "amount": 0.0,  # The amount to grant. Can be positive or negative number.
-                      Required.
-                    "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided value
-                      will be ceiled to metering windowSize (minute). Required.
-                    "expiration": {
-                        "count": 0,  # The expiration period count like 12 months. Required.
-                        "duration": "str"  # The expiration period duration like month.
-                          Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
-                    },
-                    "featureID": "str",  # The unique feature ULID that the grant is associated
-                      with, if any. Required.
-                    "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
-                      amount in the unit of the associated meter. Required. "USAGE"
-                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant was
-                      created.
-                    "metadata": {
-                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
-                    },
-                    "parentId": "str",  # Optional. The parent grant ULID that the grant is
-                      associated with, if any.
-                    "priority": 1,  # Optional. Default value is 1. The priority of the grant.
-                      Grants with higher priority are applied first. Priority is a positive decimal
-                      numbers. With lower numbers indicating higher importance. For example, a priority
-                      of 1 is more urgent than a priority of 2. When there are several grants available
-                      for the same subject, the system selects the grant with the highest priority. In
-                      cases where grants share the same priority level, the grant closest to its
-                      expiration will be used first. In the case of two grants have identical
-                      priorities and expiration dates, the system will use the grant that was created
-                      first.
-                    "rollover": {
-                        "type": "str",  # The rollover type to use:   * ``REMAINING_AMOUNT``
-                          - Rollover remaining amount. * ``ORIGINAL_AMOUNT`` - Rollover re-applies the
-                          full grant amount. Required. Known values are: "REMAINING_AMOUNT" and
-                          "ORIGINAL_AMOUNT".
-                        "maxAmount": 0.0  # Optional. Maximum amount to rollover.
-                    },
-                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the grant was last
-                      updated.
-                }
-
-                # response body for status code(s): 201
-                response == {
-                    "amount": 0.0,  # The amount to grant. Can be positive or negative number.
-                      Required.
-                    "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided value
-                      will be ceiled to metering windowSize (minute). Required.
-                    "expiration": {
-                        "count": 0,  # The expiration period count like 12 months. Required.
-                        "duration": "str"  # The expiration period duration like month.
-                          Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
-                    },
-                    "featureID": "str",  # The unique feature ULID that the grant is associated
-                      with, if any. Required.
-                    "id": "str",  # Readonly unique ULID identifier of the grant. Required.
-                    "ledgerID": "str",  # The ledger ID. Required.
-                    "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
-                      amount in the unit of the associated meter. Required. "USAGE"
-                    "void": bool,  # If the grant is voided, it will not be applied to the
-                      subject's balance anymore. Required.
-                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant was
-                      created.
-                    "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
-                      grant.
-                    "metadata": {
-                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
-                    },
-                    "parentId": "str",  # Optional. The parent grant ULID that the grant is
-                      associated with, if any.
-                    "priority": 1,  # Optional. Default value is 1. The priority of the grant.
-                      Grants with higher priority are applied first. Priority is a positive decimal
-                      numbers. With lower numbers indicating higher importance. For example, a priority
-                      of 1 is more urgent than a priority of 2. When there are several grants available
-                      for the same subject, the system selects the grant with the highest priority. In
-                      cases where grants share the same priority level, the grant closest to its
-                      expiration will be used first. In the case of two grants have identical
-                      priorities and expiration dates, the system will use the grant that was created
-                      first.
-                    "rollover": {
-                        "type": "str",  # The rollover type to use:   * ``REMAINING_AMOUNT``
-                          - Rollover remaining amount. * ``ORIGINAL_AMOUNT`` - Rollover re-applies the
-                          full grant amount. Required. Known values are: "REMAINING_AMOUNT" and
-                          "ORIGINAL_AMOUNT".
-                        "maxAmount": 0.0  # Optional. Maximum amount to rollover.
-                    },
-                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the grant was last
-                      updated.
-                }
-        """
-
-    @overload
-    async def create_ledger_grant(
-        self, ledger_id: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
-    ) -> JSON:
-        # pylint: disable=line-too-long
-        """Create a grant on a specific ledger.
-
-        Create a grant on a specific ledger.
-
-        :param ledger_id: A unique identifier for a ledger. Required.
-        :type ledger_id: str
-        :param body: The grant to create. Required.
-        :type body: IO[bytes]
-        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
-         Default value is "application/json".
-        :paramtype content_type: str
-        :return: JSON object
-        :rtype: JSON
-        :raises ~azure.core.exceptions.HttpResponseError:
-
-        Example:
-            .. code-block:: python
-
-                # response body for status code(s): 201
-                response == {
-                    "amount": 0.0,  # The amount to grant. Can be positive or negative number.
-                      Required.
-                    "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided value
-                      will be ceiled to metering windowSize (minute). Required.
-                    "expiration": {
-                        "count": 0,  # The expiration period count like 12 months. Required.
-                        "duration": "str"  # The expiration period duration like month.
-                          Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
-                    },
-                    "featureID": "str",  # The unique feature ULID that the grant is associated
-                      with, if any. Required.
-                    "id": "str",  # Readonly unique ULID identifier of the grant. Required.
-                    "ledgerID": "str",  # The ledger ID. Required.
-                    "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
-                      amount in the unit of the associated meter. Required. "USAGE"
-                    "void": bool,  # If the grant is voided, it will not be applied to the
-                      subject's balance anymore. Required.
-                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant was
-                      created.
-                    "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
-                      grant.
-                    "metadata": {
-                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
-                    },
-                    "parentId": "str",  # Optional. The parent grant ULID that the grant is
-                      associated with, if any.
-                    "priority": 1,  # Optional. Default value is 1. The priority of the grant.
-                      Grants with higher priority are applied first. Priority is a positive decimal
-                      numbers. With lower numbers indicating higher importance. For example, a priority
-                      of 1 is more urgent than a priority of 2. When there are several grants available
-                      for the same subject, the system selects the grant with the highest priority. In
-                      cases where grants share the same priority level, the grant closest to its
-                      expiration will be used first. In the case of two grants have identical
-                      priorities and expiration dates, the system will use the grant that was created
-                      first.
-                    "rollover": {
-                        "type": "str",  # The rollover type to use:   * ``REMAINING_AMOUNT``
-                          - Rollover remaining amount. * ``ORIGINAL_AMOUNT`` - Rollover re-applies the
-                          full grant amount. Required. Known values are: "REMAINING_AMOUNT" and
-                          "ORIGINAL_AMOUNT".
-                        "maxAmount": 0.0  # Optional. Maximum amount to rollover.
-                    },
-                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the grant was last
-                      updated.
-                }
-        """
-
-    @distributed_trace_async
-    async def create_ledger_grant(self, ledger_id: str, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
-        # pylint: disable=line-too-long
-        """Create a grant on a specific ledger.
-
-        Create a grant on a specific ledger.
-
-        :param ledger_id: A unique identifier for a ledger. Required.
-        :type ledger_id: str
-        :param body: The grant to create. Is either a JSON type or a IO[bytes] type. Required.
-        :type body: JSON or IO[bytes]
-        :return: JSON object
-        :rtype: JSON
-        :raises ~azure.core.exceptions.HttpResponseError:
-
-        Example:
-            .. code-block:: python
-
-                # JSON input template you can fill out and use as your body input.
-                body = {
-                    "amount": 0.0,  # The amount to grant. Can be positive or negative number.
-                      Required.
-                    "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided value
-                      will be ceiled to metering windowSize (minute). Required.
-                    "expiration": {
-                        "count": 0,  # The expiration period count like 12 months. Required.
-                        "duration": "str"  # The expiration period duration like month.
-                          Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
-                    },
-                    "featureID": "str",  # The unique feature ULID that the grant is associated
-                      with, if any. Required.
-                    "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
-                      amount in the unit of the associated meter. Required. "USAGE"
-                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant was
-                      created.
-                    "metadata": {
-                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
-                    },
-                    "parentId": "str",  # Optional. The parent grant ULID that the grant is
-                      associated with, if any.
-                    "priority": 1,  # Optional. Default value is 1. The priority of the grant.
-                      Grants with higher priority are applied first. Priority is a positive decimal
-                      numbers. With lower numbers indicating higher importance. For example, a priority
-                      of 1 is more urgent than a priority of 2. When there are several grants available
-                      for the same subject, the system selects the grant with the highest priority. In
-                      cases where grants share the same priority level, the grant closest to its
-                      expiration will be used first. In the case of two grants have identical
-                      priorities and expiration dates, the system will use the grant that was created
-                      first.
-                    "rollover": {
-                        "type": "str",  # The rollover type to use:   * ``REMAINING_AMOUNT``
-                          - Rollover remaining amount. * ``ORIGINAL_AMOUNT`` - Rollover re-applies the
-                          full grant amount. Required. Known values are: "REMAINING_AMOUNT" and
-                          "ORIGINAL_AMOUNT".
-                        "maxAmount": 0.0  # Optional. Maximum amount to rollover.
-                    },
-                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the grant was last
-                      updated.
-                }
-
-                # response body for status code(s): 201
-                response == {
-                    "amount": 0.0,  # The amount to grant. Can be positive or negative number.
-                      Required.
-                    "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided value
-                      will be ceiled to metering windowSize (minute). Required.
-                    "expiration": {
-                        "count": 0,  # The expiration period count like 12 months. Required.
-                        "duration": "str"  # The expiration period duration like month.
-                          Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
-                    },
-                    "featureID": "str",  # The unique feature ULID that the grant is associated
-                      with, if any. Required.
-                    "id": "str",  # Readonly unique ULID identifier of the grant. Required.
-                    "ledgerID": "str",  # The ledger ID. Required.
-                    "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
-                      amount in the unit of the associated meter. Required. "USAGE"
-                    "void": bool,  # If the grant is voided, it will not be applied to the
-                      subject's balance anymore. Required.
-                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant was
-                      created.
-                    "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
-                      grant.
-                    "metadata": {
-                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
-                    },
-                    "parentId": "str",  # Optional. The parent grant ULID that the grant is
-                      associated with, if any.
-                    "priority": 1,  # Optional. Default value is 1. The priority of the grant.
-                      Grants with higher priority are applied first. Priority is a positive decimal
-                      numbers. With lower numbers indicating higher importance. For example, a priority
-                      of 1 is more urgent than a priority of 2. When there are several grants available
-                      for the same subject, the system selects the grant with the highest priority. In
-                      cases where grants share the same priority level, the grant closest to its
-                      expiration will be used first. In the case of two grants have identical
-                      priorities and expiration dates, the system will use the grant that was created
-                      first.
-                    "rollover": {
-                        "type": "str",  # The rollover type to use:   * ``REMAINING_AMOUNT``
-                          - Rollover remaining amount. * ``ORIGINAL_AMOUNT`` - Rollover re-applies the
-                          full grant amount. Required. Known values are: "REMAINING_AMOUNT" and
-                          "ORIGINAL_AMOUNT".
-                        "maxAmount": 0.0  # Optional. Maximum amount to rollover.
-                    },
-                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the grant was last
-                      updated.
-                }
-        """
-        error_map = {
-            404: ResourceNotFoundError,
-            409: ResourceExistsError,
-            304: ResourceNotModifiedError,
-            400: HttpResponseError,
-            401: lambda response: ClientAuthenticationError(response=response),
-        }
-        error_map.update(kwargs.pop("error_map", {}) or {})
-
-        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
-        _params = kwargs.pop("params", {}) or {}
-
-        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
-        cls: ClsType[JSON] = kwargs.pop("cls", None)
-
-        content_type = content_type or "application/json"
-        _json = None
-        _content = None
-        if isinstance(body, (IOBase, bytes)):
-            _content = body
-        else:
-            _json = body
-
-        _request = build_create_ledger_grant_request(
-            ledger_id=ledger_id,
-            content_type=content_type,
-            json=_json,
-            content=_content,
-            headers=_headers,
-            params=_params,
-        )
-        _request.url = self._client.format_url(_request.url)
-
-        _stream = False
-        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
-            _request, stream=_stream, **kwargs
-        )
-
-        response = pipeline_response.http_response
-
-        if response.status_code not in [201]:
-            if _stream:
-                await response.read()  # Load the body in memory and close the socket
-            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
-            raise HttpResponseError(response=response)
-
-        if response.content:
-            deserialized = response.json()
-        else:
-            deserialized = None
-
-        if cls:
-            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
-
-        return cast(JSON, deserialized)  # type: ignore
-
-    @distributed_trace_async
-    async def get_ledger_grant(self, ledger_id: str, ledger_grant_id: str, **kwargs: Any) -> JSON:
-        # pylint: disable=line-too-long
-        """Get a single grant.
-
-        Gets the grant for a ledger by ID.
-
-        :param ledger_id: A unique identifier for a ledger. Required.
-        :type ledger_id: str
-        :param ledger_grant_id: A unique identifier for a ledger grant. Required.
-        :type ledger_grant_id: str
-        :return: JSON object
-        :rtype: JSON
-        :raises ~azure.core.exceptions.HttpResponseError:
-
-        Example:
-            .. code-block:: python
-
-                # response body for status code(s): 200
-                response == {
-                    "amount": 0.0,  # The amount to grant. Can be positive or negative number.
-                      Required.
-                    "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided value
-                      will be ceiled to metering windowSize (minute). Required.
-                    "expiration": {
-                        "count": 0,  # The expiration period count like 12 months. Required.
-                        "duration": "str"  # The expiration period duration like month.
-                          Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
-                    },
-                    "featureID": "str",  # The unique feature ULID that the grant is associated
-                      with, if any. Required.
-                    "id": "str",  # Readonly unique ULID identifier of the grant. Required.
-                    "ledgerID": "str",  # The ledger ID. Required.
-                    "type": "str",  # The grant type:   * ``USAGE`` - Increase balance by the
-                      amount in the unit of the associated meter. Required. "USAGE"
-                    "void": bool,  # If the grant is voided, it will not be applied to the
-                      subject's balance anymore. Required.
-                    "createdAt": "2020-02-20 00:00:00",  # Optional. The time the grant was
-                      created.
-                    "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
-                      grant.
-                    "metadata": {
-                        "str": "str"  # Optional. Dictionary of :code:`<string>`.
-                    },
-                    "parentId": "str",  # Optional. The parent grant ULID that the grant is
-                      associated with, if any.
-                    "priority": 1,  # Optional. Default value is 1. The priority of the grant.
-                      Grants with higher priority are applied first. Priority is a positive decimal
-                      numbers. With lower numbers indicating higher importance. For example, a priority
-                      of 1 is more urgent than a priority of 2. When there are several grants available
-                      for the same subject, the system selects the grant with the highest priority. In
-                      cases where grants share the same priority level, the grant closest to its
-                      expiration will be used first. In the case of two grants have identical
-                      priorities and expiration dates, the system will use the grant that was created
-                      first.
-                    "rollover": {
-                        "type": "str",  # The rollover type to use:   * ``REMAINING_AMOUNT``
-                          - Rollover remaining amount. * ``ORIGINAL_AMOUNT`` - Rollover re-applies the
-                          full grant amount. Required. Known values are: "REMAINING_AMOUNT" and
-                          "ORIGINAL_AMOUNT".
-                        "maxAmount": 0.0  # Optional. Maximum amount to rollover.
-                    },
-                    "updatedAt": "2020-02-20 00:00:00"  # Optional. The time the grant was last
-                      updated.
-                }
-        """
-        error_map = {
-            409: ResourceExistsError,
-            304: ResourceNotModifiedError,
-            401: lambda response: ClientAuthenticationError(response=response),
-            404: lambda response: ResourceNotFoundError(response=response),
-        }
-        error_map.update(kwargs.pop("error_map", {}) or {})
-
-        _headers = kwargs.pop("headers", {}) or {}
-        _params = kwargs.pop("params", {}) or {}
-
-        cls: ClsType[JSON] = kwargs.pop("cls", None)
-
-        _request = build_get_ledger_grant_request(
-            ledger_id=ledger_id,
-            ledger_grant_id=ledger_grant_id,
+            window_time_zone=window_time_zone,
             headers=_headers,
             params=_params,
         )
@@ -3760,39 +3804,131 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         return cast(JSON, deserialized)  # type: ignore
 
-    @distributed_trace_async
-    async def void_ledger_grant(  # pylint: disable=inconsistent-return-statements
-        self, ledger_grant_id: str, ledger_id: str, **kwargs: Any
+    @overload
+    async def reset_entitlement_usage(  # pylint: disable=inconsistent-return-statements
+        self,
+        subject_id_or_key: str,
+        entitlement_id: str,
+        body: JSON,
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
     ) -> None:
-        """Void ledger grant.
+        # pylint: disable=line-too-long
+        """Reset entitlement.
 
-        Void a ledger grant by ID. Partially or fully used grants cannot be voided.
-        Voided grant won't be applied to the subject's balance anymore.
+        Reset the entitlement usage and start a new period. Grants that can be are rolled over.
 
-        :param ledger_grant_id: A unique identifier for a ledger grant. Required.
-        :type ledger_grant_id: str
-        :param ledger_id: A unique identifier for a ledger. Required.
-        :type ledger_id: str
+        :param subject_id_or_key: A unique identifier for a subject. Required.
+        :type subject_id_or_key: str
+        :param entitlement_id: A unique ULID for an entitlement. Required.
+        :type entitlement_id: str
+        :param body: Required.
+        :type body: JSON
+        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: None
+        :rtype: None
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "effectiveAt": "2020-02-20 00:00:00"  # Optional. The time at which the reset
+                      takes effect, defaults to now. The reset cannot be in the future. The provided
+                      value is truncated to the granularity of the underlying meter.
+                }
+        """
+
+    @overload
+    async def reset_entitlement_usage(  # pylint: disable=inconsistent-return-statements
+        self,
+        subject_id_or_key: str,
+        entitlement_id: str,
+        body: IO[bytes],
+        *,
+        content_type: str = "application/json",
+        **kwargs: Any
+    ) -> None:
+        """Reset entitlement.
+
+        Reset the entitlement usage and start a new period. Grants that can be are rolled over.
+
+        :param subject_id_or_key: A unique identifier for a subject. Required.
+        :type subject_id_or_key: str
+        :param entitlement_id: A unique ULID for an entitlement. Required.
+        :type entitlement_id: str
+        :param body: Required.
+        :type body: IO[bytes]
+        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
+         Default value is "application/json".
+        :paramtype content_type: str
         :return: None
         :rtype: None
         :raises ~azure.core.exceptions.HttpResponseError:
         """
+
+    @distributed_trace_async
+    async def reset_entitlement_usage(  # pylint: disable=inconsistent-return-statements
+        self, subject_id_or_key: str, entitlement_id: str, body: Union[JSON, IO[bytes]], **kwargs: Any
+    ) -> None:
+        # pylint: disable=line-too-long
+        """Reset entitlement.
+
+        Reset the entitlement usage and start a new period. Grants that can be are rolled over.
+
+        :param subject_id_or_key: A unique identifier for a subject. Required.
+        :type subject_id_or_key: str
+        :param entitlement_id: A unique ULID for an entitlement. Required.
+        :type entitlement_id: str
+        :param body: Is either a JSON type or a IO[bytes] type. Required.
+        :type body: JSON or IO[bytes]
+        :return: None
+        :rtype: None
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "effectiveAt": "2020-02-20 00:00:00"  # Optional. The time at which the reset
+                      takes effect, defaults to now. The reset cannot be in the future. The provided
+                      value is truncated to the granularity of the underlying meter.
+                }
+        """
         error_map = {
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
+            400: HttpResponseError,
             401: lambda response: ClientAuthenticationError(response=response),
             404: lambda response: ResourceNotFoundError(response=response),
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
 
-        _headers = kwargs.pop("headers", {}) or {}
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
         _params = kwargs.pop("params", {}) or {}
 
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
         cls: ClsType[None] = kwargs.pop("cls", None)
 
-        _request = build_void_ledger_grant_request(
-            ledger_grant_id=ledger_grant_id,
-            ledger_id=ledger_id,
+        content_type = content_type or "application/json"
+        _json = None
+        _content = None
+        if isinstance(body, (IOBase, bytes)):
+            _content = body
+        else:
+            _json = body
+
+        _request = build_reset_entitlement_usage_request(
+            subject_id_or_key=subject_id_or_key,
+            entitlement_id=entitlement_id,
+            content_type=content_type,
+            json=_json,
+            content=_content,
             headers=_headers,
             params=_params,
         )
