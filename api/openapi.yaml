@@ -1195,7 +1195,7 @@ components:
           format: date-time
           description: The date and time the resource was deleted.
           readOnly: true
-          example: "null"
+          example: "2023-01-01T00:00:00Z"
     ConflictProblem:
       description: Conflict
       type: object
