@@ -135,8 +135,10 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriod(ctx context.Context, owner
 }
 
 // FIXME: this is a terrible hack, write generic Atomicity stuff for connectors...
-func (e *entitlementGrantOwner) EndCurrentUsagePeriodTx(ctx context.Context, tx *entutils.TxDriver, owner credit.NamespacedGrantOwner, at time.Time) error {
+func (e *entitlementGrantOwner) EndCurrentUsagePeriodTx(ctx context.Context, tx *entutils.TxDriver, owner credit.NamespacedGrantOwner, params credit.EndCurrentUsagePeriodParams) error {
 	_, err := entutils.RunInTransaction(ctx, tx, func(ctx context.Context, tx *entutils.TxDriver) (*interface{}, error) {
+		at := params.At
+
 		// Check if time is after current start time. If so then we can end the period
 		currentStartAt, err := e.GetUsagePeriodStartAt(ctx, owner, at)
 		if err != nil {
@@ -144,6 +146,10 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriodTx(ctx context.Context, tx 
 		}
 		if at.Before(currentStartAt) || at.Equal(currentStartAt) {
 			return nil, &models.GenericUserError{Message: "can only end usage period after current period start time"}
+		}
+
+		if err := e.updateEntitlementUsagePeriod(ctx, tx, owner, params); err != nil {
+			return nil, fmt.Errorf("failed to update entitlement usage period: %w", err)
 		}
 
 		// Save usage reset
@@ -156,6 +162,33 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriodTx(ctx context.Context, tx 
 		})
 	})
 	return err
+}
+
+func (e *entitlementGrantOwner) updateEntitlementUsagePeriod(ctx context.Context, tx *entutils.TxDriver, owner credit.NamespacedGrantOwner, params credit.EndCurrentUsagePeriodParams) error {
+	er := e.entitlementRepo.WithTx(ctx, tx)
+
+	enitlement, err := er.GetEntitlement(ctx, owner.NamespacedID())
+	if err != nil {
+		return err
+	}
+
+	var newAnchor *time.Time
+	usagePeriod := enitlement.UsagePeriod.Recurrence
+	if !params.RetainUsagePeriodAnchor {
+		usagePeriod.Anchor = params.At
+		newAnchor = &params.At
+	}
+
+	nextReset, err := usagePeriod.NextAfter(time.Now())
+	if err != nil {
+		return fmt.Errorf("failed to calculate next reset: %w", err)
+	}
+
+	return er.UpdateEntitlementUsagePeriod(
+		ctx,
+		owner.NamespacedID(),
+		newAnchor,
+		nextReset)
 }
 
 // FIXME: this is a terrible hack using select for udpate...

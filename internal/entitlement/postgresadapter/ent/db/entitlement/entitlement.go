@@ -3,6 +3,7 @@
 package entitlement
 
 import (
+	"fmt"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -30,6 +31,12 @@ const (
 	FieldSubjectKey = "subject_key"
 	// FieldMeasureUsageFrom holds the string denoting the measure_usage_from field in the database.
 	FieldMeasureUsageFrom = "measure_usage_from"
+	// FieldUsagePeriodAnchor holds the string denoting the usage_period_anchor field in the database.
+	FieldUsagePeriodAnchor = "usage_period_anchor"
+	// FieldUsagePeriodInterval holds the string denoting the usage_period_interval field in the database.
+	FieldUsagePeriodInterval = "usage_period_interval"
+	// FieldUsagePeriodNextReset holds the string denoting the usage_period_next_reset field in the database.
+	FieldUsagePeriodNextReset = "usage_period_next_reset"
 	// EdgeUsageReset holds the string denoting the usage_reset edge name in mutations.
 	EdgeUsageReset = "usage_reset"
 	// Table holds the table name of the entitlement in the database.
@@ -54,6 +61,9 @@ var Columns = []string{
 	FieldFeatureID,
 	FieldSubjectKey,
 	FieldMeasureUsageFrom,
+	FieldUsagePeriodAnchor,
+	FieldUsagePeriodInterval,
+	FieldUsagePeriodNextReset,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -78,6 +88,31 @@ var (
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
+
+// UsagePeriodInterval defines the type for the "usage_period_interval" enum field.
+type UsagePeriodInterval string
+
+// UsagePeriodInterval values.
+const (
+	UsagePeriodIntervalDAY   UsagePeriodInterval = "DAY"
+	UsagePeriodIntervalWEEK  UsagePeriodInterval = "WEEK"
+	UsagePeriodIntervalMONTH UsagePeriodInterval = "MONTH"
+	UsagePeriodIntervalYEAR  UsagePeriodInterval = "YEAR"
+)
+
+func (upi UsagePeriodInterval) String() string {
+	return string(upi)
+}
+
+// UsagePeriodIntervalValidator is a validator for the "usage_period_interval" field enum values. It is called by the builders before save.
+func UsagePeriodIntervalValidator(upi UsagePeriodInterval) error {
+	switch upi {
+	case UsagePeriodIntervalDAY, UsagePeriodIntervalWEEK, UsagePeriodIntervalMONTH, UsagePeriodIntervalYEAR:
+		return nil
+	default:
+		return fmt.Errorf("entitlement: invalid enum value for usage_period_interval field: %q", upi)
+	}
+}
 
 // OrderOption defines the ordering options for the Entitlement queries.
 type OrderOption func(*sql.Selector)
@@ -120,6 +155,21 @@ func BySubjectKey(opts ...sql.OrderTermOption) OrderOption {
 // ByMeasureUsageFrom orders the results by the measure_usage_from field.
 func ByMeasureUsageFrom(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldMeasureUsageFrom, opts...).ToFunc()
+}
+
+// ByUsagePeriodAnchor orders the results by the usage_period_anchor field.
+func ByUsagePeriodAnchor(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUsagePeriodAnchor, opts...).ToFunc()
+}
+
+// ByUsagePeriodInterval orders the results by the usage_period_interval field.
+func ByUsagePeriodInterval(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUsagePeriodInterval, opts...).ToFunc()
+}
+
+// ByUsagePeriodNextReset orders the results by the usage_period_next_reset field.
+func ByUsagePeriodNextReset(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUsagePeriodNextReset, opts...).ToFunc()
 }
 
 // ByUsageResetCount orders the results by usage_reset count.

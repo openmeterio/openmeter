@@ -63,7 +63,7 @@ func (r Recurrence) PrevBefore(t time.Time) (time.Time, error) {
 
 func (r Recurrence) Next(t time.Time) (time.Time, error) {
 	switch r.Period {
-	case RecurrencePeriodDaily:
+	case RecurrencePeriodDay:
 		return t.AddDate(0, 0, 1), nil
 	case RecurrencePeriodWeek:
 		return t.AddDate(0, 0, 7), nil
@@ -77,7 +77,7 @@ func (r Recurrence) Next(t time.Time) (time.Time, error) {
 
 func (r Recurrence) Prev(t time.Time) (time.Time, error) {
 	switch r.Period {
-	case RecurrencePeriodDaily:
+	case RecurrencePeriodDay:
 		return t.AddDate(0, 0, -1), nil
 	case RecurrencePeriodWeek:
 		return t.AddDate(0, 0, -7), nil
@@ -92,19 +92,23 @@ func (r Recurrence) Prev(t time.Time) (time.Time, error) {
 type RecurrencePeriod types.RecurringPeriodEnum
 
 const (
-	RecurrencePeriodDaily RecurrencePeriod = "DAY"
+	RecurrencePeriodDay   RecurrencePeriod = "DAY"
 	RecurrencePeriodWeek  RecurrencePeriod = "WEEK"
 	RecurrencePeriodMonth RecurrencePeriod = "MONTH"
 	RecurrencePeriodYear  RecurrencePeriod = "YEAR"
 )
 
-func (RecurrencePeriod) Values() (kinds []string) {
-	for _, s := range []RecurrencePeriod{
-		RecurrencePeriodDaily,
+var (
+	RecurrancePeriodValues = []RecurrencePeriod{
+		RecurrencePeriodDay,
 		RecurrencePeriodWeek,
 		RecurrencePeriodMonth,
 		RecurrencePeriodYear,
-	} {
+	}
+)
+
+func (RecurrencePeriod) Values() (kinds []string) {
+	for _, s := range RecurrancePeriodValues {
 		kinds = append(kinds, string(s))
 	}
 	return
@@ -112,7 +116,7 @@ func (RecurrencePeriod) Values() (kinds []string) {
 
 func (rp RecurrencePeriod) IsValid() bool {
 	switch rp {
-	case RecurrencePeriodDaily,
+	case RecurrencePeriodDay,
 		RecurrencePeriodWeek,
 		RecurrencePeriodMonth,
 		RecurrencePeriodYear:

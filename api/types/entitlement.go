@@ -50,3 +50,8 @@ type RecurringPeriodEnum string
 //
 // ENUM: "metered", "static", "boolean"
 type CreateEntitlementJSONBodyType string
+
+type RecurringPeriodWithNextReset struct {
+	RecurringPeriod
+	NextReset time.Time `json:"nextReset"`
+}

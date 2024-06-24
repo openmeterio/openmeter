@@ -12,11 +12,16 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+type UsageResetParams struct {
+	At                      time.Time
+	RetainUsagePeriodAnchor bool
+}
+
 // Generic connector for balance related operations.
 type BalanceConnector interface {
 	GetBalanceOfOwner(ctx context.Context, owner NamespacedGrantOwner, at time.Time) (*GrantBalanceSnapshot, error)
 	GetBalanceHistoryOfOwner(ctx context.Context, owner NamespacedGrantOwner, params BalanceHistoryParams) (GrantBurnDownHistory, error)
-	ResetUsageForOwner(ctx context.Context, owner NamespacedGrantOwner, at time.Time) (balanceAfterReset *GrantBalanceSnapshot, err error)
+	ResetUsageForOwner(ctx context.Context, owner NamespacedGrantOwner, params UsageResetParams) (balanceAfterReset *GrantBalanceSnapshot, err error)
 }
 
 type BalanceHistoryParams struct {
@@ -206,14 +211,14 @@ func (m *balanceConnector) GetBalanceHistoryOfOwner(ctx context.Context, owner N
 	}, nil
 }
 
-func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner NamespacedGrantOwner, at time.Time) (*GrantBalanceSnapshot, error) {
+func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner NamespacedGrantOwner, req UsageResetParams) (*GrantBalanceSnapshot, error) {
 	// Cannot reset for the future
-	if at.After(time.Now()) {
-		return nil, &models.GenericUserError{Message: fmt.Sprintf("cannot reset at %s in the future", at)}
+	if req.At.After(time.Now()) {
+		return nil, &models.GenericUserError{Message: fmt.Sprintf("cannot reset at %s in the future", req.At)}
 	}
 
 	// TODO: enforce granularity (truncate)
-	at = at.Truncate(time.Minute)
+	at := req.At.Truncate(time.Minute)
 
 	// check if reset is possible (after last reset)
 	periodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, owner, time.Now())
@@ -304,7 +309,10 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 			return nil, fmt.Errorf("failed to save balance for owner %s at %s: %w", owner.ID, at, err)
 		}
 
-		err = m.ownerConnector.EndCurrentUsagePeriodTx(ctx, tx, owner, at)
+		err = m.ownerConnector.EndCurrentUsagePeriodTx(ctx, tx, owner, EndCurrentUsagePeriodParams{
+			At:                      at,
+			RetainUsagePeriodAnchor: req.RetainUsagePeriodAnchor,
+		})
 		if err != nil {
 			return nil, err
 		}

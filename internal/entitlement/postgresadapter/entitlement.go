@@ -3,7 +3,9 @@ package postgresadapter
 import (
 	"context"
 	"strings"
+	"time"
 
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db"
 	db_entitlement "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db/entitlement"
@@ -45,12 +47,27 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlemen
 		SetFeatureID(entitlement.FeatureID).
 		SetSubjectKey(entitlement.SubjectKey).
 		SetMeasureUsageFrom(entitlement.MeasureUsageFrom).
+		SetUsagePeriodAnchor(entitlement.UsagePeriod.Anchor).
+		SetUsagePeriodInterval(db_entitlement.UsagePeriodInterval(entitlement.UsagePeriod.Period)).
+		SetUsagePeriodNextReset(entitlement.UsagePeriod.NextReset).
 		Save(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	return mapEntitlementEntity(res), nil
+}
+
+func (a *entitlementDBAdapter) UpdateEntitlementUsagePeriod(ctx context.Context, entitlementID models.NamespacedID, newAnchor *time.Time, nextReset time.Time) error {
+	update := a.db.Entitlement.UpdateOneID(entitlementID.ID).
+		SetUsagePeriodNextReset(nextReset)
+
+	if newAnchor != nil {
+		update = update.SetUsagePeriodAnchor(*newAnchor)
+	}
+
+	_, err := update.Save(ctx)
+	return err
 }
 
 func (a *entitlementDBAdapter) GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]entitlement.Entitlement, error) {
@@ -120,6 +137,13 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 		SubjectKey:       e.SubjectKey,
 		FeatureID:        e.FeatureID,
 		MeasureUsageFrom: e.MeasureUsageFrom,
+		UsagePeriod: entitlement.RecurrenceWithNextReset{
+			Recurrence: entitlement.Recurrence{
+				Period: credit.RecurrencePeriod(e.UsagePeriodInterval),
+				Anchor: e.UsagePeriodAnchor,
+			},
+			NextReset: e.UsagePeriodNextReset,
+		},
 	}
 }
 

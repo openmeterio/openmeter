@@ -13,7 +13,6 @@ type ResetEntitlementUsageHandlerRequest = httpdriver.ResetEntitlementUsageHandl
 type ListEntitlementsHandlerRequest = httpdriver.ListEntitlementsHandlerRequest
 
 // responses
-type CreateEntitlementHandlerResponse = httpdriver.CreateEntitlementHandlerResponse
 type CreateGrantHandlerResponse = httpdriver.CreateGrantHandlerResponse
 type GetEntitlementBalanceHistoryHandlerResponse = httpdriver.GetEntitlementBalanceHistoryHandlerResponse
 type GetEntitlementValueHandlerResponse = httpdriver.GetEntitlementValueHandlerResponse

@@ -4,23 +4,32 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+type Recurrence = credit.Recurrence
+type RecurrenceWithNextReset struct {
+	Recurrence
+	NextReset time.Time
+}
+
 type CreateEntitlementInputs struct {
 	Namespace        string
-	FeatureID        string    `json:"featureId"`
-	MeasureUsageFrom time.Time `json:"measureUsageFrom,omitempty"`
-	SubjectKey       string    `json:"subjectKey"`
+	FeatureID        string     `json:"featureId"`
+	MeasureUsageFrom time.Time  `json:"measureUsageFrom,omitempty"`
+	SubjectKey       string     `json:"subjectKey"`
+	UsagePeriod      Recurrence `json:"usagePeriod"`
 }
 
 type Entitlement struct {
 	models.NamespacedModel
 	models.ManagedModel
-	ID               string    `json:"id,omitempty"`
-	FeatureID        string    `json:"featureId,omitempty"`
-	MeasureUsageFrom time.Time `json:"measureUsageFrom,omitempty"`
-	SubjectKey       string    `json:"subjectKey,omitempty"`
+	ID               string                  `json:"id,omitempty"`
+	FeatureID        string                  `json:"featureId,omitempty"`
+	MeasureUsageFrom time.Time               `json:"measureUsageFrom,omitempty"`
+	SubjectKey       string                  `json:"subjectKey,omitempty"`
+	UsagePeriod      RecurrenceWithNextReset `json:"usagePeriod,omitempty"`
 }
 
 type EntitlementAlreadyExistsError struct {

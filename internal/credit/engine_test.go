@@ -518,7 +518,7 @@ func TestEngine(t *testing.T) {
 				g1 := grant1
 				g1.EffectiveAt = t1
 				g1.Recurrence = &credit.Recurrence{
-					Period: credit.RecurrencePeriodDaily,
+					Period: credit.RecurrencePeriodDay,
 					Anchor: t1,
 				}
 				g1 = makeGrant(g1)
@@ -830,7 +830,7 @@ func TestEngine(t *testing.T) {
 
 					if gofakeit.Bool() {
 						grant.Recurrence = &credit.Recurrence{
-							Period: credit.RecurrencePeriodDaily,
+							Period: credit.RecurrencePeriodDay,
 							Anchor: gofakeit.DateRange(start, end).Truncate(granularity),
 						}
 					}
@@ -910,7 +910,7 @@ func TestEngine(t *testing.T) {
 
 					if gofakeit.Bool() {
 						grant.Recurrence = &credit.Recurrence{
-							Period: credit.RecurrencePeriodDaily,
+							Period: credit.RecurrencePeriodDay,
 							Anchor: gofakeit.DateRange(start, end).Truncate(granularity),
 						}
 					}

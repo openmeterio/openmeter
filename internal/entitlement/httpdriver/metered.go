@@ -214,16 +214,20 @@ func (h *meteredEntitlementHandler) ListEntitlementGrants() ListEntitlementGrant
 }
 
 type ResetEntitlementUsageHandlerRequest struct {
-	EntitlementID string
-	Namespace     string
-	SubjectID     string
-	At            time.Time
+	EntitlementID           string
+	Namespace               string
+	SubjectID               string
+	At                      time.Time
+	RetainUsagePeriodAnchor bool
 }
+
 type ResetEntitlementUsageHandlerResponse = interface{}
+
 type ResetEntitlementUsageHandlerParams struct {
 	EntitlementID string
 	SubjectKey    string
 }
+
 type ResetEntitlementUsageHandler httptransport.HandlerWithArgs[ResetEntitlementUsageHandlerRequest, ResetEntitlementUsageHandlerResponse, ResetEntitlementUsageHandlerParams]
 
 func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsageHandler {
@@ -241,17 +245,21 @@ func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsag
 			}
 
 			return ResetEntitlementUsageHandlerRequest{
-				EntitlementID: params.EntitlementID,
-				Namespace:     ns,
-				SubjectID:     params.SubjectKey,
-				At:            defaultx.WithDefault(body.EffectiveAt, time.Now()),
+				EntitlementID:           params.EntitlementID,
+				Namespace:               ns,
+				SubjectID:               params.SubjectKey,
+				At:                      defaultx.WithDefault(body.EffectiveAt, time.Now()),
+				RetainUsagePeriodAnchor: defaultx.WithDefault(body.RetainUsagePeriodAnchor, false),
 			}, nil
 		},
 		func(ctx context.Context, request ResetEntitlementUsageHandlerRequest) (interface{}, error) {
 			_, err := h.balanceConnector.ResetEntitlementUsage(ctx, models.NamespacedID{
 				Namespace: request.Namespace,
 				ID:        request.EntitlementID,
-			}, request.At)
+			}, entitlement.ResetEntitlementUsageParams{
+				ResetAt:                 request.At,
+				RetainUsagePeriodAnchor: request.RetainUsagePeriodAnchor,
+			})
 			return nil, err
 		},
 		commonhttp.EmptyResponseEncoder[interface{}](http.StatusNoContent),

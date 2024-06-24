@@ -67,6 +67,34 @@ func (eu *EntitlementUpdate) ClearDeletedAt() *EntitlementUpdate {
 	return eu
 }
 
+// SetUsagePeriodAnchor sets the "usage_period_anchor" field.
+func (eu *EntitlementUpdate) SetUsagePeriodAnchor(t time.Time) *EntitlementUpdate {
+	eu.mutation.SetUsagePeriodAnchor(t)
+	return eu
+}
+
+// SetNillableUsagePeriodAnchor sets the "usage_period_anchor" field if the given value is not nil.
+func (eu *EntitlementUpdate) SetNillableUsagePeriodAnchor(t *time.Time) *EntitlementUpdate {
+	if t != nil {
+		eu.SetUsagePeriodAnchor(*t)
+	}
+	return eu
+}
+
+// SetUsagePeriodNextReset sets the "usage_period_next_reset" field.
+func (eu *EntitlementUpdate) SetUsagePeriodNextReset(t time.Time) *EntitlementUpdate {
+	eu.mutation.SetUsagePeriodNextReset(t)
+	return eu
+}
+
+// SetNillableUsagePeriodNextReset sets the "usage_period_next_reset" field if the given value is not nil.
+func (eu *EntitlementUpdate) SetNillableUsagePeriodNextReset(t *time.Time) *EntitlementUpdate {
+	if t != nil {
+		eu.SetUsagePeriodNextReset(*t)
+	}
+	return eu
+}
+
 // AddUsageResetIDs adds the "usage_reset" edge to the UsageReset entity by IDs.
 func (eu *EntitlementUpdate) AddUsageResetIDs(ids ...string) *EntitlementUpdate {
 	eu.mutation.AddUsageResetIDs(ids...)
@@ -168,6 +196,12 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if eu.mutation.DeletedAtCleared() {
 		_spec.ClearField(entitlement.FieldDeletedAt, field.TypeTime)
 	}
+	if value, ok := eu.mutation.UsagePeriodAnchor(); ok {
+		_spec.SetField(entitlement.FieldUsagePeriodAnchor, field.TypeTime, value)
+	}
+	if value, ok := eu.mutation.UsagePeriodNextReset(); ok {
+		_spec.SetField(entitlement.FieldUsagePeriodNextReset, field.TypeTime, value)
+	}
 	if eu.mutation.UsageResetCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -268,6 +302,34 @@ func (euo *EntitlementUpdateOne) SetNillableDeletedAt(t *time.Time) *Entitlement
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (euo *EntitlementUpdateOne) ClearDeletedAt() *EntitlementUpdateOne {
 	euo.mutation.ClearDeletedAt()
+	return euo
+}
+
+// SetUsagePeriodAnchor sets the "usage_period_anchor" field.
+func (euo *EntitlementUpdateOne) SetUsagePeriodAnchor(t time.Time) *EntitlementUpdateOne {
+	euo.mutation.SetUsagePeriodAnchor(t)
+	return euo
+}
+
+// SetNillableUsagePeriodAnchor sets the "usage_period_anchor" field if the given value is not nil.
+func (euo *EntitlementUpdateOne) SetNillableUsagePeriodAnchor(t *time.Time) *EntitlementUpdateOne {
+	if t != nil {
+		euo.SetUsagePeriodAnchor(*t)
+	}
+	return euo
+}
+
+// SetUsagePeriodNextReset sets the "usage_period_next_reset" field.
+func (euo *EntitlementUpdateOne) SetUsagePeriodNextReset(t time.Time) *EntitlementUpdateOne {
+	euo.mutation.SetUsagePeriodNextReset(t)
+	return euo
+}
+
+// SetNillableUsagePeriodNextReset sets the "usage_period_next_reset" field if the given value is not nil.
+func (euo *EntitlementUpdateOne) SetNillableUsagePeriodNextReset(t *time.Time) *EntitlementUpdateOne {
+	if t != nil {
+		euo.SetUsagePeriodNextReset(*t)
+	}
 	return euo
 }
 
@@ -401,6 +463,12 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 	}
 	if euo.mutation.DeletedAtCleared() {
 		_spec.ClearField(entitlement.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := euo.mutation.UsagePeriodAnchor(); ok {
+		_spec.SetField(entitlement.FieldUsagePeriodAnchor, field.TypeTime, value)
+	}
+	if value, ok := euo.mutation.UsagePeriodNextReset(); ok {
+		_spec.SetField(entitlement.FieldUsagePeriodNextReset, field.TypeTime, value)
 	}
 	if euo.mutation.UsageResetCleared() {
 		edge := &sqlgraph.EdgeSpec{

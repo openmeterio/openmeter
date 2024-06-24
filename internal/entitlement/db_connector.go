@@ -11,15 +11,17 @@ import (
 
 type EntitlementRepoCreateEntitlementInputs struct {
 	Namespace        string
-	FeatureID        string    `json:"featureId"`
-	MeasureUsageFrom time.Time `json:"measureUsageFrom,omitempty"`
-	SubjectKey       string    `json:"subjectKey"`
+	FeatureID        string                  `json:"featureId"`
+	MeasureUsageFrom time.Time               `json:"measureUsageFrom,omitempty"`
+	SubjectKey       string                  `json:"subjectKey"`
+	UsagePeriod      RecurrenceWithNextReset `json:"usagePeriod"`
 }
 
 type EntitlementRepo interface {
 	// Entitlement Management
 	GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]Entitlement, error)
 	CreateEntitlement(ctx context.Context, entitlement EntitlementRepoCreateEntitlementInputs) (*Entitlement, error)
+	UpdateEntitlementUsagePeriod(ctx context.Context, entitlementID models.NamespacedID, newAnchor *time.Time, nextReset time.Time) error
 	GetEntitlement(ctx context.Context, entitlementID models.NamespacedID) (*Entitlement, error)
 
 	ListEntitlements(ctx context.Context, params ListEntitlementsParams) ([]Entitlement, error)

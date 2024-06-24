@@ -19,6 +19,9 @@ var (
 		{Name: "feature_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subject_key", Type: field.TypeString},
 		{Name: "measure_usage_from", Type: field.TypeTime},
+		{Name: "usage_period_anchor", Type: field.TypeTime},
+		{Name: "usage_period_interval", Type: field.TypeEnum, Enums: []string{"DAY", "WEEK", "MONTH", "YEAR"}},
+		{Name: "usage_period_next_reset", Type: field.TypeTime},
 	}
 	// EntitlementsTable holds the schema information for the "entitlements" table.
 	EntitlementsTable = &schema.Table{
@@ -50,6 +53,11 @@ var (
 				Name:    "entitlement_namespace_feature_id_id",
 				Unique:  false,
 				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[6], EntitlementsColumns[0]},
+			},
+			{
+				Name:    "entitlement_namespace_usage_period_next_reset",
+				Unique:  false,
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[11]},
 			},
 		},
 	}

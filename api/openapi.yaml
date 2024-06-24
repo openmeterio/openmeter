@@ -1147,6 +1147,12 @@ paths:
                     The reset cannot be in the future.
                     The provided value is truncated to the granularity of the underlying meter.
                   example: "2023-01-01T00:00:00Z"
+                retainUsagePeriodAnchor:
+                  type: boolean
+                  description: |
+                    Should the reset retain the usage period anchor.
+                    If true, the usage period anchor is retained.
+                    If false, the usage period anchor is reset to the effectiveAt time.
       responses:
         "204":
           description: Entitlement reset.
@@ -1485,7 +1491,9 @@ components:
               type: string
               example: customer-1
             usagePeriod:
-              $ref: "#/components/schemas/RecurringPeriod"
+              description: |
+                The recurring period of the entitlement, including the next reset's time.
+              $ref: "#/components/schemas/RecurringPeriodWithNextReset"
     EntitlementMeteredCreateInputs:
       allOf:
         - $ref: "#/components/schemas/EntitlementCreateSharedFields"
@@ -1762,6 +1770,22 @@ components:
             An arbitrary anchor to base the recurring period on.
           type: string
           format: date-time
+    RecurringPeriodWithNextReset:
+      allOf:
+        - $ref: "#/components/schemas/RecurringPeriod"
+        - x-go-type: types.RecurringPeriodWithNextReset
+          x-go-type-import:
+            path: github.com/openmeterio/openmeter/api/types
+          type: object
+          required:
+            - nextReset
+          properties:
+            nextPeriodEnd:
+              description: |
+                The next time the entitlement's balances will be reset.
+              type: string
+              format: date-time
+              example: "2023-01-01T00:00:00Z"
     EntitlementGrantCreateInput:
       type: object
       description: |

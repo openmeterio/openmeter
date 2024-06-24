@@ -96,6 +96,24 @@ func (ec *EntitlementCreate) SetMeasureUsageFrom(t time.Time) *EntitlementCreate
 	return ec
 }
 
+// SetUsagePeriodAnchor sets the "usage_period_anchor" field.
+func (ec *EntitlementCreate) SetUsagePeriodAnchor(t time.Time) *EntitlementCreate {
+	ec.mutation.SetUsagePeriodAnchor(t)
+	return ec
+}
+
+// SetUsagePeriodInterval sets the "usage_period_interval" field.
+func (ec *EntitlementCreate) SetUsagePeriodInterval(epi entitlement.UsagePeriodInterval) *EntitlementCreate {
+	ec.mutation.SetUsagePeriodInterval(epi)
+	return ec
+}
+
+// SetUsagePeriodNextReset sets the "usage_period_next_reset" field.
+func (ec *EntitlementCreate) SetUsagePeriodNextReset(t time.Time) *EntitlementCreate {
+	ec.mutation.SetUsagePeriodNextReset(t)
+	return ec
+}
+
 // SetID sets the "id" field.
 func (ec *EntitlementCreate) SetID(s string) *EntitlementCreate {
 	ec.mutation.SetID(s)
@@ -199,6 +217,20 @@ func (ec *EntitlementCreate) check() error {
 	if _, ok := ec.mutation.MeasureUsageFrom(); !ok {
 		return &ValidationError{Name: "measure_usage_from", err: errors.New(`db: missing required field "Entitlement.measure_usage_from"`)}
 	}
+	if _, ok := ec.mutation.UsagePeriodAnchor(); !ok {
+		return &ValidationError{Name: "usage_period_anchor", err: errors.New(`db: missing required field "Entitlement.usage_period_anchor"`)}
+	}
+	if _, ok := ec.mutation.UsagePeriodInterval(); !ok {
+		return &ValidationError{Name: "usage_period_interval", err: errors.New(`db: missing required field "Entitlement.usage_period_interval"`)}
+	}
+	if v, ok := ec.mutation.UsagePeriodInterval(); ok {
+		if err := entitlement.UsagePeriodIntervalValidator(v); err != nil {
+			return &ValidationError{Name: "usage_period_interval", err: fmt.Errorf(`db: validator failed for field "Entitlement.usage_period_interval": %w`, err)}
+		}
+	}
+	if _, ok := ec.mutation.UsagePeriodNextReset(); !ok {
+		return &ValidationError{Name: "usage_period_next_reset", err: errors.New(`db: missing required field "Entitlement.usage_period_next_reset"`)}
+	}
 	return nil
 }
 
@@ -266,6 +298,18 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 	if value, ok := ec.mutation.MeasureUsageFrom(); ok {
 		_spec.SetField(entitlement.FieldMeasureUsageFrom, field.TypeTime, value)
 		_node.MeasureUsageFrom = value
+	}
+	if value, ok := ec.mutation.UsagePeriodAnchor(); ok {
+		_spec.SetField(entitlement.FieldUsagePeriodAnchor, field.TypeTime, value)
+		_node.UsagePeriodAnchor = value
+	}
+	if value, ok := ec.mutation.UsagePeriodInterval(); ok {
+		_spec.SetField(entitlement.FieldUsagePeriodInterval, field.TypeEnum, value)
+		_node.UsagePeriodInterval = value
+	}
+	if value, ok := ec.mutation.UsagePeriodNextReset(); ok {
+		_spec.SetField(entitlement.FieldUsagePeriodNextReset, field.TypeTime, value)
+		_node.UsagePeriodNextReset = value
 	}
 	if nodes := ec.mutation.UsageResetIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -383,6 +427,30 @@ func (u *EntitlementUpsert) ClearDeletedAt() *EntitlementUpsert {
 	return u
 }
 
+// SetUsagePeriodAnchor sets the "usage_period_anchor" field.
+func (u *EntitlementUpsert) SetUsagePeriodAnchor(v time.Time) *EntitlementUpsert {
+	u.Set(entitlement.FieldUsagePeriodAnchor, v)
+	return u
+}
+
+// UpdateUsagePeriodAnchor sets the "usage_period_anchor" field to the value that was provided on create.
+func (u *EntitlementUpsert) UpdateUsagePeriodAnchor() *EntitlementUpsert {
+	u.SetExcluded(entitlement.FieldUsagePeriodAnchor)
+	return u
+}
+
+// SetUsagePeriodNextReset sets the "usage_period_next_reset" field.
+func (u *EntitlementUpsert) SetUsagePeriodNextReset(v time.Time) *EntitlementUpsert {
+	u.Set(entitlement.FieldUsagePeriodNextReset, v)
+	return u
+}
+
+// UpdateUsagePeriodNextReset sets the "usage_period_next_reset" field to the value that was provided on create.
+func (u *EntitlementUpsert) UpdateUsagePeriodNextReset() *EntitlementUpsert {
+	u.SetExcluded(entitlement.FieldUsagePeriodNextReset)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -414,6 +482,9 @@ func (u *EntitlementUpsertOne) UpdateNewValues() *EntitlementUpsertOne {
 		}
 		if _, exists := u.create.mutation.MeasureUsageFrom(); exists {
 			s.SetIgnore(entitlement.FieldMeasureUsageFrom)
+		}
+		if _, exists := u.create.mutation.UsagePeriodInterval(); exists {
+			s.SetIgnore(entitlement.FieldUsagePeriodInterval)
 		}
 	}))
 	return u
@@ -499,6 +570,34 @@ func (u *EntitlementUpsertOne) UpdateDeletedAt() *EntitlementUpsertOne {
 func (u *EntitlementUpsertOne) ClearDeletedAt() *EntitlementUpsertOne {
 	return u.Update(func(s *EntitlementUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetUsagePeriodAnchor sets the "usage_period_anchor" field.
+func (u *EntitlementUpsertOne) SetUsagePeriodAnchor(v time.Time) *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.SetUsagePeriodAnchor(v)
+	})
+}
+
+// UpdateUsagePeriodAnchor sets the "usage_period_anchor" field to the value that was provided on create.
+func (u *EntitlementUpsertOne) UpdateUsagePeriodAnchor() *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.UpdateUsagePeriodAnchor()
+	})
+}
+
+// SetUsagePeriodNextReset sets the "usage_period_next_reset" field.
+func (u *EntitlementUpsertOne) SetUsagePeriodNextReset(v time.Time) *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.SetUsagePeriodNextReset(v)
+	})
+}
+
+// UpdateUsagePeriodNextReset sets the "usage_period_next_reset" field to the value that was provided on create.
+func (u *EntitlementUpsertOne) UpdateUsagePeriodNextReset() *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.UpdateUsagePeriodNextReset()
 	})
 }
 
@@ -700,6 +799,9 @@ func (u *EntitlementUpsertBulk) UpdateNewValues() *EntitlementUpsertBulk {
 			if _, exists := b.mutation.MeasureUsageFrom(); exists {
 				s.SetIgnore(entitlement.FieldMeasureUsageFrom)
 			}
+			if _, exists := b.mutation.UsagePeriodInterval(); exists {
+				s.SetIgnore(entitlement.FieldUsagePeriodInterval)
+			}
 		}
 	}))
 	return u
@@ -785,6 +887,34 @@ func (u *EntitlementUpsertBulk) UpdateDeletedAt() *EntitlementUpsertBulk {
 func (u *EntitlementUpsertBulk) ClearDeletedAt() *EntitlementUpsertBulk {
 	return u.Update(func(s *EntitlementUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetUsagePeriodAnchor sets the "usage_period_anchor" field.
+func (u *EntitlementUpsertBulk) SetUsagePeriodAnchor(v time.Time) *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.SetUsagePeriodAnchor(v)
+	})
+}
+
+// UpdateUsagePeriodAnchor sets the "usage_period_anchor" field to the value that was provided on create.
+func (u *EntitlementUpsertBulk) UpdateUsagePeriodAnchor() *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.UpdateUsagePeriodAnchor()
+	})
+}
+
+// SetUsagePeriodNextReset sets the "usage_period_next_reset" field.
+func (u *EntitlementUpsertBulk) SetUsagePeriodNextReset(v time.Time) *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.SetUsagePeriodNextReset(v)
+	})
+}
+
+// UpdateUsagePeriodNextReset sets the "usage_period_next_reset" field to the value that was provided on create.
+func (u *EntitlementUpsertBulk) UpdateUsagePeriodNextReset() *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.UpdateUsagePeriodNextReset()
 	})
 }
 

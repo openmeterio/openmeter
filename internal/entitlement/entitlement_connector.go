@@ -69,9 +69,22 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 		}
 	}
 
-	// FIXME: Add default value elsewhere
-	input.MeasureUsageFrom = time.Now().Truncate(time.Minute)
-	ent, err := c.entitlementRepo.CreateEntitlement(ctx, EntitlementRepoCreateEntitlementInputs(input))
+	nextReset, err := input.UsagePeriod.NextAfter(time.Now())
+	if err != nil {
+		return Entitlement{}, fmt.Errorf("failed to calculate next reset: %w", err)
+	}
+
+	ent, err := c.entitlementRepo.CreateEntitlement(ctx, EntitlementRepoCreateEntitlementInputs{
+		Namespace:  input.Namespace,
+		FeatureID:  input.FeatureID,
+		SubjectKey: input.SubjectKey,
+		// FIXME: Add default value elsewhere
+		MeasureUsageFrom: time.Now().Truncate(time.Minute),
+		UsagePeriod: RecurrenceWithNextReset{
+			Recurrence: input.UsagePeriod,
+			NextReset:  nextReset,
+		},
+	})
 	return *ent, err
 }
 

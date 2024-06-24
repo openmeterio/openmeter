@@ -100,6 +100,16 @@ func MeasureUsageFrom(v time.Time) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldMeasureUsageFrom, v))
 }
 
+// UsagePeriodAnchor applies equality check predicate on the "usage_period_anchor" field. It's identical to UsagePeriodAnchorEQ.
+func UsagePeriodAnchor(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldUsagePeriodAnchor, v))
+}
+
+// UsagePeriodNextReset applies equality check predicate on the "usage_period_next_reset" field. It's identical to UsagePeriodNextResetEQ.
+func UsagePeriodNextReset(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldUsagePeriodNextReset, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldNamespace, v))
@@ -473,6 +483,106 @@ func MeasureUsageFromLT(v time.Time) predicate.Entitlement {
 // MeasureUsageFromLTE applies the LTE predicate on the "measure_usage_from" field.
 func MeasureUsageFromLTE(v time.Time) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldLTE(FieldMeasureUsageFrom, v))
+}
+
+// UsagePeriodAnchorEQ applies the EQ predicate on the "usage_period_anchor" field.
+func UsagePeriodAnchorEQ(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldUsagePeriodAnchor, v))
+}
+
+// UsagePeriodAnchorNEQ applies the NEQ predicate on the "usage_period_anchor" field.
+func UsagePeriodAnchorNEQ(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNEQ(FieldUsagePeriodAnchor, v))
+}
+
+// UsagePeriodAnchorIn applies the In predicate on the "usage_period_anchor" field.
+func UsagePeriodAnchorIn(vs ...time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIn(FieldUsagePeriodAnchor, vs...))
+}
+
+// UsagePeriodAnchorNotIn applies the NotIn predicate on the "usage_period_anchor" field.
+func UsagePeriodAnchorNotIn(vs ...time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotIn(FieldUsagePeriodAnchor, vs...))
+}
+
+// UsagePeriodAnchorGT applies the GT predicate on the "usage_period_anchor" field.
+func UsagePeriodAnchorGT(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGT(FieldUsagePeriodAnchor, v))
+}
+
+// UsagePeriodAnchorGTE applies the GTE predicate on the "usage_period_anchor" field.
+func UsagePeriodAnchorGTE(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGTE(FieldUsagePeriodAnchor, v))
+}
+
+// UsagePeriodAnchorLT applies the LT predicate on the "usage_period_anchor" field.
+func UsagePeriodAnchorLT(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLT(FieldUsagePeriodAnchor, v))
+}
+
+// UsagePeriodAnchorLTE applies the LTE predicate on the "usage_period_anchor" field.
+func UsagePeriodAnchorLTE(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLTE(FieldUsagePeriodAnchor, v))
+}
+
+// UsagePeriodIntervalEQ applies the EQ predicate on the "usage_period_interval" field.
+func UsagePeriodIntervalEQ(v UsagePeriodInterval) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldUsagePeriodInterval, v))
+}
+
+// UsagePeriodIntervalNEQ applies the NEQ predicate on the "usage_period_interval" field.
+func UsagePeriodIntervalNEQ(v UsagePeriodInterval) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNEQ(FieldUsagePeriodInterval, v))
+}
+
+// UsagePeriodIntervalIn applies the In predicate on the "usage_period_interval" field.
+func UsagePeriodIntervalIn(vs ...UsagePeriodInterval) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIn(FieldUsagePeriodInterval, vs...))
+}
+
+// UsagePeriodIntervalNotIn applies the NotIn predicate on the "usage_period_interval" field.
+func UsagePeriodIntervalNotIn(vs ...UsagePeriodInterval) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotIn(FieldUsagePeriodInterval, vs...))
+}
+
+// UsagePeriodNextResetEQ applies the EQ predicate on the "usage_period_next_reset" field.
+func UsagePeriodNextResetEQ(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldUsagePeriodNextReset, v))
+}
+
+// UsagePeriodNextResetNEQ applies the NEQ predicate on the "usage_period_next_reset" field.
+func UsagePeriodNextResetNEQ(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNEQ(FieldUsagePeriodNextReset, v))
+}
+
+// UsagePeriodNextResetIn applies the In predicate on the "usage_period_next_reset" field.
+func UsagePeriodNextResetIn(vs ...time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIn(FieldUsagePeriodNextReset, vs...))
+}
+
+// UsagePeriodNextResetNotIn applies the NotIn predicate on the "usage_period_next_reset" field.
+func UsagePeriodNextResetNotIn(vs ...time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotIn(FieldUsagePeriodNextReset, vs...))
+}
+
+// UsagePeriodNextResetGT applies the GT predicate on the "usage_period_next_reset" field.
+func UsagePeriodNextResetGT(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGT(FieldUsagePeriodNextReset, v))
+}
+
+// UsagePeriodNextResetGTE applies the GTE predicate on the "usage_period_next_reset" field.
+func UsagePeriodNextResetGTE(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGTE(FieldUsagePeriodNextReset, v))
+}
+
+// UsagePeriodNextResetLT applies the LT predicate on the "usage_period_next_reset" field.
+func UsagePeriodNextResetLT(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLT(FieldUsagePeriodNextReset, v))
+}
+
+// UsagePeriodNextResetLTE applies the LTE predicate on the "usage_period_next_reset" field.
+func UsagePeriodNextResetLTE(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLTE(FieldUsagePeriodNextReset, v))
 }
 
 // HasUsageReset applies the HasEdge predicate on the "usage_reset" edge.

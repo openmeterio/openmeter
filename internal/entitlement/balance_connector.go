@@ -45,10 +45,15 @@ type BalanceHistoryParams struct {
 	WindowTimeZone time.Location
 }
 
+type ResetEntitlementUsageParams struct {
+	ResetAt                 time.Time
+	RetainUsagePeriodAnchor bool
+}
+
 type EntitlementBalanceConnector interface {
 	GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error)
 	GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, credit.GrantBurnDownHistory, error)
-	ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID, resetAt time.Time) (balanceAfterReset *EntitlementBalance, err error)
+	ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID, params ResetEntitlementUsageParams) (balanceAfterReset *EntitlementBalance, err error)
 
 	// GetEntitlementGrantBalanceHistory(ctx context.Context, entitlementGrantID EntitlementGrantID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
 	CreateGrant(ctx context.Context, entitlement models.NamespacedID, inputGrant CreateEntitlementGrantInputs) (EntitlementGrant, error)
@@ -234,13 +239,16 @@ func (e *entitlementBalanceConnector) GetEntitlementBalanceHistory(ctx context.C
 }
 
 // This is just a wrapper around credot.BalanceConnector.ResetUsageForOwner
-func (e *entitlementBalanceConnector) ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID, resetAt time.Time) (*EntitlementBalance, error) {
+func (e *entitlementBalanceConnector) ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID, params ResetEntitlementUsageParams) (*EntitlementBalance, error) {
 	owner := credit.NamespacedGrantOwner{
 		Namespace: entitlementID.Namespace,
 		ID:        credit.GrantOwner(entitlementID.ID),
 	}
 
-	balanceAfterReset, err := e.balanceConnector.ResetUsageForOwner(ctx, owner, resetAt)
+	balanceAfterReset, err := e.balanceConnector.ResetUsageForOwner(ctx, owner, credit.UsageResetParams{
+		At:                      params.ResetAt,
+		RetainUsagePeriodAnchor: params.RetainUsagePeriodAnchor,
+	})
 	if err != nil {
 		if _, ok := err.(*credit.OwnerNotFoundError); ok {
 			return nil, &EntitlementNotFoundError{EntitlementID: entitlementID}
@@ -253,7 +261,7 @@ func (e *entitlementBalanceConnector) ResetEntitlementUsage(ctx context.Context,
 		Balance:       balanceAfterReset.Balance(),
 		UsageInPeriod: 0.0, // you cannot have usage right after a reset
 		Overage:       balanceAfterReset.Overage,
-		StartOfPeriod: resetAt,
+		StartOfPeriod: params.ResetAt,
 	}, nil
 }
 

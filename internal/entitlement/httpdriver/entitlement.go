@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/api/types"
+	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
@@ -41,51 +43,46 @@ func NewEntitlementHandler(
 	}
 }
 
-// Currently not all parts of the OpenAPI spec are implemented so we have to cheat here
-type APIEntitlementResponse struct {
-	api.EntitlementMetered
-
-	UsagePeriod *api.RecurringPeriod `json:"usagePeriod,omitempty"`
-}
+type APIEntitlementResponse = api.EntitlementMetered
 
 type CreateEntitlementHandlerRequest = entitlement.CreateEntitlementInputs
-type CreateEntitlementHandlerResponse = APIEntitlementResponse
 type CreateEntitlementHandlerParams = string
 
-type CreateEntitlementHandler httptransport.HandlerWithArgs[CreateEntitlementHandlerRequest, CreateEntitlementHandlerResponse, CreateEntitlementHandlerParams]
+type CreateEntitlementHandler httptransport.HandlerWithArgs[CreateEntitlementHandlerRequest, APIEntitlementResponse, CreateEntitlementHandlerParams]
 
 func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
-	return httptransport.NewHandlerWithArgs[CreateEntitlementHandlerRequest, CreateEntitlementHandlerResponse, string](
+	return httptransport.NewHandlerWithArgs[CreateEntitlementHandlerRequest, APIEntitlementResponse, string](
 		func(ctx context.Context, r *http.Request, subjectIdOrKey string) (entitlement.CreateEntitlementInputs, error) {
-			entitlement := entitlement.CreateEntitlementInputs{}
+			req := types.CreateEntitlementJSONBody{}
 			// TODO: parse rest of the fields from the request (period, issuing, etc...)
-			if err := commonhttp.JSONRequestBodyDecoder(r, &entitlement); err != nil {
-				return entitlement, err
+			if err := commonhttp.JSONRequestBodyDecoder(r, &req); err != nil {
+				return entitlement.CreateEntitlementInputs{}, err
 			}
-			entitlement.SubjectKey = subjectIdOrKey
 
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return entitlement, err
+				return entitlement.CreateEntitlementInputs{}, err
 			}
-			entitlement.Namespace = ns
 
-			return entitlement, nil
+			createRequest := entitlement.CreateEntitlementInputs{
+				Namespace:  ns,
+				FeatureID:  req.FeatureId,
+				SubjectKey: subjectIdOrKey,
+				UsagePeriod: entitlement.Recurrence{
+					Period: credit.RecurrencePeriod(req.UsagePeriod.Interval),
+					Anchor: req.UsagePeriod.Anchor,
+				},
+			}
+
+			if !createRequest.UsagePeriod.Period.IsValid() {
+				return createRequest, errors.New("invalid usage period")
+			}
+
+			return createRequest, nil
 		},
 		func(ctx context.Context, request CreateEntitlementHandlerRequest) (APIEntitlementResponse, error) {
 			res, err := h.connector.CreateEntitlement(ctx, request)
-			return APIEntitlementResponse{
-				EntitlementMetered: api.EntitlementMetered{
-					Id:         &res.ID,
-					FeatureId:  res.FeatureID,
-					CreatedAt:  &res.CreatedAt,
-					UpdatedAt:  &res.UpdatedAt,
-					DeletedAt:  res.DeletedAt,
-					SubjectKey: res.SubjectKey,
-					Type:       "metered",
-				},
-				UsagePeriod: nil,
-			}, err
+			return mapEntitlementToAPI(res), err
 		},
 		commonhttp.JSONResponseEncoderWithStatus[APIEntitlementResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -221,18 +218,7 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 
 			res := make([]APIEntitlementResponse, len(entitlements))
 			for i, ent := range entitlements {
-				res[i] = APIEntitlementResponse{
-					EntitlementMetered: api.EntitlementMetered{
-						Id:         &ent.ID,
-						FeatureId:  ent.FeatureID,
-						CreatedAt:  &ent.CreatedAt,
-						UpdatedAt:  &ent.UpdatedAt,
-						DeletedAt:  ent.DeletedAt,
-						SubjectKey: ent.SubjectKey,
-						Type:       "metered",
-					},
-					UsagePeriod: nil,
-				}
+				res[i] = mapEntitlementToAPI(ent)
 			}
 
 			return res, nil
@@ -284,18 +270,7 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 
 			res := make([]APIEntitlementResponse, len(entitlements))
 			for i, ent := range entitlements {
-				res[i] = APIEntitlementResponse{
-					EntitlementMetered: api.EntitlementMetered{
-						Id:         &ent.ID,
-						FeatureId:  ent.FeatureID,
-						CreatedAt:  &ent.CreatedAt,
-						UpdatedAt:  &ent.UpdatedAt,
-						DeletedAt:  ent.DeletedAt,
-						SubjectKey: ent.SubjectKey,
-						Type:       "metered",
-					},
-					UsagePeriod: nil,
-				}
+				res[i] = mapEntitlementToAPI(ent)
 			}
 
 			return res, nil
@@ -315,4 +290,23 @@ func (h *entitlementHandler) resolveNamespace(ctx context.Context) (string, erro
 	}
 
 	return ns, nil
+}
+
+func mapEntitlementToAPI(ent entitlement.Entitlement) APIEntitlementResponse {
+	return api.EntitlementMetered{
+		Id:         &ent.ID,
+		FeatureId:  ent.FeatureID,
+		CreatedAt:  &ent.CreatedAt,
+		UpdatedAt:  &ent.UpdatedAt,
+		DeletedAt:  ent.DeletedAt,
+		SubjectKey: ent.SubjectKey,
+		Type:       "metered",
+		UsagePeriod: types.RecurringPeriodWithNextReset{
+			RecurringPeriod: types.RecurringPeriod{
+				Interval: types.RecurringPeriodEnum(ent.UsagePeriod.Period),
+				Anchor:   ent.UsagePeriod.Anchor,
+			},
+			NextReset: ent.UsagePeriod.NextReset,
+		},
+	}
 }
