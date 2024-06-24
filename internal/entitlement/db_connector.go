@@ -24,6 +24,8 @@ type EntitlementRepo interface {
 	UpdateEntitlementUsagePeriod(ctx context.Context, entitlementID models.NamespacedID, newAnchor *time.Time, nextReset time.Time) error
 	GetEntitlement(ctx context.Context, entitlementID models.NamespacedID) (*Entitlement, error)
 
+	ListEntitlementsWithDueReset(ctx context.Context, namespace string, at time.Time) ([]Entitlement, error)
+
 	ListEntitlements(ctx context.Context, params ListEntitlementsParams) ([]Entitlement, error)
 
 	//FIXME: This is a terrbile hack

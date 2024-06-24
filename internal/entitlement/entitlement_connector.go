@@ -2,6 +2,7 @@ package entitlement
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -28,6 +29,8 @@ type EntitlementConnector interface {
 	CreateEntitlement(ctx context.Context, input CreateEntitlementInputs) (Entitlement, error)
 	GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]Entitlement, error)
 	GetEntitlementValue(ctx context.Context, entitlementId models.NamespacedID, at time.Time) (EntitlementValue, error)
+
+	ResetEntitlementsBasedOnUsagePeriod(ctx context.Context, namespace string, highwatermark time.Time) ([]Entitlement, error)
 
 	ListEntitlements(ctx context.Context, params ListEntitlementsParams) ([]Entitlement, error)
 }
@@ -110,4 +113,25 @@ func (c *entitlementConnector) GetEntitlementValue(ctx context.Context, entitlem
 
 func (c *entitlementConnector) ListEntitlements(ctx context.Context, params ListEntitlementsParams) ([]Entitlement, error) {
 	return c.entitlementRepo.ListEntitlements(ctx, params)
+}
+
+func (c *entitlementConnector) ResetEntitlementsBasedOnUsagePeriod(ctx context.Context, namespace string, highwatermark time.Time) ([]Entitlement, error) {
+	entitlements, err := c.entitlementRepo.ListEntitlementsWithDueReset(ctx, namespace, highwatermark)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list entitlements with due reset: %w", err)
+	}
+
+	var finalError error
+	for _, ent := range entitlements {
+		_, err := c.entitlementBalanceConnector.ResetEntitlementUsage(ctx,
+			models.NamespacedID{Namespace: namespace, ID: ent.ID},
+			ResetEntitlementUsageParams{
+				ResetAt:                 ent.UsagePeriod.NextReset,
+				RetainUsagePeriodAnchor: true,
+			})
+		if err != nil {
+			finalError = errors.Join(finalError, fmt.Errorf("failed to reset entitlement usage ns=%s id=%s: %w", namespace, ent.ID, err))
+		}
+	}
+	return entitlements, finalError
 }

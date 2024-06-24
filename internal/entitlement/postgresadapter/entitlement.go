@@ -123,6 +123,25 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 
 }
 
+func (a *entitlementDBAdapter) ListEntitlementsWithDueReset(ctx context.Context, namespace string, at time.Time) ([]entitlement.Entitlement, error) {
+	entities, err := a.db.Entitlement.Query().
+		Where(
+			db_entitlement.Namespace(namespace),
+			db_entitlement.UsagePeriodNextResetLTE(at),
+		).
+		All(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]entitlement.Entitlement, 0, len(entities))
+	for _, e := range entities {
+		result = append(result, *mapEntitlementEntity(e))
+	}
+	return result, nil
+}
+
 func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 	return &entitlement.Entitlement{
 		NamespacedModel: models.NamespacedModel{

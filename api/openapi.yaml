@@ -1491,8 +1491,6 @@ components:
               type: string
               example: customer-1
             usagePeriod:
-              description: |
-                The recurring period of the entitlement, including the next reset's time.
               $ref: "#/components/schemas/RecurringPeriodWithNextReset"
     EntitlementMeteredCreateInputs:
       allOf:
@@ -1780,7 +1778,7 @@ components:
           required:
             - nextReset
           properties:
-            nextPeriodEnd:
+            nextReset:
               description: |
                 The next time the entitlement's balances will be reset.
               type: string

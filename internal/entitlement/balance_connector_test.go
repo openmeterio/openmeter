@@ -1003,6 +1003,47 @@ func TestResetEntitlementUsage(t *testing.T) {
 				}, ent.UsagePeriod)
 			},
 		},
+		{
+			name: "When resetting with anchor update the anchor gets truncated to per minute resolution",
+			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+				ctx := context.Background()
+				startTime := time.Now().Add(-12 * time.Hour).Truncate(time.Minute)
+
+				// create featute in db
+				feature, err := deps.featureDB.CreateFeature(ctx, exampleFeature)
+				assert.NoError(t, err)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feature)
+				inp.MeasureUsageFrom = startTime
+				anchor := startTime.Add(time.Hour)
+				inp.UsagePeriod.Anchor = anchor
+				inp.UsagePeriod.NextReset = anchor.AddDate(0, 0, 1)
+
+				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
+				assert.NoError(t, err)
+
+				deps.streaming.AddSimpleEvent(meterSlug, 600, startTime.Add(time.Minute))
+
+				resetTime := startTime.Add(time.Hour * 5).Add(time.Second)
+				_, err = connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
+					entitlement.ResetEntitlementUsageParams{
+						ResetAt: resetTime,
+					})
+
+				assert.NoError(t, err)
+				ent, err = deps.entitlementDB.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
+				assert.NoError(t, err)
+				assertUsagePeriodEquals(t, entitlement.RecurrenceWithNextReset{
+					Recurrence: entitlement.Recurrence{
+						Period: credit.RecurrencePeriodDay,
+						Anchor: resetTime.Truncate(time.Minute),
+					},
+					NextReset: resetTime.Truncate(time.Minute).AddDate(0, 0, 1),
+				}, ent.UsagePeriod)
+			},
+		},
 	}
 
 	for _, tc := range tt {

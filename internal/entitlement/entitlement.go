@@ -11,7 +11,7 @@ import (
 type Recurrence = credit.Recurrence
 type RecurrenceWithNextReset struct {
 	Recurrence
-	NextReset time.Time
+	NextReset time.Time `json:"nextReset"`
 }
 
 type CreateEntitlementInputs struct {
