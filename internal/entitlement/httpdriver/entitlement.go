@@ -8,7 +8,9 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/entitlement"
+	booleanentitlement "github.com/openmeterio/openmeter/internal/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
+	staticentitlement "github.com/openmeterio/openmeter/internal/entitlement/static"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -168,6 +170,15 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 					Balance:   &ent.Balance,
 					Usage:     &ent.UsageInPeriod,
 					Overage:   &ent.Overage,
+				}, nil
+			case *staticentitlement.StaticEntitlementValue:
+				return api.EntitlementValue{
+					HasAccess: convert.ToPointer(ent.HasAccess()),
+					Config:    ent.Config,
+				}, nil
+			case *booleanentitlement.BooleanEntitlementValue:
+				return api.EntitlementValue{
+					HasAccess: convert.ToPointer(ent.HasAccess()),
 				}, nil
 			default:
 				return api.EntitlementValue{}, errors.New("unknown entitlement type")
