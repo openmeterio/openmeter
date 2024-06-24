@@ -693,7 +693,7 @@ export interface components {
     /**
      * @description List of pre-defined periods that can be used for recurring & scheduling.
      *
-     * DAILY:      Every day
+     * DAY:      Every day
      * # MONDAY:     Every Monday
      * # TUESDAY:    Every Tuesday
      * # WEDNESDAY:  Every Wednesday
@@ -701,14 +701,13 @@ export interface components {
      * # FRIDAY:     Every Friday
      * # SATURDAY:   Every Saturday
      * # SUNDAY:     Every Sunday
-     * WEEKLY:     Every week
-     * MONTHLY:    Every month
-     * YEARLY:     Every year
-     * BILLING:    Every billing cycle
+     * WEEK:     Every week
+     * MONTH:    Every month
+     * YEAR:     Every year
      *
      * @enum {string}
      */
-    RecurringPeriodEnum: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY' | 'BILLING'
+    RecurringPeriodEnum: 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'
     /** @description Recurring period of an entitlement. */
     RecurringPeriod: {
       interval: components['schemas']['RecurringPeriodEnum']
