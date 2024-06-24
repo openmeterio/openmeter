@@ -24,6 +24,11 @@ import (
 	"github.com/openmeterio/openmeter/internal/meter"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 	kafkastats "github.com/openmeterio/openmeter/pkg/kafka/metrics/stats"
+	"github.com/openmeterio/openmeter/pkg/models"
+)
+
+const (
+	defaultOnFlushSuccessTimeout = 5 * time.Second
 )
 
 var namespaceTopicRegexp = regexp.MustCompile(`^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$`)
@@ -33,6 +38,8 @@ type SinkMessage struct {
 	KafkaMessage *kafka.Message
 	Serialized   *serializer.CloudEventsKafkaPayload
 	Status       ProcessingStatus
+	// Meters contains the list of meters this message affects
+	Meters []models.Meter
 }
 
 type Sink struct {
@@ -48,6 +55,15 @@ type Sink struct {
 
 	mu        sync.Mutex
 	isRunning atomic.Bool
+}
+
+type FlushSuccessEvent struct {
+	Messages []SinkMessage
+}
+
+type FlushEventHandler interface {
+	OnFlushSuccess(ctx context.Context, event *FlushSuccessEvent) error
+	Shutdown() error
 }
 
 type SinkConfig struct {
@@ -67,8 +83,13 @@ type SinkConfig struct {
 	// this information is used to configure which topics the consumer subscribes and
 	// the meter configs used in event validation.
 	NamespaceRefetch time.Duration
-	// OnFlushSuccess is an optional lifecycle hook
-	OnFlushSuccess func(string, int64)
+	// FlushEventHandler is an optional lifecycle hook, to prevent blocking the main sink logic
+	// this is always called in a go routine.
+	FlushEventHandler FlushEventHandler
+
+	// FlushSuccessTimeout is the timeout for the OnFlushSuccess callback, after this period the context
+	// of the callback will be canceled.
+	FlushSuccessTimeout time.Duration
 }
 
 func NewSink(config SinkConfig) (*Sink, error) {
@@ -85,6 +106,10 @@ func NewSink(config SinkConfig) (*Sink, error) {
 	}
 	if config.NamespaceRefetch == 0 {
 		config.NamespaceRefetch = 15 * time.Second
+	}
+
+	if config.FlushSuccessTimeout == 0 {
+		config.FlushSuccessTimeout = defaultOnFlushSuccessTimeout
 	}
 
 	// Initialize OTel metrics
@@ -234,6 +259,21 @@ func (s *Sink) flush(ctx context.Context) error {
 		return fmt.Errorf("failed to report flush metrics: %w", err)
 	}
 
+	// Call FlushEventHandler if set
+	if s.config.FlushEventHandler != nil {
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), s.config.FlushSuccessTimeout)
+			defer cancel()
+
+			err := s.config.FlushEventHandler.OnFlushSuccess(ctx, &FlushSuccessEvent{
+				Messages: messages,
+			})
+			if err != nil {
+				logger.Error("failed to invoke OnFlushSuccess callback", "err", err)
+			}
+		}()
+	}
+
 	return nil
 }
 
@@ -248,12 +288,6 @@ func (s *Sink) reportFlushMetrics(ctx context.Context, messages []SinkMessage) e
 		// Count events per namespace
 		namespacesReport[message.Namespace]++
 		s.flushEventCounter.Add(ctx, 1, metric.WithAttributes(namespaceAttr, statusAttr))
-	}
-
-	if s.config.OnFlushSuccess != nil {
-		for namespace, count := range namespacesReport {
-			s.config.OnFlushSuccess(namespace, count)
-		}
 	}
 
 	return nil
@@ -673,12 +707,12 @@ func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (*SinkMessage
 	sinkMessage.Serialized = kafkaCloudEvent
 
 	// Dedupe, this stores key in store which means if sink fails and restarts it will not process the same message again
-	// Dedupe is an optional dependency so we check if it's set
+	// Dedupe is an optional dependency, so we check if it's set
 	if s.config.Deduplicator != nil {
 		isUnique, err := s.config.Deduplicator.CheckUnique(ctx, dedupe.Item{
-			Namespace: namespace,
-			ID:        kafkaCloudEvent.Id,
-			Source:    kafkaCloudEvent.Source,
+			Namespace: sinkMessage.Namespace,
+			ID:        sinkMessage.Serialized.Id,
+			Source:    sinkMessage.Serialized.Source,
 		})
 		if err != nil {
 			// Stop processing, non-recoverable error
@@ -736,6 +770,13 @@ func (s *Sink) Close() error {
 		logger.Info("closing Kafka consumer")
 		if err := s.config.Consumer.Close(); err != nil {
 			logger.Error("failed to close consumer client", slog.String("err", err.Error()))
+		}
+	}
+
+	if s.config.FlushEventHandler != nil {
+		logger.Info("shutting down flush success handlers")
+		if err := s.config.FlushEventHandler.Shutdown(); err != nil {
+			logger.Error("failed to shutdown flush success handlers", slog.String("err", err.Error()))
 		}
 	}
 
