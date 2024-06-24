@@ -260,9 +260,9 @@ export interface components {
       /**
        * Format: date-time
        * @description The date and time the resource was deleted.
-       * @example null
+       * @example 2023-01-01T00:00:00Z
        */
-      deletedAt: string | null
+      deletedAt: string
     }
     /**
      * @description Conflict
@@ -693,22 +693,14 @@ export interface components {
     /**
      * @description List of pre-defined periods that can be used for recurring & scheduling.
      *
-     * DAILY:      Every day
-     * # MONDAY:     Every Monday
-     * # TUESDAY:    Every Tuesday
-     * # WEDNESDAY:  Every Wednesday
-     * # THURSDAY:   Every Thursday
-     * # FRIDAY:     Every Friday
-     * # SATURDAY:   Every Saturday
-     * # SUNDAY:     Every Sunday
-     * WEEKLY:     Every week
-     * MONTHLY:    Every month
-     * YEARLY:     Every year
-     * BILLING:    Every billing cycle
+     * DAY:      Every day
+     * WEEK:     Every week
+     * MONTH:    Every month
+     * YEAR:     Every year
      *
      * @enum {string}
      */
-    RecurringPeriodEnum: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY' | 'BILLING'
+    RecurringPeriodEnum: 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'
     /** @description Recurring period of an entitlement. */
     RecurringPeriod: {
       interval: components['schemas']['RecurringPeriodEnum']
