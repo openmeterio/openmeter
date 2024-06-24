@@ -1192,11 +1192,10 @@ components:
           example: "2023-01-01T00:00:00Z"
         deletedAt:
           type: string
-          nullable: true
           format: date-time
           description: The date and time the resource was deleted.
           readOnly: true
-          example: null
+          example: "2023-01-01T00:00:00Z"
     ConflictProblem:
       description: Conflict
       type: object
@@ -1734,25 +1733,11 @@ components:
         List of pre-defined periods that can be used for recurring & scheduling.
 
         DAY:      Every day
-        # MONDAY:     Every Monday
-        # TUESDAY:    Every Tuesday
-        # WEDNESDAY:  Every Wednesday
-        # THURSDAY:   Every Thursday
-        # FRIDAY:     Every Friday
-        # SATURDAY:   Every Saturday
-        # SUNDAY:     Every Sunday
         WEEK:     Every week
         MONTH:    Every month
         YEAR:     Every year
       enum:
         - DAY
-        # - MONDAY
-        # - TUESDAY
-        # - WEDNESDAY
-        # - THURSDAY
-        # - FRIDAY
-        # - SATURDAY
-        # - SUNDAY
         - WEEK
         - MONTH
         - YEAR

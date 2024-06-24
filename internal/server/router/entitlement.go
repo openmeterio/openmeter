@@ -96,3 +96,13 @@ func (a *Router) GetEntitlementHistory(w http.ResponseWriter, r *http.Request, s
 		Params:        params,
 	}).ServeHTTP(w, r)
 }
+
+// List entitlements
+// (GET /api/v1/entitlements)
+func (a *Router) ListEntitlements(w http.ResponseWriter, r *http.Request, params api.ListEntitlementsParams) {
+	if !a.config.EntitlementsEnabled {
+		unimplemented.ListEntitlements(w, r, params)
+		return
+	}
+	a.entitlementHandler.ListEntitlements().With(params).ServeHTTP(w, r)
+}

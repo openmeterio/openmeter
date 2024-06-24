@@ -13,12 +13,6 @@ import (
 
 var unimplemented api.ServerInterface = api.Unimplemented{}
 
-// List entitlements
-// (GET /api/v1/entitlements)
-func (a *Router) ListEntitlements(w http.ResponseWriter, r *http.Request, params api.ListEntitlementsParams) {
-	commonhttp.NewHTTPError(http.StatusNotImplemented, fmt.Errorf("not implemented")).EncodeError(context.TODO(), w)
-}
-
 // Delete entitlement
 // (DELETE /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId})
 func (a *Router) DeleteEntitlement(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementId api.EntitlementId) {

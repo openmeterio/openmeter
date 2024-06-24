@@ -74,6 +74,38 @@ func (a *entitlementDBAdapter) GetEntitlementsOfSubject(ctx context.Context, nam
 
 }
 
+func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params entitlement.ListEntitlementsParams) ([]entitlement.Entitlement, error) {
+	query := a.db.Entitlement.Query().
+		Where(db_entitlement.Namespace(params.Namespace))
+
+	if params.Limit > 0 {
+		query = query.Limit(params.Limit)
+	}
+	if params.Offset > 0 {
+		query = query.Offset(params.Offset)
+	}
+
+	switch params.OrderBy {
+	case entitlement.ListEntitlementsOrderByCreatedAt:
+		query = query.Order(db_entitlement.ByCreatedAt())
+	case entitlement.ListEntitlementsOrderByUpdatedAt:
+		query = query.Order(db_entitlement.ByUpdatedAt())
+	}
+
+	entities, err := query.All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]entitlement.Entitlement, 0, len(entities))
+	for _, e := range entities {
+		result = append(result, *mapEntitlementEntity(e))
+	}
+
+	return result, nil
+
+}
+
 func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 	return &entitlement.Entitlement{
 		NamespacedModel: models.NamespacedModel{
