@@ -510,7 +510,7 @@ func TestCredit(t *testing.T) {
 			FeatureId: *featureId,
 			UsagePeriod: api.RecurringPeriod{
 				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
-				Interval: "MONTHLY",
+				Interval: "MONTH",
 			},
 		})
 
@@ -531,7 +531,7 @@ func TestCredit(t *testing.T) {
 			FeatureId: *featureId,
 			UsagePeriod: api.RecurringPeriod{
 				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
-				Interval: "DAILY",
+				Interval: "DAY",
 			},
 		})
 
@@ -560,7 +560,7 @@ func TestCredit(t *testing.T) {
 			MaxRolloverAmount: &maxRolloverAmount,
 			Recurrence: &api.RecurringPeriod{
 				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
-				Interval: "YEARLY",
+				Interval: "YEAR",
 			},
 		})
 		require.NoError(t, err)
@@ -585,7 +585,7 @@ func TestCredit(t *testing.T) {
 			},
 			Recurrence: &api.RecurringPeriod{
 				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
-				Interval: "YEARLY",
+				Interval: "YEAR",
 			},
 		}
 

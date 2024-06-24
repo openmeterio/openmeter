@@ -3,6 +3,8 @@ package credit
 import (
 	"fmt"
 	"time"
+
+	"github.com/openmeterio/openmeter/api/types"
 )
 
 type Recurrence struct {
@@ -63,11 +65,11 @@ func (r Recurrence) Next(t time.Time) (time.Time, error) {
 	switch r.Period {
 	case RecurrencePeriodDaily:
 		return t.AddDate(0, 0, 1), nil
-	case RecurrencePeriodWeekly:
+	case RecurrencePeriodWeek:
 		return t.AddDate(0, 0, 7), nil
-	case RecurrencePeriodMonthly:
+	case RecurrencePeriodMonth:
 		return t.AddDate(0, 1, 0), nil
-	case RecurrencePeriodYearly:
+	case RecurrencePeriodYear:
 		return t.AddDate(1, 0, 0), nil
 	}
 	return time.Time{}, fmt.Errorf("not implemented RecurrencePeriod %s", r.Period)
@@ -77,31 +79,31 @@ func (r Recurrence) Prev(t time.Time) (time.Time, error) {
 	switch r.Period {
 	case RecurrencePeriodDaily:
 		return t.AddDate(0, 0, -1), nil
-	case RecurrencePeriodWeekly:
+	case RecurrencePeriodWeek:
 		return t.AddDate(0, 0, -7), nil
-	case RecurrencePeriodMonthly:
+	case RecurrencePeriodMonth:
 		return t.AddDate(0, -1, 0), nil
-	case RecurrencePeriodYearly:
+	case RecurrencePeriodYear:
 		return t.AddDate(-1, 0, 0), nil
 	}
 	return time.Time{}, fmt.Errorf("not implemented RecurrencePeriod %s", r.Period)
 }
 
-type RecurrencePeriod string
+type RecurrencePeriod types.RecurringPeriodEnum
 
 const (
-	RecurrencePeriodDaily   RecurrencePeriod = "DAILY"
-	RecurrencePeriodWeekly  RecurrencePeriod = "WEEKLY"
-	RecurrencePeriodMonthly RecurrencePeriod = "MONTHLY"
-	RecurrencePeriodYearly  RecurrencePeriod = "YEARLY"
+	RecurrencePeriodDaily RecurrencePeriod = "DAY"
+	RecurrencePeriodWeek  RecurrencePeriod = "WEEK"
+	RecurrencePeriodMonth RecurrencePeriod = "MONTH"
+	RecurrencePeriodYear  RecurrencePeriod = "YEAR"
 )
 
 func (RecurrencePeriod) Values() (kinds []string) {
 	for _, s := range []RecurrencePeriod{
 		RecurrencePeriodDaily,
-		RecurrencePeriodWeekly,
-		RecurrencePeriodMonthly,
-		RecurrencePeriodYearly,
+		RecurrencePeriodWeek,
+		RecurrencePeriodMonth,
+		RecurrencePeriodYear,
 	} {
 		kinds = append(kinds, string(s))
 	}
@@ -111,9 +113,9 @@ func (RecurrencePeriod) Values() (kinds []string) {
 func (rp RecurrencePeriod) IsValid() bool {
 	switch rp {
 	case RecurrencePeriodDaily,
-		RecurrencePeriodWeekly,
-		RecurrencePeriodMonthly,
-		RecurrencePeriodYearly:
+		RecurrencePeriodWeek,
+		RecurrencePeriodMonth,
+		RecurrencePeriodYear:
 		return true
 	}
 	return false

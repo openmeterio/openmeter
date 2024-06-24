@@ -562,7 +562,7 @@ func TestEngine(t *testing.T) {
 				g2.EffectiveAt = tg2
 				g2.Priority = 1
 				g2.Recurrence = &credit.Recurrence{
-					Period: credit.RecurrencePeriodWeekly,
+					Period: credit.RecurrencePeriodWeek,
 					Anchor: tg2r,
 				}
 				g2 = makeGrant(g2)
@@ -609,7 +609,7 @@ func TestEngine(t *testing.T) {
 				g2.EffectiveAt = tg2
 				g2.Priority = 1
 				g2.Recurrence = &credit.Recurrence{
-					Period: credit.RecurrencePeriodWeekly,
+					Period: credit.RecurrencePeriodWeek,
 					Anchor: tg2r,
 				}
 				g2 = makeGrant(g2)
@@ -663,7 +663,7 @@ func TestEngine(t *testing.T) {
 				g2.Expiration.Count = 2
 				g2.Expiration.Duration = credit.ExpirationPeriodDurationMonth
 				g2.Recurrence = &credit.Recurrence{
-					Period: credit.RecurrencePeriodWeekly,
+					Period: credit.RecurrencePeriodWeek,
 					Anchor: tg2r,
 				}
 				g2 = makeGrant(g2)
