@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Build
-        uses: dagger/dagger-for-github@a3c3f2627ad38ef0b9334ef70dcd6a0e4617d2a7 # v5.9.0
+        uses: dagger/dagger-for-github@6210aa04aaf743e52a7315449e213bb85cd828ce # v5.10.0
         with:
           verb: call
           module: github.com/${{ github.repository }}@${{ github.ref }}
