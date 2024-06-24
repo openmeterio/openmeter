@@ -20,6 +20,7 @@ type EntitlementHandler interface {
 	CreateEntitlement() CreateEntitlementHandler
 	GetEntitlementValue() GetEntitlementValueHandler
 	GetEntitlementsOfSubjectHandler() GetEntitlementsOfSubjectHandler
+	ListEntitlements() ListEntitlementsHandler
 }
 
 type entitlementHandler struct {
@@ -240,6 +241,69 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getEntitlementsOfSubject"),
+		)...,
+	)
+}
+
+type ListEntitlementsHandlerRequest = entitlement.ListEntitlementsParams
+type ListEntitlementsHandlerResponse = []APIEntitlementResponse
+type ListEntitlementsHandlerParams = api.ListEntitlementsParams
+
+type ListEntitlementsHandler httptransport.HandlerWithArgs[ListEntitlementsHandlerRequest, ListEntitlementsHandlerResponse, ListEntitlementsHandlerParams]
+
+func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params ListEntitlementsHandlerParams) (entitlement.ListEntitlementsParams, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return entitlement.ListEntitlementsParams{}, err
+			}
+
+			p := entitlement.ListEntitlementsParams{
+				Namespace: ns,
+				Limit:     defaultx.WithDefault(params.Limit, 1000),
+				Offset:    defaultx.WithDefault(params.Offset, 0),
+			}
+
+			switch defaultx.WithDefault(params.OrderBy, "") {
+			case "createdAt":
+				p.OrderBy = entitlement.ListEntitlementsOrderByCreatedAt
+			case "updatedAt":
+				p.OrderBy = entitlement.ListEntitlementsOrderByUpdatedAt
+			default:
+				p.OrderBy = entitlement.ListEntitlementsOrderByCreatedAt
+			}
+
+			return p, nil
+		},
+		func(ctx context.Context, request ListEntitlementsHandlerRequest) ([]APIEntitlementResponse, error) {
+			entitlements, err := h.connector.ListEntitlements(ctx, request)
+			if err != nil {
+				return nil, err
+			}
+
+			res := make([]APIEntitlementResponse, len(entitlements))
+			for i, ent := range entitlements {
+				res[i] = APIEntitlementResponse{
+					EntitlementMetered: api.EntitlementMetered{
+						Id:         &ent.ID,
+						FeatureId:  ent.FeatureID,
+						CreatedAt:  &ent.CreatedAt,
+						UpdatedAt:  &ent.UpdatedAt,
+						DeletedAt:  ent.DeletedAt,
+						SubjectKey: ent.SubjectKey,
+						Type:       "metered",
+					},
+					UsagePeriod: nil,
+				}
+			}
+
+			return res, nil
+		},
+		commonhttp.JSONResponseEncoder[[]APIEntitlementResponse],
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("listEntitlements"),
 		)...,
 	)
 }

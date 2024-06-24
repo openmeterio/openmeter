@@ -9,11 +9,27 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
+type ListEntitlementsOrderBy string
+
+const (
+	ListEntitlementsOrderByCreatedAt ListEntitlementsOrderBy = "created_at"
+	ListEntitlementsOrderByUpdatedAt ListEntitlementsOrderBy = "updated_at"
+)
+
+type ListEntitlementsParams struct {
+	Namespace string
+	Limit     int
+	Offset    int
+	OrderBy   ListEntitlementsOrderBy
+}
+
 type EntitlementConnector interface {
 	// Entitlement Management
 	CreateEntitlement(ctx context.Context, input CreateEntitlementInputs) (Entitlement, error)
 	GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]Entitlement, error)
 	GetEntitlementValue(ctx context.Context, entitlementId models.NamespacedID, at time.Time) (EntitlementValue, error)
+
+	ListEntitlements(ctx context.Context, params ListEntitlementsParams) ([]Entitlement, error)
 }
 
 type entitlementConnector struct {
@@ -77,4 +93,8 @@ func (c *entitlementConnector) GetEntitlementValue(ctx context.Context, entitlem
 		Usage:     balance.UsageInPeriod,
 		Overage:   balance.Overage,
 	}, nil
+}
+
+func (c *entitlementConnector) ListEntitlements(ctx context.Context, params ListEntitlementsParams) ([]Entitlement, error) {
+	return c.entitlementRepo.ListEntitlements(ctx, params)
 }

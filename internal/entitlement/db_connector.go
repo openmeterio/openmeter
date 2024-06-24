@@ -22,6 +22,8 @@ type EntitlementRepo interface {
 	CreateEntitlement(ctx context.Context, entitlement EntitlementRepoCreateEntitlementInputs) (*Entitlement, error)
 	GetEntitlement(ctx context.Context, entitlementID models.NamespacedID) (*Entitlement, error)
 
+	ListEntitlements(ctx context.Context, params ListEntitlementsParams) ([]Entitlement, error)
+
 	//FIXME: This is a terrbile hack
 	LockEntitlementForTx(ctx context.Context, entitlementID models.NamespacedID) error
 

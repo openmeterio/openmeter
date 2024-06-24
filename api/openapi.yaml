@@ -1192,7 +1192,6 @@ components:
           example: "2023-01-01T00:00:00Z"
         deletedAt:
           type: string
-          nullable: true
           format: date-time
           description: The date and time the resource was deleted.
           readOnly: true
