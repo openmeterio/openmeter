@@ -29,7 +29,7 @@ type RecurringPeriod struct {
 
 	// Interval List of pre-defined periods that can be used for recurring & scheduling.
 	//
-	// DAILY:      Every day
+	// DAY:      Every day
 	// # MONDAY:     Every Monday
 	// # TUESDAY:    Every Tuesday
 	// # WEDNESDAY:  Every Wednesday
@@ -37,27 +37,13 @@ type RecurringPeriod struct {
 	// # FRIDAY:     Every Friday
 	// # SATURDAY:   Every Saturday
 	// # SUNDAY:     Every Sunday
-	// WEEKLY:     Every week
-	// MONTHLY:    Every month
-	// YEARLY:     Every year
-	// BILLING:    Every billing cycle
+	// WEEK:     Every week
+	// MONTH:    Every month
+	// YEAR:     Every year
 	Interval RecurringPeriodEnum `json:"interval"`
 }
 
 // RecurringPeriodEnum List of pre-defined periods that can be used for recurring & scheduling.
-//
-// DAILY:      Every day
-// # MONDAY:     Every Monday
-// # TUESDAY:    Every Tuesday
-// # WEDNESDAY:  Every Wednesday
-// # THURSDAY:   Every Thursday
-// # FRIDAY:     Every Friday
-// # SATURDAY:   Every Saturday
-// # SUNDAY:     Every Sunday
-// WEEKLY:     Every week
-// MONTHLY:    Every month
-// YEARLY:     Every year
-// BILLING:    Every billing cycle
 type RecurringPeriodEnum string
 
 // CreateEntitlementJSONBodyType defines parameters for CreateEntitlement.

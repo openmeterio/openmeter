@@ -73,7 +73,7 @@ func TestNextAfter(t *testing.T) {
 		{
 			name: "Should work with weeks",
 			recurrence: Recurrence{
-				Period: RecurrencePeriodWeekly,
+				Period: RecurrencePeriodWeek,
 				Anchor: now.AddDate(0, 0, -1),
 			},
 			time: now,
@@ -82,7 +82,7 @@ func TestNextAfter(t *testing.T) {
 		{
 			name: "Should work with months",
 			recurrence: Recurrence{
-				Period: RecurrencePeriodMonthly,
+				Period: RecurrencePeriodMonth,
 				Anchor: now.AddDate(0, 0, 0),
 			},
 			time: now.AddDate(0, 0, 1),
@@ -163,7 +163,7 @@ func TestPrevBefore(t *testing.T) {
 		{
 			name: "Should work with weeks",
 			recurrence: Recurrence{
-				Period: RecurrencePeriodWeekly,
+				Period: RecurrencePeriodWeek,
 				Anchor: now.AddDate(0, 0, 1),
 			},
 			time: now,
@@ -172,7 +172,7 @@ func TestPrevBefore(t *testing.T) {
 		{
 			name: "Should work with months",
 			recurrence: Recurrence{
-				Period: RecurrencePeriodMonthly,
+				Period: RecurrencePeriodMonth,
 				Anchor: now,
 			},
 			time: now.AddDate(0, 0, 1),

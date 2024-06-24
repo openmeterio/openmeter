@@ -97,7 +97,7 @@ var (
 // RecurrencePeriodValidator is a validator for the "recurrence_period" field enum values. It is called by the builders before save.
 func RecurrencePeriodValidator(rp credit.RecurrencePeriod) error {
 	switch rp {
-	case "DAILY", "WEEKLY", "MONTHLY", "YEARLY":
+	case "DAY", "WEEK", "MONTH", "YEAR":
 		return nil
 	default:
 		return fmt.Errorf("grant: invalid enum value for recurrence_period field: %q", rp)
