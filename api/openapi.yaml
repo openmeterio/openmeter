@@ -1023,8 +1023,8 @@ paths:
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
   # TODO: should this be /value to be compatible with all three entitlement types
-  ? /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value
-  : get:
+  /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value:
+    get:
       operationId: getEntitlementValue
       summary: Get the balance of a specific entitlement.
       description: |
