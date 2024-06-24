@@ -3202,16 +3202,16 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                             "anchor": "2020-02-20 00:00:00",  # An arbitrary anchor to
                               base the recurring period on. Required.
                             "interval": "str"  # List of pre-defined periods that can be
-                              used for recurring & scheduling.  DAILY:      Every day  MONDAY:
-                              Every Monday ========================  TUESDAY:    Every Tuesday
+                              used for recurring & scheduling.  DAY:      Every day  MONDAY:     Every
+                              Monday ========================  TUESDAY:    Every Tuesday
                               =========================  WEDNESDAY:  Every Wednesday
                               ===========================  THURSDAY:   Every Thursday
                               ==========================  FRIDAY:     Every Friday
                               ========================  SATURDAY:   Every Saturday
                               ==========================  SUNDAY:     Every Sunday
-                              ========================  WEEKLY:     Every week MONTHLY:    Every month
-                              YEARLY:     Every year BILLING:    Every billing cycle. Required. Known
-                              values are: "DAILY", "WEEKLY", "MONTHLY", "YEARLY", and "BILLING".
+                              ========================  WEEK:     Every week MONTH:    Every month
+                              YEAR:     Every year. Required. Known values are: "DAY", "WEEK", "MONTH",
+                              and "YEAR".
                         },
                         "voidedAt": "2020-02-20 00:00:00"  # Optional. The date and time the
                           grant was voided (cannot be used after that).
@@ -3799,16 +3799,16 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                             "anchor": "2020-02-20 00:00:00",  # An arbitrary anchor to
                               base the recurring period on. Required.
                             "interval": "str"  # List of pre-defined periods that can be
-                              used for recurring & scheduling.  DAILY:      Every day  MONDAY:
-                              Every Monday ========================  TUESDAY:    Every Tuesday
+                              used for recurring & scheduling.  DAY:      Every day  MONDAY:     Every
+                              Monday ========================  TUESDAY:    Every Tuesday
                               =========================  WEDNESDAY:  Every Wednesday
                               ===========================  THURSDAY:   Every Thursday
                               ==========================  FRIDAY:     Every Friday
                               ========================  SATURDAY:   Every Saturday
                               ==========================  SUNDAY:     Every Sunday
-                              ========================  WEEKLY:     Every week MONTHLY:    Every month
-                              YEARLY:     Every year BILLING:    Every billing cycle. Required. Known
-                              values are: "DAILY", "WEEKLY", "MONTHLY", "YEARLY", and "BILLING".
+                              ========================  WEEK:     Every week MONTH:    Every month
+                              YEAR:     Every year. Required. Known values are: "DAY", "WEEK", "MONTH",
+                              and "YEAR".
                         },
                         "voidedAt": "2020-02-20 00:00:00"  # Optional. The date and time the
                           grant was voided (cannot be used after that).
@@ -3923,15 +3923,14 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         "anchor": "2020-02-20 00:00:00",  # An arbitrary anchor to base the
                           recurring period on. Required.
                         "interval": "str"  # List of pre-defined periods that can be used for
-                          recurring & scheduling.  DAILY:      Every day  MONDAY:     Every Monday
+                          recurring & scheduling.  DAY:      Every day  MONDAY:     Every Monday
                           ========================  TUESDAY:    Every Tuesday =========================
                           WEDNESDAY:  Every Wednesday ===========================  THURSDAY:   Every
                           Thursday ==========================  FRIDAY:     Every Friday
                           ========================  SATURDAY:   Every Saturday
                           ==========================  SUNDAY:     Every Sunday ========================
-                          WEEKLY:     Every week MONTHLY:    Every month YEARLY:     Every year
-                          BILLING:    Every billing cycle. Required. Known values are: "DAILY",
-                          "WEEKLY", "MONTHLY", "YEARLY", and "BILLING".
+                          WEEK:     Every week MONTH:    Every month YEAR:     Every year. Required.
+                          Known values are: "DAY", "WEEK", "MONTH", and "YEAR".
                     }
                 }
 
@@ -3981,15 +3980,14 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         "anchor": "2020-02-20 00:00:00",  # An arbitrary anchor to base the
                           recurring period on. Required.
                         "interval": "str"  # List of pre-defined periods that can be used for
-                          recurring & scheduling.  DAILY:      Every day  MONDAY:     Every Monday
+                          recurring & scheduling.  DAY:      Every day  MONDAY:     Every Monday
                           ========================  TUESDAY:    Every Tuesday =========================
                           WEDNESDAY:  Every Wednesday ===========================  THURSDAY:   Every
                           Thursday ==========================  FRIDAY:     Every Friday
                           ========================  SATURDAY:   Every Saturday
                           ==========================  SUNDAY:     Every Sunday ========================
-                          WEEKLY:     Every week MONTHLY:    Every month YEARLY:     Every year
-                          BILLING:    Every billing cycle. Required. Known values are: "DAILY",
-                          "WEEKLY", "MONTHLY", "YEARLY", and "BILLING".
+                          WEEK:     Every week MONTH:    Every month YEAR:     Every year. Required.
+                          Known values are: "DAY", "WEEK", "MONTH", and "YEAR".
                     },
                     "voidedAt": "2020-02-20 00:00:00"  # Optional. The date and time the grant
                       was voided (cannot be used after that).
@@ -4073,15 +4071,14 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         "anchor": "2020-02-20 00:00:00",  # An arbitrary anchor to base the
                           recurring period on. Required.
                         "interval": "str"  # List of pre-defined periods that can be used for
-                          recurring & scheduling.  DAILY:      Every day  MONDAY:     Every Monday
+                          recurring & scheduling.  DAY:      Every day  MONDAY:     Every Monday
                           ========================  TUESDAY:    Every Tuesday =========================
                           WEDNESDAY:  Every Wednesday ===========================  THURSDAY:   Every
                           Thursday ==========================  FRIDAY:     Every Friday
                           ========================  SATURDAY:   Every Saturday
                           ==========================  SUNDAY:     Every Sunday ========================
-                          WEEKLY:     Every week MONTHLY:    Every month YEARLY:     Every year
-                          BILLING:    Every billing cycle. Required. Known values are: "DAILY",
-                          "WEEKLY", "MONTHLY", "YEARLY", and "BILLING".
+                          WEEK:     Every week MONTH:    Every month YEAR:     Every year. Required.
+                          Known values are: "DAY", "WEEK", "MONTH", and "YEAR".
                     },
                     "voidedAt": "2020-02-20 00:00:00"  # Optional. The date and time the grant
                       was voided (cannot be used after that).
@@ -4141,15 +4138,14 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         "anchor": "2020-02-20 00:00:00",  # An arbitrary anchor to base the
                           recurring period on. Required.
                         "interval": "str"  # List of pre-defined periods that can be used for
-                          recurring & scheduling.  DAILY:      Every day  MONDAY:     Every Monday
+                          recurring & scheduling.  DAY:      Every day  MONDAY:     Every Monday
                           ========================  TUESDAY:    Every Tuesday =========================
                           WEDNESDAY:  Every Wednesday ===========================  THURSDAY:   Every
                           Thursday ==========================  FRIDAY:     Every Friday
                           ========================  SATURDAY:   Every Saturday
                           ==========================  SUNDAY:     Every Sunday ========================
-                          WEEKLY:     Every week MONTHLY:    Every month YEARLY:     Every year
-                          BILLING:    Every billing cycle. Required. Known values are: "DAILY",
-                          "WEEKLY", "MONTHLY", "YEARLY", and "BILLING".
+                          WEEK:     Every week MONTH:    Every month YEAR:     Every year. Required.
+                          Known values are: "DAY", "WEEK", "MONTH", and "YEAR".
                     }
                 }
 
@@ -4199,15 +4195,14 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         "anchor": "2020-02-20 00:00:00",  # An arbitrary anchor to base the
                           recurring period on. Required.
                         "interval": "str"  # List of pre-defined periods that can be used for
-                          recurring & scheduling.  DAILY:      Every day  MONDAY:     Every Monday
+                          recurring & scheduling.  DAY:      Every day  MONDAY:     Every Monday
                           ========================  TUESDAY:    Every Tuesday =========================
                           WEDNESDAY:  Every Wednesday ===========================  THURSDAY:   Every
                           Thursday ==========================  FRIDAY:     Every Friday
                           ========================  SATURDAY:   Every Saturday
                           ==========================  SUNDAY:     Every Sunday ========================
-                          WEEKLY:     Every week MONTHLY:    Every month YEARLY:     Every year
-                          BILLING:    Every billing cycle. Required. Known values are: "DAILY",
-                          "WEEKLY", "MONTHLY", "YEARLY", and "BILLING".
+                          WEEK:     Every week MONTH:    Every month YEAR:     Every year. Required.
+                          Known values are: "DAY", "WEEK", "MONTH", and "YEAR".
                     },
                     "voidedAt": "2020-02-20 00:00:00"  # Optional. The date and time the grant
                       was voided (cannot be used after that).
