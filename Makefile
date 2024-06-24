@@ -10,6 +10,14 @@ down: ## Stop the dependencies via docker compose
 	$(call print-target)
 	docker compose down --remove-orphans --volumes
 
+.PHONY: gen-api
+gen-api: ## Generate API and SDKs
+	$(call print-target)
+	go generate ./api/...
+	dagger call --source .:default generate node-sdk -o api/client/node
+	dagger call --source .:default generate web-sdk -o api/client/web
+	dagger call --source .:default generate python-sdk -o api/client/python
+
 .PHONY: generate
 generate: ## Generate code
 	$(call print-target)
