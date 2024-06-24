@@ -17,6 +17,7 @@ type GetEntitlementValueHandler = httpdriver.GetEntitlementValueHandler
 type GetEntitlementsOfSubjectHandler = httpdriver.GetEntitlementsOfSubjectHandler
 type ListEntitlementGrantsHandler = httpdriver.ListEntitlementGrantsHandler
 type ResetEntitlementUsageHandler = httpdriver.ResetEntitlementUsageHandler
+type ListEntitlementsHandler = httpdriver.ListEntitlementsHandler
 
 func NewEntitlementHandler(
 	connector entitlement.EntitlementConnector,
