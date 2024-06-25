@@ -73,7 +73,7 @@ const (
 )
 
 func main() {
-	v, flags := viper.New(), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
+	v, flags := viper.NewWithOptions(viper.WithDecodeHook(config.DecodeHook())), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
 	ctx := context.Background()
 
 	config.SetViperDefaults(v, flags)
@@ -99,7 +99,7 @@ func main() {
 	}
 
 	var conf config.Configuration
-	err = v.Unmarshal(&conf, viper.DecodeHook(config.DecodeHook()))
+	err = v.Unmarshal(&conf)
 	if err != nil {
 		panic(err)
 	}
@@ -576,7 +576,8 @@ func initPGClients(ctx context.Context, config config.PostgresConfig) (*struct {
 	entitlementDBClient    *entitlementdb.Client
 	productcatalogDBClient *productcatalogdb.Client
 	creditDBClient         *creditdb.Client
-}, error) {
+}, error,
+) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid postgres config: %w", err)
 	}

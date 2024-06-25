@@ -45,7 +45,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	v, flags := viper.New(), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
+	v, flags := viper.NewWithOptions(viper.WithDecodeHook(config.DecodeHook())), pflag.NewFlagSet("OpenMeter", pflag.ExitOnError)
 
 	config.SetViperDefaults(v, flags)
 
@@ -71,7 +71,7 @@ func main() {
 	}
 
 	var conf config.Configuration
-	err = v.Unmarshal(&conf, viper.DecodeHook(config.DecodeHook()))
+	err = v.Unmarshal(&conf)
 	if err != nil {
 		slog.Error("failed to unmarshal configuration", slog.String("error", err.Error()))
 		os.Exit(1)

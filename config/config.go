@@ -88,10 +88,13 @@ func (c Configuration) Validate() error {
 
 func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	// Viper settings
+	// TODO: remove this: it's not in use
 	v.AddConfigPath(".")
 
 	// Environment variable settings
+	// TODO: replace this with constructor option
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
+
 	v.AllowEmptyEnv(true)
 	v.AutomaticEnv()
 
