@@ -422,9 +422,6 @@ func MapEntitlementGrantToAPI(subjectKey *string, grant *meteredentitlement.Enti
 		NextRecurrence:    grant.NextRecurrence,
 		VoidedAt:          grant.VoidedAt,
 	}
-	if subjectKey != nil {
-		apiGrant.SubjectKey = subjectKey
-	}
 
 	if grant.Recurrence != nil {
 		apiGrant.Recurrence = &api.RecurringPeriod{

@@ -3173,8 +3173,6 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                               "YEAR".
                         },
                         "id": "str",  # Readonly unique ULID identifier. Required.
-                        "subjectKey": "str",  # The subject that is granted the entitlement.
-                          Required.
                         "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource
                           was last updated. Required.
                         "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date
@@ -3763,8 +3761,6 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                               "YEAR".
                         },
                         "id": "str",  # Readonly unique ULID identifier. Required.
-                        "subjectKey": "str",  # The subject that is granted the entitlement.
-                          Required.
                         "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource
                           was last updated. Required.
                         "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date
@@ -3932,8 +3928,6 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
                     },
                     "id": "str",  # Readonly unique ULID identifier. Required.
-                    "subjectKey": "str",  # The subject that is granted the entitlement.
-                      Required.
                     "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
                       last updated. Required.
                     "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
@@ -4018,8 +4012,6 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
                     },
                     "id": "str",  # Readonly unique ULID identifier. Required.
-                    "subjectKey": "str",  # The subject that is granted the entitlement.
-                      Required.
                     "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
                       last updated. Required.
                     "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
@@ -4132,8 +4124,6 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
                     },
                     "id": "str",  # Readonly unique ULID identifier. Required.
-                    "subjectKey": "str",  # The subject that is granted the entitlement.
-                      Required.
                     "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
                       last updated. Required.
                     "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the

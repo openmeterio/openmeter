@@ -586,7 +586,6 @@ func TestCredit(t *testing.T) {
 			Priority:          &priority,
 			EffectiveAt:       effectiveAt.UTC(),
 			MaxRolloverAmount: &maxRolloverAmount,
-			SubjectKey:        &subject,
 			Expiration: api.ExpirationPeriod{
 				Duration: "MONTH",
 				Count:    1,

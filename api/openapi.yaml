@@ -1851,7 +1851,6 @@ components:
         - $ref: "#/components/schemas/SharedMetaFields"
         - type: object
           required:
-            - subjectKey
             - entitlementId
           properties:
             entitlementId:
@@ -1860,12 +1859,6 @@ components:
               type: string
               readOnly: true
               example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-            subjectKey:
-              readOnly: true
-              description: |
-                The subject that is granted the entitlement.
-              type: string
-              example: customer-id
             nextRecurrence:
               description: |
                 The next time the grant will recurr.
