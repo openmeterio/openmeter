@@ -503,16 +503,22 @@ export interface components {
       components['schemas']['SharedMetaFields']
     EntitlementCreateSharedFields: {
       /**
-       * @description The feature the subject is entitled to use
+       * @description The feature the subject is entitled to use. Either ID or key must be present.
        *
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
-      featureId: string
+      featureId?: string
+      /**
+       * @description The feature the subject is entitled to use. Either ID or key must be present.
+       *
+       * @example my-feature
+       */
+      featureKey?: string
       /** @description Additional metadata for the feature. */
       metadata?: {
         [key: string]: string
       }
-      usagePeriod?: components['schemas']['RecurringPeriod']
+      usagePeriod?: components['schemas']['RecurringPeriodCreateInput']
     }
     EntitlementSharedFields: components['schemas']['SharedMetaFields'] &
       components['schemas']['EntitlementCreateSharedFields'] & {
