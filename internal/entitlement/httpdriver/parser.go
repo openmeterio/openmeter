@@ -45,7 +45,7 @@ func (parser) ToStatic(e *entitlement.Entitlement) (*api.EntitlementStatic, erro
 		return nil, err
 	}
 
-	return &api.EntitlementStatic{
+	apiRes := &api.EntitlementStatic{
 		CreatedAt:  &static.CreatedAt,
 		DeletedAt:  static.DeletedAt,
 		FeatureId:  static.FeatureID,
@@ -55,7 +55,16 @@ func (parser) ToStatic(e *entitlement.Entitlement) (*api.EntitlementStatic, erro
 		Type:       api.EntitlementStaticType(static.EntitlementType),
 		UpdatedAt:  &static.UpdatedAt,
 		Config:     static.Config,
-	}, nil
+	}
+
+	if static.UsagePeriod != nil {
+		apiRes.UsagePeriod = &api.RecurringPeriod{
+			Anchor:   static.UsagePeriod.Anchor,
+			Interval: api.RecurringPeriodEnum(static.UsagePeriod.Interval),
+		}
+	}
+
+	return apiRes, nil
 }
 
 func (parser) ToBoolean(e *entitlement.Entitlement) (*api.EntitlementBoolean, error) {
@@ -64,7 +73,7 @@ func (parser) ToBoolean(e *entitlement.Entitlement) (*api.EntitlementBoolean, er
 		return nil, err
 	}
 
-	return &api.EntitlementBoolean{
+	apiRes := &api.EntitlementBoolean{
 		CreatedAt:  &boolean.CreatedAt,
 		DeletedAt:  boolean.DeletedAt,
 		FeatureId:  boolean.FeatureID,
@@ -73,7 +82,16 @@ func (parser) ToBoolean(e *entitlement.Entitlement) (*api.EntitlementBoolean, er
 		SubjectKey: boolean.SubjectKey,
 		Type:       api.EntitlementBooleanType(boolean.EntitlementType),
 		UpdatedAt:  &boolean.UpdatedAt,
-	}, nil
+	}
+
+	if boolean.UsagePeriod != nil {
+		apiRes.UsagePeriod = &api.RecurringPeriod{
+			Anchor:   boolean.UsagePeriod.Anchor,
+			Interval: api.RecurringPeriodEnum(boolean.UsagePeriod.Interval),
+		}
+	}
+
+	return apiRes, nil
 }
 
 func (p parser) ToAPIGeneric(e *entitlement.Entitlement) (*api.Entitlement, error) {
