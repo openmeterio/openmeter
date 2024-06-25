@@ -2,6 +2,7 @@ package staticentitlement
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
 )
@@ -9,18 +10,18 @@ import (
 type Entitlement struct {
 	entitlement.GenericProperties
 
-	Config *string `json:"config,omitempty"`
+	Config string `json:"config,omitempty"`
 }
 
 // Attempts to parse the JSON string in `Config` to map[string]interface{}
 // and returns it's value
 func (e *Entitlement) ParseConfig() (map[string]interface{}, error) {
-	if e.Config == nil {
-		return nil, nil
+	if len(e.Config) == 0 {
+		return nil, fmt.Errorf("Config is empty")
 	}
 
 	result := make(map[string]interface{})
-	json.Unmarshal([]byte(*e.Config), &result)
+	json.Unmarshal([]byte(e.Config), &result)
 	return result, nil
 }
 
@@ -29,8 +30,12 @@ func ParseFromGenericEntitlement(model *entitlement.Entitlement) (*Entitlement, 
 		return nil, &entitlement.WrongTypeError{Expected: entitlement.EntitlementTypeStatic, Actual: model.EntitlementType}
 	}
 
+	if model.Config == nil {
+		return nil, &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Config is required"}
+	}
+
 	return &Entitlement{
 		GenericProperties: model.GenericProperties,
-		Config:            model.Config,
+		Config:            *model.Config,
 	}, nil
 }

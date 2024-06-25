@@ -152,6 +152,34 @@ func (ec *EntitlementCreate) SetNillableConfig(s *string) *EntitlementCreate {
 	return ec
 }
 
+// SetUsagePeriodInterval sets the "usage_period_interval" field.
+func (ec *EntitlementCreate) SetUsagePeriodInterval(epi entitlement.UsagePeriodInterval) *EntitlementCreate {
+	ec.mutation.SetUsagePeriodInterval(epi)
+	return ec
+}
+
+// SetNillableUsagePeriodInterval sets the "usage_period_interval" field if the given value is not nil.
+func (ec *EntitlementCreate) SetNillableUsagePeriodInterval(epi *entitlement.UsagePeriodInterval) *EntitlementCreate {
+	if epi != nil {
+		ec.SetUsagePeriodInterval(*epi)
+	}
+	return ec
+}
+
+// SetUsagePeriodAnchor sets the "usage_period_anchor" field.
+func (ec *EntitlementCreate) SetUsagePeriodAnchor(t time.Time) *EntitlementCreate {
+	ec.mutation.SetUsagePeriodAnchor(t)
+	return ec
+}
+
+// SetNillableUsagePeriodAnchor sets the "usage_period_anchor" field if the given value is not nil.
+func (ec *EntitlementCreate) SetNillableUsagePeriodAnchor(t *time.Time) *EntitlementCreate {
+	if t != nil {
+		ec.SetUsagePeriodAnchor(*t)
+	}
+	return ec
+}
+
 // SetID sets the "id" field.
 func (ec *EntitlementCreate) SetID(s string) *EntitlementCreate {
 	ec.mutation.SetID(s)
@@ -260,6 +288,11 @@ func (ec *EntitlementCreate) check() error {
 	if _, ok := ec.mutation.SubjectKey(); !ok {
 		return &ValidationError{Name: "subject_key", err: errors.New(`db: missing required field "Entitlement.subject_key"`)}
 	}
+	if v, ok := ec.mutation.UsagePeriodInterval(); ok {
+		if err := entitlement.UsagePeriodIntervalValidator(v); err != nil {
+			return &ValidationError{Name: "usage_period_interval", err: fmt.Errorf(`db: validator failed for field "Entitlement.usage_period_interval": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -343,6 +376,14 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 	if value, ok := ec.mutation.Config(); ok {
 		_spec.SetField(entitlement.FieldConfig, field.TypeString, value)
 		_node.Config = &value
+	}
+	if value, ok := ec.mutation.UsagePeriodInterval(); ok {
+		_spec.SetField(entitlement.FieldUsagePeriodInterval, field.TypeEnum, value)
+		_node.UsagePeriodInterval = &value
+	}
+	if value, ok := ec.mutation.UsagePeriodAnchor(); ok {
+		_spec.SetField(entitlement.FieldUsagePeriodAnchor, field.TypeTime, value)
+		_node.UsagePeriodAnchor = &value
 	}
 	if nodes := ec.mutation.UsageResetIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -518,6 +559,12 @@ func (u *EntitlementUpsertOne) UpdateNewValues() *EntitlementUpsertOne {
 		}
 		if _, exists := u.create.mutation.IsSoftLimit(); exists {
 			s.SetIgnore(entitlement.FieldIsSoftLimit)
+		}
+		if _, exists := u.create.mutation.UsagePeriodInterval(); exists {
+			s.SetIgnore(entitlement.FieldUsagePeriodInterval)
+		}
+		if _, exists := u.create.mutation.UsagePeriodAnchor(); exists {
+			s.SetIgnore(entitlement.FieldUsagePeriodAnchor)
 		}
 	}))
 	return u
@@ -833,6 +880,12 @@ func (u *EntitlementUpsertBulk) UpdateNewValues() *EntitlementUpsertBulk {
 			}
 			if _, exists := b.mutation.IsSoftLimit(); exists {
 				s.SetIgnore(entitlement.FieldIsSoftLimit)
+			}
+			if _, exists := b.mutation.UsagePeriodInterval(); exists {
+				s.SetIgnore(entitlement.FieldUsagePeriodInterval)
+			}
+			if _, exists := b.mutation.UsagePeriodAnchor(); exists {
+				s.SetIgnore(entitlement.FieldUsagePeriodAnchor)
 			}
 		}
 	}))

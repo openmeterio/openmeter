@@ -505,14 +505,17 @@ func TestCredit(t *testing.T) {
 	var entitlementId *string
 	var eCreatedAt *time.Time
 	t.Run("Create a Entitlement", func(t *testing.T) {
-		resp, err := client.CreateEntitlementWithResponse(context.Background(), subject, api.CreateEntitlementJSONRequestBody{
+		meteredEntitlement := api.EntitlementMeteredCreateInputs{
 			Type:      "metered",
 			FeatureId: *featureId,
 			UsagePeriod: api.RecurringPeriod{
 				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
 				Interval: "MONTH",
 			},
-		})
+		}
+		body := &api.CreateEntitlementJSONRequestBody{}
+		body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
+		resp, err := client.CreateEntitlementWithResponse(context.Background(), subject, *body)
 
 		require.NoError(t, err)
 		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
@@ -526,14 +529,17 @@ func TestCredit(t *testing.T) {
 	})
 
 	t.Run("Create for same subject and feature", func(t *testing.T) {
-		resp, err := client.CreateEntitlementWithResponse(context.Background(), subject, api.CreateEntitlementJSONRequestBody{
+		meteredEntitlement := api.EntitlementMeteredCreateInputs{
 			Type:      "metered",
 			FeatureId: *featureId,
 			UsagePeriod: api.RecurringPeriod{
 				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
 				Interval: "DAY",
 			},
-		})
+		}
+		body := &api.CreateEntitlementJSONRequestBody{}
+		body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
+		resp, err := client.CreateEntitlementWithResponse(context.Background(), subject, *body)
 
 		require.NoError(t, err)
 		require.Equal(t, http.StatusConflict, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
@@ -678,7 +684,7 @@ func TestCredit(t *testing.T) {
 		require.Len(t, *featureListResp.JSON200, 1)
 
 		resp, err := client.GetEntitlementValueWithResponse(context.Background(), subject, *entitlementId, &api.GetEntitlementValueParams{
-			Time: convert.ToPointer(eCreatedAt.Add(time.Minute)),
+			Time: convert.ToPointer(eCreatedAt.Add(time.Minute * 2)),
 		})
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.StatusCode())

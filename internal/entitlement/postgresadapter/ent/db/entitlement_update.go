@@ -203,6 +203,12 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if eu.mutation.ConfigCleared() {
 		_spec.ClearField(entitlement.FieldConfig, field.TypeString)
 	}
+	if eu.mutation.UsagePeriodIntervalCleared() {
+		_spec.ClearField(entitlement.FieldUsagePeriodInterval, field.TypeEnum)
+	}
+	if eu.mutation.UsagePeriodAnchorCleared() {
+		_spec.ClearField(entitlement.FieldUsagePeriodAnchor, field.TypeTime)
+	}
 	if eu.mutation.UsageResetCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -471,6 +477,12 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 	}
 	if euo.mutation.ConfigCleared() {
 		_spec.ClearField(entitlement.FieldConfig, field.TypeString)
+	}
+	if euo.mutation.UsagePeriodIntervalCleared() {
+		_spec.ClearField(entitlement.FieldUsagePeriodInterval, field.TypeEnum)
+	}
+	if euo.mutation.UsagePeriodAnchorCleared() {
+		_spec.ClearField(entitlement.FieldUsagePeriodAnchor, field.TypeTime)
 	}
 	if euo.mutation.UsageResetCleared() {
 		edge := &sqlgraph.EdgeSpec{

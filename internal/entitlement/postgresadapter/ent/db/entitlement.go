@@ -42,6 +42,10 @@ type Entitlement struct {
 	IsSoftLimit *bool `json:"is_soft_limit,omitempty"`
 	// Config holds the value of the "config" field.
 	Config *string `json:"config,omitempty"`
+	// UsagePeriodInterval holds the value of the "usage_period_interval" field.
+	UsagePeriodInterval *entitlement.UsagePeriodInterval `json:"usage_period_interval,omitempty"`
+	// UsagePeriodAnchor holds the value of the "usage_period_anchor" field.
+	UsagePeriodAnchor *time.Time `json:"usage_period_anchor,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the EntitlementQuery when eager-loading is set.
 	Edges        EntitlementEdges `json:"edges"`
@@ -77,9 +81,9 @@ func (*Entitlement) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case entitlement.FieldIssueAfterReset:
 			values[i] = new(sql.NullFloat64)
-		case entitlement.FieldID, entitlement.FieldNamespace, entitlement.FieldEntitlementType, entitlement.FieldFeatureID, entitlement.FieldSubjectKey, entitlement.FieldConfig:
+		case entitlement.FieldID, entitlement.FieldNamespace, entitlement.FieldEntitlementType, entitlement.FieldFeatureID, entitlement.FieldSubjectKey, entitlement.FieldConfig, entitlement.FieldUsagePeriodInterval:
 			values[i] = new(sql.NullString)
-		case entitlement.FieldCreatedAt, entitlement.FieldUpdatedAt, entitlement.FieldDeletedAt, entitlement.FieldMeasureUsageFrom:
+		case entitlement.FieldCreatedAt, entitlement.FieldUpdatedAt, entitlement.FieldDeletedAt, entitlement.FieldMeasureUsageFrom, entitlement.FieldUsagePeriodAnchor:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -181,6 +185,20 @@ func (e *Entitlement) assignValues(columns []string, values []any) error {
 				e.Config = new(string)
 				*e.Config = value.String
 			}
+		case entitlement.FieldUsagePeriodInterval:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field usage_period_interval", values[i])
+			} else if value.Valid {
+				e.UsagePeriodInterval = new(entitlement.UsagePeriodInterval)
+				*e.UsagePeriodInterval = entitlement.UsagePeriodInterval(value.String)
+			}
+		case entitlement.FieldUsagePeriodAnchor:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field usage_period_anchor", values[i])
+			} else if value.Valid {
+				e.UsagePeriodAnchor = new(time.Time)
+				*e.UsagePeriodAnchor = value.Time
+			}
 		default:
 			e.selectValues.Set(columns[i], values[i])
 		}
@@ -266,6 +284,16 @@ func (e *Entitlement) String() string {
 	if v := e.Config; v != nil {
 		builder.WriteString("config=")
 		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := e.UsagePeriodInterval; v != nil {
+		builder.WriteString("usage_period_interval=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := e.UsagePeriodAnchor; v != nil {
+		builder.WriteString("usage_period_anchor=")
+		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteByte(')')
 	return builder.String()

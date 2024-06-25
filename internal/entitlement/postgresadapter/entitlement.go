@@ -40,7 +40,7 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 }
 
 func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlement entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
-	res, err := a.db.Entitlement.Create().
+	cmd := a.db.Entitlement.Create().
 		SetEntitlementType(db_entitlement.EntitlementType(entitlement.EntitlementType)).
 		SetNamespace(entitlement.Namespace).
 		SetFeatureID(entitlement.FeatureID).
@@ -48,8 +48,17 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlemen
 		SetNillableMeasureUsageFrom(entitlement.MeasureUsageFrom).
 		SetNillableIssueAfterReset(entitlement.IssueAfterReset).
 		SetNillableIsSoftLimit(entitlement.IsSoftLimit).
-		SetNillableConfig(entitlement.Config).
-		Save(ctx)
+		SetNillableConfig(entitlement.Config)
+
+	if entitlement.UsagePeriod != nil {
+		dbInterval := db_entitlement.UsagePeriodInterval(entitlement.UsagePeriod.Interval)
+
+		cmd.SetNillableUsagePeriodAnchor(&entitlement.UsagePeriod.Anchor).
+			SetNillableUsagePeriodInterval(&dbInterval)
+	}
+
+	res, err := cmd.Save(ctx)
+
 	if err != nil {
 		return nil, err
 	}
@@ -111,14 +120,14 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 }
 
 func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
-	return &entitlement.Entitlement{
+	ent := &entitlement.Entitlement{
 		GenericProperties: entitlement.GenericProperties{
 			NamespacedModel: models.NamespacedModel{
 				Namespace: e.Namespace,
 			},
 			ManagedModel: models.ManagedModel{
-				CreatedAt: e.CreatedAt,
-				UpdatedAt: e.UpdatedAt,
+				CreatedAt: e.CreatedAt.UTC(),
+				UpdatedAt: e.UpdatedAt.UTC(),
 				DeletedAt: convert.SafeToUTC(e.DeletedAt),
 			},
 			ID:              e.ID,
@@ -131,6 +140,15 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 		IsSoftLimit:      e.IsSoftLimit,
 		Config:           e.Config,
 	}
+
+	if e.UsagePeriodAnchor != nil && e.UsagePeriodInterval != nil {
+		ent.UsagePeriod = &entitlement.UsagePeriod{
+			Anchor:   *convert.SafeToUTC(e.UsagePeriodAnchor),
+			Interval: entitlement.UsagePeriodInterval(*e.UsagePeriodInterval),
+		}
+	}
+
+	return ent
 }
 
 func (a *entitlementDBAdapter) LockEntitlementForTx(ctx context.Context, entitlementID models.NamespacedID) error {

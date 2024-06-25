@@ -20,6 +20,9 @@ type Entitlement struct {
 	// IsSoftLimit defines if the entitlement is a soft limit. By default when balance falls to 0
 	// access will be disabled. If this is a soft limit, access will be allowed nonetheless.
 	IsSoftLimit bool `json:"isSoftLimit,omitempty"`
+
+	// UsagePeriod defines the recurring period for usage calculations.
+	UsagePeriod entitlement.UsagePeriod `json:"usagePeriod,omitempty"`
 }
 
 func ParseFromGenericEntitlement(model *entitlement.Entitlement) (*Entitlement, error) {
@@ -35,11 +38,16 @@ func ParseFromGenericEntitlement(model *entitlement.Entitlement) (*Entitlement, 
 		return nil, &entitlement.InvalidValueError{Message: "IsSoftLimit is required", Type: model.EntitlementType}
 	}
 
+	if model.UsagePeriod == nil {
+		return nil, &entitlement.InvalidValueError{Message: "UsagePeriod is required", Type: model.EntitlementType}
+	}
+
 	return &Entitlement{
 		GenericProperties: model.GenericProperties,
 
 		MeasureUsageFrom: *model.MeasureUsageFrom,
 		IssuesAfterReset: model.IssueAfterReset,
 		IsSoftLimit:      *model.IsSoftLimit,
+		UsagePeriod:      *model.UsagePeriod,
 	}, nil
 }

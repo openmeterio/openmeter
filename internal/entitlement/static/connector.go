@@ -28,11 +28,16 @@ func (c *connector) GetValue(entitlement *entitlement.Entitlement, at time.Time)
 	}, nil
 }
 
-func (c *connector) SetDefaults(model *entitlement.CreateEntitlementInputs) {
+func (c *connector) SetDefaultsAndValidate(model *entitlement.CreateEntitlementInputs) error {
 	model.EntitlementType = entitlement.EntitlementTypeStatic
-	model.MeasureUsageFrom = nil
-	model.IssueAfterReset = nil
-	model.IsSoftLimit = nil
+
+	if model.MeasureUsageFrom != nil ||
+		model.IssueAfterReset != nil ||
+		model.IsSoftLimit != nil {
+		return &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Invalid inputs for type"}
+	}
+
+	return nil
 }
 
 func (c *connector) ValidateForFeature(entitlement *entitlement.CreateEntitlementInputs, feature productcatalog.Feature) error {
@@ -40,7 +45,7 @@ func (c *connector) ValidateForFeature(entitlement *entitlement.CreateEntitlemen
 }
 
 type StaticEntitlementValue struct {
-	Config *string `json:"config,omitempty"`
+	Config string `json:"config,omitempty"`
 }
 
 var _ entitlement.EntitlementValue = &StaticEntitlementValue{}

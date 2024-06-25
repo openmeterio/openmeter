@@ -16,13 +16,15 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "entitlement_type", Type: field.TypeEnum, Enums: []string{"metered"}},
+		{Name: "entitlement_type", Type: field.TypeEnum, Enums: []string{"metered", "static", "boolean"}},
 		{Name: "feature_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "subject_key", Type: field.TypeString},
 		{Name: "measure_usage_from", Type: field.TypeTime, Nullable: true},
 		{Name: "issue_after_reset", Type: field.TypeFloat64, Nullable: true},
 		{Name: "is_soft_limit", Type: field.TypeBool, Nullable: true},
 		{Name: "config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "usage_period_interval", Type: field.TypeEnum, Nullable: true, Enums: []string{"DAY", "WEEK", "MONTH", "YEAR"}},
+		{Name: "usage_period_anchor", Type: field.TypeTime, Nullable: true},
 	}
 	// EntitlementsTable holds the schema information for the "entitlements" table.
 	EntitlementsTable = &schema.Table{

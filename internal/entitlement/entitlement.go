@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type HasType interface {
@@ -11,15 +12,16 @@ type HasType interface {
 }
 
 type CreateEntitlementInputs struct {
-	Namespace       string
-	FeatureID       string
-	SubjectKey      string
-	EntitlementType EntitlementType
+	Namespace       string          `json:"namespace"`
+	FeatureID       string          `json:"featureId"`
+	SubjectKey      string          `json:"subjectKey"`
+	EntitlementType EntitlementType `json:"type"`
 
-	MeasureUsageFrom *time.Time
-	IssueAfterReset  *float64
-	IsSoftLimit      *bool
-	Config           *string
+	MeasureUsageFrom *time.Time   `json:"measureUsageFrom,omitempty"`
+	IssueAfterReset  *float64     `json:"issueAfterReset,omitempty"`
+	IsSoftLimit      *bool        `json:"isSoftLimit,omitempty"`
+	Config           *string      `json:"config,omitempty"`
+	UsagePeriod      *UsagePeriod `json:"usagePeriod,omitempty"`
 }
 
 func (c CreateEntitlementInputs) GetType() EntitlementType {
@@ -30,15 +32,16 @@ func (c CreateEntitlementInputs) GetType() EntitlementType {
 type Entitlement struct {
 	GenericProperties
 
-	// All none-core fields are optional
+	UsagePeriod *UsagePeriod `json:"usagePeriod,omitempty"`
 
+	// All none-core fields are optional
 	// metered
-	MeasureUsageFrom *time.Time
-	IssueAfterReset  *float64
-	IsSoftLimit      *bool
+	MeasureUsageFrom *time.Time `json:"_,omitempty"`
+	IssueAfterReset  *float64   `json:"issueAfterReset,omitempty"`
+	IsSoftLimit      *bool      `json:"isSoftLimit,omitempty"`
 
 	// static
-	Config *string
+	Config *string `json:"config,omitempty"`
 }
 
 func (e Entitlement) GetType() EntitlementType {
@@ -60,6 +63,12 @@ func (e EntitlementType) Values() []EntitlementType {
 	return []EntitlementType{EntitlementTypeMetered, EntitlementTypeStatic, EntitlementTypeBoolean}
 }
 
+func (e EntitlementType) StrValues() []string {
+	return slicesx.Map(e.Values(), func(i EntitlementType) string {
+		return string(i)
+	})
+}
+
 func (e EntitlementType) String() string {
 	return string(e)
 }
@@ -73,4 +82,28 @@ type GenericProperties struct {
 	FeatureID       string          `json:"featureId,omitempty"`
 	SubjectKey      string          `json:"subjectKey,omitempty"`
 	EntitlementType EntitlementType `json:"type,omitempty"`
+}
+
+type UsagePeriod struct {
+	Anchor   time.Time           `json:"anchor"`
+	Interval UsagePeriodInterval `json:"interval"`
+}
+
+type UsagePeriodInterval string
+
+const (
+	UsagePeriodIntervalDay   UsagePeriodInterval = "DAY"
+	UsagePeriodIntervalWeek  UsagePeriodInterval = "WEEK"
+	UsagePeriodIntervalMonth UsagePeriodInterval = "MONTH"
+	UsagePeriodIntervalYear  UsagePeriodInterval = "YEAR"
+)
+
+func (u UsagePeriodInterval) Values() []UsagePeriodInterval {
+	return []UsagePeriodInterval{UsagePeriodIntervalDay, UsagePeriodIntervalWeek, UsagePeriodIntervalMonth, UsagePeriodIntervalYear}
+}
+
+func (u UsagePeriodInterval) StrValues() []string {
+	return slicesx.Map(u.Values(), func(i UsagePeriodInterval) string {
+		return string(i)
+	})
 }

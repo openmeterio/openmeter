@@ -32,29 +32,31 @@ const (
 // EntitlementMutation represents an operation that mutates the Entitlement nodes in the graph.
 type EntitlementMutation struct {
 	config
-	op                   Op
-	typ                  string
-	id                   *string
-	namespace            *string
-	metadata             *map[string]string
-	created_at           *time.Time
-	updated_at           *time.Time
-	deleted_at           *time.Time
-	entitlement_type     *entitlement.EntitlementType
-	feature_id           *string
-	subject_key          *string
-	measure_usage_from   *time.Time
-	issue_after_reset    *float64
-	addissue_after_reset *float64
-	is_soft_limit        *bool
-	_config              *string
-	clearedFields        map[string]struct{}
-	usage_reset          map[string]struct{}
-	removedusage_reset   map[string]struct{}
-	clearedusage_reset   bool
-	done                 bool
-	oldValue             func(context.Context) (*Entitlement, error)
-	predicates           []predicate.Entitlement
+	op                    Op
+	typ                   string
+	id                    *string
+	namespace             *string
+	metadata              *map[string]string
+	created_at            *time.Time
+	updated_at            *time.Time
+	deleted_at            *time.Time
+	entitlement_type      *entitlement.EntitlementType
+	feature_id            *string
+	subject_key           *string
+	measure_usage_from    *time.Time
+	issue_after_reset     *float64
+	addissue_after_reset  *float64
+	is_soft_limit         *bool
+	_config               *string
+	usage_period_interval *entitlement.UsagePeriodInterval
+	usage_period_anchor   *time.Time
+	clearedFields         map[string]struct{}
+	usage_reset           map[string]struct{}
+	removedusage_reset    map[string]struct{}
+	clearedusage_reset    bool
+	done                  bool
+	oldValue              func(context.Context) (*Entitlement, error)
+	predicates            []predicate.Entitlement
 }
 
 var _ ent.Mutation = (*EntitlementMutation)(nil)
@@ -692,6 +694,104 @@ func (m *EntitlementMutation) ResetConfig() {
 	delete(m.clearedFields, entitlement.FieldConfig)
 }
 
+// SetUsagePeriodInterval sets the "usage_period_interval" field.
+func (m *EntitlementMutation) SetUsagePeriodInterval(epi entitlement.UsagePeriodInterval) {
+	m.usage_period_interval = &epi
+}
+
+// UsagePeriodInterval returns the value of the "usage_period_interval" field in the mutation.
+func (m *EntitlementMutation) UsagePeriodInterval() (r entitlement.UsagePeriodInterval, exists bool) {
+	v := m.usage_period_interval
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUsagePeriodInterval returns the old "usage_period_interval" field's value of the Entitlement entity.
+// If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EntitlementMutation) OldUsagePeriodInterval(ctx context.Context) (v *entitlement.UsagePeriodInterval, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUsagePeriodInterval is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUsagePeriodInterval requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUsagePeriodInterval: %w", err)
+	}
+	return oldValue.UsagePeriodInterval, nil
+}
+
+// ClearUsagePeriodInterval clears the value of the "usage_period_interval" field.
+func (m *EntitlementMutation) ClearUsagePeriodInterval() {
+	m.usage_period_interval = nil
+	m.clearedFields[entitlement.FieldUsagePeriodInterval] = struct{}{}
+}
+
+// UsagePeriodIntervalCleared returns if the "usage_period_interval" field was cleared in this mutation.
+func (m *EntitlementMutation) UsagePeriodIntervalCleared() bool {
+	_, ok := m.clearedFields[entitlement.FieldUsagePeriodInterval]
+	return ok
+}
+
+// ResetUsagePeriodInterval resets all changes to the "usage_period_interval" field.
+func (m *EntitlementMutation) ResetUsagePeriodInterval() {
+	m.usage_period_interval = nil
+	delete(m.clearedFields, entitlement.FieldUsagePeriodInterval)
+}
+
+// SetUsagePeriodAnchor sets the "usage_period_anchor" field.
+func (m *EntitlementMutation) SetUsagePeriodAnchor(t time.Time) {
+	m.usage_period_anchor = &t
+}
+
+// UsagePeriodAnchor returns the value of the "usage_period_anchor" field in the mutation.
+func (m *EntitlementMutation) UsagePeriodAnchor() (r time.Time, exists bool) {
+	v := m.usage_period_anchor
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUsagePeriodAnchor returns the old "usage_period_anchor" field's value of the Entitlement entity.
+// If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EntitlementMutation) OldUsagePeriodAnchor(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUsagePeriodAnchor is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUsagePeriodAnchor requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUsagePeriodAnchor: %w", err)
+	}
+	return oldValue.UsagePeriodAnchor, nil
+}
+
+// ClearUsagePeriodAnchor clears the value of the "usage_period_anchor" field.
+func (m *EntitlementMutation) ClearUsagePeriodAnchor() {
+	m.usage_period_anchor = nil
+	m.clearedFields[entitlement.FieldUsagePeriodAnchor] = struct{}{}
+}
+
+// UsagePeriodAnchorCleared returns if the "usage_period_anchor" field was cleared in this mutation.
+func (m *EntitlementMutation) UsagePeriodAnchorCleared() bool {
+	_, ok := m.clearedFields[entitlement.FieldUsagePeriodAnchor]
+	return ok
+}
+
+// ResetUsagePeriodAnchor resets all changes to the "usage_period_anchor" field.
+func (m *EntitlementMutation) ResetUsagePeriodAnchor() {
+	m.usage_period_anchor = nil
+	delete(m.clearedFields, entitlement.FieldUsagePeriodAnchor)
+}
+
 // AddUsageResetIDs adds the "usage_reset" edge to the UsageReset entity by ids.
 func (m *EntitlementMutation) AddUsageResetIDs(ids ...string) {
 	if m.usage_reset == nil {
@@ -780,7 +880,7 @@ func (m *EntitlementMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *EntitlementMutation) Fields() []string {
-	fields := make([]string, 0, 12)
+	fields := make([]string, 0, 14)
 	if m.namespace != nil {
 		fields = append(fields, entitlement.FieldNamespace)
 	}
@@ -817,6 +917,12 @@ func (m *EntitlementMutation) Fields() []string {
 	if m._config != nil {
 		fields = append(fields, entitlement.FieldConfig)
 	}
+	if m.usage_period_interval != nil {
+		fields = append(fields, entitlement.FieldUsagePeriodInterval)
+	}
+	if m.usage_period_anchor != nil {
+		fields = append(fields, entitlement.FieldUsagePeriodAnchor)
+	}
 	return fields
 }
 
@@ -849,6 +955,10 @@ func (m *EntitlementMutation) Field(name string) (ent.Value, bool) {
 		return m.IsSoftLimit()
 	case entitlement.FieldConfig:
 		return m.Config()
+	case entitlement.FieldUsagePeriodInterval:
+		return m.UsagePeriodInterval()
+	case entitlement.FieldUsagePeriodAnchor:
+		return m.UsagePeriodAnchor()
 	}
 	return nil, false
 }
@@ -882,6 +992,10 @@ func (m *EntitlementMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldIsSoftLimit(ctx)
 	case entitlement.FieldConfig:
 		return m.OldConfig(ctx)
+	case entitlement.FieldUsagePeriodInterval:
+		return m.OldUsagePeriodInterval(ctx)
+	case entitlement.FieldUsagePeriodAnchor:
+		return m.OldUsagePeriodAnchor(ctx)
 	}
 	return nil, fmt.Errorf("unknown Entitlement field %s", name)
 }
@@ -975,6 +1089,20 @@ func (m *EntitlementMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetConfig(v)
 		return nil
+	case entitlement.FieldUsagePeriodInterval:
+		v, ok := value.(entitlement.UsagePeriodInterval)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUsagePeriodInterval(v)
+		return nil
+	case entitlement.FieldUsagePeriodAnchor:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUsagePeriodAnchor(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Entitlement field %s", name)
 }
@@ -1038,6 +1166,12 @@ func (m *EntitlementMutation) ClearedFields() []string {
 	if m.FieldCleared(entitlement.FieldConfig) {
 		fields = append(fields, entitlement.FieldConfig)
 	}
+	if m.FieldCleared(entitlement.FieldUsagePeriodInterval) {
+		fields = append(fields, entitlement.FieldUsagePeriodInterval)
+	}
+	if m.FieldCleared(entitlement.FieldUsagePeriodAnchor) {
+		fields = append(fields, entitlement.FieldUsagePeriodAnchor)
+	}
 	return fields
 }
 
@@ -1069,6 +1203,12 @@ func (m *EntitlementMutation) ClearField(name string) error {
 		return nil
 	case entitlement.FieldConfig:
 		m.ClearConfig()
+		return nil
+	case entitlement.FieldUsagePeriodInterval:
+		m.ClearUsagePeriodInterval()
+		return nil
+	case entitlement.FieldUsagePeriodAnchor:
+		m.ClearUsagePeriodAnchor()
 		return nil
 	}
 	return fmt.Errorf("unknown Entitlement nullable field %s", name)
@@ -1113,6 +1253,12 @@ func (m *EntitlementMutation) ResetField(name string) error {
 		return nil
 	case entitlement.FieldConfig:
 		m.ResetConfig()
+		return nil
+	case entitlement.FieldUsagePeriodInterval:
+		m.ResetUsagePeriodInterval()
+		return nil
+	case entitlement.FieldUsagePeriodAnchor:
+		m.ResetUsagePeriodAnchor()
 		return nil
 	}
 	return fmt.Errorf("unknown Entitlement field %s", name)

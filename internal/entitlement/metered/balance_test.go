@@ -45,6 +45,11 @@ func TestGetEntitlementBalance(t *testing.T) {
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),
 			IsSoftLimit:      convert.ToPointer(false),
+			UsagePeriod: &entitlement.UsagePeriod{
+				Anchor: time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
+				// TODO: properly test these anchors
+				Interval: entitlement.UsagePeriodIntervalYear,
+			},
 		}
 	}
 
@@ -415,6 +420,11 @@ func TestGetEntitlementHistory(t *testing.T) {
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),
 			IsSoftLimit:      convert.ToPointer(false),
+			UsagePeriod: &entitlement.UsagePeriod{
+				Anchor: time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
+				// TODO: properly test these anchors
+				Interval: entitlement.UsagePeriodIntervalYear,
+			},
 		}
 	}
 
@@ -554,6 +564,11 @@ func TestResetEntitlementUsage(t *testing.T) {
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),
 			IsSoftLimit:      convert.ToPointer(false),
+			UsagePeriod: &entitlement.UsagePeriod{
+				Anchor: time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
+				// TODO: properly test these anchors
+				Interval: entitlement.UsagePeriodIntervalYear,
+			},
 		}
 	}
 

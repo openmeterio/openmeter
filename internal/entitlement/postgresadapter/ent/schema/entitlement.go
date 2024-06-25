@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
+	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -25,7 +26,7 @@ func (Entitlement) Mixin() []ent.Mixin {
 
 func (Entitlement) Fields() []ent.Field {
 	return []ent.Field{
-		field.Enum("entitlement_type").Values("metered").Immutable(),
+		field.Enum("entitlement_type").Values(entitlement.EntitlementType("").StrValues()...).Immutable(),
 		field.String("feature_id").Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
@@ -36,6 +37,8 @@ func (Entitlement) Fields() []ent.Field {
 		field.String("config").Optional().Nillable().SchemaType(map[string]string{
 			dialect.Postgres: "text",
 		}),
+		field.Enum("usage_period_interval").Values(entitlement.UsagePeriodInterval("").StrValues()...).Optional().Nillable().Immutable(),
+		field.Time("usage_period_anchor").Optional().Nillable().Immutable(),
 	}
 }
 

@@ -39,6 +39,10 @@ const (
 	FieldIsSoftLimit = "is_soft_limit"
 	// FieldConfig holds the string denoting the config field in the database.
 	FieldConfig = "config"
+	// FieldUsagePeriodInterval holds the string denoting the usage_period_interval field in the database.
+	FieldUsagePeriodInterval = "usage_period_interval"
+	// FieldUsagePeriodAnchor holds the string denoting the usage_period_anchor field in the database.
+	FieldUsagePeriodAnchor = "usage_period_anchor"
 	// EdgeUsageReset holds the string denoting the usage_reset edge name in mutations.
 	EdgeUsageReset = "usage_reset"
 	// Table holds the table name of the entitlement in the database.
@@ -67,6 +71,8 @@ var Columns = []string{
 	FieldIssueAfterReset,
 	FieldIsSoftLimit,
 	FieldConfig,
+	FieldUsagePeriodInterval,
+	FieldUsagePeriodAnchor,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -98,6 +104,8 @@ type EntitlementType string
 // EntitlementType values.
 const (
 	EntitlementTypeMetered EntitlementType = "metered"
+	EntitlementTypeStatic  EntitlementType = "static"
+	EntitlementTypeBoolean EntitlementType = "boolean"
 )
 
 func (et EntitlementType) String() string {
@@ -107,10 +115,35 @@ func (et EntitlementType) String() string {
 // EntitlementTypeValidator is a validator for the "entitlement_type" field enum values. It is called by the builders before save.
 func EntitlementTypeValidator(et EntitlementType) error {
 	switch et {
-	case EntitlementTypeMetered:
+	case EntitlementTypeMetered, EntitlementTypeStatic, EntitlementTypeBoolean:
 		return nil
 	default:
 		return fmt.Errorf("entitlement: invalid enum value for entitlement_type field: %q", et)
+	}
+}
+
+// UsagePeriodInterval defines the type for the "usage_period_interval" enum field.
+type UsagePeriodInterval string
+
+// UsagePeriodInterval values.
+const (
+	UsagePeriodIntervalDAY   UsagePeriodInterval = "DAY"
+	UsagePeriodIntervalWEEK  UsagePeriodInterval = "WEEK"
+	UsagePeriodIntervalMONTH UsagePeriodInterval = "MONTH"
+	UsagePeriodIntervalYEAR  UsagePeriodInterval = "YEAR"
+)
+
+func (upi UsagePeriodInterval) String() string {
+	return string(upi)
+}
+
+// UsagePeriodIntervalValidator is a validator for the "usage_period_interval" field enum values. It is called by the builders before save.
+func UsagePeriodIntervalValidator(upi UsagePeriodInterval) error {
+	switch upi {
+	case UsagePeriodIntervalDAY, UsagePeriodIntervalWEEK, UsagePeriodIntervalMONTH, UsagePeriodIntervalYEAR:
+		return nil
+	default:
+		return fmt.Errorf("entitlement: invalid enum value for usage_period_interval field: %q", upi)
 	}
 }
 
@@ -175,6 +208,16 @@ func ByIsSoftLimit(opts ...sql.OrderTermOption) OrderOption {
 // ByConfig orders the results by the config field.
 func ByConfig(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldConfig, opts...).ToFunc()
+}
+
+// ByUsagePeriodInterval orders the results by the usage_period_interval field.
+func ByUsagePeriodInterval(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUsagePeriodInterval, opts...).ToFunc()
+}
+
+// ByUsagePeriodAnchor orders the results by the usage_period_anchor field.
+func ByUsagePeriodAnchor(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUsagePeriodAnchor, opts...).ToFunc()
 }
 
 // ByUsageResetCount orders the results by usage_reset count.

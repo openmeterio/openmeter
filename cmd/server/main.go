@@ -305,11 +305,11 @@ func main() {
 	// Initialize Postgres
 	if conf.Entitlements.Enabled {
 		pgClients, err := initPGClients(ctx, conf.Postgres)
-		driver = pgClients.driver
 		if err != nil {
 			logger.Error("failed to initialize postgres clients", "error", err)
 			os.Exit(1)
 		}
+		driver = pgClients.driver
 		logger.Info("Postgres clients initialized")
 
 		// db adapters

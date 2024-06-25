@@ -26,12 +26,16 @@ func (c *connector) GetValue(entitlement *entitlement.Entitlement, at time.Time)
 	return &BooleanEntitlementValue{}, nil
 }
 
-func (c *connector) SetDefaults(model *entitlement.CreateEntitlementInputs) {
+func (c *connector) SetDefaultsAndValidate(model *entitlement.CreateEntitlementInputs) error {
 	model.EntitlementType = entitlement.EntitlementTypeBoolean
-	model.MeasureUsageFrom = nil
-	model.IssueAfterReset = nil
-	model.IsSoftLimit = nil
-	model.Config = nil
+	if model.MeasureUsageFrom != nil ||
+		model.IssueAfterReset != nil ||
+		model.IsSoftLimit != nil ||
+		model.Config != nil {
+		return &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Invalid inputs for type"}
+	}
+
+	return nil
 }
 
 func (c *connector) ValidateForFeature(entitlement *entitlement.CreateEntitlementInputs, feature productcatalog.Feature) error {

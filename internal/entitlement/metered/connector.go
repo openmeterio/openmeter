@@ -94,12 +94,21 @@ func (e *connector) GetValue(entitlement *entitlement.Entitlement, at time.Time)
 	}, nil
 }
 
-func (c *connector) SetDefaults(model *entitlement.CreateEntitlementInputs) {
+func (c *connector) SetDefaultsAndValidate(model *entitlement.CreateEntitlementInputs) error {
 	model.EntitlementType = entitlement.EntitlementTypeMetered
 	model.MeasureUsageFrom = convert.ToPointer(defaultx.WithDefault(model.MeasureUsageFrom, time.Now().Truncate(c.granularity)))
 	model.IsSoftLimit = convert.ToPointer(defaultx.WithDefault(model.IsSoftLimit, false))
 	model.IssueAfterReset = convert.ToPointer(defaultx.WithDefault(model.IssueAfterReset, 0.0))
-	model.Config = nil
+
+	if model.Config != nil {
+		return &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Config is not allowed for metered entitlements"}
+	}
+
+	if model.UsagePeriod == nil {
+		return &entitlement.InvalidValueError{Message: "UsagePeriod is required for metered entitlements", Type: entitlement.EntitlementTypeMetered}
+	}
+
+	return nil
 }
 
 func (c *connector) ValidateForFeature(model *entitlement.CreateEntitlementInputs, feature productcatalog.Feature) error {

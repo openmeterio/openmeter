@@ -79,14 +79,20 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 	if err != nil {
 		return Entitlement{}, err
 	}
-	connector.SetDefaults(&input)
+	err = connector.SetDefaultsAndValidate(&input)
+	if err != nil {
+		return Entitlement{}, err
+	}
 	err = connector.ValidateForFeature(&input, feature)
 	if err != nil {
 		return Entitlement{}, err
 	}
 
 	ent, err := c.entitlementRepo.CreateEntitlement(ctx, input)
-	return *ent, err
+	if err != nil || ent == nil {
+		return Entitlement{}, err
+	}
+	return *ent, nil
 }
 
 func (c *entitlementConnector) GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]Entitlement, error) {
