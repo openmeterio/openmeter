@@ -8,8 +8,12 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/entitlement"
+	booleanentitlement "github.com/openmeterio/openmeter/internal/entitlement/boolean"
+	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
+	staticentitlement "github.com/openmeterio/openmeter/internal/entitlement/static"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -26,11 +30,11 @@ type EntitlementHandler interface {
 type entitlementHandler struct {
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	options          []httptransport.HandlerOption
-	connector        entitlement.EntitlementConnector
+	connector        entitlement.Connector
 }
 
 func NewEntitlementHandler(
-	connector entitlement.EntitlementConnector,
+	connector entitlement.Connector,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	options ...httptransport.HandlerOption,
 ) EntitlementHandler {
@@ -41,15 +45,8 @@ func NewEntitlementHandler(
 	}
 }
 
-// Currently not all parts of the OpenAPI spec are implemented so we have to cheat here
-type APIEntitlementResponse struct {
-	api.EntitlementMetered
-
-	UsagePeriod *api.RecurringPeriod `json:"usagePeriod,omitempty"`
-}
-
 type CreateEntitlementHandlerRequest = entitlement.CreateEntitlementInputs
-type CreateEntitlementHandlerResponse = APIEntitlementResponse
+type CreateEntitlementHandlerResponse = *api.Entitlement
 type CreateEntitlementHandlerParams = string
 
 type CreateEntitlementHandler httptransport.HandlerWithArgs[CreateEntitlementHandlerRequest, CreateEntitlementHandlerResponse, CreateEntitlementHandlerParams]
@@ -57,8 +54,8 @@ type CreateEntitlementHandler httptransport.HandlerWithArgs[CreateEntitlementHan
 func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 	return httptransport.NewHandlerWithArgs[CreateEntitlementHandlerRequest, CreateEntitlementHandlerResponse, string](
 		func(ctx context.Context, r *http.Request, subjectIdOrKey string) (entitlement.CreateEntitlementInputs, error) {
+			// TODO: we could use the API generated type here
 			entitlement := entitlement.CreateEntitlementInputs{}
-			// TODO: parse rest of the fields from the request (period, issuing, etc...)
 			if err := commonhttp.JSONRequestBodyDecoder(r, &entitlement); err != nil {
 				return entitlement, err
 			}
@@ -72,22 +69,14 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 
 			return entitlement, nil
 		},
-		func(ctx context.Context, request CreateEntitlementHandlerRequest) (APIEntitlementResponse, error) {
-			res, err := h.connector.CreateEntitlement(ctx, request)
-			return APIEntitlementResponse{
-				EntitlementMetered: api.EntitlementMetered{
-					Id:         &res.ID,
-					FeatureId:  res.FeatureID,
-					CreatedAt:  &res.CreatedAt,
-					UpdatedAt:  &res.UpdatedAt,
-					DeletedAt:  res.DeletedAt,
-					SubjectKey: res.SubjectKey,
-					Type:       "metered",
-				},
-				UsagePeriod: nil,
-			}, err
+		func(ctx context.Context, request CreateEntitlementHandlerRequest) (CreateEntitlementHandlerResponse, error) {
+			res, err := h.connector.CreateEntitlement(ctx, entitlement.CreateEntitlementInputs(request))
+			if err != nil {
+				return nil, err
+			}
+			return Parser.ToAPIGeneric(&res)
 		},
-		commonhttp.JSONResponseEncoderWithStatus[APIEntitlementResponse](http.StatusCreated),
+		commonhttp.JSONResponseEncoderWithStatus[CreateEntitlementHandlerResponse](http.StatusCreated),
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("createEntitlement"),
@@ -99,18 +88,25 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 					).EncodeError(ctx, w)
 					return true
 				}
-				if _, ok := err.(*entitlement.EntitlementNotFoundError); ok {
+				if _, ok := err.(*entitlement.NotFoundError); ok {
 					commonhttp.NewHTTPError(
 						http.StatusNotFound,
 						err,
 					).EncodeError(ctx, w)
 					return true
 				}
-				if err, ok := err.(*entitlement.EntitlementAlreadyExistsError); ok {
+				if err, ok := err.(*entitlement.AlreadyExistsError); ok {
 					commonhttp.NewHTTPError(
 						http.StatusConflict,
 						err,
 						commonhttp.ExtendProblem("conflictingEntityId", err.EntitlementID),
+					).EncodeError(ctx, w)
+					return true
+				}
+				if err, ok := err.(*entitlement.InvalidValueError); ok {
+					commonhttp.NewHTTPError(
+						http.StatusBadRequest,
+						err,
 					).EncodeError(ctx, w)
 					return true
 				}
@@ -159,12 +155,27 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 				return api.EntitlementValue{}, err
 			}
 
-			return api.EntitlementValue{
-				HasAccess: &entitlement.HasAccess,
-				Balance:   &entitlement.Balance,
-				Usage:     &entitlement.Usage,
-				Overage:   &entitlement.Overage,
-			}, nil
+			switch ent := entitlement.(type) {
+			case *meteredentitlement.MeteredEntitlementValue:
+				return api.EntitlementValue{
+					HasAccess: convert.ToPointer(ent.HasAccess()),
+					Balance:   &ent.Balance,
+					Usage:     &ent.UsageInPeriod,
+					Overage:   &ent.Overage,
+				}, nil
+			case *staticentitlement.StaticEntitlementValue:
+				return api.EntitlementValue{
+					HasAccess: convert.ToPointer(ent.HasAccess()),
+					Config:    &ent.Config,
+				}, nil
+			case *booleanentitlement.BooleanEntitlementValue:
+				return api.EntitlementValue{
+					HasAccess: convert.ToPointer(ent.HasAccess()),
+				}, nil
+			default:
+				return api.EntitlementValue{}, errors.New("unknown entitlement type")
+			}
+
 		},
 		commonhttp.JSONResponseEncoder[api.EntitlementValue],
 		httptransport.AppendOptions(
@@ -178,7 +189,7 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 					).EncodeError(ctx, w)
 					return true
 				}
-				if _, ok := err.(*entitlement.EntitlementNotFoundError); ok {
+				if _, ok := err.(*entitlement.NotFoundError); ok {
 					commonhttp.NewHTTPError(
 						http.StatusNotFound,
 						err,
@@ -192,7 +203,7 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 }
 
 type GetEntitlementsOfSubjectHandlerRequest = models.NamespacedID
-type GetEntitlementsOfSubjectHandlerResponse = []APIEntitlementResponse
+type GetEntitlementsOfSubjectHandlerResponse = []api.Entitlement
 type GetEntitlementsOfSubjectHandlerParams struct {
 	SubjectIdOrKey string
 	Params         api.ListSubjectEntitlementsParams
@@ -213,31 +224,24 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 				ID:        params.SubjectIdOrKey, // TODO: should work with ID as well & should use params.Params values
 			}, nil
 		},
-		func(ctx context.Context, id GetEntitlementsOfSubjectHandlerRequest) ([]APIEntitlementResponse, error) {
+		func(ctx context.Context, id GetEntitlementsOfSubjectHandlerRequest) (GetEntitlementsOfSubjectHandlerResponse, error) {
 			entitlements, err := h.connector.GetEntitlementsOfSubject(ctx, id.Namespace, models.SubjectKey(id.ID))
 			if err != nil {
 				return nil, err
 			}
 
-			res := make([]APIEntitlementResponse, len(entitlements))
-			for i, ent := range entitlements {
-				res[i] = APIEntitlementResponse{
-					EntitlementMetered: api.EntitlementMetered{
-						Id:         &ent.ID,
-						FeatureId:  ent.FeatureID,
-						CreatedAt:  &ent.CreatedAt,
-						UpdatedAt:  &ent.UpdatedAt,
-						DeletedAt:  ent.DeletedAt,
-						SubjectKey: ent.SubjectKey,
-						Type:       "metered",
-					},
-					UsagePeriod: nil,
+			res := make([]api.Entitlement, 0, len(entitlements))
+			for _, e := range entitlements {
+				ent, err := Parser.ToAPIGeneric(&e)
+				if err != nil {
+					return nil, err
 				}
+				res = append(res, *ent)
 			}
 
 			return res, nil
 		},
-		commonhttp.JSONResponseEncoder[[]APIEntitlementResponse],
+		commonhttp.JSONResponseEncoder[GetEntitlementsOfSubjectHandlerResponse],
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getEntitlementsOfSubject"),
@@ -246,7 +250,7 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 }
 
 type ListEntitlementsHandlerRequest = entitlement.ListEntitlementsParams
-type ListEntitlementsHandlerResponse = []APIEntitlementResponse
+type ListEntitlementsHandlerResponse = []api.Entitlement
 type ListEntitlementsHandlerParams = api.ListEntitlementsParams
 
 type ListEntitlementsHandler httptransport.HandlerWithArgs[ListEntitlementsHandlerRequest, ListEntitlementsHandlerResponse, ListEntitlementsHandlerParams]
@@ -276,31 +280,24 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 
 			return p, nil
 		},
-		func(ctx context.Context, request ListEntitlementsHandlerRequest) ([]APIEntitlementResponse, error) {
+		func(ctx context.Context, request ListEntitlementsHandlerRequest) (ListEntitlementsHandlerResponse, error) {
 			entitlements, err := h.connector.ListEntitlements(ctx, request)
 			if err != nil {
 				return nil, err
 			}
 
-			res := make([]APIEntitlementResponse, len(entitlements))
-			for i, ent := range entitlements {
-				res[i] = APIEntitlementResponse{
-					EntitlementMetered: api.EntitlementMetered{
-						Id:         &ent.ID,
-						FeatureId:  ent.FeatureID,
-						CreatedAt:  &ent.CreatedAt,
-						UpdatedAt:  &ent.UpdatedAt,
-						DeletedAt:  ent.DeletedAt,
-						SubjectKey: ent.SubjectKey,
-						Type:       "metered",
-					},
-					UsagePeriod: nil,
+			res := make([]api.Entitlement, 0, len(entitlements))
+			for _, e := range entitlements {
+				ent, err := Parser.ToAPIGeneric(&e)
+				if err != nil {
+					return nil, err
 				}
+				res = append(res, *ent)
 			}
 
 			return res, nil
 		},
-		commonhttp.JSONResponseEncoder[[]APIEntitlementResponse],
+		commonhttp.JSONResponseEncoder[ListEntitlementsHandlerResponse],
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("listEntitlements"),

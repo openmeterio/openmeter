@@ -1,4 +1,4 @@
-package entitlement_test
+package meteredentitlement_test
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	credit_postgres_adapter "github.com/openmeterio/openmeter/internal/credit/postgresadapter"
 	credit_postgres_adapter_db "github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db"
 	"github.com/openmeterio/openmeter/internal/entitlement"
+	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	entitlement_postgresadapter "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter"
 	entitlement_postgresadapter_db "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
@@ -19,6 +20,7 @@ import (
 	streaming_testutils "github.com/openmeterio/openmeter/internal/streaming/testutils"
 	"github.com/openmeterio/openmeter/internal/testutils"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -26,30 +28,38 @@ func TestGetEntitlementBalance(t *testing.T) {
 	namespace := "ns1"
 	meterSlug := "meter1"
 
-	exampleFeature := productcatalog.FeatureRepoCreateFeatureInputs{
+	exampleFeature := productcatalog.CreateFeatureInputs{
 		Namespace:           namespace,
 		Name:                "feature1",
 		Key:                 "feature-1",
-		MeterSlug:           meterSlug,
+		MeterSlug:           &meterSlug,
 		MeterGroupByFilters: map[string]string{},
 	}
 
-	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.EntitlementRepoCreateEntitlementInputs {
+	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementInputs {
 		t.Helper()
-		return entitlement.EntitlementRepoCreateEntitlementInputs{
+		return entitlement.CreateEntitlementInputs{
 			Namespace:        namespace,
 			FeatureID:        feature.ID,
-			MeasureUsageFrom: testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z"), // old, override in tests
+			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z")), // old, override in tests
+			EntitlementType:  entitlement.EntitlementTypeMetered,
+			IssueAfterReset:  convert.ToPointer(0.0),
+			IsSoftLimit:      convert.ToPointer(false),
+			UsagePeriod: &entitlement.UsagePeriod{
+				Anchor: time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
+				// TODO: properly test these anchors
+				Interval: entitlement.UsagePeriodIntervalYear,
+			},
 		}
 	}
 
 	tt := []struct {
 		name string
-		run  func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies)
+		run  func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies)
 	}{
 		{
 			name: "Should ignore usage before start of measurement",
-			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
 				ctx := context.Background()
 				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
 
@@ -58,7 +68,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				assert.NoError(t, err)
 
 				inp := getEntitlement(t, feature)
-				inp.MeasureUsageFrom = startTime
+				inp.MeasureUsageFrom = &startTime
 				// create entitlement in db
 				entitlement, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
@@ -75,7 +85,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 		},
 		{
 			name: "Should return overage if there's no active grant",
-			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
 				ctx := context.Background()
 				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
 
@@ -102,7 +112,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 		},
 		{
 			name: "Should return overage until very first grant after reset",
-			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
 				ctx := context.Background()
 				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
 
@@ -112,7 +122,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 
 				// create entitlement in db
 				inp := getEntitlement(t, feature)
-				inp.MeasureUsageFrom = startTime
+				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
 
@@ -140,7 +150,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 		},
 		{
 			name: "Should return correct usage and balance",
-			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
 				ctx := context.Background()
 				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
 
@@ -150,7 +160,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 
 				// create entitlement in db
 				inp := getEntitlement(t, feature)
-				inp.MeasureUsageFrom = startTime
+				inp.MeasureUsageFrom = &startTime
 				entitlement, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
 
@@ -191,7 +201,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 		},
 		{
 			name: "Should save new snapshot",
-			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
 				ctx := context.Background()
 				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
 
@@ -201,7 +211,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 
 				// create entitlement in db
 				inp := getEntitlement(t, feature)
-				inp.MeasureUsageFrom = startTime
+				inp.MeasureUsageFrom = &startTime
 				entitlement, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
 
@@ -278,7 +288,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 		},
 		{
 			name: "Should not save the same snapshot over and over again",
-			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
 				ctx := context.Background()
 				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
 
@@ -288,7 +298,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 
 				// create entitlement in db
 				inp := getEntitlement(t, feature)
-				inp.MeasureUsageFrom = startTime
+				inp.MeasureUsageFrom = &startTime
 				entitlement, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
 
@@ -393,30 +403,38 @@ func TestGetEntitlementHistory(t *testing.T) {
 	namespace := "ns1"
 	meterSlug := "meter1"
 
-	exampleFeature := productcatalog.FeatureRepoCreateFeatureInputs{
+	exampleFeature := productcatalog.CreateFeatureInputs{
 		Namespace:           namespace,
 		Name:                "feature1",
 		Key:                 "feature1",
-		MeterSlug:           meterSlug,
+		MeterSlug:           &meterSlug,
 		MeterGroupByFilters: map[string]string{},
 	}
 
-	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.EntitlementRepoCreateEntitlementInputs {
+	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementInputs {
 		t.Helper()
-		return entitlement.EntitlementRepoCreateEntitlementInputs{
+		return entitlement.CreateEntitlementInputs{
 			Namespace:        namespace,
 			FeatureID:        feature.ID,
-			MeasureUsageFrom: testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z"), // old, override in tests
+			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z")), // old, override in tests
+			EntitlementType:  entitlement.EntitlementTypeMetered,
+			IssueAfterReset:  convert.ToPointer(0.0),
+			IsSoftLimit:      convert.ToPointer(false),
+			UsagePeriod: &entitlement.UsagePeriod{
+				Anchor: time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
+				// TODO: properly test these anchors
+				Interval: entitlement.UsagePeriodIntervalYear,
+			},
 		}
 	}
 
 	tt := []struct {
 		name string
-		run  func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies)
+		run  func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies)
 	}{
 		{
 			name: "Should return windowed history",
-			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
 				ctx := context.Background()
 				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
 
@@ -426,7 +444,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 
 				// create entitlement in db
 				inp := getEntitlement(t, feature)
-				inp.MeasureUsageFrom = startTime
+				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
 
@@ -474,11 +492,11 @@ func TestGetEntitlementHistory(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				windowedHistory, burndownHistory, err := connector.GetEntitlementBalanceHistory(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, entitlement.BalanceHistoryParams{
+				windowedHistory, burndownHistory, err := connector.GetEntitlementBalanceHistory(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, meteredentitlement.BalanceHistoryParams{
 					From:           startTime,
 					To:             queryTime,
 					WindowTimeZone: *time.UTC,
-					WindowSize:     entitlement.WindowSizeHour,
+					WindowSize:     meteredentitlement.WindowSizeHour,
 				})
 				assert.NoError(t, err)
 
@@ -529,30 +547,38 @@ func TestResetEntitlementUsage(t *testing.T) {
 	namespace := "ns1"
 	meterSlug := "meter1"
 
-	exampleFeature := productcatalog.FeatureRepoCreateFeatureInputs{
+	exampleFeature := productcatalog.CreateFeatureInputs{
 		Namespace:           namespace,
 		Name:                "feature1",
 		Key:                 "feature1",
-		MeterSlug:           meterSlug,
+		MeterSlug:           &meterSlug,
 		MeterGroupByFilters: map[string]string{},
 	}
 
-	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.EntitlementRepoCreateEntitlementInputs {
+	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementInputs {
 		t.Helper()
-		return entitlement.EntitlementRepoCreateEntitlementInputs{
+		return entitlement.CreateEntitlementInputs{
 			Namespace:        namespace,
 			FeatureID:        feature.ID,
-			MeasureUsageFrom: testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z"), // old, override in tests
+			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z")), // old, override in tests
+			EntitlementType:  entitlement.EntitlementTypeMetered,
+			IssueAfterReset:  convert.ToPointer(0.0),
+			IsSoftLimit:      convert.ToPointer(false),
+			UsagePeriod: &entitlement.UsagePeriod{
+				Anchor: time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
+				// TODO: properly test these anchors
+				Interval: entitlement.UsagePeriodIntervalYear,
+			},
 		}
 	}
 
 	tt := []struct {
 		name string
-		run  func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies)
+		run  func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies)
 	}{
 		{
 			name: "Should allow resetting usage for the first time with no grants",
-			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
 				ctx := context.Background()
 				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
 
@@ -564,7 +590,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// create entitlement in db
 				inp := getEntitlement(t, feature)
-				inp.MeasureUsageFrom = startTime
+				inp.MeasureUsageFrom = &startTime
 				entitlement, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
 
@@ -581,7 +607,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 		},
 		{
 			name: "Should error if requested reset time is before start of measurement",
-			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
 				ctx := context.Background()
 				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
 
@@ -591,7 +617,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// create entitlement in db
 				inp := getEntitlement(t, feature)
-				inp.MeasureUsageFrom = startTime
+				inp.MeasureUsageFrom = &startTime
 				entitlement, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
 
@@ -606,7 +632,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 		},
 		{
 			name: "Should error if requested reset time is before current period start",
-			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
 				ctx := context.Background()
 				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
 
@@ -616,7 +642,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// create entitlement in db
 				inp := getEntitlement(t, feature)
-				inp.MeasureUsageFrom = startTime
+				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
 
@@ -625,7 +651,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// save a reset time
 				priorResetTime := startTime.Add(time.Hour)
-				err = deps.usageResetDB.Save(ctx, entitlement.UsageResetTime{
+				err = deps.usageResetDB.Save(ctx, meteredentitlement.UsageResetTime{
 					NamespacedModel: models.NamespacedModel{Namespace: namespace},
 					ResetTime:       priorResetTime,
 					EntitlementID:   ent.ID,
@@ -640,7 +666,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 		},
 		{
 			name: "Should error if requested reset time is in the future",
-			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
 				ctx := context.Background()
 				now := time.Now().Truncate(time.Minute)
 				aDayAgo := now.Add(-time.Hour * 24)
@@ -651,7 +677,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// create entitlement in db
 				inp := getEntitlement(t, feature)
-				inp.MeasureUsageFrom = aDayAgo
+				inp.MeasureUsageFrom = &aDayAgo
 				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
 
@@ -666,7 +692,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 		},
 		{
 			name: "Should invalidate snapshots after the reset time",
-			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
 				ctx := context.Background()
 				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
 
@@ -676,7 +702,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// create entitlement in db
 				inp := getEntitlement(t, feature)
-				inp.MeasureUsageFrom = startTime
+				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
 
@@ -720,7 +746,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 		},
 		{
 			name: "Should return starting balance after reset with rolled over grant values",
-			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
 				ctx := context.Background()
 				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
 
@@ -730,7 +756,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// create entitlement in db
 				inp := getEntitlement(t, feature)
-				inp.MeasureUsageFrom = startTime
+				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
 
@@ -785,7 +811,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 		},
 		{
 			name: "Should calculate balance for grants taking effect after last saved snapshot",
-			run: func(t *testing.T, connector entitlement.EntitlementBalanceConnector, deps *testDependencies) {
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
 				ctx := context.Background()
 				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
 
@@ -795,7 +821,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// create entitlement in db
 				inp := getEntitlement(t, feature)
-				inp.MeasureUsageFrom = startTime
+				inp.MeasureUsageFrom = &startTime
 				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
 				assert.NoError(t, err)
 
@@ -901,7 +927,7 @@ type testDependencies struct {
 	creditDBCLient    *credit_postgres_adapter_db.Client
 	featureDB         productcatalog.FeatureRepo
 	entitlementDB     entitlement.EntitlementRepo
-	usageResetDB      entitlement.UsageResetRepo
+	usageResetDB      meteredentitlement.UsageResetRepo
 	grantDB           credit.GrantRepo
 	balanceSnapshotDB credit.BalanceSnapshotConnector
 	creditBalance     credit.BalanceConnector
@@ -909,7 +935,7 @@ type testDependencies struct {
 }
 
 // builds connector with mock streaming and real PG
-func setupConnector(t *testing.T) (entitlement.EntitlementBalanceConnector, *testDependencies) {
+func setupConnector(t *testing.T) (meteredentitlement.Connector, *testDependencies) {
 	testLogger := testutils.NewLogger(t)
 
 	streaming := streaming_testutils.NewMockStreamingConnector(t)
@@ -946,7 +972,7 @@ func setupConnector(t *testing.T) (entitlement.EntitlementBalanceConnector, *tes
 	}
 
 	// build adapters
-	owner := entitlement.NewEntitlementGrantOwnerAdapter(
+	owner := meteredentitlement.NewEntitlementGrantOwnerAdapter(
 		featureDB,
 		entitlementDB,
 		usageresetDB,
@@ -969,11 +995,12 @@ func setupConnector(t *testing.T) (entitlement.EntitlementBalanceConnector, *tes
 		time.Minute,
 	)
 
-	connector := entitlement.NewEntitlementBalanceConnector(
+	connector := meteredentitlement.NewMeteredEntitlementConnector(
 		streaming,
 		owner,
 		balance,
 		grant,
+		entitlementDB,
 	)
 
 	return connector, &testDependencies{

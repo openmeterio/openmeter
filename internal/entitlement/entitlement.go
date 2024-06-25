@@ -1,55 +1,109 @@
 package entitlement
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-type CreateEntitlementInputs struct {
-	Namespace        string
-	FeatureID        string    `json:"featureId"`
-	MeasureUsageFrom time.Time `json:"measureUsageFrom,omitempty"`
-	SubjectKey       string    `json:"subjectKey"`
+type TypedEntitlement interface {
+	GetType() EntitlementType
 }
 
+type CreateEntitlementInputs struct {
+	Namespace       string          `json:"namespace"`
+	FeatureID       string          `json:"featureId"`
+	SubjectKey      string          `json:"subjectKey"`
+	EntitlementType EntitlementType `json:"type"`
+
+	MeasureUsageFrom *time.Time   `json:"measureUsageFrom,omitempty"`
+	IssueAfterReset  *float64     `json:"issueAfterReset,omitempty"`
+	IsSoftLimit      *bool        `json:"isSoftLimit,omitempty"`
+	Config           *string      `json:"config,omitempty"`
+	UsagePeriod      *UsagePeriod `json:"usagePeriod,omitempty"`
+}
+
+func (c CreateEntitlementInputs) GetType() EntitlementType {
+	return c.EntitlementType
+}
+
+// Normalized representation of an entitlement in the system
 type Entitlement struct {
+	GenericProperties
+
+	UsagePeriod *UsagePeriod `json:"usagePeriod,omitempty"`
+
+	// All none-core fields are optional
+	// metered
+	MeasureUsageFrom *time.Time `json:"_,omitempty"`
+	IssueAfterReset  *float64   `json:"issueAfterReset,omitempty"`
+	IsSoftLimit      *bool      `json:"isSoftLimit,omitempty"`
+
+	// static
+	Config *string `json:"config,omitempty"`
+}
+
+func (e Entitlement) GetType() EntitlementType {
+	return e.EntitlementType
+}
+
+type EntitlementType string
+
+const (
+	// EntitlementTypeMetered represents entitlements where access is determined by usage and balance calculations
+	EntitlementTypeMetered EntitlementType = "metered"
+	// EntitlementTypeStatic represents entitlements where access is described by a static configuration
+	EntitlementTypeStatic EntitlementType = "static"
+	// EntitlementTypeBoolean represents boolean access
+	EntitlementTypeBoolean EntitlementType = "boolean"
+)
+
+func (e EntitlementType) Values() []EntitlementType {
+	return []EntitlementType{EntitlementTypeMetered, EntitlementTypeStatic, EntitlementTypeBoolean}
+}
+
+func (e EntitlementType) StrValues() []string {
+	return slicesx.Map(e.Values(), func(i EntitlementType) string {
+		return string(i)
+	})
+}
+
+func (e EntitlementType) String() string {
+	return string(e)
+}
+
+// GenericProperties is the core fields of an entitlement that are always applicable regadless of type
+type GenericProperties struct {
 	models.NamespacedModel
 	models.ManagedModel
-	ID               string    `json:"id,omitempty"`
-	FeatureID        string    `json:"featureId,omitempty"`
-	MeasureUsageFrom time.Time `json:"measureUsageFrom,omitempty"`
-	SubjectKey       string    `json:"subjectKey,omitempty"`
+
+	ID              string          `json:"id,omitempty"`
+	FeatureID       string          `json:"featureId,omitempty"`
+	SubjectKey      string          `json:"subjectKey,omitempty"`
+	EntitlementType EntitlementType `json:"type,omitempty"`
 }
 
-type EntitlementAlreadyExistsError struct {
-	EntitlementID string
-	FeatureID     string
-	SubjectKey    string
+type UsagePeriod struct {
+	Anchor   time.Time           `json:"anchor"`
+	Interval UsagePeriodInterval `json:"interval"`
 }
 
-func (e *EntitlementAlreadyExistsError) Error() string {
-	return fmt.Sprintf("entitlement with id %s already exists for feature %s and subject %s", e.EntitlementID, e.FeatureID, e.SubjectKey)
+type UsagePeriodInterval string
+
+const (
+	UsagePeriodIntervalDay   UsagePeriodInterval = "DAY"
+	UsagePeriodIntervalWeek  UsagePeriodInterval = "WEEK"
+	UsagePeriodIntervalMonth UsagePeriodInterval = "MONTH"
+	UsagePeriodIntervalYear  UsagePeriodInterval = "YEAR"
+)
+
+func (u UsagePeriodInterval) Values() []UsagePeriodInterval {
+	return []UsagePeriodInterval{UsagePeriodIntervalDay, UsagePeriodIntervalWeek, UsagePeriodIntervalMonth, UsagePeriodIntervalYear}
 }
 
-type EntitlementNotFoundError struct {
-	EntitlementID models.NamespacedID
-}
-
-func (e *EntitlementNotFoundError) Error() string {
-	return fmt.Sprintf("entitlement not found %s in namespace %s", e.EntitlementID.ID, e.EntitlementID.Namespace)
-}
-
-type UsageResetTime struct {
-	models.NamespacedModel
-	ResetTime     time.Time
-	EntitlementID string
-}
-
-type EntitlementValue struct {
-	HasAccess bool    `json:"hasAccess"`
-	Balance   float64 `json:"balance"`
-	Usage     float64 `json:"usage"`
-	Overage   float64 `json:"overage"`
+func (u UsagePeriodInterval) StrValues() []string {
+	return slicesx.Map(u.Values(), func(i UsagePeriodInterval) string {
+		return string(i)
+	})
 }

@@ -72,8 +72,6 @@ var (
 	NameValidator func(string) error
 	// KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	KeyValidator func(string) error
-	// MeterSlugValidator is a validator for the "meter_slug" field. It is called by the builders before save.
-	MeterSlugValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )

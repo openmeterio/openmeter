@@ -3,7 +3,6 @@ package productcatalog
 import "github.com/openmeterio/openmeter/internal/productcatalog"
 
 type CreateFeatureInputs = productcatalog.CreateFeatureInputs
-type FeatureRepoCreateFeatureInputs = productcatalog.FeatureRepoCreateFeatureInputs
 type Feature = productcatalog.Feature
 type FeatureConnector = productcatalog.FeatureConnector
 type FeatureRepo = productcatalog.FeatureRepo

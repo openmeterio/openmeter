@@ -1,4 +1,4 @@
-package entitlement
+package meteredentitlement
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
-	"github.com/openmeterio/openmeter/internal/streaming"
+	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -45,38 +45,7 @@ type BalanceHistoryParams struct {
 	WindowTimeZone time.Location
 }
 
-type EntitlementBalanceConnector interface {
-	GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error)
-	GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, credit.GrantBurnDownHistory, error)
-	ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID, resetAt time.Time) (balanceAfterReset *EntitlementBalance, err error)
-
-	// GetEntitlementGrantBalanceHistory(ctx context.Context, entitlementGrantID EntitlementGrantID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, error)
-	CreateGrant(ctx context.Context, entitlement models.NamespacedID, inputGrant CreateEntitlementGrantInputs) (EntitlementGrant, error)
-	ListEntitlementGrants(ctx context.Context, entitlementID models.NamespacedID) ([]EntitlementGrant, error)
-}
-
-type entitlementBalanceConnector struct {
-	streamingConnector streaming.Connector
-	ownerConnector     credit.OwnerConnector
-	balanceConnector   credit.BalanceConnector
-	grantConnector     credit.GrantConnector
-}
-
-func NewEntitlementBalanceConnector(
-	streamingConnector streaming.Connector,
-	ownerConnector credit.OwnerConnector,
-	balanceConnector credit.BalanceConnector,
-	grantConnector credit.GrantConnector,
-) EntitlementBalanceConnector {
-	return &entitlementBalanceConnector{
-		streamingConnector: streamingConnector,
-		ownerConnector:     ownerConnector,
-		balanceConnector:   balanceConnector,
-		grantConnector:     grantConnector,
-	}
-}
-
-func (e *entitlementBalanceConnector) GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error) {
+func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error) {
 	nsOwner := credit.NamespacedGrantOwner{
 		Namespace: entitlementID.Namespace,
 		ID:        credit.GrantOwner(entitlementID.ID),
@@ -84,7 +53,7 @@ func (e *entitlementBalanceConnector) GetEntitlementBalance(ctx context.Context,
 	res, err := e.balanceConnector.GetBalanceOfOwner(ctx, nsOwner, at)
 	if err != nil {
 		if _, ok := err.(*credit.OwnerNotFoundError); ok {
-			return nil, &EntitlementNotFoundError{EntitlementID: entitlementID}
+			return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
 		}
 		return nil, err
 	}
@@ -122,8 +91,18 @@ func (e *entitlementBalanceConnector) GetEntitlementBalance(ctx context.Context,
 	}, nil
 }
 
-func (e *entitlementBalanceConnector) GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, credit.GrantBurnDownHistory, error) {
+func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, credit.GrantBurnDownHistory, error) {
 	// TODO: we should guard against abuse, getting history is expensive
+
+	// validate that we're working with a metered entitlement
+	ent, err := e.entitlementRepo.GetEntitlement(ctx, entitlementID)
+	if err != nil {
+		return nil, credit.GrantBurnDownHistory{}, err
+	}
+	_, err = ParseFromGenericEntitlement(ent)
+	if err != nil {
+		return nil, credit.GrantBurnDownHistory{}, err
+	}
 
 	// query period cannot be before start of measuring usage
 	start, err := e.ownerConnector.GetStartOfMeasurement(ctx, credit.NamespacedGrantOwner{
@@ -234,7 +213,7 @@ func (e *entitlementBalanceConnector) GetEntitlementBalanceHistory(ctx context.C
 }
 
 // This is just a wrapper around credot.BalanceConnector.ResetUsageForOwner
-func (e *entitlementBalanceConnector) ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID, resetAt time.Time) (*EntitlementBalance, error) {
+func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID, resetAt time.Time) (*EntitlementBalance, error) {
 	owner := credit.NamespacedGrantOwner{
 		Namespace: entitlementID.Namespace,
 		ID:        credit.GrantOwner(entitlementID.ID),
@@ -243,7 +222,7 @@ func (e *entitlementBalanceConnector) ResetEntitlementUsage(ctx context.Context,
 	balanceAfterReset, err := e.balanceConnector.ResetUsageForOwner(ctx, owner, resetAt)
 	if err != nil {
 		if _, ok := err.(*credit.OwnerNotFoundError); ok {
-			return nil, &EntitlementNotFoundError{EntitlementID: entitlementID}
+			return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
 		}
 		return nil, err
 	}
@@ -255,53 +234,4 @@ func (e *entitlementBalanceConnector) ResetEntitlementUsage(ctx context.Context,
 		Overage:       balanceAfterReset.Overage,
 		StartOfPeriod: resetAt,
 	}, nil
-}
-
-func (e *entitlementBalanceConnector) CreateGrant(ctx context.Context, entitlement models.NamespacedID, inputGrant CreateEntitlementGrantInputs) (EntitlementGrant, error) {
-	grant, error := e.grantConnector.CreateGrant(ctx, credit.NamespacedGrantOwner{
-		Namespace: entitlement.Namespace,
-		ID:        credit.GrantOwner(entitlement.ID),
-	}, credit.CreateGrantInput{
-		Amount:           inputGrant.Amount,
-		Priority:         inputGrant.Priority,
-		EffectiveAt:      inputGrant.EffectiveAt,
-		Expiration:       inputGrant.Expiration,
-		ResetMaxRollover: inputGrant.ResetMaxRollover,
-		Recurrence:       inputGrant.Recurrence,
-		Metadata:         inputGrant.Metadata,
-	})
-	if error != nil {
-		if _, ok := error.(credit.OwnerNotFoundError); ok {
-			return EntitlementGrant{}, &EntitlementNotFoundError{EntitlementID: entitlement}
-		}
-
-		return EntitlementGrant{}, error
-	}
-
-	g, err := GrantFromCreditGrant(*grant)
-	return *g, err
-}
-
-func (e *entitlementBalanceConnector) ListEntitlementGrants(ctx context.Context, entitlementID models.NamespacedID) ([]EntitlementGrant, error) {
-	// check that we own the grant
-	grants, err := e.grantConnector.ListGrants(ctx, credit.ListGrantsParams{
-		Namespace:      entitlementID.Namespace,
-		OwnerID:        convert.ToPointer(credit.GrantOwner(entitlementID.ID)),
-		IncludeDeleted: false,
-		OrderBy:        credit.GrantOrderByCreatedAt,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	ents := make([]EntitlementGrant, 0, len(grants))
-	for _, grant := range grants {
-		g, err := GrantFromCreditGrant(grant)
-		if err != nil {
-			return nil, err
-		}
-		ents = append(ents, *g)
-	}
-
-	return ents, nil
 }

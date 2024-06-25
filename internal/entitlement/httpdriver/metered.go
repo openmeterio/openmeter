@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/entitlement"
+	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -28,13 +29,13 @@ type MeteredEntitlementHandler interface {
 type meteredEntitlementHandler struct {
 	namespaceDecoder     namespacedriver.NamespaceDecoder
 	options              []httptransport.HandlerOption
-	entitlementConnector entitlement.EntitlementConnector
-	balanceConnector     entitlement.EntitlementBalanceConnector
+	entitlementConnector entitlement.Connector
+	balanceConnector     meteredentitlement.Connector
 }
 
 func NewMeteredEntitlementHandler(
-	entitlementConnector entitlement.EntitlementConnector,
-	balanceConnector entitlement.EntitlementBalanceConnector,
+	entitlementConnector entitlement.Connector,
+	balanceConnector meteredentitlement.Connector,
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	options ...httptransport.HandlerOption,
 ) MeteredEntitlementHandler {
@@ -51,7 +52,7 @@ func NewMeteredEntitlementHandler(
 // FIXME: APIs can drift due to this
 
 type CreateGrantHandlerRequest struct {
-	inp         entitlement.CreateEntitlementGrantInputs
+	inp         meteredentitlement.CreateEntitlementGrantInputs
 	entitlement models.NamespacedID
 	subjectKey  string
 }
@@ -86,7 +87,7 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 				ID:        params.EntitlementID,
 			}
 
-			inp.inp = entitlement.CreateEntitlementGrantInputs{
+			inp.inp = meteredentitlement.CreateEntitlementGrantInputs{
 				CreateGrantInput: credit.CreateGrantInput{
 					Amount:      apiGrant.Amount,
 					Priority:    uint8(defaultx.WithDefault(apiGrant.Priority, 0)),
@@ -125,7 +126,7 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {
-				if _, ok := err.(*entitlement.EntitlementNotFoundError); ok {
+				if _, ok := err.(*entitlement.NotFoundError); ok {
 					commonhttp.NewHTTPError(
 						http.StatusNotFound,
 						err,
@@ -193,7 +194,7 @@ func (h *meteredEntitlementHandler) ListEntitlementGrants() ListEntitlementGrant
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {
-				if _, ok := err.(*entitlement.EntitlementNotFoundError); ok {
+				if _, ok := err.(*entitlement.NotFoundError); ok {
 					commonhttp.NewHTTPError(
 						http.StatusNotFound,
 						err,
@@ -258,7 +259,7 @@ func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsag
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {
-				if _, ok := err.(*entitlement.EntitlementNotFoundError); ok {
+				if _, ok := err.(*entitlement.NotFoundError); ok {
 					commonhttp.NewHTTPError(
 						http.StatusNotFound,
 						err,
@@ -280,7 +281,7 @@ func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsag
 
 type GetEntitlementBalanceHistoryHandlerRequest struct {
 	ID     models.NamespacedID
-	params entitlement.BalanceHistoryParams
+	params meteredentitlement.BalanceHistoryParams
 }
 type GetEntitlementBalanceHistoryHandlerResponse = api.WindowedBalanceHistory
 type GetEntitlementBalanceHistoryHandlerParams struct {
@@ -314,10 +315,10 @@ func (h *meteredEntitlementHandler) GetEntitlementBalanceHistory() GetEntitlemen
 					Namespace: ns,
 					ID:        params.EntitlementID,
 				},
-				params: entitlement.BalanceHistoryParams{
+				params: meteredentitlement.BalanceHistoryParams{
 					From:           params.Params.From,
 					To:             defaultx.WithDefault(params.Params.To, time.Now()),
-					WindowSize:     entitlement.WindowSize(params.Params.WindowSize),
+					WindowSize:     meteredentitlement.WindowSize(params.Params.WindowSize),
 					WindowTimeZone: *tLocation,
 				},
 			}, nil
@@ -372,7 +373,7 @@ func (h *meteredEntitlementHandler) GetEntitlementBalanceHistory() GetEntitlemen
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {
-				if _, ok := err.(*entitlement.EntitlementNotFoundError); ok {
+				if _, ok := err.(*entitlement.NotFoundError); ok {
 					commonhttp.NewHTTPError(
 						http.StatusNotFound,
 						err,
@@ -401,7 +402,7 @@ func (h *meteredEntitlementHandler) resolveNamespace(ctx context.Context) (strin
 	return ns, nil
 }
 
-func MapEntitlementGrantToAPI(subjectKey *string, grant *entitlement.EntitlementGrant) api.EntitlementGrant {
+func MapEntitlementGrantToAPI(subjectKey *string, grant *meteredentitlement.EntitlementGrant) api.EntitlementGrant {
 	apiGrant := api.EntitlementGrant{
 		Amount:      grant.Amount,
 		CreatedAt:   &grant.CreatedAt,
@@ -420,9 +421,6 @@ func MapEntitlementGrantToAPI(subjectKey *string, grant *entitlement.Entitlement
 		MaxRolloverAmount: &grant.MaxRolloverAmount,
 		NextRecurrence:    grant.NextRecurrence,
 		VoidedAt:          grant.VoidedAt,
-	}
-	if subjectKey != nil {
-		apiGrant.SubjectKey = subjectKey
 	}
 
 	if grant.Recurrence != nil {

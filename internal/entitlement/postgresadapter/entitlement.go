@@ -2,6 +2,7 @@ package postgresadapter
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
@@ -31,7 +32,7 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, &entitlement.EntitlementNotFoundError{EntitlementID: entitlementID}
+			return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
 		}
 		return nil, err
 	}
@@ -39,13 +40,33 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 	return mapEntitlementEntity(res), nil
 }
 
-func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlement entitlement.EntitlementRepoCreateEntitlementInputs) (*entitlement.Entitlement, error) {
-	res, err := a.db.Entitlement.Create().
+func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlement entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
+	cmd := a.db.Entitlement.Create().
+		SetEntitlementType(db_entitlement.EntitlementType(entitlement.EntitlementType)).
 		SetNamespace(entitlement.Namespace).
 		SetFeatureID(entitlement.FeatureID).
 		SetSubjectKey(entitlement.SubjectKey).
-		SetMeasureUsageFrom(entitlement.MeasureUsageFrom).
-		Save(ctx)
+		SetNillableMeasureUsageFrom(entitlement.MeasureUsageFrom).
+		SetNillableIssueAfterReset(entitlement.IssueAfterReset).
+		SetNillableIsSoftLimit(entitlement.IsSoftLimit)
+
+	if entitlement.UsagePeriod != nil {
+		dbInterval := db_entitlement.UsagePeriodInterval(entitlement.UsagePeriod.Interval)
+
+		cmd.SetNillableUsagePeriodAnchor(&entitlement.UsagePeriod.Anchor).
+			SetNillableUsagePeriodInterval(&dbInterval)
+	}
+
+	if entitlement.Config != nil {
+		var config map[string]interface{}
+		if err := json.Unmarshal([]byte(*entitlement.Config), &config); err != nil {
+			return nil, err
+		}
+		cmd.SetConfig(config)
+	}
+
+	res, err := cmd.Save(ctx)
+
 	if err != nil {
 		return nil, err
 	}
@@ -107,20 +128,44 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 }
 
 func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
-	return &entitlement.Entitlement{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: e.Namespace,
+	ent := &entitlement.Entitlement{
+		GenericProperties: entitlement.GenericProperties{
+			NamespacedModel: models.NamespacedModel{
+				Namespace: e.Namespace,
+			},
+			ManagedModel: models.ManagedModel{
+				CreatedAt: e.CreatedAt.UTC(),
+				UpdatedAt: e.UpdatedAt.UTC(),
+				DeletedAt: convert.SafeToUTC(e.DeletedAt),
+			},
+			ID:              e.ID,
+			SubjectKey:      e.SubjectKey,
+			FeatureID:       e.FeatureID,
+			EntitlementType: entitlement.EntitlementType(e.EntitlementType),
 		},
-		ManagedModel: models.ManagedModel{
-			CreatedAt: e.CreatedAt,
-			UpdatedAt: e.UpdatedAt,
-			DeletedAt: convert.SafeToUTC(e.DeletedAt),
-		},
-		ID:               e.ID,
-		SubjectKey:       e.SubjectKey,
-		FeatureID:        e.FeatureID,
 		MeasureUsageFrom: e.MeasureUsageFrom,
+		IssueAfterReset:  e.IssueAfterReset,
+		IsSoftLimit:      e.IsSoftLimit,
 	}
+
+	if e.Config != nil {
+		cStr, err := json.Marshal(e.Config)
+		if err != nil {
+			// TODO: handle error
+			ent.Config = nil
+		} else {
+			ent.Config = convert.ToPointer(string(cStr))
+		}
+	}
+
+	if e.UsagePeriodAnchor != nil && e.UsagePeriodInterval != nil {
+		ent.UsagePeriod = &entitlement.UsagePeriod{
+			Anchor:   *convert.SafeToUTC(e.UsagePeriodAnchor),
+			Interval: entitlement.UsagePeriodInterval(*e.UsagePeriodInterval),
+		}
+	}
+
+	return ent
 }
 
 func (a *entitlementDBAdapter) LockEntitlementForTx(ctx context.Context, entitlementID models.NamespacedID) error {
@@ -137,7 +182,7 @@ func (a *entitlementDBAdapter) LockEntitlementForTx(ctx context.Context, entitle
 
 	if err != nil {
 		if db.IsNotFound(err) {
-			return &entitlement.EntitlementNotFoundError{
+			return &entitlement.NotFoundError{
 				EntitlementID: entitlementID,
 			}
 		}

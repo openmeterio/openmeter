@@ -535,14 +535,22 @@ export interface components {
        * @default false
        */
       isUnlimited?: boolean
-      usagePeriod: components['schemas']['RecurringPeriod']
-      /** @description You can issue usage automatically after reset. This usage is not rolled over. */
+      usagePeriod: components['schemas']['RecurringPeriodCreateInput']
+      /**
+       * Format: double
+       * @description You can issue usage automatically after reset. This usage is not rolled over.
+       */
       issueAfterReset?: number
     }
+    EntitlementCreateInputs:
+      | components['schemas']['EntitlementMeteredCreateInputs']
+      | components['schemas']['EntitlementStaticCreateInputs']
+      | components['schemas']['EntitlementBooleanCreateInputs']
     /** @description Entitles a subject to use a feature. */
     EntitlementMetered: components['schemas']['EntitlementMeteredCreateInputs'] &
       components['schemas']['EntitlementSharedFields']
     EntitlementStaticCreateInputs: components['schemas']['EntitlementCreateSharedFields'] & {
+      usagePeriod?: components['schemas']['RecurringPeriod']
       /**
        * @example static
        * @enum {string}
@@ -702,6 +710,16 @@ export interface components {
      */
     RecurringPeriodEnum: 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'
     /** @description Recurring period of an entitlement. */
+    RecurringPeriodCreateInput: {
+      interval: components['schemas']['RecurringPeriodEnum']
+      /**
+       * Format: date-time
+       * @description An arbitrary anchor to base the recurring period on.
+       * If not provided then defaults to now truncated to the hour.
+       */
+      anchor?: string
+    }
+    /** @description Recurring period of an entitlement. */
     RecurringPeriod: {
       interval: components['schemas']['RecurringPeriodEnum']
       /**
@@ -771,12 +789,6 @@ export interface components {
          * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
          */
         entitlementId: string
-        /**
-         * @description The subject that is granted the entitlement.
-         *
-         * @example customer-id
-         */
-        subjectKey: string
         /**
          * Format: date-time
          * @description The next time the grant will recurr.
@@ -1792,10 +1804,7 @@ export interface operations {
     /** @description The entitlement to create. */
     requestBody: {
       content: {
-        'application/json':
-          | components['schemas']['EntitlementMeteredCreateInputs']
-          | components['schemas']['EntitlementStaticCreateInputs']
-          | components['schemas']['EntitlementBooleanCreateInputs']
+        'application/json': components['schemas']['EntitlementCreateInputs']
       }
     }
     responses: {

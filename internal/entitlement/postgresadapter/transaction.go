@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
+	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	"github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -38,7 +39,7 @@ func (u *usageResetDBAdapter) Tx(ctx context.Context) (context.Context, *entutil
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
-func (u *usageResetDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) entitlement.UsageResetRepo {
+func (u *usageResetDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) meteredentitlement.UsageResetRepo {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	return NewPostgresUsageResetRepo(txClient.Client())
 }

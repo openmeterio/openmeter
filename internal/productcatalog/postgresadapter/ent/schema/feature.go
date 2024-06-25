@@ -26,7 +26,7 @@ func (Feature) Fields() []ent.Field {
 		field.String("namespace").NotEmpty().Immutable(),
 		field.String("name").NotEmpty(),
 		field.String("key").NotEmpty().Immutable().Unique(),
-		field.String("meter_slug").NotEmpty().Immutable(),
+		field.String("meter_slug").Optional().Nillable().Immutable(),
 		field.JSON("meter_group_by_filters", map[string]string{}).Optional(),
 		field.Time("archived_at").Optional().Nillable(),
 	}
@@ -38,13 +38,3 @@ func (Feature) Indexes() []ent.Index {
 		index.Fields("namespace", "id"),
 	}
 }
-
-// TODO: link to entitlements
-// Edges of the Feature define the relations to other entities.
-// func (Feature) Edges() []ent.Edge {
-// 	return []ent.Edge{
-// 		edge.
-// 			To("credit_grants", CreditEntry.Type).
-// 			Annotations(entsql.OnDelete(entsql.Restrict)),
-// 	}
-// }

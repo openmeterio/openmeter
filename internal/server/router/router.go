@@ -13,6 +13,7 @@ import (
 	credit_httpdriver "github.com/openmeterio/openmeter/internal/credit/httpdriver"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	entitlement_httpdriver "github.com/openmeterio/openmeter/internal/entitlement/httpdriver"
+	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
@@ -53,8 +54,8 @@ type Config struct {
 
 	// deps
 	FeatureConnector            productcatalog.FeatureConnector
-	EntitlementConnector        entitlement.EntitlementConnector
-	EntitlementBalanceConnector entitlement.EntitlementBalanceConnector
+	EntitlementConnector        entitlement.Connector
+	EntitlementBalanceConnector meteredentitlement.Connector
 	GrantConnector              credit.GrantConnector
 
 	// FIXME: implement generic module management, loading, etc...

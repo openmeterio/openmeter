@@ -42,10 +42,6 @@ func init() {
 	featureDescKey := featureFields[2].Descriptor()
 	// feature.KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	feature.KeyValidator = featureDescKey.Validators[0].(func(string) error)
-	// featureDescMeterSlug is the schema descriptor for meter_slug field.
-	featureDescMeterSlug := featureFields[3].Descriptor()
-	// feature.MeterSlugValidator is a validator for the "meter_slug" field. It is called by the builders before save.
-	feature.MeterSlugValidator = featureDescMeterSlug.Validators[0].(func(string) error)
 	// featureDescID is the schema descriptor for id field.
 	featureDescID := featureMixinFields0[0].Descriptor()
 	// feature.DefaultID holds the default value on creation for the id field.

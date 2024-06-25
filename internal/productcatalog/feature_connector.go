@@ -13,7 +13,7 @@ type CreateFeatureInputs struct {
 	Name                string            `json:"name"`
 	Key                 string            `json:"key"`
 	Namespace           string            `json:"namespace"`
-	MeterSlug           string            `json:"meterSlug"`
+	MeterSlug           *string           `json:"meterSlug"`
 	MeterGroupByFilters map[string]string `json:"meterGroupByFilters"`
 }
 
@@ -41,16 +41,8 @@ type ListFeaturesParams struct {
 	OrderBy         FeatureOrderBy
 }
 
-type FeatureRepoCreateFeatureInputs struct {
-	Name                string
-	Key                 string
-	Namespace           string
-	MeterSlug           string
-	MeterGroupByFilters map[string]string
-}
-
 type FeatureRepo interface {
-	CreateFeature(ctx context.Context, feature FeatureRepoCreateFeatureInputs) (Feature, error)
+	CreateFeature(ctx context.Context, feature CreateFeatureInputs) (Feature, error)
 	ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error
 	ListFeatures(ctx context.Context, params ListFeaturesParams) ([]Feature, error)
 	FindByKey(ctx context.Context, namespace string, key string, includeArchived bool) (*Feature, error)
@@ -63,6 +55,8 @@ type FeatureRepo interface {
 type featureConnector struct {
 	featureRepo FeatureRepo
 	meterRepo   meter.Repository
+
+	validMeterAggregations []models.MeterAggregation
 }
 
 func NewFeatureConnector(
@@ -72,28 +66,34 @@ func NewFeatureConnector(
 	return &featureConnector{
 		featureRepo: featureRepo,
 		meterRepo:   meterRepo,
+
+		validMeterAggregations: []models.MeterAggregation{
+			models.MeterAggregationSum,
+			models.MeterAggregationCount,
+		},
 	}
 }
 
 func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeatureInputs) (Feature, error) {
-	meter, err := c.meterRepo.GetMeterByIDOrSlug(ctx, feature.Namespace, feature.MeterSlug)
-	if err != nil {
-		return Feature{}, &models.MeterNotFoundError{MeterSlug: feature.MeterSlug}
+	// validate meter configuration
+	if feature.MeterSlug != nil {
+		slug := *feature.MeterSlug
+		meter, err := c.meterRepo.GetMeterByIDOrSlug(ctx, feature.Namespace, slug)
+		if err != nil {
+			return Feature{}, &models.MeterNotFoundError{MeterSlug: slug}
+		}
+
+		if !slices.Contains(c.validMeterAggregations, meter.Aggregation) {
+			return Feature{}, &FeatureInvalidMeterAggregationError{Aggregation: meter.Aggregation, MeterSlug: meter.Slug, ValidAggregations: c.validMeterAggregations}
+		}
+
+		err = c.checkGroupByFilters(feature.MeterGroupByFilters, meter)
+		if err != nil {
+			return Feature{}, err
+		}
 	}
 
-	validAggregations := []models.MeterAggregation{
-		models.MeterAggregationSum,
-		models.MeterAggregationCount,
-	}
-	if !slices.Contains(validAggregations, meter.Aggregation) {
-		return Feature{}, &FeatureInvalidMeterAggregationError{Aggregation: meter.Aggregation, MeterSlug: meter.Slug, ValidAggregations: validAggregations}
-	}
-
-	err = c.checkGroupByFilters(feature.MeterGroupByFilters, meter)
-	if err != nil {
-		return Feature{}, err
-	}
-
+	// check key is not taken
 	found, err := c.featureRepo.FindByKey(ctx, feature.Namespace, feature.Name, false)
 	if err != nil {
 		if _, ok := err.(*FeatureNotFoundError); !ok {
@@ -103,7 +103,7 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 		return Feature{}, &FeatureWithNameAlreadyExistsError{Name: feature.Name, ID: found.ID}
 	}
 
-	return c.featureRepo.CreateFeature(ctx, FeatureRepoCreateFeatureInputs(feature))
+	return c.featureRepo.CreateFeature(ctx, feature)
 }
 
 func (c *featureConnector) ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error {

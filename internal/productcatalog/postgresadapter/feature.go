@@ -25,12 +25,12 @@ func NewPostgresFeatureRepo(db *db.Client, logger *slog.Logger) productcatalog.F
 	}
 }
 
-func (c *featureDBAdapter) CreateFeature(ctx context.Context, feature productcatalog.FeatureRepoCreateFeatureInputs) (productcatalog.Feature, error) {
+func (c *featureDBAdapter) CreateFeature(ctx context.Context, feature productcatalog.CreateFeatureInputs) (productcatalog.Feature, error) {
 	query := c.db.Feature.Create().
 		SetName(feature.Name).
 		SetKey(feature.Key).
 		SetNamespace(feature.Namespace).
-		SetMeterSlug(feature.MeterSlug)
+		SetNillableMeterSlug(feature.MeterSlug)
 
 	if feature.MeterGroupByFilters != nil {
 		query = query.SetMeterGroupByFilters(feature.MeterGroupByFilters)

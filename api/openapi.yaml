@@ -849,15 +849,7 @@ paths:
         content:
           application/json:
             schema:
-              # Needed for go client type generation
-              # For the time being we'll need manual enforcement to make sure the values are correct
-              x-go-type: types.CreateEntitlementJSONBody
-              x-go-type-import:
-                path: github.com/openmeterio/openmeter/api/types
-              oneOf:
-                - $ref: "#/components/schemas/EntitlementMeteredCreateInputs"
-                - $ref: "#/components/schemas/EntitlementStaticCreateInputs"
-                - $ref: "#/components/schemas/EntitlementBooleanCreateInputs"
+              $ref: "#/components/schemas/EntitlementCreateInputs"
       responses:
         "201":
           description: Entitlement created.
@@ -1507,12 +1499,24 @@ components:
               description: |
                 If unlimited=true the subject can use the feature an unlimited amount.
             usagePeriod:
-              $ref: "#/components/schemas/RecurringPeriod"
+              $ref: "#/components/schemas/RecurringPeriodCreateInput"
             # Mixed feelings about adding this, rest is not an intent driven convention
             issueAfterReset:
               type: number
+              format: double
               description: |
                 You can issue usage automatically after reset. This usage is not rolled over.
+    EntitlementCreateInputs:
+      oneOf:
+        - $ref: "#/components/schemas/EntitlementMeteredCreateInputs"
+        - $ref: "#/components/schemas/EntitlementStaticCreateInputs"
+        - $ref: "#/components/schemas/EntitlementBooleanCreateInputs"
+      discriminator:
+        propertyName: type
+        mapping:
+          metered: "#/components/schemas/EntitlementMeteredCreateInputs"
+          static: "#/components/schemas/EntitlementStaticCreateInputs"
+          boolean: "#/components/schemas/EntitlementBooleanCreateInputs"
 
     EntitlementMetered:
       type: object
@@ -1530,8 +1534,9 @@ components:
           required:
             - type
             - config
-          additionalProperties: false
           properties:
+            usagePeriod:
+              $ref: "#/components/schemas/RecurringPeriod"
             type:
               type: string
               enum:
@@ -1557,7 +1562,6 @@ components:
             Entitles a subject to use a feature.
           required:
             - type
-          additionalProperties: false
           properties:
             type:
               type: string
@@ -1742,6 +1746,26 @@ components:
         - MONTH
         - YEAR
 
+    RecurringPeriodCreateInput:
+      # Needed for go client type generation
+      # For the time being we'll need manual enforcement to make sure the values are correct
+      x-go-type: types.RecurringPeriod
+      x-go-type-import:
+        path: github.com/openmeterio/openmeter/api/types
+      type: object
+      description: |
+        Recurring period of an entitlement.
+      required:
+        - interval
+      properties:
+        interval:
+          $ref: "#/components/schemas/RecurringPeriodEnum"
+        anchor:
+          description: |
+            An arbitrary anchor to base the recurring period on.
+            If not provided then defaults to now truncated to the hour.
+          type: string
+          format: date-time
     RecurringPeriod:
       # Needed for go client type generation
       # For the time being we'll need manual enforcement to make sure the values are correct
@@ -1827,7 +1851,6 @@ components:
         - $ref: "#/components/schemas/SharedMetaFields"
         - type: object
           required:
-            - subjectKey
             - entitlementId
           properties:
             entitlementId:
@@ -1836,12 +1859,6 @@ components:
               type: string
               readOnly: true
               example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-            subjectKey:
-              readOnly: true
-              description: |
-                The subject that is granted the entitlement.
-              type: string
-              example: customer-id
             nextRecurrence:
               description: |
                 The next time the grant will recurr.

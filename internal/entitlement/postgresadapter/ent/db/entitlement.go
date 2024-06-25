@@ -28,12 +28,24 @@ type Entitlement struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// EntitlementType holds the value of the "entitlement_type" field.
+	EntitlementType entitlement.EntitlementType `json:"entitlement_type,omitempty"`
 	// FeatureID holds the value of the "feature_id" field.
 	FeatureID string `json:"feature_id,omitempty"`
 	// SubjectKey holds the value of the "subject_key" field.
 	SubjectKey string `json:"subject_key,omitempty"`
 	// MeasureUsageFrom holds the value of the "measure_usage_from" field.
-	MeasureUsageFrom time.Time `json:"measure_usage_from,omitempty"`
+	MeasureUsageFrom *time.Time `json:"measure_usage_from,omitempty"`
+	// IssueAfterReset holds the value of the "issue_after_reset" field.
+	IssueAfterReset *float64 `json:"issue_after_reset,omitempty"`
+	// IsSoftLimit holds the value of the "is_soft_limit" field.
+	IsSoftLimit *bool `json:"is_soft_limit,omitempty"`
+	// Config holds the value of the "config" field.
+	Config map[string]interface{} `json:"config,omitempty"`
+	// UsagePeriodInterval holds the value of the "usage_period_interval" field.
+	UsagePeriodInterval *entitlement.UsagePeriodInterval `json:"usage_period_interval,omitempty"`
+	// UsagePeriodAnchor holds the value of the "usage_period_anchor" field.
+	UsagePeriodAnchor *time.Time `json:"usage_period_anchor,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the EntitlementQuery when eager-loading is set.
 	Edges        EntitlementEdges `json:"edges"`
@@ -63,11 +75,15 @@ func (*Entitlement) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case entitlement.FieldMetadata:
+		case entitlement.FieldMetadata, entitlement.FieldConfig:
 			values[i] = new([]byte)
-		case entitlement.FieldID, entitlement.FieldNamespace, entitlement.FieldFeatureID, entitlement.FieldSubjectKey:
+		case entitlement.FieldIsSoftLimit:
+			values[i] = new(sql.NullBool)
+		case entitlement.FieldIssueAfterReset:
+			values[i] = new(sql.NullFloat64)
+		case entitlement.FieldID, entitlement.FieldNamespace, entitlement.FieldEntitlementType, entitlement.FieldFeatureID, entitlement.FieldSubjectKey, entitlement.FieldUsagePeriodInterval:
 			values[i] = new(sql.NullString)
-		case entitlement.FieldCreatedAt, entitlement.FieldUpdatedAt, entitlement.FieldDeletedAt, entitlement.FieldMeasureUsageFrom:
+		case entitlement.FieldCreatedAt, entitlement.FieldUpdatedAt, entitlement.FieldDeletedAt, entitlement.FieldMeasureUsageFrom, entitlement.FieldUsagePeriodAnchor:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -123,6 +139,12 @@ func (e *Entitlement) assignValues(columns []string, values []any) error {
 				e.DeletedAt = new(time.Time)
 				*e.DeletedAt = value.Time
 			}
+		case entitlement.FieldEntitlementType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field entitlement_type", values[i])
+			} else if value.Valid {
+				e.EntitlementType = entitlement.EntitlementType(value.String)
+			}
 		case entitlement.FieldFeatureID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field feature_id", values[i])
@@ -139,7 +161,44 @@ func (e *Entitlement) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field measure_usage_from", values[i])
 			} else if value.Valid {
-				e.MeasureUsageFrom = value.Time
+				e.MeasureUsageFrom = new(time.Time)
+				*e.MeasureUsageFrom = value.Time
+			}
+		case entitlement.FieldIssueAfterReset:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field issue_after_reset", values[i])
+			} else if value.Valid {
+				e.IssueAfterReset = new(float64)
+				*e.IssueAfterReset = value.Float64
+			}
+		case entitlement.FieldIsSoftLimit:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_soft_limit", values[i])
+			} else if value.Valid {
+				e.IsSoftLimit = new(bool)
+				*e.IsSoftLimit = value.Bool
+			}
+		case entitlement.FieldConfig:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field config", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &e.Config); err != nil {
+					return fmt.Errorf("unmarshal field config: %w", err)
+				}
+			}
+		case entitlement.FieldUsagePeriodInterval:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field usage_period_interval", values[i])
+			} else if value.Valid {
+				e.UsagePeriodInterval = new(entitlement.UsagePeriodInterval)
+				*e.UsagePeriodInterval = entitlement.UsagePeriodInterval(value.String)
+			}
+		case entitlement.FieldUsagePeriodAnchor:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field usage_period_anchor", values[i])
+			} else if value.Valid {
+				e.UsagePeriodAnchor = new(time.Time)
+				*e.UsagePeriodAnchor = value.Time
 			}
 		default:
 			e.selectValues.Set(columns[i], values[i])
@@ -199,14 +258,42 @@ func (e *Entitlement) String() string {
 		builder.WriteString(v.Format(time.ANSIC))
 	}
 	builder.WriteString(", ")
+	builder.WriteString("entitlement_type=")
+	builder.WriteString(fmt.Sprintf("%v", e.EntitlementType))
+	builder.WriteString(", ")
 	builder.WriteString("feature_id=")
 	builder.WriteString(e.FeatureID)
 	builder.WriteString(", ")
 	builder.WriteString("subject_key=")
 	builder.WriteString(e.SubjectKey)
 	builder.WriteString(", ")
-	builder.WriteString("measure_usage_from=")
-	builder.WriteString(e.MeasureUsageFrom.Format(time.ANSIC))
+	if v := e.MeasureUsageFrom; v != nil {
+		builder.WriteString("measure_usage_from=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	if v := e.IssueAfterReset; v != nil {
+		builder.WriteString("issue_after_reset=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := e.IsSoftLimit; v != nil {
+		builder.WriteString("is_soft_limit=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("config=")
+	builder.WriteString(fmt.Sprintf("%v", e.Config))
+	builder.WriteString(", ")
+	if v := e.UsagePeriodInterval; v != nil {
+		builder.WriteString("usage_period_interval=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := e.UsagePeriodAnchor; v != nil {
+		builder.WriteString("usage_period_anchor=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }
