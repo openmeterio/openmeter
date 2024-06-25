@@ -84,21 +84,30 @@ func (p parser) ToAPIGeneric(e *entitlement.Entitlement) (*api.Entitlement, erro
 		if err != nil {
 			return nil, err
 		}
-		res.FromEntitlementMetered(*c)
+		err = res.FromEntitlementMetered(*c)
+		if err != nil {
+			return nil, err
+		}
 		return res, nil
 	case entitlement.EntitlementTypeStatic:
 		c, err := p.ToStatic(e)
 		if err != nil {
 			return nil, err
 		}
-		res.FromEntitlementStatic(*c)
+		err = res.FromEntitlementStatic(*c)
+		if err != nil {
+			return nil, err
+		}
 		return res, nil
 	case entitlement.EntitlementTypeBoolean:
 		c, err := p.ToBoolean(e)
 		if err != nil {
 			return nil, err
 		}
-		res.FromEntitlementBoolean(*c)
+		err = res.FromEntitlementBoolean(*c)
+		if err != nil {
+			return nil, err
+		}
 		return res, nil
 	default:
 		return nil, fmt.Errorf("unsupported entitlement type: %s", e.EntitlementType)

@@ -514,7 +514,8 @@ func TestCredit(t *testing.T) {
 			},
 		}
 		body := &api.CreateEntitlementJSONRequestBody{}
-		body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
+		err := body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
+		require.NoError(t, err)
 		resp, err := client.CreateEntitlementWithResponse(context.Background(), subject, *body)
 
 		require.NoError(t, err)
@@ -538,7 +539,8 @@ func TestCredit(t *testing.T) {
 			},
 		}
 		body := &api.CreateEntitlementJSONRequestBody{}
-		body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
+		err := body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
+		require.NoError(t, err)
 		resp, err := client.CreateEntitlementWithResponse(context.Background(), subject, *body)
 
 		require.NoError(t, err)
