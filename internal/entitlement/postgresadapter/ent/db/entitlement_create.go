@@ -139,16 +139,8 @@ func (ec *EntitlementCreate) SetNillableIsSoftLimit(b *bool) *EntitlementCreate 
 }
 
 // SetConfig sets the "config" field.
-func (ec *EntitlementCreate) SetConfig(s string) *EntitlementCreate {
-	ec.mutation.SetConfig(s)
-	return ec
-}
-
-// SetNillableConfig sets the "config" field if the given value is not nil.
-func (ec *EntitlementCreate) SetNillableConfig(s *string) *EntitlementCreate {
-	if s != nil {
-		ec.SetConfig(*s)
-	}
+func (ec *EntitlementCreate) SetConfig(m map[string]interface{}) *EntitlementCreate {
+	ec.mutation.SetConfig(m)
 	return ec
 }
 
@@ -374,8 +366,8 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 		_node.IsSoftLimit = &value
 	}
 	if value, ok := ec.mutation.Config(); ok {
-		_spec.SetField(entitlement.FieldConfig, field.TypeString, value)
-		_node.Config = &value
+		_spec.SetField(entitlement.FieldConfig, field.TypeJSON, value)
+		_node.Config = value
 	}
 	if value, ok := ec.mutation.UsagePeriodInterval(); ok {
 		_spec.SetField(entitlement.FieldUsagePeriodInterval, field.TypeEnum, value)
@@ -502,7 +494,7 @@ func (u *EntitlementUpsert) ClearDeletedAt() *EntitlementUpsert {
 }
 
 // SetConfig sets the "config" field.
-func (u *EntitlementUpsert) SetConfig(v string) *EntitlementUpsert {
+func (u *EntitlementUpsert) SetConfig(v map[string]interface{}) *EntitlementUpsert {
 	u.Set(entitlement.FieldConfig, v)
 	return u
 }
@@ -654,7 +646,7 @@ func (u *EntitlementUpsertOne) ClearDeletedAt() *EntitlementUpsertOne {
 }
 
 // SetConfig sets the "config" field.
-func (u *EntitlementUpsertOne) SetConfig(v string) *EntitlementUpsertOne {
+func (u *EntitlementUpsertOne) SetConfig(v map[string]interface{}) *EntitlementUpsertOne {
 	return u.Update(func(s *EntitlementUpsert) {
 		s.SetConfig(v)
 	})
@@ -976,7 +968,7 @@ func (u *EntitlementUpsertBulk) ClearDeletedAt() *EntitlementUpsertBulk {
 }
 
 // SetConfig sets the "config" field.
-func (u *EntitlementUpsertBulk) SetConfig(v string) *EntitlementUpsertBulk {
+func (u *EntitlementUpsertBulk) SetConfig(v map[string]interface{}) *EntitlementUpsertBulk {
 	return u.Update(func(s *EntitlementUpsert) {
 		s.SetConfig(v)
 	})

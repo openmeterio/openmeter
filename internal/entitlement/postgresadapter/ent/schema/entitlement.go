@@ -34,9 +34,7 @@ func (Entitlement) Fields() []ent.Field {
 		field.Time("measure_usage_from").Optional().Nillable().Immutable(),
 		field.Float("issue_after_reset").Optional().Nillable().Immutable(),
 		field.Bool("is_soft_limit").Optional().Nillable().Immutable(),
-		field.String("config").Optional().Nillable().SchemaType(map[string]string{
-			dialect.Postgres: "text",
-		}),
+		field.JSON("config", map[string]interface{}{}).Optional(),
 		field.Enum("usage_period_interval").Values(entitlement.UsagePeriodInterval("").StrValues()...).Optional().Nillable().Immutable(),
 		field.Time("usage_period_anchor").Optional().Nillable().Immutable(),
 	}

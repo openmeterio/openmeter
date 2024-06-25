@@ -68,16 +68,8 @@ func (eu *EntitlementUpdate) ClearDeletedAt() *EntitlementUpdate {
 }
 
 // SetConfig sets the "config" field.
-func (eu *EntitlementUpdate) SetConfig(s string) *EntitlementUpdate {
-	eu.mutation.SetConfig(s)
-	return eu
-}
-
-// SetNillableConfig sets the "config" field if the given value is not nil.
-func (eu *EntitlementUpdate) SetNillableConfig(s *string) *EntitlementUpdate {
-	if s != nil {
-		eu.SetConfig(*s)
-	}
+func (eu *EntitlementUpdate) SetConfig(m map[string]interface{}) *EntitlementUpdate {
+	eu.mutation.SetConfig(m)
 	return eu
 }
 
@@ -198,10 +190,10 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		_spec.ClearField(entitlement.FieldIsSoftLimit, field.TypeBool)
 	}
 	if value, ok := eu.mutation.Config(); ok {
-		_spec.SetField(entitlement.FieldConfig, field.TypeString, value)
+		_spec.SetField(entitlement.FieldConfig, field.TypeJSON, value)
 	}
 	if eu.mutation.ConfigCleared() {
-		_spec.ClearField(entitlement.FieldConfig, field.TypeString)
+		_spec.ClearField(entitlement.FieldConfig, field.TypeJSON)
 	}
 	if eu.mutation.UsagePeriodIntervalCleared() {
 		_spec.ClearField(entitlement.FieldUsagePeriodInterval, field.TypeEnum)
@@ -313,16 +305,8 @@ func (euo *EntitlementUpdateOne) ClearDeletedAt() *EntitlementUpdateOne {
 }
 
 // SetConfig sets the "config" field.
-func (euo *EntitlementUpdateOne) SetConfig(s string) *EntitlementUpdateOne {
-	euo.mutation.SetConfig(s)
-	return euo
-}
-
-// SetNillableConfig sets the "config" field if the given value is not nil.
-func (euo *EntitlementUpdateOne) SetNillableConfig(s *string) *EntitlementUpdateOne {
-	if s != nil {
-		euo.SetConfig(*s)
-	}
+func (euo *EntitlementUpdateOne) SetConfig(m map[string]interface{}) *EntitlementUpdateOne {
+	euo.mutation.SetConfig(m)
 	return euo
 }
 
@@ -473,10 +457,10 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 		_spec.ClearField(entitlement.FieldIsSoftLimit, field.TypeBool)
 	}
 	if value, ok := euo.mutation.Config(); ok {
-		_spec.SetField(entitlement.FieldConfig, field.TypeString, value)
+		_spec.SetField(entitlement.FieldConfig, field.TypeJSON, value)
 	}
 	if euo.mutation.ConfigCleared() {
-		_spec.ClearField(entitlement.FieldConfig, field.TypeString)
+		_spec.ClearField(entitlement.FieldConfig, field.TypeJSON)
 	}
 	if euo.mutation.UsagePeriodIntervalCleared() {
 		_spec.ClearField(entitlement.FieldUsagePeriodInterval, field.TypeEnum)

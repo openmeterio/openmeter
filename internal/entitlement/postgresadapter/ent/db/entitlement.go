@@ -41,7 +41,7 @@ type Entitlement struct {
 	// IsSoftLimit holds the value of the "is_soft_limit" field.
 	IsSoftLimit *bool `json:"is_soft_limit,omitempty"`
 	// Config holds the value of the "config" field.
-	Config *string `json:"config,omitempty"`
+	Config map[string]interface{} `json:"config,omitempty"`
 	// UsagePeriodInterval holds the value of the "usage_period_interval" field.
 	UsagePeriodInterval *entitlement.UsagePeriodInterval `json:"usage_period_interval,omitempty"`
 	// UsagePeriodAnchor holds the value of the "usage_period_anchor" field.
@@ -75,13 +75,13 @@ func (*Entitlement) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case entitlement.FieldMetadata:
+		case entitlement.FieldMetadata, entitlement.FieldConfig:
 			values[i] = new([]byte)
 		case entitlement.FieldIsSoftLimit:
 			values[i] = new(sql.NullBool)
 		case entitlement.FieldIssueAfterReset:
 			values[i] = new(sql.NullFloat64)
-		case entitlement.FieldID, entitlement.FieldNamespace, entitlement.FieldEntitlementType, entitlement.FieldFeatureID, entitlement.FieldSubjectKey, entitlement.FieldConfig, entitlement.FieldUsagePeriodInterval:
+		case entitlement.FieldID, entitlement.FieldNamespace, entitlement.FieldEntitlementType, entitlement.FieldFeatureID, entitlement.FieldSubjectKey, entitlement.FieldUsagePeriodInterval:
 			values[i] = new(sql.NullString)
 		case entitlement.FieldCreatedAt, entitlement.FieldUpdatedAt, entitlement.FieldDeletedAt, entitlement.FieldMeasureUsageFrom, entitlement.FieldUsagePeriodAnchor:
 			values[i] = new(sql.NullTime)
@@ -179,11 +179,12 @@ func (e *Entitlement) assignValues(columns []string, values []any) error {
 				*e.IsSoftLimit = value.Bool
 			}
 		case entitlement.FieldConfig:
-			if value, ok := values[i].(*sql.NullString); !ok {
+			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field config", values[i])
-			} else if value.Valid {
-				e.Config = new(string)
-				*e.Config = value.String
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &e.Config); err != nil {
+					return fmt.Errorf("unmarshal field config: %w", err)
+				}
 			}
 		case entitlement.FieldUsagePeriodInterval:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -281,10 +282,8 @@ func (e *Entitlement) String() string {
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")
-	if v := e.Config; v != nil {
-		builder.WriteString("config=")
-		builder.WriteString(*v)
-	}
+	builder.WriteString("config=")
+	builder.WriteString(fmt.Sprintf("%v", e.Config))
 	builder.WriteString(", ")
 	if v := e.UsagePeriodInterval; v != nil {
 		builder.WriteString("usage_period_interval=")

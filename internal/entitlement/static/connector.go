@@ -1,6 +1,7 @@
 package staticentitlement
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
@@ -35,6 +36,15 @@ func (c *connector) SetDefaultsAndValidate(model *entitlement.CreateEntitlementI
 		model.IssueAfterReset != nil ||
 		model.IsSoftLimit != nil {
 		return &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Invalid inputs for type"}
+	}
+
+	// validate that config is JSON parseable
+	if model.Config == nil {
+		return &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Config is required"}
+	}
+
+	if !json.Valid([]byte(*model.Config)) {
+		return &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Config is not valid JSON"}
 	}
 
 	return nil

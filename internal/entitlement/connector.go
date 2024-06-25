@@ -115,7 +115,7 @@ func (c *entitlementConnector) ListEntitlements(ctx context.Context, params List
 	return c.entitlementRepo.ListEntitlements(ctx, params)
 }
 
-func (c *entitlementConnector) getTypeConnector(inp HasType) (SubTypeConnector, error) {
+func (c *entitlementConnector) getTypeConnector(inp TypedEntitlement) (SubTypeConnector, error) {
 	entitlementType := inp.GetType()
 	switch entitlementType {
 	case EntitlementTypeMetered:

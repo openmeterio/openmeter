@@ -22,7 +22,7 @@ var (
 		{Name: "measure_usage_from", Type: field.TypeTime, Nullable: true},
 		{Name: "issue_after_reset", Type: field.TypeFloat64, Nullable: true},
 		{Name: "is_soft_limit", Type: field.TypeBool, Nullable: true},
-		{Name: "config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "config", Type: field.TypeJSON, Nullable: true},
 		{Name: "usage_period_interval", Type: field.TypeEnum, Nullable: true, Enums: []string{"DAY", "WEEK", "MONTH", "YEAR"}},
 		{Name: "usage_period_anchor", Type: field.TypeTime, Nullable: true},
 	}

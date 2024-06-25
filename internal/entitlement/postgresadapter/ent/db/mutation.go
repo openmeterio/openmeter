@@ -47,7 +47,7 @@ type EntitlementMutation struct {
 	issue_after_reset     *float64
 	addissue_after_reset  *float64
 	is_soft_limit         *bool
-	_config               *string
+	_config               *map[string]interface{}
 	usage_period_interval *entitlement.UsagePeriodInterval
 	usage_period_anchor   *time.Time
 	clearedFields         map[string]struct{}
@@ -646,12 +646,12 @@ func (m *EntitlementMutation) ResetIsSoftLimit() {
 }
 
 // SetConfig sets the "config" field.
-func (m *EntitlementMutation) SetConfig(s string) {
-	m._config = &s
+func (m *EntitlementMutation) SetConfig(value map[string]interface{}) {
+	m._config = &value
 }
 
 // Config returns the value of the "config" field in the mutation.
-func (m *EntitlementMutation) Config() (r string, exists bool) {
+func (m *EntitlementMutation) Config() (r map[string]interface{}, exists bool) {
 	v := m._config
 	if v == nil {
 		return
@@ -662,7 +662,7 @@ func (m *EntitlementMutation) Config() (r string, exists bool) {
 // OldConfig returns the old "config" field's value of the Entitlement entity.
 // If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *EntitlementMutation) OldConfig(ctx context.Context) (v *string, err error) {
+func (m *EntitlementMutation) OldConfig(ctx context.Context) (v map[string]interface{}, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldConfig is only allowed on UpdateOne operations")
 	}
@@ -1083,7 +1083,7 @@ func (m *EntitlementMutation) SetField(name string, value ent.Value) error {
 		m.SetIsSoftLimit(v)
 		return nil
 	case entitlement.FieldConfig:
-		v, ok := value.(string)
+		v, ok := value.(map[string]interface{})
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

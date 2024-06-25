@@ -2,6 +2,7 @@ package postgresadapter
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
@@ -47,14 +48,21 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlemen
 		SetSubjectKey(entitlement.SubjectKey).
 		SetNillableMeasureUsageFrom(entitlement.MeasureUsageFrom).
 		SetNillableIssueAfterReset(entitlement.IssueAfterReset).
-		SetNillableIsSoftLimit(entitlement.IsSoftLimit).
-		SetNillableConfig(entitlement.Config)
+		SetNillableIsSoftLimit(entitlement.IsSoftLimit)
 
 	if entitlement.UsagePeriod != nil {
 		dbInterval := db_entitlement.UsagePeriodInterval(entitlement.UsagePeriod.Interval)
 
 		cmd.SetNillableUsagePeriodAnchor(&entitlement.UsagePeriod.Anchor).
 			SetNillableUsagePeriodInterval(&dbInterval)
+	}
+
+	if entitlement.Config != nil {
+		var config map[string]interface{}
+		if err := json.Unmarshal([]byte(*entitlement.Config), &config); err != nil {
+			return nil, err
+		}
+		cmd.SetConfig(config)
 	}
 
 	res, err := cmd.Save(ctx)
@@ -138,7 +146,16 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 		MeasureUsageFrom: e.MeasureUsageFrom,
 		IssueAfterReset:  e.IssueAfterReset,
 		IsSoftLimit:      e.IsSoftLimit,
-		Config:           e.Config,
+	}
+
+	if e.Config != nil {
+		cStr, err := json.Marshal(e.Config)
+		if err != nil {
+			// TODO: handle error
+			ent.Config = nil
+		} else {
+			ent.Config = convert.ToPointer(string(cStr))
+		}
 	}
 
 	if e.UsagePeriodAnchor != nil && e.UsagePeriodInterval != nil {

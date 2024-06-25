@@ -7,7 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-type HasType interface {
+type TypedEntitlement interface {
 	GetType() EntitlementType
 }
 
