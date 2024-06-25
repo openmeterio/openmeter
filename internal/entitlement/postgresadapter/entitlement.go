@@ -188,6 +188,10 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 	}
 
 	if e.UsagePeriodAnchor != nil && e.UsagePeriodInterval != nil {
+		ent.GenericProperties.UsagePeriod = &entitlement.UsagePeriod{
+			Anchor:   *convert.SafeToUTC(e.UsagePeriodAnchor),
+			Interval: entitlement.UsagePeriodInterval(*e.UsagePeriodInterval),
+		}
 		ent.UsagePeriod = &entitlement.UsagePeriod{
 			Anchor:   *convert.SafeToUTC(e.UsagePeriodAnchor),
 			Interval: entitlement.UsagePeriodInterval(*e.UsagePeriodInterval),

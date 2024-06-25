@@ -1496,6 +1496,11 @@ components:
               enum:
                 - metered
               example: metered
+            isSoftLimit:
+              type: boolean
+              default: false
+              description: |
+                If softLimit=true the subject can use the feature even if the entitlement is exhausted.
             isUnlimited:
               type: boolean
               default: false
@@ -1538,8 +1543,6 @@ components:
             - type
             - config
           properties:
-            usagePeriod:
-              $ref: "#/components/schemas/RecurringPeriod"
             type:
               type: string
               enum:
