@@ -508,8 +508,8 @@ func TestCredit(t *testing.T) {
 		meteredEntitlement := api.EntitlementMeteredCreateInputs{
 			Type:      "metered",
 			FeatureId: featureId,
-			UsagePeriod: api.RecurringPeriod{
-				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
+			UsagePeriod: api.RecurringPeriodCreateInput{
+				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
 				Interval: "MONTH",
 			},
 		}
@@ -533,9 +533,9 @@ func TestCredit(t *testing.T) {
 		meteredEntitlement := api.EntitlementMeteredCreateInputs{
 			Type:      "metered",
 			FeatureId: featureId,
-			UsagePeriod: api.RecurringPeriod{
-				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
-				Interval: "DAY",
+			UsagePeriod: api.RecurringPeriodCreateInput{
+				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
+				Interval: "MONTH",
 			},
 		}
 		body := &api.CreateEntitlementJSONRequestBody{}

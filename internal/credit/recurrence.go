@@ -3,8 +3,6 @@ package credit
 import (
 	"fmt"
 	"time"
-
-	"github.com/openmeterio/openmeter/api/types"
 )
 
 type Recurrence struct {
@@ -89,7 +87,7 @@ func (r Recurrence) Prev(t time.Time) (time.Time, error) {
 	return time.Time{}, fmt.Errorf("not implemented RecurrencePeriod %s", r.Period)
 }
 
-type RecurrencePeriod types.RecurringPeriodEnum
+type RecurrencePeriod string
 
 const (
 	RecurrencePeriodDaily RecurrencePeriod = "DAY"

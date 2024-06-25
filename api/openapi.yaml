@@ -1466,7 +1466,7 @@ components:
           additionalProperties:
             type: string
         usagePeriod:
-          $ref: "#/components/schemas/RecurringPeriod"
+          $ref: "#/components/schemas/RecurringPeriodCreateInput"
     EntitlementSharedFields:
       allOf:
         - $ref: "#/components/schemas/SharedMetaFields"
@@ -1730,11 +1730,6 @@ components:
           format: date-time
           example: "2023-01-01T00:00:00Z"
     RecurringPeriodEnum:
-      # Needed for go client type generation
-      # For the time being we'll need manual enforcement to make sure the values are correct
-      x-go-type: types.RecurringPeriodEnum
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/api/types
       type: string
       description: |
         List of pre-defined periods that can be used for recurring & scheduling.
@@ -1750,11 +1745,6 @@ components:
         - YEAR
 
     RecurringPeriodCreateInput:
-      # Needed for go client type generation
-      # For the time being we'll need manual enforcement to make sure the values are correct
-      x-go-type: types.RecurringPeriod
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/api/types
       type: object
       description: |
         Recurring period of an entitlement.
@@ -1770,11 +1760,6 @@ components:
           type: string
           format: date-time
     RecurringPeriod:
-      # Needed for go client type generation
-      # For the time being we'll need manual enforcement to make sure the values are correct
-      x-go-type: types.RecurringPeriod
-      x-go-type-import:
-        path: github.com/openmeterio/openmeter/api/types
       type: object
       description: |
         Recurring period of an entitlement.
