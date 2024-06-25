@@ -850,15 +850,6 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/EntitlementCreateInputs"
-              # # Needed for go client type generation
-              # # For the time being we'll need manual enforcement to make sure the values are correct
-              # x-go-type: types.CreateEntitlementJSONBody
-              # x-go-type-import:
-              #   path: github.com/openmeterio/openmeter/api/types
-              # oneOf:
-              #   - $ref: "#/components/schemas/EntitlementMeteredCreateInputs"
-              #   - $ref: "#/components/schemas/EntitlementStaticCreateInputs"
-              #   - $ref: "#/components/schemas/EntitlementBooleanCreateInputs"
       responses:
         "201":
           description: Entitlement created.
