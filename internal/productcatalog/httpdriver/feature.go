@@ -42,7 +42,7 @@ func NewFeatureHandler(
 }
 
 type GetFeatureHandlerRequest = models.NamespacedID
-type GetFeatureHandlerResponse = productcatalog.Feature
+type GetFeatureHandlerResponse = *productcatalog.Feature
 type GetFeatureHandlerParams = string
 
 type GetFeatureHandler httptransport.HandlerWithArgs[GetFeatureHandlerRequest, GetFeatureHandlerResponse, GetFeatureHandlerParams]
@@ -61,7 +61,7 @@ func (h *featureHandlers) GetFeature() GetFeatureHandler {
 			}, nil
 		},
 		func(ctx context.Context, featureId GetFeatureHandlerRequest) (GetFeatureHandlerResponse, error) {
-			return h.connector.GetFeature(ctx, featureId)
+			return h.connector.GetFeature(ctx, featureId.Namespace, featureId.ID)
 		},
 		commonhttp.JSONResponseEncoder,
 		httptransport.AppendOptions(

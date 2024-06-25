@@ -13,7 +13,8 @@ type TypedEntitlement interface {
 
 type CreateEntitlementInputs struct {
 	Namespace       string          `json:"namespace"`
-	FeatureID       string          `json:"featureId"`
+	FeatureID       *string         `json:"featureId,omitempty"`
+	FeatureKey      *string         `json:"featureKey,omitempty"`
 	SubjectKey      string          `json:"subjectKey"`
 	EntitlementType EntitlementType `json:"type"`
 
@@ -80,6 +81,7 @@ type GenericProperties struct {
 
 	ID              string          `json:"id,omitempty"`
 	FeatureID       string          `json:"featureId,omitempty"`
+	FeatureKey      string          `json:"featureKey,omitempty"`
 	SubjectKey      string          `json:"subjectKey,omitempty"`
 	EntitlementType EntitlementType `json:"type,omitempty"`
 }
