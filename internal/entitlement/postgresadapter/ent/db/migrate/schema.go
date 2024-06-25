@@ -18,6 +18,7 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "entitlement_type", Type: field.TypeEnum, Enums: []string{"metered", "static", "boolean"}},
 		{Name: "feature_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "feature_key", Type: field.TypeString},
 		{Name: "subject_key", Type: field.TypeString},
 		{Name: "measure_usage_from", Type: field.TypeTime, Nullable: true},
 		{Name: "issue_after_reset", Type: field.TypeFloat64, Nullable: true},
@@ -45,12 +46,12 @@ var (
 			{
 				Name:    "entitlement_namespace_subject_key",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[8]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[9]},
 			},
 			{
 				Name:    "entitlement_namespace_id_subject_key",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[0], EntitlementsColumns[8]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[0], EntitlementsColumns[9]},
 			},
 			{
 				Name:    "entitlement_namespace_feature_id_id",

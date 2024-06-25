@@ -46,10 +46,10 @@ func (c *featureDBAdapter) CreateFeature(ctx context.Context, feature productcat
 	return mapFeatureEntity(entity), nil
 }
 
-func (c *featureDBAdapter) FindByKey(ctx context.Context, namespace string, key string, includeArchived bool) (*productcatalog.Feature, error) {
+func (c *featureDBAdapter) GetByIdOrKey(ctx context.Context, namespace string, idOrKey string, includeArchived bool) (*productcatalog.Feature, error) {
 	query := c.db.Feature.Query().
 		Where(db_feature.Namespace(namespace)).
-		Where(db_feature.Key(key))
+		Where(db_feature.Or(db_feature.Key(idOrKey), db_feature.ID(idOrKey)))
 
 	if !includeArchived {
 		query = query.Where(db_feature.ArchivedAtIsNil())
@@ -58,7 +58,7 @@ func (c *featureDBAdapter) FindByKey(ctx context.Context, namespace string, key 
 	entity, err := query.Only(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return nil, &productcatalog.FeatureNotFoundError{ID: key}
+			return nil, &productcatalog.FeatureNotFoundError{ID: idOrKey}
 		}
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func (c *featureDBAdapter) FindByKey(ctx context.Context, namespace string, key 
 }
 
 func (c *featureDBAdapter) ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error {
-	_, err := c.GetByID(ctx, featureID)
+	_, err := c.GetByIdOrKey(ctx, featureID.Namespace, featureID.ID, true)
 	if err != nil {
 		return err
 	}
@@ -123,24 +123,6 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params productcatal
 	}
 
 	return list, nil
-}
-
-func (c *featureDBAdapter) GetByID(ctx context.Context, featureID models.NamespacedID) (productcatalog.Feature, error) {
-	entity, err := c.db.Feature.Get(ctx, featureID.ID)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return productcatalog.Feature{}, &productcatalog.FeatureNotFoundError{ID: featureID.ID}
-		}
-
-		return productcatalog.Feature{}, fmt.Errorf("failed to get feature: %w", err)
-	}
-
-	if entity.Namespace != featureID.Namespace {
-		return productcatalog.Feature{}, &productcatalog.FeatureNotFoundError{ID: featureID.ID}
-	}
-
-	featureOut := mapFeatureEntity(entity)
-	return featureOut, nil
 }
 
 // mapFeatureEntity maps a database feature entity to a feature model.

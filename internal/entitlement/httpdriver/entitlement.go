@@ -74,7 +74,7 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 			if err != nil {
 				return nil, err
 			}
-			return Parser.ToAPIGeneric(&res)
+			return Parser.ToAPIGeneric(res)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateEntitlementHandlerResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -117,12 +117,14 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 }
 
 type GetEntitlementValueHandlerRequest struct {
-	ID models.NamespacedID
-	At time.Time
+	EntitlementIdOrFeatureKey string
+	SubjectKey                string
+	Namespace                 string
+	At                        time.Time
 }
 type GetEntitlementValueHandlerResponse = api.EntitlementValue
 type GetEntitlementValueHandlerParams struct {
-	SubjectIdOrKey            string
+	SubjectKey                string
 	EntitlementIdOrFeatureKey string
 	Params                    api.GetEntitlementValueParams
 }
@@ -131,26 +133,20 @@ type GetEntitlementValueHandler httptransport.HandlerWithArgs[GetEntitlementValu
 func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params GetEntitlementValueHandlerParams) (GetEntitlementValueHandlerRequest, error) {
-			// TODO: use subjectIdOrKey
-
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return GetEntitlementValueHandlerRequest{}, err
 			}
 
 			return GetEntitlementValueHandlerRequest{
-				ID: models.NamespacedID{
-					Namespace: ns,
-					ID:        params.EntitlementIdOrFeatureKey,
-				},
-				At: defaultx.WithDefault(params.Params.Time, time.Now()),
+				SubjectKey:                params.SubjectKey,
+				EntitlementIdOrFeatureKey: params.EntitlementIdOrFeatureKey,
+				Namespace:                 ns,
+				At:                        defaultx.WithDefault(params.Params.Time, time.Now()),
 			}, nil
 		},
 		func(ctx context.Context, request GetEntitlementValueHandlerRequest) (api.EntitlementValue, error) {
-			entitlement, err := h.connector.GetEntitlementValue(ctx, models.NamespacedID{
-				Namespace: request.ID.Namespace,
-				ID:        request.ID.ID,
-			}, request.At)
+			entitlement, err := h.connector.GetEntitlementValue(ctx, request.Namespace, request.SubjectKey, request.EntitlementIdOrFeatureKey, request.At)
 			if err != nil {
 				return api.EntitlementValue{}, err
 			}

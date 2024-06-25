@@ -23,7 +23,7 @@ type FeatureConnector interface {
 	// Should just use deletedAt, there's no real "archiving"
 	ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error
 	ListFeatures(ctx context.Context, params ListFeaturesParams) ([]Feature, error)
-	GetFeature(ctx context.Context, featureID models.NamespacedID) (Feature, error)
+	GetFeature(ctx context.Context, namespace string, idOrKey string) (*Feature, error)
 }
 
 type FeatureOrderBy string
@@ -45,9 +45,8 @@ type FeatureRepo interface {
 	CreateFeature(ctx context.Context, feature CreateFeatureInputs) (Feature, error)
 	ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error
 	ListFeatures(ctx context.Context, params ListFeaturesParams) ([]Feature, error)
-	FindByKey(ctx context.Context, namespace string, key string, includeArchived bool) (*Feature, error)
-	GetByID(ctx context.Context, featureID models.NamespacedID) (Feature, error)
 
+	GetByIdOrKey(ctx context.Context, namespace string, idOrKey string, includeArchived bool) (*Feature, error)
 	entutils.TxCreator
 	entutils.TxUser[FeatureRepo]
 }
@@ -94,7 +93,7 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 	}
 
 	// check key is not taken
-	found, err := c.featureRepo.FindByKey(ctx, feature.Namespace, feature.Name, false)
+	found, err := c.featureRepo.GetByIdOrKey(ctx, feature.Namespace, feature.Key, false)
 	if err != nil {
 		if _, ok := err.(*FeatureNotFoundError); !ok {
 			return Feature{}, err
@@ -107,7 +106,7 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 }
 
 func (c *featureConnector) ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error {
-	_, err := c.GetFeature(ctx, featureID)
+	_, err := c.GetFeature(ctx, featureID.Namespace, featureID.ID)
 	if err != nil {
 		return err
 	}
@@ -118,13 +117,13 @@ func (c *featureConnector) ListFeatures(ctx context.Context, params ListFeatures
 	return c.featureRepo.ListFeatures(ctx, params)
 }
 
-func (c *featureConnector) GetFeature(ctx context.Context, featureID models.NamespacedID) (Feature, error) {
-	feature, err := c.featureRepo.GetByID(ctx, featureID)
+func (c *featureConnector) GetFeature(ctx context.Context, namespace string, idOrKey string) (*Feature, error) {
+	feature, err := c.featureRepo.GetByIdOrKey(ctx, namespace, idOrKey, true)
 	if err != nil {
-		return Feature{}, err
+		return nil, err
 	}
-	if feature.Namespace != featureID.Namespace {
-		return Feature{}, &FeatureNotFoundError{ID: featureID.ID}
+	if feature.Namespace != namespace {
+		return nil, &FeatureNotFoundError{ID: idOrKey}
 	}
 	return feature, nil
 }

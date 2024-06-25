@@ -40,11 +40,39 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 	return mapEntitlementEntity(res), nil
 }
 
-func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlement entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
+func (a *entitlementDBAdapter) GetEntitlementOfSubject(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string) (*entitlement.Entitlement, error) {
+	res, err := a.db.Entitlement.Query().
+		Where(
+			db_entitlement.SubjectKey(string(subjectKey)),
+			db_entitlement.Namespace(namespace),
+			db_entitlement.Or(
+				db_entitlement.ID(idOrFeatureKey),
+				db_entitlement.FeatureKey(idOrFeatureKey),
+			),
+		).
+		First(ctx)
+
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, &entitlement.NotFoundError{
+				EntitlementID: models.NamespacedID{
+					Namespace: namespace,
+					ID:        idOrFeatureKey,
+				},
+			}
+		}
+		return nil, err
+	}
+
+	return mapEntitlementEntity(res), nil
+}
+
+func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlement entitlement.CreateEntitlementRepoInputs) (*entitlement.Entitlement, error) {
 	cmd := a.db.Entitlement.Create().
 		SetEntitlementType(db_entitlement.EntitlementType(entitlement.EntitlementType)).
 		SetNamespace(entitlement.Namespace).
 		SetFeatureID(entitlement.FeatureID).
+		SetFeatureKey(entitlement.FeatureKey).
 		SetSubjectKey(entitlement.SubjectKey).
 		SetNillableMeasureUsageFrom(entitlement.MeasureUsageFrom).
 		SetNillableIssueAfterReset(entitlement.IssueAfterReset).
@@ -141,6 +169,7 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 			ID:              e.ID,
 			SubjectKey:      e.SubjectKey,
 			FeatureID:       e.FeatureID,
+			FeatureKey:      e.FeatureKey,
 			EntitlementType: entitlement.EntitlementType(e.EntitlementType),
 		},
 		MeasureUsageFrom: e.MeasureUsageFrom,

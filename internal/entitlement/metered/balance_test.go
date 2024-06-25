@@ -36,11 +36,12 @@ func TestGetEntitlementBalance(t *testing.T) {
 		MeterGroupByFilters: map[string]string{},
 	}
 
-	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementInputs {
+	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementRepoInputs {
 		t.Helper()
-		return entitlement.CreateEntitlementInputs{
+		return entitlement.CreateEntitlementRepoInputs{
 			Namespace:        namespace,
 			FeatureID:        feature.ID,
+			FeatureKey:       feature.Key,
 			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z")), // old, override in tests
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),
@@ -411,11 +412,12 @@ func TestGetEntitlementHistory(t *testing.T) {
 		MeterGroupByFilters: map[string]string{},
 	}
 
-	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementInputs {
+	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementRepoInputs {
 		t.Helper()
-		return entitlement.CreateEntitlementInputs{
+		return entitlement.CreateEntitlementRepoInputs{
 			Namespace:        namespace,
 			FeatureID:        feature.ID,
+			FeatureKey:       feature.Key,
 			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z")), // old, override in tests
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),
@@ -555,11 +557,12 @@ func TestResetEntitlementUsage(t *testing.T) {
 		MeterGroupByFilters: map[string]string{},
 	}
 
-	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementInputs {
+	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementRepoInputs {
 		t.Helper()
-		return entitlement.CreateEntitlementInputs{
+		return entitlement.CreateEntitlementRepoInputs{
 			Namespace:        namespace,
 			FeatureID:        feature.ID,
+			FeatureKey:       feature.Key,
 			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z")), // old, override in tests
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),

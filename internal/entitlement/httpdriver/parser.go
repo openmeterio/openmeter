@@ -24,7 +24,8 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 	return &api.EntitlementMetered{
 		CreatedAt:       &metered.CreatedAt,
 		DeletedAt:       metered.DeletedAt,
-		FeatureId:       metered.FeatureID,
+		FeatureId:       &metered.FeatureID,
+		FeatureKey:      &metered.FeatureKey,
 		Id:              &metered.ID,
 		IsUnlimited:     convert.ToPointer(false), // implement
 		IssueAfterReset: metered.IssuesAfterReset,
@@ -48,7 +49,8 @@ func (parser) ToStatic(e *entitlement.Entitlement) (*api.EntitlementStatic, erro
 	return &api.EntitlementStatic{
 		CreatedAt:  &static.CreatedAt,
 		DeletedAt:  static.DeletedAt,
-		FeatureId:  static.FeatureID,
+		FeatureId:  &static.FeatureID,
+		FeatureKey: &static.FeatureKey,
 		Id:         &static.ID,
 		Metadata:   nil, // implement
 		SubjectKey: static.SubjectKey,
@@ -67,7 +69,8 @@ func (parser) ToBoolean(e *entitlement.Entitlement) (*api.EntitlementBoolean, er
 	return &api.EntitlementBoolean{
 		CreatedAt:  &boolean.CreatedAt,
 		DeletedAt:  boolean.DeletedAt,
-		FeatureId:  boolean.FeatureID,
+		FeatureId:  &boolean.FeatureID,
+		FeatureKey: &boolean.FeatureKey,
 		Id:         &boolean.ID,
 		Metadata:   nil, // implement
 		SubjectKey: boolean.SubjectKey,

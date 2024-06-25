@@ -90,6 +90,11 @@ func FeatureID(v string) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldFeatureID, v))
 }
 
+// FeatureKey applies equality check predicate on the "feature_key" field. It's identical to FeatureKeyEQ.
+func FeatureKey(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldFeatureKey, v))
+}
+
 // SubjectKey applies equality check predicate on the "subject_key" field. It's identical to SubjectKeyEQ.
 func SubjectKey(v string) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldSubjectKey, v))
@@ -403,6 +408,71 @@ func FeatureIDEqualFold(v string) predicate.Entitlement {
 // FeatureIDContainsFold applies the ContainsFold predicate on the "feature_id" field.
 func FeatureIDContainsFold(v string) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldContainsFold(FieldFeatureID, v))
+}
+
+// FeatureKeyEQ applies the EQ predicate on the "feature_key" field.
+func FeatureKeyEQ(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldFeatureKey, v))
+}
+
+// FeatureKeyNEQ applies the NEQ predicate on the "feature_key" field.
+func FeatureKeyNEQ(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNEQ(FieldFeatureKey, v))
+}
+
+// FeatureKeyIn applies the In predicate on the "feature_key" field.
+func FeatureKeyIn(vs ...string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIn(FieldFeatureKey, vs...))
+}
+
+// FeatureKeyNotIn applies the NotIn predicate on the "feature_key" field.
+func FeatureKeyNotIn(vs ...string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotIn(FieldFeatureKey, vs...))
+}
+
+// FeatureKeyGT applies the GT predicate on the "feature_key" field.
+func FeatureKeyGT(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGT(FieldFeatureKey, v))
+}
+
+// FeatureKeyGTE applies the GTE predicate on the "feature_key" field.
+func FeatureKeyGTE(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGTE(FieldFeatureKey, v))
+}
+
+// FeatureKeyLT applies the LT predicate on the "feature_key" field.
+func FeatureKeyLT(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLT(FieldFeatureKey, v))
+}
+
+// FeatureKeyLTE applies the LTE predicate on the "feature_key" field.
+func FeatureKeyLTE(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLTE(FieldFeatureKey, v))
+}
+
+// FeatureKeyContains applies the Contains predicate on the "feature_key" field.
+func FeatureKeyContains(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldContains(FieldFeatureKey, v))
+}
+
+// FeatureKeyHasPrefix applies the HasPrefix predicate on the "feature_key" field.
+func FeatureKeyHasPrefix(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldHasPrefix(FieldFeatureKey, v))
+}
+
+// FeatureKeyHasSuffix applies the HasSuffix predicate on the "feature_key" field.
+func FeatureKeyHasSuffix(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldHasSuffix(FieldFeatureKey, v))
+}
+
+// FeatureKeyEqualFold applies the EqualFold predicate on the "feature_key" field.
+func FeatureKeyEqualFold(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEqualFold(FieldFeatureKey, v))
+}
+
+// FeatureKeyContainsFold applies the ContainsFold predicate on the "feature_key" field.
+func FeatureKeyContainsFold(v string) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldContainsFold(FieldFeatureKey, v))
 }
 
 // SubjectKeyEQ applies the EQ predicate on the "subject_key" field.

@@ -38,7 +38,7 @@ func (a *Router) GetEntitlementValue(w http.ResponseWriter, r *http.Request, sub
 		return
 	}
 	a.entitlementHandler.GetEntitlementValue().With(httpdriver.GetEntitlementValueHandlerParams{
-		SubjectIdOrKey:            subjectIdOrKey,
+		SubjectKey:                subjectIdOrKey,
 		EntitlementIdOrFeatureKey: entitlementIdOrFeatureKey,
 		Params:                    params,
 	}).ServeHTTP(w, r)

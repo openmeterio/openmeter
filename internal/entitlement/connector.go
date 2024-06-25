@@ -25,9 +25,9 @@ type ListEntitlementsParams struct {
 
 type Connector interface {
 	// Entitlement Management
-	CreateEntitlement(ctx context.Context, input CreateEntitlementInputs) (Entitlement, error)
+	CreateEntitlement(ctx context.Context, input CreateEntitlementInputs) (*Entitlement, error)
 	GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]Entitlement, error)
-	GetEntitlementValue(ctx context.Context, entitlementId models.NamespacedID, at time.Time) (EntitlementValue, error)
+	GetEntitlementValue(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (EntitlementValue, error)
 
 	ListEntitlements(ctx context.Context, params ListEntitlementsParams) ([]Entitlement, error)
 }
@@ -57,50 +57,74 @@ func NewEntitlementConnector(
 	}
 }
 
-func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input CreateEntitlementInputs) (Entitlement, error) {
-	feature, err := c.featureConnector.GetFeature(ctx, models.NamespacedID{Namespace: input.Namespace, ID: input.FeatureID})
-	if err != nil {
-		return Entitlement{}, &productcatalog.FeatureNotFoundError{ID: input.FeatureID}
+func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input CreateEntitlementInputs) (*Entitlement, error) {
+	// ID has precedence over key
+	idOrKey := input.FeatureID
+	if idOrKey == nil {
+		idOrKey = input.FeatureKey
+	}
+	if idOrKey == nil {
+		return nil, &models.GenericUserError{Message: "Feature ID or key is required"}
+	}
+
+	feature, err := c.featureConnector.GetFeature(ctx, input.Namespace, *idOrKey)
+	if err != nil || feature == nil {
+		return nil, &productcatalog.FeatureNotFoundError{ID: *idOrKey}
 	}
 	if feature.ArchivedAt != nil && feature.ArchivedAt.Before(time.Now()) {
-		return Entitlement{}, &models.GenericUserError{Message: "Feature is archived"}
+		return nil, &models.GenericUserError{Message: "Feature is archived"}
 	}
 	currentEntitlements, err := c.entitlementRepo.GetEntitlementsOfSubject(ctx, input.Namespace, models.SubjectKey(input.SubjectKey))
 	if err != nil {
-		return Entitlement{}, err
+		return nil, err
 	}
 	for _, ent := range currentEntitlements {
-		if ent.FeatureID == input.FeatureID {
-			return Entitlement{}, &AlreadyExistsError{EntitlementID: ent.ID, FeatureID: input.FeatureID, SubjectKey: input.SubjectKey}
+		if ent.FeatureID == feature.ID {
+			return nil, &AlreadyExistsError{EntitlementID: ent.ID, FeatureID: feature.ID, SubjectKey: input.SubjectKey}
 		}
 	}
 
+	// populate feature id and key
+	input.FeatureID = &feature.ID
+	input.FeatureKey = &feature.Key
+
 	connector, err := c.getTypeConnector(input)
 	if err != nil {
-		return Entitlement{}, err
+		return nil, err
 	}
 	err = connector.SetDefaultsAndValidate(&input)
 	if err != nil {
-		return Entitlement{}, err
+		return nil, err
 	}
-	err = connector.ValidateForFeature(&input, feature)
+	err = connector.ValidateForFeature(&input, *feature)
 	if err != nil {
-		return Entitlement{}, err
+		return nil, err
 	}
 
-	ent, err := c.entitlementRepo.CreateEntitlement(ctx, input)
+	ent, err := c.entitlementRepo.CreateEntitlement(ctx, CreateEntitlementRepoInputs{
+		Namespace:        input.Namespace,
+		FeatureID:        *input.FeatureID,
+		FeatureKey:       *input.FeatureKey,
+		SubjectKey:       input.SubjectKey,
+		EntitlementType:  input.EntitlementType,
+		MeasureUsageFrom: input.MeasureUsageFrom,
+		IssueAfterReset:  input.IssueAfterReset,
+		IsSoftLimit:      input.IsSoftLimit,
+		Config:           input.Config,
+		UsagePeriod:      input.UsagePeriod,
+	})
 	if err != nil || ent == nil {
-		return Entitlement{}, err
+		return nil, err
 	}
-	return *ent, nil
+	return ent, nil
 }
 
 func (c *entitlementConnector) GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]Entitlement, error) {
 	return c.entitlementRepo.GetEntitlementsOfSubject(ctx, namespace, subjectKey)
 }
 
-func (c *entitlementConnector) GetEntitlementValue(ctx context.Context, entitlementId models.NamespacedID, at time.Time) (EntitlementValue, error) {
-	ent, err := c.entitlementRepo.GetEntitlement(ctx, entitlementId)
+func (c *entitlementConnector) GetEntitlementValue(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (EntitlementValue, error) {
+	ent, err := c.entitlementRepo.GetEntitlementOfSubject(ctx, namespace, subjectKey, idOrFeatureKey)
 	if err != nil {
 		return nil, err
 	}

@@ -29,6 +29,8 @@ const (
 	FieldEntitlementType = "entitlement_type"
 	// FieldFeatureID holds the string denoting the feature_id field in the database.
 	FieldFeatureID = "feature_id"
+	// FieldFeatureKey holds the string denoting the feature_key field in the database.
+	FieldFeatureKey = "feature_key"
 	// FieldSubjectKey holds the string denoting the subject_key field in the database.
 	FieldSubjectKey = "subject_key"
 	// FieldMeasureUsageFrom holds the string denoting the measure_usage_from field in the database.
@@ -66,6 +68,7 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldEntitlementType,
 	FieldFeatureID,
+	FieldFeatureKey,
 	FieldSubjectKey,
 	FieldMeasureUsageFrom,
 	FieldIssueAfterReset,
@@ -183,6 +186,11 @@ func ByEntitlementType(opts ...sql.OrderTermOption) OrderOption {
 // ByFeatureID orders the results by the feature_id field.
 func ByFeatureID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFeatureID, opts...).ToFunc()
+}
+
+// ByFeatureKey orders the results by the feature_key field.
+func ByFeatureKey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeatureKey, opts...).ToFunc()
 }
 
 // BySubjectKey orders the results by the subject_key field.
