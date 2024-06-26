@@ -168,13 +168,18 @@ func TestDedupe(t *testing.T) {
 }
 
 func TestQuery(t *testing.T) {
+	startOfDay := func(t time.Time) time.Time {
+		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+	}
+
 	client := initClient(t)
 
 	// Reproducible random data
 	const customerCount = 5
 	paths := []string{"/", "/about", "/users", "/contact"}
 	faker := gofakeit.New(8675309)
-	timestamp := faker.DateRange(time.Date(2023, time.May, 6, 0, 0, 0, 0, time.UTC), faker.FutureDate().UTC()).UTC().Truncate(time.Second)
+	randTime := faker.DateRange(time.Date(2023, time.May, 6, 0, 0, 0, 0, time.UTC), faker.FutureDate().UTC())
+	timestamp := startOfDay(randTime.UTC()).UTC().Truncate(time.Second)
 
 	t.Run("Total", func(t *testing.T) {
 		var events []cloudevents.Event
@@ -229,7 +234,7 @@ func TestQuery(t *testing.T) {
 
 		// Plus one day
 		{
-			events = append(events, newTimedEvents(timestamp.Add(24*time.Hour))...)
+			events = append(events, newTimedEvents(timestamp.AddDate(0, 0, 1))...)
 		}
 
 		{
