@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"strings"
+	"time"
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db"
@@ -189,11 +190,7 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 
 	if e.UsagePeriodAnchor != nil && e.UsagePeriodInterval != nil {
 		ent.GenericProperties.UsagePeriod = &entitlement.UsagePeriod{
-			Anchor:   *convert.SafeToUTC(e.UsagePeriodAnchor),
-			Interval: entitlement.UsagePeriodInterval(*e.UsagePeriodInterval),
-		}
-		ent.UsagePeriod = &entitlement.UsagePeriod{
-			Anchor:   *convert.SafeToUTC(e.UsagePeriodAnchor),
+			Anchor:   e.UsagePeriodAnchor.In(time.UTC),
 			Interval: entitlement.UsagePeriodInterval(*e.UsagePeriodInterval),
 		}
 	}

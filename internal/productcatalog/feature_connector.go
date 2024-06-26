@@ -122,9 +122,6 @@ func (c *featureConnector) GetFeature(ctx context.Context, namespace string, idO
 	if err != nil {
 		return nil, err
 	}
-	if feature.Namespace != namespace {
-		return nil, &FeatureNotFoundError{ID: idOrKey}
-	}
 	return feature, nil
 }
 
