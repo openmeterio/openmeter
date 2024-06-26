@@ -3,7 +3,9 @@ package entitlement
 import (
 	"time"
 
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -38,6 +40,7 @@ type Entitlement struct {
 	MeasureUsageFrom *time.Time `json:"_,omitempty"`
 	IssueAfterReset  *float64   `json:"issueAfterReset,omitempty"`
 	IsSoftLimit      *bool      `json:"isSoftLimit,omitempty"`
+	LastReset        *time.Time `json:"lastReset,omitempty"`
 
 	// static
 	Config *string `json:"config,omitempty"`
@@ -84,12 +87,58 @@ type GenericProperties struct {
 	SubjectKey      string          `json:"subjectKey,omitempty"`
 	EntitlementType EntitlementType `json:"type,omitempty"`
 
-	UsagePeriod *UsagePeriod `json:"usagePeriod,omitempty"`
+	UsagePeriod        *UsagePeriod `json:"usagePeriod,omitempty"`
+	CurrentUsagePeriod *api.Period  `json:"currentUsagePeriod,omitempty"`
 }
 
 type UsagePeriod struct {
 	Anchor   time.Time           `json:"anchor"`
 	Interval UsagePeriodInterval `json:"interval"`
+}
+
+func (u UsagePeriod) GetNextReset() (time.Time, error) {
+	rec := recurrence.Recurrence{
+		Anchor: u.Anchor,
+		Period: recurrence.RecurrencePeriod(u.Interval),
+	}
+
+	nextReset, err := rec.NextAfter(time.Now())
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return nextReset.Truncate(time.Minute), nil
+}
+
+func (u UsagePeriod) ToRecurringPeriod() api.RecurringPeriod {
+	return api.RecurringPeriod{
+		Anchor:   u.Anchor,
+		Interval: api.RecurringPeriodEnum(u.Interval),
+	}
+}
+
+func (u UsagePeriod) GetCurrentPeriod() (api.Period, error) {
+	rec := recurrence.Recurrence{
+		Anchor: u.Anchor,
+		Period: recurrence.RecurrencePeriod(u.Interval),
+	}
+
+	now := time.Now()
+
+	currentPeriodEnd, err := rec.NextAfter(now)
+	if err != nil {
+		return api.Period{}, err
+	}
+
+	currentPeriodStart, err := rec.PrevBefore(now)
+	if err != nil {
+		return api.Period{}, err
+	}
+
+	return api.Period{
+		From: currentPeriodStart,
+		To:   currentPeriodEnd,
+	}, nil
 }
 
 type UsagePeriodInterval string

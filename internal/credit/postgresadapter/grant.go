@@ -9,6 +9,7 @@ import (
 	db_grant "github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db/grant"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 type grantDBADapter struct {
@@ -168,9 +169,9 @@ func mapGrantEntity(entity *db.Grant) credit.Grant {
 	}
 
 	if entity.RecurrencePeriod != nil && entity.RecurrenceAnchor != nil {
-		g.Recurrence = &credit.Recurrence{
+		g.Recurrence = &recurrence.Recurrence{
 			Period: *entity.RecurrencePeriod,
-			Anchor: *convert.SafeToUTC(entity.RecurrenceAnchor),
+			Anchor: entity.RecurrenceAnchor.In(time.UTC),
 		}
 	}
 

@@ -22,20 +22,19 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 	}
 
 	return &api.EntitlementMetered{
-		CreatedAt:       &metered.CreatedAt,
-		DeletedAt:       metered.DeletedAt,
-		FeatureId:       metered.FeatureID,
-		Id:              &metered.ID,
-		IsUnlimited:     convert.ToPointer(false), // implement
-		IssueAfterReset: metered.IssuesAfterReset,
-		Metadata:        &metered.Metadata,
-		SubjectKey:      metered.SubjectKey,
-		Type:            api.EntitlementMeteredType(metered.EntitlementType),
-		UpdatedAt:       &metered.UpdatedAt,
-		UsagePeriod: api.RecurringPeriod{
-			Anchor:   metered.UsagePeriod.Anchor,
-			Interval: api.RecurringPeriodEnum(metered.UsagePeriod.Interval),
-		},
+		CreatedAt:          &metered.CreatedAt,
+		DeletedAt:          metered.DeletedAt,
+		FeatureId:          metered.FeatureID,
+		Id:                 &metered.ID,
+		IsUnlimited:        convert.ToPointer(false), // implement
+		IssueAfterReset:    metered.IssuesAfterReset,
+		Metadata:           &metered.Metadata,
+		SubjectKey:         metered.SubjectKey,
+		Type:               api.EntitlementMeteredType(metered.EntitlementType),
+		UpdatedAt:          &metered.UpdatedAt,
+		UsagePeriod:        e.UsagePeriod.ToRecurringPeriod(),
+		CurrentUsagePeriod: *e.CurrentUsagePeriod,
+		LastReset:          metered.LastReset,
 	}, nil
 }
 
@@ -46,22 +45,20 @@ func (parser) ToStatic(e *entitlement.Entitlement) (*api.EntitlementStatic, erro
 	}
 
 	apiRes := &api.EntitlementStatic{
-		CreatedAt:  &static.CreatedAt,
-		DeletedAt:  static.DeletedAt,
-		FeatureId:  static.FeatureID,
-		Id:         &static.ID,
-		Metadata:   &static.Metadata,
-		SubjectKey: static.SubjectKey,
-		Type:       api.EntitlementStaticType(static.EntitlementType),
-		UpdatedAt:  &static.UpdatedAt,
-		Config:     static.Config,
+		CreatedAt:          &static.CreatedAt,
+		DeletedAt:          static.DeletedAt,
+		FeatureId:          static.FeatureID,
+		Id:                 &static.ID,
+		Metadata:           &static.Metadata,
+		SubjectKey:         static.SubjectKey,
+		Type:               api.EntitlementStaticType(static.EntitlementType),
+		UpdatedAt:          &static.UpdatedAt,
+		Config:             static.Config,
+		CurrentUsagePeriod: static.CurrentUsagePeriod,
 	}
 
 	if static.UsagePeriod != nil {
-		apiRes.UsagePeriod = &api.RecurringPeriod{
-			Anchor:   static.UsagePeriod.Anchor,
-			Interval: api.RecurringPeriodEnum(static.UsagePeriod.Interval),
-		}
+		apiRes.UsagePeriod = convert.ToPointer(static.UsagePeriod.ToRecurringPeriod())
 	}
 
 	return apiRes, nil
@@ -74,21 +71,24 @@ func (parser) ToBoolean(e *entitlement.Entitlement) (*api.EntitlementBoolean, er
 	}
 
 	apiRes := &api.EntitlementBoolean{
-		CreatedAt:  &boolean.CreatedAt,
-		DeletedAt:  boolean.DeletedAt,
-		FeatureId:  boolean.FeatureID,
-		Id:         &boolean.ID,
-		Metadata:   &boolean.Metadata,
-		SubjectKey: boolean.SubjectKey,
-		Type:       api.EntitlementBooleanType(boolean.EntitlementType),
-		UpdatedAt:  &boolean.UpdatedAt,
+		CreatedAt:          &boolean.CreatedAt,
+		DeletedAt:          boolean.DeletedAt,
+		FeatureId:          boolean.FeatureID,
+		Id:                 &boolean.ID,
+		Metadata:           &boolean.Metadata,
+		SubjectKey:         boolean.SubjectKey,
+		Type:               api.EntitlementBooleanType(boolean.EntitlementType),
+		UpdatedAt:          &boolean.UpdatedAt,
+		CurrentUsagePeriod: boolean.CurrentUsagePeriod,
 	}
 
 	if boolean.UsagePeriod != nil {
-		apiRes.UsagePeriod = &api.RecurringPeriod{
-			Anchor:   boolean.UsagePeriod.Anchor,
-			Interval: api.RecurringPeriodEnum(boolean.UsagePeriod.Interval),
+		apiRes.UsagePeriod = convert.ToPointer(boolean.UsagePeriod.ToRecurringPeriod())
+		currentPeriod, err := boolean.UsagePeriod.GetCurrentPeriod()
+		if err != nil {
+			return nil, err
 		}
+		apiRes.CurrentUsagePeriod = &currentPeriod
 	}
 
 	return apiRes, nil

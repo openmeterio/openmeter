@@ -79,6 +79,66 @@ func (eu *EntitlementUpdate) ClearConfig() *EntitlementUpdate {
 	return eu
 }
 
+// SetUsagePeriodAnchor sets the "usage_period_anchor" field.
+func (eu *EntitlementUpdate) SetUsagePeriodAnchor(t time.Time) *EntitlementUpdate {
+	eu.mutation.SetUsagePeriodAnchor(t)
+	return eu
+}
+
+// SetNillableUsagePeriodAnchor sets the "usage_period_anchor" field if the given value is not nil.
+func (eu *EntitlementUpdate) SetNillableUsagePeriodAnchor(t *time.Time) *EntitlementUpdate {
+	if t != nil {
+		eu.SetUsagePeriodAnchor(*t)
+	}
+	return eu
+}
+
+// ClearUsagePeriodAnchor clears the value of the "usage_period_anchor" field.
+func (eu *EntitlementUpdate) ClearUsagePeriodAnchor() *EntitlementUpdate {
+	eu.mutation.ClearUsagePeriodAnchor()
+	return eu
+}
+
+// SetCurrentUsagePeriodStart sets the "current_usage_period_start" field.
+func (eu *EntitlementUpdate) SetCurrentUsagePeriodStart(t time.Time) *EntitlementUpdate {
+	eu.mutation.SetCurrentUsagePeriodStart(t)
+	return eu
+}
+
+// SetNillableCurrentUsagePeriodStart sets the "current_usage_period_start" field if the given value is not nil.
+func (eu *EntitlementUpdate) SetNillableCurrentUsagePeriodStart(t *time.Time) *EntitlementUpdate {
+	if t != nil {
+		eu.SetCurrentUsagePeriodStart(*t)
+	}
+	return eu
+}
+
+// ClearCurrentUsagePeriodStart clears the value of the "current_usage_period_start" field.
+func (eu *EntitlementUpdate) ClearCurrentUsagePeriodStart() *EntitlementUpdate {
+	eu.mutation.ClearCurrentUsagePeriodStart()
+	return eu
+}
+
+// SetCurrentUsagePeriodEnd sets the "current_usage_period_end" field.
+func (eu *EntitlementUpdate) SetCurrentUsagePeriodEnd(t time.Time) *EntitlementUpdate {
+	eu.mutation.SetCurrentUsagePeriodEnd(t)
+	return eu
+}
+
+// SetNillableCurrentUsagePeriodEnd sets the "current_usage_period_end" field if the given value is not nil.
+func (eu *EntitlementUpdate) SetNillableCurrentUsagePeriodEnd(t *time.Time) *EntitlementUpdate {
+	if t != nil {
+		eu.SetCurrentUsagePeriodEnd(*t)
+	}
+	return eu
+}
+
+// ClearCurrentUsagePeriodEnd clears the value of the "current_usage_period_end" field.
+func (eu *EntitlementUpdate) ClearCurrentUsagePeriodEnd() *EntitlementUpdate {
+	eu.mutation.ClearCurrentUsagePeriodEnd()
+	return eu
+}
+
 // AddUsageResetIDs adds the "usage_reset" edge to the UsageReset entity by IDs.
 func (eu *EntitlementUpdate) AddUsageResetIDs(ids ...string) *EntitlementUpdate {
 	eu.mutation.AddUsageResetIDs(ids...)
@@ -198,8 +258,23 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if eu.mutation.UsagePeriodIntervalCleared() {
 		_spec.ClearField(entitlement.FieldUsagePeriodInterval, field.TypeEnum)
 	}
+	if value, ok := eu.mutation.UsagePeriodAnchor(); ok {
+		_spec.SetField(entitlement.FieldUsagePeriodAnchor, field.TypeTime, value)
+	}
 	if eu.mutation.UsagePeriodAnchorCleared() {
 		_spec.ClearField(entitlement.FieldUsagePeriodAnchor, field.TypeTime)
+	}
+	if value, ok := eu.mutation.CurrentUsagePeriodStart(); ok {
+		_spec.SetField(entitlement.FieldCurrentUsagePeriodStart, field.TypeTime, value)
+	}
+	if eu.mutation.CurrentUsagePeriodStartCleared() {
+		_spec.ClearField(entitlement.FieldCurrentUsagePeriodStart, field.TypeTime)
+	}
+	if value, ok := eu.mutation.CurrentUsagePeriodEnd(); ok {
+		_spec.SetField(entitlement.FieldCurrentUsagePeriodEnd, field.TypeTime, value)
+	}
+	if eu.mutation.CurrentUsagePeriodEndCleared() {
+		_spec.ClearField(entitlement.FieldCurrentUsagePeriodEnd, field.TypeTime)
 	}
 	if eu.mutation.UsageResetCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -313,6 +388,66 @@ func (euo *EntitlementUpdateOne) SetConfig(m map[string]interface{}) *Entitlemen
 // ClearConfig clears the value of the "config" field.
 func (euo *EntitlementUpdateOne) ClearConfig() *EntitlementUpdateOne {
 	euo.mutation.ClearConfig()
+	return euo
+}
+
+// SetUsagePeriodAnchor sets the "usage_period_anchor" field.
+func (euo *EntitlementUpdateOne) SetUsagePeriodAnchor(t time.Time) *EntitlementUpdateOne {
+	euo.mutation.SetUsagePeriodAnchor(t)
+	return euo
+}
+
+// SetNillableUsagePeriodAnchor sets the "usage_period_anchor" field if the given value is not nil.
+func (euo *EntitlementUpdateOne) SetNillableUsagePeriodAnchor(t *time.Time) *EntitlementUpdateOne {
+	if t != nil {
+		euo.SetUsagePeriodAnchor(*t)
+	}
+	return euo
+}
+
+// ClearUsagePeriodAnchor clears the value of the "usage_period_anchor" field.
+func (euo *EntitlementUpdateOne) ClearUsagePeriodAnchor() *EntitlementUpdateOne {
+	euo.mutation.ClearUsagePeriodAnchor()
+	return euo
+}
+
+// SetCurrentUsagePeriodStart sets the "current_usage_period_start" field.
+func (euo *EntitlementUpdateOne) SetCurrentUsagePeriodStart(t time.Time) *EntitlementUpdateOne {
+	euo.mutation.SetCurrentUsagePeriodStart(t)
+	return euo
+}
+
+// SetNillableCurrentUsagePeriodStart sets the "current_usage_period_start" field if the given value is not nil.
+func (euo *EntitlementUpdateOne) SetNillableCurrentUsagePeriodStart(t *time.Time) *EntitlementUpdateOne {
+	if t != nil {
+		euo.SetCurrentUsagePeriodStart(*t)
+	}
+	return euo
+}
+
+// ClearCurrentUsagePeriodStart clears the value of the "current_usage_period_start" field.
+func (euo *EntitlementUpdateOne) ClearCurrentUsagePeriodStart() *EntitlementUpdateOne {
+	euo.mutation.ClearCurrentUsagePeriodStart()
+	return euo
+}
+
+// SetCurrentUsagePeriodEnd sets the "current_usage_period_end" field.
+func (euo *EntitlementUpdateOne) SetCurrentUsagePeriodEnd(t time.Time) *EntitlementUpdateOne {
+	euo.mutation.SetCurrentUsagePeriodEnd(t)
+	return euo
+}
+
+// SetNillableCurrentUsagePeriodEnd sets the "current_usage_period_end" field if the given value is not nil.
+func (euo *EntitlementUpdateOne) SetNillableCurrentUsagePeriodEnd(t *time.Time) *EntitlementUpdateOne {
+	if t != nil {
+		euo.SetCurrentUsagePeriodEnd(*t)
+	}
+	return euo
+}
+
+// ClearCurrentUsagePeriodEnd clears the value of the "current_usage_period_end" field.
+func (euo *EntitlementUpdateOne) ClearCurrentUsagePeriodEnd() *EntitlementUpdateOne {
+	euo.mutation.ClearCurrentUsagePeriodEnd()
 	return euo
 }
 
@@ -465,8 +600,23 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 	if euo.mutation.UsagePeriodIntervalCleared() {
 		_spec.ClearField(entitlement.FieldUsagePeriodInterval, field.TypeEnum)
 	}
+	if value, ok := euo.mutation.UsagePeriodAnchor(); ok {
+		_spec.SetField(entitlement.FieldUsagePeriodAnchor, field.TypeTime, value)
+	}
 	if euo.mutation.UsagePeriodAnchorCleared() {
 		_spec.ClearField(entitlement.FieldUsagePeriodAnchor, field.TypeTime)
+	}
+	if value, ok := euo.mutation.CurrentUsagePeriodStart(); ok {
+		_spec.SetField(entitlement.FieldCurrentUsagePeriodStart, field.TypeTime, value)
+	}
+	if euo.mutation.CurrentUsagePeriodStartCleared() {
+		_spec.ClearField(entitlement.FieldCurrentUsagePeriodStart, field.TypeTime)
+	}
+	if value, ok := euo.mutation.CurrentUsagePeriodEnd(); ok {
+		_spec.SetField(entitlement.FieldCurrentUsagePeriodEnd, field.TypeTime, value)
+	}
+	if euo.mutation.CurrentUsagePeriodEndCleared() {
+		_spec.ClearField(entitlement.FieldCurrentUsagePeriodEnd, field.TypeTime)
 	}
 	if euo.mutation.UsageResetCleared() {
 		edge := &sqlgraph.EdgeSpec{

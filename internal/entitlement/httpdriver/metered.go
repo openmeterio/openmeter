@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 type MeteredEntitlementHandler interface {
@@ -105,8 +106,8 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 			}
 
 			if apiGrant.Recurrence != nil {
-				inp.inp.Recurrence = &credit.Recurrence{
-					Period: credit.RecurrencePeriod(apiGrant.Recurrence.Interval),
+				inp.inp.Recurrence = &recurrence.Recurrence{
+					Period: recurrence.RecurrencePeriod(apiGrant.Recurrence.Interval),
 					Anchor: defaultx.WithDefault(apiGrant.Recurrence.Anchor, apiGrant.EffectiveAt),
 				}
 			}
@@ -219,6 +220,7 @@ type ResetEntitlementUsageHandlerRequest struct {
 	Namespace     string
 	SubjectID     string
 	At            time.Time
+	RetainAnchor  bool
 }
 type ResetEntitlementUsageHandlerResponse = interface{}
 type ResetEntitlementUsageHandlerParams struct {
@@ -246,13 +248,17 @@ func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsag
 				Namespace:     ns,
 				SubjectID:     params.SubjectKey,
 				At:            defaultx.WithDefault(body.EffectiveAt, time.Now()),
+				RetainAnchor:  defaultx.WithDefault(body.RetainAnchor, false),
 			}, nil
 		},
 		func(ctx context.Context, request ResetEntitlementUsageHandlerRequest) (interface{}, error) {
 			_, err := h.balanceConnector.ResetEntitlementUsage(ctx, models.NamespacedID{
 				Namespace: request.Namespace,
 				ID:        request.EntitlementID,
-			}, request.At)
+			}, meteredentitlement.ResetEntitlementUsageParams{
+				At:           request.At,
+				RetainAnchor: request.RetainAnchor,
+			})
 			return nil, err
 		},
 		commonhttp.EmptyResponseEncoder[interface{}](http.StatusNoContent),

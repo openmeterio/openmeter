@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db/grant"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 // Grant is the model entity for the Grant schema.
@@ -46,7 +47,7 @@ type Grant struct {
 	// ResetMaxRollover holds the value of the "reset_max_rollover" field.
 	ResetMaxRollover float64 `json:"reset_max_rollover,omitempty"`
 	// RecurrencePeriod holds the value of the "recurrence_period" field.
-	RecurrencePeriod *credit.RecurrencePeriod `json:"recurrence_period,omitempty"`
+	RecurrencePeriod *recurrence.RecurrencePeriod `json:"recurrence_period,omitempty"`
 	// RecurrenceAnchor holds the value of the "recurrence_anchor" field.
 	RecurrenceAnchor *time.Time `json:"recurrence_anchor,omitempty"`
 	selectValues     sql.SelectValues
@@ -176,8 +177,8 @@ func (gr *Grant) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field recurrence_period", values[i])
 			} else if value.Valid {
-				gr.RecurrencePeriod = new(credit.RecurrencePeriod)
-				*gr.RecurrencePeriod = credit.RecurrencePeriod(value.String)
+				gr.RecurrencePeriod = new(recurrence.RecurrencePeriod)
+				*gr.RecurrencePeriod = recurrence.RecurrencePeriod(value.String)
 			}
 		case grant.FieldRecurrenceAnchor:
 			if value, ok := values[i].(*sql.NullTime); !ok {

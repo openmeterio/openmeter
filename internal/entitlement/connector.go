@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -88,7 +89,30 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 		return nil, err
 	}
 
-	ent, err := c.entitlementRepo.CreateEntitlement(ctx, input)
+	var usagePeriod *UsagePeriod
+	var currentUsagePeriod *api.Period
+	if input.UsagePeriod != nil {
+		calculatedPeriod, err := input.UsagePeriod.GetCurrentPeriod()
+		if err != nil {
+			return nil, err
+		}
+
+		currentUsagePeriod = &calculatedPeriod
+		usagePeriod = input.UsagePeriod
+	}
+
+	ent, err := c.entitlementRepo.CreateEntitlement(ctx, CreateEntitlementRepoInputs{
+		Namespace:          input.Namespace,
+		FeatureID:          input.FeatureID,
+		SubjectKey:         input.SubjectKey,
+		EntitlementType:    input.EntitlementType,
+		MeasureUsageFrom:   input.MeasureUsageFrom,
+		IssueAfterReset:    input.IssueAfterReset,
+		IsSoftLimit:        input.IsSoftLimit,
+		Config:             input.Config,
+		UsagePeriod:        usagePeriod,
+		CurrentUsagePeriod: currentUsagePeriod,
+	})
 	if err != nil || ent == nil {
 		return nil, err
 	}

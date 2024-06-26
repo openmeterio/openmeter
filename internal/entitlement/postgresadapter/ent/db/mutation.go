@@ -32,31 +32,33 @@ const (
 // EntitlementMutation represents an operation that mutates the Entitlement nodes in the graph.
 type EntitlementMutation struct {
 	config
-	op                    Op
-	typ                   string
-	id                    *string
-	namespace             *string
-	metadata              *map[string]string
-	created_at            *time.Time
-	updated_at            *time.Time
-	deleted_at            *time.Time
-	entitlement_type      *entitlement.EntitlementType
-	feature_id            *string
-	subject_key           *string
-	measure_usage_from    *time.Time
-	issue_after_reset     *float64
-	addissue_after_reset  *float64
-	is_soft_limit         *bool
-	_config               *map[string]interface{}
-	usage_period_interval *entitlement.UsagePeriodInterval
-	usage_period_anchor   *time.Time
-	clearedFields         map[string]struct{}
-	usage_reset           map[string]struct{}
-	removedusage_reset    map[string]struct{}
-	clearedusage_reset    bool
-	done                  bool
-	oldValue              func(context.Context) (*Entitlement, error)
-	predicates            []predicate.Entitlement
+	op                         Op
+	typ                        string
+	id                         *string
+	namespace                  *string
+	metadata                   *map[string]string
+	created_at                 *time.Time
+	updated_at                 *time.Time
+	deleted_at                 *time.Time
+	entitlement_type           *entitlement.EntitlementType
+	feature_id                 *string
+	subject_key                *string
+	measure_usage_from         *time.Time
+	issue_after_reset          *float64
+	addissue_after_reset       *float64
+	is_soft_limit              *bool
+	_config                    *map[string]interface{}
+	usage_period_interval      *entitlement.UsagePeriodInterval
+	usage_period_anchor        *time.Time
+	current_usage_period_start *time.Time
+	current_usage_period_end   *time.Time
+	clearedFields              map[string]struct{}
+	usage_reset                map[string]struct{}
+	removedusage_reset         map[string]struct{}
+	clearedusage_reset         bool
+	done                       bool
+	oldValue                   func(context.Context) (*Entitlement, error)
+	predicates                 []predicate.Entitlement
 }
 
 var _ ent.Mutation = (*EntitlementMutation)(nil)
@@ -792,6 +794,104 @@ func (m *EntitlementMutation) ResetUsagePeriodAnchor() {
 	delete(m.clearedFields, entitlement.FieldUsagePeriodAnchor)
 }
 
+// SetCurrentUsagePeriodStart sets the "current_usage_period_start" field.
+func (m *EntitlementMutation) SetCurrentUsagePeriodStart(t time.Time) {
+	m.current_usage_period_start = &t
+}
+
+// CurrentUsagePeriodStart returns the value of the "current_usage_period_start" field in the mutation.
+func (m *EntitlementMutation) CurrentUsagePeriodStart() (r time.Time, exists bool) {
+	v := m.current_usage_period_start
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrentUsagePeriodStart returns the old "current_usage_period_start" field's value of the Entitlement entity.
+// If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EntitlementMutation) OldCurrentUsagePeriodStart(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrentUsagePeriodStart is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrentUsagePeriodStart requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrentUsagePeriodStart: %w", err)
+	}
+	return oldValue.CurrentUsagePeriodStart, nil
+}
+
+// ClearCurrentUsagePeriodStart clears the value of the "current_usage_period_start" field.
+func (m *EntitlementMutation) ClearCurrentUsagePeriodStart() {
+	m.current_usage_period_start = nil
+	m.clearedFields[entitlement.FieldCurrentUsagePeriodStart] = struct{}{}
+}
+
+// CurrentUsagePeriodStartCleared returns if the "current_usage_period_start" field was cleared in this mutation.
+func (m *EntitlementMutation) CurrentUsagePeriodStartCleared() bool {
+	_, ok := m.clearedFields[entitlement.FieldCurrentUsagePeriodStart]
+	return ok
+}
+
+// ResetCurrentUsagePeriodStart resets all changes to the "current_usage_period_start" field.
+func (m *EntitlementMutation) ResetCurrentUsagePeriodStart() {
+	m.current_usage_period_start = nil
+	delete(m.clearedFields, entitlement.FieldCurrentUsagePeriodStart)
+}
+
+// SetCurrentUsagePeriodEnd sets the "current_usage_period_end" field.
+func (m *EntitlementMutation) SetCurrentUsagePeriodEnd(t time.Time) {
+	m.current_usage_period_end = &t
+}
+
+// CurrentUsagePeriodEnd returns the value of the "current_usage_period_end" field in the mutation.
+func (m *EntitlementMutation) CurrentUsagePeriodEnd() (r time.Time, exists bool) {
+	v := m.current_usage_period_end
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrentUsagePeriodEnd returns the old "current_usage_period_end" field's value of the Entitlement entity.
+// If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EntitlementMutation) OldCurrentUsagePeriodEnd(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrentUsagePeriodEnd is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrentUsagePeriodEnd requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrentUsagePeriodEnd: %w", err)
+	}
+	return oldValue.CurrentUsagePeriodEnd, nil
+}
+
+// ClearCurrentUsagePeriodEnd clears the value of the "current_usage_period_end" field.
+func (m *EntitlementMutation) ClearCurrentUsagePeriodEnd() {
+	m.current_usage_period_end = nil
+	m.clearedFields[entitlement.FieldCurrentUsagePeriodEnd] = struct{}{}
+}
+
+// CurrentUsagePeriodEndCleared returns if the "current_usage_period_end" field was cleared in this mutation.
+func (m *EntitlementMutation) CurrentUsagePeriodEndCleared() bool {
+	_, ok := m.clearedFields[entitlement.FieldCurrentUsagePeriodEnd]
+	return ok
+}
+
+// ResetCurrentUsagePeriodEnd resets all changes to the "current_usage_period_end" field.
+func (m *EntitlementMutation) ResetCurrentUsagePeriodEnd() {
+	m.current_usage_period_end = nil
+	delete(m.clearedFields, entitlement.FieldCurrentUsagePeriodEnd)
+}
+
 // AddUsageResetIDs adds the "usage_reset" edge to the UsageReset entity by ids.
 func (m *EntitlementMutation) AddUsageResetIDs(ids ...string) {
 	if m.usage_reset == nil {
@@ -880,7 +980,7 @@ func (m *EntitlementMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *EntitlementMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 16)
 	if m.namespace != nil {
 		fields = append(fields, entitlement.FieldNamespace)
 	}
@@ -923,6 +1023,12 @@ func (m *EntitlementMutation) Fields() []string {
 	if m.usage_period_anchor != nil {
 		fields = append(fields, entitlement.FieldUsagePeriodAnchor)
 	}
+	if m.current_usage_period_start != nil {
+		fields = append(fields, entitlement.FieldCurrentUsagePeriodStart)
+	}
+	if m.current_usage_period_end != nil {
+		fields = append(fields, entitlement.FieldCurrentUsagePeriodEnd)
+	}
 	return fields
 }
 
@@ -959,6 +1065,10 @@ func (m *EntitlementMutation) Field(name string) (ent.Value, bool) {
 		return m.UsagePeriodInterval()
 	case entitlement.FieldUsagePeriodAnchor:
 		return m.UsagePeriodAnchor()
+	case entitlement.FieldCurrentUsagePeriodStart:
+		return m.CurrentUsagePeriodStart()
+	case entitlement.FieldCurrentUsagePeriodEnd:
+		return m.CurrentUsagePeriodEnd()
 	}
 	return nil, false
 }
@@ -996,6 +1106,10 @@ func (m *EntitlementMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldUsagePeriodInterval(ctx)
 	case entitlement.FieldUsagePeriodAnchor:
 		return m.OldUsagePeriodAnchor(ctx)
+	case entitlement.FieldCurrentUsagePeriodStart:
+		return m.OldCurrentUsagePeriodStart(ctx)
+	case entitlement.FieldCurrentUsagePeriodEnd:
+		return m.OldCurrentUsagePeriodEnd(ctx)
 	}
 	return nil, fmt.Errorf("unknown Entitlement field %s", name)
 }
@@ -1103,6 +1217,20 @@ func (m *EntitlementMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetUsagePeriodAnchor(v)
 		return nil
+	case entitlement.FieldCurrentUsagePeriodStart:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrentUsagePeriodStart(v)
+		return nil
+	case entitlement.FieldCurrentUsagePeriodEnd:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrentUsagePeriodEnd(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Entitlement field %s", name)
 }
@@ -1172,6 +1300,12 @@ func (m *EntitlementMutation) ClearedFields() []string {
 	if m.FieldCleared(entitlement.FieldUsagePeriodAnchor) {
 		fields = append(fields, entitlement.FieldUsagePeriodAnchor)
 	}
+	if m.FieldCleared(entitlement.FieldCurrentUsagePeriodStart) {
+		fields = append(fields, entitlement.FieldCurrentUsagePeriodStart)
+	}
+	if m.FieldCleared(entitlement.FieldCurrentUsagePeriodEnd) {
+		fields = append(fields, entitlement.FieldCurrentUsagePeriodEnd)
+	}
 	return fields
 }
 
@@ -1209,6 +1343,12 @@ func (m *EntitlementMutation) ClearField(name string) error {
 		return nil
 	case entitlement.FieldUsagePeriodAnchor:
 		m.ClearUsagePeriodAnchor()
+		return nil
+	case entitlement.FieldCurrentUsagePeriodStart:
+		m.ClearCurrentUsagePeriodStart()
+		return nil
+	case entitlement.FieldCurrentUsagePeriodEnd:
+		m.ClearCurrentUsagePeriodEnd()
 		return nil
 	}
 	return fmt.Errorf("unknown Entitlement nullable field %s", name)
@@ -1259,6 +1399,12 @@ func (m *EntitlementMutation) ResetField(name string) error {
 		return nil
 	case entitlement.FieldUsagePeriodAnchor:
 		m.ResetUsagePeriodAnchor()
+		return nil
+	case entitlement.FieldCurrentUsagePeriodStart:
+		m.ResetCurrentUsagePeriodStart()
+		return nil
+	case entitlement.FieldCurrentUsagePeriodEnd:
+		m.ResetCurrentUsagePeriodEnd()
 		return nil
 	}
 	return fmt.Errorf("unknown Entitlement field %s", name)

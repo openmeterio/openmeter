@@ -3785,9 +3785,12 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
                 # JSON input template you can fill out and use as your body input.
                 body = {
-                    "effectiveAt": "2020-02-20 00:00:00"  # Optional. The time at which the reset
-                      takes effect, defaults to now. The reset cannot be in the future. The provided
-                      value is truncated to the granularity of the underlying meter.
+                    "effectiveAt": "2020-02-20 00:00:00",  # Optional. The time at which the
+                      reset takes effect, defaults to now. The reset cannot be in the future. The
+                      provided value is truncated to the granularity of the underlying meter.
+                    "retainAnchor": bool  # Optional. Should the reset retain the usage period
+                      anchor. If true, the usage period anchor is retained. If false, the usage period
+                      anchor is reset to the effectiveAt time.
                 }
         """
 
@@ -3843,9 +3846,12 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
                 # JSON input template you can fill out and use as your body input.
                 body = {
-                    "effectiveAt": "2020-02-20 00:00:00"  # Optional. The time at which the reset
-                      takes effect, defaults to now. The reset cannot be in the future. The provided
-                      value is truncated to the granularity of the underlying meter.
+                    "effectiveAt": "2020-02-20 00:00:00",  # Optional. The time at which the
+                      reset takes effect, defaults to now. The reset cannot be in the future. The
+                      provided value is truncated to the granularity of the underlying meter.
+                    "retainAnchor": bool  # Optional. Should the reset retain the usage period
+                      anchor. If true, the usage period anchor is retained. If false, the usage period
+                      anchor is reset to the effectiveAt time.
                 }
         """
         error_map = {

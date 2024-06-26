@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/internal/streaming/testutils"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 func TestEngine(t *testing.T) {
@@ -517,8 +518,8 @@ func TestEngine(t *testing.T) {
 				use(120, t1.Add(time.Hour))
 				g1 := grant1
 				g1.EffectiveAt = t1
-				g1.Recurrence = &credit.Recurrence{
-					Period: credit.RecurrencePeriodDaily,
+				g1.Recurrence = &recurrence.Recurrence{
+					Period: recurrence.RecurrencePeriodDaily,
 					Anchor: t1,
 				}
 				g1 = makeGrant(g1)
@@ -561,8 +562,8 @@ func TestEngine(t *testing.T) {
 				g2 := grant2
 				g2.EffectiveAt = tg2
 				g2.Priority = 1
-				g2.Recurrence = &credit.Recurrence{
-					Period: credit.RecurrencePeriodWeek,
+				g2.Recurrence = &recurrence.Recurrence{
+					Period: recurrence.RecurrencePeriodWeek,
 					Anchor: tg2r,
 				}
 				g2 = makeGrant(g2)
@@ -608,8 +609,8 @@ func TestEngine(t *testing.T) {
 				g2 := grant2
 				g2.EffectiveAt = tg2
 				g2.Priority = 1
-				g2.Recurrence = &credit.Recurrence{
-					Period: credit.RecurrencePeriodWeek,
+				g2.Recurrence = &recurrence.Recurrence{
+					Period: recurrence.RecurrencePeriodWeek,
 					Anchor: tg2r,
 				}
 				g2 = makeGrant(g2)
@@ -662,8 +663,8 @@ func TestEngine(t *testing.T) {
 				// so they dont expire
 				g2.Expiration.Count = 2
 				g2.Expiration.Duration = credit.ExpirationPeriodDurationMonth
-				g2.Recurrence = &credit.Recurrence{
-					Period: credit.RecurrencePeriodWeek,
+				g2.Recurrence = &recurrence.Recurrence{
+					Period: recurrence.RecurrencePeriodWeek,
 					Anchor: tg2r,
 				}
 				g2 = makeGrant(g2)
@@ -829,8 +830,8 @@ func TestEngine(t *testing.T) {
 					}
 
 					if gofakeit.Bool() {
-						grant.Recurrence = &credit.Recurrence{
-							Period: credit.RecurrencePeriodDaily,
+						grant.Recurrence = &recurrence.Recurrence{
+							Period: recurrence.RecurrencePeriodDaily,
 							Anchor: gofakeit.DateRange(start, end).Truncate(granularity),
 						}
 					}
@@ -909,8 +910,8 @@ func TestEngine(t *testing.T) {
 					}
 
 					if gofakeit.Bool() {
-						grant.Recurrence = &credit.Recurrence{
-							Period: credit.RecurrencePeriodDaily,
+						grant.Recurrence = &recurrence.Recurrence{
+							Period: recurrence.RecurrencePeriodDaily,
 							Anchor: gofakeit.DateRange(start, end).Truncate(granularity),
 						}
 					}

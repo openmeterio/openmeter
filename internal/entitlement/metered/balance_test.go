@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
 	credit_postgres_adapter "github.com/openmeterio/openmeter/internal/credit/postgresadapter"
 	credit_postgres_adapter_db "github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db"
@@ -37,9 +38,9 @@ func TestGetEntitlementBalance(t *testing.T) {
 		MeterGroupByFilters: map[string]string{},
 	}
 
-	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementInputs {
+	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementRepoInputs {
 		t.Helper()
-		return entitlement.CreateEntitlementInputs{
+		input := entitlement.CreateEntitlementRepoInputs{
 			Namespace:        namespace,
 			FeatureID:        feature.ID,
 			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z")), // old, override in tests
@@ -52,6 +53,11 @@ func TestGetEntitlementBalance(t *testing.T) {
 				Interval: entitlement.UsagePeriodIntervalYear,
 			},
 		}
+
+		currentUsagePeriod, err := input.UsagePeriod.GetCurrentPeriod()
+		assert.NoError(t, err)
+		input.CurrentUsagePeriod = &currentUsagePeriod
+		return input
 	}
 
 	tt := []struct {
@@ -132,7 +138,12 @@ func TestGetEntitlementBalance(t *testing.T) {
 
 				// reset (empty) entitlement
 				resetTime := startTime.Add(time.Hour * 5)
-				_, err = connector.ResetEntitlementUsage(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, resetTime)
+				_, err = connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At: resetTime,
+					},
+				)
 				assert.NoError(t, err)
 
 				// usage on ledger that will be deducted
@@ -412,9 +423,9 @@ func TestGetEntitlementHistory(t *testing.T) {
 		MeterGroupByFilters: map[string]string{},
 	}
 
-	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementInputs {
+	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementRepoInputs {
 		t.Helper()
-		return entitlement.CreateEntitlementInputs{
+		input := entitlement.CreateEntitlementRepoInputs{
 			Namespace:        namespace,
 			FeatureID:        feature.ID,
 			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z")), // old, override in tests
@@ -427,6 +438,11 @@ func TestGetEntitlementHistory(t *testing.T) {
 				Interval: entitlement.UsagePeriodIntervalYear,
 			},
 		}
+
+		currentUsagePeriod, err := input.UsagePeriod.GetCurrentPeriod()
+		assert.NoError(t, err)
+		input.CurrentUsagePeriod = &currentUsagePeriod
+		return input
 	}
 
 	tt := []struct {
@@ -556,9 +572,9 @@ func TestResetEntitlementUsage(t *testing.T) {
 		MeterGroupByFilters: map[string]string{},
 	}
 
-	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementInputs {
+	getEntitlement := func(t *testing.T, feature productcatalog.Feature) entitlement.CreateEntitlementRepoInputs {
 		t.Helper()
-		return entitlement.CreateEntitlementInputs{
+		input := entitlement.CreateEntitlementRepoInputs{
 			Namespace:        namespace,
 			FeatureID:        feature.ID,
 			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z")), // old, override in tests
@@ -571,6 +587,11 @@ func TestResetEntitlementUsage(t *testing.T) {
 				Interval: entitlement.UsagePeriodIntervalYear,
 			},
 		}
+
+		currentUsagePeriod, err := input.UsagePeriod.GetCurrentPeriod()
+		assert.NoError(t, err)
+		input.CurrentUsagePeriod = &currentUsagePeriod
+		return input
 	}
 
 	tt := []struct {
@@ -598,7 +619,11 @@ func TestResetEntitlementUsage(t *testing.T) {
 				// some usage on ledger, should be inconsequential
 				deps.streaming.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Minute))
 
-				startingBalance, err := connector.ResetEntitlementUsage(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, resetTime)
+				startingBalance, err := connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: entitlement.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At: resetTime,
+					})
 				assert.NoError(t, err)
 
 				assert.Equal(t, 0.0, startingBalance.UsageInPeriod) // cannot be usage
@@ -627,7 +652,11 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// resetTime before start of measurement
 				resetTime := startTime.Add(-time.Hour)
-				_, err = connector.ResetEntitlementUsage(ctx, models.NamespacedID{Namespace: namespace, ID: entitlement.ID}, resetTime)
+				_, err = connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: entitlement.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At: resetTime,
+					})
 				assert.ErrorContains(t, err, "before current usage period start")
 			},
 		},
@@ -661,7 +690,11 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// resetTime before prior reset time
 				resetTime := priorResetTime.Add(-time.Minute)
-				_, err = connector.ResetEntitlementUsage(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, resetTime)
+				_, err = connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At: resetTime,
+					})
 				assert.ErrorContains(t, err, "before current usage period start")
 			},
 		},
@@ -687,7 +720,11 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// resetTime in future
 				resetTime := now.Add(time.Minute)
-				_, err = connector.ResetEntitlementUsage(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, resetTime)
+				_, err = connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At: resetTime,
+					})
 				assert.ErrorContains(t, err, "in the future")
 			},
 		},
@@ -740,7 +777,11 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// resetTime before snapshot
 				resetTime := snap.At.Add(-time.Minute)
-				_, err = connector.ResetEntitlementUsage(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, resetTime)
+				_, err = connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At: resetTime,
+					})
 
 				assert.NoError(t, err)
 			},
@@ -789,7 +830,11 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// resetTime before snapshot
 				resetTime := startTime.Add(time.Hour * 5)
-				balanceAfterReset, err := connector.ResetEntitlementUsage(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, resetTime)
+				balanceAfterReset, err := connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At: resetTime,
+					})
 
 				assert.NoError(t, err)
 				assert.Equal(t, 0.0, balanceAfterReset.UsageInPeriod) // 0 usage right after reset
@@ -808,6 +853,80 @@ func TestResetEntitlementUsage(t *testing.T) {
 					g1.ID: 400,
 					g2.ID: 100,
 				}, creditBalance.Balances)
+			},
+		},
+		{
+			name: "Should return proper last reset time after reset",
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
+				ctx := context.Background()
+				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+
+				// create featute in db
+				feature, err := deps.featureDB.CreateFeature(ctx, exampleFeature)
+				assert.NoError(t, err)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feature)
+				inp.MeasureUsageFrom = &startTime
+				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
+				assert.NoError(t, err)
+
+				ent, err = deps.entitlementDB.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
+				assert.NoError(t, err)
+				assert.Equal(t, startTime.Format(time.RFC3339), ent.LastReset.Format(time.RFC3339))
+
+				deps.streaming.AddSimpleEvent(meterSlug, 600, startTime.Add(time.Minute))
+
+				// resetTime before snapshot
+				resetTime := startTime.Add(time.Hour * 5)
+				_, err = connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At: resetTime,
+					})
+				assert.NoError(t, err)
+
+				// validate that lastReset time is properly set
+				ent, err = deps.entitlementDB.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
+				assert.NoError(t, err)
+				assert.Equal(t, resetTime.Format(time.RFC3339), ent.LastReset.Format(time.RFC3339))
+			},
+		},
+		{
+			name: "Should return proper last reset time after reset",
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
+				ctx := context.Background()
+				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+
+				// create featute in db
+				feature, err := deps.featureDB.CreateFeature(ctx, exampleFeature)
+				assert.NoError(t, err)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feature)
+				inp.MeasureUsageFrom = &startTime
+				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
+				assert.NoError(t, err)
+
+				ent, err = deps.entitlementDB.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
+				assert.NoError(t, err)
+				assert.Equal(t, startTime.Format(time.RFC3339), ent.LastReset.Format(time.RFC3339))
+
+				deps.streaming.AddSimpleEvent(meterSlug, 600, startTime.Add(time.Minute))
+
+				// resetTime before snapshot
+				resetTime := startTime.Add(time.Hour * 5)
+				_, err = connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At: resetTime,
+					})
+				assert.NoError(t, err)
+
+				// validate that lastReset time is properly set
+				ent, err = deps.entitlementDB.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
+				assert.NoError(t, err)
+				assert.Equal(t, resetTime.Format(time.RFC3339), ent.LastReset.Format(time.RFC3339))
 			},
 		},
 		{
@@ -854,7 +973,11 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// do a reset
 				resetTime1 := startTime.Add(time.Hour * 5)
-				balanceAfterReset, err := connector.ResetEntitlementUsage(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, resetTime1)
+				balanceAfterReset, err := connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At: resetTime1,
+					})
 
 				assert.NoError(t, err)
 				assert.Equal(t, 0.0, balanceAfterReset.UsageInPeriod) // 0 usage right after reset
@@ -891,7 +1014,11 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// do a 2nd reset
 				resetTime2 := resetTime1.Add(time.Hour * 5)
-				balanceAfterReset, err = connector.ResetEntitlementUsage(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, resetTime2)
+				balanceAfterReset, err = connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At: resetTime2,
+					})
 
 				assert.NoError(t, err)
 				assert.Equal(t, 0.0, balanceAfterReset.UsageInPeriod) // 0 usage right after reset
@@ -946,7 +1073,11 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				// do a reset
 				resetTime := startTime.Add(time.Hour * 5)
-				balanceAfterReset, err := connector.ResetEntitlementUsage(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, resetTime)
+				balanceAfterReset, err := connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At: resetTime,
+					})
 
 				// assert balance after reset is 0 for grant
 				assert.NoError(t, err)
@@ -978,6 +1109,127 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				assert.Equal(t, 0.0, balanceAfterReset.UsageInPeriod) // 0 usage right after reset
 				assert.Equal(t, g2.Amount, balanceAfterReset.Balance) // 1000 - 0 = 1000
+			},
+		},
+		{
+			name: "Should reseting without anchor update keeps the next reset time intact",
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
+				ctx := context.Background()
+				startTime := time.Now().Add(-12 * time.Hour).Truncate(time.Minute)
+
+				// create featute in db
+				feature, err := deps.featureDB.CreateFeature(ctx, exampleFeature)
+				assert.NoError(t, err)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feature)
+				inp.MeasureUsageFrom = &startTime
+				anchor := startTime.Add(time.Hour)
+				inp.UsagePeriod.Anchor = anchor
+				inp.UsagePeriod.Interval = entitlement.UsagePeriodIntervalDay
+				inp.CurrentUsagePeriod = &api.Period{
+					To: anchor.AddDate(0, 0, 1),
+				}
+
+				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
+				assert.NoError(t, err)
+
+				deps.streaming.AddSimpleEvent(meterSlug, 600, startTime.Add(time.Minute))
+
+				resetTime := startTime.Add(time.Hour * 5)
+				_, err = connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At:           resetTime,
+						RetainAnchor: true,
+					})
+
+				assert.NoError(t, err)
+				ent, err = deps.entitlementDB.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
+				assert.NoError(t, err)
+				assertUsagePeriodEquals(t, inp.UsagePeriod, ent.UsagePeriod)
+			},
+		},
+		{
+			name: "Should reseting with anchor update updates the next reset time too",
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
+				ctx := context.Background()
+				startTime := time.Now().Add(-12 * time.Hour).Truncate(time.Minute)
+
+				// create featute in db
+				feature, err := deps.featureDB.CreateFeature(ctx, exampleFeature)
+				assert.NoError(t, err)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feature)
+				inp.MeasureUsageFrom = &startTime
+				inp.UsagePeriod.Interval = entitlement.UsagePeriodIntervalDay
+				anchor := startTime.Add(time.Hour)
+				inp.UsagePeriod.Anchor = anchor
+				inp.CurrentUsagePeriod = &api.Period{
+					To: anchor.AddDate(0, 0, 1),
+				}
+
+				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
+				assert.NoError(t, err)
+
+				deps.streaming.AddSimpleEvent(meterSlug, 600, startTime.Add(time.Minute))
+
+				resetTime := startTime.Add(time.Hour * 5)
+				_, err = connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At: resetTime,
+					})
+
+				assert.NoError(t, err)
+				ent, err = deps.entitlementDB.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
+				assert.NoError(t, err)
+				assertUsagePeriodEquals(t, &entitlement.UsagePeriod{
+					Interval: entitlement.UsagePeriodIntervalDay,
+					Anchor:   resetTime,
+				}, ent.UsagePeriod)
+			},
+		},
+		{
+			name: "When resetting with anchor update the anchor gets truncated to per minute resolution",
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
+				ctx := context.Background()
+				startTime := time.Now().Add(-12 * time.Hour).Truncate(time.Minute)
+
+				// create featute in db
+				feature, err := deps.featureDB.CreateFeature(ctx, exampleFeature)
+				assert.NoError(t, err)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feature)
+				inp.MeasureUsageFrom = &startTime
+				anchor := startTime.Add(time.Hour)
+				inp.UsagePeriod.Interval = entitlement.UsagePeriodIntervalDay
+				inp.UsagePeriod.Anchor = anchor
+				inp.CurrentUsagePeriod = &api.Period{
+					To: anchor.AddDate(0, 0, 1),
+				}
+
+				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
+				assert.NoError(t, err)
+
+				deps.streaming.AddSimpleEvent(meterSlug, 600, startTime.Add(time.Minute))
+
+				resetTime := startTime.Add(time.Hour * 5).Add(time.Second)
+				_, err = connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At: resetTime,
+					})
+
+				assert.NoError(t, err)
+				ent, err = deps.entitlementDB.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
+				assert.NoError(t, err)
+				assertUsagePeriodEquals(t, &entitlement.UsagePeriod{
+					Interval: entitlement.UsagePeriodIntervalDay,
+					Anchor:   resetTime.Truncate(time.Minute),
+				}, ent.UsagePeriod)
 			},
 		},
 	}
@@ -1085,4 +1337,11 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *testDependenci
 		creditBalance:     balance,
 		streaming:         streaming,
 	}
+}
+
+func assertUsagePeriodEquals(t *testing.T, expected, actual *entitlement.UsagePeriod) {
+	assert.NotNil(t, expected, "expected is nil")
+	assert.NotNil(t, actual, "actual is nil")
+	assert.Equal(t, expected.Interval, actual.Interval, "periods do not match")
+	assert.Equal(t, expected.Anchor.Format(time.RFC3339), actual.Anchor.Format(time.RFC3339), "anchors do not match")
 }

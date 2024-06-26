@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 type Entitlement struct {
@@ -35,8 +36,10 @@ func (Entitlement) Fields() []ent.Field {
 		field.Float("issue_after_reset").Optional().Nillable().Immutable(),
 		field.Bool("is_soft_limit").Optional().Nillable().Immutable(),
 		field.JSON("config", map[string]interface{}{}).Optional(),
-		field.Enum("usage_period_interval").Values(entitlement.UsagePeriodInterval("").StrValues()...).Optional().Nillable().Immutable(),
-		field.Time("usage_period_anchor").Optional().Nillable().Immutable(),
+		field.Enum("usage_period_interval").Values(recurrence.RecurrencePeriod("").Values()...).Optional().Nillable().Immutable(),
+		field.Time("usage_period_anchor").Optional().Nillable(),
+		field.Time("current_usage_period_start").Optional().Nillable(),
+		field.Time("current_usage_period_end").Optional().Nillable(),
 	}
 }
 
@@ -46,6 +49,7 @@ func (Entitlement) Indexes() []ent.Index {
 		index.Fields("namespace", "subject_key"),
 		index.Fields("namespace", "id", "subject_key"),
 		index.Fields("namespace", "feature_id", "id"),
+		index.Fields("namespace", "current_usage_period_end"),
 	}
 }
 

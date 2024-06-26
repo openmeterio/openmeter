@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
-	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 const (
@@ -95,7 +95,7 @@ var (
 )
 
 // RecurrencePeriodValidator is a validator for the "recurrence_period" field enum values. It is called by the builders before save.
-func RecurrencePeriodValidator(rp credit.RecurrencePeriod) error {
+func RecurrencePeriodValidator(rp recurrence.RecurrencePeriod) error {
 	switch rp {
 	case "DAY", "WEEK", "MONTH", "YEAR":
 		return nil

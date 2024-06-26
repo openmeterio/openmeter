@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 type CreateGrantInput struct {
@@ -16,7 +17,7 @@ type CreateGrantInput struct {
 	Expiration       ExpirationPeriod
 	Metadata         map[string]string
 	ResetMaxRollover float64
-	Recurrence       *Recurrence
+	Recurrence       *recurrence.Recurrence
 }
 
 type GrantConnector interface {
@@ -56,7 +57,7 @@ type GrantRepoCreateGrantInput struct {
 	ExpiresAt        time.Time
 	Metadata         map[string]string
 	ResetMaxRollover float64
-	Recurrence       *Recurrence
+	Recurrence       *recurrence.Recurrence
 }
 
 type GrantRepo interface {

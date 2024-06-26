@@ -172,6 +172,34 @@ func (ec *EntitlementCreate) SetNillableUsagePeriodAnchor(t *time.Time) *Entitle
 	return ec
 }
 
+// SetCurrentUsagePeriodStart sets the "current_usage_period_start" field.
+func (ec *EntitlementCreate) SetCurrentUsagePeriodStart(t time.Time) *EntitlementCreate {
+	ec.mutation.SetCurrentUsagePeriodStart(t)
+	return ec
+}
+
+// SetNillableCurrentUsagePeriodStart sets the "current_usage_period_start" field if the given value is not nil.
+func (ec *EntitlementCreate) SetNillableCurrentUsagePeriodStart(t *time.Time) *EntitlementCreate {
+	if t != nil {
+		ec.SetCurrentUsagePeriodStart(*t)
+	}
+	return ec
+}
+
+// SetCurrentUsagePeriodEnd sets the "current_usage_period_end" field.
+func (ec *EntitlementCreate) SetCurrentUsagePeriodEnd(t time.Time) *EntitlementCreate {
+	ec.mutation.SetCurrentUsagePeriodEnd(t)
+	return ec
+}
+
+// SetNillableCurrentUsagePeriodEnd sets the "current_usage_period_end" field if the given value is not nil.
+func (ec *EntitlementCreate) SetNillableCurrentUsagePeriodEnd(t *time.Time) *EntitlementCreate {
+	if t != nil {
+		ec.SetCurrentUsagePeriodEnd(*t)
+	}
+	return ec
+}
+
 // SetID sets the "id" field.
 func (ec *EntitlementCreate) SetID(s string) *EntitlementCreate {
 	ec.mutation.SetID(s)
@@ -377,6 +405,14 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 		_spec.SetField(entitlement.FieldUsagePeriodAnchor, field.TypeTime, value)
 		_node.UsagePeriodAnchor = &value
 	}
+	if value, ok := ec.mutation.CurrentUsagePeriodStart(); ok {
+		_spec.SetField(entitlement.FieldCurrentUsagePeriodStart, field.TypeTime, value)
+		_node.CurrentUsagePeriodStart = &value
+	}
+	if value, ok := ec.mutation.CurrentUsagePeriodEnd(); ok {
+		_spec.SetField(entitlement.FieldCurrentUsagePeriodEnd, field.TypeTime, value)
+		_node.CurrentUsagePeriodEnd = &value
+	}
 	if nodes := ec.mutation.UsageResetIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -511,6 +547,60 @@ func (u *EntitlementUpsert) ClearConfig() *EntitlementUpsert {
 	return u
 }
 
+// SetUsagePeriodAnchor sets the "usage_period_anchor" field.
+func (u *EntitlementUpsert) SetUsagePeriodAnchor(v time.Time) *EntitlementUpsert {
+	u.Set(entitlement.FieldUsagePeriodAnchor, v)
+	return u
+}
+
+// UpdateUsagePeriodAnchor sets the "usage_period_anchor" field to the value that was provided on create.
+func (u *EntitlementUpsert) UpdateUsagePeriodAnchor() *EntitlementUpsert {
+	u.SetExcluded(entitlement.FieldUsagePeriodAnchor)
+	return u
+}
+
+// ClearUsagePeriodAnchor clears the value of the "usage_period_anchor" field.
+func (u *EntitlementUpsert) ClearUsagePeriodAnchor() *EntitlementUpsert {
+	u.SetNull(entitlement.FieldUsagePeriodAnchor)
+	return u
+}
+
+// SetCurrentUsagePeriodStart sets the "current_usage_period_start" field.
+func (u *EntitlementUpsert) SetCurrentUsagePeriodStart(v time.Time) *EntitlementUpsert {
+	u.Set(entitlement.FieldCurrentUsagePeriodStart, v)
+	return u
+}
+
+// UpdateCurrentUsagePeriodStart sets the "current_usage_period_start" field to the value that was provided on create.
+func (u *EntitlementUpsert) UpdateCurrentUsagePeriodStart() *EntitlementUpsert {
+	u.SetExcluded(entitlement.FieldCurrentUsagePeriodStart)
+	return u
+}
+
+// ClearCurrentUsagePeriodStart clears the value of the "current_usage_period_start" field.
+func (u *EntitlementUpsert) ClearCurrentUsagePeriodStart() *EntitlementUpsert {
+	u.SetNull(entitlement.FieldCurrentUsagePeriodStart)
+	return u
+}
+
+// SetCurrentUsagePeriodEnd sets the "current_usage_period_end" field.
+func (u *EntitlementUpsert) SetCurrentUsagePeriodEnd(v time.Time) *EntitlementUpsert {
+	u.Set(entitlement.FieldCurrentUsagePeriodEnd, v)
+	return u
+}
+
+// UpdateCurrentUsagePeriodEnd sets the "current_usage_period_end" field to the value that was provided on create.
+func (u *EntitlementUpsert) UpdateCurrentUsagePeriodEnd() *EntitlementUpsert {
+	u.SetExcluded(entitlement.FieldCurrentUsagePeriodEnd)
+	return u
+}
+
+// ClearCurrentUsagePeriodEnd clears the value of the "current_usage_period_end" field.
+func (u *EntitlementUpsert) ClearCurrentUsagePeriodEnd() *EntitlementUpsert {
+	u.SetNull(entitlement.FieldCurrentUsagePeriodEnd)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -554,9 +644,6 @@ func (u *EntitlementUpsertOne) UpdateNewValues() *EntitlementUpsertOne {
 		}
 		if _, exists := u.create.mutation.UsagePeriodInterval(); exists {
 			s.SetIgnore(entitlement.FieldUsagePeriodInterval)
-		}
-		if _, exists := u.create.mutation.UsagePeriodAnchor(); exists {
-			s.SetIgnore(entitlement.FieldUsagePeriodAnchor)
 		}
 	}))
 	return u
@@ -663,6 +750,69 @@ func (u *EntitlementUpsertOne) UpdateConfig() *EntitlementUpsertOne {
 func (u *EntitlementUpsertOne) ClearConfig() *EntitlementUpsertOne {
 	return u.Update(func(s *EntitlementUpsert) {
 		s.ClearConfig()
+	})
+}
+
+// SetUsagePeriodAnchor sets the "usage_period_anchor" field.
+func (u *EntitlementUpsertOne) SetUsagePeriodAnchor(v time.Time) *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.SetUsagePeriodAnchor(v)
+	})
+}
+
+// UpdateUsagePeriodAnchor sets the "usage_period_anchor" field to the value that was provided on create.
+func (u *EntitlementUpsertOne) UpdateUsagePeriodAnchor() *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.UpdateUsagePeriodAnchor()
+	})
+}
+
+// ClearUsagePeriodAnchor clears the value of the "usage_period_anchor" field.
+func (u *EntitlementUpsertOne) ClearUsagePeriodAnchor() *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.ClearUsagePeriodAnchor()
+	})
+}
+
+// SetCurrentUsagePeriodStart sets the "current_usage_period_start" field.
+func (u *EntitlementUpsertOne) SetCurrentUsagePeriodStart(v time.Time) *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.SetCurrentUsagePeriodStart(v)
+	})
+}
+
+// UpdateCurrentUsagePeriodStart sets the "current_usage_period_start" field to the value that was provided on create.
+func (u *EntitlementUpsertOne) UpdateCurrentUsagePeriodStart() *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.UpdateCurrentUsagePeriodStart()
+	})
+}
+
+// ClearCurrentUsagePeriodStart clears the value of the "current_usage_period_start" field.
+func (u *EntitlementUpsertOne) ClearCurrentUsagePeriodStart() *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.ClearCurrentUsagePeriodStart()
+	})
+}
+
+// SetCurrentUsagePeriodEnd sets the "current_usage_period_end" field.
+func (u *EntitlementUpsertOne) SetCurrentUsagePeriodEnd(v time.Time) *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.SetCurrentUsagePeriodEnd(v)
+	})
+}
+
+// UpdateCurrentUsagePeriodEnd sets the "current_usage_period_end" field to the value that was provided on create.
+func (u *EntitlementUpsertOne) UpdateCurrentUsagePeriodEnd() *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.UpdateCurrentUsagePeriodEnd()
+	})
+}
+
+// ClearCurrentUsagePeriodEnd clears the value of the "current_usage_period_end" field.
+func (u *EntitlementUpsertOne) ClearCurrentUsagePeriodEnd() *EntitlementUpsertOne {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.ClearCurrentUsagePeriodEnd()
 	})
 }
 
@@ -876,9 +1026,6 @@ func (u *EntitlementUpsertBulk) UpdateNewValues() *EntitlementUpsertBulk {
 			if _, exists := b.mutation.UsagePeriodInterval(); exists {
 				s.SetIgnore(entitlement.FieldUsagePeriodInterval)
 			}
-			if _, exists := b.mutation.UsagePeriodAnchor(); exists {
-				s.SetIgnore(entitlement.FieldUsagePeriodAnchor)
-			}
 		}
 	}))
 	return u
@@ -985,6 +1132,69 @@ func (u *EntitlementUpsertBulk) UpdateConfig() *EntitlementUpsertBulk {
 func (u *EntitlementUpsertBulk) ClearConfig() *EntitlementUpsertBulk {
 	return u.Update(func(s *EntitlementUpsert) {
 		s.ClearConfig()
+	})
+}
+
+// SetUsagePeriodAnchor sets the "usage_period_anchor" field.
+func (u *EntitlementUpsertBulk) SetUsagePeriodAnchor(v time.Time) *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.SetUsagePeriodAnchor(v)
+	})
+}
+
+// UpdateUsagePeriodAnchor sets the "usage_period_anchor" field to the value that was provided on create.
+func (u *EntitlementUpsertBulk) UpdateUsagePeriodAnchor() *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.UpdateUsagePeriodAnchor()
+	})
+}
+
+// ClearUsagePeriodAnchor clears the value of the "usage_period_anchor" field.
+func (u *EntitlementUpsertBulk) ClearUsagePeriodAnchor() *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.ClearUsagePeriodAnchor()
+	})
+}
+
+// SetCurrentUsagePeriodStart sets the "current_usage_period_start" field.
+func (u *EntitlementUpsertBulk) SetCurrentUsagePeriodStart(v time.Time) *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.SetCurrentUsagePeriodStart(v)
+	})
+}
+
+// UpdateCurrentUsagePeriodStart sets the "current_usage_period_start" field to the value that was provided on create.
+func (u *EntitlementUpsertBulk) UpdateCurrentUsagePeriodStart() *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.UpdateCurrentUsagePeriodStart()
+	})
+}
+
+// ClearCurrentUsagePeriodStart clears the value of the "current_usage_period_start" field.
+func (u *EntitlementUpsertBulk) ClearCurrentUsagePeriodStart() *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.ClearCurrentUsagePeriodStart()
+	})
+}
+
+// SetCurrentUsagePeriodEnd sets the "current_usage_period_end" field.
+func (u *EntitlementUpsertBulk) SetCurrentUsagePeriodEnd(v time.Time) *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.SetCurrentUsagePeriodEnd(v)
+	})
+}
+
+// UpdateCurrentUsagePeriodEnd sets the "current_usage_period_end" field to the value that was provided on create.
+func (u *EntitlementUpsertBulk) UpdateCurrentUsagePeriodEnd() *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.UpdateCurrentUsagePeriodEnd()
+	})
+}
+
+// ClearCurrentUsagePeriodEnd clears the value of the "current_usage_period_end" field.
+func (u *EntitlementUpsertBulk) ClearCurrentUsagePeriodEnd() *EntitlementUpsertBulk {
+	return u.Update(func(s *EntitlementUpsert) {
+		s.ClearCurrentUsagePeriodEnd()
 	})
 }
 

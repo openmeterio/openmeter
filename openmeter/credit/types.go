@@ -31,6 +31,4 @@ type OwnerConnector = credit.OwnerConnector
 type Pagination = credit.Pagination
 type Period = credit.Period
 type QueryUsageFn = credit.QueryUsageFn
-type Recurrence = credit.Recurrence
-type RecurrencePeriod = credit.RecurrencePeriod
 type SegmentTerminationReason = credit.SegmentTerminationReason

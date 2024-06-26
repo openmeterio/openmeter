@@ -1,4 +1,4 @@
-package credit
+package recurrence
 
 import (
 	"testing"

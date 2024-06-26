@@ -6,9 +6,13 @@ import (
 	"strings"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
+
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db"
 	db_entitlement "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db/entitlement"
+	"github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -24,7 +28,7 @@ func NewPostgresEntitlementRepo(db *db.Client) entitlement.EntitlementRepo {
 }
 
 func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID models.NamespacedID) (*entitlement.Entitlement, error) {
-	res, err := a.db.Entitlement.Query().
+	res, err := withLatestUsageReset(a.db.Entitlement.Query()).
 		Where(
 			db_entitlement.ID(entitlementID.ID),
 			db_entitlement.Namespace(entitlementID.Namespace),
@@ -42,7 +46,7 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 }
 
 func (a *entitlementDBAdapter) GetEntitlementOfSubject(ctx context.Context, namespace string, subjectKey string, id string) (*entitlement.Entitlement, error) {
-	res, err := a.db.Entitlement.Query().
+	res, err := withLatestUsageReset(a.db.Entitlement.Query()).
 		Where(
 			db_entitlement.SubjectKey(string(subjectKey)),
 			db_entitlement.Namespace(namespace),
@@ -65,7 +69,7 @@ func (a *entitlementDBAdapter) GetEntitlementOfSubject(ctx context.Context, name
 	return mapEntitlementEntity(res), nil
 }
 
-func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlement entitlement.CreateEntitlementInputs) (*entitlement.Entitlement, error) {
+func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlement entitlement.CreateEntitlementRepoInputs) (*entitlement.Entitlement, error) {
 	cmd := a.db.Entitlement.Create().
 		SetEntitlementType(db_entitlement.EntitlementType(entitlement.EntitlementType)).
 		SetNamespace(entitlement.Namespace).
@@ -81,6 +85,11 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlemen
 
 		cmd.SetNillableUsagePeriodAnchor(&entitlement.UsagePeriod.Anchor).
 			SetNillableUsagePeriodInterval(&dbInterval)
+	}
+
+	if entitlement.CurrentUsagePeriod != nil {
+		cmd.SetNillableCurrentUsagePeriodStart(&entitlement.CurrentUsagePeriod.From).
+			SetNillableCurrentUsagePeriodEnd(&entitlement.CurrentUsagePeriod.To)
 	}
 
 	if entitlement.Config != nil {
@@ -101,7 +110,7 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlemen
 }
 
 func (a *entitlementDBAdapter) GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]entitlement.Entitlement, error) {
-	res, err := a.db.Entitlement.Query().
+	res, err := withLatestUsageReset(a.db.Entitlement.Query()).
 		Where(
 			db_entitlement.SubjectKey(string(subjectKey)),
 			db_entitlement.Namespace(namespace),
@@ -122,8 +131,8 @@ func (a *entitlementDBAdapter) GetEntitlementsOfSubject(ctx context.Context, nam
 }
 
 func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params entitlement.ListEntitlementsParams) ([]entitlement.Entitlement, error) {
-	query := a.db.Entitlement.Query().
-		Where(db_entitlement.Namespace(params.Namespace))
+	query := withLatestUsageReset(a.db.Entitlement.Query().
+		Where(db_entitlement.Namespace(params.Namespace)))
 
 	if params.Limit > 0 {
 		query = query.Limit(params.Limit)
@@ -175,6 +184,13 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 		IsSoftLimit:      e.IsSoftLimit,
 	}
 
+	switch {
+	case len(e.Edges.UsageReset) > 0:
+		ent.LastReset = convert.ToPointer(e.Edges.UsageReset[0].ResetTime.In(time.UTC))
+	case e.MeasureUsageFrom != nil:
+		ent.LastReset = convert.ToPointer(e.MeasureUsageFrom.In(time.UTC))
+	}
+
 	if e.Config != nil {
 		cStr, err := json.Marshal(e.Config)
 		if err != nil {
@@ -186,9 +202,16 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 	}
 
 	if e.UsagePeriodAnchor != nil && e.UsagePeriodInterval != nil {
-		ent.GenericProperties.UsagePeriod = &entitlement.UsagePeriod{
+		ent.UsagePeriod = &entitlement.UsagePeriod{
 			Anchor:   e.UsagePeriodAnchor.In(time.UTC),
 			Interval: entitlement.UsagePeriodInterval(*e.UsagePeriodInterval),
+		}
+	}
+
+	if e.CurrentUsagePeriodEnd != nil && e.CurrentUsagePeriodStart != nil {
+		ent.CurrentUsagePeriod = &api.Period{
+			From: e.CurrentUsagePeriodStart.In(time.UTC),
+			To:   e.CurrentUsagePeriodEnd.In(time.UTC),
 		}
 	}
 
@@ -219,4 +242,46 @@ func (a *entitlementDBAdapter) LockEntitlementForTx(ctx context.Context, entitle
 		}
 	}
 	return err
+}
+
+func (a *entitlementDBAdapter) UpdateEntitlementUsagePeriod(ctx context.Context, entitlementID models.NamespacedID, params entitlement.UpdateEntitlementUsagePeriodParams) error {
+	update := a.db.Entitlement.Update().
+		Where(db_entitlement.ID(entitlementID.ID), db_entitlement.Namespace(entitlementID.Namespace)).
+		SetCurrentUsagePeriodStart(params.CurrentUsagePeriod.From).
+		SetCurrentUsagePeriodEnd(params.CurrentUsagePeriod.To)
+
+	if params.NewAnchor != nil {
+		update = update.SetUsagePeriodAnchor(*params.NewAnchor)
+	}
+
+	_, err := update.Save(ctx)
+	return err
+}
+
+func (a *entitlementDBAdapter) ListEntitlementsWithExpiredUsagePeriod(ctx context.Context, namespace string, expiredBefore time.Time) ([]entitlement.Entitlement, error) {
+	res, err := withLatestUsageReset(a.db.Entitlement.Query()).
+		Where(
+			db_entitlement.Namespace(namespace),
+			db_entitlement.CurrentUsagePeriodEndNotNil(),
+			db_entitlement.CurrentUsagePeriodEndLTE(expiredBefore),
+		).
+		All(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]entitlement.Entitlement, 0, len(res))
+	for _, e := range res {
+		result = append(result, *mapEntitlementEntity(e))
+	}
+
+	return result, nil
+}
+
+func withLatestUsageReset(q *db.EntitlementQuery) *db.EntitlementQuery {
+	return q.WithUsageReset(func(urq *db.UsageResetQuery) {
+		urq.Order(usagereset.ByResetTime(sql.OrderDesc()))
+		urq.Limit(1)
+	})
 }
