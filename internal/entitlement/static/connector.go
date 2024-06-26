@@ -47,6 +47,10 @@ func (c *connector) SetDefaultsAndValidate(model *entitlement.CreateEntitlementI
 		return &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Config is not valid JSON"}
 	}
 
+	if err := json.Unmarshal([]byte(*model.Config), &map[string]interface{}{}); err != nil {
+		return &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Config is not a valid JSON object"}
+	}
+
 	return nil
 }
 

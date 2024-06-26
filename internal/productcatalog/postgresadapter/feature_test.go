@@ -2,6 +2,7 @@ package postgresadapter_test
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -48,10 +49,7 @@ func TestCreateFeature(t *testing.T) {
 				createFeatureOut, err := connector.CreateFeature(ctx, featureIn)
 				assert.NoError(t, err)
 
-				feature, err := connector.GetByID(ctx, models.NamespacedID{
-					Namespace: featureIn.Namespace,
-					ID:        createFeatureOut.ID,
-				})
+				feature, err := connector.GetByIdOrKey(ctx, namespace, createFeatureOut.ID, false)
 				assert.NoError(t, err)
 
 				// truncate times due to CI errors
@@ -60,7 +58,7 @@ func TestCreateFeature(t *testing.T) {
 				createFeatureOut.UpdatedAt = createFeatureOut.UpdatedAt.Truncate(time.Millisecond)
 				feature.UpdatedAt = feature.UpdatedAt.Truncate(time.Millisecond)
 
-				assert.Equal(t, createFeatureOut, feature)
+				assert.Equal(t, createFeatureOut, *feature)
 				assert.NotEmpty(t, feature.ID)
 				assert.NotEmpty(t, feature.CreatedAt)
 				assert.NotEmpty(t, feature.UpdatedAt)
@@ -180,7 +178,7 @@ func TestCreateFeature(t *testing.T) {
 				_, err = connector.CreateFeature(ctx, featureIn2)
 				assert.NoError(t, err)
 
-				foundFeature, err := connector.FindByKey(ctx, namespace, "feature-1", false)
+				foundFeature, err := connector.GetByIdOrKey(ctx, namespace, "feature-1", false)
 				assert.NoError(t, err)
 
 				assert.Equal(t, "feature-1", foundFeature.Name)
@@ -191,10 +189,10 @@ func TestCreateFeature(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				_, err = connector.FindByKey(ctx, namespace, "feature-1", false)
+				_, err = connector.GetByIdOrKey(ctx, namespace, "feature-1", false)
 				assert.Error(t, err)
 
-				foundFeature, err = connector.FindByKey(ctx, namespace, "feature-1", true)
+				foundFeature, err = connector.GetByIdOrKey(ctx, namespace, "feature-1", true)
 				assert.NoError(t, err)
 
 				assert.Equal(t, "feature-1", foundFeature.Name)
@@ -202,12 +200,17 @@ func TestCreateFeature(t *testing.T) {
 		},
 	}
 
+	var m sync.Mutex
+
 	for _, tc := range tt {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			driver := testutils.InitPostgresDB(t)
 			dbClient := db.NewClient(db.Driver(driver))
+
+			m.Lock()
+			defer m.Unlock()
 
 			if err := dbClient.Schema.Create(context.Background()); err != nil {
 				t.Fatalf("failed to migrate database %s", err)

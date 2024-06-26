@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"strings"
+	"time"
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db"
@@ -33,6 +34,30 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
+		}
+		return nil, err
+	}
+
+	return mapEntitlementEntity(res), nil
+}
+
+func (a *entitlementDBAdapter) GetEntitlementOfSubject(ctx context.Context, namespace string, subjectKey string, id string) (*entitlement.Entitlement, error) {
+	res, err := a.db.Entitlement.Query().
+		Where(
+			db_entitlement.SubjectKey(string(subjectKey)),
+			db_entitlement.Namespace(namespace),
+			db_entitlement.ID(id),
+		).
+		First(ctx)
+
+	if err != nil {
+		if db.IsNotFound(err) {
+			return nil, &entitlement.NotFoundError{
+				EntitlementID: models.NamespacedID{
+					Namespace: namespace,
+					ID:        id,
+				},
+			}
 		}
 		return nil, err
 	}
@@ -159,8 +184,8 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 	}
 
 	if e.UsagePeriodAnchor != nil && e.UsagePeriodInterval != nil {
-		ent.UsagePeriod = &entitlement.UsagePeriod{
-			Anchor:   *convert.SafeToUTC(e.UsagePeriodAnchor),
+		ent.GenericProperties.UsagePeriod = &entitlement.UsagePeriod{
+			Anchor:   e.UsagePeriodAnchor.In(time.UTC),
 			Interval: entitlement.UsagePeriodInterval(*e.UsagePeriodInterval),
 		}
 	}

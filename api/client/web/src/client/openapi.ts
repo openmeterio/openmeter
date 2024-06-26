@@ -503,7 +503,7 @@ export interface components {
       components['schemas']['SharedMetaFields']
     EntitlementCreateSharedFields: {
       /**
-       * @description The feature the subject is entitled to use
+       * @description The feature the subject is entitled to use.
        *
        * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
        */
@@ -512,7 +512,7 @@ export interface components {
       metadata?: {
         [key: string]: string
       }
-      usagePeriod?: components['schemas']['RecurringPeriod']
+      usagePeriod?: components['schemas']['RecurringPeriodCreateInput']
     }
     EntitlementSharedFields: components['schemas']['SharedMetaFields'] &
       components['schemas']['EntitlementCreateSharedFields'] & {
@@ -529,6 +529,12 @@ export interface components {
        * @enum {string}
        */
       type: 'metered'
+      /**
+       * @description If softLimit=true the subject can use the feature even if the entitlement is exhausted.
+       *
+       * @default false
+       */
+      isSoftLimit?: boolean
       /**
        * @description If unlimited=true the subject can use the feature an unlimited amount.
        *
@@ -550,7 +556,6 @@ export interface components {
     EntitlementMetered: components['schemas']['EntitlementMeteredCreateInputs'] &
       components['schemas']['EntitlementSharedFields']
     EntitlementStaticCreateInputs: components['schemas']['EntitlementCreateSharedFields'] & {
-      usagePeriod?: components['schemas']['RecurringPeriod']
       /**
        * @example static
        * @enum {string}

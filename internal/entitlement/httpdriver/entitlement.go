@@ -54,27 +54,75 @@ type CreateEntitlementHandler httptransport.HandlerWithArgs[CreateEntitlementHan
 func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 	return httptransport.NewHandlerWithArgs[CreateEntitlementHandlerRequest, CreateEntitlementHandlerResponse, string](
 		func(ctx context.Context, r *http.Request, subjectIdOrKey string) (entitlement.CreateEntitlementInputs, error) {
-			// TODO: we could use the API generated type here
-			entitlement := entitlement.CreateEntitlementInputs{}
-			if err := commonhttp.JSONRequestBodyDecoder(r, &entitlement); err != nil {
-				return entitlement, err
+			inp := &api.EntitlementCreateInputs{}
+			request := entitlement.CreateEntitlementInputs{}
+			if err := commonhttp.JSONRequestBodyDecoder(r, &inp); err != nil {
+				return request, err
 			}
-			entitlement.SubjectKey = subjectIdOrKey
 
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return entitlement, err
+				return request, err
 			}
-			entitlement.Namespace = ns
 
-			return entitlement, nil
+			value, err := inp.ValueByDiscriminator()
+			if err != nil {
+				return request, err
+			}
+
+			switch v := value.(type) {
+			case api.EntitlementMeteredCreateInputs:
+				request = entitlement.CreateEntitlementInputs{
+					Namespace:       ns,
+					FeatureID:       v.FeatureId,
+					SubjectKey:      subjectIdOrKey,
+					EntitlementType: entitlement.EntitlementTypeMetered,
+					IsSoftLimit:     v.IsSoftLimit,
+					IssueAfterReset: v.IssueAfterReset,
+					UsagePeriod: &entitlement.UsagePeriod{
+						Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, time.Now()), // TODO: shouldn't we truncate this?
+						Interval: entitlement.UsagePeriodInterval(v.UsagePeriod.Interval),
+					},
+				}
+			case api.EntitlementStaticCreateInputs:
+				request = entitlement.CreateEntitlementInputs{
+					Namespace:       ns,
+					FeatureID:       v.FeatureId,
+					SubjectKey:      subjectIdOrKey,
+					EntitlementType: entitlement.EntitlementTypeStatic,
+					Config:          &v.Config,
+				}
+				if v.UsagePeriod != nil {
+					request.UsagePeriod = &entitlement.UsagePeriod{
+						Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, time.Now()), // TODO: shouldn't we truncate this?
+						Interval: entitlement.UsagePeriodInterval(v.UsagePeriod.Interval),
+					}
+				}
+			case api.EntitlementBooleanCreateInputs:
+				request = entitlement.CreateEntitlementInputs{
+					Namespace:       ns,
+					FeatureID:       v.FeatureId,
+					SubjectKey:      subjectIdOrKey,
+					EntitlementType: entitlement.EntitlementTypeBoolean,
+				}
+				if v.UsagePeriod != nil {
+					request.UsagePeriod = &entitlement.UsagePeriod{
+						Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, time.Now()), // TODO: shouldn't we truncate this?
+						Interval: entitlement.UsagePeriodInterval(v.UsagePeriod.Interval),
+					}
+				}
+			default:
+				return request, errors.New("unknown entitlement type")
+			}
+
+			return request, nil
 		},
 		func(ctx context.Context, request CreateEntitlementHandlerRequest) (CreateEntitlementHandlerResponse, error) {
 			res, err := h.connector.CreateEntitlement(ctx, entitlement.CreateEntitlementInputs(request))
 			if err != nil {
 				return nil, err
 			}
-			return Parser.ToAPIGeneric(&res)
+			return Parser.ToAPIGeneric(res)
 		},
 		commonhttp.JSONResponseEncoderWithStatus[CreateEntitlementHandlerResponse](http.StatusCreated),
 		httptransport.AppendOptions(
@@ -117,12 +165,14 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 }
 
 type GetEntitlementValueHandlerRequest struct {
-	ID models.NamespacedID
-	At time.Time
+	EntitlementIdOrFeatureKey string
+	SubjectKey                string
+	Namespace                 string
+	At                        time.Time
 }
 type GetEntitlementValueHandlerResponse = api.EntitlementValue
 type GetEntitlementValueHandlerParams struct {
-	SubjectIdOrKey            string
+	SubjectKey                string
 	EntitlementIdOrFeatureKey string
 	Params                    api.GetEntitlementValueParams
 }
@@ -131,26 +181,20 @@ type GetEntitlementValueHandler httptransport.HandlerWithArgs[GetEntitlementValu
 func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 	return httptransport.NewHandlerWithArgs(
 		func(ctx context.Context, r *http.Request, params GetEntitlementValueHandlerParams) (GetEntitlementValueHandlerRequest, error) {
-			// TODO: use subjectIdOrKey
-
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
 				return GetEntitlementValueHandlerRequest{}, err
 			}
 
 			return GetEntitlementValueHandlerRequest{
-				ID: models.NamespacedID{
-					Namespace: ns,
-					ID:        params.EntitlementIdOrFeatureKey,
-				},
-				At: defaultx.WithDefault(params.Params.Time, time.Now()),
+				SubjectKey:                params.SubjectKey,
+				EntitlementIdOrFeatureKey: params.EntitlementIdOrFeatureKey,
+				Namespace:                 ns,
+				At:                        defaultx.WithDefault(params.Params.Time, time.Now()),
 			}, nil
 		},
 		func(ctx context.Context, request GetEntitlementValueHandlerRequest) (api.EntitlementValue, error) {
-			entitlement, err := h.connector.GetEntitlementValue(ctx, models.NamespacedID{
-				Namespace: request.ID.Namespace,
-				ID:        request.ID.ID,
-			}, request.At)
+			entitlement, err := h.connector.GetEntitlementValue(ctx, request.Namespace, request.SubjectKey, request.EntitlementIdOrFeatureKey, request.At)
 			if err != nil {
 				return api.EntitlementValue{}, err
 			}
@@ -221,7 +265,7 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 
 			return models.NamespacedID{
 				Namespace: ns,
-				ID:        params.SubjectIdOrKey, // TODO: should work with ID as well & should use params.Params values
+				ID:        params.SubjectIdOrKey,
 			}, nil
 		},
 		func(ctx context.Context, id GetEntitlementsOfSubjectHandlerRequest) (GetEntitlementsOfSubjectHandlerResponse, error) {

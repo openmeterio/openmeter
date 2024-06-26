@@ -32,8 +32,6 @@ func (c CreateEntitlementInputs) GetType() EntitlementType {
 type Entitlement struct {
 	GenericProperties
 
-	UsagePeriod *UsagePeriod `json:"usagePeriod,omitempty"`
-
 	// All none-core fields are optional
 	// metered
 	MeasureUsageFrom *time.Time `json:"_,omitempty"`
@@ -82,6 +80,8 @@ type GenericProperties struct {
 	FeatureID       string          `json:"featureId,omitempty"`
 	SubjectKey      string          `json:"subjectKey,omitempty"`
 	EntitlementType EntitlementType `json:"type,omitempty"`
+
+	UsagePeriod *UsagePeriod `json:"usagePeriod,omitempty"`
 }
 
 type UsagePeriod struct {
