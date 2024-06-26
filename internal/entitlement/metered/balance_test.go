@@ -913,6 +913,73 @@ func TestResetEntitlementUsage(t *testing.T) {
 				}, creditBalance.Balances)
 			},
 		},
+		{
+			name: "Should properly handle grants issued for the same time as reset",
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
+				ctx := context.Background()
+				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+
+				// create featute in db
+				feature, err := deps.featureDB.CreateFeature(ctx, exampleFeature)
+				assert.NoError(t, err)
+
+				// add 0 usage so meter is found in mock
+				deps.streaming.AddSimpleEvent(meterSlug, 0, startTime)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feature)
+				inp.MeasureUsageFrom = &startTime
+				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
+				assert.NoError(t, err)
+
+				// issue grants
+				_, err = deps.grantDB.CreateGrant(ctx, credit.GrantRepoCreateGrantInput{
+					OwnerID:          credit.GrantOwner(ent.ID),
+					Namespace:        namespace,
+					Amount:           1000,
+					Priority:         1,
+					EffectiveAt:      startTime.Add(time.Hour * 2),
+					ExpiresAt:        startTime.AddDate(0, 0, 3),
+					ResetMaxRollover: 0, // full amount can be rolled over
+				})
+				assert.NoError(t, err)
+
+				// do a reset
+				resetTime := startTime.Add(time.Hour * 5)
+				balanceAfterReset, err := connector.ResetEntitlementUsage(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, resetTime)
+
+				// assert balance after reset is 0 for grant
+				assert.NoError(t, err)
+				assert.Equal(t, 0.0, balanceAfterReset.UsageInPeriod) // 0 usage right after reset
+				assert.Equal(t, 0.0, balanceAfterReset.Balance)       // 1000 - 1000 = 0
+
+				// issue grants
+				g2, err := deps.grantDB.CreateGrant(ctx, credit.GrantRepoCreateGrantInput{
+					OwnerID:          credit.GrantOwner(ent.ID),
+					Namespace:        namespace,
+					Amount:           1000,
+					Priority:         1,
+					EffectiveAt:      resetTime,
+					ExpiresAt:        resetTime.AddDate(0, 0, 3),
+					ResetMaxRollover: 1000, // full amount can be rolled over
+				})
+				assert.NoError(t, err)
+
+				// fetch balance for reset & grant, balance should be full grant amount
+				balanceAfterReset, err = connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, resetTime)
+				assert.NoError(t, err)
+
+				assert.Equal(t, 0.0, balanceAfterReset.UsageInPeriod) // 0 usage right after reset
+				assert.Equal(t, g2.Amount, balanceAfterReset.Balance) // 1000 - 0 = 1000
+
+				// fetch balance for AFTER reset & grant, balance should be full grant amount
+				balanceAfterReset, err = connector.GetEntitlementBalance(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, resetTime.Add(time.Minute))
+				assert.NoError(t, err)
+
+				assert.Equal(t, 0.0, balanceAfterReset.UsageInPeriod) // 0 usage right after reset
+				assert.Equal(t, g2.Amount, balanceAfterReset.Balance) // 1000 - 0 = 1000
+			},
+		},
 	}
 
 	for _, tc := range tt {

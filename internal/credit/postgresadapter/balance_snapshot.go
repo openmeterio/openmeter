@@ -24,7 +24,7 @@ func NewPostgresBalanceSnapshotRepo(db *db.Client) credit.BalanceSnapshotConnect
 
 func (b *balanceSnapshotAdapter) InvalidateAfter(ctx context.Context, owner credit.NamespacedGrantOwner, at time.Time) error {
 	return b.db.BalanceSnapshot.Update().
-		Where(db_balancesnapshot.OwnerID(owner.ID), db_balancesnapshot.Namespace(owner.Namespace), db_balancesnapshot.AtGTE(at)).
+		Where(db_balancesnapshot.OwnerID(owner.ID), db_balancesnapshot.Namespace(owner.Namespace), db_balancesnapshot.AtGT(at)).
 		SetDeletedAt(time.Now()).
 		Exec(ctx)
 }
