@@ -2,6 +2,7 @@ package postgresadapter_test
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -199,12 +200,17 @@ func TestCreateFeature(t *testing.T) {
 		},
 	}
 
+	var m sync.Mutex
+
 	for _, tc := range tt {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			driver := testutils.InitPostgresDB(t)
 			dbClient := db.NewClient(db.Driver(driver))
+
+			m.Lock()
+			defer m.Unlock()
 
 			if err := dbClient.Schema.Create(context.Background()); err != nil {
 				t.Fatalf("failed to migrate database %s", err)

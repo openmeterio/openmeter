@@ -2,6 +2,7 @@ package meteredentitlement_test
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -934,6 +935,8 @@ type testDependencies struct {
 	streaming         *streaming_testutils.MockStreamingConnector
 }
 
+var m sync.Mutex
+
 // builds connector with mock streaming and real PG
 func setupConnector(t *testing.T) (meteredentitlement.Connector, *testDependencies) {
 	testLogger := testutils.NewLogger(t)
@@ -960,6 +963,8 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *testDependenci
 	grantDbConn := credit_postgres_adapter.NewPostgresGrantRepo(grantDbClient)
 	balanceSnapshotDbConn := credit_postgres_adapter.NewPostgresBalanceSnapshotRepo(grantDbClient)
 
+	m.Lock()
+	defer m.Unlock()
 	// migrate all clients
 	if err := productcatalogDBClient.Schema.Create(context.Background()); err != nil {
 		t.Fatalf("failed to migrate database %s", err)
