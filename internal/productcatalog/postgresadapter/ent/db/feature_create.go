@@ -65,6 +65,12 @@ func (fc *FeatureCreate) SetNillableDeletedAt(t *time.Time) *FeatureCreate {
 	return fc
 }
 
+// SetMetadata sets the "metadata" field.
+func (fc *FeatureCreate) SetMetadata(m map[string]string) *FeatureCreate {
+	fc.mutation.SetMetadata(m)
+	return fc
+}
+
 // SetNamespace sets the "namespace" field.
 func (fc *FeatureCreate) SetNamespace(s string) *FeatureCreate {
 	fc.mutation.SetNamespace(s)
@@ -260,6 +266,10 @@ func (fc *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 		_spec.SetField(feature.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
+	if value, ok := fc.mutation.Metadata(); ok {
+		_spec.SetField(feature.FieldMetadata, field.TypeJSON, value)
+		_node.Metadata = value
+	}
 	if value, ok := fc.mutation.Namespace(); ok {
 		_spec.SetField(feature.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
@@ -363,6 +373,24 @@ func (u *FeatureUpsert) UpdateDeletedAt() *FeatureUpsert {
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (u *FeatureUpsert) ClearDeletedAt() *FeatureUpsert {
 	u.SetNull(feature.FieldDeletedAt)
+	return u
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *FeatureUpsert) SetMetadata(v map[string]string) *FeatureUpsert {
+	u.Set(feature.FieldMetadata, v)
+	return u
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *FeatureUpsert) UpdateMetadata() *FeatureUpsert {
+	u.SetExcluded(feature.FieldMetadata)
+	return u
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *FeatureUpsert) ClearMetadata() *FeatureUpsert {
+	u.SetNull(feature.FieldMetadata)
 	return u
 }
 
@@ -506,6 +534,27 @@ func (u *FeatureUpsertOne) UpdateDeletedAt() *FeatureUpsertOne {
 func (u *FeatureUpsertOne) ClearDeletedAt() *FeatureUpsertOne {
 	return u.Update(func(s *FeatureUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *FeatureUpsertOne) SetMetadata(v map[string]string) *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *FeatureUpsertOne) UpdateMetadata() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *FeatureUpsertOne) ClearMetadata() *FeatureUpsertOne {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearMetadata()
 	})
 }
 
@@ -824,6 +873,27 @@ func (u *FeatureUpsertBulk) UpdateDeletedAt() *FeatureUpsertBulk {
 func (u *FeatureUpsertBulk) ClearDeletedAt() *FeatureUpsertBulk {
 	return u.Update(func(s *FeatureUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetMetadata sets the "metadata" field.
+func (u *FeatureUpsertBulk) SetMetadata(v map[string]string) *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.SetMetadata(v)
+	})
+}
+
+// UpdateMetadata sets the "metadata" field to the value that was provided on create.
+func (u *FeatureUpsertBulk) UpdateMetadata() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.UpdateMetadata()
+	})
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (u *FeatureUpsertBulk) ClearMetadata() *FeatureUpsertBulk {
+	return u.Update(func(s *FeatureUpsert) {
+		s.ClearMetadata()
 	})
 }
 

@@ -54,6 +54,18 @@ func (fu *FeatureUpdate) ClearDeletedAt() *FeatureUpdate {
 	return fu
 }
 
+// SetMetadata sets the "metadata" field.
+func (fu *FeatureUpdate) SetMetadata(m map[string]string) *FeatureUpdate {
+	fu.mutation.SetMetadata(m)
+	return fu
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (fu *FeatureUpdate) ClearMetadata() *FeatureUpdate {
+	fu.mutation.ClearMetadata()
+	return fu
+}
+
 // SetName sets the "name" field.
 func (fu *FeatureUpdate) SetName(s string) *FeatureUpdate {
 	fu.mutation.SetName(s)
@@ -172,6 +184,12 @@ func (fu *FeatureUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if fu.mutation.DeletedAtCleared() {
 		_spec.ClearField(feature.FieldDeletedAt, field.TypeTime)
 	}
+	if value, ok := fu.mutation.Metadata(); ok {
+		_spec.SetField(feature.FieldMetadata, field.TypeJSON, value)
+	}
+	if fu.mutation.MetadataCleared() {
+		_spec.ClearField(feature.FieldMetadata, field.TypeJSON)
+	}
 	if value, ok := fu.mutation.Name(); ok {
 		_spec.SetField(feature.FieldName, field.TypeString, value)
 	}
@@ -233,6 +251,18 @@ func (fuo *FeatureUpdateOne) SetNillableDeletedAt(t *time.Time) *FeatureUpdateOn
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (fuo *FeatureUpdateOne) ClearDeletedAt() *FeatureUpdateOne {
 	fuo.mutation.ClearDeletedAt()
+	return fuo
+}
+
+// SetMetadata sets the "metadata" field.
+func (fuo *FeatureUpdateOne) SetMetadata(m map[string]string) *FeatureUpdateOne {
+	fuo.mutation.SetMetadata(m)
+	return fuo
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (fuo *FeatureUpdateOne) ClearMetadata() *FeatureUpdateOne {
+	fuo.mutation.ClearMetadata()
 	return fuo
 }
 
@@ -383,6 +413,12 @@ func (fuo *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err e
 	}
 	if fuo.mutation.DeletedAtCleared() {
 		_spec.ClearField(feature.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := fuo.mutation.Metadata(); ok {
+		_spec.SetField(feature.FieldMetadata, field.TypeJSON, value)
+	}
+	if fuo.mutation.MetadataCleared() {
+		_spec.ClearField(feature.FieldMetadata, field.TypeJSON)
 	}
 	if value, ok := fuo.mutation.Name(); ok {
 		_spec.SetField(feature.FieldName, field.TypeString, value)

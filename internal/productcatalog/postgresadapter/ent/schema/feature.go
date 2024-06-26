@@ -17,6 +17,7 @@ func (Feature) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.IDMixin{},
 		entutils.TimeMixin{},
+		entutils.MetadataAnnotationsMixin{},
 	}
 }
 
@@ -25,7 +26,7 @@ func (Feature) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("namespace").NotEmpty().Immutable(),
 		field.String("name").NotEmpty(),
-		field.String("key").NotEmpty().Immutable().Unique(),
+		field.String("key").NotEmpty().Immutable(),
 		field.String("meter_slug").Optional().Nillable().Immutable(),
 		field.JSON("meter_group_by_filters", map[string]string{}).Optional(),
 		field.Time("archived_at").Optional().Nillable(),
