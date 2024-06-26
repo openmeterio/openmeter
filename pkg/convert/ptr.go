@@ -7,7 +7,7 @@ func ToPointer[T any](value T) *T {
 }
 
 func MapToPointer[T comparable, U any](value map[T]U) *map[T]U {
-	if value == nil {
+	if len(value) == 0 {
 		return nil
 	}
 	return &value
