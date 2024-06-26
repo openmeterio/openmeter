@@ -79,8 +79,9 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 		return nil, err
 	}
 	for _, ent := range currentEntitlements {
-		if ent.FeatureID == feature.ID {
-			return nil, &AlreadyExistsError{EntitlementID: ent.ID, FeatureID: feature.ID, SubjectKey: input.SubjectKey}
+		// If we want to access entitlements by featureKey then this has to be unique
+		if ent.FeatureKey == feature.Key {
+			return nil, &AlreadyExistsError{EntitlementID: ent.ID, FeatureID: feature.ID, FeatureKey: feature.Key, SubjectKey: input.SubjectKey}
 		}
 	}
 
