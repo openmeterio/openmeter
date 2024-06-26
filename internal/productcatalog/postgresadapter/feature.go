@@ -30,6 +30,7 @@ func (c *featureDBAdapter) CreateFeature(ctx context.Context, feature productcat
 		SetName(feature.Name).
 		SetKey(feature.Key).
 		SetNamespace(feature.Namespace).
+		SetMetadata(feature.Metadata).
 		SetNillableMeterSlug(feature.MeterSlug)
 
 	if feature.MeterGroupByFilters != nil {
@@ -136,6 +137,7 @@ func mapFeatureEntity(entity *db.Feature) productcatalog.Feature {
 		ArchivedAt: entity.ArchivedAt,
 		CreatedAt:  entity.CreatedAt.In(time.UTC),
 		UpdatedAt:  entity.UpdatedAt.In(time.UTC),
+		Metadata:   entity.Metadata,
 	}
 
 	if len(entity.MeterGroupByFilters) > 0 {

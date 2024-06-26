@@ -36,6 +36,7 @@ type FeatureMutation struct {
 	created_at             *time.Time
 	updated_at             *time.Time
 	deleted_at             *time.Time
+	metadata               *map[string]string
 	namespace              *string
 	name                   *string
 	key                    *string
@@ -271,6 +272,55 @@ func (m *FeatureMutation) DeletedAtCleared() bool {
 func (m *FeatureMutation) ResetDeletedAt() {
 	m.deleted_at = nil
 	delete(m.clearedFields, feature.FieldDeletedAt)
+}
+
+// SetMetadata sets the "metadata" field.
+func (m *FeatureMutation) SetMetadata(value map[string]string) {
+	m.metadata = &value
+}
+
+// Metadata returns the value of the "metadata" field in the mutation.
+func (m *FeatureMutation) Metadata() (r map[string]string, exists bool) {
+	v := m.metadata
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMetadata returns the old "metadata" field's value of the Feature entity.
+// If the Feature object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FeatureMutation) OldMetadata(ctx context.Context) (v map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMetadata is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMetadata requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMetadata: %w", err)
+	}
+	return oldValue.Metadata, nil
+}
+
+// ClearMetadata clears the value of the "metadata" field.
+func (m *FeatureMutation) ClearMetadata() {
+	m.metadata = nil
+	m.clearedFields[feature.FieldMetadata] = struct{}{}
+}
+
+// MetadataCleared returns if the "metadata" field was cleared in this mutation.
+func (m *FeatureMutation) MetadataCleared() bool {
+	_, ok := m.clearedFields[feature.FieldMetadata]
+	return ok
+}
+
+// ResetMetadata resets all changes to the "metadata" field.
+func (m *FeatureMutation) ResetMetadata() {
+	m.metadata = nil
+	delete(m.clearedFields, feature.FieldMetadata)
 }
 
 // SetNamespace sets the "namespace" field.
@@ -562,7 +612,7 @@ func (m *FeatureMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *FeatureMutation) Fields() []string {
-	fields := make([]string, 0, 9)
+	fields := make([]string, 0, 10)
 	if m.created_at != nil {
 		fields = append(fields, feature.FieldCreatedAt)
 	}
@@ -571,6 +621,9 @@ func (m *FeatureMutation) Fields() []string {
 	}
 	if m.deleted_at != nil {
 		fields = append(fields, feature.FieldDeletedAt)
+	}
+	if m.metadata != nil {
+		fields = append(fields, feature.FieldMetadata)
 	}
 	if m.namespace != nil {
 		fields = append(fields, feature.FieldNamespace)
@@ -604,6 +657,8 @@ func (m *FeatureMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case feature.FieldDeletedAt:
 		return m.DeletedAt()
+	case feature.FieldMetadata:
+		return m.Metadata()
 	case feature.FieldNamespace:
 		return m.Namespace()
 	case feature.FieldName:
@@ -631,6 +686,8 @@ func (m *FeatureMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldUpdatedAt(ctx)
 	case feature.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
+	case feature.FieldMetadata:
+		return m.OldMetadata(ctx)
 	case feature.FieldNamespace:
 		return m.OldNamespace(ctx)
 	case feature.FieldName:
@@ -672,6 +729,13 @@ func (m *FeatureMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
+		return nil
+	case feature.FieldMetadata:
+		v, ok := value.(map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMetadata(v)
 		return nil
 	case feature.FieldNamespace:
 		v, ok := value.(string)
@@ -748,6 +812,9 @@ func (m *FeatureMutation) ClearedFields() []string {
 	if m.FieldCleared(feature.FieldDeletedAt) {
 		fields = append(fields, feature.FieldDeletedAt)
 	}
+	if m.FieldCleared(feature.FieldMetadata) {
+		fields = append(fields, feature.FieldMetadata)
+	}
 	if m.FieldCleared(feature.FieldMeterSlug) {
 		fields = append(fields, feature.FieldMeterSlug)
 	}
@@ -774,6 +841,9 @@ func (m *FeatureMutation) ClearField(name string) error {
 	case feature.FieldDeletedAt:
 		m.ClearDeletedAt()
 		return nil
+	case feature.FieldMetadata:
+		m.ClearMetadata()
+		return nil
 	case feature.FieldMeterSlug:
 		m.ClearMeterSlug()
 		return nil
@@ -799,6 +869,9 @@ func (m *FeatureMutation) ResetField(name string) error {
 		return nil
 	case feature.FieldDeletedAt:
 		m.ResetDeletedAt()
+		return nil
+	case feature.FieldMetadata:
+		m.ResetMetadata()
 		return nil
 	case feature.FieldNamespace:
 		m.ResetNamespace()

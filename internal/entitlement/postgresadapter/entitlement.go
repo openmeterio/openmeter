@@ -70,6 +70,7 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlemen
 		SetEntitlementType(db_entitlement.EntitlementType(entitlement.EntitlementType)).
 		SetNamespace(entitlement.Namespace).
 		SetFeatureID(entitlement.FeatureID).
+		SetMetadata(entitlement.Metadata).
 		SetSubjectKey(entitlement.SubjectKey).
 		SetNillableMeasureUsageFrom(entitlement.MeasureUsageFrom).
 		SetNillableIssueAfterReset(entitlement.IssueAfterReset).
@@ -167,6 +168,7 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 			SubjectKey:      e.SubjectKey,
 			FeatureID:       e.FeatureID,
 			EntitlementType: entitlement.EntitlementType(e.EntitlementType),
+			Metadata:        e.Metadata,
 		},
 		MeasureUsageFrom: e.MeasureUsageFrom,
 		IssueAfterReset:  e.IssueAfterReset,

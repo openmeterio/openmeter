@@ -571,8 +571,8 @@ func TestCredit(t *testing.T) {
 			},
 			Priority:          &priority,
 			MaxRolloverAmount: &maxRolloverAmount,
-			Recurrence: &api.RecurringPeriod{
-				Anchor:   time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
+			Recurrence: &api.RecurringPeriodCreateInput{
+				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
 				Interval: "YEAR",
 			},
 		})

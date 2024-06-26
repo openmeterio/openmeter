@@ -144,6 +144,19 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 	if err != nil {
 		return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("failed to query meter: %w", err)
 	}
+
+	// If we get 0 rows that means the windowsize is larger than the queried period.
+	// In this case we simply query for the entire period.
+	if len(meterRows) == 0 {
+		nonWindowedParams := *meterParams
+		nonWindowedParams.WindowSize = nil
+		nonWindowedParams.WindowTimeZone = nil
+		meterRows, err = e.streamingConnector.QueryMeter(ctx, owner.Namespace, meterSlug, &nonWindowedParams)
+		if err != nil {
+			return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("failed to query meter: %w", err)
+		}
+	}
+
 	// 3. and then we merge the two
 
 	// convert history segments to list of point in time balances

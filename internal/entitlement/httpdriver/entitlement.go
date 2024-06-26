@@ -84,6 +84,9 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 						Interval: entitlement.UsagePeriodInterval(v.UsagePeriod.Interval),
 					},
 				}
+				if v.Metadata != nil {
+					request.Metadata = *v.Metadata
+				}
 			case api.EntitlementStaticCreateInputs:
 				request = entitlement.CreateEntitlementInputs{
 					Namespace:       ns,
@@ -98,6 +101,9 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 						Interval: entitlement.UsagePeriodInterval(v.UsagePeriod.Interval),
 					}
 				}
+				if v.Metadata != nil {
+					request.Metadata = *v.Metadata
+				}
 			case api.EntitlementBooleanCreateInputs:
 				request = entitlement.CreateEntitlementInputs{
 					Namespace:       ns,
@@ -110,6 +116,9 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 						Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, time.Now()), // TODO: shouldn't we truncate this?
 						Interval: entitlement.UsagePeriodInterval(v.UsagePeriod.Interval),
 					}
+				}
+				if v.Metadata != nil {
+					request.Metadata = *v.Metadata
 				}
 			default:
 				return request, errors.New("unknown entitlement type")

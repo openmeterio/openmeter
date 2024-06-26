@@ -107,7 +107,7 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 			if apiGrant.Recurrence != nil {
 				inp.inp.Recurrence = &credit.Recurrence{
 					Period: credit.RecurrencePeriod(apiGrant.Recurrence.Interval),
-					Anchor: apiGrant.Recurrence.Anchor,
+					Anchor: defaultx.WithDefault(apiGrant.Recurrence.Anchor, apiGrant.EffectiveAt),
 				}
 			}
 

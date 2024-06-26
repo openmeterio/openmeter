@@ -1831,7 +1831,7 @@ components:
           example:
             stripePaymentId: "pi_4OrAkhLvyihio9p51h9iiFnB"
         recurrence:
-          $ref: "#/components/schemas/RecurringPeriod"
+          $ref: "#/components/schemas/RecurringPeriodCreateInput"
 
     EntitlementGrant:
       allOf:
@@ -1865,6 +1865,8 @@ components:
               format: date-time
               description: The date and time the grant was voided (cannot be used after that).
               readOnly: true
+            recurrence:
+              $ref: "#/components/schemas/RecurringPeriod"
     EntitlementValue:
       type: object
       required:
