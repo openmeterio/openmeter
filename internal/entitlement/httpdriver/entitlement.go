@@ -55,7 +55,6 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 	return httptransport.NewHandlerWithArgs[CreateEntitlementHandlerRequest, CreateEntitlementHandlerResponse, string](
 		func(ctx context.Context, r *http.Request, subjectIdOrKey string) (entitlement.CreateEntitlementInputs, error) {
 			inp := &api.EntitlementCreateInputs{}
-			// TODO: we could use the API generated type here
 			request := entitlement.CreateEntitlementInputs{}
 			if err := commonhttp.JSONRequestBodyDecoder(r, &inp); err != nil {
 				return request, err
@@ -269,7 +268,7 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 
 			return models.NamespacedID{
 				Namespace: ns,
-				ID:        params.SubjectIdOrKey, // TODO: should work with ID as well & should use params.Params values
+				ID:        params.SubjectIdOrKey,
 			}, nil
 		},
 		func(ctx context.Context, id GetEntitlementsOfSubjectHandlerRequest) (GetEntitlementsOfSubjectHandlerResponse, error) {

@@ -536,6 +536,12 @@ export interface components {
        */
       type: 'metered'
       /**
+       * @description If softLimit=true the subject can use the feature even if the entitlement is exhausted.
+       *
+       * @default false
+       */
+      isSoftLimit?: boolean
+      /**
        * @description If unlimited=true the subject can use the feature an unlimited amount.
        *
        * @default false
@@ -556,7 +562,6 @@ export interface components {
     EntitlementMetered: components['schemas']['EntitlementMeteredCreateInputs'] &
       components['schemas']['EntitlementSharedFields']
     EntitlementStaticCreateInputs: components['schemas']['EntitlementCreateSharedFields'] & {
-      usagePeriod?: components['schemas']['RecurringPeriod']
       /**
        * @example static
        * @enum {string}
