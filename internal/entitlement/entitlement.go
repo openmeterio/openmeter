@@ -96,20 +96,6 @@ type UsagePeriod struct {
 	Interval UsagePeriodInterval `json:"interval"`
 }
 
-func (u UsagePeriod) GetNextReset() (time.Time, error) {
-	rec := recurrence.Recurrence{
-		Anchor: u.Anchor,
-		Period: recurrence.RecurrencePeriod(u.Interval),
-	}
-
-	nextReset, err := rec.NextAfter(time.Now())
-	if err != nil {
-		return time.Time{}, err
-	}
-
-	return nextReset.Truncate(time.Minute), nil
-}
-
 func (u UsagePeriod) ToRecurringPeriod() api.RecurringPeriod {
 	return api.RecurringPeriod{
 		Anchor:   u.Anchor,

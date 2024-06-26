@@ -34,10 +34,11 @@ type EntitlementRepo interface {
 }
 
 type CreateEntitlementRepoInputs struct {
-	Namespace       string          `json:"namespace"`
-	FeatureID       string          `json:"featureId"`
-	SubjectKey      string          `json:"subjectKey"`
-	EntitlementType EntitlementType `json:"type"`
+	Namespace       string            `json:"namespace"`
+	FeatureID       string            `json:"featureId"`
+	SubjectKey      string            `json:"subjectKey"`
+	EntitlementType EntitlementType   `json:"type"`
+	Metadata        map[string]string `json:"metadata,omitempty"`
 
 	MeasureUsageFrom   *time.Time   `json:"measureUsageFrom,omitempty"`
 	IssueAfterReset    *float64     `json:"issueAfterReset,omitempty"`

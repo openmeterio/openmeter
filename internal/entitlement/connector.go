@@ -106,6 +106,7 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 		FeatureID:          input.FeatureID,
 		SubjectKey:         input.SubjectKey,
 		EntitlementType:    input.EntitlementType,
+		Metadata:           input.Metadata,
 		MeasureUsageFrom:   input.MeasureUsageFrom,
 		IssueAfterReset:    input.IssueAfterReset,
 		IsSoftLimit:        input.IsSoftLimit,

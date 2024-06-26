@@ -84,11 +84,6 @@ func (parser) ToBoolean(e *entitlement.Entitlement) (*api.EntitlementBoolean, er
 
 	if boolean.UsagePeriod != nil {
 		apiRes.UsagePeriod = convert.ToPointer(boolean.UsagePeriod.ToRecurringPeriod())
-		currentPeriod, err := boolean.UsagePeriod.GetCurrentPeriod()
-		if err != nil {
-			return nil, err
-		}
-		apiRes.CurrentUsagePeriod = &currentPeriod
 	}
 
 	return apiRes, nil
