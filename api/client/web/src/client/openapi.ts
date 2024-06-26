@@ -784,7 +784,7 @@ export interface components {
       metadata?: {
         [key: string]: string
       }
-      recurrence?: components['schemas']['RecurringPeriod']
+      recurrence?: components['schemas']['RecurringPeriodCreateInput']
     }
     EntitlementGrant: components['schemas']['EntitlementGrantCreateInput'] &
       components['schemas']['SharedMetaFields'] & {
@@ -813,6 +813,7 @@ export interface components {
          * @description The date and time the grant was voided (cannot be used after that).
          */
         voidedAt?: string
+        recurrence?: components['schemas']['RecurringPeriod']
       }
     EntitlementValue: {
       /**

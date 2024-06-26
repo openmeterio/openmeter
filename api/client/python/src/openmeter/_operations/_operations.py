@@ -3902,12 +3902,13 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                       priorities and expiration dates, the system will use the grant that was created
                       first.
                     "recurrence": {
-                        "anchor": "2020-02-20 00:00:00",  # An arbitrary anchor to base the
-                          recurring period on. Required.
-                        "interval": "str"  # List of pre-defined periods that can be used for
-                          recurring & scheduling.  DAY:      Every day WEEK:     Every week MONTH:
+                        "interval": "str",  # List of pre-defined periods that can be used
+                          for recurring & scheduling.  DAY:      Every day WEEK:     Every week MONTH:
                           Every month YEAR:     Every year. Required. Known values are: "DAY", "WEEK",
                           "MONTH", and "YEAR".
+                        "anchor": "2020-02-20 00:00:00"  # Optional. An arbitrary anchor to
+                          base the recurring period on. If not provided then defaults to now truncated
+                          to the hour.
                     }
                 }
 
@@ -4098,12 +4099,13 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                       priorities and expiration dates, the system will use the grant that was created
                       first.
                     "recurrence": {
-                        "anchor": "2020-02-20 00:00:00",  # An arbitrary anchor to base the
-                          recurring period on. Required.
-                        "interval": "str"  # List of pre-defined periods that can be used for
-                          recurring & scheduling.  DAY:      Every day WEEK:     Every week MONTH:
+                        "interval": "str",  # List of pre-defined periods that can be used
+                          for recurring & scheduling.  DAY:      Every day WEEK:     Every week MONTH:
                           Every month YEAR:     Every year. Required. Known values are: "DAY", "WEEK",
                           "MONTH", and "YEAR".
+                        "anchor": "2020-02-20 00:00:00"  # Optional. An arbitrary anchor to
+                          base the recurring period on. If not provided then defaults to now truncated
+                          to the hour.
                     }
                 }
 
