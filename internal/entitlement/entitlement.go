@@ -12,10 +12,11 @@ type TypedEntitlement interface {
 }
 
 type CreateEntitlementInputs struct {
-	Namespace       string          `json:"namespace"`
-	FeatureID       string          `json:"featureId"`
-	SubjectKey      string          `json:"subjectKey"`
-	EntitlementType EntitlementType `json:"type"`
+	Namespace       string            `json:"namespace"`
+	FeatureID       string            `json:"featureId"`
+	SubjectKey      string            `json:"subjectKey"`
+	EntitlementType EntitlementType   `json:"type"`
+	Metadata        map[string]string `json:"metadata,omitempty"`
 
 	MeasureUsageFrom *time.Time   `json:"measureUsageFrom,omitempty"`
 	IssueAfterReset  *float64     `json:"issueAfterReset,omitempty"`
@@ -75,6 +76,8 @@ func (e EntitlementType) String() string {
 type GenericProperties struct {
 	models.NamespacedModel
 	models.ManagedModel
+
+	Metadata map[string]string `json:"metadata,omitempty"`
 
 	ID              string          `json:"id,omitempty"`
 	FeatureID       string          `json:"featureId,omitempty"`

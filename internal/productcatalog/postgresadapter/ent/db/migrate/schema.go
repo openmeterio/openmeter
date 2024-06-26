@@ -14,6 +14,7 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "name", Type: field.TypeString},
 		{Name: "key", Type: field.TypeString, Unique: true},
@@ -35,7 +36,7 @@ var (
 			{
 				Name:    "feature_namespace_id",
 				Unique:  false,
-				Columns: []*schema.Column{FeaturesColumns[4], FeaturesColumns[0]},
+				Columns: []*schema.Column{FeaturesColumns[5], FeaturesColumns[0]},
 			},
 		},
 	}

@@ -69,6 +69,9 @@ type Feature struct {
 	// MeterGroupByFilters Optional meter group by filters. Useful if the meter scope is broader than what feature tracks.
 	MeterGroupByFilters *map[string]string `json:"meterGroupByFilters,omitempty"`
 
+	// Metadata Additional metadata.
+	Metadata map[string]string `json:"metadata,omitempty"`
+
 	// Read-only fields
 	ArchivedAt *time.Time `json:"archivedAt,omitempty"`
 

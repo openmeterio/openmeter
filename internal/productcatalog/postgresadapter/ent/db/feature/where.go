@@ -234,6 +234,16 @@ func DeletedAtNotNil() predicate.Feature {
 	return predicate.Feature(sql.FieldNotNull(FieldDeletedAt))
 }
 
+// MetadataIsNil applies the IsNil predicate on the "metadata" field.
+func MetadataIsNil() predicate.Feature {
+	return predicate.Feature(sql.FieldIsNull(FieldMetadata))
+}
+
+// MetadataNotNil applies the NotNil predicate on the "metadata" field.
+func MetadataNotNil() predicate.Feature {
+	return predicate.Feature(sql.FieldNotNull(FieldMetadata))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.Feature {
 	return predicate.Feature(sql.FieldEQ(FieldNamespace, v))

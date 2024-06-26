@@ -17,6 +17,7 @@ func (Feature) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		entutils.IDMixin{},
 		entutils.TimeMixin{},
+		entutils.MetadataAnnotationsMixin{},
 	}
 }
 

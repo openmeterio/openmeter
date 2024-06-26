@@ -15,6 +15,7 @@ type CreateFeatureInputs struct {
 	Namespace           string            `json:"namespace"`
 	MeterSlug           *string           `json:"meterSlug"`
 	MeterGroupByFilters map[string]string `json:"meterGroupByFilters"`
+	Metadata            map[string]string `json:"metadata"`
 }
 
 type FeatureConnector interface {

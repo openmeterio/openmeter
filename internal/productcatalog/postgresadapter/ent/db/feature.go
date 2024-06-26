@@ -24,6 +24,8 @@ type Feature struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// Metadata holds the value of the "metadata" field.
+	Metadata map[string]string `json:"metadata,omitempty"`
 	// Namespace holds the value of the "namespace" field.
 	Namespace string `json:"namespace,omitempty"`
 	// Name holds the value of the "name" field.
@@ -44,7 +46,7 @@ func (*Feature) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case feature.FieldMeterGroupByFilters:
+		case feature.FieldMetadata, feature.FieldMeterGroupByFilters:
 			values[i] = new([]byte)
 		case feature.FieldID, feature.FieldNamespace, feature.FieldName, feature.FieldKey, feature.FieldMeterSlug:
 			values[i] = new(sql.NullString)
@@ -89,6 +91,14 @@ func (f *Feature) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				f.DeletedAt = new(time.Time)
 				*f.DeletedAt = value.Time
+			}
+		case feature.FieldMetadata:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field metadata", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &f.Metadata); err != nil {
+					return fmt.Errorf("unmarshal field metadata: %w", err)
+				}
 			}
 		case feature.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -176,6 +186,9 @@ func (f *Feature) String() string {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("metadata=")
+	builder.WriteString(fmt.Sprintf("%v", f.Metadata))
 	builder.WriteString(", ")
 	builder.WriteString("namespace=")
 	builder.WriteString(f.Namespace)
