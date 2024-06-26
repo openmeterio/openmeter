@@ -100,7 +100,7 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 			return Feature{}, err
 		}
 	} else {
-		return Feature{}, &FeatureWithNameAlreadyExistsError{Name: feature.Name, ID: found.ID}
+		return Feature{}, &FeatureWithNameAlreadyExistsError{Name: feature.Key, ID: found.ID}
 	}
 
 	return c.featureRepo.CreateFeature(ctx, feature)

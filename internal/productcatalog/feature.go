@@ -32,7 +32,7 @@ type FeatureWithNameAlreadyExistsError struct {
 func (e *FeatureWithNameAlreadyExistsError) Error() string {
 	// Is it an issue that we leak ID on another Feature here?
 	// Shouldn't be an isue as it's namespaced.
-	return fmt.Sprintf("feature %s with name %s already exists", e.ID, e.Name)
+	return fmt.Sprintf("feature %s with key %s already exists", e.ID, e.Name)
 }
 
 type FeatureInvalidMeterAggregationError struct {
