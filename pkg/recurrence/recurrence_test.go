@@ -1,4 +1,4 @@
-package credit
+package recurrence
 
 import (
 	"testing"
@@ -19,8 +19,8 @@ func TestNextAfter(t *testing.T) {
 		{
 			name: "Should return time if its same as anchor",
 			recurrence: Recurrence{
-				Period: RecurrencePeriodDaily,
-				Anchor: now,
+				Interval: RecurrencePeriodDaily,
+				Anchor:   now,
 			},
 			time: now,
 			want: now,
@@ -28,8 +28,8 @@ func TestNextAfter(t *testing.T) {
 		{
 			name: "Should return time if it falls on recurrence period",
 			recurrence: Recurrence{
-				Period: RecurrencePeriodDaily,
-				Anchor: now.AddDate(0, 0, -1),
+				Interval: RecurrencePeriodDaily,
+				Anchor:   now.AddDate(0, 0, -1),
 			},
 			time: now,
 			want: now,
@@ -37,8 +37,8 @@ func TestNextAfter(t *testing.T) {
 		{
 			name: "Should return next period after anchor",
 			recurrence: Recurrence{
-				Period: RecurrencePeriodDaily,
-				Anchor: now.AddDate(0, 0, -1),
+				Interval: RecurrencePeriodDaily,
+				Anchor:   now.AddDate(0, 0, -1),
 			},
 			time: now.Add(-time.Hour),
 			want: now,
@@ -46,8 +46,8 @@ func TestNextAfter(t *testing.T) {
 		{
 			name: "Should return next period if anchor is in the far past",
 			recurrence: Recurrence{
-				Period: RecurrencePeriodDaily,
-				Anchor: now.AddDate(0, 0, -50),
+				Interval: RecurrencePeriodDaily,
+				Anchor:   now.AddDate(0, 0, -50),
 			},
 			time: now.Add(-time.Hour),
 			want: now,
@@ -55,8 +55,8 @@ func TestNextAfter(t *testing.T) {
 		{
 			name: "Should return next if anchor is in the future",
 			recurrence: Recurrence{
-				Period: RecurrencePeriodDaily,
-				Anchor: now.AddDate(0, 0, 1),
+				Interval: RecurrencePeriodDaily,
+				Anchor:   now.AddDate(0, 0, 1),
 			},
 			time: now.Add(-time.Hour),
 			want: now,
@@ -64,8 +64,8 @@ func TestNextAfter(t *testing.T) {
 		{
 			name: "Should return next if anchor is in the far future",
 			recurrence: Recurrence{
-				Period: RecurrencePeriodDaily,
-				Anchor: now.AddDate(0, 0, 50),
+				Interval: RecurrencePeriodDaily,
+				Anchor:   now.AddDate(0, 0, 50),
 			},
 			time: now.Add(-time.Hour),
 			want: now,
@@ -73,8 +73,8 @@ func TestNextAfter(t *testing.T) {
 		{
 			name: "Should work with weeks",
 			recurrence: Recurrence{
-				Period: RecurrencePeriodWeek,
-				Anchor: now.AddDate(0, 0, -1),
+				Interval: RecurrencePeriodWeek,
+				Anchor:   now.AddDate(0, 0, -1),
 			},
 			time: now,
 			want: now.AddDate(0, 0, 6),
@@ -82,8 +82,8 @@ func TestNextAfter(t *testing.T) {
 		{
 			name: "Should work with months",
 			recurrence: Recurrence{
-				Period: RecurrencePeriodMonth,
-				Anchor: now.AddDate(0, 0, 0),
+				Interval: RecurrencePeriodMonth,
+				Anchor:   now.AddDate(0, 0, 0),
 			},
 			time: now.AddDate(0, 0, 1),
 			want: now.AddDate(0, 1, 0),
@@ -109,8 +109,8 @@ func TestPrevBefore(t *testing.T) {
 		{
 			name: "Should return time - period if time is same as anchor",
 			recurrence: Recurrence{
-				Period: RecurrencePeriodDaily,
-				Anchor: now,
+				Interval: RecurrencePeriodDaily,
+				Anchor:   now,
 			},
 			time: now,
 			want: now.AddDate(0, 0, -1),
@@ -118,8 +118,8 @@ func TestPrevBefore(t *testing.T) {
 		{
 			name: "Should return time - period if time falls on recurrence period",
 			recurrence: Recurrence{
-				Period: RecurrencePeriodDaily,
-				Anchor: now.AddDate(0, 0, -1),
+				Interval: RecurrencePeriodDaily,
+				Anchor:   now.AddDate(0, 0, -1),
 			},
 			time: now,
 			want: now.AddDate(0, 0, -1),
@@ -127,8 +127,8 @@ func TestPrevBefore(t *testing.T) {
 		{
 			name: "Should return prev period after anchor",
 			recurrence: Recurrence{
-				Period: RecurrencePeriodDaily,
-				Anchor: now.AddDate(0, 0, -1),
+				Interval: RecurrencePeriodDaily,
+				Anchor:   now.AddDate(0, 0, -1),
 			},
 			time: now.Add(+time.Hour),
 			want: now,
@@ -136,8 +136,8 @@ func TestPrevBefore(t *testing.T) {
 		{
 			name: "Should return prev period if anchor is in the far past",
 			recurrence: Recurrence{
-				Period: RecurrencePeriodDaily,
-				Anchor: now.AddDate(0, 0, -50),
+				Interval: RecurrencePeriodDaily,
+				Anchor:   now.AddDate(0, 0, -50),
 			},
 			time: now.Add(+time.Hour),
 			want: now,
@@ -145,8 +145,8 @@ func TestPrevBefore(t *testing.T) {
 		{
 			name: "Should return prev if anchor is in the future",
 			recurrence: Recurrence{
-				Period: RecurrencePeriodDaily,
-				Anchor: now.AddDate(0, 0, 1),
+				Interval: RecurrencePeriodDaily,
+				Anchor:   now.AddDate(0, 0, 1),
 			},
 			time: now.Add(time.Hour),
 			want: now,
@@ -154,8 +154,8 @@ func TestPrevBefore(t *testing.T) {
 		{
 			name: "Should return next if anchor is in the far future",
 			recurrence: Recurrence{
-				Period: RecurrencePeriodDaily,
-				Anchor: now.AddDate(0, 0, 50),
+				Interval: RecurrencePeriodDaily,
+				Anchor:   now.AddDate(0, 0, 50),
 			},
 			time: now.Add(time.Hour),
 			want: now,
@@ -163,8 +163,8 @@ func TestPrevBefore(t *testing.T) {
 		{
 			name: "Should work with weeks",
 			recurrence: Recurrence{
-				Period: RecurrencePeriodWeek,
-				Anchor: now.AddDate(0, 0, 1),
+				Interval: RecurrencePeriodWeek,
+				Anchor:   now.AddDate(0, 0, 1),
 			},
 			time: now,
 			want: now.AddDate(0, 0, -6),
@@ -172,8 +172,8 @@ func TestPrevBefore(t *testing.T) {
 		{
 			name: "Should work with months",
 			recurrence: Recurrence{
-				Period: RecurrencePeriodMonth,
-				Anchor: now,
+				Interval: RecurrencePeriodMonth,
+				Anchor:   now,
 			},
 			time: now.AddDate(0, 0, 1),
 			want: now,

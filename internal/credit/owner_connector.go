@@ -9,15 +9,19 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
+type EndCurrentUsagePeriodParams struct {
+	At           time.Time
+	RetainAnchor bool
+}
+
 type OwnerConnector interface {
 	GetOwnerQueryParams(ctx context.Context, owner NamespacedGrantOwner) (meterSlug string, defaultParams *streaming.QueryParams, err error)
 	GetStartOfMeasurement(ctx context.Context, owner NamespacedGrantOwner) (time.Time, error)
 	GetPeriodStartTimesBetween(ctx context.Context, owner NamespacedGrantOwner, from, to time.Time) ([]time.Time, error)
 	GetUsagePeriodStartAt(ctx context.Context, owner NamespacedGrantOwner, at time.Time) (time.Time, error)
-	EndCurrentUsagePeriod(ctx context.Context, owner NamespacedGrantOwner, at time.Time) error
 
 	//FIXME: this is a terrible hack
-	EndCurrentUsagePeriodTx(ctx context.Context, tx *entutils.TxDriver, owner NamespacedGrantOwner, at time.Time) error
+	EndCurrentUsagePeriodTx(ctx context.Context, tx *entutils.TxDriver, owner NamespacedGrantOwner, params EndCurrentUsagePeriodParams) error
 	//FIXME: this is a terrible hack
 	LockOwnerForTx(ctx context.Context, tx *entutils.TxDriver, owner NamespacedGrantOwner) error
 }

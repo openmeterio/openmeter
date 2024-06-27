@@ -43,6 +43,10 @@ const (
 	FieldUsagePeriodInterval = "usage_period_interval"
 	// FieldUsagePeriodAnchor holds the string denoting the usage_period_anchor field in the database.
 	FieldUsagePeriodAnchor = "usage_period_anchor"
+	// FieldCurrentUsagePeriodStart holds the string denoting the current_usage_period_start field in the database.
+	FieldCurrentUsagePeriodStart = "current_usage_period_start"
+	// FieldCurrentUsagePeriodEnd holds the string denoting the current_usage_period_end field in the database.
+	FieldCurrentUsagePeriodEnd = "current_usage_period_end"
 	// EdgeUsageReset holds the string denoting the usage_reset edge name in mutations.
 	EdgeUsageReset = "usage_reset"
 	// Table holds the table name of the entitlement in the database.
@@ -73,6 +77,8 @@ var Columns = []string{
 	FieldConfig,
 	FieldUsagePeriodInterval,
 	FieldUsagePeriodAnchor,
+	FieldCurrentUsagePeriodStart,
+	FieldCurrentUsagePeriodEnd,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -213,6 +219,16 @@ func ByUsagePeriodInterval(opts ...sql.OrderTermOption) OrderOption {
 // ByUsagePeriodAnchor orders the results by the usage_period_anchor field.
 func ByUsagePeriodAnchor(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUsagePeriodAnchor, opts...).ToFunc()
+}
+
+// ByCurrentUsagePeriodStart orders the results by the current_usage_period_start field.
+func ByCurrentUsagePeriodStart(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCurrentUsagePeriodStart, opts...).ToFunc()
+}
+
+// ByCurrentUsagePeriodEnd orders the results by the current_usage_period_end field.
+func ByCurrentUsagePeriodEnd(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCurrentUsagePeriodEnd, opts...).ToFunc()
 }
 
 // ByUsageResetCount orders the results by usage_reset count.

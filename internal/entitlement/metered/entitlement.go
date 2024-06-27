@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 type Entitlement struct {
@@ -23,6 +24,12 @@ type Entitlement struct {
 
 	// UsagePeriod defines the recurring period for usage calculations.
 	UsagePeriod entitlement.UsagePeriod `json:"usagePeriod,omitempty"`
+
+	// CurrentPeriod defines the current period for usage calculations.
+	CurrentUsagePeriod recurrence.Period `json:"currentUsagePeriod,omitempty"`
+
+	// LastReset defines the last time the entitlement was reset.
+	LastReset time.Time `json:"lastReset"`
 }
 
 func ParseFromGenericEntitlement(model *entitlement.Entitlement) (*Entitlement, error) {
@@ -42,12 +49,22 @@ func ParseFromGenericEntitlement(model *entitlement.Entitlement) (*Entitlement, 
 		return nil, &entitlement.InvalidValueError{Message: "UsagePeriod is required", Type: model.EntitlementType}
 	}
 
+	if model.LastReset == nil {
+		return nil, &entitlement.InvalidValueError{Message: "LastReset is required", Type: model.EntitlementType}
+	}
+
+	if model.CurrentUsagePeriod == nil {
+		return nil, &entitlement.InvalidValueError{Message: "CurrentUsagePeriod is required", Type: model.EntitlementType}
+	}
+
 	return &Entitlement{
 		GenericProperties: model.GenericProperties,
 
-		MeasureUsageFrom: *model.MeasureUsageFrom,
-		IssuesAfterReset: model.IssueAfterReset,
-		IsSoftLimit:      *model.IsSoftLimit,
-		UsagePeriod:      *model.UsagePeriod,
+		MeasureUsageFrom:   *model.MeasureUsageFrom,
+		IssuesAfterReset:   model.IssueAfterReset,
+		IsSoftLimit:        *model.IsSoftLimit,
+		UsagePeriod:        *model.UsagePeriod,
+		LastReset:          *model.LastReset,
+		CurrentUsagePeriod: *model.CurrentUsagePeriod,
 	}, nil
 }

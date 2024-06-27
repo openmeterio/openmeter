@@ -1,4 +1,4 @@
-package credit
+package recurrence
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 )
 
 type Recurrence struct {
-	Period RecurrencePeriod `json:"period"`
+	Interval RecurrenceInterval `json:"period"`
 	// Anchor can be an arbitrary anchor time for the recurrence.
 	// It does not have to be the last or the next time.
 	Anchor time.Time `json:"anchor"`
@@ -60,7 +60,7 @@ func (r Recurrence) PrevBefore(t time.Time) (time.Time, error) {
 }
 
 func (r Recurrence) Next(t time.Time) (time.Time, error) {
-	switch r.Period {
+	switch r.Interval {
 	case RecurrencePeriodDaily:
 		return t.AddDate(0, 0, 1), nil
 	case RecurrencePeriodWeek:
@@ -70,11 +70,11 @@ func (r Recurrence) Next(t time.Time) (time.Time, error) {
 	case RecurrencePeriodYear:
 		return t.AddDate(1, 0, 0), nil
 	}
-	return time.Time{}, fmt.Errorf("not implemented RecurrencePeriod %s", r.Period)
+	return time.Time{}, fmt.Errorf("not implemented RecurrencePeriod %s", r.Interval)
 }
 
 func (r Recurrence) Prev(t time.Time) (time.Time, error) {
-	switch r.Period {
+	switch r.Interval {
 	case RecurrencePeriodDaily:
 		return t.AddDate(0, 0, -1), nil
 	case RecurrencePeriodWeek:
@@ -84,20 +84,20 @@ func (r Recurrence) Prev(t time.Time) (time.Time, error) {
 	case RecurrencePeriodYear:
 		return t.AddDate(-1, 0, 0), nil
 	}
-	return time.Time{}, fmt.Errorf("not implemented RecurrencePeriod %s", r.Period)
+	return time.Time{}, fmt.Errorf("not implemented RecurrencePeriod %s", r.Interval)
 }
 
-type RecurrencePeriod string
+type RecurrenceInterval string
 
 const (
-	RecurrencePeriodDaily RecurrencePeriod = "DAY"
-	RecurrencePeriodWeek  RecurrencePeriod = "WEEK"
-	RecurrencePeriodMonth RecurrencePeriod = "MONTH"
-	RecurrencePeriodYear  RecurrencePeriod = "YEAR"
+	RecurrencePeriodDaily RecurrenceInterval = "DAY"
+	RecurrencePeriodWeek  RecurrenceInterval = "WEEK"
+	RecurrencePeriodMonth RecurrenceInterval = "MONTH"
+	RecurrencePeriodYear  RecurrenceInterval = "YEAR"
 )
 
-func (RecurrencePeriod) Values() (kinds []string) {
-	for _, s := range []RecurrencePeriod{
+func (RecurrenceInterval) Values() (kinds []string) {
+	for _, s := range []RecurrenceInterval{
 		RecurrencePeriodDaily,
 		RecurrencePeriodWeek,
 		RecurrencePeriodMonth,
@@ -108,7 +108,7 @@ func (RecurrencePeriod) Values() (kinds []string) {
 	return
 }
 
-func (rp RecurrencePeriod) IsValid() bool {
+func (rp RecurrenceInterval) IsValid() bool {
 	switch rp {
 	case RecurrencePeriodDaily,
 		RecurrencePeriodWeek,

@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 type EntitlementHandler interface {
@@ -81,7 +82,7 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 					IssueAfterReset: v.IssueAfterReset,
 					UsagePeriod: &entitlement.UsagePeriod{
 						Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, time.Now()), // TODO: shouldn't we truncate this?
-						Interval: entitlement.UsagePeriodInterval(v.UsagePeriod.Interval),
+						Interval: recurrence.RecurrenceInterval(v.UsagePeriod.Interval),
 					},
 				}
 				if v.Metadata != nil {
@@ -98,7 +99,7 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 				if v.UsagePeriod != nil {
 					request.UsagePeriod = &entitlement.UsagePeriod{
 						Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, time.Now()), // TODO: shouldn't we truncate this?
-						Interval: entitlement.UsagePeriodInterval(v.UsagePeriod.Interval),
+						Interval: recurrence.RecurrenceInterval(v.UsagePeriod.Interval),
 					}
 				}
 				if v.Metadata != nil {
@@ -114,7 +115,7 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 				if v.UsagePeriod != nil {
 					request.UsagePeriod = &entitlement.UsagePeriod{
 						Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, time.Now()), // TODO: shouldn't we truncate this?
-						Interval: entitlement.UsagePeriodInterval(v.UsagePeriod.Interval),
+						Interval: recurrence.RecurrenceInterval(v.UsagePeriod.Interval),
 					}
 				}
 				if v.Metadata != nil {

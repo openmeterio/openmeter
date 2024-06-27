@@ -522,6 +522,7 @@ export interface components {
          */
         subjectKey: string
         usagePeriod?: components['schemas']['RecurringPeriod']
+        currentUsagePeriod?: components['schemas']['Period']
       }
     EntitlementMeteredCreateInputs: components['schemas']['EntitlementCreateSharedFields'] & {
       /**
@@ -554,7 +555,19 @@ export interface components {
       | components['schemas']['EntitlementBooleanCreateInputs']
     /** @description Entitles a subject to use a feature. */
     EntitlementMetered: components['schemas']['EntitlementMeteredCreateInputs'] &
+      components['schemas']['EntitlementMeteredCalculatedFields'] &
       components['schemas']['EntitlementSharedFields']
+    /** @description Calculated fields for a metered entitlement. */
+    EntitlementMeteredCalculatedFields: {
+      /**
+       * Format: date-time
+       * @description The last time the meter was reset.
+       *
+       * @example 2023-01-01T00:00:00Z
+       */
+      lastReset: string
+      currentUsagePeriod: components['schemas']['Period']
+    }
     EntitlementStaticCreateInputs: components['schemas']['EntitlementCreateSharedFields'] & {
       /**
        * @example static
@@ -2030,6 +2043,12 @@ export interface operations {
            * @example 2023-01-01T00:00:00Z
            */
           effectiveAt?: string
+          /**
+           * @description Should the reset retain the usage period anchor.
+           * If true, the usage period anchor is retained.
+           * If false, the usage period anchor is reset to the effectiveAt time.
+           */
+          retainAnchor?: boolean
         }
       }
     }

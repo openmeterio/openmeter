@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 type GrantOwner string
@@ -59,7 +60,7 @@ type Grant struct {
 	ResetMaxRollover float64 `json:"resetMaxRollover"`
 
 	// Recurrence config for the grant. If nil the grant doesn't recur.
-	Recurrence *Recurrence `json:"recurrence,omitempty"`
+	Recurrence *recurrence.Recurrence `json:"recurrence,omitempty"`
 }
 
 // Calculates expiration from effectiveAt and Expiration.

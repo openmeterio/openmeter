@@ -121,36 +121,20 @@ func (e *entitlementGrantOwner) GetPeriodStartTimesBetween(ctx context.Context, 
 	return times, nil
 }
 
-func (e *entitlementGrantOwner) EndCurrentUsagePeriod(ctx context.Context, owner credit.NamespacedGrantOwner, at time.Time) error {
-	// Check if time is after current start time. If so then we can end the period
-	currentStartAt, err := e.GetUsagePeriodStartAt(ctx, owner, at)
-	if err != nil {
-		return fmt.Errorf("failed to get current usage period start time: %w", err)
-	}
-	if at.Before(currentStartAt) || at.Equal(currentStartAt) {
-		return fmt.Errorf("can only end usage period after current period start time")
-	}
-
-	// Save usage reset
-	return e.usageResetRepo.Save(ctx, UsageResetTime{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: owner.Namespace,
-		},
-		EntitlementID: owner.NamespacedID().ID,
-		ResetTime:     at,
-	})
-}
-
 // FIXME: this is a terrible hack, write generic Atomicity stuff for connectors...
-func (e *entitlementGrantOwner) EndCurrentUsagePeriodTx(ctx context.Context, tx *entutils.TxDriver, owner credit.NamespacedGrantOwner, at time.Time) error {
+func (e *entitlementGrantOwner) EndCurrentUsagePeriodTx(ctx context.Context, tx *entutils.TxDriver, owner credit.NamespacedGrantOwner, params credit.EndCurrentUsagePeriodParams) error {
 	_, err := entutils.RunInTransaction(ctx, tx, func(ctx context.Context, tx *entutils.TxDriver) (*interface{}, error) {
 		// Check if time is after current start time. If so then we can end the period
-		currentStartAt, err := e.GetUsagePeriodStartAt(ctx, owner, at)
+		currentStartAt, err := e.GetUsagePeriodStartAt(ctx, owner, params.At)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get current usage period start time: %w", err)
 		}
-		if at.Before(currentStartAt) || at.Equal(currentStartAt) {
+		if !params.At.After(currentStartAt) {
 			return nil, &models.GenericUserError{Message: "can only end usage period after current period start time"}
+		}
+
+		if err := e.updateEntitlementUsagePeriod(ctx, tx, owner, params); err != nil {
+			return nil, fmt.Errorf("failed to update entitlement usage period: %w", err)
 		}
 
 		// Save usage reset
@@ -159,10 +143,45 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriodTx(ctx context.Context, tx 
 				Namespace: owner.Namespace,
 			},
 			EntitlementID: owner.NamespacedID().ID,
-			ResetTime:     at,
+			ResetTime:     params.At,
 		})
 	})
 	return err
+}
+
+func (e *entitlementGrantOwner) updateEntitlementUsagePeriod(ctx context.Context, tx *entutils.TxDriver, owner credit.NamespacedGrantOwner, params credit.EndCurrentUsagePeriodParams) error {
+	er := e.entitlementRepo.WithTx(ctx, tx)
+
+	entitlementEntity, err := er.GetEntitlement(ctx, owner.NamespacedID())
+	if err != nil {
+		return err
+	}
+
+	if entitlementEntity.UsagePeriod == nil {
+		return fmt.Errorf("entitlement=%s, namespace=%s does not have a usage period set, cannot guess interval", owner.ID, owner.Namespace)
+	}
+
+	usagePeriod := entitlementEntity.UsagePeriod
+
+	var newAnchor *time.Time
+
+	if !params.RetainAnchor {
+		usagePeriod.Anchor = params.At
+		newAnchor = &params.At
+	}
+
+	newCurrentUsagePeriod, err := usagePeriod.GetCurrentPeriod()
+	if err != nil {
+		return fmt.Errorf("failed to get next reset: %w", err)
+	}
+
+	return er.UpdateEntitlementUsagePeriod(
+		ctx,
+		owner.NamespacedID(),
+		entitlement.UpdateEntitlementUsagePeriodParams{
+			NewAnchor:          newAnchor,
+			CurrentUsagePeriod: newCurrentUsagePeriod,
+		})
 }
 
 // FIXME: this is a terrible hack using select for udpate...

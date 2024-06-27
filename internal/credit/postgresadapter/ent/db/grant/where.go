@@ -8,6 +8,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 // ID filters vertices based on their ID field.
@@ -666,19 +667,19 @@ func ResetMaxRolloverLTE(v float64) predicate.Grant {
 }
 
 // RecurrencePeriodEQ applies the EQ predicate on the "recurrence_period" field.
-func RecurrencePeriodEQ(v credit.RecurrencePeriod) predicate.Grant {
+func RecurrencePeriodEQ(v recurrence.RecurrenceInterval) predicate.Grant {
 	vc := v
 	return predicate.Grant(sql.FieldEQ(FieldRecurrencePeriod, vc))
 }
 
 // RecurrencePeriodNEQ applies the NEQ predicate on the "recurrence_period" field.
-func RecurrencePeriodNEQ(v credit.RecurrencePeriod) predicate.Grant {
+func RecurrencePeriodNEQ(v recurrence.RecurrenceInterval) predicate.Grant {
 	vc := v
 	return predicate.Grant(sql.FieldNEQ(FieldRecurrencePeriod, vc))
 }
 
 // RecurrencePeriodIn applies the In predicate on the "recurrence_period" field.
-func RecurrencePeriodIn(vs ...credit.RecurrencePeriod) predicate.Grant {
+func RecurrencePeriodIn(vs ...recurrence.RecurrenceInterval) predicate.Grant {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -687,7 +688,7 @@ func RecurrencePeriodIn(vs ...credit.RecurrencePeriod) predicate.Grant {
 }
 
 // RecurrencePeriodNotIn applies the NotIn predicate on the "recurrence_period" field.
-func RecurrencePeriodNotIn(vs ...credit.RecurrencePeriod) predicate.Grant {
+func RecurrencePeriodNotIn(vs ...recurrence.RecurrenceInterval) predicate.Grant {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]

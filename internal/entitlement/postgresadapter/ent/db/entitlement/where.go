@@ -115,6 +115,16 @@ func UsagePeriodAnchor(v time.Time) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldUsagePeriodAnchor, v))
 }
 
+// CurrentUsagePeriodStart applies equality check predicate on the "current_usage_period_start" field. It's identical to CurrentUsagePeriodStartEQ.
+func CurrentUsagePeriodStart(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldCurrentUsagePeriodStart, v))
+}
+
+// CurrentUsagePeriodEnd applies equality check predicate on the "current_usage_period_end" field. It's identical to CurrentUsagePeriodEndEQ.
+func CurrentUsagePeriodEnd(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldCurrentUsagePeriodEnd, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldNamespace, v))
@@ -678,6 +688,106 @@ func UsagePeriodAnchorIsNil() predicate.Entitlement {
 // UsagePeriodAnchorNotNil applies the NotNil predicate on the "usage_period_anchor" field.
 func UsagePeriodAnchorNotNil() predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldNotNull(FieldUsagePeriodAnchor))
+}
+
+// CurrentUsagePeriodStartEQ applies the EQ predicate on the "current_usage_period_start" field.
+func CurrentUsagePeriodStartEQ(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldCurrentUsagePeriodStart, v))
+}
+
+// CurrentUsagePeriodStartNEQ applies the NEQ predicate on the "current_usage_period_start" field.
+func CurrentUsagePeriodStartNEQ(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNEQ(FieldCurrentUsagePeriodStart, v))
+}
+
+// CurrentUsagePeriodStartIn applies the In predicate on the "current_usage_period_start" field.
+func CurrentUsagePeriodStartIn(vs ...time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIn(FieldCurrentUsagePeriodStart, vs...))
+}
+
+// CurrentUsagePeriodStartNotIn applies the NotIn predicate on the "current_usage_period_start" field.
+func CurrentUsagePeriodStartNotIn(vs ...time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotIn(FieldCurrentUsagePeriodStart, vs...))
+}
+
+// CurrentUsagePeriodStartGT applies the GT predicate on the "current_usage_period_start" field.
+func CurrentUsagePeriodStartGT(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGT(FieldCurrentUsagePeriodStart, v))
+}
+
+// CurrentUsagePeriodStartGTE applies the GTE predicate on the "current_usage_period_start" field.
+func CurrentUsagePeriodStartGTE(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGTE(FieldCurrentUsagePeriodStart, v))
+}
+
+// CurrentUsagePeriodStartLT applies the LT predicate on the "current_usage_period_start" field.
+func CurrentUsagePeriodStartLT(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLT(FieldCurrentUsagePeriodStart, v))
+}
+
+// CurrentUsagePeriodStartLTE applies the LTE predicate on the "current_usage_period_start" field.
+func CurrentUsagePeriodStartLTE(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLTE(FieldCurrentUsagePeriodStart, v))
+}
+
+// CurrentUsagePeriodStartIsNil applies the IsNil predicate on the "current_usage_period_start" field.
+func CurrentUsagePeriodStartIsNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIsNull(FieldCurrentUsagePeriodStart))
+}
+
+// CurrentUsagePeriodStartNotNil applies the NotNil predicate on the "current_usage_period_start" field.
+func CurrentUsagePeriodStartNotNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotNull(FieldCurrentUsagePeriodStart))
+}
+
+// CurrentUsagePeriodEndEQ applies the EQ predicate on the "current_usage_period_end" field.
+func CurrentUsagePeriodEndEQ(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldCurrentUsagePeriodEnd, v))
+}
+
+// CurrentUsagePeriodEndNEQ applies the NEQ predicate on the "current_usage_period_end" field.
+func CurrentUsagePeriodEndNEQ(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNEQ(FieldCurrentUsagePeriodEnd, v))
+}
+
+// CurrentUsagePeriodEndIn applies the In predicate on the "current_usage_period_end" field.
+func CurrentUsagePeriodEndIn(vs ...time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIn(FieldCurrentUsagePeriodEnd, vs...))
+}
+
+// CurrentUsagePeriodEndNotIn applies the NotIn predicate on the "current_usage_period_end" field.
+func CurrentUsagePeriodEndNotIn(vs ...time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotIn(FieldCurrentUsagePeriodEnd, vs...))
+}
+
+// CurrentUsagePeriodEndGT applies the GT predicate on the "current_usage_period_end" field.
+func CurrentUsagePeriodEndGT(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGT(FieldCurrentUsagePeriodEnd, v))
+}
+
+// CurrentUsagePeriodEndGTE applies the GTE predicate on the "current_usage_period_end" field.
+func CurrentUsagePeriodEndGTE(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGTE(FieldCurrentUsagePeriodEnd, v))
+}
+
+// CurrentUsagePeriodEndLT applies the LT predicate on the "current_usage_period_end" field.
+func CurrentUsagePeriodEndLT(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLT(FieldCurrentUsagePeriodEnd, v))
+}
+
+// CurrentUsagePeriodEndLTE applies the LTE predicate on the "current_usage_period_end" field.
+func CurrentUsagePeriodEndLTE(v time.Time) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLTE(FieldCurrentUsagePeriodEnd, v))
+}
+
+// CurrentUsagePeriodEndIsNil applies the IsNil predicate on the "current_usage_period_end" field.
+func CurrentUsagePeriodEndIsNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIsNull(FieldCurrentUsagePeriodEnd))
+}
+
+// CurrentUsagePeriodEndNotNil applies the NotNil predicate on the "current_usage_period_end" field.
+func CurrentUsagePeriodEndNotNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotNull(FieldCurrentUsagePeriodEnd))
 }
 
 // HasUsageReset applies the HasEdge predicate on the "usage_reset" edge.

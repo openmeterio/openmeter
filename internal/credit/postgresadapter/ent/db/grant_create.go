@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db/grant"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 // GrantCreate is the builder for creating a Grant entity.
@@ -143,15 +144,15 @@ func (gc *GrantCreate) SetResetMaxRollover(f float64) *GrantCreate {
 }
 
 // SetRecurrencePeriod sets the "recurrence_period" field.
-func (gc *GrantCreate) SetRecurrencePeriod(cp credit.RecurrencePeriod) *GrantCreate {
-	gc.mutation.SetRecurrencePeriod(cp)
+func (gc *GrantCreate) SetRecurrencePeriod(ri recurrence.RecurrenceInterval) *GrantCreate {
+	gc.mutation.SetRecurrencePeriod(ri)
 	return gc
 }
 
 // SetNillableRecurrencePeriod sets the "recurrence_period" field if the given value is not nil.
-func (gc *GrantCreate) SetNillableRecurrencePeriod(cp *credit.RecurrencePeriod) *GrantCreate {
-	if cp != nil {
-		gc.SetRecurrencePeriod(*cp)
+func (gc *GrantCreate) SetNillableRecurrencePeriod(ri *recurrence.RecurrenceInterval) *GrantCreate {
+	if ri != nil {
+		gc.SetRecurrencePeriod(*ri)
 	}
 	return gc
 }

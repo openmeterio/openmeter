@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 type ListEntitlementsOrderBy string
@@ -88,7 +89,33 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 		return nil, err
 	}
 
-	ent, err := c.entitlementRepo.CreateEntitlement(ctx, input)
+	var usagePeriod *UsagePeriod
+	var currentUsagePeriod *recurrence.Period
+	if input.UsagePeriod != nil {
+		usagePeriod = input.UsagePeriod
+		usagePeriod.Anchor = usagePeriod.Anchor.Truncate(time.Minute)
+
+		calculatedPeriod, err := usagePeriod.GetCurrentPeriod()
+		if err != nil {
+			return nil, err
+		}
+
+		currentUsagePeriod = &calculatedPeriod
+	}
+
+	ent, err := c.entitlementRepo.CreateEntitlement(ctx, CreateEntitlementRepoInputs{
+		Namespace:          input.Namespace,
+		FeatureID:          input.FeatureID,
+		SubjectKey:         input.SubjectKey,
+		EntitlementType:    input.EntitlementType,
+		Metadata:           input.Metadata,
+		MeasureUsageFrom:   input.MeasureUsageFrom,
+		IssueAfterReset:    input.IssueAfterReset,
+		IsSoftLimit:        input.IsSoftLimit,
+		Config:             input.Config,
+		UsagePeriod:        usagePeriod,
+		CurrentUsagePeriod: currentUsagePeriod,
+	})
 	if err != nil || ent == nil {
 		return nil, err
 	}

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -38,6 +39,7 @@ type Entitlement struct {
 	MeasureUsageFrom *time.Time `json:"_,omitempty"`
 	IssueAfterReset  *float64   `json:"issueAfterReset,omitempty"`
 	IsSoftLimit      *bool      `json:"isSoftLimit,omitempty"`
+	LastReset        *time.Time `json:"lastReset,omitempty"`
 
 	// static
 	Config *string `json:"config,omitempty"`
@@ -84,29 +86,32 @@ type GenericProperties struct {
 	SubjectKey      string          `json:"subjectKey,omitempty"`
 	EntitlementType EntitlementType `json:"type,omitempty"`
 
-	UsagePeriod *UsagePeriod `json:"usagePeriod,omitempty"`
+	UsagePeriod        *UsagePeriod       `json:"usagePeriod,omitempty"`
+	CurrentUsagePeriod *recurrence.Period `json:"currentUsagePeriod,omitempty"`
 }
 
-type UsagePeriod struct {
-	Anchor   time.Time           `json:"anchor"`
-	Interval UsagePeriodInterval `json:"interval"`
-}
+type UsagePeriod recurrence.Recurrence
 
-type UsagePeriodInterval string
+func (u UsagePeriod) GetCurrentPeriod() (recurrence.Period, error) {
+	rec := recurrence.Recurrence{
+		Anchor:   u.Anchor,
+		Interval: recurrence.RecurrenceInterval(u.Interval),
+	}
 
-const (
-	UsagePeriodIntervalDay   UsagePeriodInterval = "DAY"
-	UsagePeriodIntervalWeek  UsagePeriodInterval = "WEEK"
-	UsagePeriodIntervalMonth UsagePeriodInterval = "MONTH"
-	UsagePeriodIntervalYear  UsagePeriodInterval = "YEAR"
-)
+	now := time.Now()
 
-func (u UsagePeriodInterval) Values() []UsagePeriodInterval {
-	return []UsagePeriodInterval{UsagePeriodIntervalDay, UsagePeriodIntervalWeek, UsagePeriodIntervalMonth, UsagePeriodIntervalYear}
-}
+	currentPeriodEnd, err := rec.NextAfter(now)
+	if err != nil {
+		return recurrence.Period{}, err
+	}
 
-func (u UsagePeriodInterval) StrValues() []string {
-	return slicesx.Map(u.Values(), func(i UsagePeriodInterval) string {
-		return string(i)
-	})
+	currentPeriodStart, err := rec.PrevBefore(now)
+	if err != nil {
+		return recurrence.Period{}, err
+	}
+
+	return recurrence.Period{
+		From: currentPeriodStart,
+		To:   currentPeriodEnd,
+	}, nil
 }

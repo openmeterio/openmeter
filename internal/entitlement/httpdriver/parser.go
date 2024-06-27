@@ -9,6 +9,7 @@ import (
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	staticentitlement "github.com/openmeterio/openmeter/internal/entitlement/static"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 type parser struct{}
@@ -22,20 +23,19 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 	}
 
 	return &api.EntitlementMetered{
-		CreatedAt:       &metered.CreatedAt,
-		DeletedAt:       metered.DeletedAt,
-		FeatureId:       metered.FeatureID,
-		Id:              &metered.ID,
-		IsUnlimited:     convert.ToPointer(false), // implement
-		IssueAfterReset: metered.IssuesAfterReset,
-		Metadata:        &metered.Metadata,
-		SubjectKey:      metered.SubjectKey,
-		Type:            api.EntitlementMeteredType(metered.EntitlementType),
-		UpdatedAt:       &metered.UpdatedAt,
-		UsagePeriod: api.RecurringPeriod{
-			Anchor:   metered.UsagePeriod.Anchor,
-			Interval: api.RecurringPeriodEnum(metered.UsagePeriod.Interval),
-		},
+		CreatedAt:          &metered.CreatedAt,
+		DeletedAt:          metered.DeletedAt,
+		FeatureId:          metered.FeatureID,
+		Id:                 &metered.ID,
+		IsUnlimited:        convert.ToPointer(false), // implement
+		IssueAfterReset:    metered.IssuesAfterReset,
+		Metadata:           &metered.Metadata,
+		SubjectKey:         metered.SubjectKey,
+		Type:               api.EntitlementMeteredType(metered.EntitlementType),
+		UpdatedAt:          &metered.UpdatedAt,
+		UsagePeriod:        *mapUsagePeriod(e.UsagePeriod),
+		CurrentUsagePeriod: *mapPeriod(e.CurrentUsagePeriod),
+		LastReset:          metered.LastReset,
 	}, nil
 }
 
@@ -46,22 +46,17 @@ func (parser) ToStatic(e *entitlement.Entitlement) (*api.EntitlementStatic, erro
 	}
 
 	apiRes := &api.EntitlementStatic{
-		CreatedAt:  &static.CreatedAt,
-		DeletedAt:  static.DeletedAt,
-		FeatureId:  static.FeatureID,
-		Id:         &static.ID,
-		Metadata:   &static.Metadata,
-		SubjectKey: static.SubjectKey,
-		Type:       api.EntitlementStaticType(static.EntitlementType),
-		UpdatedAt:  &static.UpdatedAt,
-		Config:     static.Config,
-	}
-
-	if static.UsagePeriod != nil {
-		apiRes.UsagePeriod = &api.RecurringPeriod{
-			Anchor:   static.UsagePeriod.Anchor,
-			Interval: api.RecurringPeriodEnum(static.UsagePeriod.Interval),
-		}
+		CreatedAt:          &static.CreatedAt,
+		DeletedAt:          static.DeletedAt,
+		FeatureId:          static.FeatureID,
+		Id:                 &static.ID,
+		Metadata:           &static.Metadata,
+		SubjectKey:         static.SubjectKey,
+		Type:               api.EntitlementStaticType(static.EntitlementType),
+		UpdatedAt:          &static.UpdatedAt,
+		Config:             static.Config,
+		CurrentUsagePeriod: mapPeriod(static.CurrentUsagePeriod),
+		UsagePeriod:        mapUsagePeriod(e.UsagePeriod),
 	}
 
 	return apiRes, nil
@@ -74,21 +69,16 @@ func (parser) ToBoolean(e *entitlement.Entitlement) (*api.EntitlementBoolean, er
 	}
 
 	apiRes := &api.EntitlementBoolean{
-		CreatedAt:  &boolean.CreatedAt,
-		DeletedAt:  boolean.DeletedAt,
-		FeatureId:  boolean.FeatureID,
-		Id:         &boolean.ID,
-		Metadata:   &boolean.Metadata,
-		SubjectKey: boolean.SubjectKey,
-		Type:       api.EntitlementBooleanType(boolean.EntitlementType),
-		UpdatedAt:  &boolean.UpdatedAt,
-	}
-
-	if boolean.UsagePeriod != nil {
-		apiRes.UsagePeriod = &api.RecurringPeriod{
-			Anchor:   boolean.UsagePeriod.Anchor,
-			Interval: api.RecurringPeriodEnum(boolean.UsagePeriod.Interval),
-		}
+		CreatedAt:          &boolean.CreatedAt,
+		DeletedAt:          boolean.DeletedAt,
+		FeatureId:          boolean.FeatureID,
+		Id:                 &boolean.ID,
+		Metadata:           &boolean.Metadata,
+		SubjectKey:         boolean.SubjectKey,
+		Type:               api.EntitlementBooleanType(boolean.EntitlementType),
+		UpdatedAt:          &boolean.UpdatedAt,
+		CurrentUsagePeriod: mapPeriod(boolean.CurrentUsagePeriod),
+		UsagePeriod:        mapUsagePeriod(e.UsagePeriod),
 	}
 
 	return apiRes, nil
@@ -129,5 +119,25 @@ func (p parser) ToAPIGeneric(e *entitlement.Entitlement) (*api.Entitlement, erro
 		return res, nil
 	default:
 		return nil, fmt.Errorf("unsupported entitlement type: %s", e.EntitlementType)
+	}
+}
+
+func mapUsagePeriod(u *entitlement.UsagePeriod) *api.RecurringPeriod {
+	if u == nil {
+		return nil
+	}
+	return &api.RecurringPeriod{
+		Anchor:   u.Anchor,
+		Interval: api.RecurringPeriodEnum(u.Interval),
+	}
+}
+
+func mapPeriod(u *recurrence.Period) *api.Period {
+	if u == nil {
+		return nil
+	}
+	return &api.Period{
+		From: u.From,
+		To:   u.To,
 	}
 }
