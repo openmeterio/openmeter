@@ -126,23 +126,7 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 		commonhttp.JSONResponseEncoderWithStatus[api.EntitlementGrant](http.StatusCreated),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {
-				if _, ok := err.(*entitlement.NotFoundError); ok {
-					commonhttp.NewHTTPError(
-						http.StatusNotFound,
-						err,
-					).EncodeError(ctx, w)
-					return true
-				}
-				if _, ok := err.(*models.GenericUserError); ok {
-					commonhttp.NewHTTPError(
-						http.StatusBadRequest,
-						err,
-					).EncodeError(ctx, w)
-					return true
-				}
-				return false
-			}),
+			httptransport.WithErrorEncoder(getErrorEncoder()),
 		)...,
 	)
 }
@@ -194,23 +178,7 @@ func (h *meteredEntitlementHandler) ListEntitlementGrants() ListEntitlementGrant
 		commonhttp.JSONResponseEncoder[[]api.EntitlementGrant],
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {
-				if _, ok := err.(*entitlement.NotFoundError); ok {
-					commonhttp.NewHTTPError(
-						http.StatusNotFound,
-						err,
-					).EncodeError(ctx, w)
-					return true
-				}
-				if _, ok := err.(*models.GenericUserError); ok {
-					commonhttp.NewHTTPError(
-						http.StatusBadRequest,
-						err,
-					).EncodeError(ctx, w)
-					return true
-				}
-				return false
-			}),
+			httptransport.WithErrorEncoder(getErrorEncoder()),
 		)...,
 	)
 }
@@ -264,23 +232,7 @@ func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsag
 		commonhttp.EmptyResponseEncoder[interface{}](http.StatusNoContent),
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {
-				if _, ok := err.(*entitlement.NotFoundError); ok {
-					commonhttp.NewHTTPError(
-						http.StatusNotFound,
-						err,
-					).EncodeError(ctx, w)
-					return true
-				}
-				if _, ok := err.(*models.GenericUserError); ok {
-					commonhttp.NewHTTPError(
-						http.StatusBadRequest,
-						err,
-					).EncodeError(ctx, w)
-					return true
-				}
-				return false
-			}),
+			httptransport.WithErrorEncoder(getErrorEncoder()),
 		)...,
 	)
 }
@@ -378,23 +330,7 @@ func (h *meteredEntitlementHandler) GetEntitlementBalanceHistory() GetEntitlemen
 		commonhttp.JSONResponseEncoder[api.WindowedBalanceHistory],
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {
-				if _, ok := err.(*entitlement.NotFoundError); ok {
-					commonhttp.NewHTTPError(
-						http.StatusNotFound,
-						err,
-					).EncodeError(ctx, w)
-					return true
-				}
-				if _, ok := err.(*models.GenericUserError); ok {
-					commonhttp.NewHTTPError(
-						http.StatusBadRequest,
-						err,
-					).EncodeError(ctx, w)
-					return true
-				}
-				return false
-			}),
+			httptransport.WithErrorEncoder(getErrorEncoder()),
 		)...,
 	)
 }

@@ -12,7 +12,6 @@ import (
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	staticentitlement "github.com/openmeterio/openmeter/internal/entitlement/static"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
-	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -138,38 +137,7 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("createEntitlement"),
-			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {
-				if _, ok := err.(*productcatalog.FeatureNotFoundError); ok {
-					commonhttp.NewHTTPError(
-						http.StatusNotFound,
-						err,
-					).EncodeError(ctx, w)
-					return true
-				}
-				if _, ok := err.(*entitlement.NotFoundError); ok {
-					commonhttp.NewHTTPError(
-						http.StatusNotFound,
-						err,
-					).EncodeError(ctx, w)
-					return true
-				}
-				if err, ok := err.(*entitlement.AlreadyExistsError); ok {
-					commonhttp.NewHTTPError(
-						http.StatusConflict,
-						err,
-						commonhttp.ExtendProblem("conflictingEntityId", err.EntitlementID),
-					).EncodeError(ctx, w)
-					return true
-				}
-				if err, ok := err.(*entitlement.InvalidValueError); ok {
-					commonhttp.NewHTTPError(
-						http.StatusBadRequest,
-						err,
-					).EncodeError(ctx, w)
-					return true
-				}
-				return false
-			}),
+			httptransport.WithErrorEncoder(getErrorEncoder()),
 		)...,
 	)
 }
@@ -235,23 +203,7 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getEntitlementValue"),
-			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {
-				if _, ok := err.(*productcatalog.FeatureNotFoundError); ok {
-					commonhttp.NewHTTPError(
-						http.StatusNotFound,
-						err,
-					).EncodeError(ctx, w)
-					return true
-				}
-				if _, ok := err.(*entitlement.NotFoundError); ok {
-					commonhttp.NewHTTPError(
-						http.StatusNotFound,
-						err,
-					).EncodeError(ctx, w)
-					return true
-				}
-				return false
-			}),
+			httptransport.WithErrorEncoder(getErrorEncoder()),
 		)...,
 	)
 }
@@ -299,6 +251,7 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getEntitlementsOfSubject"),
+			httptransport.WithErrorEncoder(getErrorEncoder()),
 		)...,
 	)
 }
@@ -355,6 +308,7 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("listEntitlements"),
+			httptransport.WithErrorEncoder(getErrorEncoder()),
 		)...,
 	)
 }
