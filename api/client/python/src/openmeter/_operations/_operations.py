@@ -719,8 +719,8 @@ def build_get_entitlement_history_request(
     subject_id_or_key: str,
     entitlement_id: str,
     *,
-    from_parameter: datetime.datetime,
     window_size: str,
+    from_parameter: Optional[datetime.datetime] = None,
     to: Optional[datetime.datetime] = None,
     window_time_zone: str = "UTC",
     **kwargs: Any
@@ -740,7 +740,8 @@ def build_get_entitlement_history_request(
     _url: str = _url.format(**path_format_arguments)  # type: ignore
 
     # Construct parameters
-    _params["from"] = _SERIALIZER.query("from_parameter", from_parameter, "iso-8601")
+    if from_parameter is not None:
+        _params["from"] = _SERIALIZER.query("from_parameter", from_parameter, "iso-8601")
     if to is not None:
         _params["to"] = _SERIALIZER.query("to", to, "iso-8601")
     _params["windowSize"] = _SERIALIZER.query("window_size", window_size, "str")
@@ -4311,8 +4312,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         subject_id_or_key: str,
         entitlement_id: str,
         *,
-        from_parameter: datetime.datetime,
         window_size: str,
+        from_parameter: Optional[datetime.datetime] = None,
         to: Optional[datetime.datetime] = None,
         window_time_zone: str = "UTC",
         **kwargs: Any
@@ -4329,13 +4330,14 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         :type subject_id_or_key: str
         :param entitlement_id: A unique ULID for an entitlement. Required.
         :type entitlement_id: str
-        :keyword from_parameter: Start of time range to query entitlement: date-time in RFC 3339
-         format.
-         Gets truncated to the granularity of the underlying meter. Required.
-        :paramtype from_parameter: ~datetime.datetime
         :keyword window_size: Size of the time window to group the history by. Cannot be shorter than
          meter granularity. Known values are: "MINUTE", "HOUR", and "DAY". Required.
         :paramtype window_size: str
+        :keyword from_parameter: Start of time range to query entitlement: date-time in RFC 3339
+         format. Defaults to
+         the last reset.
+         Gets truncated to the granularity of the underlying meter. Default value is None.
+        :paramtype from_parameter: ~datetime.datetime
         :keyword to: End of time range to query entitlement: date-time in RFC 3339 format. Defaults to
          now.
          If not now then gets truncated to the granularity of the underlying meter. Default value is
@@ -4421,8 +4423,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         _request = build_get_entitlement_history_request(
             subject_id_or_key=subject_id_or_key,
             entitlement_id=entitlement_id,
-            from_parameter=from_parameter,
             window_size=window_size,
+            from_parameter=from_parameter,
             to=to,
             window_time_zone=window_time_zone,
             headers=_headers,
