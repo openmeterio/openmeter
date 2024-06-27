@@ -777,18 +777,26 @@ export interface components {
       expiration: components['schemas']['ExpirationPeriod']
       /**
        * Format: double
-       * @description The maximum amount of the grant that can be rolled over. Defaults to 0.
+       * @description Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
        *
-       * - maxAmount = {original_amount} -> rollover original amount
-       * - maxAmount = 0 -> no rollover
-       * - maxAmount = 90 -> rollover 90 max
-       *
-       * If it's larger than 0 then the grant's balance will be the MAX(maxRollover, balance) + amount.
+       * Balance after the reset is calculated as:
+       * Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
        *
        * @default 0
        * @example 100
        */
       maxRolloverAmount?: number
+      /**
+       * Format: double
+       * @description Grants are rolled over at reset, after which they can have a different balance compared to what they had before the reset.
+       *
+       * Balance after the reset is calculated as:
+       * Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+       *
+       * @default 0
+       * @example 100
+       */
+      minRolloverAmount?: number
       /**
        * @example {
        *   "stripePaymentId": "pi_4OrAkhLvyihio9p51h9iiFnB"
