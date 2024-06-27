@@ -224,30 +224,3 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 
 	return windows, burndownHistory, nil
 }
-
-// This is just a wrapper around credot.BalanceConnector.ResetUsageForOwner
-func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID, params ResetEntitlementUsageParams) (*EntitlementBalance, error) {
-	owner := credit.NamespacedGrantOwner{
-		Namespace: entitlementID.Namespace,
-		ID:        credit.GrantOwner(entitlementID.ID),
-	}
-
-	balanceAfterReset, err := e.balanceConnector.ResetUsageForOwner(ctx, owner, credit.ResetUsageForOwnerParams{
-		At:           params.At,
-		RetainAnchor: params.RetainAnchor,
-	})
-	if err != nil {
-		if _, ok := err.(*credit.OwnerNotFoundError); ok {
-			return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
-		}
-		return nil, err
-	}
-
-	return &EntitlementBalance{
-		EntitlementID: entitlementID.ID,
-		Balance:       balanceAfterReset.Balance(),
-		UsageInPeriod: 0.0, // you cannot have usage right after a reset
-		Overage:       balanceAfterReset.Overage,
-		StartOfPeriod: params.At,
-	}, nil
-}

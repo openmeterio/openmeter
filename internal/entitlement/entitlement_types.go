@@ -12,8 +12,12 @@ type EntitlementValue interface {
 
 type SubTypeConnector interface {
 	GetValue(entitlement *Entitlement, at time.Time) (EntitlementValue, error)
-	SetDefaultsAndValidate(entitlement *CreateEntitlementInputs) error
 
-	// ValidateForFeature validates the entitlement against the feature.
-	ValidateForFeature(entitlement *CreateEntitlementInputs, feature productcatalog.Feature) error
+	// Runs before creating the entitlement. Might manipulate the inputs.
+	// If it returns an error the operation has to fail.
+	BeforeCreate(entitlement *CreateEntitlementInputs, feature *productcatalog.Feature) error
+
+	// Runs after entitlement creation.
+	// If it returns an error the operation has to fail.
+	AfterCreate(entitlement *Entitlement) error
 }

@@ -2,8 +2,6 @@ package meteredentitlement
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
@@ -103,7 +101,7 @@ func (e *connector) GetValue(entitlement *entitlement.Entitlement, at time.Time)
 	}, nil
 }
 
-func (c *connector) SetDefaultsAndValidate(model *entitlement.CreateEntitlementInputs) error {
+func (c *connector) BeforeCreate(model *entitlement.CreateEntitlementInputs, feature *productcatalog.Feature) error {
 	model.EntitlementType = entitlement.EntitlementTypeMetered
 	model.MeasureUsageFrom = convert.ToPointer(defaultx.WithDefault(model.MeasureUsageFrom, time.Now().Truncate(c.granularity)))
 	model.IsSoftLimit = convert.ToPointer(defaultx.WithDefault(model.IsSoftLimit, false))
@@ -117,39 +115,12 @@ func (c *connector) SetDefaultsAndValidate(model *entitlement.CreateEntitlementI
 		return &entitlement.InvalidValueError{Message: "UsagePeriod is required for metered entitlements", Type: entitlement.EntitlementTypeMetered}
 	}
 
-	return nil
-}
-
-func (c *connector) ValidateForFeature(model *entitlement.CreateEntitlementInputs, feature productcatalog.Feature) error {
 	if feature.MeterSlug == nil {
 		return &entitlement.InvalidFeatureError{FeatureID: feature.ID, Message: "Feature has no meter"}
 	}
 	return nil
 }
 
-func (c *connector) ResetEntitlementsWithExpiredUsagePeriod(ctx context.Context, namespace string, highwatermark time.Time) ([]models.NamespacedID, error) {
-	entitlements, err := c.entitlementRepo.ListEntitlementsWithExpiredUsagePeriod(ctx, namespace, highwatermark)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list entitlements with due reset: %w", err)
-	}
-
-	result := make([]models.NamespacedID, 0, len(entitlements))
-
-	var finalError error
-	for _, ent := range entitlements {
-		namespacedID := models.NamespacedID{Namespace: namespace, ID: ent.ID}
-
-		_, err := c.ResetEntitlementUsage(ctx,
-			namespacedID,
-			ResetEntitlementUsageParams{
-				At:           ent.CurrentUsagePeriod.To,
-				RetainAnchor: true,
-			})
-		if err != nil {
-			finalError = errors.Join(finalError, fmt.Errorf("failed to reset entitlement usage ns=%s id=%s: %w", namespace, ent.ID, err))
-		}
-
-		result = append(result, namespacedID)
-	}
-	return result, finalError
+func (c *connector) AfterCreate(entitlement *entitlement.Entitlement) error {
+	return nil
 }
