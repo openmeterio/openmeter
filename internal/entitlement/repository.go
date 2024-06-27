@@ -20,6 +20,7 @@ type EntitlementRepo interface {
 	CreateEntitlement(ctx context.Context, entitlement CreateEntitlementRepoInputs) (*Entitlement, error)
 	GetEntitlement(ctx context.Context, entitlementID models.NamespacedID) (*Entitlement, error)
 	GetEntitlementOfSubject(ctx context.Context, namespace string, subjectKey string, id string) (*Entitlement, error)
+	DeleteEntitlement(ctx context.Context, entitlementID models.NamespacedID) error
 
 	ListEntitlements(ctx context.Context, params ListEntitlementsParams) ([]Entitlement, error)
 

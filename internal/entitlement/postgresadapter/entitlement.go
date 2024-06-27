@@ -32,6 +32,7 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 		Where(
 			db_entitlement.ID(entitlementID.ID),
 			db_entitlement.Namespace(entitlementID.Namespace),
+			db_entitlement.Or(db_entitlement.DeletedAtGT(time.Now()), db_entitlement.DeletedAtIsNil()),
 		).
 		First(ctx)
 
@@ -48,6 +49,7 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 func (a *entitlementDBAdapter) GetEntitlementOfSubject(ctx context.Context, namespace string, subjectKey string, id string) (*entitlement.Entitlement, error) {
 	res, err := withLatestUsageReset(a.db.Entitlement.Query()).
 		Where(
+			db_entitlement.Or(db_entitlement.DeletedAtGT(time.Now()), db_entitlement.DeletedAtIsNil()),
 			db_entitlement.SubjectKey(string(subjectKey)),
 			db_entitlement.Namespace(namespace),
 			db_entitlement.ID(id),
@@ -109,9 +111,18 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlemen
 	return mapEntitlementEntity(res), nil
 }
 
+func (a *entitlementDBAdapter) DeleteEntitlement(ctx context.Context, entitlementID models.NamespacedID) error {
+	_, err := a.db.Entitlement.Update().
+		Where(db_entitlement.ID(entitlementID.ID), db_entitlement.Namespace(entitlementID.Namespace)).
+		SetDeletedAt(time.Now()).
+		Save(ctx)
+	return err
+}
+
 func (a *entitlementDBAdapter) GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]entitlement.Entitlement, error) {
 	res, err := withLatestUsageReset(a.db.Entitlement.Query()).
 		Where(
+			db_entitlement.Or(db_entitlement.DeletedAtGT(time.Now()), db_entitlement.DeletedAtIsNil()),
 			db_entitlement.SubjectKey(string(subjectKey)),
 			db_entitlement.Namespace(namespace),
 		).
@@ -133,6 +144,10 @@ func (a *entitlementDBAdapter) GetEntitlementsOfSubject(ctx context.Context, nam
 func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params entitlement.ListEntitlementsParams) ([]entitlement.Entitlement, error) {
 	query := withLatestUsageReset(a.db.Entitlement.Query().
 		Where(db_entitlement.Namespace(params.Namespace)))
+
+	if !params.IncludeDeleted {
+		query = query.Where(db_entitlement.Or(db_entitlement.DeletedAtGT(time.Now()), db_entitlement.DeletedAtIsNil()))
+	}
 
 	if params.Limit > 0 {
 		query = query.Limit(params.Limit)

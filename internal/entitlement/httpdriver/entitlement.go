@@ -22,6 +22,8 @@ import (
 
 type EntitlementHandler interface {
 	CreateEntitlement() CreateEntitlementHandler
+	GetEntitlement() GetEntitlementHandler
+	DeleteEntitlement() DeleteEntitlementHandler
 	GetEntitlementValue() GetEntitlementValueHandler
 	GetEntitlementsOfSubjectHandler() GetEntitlementsOfSubjectHandler
 	ListEntitlements() ListEntitlementsHandler
@@ -308,6 +310,82 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("listEntitlements"),
+			httptransport.WithErrorEncoder(getErrorEncoder()),
+		)...,
+	)
+}
+
+type GetEntitlementHandlerRequest struct {
+	EntitlementId string
+	Namespace     string
+}
+type GetEntitlementHandlerResponse = *api.Entitlement
+type GetEntitlementHandlerParams struct {
+	EntitlementId string
+}
+type GetEntitlementHandler httptransport.HandlerWithArgs[GetEntitlementHandlerRequest, GetEntitlementHandlerResponse, GetEntitlementHandlerParams]
+
+func (h *entitlementHandler) GetEntitlement() GetEntitlementHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params GetEntitlementHandlerParams) (GetEntitlementHandlerRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return GetEntitlementHandlerRequest{}, err
+			}
+
+			return GetEntitlementHandlerRequest{
+				EntitlementId: params.EntitlementId,
+				Namespace:     ns,
+			}, nil
+		},
+		func(ctx context.Context, request GetEntitlementHandlerRequest) (GetEntitlementHandlerResponse, error) {
+			entitlement, err := h.connector.GetEntitlement(ctx, request.Namespace, request.EntitlementId)
+			if err != nil {
+				return nil, err
+			}
+
+			return Parser.ToAPIGeneric(entitlement)
+		},
+		commonhttp.JSONResponseEncoder[GetEntitlementHandlerResponse],
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("getEntitlement"),
+			httptransport.WithErrorEncoder(getErrorEncoder()),
+		)...,
+	)
+}
+
+type DeleteEntitlementHandlerRequest struct {
+	EntitlementId string
+	Namespace     string
+}
+type DeleteEntitlementHandlerResponse = interface{}
+type DeleteEntitlementHandlerParams struct {
+	EntitlementId string
+}
+type DeleteEntitlementHandler httptransport.HandlerWithArgs[DeleteEntitlementHandlerRequest, DeleteEntitlementHandlerResponse, DeleteEntitlementHandlerParams]
+
+func (h *entitlementHandler) DeleteEntitlement() DeleteEntitlementHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params DeleteEntitlementHandlerParams) (DeleteEntitlementHandlerRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return DeleteEntitlementHandlerRequest{}, err
+			}
+
+			return DeleteEntitlementHandlerRequest{
+				EntitlementId: params.EntitlementId,
+				Namespace:     ns,
+			}, nil
+		},
+		func(ctx context.Context, request DeleteEntitlementHandlerRequest) (DeleteEntitlementHandlerResponse, error) {
+			err := h.connector.DeleteEntitlement(ctx, request.Namespace, request.EntitlementId)
+			return nil, err
+		},
+		commonhttp.EmptyResponseEncoder[DeleteEntitlementHandlerResponse](http.StatusNoContent),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("deleteEntitlement"),
 			httptransport.WithErrorEncoder(getErrorEncoder()),
 		)...,
 	)
