@@ -1989,10 +1989,11 @@ export interface operations {
     parameters: {
       query: {
         /**
-         * @description Start of time range to query entitlement: date-time in RFC 3339 format.
+         * @description Start of time range to query entitlement: date-time in RFC 3339 format. Defaults to
+         * the last reset.
          * Gets truncated to the granularity of the underlying meter.
          */
-        from: string
+        from?: string
         /**
          * @description End of time range to query entitlement: date-time in RFC 3339 format. Defaults to now.
          * If not now then gets truncated to the granularity of the underlying meter.
