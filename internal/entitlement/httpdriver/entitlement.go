@@ -350,6 +350,7 @@ func (h *entitlementHandler) GetEntitlement() GetEntitlementHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getEntitlement"),
+			httptransport.WithErrorEncoder(getErrorEncoder()),
 		)...,
 	)
 }
@@ -385,6 +386,7 @@ func (h *entitlementHandler) DeleteEntitlement() DeleteEntitlementHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("deleteEntitlement"),
+			httptransport.WithErrorEncoder(getErrorEncoder()),
 		)...,
 	)
 }
