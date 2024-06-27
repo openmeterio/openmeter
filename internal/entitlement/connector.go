@@ -18,18 +18,21 @@ const (
 )
 
 type ListEntitlementsParams struct {
-	Namespace string
-	Limit     int
-	Offset    int
-	OrderBy   ListEntitlementsOrderBy
+	Namespace      string
+	Limit          int
+	Offset         int
+	OrderBy        ListEntitlementsOrderBy
+	IncludeDeleted bool
 }
 
 type Connector interface {
-	// Entitlement Management
 	CreateEntitlement(ctx context.Context, input CreateEntitlementInputs) (*Entitlement, error)
-	GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]Entitlement, error)
+	GetEntitlement(ctx context.Context, namespace string, id string) (*Entitlement, error)
+	DeleteEntitlement(ctx context.Context, namespace string, id string) error
+
 	GetEntitlementValue(ctx context.Context, namespace string, subjectKey string, id string, at time.Time) (EntitlementValue, error)
 
+	GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]Entitlement, error)
 	ListEntitlements(ctx context.Context, params ListEntitlementsParams) ([]Entitlement, error)
 }
 
@@ -120,6 +123,14 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 		return nil, err
 	}
 	return ent, nil
+}
+
+func (c *entitlementConnector) GetEntitlement(ctx context.Context, namespace string, id string) (*Entitlement, error) {
+	return c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
+}
+
+func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace string, id string) error {
+	return c.entitlementRepo.DeleteEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
 }
 
 func (c *entitlementConnector) GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]Entitlement, error) {

@@ -106,3 +106,27 @@ func (a *Router) ListEntitlements(w http.ResponseWriter, r *http.Request, params
 	}
 	a.entitlementHandler.ListEntitlements().With(params).ServeHTTP(w, r)
 }
+
+// Delete entitlement
+// (DELETE /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId})
+func (a *Router) DeleteEntitlement(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementId api.EntitlementId) {
+	if !a.config.EntitlementsEnabled {
+		unimplemented.DeleteEntitlement(w, r, subjectIdOrKey, entitlementId)
+		return
+	}
+	a.entitlementHandler.DeleteEntitlement().With(httpdriver.DeleteEntitlementHandlerParams{
+		EntitlementId: entitlementId,
+	}).ServeHTTP(w, r)
+}
+
+// Get entitlement
+// (GET /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId})
+func (a *Router) GetEntitlement(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementId api.EntitlementId) {
+	if !a.config.EntitlementsEnabled {
+		unimplemented.GetEntitlement(w, r, subjectIdOrKey, entitlementId)
+		return
+	}
+	a.entitlementHandler.GetEntitlement().With(httpdriver.GetEntitlementHandlerParams{
+		EntitlementId: entitlementId,
+	}).ServeHTTP(w, r)
+}
