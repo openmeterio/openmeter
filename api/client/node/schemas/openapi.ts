@@ -525,6 +525,20 @@ export interface components {
     EntitlementSharedFields: components['schemas']['SharedMetaFields'] &
       components['schemas']['EntitlementCreateSharedFields'] & {
         /**
+         * @description The feature the subject is entitled to use.
+         * Either featureKey or featureId is required.
+         *
+         * @example example-feature-key
+         */
+        featureKey: string
+        /**
+         * @description The feature the subject is entitled to use.
+         * Either featureKey or featureId is required.
+         *
+         * @example 01ARZ3NDEKTSV4RRFFQ69G5FAV
+         */
+        featureId: string
+        /**
          * @description The identifier key unique to the subject
          * @example customer-1
          */
