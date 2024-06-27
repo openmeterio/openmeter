@@ -314,8 +314,18 @@ func (ec *EntitlementCreate) check() error {
 	if _, ok := ec.mutation.FeatureKey(); !ok {
 		return &ValidationError{Name: "feature_key", err: errors.New(`db: missing required field "Entitlement.feature_key"`)}
 	}
+	if v, ok := ec.mutation.FeatureKey(); ok {
+		if err := entitlement.FeatureKeyValidator(v); err != nil {
+			return &ValidationError{Name: "feature_key", err: fmt.Errorf(`db: validator failed for field "Entitlement.feature_key": %w`, err)}
+		}
+	}
 	if _, ok := ec.mutation.SubjectKey(); !ok {
 		return &ValidationError{Name: "subject_key", err: errors.New(`db: missing required field "Entitlement.subject_key"`)}
+	}
+	if v, ok := ec.mutation.SubjectKey(); ok {
+		if err := entitlement.SubjectKeyValidator(v); err != nil {
+			return &ValidationError{Name: "subject_key", err: fmt.Errorf(`db: validator failed for field "Entitlement.subject_key": %w`, err)}
+		}
 	}
 	if v, ok := ec.mutation.UsagePeriodInterval(); ok {
 		if err := entitlement.UsagePeriodIntervalValidator(v); err != nil {

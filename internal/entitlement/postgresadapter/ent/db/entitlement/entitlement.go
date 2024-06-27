@@ -103,6 +103,10 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
+	FeatureKeyValidator func(string) error
+	// SubjectKeyValidator is a validator for the "subject_key" field. It is called by the builders before save.
+	SubjectKeyValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
