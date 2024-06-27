@@ -17,7 +17,6 @@ type EndCurrentUsagePeriodParams struct {
 type OwnerConnector interface {
 	GetOwnerQueryParams(ctx context.Context, owner NamespacedGrantOwner) (meterSlug string, defaultParams *streaming.QueryParams, err error)
 	GetStartOfMeasurement(ctx context.Context, owner NamespacedGrantOwner) (time.Time, error)
-	GetLastReset(ctx context.Context, owner NamespacedGrantOwner) (time.Time, error)
 	GetPeriodStartTimesBetween(ctx context.Context, owner NamespacedGrantOwner, from, to time.Time) ([]time.Time, error)
 	GetUsagePeriodStartAt(ctx context.Context, owner NamespacedGrantOwner, at time.Time) (time.Time, error)
 

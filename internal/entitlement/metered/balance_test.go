@@ -548,6 +548,101 @@ func TestGetEntitlementHistory(t *testing.T) {
 				assert.Len(t, segments, 3)
 			},
 		},
+		{
+			name: "If start time is not specified we are defaulting to the last reset",
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
+				ctx := context.Background()
+				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+
+				// create featute in db
+				feature, err := deps.featureDB.CreateFeature(ctx, exampleFeature)
+				assert.NoError(t, err)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feature)
+				inp.MeasureUsageFrom = &startTime
+				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
+				assert.NoError(t, err)
+
+				// grant at start
+				_, err = deps.grantDB.CreateGrant(ctx, credit.GrantRepoCreateGrantInput{
+					OwnerID:     credit.GrantOwner(ent.ID),
+					Namespace:   namespace,
+					Amount:      10000,
+					Priority:    1,
+					EffectiveAt: startTime,
+					ExpiresAt:   startTime.AddDate(0, 0, 3),
+				})
+				assert.NoError(t, err)
+
+				// register usage for meter & feature
+				deps.streaming.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Minute))
+
+				// let's do a reset
+				resetTime := startTime.Add(time.Hour * 2)
+				_, err = connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At:           resetTime,
+						RetainAnchor: true,
+					},
+				)
+				assert.NoError(t, err)
+
+				queryTime := startTime.Add(time.Hour * 12)
+
+				// register usage for meter & feature
+				deps.streaming.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Hour*2).Add(time.Minute))
+				deps.streaming.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Hour*3).Add(time.Minute))
+				deps.streaming.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Hour*5).Add(time.Minute))
+				deps.streaming.AddSimpleEvent(meterSlug, 1100, startTime.Add(time.Hour*8).Add(time.Minute))
+				deps.streaming.AddSimpleEvent(meterSlug, 100, queryTime.Add(-time.Second))
+
+				// grant after the reset
+				_, err = deps.grantDB.CreateGrant(ctx, credit.GrantRepoCreateGrantInput{
+					OwnerID:     credit.GrantOwner(ent.ID),
+					Namespace:   namespace,
+					Amount:      10000,
+					Priority:    1,
+					EffectiveAt: resetTime,
+					ExpiresAt:   startTime.AddDate(0, 0, 3),
+				})
+				assert.NoError(t, err)
+
+				windowedHistory, burndownHistory, err := connector.GetEntitlementBalanceHistory(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, meteredentitlement.BalanceHistoryParams{
+					To:             queryTime,
+					WindowTimeZone: *time.UTC,
+					WindowSize:     meteredentitlement.WindowSizeHour,
+				})
+				assert.NoError(t, err)
+
+				assert.Len(t, windowedHistory, 10)
+
+				// deps.streaming.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Hour*2).Add(time.Minute))
+				assert.Equal(t, 100.0, windowedHistory[0].UsageInPeriod)
+				assert.Equal(t, 10000.0, windowedHistory[0].BalanceAtStart)
+				// deps.streaming.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Hour*3).Add(time.Minute))
+				assert.Equal(t, 100.0, windowedHistory[1].UsageInPeriod)
+				assert.Equal(t, 9900.0, windowedHistory[1].BalanceAtStart)
+				assert.Equal(t, 9800.0, windowedHistory[2].BalanceAtStart)
+				// deps.streaming.AddSimpleEvent(meterSlug, 100, startTime.Add(time.Hour*5).Add(time.Minute))
+				assert.Equal(t, 100.0, windowedHistory[3].UsageInPeriod)
+				assert.Equal(t, 9800.0, windowedHistory[3].BalanceAtStart) // even though EffectiveAt: startTime.Add(time.Hour * 5).Add(time.Minute * 30) grant happens here, it is only recognized at the next window
+				assert.Equal(t, 9700.0, windowedHistory[4].BalanceAtStart)
+				assert.Equal(t, 9700.0, windowedHistory[5].BalanceAtStart)
+				// deps.streaming.AddSimpleEvent(meterSlug, 1100, startTime.Add(time.Hour*8).Add(time.Minute))
+				assert.Equal(t, 1100.0, windowedHistory[6].UsageInPeriod)
+				assert.Equal(t, 9700.0, windowedHistory[6].BalanceAtStart)
+				assert.Equal(t, 8600.0, windowedHistory[7].BalanceAtStart)
+				// deps.streaming.AddSimpleEvent(meterSlug, 100, queryTime.Add(-time.Second))
+				assert.Equal(t, 100.0, windowedHistory[9].UsageInPeriod)
+				assert.Equal(t, 8600.0, windowedHistory[9].BalanceAtStart)
+
+				// check returned burndownhistory
+				segments := burndownHistory.Segments()
+				assert.Len(t, segments, 2)
+			},
+		},
 	}
 
 	for _, tc := range tt {

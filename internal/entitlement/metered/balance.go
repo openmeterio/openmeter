@@ -95,38 +95,27 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 	// TODO: we should guard against abuse, getting history is expensive
 
 	// validate that we're working with a metered entitlement
-	ent, err := e.entitlementRepo.GetEntitlement(ctx, entitlementID)
+	entRepoEntity, err := e.entitlementRepo.GetEntitlement(ctx, entitlementID)
 	if err != nil {
 		return nil, credit.GrantBurnDownHistory{}, err
 	}
-	_, err = ParseFromGenericEntitlement(ent)
+
+	if entRepoEntity == nil {
+		return nil, credit.GrantBurnDownHistory{}, &entitlement.NotFoundError{EntitlementID: entitlementID}
+	}
+
+	ent, err := ParseFromGenericEntitlement(entRepoEntity)
 	if err != nil {
 		return nil, credit.GrantBurnDownHistory{}, err
 	}
 
 	if params.From == nil {
-		lastReset, err := e.ownerConnector.GetLastReset(ctx, credit.NamespacedGrantOwner{
-			Namespace: entitlementID.Namespace,
-			ID:        credit.GrantOwner(entitlementID.ID),
-		})
-		if err != nil {
-			return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("failed to get last reset: %w", err)
-		}
-
-		params.From = &lastReset
+		params.From = &ent.LastReset
 	}
 
 	// query period cannot be before start of measuring usage
-	start, err := e.ownerConnector.GetStartOfMeasurement(ctx, credit.NamespacedGrantOwner{
-		Namespace: entitlementID.Namespace,
-		ID:        credit.GrantOwner(entitlementID.ID),
-	})
-	if err != nil {
-		return nil, credit.GrantBurnDownHistory{}, err
-	}
-
-	if params.From.Before(start) {
-		return nil, credit.GrantBurnDownHistory{}, &models.GenericUserError{Message: fmt.Sprintf("from cannot be before %s", start.UTC().Format(time.RFC3339))}
+	if params.From.Before(ent.MeasureUsageFrom) {
+		return nil, credit.GrantBurnDownHistory{}, &models.GenericUserError{Message: fmt.Sprintf("from cannot be before %s", ent.MeasureUsageFrom.UTC().Format(time.RFC3339))}
 	}
 
 	owner := credit.NamespacedGrantOwner{
