@@ -560,6 +560,7 @@ func TestCredit(t *testing.T) {
 
 		priority := 1
 		maxRolloverAmount := 100.0
+		minRolloverAmount := 0.0
 
 		// Create grant
 		resp, err := client.CreateGrantWithResponse(context.Background(), subject, *entitlementId, api.EntitlementGrantCreateInput{
@@ -571,6 +572,7 @@ func TestCredit(t *testing.T) {
 			},
 			Priority:          &priority,
 			MaxRolloverAmount: &maxRolloverAmount,
+			MinRolloverAmount: &minRolloverAmount,
 			Recurrence: &api.RecurringPeriodCreateInput{
 				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
 				Interval: "YEAR",
@@ -591,6 +593,7 @@ func TestCredit(t *testing.T) {
 			Priority:          &priority,
 			EffectiveAt:       effectiveAt.UTC(),
 			MaxRolloverAmount: &maxRolloverAmount,
+			MinRolloverAmount: &minRolloverAmount,
 			Expiration: api.ExpirationPeriod{
 				Duration: "MONTH",
 				Count:    1,
