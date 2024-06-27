@@ -6,6 +6,13 @@ func ToPointer[T any](value T) *T {
 	return &value
 }
 
+func MapToPointer[T comparable, U any](value map[T]U) *map[T]U {
+	if len(value) == 0 {
+		return nil
+	}
+	return &value
+}
+
 func ToStringLike[Source, Dest ~string](value *Source) *Dest {
 	if value == nil {
 		return nil
