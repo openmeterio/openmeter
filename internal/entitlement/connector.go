@@ -83,11 +83,7 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 	if err != nil {
 		return nil, err
 	}
-	err = connector.SetDefaultsAndValidate(&input)
-	if err != nil {
-		return nil, err
-	}
-	err = connector.ValidateForFeature(&input, *feature)
+	err = connector.BeforeCreate(&input, feature)
 	if err != nil {
 		return nil, err
 	}
@@ -120,6 +116,11 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 		CurrentUsagePeriod: currentUsagePeriod,
 	})
 	if err != nil || ent == nil {
+		return nil, err
+	}
+
+	err = connector.AfterCreate(ent)
+	if err != nil {
 		return nil, err
 	}
 	return ent, nil

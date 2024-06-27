@@ -143,6 +143,12 @@ func (gc *GrantCreate) SetResetMaxRollover(f float64) *GrantCreate {
 	return gc
 }
 
+// SetResetMinRollover sets the "reset_min_rollover" field.
+func (gc *GrantCreate) SetResetMinRollover(f float64) *GrantCreate {
+	gc.mutation.SetResetMinRollover(f)
+	return gc
+}
+
 // SetRecurrencePeriod sets the "recurrence_period" field.
 func (gc *GrantCreate) SetRecurrencePeriod(ri recurrence.RecurrenceInterval) *GrantCreate {
 	gc.mutation.SetRecurrencePeriod(ri)
@@ -275,6 +281,9 @@ func (gc *GrantCreate) check() error {
 	if _, ok := gc.mutation.ResetMaxRollover(); !ok {
 		return &ValidationError{Name: "reset_max_rollover", err: errors.New(`db: missing required field "Grant.reset_max_rollover"`)}
 	}
+	if _, ok := gc.mutation.ResetMinRollover(); !ok {
+		return &ValidationError{Name: "reset_min_rollover", err: errors.New(`db: missing required field "Grant.reset_min_rollover"`)}
+	}
 	if v, ok := gc.mutation.RecurrencePeriod(); ok {
 		if err := grant.RecurrencePeriodValidator(v); err != nil {
 			return &ValidationError{Name: "recurrence_period", err: fmt.Errorf(`db: validator failed for field "Grant.recurrence_period": %w`, err)}
@@ -367,6 +376,10 @@ func (gc *GrantCreate) createSpec() (*Grant, *sqlgraph.CreateSpec) {
 	if value, ok := gc.mutation.ResetMaxRollover(); ok {
 		_spec.SetField(grant.FieldResetMaxRollover, field.TypeFloat64, value)
 		_node.ResetMaxRollover = value
+	}
+	if value, ok := gc.mutation.ResetMinRollover(); ok {
+		_spec.SetField(grant.FieldResetMinRollover, field.TypeFloat64, value)
+		_node.ResetMinRollover = value
 	}
 	if value, ok := gc.mutation.RecurrencePeriod(); ok {
 		_spec.SetField(grant.FieldRecurrencePeriod, field.TypeEnum, value)
@@ -537,6 +550,9 @@ func (u *GrantUpsertOne) UpdateNewValues() *GrantUpsertOne {
 		}
 		if _, exists := u.create.mutation.ResetMaxRollover(); exists {
 			s.SetIgnore(grant.FieldResetMaxRollover)
+		}
+		if _, exists := u.create.mutation.ResetMinRollover(); exists {
+			s.SetIgnore(grant.FieldResetMinRollover)
 		}
 		if _, exists := u.create.mutation.RecurrencePeriod(); exists {
 			s.SetIgnore(grant.FieldRecurrencePeriod)
@@ -861,6 +877,9 @@ func (u *GrantUpsertBulk) UpdateNewValues() *GrantUpsertBulk {
 			}
 			if _, exists := b.mutation.ResetMaxRollover(); exists {
 				s.SetIgnore(grant.FieldResetMaxRollover)
+			}
+			if _, exists := b.mutation.ResetMinRollover(); exists {
+				s.SetIgnore(grant.FieldResetMinRollover)
 			}
 			if _, exists := b.mutation.RecurrencePeriod(); exists {
 				s.SetIgnore(grant.FieldRecurrencePeriod)

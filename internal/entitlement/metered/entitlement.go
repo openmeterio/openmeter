@@ -32,6 +32,12 @@ type Entitlement struct {
 	LastReset time.Time `json:"lastReset"`
 }
 
+// HasDefaultGrant returns true if the entitlement has a default grant.
+// This is the case when `IssuesAfterReset` is set and greater than 0.
+func (e *Entitlement) HasDefaultGrant() bool {
+	return e.IssuesAfterReset != nil && *e.IssuesAfterReset > 0
+}
+
 func ParseFromGenericEntitlement(model *entitlement.Entitlement) (*Entitlement, error) {
 	if model.EntitlementType != entitlement.EntitlementTypeMetered {
 		return nil, &entitlement.WrongTypeError{Expected: entitlement.EntitlementTypeMetered, Actual: model.EntitlementType}

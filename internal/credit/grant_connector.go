@@ -17,6 +17,7 @@ type CreateGrantInput struct {
 	Expiration       ExpirationPeriod
 	Metadata         map[string]string
 	ResetMaxRollover float64
+	ResetMinRollover float64
 	Recurrence       *recurrence.Recurrence
 }
 
@@ -57,6 +58,7 @@ type GrantRepoCreateGrantInput struct {
 	ExpiresAt        time.Time
 	Metadata         map[string]string
 	ResetMaxRollover float64
+	ResetMinRollover float64
 	Recurrence       *recurrence.Recurrence
 }
 
@@ -133,6 +135,7 @@ func (m *grantConnector) CreateGrant(ctx context.Context, owner NamespacedGrantO
 			ExpiresAt:        input.Expiration.GetExpiration(input.EffectiveAt),
 			Metadata:         input.Metadata,
 			ResetMaxRollover: input.ResetMaxRollover,
+			ResetMinRollover: input.ResetMinRollover,
 			Recurrence:       input.Recurrence,
 		})
 

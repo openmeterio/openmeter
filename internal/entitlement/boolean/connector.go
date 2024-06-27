@@ -26,7 +26,7 @@ func (c *connector) GetValue(entitlement *entitlement.Entitlement, at time.Time)
 	return &BooleanEntitlementValue{}, nil
 }
 
-func (c *connector) SetDefaultsAndValidate(model *entitlement.CreateEntitlementInputs) error {
+func (c *connector) BeforeCreate(model *entitlement.CreateEntitlementInputs, feature *productcatalog.Feature) error {
 	model.EntitlementType = entitlement.EntitlementTypeBoolean
 	if model.MeasureUsageFrom != nil ||
 		model.IssueAfterReset != nil ||
@@ -38,7 +38,7 @@ func (c *connector) SetDefaultsAndValidate(model *entitlement.CreateEntitlementI
 	return nil
 }
 
-func (c *connector) ValidateForFeature(entitlement *entitlement.CreateEntitlementInputs, feature productcatalog.Feature) error {
+func (c *connector) AfterCreate(entitlement *entitlement.Entitlement) error {
 	return nil
 }
 

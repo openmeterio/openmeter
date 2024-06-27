@@ -902,6 +902,8 @@ type GrantMutation struct {
 	voided_at             *time.Time
 	reset_max_rollover    *float64
 	addreset_max_rollover *float64
+	reset_min_rollover    *float64
+	addreset_min_rollover *float64
 	recurrence_period     *recurrence.RecurrenceInterval
 	recurrence_anchor     *time.Time
 	clearedFields         map[string]struct{}
@@ -1581,6 +1583,62 @@ func (m *GrantMutation) ResetResetMaxRollover() {
 	m.addreset_max_rollover = nil
 }
 
+// SetResetMinRollover sets the "reset_min_rollover" field.
+func (m *GrantMutation) SetResetMinRollover(f float64) {
+	m.reset_min_rollover = &f
+	m.addreset_min_rollover = nil
+}
+
+// ResetMinRollover returns the value of the "reset_min_rollover" field in the mutation.
+func (m *GrantMutation) ResetMinRollover() (r float64, exists bool) {
+	v := m.reset_min_rollover
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldResetMinRollover returns the old "reset_min_rollover" field's value of the Grant entity.
+// If the Grant object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GrantMutation) OldResetMinRollover(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldResetMinRollover is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldResetMinRollover requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldResetMinRollover: %w", err)
+	}
+	return oldValue.ResetMinRollover, nil
+}
+
+// AddResetMinRollover adds f to the "reset_min_rollover" field.
+func (m *GrantMutation) AddResetMinRollover(f float64) {
+	if m.addreset_min_rollover != nil {
+		*m.addreset_min_rollover += f
+	} else {
+		m.addreset_min_rollover = &f
+	}
+}
+
+// AddedResetMinRollover returns the value that was added to the "reset_min_rollover" field in this mutation.
+func (m *GrantMutation) AddedResetMinRollover() (r float64, exists bool) {
+	v := m.addreset_min_rollover
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetResetMinRollover resets all changes to the "reset_min_rollover" field.
+func (m *GrantMutation) ResetResetMinRollover() {
+	m.reset_min_rollover = nil
+	m.addreset_min_rollover = nil
+}
+
 // SetRecurrencePeriod sets the "recurrence_period" field.
 func (m *GrantMutation) SetRecurrencePeriod(ri recurrence.RecurrenceInterval) {
 	m.recurrence_period = &ri
@@ -1713,7 +1771,7 @@ func (m *GrantMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GrantMutation) Fields() []string {
-	fields := make([]string, 0, 15)
+	fields := make([]string, 0, 16)
 	if m.namespace != nil {
 		fields = append(fields, grant.FieldNamespace)
 	}
@@ -1752,6 +1810,9 @@ func (m *GrantMutation) Fields() []string {
 	}
 	if m.reset_max_rollover != nil {
 		fields = append(fields, grant.FieldResetMaxRollover)
+	}
+	if m.reset_min_rollover != nil {
+		fields = append(fields, grant.FieldResetMinRollover)
 	}
 	if m.recurrence_period != nil {
 		fields = append(fields, grant.FieldRecurrencePeriod)
@@ -1793,6 +1854,8 @@ func (m *GrantMutation) Field(name string) (ent.Value, bool) {
 		return m.VoidedAt()
 	case grant.FieldResetMaxRollover:
 		return m.ResetMaxRollover()
+	case grant.FieldResetMinRollover:
+		return m.ResetMinRollover()
 	case grant.FieldRecurrencePeriod:
 		return m.RecurrencePeriod()
 	case grant.FieldRecurrenceAnchor:
@@ -1832,6 +1895,8 @@ func (m *GrantMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldVoidedAt(ctx)
 	case grant.FieldResetMaxRollover:
 		return m.OldResetMaxRollover(ctx)
+	case grant.FieldResetMinRollover:
+		return m.OldResetMinRollover(ctx)
 	case grant.FieldRecurrencePeriod:
 		return m.OldRecurrencePeriod(ctx)
 	case grant.FieldRecurrenceAnchor:
@@ -1936,6 +2001,13 @@ func (m *GrantMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetResetMaxRollover(v)
 		return nil
+	case grant.FieldResetMinRollover:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetResetMinRollover(v)
+		return nil
 	case grant.FieldRecurrencePeriod:
 		v, ok := value.(recurrence.RecurrenceInterval)
 		if !ok {
@@ -1967,6 +2039,9 @@ func (m *GrantMutation) AddedFields() []string {
 	if m.addreset_max_rollover != nil {
 		fields = append(fields, grant.FieldResetMaxRollover)
 	}
+	if m.addreset_min_rollover != nil {
+		fields = append(fields, grant.FieldResetMinRollover)
+	}
 	return fields
 }
 
@@ -1981,6 +2056,8 @@ func (m *GrantMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedPriority()
 	case grant.FieldResetMaxRollover:
 		return m.AddedResetMaxRollover()
+	case grant.FieldResetMinRollover:
+		return m.AddedResetMinRollover()
 	}
 	return nil, false
 }
@@ -2010,6 +2087,13 @@ func (m *GrantMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddResetMaxRollover(v)
+		return nil
+	case grant.FieldResetMinRollover:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddResetMinRollover(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Grant numeric field %s", name)
@@ -2109,6 +2193,9 @@ func (m *GrantMutation) ResetField(name string) error {
 		return nil
 	case grant.FieldResetMaxRollover:
 		m.ResetResetMaxRollover()
+		return nil
+	case grant.FieldResetMinRollover:
+		m.ResetResetMinRollover()
 		return nil
 	case grant.FieldRecurrencePeriod:
 		m.ResetRecurrencePeriod()
