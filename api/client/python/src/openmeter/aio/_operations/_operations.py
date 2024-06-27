@@ -2476,14 +2476,19 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           was last updated. Required.
                         "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date
                           of the grant.
-                        "maxRolloverAmount": 0,  # Optional. Default value is 0. The maximum
-                          amount of the grant that can be rolled over. Defaults to 0.   * maxAmount =
-                          {original_amount} -> rollover original amount * maxAmount = 0 -> no rollover
-                          * maxAmount = 90 -> rollover 90 max  If it's larger than 0 then the grant's
-                          balance will be the MAX(maxRollover, balance) + amount.
+                        "maxRolloverAmount": 0,  # Optional. Default value is 0. Grants are
+                          rolled over at reset, after which they can have a different balance compared
+                          to what they had before the reset.  Balance after the reset is calculated as:
+                          Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+                          MinRolloverAmount)).
                         "metadata": {
                             "str": "str"  # Optional. Dictionary of :code:`<string>`.
                         },
+                        "minRolloverAmount": 0,  # Optional. Default value is 0. Grants are
+                          rolled over at reset, after which they can have a different balance compared
+                          to what they had before the reset.  Balance after the reset is calculated as:
+                          Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+                          MinRolloverAmount)).
                         "nextRecurrence": "2020-02-20 00:00:00",  # Optional. The next time
                           the grant will recurr.
                         "priority": 1,  # Optional. Default value is 1. The priority of the
@@ -3064,14 +3069,19 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           was last updated. Required.
                         "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date
                           of the grant.
-                        "maxRolloverAmount": 0,  # Optional. Default value is 0. The maximum
-                          amount of the grant that can be rolled over. Defaults to 0.   * maxAmount =
-                          {original_amount} -> rollover original amount * maxAmount = 0 -> no rollover
-                          * maxAmount = 90 -> rollover 90 max  If it's larger than 0 then the grant's
-                          balance will be the MAX(maxRollover, balance) + amount.
+                        "maxRolloverAmount": 0,  # Optional. Default value is 0. Grants are
+                          rolled over at reset, after which they can have a different balance compared
+                          to what they had before the reset.  Balance after the reset is calculated as:
+                          Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+                          MinRolloverAmount)).
                         "metadata": {
                             "str": "str"  # Optional. Dictionary of :code:`<string>`.
                         },
+                        "minRolloverAmount": 0,  # Optional. Default value is 0. Grants are
+                          rolled over at reset, after which they can have a different balance compared
+                          to what they had before the reset.  Balance after the reset is calculated as:
+                          Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+                          MinRolloverAmount)).
                         "nextRecurrence": "2020-02-20 00:00:00",  # Optional. The next time
                           the grant will recurr.
                         "priority": 1,  # Optional. Default value is 1. The priority of the
@@ -3183,14 +3193,19 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         "duration": "str"  # The expiration period duration like month.
                           Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
                     },
-                    "maxRolloverAmount": 0,  # Optional. Default value is 0. The maximum amount
-                      of the grant that can be rolled over. Defaults to 0.   * maxAmount =
-                      {original_amount} -> rollover original amount * maxAmount = 0 -> no rollover *
-                      maxAmount = 90 -> rollover 90 max  If it's larger than 0 then the grant's balance
-                      will be the MAX(maxRollover, balance) + amount.
+                    "maxRolloverAmount": 0,  # Optional. Default value is 0. Grants are rolled
+                      over at reset, after which they can have a different balance compared to what
+                      they had before the reset.  Balance after the reset is calculated as:
+                      Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+                      MinRolloverAmount)).
                     "metadata": {
                         "str": "str"  # Optional. Dictionary of :code:`<string>`.
                     },
+                    "minRolloverAmount": 0,  # Optional. Default value is 0. Grants are rolled
+                      over at reset, after which they can have a different balance compared to what
+                      they had before the reset.  Balance after the reset is calculated as:
+                      Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+                      MinRolloverAmount)).
                     "priority": 1,  # Optional. Default value is 1. The priority of the grant.
                       Grants with higher priority are applied first. Priority is a positive decimal
                       numbers. With lower numbers indicating higher importance. For example, a priority
@@ -3232,14 +3247,19 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                       last updated. Required.
                     "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
                       grant.
-                    "maxRolloverAmount": 0,  # Optional. Default value is 0. The maximum amount
-                      of the grant that can be rolled over. Defaults to 0.   * maxAmount =
-                      {original_amount} -> rollover original amount * maxAmount = 0 -> no rollover *
-                      maxAmount = 90 -> rollover 90 max  If it's larger than 0 then the grant's balance
-                      will be the MAX(maxRollover, balance) + amount.
+                    "maxRolloverAmount": 0,  # Optional. Default value is 0. Grants are rolled
+                      over at reset, after which they can have a different balance compared to what
+                      they had before the reset.  Balance after the reset is calculated as:
+                      Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+                      MinRolloverAmount)).
                     "metadata": {
                         "str": "str"  # Optional. Dictionary of :code:`<string>`.
                     },
+                    "minRolloverAmount": 0,  # Optional. Default value is 0. Grants are rolled
+                      over at reset, after which they can have a different balance compared to what
+                      they had before the reset.  Balance after the reset is calculated as:
+                      Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+                      MinRolloverAmount)).
                     "nextRecurrence": "2020-02-20 00:00:00",  # Optional. The next time the grant
                       will recurr.
                     "priority": 1,  # Optional. Default value is 1. The priority of the grant.
@@ -3316,14 +3336,19 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                       last updated. Required.
                     "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
                       grant.
-                    "maxRolloverAmount": 0,  # Optional. Default value is 0. The maximum amount
-                      of the grant that can be rolled over. Defaults to 0.   * maxAmount =
-                      {original_amount} -> rollover original amount * maxAmount = 0 -> no rollover *
-                      maxAmount = 90 -> rollover 90 max  If it's larger than 0 then the grant's balance
-                      will be the MAX(maxRollover, balance) + amount.
+                    "maxRolloverAmount": 0,  # Optional. Default value is 0. Grants are rolled
+                      over at reset, after which they can have a different balance compared to what
+                      they had before the reset.  Balance after the reset is calculated as:
+                      Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+                      MinRolloverAmount)).
                     "metadata": {
                         "str": "str"  # Optional. Dictionary of :code:`<string>`.
                     },
+                    "minRolloverAmount": 0,  # Optional. Default value is 0. Grants are rolled
+                      over at reset, after which they can have a different balance compared to what
+                      they had before the reset.  Balance after the reset is calculated as:
+                      Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+                      MinRolloverAmount)).
                     "nextRecurrence": "2020-02-20 00:00:00",  # Optional. The next time the grant
                       will recurr.
                     "priority": 1,  # Optional. Default value is 1. The priority of the grant.
@@ -3380,14 +3405,19 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         "duration": "str"  # The expiration period duration like month.
                           Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and "YEAR".
                     },
-                    "maxRolloverAmount": 0,  # Optional. Default value is 0. The maximum amount
-                      of the grant that can be rolled over. Defaults to 0.   * maxAmount =
-                      {original_amount} -> rollover original amount * maxAmount = 0 -> no rollover *
-                      maxAmount = 90 -> rollover 90 max  If it's larger than 0 then the grant's balance
-                      will be the MAX(maxRollover, balance) + amount.
+                    "maxRolloverAmount": 0,  # Optional. Default value is 0. Grants are rolled
+                      over at reset, after which they can have a different balance compared to what
+                      they had before the reset.  Balance after the reset is calculated as:
+                      Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+                      MinRolloverAmount)).
                     "metadata": {
                         "str": "str"  # Optional. Dictionary of :code:`<string>`.
                     },
+                    "minRolloverAmount": 0,  # Optional. Default value is 0. Grants are rolled
+                      over at reset, after which they can have a different balance compared to what
+                      they had before the reset.  Balance after the reset is calculated as:
+                      Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+                      MinRolloverAmount)).
                     "priority": 1,  # Optional. Default value is 1. The priority of the grant.
                       Grants with higher priority are applied first. Priority is a positive decimal
                       numbers. With lower numbers indicating higher importance. For example, a priority
@@ -3429,14 +3459,19 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                       last updated. Required.
                     "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
                       grant.
-                    "maxRolloverAmount": 0,  # Optional. Default value is 0. The maximum amount
-                      of the grant that can be rolled over. Defaults to 0.   * maxAmount =
-                      {original_amount} -> rollover original amount * maxAmount = 0 -> no rollover *
-                      maxAmount = 90 -> rollover 90 max  If it's larger than 0 then the grant's balance
-                      will be the MAX(maxRollover, balance) + amount.
+                    "maxRolloverAmount": 0,  # Optional. Default value is 0. Grants are rolled
+                      over at reset, after which they can have a different balance compared to what
+                      they had before the reset.  Balance after the reset is calculated as:
+                      Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+                      MinRolloverAmount)).
                     "metadata": {
                         "str": "str"  # Optional. Dictionary of :code:`<string>`.
                     },
+                    "minRolloverAmount": 0,  # Optional. Default value is 0. Grants are rolled
+                      over at reset, after which they can have a different balance compared to what
+                      they had before the reset.  Balance after the reset is calculated as:
+                      Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
+                      MinRolloverAmount)).
                     "nextRecurrence": "2020-02-20 00:00:00",  # Optional. The next time the grant
                       will recurr.
                     "priority": 1,  # Optional. Default value is 1. The priority of the grant.
