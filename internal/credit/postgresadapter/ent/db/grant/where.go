@@ -667,19 +667,19 @@ func ResetMaxRolloverLTE(v float64) predicate.Grant {
 }
 
 // RecurrencePeriodEQ applies the EQ predicate on the "recurrence_period" field.
-func RecurrencePeriodEQ(v recurrence.RecurrencePeriod) predicate.Grant {
+func RecurrencePeriodEQ(v recurrence.RecurrenceInterval) predicate.Grant {
 	vc := v
 	return predicate.Grant(sql.FieldEQ(FieldRecurrencePeriod, vc))
 }
 
 // RecurrencePeriodNEQ applies the NEQ predicate on the "recurrence_period" field.
-func RecurrencePeriodNEQ(v recurrence.RecurrencePeriod) predicate.Grant {
+func RecurrencePeriodNEQ(v recurrence.RecurrenceInterval) predicate.Grant {
 	vc := v
 	return predicate.Grant(sql.FieldNEQ(FieldRecurrencePeriod, vc))
 }
 
 // RecurrencePeriodIn applies the In predicate on the "recurrence_period" field.
-func RecurrencePeriodIn(vs ...recurrence.RecurrencePeriod) predicate.Grant {
+func RecurrencePeriodIn(vs ...recurrence.RecurrenceInterval) predicate.Grant {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]
@@ -688,7 +688,7 @@ func RecurrencePeriodIn(vs ...recurrence.RecurrencePeriod) predicate.Grant {
 }
 
 // RecurrencePeriodNotIn applies the NotIn predicate on the "recurrence_period" field.
-func RecurrencePeriodNotIn(vs ...recurrence.RecurrencePeriod) predicate.Grant {
+func RecurrencePeriodNotIn(vs ...recurrence.RecurrenceInterval) predicate.Grant {
 	v := make([]any, len(vs))
 	for i := range v {
 		v[i] = vs[i]

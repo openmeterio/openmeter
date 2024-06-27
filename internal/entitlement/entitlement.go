@@ -105,8 +105,8 @@ func (u UsagePeriod) ToRecurringPeriod() api.RecurringPeriod {
 
 func (u UsagePeriod) GetCurrentPeriod() (api.Period, error) {
 	rec := recurrence.Recurrence{
-		Anchor: u.Anchor,
-		Period: recurrence.RecurrencePeriod(u.Interval),
+		Anchor:   u.Anchor,
+		Interval: recurrence.RecurrenceInterval(u.Interval),
 	}
 
 	now := time.Now()

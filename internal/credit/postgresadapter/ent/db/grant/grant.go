@@ -95,7 +95,7 @@ var (
 )
 
 // RecurrencePeriodValidator is a validator for the "recurrence_period" field enum values. It is called by the builders before save.
-func RecurrencePeriodValidator(rp recurrence.RecurrencePeriod) error {
+func RecurrencePeriodValidator(rp recurrence.RecurrenceInterval) error {
 	switch rp {
 	case "DAY", "WEEK", "MONTH", "YEAR":
 		return nil

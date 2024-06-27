@@ -37,7 +37,7 @@ func (g *grantDBADapter) CreateGrant(ctx context.Context, grant credit.GrantRepo
 
 	if grant.Recurrence != nil {
 		command = command.
-			SetNillableRecurrencePeriod(&grant.Recurrence.Period).
+			SetNillableRecurrencePeriod(&grant.Recurrence.Interval).
 			SetNillableRecurrenceAnchor(&grant.Recurrence.Anchor)
 	}
 
@@ -170,8 +170,8 @@ func mapGrantEntity(entity *db.Grant) credit.Grant {
 
 	if entity.RecurrencePeriod != nil && entity.RecurrenceAnchor != nil {
 		g.Recurrence = &recurrence.Recurrence{
-			Period: *entity.RecurrencePeriod,
-			Anchor: entity.RecurrenceAnchor.In(time.UTC),
+			Interval: *entity.RecurrencePeriod,
+			Anchor:   entity.RecurrenceAnchor.In(time.UTC),
 		}
 	}
 

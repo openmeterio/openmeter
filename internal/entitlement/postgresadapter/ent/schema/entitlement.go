@@ -36,7 +36,7 @@ func (Entitlement) Fields() []ent.Field {
 		field.Float("issue_after_reset").Optional().Nillable().Immutable(),
 		field.Bool("is_soft_limit").Optional().Nillable().Immutable(),
 		field.JSON("config", map[string]interface{}{}).Optional(),
-		field.Enum("usage_period_interval").Values(recurrence.RecurrencePeriod("").Values()...).Optional().Nillable().Immutable(),
+		field.Enum("usage_period_interval").Values(recurrence.RecurrenceInterval("").Values()...).Optional().Nillable().Immutable(),
 		field.Time("usage_period_anchor").Optional().Nillable(),
 		field.Time("current_usage_period_start").Optional().Nillable(),
 		field.Time("current_usage_period_end").Optional().Nillable(),

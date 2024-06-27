@@ -144,15 +144,15 @@ func (gc *GrantCreate) SetResetMaxRollover(f float64) *GrantCreate {
 }
 
 // SetRecurrencePeriod sets the "recurrence_period" field.
-func (gc *GrantCreate) SetRecurrencePeriod(rp recurrence.RecurrencePeriod) *GrantCreate {
-	gc.mutation.SetRecurrencePeriod(rp)
+func (gc *GrantCreate) SetRecurrencePeriod(ri recurrence.RecurrenceInterval) *GrantCreate {
+	gc.mutation.SetRecurrencePeriod(ri)
 	return gc
 }
 
 // SetNillableRecurrencePeriod sets the "recurrence_period" field if the given value is not nil.
-func (gc *GrantCreate) SetNillableRecurrencePeriod(rp *recurrence.RecurrencePeriod) *GrantCreate {
-	if rp != nil {
-		gc.SetRecurrencePeriod(*rp)
+func (gc *GrantCreate) SetNillableRecurrencePeriod(ri *recurrence.RecurrenceInterval) *GrantCreate {
+	if ri != nil {
+		gc.SetRecurrencePeriod(*ri)
 	}
 	return gc
 }

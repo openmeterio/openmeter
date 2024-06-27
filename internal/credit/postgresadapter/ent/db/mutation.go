@@ -902,7 +902,7 @@ type GrantMutation struct {
 	voided_at             *time.Time
 	reset_max_rollover    *float64
 	addreset_max_rollover *float64
-	recurrence_period     *recurrence.RecurrencePeriod
+	recurrence_period     *recurrence.RecurrenceInterval
 	recurrence_anchor     *time.Time
 	clearedFields         map[string]struct{}
 	done                  bool
@@ -1582,12 +1582,12 @@ func (m *GrantMutation) ResetResetMaxRollover() {
 }
 
 // SetRecurrencePeriod sets the "recurrence_period" field.
-func (m *GrantMutation) SetRecurrencePeriod(rp recurrence.RecurrencePeriod) {
-	m.recurrence_period = &rp
+func (m *GrantMutation) SetRecurrencePeriod(ri recurrence.RecurrenceInterval) {
+	m.recurrence_period = &ri
 }
 
 // RecurrencePeriod returns the value of the "recurrence_period" field in the mutation.
-func (m *GrantMutation) RecurrencePeriod() (r recurrence.RecurrencePeriod, exists bool) {
+func (m *GrantMutation) RecurrencePeriod() (r recurrence.RecurrenceInterval, exists bool) {
 	v := m.recurrence_period
 	if v == nil {
 		return
@@ -1598,7 +1598,7 @@ func (m *GrantMutation) RecurrencePeriod() (r recurrence.RecurrencePeriod, exist
 // OldRecurrencePeriod returns the old "recurrence_period" field's value of the Grant entity.
 // If the Grant object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GrantMutation) OldRecurrencePeriod(ctx context.Context) (v *recurrence.RecurrencePeriod, err error) {
+func (m *GrantMutation) OldRecurrencePeriod(ctx context.Context) (v *recurrence.RecurrenceInterval, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldRecurrencePeriod is only allowed on UpdateOne operations")
 	}
@@ -1937,7 +1937,7 @@ func (m *GrantMutation) SetField(name string, value ent.Value) error {
 		m.SetResetMaxRollover(v)
 		return nil
 	case grant.FieldRecurrencePeriod:
-		v, ok := value.(recurrence.RecurrencePeriod)
+		v, ok := value.(recurrence.RecurrenceInterval)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
