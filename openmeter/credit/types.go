@@ -29,6 +29,5 @@ type ListGrantsParams = credit.ListGrantsParams
 type NamespacedGrantOwner = credit.NamespacedGrantOwner
 type OwnerConnector = credit.OwnerConnector
 type Pagination = credit.Pagination
-type Period = credit.Period
 type QueryUsageFn = credit.QueryUsageFn
 type SegmentTerminationReason = credit.SegmentTerminationReason

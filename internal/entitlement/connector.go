@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 type ListEntitlementsOrderBy string
@@ -90,15 +90,17 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 	}
 
 	var usagePeriod *UsagePeriod
-	var currentUsagePeriod *api.Period
+	var currentUsagePeriod *recurrence.Period
 	if input.UsagePeriod != nil {
-		calculatedPeriod, err := input.UsagePeriod.GetCurrentPeriod()
+		usagePeriod = input.UsagePeriod
+		usagePeriod.Anchor = usagePeriod.Anchor.Truncate(time.Minute)
+
+		calculatedPeriod, err := usagePeriod.GetCurrentPeriod()
 		if err != nil {
 			return nil, err
 		}
 
 		currentUsagePeriod = &calculatedPeriod
-		usagePeriod = input.UsagePeriod
 	}
 
 	ent, err := c.entitlementRepo.CreateEntitlement(ctx, CreateEntitlementRepoInputs{

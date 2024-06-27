@@ -3,7 +3,6 @@ package entitlement
 import (
 	"time"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -87,23 +86,13 @@ type GenericProperties struct {
 	SubjectKey      string          `json:"subjectKey,omitempty"`
 	EntitlementType EntitlementType `json:"type,omitempty"`
 
-	UsagePeriod        *UsagePeriod `json:"usagePeriod,omitempty"`
-	CurrentUsagePeriod *api.Period  `json:"currentUsagePeriod,omitempty"`
+	UsagePeriod        *UsagePeriod       `json:"usagePeriod,omitempty"`
+	CurrentUsagePeriod *recurrence.Period `json:"currentUsagePeriod,omitempty"`
 }
 
-type UsagePeriod struct {
-	Anchor   time.Time           `json:"anchor"`
-	Interval UsagePeriodInterval `json:"interval"`
-}
+type UsagePeriod recurrence.Recurrence
 
-func (u UsagePeriod) ToRecurringPeriod() api.RecurringPeriod {
-	return api.RecurringPeriod{
-		Anchor:   u.Anchor,
-		Interval: api.RecurringPeriodEnum(u.Interval),
-	}
-}
-
-func (u UsagePeriod) GetCurrentPeriod() (api.Period, error) {
+func (u UsagePeriod) GetCurrentPeriod() (recurrence.Period, error) {
 	rec := recurrence.Recurrence{
 		Anchor:   u.Anchor,
 		Interval: recurrence.RecurrenceInterval(u.Interval),
@@ -113,35 +102,16 @@ func (u UsagePeriod) GetCurrentPeriod() (api.Period, error) {
 
 	currentPeriodEnd, err := rec.NextAfter(now)
 	if err != nil {
-		return api.Period{}, err
+		return recurrence.Period{}, err
 	}
 
 	currentPeriodStart, err := rec.PrevBefore(now)
 	if err != nil {
-		return api.Period{}, err
+		return recurrence.Period{}, err
 	}
 
-	return api.Period{
+	return recurrence.Period{
 		From: currentPeriodStart,
 		To:   currentPeriodEnd,
 	}, nil
-}
-
-type UsagePeriodInterval string
-
-const (
-	UsagePeriodIntervalDay   UsagePeriodInterval = "DAY"
-	UsagePeriodIntervalWeek  UsagePeriodInterval = "WEEK"
-	UsagePeriodIntervalMonth UsagePeriodInterval = "MONTH"
-	UsagePeriodIntervalYear  UsagePeriodInterval = "YEAR"
-)
-
-func (u UsagePeriodInterval) Values() []UsagePeriodInterval {
-	return []UsagePeriodInterval{UsagePeriodIntervalDay, UsagePeriodIntervalWeek, UsagePeriodIntervalMonth, UsagePeriodIntervalYear}
-}
-
-func (u UsagePeriodInterval) StrValues() []string {
-	return slicesx.Map(u.Values(), func(i UsagePeriodInterval) string {
-		return string(i)
-	})
 }

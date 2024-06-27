@@ -9,6 +9,7 @@ import (
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	staticentitlement "github.com/openmeterio/openmeter/internal/entitlement/static"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 type parser struct{}
@@ -32,8 +33,8 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 		SubjectKey:         metered.SubjectKey,
 		Type:               api.EntitlementMeteredType(metered.EntitlementType),
 		UpdatedAt:          &metered.UpdatedAt,
-		UsagePeriod:        e.UsagePeriod.ToRecurringPeriod(),
-		CurrentUsagePeriod: *e.CurrentUsagePeriod,
+		UsagePeriod:        *mapUsagePeriod(e.UsagePeriod),
+		CurrentUsagePeriod: *mapPeriod(e.CurrentUsagePeriod),
 		LastReset:          metered.LastReset,
 	}, nil
 }
@@ -54,11 +55,8 @@ func (parser) ToStatic(e *entitlement.Entitlement) (*api.EntitlementStatic, erro
 		Type:               api.EntitlementStaticType(static.EntitlementType),
 		UpdatedAt:          &static.UpdatedAt,
 		Config:             static.Config,
-		CurrentUsagePeriod: static.CurrentUsagePeriod,
-	}
-
-	if static.UsagePeriod != nil {
-		apiRes.UsagePeriod = convert.ToPointer(static.UsagePeriod.ToRecurringPeriod())
+		CurrentUsagePeriod: mapPeriod(static.CurrentUsagePeriod),
+		UsagePeriod:        mapUsagePeriod(e.UsagePeriod),
 	}
 
 	return apiRes, nil
@@ -79,11 +77,8 @@ func (parser) ToBoolean(e *entitlement.Entitlement) (*api.EntitlementBoolean, er
 		SubjectKey:         boolean.SubjectKey,
 		Type:               api.EntitlementBooleanType(boolean.EntitlementType),
 		UpdatedAt:          &boolean.UpdatedAt,
-		CurrentUsagePeriod: boolean.CurrentUsagePeriod,
-	}
-
-	if boolean.UsagePeriod != nil {
-		apiRes.UsagePeriod = convert.ToPointer(boolean.UsagePeriod.ToRecurringPeriod())
+		CurrentUsagePeriod: mapPeriod(boolean.CurrentUsagePeriod),
+		UsagePeriod:        mapUsagePeriod(e.UsagePeriod),
 	}
 
 	return apiRes, nil
@@ -124,5 +119,25 @@ func (p parser) ToAPIGeneric(e *entitlement.Entitlement) (*api.Entitlement, erro
 		return res, nil
 	default:
 		return nil, fmt.Errorf("unsupported entitlement type: %s", e.EntitlementType)
+	}
+}
+
+func mapUsagePeriod(u *entitlement.UsagePeriod) *api.RecurringPeriod {
+	if u == nil {
+		return nil
+	}
+	return &api.RecurringPeriod{
+		Anchor:   u.Anchor,
+		Interval: api.RecurringPeriodEnum(u.Interval),
+	}
+}
+
+func mapPeriod(u *recurrence.Period) *api.Period {
+	if u == nil {
+		return nil
+	}
+	return &api.Period{
+		From: u.From,
+		To:   u.To,
 	}
 }

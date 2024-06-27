@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"sort"
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type ResetUsageForOwnerParams struct {
@@ -100,7 +103,7 @@ func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner Namespac
 		grants,
 		balance.Balances,
 		balance.Overage,
-		Period{
+		recurrence.Period{
 			From: balance.At,
 			To:   at,
 		},
@@ -261,7 +264,7 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 		grants,
 		balance.Balances,
 		balance.Overage,
-		Period{
+		recurrence.Period{
 			From: balance.At,
 			To:   at,
 		},
@@ -431,4 +434,30 @@ func (m *balanceConnector) populateBalanceSnapshotWithMissingGrantsActiveAt(snap
 			}
 		}
 	}
+}
+
+// Returns a list of non-overlapping periods between the sorted times.
+func SortedPeriodsFromDedupedTimes(ts []time.Time) []recurrence.Period {
+	if len(ts) < 2 {
+		return nil
+	}
+
+	// copy
+	times := make([]time.Time, len(ts))
+	copy(times, ts)
+
+	// dedupe
+	times = slicesx.Dedupe(times)
+
+	// sort
+	sort.Slice(times, func(i, j int) bool {
+		return times[i].Before(times[j])
+	})
+
+	periods := make([]recurrence.Period, 0, len(times)-1)
+	for i := 1; i < len(times); i++ {
+		periods = append(periods, recurrence.Period{From: times[i-1], To: times[i]})
+	}
+
+	return periods
 }

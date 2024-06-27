@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
 	credit_postgres_adapter "github.com/openmeterio/openmeter/internal/credit/postgresadapter"
 	credit_postgres_adapter_db "github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db"
@@ -24,6 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 func TestGetEntitlementBalance(t *testing.T) {
@@ -50,7 +50,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 			UsagePeriod: &entitlement.UsagePeriod{
 				Anchor: time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
 				// TODO: properly test these anchors
-				Interval: entitlement.UsagePeriodIntervalYear,
+				Interval: recurrence.RecurrencePeriodYear,
 			},
 		}
 
@@ -435,7 +435,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 			UsagePeriod: &entitlement.UsagePeriod{
 				Anchor: time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
 				// TODO: properly test these anchors
-				Interval: entitlement.UsagePeriodIntervalYear,
+				Interval: recurrence.RecurrencePeriodYear,
 			},
 		}
 
@@ -584,7 +584,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 			UsagePeriod: &entitlement.UsagePeriod{
 				Anchor: time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
 				// TODO: properly test these anchors
-				Interval: entitlement.UsagePeriodIntervalYear,
+				Interval: recurrence.RecurrencePeriodYear,
 			},
 		}
 
@@ -1126,8 +1126,8 @@ func TestResetEntitlementUsage(t *testing.T) {
 				inp.MeasureUsageFrom = &startTime
 				anchor := startTime.Add(time.Hour)
 				inp.UsagePeriod.Anchor = anchor
-				inp.UsagePeriod.Interval = entitlement.UsagePeriodIntervalDay
-				inp.CurrentUsagePeriod = &api.Period{
+				inp.UsagePeriod.Interval = recurrence.RecurrencePeriodDaily
+				inp.CurrentUsagePeriod = &recurrence.Period{
 					To: anchor.AddDate(0, 0, 1),
 				}
 
@@ -1163,10 +1163,10 @@ func TestResetEntitlementUsage(t *testing.T) {
 				// create entitlement in db
 				inp := getEntitlement(t, feature)
 				inp.MeasureUsageFrom = &startTime
-				inp.UsagePeriod.Interval = entitlement.UsagePeriodIntervalDay
+				inp.UsagePeriod.Interval = recurrence.RecurrencePeriodDaily
 				anchor := startTime.Add(time.Hour)
 				inp.UsagePeriod.Anchor = anchor
-				inp.CurrentUsagePeriod = &api.Period{
+				inp.CurrentUsagePeriod = &recurrence.Period{
 					To: anchor.AddDate(0, 0, 1),
 				}
 
@@ -1186,7 +1186,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				ent, err = deps.entitlementDB.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
 				assert.NoError(t, err)
 				assertUsagePeriodEquals(t, &entitlement.UsagePeriod{
-					Interval: entitlement.UsagePeriodIntervalDay,
+					Interval: recurrence.RecurrencePeriodDaily,
 					Anchor:   resetTime,
 				}, ent.UsagePeriod)
 			},
@@ -1205,9 +1205,9 @@ func TestResetEntitlementUsage(t *testing.T) {
 				inp := getEntitlement(t, feature)
 				inp.MeasureUsageFrom = &startTime
 				anchor := startTime.Add(time.Hour)
-				inp.UsagePeriod.Interval = entitlement.UsagePeriodIntervalDay
+				inp.UsagePeriod.Interval = recurrence.RecurrencePeriodDaily
 				inp.UsagePeriod.Anchor = anchor
-				inp.CurrentUsagePeriod = &api.Period{
+				inp.CurrentUsagePeriod = &recurrence.Period{
 					To: anchor.AddDate(0, 0, 1),
 				}
 
@@ -1227,7 +1227,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				ent, err = deps.entitlementDB.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
 				assert.NoError(t, err)
 				assertUsagePeriodEquals(t, &entitlement.UsagePeriod{
-					Interval: entitlement.UsagePeriodIntervalDay,
+					Interval: recurrence.RecurrencePeriodDaily,
 					Anchor:   resetTime.Truncate(time.Minute),
 				}, ent.UsagePeriod)
 			},

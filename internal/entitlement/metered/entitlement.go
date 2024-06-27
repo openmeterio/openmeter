@@ -3,8 +3,8 @@ package meteredentitlement
 import (
 	"time"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/entitlement"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 type Entitlement struct {
@@ -26,7 +26,7 @@ type Entitlement struct {
 	UsagePeriod entitlement.UsagePeriod `json:"usagePeriod,omitempty"`
 
 	// CurrentPeriod defines the current period for usage calculations.
-	CurrentUsagePeriod api.Period `json:"currentUsagePeriod,omitempty"`
+	CurrentUsagePeriod recurrence.Period `json:"currentUsagePeriod,omitempty"`
 
 	// LastReset defines the last time the entitlement was reset.
 	LastReset time.Time `json:"lastReset"`

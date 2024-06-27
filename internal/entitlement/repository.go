@@ -4,14 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 type UpdateEntitlementUsagePeriodParams struct {
 	NewAnchor          *time.Time
-	CurrentUsagePeriod api.Period
+	CurrentUsagePeriod recurrence.Period
 }
 
 type EntitlementRepo interface {
@@ -40,10 +40,10 @@ type CreateEntitlementRepoInputs struct {
 	EntitlementType EntitlementType   `json:"type"`
 	Metadata        map[string]string `json:"metadata,omitempty"`
 
-	MeasureUsageFrom   *time.Time   `json:"measureUsageFrom,omitempty"`
-	IssueAfterReset    *float64     `json:"issueAfterReset,omitempty"`
-	IsSoftLimit        *bool        `json:"isSoftLimit,omitempty"`
-	Config             *string      `json:"config,omitempty"`
-	UsagePeriod        *UsagePeriod `json:"usagePeriod,omitempty"`
-	CurrentUsagePeriod *api.Period  `json:"currentUsagePeriod,omitempty"`
+	MeasureUsageFrom   *time.Time         `json:"measureUsageFrom,omitempty"`
+	IssueAfterReset    *float64           `json:"issueAfterReset,omitempty"`
+	IsSoftLimit        *bool              `json:"isSoftLimit,omitempty"`
+	Config             *string            `json:"config,omitempty"`
+	UsagePeriod        *UsagePeriod       `json:"usagePeriod,omitempty"`
+	CurrentUsagePeriod *recurrence.Period `json:"currentUsagePeriod,omitempty"`
 }

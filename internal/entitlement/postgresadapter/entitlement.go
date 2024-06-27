@@ -8,13 +8,13 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 
-	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db"
 	db_entitlement "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 type entitlementDBAdapter struct {
@@ -204,12 +204,12 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 	if e.UsagePeriodAnchor != nil && e.UsagePeriodInterval != nil {
 		ent.UsagePeriod = &entitlement.UsagePeriod{
 			Anchor:   e.UsagePeriodAnchor.In(time.UTC),
-			Interval: entitlement.UsagePeriodInterval(*e.UsagePeriodInterval),
+			Interval: recurrence.RecurrenceInterval(*e.UsagePeriodInterval),
 		}
 	}
 
 	if e.CurrentUsagePeriodEnd != nil && e.CurrentUsagePeriodStart != nil {
-		ent.CurrentUsagePeriod = &api.Period{
+		ent.CurrentUsagePeriod = &recurrence.Period{
 			From: e.CurrentUsagePeriodStart.In(time.UTC),
 			To:   e.CurrentUsagePeriodEnd.In(time.UTC),
 		}
