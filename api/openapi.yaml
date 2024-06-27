@@ -1067,9 +1067,10 @@ paths:
         - $ref: "#/components/parameters/entitlementId"
         - name: from
           in: query
-          required: true
+          required: false
           description: |
-            Start of time range to query entitlement: date-time in RFC 3339 format.
+            Start of time range to query entitlement: date-time in RFC 3339 format. Defaults to
+            the last reset.
             Gets truncated to the granularity of the underlying meter.
           schema:
             type: string

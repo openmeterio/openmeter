@@ -971,9 +971,10 @@ type ListEntitlementGrantsParamsOrderBy string
 
 // GetEntitlementHistoryParams defines parameters for GetEntitlementHistory.
 type GetEntitlementHistoryParams struct {
-	// From Start of time range to query entitlement: date-time in RFC 3339 format.
+	// From Start of time range to query entitlement: date-time in RFC 3339 format. Defaults to
+	// the last reset.
 	// Gets truncated to the granularity of the underlying meter.
-	From time.Time `form:"from" json:"from"`
+	From *time.Time `form:"from,omitempty" json:"from,omitempty"`
 
 	// To End of time range to query entitlement: date-time in RFC 3339 format. Defaults to now.
 	// If not now then gets truncated to the granularity of the underlying meter.
@@ -3787,16 +3788,20 @@ func NewGetEntitlementHistoryRequest(server string, subjectIdOrKey SubjectIdOrKe
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, params.From); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
+		if params.From != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, *params.From); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
 				}
 			}
+
 		}
 
 		if params.To != nil {
@@ -6898,17 +6903,17 @@ var swaggerSpec = []string{
 	"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",
-	"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",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

@@ -94,6 +94,23 @@ func (e *entitlementGrantOwner) GetStartOfMeasurement(ctx context.Context, owner
 	return metered.MeasureUsageFrom, nil
 }
 
+func (e *entitlementGrantOwner) GetLastReset(ctx context.Context, owner credit.NamespacedGrantOwner) (time.Time, error) {
+	entitlement, err := e.entitlementRepo.GetEntitlement(ctx, owner.NamespacedID())
+	if err != nil {
+		return time.Time{}, &credit.OwnerNotFoundError{
+			Owner:          owner,
+			AttemptedOwner: "entitlement",
+		}
+	}
+
+	metered, err := ParseFromGenericEntitlement(entitlement)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return metered.LastReset, nil
+}
+
 func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner credit.NamespacedGrantOwner, at time.Time) (time.Time, error) {
 	// If this is the first period then return start of measurement, otherwise calculate based on anchor.
 	// To know if this is the first period check if usage has been reset.

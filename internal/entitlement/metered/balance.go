@@ -39,7 +39,7 @@ const (
 )
 
 type BalanceHistoryParams struct {
-	From           time.Time
+	From           *time.Time
 	To             time.Time
 	WindowSize     WindowSize
 	WindowTimeZone time.Location
@@ -104,6 +104,18 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		return nil, credit.GrantBurnDownHistory{}, err
 	}
 
+	if params.From == nil {
+		lastReset, err := e.ownerConnector.GetLastReset(ctx, credit.NamespacedGrantOwner{
+			Namespace: entitlementID.Namespace,
+			ID:        credit.GrantOwner(entitlementID.ID),
+		})
+		if err != nil {
+			return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("failed to get last reset: %w", err)
+		}
+
+		params.From = &lastReset
+	}
+
 	// query period cannot be before start of measuring usage
 	start, err := e.ownerConnector.GetStartOfMeasurement(ctx, credit.NamespacedGrantOwner{
 		Namespace: entitlementID.Namespace,
@@ -135,7 +147,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 	if err != nil {
 		return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("failed to get owner query params: %w", err)
 	}
-	meterParams.From = &params.From
+	meterParams.From = params.From
 	meterParams.To = &params.To
 	meterParams.WindowSize = convert.ToPointer(models.WindowSize(params.WindowSize))
 	meterParams.WindowTimeZone = &params.WindowTimeZone
