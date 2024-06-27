@@ -22,6 +22,10 @@ func (n NamespacedGrantOwner) NamespacedID() models.NamespacedID {
 	}
 }
 
+const (
+	GrantPriorityDefault uint8 = 1
+)
+
 // Grant is an immutable definition used to increase balance.
 type Grant struct {
 	models.ManagedModel
@@ -57,7 +61,12 @@ type Grant struct {
 	VoidedAt *time.Time `json:"voidedAt,omitempty"`
 
 	// How much of the grant can be rolled over after a reset operation.
+	// Balance after a reset will be between ResetMinRollover and ResetMaxRollover.
 	ResetMaxRollover float64 `json:"resetMaxRollover"`
+
+	// How much balance the grant must have after a reset.
+	// Balance after a reset will be between ResetMinRollover and ResetMaxRollover.
+	ResetMinRollover float64 `json:"resetMinRollover"`
 
 	// Recurrence config for the grant. If nil the grant doesn't recur.
 	Recurrence *recurrence.Recurrence `json:"recurrence,omitempty"`
@@ -95,8 +104,9 @@ func (g Grant) RecurrenceBalance(currentBalance float64) float64 {
 
 // Calculates the new balance after a rollover from the current balance
 func (g Grant) RolloverBalance(currentBalance float64) float64 {
-	// At a rollover the maximum balance that can remain is the ResetMaxRollover
-	return math.Min(g.ResetMaxRollover, currentBalance)
+	// At a rollover the maximum balance that can remain is the ResetMaxRollover,
+	// while the minimum that has to be granted is ResetMinRollover.
+	return math.Min(g.ResetMaxRollover, math.Max(g.ResetMinRollover, currentBalance))
 }
 
 func (g Grant) GetNamespacedID() models.NamespacedID {

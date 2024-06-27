@@ -122,6 +122,11 @@ func ResetMaxRollover(v float64) predicate.Grant {
 	return predicate.Grant(sql.FieldEQ(FieldResetMaxRollover, v))
 }
 
+// ResetMinRollover applies equality check predicate on the "reset_min_rollover" field. It's identical to ResetMinRolloverEQ.
+func ResetMinRollover(v float64) predicate.Grant {
+	return predicate.Grant(sql.FieldEQ(FieldResetMinRollover, v))
+}
+
 // RecurrenceAnchor applies equality check predicate on the "recurrence_anchor" field. It's identical to RecurrenceAnchorEQ.
 func RecurrenceAnchor(v time.Time) predicate.Grant {
 	return predicate.Grant(sql.FieldEQ(FieldRecurrenceAnchor, v))
@@ -664,6 +669,46 @@ func ResetMaxRolloverLT(v float64) predicate.Grant {
 // ResetMaxRolloverLTE applies the LTE predicate on the "reset_max_rollover" field.
 func ResetMaxRolloverLTE(v float64) predicate.Grant {
 	return predicate.Grant(sql.FieldLTE(FieldResetMaxRollover, v))
+}
+
+// ResetMinRolloverEQ applies the EQ predicate on the "reset_min_rollover" field.
+func ResetMinRolloverEQ(v float64) predicate.Grant {
+	return predicate.Grant(sql.FieldEQ(FieldResetMinRollover, v))
+}
+
+// ResetMinRolloverNEQ applies the NEQ predicate on the "reset_min_rollover" field.
+func ResetMinRolloverNEQ(v float64) predicate.Grant {
+	return predicate.Grant(sql.FieldNEQ(FieldResetMinRollover, v))
+}
+
+// ResetMinRolloverIn applies the In predicate on the "reset_min_rollover" field.
+func ResetMinRolloverIn(vs ...float64) predicate.Grant {
+	return predicate.Grant(sql.FieldIn(FieldResetMinRollover, vs...))
+}
+
+// ResetMinRolloverNotIn applies the NotIn predicate on the "reset_min_rollover" field.
+func ResetMinRolloverNotIn(vs ...float64) predicate.Grant {
+	return predicate.Grant(sql.FieldNotIn(FieldResetMinRollover, vs...))
+}
+
+// ResetMinRolloverGT applies the GT predicate on the "reset_min_rollover" field.
+func ResetMinRolloverGT(v float64) predicate.Grant {
+	return predicate.Grant(sql.FieldGT(FieldResetMinRollover, v))
+}
+
+// ResetMinRolloverGTE applies the GTE predicate on the "reset_min_rollover" field.
+func ResetMinRolloverGTE(v float64) predicate.Grant {
+	return predicate.Grant(sql.FieldGTE(FieldResetMinRollover, v))
+}
+
+// ResetMinRolloverLT applies the LT predicate on the "reset_min_rollover" field.
+func ResetMinRolloverLT(v float64) predicate.Grant {
+	return predicate.Grant(sql.FieldLT(FieldResetMinRollover, v))
+}
+
+// ResetMinRolloverLTE applies the LTE predicate on the "reset_min_rollover" field.
+func ResetMinRolloverLTE(v float64) predicate.Grant {
+	return predicate.Grant(sql.FieldLTE(FieldResetMinRollover, v))
 }
 
 // RecurrencePeriodEQ applies the EQ predicate on the "recurrence_period" field.

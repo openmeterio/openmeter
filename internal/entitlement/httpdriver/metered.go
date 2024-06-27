@@ -98,6 +98,7 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 						Duration: credit.ExpirationPeriodDuration(apiGrant.Expiration.Duration),
 					},
 					ResetMaxRollover: defaultx.WithDefault(apiGrant.MaxRolloverAmount, 0),
+					ResetMinRollover: defaultx.WithDefault(apiGrant.MinRolloverAmount, 0),
 				},
 			}
 
@@ -361,6 +362,7 @@ func MapEntitlementGrantToAPI(subjectKey *string, grant *meteredentitlement.Enti
 		EntitlementId:     &grant.EntitlementID,
 		ExpiresAt:         &grant.ExpiresAt,
 		MaxRolloverAmount: &grant.MaxRolloverAmount,
+		MinRolloverAmount: &grant.MinRolloverAmount,
 		NextRecurrence:    grant.NextRecurrence,
 		VoidedAt:          grant.VoidedAt,
 	}

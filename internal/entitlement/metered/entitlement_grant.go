@@ -20,6 +20,7 @@ func (e *connector) CreateGrant(ctx context.Context, ent models.NamespacedID, in
 		EffectiveAt:      inputGrant.EffectiveAt,
 		Expiration:       inputGrant.Expiration,
 		ResetMaxRollover: inputGrant.ResetMaxRollover,
+		ResetMinRollover: inputGrant.ResetMinRollover,
 		Recurrence:       inputGrant.Recurrence,
 		Metadata:         inputGrant.Metadata,
 	})
@@ -65,11 +66,13 @@ type EntitlementGrant struct {
 	// "removing" fields
 	OwnerID          string  `json:"-"`
 	ResetMaxRollover float64 `json:"-"`
+	ResetMinRollover float64 `json:"-"`
 
 	// "adding" fields
 	EntitlementID     string     `json:"entitlementId"`
 	NextRecurrence    *time.Time `json:"nextRecurrence,omitempty"`
 	MaxRolloverAmount float64    `json:"maxRolloverAmount"`
+	MinRolloverAmount float64    `json:"minRolloverAmount"`
 }
 
 func GrantFromCreditGrant(grant credit.Grant) (*EntitlementGrant, error) {
@@ -84,6 +87,7 @@ func GrantFromCreditGrant(grant credit.Grant) (*EntitlementGrant, error) {
 	g.Grant = grant
 	g.EntitlementID = string(grant.OwnerID)
 	g.MaxRolloverAmount = grant.ResetMaxRollover
+	g.MinRolloverAmount = grant.ResetMinRollover
 	return g, nil
 }
 

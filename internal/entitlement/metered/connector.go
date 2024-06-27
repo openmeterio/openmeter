@@ -122,5 +122,36 @@ func (c *connector) BeforeCreate(model *entitlement.CreateEntitlementInputs, fea
 }
 
 func (c *connector) AfterCreate(entitlement *entitlement.Entitlement) error {
+	metered, err := ParseFromGenericEntitlement(entitlement)
+	if err != nil {
+		return err
+	}
+
+	// issue default grants
+	if metered.HasDefaultGrant() {
+		amountToIssue := *metered.IssuesAfterReset
+		effectiveAt := metered.UsagePeriod.Anchor
+		// issue single recurring grant that can't be rolled over
+		_, err := c.CreateGrant(context.Background(), models.NamespacedID{
+			ID:        entitlement.ID,
+			Namespace: entitlement.Namespace,
+		}, CreateEntitlementGrantInputs{
+			CreateGrantInput: credit.CreateGrantInput{
+				Amount:      amountToIssue,
+				Priority:    credit.GrantPriorityDefault,
+				EffectiveAt: effectiveAt,
+				Expiration: credit.ExpirationPeriod{
+					Count:    100, // This is a bit of an issue... It would make sense for recurring tags to not have an expiration
+					Duration: credit.ExpirationPeriodDurationYear,
+				},
+				// These two in conjunction make the grant always have `amountToIssue` balance after a reset
+				ResetMaxRollover: amountToIssue,
+				ResetMinRollover: amountToIssue,
+			},
+		})
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }

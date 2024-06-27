@@ -11,11 +11,20 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-// This is just a wrapper around credot.BalanceConnector.ResetUsageForOwner
 func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID, params ResetEntitlementUsageParams) (*EntitlementBalance, error) {
 	owner := credit.NamespacedGrantOwner{
 		Namespace: entitlementID.Namespace,
 		ID:        credit.GrantOwner(entitlementID.ID),
+	}
+
+	ent, err := e.entitlementRepo.GetEntitlement(ctx, entitlementID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get entitlement: %w", err)
+	}
+
+	_, err = ParseFromGenericEntitlement(ent)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse entitlement: %w", err)
 	}
 
 	balanceAfterReset, err := e.balanceConnector.ResetUsageForOwner(ctx, owner, credit.ResetUsageForOwnerParams{
