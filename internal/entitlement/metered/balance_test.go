@@ -43,6 +43,8 @@ func TestGetEntitlementBalance(t *testing.T) {
 		input := entitlement.CreateEntitlementRepoInputs{
 			Namespace:        namespace,
 			FeatureID:        feature.ID,
+			FeatureKey:       feature.Key,
+			SubjectKey:       "subject1",
 			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z")), // old, override in tests
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),
@@ -428,6 +430,8 @@ func TestGetEntitlementHistory(t *testing.T) {
 		input := entitlement.CreateEntitlementRepoInputs{
 			Namespace:        namespace,
 			FeatureID:        feature.ID,
+			FeatureKey:       feature.Key,
+			SubjectKey:       "subject1",
 			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z")), // old, override in tests
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),
@@ -672,6 +676,8 @@ func TestResetEntitlementUsage(t *testing.T) {
 		input := entitlement.CreateEntitlementRepoInputs{
 			Namespace:        namespace,
 			FeatureID:        feature.ID,
+			FeatureKey:       feature.Key,
+			SubjectKey:       "subject1",
 			MeasureUsageFrom: convert.ToPointer(testutils.GetRFC3339Time(t, "1024-03-01T00:00:00Z")), // old, override in tests
 			EntitlementType:  entitlement.EntitlementTypeMetered,
 			IssueAfterReset:  convert.ToPointer(0.0),

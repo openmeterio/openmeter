@@ -90,6 +90,12 @@ func (ec *EntitlementCreate) SetFeatureID(s string) *EntitlementCreate {
 	return ec
 }
 
+// SetFeatureKey sets the "feature_key" field.
+func (ec *EntitlementCreate) SetFeatureKey(s string) *EntitlementCreate {
+	ec.mutation.SetFeatureKey(s)
+	return ec
+}
+
 // SetSubjectKey sets the "subject_key" field.
 func (ec *EntitlementCreate) SetSubjectKey(s string) *EntitlementCreate {
 	ec.mutation.SetSubjectKey(s)
@@ -305,8 +311,21 @@ func (ec *EntitlementCreate) check() error {
 	if _, ok := ec.mutation.FeatureID(); !ok {
 		return &ValidationError{Name: "feature_id", err: errors.New(`db: missing required field "Entitlement.feature_id"`)}
 	}
+	if _, ok := ec.mutation.FeatureKey(); !ok {
+		return &ValidationError{Name: "feature_key", err: errors.New(`db: missing required field "Entitlement.feature_key"`)}
+	}
+	if v, ok := ec.mutation.FeatureKey(); ok {
+		if err := entitlement.FeatureKeyValidator(v); err != nil {
+			return &ValidationError{Name: "feature_key", err: fmt.Errorf(`db: validator failed for field "Entitlement.feature_key": %w`, err)}
+		}
+	}
 	if _, ok := ec.mutation.SubjectKey(); !ok {
 		return &ValidationError{Name: "subject_key", err: errors.New(`db: missing required field "Entitlement.subject_key"`)}
+	}
+	if v, ok := ec.mutation.SubjectKey(); ok {
+		if err := entitlement.SubjectKeyValidator(v); err != nil {
+			return &ValidationError{Name: "subject_key", err: fmt.Errorf(`db: validator failed for field "Entitlement.subject_key": %w`, err)}
+		}
 	}
 	if v, ok := ec.mutation.UsagePeriodInterval(); ok {
 		if err := entitlement.UsagePeriodIntervalValidator(v); err != nil {
@@ -376,6 +395,10 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 	if value, ok := ec.mutation.FeatureID(); ok {
 		_spec.SetField(entitlement.FieldFeatureID, field.TypeString, value)
 		_node.FeatureID = value
+	}
+	if value, ok := ec.mutation.FeatureKey(); ok {
+		_spec.SetField(entitlement.FieldFeatureKey, field.TypeString, value)
+		_node.FeatureKey = value
 	}
 	if value, ok := ec.mutation.SubjectKey(); ok {
 		_spec.SetField(entitlement.FieldSubjectKey, field.TypeString, value)
@@ -629,6 +652,9 @@ func (u *EntitlementUpsertOne) UpdateNewValues() *EntitlementUpsertOne {
 		}
 		if _, exists := u.create.mutation.FeatureID(); exists {
 			s.SetIgnore(entitlement.FieldFeatureID)
+		}
+		if _, exists := u.create.mutation.FeatureKey(); exists {
+			s.SetIgnore(entitlement.FieldFeatureKey)
 		}
 		if _, exists := u.create.mutation.SubjectKey(); exists {
 			s.SetIgnore(entitlement.FieldSubjectKey)
@@ -1010,6 +1036,9 @@ func (u *EntitlementUpsertBulk) UpdateNewValues() *EntitlementUpsertBulk {
 			}
 			if _, exists := b.mutation.FeatureID(); exists {
 				s.SetIgnore(entitlement.FieldFeatureID)
+			}
+			if _, exists := b.mutation.FeatureKey(); exists {
+				s.SetIgnore(entitlement.FieldFeatureKey)
 			}
 			if _, exists := b.mutation.SubjectKey(); exists {
 				s.SetIgnore(entitlement.FieldSubjectKey)

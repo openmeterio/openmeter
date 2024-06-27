@@ -29,6 +29,8 @@ const (
 	FieldEntitlementType = "entitlement_type"
 	// FieldFeatureID holds the string denoting the feature_id field in the database.
 	FieldFeatureID = "feature_id"
+	// FieldFeatureKey holds the string denoting the feature_key field in the database.
+	FieldFeatureKey = "feature_key"
 	// FieldSubjectKey holds the string denoting the subject_key field in the database.
 	FieldSubjectKey = "subject_key"
 	// FieldMeasureUsageFrom holds the string denoting the measure_usage_from field in the database.
@@ -70,6 +72,7 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldEntitlementType,
 	FieldFeatureID,
+	FieldFeatureKey,
 	FieldSubjectKey,
 	FieldMeasureUsageFrom,
 	FieldIssueAfterReset,
@@ -100,6 +103,10 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
+	FeatureKeyValidator func(string) error
+	// SubjectKeyValidator is a validator for the "subject_key" field. It is called by the builders before save.
+	SubjectKeyValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -189,6 +196,11 @@ func ByEntitlementType(opts ...sql.OrderTermOption) OrderOption {
 // ByFeatureID orders the results by the feature_id field.
 func ByFeatureID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldFeatureID, opts...).ToFunc()
+}
+
+// ByFeatureKey orders the results by the feature_key field.
+func ByFeatureKey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeatureKey, opts...).ToFunc()
 }
 
 // BySubjectKey orders the results by the subject_key field.
