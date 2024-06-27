@@ -511,7 +511,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 
 				windowedHistory, burndownHistory, err := connector.GetEntitlementBalanceHistory(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, meteredentitlement.BalanceHistoryParams{
 					From:           &startTime,
-					To:             queryTime,
+					To:             &queryTime,
 					WindowTimeZone: *time.UTC,
 					WindowSize:     meteredentitlement.WindowSizeHour,
 				})
@@ -610,7 +610,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 				assert.NoError(t, err)
 
 				windowedHistory, burndownHistory, err := connector.GetEntitlementBalanceHistory(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID}, meteredentitlement.BalanceHistoryParams{
-					To:             queryTime,
+					To:             &queryTime,
 					WindowTimeZone: *time.UTC,
 					WindowSize:     meteredentitlement.WindowSizeHour,
 				})

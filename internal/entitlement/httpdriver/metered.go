@@ -276,7 +276,7 @@ func (h *meteredEntitlementHandler) GetEntitlementBalanceHistory() GetEntitlemen
 				},
 				params: meteredentitlement.BalanceHistoryParams{
 					From:           params.Params.From,
-					To:             defaultx.WithDefault(params.Params.To, time.Now()),
+					To:             params.Params.To,
 					WindowSize:     meteredentitlement.WindowSize(params.Params.WindowSize),
 					WindowTimeZone: *tLocation,
 				},

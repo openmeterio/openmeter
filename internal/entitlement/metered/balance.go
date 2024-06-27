@@ -40,7 +40,7 @@ const (
 
 type BalanceHistoryParams struct {
 	From           *time.Time
-	To             time.Time
+	To             *time.Time
 	WindowSize     WindowSize
 	WindowTimeZone time.Location
 }
@@ -113,6 +113,10 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		params.From = &ent.LastReset
 	}
 
+	if params.To == nil {
+		params.To = convert.ToPointer(time.Now())
+	}
+
 	// query period cannot be before start of measuring usage
 	if params.From.Before(ent.MeasureUsageFrom) {
 		return nil, credit.GrantBurnDownHistory{}, &models.GenericUserError{Message: fmt.Sprintf("from cannot be before %s", ent.MeasureUsageFrom.UTC().Format(time.RFC3339))}
@@ -137,7 +141,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("failed to get owner query params: %w", err)
 	}
 	meterParams.From = params.From
-	meterParams.To = &params.To
+	meterParams.To = params.To
 	meterParams.WindowSize = convert.ToPointer(models.WindowSize(params.WindowSize))
 	meterParams.WindowTimeZone = &params.WindowTimeZone
 
