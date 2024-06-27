@@ -46,13 +46,13 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 	return mapEntitlementEntity(res), nil
 }
 
-func (a *entitlementDBAdapter) GetEntitlementOfSubject(ctx context.Context, namespace string, subjectKey string, id string) (*entitlement.Entitlement, error) {
+func (a *entitlementDBAdapter) GetEntitlementOfSubject(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string) (*entitlement.Entitlement, error) {
 	res, err := withLatestUsageReset(a.db.Entitlement.Query()).
 		Where(
 			db_entitlement.Or(db_entitlement.DeletedAtGT(time.Now()), db_entitlement.DeletedAtIsNil()),
 			db_entitlement.SubjectKey(string(subjectKey)),
 			db_entitlement.Namespace(namespace),
-			db_entitlement.ID(id),
+			db_entitlement.Or(db_entitlement.ID(idOrFeatureKey), db_entitlement.FeatureKey(idOrFeatureKey)),
 		).
 		First(ctx)
 
@@ -61,7 +61,7 @@ func (a *entitlementDBAdapter) GetEntitlementOfSubject(ctx context.Context, name
 			return nil, &entitlement.NotFoundError{
 				EntitlementID: models.NamespacedID{
 					Namespace: namespace,
-					ID:        id,
+					ID:        idOrFeatureKey,
 				},
 			}
 		}
@@ -78,6 +78,7 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlemen
 		SetFeatureID(entitlement.FeatureID).
 		SetMetadata(entitlement.Metadata).
 		SetSubjectKey(entitlement.SubjectKey).
+		SetFeatureKey(entitlement.FeatureKey).
 		SetNillableMeasureUsageFrom(entitlement.MeasureUsageFrom).
 		SetNillableIssueAfterReset(entitlement.IssueAfterReset).
 		SetNillableIsSoftLimit(entitlement.IsSoftLimit)
@@ -191,6 +192,7 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 			ID:              e.ID,
 			SubjectKey:      e.SubjectKey,
 			FeatureID:       e.FeatureID,
+			FeatureKey:      e.FeatureKey,
 			EntitlementType: entitlement.EntitlementType(e.EntitlementType),
 			Metadata:        e.Metadata,
 		},

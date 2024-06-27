@@ -1455,12 +1455,17 @@ components:
     # Entitlement has 3 subtypes
     EntitlementCreateSharedFields:
       type: object
-      required:
-        - featureId
       properties:
+        featureKey:
+          description: |
+            The feature the subject is entitled to use.
+            Either featureKey or featureId is required.
+          type: string
+          example: example-feature-key
         featureId:
           description: |
             The feature the subject is entitled to use.
+            Either featureKey or featureId is required.
           type: string
           example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
         metadata:

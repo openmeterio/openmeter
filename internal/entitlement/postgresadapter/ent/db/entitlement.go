@@ -32,6 +32,8 @@ type Entitlement struct {
 	EntitlementType entitlement.EntitlementType `json:"entitlement_type,omitempty"`
 	// FeatureID holds the value of the "feature_id" field.
 	FeatureID string `json:"feature_id,omitempty"`
+	// FeatureKey holds the value of the "feature_key" field.
+	FeatureKey string `json:"feature_key,omitempty"`
 	// SubjectKey holds the value of the "subject_key" field.
 	SubjectKey string `json:"subject_key,omitempty"`
 	// MeasureUsageFrom holds the value of the "measure_usage_from" field.
@@ -85,7 +87,7 @@ func (*Entitlement) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case entitlement.FieldIssueAfterReset:
 			values[i] = new(sql.NullFloat64)
-		case entitlement.FieldID, entitlement.FieldNamespace, entitlement.FieldEntitlementType, entitlement.FieldFeatureID, entitlement.FieldSubjectKey, entitlement.FieldUsagePeriodInterval:
+		case entitlement.FieldID, entitlement.FieldNamespace, entitlement.FieldEntitlementType, entitlement.FieldFeatureID, entitlement.FieldFeatureKey, entitlement.FieldSubjectKey, entitlement.FieldUsagePeriodInterval:
 			values[i] = new(sql.NullString)
 		case entitlement.FieldCreatedAt, entitlement.FieldUpdatedAt, entitlement.FieldDeletedAt, entitlement.FieldMeasureUsageFrom, entitlement.FieldUsagePeriodAnchor, entitlement.FieldCurrentUsagePeriodStart, entitlement.FieldCurrentUsagePeriodEnd:
 			values[i] = new(sql.NullTime)
@@ -154,6 +156,12 @@ func (e *Entitlement) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field feature_id", values[i])
 			} else if value.Valid {
 				e.FeatureID = value.String
+			}
+		case entitlement.FieldFeatureKey:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field feature_key", values[i])
+			} else if value.Valid {
+				e.FeatureKey = value.String
 			}
 		case entitlement.FieldSubjectKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -281,6 +289,9 @@ func (e *Entitlement) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("feature_id=")
 	builder.WriteString(e.FeatureID)
+	builder.WriteString(", ")
+	builder.WriteString("feature_key=")
+	builder.WriteString(e.FeatureKey)
 	builder.WriteString(", ")
 	builder.WriteString("subject_key=")
 	builder.WriteString(e.SubjectKey)

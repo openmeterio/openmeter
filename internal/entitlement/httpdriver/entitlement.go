@@ -77,6 +77,7 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 				request = entitlement.CreateEntitlementInputs{
 					Namespace:       ns,
 					FeatureID:       v.FeatureId,
+					FeatureKey:      v.FeatureKey,
 					SubjectKey:      subjectIdOrKey,
 					EntitlementType: entitlement.EntitlementTypeMetered,
 					IsSoftLimit:     v.IsSoftLimit,
@@ -93,6 +94,7 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 				request = entitlement.CreateEntitlementInputs{
 					Namespace:       ns,
 					FeatureID:       v.FeatureId,
+					FeatureKey:      v.FeatureKey,
 					SubjectKey:      subjectIdOrKey,
 					EntitlementType: entitlement.EntitlementTypeStatic,
 					Config:          &v.Config,
@@ -110,6 +112,7 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 				request = entitlement.CreateEntitlementInputs{
 					Namespace:       ns,
 					FeatureID:       v.FeatureId,
+					FeatureKey:      v.FeatureKey,
 					SubjectKey:      subjectIdOrKey,
 					EntitlementType: entitlement.EntitlementTypeBoolean,
 				}

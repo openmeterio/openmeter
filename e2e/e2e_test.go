@@ -512,7 +512,7 @@ func TestCredit(t *testing.T) {
 	t.Run("Create a Entitlement", func(t *testing.T) {
 		meteredEntitlement := api.EntitlementMeteredCreateInputs{
 			Type:      "metered",
-			FeatureId: *featureId,
+			FeatureId: featureId,
 			UsagePeriod: api.RecurringPeriodCreateInput{
 				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
 				Interval: "MONTH",
@@ -537,7 +537,7 @@ func TestCredit(t *testing.T) {
 	t.Run("Create for same subject and feature", func(t *testing.T) {
 		meteredEntitlement := api.EntitlementMeteredCreateInputs{
 			Type:      "metered",
-			FeatureId: *featureId,
+			FeatureId: featureId,
 			UsagePeriod: api.RecurringPeriodCreateInput{
 				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
 				Interval: "MONTH",

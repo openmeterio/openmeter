@@ -19,7 +19,7 @@ type EntitlementRepo interface {
 	GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]Entitlement, error)
 	CreateEntitlement(ctx context.Context, entitlement CreateEntitlementRepoInputs) (*Entitlement, error)
 	GetEntitlement(ctx context.Context, entitlementID models.NamespacedID) (*Entitlement, error)
-	GetEntitlementOfSubject(ctx context.Context, namespace string, subjectKey string, id string) (*Entitlement, error)
+	GetEntitlementOfSubject(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string) (*Entitlement, error)
 	DeleteEntitlement(ctx context.Context, entitlementID models.NamespacedID) error
 
 	ListEntitlements(ctx context.Context, params ListEntitlementsParams) ([]Entitlement, error)
@@ -37,6 +37,7 @@ type EntitlementRepo interface {
 type CreateEntitlementRepoInputs struct {
 	Namespace       string            `json:"namespace"`
 	FeatureID       string            `json:"featureId"`
+	FeatureKey      string            `json:"featureKey"`
 	SubjectKey      string            `json:"subjectKey"`
 	EntitlementType EntitlementType   `json:"type"`
 	Metadata        map[string]string `json:"metadata,omitempty"`
