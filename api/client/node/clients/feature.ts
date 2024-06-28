@@ -19,7 +19,7 @@ export class FeatureClient extends BaseClient {
    *  key: 'ai_tokens',
    *  name: 'AI Tokens',
    *  // optional
-   *  meterSlug": "tokens_total",
+   *  meterSlug: 'tokens_total',
    * })
    */
   public async create(

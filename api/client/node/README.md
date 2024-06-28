@@ -170,3 +170,44 @@ It doesn't delete corresponding usage.
 ```ts
 await openmeter.subjects.delete('customer-1')
 ```
+
+## Features
+
+Features are the building blocks of your entitlements, part of your product offering.
+
+#### create
+
+Upsert subjects.
+
+```ts
+const feature = await openmeter.features.create({
+ key: 'ai_tokens',
+ name: 'AI Tokens',
+ // optional
+ meterSlug: 'tokens_total',
+})
+```
+
+#### list
+
+List features.
+
+```ts
+const features = await openmeter.features.list()
+```
+
+#### get
+
+Get feature by key.
+
+```ts
+const feature = await openmeter.features.get('ai_tokens')
+```
+
+#### delete
+
+Delete feature by key.
+
+```ts
+await openmeter.features.delete('ai_tokens')
+```
