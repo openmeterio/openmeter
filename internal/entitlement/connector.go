@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
@@ -119,29 +120,37 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 		currentUsagePeriod = &calculatedPeriod
 	}
 
-	ent, err := c.entitlementRepo.CreateEntitlement(ctx, CreateEntitlementRepoInputs{
-		Namespace:          input.Namespace,
-		FeatureID:          feature.ID,
-		FeatureKey:         feature.Key,
-		SubjectKey:         input.SubjectKey,
-		EntitlementType:    input.EntitlementType,
-		Metadata:           input.Metadata,
-		MeasureUsageFrom:   input.MeasureUsageFrom,
-		IssueAfterReset:    input.IssueAfterReset,
-		IsSoftLimit:        input.IsSoftLimit,
-		Config:             input.Config,
-		UsagePeriod:        usagePeriod,
-		CurrentUsagePeriod: currentUsagePeriod,
-	})
-	if err != nil || ent == nil {
-		return nil, err
-	}
+	ent, err := entutils.StartAndRunTx(ctx, c.entitlementRepo, func(ctx context.Context, tx *entutils.TxDriver) (*Entitlement, error) {
 
-	err = connector.AfterCreate(ent)
-	if err != nil {
-		return nil, err
-	}
-	return ent, nil
+		txCtx := entutils.NewTxContext(ctx, tx)
+
+		ent, err := c.entitlementRepo.WithTx(txCtx, tx).CreateEntitlement(txCtx, CreateEntitlementRepoInputs{
+			Namespace:          input.Namespace,
+			FeatureID:          feature.ID,
+			FeatureKey:         feature.Key,
+			SubjectKey:         input.SubjectKey,
+			EntitlementType:    input.EntitlementType,
+			Metadata:           input.Metadata,
+			MeasureUsageFrom:   input.MeasureUsageFrom,
+			IssueAfterReset:    input.IssueAfterReset,
+			IsSoftLimit:        input.IsSoftLimit,
+			Config:             input.Config,
+			UsagePeriod:        usagePeriod,
+			CurrentUsagePeriod: currentUsagePeriod,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		err = connector.AfterCreate(txCtx, ent)
+		if err != nil {
+			return nil, err
+		}
+
+		return ent, nil
+	})
+
+	return ent, err
 }
 
 func (c *entitlementConnector) GetEntitlement(ctx context.Context, namespace string, id string) (*Entitlement, error) {

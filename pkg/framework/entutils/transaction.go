@@ -167,3 +167,17 @@ func RunInTransaction[R any](txCtx context.Context, txDriver *TxDriver, cb func(
 
 	return result, nil
 }
+
+const txDriverKey = "txDriver"
+
+func NewTxContext(ctx context.Context, tx *TxDriver) context.Context {
+	return context.WithValue(ctx, txDriverKey, tx)
+}
+
+func GetTxDriver(ctx context.Context) (*TxDriver, error) {
+	txDriver, ok := ctx.Value(txDriverKey).(*TxDriver)
+	if !ok {
+		return nil, fmt.Errorf("tx driver not found in context")
+	}
+	return txDriver, nil
+}
