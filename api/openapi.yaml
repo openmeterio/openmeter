@@ -1169,7 +1169,6 @@ components:
         - id
         - createdAt
         - updatedAt
-        - deletedAt
       properties:
         id:
           type: string
@@ -1186,13 +1185,13 @@ components:
         updatedAt:
           type: string
           format: date-time
-          description: The date and time the resource was last updated.
+          description: The date and time the resource was last updated. Defaults to createdAt if not updated.
           readOnly: true
           example: "2023-01-01T00:00:00Z"
         deletedAt:
           type: string
           format: date-time
-          description: The date and time the resource was deleted.
+          description: The date and time the resource was deleted. Null if not deleted.
           readOnly: true
           example: "2023-01-01T00:00:00Z"
     ConflictProblem:

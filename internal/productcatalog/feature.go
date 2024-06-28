@@ -75,6 +75,6 @@ type Feature struct {
 	// Read-only fields
 	ArchivedAt *time.Time `json:"archivedAt,omitempty"`
 
-	CreatedAt time.Time `json:"createdAt,omitempty"`
-	UpdatedAt time.Time `json:"updatedAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
