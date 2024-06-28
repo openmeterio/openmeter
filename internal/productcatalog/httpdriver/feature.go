@@ -66,13 +66,7 @@ func (h *featureHandlers) GetFeature() GetFeatureHandler {
 		commonhttp.JSONResponseEncoder,
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {
-				if _, ok := err.(*productcatalog.FeatureNotFoundError); ok {
-					models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w)
-					return true
-				}
-				return false
-			}),
+			httptransport.WithErrorEncoder(getErrorEncoder()),
 			httptransport.WithOperationName("getFeature"),
 		)...,
 	)
@@ -107,25 +101,7 @@ func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("createFeature"),
-			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {
-				if _, ok := err.(*productcatalog.FeatureInvalidFiltersError); ok {
-					models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
-					return true
-				}
-				if _, ok := err.(*productcatalog.FeatureInvalidMeterAggregationError); ok {
-					models.NewStatusProblem(ctx, err, http.StatusBadRequest).Respond(w)
-					return true
-				}
-				if _, ok := err.(*models.MeterNotFoundError); ok {
-					models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w)
-					return true
-				}
-				if _, ok := err.(*productcatalog.FeatureWithNameAlreadyExistsError); ok {
-					models.NewStatusProblem(ctx, err, http.StatusConflict).Respond(w)
-					return true
-				}
-				return false
-			}),
+			httptransport.WithErrorEncoder(getErrorEncoder()),
 		)...,
 	)
 }
@@ -202,13 +178,7 @@ func (h *featureHandlers) DeleteFeature() DeleteFeatureHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("deleteFeature"),
-			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {
-				if _, ok := err.(*productcatalog.FeatureNotFoundError); ok {
-					models.NewStatusProblem(ctx, err, http.StatusNotFound).Respond(w)
-					return true
-				}
-				return false
-			}),
+			httptransport.WithErrorEncoder(getErrorEncoder()),
 		)...,
 	)
 }
