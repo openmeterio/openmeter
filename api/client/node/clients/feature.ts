@@ -3,7 +3,8 @@ import { RequestOptions, BaseClient, OpenMeterConfig } from './client.js'
 
 export type Feature = components['schemas']['Feature']
 export type FeatureCreateInputs = components['schemas']['FeatureCreateInputs']
-export type ListFeatureQueryParams = operations['listFeatures']['parameters']['query']
+export type ListFeatureQueryParams =
+  operations['listFeatures']['parameters']['query']
 
 export class FeatureClient extends BaseClient {
   constructor(config: OpenMeterConfig) {
@@ -19,7 +20,7 @@ export class FeatureClient extends BaseClient {
    *  key: 'ai_tokens',
    *  name: 'AI Tokens',
    *  // optional
-   *  meterSlug": "tokens_total",
+   *  meterSlug: 'tokens_total',
    * })
    */
   public async create(
@@ -43,7 +44,10 @@ export class FeatureClient extends BaseClient {
    * @example
    * const feature = await openmeter.features.get('ai_tokens')
    */
-  public async get(idOrKey: string, options?: RequestOptions): Promise<Feature> {
+  public async get(
+    idOrKey: string,
+    options?: RequestOptions
+  ): Promise<Feature> {
     return await this.request({
       path: `/api/v1/features/${idOrKey}`,
       method: 'GET',
@@ -55,8 +59,11 @@ export class FeatureClient extends BaseClient {
    * List features
    * @example
    * const feature = await openmeter.features.list()
-  */
-  public async list(params?: ListFeatureQueryParams, options?: RequestOptions): Promise<Feature[]> {
+   */
+  public async list(
+    params?: ListFeatureQueryParams,
+    options?: RequestOptions
+  ): Promise<Feature[]> {
     const searchParams = params
       ? BaseClient.toURLSearchParams(params)
       : undefined
@@ -71,8 +78,8 @@ export class FeatureClient extends BaseClient {
   /**
    * Delete feature by ID or Key
    * @example
-   * const feature = await openmeter.delete('ai_tokens)
-  */
+   * await openmeter.delete('ai_tokens')
+   */
   public async delete(
     idOrKey: string,
     options?: RequestOptions
@@ -84,4 +91,3 @@ export class FeatureClient extends BaseClient {
     })
   }
 }
-

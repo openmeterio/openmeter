@@ -1,5 +1,18 @@
 import { MockAgent } from 'undici'
-import { mockEvent, mockMeter, mockMeterValue, mockSubject } from './mocks.js'
+import {
+  mockCreateEntitlementInput,
+  mockCreateFeatureInput,
+  mockEntitlement,
+  mockEntitlementGrant,
+  mockEntitlementGrantCreateInput,
+  mockEntitlementValue,
+  mockEvent,
+  mockFeature,
+  mockMeter,
+  mockMeterValue,
+  mockSubject,
+  mockWindowedBalanceHistory,
+} from './mocks.js'
 
 export const mockAgent = new MockAgent()
 mockAgent.disableNetConnect()
@@ -49,7 +62,7 @@ client
         data: {
           api_calls: 1,
         },
-      }
+      },
     ]),
   })
   .reply(204)
@@ -244,11 +257,13 @@ client
       Accept: 'application/json',
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify([{
-      key: mockSubject.key,
-      displayName: mockSubject.displayName,
-      metadata: mockSubject.metadata,
-    }]),
+    body: JSON.stringify([
+      {
+        key: mockSubject.key,
+        displayName: mockSubject.displayName,
+        metadata: mockSubject.metadata,
+      },
+    ]),
   })
   .reply(200, [mockSubject], {
     headers: {
@@ -272,7 +287,7 @@ client
 
 client
   .intercept({
-    path: '/api/v1/subjects/customer-1',
+    path: `/api/v1/subjects/${mockSubject.key}`,
     method: 'GET',
     headers: {
       Accept: 'application/json',
@@ -286,10 +301,232 @@ client
 
 client
   .intercept({
-    path: '/api/v1/subjects/customer-1',
+    path: `/api/v1/subjects/${mockSubject.key}`,
     method: 'DELETE',
     headers: {
       Accept: 'application/json',
     },
   })
   .reply(204)
+
+/** Subject Entitlements */
+
+client
+  .intercept({
+    path: `/api/v1/subjects/${mockSubject.key}/entitlements`,
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(mockCreateEntitlementInput),
+  })
+  .reply(201, mockEntitlement, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+client
+  .intercept({
+    path: `/api/v1/subjects/${mockSubject.key}/entitlements`,
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(200, [mockEntitlement], {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+client
+  .intercept({
+    path: `/api/v1/subjects/${mockSubject.key}/entitlements/${mockFeature.key}`,
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(200, mockEntitlement, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+client
+  .intercept({
+    path: `/api/v1/subjects/${mockSubject.key}/entitlements/${mockFeature.key}`,
+    method: 'DELETE',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(204)
+
+client
+  .intercept({
+    path: `/api/v1/subjects/${mockSubject.key}/entitlements/${mockFeature.key}/value`,
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(200, mockEntitlementValue, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+client
+  .intercept({
+    path: `/api/v1/subjects/${mockSubject.key}/entitlements/${mockFeature.key}/history`,
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(200, mockWindowedBalanceHistory, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+client
+  .intercept({
+    path: `/api/v1/subjects/${mockSubject.key}/entitlements/${mockFeature.key}/reset`,
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      retainAnchor: true,
+    }),
+  })
+  .reply(204, mockEntitlement, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+/** Subject Entitlement Grants */
+
+client
+  .intercept({
+    path: `/api/v1/subjects/${mockSubject.key}/entitlements/${mockFeature.key}/grants`,
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(mockEntitlementGrantCreateInput),
+  })
+  .reply(201, mockEntitlementGrant, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+client
+  .intercept({
+    path: `/api/v1/subjects/${mockSubject.key}/entitlements/${mockFeature.key}/grants`,
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(200, [mockEntitlementGrant], {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+/** Features */
+
+client
+  .intercept({
+    path: '/api/v1/features',
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(mockCreateFeatureInput),
+  })
+  .reply(201, mockFeature, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+client
+  .intercept({
+    path: '/api/v1/features',
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(200, [mockFeature], {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+client
+  .intercept({
+    path: `/api/v1/features/${mockFeature.key}`,
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(200, mockFeature, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+client
+  .intercept({
+    path: `/api/v1/features/${mockFeature.key}`,
+    method: 'DELETE',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(204)
+
+/** Entitlements */
+
+client
+  .intercept({
+    path: '/api/v1/entitlements',
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(200, [mockEntitlement], {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+/** Grants */
+
+client
+  .intercept({
+    path: '/api/v1/grants',
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(200, [mockEntitlementGrant], {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })

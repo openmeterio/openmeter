@@ -10,7 +10,19 @@ import {
   WindowSize,
 } from '../dist/index.js'
 import { mockAgent } from './agent.js'
-import { mockEvent, mockMeter, mockMeterValue, mockSubject } from './mocks.js'
+import {
+  mockCreateEntitlementInput,
+  mockCreateFeatureInput,
+  mockEntitlement,
+  mockEntitlementGrant,
+  mockEntitlementGrantCreateInput,
+  mockEntitlementValue,
+  mockEvent,
+  mockFeature,
+  mockMeter,
+  mockMeterValue,
+  mockSubject,
+} from './mocks.js'
 
 declare module 'vitest' {
   export interface TestContext {
@@ -129,45 +141,152 @@ describe('sdk', () => {
         expect(subjects).toEqual([mockMeterValue.subject])
       })
     })
+  })
 
-    describe('portal', () => {
-      it('should create token', async ({ openmeter }) => {
-        const token = await openmeter.portal.createToken({
-          subject: 'customer-1',
+  describe('portal', () => {
+    it('should create token', async ({ openmeter }) => {
+      const token = await openmeter.portal.createToken({
+        subject: 'customer-1',
+      })
+      expect(token).toEqual({
+        subject: 'customer-1',
+        expiresAt: new Date('2023-01-01').toISOString(),
+      })
+    })
+  })
+
+  describe('subjects', () => {
+    it('should upsert subjects', async ({ openmeter }) => {
+      const subjects = await openmeter.subjects.upsert([
+        {
+          key: mockSubject.key,
+          displayName: mockSubject.displayName,
+          metadata: mockSubject.metadata,
+        },
+      ])
+      expect(subjects).toEqual([mockSubject])
+    })
+
+    it('should list subjects', async ({ openmeter }) => {
+      const subjects = await openmeter.subjects.list()
+      expect(subjects).toEqual([mockSubject])
+    })
+
+    it('should get subject', async ({ openmeter }) => {
+      const subjects = await openmeter.subjects.get(mockSubject.key)
+      expect(subjects).toEqual(mockSubject)
+    })
+
+    it('should delete subject', async ({ openmeter }) => {
+      const resp = await openmeter.subjects.delete(mockSubject.key)
+      expect(resp).toBeUndefined()
+    })
+
+    describe('entitlements', () => {
+      it('should create entitlement', async ({ openmeter }) => {
+        const token = await openmeter.subjects.createEntitlement(
+          mockSubject.key,
+          mockCreateEntitlementInput
+        )
+        expect(token).toEqual(mockEntitlement)
+      })
+
+      it('should list entitlements', async ({ openmeter }) => {
+        const entitlements = await openmeter.subjects.listEntitlements(
+          mockSubject.key
+        )
+        expect(entitlements).toEqual([mockEntitlement])
+      })
+
+      it('should get entitlement', async ({ openmeter }) => {
+        const entitlement = await openmeter.subjects.getEntitlement(
+          mockSubject.key,
+          mockFeature.key
+        )
+        expect(entitlement).toEqual(mockEntitlement)
+      })
+
+      it('should delete entitlement', async ({ openmeter }) => {
+        const resp = await openmeter.subjects.deleteEntitlement(
+          mockSubject.key,
+          mockFeature.key
+        )
+        expect(resp).toBeUndefined()
+      })
+
+      it('should get entitlement value', async ({ openmeter }) => {
+        const value = await openmeter.subjects.getEntitlementValue(
+          mockSubject.key,
+          mockFeature.key
+        )
+        expect(value).toEqual(mockEntitlementValue)
+      })
+
+      it('should reset entitlement usage', async ({ openmeter }) => {
+        const resp = await openmeter.subjects.resetEntitlementUsage(
+          mockSubject.key,
+          mockFeature.key,
+          {
+            retainAnchor: true,
+          }
+        )
+        expect(resp).toBeUndefined()
+      })
+
+      describe('grants', () => {
+        it('should create entitlement grant', async ({ openmeter }) => {
+          const token = await openmeter.subjects.createEntitlementGrant(
+            mockSubject.key,
+            mockFeature.key,
+            mockEntitlementGrantCreateInput
+          )
+          expect(token).toEqual(mockEntitlementGrant)
         })
-        expect(token).toEqual({
-          subject: 'customer-1',
-          expiresAt: new Date('2023-01-01').toISOString(),
+
+        it('should list entitlement grants', async ({ openmeter }) => {
+          const grants = await openmeter.subjects.listEntitlementGrants(
+            mockSubject.key,
+            mockFeature.key
+          )
+          expect(grants).toEqual([mockEntitlementGrant])
         })
       })
     })
+  })
 
-    describe('subjects', () => {
-      it('should upsert subjects', async ({ openmeter }) => {
-        const subjects = await openmeter.subjects.upsert([
-          {
-            key: mockSubject.key,
-            displayName: mockSubject.displayName,
-            metadata: mockSubject.metadata,
-          },
-        ])
-        expect(subjects).toEqual([mockSubject])
-      })
+  describe('feature', () => {
+    it('should create feature', async ({ openmeter }) => {
+      const token = await openmeter.features.create(mockCreateFeatureInput)
+      expect(token).toEqual(mockFeature)
+    })
 
-      it('should list subjects', async ({ openmeter }) => {
-        const subjects = await openmeter.subjects.list()
-        expect(subjects).toEqual([mockSubject])
-      })
+    it('should list features', async ({ openmeter }) => {
+      const features = await openmeter.features.list()
+      expect(features).toEqual([mockFeature])
+    })
 
-      it('should get subject', async ({ openmeter }) => {
-        const subjects = await openmeter.subjects.get(mockSubject.key)
-        expect(subjects).toEqual(mockSubject)
-      })
+    it('should get feature', async ({ openmeter }) => {
+      const features = await openmeter.features.get(mockFeature.key)
+      expect(features).toEqual(mockFeature)
+    })
 
-      it('should delete subject', async ({ openmeter }) => {
-        const resp = await openmeter.subjects.delete(mockSubject.key)
-        expect(resp).toBeUndefined()
-      })
+    it('should delete feature', async ({ openmeter }) => {
+      const resp = await openmeter.features.delete(mockFeature.key)
+      expect(resp).toBeUndefined()
+    })
+  })
+
+  describe('entitlement', () => {
+    it('should list entitlements', async ({ openmeter }) => {
+      const entitlements = await openmeter.entitlements.list()
+      expect(entitlements).toEqual([mockEntitlement])
+    })
+  })
+
+  describe('grant', () => {
+    it('should list grants', async ({ openmeter }) => {
+      const grants = await openmeter.grants.list()
+      expect(grants).toEqual([mockEntitlementGrant])
     })
   })
 })

@@ -253,16 +253,16 @@ export interface components {
       createdAt: string
       /**
        * Format: date-time
-       * @description The date and time the resource was last updated.
+       * @description The date and time the resource was last updated. Defaults to createdAt if not updated.
        * @example 2023-01-01T00:00:00Z
        */
       updatedAt: string
       /**
        * Format: date-time
-       * @description The date and time the resource was deleted.
+       * @description The date and time the resource was deleted. Null if not deleted.
        * @example 2023-01-01T00:00:00Z
        */
-      deletedAt: string
+      deletedAt?: string
     }
     /**
      * @description Conflict
