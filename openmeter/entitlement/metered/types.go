@@ -13,3 +13,4 @@ type UsageResetNotFoundError = meteredentitlement.UsageResetNotFoundError
 type UsageResetTime = meteredentitlement.UsageResetTime
 type WindowSize = meteredentitlement.WindowSize
 type MeteredEntitlementValue = meteredentitlement.MeteredEntitlementValue
+type ResetEntitlementUsageParams = meteredentitlement.ResetEntitlementUsageParams
