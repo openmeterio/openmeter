@@ -151,7 +151,7 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 	}
 
 	if len(params.FeatureIDs) > 0 {
-		query = query.Where(db_entitlement.FeatureKeyIn(params.FeatureIDs...))
+		query = query.Where(db_entitlement.FeatureIDIn(params.FeatureIDs...))
 	}
 
 	if !params.IncludeDeleted {
