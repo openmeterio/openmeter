@@ -70,7 +70,8 @@ func (c *featureDBAdapter) GetByIdOrKey(ctx context.Context, namespace string, i
 }
 
 func (c *featureDBAdapter) ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error {
-	_, err := c.GetByIdOrKey(ctx, featureID.Namespace, featureID.ID, true)
+	fetchArchived := true
+	_, err := c.GetByIdOrKey(ctx, featureID.Namespace, featureID.ID, fetchArchived)
 	if err != nil {
 		return err
 	}

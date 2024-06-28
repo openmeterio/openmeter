@@ -49,7 +49,8 @@ func (e *entitlementGrantOwner) GetOwnerQueryParams(ctx context.Context, owner c
 			AttemptedOwner: "entitlement",
 		}
 	}
-	feature, err := e.featureRepo.GetByIdOrKey(ctx, owner.Namespace, entitlement.FeatureID, true)
+	includeArchived := true
+	feature, err := e.featureRepo.GetByIdOrKey(ctx, owner.Namespace, entitlement.FeatureID, includeArchived)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to get feature of entitlement: %w", err)
 	}

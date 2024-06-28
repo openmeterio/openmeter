@@ -95,7 +95,8 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 	}
 
 	// check key is not taken
-	found, err := c.featureRepo.GetByIdOrKey(ctx, feature.Namespace, feature.Key, false)
+	includeArchived := false
+	found, err := c.featureRepo.GetByIdOrKey(ctx, feature.Namespace, feature.Key, includeArchived)
 	if err != nil {
 		if _, ok := err.(*FeatureNotFoundError); !ok {
 			return Feature{}, err
@@ -120,7 +121,8 @@ func (c *featureConnector) ListFeatures(ctx context.Context, params ListFeatures
 }
 
 func (c *featureConnector) GetFeature(ctx context.Context, namespace string, idOrKey string) (*Feature, error) {
-	feature, err := c.featureRepo.GetByIdOrKey(ctx, namespace, idOrKey, true)
+	includeArchived := true
+	feature, err := c.featureRepo.GetByIdOrKey(ctx, namespace, idOrKey, includeArchived)
 	if err != nil {
 		return nil, err
 	}
