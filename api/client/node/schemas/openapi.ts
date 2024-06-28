@@ -791,7 +791,7 @@ export interface components {
       priority?: number
       /**
        * Format: date-time
-       * @description The effective time. Provided value will be ceiled to metering windowSize (minute).
+       * @description Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).
        *
        * @example 2023-01-01T00:00:00Z
        */
