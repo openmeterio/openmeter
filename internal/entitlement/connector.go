@@ -19,6 +19,7 @@ const (
 
 type ListEntitlementsParams struct {
 	Namespace      string
+	SubjectKey     string
 	Limit          int
 	Offset         int
 	OrderBy        ListEntitlementsOrderBy

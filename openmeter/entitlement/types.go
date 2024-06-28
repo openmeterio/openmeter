@@ -10,3 +10,4 @@ type EntitlementConnector = entitlement.Connector
 type EntitlementRepo = entitlement.EntitlementRepo
 type EntitlementNotFoundError = entitlement.NotFoundError
 type EntitlementValue = entitlement.EntitlementValue
+type ListEntitlementsParams = entitlement.ListEntitlementsParams
