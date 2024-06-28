@@ -36,6 +36,7 @@ const (
 
 type ListFeaturesParams struct {
 	Namespace       string
+	MeterSlug       string
 	IncludeArchived bool
 	Offset          int
 	Limit           int
