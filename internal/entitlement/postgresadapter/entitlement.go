@@ -146,6 +146,10 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 	query := withLatestUsageReset(a.db.Entitlement.Query().
 		Where(db_entitlement.Namespace(params.Namespace)))
 
+	if params.SubjectKey != "" {
+		query = query.Where(db_entitlement.SubjectKeyEQ(params.SubjectKey))
+	}
+
 	if !params.IncludeDeleted {
 		query = query.Where(db_entitlement.Or(db_entitlement.DeletedAtGT(time.Now()), db_entitlement.DeletedAtIsNil()))
 	}
