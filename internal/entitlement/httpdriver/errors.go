@@ -17,7 +17,11 @@ func getErrorEncoder() httptransport.ErrorEncoder {
 		return commonhttp.HandleErrorIfTypeMatches[*productcatalog.FeatureNotFoundError](ctx, http.StatusNotFound, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*entitlement.NotFoundError](ctx, http.StatusNotFound, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*models.GenericUserError](ctx, http.StatusBadRequest, err, w) ||
-			commonhttp.HandleErrorIfTypeMatches[*entitlement.AlreadyExistsError](ctx, http.StatusConflict, err, w) ||
+			commonhttp.HandleErrorIfTypeMatches[*entitlement.AlreadyExistsError](
+				ctx, http.StatusConflict, err, w,
+				func(specificErr *entitlement.AlreadyExistsError) (string, string) {
+					return "conflictingEntityId", specificErr.EntitlementID
+				}) ||
 			commonhttp.HandleErrorIfTypeMatches[*entitlement.InvalidValueError](ctx, http.StatusBadRequest, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*entitlement.InvalidFeatureError](ctx, http.StatusBadRequest, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*entitlement.WrongTypeError](ctx, http.StatusBadRequest, err, w)

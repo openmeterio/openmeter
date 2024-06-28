@@ -55,9 +55,15 @@ func ErrorEncoder(ctx context.Context, _ error, w http.ResponseWriter) bool {
 // HandleErrorIfTypeMatches checks if the error is of the given type and encodes it as an HTTP error.
 // Using the generic feature we can mandate that the error implements the error interface. This is a
 // must, as the errors.As would panic if the error does not implement the error interface.
-func HandleErrorIfTypeMatches[T error](ctx context.Context, statusCode int, err error, w http.ResponseWriter) bool {
+func HandleErrorIfTypeMatches[T error](ctx context.Context, statusCode int, err error, w http.ResponseWriter, extendedProblemFunc ...func(T) (string, string)) bool {
 	if err, ok := errorsx.ErrorAs[T](err); ok {
-		NewHTTPError(statusCode, err).EncodeError(ctx, w)
+		extendedProblemFuncs := make([]ExtendProblemFunc, 0, len(extendedProblemFunc))
+		for _, f := range extendedProblemFunc {
+			extendedProblemFuncs = append(extendedProblemFuncs, func() (string, string) {
+				return f(err)
+			})
+		}
+		NewHTTPError(statusCode, err, extendedProblemFuncs...).EncodeError(ctx, w)
 		return true
 	}
 
