@@ -10,7 +10,7 @@ import {
   WindowSize,
 } from '../dist/index.js'
 import { mockAgent } from './agent.js'
-import { mockEvent, mockMeter, mockMeterValue, mockSubject } from './mocks.js'
+import { mockCreateFeatureInput, mockEvent, mockFeature, mockMeter, mockMeterValue, mockSubject } from './mocks.js'
 
 declare module 'vitest' {
   export interface TestContext {
@@ -168,6 +168,28 @@ describe('sdk', () => {
         const resp = await openmeter.subjects.delete(mockSubject.key)
         expect(resp).toBeUndefined()
       })
+    })
+  })
+
+  describe('feature', () => {
+    it('should create feature', async ({ openmeter }) => {
+      const token = await openmeter.features.create(mockCreateFeatureInput)
+      expect(token).toEqual(mockFeature)
+    })
+
+    it('should list features', async ({ openmeter }) => {
+      const features = await openmeter.features.list()
+      expect(features).toEqual([mockFeature])
+    })
+
+    it('should get feature', async ({ openmeter }) => {
+      const features = await openmeter.features.get(mockFeature.key)
+      expect(features).toEqual(mockFeature)
+    })
+
+    it('should delete feature', async ({ openmeter }) => {
+      const resp = await openmeter.features.delete(mockFeature.key)
+      expect(resp).toBeUndefined()
     })
   })
 })

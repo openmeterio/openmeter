@@ -1,5 +1,6 @@
 import { OpenMeterConfig } from './clients/client.js'
 import { EventsClient } from './clients/event.js'
+import { FeatureClient } from './clients/feature.js'
 import { MetersClient } from './clients/meter.js'
 import { PortalClient } from './clients/portal.js'
 import { SubjectClient } from './clients/subject.js'
@@ -13,11 +14,13 @@ export class OpenMeter {
   public meters: MetersClient
   public portal: PortalClient
   public subjects: SubjectClient
+  public features: FeatureClient
 
   constructor(config: OpenMeterConfig) {
     this.events = new EventsClient(config)
     this.meters = new MetersClient(config)
     this.portal = new PortalClient(config)
     this.subjects = new SubjectClient(config)
+    this.features = new FeatureClient(config)
   }
 }

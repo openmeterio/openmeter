@@ -32,7 +32,7 @@ export class SubjectClient extends BaseClient {
    * Get subject by id or key
    * @note OpenMeter Cloud only feature
    */
-  public async get(idOrKey: string, options?: RequestOptions): Promise<void> {
+  public async get(idOrKey: string, options?: RequestOptions): Promise<Subject> {
     return await this.request({
       path: `/api/v1/subjects/${idOrKey}`,
       method: 'GET',
@@ -44,7 +44,7 @@ export class SubjectClient extends BaseClient {
    * List subjects
    * @note OpenMeter Cloud only feature
    */
-  public async list(options?: RequestOptions): Promise<void> {
+  public async list(options?: RequestOptions): Promise<Subject[]> {
     return await this.request({
       path: '/api/v1/subjects',
       method: 'GET',

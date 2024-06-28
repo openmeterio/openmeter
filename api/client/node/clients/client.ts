@@ -128,7 +128,7 @@ export class BaseClient {
   }
 
   protected static toURLSearchParams(
-    params: Record<string, string | number | Date | string[] | Record<string, string> | undefined>
+    params: Record<string, string | boolean | number | Date | string[] | Record<string, string> | undefined>
   ): URLSearchParams {
     const searchParams = new URLSearchParams()
 
@@ -141,6 +141,9 @@ export class BaseClient {
         for (const item of value) {
           searchParams.append(key, item)
         }
+      } else if (typeof value === 'boolean' && value) {
+        // Only append boolean if it's true
+        searchParams.append(key, 'true')
       } else if (value instanceof Date) {
         searchParams.append(key, value.toISOString())
       } else if (typeof value === 'object') {

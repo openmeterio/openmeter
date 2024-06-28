@@ -1,5 +1,5 @@
 import { MockAgent } from 'undici'
-import { mockEvent, mockMeter, mockMeterValue, mockSubject } from './mocks.js'
+import { mockCreateFeatureInput, mockEvent, mockFeature, mockMeter, mockMeterValue, mockSubject } from './mocks.js'
 
 export const mockAgent = new MockAgent()
 mockAgent.disableNetConnect()
@@ -272,7 +272,7 @@ client
 
 client
   .intercept({
-    path: '/api/v1/subjects/customer-1',
+    path: `/api/v1/subjects/${mockSubject.key}`,
     method: 'GET',
     headers: {
       Accept: 'application/json',
@@ -286,7 +286,67 @@ client
 
 client
   .intercept({
-    path: '/api/v1/subjects/customer-1',
+    path: `/api/v1/subjects/${mockSubject.key}`,
+    method: 'DELETE',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(204)
+
+/** Features */
+
+client
+  .intercept({
+    path: '/api/v1/features',
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(mockCreateFeatureInput),
+  })
+  .reply(
+    201,
+    mockFeature,
+    {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  )
+
+client
+  .intercept({
+    path: '/api/v1/features',
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(200, [mockFeature], {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+client
+  .intercept({
+    path: `/api/v1/features/${mockFeature.key}`,
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(200, mockFeature, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+client
+  .intercept({
+    path: `/api/v1/features/${mockFeature.key}`,
     method: 'DELETE',
     headers: {
       Accept: 'application/json',

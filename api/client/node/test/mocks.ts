@@ -1,3 +1,4 @@
+import { Feature, FeatureCreateInputs } from '../clients/feature.js'
 import { Subject } from '../clients/subject.js'
 import { Event, Meter, WindowSize } from '../index.js'
 
@@ -42,4 +43,19 @@ export const mockSubject: Subject = {
   metadata: {
     foo: 'bar',
   },
+}
+
+export const mockCreateFeatureInput: FeatureCreateInputs = {
+  key: 'ai_tokens',
+  name: 'AI Tokens',
+  meterSlug: 'tokens_total',
+}
+
+export const mockFeature: Feature = {
+  id: 'feature-1',
+  key: 'ai_tokens',
+  name: 'AI Tokens',
+  meterSlug: 'tokens_total',
+  createdAt: '2024-01-01T00:00:00Z',
+  updatedAt: '2024-01-01T00:00:00Z',
 }
