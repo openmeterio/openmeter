@@ -12,6 +12,7 @@ type ListEntitlementGrantHandlerRequest = httpdriver.ListEntitlementGrantHandler
 type ResetEntitlementUsageHandlerRequest = httpdriver.ResetEntitlementUsageHandlerRequest
 type ListEntitlementsHandlerRequest = httpdriver.ListEntitlementsHandlerRequest
 type GetEntitlementHandlerRequest = httpdriver.GetEntitlementHandlerRequest
+type DeleteEntitlementHandlerRequest = httpdriver.DeleteEntitlementHandlerRequest
 
 // responses
 type CreateEntitlementHandlerResponse = httpdriver.CreateEntitlementHandlerResponse
@@ -23,6 +24,7 @@ type ListEntitlementGrantHandlerResponse = httpdriver.ListEntitlementGrantHandle
 type ResetEntitlementUsageHandlerResponse = httpdriver.ResetEntitlementUsageHandlerResponse
 type ListEntitlementsHandlerResponse = httpdriver.ListEntitlementsHandlerResponse
 type GetEntitlementHandlerResponse = httpdriver.GetEntitlementHandlerResponse
+type DeleteEntitlementHandlerResponse = httpdriver.DeleteEntitlementHandlerResponse
 
 // params
 type CreateEntitlementHandlerParams = httpdriver.CreateEntitlementHandlerParams
@@ -34,3 +36,4 @@ type ListEntitlementGrantsHandlerParams = httpdriver.ListEntitlementGrantsHandle
 type ResetEntitlementUsageHandlerParams = httpdriver.ResetEntitlementUsageHandlerParams
 type ListEntitlementsHandlerParams = httpdriver.ListEntitlementsHandlerParams
 type GetEntitlementHandlerParams = httpdriver.GetEntitlementHandlerParams
+type DeleteEntitlementHandlerParams = httpdriver.DeleteEntitlementHandlerParams
