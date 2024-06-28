@@ -22,10 +22,8 @@ export type EntitlementStaticCreateInputs =
   components['schemas']['EntitlementStaticCreateInputs']
 export type EntitlementBooleanCreateInputs =
   components['schemas']['EntitlementBooleanCreateInputs']
-export type EntitlementResetInputs = Omit<
-  operations['resetEntitlementUsage']['requestBody']['content']['application/json'],
-  'effectiveAt'
-> & { effectiveAt?: Date }
+export type EntitlementResetInputs =
+  operations['resetEntitlementUsage']['requestBody']['content']['application/json']
 export type ListEntitlementQueryParams =
   operations['listEntitlements']['parameters']['query']
 export type GetEntitlementHistoryQueryParams =
