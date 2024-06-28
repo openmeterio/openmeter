@@ -9,6 +9,11 @@ import {
   ListEntitlementQueryParams,
   WindowedBalanceHistory,
 } from './entitlement.js'
+import {
+  EntitlementGrant,
+  EntitlementGrantCreateInput,
+  ListEntitlementGrantQueryParams,
+} from './grant.js'
 
 export type Subject = components['schemas']['Subject']
 
@@ -230,6 +235,68 @@ export class SubjectClient extends BaseClient {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(input),
+      options,
+    })
+  }
+
+  /** Entitlement Grant **/
+
+  /**
+   * Create Entitlement Grant
+   * Create a grant for an entitlement.
+   *
+   * @example
+   * const grant = await openmeter.subjects.createEntitlementGrant('customer-1', 'ai_tokens', {
+   *    amount: 100,
+   *    priority: 1,
+   *    effectiveAt: '2023-01-01T00:00:00Z',
+   *    expiration: {
+   *      duration: 'HOUR',
+   *      count: 12,
+   *    },
+   *    minRolloverAmount: 100,
+   *    maxRolloverAmount: 100,
+   *    recurrence: {
+   *      interval: 'MONTH',
+   *      anchor: '2024-06-28T18:29:44.867Z',
+   *    },
+   * })
+   */
+  public async createEntitlementGrant(
+    subjectIdOrKey: string,
+    entitlementIdOrFeatureIdOrFeatureKey: string,
+    input: EntitlementGrantCreateInput,
+    options?: RequestOptions
+  ): Promise<EntitlementGrant> {
+    return await this.request({
+      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementIdOrFeatureIdOrFeatureKey}/grants`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(input),
+      options,
+    })
+  }
+
+  /**
+   * List entitlement grants
+   * @example
+   * const entitlement = await openmeter.subjects.listEntitlementGrants('customer-1', 'ai_tokens)
+   */
+  public async listEntitlementGrants(
+    subjectIdOrKey: string,
+    entitlementIdOrFeatureIdOrFeatureKey: string,
+    params?: ListEntitlementGrantQueryParams,
+    options?: RequestOptions
+  ): Promise<EntitlementGrant[]> {
+    const searchParams = params
+      ? BaseClient.toURLSearchParams(params)
+      : undefined
+    return await this.request({
+      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementIdOrFeatureIdOrFeatureKey}/grants`,
+      method: 'GET',
+      searchParams,
       options,
     })
   }

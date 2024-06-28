@@ -5,6 +5,10 @@ import {
   WindowedBalanceHistory,
 } from '../clients/entitlement.js'
 import { Feature, FeatureCreateInputs } from '../clients/feature.js'
+import {
+  EntitlementGrant,
+  EntitlementGrantCreateInput,
+} from '../clients/grant.js'
 import { Subject } from '../clients/subject.js'
 import { Event, Meter, WindowSize } from '../index.js'
 
@@ -135,4 +139,34 @@ export const mockWindowedBalanceHistory: WindowedBalanceHistory = {
       ],
     },
   ],
+}
+
+export const mockEntitlementGrantCreateInput: EntitlementGrantCreateInput = {
+  amount: 100,
+  priority: 1,
+  effectiveAt: '2023-01-01T00:00:00Z',
+  expiration: {
+    duration: 'HOUR',
+    count: 12,
+  },
+  minRolloverAmount: 100,
+  maxRolloverAmount: 100,
+  recurrence: {
+    interval: 'MONTH',
+    anchor: '2024-06-28T18:29:44.867Z',
+  },
+}
+
+export const mockEntitlementGrant: EntitlementGrant = {
+  ...mockEntitlementGrantCreateInput,
+  recurrence: {
+    interval: 'MONTH',
+    anchor: '2024-06-28T18:29:44.867Z',
+  },
+  id: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
+  entitlementId: mockEntitlement.id,
+  nextRecurrence: '2023-01-01T00:00:00Z',
+  expiresAt: '2023-01-01T00:00:00Z',
+  createdAt: '2023-01-01T00:00:00Z',
+  updatedAt: '2023-01-01T00:00:00Z',
 }

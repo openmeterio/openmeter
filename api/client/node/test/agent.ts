@@ -3,6 +3,8 @@ import {
   mockCreateEntitlementInput,
   mockCreateFeatureInput,
   mockEntitlement,
+  mockEntitlementGrant,
+  mockEntitlementGrantCreateInput,
   mockEntitlementValue,
   mockEvent,
   mockFeature,
@@ -319,7 +321,7 @@ client
     },
     body: JSON.stringify(mockCreateEntitlementInput),
   })
-  .reply(200, mockEntitlement, {
+  .reply(201, mockEntitlement, {
     headers: {
       'Content-Type': 'application/json',
     },
@@ -409,6 +411,38 @@ client
     },
   })
 
+/** Subject Entitlement Grants */
+
+client
+  .intercept({
+    path: `/api/v1/subjects/${mockSubject.key}/entitlements/${mockFeature.key}/grants`,
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(mockEntitlementGrantCreateInput),
+  })
+  .reply(201, mockEntitlementGrant, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+client
+  .intercept({
+    path: `/api/v1/subjects/${mockSubject.key}/entitlements/${mockFeature.key}/grants`,
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(200, [mockEntitlementGrant], {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
 /** Features */
 
 client
@@ -464,3 +498,35 @@ client
     },
   })
   .reply(204)
+
+/** Entitlements */
+
+client
+  .intercept({
+    path: '/api/v1/entitlements',
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(200, [mockEntitlement], {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+/** Grants */
+
+client
+  .intercept({
+    path: '/api/v1/grants',
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(200, [mockEntitlementGrant], {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })

@@ -114,7 +114,7 @@ const subjects = await openmeter.meters.subjects('my-meter-slug')
 
 #### createToken
 
-Create subject specific tokens.
+Create subject-specific tokens.
 Useful to build consumer dashboards.
 
 ```ts
@@ -250,6 +250,40 @@ const entitlement = await openmeter.subjects.resetEntitlementUsage(
 )
 ```
 
+#### createEntitlementGrant
+
+Create a grant for an entitlement.
+
+```ts
+const grant = await openmeter.subjects.createEntitlementGrant(
+  'customer-1',
+  'ai_tokens',
+  {
+    amount: 100,
+    priority: 1,
+    effectiveAt: '2023-01-01T00:00:00Z',
+    expiration: {
+      duration: 'HOUR',
+      count: 12,
+    },
+    minRolloverAmount: 100,
+    maxRolloverAmount: 100,
+    recurrence: {
+      interval: 'MONTH',
+      anchor: '2024-06-28T18:29:44.867Z',
+    },
+  }
+)
+```
+
+#### listEntitlementGrants
+
+List entitlement grants
+
+```ts
+const entitlement = await openmeter.subjects.listEntitlementGrants('customer-1', 'ai_tokens)
+```
+
 ## Features
 
 Features are the building blocks of your entitlements, part of your product offering.
@@ -289,4 +323,16 @@ Delete feature by key.
 
 ```ts
 await openmeter.features.delete('ai_tokens')
+```
+
+## Grants
+
+Entitlement grants allow to issue of additional one-time or recurring allowances on a subject's entitlement.
+
+#### list
+
+List grants.
+
+```ts
+const grants = await openmeter.grants.list()
 ```

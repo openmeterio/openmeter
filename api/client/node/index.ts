@@ -2,6 +2,7 @@ import { OpenMeterConfig } from './clients/client.js'
 import { EntitlementClient } from './clients/entitlement.js'
 import { EventsClient } from './clients/event.js'
 import { FeatureClient } from './clients/feature.js'
+import { GrantClient } from './clients/grant.js'
 import { MetersClient } from './clients/meter.js'
 import { PortalClient } from './clients/portal.js'
 import { SubjectClient } from './clients/subject.js'
@@ -17,6 +18,7 @@ export class OpenMeter {
   public subjects: SubjectClient
   public features: FeatureClient
   public entitlements: EntitlementClient
+  public grants: GrantClient
 
   constructor(config: OpenMeterConfig) {
     this.events = new EventsClient(config)
@@ -25,5 +27,6 @@ export class OpenMeter {
     this.subjects = new SubjectClient(config)
     this.features = new FeatureClient(config)
     this.entitlements = new EntitlementClient(config)
+    this.grants = new GrantClient(config)
   }
 }
