@@ -150,6 +150,10 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 		query = query.Where(db_entitlement.SubjectKeyEQ(params.SubjectKey))
 	}
 
+	if len(params.FeatureIDs) > 0 {
+		query = query.Where(db_entitlement.FeatureKeyIn(params.FeatureIDs...))
+	}
+
 	if !params.IncludeDeleted {
 		query = query.Where(db_entitlement.Or(db_entitlement.DeletedAtGT(time.Now()), db_entitlement.DeletedAtIsNil()))
 	}
