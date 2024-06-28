@@ -2695,16 +2695,16 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     {
                         "createdAt": "2020-02-20 00:00:00",  # The date and time the resource
                           was created. Required.
-                        "deletedAt": "2020-02-20 00:00:00",  # The date and time the resource
-                          was deleted. Required.
                         "id": "str",  # Readonly unique ULID identifier. Required.
                         "key": "str",  # The unique key of the feature to reference it from
                           your application. Required.
                         "name": "str",  # The name of the feature. Required.
                         "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource
-                          was last updated. Required.
+                          was last updated. Defaults to createdAt if not updated. Required.
                         "archivedAt": "2020-02-20 00:00:00",  # Optional. If the feature is
                           archived, it will not be used for grants or usage.
+                        "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time
+                          the resource was deleted. Null if not deleted.
                         "metadata": {
                             "str": "str"  # Optional. Additional metadata for the
                               feature.
@@ -2805,16 +2805,16 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 response == {
                     "createdAt": "2020-02-20 00:00:00",  # The date and time the resource was
                       created. Required.
-                    "deletedAt": "2020-02-20 00:00:00",  # The date and time the resource was
-                      deleted. Required.
                     "id": "str",  # Readonly unique ULID identifier. Required.
                     "key": "str",  # The unique key of the feature to reference it from your
                       application. Required.
                     "name": "str",  # The name of the feature. Required.
                     "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
-                      last updated. Required.
+                      last updated. Defaults to createdAt if not updated. Required.
                     "archivedAt": "2020-02-20 00:00:00",  # Optional. If the feature is archived,
                       it will not be used for grants or usage.
+                    "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time the
+                      resource was deleted. Null if not deleted.
                     "metadata": {
                         "str": "str"  # Optional. Additional metadata for the feature.
                     },
@@ -2851,16 +2851,16 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 response == {
                     "createdAt": "2020-02-20 00:00:00",  # The date and time the resource was
                       created. Required.
-                    "deletedAt": "2020-02-20 00:00:00",  # The date and time the resource was
-                      deleted. Required.
                     "id": "str",  # Readonly unique ULID identifier. Required.
                     "key": "str",  # The unique key of the feature to reference it from your
                       application. Required.
                     "name": "str",  # The name of the feature. Required.
                     "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
-                      last updated. Required.
+                      last updated. Defaults to createdAt if not updated. Required.
                     "archivedAt": "2020-02-20 00:00:00",  # Optional. If the feature is archived,
                       it will not be used for grants or usage.
+                    "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time the
+                      resource was deleted. Null if not deleted.
                     "metadata": {
                         "str": "str"  # Optional. Additional metadata for the feature.
                     },
@@ -2911,16 +2911,16 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 response == {
                     "createdAt": "2020-02-20 00:00:00",  # The date and time the resource was
                       created. Required.
-                    "deletedAt": "2020-02-20 00:00:00",  # The date and time the resource was
-                      deleted. Required.
                     "id": "str",  # Readonly unique ULID identifier. Required.
                     "key": "str",  # The unique key of the feature to reference it from your
                       application. Required.
                     "name": "str",  # The name of the feature. Required.
                     "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
-                      last updated. Required.
+                      last updated. Defaults to createdAt if not updated. Required.
                     "archivedAt": "2020-02-20 00:00:00",  # Optional. If the feature is archived,
                       it will not be used for grants or usage.
+                    "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time the
+                      resource was deleted. Null if not deleted.
                     "metadata": {
                         "str": "str"  # Optional. Additional metadata for the feature.
                     },
@@ -3009,16 +3009,16 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 response == {
                     "createdAt": "2020-02-20 00:00:00",  # The date and time the resource was
                       created. Required.
-                    "deletedAt": "2020-02-20 00:00:00",  # The date and time the resource was
-                      deleted. Required.
                     "id": "str",  # Readonly unique ULID identifier. Required.
                     "key": "str",  # The unique key of the feature to reference it from your
                       application. Required.
                     "name": "str",  # The name of the feature. Required.
                     "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
-                      last updated. Required.
+                      last updated. Defaults to createdAt if not updated. Required.
                     "archivedAt": "2020-02-20 00:00:00",  # Optional. If the feature is archived,
                       it will not be used for grants or usage.
+                    "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time the
+                      resource was deleted. Null if not deleted.
                     "metadata": {
                         "str": "str"  # Optional. Additional metadata for the feature.
                     },
@@ -3160,8 +3160,6 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           Required.
                         "createdAt": "2020-02-20 00:00:00",  # The date and time the resource
                           was created. Required.
-                        "deletedAt": "2020-02-20 00:00:00",  # The date and time the resource
-                          was deleted. Required.
                         "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided
                           value will be ceiled to metering windowSize (minute). Required.
                         "entitlementId": "str",  # The unique entitlement ULID that the grant
@@ -3175,7 +3173,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         },
                         "id": "str",  # Readonly unique ULID identifier. Required.
                         "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource
-                          was last updated. Required.
+                          was last updated. Defaults to createdAt if not updated. Required.
+                        "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time
+                          the resource was deleted. Null if not deleted.
                         "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date
                           of the grant.
                         "maxRolloverAmount": 0,  # Optional. Default value is 0. Grants are
@@ -3753,8 +3753,6 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           Required.
                         "createdAt": "2020-02-20 00:00:00",  # The date and time the resource
                           was created. Required.
-                        "deletedAt": "2020-02-20 00:00:00",  # The date and time the resource
-                          was deleted. Required.
                         "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided
                           value will be ceiled to metering windowSize (minute). Required.
                         "entitlementId": "str",  # The unique entitlement ULID that the grant
@@ -3768,7 +3766,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         },
                         "id": "str",  # Readonly unique ULID identifier. Required.
                         "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource
-                          was last updated. Required.
+                          was last updated. Defaults to createdAt if not updated. Required.
+                        "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time
+                          the resource was deleted. Null if not deleted.
                         "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date
                           of the grant.
                         "maxRolloverAmount": 0,  # Optional. Default value is 0. Grants are
@@ -3933,8 +3933,6 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "amount": 0.0,  # The amount to grant. Should be a positive number. Required.
                     "createdAt": "2020-02-20 00:00:00",  # The date and time the resource was
                       created. Required.
-                    "deletedAt": "2020-02-20 00:00:00",  # The date and time the resource was
-                      deleted. Required.
                     "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided value
                       will be ceiled to metering windowSize (minute). Required.
                     "entitlementId": "str",  # The unique entitlement ULID that the grant is
@@ -3946,7 +3944,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     },
                     "id": "str",  # Readonly unique ULID identifier. Required.
                     "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
-                      last updated. Required.
+                      last updated. Defaults to createdAt if not updated. Required.
+                    "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time the
+                      resource was deleted. Null if not deleted.
                     "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
                       grant.
                     "maxRolloverAmount": 0,  # Optional. Default value is 0. Grants are rolled
@@ -4022,8 +4022,6 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "amount": 0.0,  # The amount to grant. Should be a positive number. Required.
                     "createdAt": "2020-02-20 00:00:00",  # The date and time the resource was
                       created. Required.
-                    "deletedAt": "2020-02-20 00:00:00",  # The date and time the resource was
-                      deleted. Required.
                     "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided value
                       will be ceiled to metering windowSize (minute). Required.
                     "entitlementId": "str",  # The unique entitlement ULID that the grant is
@@ -4035,7 +4033,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     },
                     "id": "str",  # Readonly unique ULID identifier. Required.
                     "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
-                      last updated. Required.
+                      last updated. Defaults to createdAt if not updated. Required.
+                    "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time the
+                      resource was deleted. Null if not deleted.
                     "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
                       grant.
                     "maxRolloverAmount": 0,  # Optional. Default value is 0. Grants are rolled
@@ -4145,8 +4145,6 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "amount": 0.0,  # The amount to grant. Should be a positive number. Required.
                     "createdAt": "2020-02-20 00:00:00",  # The date and time the resource was
                       created. Required.
-                    "deletedAt": "2020-02-20 00:00:00",  # The date and time the resource was
-                      deleted. Required.
                     "effectiveAt": "2020-02-20 00:00:00",  # The effective time. Provided value
                       will be ceiled to metering windowSize (minute). Required.
                     "entitlementId": "str",  # The unique entitlement ULID that the grant is
@@ -4158,7 +4156,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     },
                     "id": "str",  # Readonly unique ULID identifier. Required.
                     "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
-                      last updated. Required.
+                      last updated. Defaults to createdAt if not updated. Required.
+                    "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time the
+                      resource was deleted. Null if not deleted.
                     "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
                       grant.
                     "maxRolloverAmount": 0,  # Optional. Default value is 0. Grants are rolled
