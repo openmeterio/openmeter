@@ -1847,7 +1847,7 @@ components:
           example: 1
         effectiveAt:
           description: |
-            The effective time. Provided value will be ceiled to metering windowSize (minute).
+            Effective date for grants and anchor for recurring grants. Provided value will be ceiled to metering windowSize (minute).
           type: string
           format: date-time
           example: "2023-01-01T00:00:00Z"
