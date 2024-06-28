@@ -78,13 +78,13 @@ func NewMeteredEntitlementConnector(
 	}
 }
 
-func (e *connector) GetValue(entitlement *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {
+func (e *connector) GetValue(ctx context.Context, entitlement *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {
 	metered, err := ParseFromGenericEntitlement(entitlement)
 	if err != nil {
 		return nil, err
 	}
 
-	balance, err := e.GetEntitlementBalance(context.Background(), models.NamespacedID{
+	balance, err := e.GetEntitlementBalance(ctx, models.NamespacedID{
 		Namespace: metered.Namespace,
 		ID:        metered.ID,
 	}, at)
@@ -101,7 +101,7 @@ func (e *connector) GetValue(entitlement *entitlement.Entitlement, at time.Time)
 	}, nil
 }
 
-func (c *connector) BeforeCreate(model *entitlement.CreateEntitlementInputs, feature *productcatalog.Feature) error {
+func (c *connector) BeforeCreate(ctx context.Context, model *entitlement.CreateEntitlementInputs, feature *productcatalog.Feature) error {
 	model.EntitlementType = entitlement.EntitlementTypeMetered
 	model.MeasureUsageFrom = convert.ToPointer(defaultx.WithDefault(model.MeasureUsageFrom, time.Now().Truncate(c.granularity)))
 	model.IsSoftLimit = convert.ToPointer(defaultx.WithDefault(model.IsSoftLimit, false))
@@ -121,7 +121,7 @@ func (c *connector) BeforeCreate(model *entitlement.CreateEntitlementInputs, fea
 	return nil
 }
 
-func (c *connector) AfterCreate(entitlement *entitlement.Entitlement) error {
+func (c *connector) AfterCreate(ctx context.Context, entitlement *entitlement.Entitlement) error {
 	metered, err := ParseFromGenericEntitlement(entitlement)
 	if err != nil {
 		return err
@@ -132,7 +132,7 @@ func (c *connector) AfterCreate(entitlement *entitlement.Entitlement) error {
 		amountToIssue := *metered.IssuesAfterReset
 		effectiveAt := metered.UsagePeriod.Anchor
 		// issue single recurring grant that can't be rolled over
-		_, err := c.CreateGrant(context.Background(), models.NamespacedID{
+		_, err := c.CreateGrant(ctx, models.NamespacedID{
 			ID:        entitlement.ID,
 			Namespace: entitlement.Namespace,
 		}, CreateEntitlementGrantInputs{

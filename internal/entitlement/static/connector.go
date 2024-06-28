@@ -1,6 +1,7 @@
 package staticentitlement
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 
@@ -18,7 +19,7 @@ func NewStaticEntitlementConnector() Connector {
 	return &connector{}
 }
 
-func (c *connector) GetValue(entitlement *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {
+func (c *connector) GetValue(ctx context.Context, entitlement *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {
 	static, err := ParseFromGenericEntitlement(entitlement)
 	if err != nil {
 		return nil, err
@@ -29,7 +30,7 @@ func (c *connector) GetValue(entitlement *entitlement.Entitlement, at time.Time)
 	}, nil
 }
 
-func (c *connector) BeforeCreate(model *entitlement.CreateEntitlementInputs, feature *productcatalog.Feature) error {
+func (c *connector) BeforeCreate(ctx context.Context, model *entitlement.CreateEntitlementInputs, feature *productcatalog.Feature) error {
 	model.EntitlementType = entitlement.EntitlementTypeStatic
 
 	if model.MeasureUsageFrom != nil ||
@@ -54,7 +55,7 @@ func (c *connector) BeforeCreate(model *entitlement.CreateEntitlementInputs, fea
 	return nil
 }
 
-func (c *connector) AfterCreate(entitlement *entitlement.Entitlement) error {
+func (c *connector) AfterCreate(ctx context.Context, entitlement *entitlement.Entitlement) error {
 	return nil
 }
 

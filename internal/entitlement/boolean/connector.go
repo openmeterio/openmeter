@@ -1,6 +1,7 @@
 package booleanentitlement
 
 import (
+	"context"
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
@@ -17,7 +18,7 @@ func NewBooleanEntitlementConnector() Connector {
 	return &connector{}
 }
 
-func (c *connector) GetValue(entitlement *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {
+func (c *connector) GetValue(ctx context.Context, entitlement *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {
 	_, err := ParseFromGenericEntitlement(entitlement)
 	if err != nil {
 		return nil, err
@@ -26,7 +27,7 @@ func (c *connector) GetValue(entitlement *entitlement.Entitlement, at time.Time)
 	return &BooleanEntitlementValue{}, nil
 }
 
-func (c *connector) BeforeCreate(model *entitlement.CreateEntitlementInputs, feature *productcatalog.Feature) error {
+func (c *connector) BeforeCreate(ctx context.Context, model *entitlement.CreateEntitlementInputs, feature *productcatalog.Feature) error {
 	model.EntitlementType = entitlement.EntitlementTypeBoolean
 	if model.MeasureUsageFrom != nil ||
 		model.IssueAfterReset != nil ||
@@ -38,7 +39,7 @@ func (c *connector) BeforeCreate(model *entitlement.CreateEntitlementInputs, fea
 	return nil
 }
 
-func (c *connector) AfterCreate(entitlement *entitlement.Entitlement) error {
+func (c *connector) AfterCreate(ctx context.Context, entitlement *entitlement.Entitlement) error {
 	return nil
 }
 
