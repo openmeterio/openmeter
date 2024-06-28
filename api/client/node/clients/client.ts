@@ -150,9 +150,8 @@ export class BaseClient {
         for (const item of value) {
           searchParams.append(key, item)
         }
-      } else if (typeof value === 'boolean' && value) {
-        // Only append boolean if it's true
-        searchParams.append(key, 'true')
+      } else if (typeof value === 'boolean') {
+        searchParams.append(key, value.toString())
       } else if (value instanceof Date) {
         searchParams.append(key, value.toISOString())
       } else if (typeof value === 'object') {
