@@ -128,7 +128,16 @@ export class BaseClient {
   }
 
   protected static toURLSearchParams(
-    params: Record<string, string | boolean | number | Date | string[] | Record<string, string> | undefined>
+    params: Record<
+      string,
+      | string
+      | boolean
+      | number
+      | Date
+      | string[]
+      | Record<string, string>
+      | undefined
+    >
   ): URLSearchParams {
     const searchParams = new URLSearchParams()
 

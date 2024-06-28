@@ -1,3 +1,9 @@
+import {
+  Entitlement,
+  EntitlementCreateInputs,
+  EntitlementValue,
+  WindowedBalanceHistory,
+} from '../clients/entitlement.js'
 import { Feature, FeatureCreateInputs } from '../clients/feature.js'
 import { Subject } from '../clients/subject.js'
 import { Event, Meter, WindowSize } from '../index.js'
@@ -52,10 +58,81 @@ export const mockCreateFeatureInput: FeatureCreateInputs = {
 }
 
 export const mockFeature: Feature = {
+  ...mockCreateFeatureInput,
   id: 'feature-1',
-  key: 'ai_tokens',
-  name: 'AI Tokens',
-  meterSlug: 'tokens_total',
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
+}
+
+export const mockCreateEntitlementInput: EntitlementCreateInputs = {
+  type: 'metered',
+  featureKey: mockFeature.key,
+  usagePeriod: {
+    interval: 'MONTH',
+  },
+  issueAfterReset: 10000000,
+}
+
+export const mockEntitlement: Entitlement = {
+  type: 'metered',
+  id: 'entitlement-1',
+  featureId: mockFeature.id,
+  featureKey: mockFeature.key,
+  subjectKey: mockSubject.key,
+  usagePeriod: {
+    interval: mockCreateEntitlementInput.usagePeriod.interval,
+    anchor: '2024-01-01T00:00:00Z',
+  },
+  currentUsagePeriod: {
+    from: '2024-01-01T00:00:00Z',
+    to: '2024-01-01T00:00:00Z',
+  },
+  issueAfterReset: mockCreateEntitlementInput.issueAfterReset,
+  lastReset: '2024-01-01T00:00:00Z',
+  createdAt: '2024-01-01T00:00:00Z',
+  updatedAt: '2024-01-01T00:00:00Z',
+}
+
+export const mockEntitlementValue: EntitlementValue = {
+  hasAccess: true,
+  usage: 100,
+  balance: 900,
+  overage: 0,
+}
+
+export const mockWindowedBalanceHistory: WindowedBalanceHistory = {
+  windowedHistory: [
+    {
+      period: {
+        from: '2024-01-01T00:00:00Z',
+        to: '2024-01-01T00:00:00Z',
+      },
+      usage: 100,
+      balanceAtStart: 100,
+    },
+  ],
+  burndownHistory: [
+    {
+      period: {
+        from: '2024-01-01T00:00:00Z',
+        to: '2024-01-01T00:00:00Z',
+      },
+      usage: 100,
+      overage: 25,
+      balanceAtStart: 100,
+      grantBalancesAtStart: {
+        '01ARZ3NDEKTSV4RRFFQ69G5FAV': 100,
+      },
+      balanceAtEnd: 100,
+      grantBalancesAtEnd: {
+        '01ARZ3NDEKTSV4RRFFQ69G5FAV': 100,
+      },
+      grantUsages: [
+        {
+          grantId: '01ARZ3NDEKTSV4RRFFQ69G5FAV',
+          usage: 100,
+        },
+      ],
+    },
+  ],
 }

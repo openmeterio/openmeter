@@ -10,7 +10,17 @@ import {
   WindowSize,
 } from '../dist/index.js'
 import { mockAgent } from './agent.js'
-import { mockCreateFeatureInput, mockEvent, mockFeature, mockMeter, mockMeterValue, mockSubject } from './mocks.js'
+import {
+  mockCreateEntitlementInput,
+  mockCreateFeatureInput,
+  mockEntitlement,
+  mockEntitlementValue,
+  mockEvent,
+  mockFeature,
+  mockMeter,
+  mockMeterValue,
+  mockSubject,
+} from './mocks.js'
 
 declare module 'vitest' {
   export interface TestContext {
@@ -167,6 +177,58 @@ describe('sdk', () => {
       it('should delete subject', async ({ openmeter }) => {
         const resp = await openmeter.subjects.delete(mockSubject.key)
         expect(resp).toBeUndefined()
+      })
+
+      describe('entitlements', () => {
+        it('should create entitlement', async ({ openmeter }) => {
+          const token = await openmeter.subjects.createEntitlement(
+            mockSubject.key,
+            mockCreateEntitlementInput
+          )
+          expect(token).toEqual(mockEntitlement)
+        })
+
+        it('should list entitlements', async ({ openmeter }) => {
+          const entitlements = await openmeter.subjects.listEntitlements(
+            mockSubject.key
+          )
+          expect(entitlements).toEqual([mockEntitlement])
+        })
+
+        it('should get entitlement', async ({ openmeter }) => {
+          const entitlement = await openmeter.subjects.getEntitlement(
+            mockSubject.key,
+            mockFeature.key
+          )
+          expect(entitlement).toEqual(mockEntitlement)
+        })
+
+        it('should delete entitlement', async ({ openmeter }) => {
+          const resp = await openmeter.subjects.deleteEntitlement(
+            mockSubject.key,
+            mockFeature.key
+          )
+          expect(resp).toBeUndefined()
+        })
+
+        it('should get entitlement value', async ({ openmeter }) => {
+          const value = await openmeter.subjects.getEntitlementValue(
+            mockSubject.key,
+            mockFeature.key
+          )
+          expect(value).toEqual(mockEntitlementValue)
+        })
+
+        it('should reset entitlement usage', async ({ openmeter }) => {
+          const resp = await openmeter.subjects.resetEntitlementUsage(
+            mockSubject.key,
+            mockFeature.key,
+            {
+              retainAnchor: true,
+            }
+          )
+          expect(resp).toBeUndefined()
+        })
       })
     })
   })
