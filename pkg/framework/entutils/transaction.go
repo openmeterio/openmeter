@@ -168,7 +168,9 @@ func RunInTransaction[R any](txCtx context.Context, txDriver *TxDriver, cb func(
 	return result, nil
 }
 
-const txDriverKey = "txDriver"
+type TxDriverContextKey string
+
+const txDriverKey TxDriverContextKey = "txDriver"
 
 func NewTxContext(ctx context.Context, tx *TxDriver) context.Context {
 	return context.WithValue(ctx, txDriverKey, tx)
