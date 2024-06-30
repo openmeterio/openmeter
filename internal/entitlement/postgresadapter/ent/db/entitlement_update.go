@@ -10,7 +10,6 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db/predicate"
@@ -69,14 +68,8 @@ func (eu *EntitlementUpdate) ClearDeletedAt() *EntitlementUpdate {
 }
 
 // SetConfig sets the "config" field.
-func (eu *EntitlementUpdate) SetConfig(u []uint8) *EntitlementUpdate {
-	eu.mutation.SetConfig(u)
-	return eu
-}
-
-// AppendConfig appends u to the "config" field.
-func (eu *EntitlementUpdate) AppendConfig(u []uint8) *EntitlementUpdate {
-	eu.mutation.AppendConfig(u)
+func (eu *EntitlementUpdate) SetConfig(m map[string]interface{}) *EntitlementUpdate {
+	eu.mutation.SetConfig(m)
 	return eu
 }
 
@@ -259,11 +252,6 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := eu.mutation.Config(); ok {
 		_spec.SetField(entitlement.FieldConfig, field.TypeJSON, value)
 	}
-	if value, ok := eu.mutation.AppendedConfig(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, entitlement.FieldConfig, value)
-		})
-	}
 	if eu.mutation.ConfigCleared() {
 		_spec.ClearField(entitlement.FieldConfig, field.TypeJSON)
 	}
@@ -392,14 +380,8 @@ func (euo *EntitlementUpdateOne) ClearDeletedAt() *EntitlementUpdateOne {
 }
 
 // SetConfig sets the "config" field.
-func (euo *EntitlementUpdateOne) SetConfig(u []uint8) *EntitlementUpdateOne {
-	euo.mutation.SetConfig(u)
-	return euo
-}
-
-// AppendConfig appends u to the "config" field.
-func (euo *EntitlementUpdateOne) AppendConfig(u []uint8) *EntitlementUpdateOne {
-	euo.mutation.AppendConfig(u)
+func (euo *EntitlementUpdateOne) SetConfig(m map[string]interface{}) *EntitlementUpdateOne {
+	euo.mutation.SetConfig(m)
 	return euo
 }
 
@@ -611,11 +593,6 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 	}
 	if value, ok := euo.mutation.Config(); ok {
 		_spec.SetField(entitlement.FieldConfig, field.TypeJSON, value)
-	}
-	if value, ok := euo.mutation.AppendedConfig(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, entitlement.FieldConfig, value)
-		})
 	}
 	if euo.mutation.ConfigCleared() {
 		_spec.ClearField(entitlement.FieldConfig, field.TypeJSON)
