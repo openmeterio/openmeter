@@ -39,7 +39,7 @@ func NewEntitlementGrantOwnerAdapter(
 	}
 }
 
-func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner credit.NamespacedGrantOwner) (*credit.OwnerMeter, error) {
+func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner credit.NamespacedGrantOwner) (*credit.Meter, error) {
 	// get feature of entitlement
 	entitlement, err := e.entitlementRepo.GetEntitlement(ctx, owner.NamespacedID())
 	if err != nil {
@@ -75,7 +75,7 @@ func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner credit.Names
 		}
 	}
 
-	return &credit.OwnerMeter{
+	return &credit.Meter{
 		MeterSlug:     meter.Slug,
 		DefaultParams: queryParams,
 		WindowSize:    meter.WindowSize,

@@ -15,14 +15,14 @@ type EndCurrentUsagePeriodParams struct {
 	RetainAnchor bool
 }
 
-type OwnerMeter struct {
+type Meter struct {
 	MeterSlug     string
 	DefaultParams *streaming.QueryParams
 	WindowSize    models.WindowSize
 }
 
 type OwnerConnector interface {
-	GetMeter(ctx context.Context, owner NamespacedGrantOwner) (*OwnerMeter, error)
+	GetMeter(ctx context.Context, owner NamespacedGrantOwner) (*Meter, error)
 	GetStartOfMeasurement(ctx context.Context, owner NamespacedGrantOwner) (time.Time, error)
 	GetPeriodStartTimesBetween(ctx context.Context, owner NamespacedGrantOwner, from, to time.Time) ([]time.Time, error)
 	GetUsagePeriodStartAt(ctx context.Context, owner NamespacedGrantOwner, at time.Time) (time.Time, error)
