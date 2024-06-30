@@ -28,6 +28,7 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 		FeatureId:          metered.FeatureID,
 		FeatureKey:         metered.FeatureKey,
 		Id:                 &metered.ID,
+		IsSoftLimit:        convert.ToPointer(metered.IsSoftLimit),
 		IsUnlimited:        convert.ToPointer(false), // implement
 		IssueAfterReset:    metered.IssuesAfterReset,
 		Metadata:           convert.MapToPointer(metered.Metadata),
