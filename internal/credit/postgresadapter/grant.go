@@ -109,18 +109,22 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params credit.ListGrant
 }
 
 func (g *grantDBADapter) ListActiveGrantsBetween(ctx context.Context, owner credit.NamespacedGrantOwner, from, to time.Time) ([]credit.Grant, error) {
+
 	query := g.db.Grant.Query().
-		Where(db_grant.And(db_grant.OwnerID(owner.ID), db_grant.Namespace(owner.Namespace))).
 		Where(
-			db_grant.Or(
-				db_grant.And(db_grant.EffectiveAtLT(from), db_grant.ExpiresAtGT(from)),
-				db_grant.And(db_grant.EffectiveAtGTE(from), db_grant.EffectiveAtLT(to)),
-				db_grant.EffectiveAt(from),
+			db_grant.And(
+				// Filter by owner, namespace
+				db_grant.OwnerID(owner.ID),
+				db_grant.Namespace(owner.Namespace),
+				// We are not interested in grants that either expired before the period
+				db_grant.Not(db_grant.EffectiveAtGT(to)),
+				// We are not interested in grants that are not yet effective
+				db_grant.Not(db_grant.ExpiresAtLT(from)),
+				// We are not interested in deleted or voided grants
+				db_grant.Or(db_grant.DeletedAtGTE(to), db_grant.DeletedAtIsNil()),
+				db_grant.Or(db_grant.VoidedAtGTE(to), db_grant.VoidedAtIsNil()),
 			),
-		).Where(
-		db_grant.Or(db_grant.DeletedAtGTE(to), db_grant.DeletedAtIsNil()),
-		db_grant.Or(db_grant.VoidedAtGTE(to), db_grant.VoidedAtIsNil()),
-	)
+		)
 
 	entities, err := query.All(ctx)
 	if err != nil {
@@ -129,6 +133,12 @@ func (g *grantDBADapter) ListActiveGrantsBetween(ctx context.Context, owner cred
 
 	grants := make([]credit.Grant, 0, len(entities))
 	for _, entity := range entities {
+		// Let's prefilter these as they are not really active, but will make the engine
+		// think they are active for that single point in time.
+		if entity.EffectiveAt.Equal(entity.ExpiresAt) {
+			continue
+		}
+
 		grants = append(grants, mapGrantEntity(entity))
 	}
 
