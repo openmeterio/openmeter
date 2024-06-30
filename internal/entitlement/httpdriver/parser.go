@@ -56,7 +56,7 @@ func (parser) ToStatic(e *entitlement.Entitlement) (*api.EntitlementStatic, erro
 		SubjectKey:         static.SubjectKey,
 		Type:               api.EntitlementStaticType(static.EntitlementType),
 		UpdatedAt:          &static.UpdatedAt,
-		Config:             static.Config,
+		Config:             string(static.Config),
 		CurrentUsagePeriod: mapPeriod(static.CurrentUsagePeriod),
 		UsagePeriod:        mapUsagePeriod(e.UsagePeriod),
 	}

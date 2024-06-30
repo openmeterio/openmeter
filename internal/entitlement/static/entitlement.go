@@ -7,7 +7,7 @@ import (
 type Entitlement struct {
 	entitlement.GenericProperties
 
-	Config string `json:"config,omitempty"`
+	Config []byte `json:"config,omitempty"`
 }
 
 func ParseFromGenericEntitlement(model *entitlement.Entitlement) (*Entitlement, error) {
@@ -21,6 +21,6 @@ func ParseFromGenericEntitlement(model *entitlement.Entitlement) (*Entitlement, 
 
 	return &Entitlement{
 		GenericProperties: model.GenericProperties,
-		Config:            *model.Config,
+		Config:            model.Config,
 	}, nil
 }
