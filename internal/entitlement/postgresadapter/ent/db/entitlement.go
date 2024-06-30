@@ -43,7 +43,7 @@ type Entitlement struct {
 	// IsSoftLimit holds the value of the "is_soft_limit" field.
 	IsSoftLimit *bool `json:"is_soft_limit,omitempty"`
 	// Config holds the value of the "config" field.
-	Config []uint8 `json:"config,omitempty"`
+	Config map[string]interface{} `json:"config,omitempty"`
 	// UsagePeriodInterval holds the value of the "usage_period_interval" field.
 	UsagePeriodInterval *entitlement.UsagePeriodInterval `json:"usage_period_interval,omitempty"`
 	// UsagePeriodAnchor holds the value of the "usage_period_anchor" field.

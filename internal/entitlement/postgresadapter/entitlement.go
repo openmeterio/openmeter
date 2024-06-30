@@ -2,6 +2,7 @@ package postgresadapter
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"time"
 
@@ -95,7 +96,11 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlemen
 	}
 
 	if entitlement.Config != nil {
-		cmd.SetConfig(entitlement.Config)
+		var config map[string]interface{}
+		if err := json.Unmarshal([]byte(*entitlement.Config), &config); err != nil {
+			return nil, err
+		}
+		cmd.SetConfig(config)
 	}
 
 	res, err := cmd.Save(ctx)
@@ -218,7 +223,13 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 	}
 
 	if e.Config != nil {
-		ent.Config = e.Config
+		cStr, err := json.Marshal(e.Config)
+		if err != nil {
+			// TODO: handle error
+			ent.Config = nil
+		} else {
+			ent.Config = convert.ToPointer(string(cStr))
+		}
 	}
 
 	if e.UsagePeriodAnchor != nil && e.UsagePeriodInterval != nil {

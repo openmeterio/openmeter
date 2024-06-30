@@ -45,7 +45,7 @@ type CreateEntitlementRepoInputs struct {
 	MeasureUsageFrom   *time.Time         `json:"measureUsageFrom,omitempty"`
 	IssueAfterReset    *float64           `json:"issueAfterReset,omitempty"`
 	IsSoftLimit        *bool              `json:"isSoftLimit,omitempty"`
-	Config             []byte             `json:"config,omitempty"`
+	Config             *string            `json:"config,omitempty"`
 	UsagePeriod        *UsagePeriod       `json:"usagePeriod,omitempty"`
 	CurrentUsagePeriod *recurrence.Period `json:"currentUsagePeriod,omitempty"`
 }

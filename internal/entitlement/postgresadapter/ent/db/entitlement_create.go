@@ -145,8 +145,8 @@ func (ec *EntitlementCreate) SetNillableIsSoftLimit(b *bool) *EntitlementCreate 
 }
 
 // SetConfig sets the "config" field.
-func (ec *EntitlementCreate) SetConfig(u []uint8) *EntitlementCreate {
-	ec.mutation.SetConfig(u)
+func (ec *EntitlementCreate) SetConfig(m map[string]interface{}) *EntitlementCreate {
+	ec.mutation.SetConfig(m)
 	return ec
 }
 
@@ -553,7 +553,7 @@ func (u *EntitlementUpsert) ClearDeletedAt() *EntitlementUpsert {
 }
 
 // SetConfig sets the "config" field.
-func (u *EntitlementUpsert) SetConfig(v []uint8) *EntitlementUpsert {
+func (u *EntitlementUpsert) SetConfig(v map[string]interface{}) *EntitlementUpsert {
 	u.Set(entitlement.FieldConfig, v)
 	return u
 }
@@ -759,7 +759,7 @@ func (u *EntitlementUpsertOne) ClearDeletedAt() *EntitlementUpsertOne {
 }
 
 // SetConfig sets the "config" field.
-func (u *EntitlementUpsertOne) SetConfig(v []uint8) *EntitlementUpsertOne {
+func (u *EntitlementUpsertOne) SetConfig(v map[string]interface{}) *EntitlementUpsertOne {
 	return u.Update(func(s *EntitlementUpsert) {
 		s.SetConfig(v)
 	})
@@ -1144,7 +1144,7 @@ func (u *EntitlementUpsertBulk) ClearDeletedAt() *EntitlementUpsertBulk {
 }
 
 // SetConfig sets the "config" field.
-func (u *EntitlementUpsertBulk) SetConfig(v []uint8) *EntitlementUpsertBulk {
+func (u *EntitlementUpsertBulk) SetConfig(v map[string]interface{}) *EntitlementUpsertBulk {
 	return u.Update(func(s *EntitlementUpsert) {
 		s.SetConfig(v)
 	})

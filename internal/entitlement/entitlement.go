@@ -23,7 +23,7 @@ type CreateEntitlementInputs struct {
 	MeasureUsageFrom *time.Time   `json:"measureUsageFrom,omitempty"`
 	IssueAfterReset  *float64     `json:"issueAfterReset,omitempty"`
 	IsSoftLimit      *bool        `json:"isSoftLimit,omitempty"`
-	Config           []byte       `json:"config,omitempty"`
+	Config           *string      `json:"config,omitempty"`
 	UsagePeriod      *UsagePeriod `json:"usagePeriod,omitempty"`
 }
 
@@ -43,7 +43,7 @@ type Entitlement struct {
 	LastReset        *time.Time `json:"lastReset,omitempty"`
 
 	// static
-	Config []byte `json:"config,omitempty"`
+	Config *string `json:"config,omitempty"`
 }
 
 func (e Entitlement) GetType() EntitlementType {

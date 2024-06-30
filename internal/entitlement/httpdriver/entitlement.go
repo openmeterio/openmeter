@@ -97,7 +97,7 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 					FeatureKey:      v.FeatureKey,
 					SubjectKey:      subjectIdOrKey,
 					EntitlementType: entitlement.EntitlementTypeStatic,
-					Config:          []byte(v.Config),
+					Config:          &v.Config,
 				}
 				if v.UsagePeriod != nil {
 					request.UsagePeriod = &entitlement.UsagePeriod{
@@ -191,14 +191,9 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 					Overage:   &ent.Overage,
 				}, nil
 			case *staticentitlement.StaticEntitlementValue:
-				var config *string
-				if len(ent.Config) > 0 {
-					config = convert.ToPointer(string(ent.Config))
-				}
-
 				return api.EntitlementValue{
 					HasAccess: convert.ToPointer(ent.HasAccess()),
-					Config:    config,
+					Config:    &ent.Config,
 				}, nil
 			case *booleanentitlement.BooleanEntitlementValue:
 				return api.EntitlementValue{
