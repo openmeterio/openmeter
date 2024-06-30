@@ -12,47 +12,10 @@ import (
 
 func getErrorEncoder() httptransport.ErrorEncoder {
 	return func(ctx context.Context, err error, w http.ResponseWriter) bool {
-		// user errors
-		if _, ok := err.(*productcatalog.FeatureNotFoundError); ok {
-			commonhttp.NewHTTPError(
-				http.StatusNotFound,
-				err,
-			).EncodeError(ctx, w)
-			return true
-		}
-
-		if _, ok := err.(*productcatalog.FeatureInvalidFiltersError); ok {
-			commonhttp.NewHTTPError(
-				http.StatusBadRequest,
-				err,
-			).EncodeError(ctx, w)
-			return true
-		}
-
-		if _, ok := err.(*productcatalog.FeatureInvalidMeterAggregationError); ok {
-			commonhttp.NewHTTPError(
-				http.StatusBadRequest,
-				err,
-			).EncodeError(ctx, w)
-			return true
-		}
-
-		if _, ok := err.(*models.MeterNotFoundError); ok {
-			commonhttp.NewHTTPError(
-				http.StatusNotFound,
-				err,
-			).EncodeError(ctx, w)
-			return true
-		}
-
-		if _, ok := err.(*productcatalog.FeatureWithNameAlreadyExistsError); ok {
-			commonhttp.NewHTTPError(
-				http.StatusConflict,
-				err,
-			).EncodeError(ctx, w)
-			return true
-		}
-
-		return false
+		return commonhttp.HandleErrorIfTypeMatches[*productcatalog.FeatureNotFoundError](ctx, http.StatusNotFound, err, w) ||
+			commonhttp.HandleErrorIfTypeMatches[*productcatalog.FeatureInvalidFiltersError](ctx, http.StatusBadRequest, err, w) ||
+			commonhttp.HandleErrorIfTypeMatches[*productcatalog.FeatureInvalidMeterAggregationError](ctx, http.StatusBadRequest, err, w) ||
+			commonhttp.HandleErrorIfTypeMatches[*models.MeterNotFoundError](ctx, http.StatusNotFound, err, w) ||
+			commonhttp.HandleErrorIfTypeMatches[*productcatalog.FeatureWithNameAlreadyExistsError](ctx, http.StatusConflict, err, w)
 	}
 }
