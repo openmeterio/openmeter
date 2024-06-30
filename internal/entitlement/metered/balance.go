@@ -58,7 +58,7 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 		return nil, err
 	}
 
-	meterSlug, params, err := e.ownerConnector.GetOwnerQueryParams(ctx, nsOwner)
+	ownerMeter, err := e.ownerConnector.GetMeter(ctx, nsOwner)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get owner query params: %w", err)
 	}
@@ -68,10 +68,11 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 		return nil, fmt.Errorf("failed to get current usage period start at: %w", err)
 	}
 
-	params.From = &startOfPeriod
-	params.To = &at
+	meterQuery := ownerMeter.DefaultParams
+	meterQuery.From = &startOfPeriod
+	meterQuery.To = &at
 
-	rows, err := e.streamingConnector.QueryMeter(ctx, entitlementID.Namespace, meterSlug, params)
+	rows, err := e.streamingConnector.QueryMeter(ctx, entitlementID.Namespace, ownerMeter.MeterSlug, meterQuery)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query meter: %w", err)
 	}
@@ -127,25 +128,28 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		ID:        credit.GrantOwner(entitlementID.ID),
 	}
 
+	ownerMeter, err := e.ownerConnector.GetMeter(ctx, owner)
+	if err != nil {
+		return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("failed to get owner query params: %w", err)
+	}
+
 	// 1. we get the burndown history
 	burndownHistory, err := e.balanceConnector.GetBalanceHistoryOfOwner(ctx, owner, credit.BalanceHistoryParams{
-		From: params.From.Truncate(time.Minute),
-		To:   params.To.Truncate(time.Minute),
+		From: params.From.Truncate(ownerMeter.WindowSize.Duration()),
+		To:   params.To.Truncate(ownerMeter.WindowSize.Duration()),
 	})
 	if err != nil {
 		return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("failed to get balance history: %w", err)
 	}
-	// 2. and we get the windowed usage data
-	meterSlug, meterParams, err := e.ownerConnector.GetOwnerQueryParams(ctx, owner)
-	if err != nil {
-		return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("failed to get owner query params: %w", err)
-	}
-	meterParams.From = params.From
-	meterParams.To = params.To
-	meterParams.WindowSize = convert.ToPointer(models.WindowSize(params.WindowSize))
-	meterParams.WindowTimeZone = &params.WindowTimeZone
 
-	meterRows, err := e.streamingConnector.QueryMeter(ctx, owner.Namespace, meterSlug, meterParams)
+	// 2. and we get the windowed usage data
+	meterQuery := ownerMeter.DefaultParams
+	meterQuery.From = params.From
+	meterQuery.To = params.To
+	meterQuery.WindowSize = convert.ToPointer(models.WindowSize(params.WindowSize))
+	meterQuery.WindowTimeZone = &params.WindowTimeZone
+
+	meterRows, err := e.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.MeterSlug, meterQuery)
 	if err != nil {
 		return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("failed to query meter: %w", err)
 	}
@@ -153,10 +157,10 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 	// If we get 0 rows that means the windowsize is larger than the queried period.
 	// In this case we simply query for the entire period.
 	if len(meterRows) == 0 {
-		nonWindowedParams := *meterParams
+		nonWindowedParams := *meterQuery
 		nonWindowedParams.WindowSize = nil
 		nonWindowedParams.WindowTimeZone = nil
-		meterRows, err = e.streamingConnector.QueryMeter(ctx, owner.Namespace, meterSlug, &nonWindowedParams)
+		meterRows, err = e.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.MeterSlug, &nonWindowedParams)
 		if err != nil {
 			return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("failed to query meter: %w", err)
 		}

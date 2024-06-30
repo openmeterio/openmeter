@@ -1366,6 +1366,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *testDependenci
 		Slug:        "meter1",
 		Namespace:   "ns1",
 		Aggregation: models.MeterAggregationMax,
+		WindowSize:  models.WindowSizeMinute,
 	}})
 
 	// create isolated pg db for tests

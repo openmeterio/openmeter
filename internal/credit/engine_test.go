@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/internal/streaming/testutils"
+	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
@@ -61,6 +62,7 @@ func TestEngine(t *testing.T) {
 				g1 = makeGrant(g1)
 
 				b1, o1, s1, err1 := engine.Run(
+					context.Background(),
 					[]credit.Grant{g1},
 					credit.GrantBalanceMap{
 						g1.ID: 100.0,
@@ -73,6 +75,7 @@ func TestEngine(t *testing.T) {
 				assert.NoError(t, err1)
 
 				b2, o2, s2, err2 := engine.Run(
+					context.Background(),
 					[]credit.Grant{g1},
 					credit.GrantBalanceMap{
 						g1.ID: 100.0,
@@ -94,6 +97,7 @@ func TestEngine(t *testing.T) {
 			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
 				use(50.0, t1.Add(time.Hour))
 				res, overage, segments, err := engine.Run(
+					context.Background(),
 					[]credit.Grant{},
 					credit.GrantBalanceMap{}, 0, recurrence.Period{
 						From: t1,
@@ -123,6 +127,7 @@ func TestEngine(t *testing.T) {
 			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
 				use(50.0, t1.Add(time.Hour))
 				_, _, _, err := engine.Run(
+					context.Background(),
 					[]credit.Grant{},
 					credit.GrantBalanceMap{
 						grant1.ID: 100.0,
@@ -143,6 +148,7 @@ func TestEngine(t *testing.T) {
 				g2 := grant2
 				g2 = makeGrant(g2)
 				_, _, _, err := engine.Run(
+					context.Background(),
 					[]credit.Grant{g1, g2},
 					credit.GrantBalanceMap{
 						grant1.ID: 100.0,
@@ -159,6 +165,7 @@ func TestEngine(t *testing.T) {
 			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
 				use(50.0, t1.Add(time.Hour))
 				res, _, _, err := engine.Run(
+					context.Background(),
 					[]credit.Grant{grant1},
 					credit.GrantBalanceMap{
 						grant1.ID: 100.0,
@@ -180,6 +187,7 @@ func TestEngine(t *testing.T) {
 				grant = makeGrant(grant)
 
 				res, _, _, err := engine.Run(
+					context.Background(),
 					[]credit.Grant{grant},
 					credit.GrantBalanceMap{
 						grant.ID: 100.0,
@@ -202,6 +210,7 @@ func TestEngine(t *testing.T) {
 				grant = makeGrant(grant)
 
 				res, _, _, err := engine.Run(
+					context.Background(),
 					[]credit.Grant{grant},
 					credit.GrantBalanceMap{
 						grant.ID: 100.0,
@@ -226,6 +235,7 @@ func TestEngine(t *testing.T) {
 				grant = makeGrant(grant)
 
 				res, overage, history, err := engine.Run(
+					context.Background(),
 					[]credit.Grant{grant},
 					credit.GrantBalanceMap{
 						grant.ID: 100.0,
@@ -255,6 +265,7 @@ func TestEngine(t *testing.T) {
 				grant = makeGrant(grant)
 
 				res, overage, history, err := engine.Run(
+					context.Background(),
 					[]credit.Grant{grant},
 					credit.GrantBalanceMap{
 						grant.ID: 100.0,
@@ -283,6 +294,7 @@ func TestEngine(t *testing.T) {
 				grant = makeGrant(grant)
 
 				res, _, _, err := engine.Run(
+					context.Background(),
 					[]credit.Grant{grant},
 					credit.GrantBalanceMap{
 						grant.ID: 100.0,
@@ -306,6 +318,7 @@ func TestEngine(t *testing.T) {
 				grant = makeGrant(grant)
 
 				res, _, _, err := engine.Run(
+					context.Background(),
 					[]credit.Grant{grant},
 					credit.GrantBalanceMap{
 						grant.ID: 100.0,
@@ -334,6 +347,7 @@ func TestEngine(t *testing.T) {
 				grant = makeGrant(grant)
 
 				res, _, segments, err := engine.Run(
+					context.Background(),
 					[]credit.Grant{grant},
 					credit.GrantBalanceMap{
 						grant.ID: 0.0,
@@ -371,6 +385,7 @@ func TestEngine(t *testing.T) {
 				g2 = makeGrant(g2)
 
 				res, _, _, err := engine.Run(
+					context.Background(),
 					[]credit.Grant{g1, g2},
 					credit.GrantBalanceMap{
 						g1.ID: 100.0,
@@ -403,6 +418,7 @@ func TestEngine(t *testing.T) {
 				g2 = makeGrant(g2)
 
 				res, _, _, err := engine.Run(
+					context.Background(),
 					[]credit.Grant{g2, g1},
 					credit.GrantBalanceMap{
 						g1.ID: 100.0,
@@ -435,6 +451,7 @@ func TestEngine(t *testing.T) {
 				g2 = makeGrant(g2)
 
 				res, _, _, err := engine.Run(
+					context.Background(),
 					[]credit.Grant{g2, g1},
 					credit.GrantBalanceMap{
 						g1.ID: 100.0,
@@ -493,6 +510,7 @@ func TestEngine(t *testing.T) {
 				use(99, t1.Add(time.Hour))
 
 				res, _, _, err := engine.Run(
+					context.Background(),
 					grants,
 					bm,
 					0,
@@ -525,6 +543,7 @@ func TestEngine(t *testing.T) {
 				g1 = makeGrant(g1)
 
 				res, _, _, err := engine.Run(
+					context.Background(),
 					[]credit.Grant{g1},
 					credit.GrantBalanceMap{
 						g1.ID: 100.0,
@@ -569,6 +588,7 @@ func TestEngine(t *testing.T) {
 				g2 = makeGrant(g2)
 
 				res1, _, _, err := engine.Run(
+					context.Background(),
 					[]credit.Grant{g1, g2},
 					credit.GrantBalanceMap{
 						g1.ID: 80.0, // due to use before start
@@ -616,6 +636,7 @@ func TestEngine(t *testing.T) {
 				g2 = makeGrant(g2)
 
 				res2, _, _, err := engine.Run(
+					context.Background(),
 					[]credit.Grant{g1, g2},
 					credit.GrantBalanceMap{
 						g1.ID: 80.0, // due to use before start
@@ -670,6 +691,7 @@ func TestEngine(t *testing.T) {
 				g2 = makeGrant(g2)
 
 				_, _, segments, err := engine.Run(
+					context.Background(),
 					[]credit.Grant{g1, g2},
 					credit.GrantBalanceMap{
 						g1.ID: 80.0, // due to use before start
@@ -704,8 +726,8 @@ func TestEngine(t *testing.T) {
 			t.Parallel()
 			streamingConnector := testutils.NewMockStreamingConnector(t)
 
-			queryFeatureUsage := func(from, to time.Time) (float64, error) {
-				rows, err := streamingConnector.QueryMeter(context.TODO(), "default", meterSlug, &streaming.QueryParams{
+			queryFeatureUsage := func(ctx context.Context, from, to time.Time) (float64, error) {
+				rows, err := streamingConnector.QueryMeter(ctx, "default", meterSlug, &streaming.QueryParams{
 					From: &from,
 					To:   &to,
 				})
@@ -720,7 +742,7 @@ func TestEngine(t *testing.T) {
 				}
 				return rows[0].Value, nil
 			}
-			tc.run(t, credit.NewEngine(queryFeatureUsage), func(usage float64, at time.Time) {
+			tc.run(t, credit.NewEngine(queryFeatureUsage, models.WindowSizeMinute), func(usage float64, at time.Time) {
 				streamingConnector.AddSimpleEvent(meterSlug, usage, at)
 			})
 		})
@@ -730,12 +752,12 @@ func TestEngine(t *testing.T) {
 	tt2 := []struct {
 		name   string
 		repeat int
-		run    func(t *testing.T, queryFn func(from time.Time, to time.Time) (float64, error), use addUsageFunc)
+		run    func(t *testing.T, queryFn func(ctx context.Context, from time.Time, to time.Time) (float64, error), use addUsageFunc)
 	}{
 		{
 			name:   "Calculating same period in 2 runs yields same result as calculations in one run",
 			repeat: 1,
-			run: func(t *testing.T, queryFn func(from time.Time, to time.Time) (float64, error), use addUsageFunc) {
+			run: func(t *testing.T, queryFn func(ctx context.Context, from time.Time, to time.Time) (float64, error), use addUsageFunc) {
 				// burn down with usage after grant effectiveAt
 				start := t1
 
@@ -759,11 +781,12 @@ func TestEngine(t *testing.T) {
 					g2.ID: 82.0,
 				}
 
-				engine1 := credit.NewEngine(queryFn) // runs for first part
-				engine2 := credit.NewEngine(queryFn) // runs for second part
-				engine3 := credit.NewEngine(queryFn) // runs for both parts
+				engine1 := credit.NewEngine(queryFn, models.WindowSizeMinute) // runs for first part
+				engine2 := credit.NewEngine(queryFn, models.WindowSizeMinute) // runs for second part
+				engine3 := credit.NewEngine(queryFn, models.WindowSizeMinute) // runs for both parts
 
 				intermediateBalance, overage, _, err := engine1.Run(
+					context.Background(),
 					[]credit.Grant{g1, g2},
 					startingBalance,
 					0,
@@ -775,6 +798,7 @@ func TestEngine(t *testing.T) {
 				assert.NoError(t, err)
 
 				finalBalance1, _, _, err := engine2.Run(
+					context.Background(),
 					[]credit.Grant{g1, g2},
 					intermediateBalance,
 					overage,
@@ -786,6 +810,7 @@ func TestEngine(t *testing.T) {
 				assert.NoError(t, err)
 
 				finalBalance2, _, _, err := engine3.Run(
+					context.Background(),
 					[]credit.Grant{g1, g2},
 					startingBalance,
 					0,
@@ -803,7 +828,7 @@ func TestEngine(t *testing.T) {
 		{
 			name:   "Deterministic",
 			repeat: 10,
-			run: func(t *testing.T, queryFn func(from time.Time, to time.Time) (float64, error), use addUsageFunc) {
+			run: func(t *testing.T, queryFn func(ctx context.Context, from time.Time, to time.Time) (float64, error), use addUsageFunc) {
 				granularity := time.Minute
 
 				// run for 1 month
@@ -853,13 +878,16 @@ func TestEngine(t *testing.T) {
 				balances := startingBalances.Copy()
 				results := make([]credit.GrantBalanceMap, numOfRuns)
 				for i := 0; i < numOfRuns; i++ {
-					engine := credit.NewEngine(queryFn)
+					engine := credit.NewEngine(queryFn, models.WindowSizeMinute)
 					gCp := make([]credit.Grant, len(grants))
 					copy(gCp, grants)
-					result, _, _, err := engine.Run(gCp, balances, 0, recurrence.Period{
-						From: start,
-						To:   end,
-					})
+					result, _, _, err := engine.Run(
+						context.Background(),
+						gCp, balances, 0,
+						recurrence.Period{
+							From: start,
+							To:   end,
+						})
 					if err != nil {
 						t.Fatalf("unexpected error: %v", err)
 					}
@@ -883,7 +911,7 @@ func TestEngine(t *testing.T) {
 		{
 			name:   "Fuzzing sequences",
 			repeat: 10,
-			run: func(t *testing.T, queryFn func(from time.Time, to time.Time) (float64, error), use addUsageFunc) {
+			run: func(t *testing.T, queryFn func(ctx context.Context, from time.Time, to time.Time) (float64, error), use addUsageFunc) {
 				granularity := time.Minute
 
 				// run for 1 month
@@ -930,13 +958,16 @@ func TestEngine(t *testing.T) {
 				}
 
 				// run calculation on single engine
-				singleEngine := credit.NewEngine(queryFn)
+				singleEngine := credit.NewEngine(queryFn, models.WindowSizeMinute)
 				gCp := make([]credit.Grant, len(grants))
 				copy(gCp, grants)
-				singleEngineResult, _, _, err := singleEngine.Run(gCp, startingBalances, 0, recurrence.Period{
-					From: start,
-					To:   end,
-				})
+				singleEngineResult, _, _, err := singleEngine.Run(
+					context.Background(),
+					gCp, startingBalances, 0,
+					recurrence.Period{
+						From: start,
+						To:   end,
+					})
 				if err != nil {
 					// lets save ourselves the calculation if this already fails
 					t.Fatalf("unexpected error: %v", err)
@@ -963,13 +994,16 @@ func TestEngine(t *testing.T) {
 					// 	To:   pEnd,
 					// })
 
-					engine := credit.NewEngine(queryFn)
+					engine := credit.NewEngine(queryFn, models.WindowSizeMinute)
 					gCp := make([]credit.Grant, len(grants))
 					copy(gCp, grants)
-					balances, overage, _, err = engine.Run(gCp, balances, overage, recurrence.Period{
-						From: pStart,
-						To:   pEnd,
-					})
+					balances, overage, _, err = engine.Run(
+						context.Background(),
+						gCp, balances, overage,
+						recurrence.Period{
+							From: pStart,
+							To:   pEnd,
+						})
 					if err != nil {
 						t.Fatalf("unexpected error: %v", err)
 					}
@@ -988,8 +1022,8 @@ func TestEngine(t *testing.T) {
 				t.Parallel()
 				streamingConnector := testutils.NewMockStreamingConnector(t)
 
-				queryFeatureUsage := func(from, to time.Time) (float64, error) {
-					rows, err := streamingConnector.QueryMeter(context.TODO(), "default", meterSlug, &streaming.QueryParams{
+				queryFeatureUsage := func(ctx context.Context, from, to time.Time) (float64, error) {
+					rows, err := streamingConnector.QueryMeter(ctx, "default", meterSlug, &streaming.QueryParams{
 						From: &from,
 						To:   &to,
 					})

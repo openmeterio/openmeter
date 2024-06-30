@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
@@ -45,11 +46,13 @@ type entitlementConnector struct {
 
 	entitlementRepo  EntitlementRepo
 	featureConnector productcatalog.FeatureConnector
+	meterRepo        meter.Repository
 }
 
 func NewEntitlementConnector(
 	entitlementRepo EntitlementRepo,
 	featureConnector productcatalog.FeatureConnector,
+	meterRepo meter.Repository,
 	meteredEntitlementConnector SubTypeConnector,
 	staticEntitlementConnector SubTypeConnector,
 	booleanEntitlementConnector SubTypeConnector,
@@ -60,6 +63,7 @@ func NewEntitlementConnector(
 		booleanEntitlementConnector: booleanEntitlementConnector,
 		entitlementRepo:             entitlementRepo,
 		featureConnector:            featureConnector,
+		meterRepo:                   meterRepo,
 	}
 }
 
@@ -108,8 +112,13 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 	var usagePeriod *UsagePeriod
 	var currentUsagePeriod *recurrence.Period
 	if input.UsagePeriod != nil {
+		meter, err := c.meterRepo.GetMeterByIDOrSlug(ctx, feature.Namespace, *feature.MeterSlug)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get meter: %w", err)
+		}
+
 		usagePeriod = input.UsagePeriod
-		usagePeriod.Anchor = usagePeriod.Anchor.Truncate(time.Minute)
+		usagePeriod.Anchor = usagePeriod.Anchor.Truncate(meter.WindowSize.Duration())
 
 		calculatedPeriod, err := usagePeriod.GetCurrentPeriod()
 		if err != nil {
