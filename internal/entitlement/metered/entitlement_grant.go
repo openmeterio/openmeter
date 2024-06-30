@@ -10,7 +10,15 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func (e *connector) CreateGrant(ctx context.Context, ent models.NamespacedID, inputGrant CreateEntitlementGrantInputs) (EntitlementGrant, error) {
+func (e *connector) CreateGrant(ctx context.Context, entId models.NamespacedID, inputGrant CreateEntitlementGrantInputs) (EntitlementGrant, error) {
+	ent, err := e.entitlementRepo.GetEntitlement(ctx, entId)
+	if err != nil {
+		return EntitlementGrant{}, err
+	}
+	_, err = ParseFromGenericEntitlement(ent)
+	if err != nil {
+		return EntitlementGrant{}, err
+	}
 	grant, error := e.grantConnector.CreateGrant(ctx, credit.NamespacedGrantOwner{
 		Namespace: ent.Namespace,
 		ID:        credit.GrantOwner(ent.ID),
@@ -26,7 +34,7 @@ func (e *connector) CreateGrant(ctx context.Context, ent models.NamespacedID, in
 	})
 	if error != nil {
 		if _, ok := error.(credit.OwnerNotFoundError); ok {
-			return EntitlementGrant{}, &entitlement.NotFoundError{EntitlementID: ent}
+			return EntitlementGrant{}, &entitlement.NotFoundError{EntitlementID: entId}
 		}
 
 		return EntitlementGrant{}, error

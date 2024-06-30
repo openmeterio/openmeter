@@ -108,11 +108,17 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlemen
 }
 
 func (a *entitlementDBAdapter) DeleteEntitlement(ctx context.Context, entitlementID models.NamespacedID) error {
-	_, err := a.db.Entitlement.Update().
+	affectedCount, err := a.db.Entitlement.Update().
 		Where(db_entitlement.ID(entitlementID.ID), db_entitlement.Namespace(entitlementID.Namespace)).
 		SetDeletedAt(time.Now()).
 		Save(ctx)
-	return err
+	if err != nil {
+		return err
+	}
+	if affectedCount == 0 {
+		return &entitlement.NotFoundError{EntitlementID: entitlementID}
+	}
+	return nil
 }
 
 func (a *entitlementDBAdapter) GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]entitlement.Entitlement, error) {
