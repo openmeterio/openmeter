@@ -93,14 +93,13 @@ func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner Namespac
 	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&balance, grants, balance.At)
 
 	// run engine and calculate grantbalance
-	engineParams, err := m.getQueryUsageFn(ctx, owner)
+	queryFn, err := m.getQueryUsageFn(ctx, owner)
 	if err != nil {
 		return nil, err
 	}
-	engine := NewEngine(engineParams.QueryUsageFn, engineParams.Grantuality)
+	engine := NewEngine(queryFn)
 
 	result, overage, segments, err := engine.Run(
-		ctx,
 		grants,
 		balance.Balances,
 		balance.Overage,
@@ -184,14 +183,13 @@ func (m *balanceConnector) GetBalanceHistoryOfOwner(ctx context.Context, owner N
 			return GrantBurnDownHistory{}, err
 		}
 		// run engine and calculate grantbalance
-		engineParams, err := m.getQueryUsageFn(ctx, owner)
+		queryFn, err := m.getQueryUsageFn(ctx, owner)
 		if err != nil {
 			return GrantBurnDownHistory{}, err
 		}
-		engine := NewEngine(engineParams.QueryUsageFn, engineParams.Grantuality)
+		engine := NewEngine(queryFn)
 
 		_, _, segments, err := engine.Run(
-			ctx,
 			grants,
 			balance.Balances,
 			balance.Overage,
@@ -222,12 +220,8 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 		return nil, &models.GenericUserError{Message: fmt.Sprintf("cannot reset at %s in the future", params.At)}
 	}
 
-	ownerMeter, err := m.ownerConnector.GetMeter(ctx, owner)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get owner query params for owner %s: %w", owner.ID, err)
-	}
-
-	at := params.At.Truncate(ownerMeter.WindowSize.Duration())
+	// TODO: enforce granularity (truncate)
+	at := params.At.Truncate(time.Minute)
 
 	// check if reset is possible (after last reset)
 	periodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, owner, time.Now())
@@ -260,14 +254,13 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 	}
 	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&balance, grants, balance.At)
 
-	engineParams, err := m.getQueryUsageFn(ctx, owner)
+	queryFn, err := m.getQueryUsageFn(ctx, owner)
 	if err != nil {
 		return nil, err
 	}
-	engine := NewEngine(engineParams.QueryUsageFn, engineParams.Grantuality)
+	engine := NewEngine(queryFn)
 
 	endingBalance, _, _, err := engine.Run(
-		ctx,
 		grants,
 		balance.Balances,
 		balance.Overage,
@@ -382,36 +375,28 @@ func (m *balanceConnector) getLastValidBalanceSnapshotForOwnerAt(ctx context.Con
 	return balance, nil
 }
 
-type engineParams struct {
-	QueryUsageFn QueryUsageFn
-	Grantuality  models.WindowSize
-}
-
 // returns owner specific QueryUsageFn
-func (m *balanceConnector) getQueryUsageFn(ctx context.Context, owner NamespacedGrantOwner) (*engineParams, error) {
-	ownerMeter, err := m.ownerConnector.GetMeter(ctx, owner)
+func (m *balanceConnector) getQueryUsageFn(ctx context.Context, owner NamespacedGrantOwner) (QueryUsageFn, error) {
+	meterSlug, ownerParams, err := m.ownerConnector.GetOwnerQueryParams(ctx, owner)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get query params for owner %v: %w", owner, err)
 	}
-	return &engineParams{
-		QueryUsageFn: func(ctx context.Context, from, to time.Time) (float64, error) {
-			// copy
-			params := ownerMeter.DefaultParams
-			params.From = &from
-			params.To = &to
-			rows, err := m.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.MeterSlug, params)
-			if err != nil {
-				return 0.0, fmt.Errorf("failed to query meter %s: %w", ownerMeter.MeterSlug, err)
-			}
-			if len(rows) > 1 {
-				return 0.0, fmt.Errorf("expected 1 row, got %d", len(rows))
-			}
-			if len(rows) == 0 {
-				return 0.0, nil
-			}
-			return rows[0].Value, nil
-		},
-		Grantuality: ownerMeter.WindowSize,
+	return func(from, to time.Time) (float64, error) {
+		// copy
+		params := ownerParams
+		params.From = &from
+		params.To = &to
+		rows, err := m.streamingConnector.QueryMeter(context.TODO(), owner.Namespace, meterSlug, params)
+		if err != nil {
+			return 0.0, fmt.Errorf("failed to query meter %s: %w", meterSlug, err)
+		}
+		if len(rows) > 1 {
+			return 0.0, fmt.Errorf("expected 1 row, got %d", len(rows))
+		}
+		if len(rows) == 0 {
+			return 0.0, nil
+		}
+		return rows[0].Value, nil
 	}, nil
 }
 

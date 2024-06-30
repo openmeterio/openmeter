@@ -1,28 +1,25 @@
 package credit
 
 import (
-	"context"
 	"fmt"
 	"sort"
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
 
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type Engine interface {
-	Run(ctx context.Context, grants []Grant, startingBalances GrantBalanceMap, startingOverage float64, period recurrence.Period) (endingBalances GrantBalanceMap, endingOverage float64, history []GrantBurnDownHistorySegment, err error)
+	Run(grants []Grant, startingBalances GrantBalanceMap, startingOverage float64, period recurrence.Period) (endingBalances GrantBalanceMap, endingOverage float64, history []GrantBurnDownHistorySegment, err error)
 }
 
-type QueryUsageFn func(ctx context.Context, from, to time.Time) (float64, error)
+type QueryUsageFn func(from, to time.Time) (float64, error)
 
-func NewEngine(getFeatureUsage QueryUsageFn, granuality models.WindowSize) Engine {
+func NewEngine(getFeatureUsage QueryUsageFn) Engine {
 	return &engine{
 		getFeatureUsage: getFeatureUsage,
-		granularity:     granuality.Duration(),
 	}
 }
 
@@ -32,8 +29,7 @@ type engine struct {
 	grants []Grant
 	// Returns the total feature usage in the queried period
 	getFeatureUsage QueryUsageFn
-
-	granularity time.Duration
+	// granularity     models.WindowSize // TODO: add granularity checks for all resources?
 
 	// Whether the engine was able to execute all calculations exactly
 	calcsExact bool // TODO: add public API and checking
@@ -43,7 +39,7 @@ type engine struct {
 var _ Engine = (*engine)(nil)
 
 // Burns down all grants in the defined period by the usage amounts.
-func (e *engine) Run(ctx context.Context, grants []Grant, startingBalances GrantBalanceMap, overage float64, period recurrence.Period) (GrantBalanceMap, float64, []GrantBurnDownHistorySegment, error) {
+func (e *engine) Run(grants []Grant, startingBalances GrantBalanceMap, overage float64, period recurrence.Period) (GrantBalanceMap, float64, []GrantBurnDownHistorySegment, error) {
 	if !startingBalances.ExactlyForGrants(grants) {
 		return nil, 0, nil, fmt.Errorf("provided grants and balances don't pair up")
 	}
@@ -134,7 +130,7 @@ func (e *engine) Run(ctx context.Context, grants []Grant, startingBalances Grant
 		}
 
 		// query feature usage in the burning phase
-		usage, err := e.getFeatureUsage(ctx, phase.from, phase.to)
+		usage, err := e.getFeatureUsage(phase.from, phase.to)
 		if err != nil {
 			return nil, 0, nil, fmt.Errorf("failed to get feature usage for period %s - %s: %w", period.From, period.To, err)
 		}
@@ -335,7 +331,7 @@ func (e *engine) getGrantActivityChanges(period recurrence.Period) []time.Time {
 
 	// FIXME: we should truncate on input but that's hard for voidedAt and deletedAt
 	for i, t := range activityChanges {
-		activityChanges[i] = t.Truncate(e.granularity)
+		activityChanges[i] = t.Truncate(time.Minute)
 	}
 
 	sort.Slice(activityChanges, func(i, j int) bool {

@@ -39,33 +39,32 @@ func NewEntitlementGrantOwnerAdapter(
 	}
 }
 
-func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner credit.NamespacedGrantOwner) (*credit.OwnerMeter, error) {
+func (e *entitlementGrantOwner) GetOwnerQueryParams(ctx context.Context, owner credit.NamespacedGrantOwner) (meterSlug string, defaultParams *streaming.QueryParams, err error) {
 	// get feature of entitlement
 	entitlement, err := e.entitlementRepo.GetEntitlement(ctx, owner.NamespacedID())
 	if err != nil {
 		e.logger.Debug(fmt.Sprintf("failed to get entitlement for owner %s in namespace %s: %s", string(owner.ID), owner.Namespace, err))
-		return nil, &credit.OwnerNotFoundError{
+		return "", nil, &credit.OwnerNotFoundError{
 			Owner:          owner,
 			AttemptedOwner: "entitlement",
 		}
 	}
 	feature, err := e.featureRepo.GetByIdOrKey(ctx, owner.Namespace, entitlement.FeatureID, true)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get feature of entitlement: %w", err)
+		return "", nil, fmt.Errorf("failed to get feature of entitlement: %w", err)
 	}
 
 	if feature.MeterSlug == nil {
-		return nil, fmt.Errorf("feature does not have a meter")
+		return "", nil, fmt.Errorf("feature does not have a meter")
 	}
 
 	meter, err := e.meterRepo.GetMeterByIDOrSlug(ctx, feature.Namespace, *feature.MeterSlug)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get meter: %w", err)
+		return "", nil, fmt.Errorf("failed to get meter: %w", err)
 	}
 
 	queryParams := &streaming.QueryParams{
 		Aggregation: meter.Aggregation,
-		WindowSize:  &meter.WindowSize,
 	}
 
 	if feature.MeterGroupByFilters != nil {
@@ -75,11 +74,7 @@ func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner credit.Names
 		}
 	}
 
-	return &credit.OwnerMeter{
-		MeterSlug:     meter.Slug,
-		DefaultParams: queryParams,
-		WindowSize:    meter.WindowSize,
-	}, nil
+	return *feature.MeterSlug, queryParams, nil
 }
 
 func (e *entitlementGrantOwner) GetStartOfMeasurement(ctx context.Context, owner credit.NamespacedGrantOwner) (time.Time, error) {

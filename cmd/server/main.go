@@ -353,7 +353,6 @@ func main() {
 		entitlementConnector = entitlement.NewEntitlementConnector(
 			entitlementRepo,
 			featureConnector,
-			meterRepository,
 			meteredEntitlementConnector,
 			staticEntitlementConnector,
 			booleanEntitlementConnector,
