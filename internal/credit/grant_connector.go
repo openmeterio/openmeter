@@ -96,32 +96,32 @@ func NewGrantConnector(
 }
 
 func (m *grantConnector) CreateGrant(ctx context.Context, owner NamespacedGrantOwner, input CreateGrantInput) (*Grant, error) {
-	periodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, owner, time.Now())
-	if err != nil {
-		return nil, err
-	}
 
-	if input.EffectiveAt.Before(periodStart) {
-		return nil, &models.GenericUserError{Message: "grant effective date is before the current usage period"}
-	}
-
-	// All metering information is stored in windowSize chunks,
-	// so we cannot do accurate calculations unless we follow that same windowing.
-	// We don't want grants to retroactively apply, so they always take effect at the start of the
-	// next window.
-	//
-	// TODO: validate against meter granularity not global config windowsize
-	if truncated := input.EffectiveAt.Truncate(m.granularity); !truncated.Equal(input.EffectiveAt) {
-		input.EffectiveAt = truncated.Add(m.granularity)
-	}
-	if input.Recurrence != nil {
-		if truncated := input.Recurrence.Anchor.Truncate(m.granularity); !truncated.Equal(input.Recurrence.Anchor) {
-			input.Recurrence.Anchor = truncated.Add(m.granularity)
+	doInTx := func(ctx context.Context, tx *entutils.TxDriver) (*Grant, error) {
+		periodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, owner, time.Now())
+		if err != nil {
+			return nil, err
 		}
-	}
 
-	return entutils.StartAndRunTx(ctx, m.grantRepo, func(ctx context.Context, tx *entutils.TxDriver) (*Grant, error) {
-		err := m.ownerConnector.LockOwnerForTx(ctx, tx, owner)
+		if input.EffectiveAt.Before(periodStart) {
+			return nil, &models.GenericUserError{Message: "grant effective date is before the current usage period"}
+		}
+
+		// All metering information is stored in windowSize chunks,
+		// so we cannot do accurate calculations unless we follow that same windowing.
+		// We don't want grants to retroactively apply, so they always take effect at the start of the
+		// next window.
+		//
+		// TODO: validate against meter granularity not global config windowsize
+		if truncated := input.EffectiveAt.Truncate(m.granularity); !truncated.Equal(input.EffectiveAt) {
+			input.EffectiveAt = truncated.Add(m.granularity)
+		}
+		if input.Recurrence != nil {
+			if truncated := input.Recurrence.Anchor.Truncate(m.granularity); !truncated.Equal(input.Recurrence.Anchor) {
+				input.Recurrence.Anchor = truncated.Add(m.granularity)
+			}
+		}
+		err = m.ownerConnector.LockOwnerForTx(ctx, tx, owner)
 		if err != nil {
 			return nil, err
 		}
@@ -150,7 +150,15 @@ func (m *grantConnector) CreateGrant(ctx context.Context, owner NamespacedGrantO
 		}
 
 		return grant, err
-	})
+	}
+
+	if ctxTx, err := entutils.GetTxDriver(ctx); err == nil {
+		// we're already in a tx
+		return doInTx(ctx, ctxTx)
+	} else {
+		return entutils.StartAndRunTx(ctx, m.grantRepo, doInTx)
+	}
+
 }
 
 func (m *grantConnector) VoidGrant(ctx context.Context, grantID models.NamespacedID) error {

@@ -83,7 +83,7 @@ func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner credit.Names
 }
 
 func (e *entitlementGrantOwner) GetStartOfMeasurement(ctx context.Context, owner credit.NamespacedGrantOwner) (time.Time, error) {
-	entitlement, err := e.entitlementRepo.GetEntitlement(ctx, owner.NamespacedID())
+	entitlement, err := getRepoMaybeInTx(ctx, e.entitlementRepo, e.entitlementRepo).GetEntitlement(ctx, owner.NamespacedID())
 	if err != nil {
 		return time.Time{}, &credit.OwnerNotFoundError{
 			Owner:          owner,
@@ -103,7 +103,7 @@ func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner
 	// If this is the first period then return start of measurement, otherwise calculate based on anchor.
 	// To know if this is the first period check if usage has been reset.
 
-	lastUsageReset, err := e.usageResetRepo.GetLastAt(ctx, owner.NamespacedID(), at)
+	lastUsageReset, err := getRepoMaybeInTx(ctx, e.usageResetRepo, e.usageResetRepo).GetLastAt(ctx, owner.NamespacedID(), at)
 	if _, ok := err.(*UsageResetNotFoundError); ok {
 		return e.GetStartOfMeasurement(ctx, owner)
 	}
@@ -192,4 +192,14 @@ func (e *entitlementGrantOwner) updateEntitlementUsagePeriod(ctx context.Context
 // FIXME: this is a terrible hack using select for udpate...
 func (e *entitlementGrantOwner) LockOwnerForTx(ctx context.Context, tx *entutils.TxDriver, owner credit.NamespacedGrantOwner) error {
 	return e.entitlementRepo.WithTx(ctx, tx).LockEntitlementForTx(ctx, owner.NamespacedID())
+}
+
+// FIXME: this is a terrible hack to conditionally catch transactions
+func getRepoMaybeInTx[T any](ctx context.Context, repo T, txUser entutils.TxUser[T]) T {
+	if ctxTx, err := entutils.GetTxDriver(ctx); err == nil {
+		// we're already in a tx
+		return txUser.WithTx(ctx, ctxTx)
+	} else {
+		return repo
+	}
 }

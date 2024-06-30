@@ -1,6 +1,7 @@
 package entitlement
 
 import (
+	"context"
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/productcatalog"
@@ -19,5 +20,5 @@ type SubTypeConnector interface {
 
 	// Runs after entitlement creation.
 	// If it returns an error the operation has to fail.
-	AfterCreate(entitlement *Entitlement) error
+	AfterCreate(ctx context.Context, entitlement *Entitlement) error
 }

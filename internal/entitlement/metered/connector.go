@@ -121,7 +121,7 @@ func (c *connector) BeforeCreate(model *entitlement.CreateEntitlementInputs, fea
 	return nil
 }
 
-func (c *connector) AfterCreate(entitlement *entitlement.Entitlement) error {
+func (c *connector) AfterCreate(ctx context.Context, entitlement *entitlement.Entitlement) error {
 	metered, err := ParseFromGenericEntitlement(entitlement)
 	if err != nil {
 		return err
@@ -132,7 +132,7 @@ func (c *connector) AfterCreate(entitlement *entitlement.Entitlement) error {
 		amountToIssue := *metered.IssuesAfterReset
 		effectiveAt := metered.UsagePeriod.Anchor
 		// issue single recurring grant that can't be rolled over
-		_, err := c.CreateGrant(context.Background(), models.NamespacedID{
+		_, err := c.CreateGrant(ctx, models.NamespacedID{
 			ID:        entitlement.ID,
 			Namespace: entitlement.Namespace,
 		}, CreateEntitlementGrantInputs{

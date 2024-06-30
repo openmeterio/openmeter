@@ -1,6 +1,7 @@
 package booleanentitlement
 
 import (
+	"context"
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
@@ -38,7 +39,7 @@ func (c *connector) BeforeCreate(model *entitlement.CreateEntitlementInputs, fea
 	return nil
 }
 
-func (c *connector) AfterCreate(entitlement *entitlement.Entitlement) error {
+func (c *connector) AfterCreate(ctx context.Context, entitlement *entitlement.Entitlement) error {
 	return nil
 }
 
