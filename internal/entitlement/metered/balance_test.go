@@ -1382,7 +1382,9 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *testDependenci
 
 	grantDbClient := credit_postgres_adapter_db.NewClient(credit_postgres_adapter_db.Driver(driver))
 	grantDbConn := credit_postgres_adapter.NewPostgresGrantRepo(grantDbClient)
-	balanceSnapshotDbConn := credit_postgres_adapter.NewPostgresBalanceSnapshotRepo(grantDbClient)
+	balanceSnapshotDbConn := credit_postgres_adapter.NewPostgresBalanceSnapshotRepo(grantDbClient, credit_postgres_adapter.BalanceSnapshotConfig{
+		Enabled: true,
+	})
 
 	m.Lock()
 	defer m.Unlock()

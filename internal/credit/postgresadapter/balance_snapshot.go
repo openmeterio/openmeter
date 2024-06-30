@@ -11,14 +11,22 @@ import (
 	db_balancesnapshot "github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db/balancesnapshot"
 )
 
-// naive implementation of the BalanceSnapshotConnector
-type balanceSnapshotAdapter struct {
-	db *db.Client
+type BalanceSnapshotConfig struct {
+	// Enabled is a flag to enable or disable the balance snapshot feature, if disabled
+	// we will still write the data to the database, but we will never utilize the snaphots created
+	Enabled bool
 }
 
-func NewPostgresBalanceSnapshotRepo(db *db.Client) credit.BalanceSnapshotConnector {
+// naive implementation of the BalanceSnapshotConnector
+type balanceSnapshotAdapter struct {
+	db     *db.Client
+	config BalanceSnapshotConfig
+}
+
+func NewPostgresBalanceSnapshotRepo(db *db.Client, config BalanceSnapshotConfig) credit.BalanceSnapshotConnector {
 	return &balanceSnapshotAdapter{
-		db: db,
+		db:     db,
+		config: config,
 	}
 }
 
@@ -30,6 +38,10 @@ func (b *balanceSnapshotAdapter) InvalidateAfter(ctx context.Context, owner cred
 }
 
 func (b *balanceSnapshotAdapter) GetLatestValidAt(ctx context.Context, owner credit.NamespacedGrantOwner, at time.Time) (credit.GrantBalanceSnapshot, error) {
+	if !b.config.Enabled {
+		return credit.GrantBalanceSnapshot{}, &credit.GrantBalanceNoSavedBalanceForOwnerError{Owner: owner, Time: at}
+	}
+
 	res, err := b.db.BalanceSnapshot.Query().
 		Where(
 			db_balancesnapshot.OwnerID(owner.ID),

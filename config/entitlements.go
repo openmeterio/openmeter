@@ -1,6 +1,11 @@
 package config
 
 type EntitlementsConfiguration struct {
+	Enabled         bool
+	BalanceSnapshot BalanceSnapshotConfig
+}
+
+type BalanceSnapshotConfig struct {
 	Enabled bool
 }
 
