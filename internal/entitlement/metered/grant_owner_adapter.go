@@ -66,7 +66,6 @@ func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner credit.Names
 
 	queryParams := &streaming.QueryParams{
 		Aggregation: meter.Aggregation,
-		WindowSize:  &meter.WindowSize,
 	}
 
 	if feature.MeterGroupByFilters != nil {
