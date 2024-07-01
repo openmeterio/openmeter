@@ -11,6 +11,7 @@ approved = [
 ]
 
 ignored = [
+  "github.com/benthosdev/benthos/v4", # Apache 2.0
   "github.com/xeipuuv/gojsonpointer", # Apache 2.0
   "github.com/xeipuuv/gojsonreference", # Apache 2.0
   "github.com/xeipuuv/gojsonschema", # Apache 2.0
@@ -38,7 +39,7 @@ ignored = [
 ]
 
 [header]
-ignorePaths = [".devenv", ".direnv", "vendor", "client", ".gen", "internal/credit/postgres_connector/ent/db"]
+ignorePaths = [".devenv", ".direnv", "vendor", "client", ".gen", "internal/credit/postgresadapter/ent/db", "internal/entitlement/postgresadapter/ent/db", "internal/productcatalog/postgresadapter/ent/db", "pkg/framework/entutils/testutils/ent1/db", "pkg/framework/entutils/testutils/ent2/db"]
 ignoreFiles = ["*.gen.go"]
 template = """// Copyright © :YEAR: Tailfin Cloud Inc.
 //
