@@ -386,6 +386,11 @@ func (e *engine) getGrantRecurrenceTimes(period recurrence.Period) ([]struct {
 		}
 	}
 
+	// map times to UTC
+	for i, t := range times {
+		times[i].time = t.time.In(time.UTC)
+	}
+
 	// sort times ascending
 	sort.Slice(times, func(i, j int) bool {
 		return times[i].time.Before(times[j].time)
