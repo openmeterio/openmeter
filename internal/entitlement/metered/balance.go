@@ -73,6 +73,11 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 	meterQuery.From = &startOfPeriod
 	meterQuery.To = &at
 
+	// We round up to closest full minute to include all the partial usage in the last minute of querying
+	if trunc := meterQuery.To.Truncate(time.Minute); trunc.Before(*meterQuery.To) {
+		meterQuery.To = convert.ToPointer(trunc.Add(time.Minute))
+	}
+
 	rows, err := e.streamingConnector.QueryMeter(ctx, entitlementID.Namespace, ownerMeter.MeterSlug, meterQuery)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query meter: %w", err)
