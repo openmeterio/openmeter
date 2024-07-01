@@ -72,6 +72,7 @@ lint: ## Run linters
 
 .PHONY: license-check
 license-check: ## Run license check
+	$(call print-target)
 	$(LICENSEI_BIN) check
 	$(LICENSEI_BIN) header
 
@@ -96,10 +97,10 @@ deps: ## Install dependencies
 	$(MAKE) bin/air bin/dagger bin/golangci-lint bin/licensei bin/benthos
 
 # Dependency versions
-AIR_VERSION = 1.51.0
-DAGGER_VERSION = 0.9.0
-GOLANGCI_VERSION = 1.53.1
-LICENSEI_VERSION = 0.8.0
+AIR_VERSION = 1.52.0
+DAGGER_VERSION = 0.11.0
+GOLANGCI_VERSION = 1.59.1
+LICENSEI_VERSION = 0.9.0
 BENTHOS_VERSION = 4.24.0
 
 # Dependency binaries
