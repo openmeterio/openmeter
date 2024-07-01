@@ -335,7 +335,7 @@ func (e *engine) getGrantActivityChanges(period recurrence.Period) []time.Time {
 
 	// FIXME: we should truncate on input but that's hard for voidedAt and deletedAt
 	for i, t := range activityChanges {
-		activityChanges[i] = t.Truncate(e.granularity)
+		activityChanges[i] = t.Truncate(e.granularity).In(time.UTC)
 	}
 
 	sort.Slice(activityChanges, func(i, j int) bool {
