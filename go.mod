@@ -6,7 +6,7 @@ replace github.com/getkin/kin-openapi => github.com/getkin/kin-openapi v0.123.0
 
 require (
 	entgo.io/ent v0.13.1
-	github.com/AppsFlyer/go-sundheit v0.5.0
+	github.com/AppsFlyer/go-sundheit v0.5.1
 	github.com/ClickHouse/clickhouse-go/v2 v2.25.0
 	github.com/XSAM/otelsql v0.31.0
 	github.com/alpacahq/alpacadecimal v0.0.4
