@@ -84,6 +84,7 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 		IsSoftLimit:        model.IsSoftLimit,
 		UsagePeriod:        model.UsagePeriod,
 		CurrentUsagePeriod: currentUsagePeriod,
+		Config:             model.Config,
 	}, nil
 }
 
