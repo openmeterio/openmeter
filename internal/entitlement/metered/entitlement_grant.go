@@ -6,6 +6,7 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/entitlement"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -86,7 +87,7 @@ type EntitlementGrant struct {
 func GrantFromCreditGrant(grant credit.Grant) (*EntitlementGrant, error) {
 	g := &EntitlementGrant{}
 	if grant.Recurrence != nil {
-		next, err := grant.Recurrence.NextAfter(time.Now())
+		next, err := grant.Recurrence.NextAfter(clock.Now())
 		if err != nil {
 			return nil, err
 		}

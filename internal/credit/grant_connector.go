@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
@@ -109,7 +110,7 @@ func (m *grantConnector) CreateGrant(ctx context.Context, owner NamespacedGrantO
 		if input.Recurrence != nil {
 			input.Recurrence.Anchor = input.Recurrence.Anchor.Truncate(granularity)
 		}
-		periodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, owner, time.Now())
+		periodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, owner, clock.Now())
 		if err != nil {
 			return nil, err
 		}
@@ -176,7 +177,7 @@ func (m *grantConnector) VoidGrant(ctx context.Context, grantID models.Namespace
 		if err != nil {
 			return nil, err
 		}
-		now := time.Now()
+		now := clock.Now()
 		err = m.grantRepo.WithTx(ctx, tx).VoidGrant(ctx, grantID, now)
 		if err != nil {
 			return nil, err

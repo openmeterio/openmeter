@@ -3,6 +3,7 @@ package entitlement
 import (
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -100,7 +101,7 @@ func (u UsagePeriod) GetCurrentPeriod() (recurrence.Period, error) {
 		Interval: recurrence.RecurrenceInterval(u.Interval),
 	}
 
-	now := time.Now()
+	now := clock.Now()
 
 	currentPeriodEnd, err := rec.NextAfter(now)
 	if err != nil {

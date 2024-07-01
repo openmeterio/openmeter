@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter/ent/db"
 	db_feature "github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter/ent/db/feature"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -76,7 +77,7 @@ func (c *featureDBAdapter) ArchiveFeature(ctx context.Context, featureID models.
 	}
 
 	err = c.db.Feature.Update().
-		SetArchivedAt(time.Now()).
+		SetArchivedAt(clock.Now()).
 		Where(db_feature.ID(featureID.ID)).
 		Where(db_feature.Namespace(featureID.Namespace)).
 		Exec(ctx)

@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db"
 	db_entitlement "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db/usagereset"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
@@ -32,7 +33,7 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 		Where(
 			db_entitlement.ID(entitlementID.ID),
 			db_entitlement.Namespace(entitlementID.Namespace),
-			db_entitlement.Or(db_entitlement.DeletedAtGT(time.Now()), db_entitlement.DeletedAtIsNil()),
+			db_entitlement.Or(db_entitlement.DeletedAtGT(clock.Now()), db_entitlement.DeletedAtIsNil()),
 		).
 		First(ctx)
 
@@ -49,7 +50,7 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 func (a *entitlementDBAdapter) GetEntitlementOfSubject(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string) (*entitlement.Entitlement, error) {
 	res, err := withLatestUsageReset(a.db.Entitlement.Query()).
 		Where(
-			db_entitlement.Or(db_entitlement.DeletedAtGT(time.Now()), db_entitlement.DeletedAtIsNil()),
+			db_entitlement.Or(db_entitlement.DeletedAtGT(clock.Now()), db_entitlement.DeletedAtIsNil()),
 			db_entitlement.SubjectKey(string(subjectKey)),
 			db_entitlement.Namespace(namespace),
 			db_entitlement.Or(db_entitlement.ID(idOrFeatureKey), db_entitlement.FeatureKey(idOrFeatureKey)),
@@ -115,7 +116,7 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlemen
 func (a *entitlementDBAdapter) DeleteEntitlement(ctx context.Context, entitlementID models.NamespacedID) error {
 	affectedCount, err := a.db.Entitlement.Update().
 		Where(db_entitlement.ID(entitlementID.ID), db_entitlement.Namespace(entitlementID.Namespace)).
-		SetDeletedAt(time.Now()).
+		SetDeletedAt(clock.Now()).
 		Save(ctx)
 	if err != nil {
 		return err
@@ -129,7 +130,7 @@ func (a *entitlementDBAdapter) DeleteEntitlement(ctx context.Context, entitlemen
 func (a *entitlementDBAdapter) GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]entitlement.Entitlement, error) {
 	res, err := withLatestUsageReset(a.db.Entitlement.Query()).
 		Where(
-			db_entitlement.Or(db_entitlement.DeletedAtGT(time.Now()), db_entitlement.DeletedAtIsNil()),
+			db_entitlement.Or(db_entitlement.DeletedAtGT(clock.Now()), db_entitlement.DeletedAtIsNil()),
 			db_entitlement.SubjectKey(string(subjectKey)),
 			db_entitlement.Namespace(namespace),
 		).
@@ -161,7 +162,7 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 	}
 
 	if !params.IncludeDeleted {
-		query = query.Where(db_entitlement.Or(db_entitlement.DeletedAtGT(time.Now()), db_entitlement.DeletedAtIsNil()))
+		query = query.Where(db_entitlement.Or(db_entitlement.DeletedAtGT(clock.Now()), db_entitlement.DeletedAtIsNil()))
 	}
 
 	if params.Limit > 0 {
