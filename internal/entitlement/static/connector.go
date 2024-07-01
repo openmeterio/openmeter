@@ -7,16 +7,21 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 type Connector interface {
 	entitlement.SubTypeConnector
 }
 
-type connector struct{}
+type connector struct {
+	granularity time.Duration
+}
 
 func NewStaticEntitlementConnector() Connector {
-	return &connector{}
+	return &connector{
+		granularity: time.Minute,
+	}
 }
 
 func (c *connector) GetValue(entitlement *entitlement.Entitlement, at time.Time) (entitlement.EntitlementValue, error) {
@@ -30,29 +35,55 @@ func (c *connector) GetValue(entitlement *entitlement.Entitlement, at time.Time)
 	}, nil
 }
 
-func (c *connector) BeforeCreate(model *entitlement.CreateEntitlementInputs, feature *productcatalog.Feature) error {
+func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feature productcatalog.Feature) (*entitlement.CreateEntitlementRepoInputs, error) {
 	model.EntitlementType = entitlement.EntitlementTypeStatic
 
 	if model.MeasureUsageFrom != nil ||
 		model.IssueAfterReset != nil ||
 		model.IsSoftLimit != nil {
-		return &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Invalid inputs for type"}
+		return nil, &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Invalid inputs for type"}
 	}
 
 	// validate that config is JSON parseable
 	if model.Config == nil {
-		return &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Config is required"}
+		return nil, &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Config is required"}
 	}
 
 	if !json.Valid([]byte(*model.Config)) {
-		return &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Config is not valid JSON"}
+		return nil, &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Config is not valid JSON"}
 	}
 
 	if err := json.Unmarshal([]byte(*model.Config), &map[string]interface{}{}); err != nil {
-		return &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Config is not a valid JSON object"}
+		return nil, &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Config is not a valid JSON object"}
 	}
 
-	return nil
+	var usagePeriod *entitlement.UsagePeriod
+	var currentUsagePeriod *recurrence.Period
+
+	if model.UsagePeriod != nil {
+		usagePeriod = model.UsagePeriod
+
+		calculatedPeriod, err := usagePeriod.GetCurrentPeriodAt(time.Now())
+		if err != nil {
+			return nil, err
+		}
+
+		currentUsagePeriod = &calculatedPeriod
+	}
+
+	return &entitlement.CreateEntitlementRepoInputs{
+		Namespace:          model.Namespace,
+		FeatureID:          feature.ID,
+		FeatureKey:         feature.Key,
+		SubjectKey:         model.SubjectKey,
+		EntitlementType:    model.EntitlementType,
+		Metadata:           model.Metadata,
+		MeasureUsageFrom:   model.MeasureUsageFrom,
+		IssueAfterReset:    model.IssueAfterReset,
+		IsSoftLimit:        model.IsSoftLimit,
+		UsagePeriod:        model.UsagePeriod,
+		CurrentUsagePeriod: currentUsagePeriod,
+	}, nil
 }
 
 func (c *connector) AfterCreate(ctx context.Context, entitlement *entitlement.Entitlement) error {

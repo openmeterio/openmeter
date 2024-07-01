@@ -56,7 +56,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 			},
 		}
 
-		currentUsagePeriod, err := input.UsagePeriod.GetCurrentPeriod()
+		currentUsagePeriod, err := input.UsagePeriod.GetCurrentPeriodAt(time.Now())
 		assert.NoError(t, err)
 		input.CurrentUsagePeriod = &currentUsagePeriod
 		return input
@@ -443,7 +443,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 			},
 		}
 
-		currentUsagePeriod, err := input.UsagePeriod.GetCurrentPeriod()
+		currentUsagePeriod, err := input.UsagePeriod.GetCurrentPeriodAt(time.Now())
 		assert.NoError(t, err)
 		input.CurrentUsagePeriod = &currentUsagePeriod
 		return input
@@ -689,7 +689,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 			},
 		}
 
-		currentUsagePeriod, err := input.UsagePeriod.GetCurrentPeriod()
+		currentUsagePeriod, err := input.UsagePeriod.GetCurrentPeriodAt(time.Now()) // This should be calculated properly when testing batch resets
 		assert.NoError(t, err)
 		input.CurrentUsagePeriod = &currentUsagePeriod
 		return input

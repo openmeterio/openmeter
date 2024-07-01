@@ -94,26 +94,39 @@ type GenericProperties struct {
 
 type UsagePeriod recurrence.Recurrence
 
-func (u UsagePeriod) GetCurrentPeriod() (recurrence.Period, error) {
+// The returned period is exclusive at the end end incluse in the start
+func (u UsagePeriod) GetCurrentPeriodAt(at time.Time) (recurrence.Period, error) {
 	rec := recurrence.Recurrence{
 		Anchor:   u.Anchor,
 		Interval: recurrence.RecurrenceInterval(u.Interval),
 	}
 
-	now := time.Now()
-
-	currentPeriodEnd, err := rec.NextAfter(now)
+	nextAfter, err := rec.NextAfter(at)
 	if err != nil {
 		return recurrence.Period{}, err
 	}
 
-	currentPeriodStart, err := rec.PrevBefore(now)
+	// The edgecase behavior of recurrence.Period doesn't work for us here
+	// as for usage periods we want to have the period end exclusive
+	if nextAfter.Equal(at) {
+		from := nextAfter
+		to, err := rec.Next(from)
+		if err != nil {
+			return recurrence.Period{}, err
+		}
+		return recurrence.Period{
+			From: from,
+			To:   to,
+		}, nil
+	}
+
+	prevBefore, err := rec.PrevBefore(at)
 	if err != nil {
 		return recurrence.Period{}, err
 	}
 
 	return recurrence.Period{
-		From: currentPeriodStart,
-		To:   currentPeriodEnd,
+		From: prevBefore,
+		To:   nextAfter,
 	}, nil
 }

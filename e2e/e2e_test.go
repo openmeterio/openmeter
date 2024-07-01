@@ -735,4 +735,40 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusNoContent, resetResp.StatusCode())
 	})
+
+	subject2 := "credit-customer-2-key"
+	// we have to wait after the reset
+	time.Sleep(time.Minute)
+	time.Sleep(time.Second * 10)
+
+	t.Run("Create entitlement with automatic grant issuing", func(t *testing.T) {
+		meteredEntitlement := api.EntitlementMeteredCreateInputs{
+			Type:      "metered",
+			FeatureId: featureId,
+			UsagePeriod: api.RecurringPeriodCreateInput{
+				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
+				Interval: "MONTH",
+			},
+			IssueAfterReset: convert.ToPointer(50.0),
+		}
+		body := &api.CreateEntitlementJSONRequestBody{}
+		err := body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
+		require.NoError(t, err)
+		resp, err := client.CreateEntitlementWithResponse(context.Background(), subject2, *body)
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+
+		metered, err := resp.JSON201.AsEntitlementMetered()
+		require.NoError(t, err)
+
+		require.Equal(t, metered.SubjectKey, subject2)
+
+		// fetch grants for entitlement
+		grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), subject2, *metered.Id, nil)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, grantListResp.StatusCode())
+		require.NotNil(t, grantListResp.JSON200)
+		require.Len(t, *grantListResp.JSON200, 1)
+	})
 }

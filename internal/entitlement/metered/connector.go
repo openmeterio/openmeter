@@ -2,6 +2,7 @@ package meteredentitlement
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
@@ -101,53 +102,82 @@ func (e *connector) GetValue(entitlement *entitlement.Entitlement, at time.Time)
 	}, nil
 }
 
-func (c *connector) BeforeCreate(model *entitlement.CreateEntitlementInputs, feature *productcatalog.Feature) error {
+func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feature productcatalog.Feature) (*entitlement.CreateEntitlementRepoInputs, error) {
 	model.EntitlementType = entitlement.EntitlementTypeMetered
+
+	if model.Config != nil {
+		return nil, &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Config is not allowed for metered entitlements"}
+	}
+
+	if model.UsagePeriod == nil {
+		return nil, &entitlement.InvalidValueError{Message: "UsagePeriod is required for metered entitlements", Type: entitlement.EntitlementTypeMetered}
+	}
+
+	if feature.MeterSlug == nil {
+		return nil, &entitlement.InvalidFeatureError{FeatureID: feature.ID, Message: "Feature has no meter"}
+	}
+
 	model.MeasureUsageFrom = convert.ToPointer(defaultx.WithDefault(model.MeasureUsageFrom, time.Now().Truncate(c.granularity)))
 	model.IsSoftLimit = convert.ToPointer(defaultx.WithDefault(model.IsSoftLimit, false))
 	model.IssueAfterReset = convert.ToPointer(defaultx.WithDefault(model.IssueAfterReset, 0.0))
 
-	if model.Config != nil {
-		return &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Config is not allowed for metered entitlements"}
+	model.UsagePeriod.Anchor = model.UsagePeriod.Anchor.Truncate(c.granularity)
+
+	// Calculating the very first period is different as it has to start from the start of measurement
+	currentPeriod, err := model.UsagePeriod.GetCurrentPeriodAt(*model.MeasureUsageFrom)
+	if err != nil {
+		return nil, err
 	}
 
-	if model.UsagePeriod == nil {
-		return &entitlement.InvalidValueError{Message: "UsagePeriod is required for metered entitlements", Type: entitlement.EntitlementTypeMetered}
+	if model.MeasureUsageFrom.After(currentPeriod.To) || model.MeasureUsageFrom.Equal(currentPeriod.To) {
+		return nil, fmt.Errorf("inconsistency error: start of measurement %s is after or equal to the calculated period end %s, period end should be exclusive", model.MeasureUsageFrom, currentPeriod)
 	}
 
-	if feature.MeterSlug == nil {
-		return &entitlement.InvalidFeatureError{FeatureID: feature.ID, Message: "Feature has no meter"}
-	}
-	return nil
+	// We have to alter the period to start with start of measurement
+	currentPeriod.From = *model.MeasureUsageFrom
+
+	return &entitlement.CreateEntitlementRepoInputs{
+		Namespace:          model.Namespace,
+		FeatureID:          feature.ID,
+		FeatureKey:         feature.Key,
+		SubjectKey:         model.SubjectKey,
+		EntitlementType:    model.EntitlementType,
+		Metadata:           model.Metadata,
+		MeasureUsageFrom:   model.MeasureUsageFrom,
+		IssueAfterReset:    model.IssueAfterReset,
+		IsSoftLimit:        model.IsSoftLimit,
+		UsagePeriod:        model.UsagePeriod,
+		CurrentUsagePeriod: &currentPeriod,
+	}, nil
 }
 
-func (c *connector) AfterCreate(ctx context.Context, entitlement *entitlement.Entitlement) error {
-	metered, err := ParseFromGenericEntitlement(entitlement)
+func (c *connector) AfterCreate(ctx context.Context, end *entitlement.Entitlement) error {
+	metered, err := ParseFromGenericEntitlement(end)
 	if err != nil {
 		return err
 	}
 
+	// Right now transaction is magically passed through ctx here.
+	// Until we refactor and fix this, to avoid any potential errors due to changes in downstream connectors, the code is inlined here.
 	// issue default grants
 	if metered.HasDefaultGrant() {
 		amountToIssue := *metered.IssuesAfterReset
-		effectiveAt := metered.UsagePeriod.Anchor
-		// issue single recurring grant that can't be rolled over
-		_, err := c.CreateGrant(ctx, models.NamespacedID{
-			ID:        entitlement.ID,
-			Namespace: entitlement.Namespace,
-		}, CreateEntitlementGrantInputs{
-			CreateGrantInput: credit.CreateGrantInput{
-				Amount:      amountToIssue,
-				Priority:    credit.GrantPriorityDefault,
-				EffectiveAt: effectiveAt,
-				Expiration: credit.ExpirationPeriod{
-					Count:    100, // This is a bit of an issue... It would make sense for recurring tags to not have an expiration
-					Duration: credit.ExpirationPeriodDurationYear,
-				},
-				// These two in conjunction make the grant always have `amountToIssue` balance after a reset
-				ResetMaxRollover: amountToIssue,
-				ResetMinRollover: amountToIssue,
+		effectiveAt := metered.CurrentUsagePeriod.From
+
+		_, err := c.grantConnector.CreateGrant(ctx, credit.NamespacedGrantOwner{
+			Namespace: metered.Namespace,
+			ID:        credit.GrantOwner(metered.ID),
+		}, credit.CreateGrantInput{
+			Amount:      amountToIssue,
+			Priority:    credit.GrantPriorityDefault,
+			EffectiveAt: effectiveAt,
+			Expiration: credit.ExpirationPeriod{
+				Count:    100, // This is a bit of an issue... It would make sense for recurring tags to not have an expiration
+				Duration: credit.ExpirationPeriodDurationYear,
 			},
+			// These two in conjunction make the grant always have `amountToIssue` balance after a reset
+			ResetMaxRollover: amountToIssue,
+			ResetMinRollover: amountToIssue,
 		})
 		if err != nil {
 			return err

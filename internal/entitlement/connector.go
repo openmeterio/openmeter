@@ -9,7 +9,6 @@ import (
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
 type ListEntitlementsOrderBy string
@@ -105,48 +104,16 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 	if err != nil {
 		return nil, err
 	}
-	err = connector.BeforeCreate(&input, feature)
+	repoInputs, err := connector.BeforeCreate(input, *feature)
 	if err != nil {
 		return nil, err
-	}
-
-	var usagePeriod *UsagePeriod
-	var currentUsagePeriod *recurrence.Period
-	if input.UsagePeriod != nil {
-		meter, err := c.meterRepo.GetMeterByIDOrSlug(ctx, feature.Namespace, *feature.MeterSlug)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get meter: %w", err)
-		}
-
-		usagePeriod = input.UsagePeriod
-		usagePeriod.Anchor = usagePeriod.Anchor.Truncate(meter.WindowSize.Duration())
-
-		calculatedPeriod, err := usagePeriod.GetCurrentPeriod()
-		if err != nil {
-			return nil, err
-		}
-
-		currentUsagePeriod = &calculatedPeriod
 	}
 
 	ent, err := entutils.StartAndRunTx(ctx, c.entitlementRepo, func(ctx context.Context, tx *entutils.TxDriver) (*Entitlement, error) {
 
 		txCtx := entutils.NewTxContext(ctx, tx)
 
-		ent, err := c.entitlementRepo.WithTx(txCtx, tx).CreateEntitlement(txCtx, CreateEntitlementRepoInputs{
-			Namespace:          input.Namespace,
-			FeatureID:          feature.ID,
-			FeatureKey:         feature.Key,
-			SubjectKey:         input.SubjectKey,
-			EntitlementType:    input.EntitlementType,
-			Metadata:           input.Metadata,
-			MeasureUsageFrom:   input.MeasureUsageFrom,
-			IssueAfterReset:    input.IssueAfterReset,
-			IsSoftLimit:        input.IsSoftLimit,
-			Config:             input.Config,
-			UsagePeriod:        usagePeriod,
-			CurrentUsagePeriod: currentUsagePeriod,
-		})
+		ent, err := c.entitlementRepo.WithTx(txCtx, tx).CreateEntitlement(txCtx, *repoInputs)
 		if err != nil {
 			return nil, err
 		}
