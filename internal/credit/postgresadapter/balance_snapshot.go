@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db"
 	db_balancesnapshot "github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db/balancesnapshot"
+	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
 // naive implementation of the BalanceSnapshotConnector
@@ -25,7 +26,7 @@ func NewPostgresBalanceSnapshotRepo(db *db.Client) credit.BalanceSnapshotConnect
 func (b *balanceSnapshotAdapter) InvalidateAfter(ctx context.Context, owner credit.NamespacedGrantOwner, at time.Time) error {
 	return b.db.BalanceSnapshot.Update().
 		Where(db_balancesnapshot.OwnerID(owner.ID), db_balancesnapshot.Namespace(owner.Namespace), db_balancesnapshot.AtGT(at)).
-		SetDeletedAt(time.Now()).
+		SetDeletedAt(clock.Now()).
 		Exec(ctx)
 }
 

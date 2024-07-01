@@ -12,6 +12,7 @@ import (
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	staticentitlement "github.com/openmeterio/openmeter/internal/entitlement/static"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -83,7 +84,7 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 					IsSoftLimit:     v.IsSoftLimit,
 					IssueAfterReset: v.IssueAfterReset,
 					UsagePeriod: &entitlement.UsagePeriod{
-						Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, time.Now()), // TODO: shouldn't we truncate this?
+						Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now()), // TODO: shouldn't we truncate this?
 						Interval: recurrence.RecurrenceInterval(v.UsagePeriod.Interval),
 					},
 				}
@@ -101,7 +102,7 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 				}
 				if v.UsagePeriod != nil {
 					request.UsagePeriod = &entitlement.UsagePeriod{
-						Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, time.Now()), // TODO: shouldn't we truncate this?
+						Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now()), // TODO: shouldn't we truncate this?
 						Interval: recurrence.RecurrenceInterval(v.UsagePeriod.Interval),
 					}
 				}
@@ -118,7 +119,7 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 				}
 				if v.UsagePeriod != nil {
 					request.UsagePeriod = &entitlement.UsagePeriod{
-						Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, time.Now()), // TODO: shouldn't we truncate this?
+						Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now()), // TODO: shouldn't we truncate this?
 						Interval: recurrence.RecurrenceInterval(v.UsagePeriod.Interval),
 					}
 				}
@@ -173,7 +174,7 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 				SubjectKey:                params.SubjectKey,
 				EntitlementIdOrFeatureKey: params.EntitlementIdOrFeatureKey,
 				Namespace:                 ns,
-				At:                        defaultx.WithDefault(params.Params.Time, time.Now()),
+				At:                        defaultx.WithDefault(params.Params.Time, clock.Now()),
 			}, nil
 		},
 		func(ctx context.Context, request GetEntitlementValueHandlerRequest) (api.EntitlementValue, error) {

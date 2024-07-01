@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/entitlement"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -115,7 +116,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 	}
 
 	if params.To == nil {
-		params.To = convert.ToPointer(time.Now())
+		params.To = convert.ToPointer(clock.Now())
 	}
 
 	// query period cannot be before start of measuring usage
