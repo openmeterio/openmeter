@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/schema/index"
 	"entgo.io/ent/schema/mixin"
 	"github.com/oklog/ulid/v2"
+
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
 

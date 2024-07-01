@@ -11,7 +11,7 @@ func Now() time.Time {
 }
 
 func SetTime(t time.Time) time.Time {
-	drift = time.Now().Sub(t)
+	drift = time.Since(t)
 	return Now()
 }
 
