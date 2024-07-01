@@ -94,7 +94,7 @@ type GenericProperties struct {
 
 type UsagePeriod recurrence.Recurrence
 
-// The returned period is exclusive at the end end incluse in the start
+// The returned period is exclusive at the end end inclusive in the start
 func (u UsagePeriod) GetCurrentPeriodAt(at time.Time) (recurrence.Period, error) {
 	rec := recurrence.Recurrence{
 		Anchor:   u.Anchor,

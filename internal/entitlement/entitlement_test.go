@@ -4,9 +4,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestUsagePeriod(t *testing.T) {
