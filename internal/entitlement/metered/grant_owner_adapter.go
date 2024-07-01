@@ -41,7 +41,7 @@ func NewEntitlementGrantOwnerAdapter(
 
 func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner credit.NamespacedGrantOwner) (*credit.OwnerMeter, error) {
 	// get feature of entitlement
-	entitlement, err := e.entitlementRepo.GetEntitlement(ctx, owner.NamespacedID())
+	entitlement, err := getRepoMaybeInTx(ctx, e.entitlementRepo, e.entitlementRepo).GetEntitlement(ctx, owner.NamespacedID())
 	if err != nil {
 		e.logger.Debug(fmt.Sprintf("failed to get entitlement for owner %s in namespace %s: %s", string(owner.ID), owner.Namespace, err))
 		return nil, &credit.OwnerNotFoundError{
@@ -49,7 +49,7 @@ func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner credit.Names
 			AttemptedOwner: "entitlement",
 		}
 	}
-	feature, err := e.featureRepo.GetByIdOrKey(ctx, owner.Namespace, entitlement.FeatureID, true)
+	feature, err := getRepoMaybeInTx(ctx, e.featureRepo, e.featureRepo).GetByIdOrKey(ctx, owner.Namespace, entitlement.FeatureID, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get feature of entitlement: %w", err)
 	}
@@ -58,6 +58,7 @@ func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner credit.Names
 		return nil, fmt.Errorf("feature does not have a meter")
 	}
 
+	// meterrepo is not transactional
 	meter, err := e.meterRepo.GetMeterByIDOrSlug(ctx, feature.Namespace, *feature.MeterSlug)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get meter: %w", err)
@@ -116,7 +117,7 @@ func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner
 
 func (e *entitlementGrantOwner) GetPeriodStartTimesBetween(ctx context.Context, owner credit.NamespacedGrantOwner, from, to time.Time) ([]time.Time, error) {
 	times := []time.Time{}
-	usageResets, err := e.usageResetRepo.GetBetween(ctx, owner.NamespacedID(), from, to)
+	usageResets, err := getRepoMaybeInTx(ctx, e.usageResetRepo, e.usageResetRepo).GetBetween(ctx, owner.NamespacedID(), from, to)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +176,7 @@ func (e *entitlementGrantOwner) updateEntitlementUsagePeriod(ctx context.Context
 		newAnchor = &params.At
 	}
 
-	newCurrentUsagePeriod, err := usagePeriod.GetCurrentPeriod()
+	newCurrentUsagePeriod, err := usagePeriod.GetCurrentPeriodAt(params.At)
 	if err != nil {
 		return fmt.Errorf("failed to get next reset: %w", err)
 	}

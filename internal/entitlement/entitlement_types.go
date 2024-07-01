@@ -14,9 +14,9 @@ type EntitlementValue interface {
 type SubTypeConnector interface {
 	GetValue(entitlement *Entitlement, at time.Time) (EntitlementValue, error)
 
-	// Runs before creating the entitlement. Might manipulate the inputs.
+	// Runs before creating the entitlement, building the Repository inputs.
 	// If it returns an error the operation has to fail.
-	BeforeCreate(entitlement *CreateEntitlementInputs, feature *productcatalog.Feature) error
+	BeforeCreate(entitlement CreateEntitlementInputs, feature productcatalog.Feature) (*CreateEntitlementRepoInputs, error)
 
 	// Runs after entitlement creation.
 	// If it returns an error the operation has to fail.
