@@ -67,6 +67,11 @@ type balanceConnector struct {
 var _ BalanceConnector = &balanceConnector{}
 
 func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner NamespacedGrantOwner, at time.Time) (*GrantBalanceSnapshot, error) {
+	// To include the current last minute lets round it trunc to the next minute
+	if trunc := at.Truncate(time.Minute); trunc.Before(at) {
+		at = trunc.Add(time.Minute)
+	}
+
 	// get last valid grantbalances
 	balance, err := m.getLastValidBalanceSnapshotForOwnerAt(ctx, owner, at)
 	if err != nil {
@@ -147,6 +152,10 @@ func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner Namespac
 
 // Returns the joined GrantBurnDownHistory across usage periods.
 func (m *balanceConnector) GetBalanceHistoryOfOwner(ctx context.Context, owner NamespacedGrantOwner, params BalanceHistoryParams) (GrantBurnDownHistory, error) {
+	// To include the current last minute lets round it trunc to the next minute
+	if trunc := params.To.Truncate(time.Minute); trunc.Before(params.To) {
+		params.To = trunc.Add(time.Minute)
+	}
 	// get all usage resets between queryied period
 	startTimes, err := m.ownerConnector.GetPeriodStartTimesBetween(ctx, owner, params.From, params.To)
 	if err != nil {
