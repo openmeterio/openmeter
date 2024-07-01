@@ -44,7 +44,7 @@ jobs:
 
     steps:
       - name: Run pipeline
-        uses: dagger/dagger-for-github@6210aa04aaf743e52a7315449e213bb85cd828ce # v5.10.0
+        uses: dagger/dagger-for-github@11048419d80c283890d0dd68187d44541f63dd89 # v5.11.0
         with:
           verb: call
           module: github.com/${{ github.repository }}@${{ github.ref }}
@@ -72,7 +72,7 @@ jobs:
 
     steps:
       - name: Run pipeline
-        uses: dagger/dagger-for-github@6210aa04aaf743e52a7315449e213bb85cd828ce # v5.10.0
+        uses: dagger/dagger-for-github@11048419d80c283890d0dd68187d44541f63dd89 # v5.11.0
         with:
           verb: call
           module: github.com/${{ github.repository }}@${{ github.ref }}
@@ -201,7 +201,7 @@ jobs:
         run: curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:10000/healthz
 
       - name: Run tests
-        uses: dagger/dagger-for-github@6210aa04aaf743e52a7315449e213bb85cd828ce # v5.10.0
+        uses: dagger/dagger-for-github@11048419d80c283890d0dd68187d44541f63dd89 # v5.11.0
         with:
           verb: call
           args: --source .:default quickstart-test --service tcp://localhost:8888 --port 8888
@@ -234,7 +234,7 @@ jobs:
           swap-storage: false
 
       - name: Run pipeline
-        uses: dagger/dagger-for-github@6210aa04aaf743e52a7315449e213bb85cd828ce # v5.10.0
+        uses: dagger/dagger-for-github@11048419d80c283890d0dd68187d44541f63dd89 # v5.11.0
         with:
           verb: call
           module: github.com/${{ github.repository }}@${{ github.ref }}
@@ -277,7 +277,7 @@ jobs:
           swap-storage: false
 
       - name: Run pipeline
-        uses: dagger/dagger-for-github@6210aa04aaf743e52a7315449e213bb85cd828ce # v5.10.0
+        uses: dagger/dagger-for-github@11048419d80c283890d0dd68187d44541f63dd89 # v5.11.0
         timeout-minutes: 40
         with:
           verb: call
