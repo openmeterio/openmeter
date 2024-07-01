@@ -52,7 +52,8 @@ type Grant struct {
 
 	// Expiration The expiration configuration.
 	Expiration ExpirationPeriod `json:"expiration"`
-	// ExpiresAt contains the exact expiration date calculated from effectiveAt and Expiration for rendering
+	// ExpiresAt contains the exact expiration date calculated from effectiveAt and Expiration for rendering.
+	// ExpiresAt is exclusive, meaning that the grant is no longer active after this time, but it is still active at the time.
 	ExpiresAt time.Time `json:"expiresAt"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`

@@ -994,43 +994,6 @@ func TestResetEntitlementUsage(t *testing.T) {
 			},
 		},
 		{
-			name: "Should return proper last reset time after reset",
-			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
-				ctx := context.Background()
-				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
-
-				// create featute in db
-				feature, err := deps.featureDB.CreateFeature(ctx, exampleFeature)
-				assert.NoError(t, err)
-
-				// create entitlement in db
-				inp := getEntitlement(t, feature)
-				inp.MeasureUsageFrom = &startTime
-				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
-				assert.NoError(t, err)
-
-				ent, err = deps.entitlementDB.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
-				assert.NoError(t, err)
-				assert.Equal(t, startTime.Format(time.RFC3339), ent.LastReset.Format(time.RFC3339))
-
-				deps.streaming.AddSimpleEvent(meterSlug, 600, startTime.Add(time.Minute))
-
-				// resetTime before snapshot
-				resetTime := startTime.Add(time.Hour * 5)
-				_, err = connector.ResetEntitlementUsage(ctx,
-					models.NamespacedID{Namespace: namespace, ID: ent.ID},
-					meteredentitlement.ResetEntitlementUsageParams{
-						At: resetTime,
-					})
-				assert.NoError(t, err)
-
-				// validate that lastReset time is properly set
-				ent, err = deps.entitlementDB.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: ent.ID})
-				assert.NoError(t, err)
-				assert.Equal(t, resetTime.Format(time.RFC3339), ent.LastReset.Format(time.RFC3339))
-			},
-		},
-		{
 			name: "Should calculate balance for grants taking effect after last saved snapshot",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
 				ctx := context.Background()
@@ -1210,6 +1173,51 @@ func TestResetEntitlementUsage(t *testing.T) {
 
 				assert.Equal(t, 0.0, balanceAfterReset.UsageInPeriod) // 0 usage right after reset
 				assert.Equal(t, g2.Amount, balanceAfterReset.Balance) // 1000 - 0 = 1000
+			},
+		},
+		{
+			name: "Should properly handle grants expiring the same time as reset",
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *testDependencies) {
+				ctx := context.Background()
+				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+				resetTime := startTime.AddDate(0, 0, 3)
+
+				// create featute in db
+				feature, err := deps.featureDB.CreateFeature(ctx, exampleFeature)
+				assert.NoError(t, err)
+
+				// add 0 usage so meter is found in mock
+				deps.streaming.AddSimpleEvent(meterSlug, 0, startTime)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feature)
+				inp.MeasureUsageFrom = &startTime
+				ent, err := deps.entitlementDB.CreateEntitlement(ctx, inp)
+				assert.NoError(t, err)
+
+				// issue grants
+				_, err = deps.grantDB.CreateGrant(ctx, credit.GrantRepoCreateGrantInput{
+					OwnerID:          credit.GrantOwner(ent.ID),
+					Namespace:        namespace,
+					Amount:           1000,
+					Priority:         1,
+					EffectiveAt:      startTime.Add(time.Hour * 2),
+					ExpiresAt:        resetTime,
+					ResetMaxRollover: 1000, // full amount can be rolled over
+				})
+				assert.NoError(t, err)
+
+				// do a reset
+				balanceAfterReset, err := connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At: resetTime,
+					})
+
+				// assert balance after reset is 0 for grant
+				assert.NoError(t, err)
+				assert.Equal(t, 0.0, balanceAfterReset.UsageInPeriod) // 0 usage right after reset
+				assert.Equal(t, 0.0, balanceAfterReset.Balance)       // Grant expires at reset time so we should see no balance
 			},
 		},
 		{

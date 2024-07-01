@@ -287,15 +287,21 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 		grantMap[grant.ID] = grant
 	}
 
-	// We have to roll over the grants and save the starting balance for the next period
-	// at the reset time.
-	startingBalance := endingBalance.Copy()
+	// We have to roll over the grants and save the starting balance for the next period at the reset time.
+	// Engine treates the output balance as a period end (exclusive), but we need to treat it as a period start (inclusive).
+	startingBalance := GrantBalanceMap{}
 	for grantID, grantBalance := range endingBalance {
 		grant, ok := grantMap[grantID]
 		// inconsistency check, shouldn't happen
 		if !ok {
 			return nil, fmt.Errorf("attempting to roll over unknown grant %s", grantID)
 		}
+
+		// grants might become inactive at the reset time, in which case they're irrelevant for the next period
+		if !grant.ActiveAt(at) {
+			continue
+		}
+
 		startingBalance.Set(grantID, grant.RolloverBalance(grantBalance))
 	}
 
