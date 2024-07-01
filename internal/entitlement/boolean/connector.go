@@ -6,6 +6,7 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
@@ -43,7 +44,7 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 	if model.UsagePeriod != nil {
 		usagePeriod = model.UsagePeriod
 
-		calculatedPeriod, err := usagePeriod.GetCurrentPeriodAt(time.Now())
+		calculatedPeriod, err := usagePeriod.GetCurrentPeriodAt(clock.Now())
 		if err != nil {
 			return nil, err
 		}
