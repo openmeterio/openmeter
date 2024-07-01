@@ -422,9 +422,6 @@ func (s *Sink) subscribeToNamespaces(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("failed to subscribe to topics: %s", err)
 		}
-		if err != nil {
-			return fmt.Errorf("failed to subscribe to topics: %s", err)
-		}
 	}
 
 	return nil
