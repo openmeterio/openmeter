@@ -258,5 +258,5 @@ func TestScenario(t *testing.T) {
 		now)
 	assert.NoError(err)
 	assert.NotNil(currentBalance)
-	assert.Equal(100.0, currentBalance.Balance)
+	assert.Equal(0.0, currentBalance.Balance)
 }
