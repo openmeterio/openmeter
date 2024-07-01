@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/streaming"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
@@ -218,7 +219,7 @@ func (m *balanceConnector) GetBalanceHistoryOfOwner(ctx context.Context, owner N
 
 func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner NamespacedGrantOwner, params ResetUsageForOwnerParams) (*GrantBalanceSnapshot, error) {
 	// Cannot reset for the future
-	if params.At.After(time.Now()) {
+	if params.At.After(clock.Now()) {
 		return nil, &models.GenericUserError{Message: fmt.Sprintf("cannot reset at %s in the future", params.At)}
 	}
 
@@ -230,7 +231,7 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 	at := params.At.Truncate(ownerMeter.WindowSize.Duration())
 
 	// check if reset is possible (after last reset)
-	periodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, owner, time.Now())
+	periodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, owner, clock.Now())
 	if err != nil {
 		if _, ok := err.(*OwnerNotFoundError); ok {
 			return nil, err

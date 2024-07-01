@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -216,7 +217,7 @@ func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsag
 				EntitlementID: params.EntitlementID,
 				Namespace:     ns,
 				SubjectID:     params.SubjectKey,
-				At:            defaultx.WithDefault(body.EffectiveAt, time.Now()),
+				At:            defaultx.WithDefault(body.EffectiveAt, clock.Now()),
 				RetainAnchor:  defaultx.WithDefault(body.RetainAnchor, false),
 			}, nil
 		},

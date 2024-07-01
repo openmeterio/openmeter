@@ -1,14 +1,13 @@
 package entutils
 
 import (
-	"time"
-
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 	"entgo.io/ent/schema/mixin"
 	"github.com/oklog/ulid/v2"
+	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
 // IDMixin adds the ID field to the schema
@@ -76,11 +75,11 @@ type TimeMixin struct {
 func (TimeMixin) Fields() []ent.Field {
 	return []ent.Field{
 		field.Time("created_at").
-			Default(time.Now).
+			Default(clock.Now).
 			Immutable(),
 		field.Time("updated_at").
-			Default(time.Now).
-			UpdateDefault(time.Now),
+			Default(clock.Now).
+			UpdateDefault(clock.Now),
 		field.Time("deleted_at").
 			Optional().
 			Nillable(),
