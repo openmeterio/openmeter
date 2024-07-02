@@ -49,7 +49,7 @@ jobs:
           swap-storage: false
 
       - name: Run pipeline
-        uses: dagger/dagger-for-github@6210aa04aaf743e52a7315449e213bb85cd828ce # v5.10.0
+        uses: dagger/dagger-for-github@11048419d80c283890d0dd68187d44541f63dd89 # v5.11.0
         with:
           verb: call
           module: github.com/${{ github.repository }}@${{ github.ref }}
