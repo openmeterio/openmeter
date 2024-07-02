@@ -157,7 +157,8 @@ paths:
     get:
       summary: Get event metrics
       description: |
-        Get the number of ingested events within a time range. Counter resets every day at midnight UTC.
+        Get the number of ingested events since mindight UTC.
+        The OpenMetrics Counter resets every day at midnight UTC.
       operationId: getDebugEventMetrics
       tags:
         - Events
@@ -173,8 +174,6 @@ paths:
                   # TYPE openmeter_events counter
                   openmeter_events_total 12345.0
                   openmeter_events_total{error="true"} 1.0
-        "400":
-          $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
