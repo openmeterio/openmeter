@@ -49,6 +49,10 @@ func (m *MockStreamingConnector) AddRow(meterSlug string, row models.MeterQueryR
 	m.rows[meterSlug] = append(m.rows[meterSlug], row)
 }
 
+func (m *MockStreamingConnector) CountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {
+	return []streaming.CountEventRow{}, nil
+}
+
 func (m *MockStreamingConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
 	return []api.IngestedEvent{}, nil
 }

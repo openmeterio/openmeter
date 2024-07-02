@@ -63,6 +63,10 @@ var (
 
 type MockConnector struct{}
 
+func (c *MockConnector) CountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {
+	return []streaming.CountEventRow{}, nil
+}
+
 func (c *MockConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
 	events := []api.IngestedEvent{
 		{

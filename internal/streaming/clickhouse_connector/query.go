@@ -77,6 +77,36 @@ func (d queryEventsTable) toSQL() (string, []interface{}, error) {
 	return sql, args, nil
 }
 
+type queryCountEvents struct {
+	Database  string
+	Namespace string
+	From      *time.Time
+	To        *time.Time
+	Limit     int
+}
+
+func (d queryCountEvents) toSQL() (string, []interface{}, error) {
+	tableName := GetEventsTableName(d.Database)
+	where := []string{}
+
+	query := sqlbuilder.ClickHouse.NewSelectBuilder()
+	query.Select("count() as count", "notEmpty(validation_error) as is_error")
+	query.From(tableName)
+
+	where = append(where, query.Equal("namespace", d.Namespace))
+	if d.From != nil {
+		where = append(where, query.GreaterEqualThan("time", d.From.Unix()))
+	}
+	if d.To != nil {
+		where = append(where, query.LessEqualThan("time", d.To.Unix()))
+	}
+	query.Where(where...)
+	query.GroupBy("is_error")
+
+	sql, args := query.Build()
+	return sql, args, nil
+}
+
 type createMeterView struct {
 	Database      string
 	Aggregation   models.MeterAggregation
