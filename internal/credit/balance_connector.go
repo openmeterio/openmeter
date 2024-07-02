@@ -98,8 +98,13 @@ func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner Namespac
 	// This is only possible in case the grant becomes active exactly at the start of the current period
 	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&balance, grants, balance.At)
 
+	ownerSubjectKey, err := m.ownerConnector.GetOwnerSubjectKey(ctx, owner)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get owner subject key for owner %s: %w", owner.ID, err)
+	}
+
 	// run engine and calculate grantbalance
-	engineParams, err := m.getQueryUsageFn(ctx, owner)
+	engineParams, err := m.getQueryUsageFn(ctx, owner, ownerSubjectKey)
 	if err != nil {
 		return nil, err
 	}
@@ -168,6 +173,11 @@ func (m *balanceConnector) GetBalanceHistoryOfOwner(ctx context.Context, owner N
 	periods := SortedPeriodsFromDedupedTimes(times)
 	historySegments := make([]GrantBurnDownHistorySegment, 0, len(periods))
 
+	ownerSubjecKey, err := m.ownerConnector.GetOwnerSubjectKey(ctx, owner)
+	if err != nil {
+		return GrantBurnDownHistory{}, fmt.Errorf("failed to get owner subject key for owner %s: %w", owner.ID, err)
+	}
+
 	// collect al history segments through all periods
 	for _, period := range periods {
 		// get last valid grantbalances at start of period (eq balance at start of period)
@@ -194,7 +204,7 @@ func (m *balanceConnector) GetBalanceHistoryOfOwner(ctx context.Context, owner N
 			return GrantBurnDownHistory{}, err
 		}
 		// run engine and calculate grantbalance
-		engineParams, err := m.getQueryUsageFn(ctx, owner)
+		engineParams, err := m.getQueryUsageFn(ctx, owner, ownerSubjecKey)
 		if err != nil {
 			return GrantBurnDownHistory{}, err
 		}
@@ -270,7 +280,7 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 	}
 	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&balance, grants, balance.At)
 
-	engineParams, err := m.getQueryUsageFn(ctx, owner)
+	engineParams, err := m.getQueryUsageFn(ctx, owner, ownerMeter.SubjectKey)
 	if err != nil {
 		return nil, err
 	}
@@ -404,7 +414,7 @@ type engineParams struct {
 }
 
 // returns owner specific QueryUsageFn
-func (m *balanceConnector) getQueryUsageFn(ctx context.Context, owner NamespacedGrantOwner) (*engineParams, error) {
+func (m *balanceConnector) getQueryUsageFn(ctx context.Context, owner NamespacedGrantOwner, subjectKey string) (*engineParams, error) {
 	ownerMeter, err := m.ownerConnector.GetMeter(ctx, owner)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get query params for owner %v: %w", owner, err)
@@ -415,6 +425,7 @@ func (m *balanceConnector) getQueryUsageFn(ctx context.Context, owner Namespaced
 			params := ownerMeter.DefaultParams
 			params.From = &from
 			params.To = &to
+			params.FilterSubject = []string{subjectKey}
 			rows, err := m.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.MeterSlug, params)
 			if err != nil {
 				return 0.0, fmt.Errorf("failed to query meter %s: %w", ownerMeter.MeterSlug, err)

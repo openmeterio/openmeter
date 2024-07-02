@@ -79,6 +79,7 @@ func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner credit.Names
 		MeterSlug:     meter.Slug,
 		DefaultParams: queryParams,
 		WindowSize:    meter.WindowSize,
+		SubjectKey:    entitlement.SubjectKey,
 	}, nil
 }
 
@@ -112,6 +113,17 @@ func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner
 	}
 
 	return lastUsageReset.ResetTime, nil
+}
+
+func (e *entitlementGrantOwner) GetOwnerSubjectKey(ctx context.Context, owner credit.NamespacedGrantOwner) (string, error) {
+	entitlement, err := getRepoMaybeInTx(ctx, e.entitlementRepo, e.entitlementRepo).GetEntitlement(ctx, owner.NamespacedID())
+	if err != nil {
+		return "", &credit.OwnerNotFoundError{
+			Owner:          owner,
+			AttemptedOwner: "entitlement",
+		}
+	}
+	return entitlement.SubjectKey, nil
 }
 
 func (e *entitlementGrantOwner) GetPeriodStartTimesBetween(ctx context.Context, owner credit.NamespacedGrantOwner, from, to time.Time) ([]time.Time, error) {
