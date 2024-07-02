@@ -19,6 +19,7 @@ type OwnerMeter struct {
 	MeterSlug     string
 	DefaultParams *streaming.QueryParams
 	WindowSize    models.WindowSize
+	SubjectKey    string
 }
 
 type OwnerConnector interface {
@@ -26,6 +27,7 @@ type OwnerConnector interface {
 	GetStartOfMeasurement(ctx context.Context, owner NamespacedGrantOwner) (time.Time, error)
 	GetPeriodStartTimesBetween(ctx context.Context, owner NamespacedGrantOwner, from, to time.Time) ([]time.Time, error)
 	GetUsagePeriodStartAt(ctx context.Context, owner NamespacedGrantOwner, at time.Time) (time.Time, error)
+	GetOwnerSubjectKey(ctx context.Context, owner NamespacedGrantOwner) (string, error)
 
 	//FIXME: this is a terrible hack
 	EndCurrentUsagePeriodTx(ctx context.Context, tx *entutils.TxDriver, owner NamespacedGrantOwner, params EndCurrentUsagePeriodParams) error
