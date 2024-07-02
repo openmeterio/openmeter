@@ -77,18 +77,20 @@ func TestComplete(t *testing.T) {
 		},
 		Ingest: IngestConfiguration{
 			Kafka: KafkaIngestConfiguration{
-				Broker:              "127.0.0.1:9092",
-				SecurityProtocol:    "SASL_SSL",
-				SaslMechanisms:      "PLAIN",
-				SaslUsername:        "user",
-				SaslPassword:        "pass",
+				KafkaConfiguration: KafkaConfiguration{
+					Broker:           "127.0.0.1:9092",
+					SecurityProtocol: "SASL_SSL",
+					SaslMechanisms:   "PLAIN",
+					SaslUsername:     "user",
+					SaslPassword:     "pass",
+
+					BrokerAddressFamily:          pkgkafka.BrokerAddressFamilyAny,
+					TopicMetadataRefreshInterval: pkgkafka.TimeDurationMilliSeconds(time.Minute),
+					StatsInterval:                pkgkafka.TimeDurationMilliSeconds(5 * time.Second),
+					SocketKeepAliveEnabled:       true,
+				},
 				Partitions:          1,
 				EventsTopicTemplate: "om_%s_events",
-
-				BrokerAddressFamily:          pkgkafka.BrokerAddressFamilyAny,
-				TopicMetadataRefreshInterval: pkgkafka.TimeDurationMilliSeconds(time.Minute),
-				StatsInterval:                pkgkafka.TimeDurationMilliSeconds(5 * time.Second),
-				SocketKeepAliveEnabled:       true,
 			},
 		},
 		Aggregation: AggregationConfiguration{
