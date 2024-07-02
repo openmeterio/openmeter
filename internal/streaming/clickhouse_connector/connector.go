@@ -290,7 +290,6 @@ func (c *ClickhouseConnector) queryCountEvents(ctx context.Context, namespace st
 		Database:  c.config.Database,
 		Namespace: namespace,
 		From:      params.From,
-		To:        params.To,
 	}
 
 	sql, args, err := table.toSQL()

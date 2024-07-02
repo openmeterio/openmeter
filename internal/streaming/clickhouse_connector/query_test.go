@@ -64,15 +64,17 @@ func TestQueryEventsTable(t *testing.T) {
 }
 
 func TestQueryEventsCount(t *testing.T) {
+	from, _ := time.Parse(time.RFC3339, "2023-01-01T00:00:00.001Z")
 	tests := []struct {
-		query    queryEventsTable
+		query    queryCountEvents
 		wantSQL  string
 		wantArgs []interface{}
 	}{
 		{
-			query: queryEventsTable{
+			query: queryCountEvents{
 				Database:  "openmeter",
 				Namespace: "my_namespace",
+				From:      from,
 			},
 			wantSQL:  "SELECT count() as count, notEmpty(validation_error) as is_error FROM openmeter.om_events WHERE namespace = ? GROUP BY is_error",
 			wantArgs: []interface{}{"my_namespace"},

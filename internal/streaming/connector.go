@@ -15,8 +15,7 @@ type ListEventsParams struct {
 }
 
 type CountEventsParams struct {
-	From *time.Time
-	To   *time.Time
+	From time.Time
 }
 
 type CountEventRow struct {

@@ -80,9 +80,7 @@ func (d queryEventsTable) toSQL() (string, []interface{}, error) {
 type queryCountEvents struct {
 	Database  string
 	Namespace string
-	From      *time.Time
-	To        *time.Time
-	Limit     int
+	From      time.Time
 }
 
 func (d queryCountEvents) toSQL() (string, []interface{}, error) {
@@ -94,12 +92,7 @@ func (d queryCountEvents) toSQL() (string, []interface{}, error) {
 	query.From(tableName)
 
 	where = append(where, query.Equal("namespace", d.Namespace))
-	if d.From != nil {
-		where = append(where, query.GreaterEqualThan("time", d.From.Unix()))
-	}
-	if d.To != nil {
-		where = append(where, query.LessEqualThan("time", d.To.Unix()))
-	}
+	where = append(where, query.GreaterEqualThan("time", d.From.Unix()))
 	query.Where(where...)
 	query.GroupBy("is_error")
 

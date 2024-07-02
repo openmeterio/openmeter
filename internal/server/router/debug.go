@@ -17,29 +17,25 @@ import (
 	"github.com/prometheus/common/expfmt"
 )
 
-func (a *Router) GetDebugEventMetrics(w http.ResponseWriter, r *http.Request) {
-	ctx := contextx.WithAttr(r.Context(), "operation", "getDebugEventMetrics")
+func (a *Router) GetDebugMetrics(w http.ResponseWriter, r *http.Request) {
+	ctx := contextx.WithAttr(r.Context(), "operation", "getDebugMetrics")
 
 	namespace := a.config.NamespaceManager.GetDefaultNamespace()
 
 	// Start from the beginning of the day
-	from := time.Now().Truncate(time.Hour * 24).UTC()
-
-	fmt.Println("from: ", from)
-
 	queryParams := streaming.CountEventsParams{
-		From: &from,
+		From: time.Now().Truncate(time.Hour * 24).UTC(),
 	}
 
+	// Query events counts
 	rows, err := a.config.StreamingConnector.CountEvents(ctx, namespace, queryParams)
 	if err != nil {
-		err := fmt.Errorf("query events: %w", err)
+		err := fmt.Errorf("connector count events: %w", err)
 
 		a.config.ErrorHandler.HandleContext(ctx, err)
 		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 
 		return
-
 	}
 
 	// Convert to Prometheus metrics
