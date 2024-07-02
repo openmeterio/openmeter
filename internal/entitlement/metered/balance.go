@@ -70,6 +70,7 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 	}
 
 	meterQuery := ownerMeter.DefaultParams
+	meterQuery.FilterSubject = []string{ownerMeter.SubjectKey}
 	meterQuery.From = &startOfPeriod
 	meterQuery.To = &at
 
@@ -150,6 +151,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 
 	// 2. and we get the windowed usage data
 	meterQuery := ownerMeter.DefaultParams
+	meterQuery.FilterSubject = []string{ownerMeter.SubjectKey}
 	meterQuery.From = params.From
 	meterQuery.To = params.To
 	meterQuery.WindowSize = convert.ToPointer(models.WindowSize(params.WindowSize))
@@ -164,6 +166,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 	// In this case we simply query for the entire period.
 	if len(meterRows) == 0 {
 		nonWindowedParams := *meterQuery
+		nonWindowedParams.FilterSubject = []string{ownerMeter.SubjectKey}
 		nonWindowedParams.WindowSize = nil
 		nonWindowedParams.WindowTimeZone = nil
 		meterRows, err = e.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.MeterSlug, &nonWindowedParams)
