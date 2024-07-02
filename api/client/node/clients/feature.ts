@@ -12,8 +12,11 @@ export class FeatureClient extends BaseClient {
   }
 
   /**
-   * Create Feature
    * Features are the building blocks of your entitlements, part of your product offering.
+   * @description
+   * Features are either metered or static. A feature is metered if meterSlug is provided at creation. For metered features you can pass additional filters that will be applied when calculating feature usage, based on the meter's groupBy fields. Only meters with SUM and COUNT aggregation are supported for features.
+   *
+   * Features cannot be updated later, only archived.
    *
    * @example
    * const feature = await openmeter.features.create({
@@ -76,7 +79,9 @@ export class FeatureClient extends BaseClient {
   }
 
   /**
-   * Delete feature by ID or Key
+   * Archive a feature by ID or Key.
+   * @description
+   * Once a feature is archived it cannot be unarchived. If a feature is archived, new entitlements cannot be created for it, but archiving the feature does not affect existing entitlements.
    * @example
    * await openmeter.delete('ai_tokens')
    */

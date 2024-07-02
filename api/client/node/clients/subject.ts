@@ -89,7 +89,8 @@ export class SubjectClient extends BaseClient {
   /**
    * Create Entitlement
    * Entitlements allows you to manage subject feature access, balances, and usage limits.
-   *
+   * @remarks
+   * Input should be either `EntitlementMeteredCreateInputs`, `EntitlementStaticCreateInputs`, or `EntitlementBooleanCreateInputs`
    * @example
    * // Issue 10,000,000 tokens every month
    * const entitlement = await openmeter.subjects.createEntitlement('customer-1', {
@@ -118,7 +119,7 @@ export class SubjectClient extends BaseClient {
   }
 
   /**
-   * List entitlements
+   * List entitlements of a subject
    * @example
    * const entitlement = await openmeter.subjects.listEntitlements('customer-1')
    */
@@ -174,20 +175,41 @@ export class SubjectClient extends BaseClient {
   }
 
   /**
-   * Get entitlement value by ID by Feature ID or by Feature Key
+   * Get entitlement value by ID by Feature Key
    *
    * @example
    * const value = await openmeter.subjects.getEntitlementValue('customer-1', 'ai_tokens')
    */
   public async getEntitlementValue(
     subjectIdOrKey: string,
-    entitlementIdOrFeatureIdOrFeatureKey: string,
+    entitlementIdOrFeatureKey: string,
     options?: RequestOptions
   ): Promise<EntitlementValue> {
     return await this.request({
-      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementIdOrFeatureIdOrFeatureKey}/value`,
+      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementIdOrFeatureKey}/value`,
       method: 'GET',
       options,
+    })
+  }
+
+  /**
+   * Get entitlement value at a specific time.
+   *
+   * @example
+   * const value = await openmeter.subjects.getEntitlementValueAt('customer-1', 'ai_tokens')
+   */
+  public async getEntitlementValueAt(
+    subjectIdOrKey: string,
+    entitlementIdOrFeatureKey: string,
+    at: Date,
+    options?: RequestOptions
+  ): Promise<EntitlementValue> {
+    const searchParams = BaseClient.toURLSearchParams({ time: at })
+    return await this.request({
+      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementIdOrFeatureKey}/value`,
+      method: 'GET',
+      options,
+      searchParams,
     })
   }
 

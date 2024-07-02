@@ -35,7 +35,9 @@ export class EntitlementClient extends BaseClient {
   }
 
   /**
-   * List entitlements
+   * List all entitlements regardless of subject.
+   * @description
+   * Most useful for administrative purposes.
    * @example
    * const entitlement = await openmeter.entitlements.list()
    */

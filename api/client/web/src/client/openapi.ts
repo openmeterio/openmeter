@@ -126,105 +126,134 @@ export interface paths {
   '/api/v1/entitlements': {
     /**
      * List entitlements
-     * @description List entitlements.
+     * @description List all entitlements regardless of subject. This endpoint is intended for administrative purposes.
      */
     get: operations['listEntitlements']
   }
   '/api/v1/features': {
     /**
      * List features
-     * @description List features.
+     * @description List all features.
      */
     get: operations['listFeatures']
     /**
-     * Create feature
-     * @description Creates a feature.
+     * Create a feature
+     * @description Features are either metered or static. A feature is metered if meterSlug is provided at creation.
+     * For metered features you can pass additional filters that will be applied when calculating feature usage, based on the meter's groupBy fields. Only meters with SUM and COUNT aggregation are supported for features.
+     *
+     * Features cannot be updated later, only archived.
      */
     post: operations['createFeature']
   }
   '/api/v1/features/{featureId}': {
     /**
      * Get feature
-     * @description Get feature by id.
+     * @description Get a feature by id.
      */
     get: operations['getFeature']
     /**
-     * Delete feature
-     * @description Delete a feature by key.
+     * Archive a feature
+     * @description Once a feature is archived it cannot be unarchived. If a feature is archived, new entitlements cannot be created for it, but archiving the feature does not affect existing entitlements. This means, if you want to create a new feature with the same key, and then create entitlements for it, the previous entitlements have to be deleted first on a per subject basis.
      */
     delete: operations['deleteFeature']
   }
   '/api/v1/grants': {
     /**
      * List grants
-     * @description List all grants.
+     * @description List all grants for all the subjects and entitlements. This endpoint is intended for administrative purposes only. To fetch the grants of a specific entitlement please use the /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
      */
     get: operations['listGrants']
   }
   '/api/v1/grants/{grantId}': {
     /**
-     * Delete a grant
-     * @description Void (delete) a grant. A grant can only be deleted if it hasn't been used.
+     * Void a grant
+     * @description Voiding a grant means it is no longer valid, it doesn't take part in further balance calculations. Voiding a grant does not retroactively take effect, meaning any usage that has already been attributed to the grant will remain, but future usage cannot be burnt down from the grant.
+     *
+     * For example, if you have a single grant for your metered entitlement with an initial amount of 100, and so far 60 usage has been metered, the grant (and the entitlement itself) would have a balance of 40. If you then void that grant, balance becomes 0, but the 60 previous usage will not be affected.
      */
     delete: operations['voidGrant']
   }
   '/api/v1/subjects/{subjectIdOrKey}/entitlements': {
     /**
-     * List entitlements
-     * @description List all entitlements for a subject.
+     * List entitlements of a subject
+     * @description List all entitlements for a subject. For checking entitlement access, use the /value endpoint instead.
      */
     get: operations['listSubjectEntitlements']
     /**
-     * Create entitlement
-     * @description Create an entitlement for a subject.
+     * Create an entitlement
+     * @description OpenMeter has three types of entitlements: metered, boolean, and static. The type property determines the type of entitlement. The underlying feature has to be compatible with the entitlement type specified in the request (e.g., a metered entitlement needs a feature associated with a meter).
+     *
+     * - Boolean entitlements define static feature access, e.g. "Can use SSO authentication".
+     * - Static entitlements let you pass along a configuration while granting access, e.g. "Using this feature with X Y settings" (passed in the config).
+     * - Metered entitlements have many use cases, from setting up usage-based access to implementing complex credit systems.  Example: The customer can use 10000 AI tokens during the usage period of the entitlement.
+     *
+     * A given subject can only have one active (non-deleted) entitlement per featureKey. If you try to create a new entitlement for a featureKey that already has an active entitlement, the request will fail with a 409 error.
+     *
+     * Once an entitlement is created you cannot modify it, only delete it.
      */
     post: operations['createEntitlement']
   }
   '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}': {
     /**
-     * Get entitlement
-     * @description Get entitlement by id.
+     * Get an entitlement
+     * @description Get entitlement by id. For checking entitlement access, use the /value endpoint instead.
      */
     get: operations['getEntitlement']
     /**
-     * Delete entitlement
-     * @description Delete an entitlement by id.
+     * Delete an entitlement
+     * @description Deleting an entitlement revokes access to the associated feature. As a single subject can only have one entitlement per featureKey, when "migrating" features you have to delete the old entitlements as well.
+     * As access and status checks can be historical queries, deleting an entitlement populates the deletedAt timestamp. When queried for a time before that, the entitlement is still considered active, you cannot have retroactive changes to access, which is important for, among other things, auditing.
      */
     delete: operations['deleteEntitlement']
   }
   '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/grants': {
     /**
      * List grants for an entitlement
-     * @description List all grants for an entitlement.
+     * @description List all grants issued for an entitlement. This endpoint is intended for administrative purposes.
      */
     get: operations['listEntitlementGrants']
     /**
-     * Create grant
-     * @description Create a grant for an entitlement.
+     * Create a grant
+     * @description Grants define a behavior of granting usage for a metered entitlement. They can have complicated recurrence and rollover rules, thanks to which you can define a wide range of access patterns with a single grant, in most cases you don't have to periodically create new grants. You can only issue grants for active metered entitlements.
+     *
+     * A grant defines a given amount of usage that can be consumed for the entitlement. The grant is in effect between its effective date and its expiration date. Specifying both is mandatory for new grants.
+     *
+     * Grants have a priority setting that determines their order of use. Lower numbers have higher priority, with 0 being the highest priority.
+     *
+     * Grants can have a recurrence setting intended to automate the manual reissuing of grants. For example, a daily recurrence is equal to reissuing that same grant every day (ignoring rollover settings).
+     *
+     * Rollover settings define what happens to the remaining balance of a grant at a reset. Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+     *
+     * Grants cannot be changed once created, only deleted. This is to ensure that balance is deterministic regardless of when it is queried.
      */
     post: operations['createGrant']
   }
   '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/value': {
     /**
-     * Get the balance of a specific entitlement.
-     * @description Get the balance of a specific entitlement.
+     * Get the current value and access of an entitlement
+     * @description This endpoint should be used for access checks and enforcement. All entitlement types share the hasAccess property in their value response, but multiple other properties are returned based on the entitlement type.
+     *
+     * For convenience reasons, /value works with both entitlementId and featureKey.
      */
     get: operations['getEntitlementValue']
   }
   '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/history': {
     /**
      * Get the balance history of a specific entitlement.
-     * @description Get the balance history of a specific entitlement.
+     * @description Returns historical balance and usage data for the entitlement. The queried history can span accross multiple reset events.
      *
-     * The windows are inclusive at their start and exclusive at their end.
-     * The last window may be smaller than the window size and is inclusive at both ends.
+     * BurndownHistory returns a continous history of segments, where the segments are seperated by events that changed either the grant burndown priority or the usage period.
+     *
+     * WindowedHistory returns windowed usage data for the period enriched with balance information and the list of grants that were being burnt down in that window.
      */
     get: operations['getEntitlementHistory']
   }
   '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/reset': {
     /**
-     * Reset entitlement
-     * @description Reset the entitlement usage and start a new period. Grants that can be are rolled over.
+     * Reset an entitlement
+     * @description Reset marks the start of a new usage period for the entitlement and initiates grant rollover. At the start of a period usage is zerod out and grants are rolled over based on their rollover settings. It would typically be synced with the subjects billing period to enforce usage based on their subscription.
+     *
+     * Usage is automatically reset for metered entitlements based on their usage period, but this endpoint allows to manually reset it at any time. When doing so the period anchor of the entitlement can be changed if needed.
      */
     post: operations['resetEntitlementUsage']
   }
@@ -243,8 +272,8 @@ export type webhooks = Record<string, never>
 export interface components {
   schemas: {
     /**
-     * @description Metadata fields for a resource.
-     * These fields are automatically populated by the system for the entities we manage.
+     * @description Metadata fields for all resources.
+     * These fields are automatically populated by the system for managed entities. Their use and meaning is uniform across all resources.
      */
     SharedMetaFields: {
       /**
@@ -261,13 +290,13 @@ export interface components {
       createdAt: string
       /**
        * Format: date-time
-       * @description The date and time the resource was last updated. Defaults to createdAt if not updated.
+       * @description The date and time the resource was last updated. The initial value is the same as createdAt.
        * @example 2023-01-01T00:00:00Z
        */
       updatedAt: string
       /**
        * Format: date-time
-       * @description The date and time the resource was deleted. Null if not deleted.
+       * @description The date and time the resource was deleted.
        * @example 2023-01-01T00:00:00Z
        */
       deletedAt?: string
@@ -462,7 +491,7 @@ export interface components {
      */
     FeatureCreateInputs: {
       /**
-       * @description The unique key of the feature to reference it from your application.
+       * @description The key is an immutable unique identifier of the feature used throughout the API, for example when interacting with a subject's entitlements. The key has to be unique across all active features, but archived features can share the same key. The key should consist of lowercase alphanumeric characters and dashes.
        *
        * @example gpt4_tokens
        */
@@ -473,19 +502,19 @@ export interface components {
        * @example AI Tokens
        */
       name: string
-      /** @description Additional metadata for the feature. */
+      /** @description Additional metadata for the feature, useful for syncing with external systems and annotating custom fields. */
       metadata?: {
         [key: string]: string
       }
       /**
-       * @description The meter that the feature is associated with and decreases grants by usage.
-       * If present, the usage of the feature can be metered.
+       * @description The meter that the feature is associated with and and based on which usage is calculated.
+       * The meter selected must have SUM or COUNT aggregation.
        *
        * @example tokens_total
        */
       meterSlug?: string
       /**
-       * @description Optional meter group by filters. Useful if the meter scope is broader than what feature tracks.
+       * @description Optional meter group by filters. Useful if the meter scope is broader than what feature tracks. Example scenario would be a meter tracking all token use with groupBy fields for the model, then the feature could filter for model=gpt-4.
        *
        * @example {
        *   "model": "gpt-4"
@@ -502,7 +531,7 @@ export interface components {
     Feature: {
       /**
        * Format: date-time
-       * @description If the feature is archived, it will not be used for grants or usage.
+       * @description If the feature is archived, no new entitlements can be created for it.
        *
        * @example 2023-01-01T00:00:00Z
        */
@@ -561,13 +590,13 @@ export interface components {
        */
       type: 'metered'
       /**
-       * @description If softLimit=true the subject can use the feature even if the entitlement is exhausted.
+       * @description If softLimit=true the subject can use the feature even if the entitlement is exhausted, hasAccess will always be true.
        *
        * @default false
        */
       isSoftLimit?: boolean
       /**
-       * @description If unlimited=true the subject can use the feature an unlimited amount.
+       * @description Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed in the future.
        *
        * @default false
        */
@@ -575,7 +604,10 @@ export interface components {
       usagePeriod: components['schemas']['RecurringPeriodCreateInput']
       /**
        * Format: double
-       * @description You can issue usage automatically after reset. This usage is not rolled over.
+       * @description You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance. If an amount is specified here, a grant will be created alongside the entitlement with the specified amount.
+       * That grant will have it's rollover settings configured in a way that after each reset operation, the balance will return the original amount specified here.
+       *
+       * Manually creating such a grant would mean having the "amount", "minRolloverAmount", and "maxRolloverAmount" fields all be the same.
        */
       issueAfterReset?: number
       /**
@@ -590,7 +622,7 @@ export interface components {
       | components['schemas']['EntitlementMeteredCreateInputs']
       | components['schemas']['EntitlementStaticCreateInputs']
       | components['schemas']['EntitlementBooleanCreateInputs']
-    /** @description Entitles a subject to use a feature. */
+    /** @description Metered entitlements are useful for many different use cases, from setting up usage based access to implementing complex credit systems. Access is determined based on feature usage using a balance calculation (the "usage allowance" provided by the issued grants is "burnt down" by the usage). */
     EntitlementMetered: components['schemas']['EntitlementMeteredCreateInputs'] &
       components['schemas']['EntitlementMeteredCalculatedFields'] &
       components['schemas']['EntitlementSharedFields']
@@ -598,7 +630,7 @@ export interface components {
     EntitlementMeteredCalculatedFields: {
       /**
        * Format: date-time
-       * @description The last time the meter was reset.
+       * @description The last time a reset happened.
        *
        * @example 2023-01-01T00:00:00Z
        */
@@ -612,7 +644,7 @@ export interface components {
        */
       type: 'static'
       /**
-       * @description The JSON parsable config of the entitlement.
+       * @description The JSON parsable config of the entitlement. This value is also returned when checking entitlement access and it is useful for configuring fine-grained access settings to the feature, implemented in your own system. Has to be an object.
        *
        * @example {"key1": "value1"}
        */
@@ -638,7 +670,7 @@ export interface components {
     /**
      * @description A segment of the grant burn down history.
      *
-     * A given segment represents the usage of a grant in a specific period.
+     * A given segment represents the usage of a grant between events that changed either the grant burn down priority order or the usag period.
      */
     GrantBurnDownHistorySegment: {
       period?: components['schemas']['Period']
@@ -708,7 +740,7 @@ export interface components {
        */
       usage?: number
     }
-    /** @description A window of balance history. */
+    /** @description Windowed usage and balance information. */
     BalanceHistoryWindow: {
       period?: components['schemas']['Period']
       /**
@@ -730,10 +762,12 @@ export interface components {
     WindowedBalanceHistory: {
       /**
        * @description The windowed balance history.
-       * Only returns rows for windows where there was usage.
+       * - It only returns rows for windows where there was usage.
+       * - The windows are inclusive at their start and exclusive at their end.
+       * - The last window may be smaller than the window size and is inclusive at both ends.
        */
       windowedHistory?: components['schemas']['BalanceHistoryWindow'][]
-      /** @description The grant burn down history in the period. */
+      /** @description Grant burndown history. */
       burndownHistory?: components['schemas']['GrantBurnDownHistorySegment'][]
     }
     /** @description A time period */
@@ -875,30 +909,35 @@ export interface components {
       }
     EntitlementValue: {
       /**
-       * @description Whether the subject has access to the feature.
+       * @description Whether the subject has access to the feature. Shared accross all entitlement types.
+       *
        * @example true
        */
       hasAccess: boolean
       /**
        * Format: double
-       * @description The balance of a metered entitlement.
+       * @description Only available for metered entitlements. Metered entitlements are built around a balance calculation where feature usage is deducted from the issued grants. Balance represents the remaining balance of the entitlement, it's value never turns negative.
+       *
        * @example 100
        */
       balance?: number
       /**
        * Format: double
-       * @description Total usage of the feature in the period. Includes overages.
+       * @description Only available for metered entitlements. Returns the total feature usage in the current period.
+       *
        * @example 50
        */
       usage?: number
       /**
        * Format: double
-       * @description The overage of a metered entitlement.
+       * @description Only available for metered entitlements. Overage represents the usage that wasn't covered by grants, e.g. if the subject had a total feature usage of 100 in the period but they were only granted 80, there would be 20 overage.
+       *
        * @example 0
        */
       overage?: number
       /**
-       * @description The JSON parseable configuration value of a static entitlement.
+       * @description Only available for static entitlements. The JSON parsable config of the entitlement.
+       *
        * @example {"key1": "value1"}
        */
       config?: string
@@ -1670,7 +1709,7 @@ export interface operations {
   }
   /**
    * List entitlements
-   * @description List entitlements.
+   * @description List all entitlements regardless of subject. This endpoint is intended for administrative purposes.
    */
   listEntitlements: {
     parameters: {
@@ -1688,13 +1727,14 @@ export interface operations {
           'application/json': components['schemas']['Entitlement'][]
         }
       }
+      400: components['responses']['BadRequestProblemResponse']
       401: components['responses']['UnauthorizedProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
   /**
    * List features
-   * @description List features.
+   * @description List all features.
    */
   listFeatures: {
     parameters: {
@@ -1714,13 +1754,17 @@ export interface operations {
           'application/json': components['schemas']['Feature'][]
         }
       }
+      400: components['responses']['BadRequestProblemResponse']
       401: components['responses']['UnauthorizedProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
   /**
-   * Create feature
-   * @description Creates a feature.
+   * Create a feature
+   * @description Features are either metered or static. A feature is metered if meterSlug is provided at creation.
+   * For metered features you can pass additional filters that will be applied when calculating feature usage, based on the meter's groupBy fields. Only meters with SUM and COUNT aggregation are supported for features.
+   *
+   * Features cannot be updated later, only archived.
    */
   createFeature: {
     /** @description The feature to create. */
@@ -1744,7 +1788,7 @@ export interface operations {
   }
   /**
    * Get feature
-   * @description Get feature by id.
+   * @description Get a feature by id.
    */
   getFeature: {
     parameters: {
@@ -1765,8 +1809,8 @@ export interface operations {
     }
   }
   /**
-   * Delete feature
-   * @description Delete a feature by key.
+   * Archive a feature
+   * @description Once a feature is archived it cannot be unarchived. If a feature is archived, new entitlements cannot be created for it, but archiving the feature does not affect existing entitlements. This means, if you want to create a new feature with the same key, and then create entitlements for it, the previous entitlements have to be deleted first on a per subject basis.
    */
   deleteFeature: {
     parameters: {
@@ -1786,7 +1830,7 @@ export interface operations {
   }
   /**
    * List grants
-   * @description List all grants.
+   * @description List all grants for all the subjects and entitlements. This endpoint is intended for administrative purposes only. To fetch the grants of a specific entitlement please use the /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
    */
   listGrants: {
     parameters: {
@@ -1810,8 +1854,10 @@ export interface operations {
     }
   }
   /**
-   * Delete a grant
-   * @description Void (delete) a grant. A grant can only be deleted if it hasn't been used.
+   * Void a grant
+   * @description Voiding a grant means it is no longer valid, it doesn't take part in further balance calculations. Voiding a grant does not retroactively take effect, meaning any usage that has already been attributed to the grant will remain, but future usage cannot be burnt down from the grant.
+   *
+   * For example, if you have a single grant for your metered entitlement with an initial amount of 100, and so far 60 usage has been metered, the grant (and the entitlement itself) would have a balance of 40. If you then void that grant, balance becomes 0, but the 60 previous usage will not be affected.
    */
   voidGrant: {
     parameters: {
@@ -1832,8 +1878,8 @@ export interface operations {
     }
   }
   /**
-   * List entitlements
-   * @description List all entitlements for a subject.
+   * List entitlements of a subject
+   * @description List all entitlements for a subject. For checking entitlement access, use the /value endpoint instead.
    */
   listSubjectEntitlements: {
     parameters: {
@@ -1856,8 +1902,16 @@ export interface operations {
     }
   }
   /**
-   * Create entitlement
-   * @description Create an entitlement for a subject.
+   * Create an entitlement
+   * @description OpenMeter has three types of entitlements: metered, boolean, and static. The type property determines the type of entitlement. The underlying feature has to be compatible with the entitlement type specified in the request (e.g., a metered entitlement needs a feature associated with a meter).
+   *
+   * - Boolean entitlements define static feature access, e.g. "Can use SSO authentication".
+   * - Static entitlements let you pass along a configuration while granting access, e.g. "Using this feature with X Y settings" (passed in the config).
+   * - Metered entitlements have many use cases, from setting up usage-based access to implementing complex credit systems.  Example: The customer can use 10000 AI tokens during the usage period of the entitlement.
+   *
+   * A given subject can only have one active (non-deleted) entitlement per featureKey. If you try to create a new entitlement for a featureKey that already has an active entitlement, the request will fail with a 409 error.
+   *
+   * Once an entitlement is created you cannot modify it, only delete it.
    */
   createEntitlement: {
     parameters: {
@@ -1886,8 +1940,8 @@ export interface operations {
     }
   }
   /**
-   * Get entitlement
-   * @description Get entitlement by id.
+   * Get an entitlement
+   * @description Get entitlement by id. For checking entitlement access, use the /value endpoint instead.
    */
   getEntitlement: {
     parameters: {
@@ -1918,8 +1972,9 @@ export interface operations {
     }
   }
   /**
-   * Delete entitlement
-   * @description Delete an entitlement by id.
+   * Delete an entitlement
+   * @description Deleting an entitlement revokes access to the associated feature. As a single subject can only have one entitlement per featureKey, when "migrating" features you have to delete the old entitlements as well.
+   * As access and status checks can be historical queries, deleting an entitlement populates the deletedAt timestamp. When queried for a time before that, the entitlement is still considered active, you cannot have retroactive changes to access, which is important for, among other things, auditing.
    */
   deleteEntitlement: {
     parameters: {
@@ -1940,7 +1995,7 @@ export interface operations {
   }
   /**
    * List grants for an entitlement
-   * @description List all grants for an entitlement.
+   * @description List all grants issued for an entitlement. This endpoint is intended for administrative purposes.
    */
   listEntitlementGrants: {
     parameters: {
@@ -1966,8 +2021,18 @@ export interface operations {
     }
   }
   /**
-   * Create grant
-   * @description Create a grant for an entitlement.
+   * Create a grant
+   * @description Grants define a behavior of granting usage for a metered entitlement. They can have complicated recurrence and rollover rules, thanks to which you can define a wide range of access patterns with a single grant, in most cases you don't have to periodically create new grants. You can only issue grants for active metered entitlements.
+   *
+   * A grant defines a given amount of usage that can be consumed for the entitlement. The grant is in effect between its effective date and its expiration date. Specifying both is mandatory for new grants.
+   *
+   * Grants have a priority setting that determines their order of use. Lower numbers have higher priority, with 0 being the highest priority.
+   *
+   * Grants can have a recurrence setting intended to automate the manual reissuing of grants. For example, a daily recurrence is equal to reissuing that same grant every day (ignoring rollover settings).
+   *
+   * Rollover settings define what happens to the remaining balance of a grant at a reset. Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+   *
+   * Grants cannot be changed once created, only deleted. This is to ensure that balance is deterministic regardless of when it is queried.
    */
   createGrant: {
     parameters: {
@@ -1996,8 +2061,10 @@ export interface operations {
     }
   }
   /**
-   * Get the balance of a specific entitlement.
-   * @description Get the balance of a specific entitlement.
+   * Get the current value and access of an entitlement
+   * @description This endpoint should be used for access checks and enforcement. All entitlement types share the hasAccess property in their value response, but multiple other properties are returned based on the entitlement type.
+   *
+   * For convenience reasons, /value works with both entitlementId and featureKey.
    */
   getEntitlementValue: {
     parameters: {
@@ -2025,10 +2092,11 @@ export interface operations {
   }
   /**
    * Get the balance history of a specific entitlement.
-   * @description Get the balance history of a specific entitlement.
+   * @description Returns historical balance and usage data for the entitlement. The queried history can span accross multiple reset events.
    *
-   * The windows are inclusive at their start and exclusive at their end.
-   * The last window may be smaller than the window size and is inclusive at both ends.
+   * BurndownHistory returns a continous history of segments, where the segments are seperated by events that changed either the grant burndown priority or the usage period.
+   *
+   * WindowedHistory returns windowed usage data for the period enriched with balance information and the list of grants that were being burnt down in that window.
    */
   getEntitlementHistory: {
     parameters: {
@@ -2054,7 +2122,7 @@ export interface operations {
       }
     }
     responses: {
-      /** @description Entitlement balance history. If windowsize is specified then the history is grouped by the window size. */
+      /** @description The history response. */
       200: {
         content: {
           'application/json': components['schemas']['WindowedBalanceHistory']
@@ -2067,8 +2135,10 @@ export interface operations {
     }
   }
   /**
-   * Reset entitlement
-   * @description Reset the entitlement usage and start a new period. Grants that can be are rolled over.
+   * Reset an entitlement
+   * @description Reset marks the start of a new usage period for the entitlement and initiates grant rollover. At the start of a period usage is zerod out and grants are rolled over based on their rollover settings. It would typically be synced with the subjects billing period to enforce usage based on their subscription.
+   *
+   * Usage is automatically reset for metered entitlements based on their usage period, but this endpoint allows to manually reset it at any time. When doing so the period anchor of the entitlement can be changed if needed.
    */
   resetEntitlementUsage: {
     parameters: {
@@ -2082,17 +2152,15 @@ export interface operations {
         'application/json': {
           /**
            * Format: date-time
-           * @description The time at which the reset takes effect, defaults to now.
-           * The reset cannot be in the future.
-           * The provided value is truncated to the granularity of the underlying meter.
+           * @description The time at which the reset takes effect, defaults to now. The reset cannot be in the future. The provided value is truncated to the minute due to how historical meter data is stored.
            *
            * @example 2023-01-01T00:00:00Z
            */
           effectiveAt?: string
           /**
-           * @description Should the reset retain the usage period anchor.
-           * If true, the usage period anchor is retained.
-           * If false, the usage period anchor is reset to the effectiveAt time.
+           * @description Determines whether the usage period anchor is retained or reset to the effectiveAt time.
+           * - If true, the usage period anchor is retained.
+           * - If false, the usage period anchor is reset to the effectiveAt time.
            */
           retainAnchor?: boolean
         }
