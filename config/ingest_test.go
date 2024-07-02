@@ -15,12 +15,12 @@ func TestKafkaIngestConfiguration(t *testing.T) {
 	tests := []struct {
 		Name string
 
-		KafkaConfig            KafkaIngestConfiguration
+		KafkaConfig            KafkaConfiguration
 		ExpectedKafkaConfigMap kafka.ConfigMap
 	}{
 		{
 			Name: "All",
-			KafkaConfig: KafkaIngestConfiguration{
+			KafkaConfig: KafkaConfiguration{
 				Broker:                       "127.0.0.1:29092",
 				SecurityProtocol:             "SASL_SSL",
 				SaslMechanisms:               "PLAIN",
@@ -47,7 +47,7 @@ func TestKafkaIngestConfiguration(t *testing.T) {
 		},
 		{
 			Name: "Basic",
-			KafkaConfig: KafkaIngestConfiguration{
+			KafkaConfig: KafkaConfiguration{
 				Broker: "127.0.0.1:29092",
 			},
 			ExpectedKafkaConfigMap: kafka.ConfigMap{

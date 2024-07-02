@@ -26,13 +26,30 @@ func (c IngestConfiguration) Validate() error {
 }
 
 type KafkaIngestConfiguration struct {
-	Broker              string
-	SecurityProtocol    string
-	SaslMechanisms      string
-	SaslUsername        string
-	SaslPassword        string
+	KafkaConfiguration `mapstructure:",squash"`
+
 	Partitions          int
 	EventsTopicTemplate string
+}
+
+// Validate validates the configuration.
+func (c KafkaIngestConfiguration) Validate() error {
+	if c.EventsTopicTemplate == "" {
+		return errors.New("events topic template is required")
+	}
+
+	if err := c.KafkaConfiguration.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+type KafkaConfiguration struct {
+	Broker           string
+	SecurityProtocol string
+	SaslMechanisms   string
+	SaslUsername     string
+	SaslPassword     string
 
 	StatsInterval pkgkafka.TimeDurationMilliSeconds
 
@@ -49,8 +66,25 @@ type KafkaIngestConfiguration struct {
 	TopicMetadataRefreshInterval pkgkafka.TimeDurationMilliSeconds
 }
 
+func (c KafkaConfiguration) Validate() error {
+
+	if c.Broker == "" {
+		return errors.New("broker is required")
+	}
+
+	if c.StatsInterval > 0 && c.StatsInterval.Duration() < 5*time.Second {
+		return errors.New("StatsInterval must be >=5s")
+	}
+
+	if c.TopicMetadataRefreshInterval > 0 && c.TopicMetadataRefreshInterval.Duration() < 10*time.Second {
+		return errors.New("topic metadata refresh interval must be >=10s")
+	}
+
+	return nil
+}
+
 // CreateKafkaConfig creates a Kafka config map.
-func (c KafkaIngestConfiguration) CreateKafkaConfig() kafka.ConfigMap {
+func (c KafkaConfiguration) CreateKafkaConfig() kafka.ConfigMap {
 	config := kafka.ConfigMap{
 		"bootstrap.servers": c.Broker,
 
@@ -101,27 +135,6 @@ func (c KafkaIngestConfiguration) CreateKafkaConfig() kafka.ConfigMap {
 	}
 
 	return config
-}
-
-// Validate validates the configuration.
-func (c KafkaIngestConfiguration) Validate() error {
-	if c.Broker == "" {
-		return errors.New("broker is required")
-	}
-
-	if c.EventsTopicTemplate == "" {
-		return errors.New("events topic template is required")
-	}
-
-	if c.StatsInterval > 0 && c.StatsInterval.Duration() < 5*time.Second {
-		return errors.New("StatsInterval must be >=5s")
-	}
-
-	if c.TopicMetadataRefreshInterval > 0 && c.TopicMetadataRefreshInterval.Duration() < 10*time.Second {
-		return errors.New("topic metadata refresh interval must be >=10s")
-	}
-
-	return nil
 }
 
 // Configure configures some defaults in the Viper instance.
