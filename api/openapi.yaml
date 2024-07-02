@@ -153,6 +153,33 @@ paths:
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
 
+  /api/v1/debug/metrics/events:
+    get:
+      summary: Get event metrics
+      description: |
+        Get the number of ingested events within a time range. Counter resets every day at midnight UTC.
+      operationId: getDebugEventMetrics
+      tags:
+        - Events
+      responses:
+        "200":
+          description: Number of ingested events.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: |-
+                  # HELP openmeter_events Number of ingested events
+                  # TYPE openmeter_events counter
+                  openmeter_events_total 12345.0
+                  openmeter_events_total{error="true"} 1.0
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+
   /api/v1/meters:
     get:
       operationId: listMeters
