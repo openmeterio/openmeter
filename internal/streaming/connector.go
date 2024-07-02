@@ -18,8 +18,10 @@ type CountEventsParams struct {
 	From time.Time
 }
 
+// CountEventRow represents a row in the count events response.
 type CountEventRow struct {
 	Count   uint64
+	Subject string
 	IsError bool
 }
 

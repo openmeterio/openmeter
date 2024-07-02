@@ -1179,8 +1179,8 @@ paths:
                 example: |-
                   # HELP openmeter_events Number of ingested events
                   # TYPE openmeter_events counter
-                  openmeter_events_total 12345.0
-                  openmeter_events_total{error="true"} 1.0
+                  openmeter_events_total{subject="customer-1"} 12345.0
+                  openmeter_events_total{subject="customer-1",error="true"} 1.0
         "401":
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:

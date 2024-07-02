@@ -310,7 +310,7 @@ func (c *ClickhouseConnector) queryCountEvents(ctx context.Context, namespace st
 	for rows.Next() {
 		result := streaming.CountEventRow{}
 
-		if err = rows.Scan(&result.Count, &result.IsError); err != nil {
+		if err = rows.Scan(&result.Count, &result.Subject, &result.IsError); err != nil {
 			return nil, err
 		}
 

@@ -42,7 +42,12 @@ func (a *Router) GetDebugMetrics(w http.ResponseWriter, r *http.Request) {
 	var metrics []*dto.Metric
 	for _, row := range rows {
 		metric := &dto.Metric{
-			Label: []*dto.LabelPair{},
+			Label: []*dto.LabelPair{
+				{
+					Name:  proto.String("subject"),
+					Value: proto.String(row.Subject),
+				},
+			},
 			Counter: &dto.Counter{
 				// We can lose precision here
 				Value:            proto.Float64(float64(row.Count)),
