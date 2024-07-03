@@ -85,15 +85,13 @@ type queryCountEvents struct {
 
 func (d queryCountEvents) toSQL() (string, []interface{}, error) {
 	tableName := GetEventsTableName(d.Database)
-	where := []string{}
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
 	query.Select("count() as count", "subject", "notEmpty(validation_error) as is_error")
 	query.From(tableName)
 
-	where = append(where, query.Equal("namespace", d.Namespace))
-	where = append(where, query.GreaterEqualThan("time", d.From.Unix()))
-	query.Where(where...)
+	query.Where(query.Equal("namespace", d.Namespace))
+	query.Where(query.GreaterEqualThan("time", d.From.Unix()))
 	query.GroupBy("subject", "is_error")
 
 	sql, args := query.Build()
