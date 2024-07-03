@@ -77,7 +77,7 @@ func TestQueryEventsCount(t *testing.T) {
 				From:      from,
 			},
 			wantSQL:  "SELECT count() as count, subject, notEmpty(validation_error) as is_error FROM openmeter.om_events WHERE namespace = ? AND time >= ? GROUP BY subject, is_error",
-			wantArgs: []interface{}{"my_namespace"},
+			wantArgs: []interface{}{"my_namespace", from.Unix()},
 		},
 	}
 
