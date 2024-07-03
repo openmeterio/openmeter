@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/debug"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
@@ -20,7 +19,6 @@ type DebugHandler interface {
 type debugHandler struct {
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	debugConnector   debug.DebugConnector
-	grantConnector   credit.GrantConnector
 	options          []httptransport.HandlerOption
 }
 

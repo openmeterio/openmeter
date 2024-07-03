@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openmeterio/openmeter/internal/streaming"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/openmeterio/openmeter/internal/streaming"
 )
 
 // DebugConnector is a connector for debug metrics.
