@@ -50,12 +50,8 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 		return nil, &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Config is required"}
 	}
 
-	if !json.Valid([]byte(*model.Config)) {
+	if !json.Valid(model.Config) {
 		return nil, &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Config is not valid JSON"}
-	}
-
-	if err := json.Unmarshal([]byte(*model.Config), &map[string]interface{}{}); err != nil {
-		return nil, &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "Config is not a valid JSON object"}
 	}
 
 	var usagePeriod *entitlement.UsagePeriod
@@ -93,7 +89,7 @@ func (c *connector) AfterCreate(ctx context.Context, entitlement *entitlement.En
 }
 
 type StaticEntitlementValue struct {
-	Config string `json:"config,omitempty"`
+	Config []byte `json:"config,omitempty"`
 }
 
 var _ entitlement.EntitlementValue = &StaticEntitlementValue{}
