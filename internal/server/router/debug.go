@@ -74,6 +74,14 @@ func (a *Router) GetDebugMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var out bytes.Buffer
-	expfmt.MetricFamilyToOpenMetrics(&out, family)
+	_, err = expfmt.MetricFamilyToOpenMetrics(&out, family)
+	if err != nil {
+		err := fmt.Errorf("convert metric family to OpenMetrics: %w", err)
+		a.config.ErrorHandler.HandleContext(ctx, err)
+		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
+
+		return
+	}
+
 	render.PlainText(w, r, out.String())
 }
