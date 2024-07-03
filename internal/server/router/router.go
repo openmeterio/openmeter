@@ -2,6 +2,8 @@ package router
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -62,6 +64,50 @@ type Config struct {
 	EntitlementsEnabled bool
 }
 
+func (c Config) Validate() error {
+	if c.NamespaceManager == nil {
+		return errors.New("namespace manager is required")
+	}
+
+	if c.ErrorHandler == nil {
+		return errors.New("error handler is required")
+	}
+
+	if c.IngestHandler == nil {
+		return errors.New("ingest handler is required")
+	}
+
+	// Validate repositories
+	if c.Meters == nil {
+		return errors.New("meters repository is required")
+	}
+
+	// Validate connectors
+	if c.StreamingConnector == nil {
+		return errors.New("streaming connector is required")
+	}
+
+	if c.EntitlementsEnabled {
+		if c.FeatureConnector == nil {
+			return errors.New("feature connector is required")
+		}
+
+		if c.EntitlementConnector == nil {
+			return errors.New("entitlement connector is required")
+		}
+
+		if c.EntitlementBalanceConnector == nil {
+			return errors.New("entitlement balance connector is required")
+		}
+
+		if c.GrantConnector == nil {
+			return errors.New("grant connector is required")
+		}
+	}
+
+	return nil
+}
+
 type Router struct {
 	config Config
 
@@ -75,32 +121,38 @@ type Router struct {
 var _ api.ServerInterface = (*Router)(nil)
 
 func NewRouter(config Config) (*Router, error) {
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid router config: %w", err)
+	}
+
 	router := &Router{
 		config: config,
 	}
 
+	staticNamespaceDecoder := namespacedriver.StaticNamespaceDecoder(config.NamespaceManager.GetDefaultNamespace())
+
 	if config.EntitlementsEnabled {
 		router.featureHandler = productcatalog_httpdriver.NewFeatureHandler(
 			config.FeatureConnector,
-			namespacedriver.StaticNamespaceDecoder("default"),
+			staticNamespaceDecoder,
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
 
 		router.entitlementHandler = entitlement_httpdriver.NewEntitlementHandler(
 			config.EntitlementConnector,
-			namespacedriver.StaticNamespaceDecoder("default"),
+			staticNamespaceDecoder,
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
 
 		router.meteredEntitlementHandler = entitlement_httpdriver.NewMeteredEntitlementHandler(
 			config.EntitlementConnector,
 			config.EntitlementBalanceConnector,
-			namespacedriver.StaticNamespaceDecoder("default"),
+			staticNamespaceDecoder,
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
 
 		router.creditHandler = credit_httpdriver.NewGrantHandler(
-			namespacedriver.StaticNamespaceDecoder("default"),
+			staticNamespaceDecoder,
 			config.GrantConnector,
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
