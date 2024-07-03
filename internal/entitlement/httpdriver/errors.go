@@ -12,7 +12,7 @@ import (
 )
 
 func getErrorEncoder() httptransport.ErrorEncoder {
-	return func(ctx context.Context, err error, w http.ResponseWriter) bool {
+	return func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
 		// user errors
 		return commonhttp.HandleErrorIfTypeMatches[*productcatalog.FeatureNotFoundError](ctx, http.StatusNotFound, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*entitlement.NotFoundError](ctx, http.StatusNotFound, err, w) ||

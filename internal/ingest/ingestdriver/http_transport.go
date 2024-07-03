@@ -127,7 +127,7 @@ type ingestEventsErrorEncoder struct {
 	CommonErrorEncoder httptransport.ErrorEncoder
 }
 
-func (e ingestEventsErrorEncoder) encode(ctx context.Context, err error, w http.ResponseWriter) bool {
+func (e ingestEventsErrorEncoder) encode(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
 	if e := (ErrorInvalidContentType{}); errors.As(err, &e) {
 		models.NewStatusProblem(ctx, e, http.StatusBadRequest).Respond(w)
 
@@ -141,7 +141,7 @@ func (e ingestEventsErrorEncoder) encode(ctx context.Context, err error, w http.
 	}
 
 	if e.CommonErrorEncoder != nil {
-		return e.CommonErrorEncoder(ctx, err, w)
+		return e.CommonErrorEncoder(ctx, err, w, r)
 	}
 
 	models.NewStatusProblem(ctx, errors.New("something went wrong"), http.StatusInternalServerError).Respond(w)
