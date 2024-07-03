@@ -7,14 +7,17 @@ import (
 	"time"
 
 	"github.com/go-chi/render"
+	dto "github.com/prometheus/client_model/go"
+	"github.com/prometheus/common/expfmt"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	dto "github.com/prometheus/client_model/go"
+	"github.com/prometheus/common/expfmt"
 
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/models"
-	dto "github.com/prometheus/client_model/go"
-	"github.com/prometheus/common/expfmt"
 )
 
 func (a *Router) GetDebugMetrics(w http.ResponseWriter, r *http.Request) {
