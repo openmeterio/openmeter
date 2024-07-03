@@ -41,6 +41,24 @@ func JSONResponseEncoderWithStatus[Response any](statusCode int) httptransport.R
 	}
 }
 
+// PlainTextResponseEncoder encodes a response as PlainText.
+func PlainTextResponseEncoder[Response string](_ context.Context, w http.ResponseWriter, response Response) error {
+	return plainTextResponseEncoder(w, http.StatusOK, response)
+}
+
+// PlainTextResponseEncoder encodes a response as PlainText.
+func plainTextResponseEncoder[Response string](w http.ResponseWriter, statusCode int, response Response) error {
+	w.Header().Set("Content-Type", "text/plain")
+	w.WriteHeader(statusCode)
+
+	_, err := w.Write([]byte(response))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func EmptyResponseEncoder[Response any](statusCode int) httptransport.ResponseEncoder[Response] {
 	return func(ctx context.Context, w http.ResponseWriter, r Response) error {
 		w.WriteHeader(statusCode)
