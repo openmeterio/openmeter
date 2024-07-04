@@ -64,7 +64,7 @@ type ResponseEncoder[Response any] func(ctx context.Context, w http.ResponseWrit
 // Users are encouraged to use custom ErrorEncoders to encode HTTP errors to
 // their clients, and will likely want to pass and check for their own error
 // types. See the example shipping/handling service.
-type ErrorEncoder func(ctx context.Context, err error, w http.ResponseWriter) bool
+type ErrorEncoder func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool
 
 // ErrorHandler receives a transport error to be processed for diagnostic purposes.
 // Usually this means logging the error.
@@ -85,7 +85,7 @@ func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Req
 		// Might be a client error (can be encoded, non-terminal)
 		// Might be a server error (terminal)
 
-		handled := h.encodeError(ctx, err, w)
+		handled := h.encodeError(ctx, err, w, r)
 		if !handled {
 			h.errorHandler.HandleContext(ctx, err)
 		}
@@ -98,7 +98,7 @@ func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Req
 		// Might be a client error (can be encoded, non-terminal)
 		// Might be a server error (terminal)
 
-		handled := h.encodeError(ctx, err, w)
+		handled := h.encodeError(ctx, err, w, r)
 		if !handled {
 			h.errorHandler.HandleContext(ctx, err)
 		}
@@ -114,9 +114,9 @@ func (h handler[Request, Response]) ServeHTTP(w http.ResponseWriter, r *http.Req
 	}
 }
 
-func (h handler[Request, Response]) encodeError(ctx context.Context, err error, w http.ResponseWriter) bool {
+func (h handler[Request, Response]) encodeError(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
 	for _, errorEncoder := range h.errorEncoders {
-		if errorEncoder(ctx, err, w) {
+		if errorEncoder(ctx, err, w, r) {
 			return true
 		}
 	}

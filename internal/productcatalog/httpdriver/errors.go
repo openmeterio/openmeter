@@ -11,7 +11,7 @@ import (
 )
 
 func getErrorEncoder() httptransport.ErrorEncoder {
-	return func(ctx context.Context, err error, w http.ResponseWriter) bool {
+	return func(ctx context.Context, err error, w http.ResponseWriter, r *http.Request) bool {
 		return commonhttp.HandleErrorIfTypeMatches[*productcatalog.FeatureNotFoundError](ctx, http.StatusNotFound, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*productcatalog.FeatureInvalidFiltersError](ctx, http.StatusBadRequest, err, w) ||
 			commonhttp.HandleErrorIfTypeMatches[*productcatalog.FeatureInvalidMeterAggregationError](ctx, http.StatusBadRequest, err, w) ||
