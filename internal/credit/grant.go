@@ -22,10 +22,6 @@ func (n NamespacedGrantOwner) NamespacedID() models.NamespacedID {
 	}
 }
 
-const (
-	GrantPriorityDefault uint8 = 1
-)
-
 // Grant is an immutable definition used to increase balance.
 type Grant struct {
 	models.ManagedModel

@@ -37,6 +37,8 @@ const (
 	FieldMeasureUsageFrom = "measure_usage_from"
 	// FieldIssueAfterReset holds the string denoting the issue_after_reset field in the database.
 	FieldIssueAfterReset = "issue_after_reset"
+	// FieldIssueAfterResetPriority holds the string denoting the issue_after_reset_priority field in the database.
+	FieldIssueAfterResetPriority = "issue_after_reset_priority"
 	// FieldIsSoftLimit holds the string denoting the is_soft_limit field in the database.
 	FieldIsSoftLimit = "is_soft_limit"
 	// FieldConfig holds the string denoting the config field in the database.
@@ -76,6 +78,7 @@ var Columns = []string{
 	FieldSubjectKey,
 	FieldMeasureUsageFrom,
 	FieldIssueAfterReset,
+	FieldIssueAfterResetPriority,
 	FieldIsSoftLimit,
 	FieldConfig,
 	FieldUsagePeriodInterval,
@@ -216,6 +219,11 @@ func ByMeasureUsageFrom(opts ...sql.OrderTermOption) OrderOption {
 // ByIssueAfterReset orders the results by the issue_after_reset field.
 func ByIssueAfterReset(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIssueAfterReset, opts...).ToFunc()
+}
+
+// ByIssueAfterResetPriority orders the results by the issue_after_reset_priority field.
+func ByIssueAfterResetPriority(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIssueAfterResetPriority, opts...).ToFunc()
 }
 
 // ByIsSoftLimit orders the results by the is_soft_limit field.

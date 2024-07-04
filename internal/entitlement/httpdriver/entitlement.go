@@ -83,6 +83,9 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 					EntitlementType: entitlement.EntitlementTypeMetered,
 					IsSoftLimit:     v.IsSoftLimit,
 					IssueAfterReset: v.IssueAfterReset,
+					IssueAfterResetPriority: convert.SafeDeRef(v.IssueAfterResetPriority, func(i int) *uint8 {
+						return convert.ToPointer(uint8(i))
+					}),
 					UsagePeriod: &entitlement.UsagePeriod{
 						Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now()), // TODO: shouldn't we truncate this?
 						Interval: recurrence.RecurrenceInterval(v.UsagePeriod.Interval),

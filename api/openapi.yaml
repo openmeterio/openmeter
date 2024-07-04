@@ -1560,12 +1560,19 @@ components:
                 If unlimited=true the subject can use the feature an unlimited amount.
             usagePeriod:
               $ref: "#/components/schemas/RecurringPeriodCreateInput"
-            # Mixed feelings about adding this, rest is not an intent driven convention
             issueAfterReset:
               type: number
               format: double
               description: |
                 You can issue usage automatically after reset. This usage is not rolled over.
+            issueAfterResetPriority:
+              type: integer
+              minimum: 1
+              maximum: 255
+              default: 1
+              example: 1
+              description: |
+                Defines the grant priority for the default grant. If provided, issueAfterReset must have a value.
     EntitlementCreateInputs:
       oneOf:
         - $ref: "#/components/schemas/EntitlementMeteredCreateInputs"

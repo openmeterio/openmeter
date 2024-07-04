@@ -253,6 +253,9 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if eu.mutation.IssueAfterResetCleared() {
 		_spec.ClearField(entitlement.FieldIssueAfterReset, field.TypeFloat64)
 	}
+	if eu.mutation.IssueAfterResetPriorityCleared() {
+		_spec.ClearField(entitlement.FieldIssueAfterResetPriority, field.TypeUint8)
+	}
 	if eu.mutation.IsSoftLimitCleared() {
 		_spec.ClearField(entitlement.FieldIsSoftLimit, field.TypeBool)
 	}
@@ -605,6 +608,9 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 	}
 	if euo.mutation.IssueAfterResetCleared() {
 		_spec.ClearField(entitlement.FieldIssueAfterReset, field.TypeFloat64)
+	}
+	if euo.mutation.IssueAfterResetPriorityCleared() {
+		_spec.ClearField(entitlement.FieldIssueAfterResetPriority, field.TypeUint8)
 	}
 	if euo.mutation.IsSoftLimitCleared() {
 		_spec.ClearField(entitlement.FieldIsSoftLimit, field.TypeBool)

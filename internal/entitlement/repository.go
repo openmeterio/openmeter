@@ -42,10 +42,11 @@ type CreateEntitlementRepoInputs struct {
 	EntitlementType EntitlementType   `json:"type"`
 	Metadata        map[string]string `json:"metadata,omitempty"`
 
-	MeasureUsageFrom   *time.Time         `json:"measureUsageFrom,omitempty"`
-	IssueAfterReset    *float64           `json:"issueAfterReset,omitempty"`
-	IsSoftLimit        *bool              `json:"isSoftLimit,omitempty"`
-	Config             []byte             `json:"config,omitempty"`
-	UsagePeriod        *UsagePeriod       `json:"usagePeriod,omitempty"`
-	CurrentUsagePeriod *recurrence.Period `json:"currentUsagePeriod,omitempty"`
+	MeasureUsageFrom        *time.Time         `json:"measureUsageFrom,omitempty"`
+	IssueAfterReset         *float64           `json:"issueAfterReset,omitempty"`
+	IssueAfterResetPriority *uint8             `json:"issueAfterResetPriority,omitempty"`
+	IsSoftLimit             *bool              `json:"isSoftLimit,omitempty"`
+	Config                  []byte             `json:"config,omitempty"`
+	UsagePeriod             *UsagePeriod       `json:"usagePeriod,omitempty"`
+	CurrentUsagePeriod      *recurrence.Period `json:"currentUsagePeriod,omitempty"`
 }

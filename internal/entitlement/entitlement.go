@@ -20,11 +20,12 @@ type CreateEntitlementInputs struct {
 	EntitlementType EntitlementType   `json:"type"`
 	Metadata        map[string]string `json:"metadata,omitempty"`
 
-	MeasureUsageFrom *time.Time   `json:"measureUsageFrom,omitempty"`
-	IssueAfterReset  *float64     `json:"issueAfterReset,omitempty"`
-	IsSoftLimit      *bool        `json:"isSoftLimit,omitempty"`
-	Config           []byte       `json:"config,omitempty"`
-	UsagePeriod      *UsagePeriod `json:"usagePeriod,omitempty"`
+	MeasureUsageFrom        *time.Time   `json:"measureUsageFrom,omitempty"`
+	IssueAfterReset         *float64     `json:"issueAfterReset,omitempty"`
+	IssueAfterResetPriority *uint8       `json:"issueAfterResetPriority,omitempty"`
+	IsSoftLimit             *bool        `json:"isSoftLimit,omitempty"`
+	Config                  []byte       `json:"config,omitempty"`
+	UsagePeriod             *UsagePeriod `json:"usagePeriod,omitempty"`
 }
 
 func (c CreateEntitlementInputs) GetType() EntitlementType {
@@ -37,10 +38,11 @@ type Entitlement struct {
 
 	// All none-core fields are optional
 	// metered
-	MeasureUsageFrom *time.Time `json:"_,omitempty"`
-	IssueAfterReset  *float64   `json:"issueAfterReset,omitempty"`
-	IsSoftLimit      *bool      `json:"isSoftLimit,omitempty"`
-	LastReset        *time.Time `json:"lastReset,omitempty"`
+	MeasureUsageFrom        *time.Time `json:"_,omitempty"`
+	IssueAfterReset         *float64   `json:"issueAfterReset,omitempty"`
+	IssueAfterResetPriority *uint8     `json:"issueAfterResetPriority,omitempty"`
+	IsSoftLimit             *bool      `json:"isSoftLimit,omitempty"`
+	LastReset               *time.Time `json:"lastReset,omitempty"`
 
 	// static
 	Config []byte `json:"config,omitempty"`
