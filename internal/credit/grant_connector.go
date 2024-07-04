@@ -78,14 +78,14 @@ type GrantRepo interface {
 type grantConnector struct {
 	ownerConnector           OwnerConnector
 	grantRepo                GrantRepo
-	balanceSnapshotConnector BalanceSnapshotConnector
+	balanceSnapshotConnector BalanceSnapshotRepo
 	granularity              time.Duration
 }
 
 func NewGrantConnector(
 	ownerConnector OwnerConnector,
 	grantRepo GrantRepo,
-	balanceSnapshotConnector BalanceSnapshotConnector,
+	balanceSnapshotConnector BalanceSnapshotRepo,
 	granularity time.Duration,
 ) GrantConnector {
 	return &grantConnector{

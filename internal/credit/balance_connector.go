@@ -35,7 +35,7 @@ type BalanceHistoryParams struct {
 
 func NewBalanceConnector(
 	grantRepo GrantRepo,
-	balanceSnapshotConnector BalanceSnapshotConnector,
+	balanceSnapshotConnector BalanceSnapshotRepo,
 	ownerConnector OwnerConnector,
 	streamingConnector streaming.Connector,
 	logger *slog.Logger,
@@ -55,7 +55,7 @@ func NewBalanceConnector(
 type balanceConnector struct {
 	// grants and balance snapshots are managed in this same package
 	grantRepo                GrantRepo
-	balanceSnapshotConnector BalanceSnapshotConnector
+	balanceSnapshotConnector BalanceSnapshotRepo
 	// external dependencies
 	ownerConnector     OwnerConnector
 	streamingConnector streaming.Connector

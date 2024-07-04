@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
-func TestGrantAndResetAtTheSameTime(t *testing.T) {
+func TestGrantExpiringAtReset(t *testing.T) {
 	defer clock.ResetTime()
 	deps := setupDependencies(t)
 	defer deps.Close()

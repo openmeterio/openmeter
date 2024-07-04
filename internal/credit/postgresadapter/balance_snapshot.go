@@ -17,7 +17,7 @@ type balanceSnapshotAdapter struct {
 	db *db.Client
 }
 
-func NewPostgresBalanceSnapshotRepo(db *db.Client) credit.BalanceSnapshotConnector {
+func NewPostgresBalanceSnapshotRepo(db *db.Client) credit.BalanceSnapshotRepo {
 	return &balanceSnapshotAdapter{
 		db: db,
 	}
