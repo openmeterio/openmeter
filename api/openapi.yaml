@@ -39,6 +39,9 @@ tags:
     description: |
       Endpoints related to entitlements.
       [Learn more](https://openmeter.io/docs/monetize/entitlements/overview)
+  - name: Debug
+    description: |
+      Debugging endpoints. Useful for debugging and testing.
 paths:
   /api/v1/events:
     get:
@@ -152,7 +155,6 @@ paths:
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
-
   /api/v1/meters:
     get:
       operationId: listMeters
@@ -1155,6 +1157,32 @@ paths:
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         "404":
           $ref: "#/components/responses/NotFoundProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+
+  /api/v1/debug/metrics:
+    get:
+      summary: Get event metrics
+      description: |
+        Returns debug metrics like the number of ingested events since mindnight UTC.
+        The OpenMetrics Counter(s) reset every day at midnight UTC.
+      operationId: getDebugMetrics
+      tags:
+        - Debug
+      responses:
+        "200":
+          description: Dbeug metrics, like number of ingested events.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: |-
+                  # HELP openmeter_events Number of ingested events
+                  # TYPE openmeter_events counter
+                  openmeter_events_total{subject="customer-1"} 12345.0
+                  openmeter_events_total{subject="customer-1",error="true"} 1.0
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
 

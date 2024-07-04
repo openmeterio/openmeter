@@ -38,6 +38,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	creditpgadapter "github.com/openmeterio/openmeter/internal/credit/postgresadapter"
 	creditdb "github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db"
+	"github.com/openmeterio/openmeter/internal/debug"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	booleanentitlement "github.com/openmeterio/openmeter/internal/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
@@ -296,6 +297,7 @@ func main() {
 		}
 	}
 
+	debugConnector := debug.NewDebugConnector(streamingConnector)
 	var entitlementConnector entitlement.Connector
 	var meteredEntitlementConnector meteredentitlement.Connector
 	var featureConnector productcatalog.FeatureConnector
@@ -375,6 +377,7 @@ func main() {
 			PortalCORSEnabled:   conf.Portal.CORS.Enabled,
 			ErrorHandler:        errorsx.NewAppHandler(errorsx.NewSlogHandler(logger)),
 			// deps
+			DebugConnector:              debugConnector,
 			FeatureConnector:            featureConnector,
 			EntitlementConnector:        entitlementConnector,
 			EntitlementBalanceConnector: meteredEntitlementConnector,

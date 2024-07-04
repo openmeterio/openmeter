@@ -61,9 +61,13 @@ var (
 	}
 )
 
-type MockConnector struct{}
+type MockStreamingConnector struct{}
 
-func (c *MockConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
+func (c *MockStreamingConnector) CountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {
+	return []streaming.CountEventRow{}, nil
+}
+
+func (c *MockStreamingConnector) ListEvents(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
 	events := []api.IngestedEvent{
 		{
 			Event: mockEvent,
@@ -72,15 +76,15 @@ func (c *MockConnector) ListEvents(ctx context.Context, namespace string, params
 	return events, nil
 }
 
-func (c *MockConnector) CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error {
+func (c *MockStreamingConnector) CreateMeter(ctx context.Context, namespace string, meter *models.Meter) error {
 	return nil
 }
 
-func (c *MockConnector) DeleteMeter(ctx context.Context, namespace string, meterSlug string) error {
+func (c *MockStreamingConnector) DeleteMeter(ctx context.Context, namespace string, meterSlug string) error {
 	return nil
 }
 
-func (c *MockConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
+func (c *MockStreamingConnector) QueryMeter(ctx context.Context, namespace string, meterSlug string, params *streaming.QueryParams) ([]models.MeterQueryRow, error) {
 	value := mockQueryValue
 
 	if params.FilterSubject == nil {
@@ -90,8 +94,14 @@ func (c *MockConnector) QueryMeter(ctx context.Context, namespace string, meterS
 	return []models.MeterQueryRow{value}, nil
 }
 
-func (c *MockConnector) ListMeterSubjects(ctx context.Context, namespace string, meterSlug string, from *time.Time, to *time.Time) ([]string, error) {
+func (c *MockStreamingConnector) ListMeterSubjects(ctx context.Context, namespace string, meterSlug string, from *time.Time, to *time.Time) ([]string, error) {
 	return []string{"s1"}, nil
+}
+
+type MockDebugHandler struct{}
+
+func (h MockDebugHandler) GetDebugMetrics(ctx context.Context, namespace string) (string, error) {
+	return `openmeter_events_total{subject="customer-1",error="true"} 2.0`, nil
 }
 
 type MockHandler struct{}
@@ -116,7 +126,8 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 	server, _ := NewServer(&Config{
 		RouterConfig: router.Config{
 			Meters:             meter.NewInMemoryRepository(mockMeters),
-			StreamingConnector: &MockConnector{},
+			StreamingConnector: &MockStreamingConnector{},
+			DebugConnector:     MockDebugHandler{},
 			IngestHandler: ingestdriver.NewIngestEventsHandler(func(ctx context.Context, request ingest.IngestEventsRequest) (bool, error) {
 				return true, nil
 			}, namespacedriver.StaticNamespaceDecoder("test"), nil, errorsx.NewContextHandler(errorsx.NopHandler{})),
@@ -466,6 +477,19 @@ func TestRoutes(t *testing.T) {
 			},
 			res: testResponse{
 				status: http.StatusNotImplemented,
+			},
+		},
+		// Debug
+		{
+			name: "get debug metrics",
+			req: testRequest{
+				method:      http.MethodGet,
+				path:        "/api/v1/debug/metrics",
+				contentType: "text/plain",
+				body:        `openmeter_events_total{subject="customer-1",error="true"} 2.0`,
+			},
+			res: testResponse{
+				status: http.StatusOK,
 			},
 		},
 	}

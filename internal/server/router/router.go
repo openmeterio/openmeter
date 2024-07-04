@@ -13,6 +13,8 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
 	credit_httpdriver "github.com/openmeterio/openmeter/internal/credit/httpdriver"
+	"github.com/openmeterio/openmeter/internal/debug"
+	debug_httpdriver "github.com/openmeterio/openmeter/internal/debug/httpdriver"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	entitlement_httpdriver "github.com/openmeterio/openmeter/internal/entitlement/httpdriver"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
@@ -55,6 +57,7 @@ type Config struct {
 	ErrorHandler        errorsx.Handler
 
 	// deps
+	DebugConnector              debug.DebugConnector
 	FeatureConnector            productcatalog.FeatureConnector
 	EntitlementConnector        entitlement.Connector
 	EntitlementBalanceConnector meteredentitlement.Connector
@@ -87,6 +90,10 @@ func (c Config) Validate() error {
 		return errors.New("streaming connector is required")
 	}
 
+	if c.DebugConnector == nil {
+		return errors.New("debug connector is required")
+	}
+
 	if c.EntitlementsEnabled {
 		if c.FeatureConnector == nil {
 			return errors.New("feature connector is required")
@@ -113,6 +120,7 @@ type Router struct {
 
 	featureHandler            productcatalog_httpdriver.FeatureHandler
 	creditHandler             credit_httpdriver.GrantHandler
+	debugHandler              debug_httpdriver.DebugHandler
 	entitlementHandler        entitlement_httpdriver.EntitlementHandler
 	meteredEntitlementHandler entitlement_httpdriver.MeteredEntitlementHandler
 }
@@ -130,6 +138,12 @@ func NewRouter(config Config) (*Router, error) {
 	}
 
 	staticNamespaceDecoder := namespacedriver.StaticNamespaceDecoder(config.NamespaceManager.GetDefaultNamespace())
+
+	router.debugHandler = debug_httpdriver.NewDebugHandler(
+		staticNamespaceDecoder,
+		config.DebugConnector,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
 
 	if config.EntitlementsEnabled {
 		router.featureHandler = productcatalog_httpdriver.NewFeatureHandler(

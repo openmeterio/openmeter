@@ -63,6 +63,39 @@ func TestQueryEventsTable(t *testing.T) {
 	}
 }
 
+func TestQueryEventsCount(t *testing.T) {
+	from, _ := time.Parse(time.RFC3339, "2023-01-01T00:00:00.001Z")
+	tests := []struct {
+		query    queryCountEvents
+		wantSQL  string
+		wantArgs []interface{}
+	}{
+		{
+			query: queryCountEvents{
+				Database:  "openmeter",
+				Namespace: "my_namespace",
+				From:      from,
+			},
+			wantSQL:  "SELECT count() as count, subject, notEmpty(validation_error) as is_error FROM openmeter.om_events WHERE namespace = ? AND time >= ? GROUP BY subject, is_error",
+			wantArgs: []interface{}{"my_namespace", from.Unix()},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run("", func(t *testing.T) {
+			gotSql, gotArgs, err := tt.query.toSQL()
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
+			assert.Equal(t, tt.wantArgs, gotArgs)
+			assert.Equal(t, tt.wantSQL, gotSql)
+		})
+	}
+}
+
 func TestCreateMeterView(t *testing.T) {
 	tests := []struct {
 		query    createMeterView

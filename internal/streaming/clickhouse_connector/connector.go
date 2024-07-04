@@ -186,6 +186,23 @@ func (c *ClickhouseConnector) deleteNamespace(ctx context.Context, namespace str
 	return nil
 }
 
+func (c *ClickhouseConnector) CountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {
+	if namespace == "" {
+		return nil, fmt.Errorf("namespace is required")
+	}
+
+	rows, err := c.queryCountEvents(ctx, namespace, params)
+	if err != nil {
+		if _, ok := err.(*models.NamespaceNotFoundError); ok {
+			return nil, err
+		}
+
+		return nil, fmt.Errorf("query count events: %w", err)
+	}
+
+	return rows, nil
+}
+
 func (c *ClickhouseConnector) createEventsTable(ctx context.Context, namespace string) error {
 	table := createEventsTable{
 		Database: c.config.Database,
@@ -266,6 +283,41 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 	}
 
 	return events, nil
+}
+
+func (c *ClickhouseConnector) queryCountEvents(ctx context.Context, namespace string, params streaming.CountEventsParams) ([]streaming.CountEventRow, error) {
+	table := queryCountEvents{
+		Database:  c.config.Database,
+		Namespace: namespace,
+		From:      params.From,
+	}
+
+	sql, args, err := table.toSQL()
+	if err != nil {
+		return nil, fmt.Errorf("query events count to sql: %w", err)
+	}
+	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
+	if err != nil {
+		if strings.Contains(err.Error(), "code: 60") {
+			return nil, &models.NamespaceNotFoundError{Namespace: namespace}
+		}
+
+		return nil, fmt.Errorf("query events count query: %w", err)
+	}
+
+	results := []streaming.CountEventRow{}
+
+	for rows.Next() {
+		result := streaming.CountEventRow{}
+
+		if err = rows.Scan(&result.Count, &result.Subject, &result.IsError); err != nil {
+			return nil, err
+		}
+
+		results = append(results, result)
+	}
+
+	return results, nil
 }
 
 func (c *ClickhouseConnector) createMeterView(ctx context.Context, namespace string, meter *models.Meter) error {
