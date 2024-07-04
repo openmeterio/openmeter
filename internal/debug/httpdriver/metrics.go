@@ -65,7 +65,7 @@ func (h *debugHandler) GetMetrics() GetMetricsHandler {
 		commonhttp.PlainTextResponseEncoder[string],
 		httptransport.AppendOptions(
 			h.options,
-			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter) bool {
+			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter, _ *http.Request) bool {
 				if _, ok := err.(*models.GenericUserError); ok {
 					commonhttp.NewHTTPError(
 						http.StatusBadRequest,
