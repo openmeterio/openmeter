@@ -43,7 +43,7 @@ func (d *dependencies) Teardown() {
 	d.entitlementDBClient.Close()
 }
 
-// When migrating in parallel with entgo it casues concurrent writes error
+// When migrating in parallel with entgo it causes concurrent writes error
 var m sync.Mutex
 
 // builds connector with mock streaming and real PG
