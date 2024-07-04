@@ -32,6 +32,7 @@ from ..._operations._operations import (
     build_delete_feature_request,
     build_delete_meter_request,
     build_delete_subject_request,
+    build_get_debug_metrics_request,
     build_get_entitlement_history_request,
     build_get_entitlement_request,
     build_get_entitlement_value_request,
@@ -3946,3 +3947,56 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         if cls:
             return cls(pipeline_response, None, {})  # type: ignore
+
+    @distributed_trace_async
+    async def get_debug_metrics(self, **kwargs: Any) -> str:
+        """Get event metrics.
+
+        Returns debug metrics like the number of ingested events since mindnight UTC.
+        The OpenMetrics Counter(s) reset every day at midnight UTC.
+
+        :return: str
+        :rtype: str
+        :raises ~azure.core.exceptions.HttpResponseError:
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[str] = kwargs.pop("cls", None)
+
+        _request = build_get_debug_metrics_request(
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(str, deserialized), {})  # type: ignore
+
+        return cast(str, deserialized)  # type: ignore

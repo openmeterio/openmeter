@@ -228,6 +228,14 @@ export interface paths {
      */
     post: operations['resetEntitlementUsage']
   }
+  '/api/v1/debug/metrics': {
+    /**
+     * Get event metrics
+     * @description Returns debug metrics like the number of ingested events since mindnight UTC.
+     * The OpenMetrics Counter(s) reset every day at midnight UTC.
+     */
+    get: operations['getDebugMetrics']
+  }
 }
 
 export type webhooks = Record<string, never>
@@ -2091,6 +2099,23 @@ export interface operations {
       400: components['responses']['BadRequestProblemResponse']
       401: components['responses']['UnauthorizedProblemResponse']
       404: components['responses']['NotFoundProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /**
+   * Get event metrics
+   * @description Returns debug metrics like the number of ingested events since mindnight UTC.
+   * The OpenMetrics Counter(s) reset every day at midnight UTC.
+   */
+  getDebugMetrics: {
+    responses: {
+      /** @description Dbeug metrics, like number of ingested events. */
+      200: {
+        content: {
+          'text/plain': string
+        }
+      }
+      401: components['responses']['UnauthorizedProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }

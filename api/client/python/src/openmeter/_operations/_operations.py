@@ -777,6 +777,20 @@ def build_reset_entitlement_usage_request(subject_id_or_key: str, entitlement_id
     return HttpRequest(method="POST", url=_url, headers=_headers, **kwargs)
 
 
+def build_get_debug_metrics_request(**kwargs: Any) -> HttpRequest:
+    _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+
+    accept = _headers.pop("Accept", "text/plain, application/problem+json")
+
+    # Construct URL
+    _url = "/api/v1/debug/metrics"
+
+    # Construct headers
+    _headers["Accept"] = _SERIALIZER.header("accept", accept, "str")
+
+    return HttpRequest(method="GET", url=_url, headers=_headers, **kwargs)
+
+
 class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-methods
     @distributed_trace
     def list_events(
@@ -4648,3 +4662,56 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         if cls:
             return cls(pipeline_response, None, {})  # type: ignore
+
+    @distributed_trace
+    def get_debug_metrics(self, **kwargs: Any) -> str:
+        """Get event metrics.
+
+        Returns debug metrics like the number of ingested events since mindnight UTC.
+        The OpenMetrics Counter(s) reset every day at midnight UTC.
+
+        :return: str
+        :rtype: str
+        :raises ~azure.core.exceptions.HttpResponseError:
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[str] = kwargs.pop("cls", None)
+
+        _request = build_get_debug_metrics_request(
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = self._client._pipeline.run(  # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(str, deserialized), {})  # type: ignore
+
+        return cast(str, deserialized)  # type: ignore
