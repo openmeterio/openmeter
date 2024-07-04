@@ -70,7 +70,7 @@ func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner credit.Names
 
 	if feature.MeterGroupByFilters != nil {
 		queryParams.FilterGroupBy = map[string][]string{}
-		for k, v := range *feature.MeterGroupByFilters {
+		for k, v := range feature.MeterGroupByFilters {
 			queryParams.FilterGroupBy[k] = []string{v}
 		}
 	}

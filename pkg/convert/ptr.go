@@ -32,3 +32,16 @@ func SafeToUTC(t *time.Time) *time.Time {
 		return dt.In(time.UTC)
 	})
 }
+
+// Header represents generic primitives with a header like map, slice, array...
+type Header[E any] interface {
+	map[string]E | []E
+}
+
+// Safely dereference a pointer to a slice or map
+func DerefHeaderPtr[E any, T Header[E]](header *T) T {
+	if header == nil {
+		return nil
+	}
+	return *header
+}

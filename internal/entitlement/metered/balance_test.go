@@ -30,7 +30,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 	namespace := "ns1"
 	meterSlug := "meter1"
 
-	exampleFeature := productcatalog.CreateFeatureInputs{
+	exampleFeature := productcatalog.CreateFeatureRepoInputs{
 		Namespace:           namespace,
 		Name:                "feature1",
 		Key:                 "feature-1",
@@ -417,7 +417,7 @@ func TestGetEntitlementHistory(t *testing.T) {
 	namespace := "ns1"
 	meterSlug := "meter1"
 
-	exampleFeature := productcatalog.CreateFeatureInputs{
+	exampleFeature := productcatalog.CreateFeatureRepoInputs{
 		Namespace:           namespace,
 		Name:                "feature1",
 		Key:                 "feature1",
@@ -663,7 +663,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 	namespace := "ns1"
 	meterSlug := "meter1"
 
-	exampleFeature := productcatalog.CreateFeatureInputs{
+	exampleFeature := productcatalog.CreateFeatureRepoInputs{
 		Namespace:           namespace,
 		Name:                "feature1",
 		Key:                 "feature1",

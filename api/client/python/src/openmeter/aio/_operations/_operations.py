@@ -2092,8 +2092,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
                           the meter scope is broader than what feature tracks.
                     },
-                    "meterSlug": "str"  # Optional. The meter that the feature is associated with
-                      and decreases grants by usage. If present, the usage of the feature can be
+                    "meterIdOrSlug": "str"  # Optional. The meter that the feature is associated
+                      with and decreases grants by usage. If present, the usage of the feature can be
                       metered.
                 }
 
@@ -2198,8 +2198,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
                           the meter scope is broader than what feature tracks.
                     },
-                    "meterSlug": "str"  # Optional. The meter that the feature is associated with
-                      and decreases grants by usage. If present, the usage of the feature can be
+                    "meterIdOrSlug": "str"  # Optional. The meter that the feature is associated
+                      with and decreases grants by usage. If present, the usage of the feature can be
                       metered.
                 }
 

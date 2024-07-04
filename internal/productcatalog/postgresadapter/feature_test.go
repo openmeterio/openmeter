@@ -26,7 +26,7 @@ func TestCreateFeature(t *testing.T) {
 		GroupBy:   map[string]string{"key": "$.path"},
 	}
 
-	testFeature := productcatalog.CreateFeatureInputs{
+	testFeature := productcatalog.CreateFeatureRepoInputs{
 		Namespace: namespace,
 		Name:      "feature-1",
 		Key:       "feature-1",

@@ -52,6 +52,26 @@ func (e *FeatureInvalidMeterAggregationError) Error() string {
 	return fmt.Sprintf("meter %s's aggregation is %s but features can only be created for %s", e.MeterSlug, e.Aggregation, validAggregations)
 }
 
+// MeterGroupByFilters is a map of filters that can be applied to a meter when querying the usage for a feature.
+type MeterGroupByFilters map[string]string
+
+func (f MeterGroupByFilters) Validate(meter models.Meter) error {
+	for filterProp := range f {
+		if _, ok := meter.GroupBy[filterProp]; !ok {
+			meterGroupByColumns := make([]string, 0, len(meter.GroupBy))
+			for k := range meter.GroupBy {
+				meterGroupByColumns = append(meterGroupByColumns, k)
+			}
+			return &FeatureInvalidFiltersError{
+				RequestedFilters:    f,
+				MeterGroupByColumns: meterGroupByColumns,
+			}
+		}
+	}
+
+	return nil
+}
+
 // Feature is a feature or service offered to a customer.
 // For example: CPU-Hours, Tokens, API Calls, etc.
 type Feature struct {
@@ -67,7 +87,7 @@ type Feature struct {
 	MeterSlug *string `json:"meterSlug,omitempty"`
 
 	// MeterGroupByFilters Optional meter group by filters. Useful if the meter scope is broader than what feature tracks.
-	MeterGroupByFilters *map[string]string `json:"meterGroupByFilters,omitempty"`
+	MeterGroupByFilters MeterGroupByFilters `json:"meterGroupByFilters,omitempty"`
 
 	// Metadata Additional metadata.
 	Metadata map[string]string `json:"metadata,omitempty"`

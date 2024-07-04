@@ -58,7 +58,7 @@ export const mockSubject: Subject = {
 export const mockCreateFeatureInput: FeatureCreateInputs = {
   key: 'ai_tokens',
   name: 'AI Tokens',
-  meterSlug: 'tokens_total',
+  meterIdOrSlug: 'tokens_total',
 }
 
 export const mockFeature: Feature = {

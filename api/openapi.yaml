@@ -1395,7 +1395,7 @@ components:
             tokens: "1234"
             model: "gpt-4-turbo"
         validationError: "meter not found for event"
-    FeatureCreateInputs:
+    FeatureCreateProperties:
       type: object
       description: |
         A feature is a feature or service offered to a customer.
@@ -1420,12 +1420,6 @@ components:
           type: object
           additionalProperties:
             type: string
-        meterSlug:
-          description: |
-            The meter that the feature is associated with and decreases grants by usage.
-            If present, the usage of the feature can be metered.
-          type: string
-          example: tokens_total
         meterGroupByFilters:
           description: |
             Optional meter group by filters. Useful if the meter scope is broader than what feature tracks.
@@ -1434,6 +1428,21 @@ components:
             type: string
           example:
             model: gpt-4
+    FeatureCreateInputs:
+      type: object
+      description: |
+        A feature is a feature or service offered to a customer.
+        For example: CPU-Hours, Tokens, API Calls, etc.
+      allOf:
+        - $ref: "#/components/schemas/FeatureCreateProperties"
+        - type: object
+          properties:
+            meterIdOrSlug:
+              description: |
+                The meter that the feature is associated with and decreases grants by usage.
+                If present, the usage of the feature can be metered.
+              type: string
+              example: tokens_total
     Feature:
       type: object
       description: |
@@ -1442,6 +1451,12 @@ components:
       allOf:
         - type: object
           properties:
+            meterSlug:
+              description: |
+                The meter that the feature is associated with and decreases grants by usage.
+                If present, the usage of the feature can be metered.
+              type: string
+              example: tokens_total
             archivedAt:
               readOnly: true
               description: |
@@ -1449,7 +1464,7 @@ components:
               type: string
               format: date-time
               example: "2023-01-01T00:00:00Z"
-        - $ref: "#/components/schemas/FeatureCreateInputs"
+        - $ref: "#/components/schemas/FeatureCreateProperties"
         - $ref: "#/components/schemas/SharedMetaFields"
     # Entitlement has 3 subtypes
     EntitlementCreateSharedFields:

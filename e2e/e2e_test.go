@@ -465,6 +465,83 @@ func TestQuery(t *testing.T) {
 	// TODO: add tests for group by and subject
 }
 
+const (
+	creditMeterId   = "01J176NNQ2B64W5QFDC3QHJ6GG"
+	creditMeterSlug = "credit_test_meter"
+)
+
+func TestProductCatalog(t *testing.T) {
+	client := initClient(t)
+
+	t.Run("Create metered feature with meter slug", func(t *testing.T) {
+		randKey := ulid.Make().String()
+		resp, err := client.CreateFeatureWithResponse(context.Background(), api.CreateFeatureJSONRequestBody{
+			Name:          "Credit Test Feature",
+			MeterIdOrSlug: convert.ToPointer(creditMeterSlug),
+			Key:           randKey,
+			MeterGroupByFilters: &map[string]string{
+				"model": "gpt-4",
+			},
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+
+		featureId := resp.JSON201.Id
+
+		expected := &api.Feature{
+			Id:        featureId,
+			Name:      "Credit Test Feature",
+			Key:       randKey,
+			MeterSlug: convert.ToPointer(creditMeterSlug),
+			MeterGroupByFilters: &map[string]string{
+				"model": "gpt-4",
+			},
+		}
+
+		require.NotEmpty(t, *resp.JSON201.CreatedAt)
+		require.NotEmpty(t, *resp.JSON201.UpdatedAt)
+		resp.JSON201.CreatedAt = nil
+		resp.JSON201.UpdatedAt = nil
+
+		require.Equal(t, expected, resp.JSON201)
+	})
+
+	t.Run("Create metered feature with meter id", func(t *testing.T) {
+		randKey := ulid.Make().String()
+		resp, err := client.CreateFeatureWithResponse(context.Background(), api.CreateFeatureJSONRequestBody{
+			Name:          "Credit Test Feature",
+			MeterIdOrSlug: convert.ToPointer(creditMeterId),
+			Key:           randKey,
+			MeterGroupByFilters: &map[string]string{
+				"model": "gpt-4",
+			},
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+
+		featureId := resp.JSON201.Id
+
+		expected := &api.Feature{
+			Id:        featureId,
+			Name:      "Credit Test Feature",
+			Key:       randKey,
+			MeterSlug: convert.ToPointer(creditMeterSlug),
+			MeterGroupByFilters: &map[string]string{
+				"model": "gpt-4",
+			},
+		}
+
+		require.NotEmpty(t, *resp.JSON201.CreatedAt)
+		require.NotEmpty(t, *resp.JSON201.UpdatedAt)
+		resp.JSON201.CreatedAt = nil
+		resp.JSON201.UpdatedAt = nil
+
+		require.Equal(t, expected, resp.JSON201)
+	})
+}
+
 func TestCredit(t *testing.T) {
 	client := initClient(t)
 	subject := "customer-1"
@@ -475,13 +552,17 @@ func TestCredit(t *testing.T) {
 
 	t.Run("Create Feature", func(t *testing.T) {
 		randKey := ulid.Make().String()
+		metadata := map[string]string{
+			"foo": "bar",
+		}
 		resp, err := client.CreateFeatureWithResponse(context.Background(), api.CreateFeatureJSONRequestBody{
-			Name:      "Credit Test Feature",
-			MeterSlug: convert.ToPointer("credit_test_meter"),
-			Key:       randKey,
+			Name:          "Credit Test Feature",
+			MeterIdOrSlug: convert.ToPointer("credit_test_meter"),
+			Key:           randKey,
 			MeterGroupByFilters: &map[string]string{
 				"model": "gpt-4",
 			},
+			Metadata: convert.ToPointer(metadata),
 		})
 
 		require.NoError(t, err)
@@ -497,6 +578,7 @@ func TestCredit(t *testing.T) {
 			MeterGroupByFilters: &map[string]string{
 				"model": "gpt-4",
 			},
+			Metadata: convert.ToPointer(metadata),
 		}
 
 		require.NotEmpty(t, *resp.JSON201.CreatedAt)
@@ -685,13 +767,6 @@ func TestCredit(t *testing.T) {
 		require.NotNil(t, grantListResp.JSON200)
 		require.Len(t, *grantListResp.JSON200, 1)
 
-		// Get feature
-		featureListResp, err := client.ListFeaturesWithResponse(context.Background(), nil)
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, featureListResp.StatusCode())
-		require.NotNil(t, featureListResp.JSON200)
-		require.Len(t, *featureListResp.JSON200, 1)
-
 		resp, err := client.GetEntitlementValueWithResponse(context.Background(), subject, *entitlementId, &api.GetEntitlementValueParams{
 			Time: convert.ToPointer(eCreatedAt.Add(time.Minute * 2)),
 		})
@@ -719,13 +794,6 @@ func TestCredit(t *testing.T) {
 		require.Equal(t, http.StatusOK, grantListResp.StatusCode())
 		require.NotNil(t, grantListResp.JSON200)
 		require.Len(t, *grantListResp.JSON200, 1)
-
-		// Get feature
-		featureListResp, err := client.ListFeaturesWithResponse(context.Background(), nil)
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, featureListResp.StatusCode())
-		require.NotNil(t, featureListResp.JSON200)
-		require.Len(t, *featureListResp.JSON200, 1)
 
 		// Reset usage
 		resetResp, err := client.ResetEntitlementUsageWithResponse(context.Background(), subject, *entitlementId, api.ResetEntitlementUsageJSONRequestBody{

@@ -53,6 +53,11 @@ sink-worker: ## Run sink-worker
 	$(call print-target)
 	air -c ./cmd/sink-worker/.air.toml
 
+.PHONY: etoe
+etoe: ## Run e2e tests
+	$(call print-target)
+	dagger call --source .:default etoe
+
 .PHONY: test
 test: ## Run tests
 	$(call print-target)

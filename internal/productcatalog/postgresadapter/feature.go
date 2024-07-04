@@ -26,7 +26,7 @@ func NewPostgresFeatureRepo(db *db.Client, logger *slog.Logger) productcatalog.F
 	}
 }
 
-func (c *featureDBAdapter) CreateFeature(ctx context.Context, feature productcatalog.CreateFeatureInputs) (productcatalog.Feature, error) {
+func (c *featureDBAdapter) CreateFeature(ctx context.Context, feature productcatalog.CreateFeatureRepoInputs) (productcatalog.Feature, error) {
 	query := c.db.Feature.Create().
 		SetName(feature.Name).
 		SetKey(feature.Key).
@@ -146,7 +146,7 @@ func mapFeatureEntity(entity *db.Feature) productcatalog.Feature {
 	}
 
 	if len(entity.MeterGroupByFilters) > 0 {
-		feature.MeterGroupByFilters = &entity.MeterGroupByFilters
+		feature.MeterGroupByFilters = entity.MeterGroupByFilters
 	}
 
 	return feature
