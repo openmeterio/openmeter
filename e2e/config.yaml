@@ -55,6 +55,7 @@ meters:
       method: $.method
       path: $.path
   - slug: credit_test_meter
+    id: 01J176NNQ2B64W5QFDC3QHJ6GG
     description: Meter for testing credit
     eventType: credit_event
     aggregation: COUNT

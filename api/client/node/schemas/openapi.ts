@@ -452,7 +452,7 @@ export interface components {
      * @description A feature is a feature or service offered to a customer.
      * For example: CPU-Hours, Tokens, API Calls, etc.
      */
-    FeatureCreateInputs: {
+    FeatureCreateProperties: {
       /**
        * @description The unique key of the feature to reference it from your application.
        *
@@ -470,13 +470,6 @@ export interface components {
         [key: string]: string
       }
       /**
-       * @description The meter that the feature is associated with and decreases grants by usage.
-       * If present, the usage of the feature can be metered.
-       *
-       * @example tokens_total
-       */
-      meterSlug?: string
-      /**
        * @description Optional meter group by filters. Useful if the meter scope is broader than what feature tracks.
        *
        * @example {
@@ -491,7 +484,27 @@ export interface components {
      * @description A feature is a feature or service offered to a customer.
      * For example: CPU-Hours, Tokens, API Calls, etc.
      */
+    FeatureCreateInputs: components['schemas']['FeatureCreateProperties'] & {
+      /**
+       * @description The meter that the feature is associated with and decreases grants by usage.
+       * If present, the usage of the feature can be metered.
+       *
+       * @example tokens_total
+       */
+      meterIdOrSlug?: string
+    }
+    /**
+     * @description A feature is a feature or service offered to a customer.
+     * For example: CPU-Hours, Tokens, API Calls, etc.
+     */
     Feature: {
+      /**
+       * @description The meter that the feature is associated with and decreases grants by usage.
+       * If present, the usage of the feature can be metered.
+       *
+       * @example tokens_total
+       */
+      meterSlug?: string
       /**
        * Format: date-time
        * @description If the feature is archived, it will not be used for grants or usage.
@@ -499,7 +512,7 @@ export interface components {
        * @example 2023-01-01T00:00:00Z
        */
       archivedAt?: string
-    } & components['schemas']['FeatureCreateInputs'] &
+    } & components['schemas']['FeatureCreateProperties'] &
       components['schemas']['SharedMetaFields']
     EntitlementCreateSharedFields: {
       /**

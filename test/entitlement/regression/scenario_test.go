@@ -27,10 +27,10 @@ func TestGrantAndResetAtTheSameTime(t *testing.T) {
 	// Let's create a feature
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-06-28T14:30:21Z"))
 	feature, err := deps.FeatureConnector.CreateFeature(ctx, productcatalog.CreateFeatureInputs{
-		Name:      "feature-1",
-		Key:       "feature-1",
-		Namespace: "namespace-1",
-		MeterSlug: convert.ToPointer("meter-1"),
+		Name:          "feature-1",
+		Key:           "feature-1",
+		Namespace:     "namespace-1",
+		MeterIdOrSlug: convert.ToPointer("meter-1"),
 	})
 	assert.NoError(err)
 	assert.NotNil(feature)

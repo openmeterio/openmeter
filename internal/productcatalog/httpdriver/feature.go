@@ -96,7 +96,7 @@ func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 				Namespace:           ns,
 				Name:                parsedBody.Name,
 				Key:                 parsedBody.Key,
-				MeterSlug:           parsedBody.MeterSlug,
+				MeterIdOrSlug:       parsedBody.MeterIdOrSlug,
 				MeterGroupByFilters: convert.DerefHeaderPtr[string](parsedBody.MeterGroupByFilters),
 				Metadata:            convert.DerefHeaderPtr[string](parsedBody.Metadata),
 			}, nil
