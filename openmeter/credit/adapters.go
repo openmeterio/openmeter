@@ -12,7 +12,7 @@ import (
 
 func NewBalanceConnector(
 	gc GrantRepo,
-	bsc BalanceSnapshotConnector,
+	bsc BalanceSnapshotRepo,
 	oc OwnerConnector,
 	sc streaming.Connector,
 	log *slog.Logger,
@@ -23,7 +23,7 @@ func NewBalanceConnector(
 func NewGrantConnector(
 	oc OwnerConnector,
 	db GrantRepo,
-	bsdb BalanceSnapshotConnector,
+	bsdb BalanceSnapshotRepo,
 	granularity time.Duration,
 ) GrantConnector {
 	return credit.NewGrantConnector(oc, db, bsdb, granularity)

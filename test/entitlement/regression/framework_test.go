@@ -25,10 +25,10 @@ import (
 )
 
 type Dependencies struct {
-	GrantRepo                credit.GrantRepo
-	GrantDB                  *grantdb.Client
-	BalanceSnapshotConnector credit.BalanceSnapshotRepo
-	GrantConnector           credit.GrantConnector
+	GrantRepo           credit.GrantRepo
+	GrantDB             *grantdb.Client
+	BalanceSnapshotRepo credit.BalanceSnapshotRepo
+	GrantConnector      credit.GrantConnector
 
 	EntitlementRepo entitlement.EntitlementRepo
 	EntitlementDB   entitlementdb.Client

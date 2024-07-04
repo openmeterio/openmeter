@@ -5,7 +5,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit"
 )
 
-func NewPostgresBalanceSnapshotDBAdapter(db *DBClient) credit.BalanceSnapshotConnector {
+func NewPostgresBalanceSnapshotDBAdapter(db *DBClient) credit.BalanceSnapshotRepo {
 	return postgresadapter.NewPostgresBalanceSnapshotRepo(db)
 }
 
