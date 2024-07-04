@@ -38,7 +38,7 @@ func (e *balanceSnapshotAdapter) Tx(ctx context.Context) (context.Context, *entu
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
-func (e *balanceSnapshotAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) credit.BalanceSnapshotConnector {
+func (e *balanceSnapshotAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) credit.BalanceSnapshotRepo {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	return NewPostgresBalanceSnapshotRepo(txClient.Client())
 }
