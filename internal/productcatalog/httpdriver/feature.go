@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
@@ -80,19 +81,25 @@ type CreateFeatureHandler httptransport.Handler[CreateFeatureHandlerRequest, Cre
 func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 	return httptransport.NewHandler(
 		func(ctx context.Context, r *http.Request) (productcatalog.CreateFeatureInputs, error) {
-			featureIn := productcatalog.CreateFeatureInputs{}
-			if err := commonhttp.JSONRequestBodyDecoder(r, &featureIn); err != nil {
-				return featureIn, err
+			parsedBody := api.CreateFeatureJSONRequestBody{}
+			emptyFeature := productcatalog.CreateFeatureInputs{}
+			if err := commonhttp.JSONRequestBodyDecoder(r, &parsedBody); err != nil {
+				return emptyFeature, err
 			}
 
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return featureIn, err
+				return emptyFeature, err
 			}
 
-			featureIn.Namespace = ns
-
-			return featureIn, nil
+			return productcatalog.CreateFeatureInputs{
+				Namespace:           ns,
+				Name:                parsedBody.Name,
+				Key:                 parsedBody.Key,
+				MeterSlug:           parsedBody.MeterSlug,
+				MeterGroupByFilters: convert.DerefHeaderPtr[string](parsedBody.MeterGroupByFilters),
+				Metadata:            convert.DerefHeaderPtr[string](parsedBody.Metadata),
+			}, nil
 		},
 		func(ctx context.Context, feature productcatalog.CreateFeatureInputs) (productcatalog.Feature, error) {
 			return h.connector.CreateFeature(ctx, feature)

@@ -146,7 +146,7 @@ func mapFeatureEntity(entity *db.Feature) productcatalog.Feature {
 	}
 
 	if len(entity.MeterGroupByFilters) > 0 {
-		feature.MeterGroupByFilters = &entity.MeterGroupByFilters
+		feature.MeterGroupByFilters = entity.MeterGroupByFilters
 	}
 
 	return feature
