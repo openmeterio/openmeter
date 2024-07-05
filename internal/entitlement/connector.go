@@ -20,7 +20,7 @@ const (
 )
 
 type ListEntitlementsParams struct {
-	Namespace      string
+	Namespaces     []string
 	SubjectKey     string
 	FeatureIDs     []string
 	Limit          int

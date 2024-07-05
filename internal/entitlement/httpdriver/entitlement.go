@@ -282,9 +282,9 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 			}
 
 			p := entitlement.ListEntitlementsParams{
-				Namespace: ns,
-				Limit:     defaultx.WithDefault(params.Limit, 1000),
-				Offset:    defaultx.WithDefault(params.Offset, 0),
+				Namespaces: []string{ns},
+				Limit:      defaultx.WithDefault(params.Limit, 1000),
+				Offset:     defaultx.WithDefault(params.Offset, 0),
 			}
 
 			switch defaultx.WithDefault(params.OrderBy, "") {
