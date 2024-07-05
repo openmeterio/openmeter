@@ -711,7 +711,7 @@ func TestEngine(t *testing.T) {
 			},
 		},
 		{
-			name: "Should calculate sequential periods accross timezones and convert to UTC",
+			name: "Should calculate sequential periods across timezones and convert to UTC",
 			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
 				// burn down with usage after grant effectiveAt
 				start := t1
