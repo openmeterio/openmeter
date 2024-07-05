@@ -57,3 +57,7 @@ func (d *Deduplicator) Set(ctx context.Context, items ...dedupe.Item) error {
 
 	return nil
 }
+
+func (d *Deduplicator) Close() error {
+	return nil
+}

@@ -777,6 +777,13 @@ func (s *Sink) Close() error {
 		}
 	}
 
+	if s.config.Deduplicator != nil {
+		logger.Info("closing deduplicator")
+		if err := s.config.Deduplicator.Close(); err != nil {
+			logger.Error("failed to close deduplicator", "error", err)
+		}
+	}
+
 	return nil
 }
 

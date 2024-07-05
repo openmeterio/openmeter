@@ -86,3 +86,12 @@ for _, key in ipairs(KEYS) do
   redis.call("SET", key, "", "EX", expiration)
 end
 `)
+
+// Close closes underlying redis client
+func (d Deduplicator) Close() error {
+	if d.Redis != nil {
+		return d.Redis.Close()
+	}
+
+	return nil
+}
