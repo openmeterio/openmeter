@@ -692,6 +692,17 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: meterSlug
+          description: |
+            Filtering by multiple meters
+
+            Usage: ?meterSlug=tokens_total&meterSlug=api_requests
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
       responses:
         "200":
           description: List of features.

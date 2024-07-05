@@ -1705,6 +1705,12 @@ export interface operations {
         orderBy?: 'id' | 'createdAt' | 'updatedAt'
         /** @description Include archived features. */
         includeArchived?: boolean
+        /**
+         * @description Filtering by multiple meters
+         *
+         * Usage: ?meterSlug=tokens_total&meterSlug=api_requests
+         */
+        meterSlug?: string[]
       }
     }
     responses: {

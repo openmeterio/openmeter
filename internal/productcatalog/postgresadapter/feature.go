@@ -92,8 +92,8 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params productcatal
 	query := c.db.Feature.Query().
 		Where(db_feature.Namespace(params.Namespace))
 
-	if params.MeterSlug != "" {
-		query.Where(db_feature.MeterSlugEQ(params.MeterSlug))
+	if len(params.MeterSlugs) > 0 {
+		query = query.Where(db_feature.MeterSlugIn(params.MeterSlugs...))
 	}
 
 	if !params.IncludeArchived {

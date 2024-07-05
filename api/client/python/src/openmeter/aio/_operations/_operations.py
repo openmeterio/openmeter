@@ -1964,7 +1964,14 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
     @distributed_trace_async
     async def list_features(
-        self, *, limit: int = 1000, offset: int = 0, order_by: str = "id", include_archived: bool = False, **kwargs: Any
+        self,
+        *,
+        limit: int = 1000,
+        offset: int = 0,
+        order_by: str = "id",
+        include_archived: bool = False,
+        meter_slug: Optional[List[str]] = None,
+        **kwargs: Any
     ) -> List[JSON]:
         # pylint: disable=line-too-long
         """List features.
@@ -1980,6 +1987,10 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         :paramtype order_by: str
         :keyword include_archived: Include archived features. Default value is False.
         :paramtype include_archived: bool
+        :keyword meter_slug: Filtering by multiple meters
+
+         Usage: ?meterSlug=tokens_total&meterSlug=api_requests. Default value is None.
+        :paramtype meter_slug: list[str]
         :return: list of JSON object
         :rtype: list[JSON]
         :raises ~azure.core.exceptions.HttpResponseError:
@@ -2034,6 +2045,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             offset=offset,
             order_by=order_by,
             include_archived=include_archived,
+            meter_slug=meter_slug,
             headers=_headers,
             params=_params,
         )

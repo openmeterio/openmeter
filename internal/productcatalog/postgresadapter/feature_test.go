@@ -96,6 +96,7 @@ func TestCreateFeature(t *testing.T) {
 			name: "Should search and order",
 			run: func(t *testing.T, connector productcatalog.FeatureRepo) {
 				ctx := context.Background()
+
 				featureIn1 := testFeature
 				featureIn1.Name = "feature-3"
 				featureIn1.Key = "feature-3"
@@ -162,7 +163,52 @@ func TestCreateFeature(t *testing.T) {
 			},
 		},
 		{
-			name: "Should find by name",
+			name: "Should filter",
+			run: func(t *testing.T, connector productcatalog.FeatureRepo) {
+				ctx := context.Background()
+
+				meter2 := models.Meter{
+					Namespace: namespace,
+					ID:        "meter-2",
+					Slug:      "meter-2",
+					GroupBy:   map[string]string{"key": "$.path"},
+				}
+
+				featureIn1 := testFeature
+				featureIn1.Name = "feature-1"
+				featureIn1.Key = "feature-1"
+				featureIn2 := testFeature
+				featureIn2.MeterSlug = &meter2.Slug
+				featureIn2.Name = "feature-2"
+				featureIn2.Key = "feature-2"
+
+				_, err := connector.CreateFeature(ctx, featureIn1)
+				assert.NoError(t, err)
+
+				time.Sleep(100 * time.Millisecond)
+
+				_, err = connector.CreateFeature(ctx, featureIn2)
+				assert.NoError(t, err)
+
+				features, err := connector.ListFeatures(ctx, productcatalog.ListFeaturesParams{
+					Namespace:  namespace,
+					MeterSlugs: []string{meter2.Slug},
+				})
+				assert.NoError(t, err)
+
+				assert.Len(t, features, 1)
+				assert.Equal(t, "feature-2", features[0].Name)
+
+				features, err = connector.ListFeatures(ctx, productcatalog.ListFeaturesParams{
+					Namespace: namespace,
+				})
+				assert.NoError(t, err)
+
+				assert.Len(t, features, 2)
+			},
+		},
+		{
+			name: "Should find by Id and Key",
 			run: func(t *testing.T, connector productcatalog.FeatureRepo) {
 				ctx := context.Background()
 				featureIn1 := testFeature
@@ -175,7 +221,7 @@ func TestCreateFeature(t *testing.T) {
 				_, err := connector.CreateFeature(ctx, featureIn1)
 				assert.NoError(t, err)
 
-				_, err = connector.CreateFeature(ctx, featureIn2)
+				f2, err := connector.CreateFeature(ctx, featureIn2)
 				assert.NoError(t, err)
 
 				foundFeature, err := connector.GetByIdOrKey(ctx, namespace, "feature-1", false)
@@ -196,6 +242,11 @@ func TestCreateFeature(t *testing.T) {
 				assert.NoError(t, err)
 
 				assert.Equal(t, "feature-1", foundFeature.Name)
+
+				foundFeature, err = connector.GetByIdOrKey(ctx, namespace, f2.Key, true)
+				assert.NoError(t, err)
+
+				assert.Equal(t, "feature-2", foundFeature.Name)
 			},
 		},
 	}

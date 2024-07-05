@@ -36,11 +36,11 @@ const (
 
 type ListFeaturesParams struct {
 	Namespace       string
-	MeterSlug       string
 	IncludeArchived bool
 	Offset          int
 	Limit           int
 	OrderBy         FeatureOrderBy
+	MeterSlugs      []string
 }
 
 type FeatureRepo interface {

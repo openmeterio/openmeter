@@ -410,7 +410,13 @@ def build_list_entitlements_request(
 
 
 def build_list_features_request(
-    *, limit: int = 1000, offset: int = 0, order_by: str = "id", include_archived: bool = False, **kwargs: Any
+    *,
+    limit: int = 1000,
+    offset: int = 0,
+    order_by: str = "id",
+    include_archived: bool = False,
+    meter_slug: Optional[List[str]] = None,
+    **kwargs: Any
 ) -> HttpRequest:
     _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
     _params = case_insensitive_dict(kwargs.pop("params", {}) or {})
@@ -429,6 +435,8 @@ def build_list_features_request(
         _params["orderBy"] = _SERIALIZER.query("order_by", order_by, "str")
     if include_archived is not None:
         _params["includeArchived"] = _SERIALIZER.query("include_archived", include_archived, "bool")
+    if meter_slug is not None:
+        _params["meterSlug"] = _SERIALIZER.query("meter_slug", meter_slug, "[str]")
 
     # Construct headers
     _headers["Accept"] = _SERIALIZER.header("accept", accept, "str")
@@ -2681,7 +2689,14 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
     @distributed_trace
     def list_features(
-        self, *, limit: int = 1000, offset: int = 0, order_by: str = "id", include_archived: bool = False, **kwargs: Any
+        self,
+        *,
+        limit: int = 1000,
+        offset: int = 0,
+        order_by: str = "id",
+        include_archived: bool = False,
+        meter_slug: Optional[List[str]] = None,
+        **kwargs: Any
     ) -> List[JSON]:
         # pylint: disable=line-too-long
         """List features.
@@ -2697,6 +2712,10 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         :paramtype order_by: str
         :keyword include_archived: Include archived features. Default value is False.
         :paramtype include_archived: bool
+        :keyword meter_slug: Filtering by multiple meters
+
+         Usage: ?meterSlug=tokens_total&meterSlug=api_requests. Default value is None.
+        :paramtype meter_slug: list[str]
         :return: list of JSON object
         :rtype: list[JSON]
         :raises ~azure.core.exceptions.HttpResponseError:
@@ -2751,6 +2770,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             offset=offset,
             order_by=order_by,
             include_archived=include_archived,
+            meter_slug=meter_slug,
             headers=_headers,
             params=_params,
         )

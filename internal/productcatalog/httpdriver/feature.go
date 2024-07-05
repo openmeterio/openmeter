@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
@@ -125,6 +126,7 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 				Offset:          defaultx.WithDefault(apiParams.Offset, 0),
 				Limit:           defaultx.WithDefault(apiParams.Limit, 0),
 				OrderBy:         defaultx.WithDefault((*productcatalog.FeatureOrderBy)(apiParams.OrderBy), productcatalog.FeatureOrderByUpdatedAt),
+				MeterSlugs:      convert.DerefHeaderPtr[string](apiParams.MeterSlug),
 			}
 
 			// TODO: standardize
