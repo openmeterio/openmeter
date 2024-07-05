@@ -145,8 +145,13 @@ func (a *entitlementDBAdapter) GetEntitlementsOfSubject(ctx context.Context, nam
 }
 
 func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params entitlement.ListEntitlementsParams) ([]entitlement.Entitlement, error) {
-	query := withLatestUsageReset(a.db.Entitlement.Query().
-		Where(db_entitlement.Namespace(params.Namespace)))
+	query := a.db.Entitlement.Query()
+
+	if len(params.Namespaces) > 0 {
+		query = query.Where(db_entitlement.NamespaceIn(params.Namespaces...))
+	}
+
+	query = withLatestUsageReset(query)
 
 	if params.SubjectKey != "" {
 		query = query.Where(db_entitlement.SubjectKeyEQ(params.SubjectKey))
