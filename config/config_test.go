@@ -12,6 +12,7 @@ import (
 
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/redis"
 )
 
 func TestComplete(t *testing.T) {
@@ -110,11 +111,32 @@ func TestComplete(t *testing.T) {
 			Dedupe: DedupeConfiguration{
 				Enabled: true,
 				DedupeDriverConfiguration: DedupeDriverRedisConfiguration{
-					Address:    "127.0.0.1:6379",
-					Database:   0,
-					Username:   "default",
-					Password:   "pass",
+					Config: redis.Config{
+						Address:  "127.0.0.1:6379",
+						Database: 0,
+						Username: "default",
+						Password: "pass",
+
+						TLS: struct {
+							Enabled            bool
+							InsecureSkipVerify bool
+						}{
+							Enabled: true,
+						},
+					},
 					Expiration: 768 * time.Hour,
+				},
+			},
+		},
+		Dedupe: DedupeConfiguration{
+			Enabled: true,
+			DedupeDriverConfiguration: DedupeDriverRedisConfiguration{
+				Config: redis.Config{
+					Address:  "127.0.0.1:6379",
+					Database: 0,
+					Username: "default",
+					Password: "pass",
+
 					TLS: struct {
 						Enabled            bool
 						InsecureSkipVerify bool
@@ -122,22 +144,7 @@ func TestComplete(t *testing.T) {
 						Enabled: true,
 					},
 				},
-			},
-		},
-		Dedupe: DedupeConfiguration{
-			Enabled: true,
-			DedupeDriverConfiguration: DedupeDriverRedisConfiguration{
-				Address:    "127.0.0.1:6379",
-				Database:   0,
-				Username:   "default",
-				Password:   "pass",
 				Expiration: 768 * time.Hour,
-				TLS: struct {
-					Enabled            bool
-					InsecureSkipVerify bool
-				}{
-					Enabled: true,
-				},
 			},
 		},
 		Portal: PortalConfiguration{

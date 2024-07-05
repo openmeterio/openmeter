@@ -1,19 +1,17 @@
 package config
 
 import (
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
-	"github.com/redis/go-redis/extra/redisotel/v9"
-	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 
 	"github.com/openmeterio/openmeter/internal/dedupe"
 	"github.com/openmeterio/openmeter/internal/dedupe/memorydedupe"
 	"github.com/openmeterio/openmeter/internal/dedupe/redisdedupe"
+	"github.com/openmeterio/openmeter/pkg/redis"
 )
 
 // Requires [mapstructurex.MapDecoderHookFunc] to be high up in the decode hook chain.
@@ -160,19 +158,9 @@ func (c DedupeDriverMemoryConfiguration) Validate() error {
 
 // Dedupe redis driver configuration
 type DedupeDriverRedisConfiguration struct {
-	Address    string
-	Database   int
-	Username   string
-	Password   string
+	redis.Config `mapstructure:",squash"`
+
 	Expiration time.Duration
-	Sentinel   struct {
-		Enabled    bool
-		MasterName string
-	}
-	TLS struct {
-		Enabled            bool
-		InsecureSkipVerify bool
-	}
 }
 
 func (DedupeDriverRedisConfiguration) DriverName() string {
@@ -180,45 +168,9 @@ func (DedupeDriverRedisConfiguration) DriverName() string {
 }
 
 func (c DedupeDriverRedisConfiguration) NewDeduplicator() (dedupe.Deduplicator, error) {
-	var tlsConfig *tls.Config
-
-	if c.TLS.Enabled {
-		tlsConfig = &tls.Config{
-			InsecureSkipVerify: c.TLS.InsecureSkipVerify,
-		}
-	}
-
-	var redisClient *redis.Client
-
-	if c.Sentinel.Enabled {
-		redisClient = redis.NewFailoverClient(&redis.FailoverOptions{
-			MasterName:    c.Sentinel.MasterName,
-			SentinelAddrs: []string{c.Address},
-			DB:            c.Database,
-			Username:      c.Username,
-			Password:      c.Password,
-			TLSConfig:     tlsConfig,
-		})
-	} else {
-		redisClient = redis.NewClient(&redis.Options{
-			Addr:      c.Address,
-			DB:        c.Database,
-			Username:  c.Username,
-			Password:  c.Password,
-			TLSConfig: tlsConfig,
-		})
-	}
-
-	// Enable tracing
-	// TODO: use configured tracer provider
-	if err := redisotel.InstrumentTracing(redisClient); err != nil {
-		return nil, err
-	}
-
-	// Enable metrics
-	// TODO: use configured tracer provider
-	if err := redisotel.InstrumentMetrics(redisClient); err != nil {
-		return nil, err
+	redisClient, err := redis.NewClient(redis.Options{Config: c.Config})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize redis client: %w", err)
 	}
 
 	// TODO: close redis client when shutting down
