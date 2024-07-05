@@ -10,12 +10,12 @@ import (
 )
 
 type CreateFeatureInputs struct {
-	Name                string            `json:"name"`
-	Key                 string            `json:"key"`
-	Namespace           string            `json:"namespace"`
-	MeterSlug           *string           `json:"meterSlug"`
-	MeterGroupByFilters map[string]string `json:"meterGroupByFilters"`
-	Metadata            map[string]string `json:"metadata"`
+	Name                string              `json:"name"`
+	Key                 string              `json:"key"`
+	Namespace           string              `json:"namespace"`
+	MeterSlug           *string             `json:"meterSlug"`
+	MeterGroupByFilters MeterGroupByFilters `json:"meterGroupByFilters"`
+	Metadata            map[string]string   `json:"metadata"`
 }
 
 type FeatureConnector interface {
@@ -88,7 +88,12 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 			return Feature{}, &FeatureInvalidMeterAggregationError{Aggregation: meter.Aggregation, MeterSlug: meter.Slug, ValidAggregations: c.validMeterAggregations}
 		}
 
-		err = c.checkGroupByFilters(feature.MeterGroupByFilters, meter)
+		if feature.MeterGroupByFilters != nil {
+			err = feature.MeterGroupByFilters.Validate(meter)
+			if err != nil {
+				return Feature{}, err
+			}
+		}
 		if err != nil {
 			return Feature{}, err
 		}
@@ -125,25 +130,4 @@ func (c *featureConnector) GetFeature(ctx context.Context, namespace string, idO
 		return nil, err
 	}
 	return feature, nil
-}
-
-func (c *featureConnector) checkGroupByFilters(filters map[string]string, meter models.Meter) error {
-	if filters == nil {
-		return nil
-	}
-
-	for filterProp := range filters {
-		if _, ok := meter.GroupBy[filterProp]; !ok {
-			meterGroupByColumns := make([]string, 0, len(meter.GroupBy))
-			for k := range meter.GroupBy {
-				meterGroupByColumns = append(meterGroupByColumns, k)
-			}
-			return &FeatureInvalidFiltersError{
-				RequestedFilters:    filters,
-				MeterGroupByColumns: meterGroupByColumns,
-			}
-		}
-	}
-
-	return nil
 }
