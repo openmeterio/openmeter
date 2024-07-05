@@ -10,6 +10,7 @@ import (
 
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/streaming"
@@ -710,12 +711,79 @@ func TestEngine(t *testing.T) {
 			},
 		},
 		{
-			name: "Test windowing",
+			name: "Should calculate sequential periods across timezones and convert to UTC",
 			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
-				t.Skip(`
-                    Windowing is not inherently part of the engine, its a property of the persistence layer.
-                    TODO: how to test this.
-                `)
+				// burn down with usage after grant effectiveAt
+				start := t1
+				t1 := start.Add(time.Hour)
+				t2 := t1.Add(time.Minute)
+				t3 := t2.Add(8 * time.Minute)
+				end := t3.Add(time.Hour)
+
+				// set TZs
+				loc1, err := time.LoadLocation("America/New_York")
+				require.NoError(t, err)
+				loc2, err := time.LoadLocation("Europe/Budapest")
+				require.NoError(t, err)
+				loc3, err := time.LoadLocation("Asia/Tokyo")
+				require.NoError(t, err)
+
+				t1 = t1.In(loc1)
+				t2 = t2.In(loc2)
+				t3 = t3.In(loc3)
+
+				use(0, start.Add(time.Minute)) // we need usage so everything's found
+
+				g1 := grant1
+				g1.EffectiveAt = t1
+				g1.Priority = 3
+				g1.Expiration.Count = 1
+				g1.Expiration.Duration = credit.ExpirationPeriodDurationMonth
+				g1 = makeGrant(g1)
+
+				g2 := grant2
+				g2.EffectiveAt = t2
+				g2.Priority = 1
+				g2.Expiration.Count = 1
+				g2.Expiration.Duration = credit.ExpirationPeriodDurationHour // This will expire before querying
+				g2 = makeGrant(g2)
+
+				g3 := grant2
+				g3.ID = "grant-3"
+				g3.EffectiveAt = t3
+				g3.Priority = 2
+				g3.Expiration.Count = 1
+				g3.Expiration.Duration = credit.ExpirationPeriodDurationWeek
+				g3 = makeGrant(g3)
+
+				_, _, segments, err := engine.Run(
+					context.Background(),
+					[]credit.Grant{g1, g2, g3},
+					credit.GrantBalanceMap{
+						g1.ID: 80.0, // due to use before start
+						g2.ID: 100.0,
+						g3.ID: 100.0,
+					},
+					0,
+					recurrence.Period{
+						From: start,
+						To:   end,
+					})
+
+				assert.NoError(t, err)
+
+				assert.NotEmpty(t, segments)
+				assert.Equal(t, 5, len(segments))
+				assert.Equal(t, start.In(time.UTC), segments[0].Period.From)
+				assert.Equal(t, t1.In(time.UTC), segments[0].Period.To)
+				assert.Equal(t, t1.In(time.UTC), segments[1].Period.From)
+				assert.Equal(t, t2.In(time.UTC), segments[1].Period.To)
+				assert.Equal(t, t2.In(time.UTC), segments[2].Period.From)
+				assert.Equal(t, t3.In(time.UTC), segments[2].Period.To)
+				assert.Equal(t, t3.In(time.UTC), segments[3].Period.From)
+				assert.Equal(t, t2.Add(time.Hour).In(time.UTC), segments[3].Period.To)
+				assert.Equal(t, t2.Add(time.Hour).In(time.UTC), segments[4].Period.From)
+				assert.Equal(t, end.In(time.UTC), segments[4].Period.To)
 			},
 		},
 	}
