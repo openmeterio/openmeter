@@ -23,14 +23,21 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 	}
 
 	return &api.EntitlementMetered{
-		CreatedAt:          &metered.CreatedAt,
-		DeletedAt:          metered.DeletedAt,
-		FeatureId:          metered.FeatureID,
-		FeatureKey:         metered.FeatureKey,
-		Id:                 &metered.ID,
-		IsSoftLimit:        convert.ToPointer(metered.IsSoftLimit),
-		IsUnlimited:        convert.ToPointer(false), // implement
-		IssueAfterReset:    metered.IssuesAfterReset,
+		CreatedAt:   &metered.CreatedAt,
+		DeletedAt:   metered.DeletedAt,
+		FeatureId:   metered.FeatureID,
+		FeatureKey:  metered.FeatureKey,
+		Id:          &metered.ID,
+		IsSoftLimit: convert.ToPointer(metered.IsSoftLimit),
+		IsUnlimited: convert.ToPointer(false), // implement
+		IssueAfterReset: convert.SafeDeRef(metered.IssueAfterReset, func(i meteredentitlement.IssueAfterReset) *float64 {
+			return &i.Amount
+		}),
+		IssueAfterResetPriority: convert.SafeDeRef(metered.IssueAfterReset, func(i meteredentitlement.IssueAfterReset) *int {
+			return convert.SafeDeRef(i.Priority, func(p uint8) *int {
+				return convert.ToPointer(int(p))
+			})
+		}),
 		Metadata:           convert.MapToPointer(metered.Metadata),
 		SubjectKey:         metered.SubjectKey,
 		Type:               api.EntitlementMeteredType(metered.EntitlementType),

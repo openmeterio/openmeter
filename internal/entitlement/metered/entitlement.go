@@ -7,6 +7,17 @@ import (
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
+const (
+	DefaultIssueAfterResetPriority = 1
+	IssueAfterResetMetaTag         = "issueAfterReset"
+)
+
+// IssueAfterReset defines a default grant's parameters that can be created alongside an entitlement to set up a default balance.
+type IssueAfterReset struct {
+	Amount   float64 `json:"amount"`
+	Priority *uint8  `json:"priority,omitempty"`
+}
+
 type Entitlement struct {
 	entitlement.GenericProperties
 
@@ -14,9 +25,8 @@ type Entitlement struct {
 	// This is a global value, in most cases the same value as `CreatedAt` should be fine.
 	MeasureUsageFrom time.Time `json:"measureUsageFrom,omitempty"`
 
-	// IssueAfterReset defines an amount of usage that will be issued after a reset.
-	// This affordance will only be usable until the next reset.
-	IssuesAfterReset *float64 `json:"issueAfterReset,omitempty"`
+	// Sets up a default grant
+	IssueAfterReset *IssueAfterReset `json:"issueAfterReset,omitempty"`
 
 	// IsSoftLimit defines if the entitlement is a soft limit. By default when balance falls to 0
 	// access will be disabled. If this is a soft limit, access will be allowed nonetheless.
@@ -33,9 +43,9 @@ type Entitlement struct {
 }
 
 // HasDefaultGrant returns true if the entitlement has a default grant.
-// This is the case when `IssuesAfterReset` is set and greater than 0.
+// This is the case when `IssueAfterReset` is set and greater than 0.
 func (e *Entitlement) HasDefaultGrant() bool {
-	return e.IssuesAfterReset != nil && *e.IssuesAfterReset > 0
+	return e.IssueAfterReset != nil && e.IssueAfterReset.Amount > 0
 }
 
 func ParseFromGenericEntitlement(model *entitlement.Entitlement) (*Entitlement, error) {
@@ -63,14 +73,26 @@ func ParseFromGenericEntitlement(model *entitlement.Entitlement) (*Entitlement, 
 		return nil, &entitlement.InvalidValueError{Message: "CurrentUsagePeriod is required", Type: model.EntitlementType}
 	}
 
-	return &Entitlement{
+	if model.IssueAfterResetPriority != nil && model.IssueAfterReset == nil {
+		return nil, &entitlement.InvalidValueError{Message: "IssueAfterReset is required for IssueAfterResetPriority", Type: model.EntitlementType}
+	}
+
+	ent := Entitlement{
 		GenericProperties: model.GenericProperties,
 
 		MeasureUsageFrom:   *model.MeasureUsageFrom,
-		IssuesAfterReset:   model.IssueAfterReset,
 		IsSoftLimit:        *model.IsSoftLimit,
 		UsagePeriod:        *model.UsagePeriod,
 		LastReset:          *model.LastReset,
 		CurrentUsagePeriod: *model.CurrentUsagePeriod,
-	}, nil
+	}
+
+	if model.IssueAfterReset != nil {
+		ent.IssueAfterReset = &IssueAfterReset{
+			Amount:   *model.IssueAfterReset,
+			Priority: model.IssueAfterResetPriority,
+		}
+	}
+
+	return &ent, nil
 }

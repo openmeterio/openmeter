@@ -555,6 +555,46 @@ func TestCredit(t *testing.T) {
 		require.Equal(t, *entitlementId, resp.ApplicationproblemJSON409.Extensions.ConflictingEntityId)
 	})
 
+	t.Run("Create a Entitlement With Default Grants", func(t *testing.T) {
+		randSubject := ulid.Make().String()
+		meteredEntitlement := api.EntitlementMeteredCreateInputs{
+			Type:      "metered",
+			FeatureId: featureId,
+			UsagePeriod: api.RecurringPeriodCreateInput{
+				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
+				Interval: "MONTH",
+			},
+			IssueAfterReset:         convert.ToPointer(100.0),
+			IssueAfterResetPriority: convert.ToPointer(6),
+		}
+		body := &api.CreateEntitlementJSONRequestBody{}
+		err := body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
+		require.NoError(t, err)
+		resp, err := client.CreateEntitlementWithResponse(context.Background(), randSubject, *body)
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+
+		metered, err := resp.JSON201.AsEntitlementMetered()
+		require.NoError(t, err)
+
+		require.Equal(t, randSubject, metered.SubjectKey)
+
+		// fetch grants for entitlement
+		grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), randSubject, *metered.Id, nil)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, grantListResp.StatusCode())
+		require.NotNil(t, grantListResp.JSON200)
+		require.Len(t, *grantListResp.JSON200, 1)
+
+		require.Equal(t, *metered.IssueAfterReset, (*grantListResp.JSON200)[0].Amount)
+		require.Equal(t, metered.IssueAfterResetPriority, (*grantListResp.JSON200)[0].Priority)
+		require.Equal(t, metered.Id, (*grantListResp.JSON200)[0].EntitlementId)
+		require.Equal(t, map[string]string{
+			"issueAfterReset": "true",
+		}, *(*grantListResp.JSON200)[0].Metadata)
+	})
+
 	t.Run("Create Grant", func(t *testing.T) {
 		effectiveAt := time.Now().Truncate(time.Minute)
 
@@ -679,7 +719,7 @@ func TestCredit(t *testing.T) {
 
 	t.Run("Entitlement Value", func(t *testing.T) {
 		// Get grants
-		grantListResp, err := client.ListGrantsWithResponse(context.Background(), &api.ListGrantsParams{})
+		grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), subject, *entitlementId, nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, grantListResp.StatusCode())
 		require.NotNil(t, grantListResp.JSON200)
@@ -714,7 +754,7 @@ func TestCredit(t *testing.T) {
 		effectiveAt := time.Now().Truncate(time.Minute)
 
 		// Get grants
-		grantListResp, err := client.ListGrantsWithResponse(context.Background(), &api.ListGrantsParams{})
+		grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), subject, *entitlementId, nil)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, grantListResp.StatusCode())
 		require.NotNil(t, grantListResp.JSON200)

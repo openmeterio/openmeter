@@ -118,6 +118,10 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 		return nil, &entitlement.InvalidFeatureError{FeatureID: feature.ID, Message: "Feature has no meter"}
 	}
 
+	if model.IssueAfterResetPriority != nil && model.IssueAfterReset == nil {
+		return nil, &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "IssueAfterResetPriority requires IssueAfterReset"}
+	}
+
 	model.MeasureUsageFrom = convert.ToPointer(defaultx.WithDefault(model.MeasureUsageFrom, clock.Now().Truncate(c.granularity)))
 	model.IsSoftLimit = convert.ToPointer(defaultx.WithDefault(model.IsSoftLimit, false))
 	model.IssueAfterReset = convert.ToPointer(defaultx.WithDefault(model.IssueAfterReset, 0.0))
@@ -138,17 +142,18 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 	currentPeriod.From = *model.MeasureUsageFrom
 
 	return &entitlement.CreateEntitlementRepoInputs{
-		Namespace:          model.Namespace,
-		FeatureID:          feature.ID,
-		FeatureKey:         feature.Key,
-		SubjectKey:         model.SubjectKey,
-		EntitlementType:    model.EntitlementType,
-		Metadata:           model.Metadata,
-		MeasureUsageFrom:   model.MeasureUsageFrom,
-		IssueAfterReset:    model.IssueAfterReset,
-		IsSoftLimit:        model.IsSoftLimit,
-		UsagePeriod:        model.UsagePeriod,
-		CurrentUsagePeriod: &currentPeriod,
+		Namespace:               model.Namespace,
+		FeatureID:               feature.ID,
+		FeatureKey:              feature.Key,
+		SubjectKey:              model.SubjectKey,
+		EntitlementType:         model.EntitlementType,
+		Metadata:                model.Metadata,
+		MeasureUsageFrom:        model.MeasureUsageFrom,
+		IssueAfterReset:         model.IssueAfterReset,
+		IssueAfterResetPriority: model.IssueAfterResetPriority,
+		IsSoftLimit:             model.IsSoftLimit,
+		UsagePeriod:             model.UsagePeriod,
+		CurrentUsagePeriod:      &currentPeriod,
 	}, nil
 }
 
@@ -162,15 +167,18 @@ func (c *connector) AfterCreate(ctx context.Context, end *entitlement.Entitlemen
 	// Until we refactor and fix this, to avoid any potential errors due to changes in downstream connectors, the code is inlined here.
 	// issue default grants
 	if metered.HasDefaultGrant() {
-		amountToIssue := *metered.IssuesAfterReset
-		effectiveAt := metered.CurrentUsagePeriod.From
+		if metered.IssueAfterReset == nil {
+			return fmt.Errorf("inconsistency error: entitlement %s should have default grant but has no IssueAfterReset", metered.ID)
+		}
 
+		effectiveAt := metered.CurrentUsagePeriod.From
+		amountToIssue := metered.IssueAfterReset.Amount
 		_, err := c.grantConnector.CreateGrant(ctx, credit.NamespacedGrantOwner{
 			Namespace: metered.Namespace,
 			ID:        credit.GrantOwner(metered.ID),
 		}, credit.CreateGrantInput{
 			Amount:      amountToIssue,
-			Priority:    credit.GrantPriorityDefault,
+			Priority:    defaultx.WithDefault(metered.IssueAfterReset.Priority, DefaultIssueAfterResetPriority),
 			EffectiveAt: effectiveAt,
 			Expiration: credit.ExpirationPeriod{
 				Count:    100, // This is a bit of an issue... It would make sense for recurring tags to not have an expiration
@@ -179,6 +187,9 @@ func (c *connector) AfterCreate(ctx context.Context, end *entitlement.Entitlemen
 			// These two in conjunction make the grant always have `amountToIssue` balance after a reset
 			ResetMaxRollover: amountToIssue,
 			ResetMinRollover: amountToIssue,
+			Metadata: map[string]string{
+				IssueAfterResetMetaTag: "true",
+			},
 		})
 		if err != nil {
 			return err

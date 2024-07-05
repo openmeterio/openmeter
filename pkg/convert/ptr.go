@@ -20,15 +20,16 @@ func ToStringLike[Source, Dest ~string](value *Source) *Dest {
 	return ToPointer(Dest(*value))
 }
 
-func SafeConvert[T any, U any](value *T, fn func(T) U) *U {
+// SafeDeRef is a helper function to safely dereference a pointer and apply a function to it.
+func SafeDeRef[T any, U any](value *T, fn func(T) *U) *U {
 	if value == nil {
 		return nil
 	}
-	return ToPointer(fn(*value))
+	return fn(*value)
 }
 
 func SafeToUTC(t *time.Time) *time.Time {
-	return SafeConvert(t, func(dt time.Time) time.Time {
-		return dt.In(time.UTC)
+	return SafeDeRef(t, func(dt time.Time) *time.Time {
+		return ToPointer(dt.In(time.UTC))
 	})
 }

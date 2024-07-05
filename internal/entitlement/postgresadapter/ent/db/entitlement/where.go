@@ -110,6 +110,11 @@ func IssueAfterReset(v float64) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldIssueAfterReset, v))
 }
 
+// IssueAfterResetPriority applies equality check predicate on the "issue_after_reset_priority" field. It's identical to IssueAfterResetPriorityEQ.
+func IssueAfterResetPriority(v uint8) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldIssueAfterResetPriority, v))
+}
+
 // IsSoftLimit applies equality check predicate on the "is_soft_limit" field. It's identical to IsSoftLimitEQ.
 func IsSoftLimit(v bool) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldIsSoftLimit, v))
@@ -648,6 +653,56 @@ func IssueAfterResetIsNil() predicate.Entitlement {
 // IssueAfterResetNotNil applies the NotNil predicate on the "issue_after_reset" field.
 func IssueAfterResetNotNil() predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldNotNull(FieldIssueAfterReset))
+}
+
+// IssueAfterResetPriorityEQ applies the EQ predicate on the "issue_after_reset_priority" field.
+func IssueAfterResetPriorityEQ(v uint8) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldIssueAfterResetPriority, v))
+}
+
+// IssueAfterResetPriorityNEQ applies the NEQ predicate on the "issue_after_reset_priority" field.
+func IssueAfterResetPriorityNEQ(v uint8) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNEQ(FieldIssueAfterResetPriority, v))
+}
+
+// IssueAfterResetPriorityIn applies the In predicate on the "issue_after_reset_priority" field.
+func IssueAfterResetPriorityIn(vs ...uint8) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIn(FieldIssueAfterResetPriority, vs...))
+}
+
+// IssueAfterResetPriorityNotIn applies the NotIn predicate on the "issue_after_reset_priority" field.
+func IssueAfterResetPriorityNotIn(vs ...uint8) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotIn(FieldIssueAfterResetPriority, vs...))
+}
+
+// IssueAfterResetPriorityGT applies the GT predicate on the "issue_after_reset_priority" field.
+func IssueAfterResetPriorityGT(v uint8) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGT(FieldIssueAfterResetPriority, v))
+}
+
+// IssueAfterResetPriorityGTE applies the GTE predicate on the "issue_after_reset_priority" field.
+func IssueAfterResetPriorityGTE(v uint8) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldGTE(FieldIssueAfterResetPriority, v))
+}
+
+// IssueAfterResetPriorityLT applies the LT predicate on the "issue_after_reset_priority" field.
+func IssueAfterResetPriorityLT(v uint8) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLT(FieldIssueAfterResetPriority, v))
+}
+
+// IssueAfterResetPriorityLTE applies the LTE predicate on the "issue_after_reset_priority" field.
+func IssueAfterResetPriorityLTE(v uint8) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldLTE(FieldIssueAfterResetPriority, v))
+}
+
+// IssueAfterResetPriorityIsNil applies the IsNil predicate on the "issue_after_reset_priority" field.
+func IssueAfterResetPriorityIsNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIsNull(FieldIssueAfterResetPriority))
+}
+
+// IssueAfterResetPriorityNotNil applies the NotNil predicate on the "issue_after_reset_priority" field.
+func IssueAfterResetPriorityNotNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotNull(FieldIssueAfterResetPriority))
 }
 
 // IsSoftLimitEQ applies the EQ predicate on the "is_soft_limit" field.

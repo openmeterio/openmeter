@@ -40,6 +40,8 @@ type Entitlement struct {
 	MeasureUsageFrom *time.Time `json:"measure_usage_from,omitempty"`
 	// IssueAfterReset holds the value of the "issue_after_reset" field.
 	IssueAfterReset *float64 `json:"issue_after_reset,omitempty"`
+	// IssueAfterResetPriority holds the value of the "issue_after_reset_priority" field.
+	IssueAfterResetPriority *uint8 `json:"issue_after_reset_priority,omitempty"`
 	// IsSoftLimit holds the value of the "is_soft_limit" field.
 	IsSoftLimit *bool `json:"is_soft_limit,omitempty"`
 	// Config holds the value of the "config" field.
@@ -87,6 +89,8 @@ func (*Entitlement) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case entitlement.FieldIssueAfterReset:
 			values[i] = new(sql.NullFloat64)
+		case entitlement.FieldIssueAfterResetPriority:
+			values[i] = new(sql.NullInt64)
 		case entitlement.FieldID, entitlement.FieldNamespace, entitlement.FieldEntitlementType, entitlement.FieldFeatureID, entitlement.FieldFeatureKey, entitlement.FieldSubjectKey, entitlement.FieldUsagePeriodInterval:
 			values[i] = new(sql.NullString)
 		case entitlement.FieldCreatedAt, entitlement.FieldUpdatedAt, entitlement.FieldDeletedAt, entitlement.FieldMeasureUsageFrom, entitlement.FieldUsagePeriodAnchor, entitlement.FieldCurrentUsagePeriodStart, entitlement.FieldCurrentUsagePeriodEnd:
@@ -182,6 +186,13 @@ func (e *Entitlement) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				e.IssueAfterReset = new(float64)
 				*e.IssueAfterReset = value.Float64
+			}
+		case entitlement.FieldIssueAfterResetPriority:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field issue_after_reset_priority", values[i])
+			} else if value.Valid {
+				e.IssueAfterResetPriority = new(uint8)
+				*e.IssueAfterResetPriority = uint8(value.Int64)
 			}
 		case entitlement.FieldIsSoftLimit:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -303,6 +314,11 @@ func (e *Entitlement) String() string {
 	builder.WriteString(", ")
 	if v := e.IssueAfterReset; v != nil {
 		builder.WriteString("issue_after_reset=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := e.IssueAfterResetPriority; v != nil {
+		builder.WriteString("issue_after_reset_priority=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")

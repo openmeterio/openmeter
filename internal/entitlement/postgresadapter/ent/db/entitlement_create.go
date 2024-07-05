@@ -130,6 +130,20 @@ func (ec *EntitlementCreate) SetNillableIssueAfterReset(f *float64) *Entitlement
 	return ec
 }
 
+// SetIssueAfterResetPriority sets the "issue_after_reset_priority" field.
+func (ec *EntitlementCreate) SetIssueAfterResetPriority(u uint8) *EntitlementCreate {
+	ec.mutation.SetIssueAfterResetPriority(u)
+	return ec
+}
+
+// SetNillableIssueAfterResetPriority sets the "issue_after_reset_priority" field if the given value is not nil.
+func (ec *EntitlementCreate) SetNillableIssueAfterResetPriority(u *uint8) *EntitlementCreate {
+	if u != nil {
+		ec.SetIssueAfterResetPriority(*u)
+	}
+	return ec
+}
+
 // SetIsSoftLimit sets the "is_soft_limit" field.
 func (ec *EntitlementCreate) SetIsSoftLimit(b bool) *EntitlementCreate {
 	ec.mutation.SetIsSoftLimit(b)
@@ -412,6 +426,10 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 		_spec.SetField(entitlement.FieldIssueAfterReset, field.TypeFloat64, value)
 		_node.IssueAfterReset = &value
 	}
+	if value, ok := ec.mutation.IssueAfterResetPriority(); ok {
+		_spec.SetField(entitlement.FieldIssueAfterResetPriority, field.TypeUint8, value)
+		_node.IssueAfterResetPriority = &value
+	}
 	if value, ok := ec.mutation.IsSoftLimit(); ok {
 		_spec.SetField(entitlement.FieldIsSoftLimit, field.TypeBool, value)
 		_node.IsSoftLimit = &value
@@ -664,6 +682,9 @@ func (u *EntitlementUpsertOne) UpdateNewValues() *EntitlementUpsertOne {
 		}
 		if _, exists := u.create.mutation.IssueAfterReset(); exists {
 			s.SetIgnore(entitlement.FieldIssueAfterReset)
+		}
+		if _, exists := u.create.mutation.IssueAfterResetPriority(); exists {
+			s.SetIgnore(entitlement.FieldIssueAfterResetPriority)
 		}
 		if _, exists := u.create.mutation.IsSoftLimit(); exists {
 			s.SetIgnore(entitlement.FieldIsSoftLimit)
@@ -1048,6 +1069,9 @@ func (u *EntitlementUpsertBulk) UpdateNewValues() *EntitlementUpsertBulk {
 			}
 			if _, exists := b.mutation.IssueAfterReset(); exists {
 				s.SetIgnore(entitlement.FieldIssueAfterReset)
+			}
+			if _, exists := b.mutation.IssueAfterResetPriority(); exists {
+				s.SetIgnore(entitlement.FieldIssueAfterResetPriority)
 			}
 			if _, exists := b.mutation.IsSoftLimit(); exists {
 				s.SetIgnore(entitlement.FieldIsSoftLimit)

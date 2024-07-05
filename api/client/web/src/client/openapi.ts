@@ -578,6 +578,13 @@ export interface components {
        * @description You can issue usage automatically after reset. This usage is not rolled over.
        */
       issueAfterReset?: number
+      /**
+       * @description Defines the grant priority for the default grant. If provided, issueAfterReset must have a value.
+       *
+       * @default 1
+       * @example 1
+       */
+      issueAfterResetPriority?: number
     }
     EntitlementCreateInputs:
       | components['schemas']['EntitlementMeteredCreateInputs']
