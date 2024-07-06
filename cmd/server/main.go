@@ -257,6 +257,12 @@ func main() {
 			logger.Error("failed to initialize deduplicator", "error", err)
 			os.Exit(1)
 		}
+		defer func() {
+			logger.Info("closing deduplicator")
+			if err = deduplicator.Close(); err != nil {
+				logger.Error("failed to close deduplicator", "error", err)
+			}
+		}()
 
 		ingestCollector = ingest.DeduplicatingCollector{
 			Collector:    ingestCollector,

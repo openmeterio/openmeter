@@ -173,7 +173,6 @@ func (c DedupeDriverRedisConfiguration) NewDeduplicator() (dedupe.Deduplicator, 
 		return nil, fmt.Errorf("failed to initialize redis client: %w", err)
 	}
 
-	// TODO: close redis client when shutting down
 	// TODO: register health check for redis
 	return redisdedupe.Deduplicator{
 		Redis:      redisClient,
