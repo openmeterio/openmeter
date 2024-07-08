@@ -30,7 +30,8 @@ func TestMeasureUsageFromInput(t *testing.T) {
 	t.Run("Should return time from input", func(t *testing.T) {
 		t1 := time.Now().Truncate(time.Minute)
 		m := &entitlement.MeasureUsageFromInput{}
-		m.FromTime(t1)
+		err := m.FromTime(t1)
+		assert.NoError(t, err)
 		assert.Equal(t, t1, m.Get())
 	})
 
@@ -42,7 +43,8 @@ func TestMeasureUsageFromInput(t *testing.T) {
 		}
 
 		m := &entitlement.MeasureUsageFromInput{}
-		m.FromEnum(entitlement.MeasureUsageFromCurrentPeriodStart, up)
+		err := m.FromEnum(entitlement.MeasureUsageFromCurrentPeriodStart, up)
+		assert.NoError(t, err)
 		assert.Equal(t, t1, m.Get())
 	})
 }

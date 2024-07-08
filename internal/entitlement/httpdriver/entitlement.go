@@ -101,7 +101,10 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 					measureUsageFrom := &entitlement.MeasureUsageFromInput{}
 					apiTime, err := v.MeasureUsageFrom.AsMeasureUsageFromTime()
 					if err == nil {
-						measureUsageFrom.FromTime(apiTime)
+						err := measureUsageFrom.FromTime(apiTime)
+						if err != nil {
+							return request, err
+						}
 					} else {
 						apiEnum, err := v.MeasureUsageFrom.AsMeasureUsageFromEnum()
 						if err != nil {

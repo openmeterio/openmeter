@@ -561,7 +561,8 @@ func TestCredit(t *testing.T) {
 		randSubject := ulid.Make().String()
 		measureUsageFrom := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
 		muf := &api.MeasureUsageFrom{}
-		muf.FromMeasureUsageFromTime(api.MeasureUsageFromTime(measureUsageFrom))
+		err := muf.FromMeasureUsageFromTime(api.MeasureUsageFromTime(measureUsageFrom))
+		require.NoError(t, err)
 		meteredEntitlement := api.EntitlementMeteredCreateInputs{
 			Type:      "metered",
 			FeatureId: featureId,
@@ -574,7 +575,7 @@ func TestCredit(t *testing.T) {
 			IssueAfterResetPriority: convert.ToPointer(6),
 		}
 		body := &api.CreateEntitlementJSONRequestBody{}
-		err := body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
+		err = body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
 		require.NoError(t, err)
 		resp, err := client.CreateEntitlementWithResponse(context.Background(), randSubject, *body)
 
@@ -605,7 +606,8 @@ func TestCredit(t *testing.T) {
 		randSubject := ulid.Make().String()
 		periodAnchor := time.Now().Truncate(time.Minute).Add(-time.Hour).In(time.UTC)
 		muf := &api.MeasureUsageFrom{}
-		muf.FromMeasureUsageFromEnum(api.CURRENTPERIODSTART)
+		err := muf.FromMeasureUsageFromEnum(api.CURRENTPERIODSTART)
+		require.NoError(t, err)
 		meteredEntitlement := api.EntitlementMeteredCreateInputs{
 			Type:      "metered",
 			FeatureId: featureId,
@@ -616,7 +618,7 @@ func TestCredit(t *testing.T) {
 			MeasureUsageFrom: muf,
 		}
 		body := &api.CreateEntitlementJSONRequestBody{}
-		err := body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
+		err = body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
 		require.NoError(t, err)
 		resp, err := client.CreateEntitlementWithResponse(context.Background(), randSubject, *body)
 
