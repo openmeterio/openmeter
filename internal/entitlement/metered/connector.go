@@ -127,24 +127,32 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 		return nil, &entitlement.InvalidValueError{Type: model.EntitlementType, Message: "IssueAfterResetPriority requires IssueAfterReset"}
 	}
 
-	model.MeasureUsageFrom = convert.ToPointer(defaultx.WithDefault(model.MeasureUsageFrom, clock.Now().Truncate(c.granularity)))
+	measureUsageFrom := convert.SafeDeRef(
+		model.MeasureUsageFrom,
+		func(t entitlement.MeasureUsageFromInput) *time.Time {
+			return convert.ToPointer(t.Get())
+		},
+	)
+
+	measureUsageFrom = convert.ToPointer(defaultx.WithDefault(measureUsageFrom, clock.Now().Truncate(c.granularity)))
+
 	model.IsSoftLimit = convert.ToPointer(defaultx.WithDefault(model.IsSoftLimit, false))
 	model.IssueAfterReset = convert.ToPointer(defaultx.WithDefault(model.IssueAfterReset, 0.0))
 
 	model.UsagePeriod.Anchor = model.UsagePeriod.Anchor.Truncate(c.granularity)
 
 	// Calculating the very first period is different as it has to start from the start of measurement
-	currentPeriod, err := model.UsagePeriod.GetCurrentPeriodAt(*model.MeasureUsageFrom)
+	currentPeriod, err := model.UsagePeriod.GetCurrentPeriodAt(*measureUsageFrom)
 	if err != nil {
 		return nil, err
 	}
 
-	if model.MeasureUsageFrom.After(currentPeriod.To) || model.MeasureUsageFrom.Equal(currentPeriod.To) {
-		return nil, fmt.Errorf("inconsistency error: start of measurement %s is after or equal to the calculated period end %s, period end should be exclusive", model.MeasureUsageFrom, currentPeriod)
+	if measureUsageFrom.After(currentPeriod.To) || measureUsageFrom.Equal(currentPeriod.To) {
+		return nil, fmt.Errorf("inconsistency error: start of measurement %s is after or equal to the calculated period end %s, period end should be exclusive", measureUsageFrom, currentPeriod)
 	}
 
 	// We have to alter the period to start with start of measurement
-	currentPeriod.From = *model.MeasureUsageFrom
+	currentPeriod.From = *measureUsageFrom
 
 	return &entitlement.CreateEntitlementRepoInputs{
 		Namespace:               model.Namespace,
@@ -153,7 +161,7 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 		SubjectKey:              model.SubjectKey,
 		EntitlementType:         model.EntitlementType,
 		Metadata:                model.Metadata,
-		MeasureUsageFrom:        model.MeasureUsageFrom,
+		MeasureUsageFrom:        measureUsageFrom,
 		IssueAfterReset:         model.IssueAfterReset,
 		IssueAfterResetPriority: model.IssueAfterResetPriority,
 		IsSoftLimit:             model.IsSoftLimit,

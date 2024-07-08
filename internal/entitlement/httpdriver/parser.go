@@ -39,6 +39,7 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 				return convert.ToPointer(int(p))
 			})
 		}),
+		MeasureUsageFrom:   metered.MeasureUsageFrom,
 		Metadata:           convert.MapToPointer(metered.Metadata),
 		SubjectKey:         metered.SubjectKey,
 		Type:               api.EntitlementMeteredType(metered.EntitlementType),

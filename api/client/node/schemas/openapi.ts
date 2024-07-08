@@ -708,6 +708,17 @@ export interface components {
         usagePeriod?: components['schemas']['RecurringPeriod']
         currentUsagePeriod?: components['schemas']['Period']
       }
+    /** @enum {string} */
+    MeasureUsageFromEnum: 'CURRENT_PERIOD_START'
+    /** Format: date-time */
+    MeasureUsageFromTime: string
+    /**
+     * @description The time from which usage is measured, defaults to the entitlement creation time.
+     * The provided value is truncated to the granularity of the underlying meter.
+     */
+    MeasureUsageFrom:
+      | components['schemas']['MeasureUsageFromEnum']
+      | components['schemas']['MeasureUsageFromTime']
     EntitlementMeteredCreateInputs: components['schemas']['EntitlementCreateSharedFields'] & {
       /**
        * @example metered
@@ -727,6 +738,7 @@ export interface components {
        */
       isUnlimited?: boolean
       usagePeriod: components['schemas']['RecurringPeriodCreateInput']
+      measureUsageFrom?: components['schemas']['MeasureUsageFrom']
       /**
        * Format: double
        * @description You can grant usage automatically alongside the entitlement, the example scenario would be creating a starting balance. If an amount is specified here, a grant will be created alongside the entitlement with the specified amount.
@@ -761,6 +773,11 @@ export interface components {
        */
       lastReset: string
       currentUsagePeriod: components['schemas']['Period']
+      /**
+       * Format: date-time
+       * @description The time from which usage is measured. If not specified on creation, defaults to the entitlement creation time.
+       */
+      measureUsageFrom: string
     }
     EntitlementStaticCreateInputs: components['schemas']['EntitlementCreateSharedFields'] & {
       /**

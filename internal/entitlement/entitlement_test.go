@@ -25,3 +25,24 @@ func TestUsagePeriod(t *testing.T) {
 		assert.Equal(t, t1.AddDate(0, 0, 1), period.To)
 	})
 }
+
+func TestMeasureUsageFromInput(t *testing.T) {
+	t.Run("Should return time from input", func(t *testing.T) {
+		t1 := time.Now().Truncate(time.Minute)
+		m := &entitlement.MeasureUsageFromInput{}
+		m.FromTime(t1)
+		assert.Equal(t, t1, m.Get())
+	})
+
+	t.Run("Should return time from CURRENT_PERIOD_START enum", func(t *testing.T) {
+		t1 := time.Now().Truncate(time.Minute).Add(-time.Hour)
+		up := entitlement.UsagePeriod{
+			Interval: recurrence.RecurrencePeriodDaily,
+			Anchor:   t1,
+		}
+
+		m := &entitlement.MeasureUsageFromInput{}
+		m.FromEnum(entitlement.MeasureUsageFromCurrentPeriodStart, up)
+		assert.Equal(t, t1, m.Get())
+	})
+}

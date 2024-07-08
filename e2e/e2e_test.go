@@ -559,6 +559,9 @@ func TestCredit(t *testing.T) {
 
 	t.Run("Create a Entitlement With Default Grants", func(t *testing.T) {
 		randSubject := ulid.Make().String()
+		measureUsageFrom := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
+		muf := &api.MeasureUsageFrom{}
+		muf.FromMeasureUsageFromTime(api.MeasureUsageFromTime(measureUsageFrom))
 		meteredEntitlement := api.EntitlementMeteredCreateInputs{
 			Type:      "metered",
 			FeatureId: featureId,
@@ -566,6 +569,7 @@ func TestCredit(t *testing.T) {
 				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
 				Interval: "MONTH",
 			},
+			MeasureUsageFrom:        muf,
 			IssueAfterReset:         convert.ToPointer(100.0),
 			IssueAfterResetPriority: convert.ToPointer(6),
 		}
@@ -581,6 +585,7 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, randSubject, metered.SubjectKey)
+		require.Equal(t, measureUsageFrom, metered.MeasureUsageFrom)
 
 		// fetch grants for entitlement
 		grantListResp, err := client.ListEntitlementGrantsWithResponse(context.Background(), randSubject, *metered.Id, nil)
@@ -595,6 +600,34 @@ func TestCredit(t *testing.T) {
 		require.Equal(t, map[string]string{
 			"issueAfterReset": "true",
 		}, *(*grantListResp.JSON200)[0].Metadata)
+	})
+	t.Run("Create a Entitlement With MeasureUsageFrom enum", func(t *testing.T) {
+		randSubject := ulid.Make().String()
+		periodAnchor := time.Now().Truncate(time.Minute).Add(-time.Hour).In(time.UTC)
+		muf := &api.MeasureUsageFrom{}
+		muf.FromMeasureUsageFromEnum(api.CURRENTPERIODSTART)
+		meteredEntitlement := api.EntitlementMeteredCreateInputs{
+			Type:      "metered",
+			FeatureId: featureId,
+			UsagePeriod: api.RecurringPeriodCreateInput{
+				Anchor:   &periodAnchor,
+				Interval: "MONTH",
+			},
+			MeasureUsageFrom: muf,
+		}
+		body := &api.CreateEntitlementJSONRequestBody{}
+		err := body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
+		require.NoError(t, err)
+		resp, err := client.CreateEntitlementWithResponse(context.Background(), randSubject, *body)
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+
+		metered, err := resp.JSON201.AsEntitlementMetered()
+		require.NoError(t, err)
+
+		require.Equal(t, randSubject, metered.SubjectKey)
+		require.Equal(t, periodAnchor, metered.MeasureUsageFrom)
 	})
 
 	t.Run("Create Grant", func(t *testing.T) {
