@@ -8,9 +8,6 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/entitlement"
-	booleanentitlement "github.com/openmeterio/openmeter/internal/entitlement/boolean"
-	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
-	staticentitlement "github.com/openmeterio/openmeter/internal/entitlement/static"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -181,37 +178,11 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 			}, nil
 		},
 		func(ctx context.Context, request GetEntitlementValueHandlerRequest) (api.EntitlementValue, error) {
-			entitlement, err := h.connector.GetEntitlementValue(ctx, request.Namespace, request.SubjectKey, request.EntitlementIdOrFeatureKey, request.At)
+			entitlementValue, err := h.connector.GetEntitlementValue(ctx, request.Namespace, request.SubjectKey, request.EntitlementIdOrFeatureKey, request.At)
 			if err != nil {
 				return api.EntitlementValue{}, err
 			}
-
-			switch ent := entitlement.(type) {
-			case *meteredentitlement.MeteredEntitlementValue:
-				return api.EntitlementValue{
-					HasAccess: convert.ToPointer(ent.HasAccess()),
-					Balance:   &ent.Balance,
-					Usage:     &ent.UsageInPeriod,
-					Overage:   &ent.Overage,
-				}, nil
-			case *staticentitlement.StaticEntitlementValue:
-				var config *string
-				if len(ent.Config) > 0 {
-					config = convert.ToPointer(string(ent.Config))
-				}
-
-				return api.EntitlementValue{
-					HasAccess: convert.ToPointer(ent.HasAccess()),
-					Config:    config,
-				}, nil
-			case *booleanentitlement.BooleanEntitlementValue:
-				return api.EntitlementValue{
-					HasAccess: convert.ToPointer(ent.HasAccess()),
-				}, nil
-			default:
-				return api.EntitlementValue{}, errors.New("unknown entitlement type")
-			}
-
+			return MapEntitlementValueToAPI(entitlementValue)
 		},
 		commonhttp.JSONResponseEncoder[api.EntitlementValue],
 		httptransport.AppendOptions(
