@@ -198,7 +198,7 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 	assert.NoError(err)
 	assert.NotNil(entitlement)
 
-	// Let's retreive the grant so we can reference it
+	// Let's retrieve the grant so we can reference it
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T12:20:28Z"))
 	grants, err := deps.GrantConnector.ListGrants(ctx, credit.ListGrantsParams{
 		Namespace:      "namespace-1",
