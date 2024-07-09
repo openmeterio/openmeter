@@ -177,7 +177,7 @@ func (m *grantConnector) VoidGrant(ctx context.Context, grantID models.Namespace
 		if err != nil {
 			return nil, err
 		}
-		now := clock.Now()
+		now := clock.Now().Truncate(m.granularity)
 		err = m.grantRepo.WithTx(ctx, tx).VoidGrant(ctx, grantID, now)
 		if err != nil {
 			return nil, err

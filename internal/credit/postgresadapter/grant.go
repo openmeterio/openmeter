@@ -118,8 +118,8 @@ func (g *grantDBADapter) ListActiveGrantsBetween(ctx context.Context, owner cred
 				db_grant.EffectiveAt(from),
 			),
 		).Where(
-		db_grant.Or(db_grant.DeletedAtGTE(to), db_grant.DeletedAtIsNil()),
-		db_grant.Or(db_grant.VoidedAtGTE(to), db_grant.VoidedAtIsNil()),
+		db_grant.Or(db_grant.Not(db_grant.DeletedAtLTE(from)), db_grant.DeletedAtIsNil()),
+		db_grant.Or(db_grant.Not(db_grant.VoidedAtLTE(from)), db_grant.VoidedAtIsNil()),
 	)
 
 	entities, err := query.All(ctx)
@@ -157,11 +157,13 @@ func mapGrantEntity(entity *db.Grant) credit.Grant {
 		NamespacedModel: models.NamespacedModel{
 			Namespace: entity.Namespace,
 		},
-		ID:               entity.ID,
-		OwnerID:          credit.GrantOwner(entity.OwnerID),
-		Amount:           entity.Amount,
-		Priority:         entity.Priority,
-		VoidedAt:         convert.SafeToUTC(entity.VoidedAt),
+		ID:       entity.ID,
+		OwnerID:  credit.GrantOwner(entity.OwnerID),
+		Amount:   entity.Amount,
+		Priority: entity.Priority,
+		VoidedAt: convert.SafeDeRef(entity.VoidedAt, func(t time.Time) *time.Time {
+			return convert.ToPointer(t.In(time.UTC).Truncate(time.Minute)) // To avoid consistency errors for previous versions of the database where this value wasn't store truncated
+		}),
 		EffectiveAt:      entity.EffectiveAt,
 		Expiration:       entity.Expiration,
 		ExpiresAt:        entity.ExpiresAt,

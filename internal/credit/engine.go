@@ -45,7 +45,7 @@ var _ Engine = (*engine)(nil)
 // Burns down all grants in the defined period by the usage amounts.
 func (e *engine) Run(ctx context.Context, grants []Grant, startingBalances GrantBalanceMap, overage float64, period recurrence.Period) (GrantBalanceMap, float64, []GrantBurnDownHistorySegment, error) {
 	if !startingBalances.ExactlyForGrants(grants) {
-		return nil, 0, nil, fmt.Errorf("provided grants and balances don't pair up")
+		return nil, 0, nil, fmt.Errorf("provided grants and balances don't pair up, grants: %v, balances: %v", grants, startingBalances)
 	}
 
 	e.grants = grants

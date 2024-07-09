@@ -157,6 +157,8 @@ func setupDependencies(t *testing.T) Dependencies {
 		BooleanEntitlementConnector: booleanEntitlementConnector,
 		MeteredEntitlementConnector: meteredEntitlementConnector,
 
+		BalanceSnapshotRepo: balanceSnapshotRepo,
+
 		Streaming: streaming,
 
 		FeatureRepo:      featureRepo,
