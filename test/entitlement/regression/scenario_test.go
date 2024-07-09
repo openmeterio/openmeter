@@ -162,3 +162,112 @@ func TestGrantExpiringAtReset(t *testing.T) {
 	assert.NotNil(currentBalance)
 	assert.Equal(0.0, currentBalance.Balance)
 }
+
+func TestBalanceCalculationsAfterVoiding(t *testing.T) {
+	defer clock.ResetTime()
+	deps := setupDependencies(t)
+	defer deps.Close()
+	ctx := context.Background()
+	assert := assert.New(t)
+
+	// Let's create a feature
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-07T14:44:19Z"))
+	feature, err := deps.FeatureConnector.CreateFeature(ctx, productcatalog.CreateFeatureInputs{
+		Name:      "feature-1",
+		Key:       "feature-1",
+		Namespace: "namespace-1",
+		MeterSlug: convert.ToPointer("meter-1"),
+	})
+	assert.NoError(err)
+	assert.NotNil(feature)
+
+	// Let's create a new entitlement for the feature
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T11:20:28Z"))
+	entitlement, err := deps.EntitlementConnector.CreateEntitlement(ctx, entitlement.CreateEntitlementInputs{
+		Namespace:       "namespace-1",
+		FeatureID:       &feature.ID,
+		FeatureKey:      &feature.Key,
+		SubjectKey:      "subject-1",
+		IssueAfterReset: convert.ToPointer(500.0),
+		EntitlementType: entitlement.EntitlementTypeMetered,
+		UsagePeriod: &entitlement.UsagePeriod{
+			Interval: recurrence.RecurrencePeriodMonth,
+			Anchor:   testutils.GetRFC3339Time(t, "2024-07-01T00:00:00Z"),
+		},
+	})
+	assert.NoError(err)
+	assert.NotNil(entitlement)
+
+	// Let's retreive the grant so we can reference it
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T12:20:28Z"))
+	grants, err := deps.GrantConnector.ListGrants(ctx, credit.ListGrantsParams{
+		Namespace:      "namespace-1",
+		IncludeDeleted: true,
+		Offset:         0,
+		Limit:          100,
+		OrderBy:        credit.GrantOrderByCreatedAt,
+	})
+	assert.NoError(err)
+	assert.Len(grants, 1)
+
+	grant1 := &grants[0]
+
+	// Let's create another grant
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T12:09:40Z"))
+	grant2, err := deps.GrantConnector.CreateGrant(ctx,
+		credit.NamespacedGrantOwner{
+			Namespace: "namespace-1",
+			ID:        credit.GrantOwner(entitlement.ID),
+		},
+		credit.CreateGrantInput{
+			Amount:      10000,
+			Priority:    1,
+			EffectiveAt: testutils.GetRFC3339Time(t, "2024-07-09T12:09:00Z"),
+			Expiration: credit.ExpirationPeriod{
+				Count:    1,
+				Duration: credit.ExpirationPeriodDurationWeek,
+			},
+		})
+	assert.NoError(err)
+	assert.NotNil(grant2)
+
+	// Lets create a snapshot
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T13:09:05Z"))
+	err = deps.BalanceSnapshotRepo.Save(ctx, credit.NamespacedGrantOwner{
+		Namespace: "namespace-1",
+		ID:        credit.GrantOwner(entitlement.ID),
+	}, []credit.GrantBalanceSnapshot{
+		{
+			At:      testutils.GetRFC3339Time(t, "2024-07-09T13:09:00Z"),
+			Overage: 0.0,
+			Balances: credit.GrantBalanceMap{
+				grant1.ID: 488.0,
+				grant2.ID: 10000.0,
+			},
+		},
+	})
+	assert.NoError(err)
+
+	// Hack: this is in the future, but at least it won't return an error
+	deps.Streaming.AddSimpleEvent("meter-1", 1, testutils.GetRFC3339Time(t, "2099-06-28T14:36:00Z"))
+
+	// Lets void the grant
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T14:54:04Z"))
+	err = deps.GrantConnector.VoidGrant(ctx, models.NamespacedID{
+		Namespace: "namespace-1",
+		ID:        grant2.ID,
+	})
+	assert.NoError(err)
+
+	// Let's query the usage
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T16:38:00Z"))
+	currentBalance, err := deps.MeteredEntitlementConnector.GetEntitlementBalance(ctx,
+		models.NamespacedID{
+			Namespace: "namespace-1",
+			ID:        entitlement.ID,
+		},
+		testutils.GetRFC3339Time(t, "2024-07-09T16:38:00Z"))
+	assert.NoError(err)
+	assert.NotNil(currentBalance)
+	assert.Equal(488.0, currentBalance.Balance)
+}
