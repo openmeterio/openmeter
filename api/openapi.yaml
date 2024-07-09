@@ -1984,6 +1984,7 @@ components:
       type: string
       enum:
         - CURRENT_PERIOD_START
+        - NOW
     MeasureUsageFromTime:
       type: string
       format: date-time

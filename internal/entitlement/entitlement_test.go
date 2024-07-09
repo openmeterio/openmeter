@@ -36,15 +36,30 @@ func TestMeasureUsageFromInput(t *testing.T) {
 	})
 
 	t.Run("Should return time from CURRENT_PERIOD_START enum", func(t *testing.T) {
-		t1 := time.Now().Truncate(time.Minute).Add(-time.Hour)
+		t0 := time.Now().Truncate(time.Minute)
+		t1 := t0.Add(-time.Hour)
 		up := entitlement.UsagePeriod{
 			Interval: recurrence.RecurrencePeriodDaily,
 			Anchor:   t1,
 		}
 
 		m := &entitlement.MeasureUsageFromInput{}
-		err := m.FromEnum(entitlement.MeasureUsageFromCurrentPeriodStart, up)
+		err := m.FromEnum(entitlement.MeasureUsageFromCurrentPeriodStart, up, t0)
 		assert.NoError(t, err)
 		assert.Equal(t, t1, m.Get())
+	})
+
+	t.Run("Should return time from CREATED_AT enum", func(t *testing.T) {
+		t0 := time.Now().Truncate(time.Minute)
+		t1 := t0.Add(-time.Hour)
+		up := entitlement.UsagePeriod{
+			Interval: recurrence.RecurrencePeriodDaily,
+			Anchor:   t1,
+		}
+
+		m := &entitlement.MeasureUsageFromInput{}
+		err := m.FromEnum(entitlement.MeasureUsageFromNow, up, t0)
+		assert.NoError(t, err)
+		assert.Equal(t, t0, m.Get())
 	})
 }

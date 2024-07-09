@@ -19,10 +19,11 @@ type MeasureUsageFromEnum string
 
 const (
 	MeasureUsageFromCurrentPeriodStart MeasureUsageFromEnum = "CURRENT_PERIOD_START"
+	MeasureUsageFromNow                MeasureUsageFromEnum = "NOW"
 )
 
 func (e MeasureUsageFromEnum) Values() []MeasureUsageFromEnum {
-	return []MeasureUsageFromEnum{MeasureUsageFromCurrentPeriodStart}
+	return []MeasureUsageFromEnum{MeasureUsageFromCurrentPeriodStart, MeasureUsageFromNow}
 }
 func (e MeasureUsageFromEnum) Validate() error {
 	if !slices.Contains(e.Values(), e) {
@@ -45,7 +46,7 @@ func (m *MeasureUsageFromInput) FromTime(t time.Time) error {
 	m.ts = t
 	return nil
 }
-func (m *MeasureUsageFromInput) FromEnum(e MeasureUsageFromEnum, p UsagePeriod) error {
+func (m *MeasureUsageFromInput) FromEnum(e MeasureUsageFromEnum, p UsagePeriod, t time.Time) error {
 	if err := e.Validate(); err != nil {
 		return err
 	}
@@ -56,6 +57,8 @@ func (m *MeasureUsageFromInput) FromEnum(e MeasureUsageFromEnum, p UsagePeriod) 
 			return err
 		}
 		m.ts = period.From
+	case MeasureUsageFromNow:
+		m.ts = t
 	default:
 		return fmt.Errorf("unsupported enum value")
 	}

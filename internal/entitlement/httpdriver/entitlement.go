@@ -116,7 +116,7 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 							return request, errors.New("usage period is required for enum measure usage from")
 						}
 
-						err = measureUsageFrom.FromEnum(entitlement.MeasureUsageFromEnum(apiEnum), *request.UsagePeriod)
+						err = measureUsageFrom.FromEnum(entitlement.MeasureUsageFromEnum(apiEnum), *request.UsagePeriod, clock.Now())
 						if err != nil {
 							return request, err
 						}

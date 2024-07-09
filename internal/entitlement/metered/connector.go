@@ -129,8 +129,8 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 
 	measureUsageFrom := convert.SafeDeRef(
 		model.MeasureUsageFrom,
-		func(t entitlement.MeasureUsageFromInput) *time.Time {
-			return convert.ToPointer(t.Get())
+		func(m entitlement.MeasureUsageFromInput) *time.Time {
+			return convert.ToPointer(m.Get())
 		},
 	)
 

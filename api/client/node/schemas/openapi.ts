@@ -709,7 +709,7 @@ export interface components {
         currentUsagePeriod?: components['schemas']['Period']
       }
     /** @enum {string} */
-    MeasureUsageFromEnum: 'CURRENT_PERIOD_START'
+    MeasureUsageFromEnum: 'CURRENT_PERIOD_START' | 'NOW'
     /** Format: date-time */
     MeasureUsageFromTime: string
     /**
