@@ -86,8 +86,8 @@ func (m *Ci) Test() *Container {
 	return dag.Go().
 		WithSource(m.Source).
 		Container().
-		WithServiceBinding("postgres", postgres()).
-		WithEnvVariable("POSTGRES_HOST", "postgres").
+		// WithServiceBinding("postgres", postgres()).
+		// WithEnvVariable("POSTGRES_HOST", "postgres").
 		WithExec([]string{"go", "test", "-v", "./..."})
 }
 
