@@ -1896,7 +1896,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
     ) -> List[JSON]:
         """List entitlements.
 
-        List entitlements.
+        List all entitlements regardless of subject. This endpoint is intended for administrative
+        purposes.
 
         :keyword limit: Number of entries to return. Default value is 1000.
         :paramtype limit: int
@@ -1921,6 +1922,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             404: ResourceNotFoundError,
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
+            400: HttpResponseError,
             401: lambda response: ClientAuthenticationError(response=response),
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
@@ -1964,19 +1966,25 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
     @distributed_trace_async
     async def list_features(
-        self, *, limit: int = 1000, offset: int = 0, order_by: str = "id", include_archived: bool = False, **kwargs: Any
+        self,
+        *,
+        limit: int = 1000,
+        offset: int = 0,
+        order_by: str = "updatedAt",
+        include_archived: bool = False,
+        **kwargs: Any
     ) -> List[JSON]:
         # pylint: disable=line-too-long
         """List features.
 
-        List features.
+        List all features.
 
         :keyword limit: Number of entries to return. Default value is 1000.
         :paramtype limit: int
         :keyword offset: Number of entries to skip. Default value is 0.
         :paramtype offset: int
         :keyword order_by: Order by field. Known values are: "id", "createdAt", and "updatedAt".
-         Default value is "id".
+         Default value is "updatedAt".
         :paramtype order_by: str
         :keyword include_archived: Include archived features. Default value is False.
         :paramtype include_archived: bool
@@ -1993,26 +2001,32 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         "createdAt": "2020-02-20 00:00:00",  # The date and time the resource
                           was created. Required.
                         "id": "str",  # Readonly unique ULID identifier. Required.
-                        "key": "str",  # The unique key of the feature to reference it from
-                          your application. Required.
+                        "key": "str",  # The key is an immutable unique identifier of the
+                          feature used throughout the API, for example when interacting with a
+                          subject's entitlements. The key has to be unique across all active features,
+                          but archived features can share the same key. The key should consist of
+                          lowercase alphanumeric characters and dashes. Required.
                         "name": "str",  # The name of the feature. Required.
                         "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource
-                          was last updated. Defaults to createdAt if not updated. Required.
+                          was last updated. The initial value is the same as createdAt. Required.
                         "archivedAt": "2020-02-20 00:00:00",  # Optional. If the feature is
-                          archived, it will not be used for grants or usage.
+                          archived, no new entitlements can be created for it.
                         "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time
-                          the resource was deleted. Null if not deleted.
+                          the resource was deleted.
                         "metadata": {
                             "str": "str"  # Optional. Additional metadata for the
-                              feature.
+                              feature, useful for syncing with external systems and annotating custom
+                              fields.
                         },
                         "meterGroupByFilters": {
                             "str": "str"  # Optional. Optional meter group by filters.
-                              Useful if the meter scope is broader than what feature tracks.
+                              Useful if the meter scope is broader than what feature tracks. Example
+                              scenario would be a meter tracking all token use with groupBy fields for
+                              the model, then the feature could filter for model=gpt-4.
                         },
                         "meterSlug": "str"  # Optional. The meter that the feature is
-                          associated with and decreases grants by usage. If present, the usage of the
-                          feature can be metered.
+                          associated with and and based on which usage is calculated. The meter
+                          selected must have SUM or COUNT aggregation.
                     }
                 ]
         """
@@ -2020,6 +2034,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             404: ResourceNotFoundError,
             409: ResourceExistsError,
             304: ResourceNotModifiedError,
+            400: HttpResponseError,
             401: lambda response: ClientAuthenticationError(response=response),
         }
         error_map.update(kwargs.pop("error_map", {}) or {})
@@ -2065,9 +2080,15 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
     @overload
     async def create_feature(self, body: JSON, *, content_type: str = "application/json", **kwargs: Any) -> JSON:
         # pylint: disable=line-too-long
-        """Create feature.
+        """Create a feature.
 
-        Creates a feature.
+        Features are either metered or static. A feature is metered if meterSlug is provided at
+        creation.
+        For metered features you can pass additional filters that will be applied when calculating
+        feature usage, based on the meter's groupBy fields. Only meters with SUM and COUNT aggregation
+        are supported for features.
+
+        Features cannot be updated later, only archived.
 
         :param body: The feature to create. Required.
         :type body: JSON
@@ -2083,19 +2104,25 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
                 # JSON input template you can fill out and use as your body input.
                 body = {
-                    "key": "str",  # The unique key of the feature to reference it from your
-                      application. Required.
+                    "key": "str",  # The key is an immutable unique identifier of the feature
+                      used throughout the API, for example when interacting with a subject's
+                      entitlements. The key has to be unique across all active features, but archived
+                      features can share the same key. The key should consist of lowercase alphanumeric
+                      characters and dashes. Required.
                     "name": "str",  # The name of the feature. Required.
                     "metadata": {
-                        "str": "str"  # Optional. Additional metadata for the feature.
+                        "str": "str"  # Optional. Additional metadata for the feature, useful
+                          for syncing with external systems and annotating custom fields.
                     },
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
-                          the meter scope is broader than what feature tracks.
+                          the meter scope is broader than what feature tracks. Example scenario would
+                          be a meter tracking all token use with groupBy fields for the model, then the
+                          feature could filter for model=gpt-4.
                     },
                     "meterSlug": "str"  # Optional. The meter that the feature is associated with
-                      and decreases grants by usage. If present, the usage of the feature can be
-                      metered.
+                      and and based on which usage is calculated. The meter selected must have SUM or
+                      COUNT aggregation.
                 }
 
                 # response body for status code(s): 201
@@ -2103,34 +2130,46 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "createdAt": "2020-02-20 00:00:00",  # The date and time the resource was
                       created. Required.
                     "id": "str",  # Readonly unique ULID identifier. Required.
-                    "key": "str",  # The unique key of the feature to reference it from your
-                      application. Required.
+                    "key": "str",  # The key is an immutable unique identifier of the feature
+                      used throughout the API, for example when interacting with a subject's
+                      entitlements. The key has to be unique across all active features, but archived
+                      features can share the same key. The key should consist of lowercase alphanumeric
+                      characters and dashes. Required.
                     "name": "str",  # The name of the feature. Required.
                     "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
-                      last updated. Defaults to createdAt if not updated. Required.
+                      last updated. The initial value is the same as createdAt. Required.
                     "archivedAt": "2020-02-20 00:00:00",  # Optional. If the feature is archived,
-                      it will not be used for grants or usage.
+                      no new entitlements can be created for it.
                     "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time the
-                      resource was deleted. Null if not deleted.
+                      resource was deleted.
                     "metadata": {
-                        "str": "str"  # Optional. Additional metadata for the feature.
+                        "str": "str"  # Optional. Additional metadata for the feature, useful
+                          for syncing with external systems and annotating custom fields.
                     },
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
-                          the meter scope is broader than what feature tracks.
+                          the meter scope is broader than what feature tracks. Example scenario would
+                          be a meter tracking all token use with groupBy fields for the model, then the
+                          feature could filter for model=gpt-4.
                     },
                     "meterSlug": "str"  # Optional. The meter that the feature is associated with
-                      and decreases grants by usage. If present, the usage of the feature can be
-                      metered.
+                      and and based on which usage is calculated. The meter selected must have SUM or
+                      COUNT aggregation.
                 }
         """
 
     @overload
     async def create_feature(self, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any) -> JSON:
         # pylint: disable=line-too-long
-        """Create feature.
+        """Create a feature.
 
-        Creates a feature.
+        Features are either metered or static. A feature is metered if meterSlug is provided at
+        creation.
+        For metered features you can pass additional filters that will be applied when calculating
+        feature usage, based on the meter's groupBy fields. Only meters with SUM and COUNT aggregation
+        are supported for features.
+
+        Features cannot be updated later, only archived.
 
         :param body: The feature to create. Required.
         :type body: IO[bytes]
@@ -2149,34 +2188,46 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "createdAt": "2020-02-20 00:00:00",  # The date and time the resource was
                       created. Required.
                     "id": "str",  # Readonly unique ULID identifier. Required.
-                    "key": "str",  # The unique key of the feature to reference it from your
-                      application. Required.
+                    "key": "str",  # The key is an immutable unique identifier of the feature
+                      used throughout the API, for example when interacting with a subject's
+                      entitlements. The key has to be unique across all active features, but archived
+                      features can share the same key. The key should consist of lowercase alphanumeric
+                      characters and dashes. Required.
                     "name": "str",  # The name of the feature. Required.
                     "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
-                      last updated. Defaults to createdAt if not updated. Required.
+                      last updated. The initial value is the same as createdAt. Required.
                     "archivedAt": "2020-02-20 00:00:00",  # Optional. If the feature is archived,
-                      it will not be used for grants or usage.
+                      no new entitlements can be created for it.
                     "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time the
-                      resource was deleted. Null if not deleted.
+                      resource was deleted.
                     "metadata": {
-                        "str": "str"  # Optional. Additional metadata for the feature.
+                        "str": "str"  # Optional. Additional metadata for the feature, useful
+                          for syncing with external systems and annotating custom fields.
                     },
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
-                          the meter scope is broader than what feature tracks.
+                          the meter scope is broader than what feature tracks. Example scenario would
+                          be a meter tracking all token use with groupBy fields for the model, then the
+                          feature could filter for model=gpt-4.
                     },
                     "meterSlug": "str"  # Optional. The meter that the feature is associated with
-                      and decreases grants by usage. If present, the usage of the feature can be
-                      metered.
+                      and and based on which usage is calculated. The meter selected must have SUM or
+                      COUNT aggregation.
                 }
         """
 
     @distributed_trace_async
     async def create_feature(self, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
         # pylint: disable=line-too-long
-        """Create feature.
+        """Create a feature.
 
-        Creates a feature.
+        Features are either metered or static. A feature is metered if meterSlug is provided at
+        creation.
+        For metered features you can pass additional filters that will be applied when calculating
+        feature usage, based on the meter's groupBy fields. Only meters with SUM and COUNT aggregation
+        are supported for features.
+
+        Features cannot be updated later, only archived.
 
         :param body: The feature to create. Is either a JSON type or a IO[bytes] type. Required.
         :type body: JSON or IO[bytes]
@@ -2189,19 +2240,25 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
                 # JSON input template you can fill out and use as your body input.
                 body = {
-                    "key": "str",  # The unique key of the feature to reference it from your
-                      application. Required.
+                    "key": "str",  # The key is an immutable unique identifier of the feature
+                      used throughout the API, for example when interacting with a subject's
+                      entitlements. The key has to be unique across all active features, but archived
+                      features can share the same key. The key should consist of lowercase alphanumeric
+                      characters and dashes. Required.
                     "name": "str",  # The name of the feature. Required.
                     "metadata": {
-                        "str": "str"  # Optional. Additional metadata for the feature.
+                        "str": "str"  # Optional. Additional metadata for the feature, useful
+                          for syncing with external systems and annotating custom fields.
                     },
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
-                          the meter scope is broader than what feature tracks.
+                          the meter scope is broader than what feature tracks. Example scenario would
+                          be a meter tracking all token use with groupBy fields for the model, then the
+                          feature could filter for model=gpt-4.
                     },
                     "meterSlug": "str"  # Optional. The meter that the feature is associated with
-                      and decreases grants by usage. If present, the usage of the feature can be
-                      metered.
+                      and and based on which usage is calculated. The meter selected must have SUM or
+                      COUNT aggregation.
                 }
 
                 # response body for status code(s): 201
@@ -2209,25 +2266,31 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "createdAt": "2020-02-20 00:00:00",  # The date and time the resource was
                       created. Required.
                     "id": "str",  # Readonly unique ULID identifier. Required.
-                    "key": "str",  # The unique key of the feature to reference it from your
-                      application. Required.
+                    "key": "str",  # The key is an immutable unique identifier of the feature
+                      used throughout the API, for example when interacting with a subject's
+                      entitlements. The key has to be unique across all active features, but archived
+                      features can share the same key. The key should consist of lowercase alphanumeric
+                      characters and dashes. Required.
                     "name": "str",  # The name of the feature. Required.
                     "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
-                      last updated. Defaults to createdAt if not updated. Required.
+                      last updated. The initial value is the same as createdAt. Required.
                     "archivedAt": "2020-02-20 00:00:00",  # Optional. If the feature is archived,
-                      it will not be used for grants or usage.
+                      no new entitlements can be created for it.
                     "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time the
-                      resource was deleted. Null if not deleted.
+                      resource was deleted.
                     "metadata": {
-                        "str": "str"  # Optional. Additional metadata for the feature.
+                        "str": "str"  # Optional. Additional metadata for the feature, useful
+                          for syncing with external systems and annotating custom fields.
                     },
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
-                          the meter scope is broader than what feature tracks.
+                          the meter scope is broader than what feature tracks. Example scenario would
+                          be a meter tracking all token use with groupBy fields for the model, then the
+                          feature could filter for model=gpt-4.
                     },
                     "meterSlug": "str"  # Optional. The meter that the feature is associated with
-                      and decreases grants by usage. If present, the usage of the feature can be
-                      metered.
+                      and and based on which usage is calculated. The meter selected must have SUM or
+                      COUNT aggregation.
                 }
         """
         error_map = {
@@ -2291,7 +2354,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         # pylint: disable=line-too-long
         """Get feature.
 
-        Get feature by id.
+        Get a feature by id.
 
         :param feature_id: A unique ULID identifier for a feature. Required.
         :type feature_id: str
@@ -2307,25 +2370,31 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     "createdAt": "2020-02-20 00:00:00",  # The date and time the resource was
                       created. Required.
                     "id": "str",  # Readonly unique ULID identifier. Required.
-                    "key": "str",  # The unique key of the feature to reference it from your
-                      application. Required.
+                    "key": "str",  # The key is an immutable unique identifier of the feature
+                      used throughout the API, for example when interacting with a subject's
+                      entitlements. The key has to be unique across all active features, but archived
+                      features can share the same key. The key should consist of lowercase alphanumeric
+                      characters and dashes. Required.
                     "name": "str",  # The name of the feature. Required.
                     "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
-                      last updated. Defaults to createdAt if not updated. Required.
+                      last updated. The initial value is the same as createdAt. Required.
                     "archivedAt": "2020-02-20 00:00:00",  # Optional. If the feature is archived,
-                      it will not be used for grants or usage.
+                      no new entitlements can be created for it.
                     "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time the
-                      resource was deleted. Null if not deleted.
+                      resource was deleted.
                     "metadata": {
-                        "str": "str"  # Optional. Additional metadata for the feature.
+                        "str": "str"  # Optional. Additional metadata for the feature, useful
+                          for syncing with external systems and annotating custom fields.
                     },
                     "meterGroupByFilters": {
                         "str": "str"  # Optional. Optional meter group by filters. Useful if
-                          the meter scope is broader than what feature tracks.
+                          the meter scope is broader than what feature tracks. Example scenario would
+                          be a meter tracking all token use with groupBy fields for the model, then the
+                          feature could filter for model=gpt-4.
                     },
                     "meterSlug": "str"  # Optional. The meter that the feature is associated with
-                      and decreases grants by usage. If present, the usage of the feature can be
-                      metered.
+                      and and based on which usage is calculated. The meter selected must have SUM or
+                      COUNT aggregation.
                 }
         """
         error_map = {
@@ -2375,9 +2444,12 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
     async def delete_feature(  # pylint: disable=inconsistent-return-statements
         self, feature_id: str, **kwargs: Any
     ) -> None:
-        """Delete feature.
+        """Archive a feature.
 
-        Delete a feature by key.
+        Once a feature is archived it cannot be unarchived. If a feature is archived, new entitlements
+        cannot be created for it, but archiving the feature does not affect existing entitlements. This
+        means, if you want to create a new feature with the same key, and then create entitlements for
+        it, the previous entitlements have to be deleted first on a per subject basis.
 
         :param feature_id: A unique ULID identifier for a feature. Required.
         :type feature_id: str
@@ -2434,7 +2506,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         # pylint: disable=line-too-long
         """List grants.
 
-        List all grants.
+        List all grants for all the subjects and entitlements. This endpoint is intended for
+        administrative purposes only. To fetch the grants of a specific entitlement please use the
+        /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
 
         :keyword limit: Number of entries to return. Default value is 1000.
         :paramtype limit: int
@@ -2473,9 +2547,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         },
                         "id": "str",  # Readonly unique ULID identifier. Required.
                         "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource
-                          was last updated. Defaults to createdAt if not updated. Required.
+                          was last updated. The initial value is the same as createdAt. Required.
                         "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time
-                          the resource was deleted. Null if not deleted.
+                          the resource was deleted.
                         "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date
                           of the grant.
                         "maxRolloverAmount": 0,  # Optional. Default value is 0. Grants are
@@ -2563,9 +2637,17 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
     @distributed_trace_async
     async def void_grant(self, grant_id: str, **kwargs: Any) -> Optional[JSON]:
-        """Delete a grant.
+        """Void a grant.
 
-        Void (delete) a grant. A grant can only be deleted if it hasn't been used.
+        Voiding a grant means it is no longer valid, it doesn't take part in further balance
+        calculations. Voiding a grant does not retroactively take effect, meaning any usage that has
+        already been attributed to the grant will remain, but future usage cannot be burnt down from
+        the grant.
+
+        For example, if you have a single grant for your metered entitlement with an initial amount of
+        100, and so far 60 usage has been metered, the grant (and the entitlement itself) would have a
+        balance of 40. If you then void that grant, balance becomes 0, but the 60 previous usage will
+        not be affected.
 
         :param grant_id: A unique identifier for a grant. Required.
         :type grant_id: str
@@ -2644,9 +2726,26 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
     async def create_entitlement(
         self, subject_id_or_key: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
     ) -> JSON:
-        """Create entitlement.
+        """Create an entitlement.
 
-        Create an entitlement for a subject.
+        OpenMeter has three types of entitlements: metered, boolean, and static. The type property
+        determines the type of entitlement. The underlying feature has to be compatible with the
+        entitlement type specified in the request (e.g., a metered entitlement needs a feature
+        associated with a meter).
+
+
+        * Boolean entitlements define static feature access, e.g. "Can use SSO authentication".
+        * Static entitlements let you pass along a configuration while granting access, e.g. "Using
+        this feature with X Y settings" (passed in the config).
+        * Metered entitlements have many use cases, from setting up usage-based access to implementing
+        complex credit systems.  Example: The customer can use 10000 AI tokens during the usage period
+        of the entitlement.
+
+        A given subject can only have one active (non-deleted) entitlement per featureKey. If you try
+        to create a new entitlement for a featureKey that already has an active entitlement, the
+        request will fail with a 409 error.
+
+        Once an entitlement is created you cannot modify it, only delete it.
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
@@ -2688,9 +2787,26 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
     async def create_entitlement(
         self, subject_id_or_key: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
     ) -> JSON:
-        """Create entitlement.
+        """Create an entitlement.
 
-        Create an entitlement for a subject.
+        OpenMeter has three types of entitlements: metered, boolean, and static. The type property
+        determines the type of entitlement. The underlying feature has to be compatible with the
+        entitlement type specified in the request (e.g., a metered entitlement needs a feature
+        associated with a meter).
+
+
+        * Boolean entitlements define static feature access, e.g. "Can use SSO authentication".
+        * Static entitlements let you pass along a configuration while granting access, e.g. "Using
+        this feature with X Y settings" (passed in the config).
+        * Metered entitlements have many use cases, from setting up usage-based access to implementing
+        complex credit systems.  Example: The customer can use 10000 AI tokens during the usage period
+        of the entitlement.
+
+        A given subject can only have one active (non-deleted) entitlement per featureKey. If you try
+        to create a new entitlement for a featureKey that already has an active entitlement, the
+        request will fail with a 409 error.
+
+        Once an entitlement is created you cannot modify it, only delete it.
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
@@ -2727,9 +2843,26 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
     @distributed_trace_async
     async def create_entitlement(self, subject_id_or_key: str, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
-        """Create entitlement.
+        """Create an entitlement.
 
-        Create an entitlement for a subject.
+        OpenMeter has three types of entitlements: metered, boolean, and static. The type property
+        determines the type of entitlement. The underlying feature has to be compatible with the
+        entitlement type specified in the request (e.g., a metered entitlement needs a feature
+        associated with a meter).
+
+
+        * Boolean entitlements define static feature access, e.g. "Can use SSO authentication".
+        * Static entitlements let you pass along a configuration while granting access, e.g. "Using
+        this feature with X Y settings" (passed in the config).
+        * Metered entitlements have many use cases, from setting up usage-based access to implementing
+        complex credit systems.  Example: The customer can use 10000 AI tokens during the usage period
+        of the entitlement.
+
+        A given subject can only have one active (non-deleted) entitlement per featureKey. If you try
+        to create a new entitlement for a featureKey that already has an active entitlement, the
+        request will fail with a 409 error.
+
+        Once an entitlement is created you cannot modify it, only delete it.
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
@@ -2831,9 +2964,10 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
     async def list_subject_entitlements(
         self, subject_id_or_key: str, *, include_deleted: bool = False, **kwargs: Any
     ) -> List[JSON]:
-        """List entitlements.
+        """List entitlements of a subject.
 
-        List all entitlements for a subject.
+        List all entitlements for a subject. For checking entitlement access, use the /value endpoint
+        instead.
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
@@ -2897,9 +3031,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
     @distributed_trace_async
     async def get_entitlement(self, subject_id_or_key: str, entitlement_id: str, **kwargs: Any) -> JSON:
-        """Get entitlement.
+        """Get an entitlement.
 
-        Get entitlement by id.
+        Get entitlement by id. For checking entitlement access, use the /value endpoint instead.
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
@@ -2966,9 +3100,15 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
     async def delete_entitlement(  # pylint: disable=inconsistent-return-statements
         self, subject_id_or_key: str, entitlement_id: str, **kwargs: Any
     ) -> None:
-        """Delete entitlement.
+        """Delete an entitlement.
 
-        Delete an entitlement by id.
+        Deleting an entitlement revokes access to the associated feature. As a single subject can only
+        have one entitlement per featureKey, when "migrating" features you have to delete the old
+        entitlements as well.
+        As access and status checks can be historical queries, deleting an entitlement populates the
+        deletedAt timestamp. When queried for a time before that, the entitlement is still considered
+        active, you cannot have retroactive changes to access, which is important for, among other
+        things, auditing.
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
@@ -3028,7 +3168,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         # pylint: disable=line-too-long
         """List grants for an entitlement.
 
-        List all grants for an entitlement.
+        List all grants issued for an entitlement. This endpoint is intended for administrative
+        purposes.
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
@@ -3067,9 +3208,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         },
                         "id": "str",  # Readonly unique ULID identifier. Required.
                         "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource
-                          was last updated. Defaults to createdAt if not updated. Required.
+                          was last updated. The initial value is the same as createdAt. Required.
                         "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time
-                          the resource was deleted. Null if not deleted.
+                          the resource was deleted.
                         "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date
                           of the grant.
                         "maxRolloverAmount": 0,  # Optional. Default value is 0. Grants are
@@ -3166,9 +3307,29 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         **kwargs: Any
     ) -> JSON:
         # pylint: disable=line-too-long
-        """Create grant.
+        """Create a grant.
 
-        Create a grant for an entitlement.
+        Grants define a behavior of granting usage for a metered entitlement. They can have complicated
+        recurrence and rollover rules, thanks to which you can define a wide range of access patterns
+        with a single grant, in most cases you don't have to periodically create new grants. You can
+        only issue grants for active metered entitlements.
+
+        A grant defines a given amount of usage that can be consumed for the entitlement. The grant is
+        in effect between its effective date and its expiration date. Specifying both is mandatory for
+        new grants.
+
+        Grants have a priority setting that determines their order of use. Lower numbers have higher
+        priority, with 0 being the highest priority.
+
+        Grants can have a recurrence setting intended to automate the manual reissuing of grants. For
+        example, a daily recurrence is equal to reissuing that same grant every day (ignoring rollover
+        settings).
+
+        Rollover settings define what happens to the remaining balance of a grant at a reset.
+        Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+
+        Grants cannot be changed once created, only deleted. This is to ensure that balance is
+        deterministic regardless of when it is queried.
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
@@ -3247,9 +3408,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     },
                     "id": "str",  # Readonly unique ULID identifier. Required.
                     "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
-                      last updated. Defaults to createdAt if not updated. Required.
+                      last updated. The initial value is the same as createdAt. Required.
                     "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time the
-                      resource was deleted. Null if not deleted.
+                      resource was deleted.
                     "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
                       grant.
                     "maxRolloverAmount": 0,  # Optional. Default value is 0. Grants are rolled
@@ -3300,9 +3461,29 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         **kwargs: Any
     ) -> JSON:
         # pylint: disable=line-too-long
-        """Create grant.
+        """Create a grant.
 
-        Create a grant for an entitlement.
+        Grants define a behavior of granting usage for a metered entitlement. They can have complicated
+        recurrence and rollover rules, thanks to which you can define a wide range of access patterns
+        with a single grant, in most cases you don't have to periodically create new grants. You can
+        only issue grants for active metered entitlements.
+
+        A grant defines a given amount of usage that can be consumed for the entitlement. The grant is
+        in effect between its effective date and its expiration date. Specifying both is mandatory for
+        new grants.
+
+        Grants have a priority setting that determines their order of use. Lower numbers have higher
+        priority, with 0 being the highest priority.
+
+        Grants can have a recurrence setting intended to automate the manual reissuing of grants. For
+        example, a daily recurrence is equal to reissuing that same grant every day (ignoring rollover
+        settings).
+
+        Rollover settings define what happens to the remaining balance of a grant at a reset.
+        Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+
+        Grants cannot be changed once created, only deleted. This is to ensure that balance is
+        deterministic regardless of when it is queried.
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
@@ -3337,9 +3518,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     },
                     "id": "str",  # Readonly unique ULID identifier. Required.
                     "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
-                      last updated. Defaults to createdAt if not updated. Required.
+                      last updated. The initial value is the same as createdAt. Required.
                     "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time the
-                      resource was deleted. Null if not deleted.
+                      resource was deleted.
                     "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
                       grant.
                     "maxRolloverAmount": 0,  # Optional. Default value is 0. Grants are rolled
@@ -3384,9 +3565,29 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         self, subject_id_or_key: str, entitlement_id: str, body: Union[JSON, IO[bytes]], **kwargs: Any
     ) -> JSON:
         # pylint: disable=line-too-long
-        """Create grant.
+        """Create a grant.
 
-        Create a grant for an entitlement.
+        Grants define a behavior of granting usage for a metered entitlement. They can have complicated
+        recurrence and rollover rules, thanks to which you can define a wide range of access patterns
+        with a single grant, in most cases you don't have to periodically create new grants. You can
+        only issue grants for active metered entitlements.
+
+        A grant defines a given amount of usage that can be consumed for the entitlement. The grant is
+        in effect between its effective date and its expiration date. Specifying both is mandatory for
+        new grants.
+
+        Grants have a priority setting that determines their order of use. Lower numbers have higher
+        priority, with 0 being the highest priority.
+
+        Grants can have a recurrence setting intended to automate the manual reissuing of grants. For
+        example, a daily recurrence is equal to reissuing that same grant every day (ignoring rollover
+        settings).
+
+        Rollover settings define what happens to the remaining balance of a grant at a reset.
+        Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset, MinRolloverAmount))
+
+        Grants cannot be changed once created, only deleted. This is to ensure that balance is
+        deterministic regardless of when it is queried.
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
@@ -3462,9 +3663,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                     },
                     "id": "str",  # Readonly unique ULID identifier. Required.
                     "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource was
-                      last updated. Defaults to createdAt if not updated. Required.
+                      last updated. The initial value is the same as createdAt. Required.
                     "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time the
-                      resource was deleted. Null if not deleted.
+                      resource was deleted.
                     "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date of the
                       grant.
                     "maxRolloverAmount": 0,  # Optional. Default value is 0. Grants are rolled
@@ -3570,9 +3771,14 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         time: Optional[datetime.datetime] = None,
         **kwargs: Any
     ) -> JSON:
-        """Get the balance of a specific entitlement.
+        # pylint: disable=line-too-long
+        """Get the current value and access of an entitlement.
 
-        Get the balance of a specific entitlement.
+        This endpoint should be used for access checks and enforcement. All entitlement types share the
+        hasAccess property in their value response, but multiple other properties are returned based on
+        the entitlement type.
+
+        For convenience reasons, /value works with both entitlementId and featureKey.
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
@@ -3591,14 +3797,20 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
                 # response body for status code(s): 200
                 response == {
-                    "hasAccess": bool,  # Whether the subject has access to the feature.
-                      Required.
-                    "balance": 0.0,  # Optional. The balance of a metered entitlement.
-                    "config": "str",  # Optional. The JSON parseable configuration value of a
-                      static entitlement.
-                    "overage": 0.0,  # Optional. The overage of a metered entitlement.
-                    "usage": 0.0  # Optional. Total usage of the feature in the period. Includes
-                      overages.
+                    "hasAccess": bool,  # Whether the subject has access to the feature. Shared
+                      accross all entitlement types. Required.
+                    "balance": 0.0,  # Optional. Only available for metered entitlements. Metered
+                      entitlements are built around a balance calculation where feature usage is
+                      deducted from the issued grants. Balance represents the remaining balance of the
+                      entitlement, it's value never turns negative.
+                    "config": "str",  # Optional. Only available for static entitlements. The
+                      JSON parsable config of the entitlement.
+                    "overage": 0.0,  # Optional. Only available for metered entitlements. Overage
+                      represents the usage that wasn't covered by grants, e.g. if the subject had a
+                      total feature usage of 100 in the period but they were only granted 80, there
+                      would be 20 overage.
+                    "usage": 0.0  # Optional. Only available for metered entitlements. Returns
+                      the total feature usage in the current period.
                 }
         """
         error_map = {
@@ -3662,10 +3874,14 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         # pylint: disable=line-too-long
         """Get the balance history of a specific entitlement.
 
-        Get the balance history of a specific entitlement.
+        Returns historical balance and usage data for the entitlement. The queried history can span
+        accross multiple reset events.
 
-        The windows are inclusive at their start and exclusive at their end.
-        The last window may be smaller than the window size and is inclusive at both ends.
+        BurndownHistory returns a continous history of segments, where the segments are seperated by
+        events that changed either the grant burndown priority or the usage period.
+
+        WindowedHistory returns windowed usage data for the period enriched with balance information
+        and the list of grants that were being burnt down in that window.
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
@@ -3807,9 +4023,16 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         **kwargs: Any
     ) -> None:
         # pylint: disable=line-too-long
-        """Reset entitlement.
+        """Reset an entitlement.
 
-        Reset the entitlement usage and start a new period. Grants that can be are rolled over.
+        Reset marks the start of a new usage period for the entitlement and initiates grant rollover.
+        At the start of a period usage is zerod out and grants are rolled over based on their rollover
+        settings. It would typically be synced with the subjects billing period to enforce usage based
+        on their subscription.
+
+        Usage is automatically reset for metered entitlements based on their usage period, but this
+        endpoint allows to manually reset it at any time. When doing so the period anchor of the
+        entitlement can be changed if needed.
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
@@ -3831,10 +4054,12 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 body = {
                     "effectiveAt": "2020-02-20 00:00:00",  # Optional. The time at which the
                       reset takes effect, defaults to now. The reset cannot be in the future. The
-                      provided value is truncated to the granularity of the underlying meter.
-                    "retainAnchor": bool  # Optional. Should the reset retain the usage period
-                      anchor. If true, the usage period anchor is retained. If false, the usage period
-                      anchor is reset to the effectiveAt time.
+                      provided value is truncated to the minute due to how historical meter data is
+                      stored.
+                    "retainAnchor": bool  # Optional. Determines whether the usage period anchor
+                      is retained or reset to the effectiveAt time.   * If true, the usage period
+                      anchor is retained. * If false, the usage period anchor is reset to the
+                      effectiveAt time.
                 }
         """
 
@@ -3848,9 +4073,16 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         content_type: str = "application/json",
         **kwargs: Any
     ) -> None:
-        """Reset entitlement.
+        """Reset an entitlement.
 
-        Reset the entitlement usage and start a new period. Grants that can be are rolled over.
+        Reset marks the start of a new usage period for the entitlement and initiates grant rollover.
+        At the start of a period usage is zerod out and grants are rolled over based on their rollover
+        settings. It would typically be synced with the subjects billing period to enforce usage based
+        on their subscription.
+
+        Usage is automatically reset for metered entitlements based on their usage period, but this
+        endpoint allows to manually reset it at any time. When doing so the period anchor of the
+        entitlement can be changed if needed.
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
@@ -3871,9 +4103,16 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         self, subject_id_or_key: str, entitlement_id: str, body: Union[JSON, IO[bytes]], **kwargs: Any
     ) -> None:
         # pylint: disable=line-too-long
-        """Reset entitlement.
+        """Reset an entitlement.
 
-        Reset the entitlement usage and start a new period. Grants that can be are rolled over.
+        Reset marks the start of a new usage period for the entitlement and initiates grant rollover.
+        At the start of a period usage is zerod out and grants are rolled over based on their rollover
+        settings. It would typically be synced with the subjects billing period to enforce usage based
+        on their subscription.
+
+        Usage is automatically reset for metered entitlements based on their usage period, but this
+        endpoint allows to manually reset it at any time. When doing so the period anchor of the
+        entitlement can be changed if needed.
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
@@ -3892,10 +4131,12 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                 body = {
                     "effectiveAt": "2020-02-20 00:00:00",  # Optional. The time at which the
                       reset takes effect, defaults to now. The reset cannot be in the future. The
-                      provided value is truncated to the granularity of the underlying meter.
-                    "retainAnchor": bool  # Optional. Should the reset retain the usage period
-                      anchor. If true, the usage period anchor is retained. If false, the usage period
-                      anchor is reset to the effectiveAt time.
+                      provided value is truncated to the minute due to how historical meter data is
+                      stored.
+                    "retainAnchor": bool  # Optional. Determines whether the usage period anchor
+                      is retained or reset to the effectiveAt time.   * If true, the usage period
+                      anchor is retained. * If false, the usage period anchor is reset to the
+                      effectiveAt time.
                 }
         """
         error_map = {

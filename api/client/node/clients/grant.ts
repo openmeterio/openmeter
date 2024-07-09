@@ -33,4 +33,22 @@ export class GrantClient extends BaseClient {
       options,
     })
   }
+
+  /**
+   * Void a grant
+   * @description
+   * Voiding a grant means it is no longer valid, it doesn't take part in further balance calculations. Voiding a grant does not retroactively take effect, meaning any usage that has already been attributed to the grant will remain, but future usage cannot be burnt down from the grant.
+   * @example
+   * const grant = await openmeter.grants.list()
+   */
+  public async delete(
+    id: string,
+    options?: RequestOptions
+  ): Promise<EntitlementGrant[]> {
+    return await this.request({
+      method: 'DELETE',
+      path: `/api/v1/grants/${id}`,
+      options,
+    })
+  }
 }
