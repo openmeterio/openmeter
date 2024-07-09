@@ -1,6 +1,7 @@
 package httpdriver
 
 import (
+	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/entitlement/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
@@ -37,4 +38,8 @@ func NewMeteredEntitlementHandler(
 	options ...httptransport.HandlerOption,
 ) MeteredEntitlementHandler {
 	return httpdriver.NewMeteredEntitlementHandler(entitlementConnector, meteredEntitlementConnector, namespaceDecoder, options...)
+}
+
+func MapEntitlementValueToAPI(entitlementValue entitlement.EntitlementValue) (api.EntitlementValue, error) {
+	return httpdriver.MapEntitlementValueToAPI(entitlementValue)
 }
