@@ -43,6 +43,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Required as a workaround for Dagger to properly detect Git metadata
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
       - name: Run pipeline
         uses: dagger/dagger-for-github@11048419d80c283890d0dd68187d44541f63dd89 # v5.11.0
         with:
@@ -71,6 +75,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Required as a workaround for Dagger to properly detect Git metadata
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
       - name: Run pipeline
         uses: dagger/dagger-for-github@11048419d80c283890d0dd68187d44541f63dd89 # v5.11.0
         with:
@@ -218,6 +226,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Required as a workaround for Dagger to properly detect Git metadata
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
       - name: Free Disk Space
         uses: jlumbroso/free-disk-space@v1.3.1
         with:
@@ -261,6 +273,10 @@ jobs:
     runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
 
     steps:
+      # Required as a workaround for Dagger to properly detect Git metadata
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
       - name: Free Disk Space
         uses: jlumbroso/free-disk-space@v1.3.1
         with:
