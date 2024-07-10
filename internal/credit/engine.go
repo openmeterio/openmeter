@@ -14,6 +14,10 @@ import (
 )
 
 type Engine interface {
+	// Burns down all grants in the defined period by the usage amounts.
+	//
+	// When the engine outputs a balance, it doesn't discriminate what should be in that balance.
+	// If a grant is inactive at the end of the period, it will still be in the output.
 	Run(ctx context.Context, grants []Grant, startingBalances GrantBalanceMap, startingOverage float64, period recurrence.Period) (endingBalances GrantBalanceMap, endingOverage float64, history []GrantBurnDownHistorySegment, err error)
 }
 
@@ -43,9 +47,12 @@ type engine struct {
 var _ Engine = (*engine)(nil)
 
 // Burns down all grants in the defined period by the usage amounts.
+//
+// When the engine outputs a balance, it doesn't discriminate what should be in that balance.
+// If a grant is inactive at the end of the period, it will still be in the output.
 func (e *engine) Run(ctx context.Context, grants []Grant, startingBalances GrantBalanceMap, overage float64, period recurrence.Period) (GrantBalanceMap, float64, []GrantBurnDownHistorySegment, error) {
 	if !startingBalances.ExactlyForGrants(grants) {
-		return nil, 0, nil, fmt.Errorf("provided grants and balances don't pair up, grants: %v, balances: %v", grants, startingBalances)
+		return nil, 0, nil, fmt.Errorf("provided grants and balances don't pair up, grants: %+v, balances: %+v", grants, startingBalances)
 	}
 
 	e.grants = grants
@@ -62,17 +69,17 @@ func (e *engine) Run(ctx context.Context, grants []Grant, startingBalances Grant
 	// Only respect balances that we know the grants of, otherwise we cannot guarantee
 	// that the output balance is correct for said grants.
 	balancesAtPhaseStart := startingBalances.Copy()
-	{
-		knownGrants := make(map[string]struct{})
-		for _, grant := range grants {
-			knownGrants[grant.ID] = struct{}{}
-		}
-		for grantID := range balancesAtPhaseStart {
-			if _, ok := knownGrants[grantID]; !ok {
-				delete(balancesAtPhaseStart, grantID)
-			}
-		}
-	}
+	// {
+	// 	knownGrants := make(map[string]struct{})
+	// 	for _, grant := range grants {
+	// 		knownGrants[grant.ID] = struct{}{}
+	// 	}
+	// 	for grantID := range balancesAtPhaseStart {
+	// 		if _, ok := knownGrants[grantID]; !ok {
+	// 			delete(balancesAtPhaseStart, grantID)
+	// 		}
+	// 	}
+	// }
 
 	rePrioritize := false
 	recurredGrants := []string{}
