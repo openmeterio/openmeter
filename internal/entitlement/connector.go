@@ -23,6 +23,7 @@ type ListEntitlementsParams struct {
 	Namespaces     []string
 	SubjectKey     string
 	FeatureIDs     []string
+	FeatureKeys    []string
 	Limit          int
 	Offset         int
 	OrderBy        ListEntitlementsOrderBy
