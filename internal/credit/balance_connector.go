@@ -138,7 +138,16 @@ func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner Namespac
 	//
 	// FIXME: we should do this comparison not with the queried time but the current time...
 	if snap, err := m.getLastSaveableSnapshotAt(history, balance, at); err == nil {
-		err := m.balanceSnapshotConnector.Save(ctx, owner, []GrantBalanceSnapshot{
+		grantMap := make(map[string]Grant, len(grants))
+		for _, grant := range grants {
+			grantMap[grant.ID] = grant
+		}
+		activeBalance, err := m.excludeInactiveGrantsFromBalance(snap.Balances, grantMap, at)
+		if err != nil {
+			return nil, err
+		}
+		snap.Balances = *activeBalance
+		err = m.balanceSnapshotConnector.Save(ctx, owner, []GrantBalanceSnapshot{
 			*snap,
 		})
 		if err != nil {
@@ -463,6 +472,25 @@ func (m *balanceConnector) getLastSaveableSnapshotAt(history *GrantBurnDownHisto
 	}
 
 	return nil, fmt.Errorf("no segment can be saved at %s with gracePeriod %s", at, m.snapshotGracePeriod)
+}
+
+func (m *balanceConnector) excludeInactiveGrantsFromBalance(balances GrantBalanceMap, grants map[string]Grant, at time.Time) (*GrantBalanceMap, error) {
+	filtered := &GrantBalanceMap{}
+	for grantID, grantBalance := range balances {
+		grant, ok := grants[grantID]
+		// inconsistency check, shouldn't happen
+		if !ok {
+			return nil, fmt.Errorf("attempting to roll over unknown grant %s", grantID)
+		}
+
+		// grants might become inactive at the reset time, in which case they're irrelevant for the next period
+		if !grant.ActiveAt(at) {
+			continue
+		}
+
+		filtered.Set(grantID, grantBalance)
+	}
+	return filtered, nil
 }
 
 // Fills in the snapshot's GrantBalanceMap with the provided grants so the Engine can use them.
