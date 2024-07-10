@@ -69,17 +69,6 @@ func (e *engine) Run(ctx context.Context, grants []Grant, startingBalances Grant
 	// Only respect balances that we know the grants of, otherwise we cannot guarantee
 	// that the output balance is correct for said grants.
 	balancesAtPhaseStart := startingBalances.Copy()
-	// {
-	// 	knownGrants := make(map[string]struct{})
-	// 	for _, grant := range grants {
-	// 		knownGrants[grant.ID] = struct{}{}
-	// 	}
-	// 	for grantID := range balancesAtPhaseStart {
-	// 		if _, ok := knownGrants[grantID]; !ok {
-	// 			delete(balancesAtPhaseStart, grantID)
-	// 		}
-	// 	}
-	// }
 
 	rePrioritize := false
 	recurredGrants := []string{}

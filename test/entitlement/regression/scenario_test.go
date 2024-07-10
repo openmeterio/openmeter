@@ -278,9 +278,6 @@ func TestGrantExpiringAndRecurringAtReset(t *testing.T) {
 	assert.Equal(0.0, currentBalance.Balance)
 }
 
-// 01J1SD728MJGYS7D4JS9C1GH3V
-// 01J1SD3QDV86GP77TQ4PZZ4EXE
-
 func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 	defer clock.ResetTime()
 	deps := setupDependencies(t)
