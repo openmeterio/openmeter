@@ -55,6 +55,24 @@ func (g GrantBalanceMap) ExactlyForGrants(grants []Grant) bool {
 	return true
 }
 
+func (g GrantBalanceMap) ActiveBalances(grantMap map[string]Grant, at time.Time) (GrantBalanceMap, error) {
+	filtered := GrantBalanceMap{}
+	for grantID, grantBalance := range g {
+		grant, ok := grantMap[grantID]
+		// inconsistency check, shouldn't happen
+		if !ok {
+			return nil, fmt.Errorf("received balance for unknown grant: %s", grantID)
+		}
+
+		if !grant.ActiveAt(at) {
+			continue
+		}
+
+		filtered.Set(grantID, grantBalance)
+	}
+	return filtered, nil
+}
+
 type GrantBalanceSnapshot struct {
 	Balances GrantBalanceMap
 	Overage  float64
