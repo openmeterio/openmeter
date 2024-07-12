@@ -35,7 +35,7 @@ type BalanceHistoryParams struct {
 
 func NewBalanceConnector(
 	grantRepo GrantRepo,
-	balanceSnapshotConnector BalanceSnapshotRepo,
+	balanceSnapshotConnector BalanceSnapshotConnector,
 	ownerConnector OwnerConnector,
 	streamingConnector streaming.Connector,
 	logger *slog.Logger,
@@ -55,7 +55,7 @@ func NewBalanceConnector(
 type balanceConnector struct {
 	// grants and balance snapshots are managed in this same package
 	grantRepo                GrantRepo
-	balanceSnapshotConnector BalanceSnapshotRepo
+	balanceSnapshotConnector BalanceSnapshotConnector
 	// external dependencies
 	ownerConnector     OwnerConnector
 	streamingConnector streaming.Connector
@@ -339,22 +339,25 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 		Overage:  0.0, // Overage is forgiven at reset
 	}
 
-	// FIXME: this is a bad hack to be able to pass around transactions on the connector level.
-	// We should introduce an abstraction, maybe an AtomicOperation with something like an AtimicityGuarantee
-	// (these would practically mirror entutils.TxUser & entutils.TxDriver) and then write an implementation of the
-	// using the ent transactions we have.
-	_, err = entutils.StartAndRunTx(ctx, m.balanceSnapshotConnector, func(txCtx context.Context, tx *entutils.TxDriver) (*GrantBalanceSnapshot, error) {
-		err := m.ownerConnector.LockOwnerForTx(ctx, tx, owner)
+	ctx, txDriver, err := m.createTransaction(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create transaction: %w", err)
+	}
+
+	_, err = entutils.RunInTransaction(ctx, txDriver, func(ctx context.Context, txDriver *entutils.TxDriver) (*GrantBalanceSnapshot, error) {
+		txCtx := entutils.NewTxContext(ctx, txDriver)
+
+		err := m.ownerConnector.LockOwnerForTx(txCtx, txDriver, owner)
 		if err != nil {
 			return nil, fmt.Errorf("failed to lock owner %s: %w", owner.ID, err)
 		}
 
-		err = m.balanceSnapshotConnector.WithTx(txCtx, tx).Save(ctx, owner, []GrantBalanceSnapshot{startingSnapshot})
+		err = m.balanceSnapshotConnector.Save(txCtx, owner, []GrantBalanceSnapshot{startingSnapshot})
 		if err != nil {
 			return nil, fmt.Errorf("failed to save balance for owner %s at %s: %w", owner.ID, at, err)
 		}
 
-		err = m.ownerConnector.EndCurrentUsagePeriodTx(ctx, tx, owner, EndCurrentUsagePeriodParams{
+		err = m.ownerConnector.EndCurrentUsagePeriodTx(txCtx, txDriver, owner, EndCurrentUsagePeriodParams{
 			At:           at,
 			RetainAnchor: params.RetainAnchor,
 		})
@@ -452,7 +455,6 @@ func (m *balanceConnector) getQueryUsageFn(ctx context.Context, owner Namespaced
 }
 
 // Returns a snapshot from the last segment that can be saved, taking the following into account:
-//
 //  1. We can save a segment if it is older than graceperiod.
 //  2. At the end of a segment history changes: s1.endBalance <> s2.startBalance. This means only the
 //     starting values can be saved credibly.
@@ -504,6 +506,12 @@ func (m *balanceConnector) populateBalanceSnapshotWithMissingGrantsActiveAt(snap
 			}
 		}
 	}
+}
+
+func (m *balanceConnector) createTransaction(ctx context.Context) (txCtx context.Context, txDriver *entutils.TxDriver, err error) {
+	// We're agnostic to what creates the transaction
+	txCtx, txDriver, err = m.grantRepo.Tx(ctx)
+	return
 }
 
 // Returns a list of non-overlapping periods between the sorted times.

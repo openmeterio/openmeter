@@ -314,10 +314,11 @@ func main() {
 		entitlementRepo := entitlementpgadapter.NewPostgresEntitlementRepo(pgClients.entitlementDBClient)
 		usageResetRepo := entitlementpgadapter.NewPostgresUsageResetRepo(pgClients.entitlementDBClient)
 		grantRepo := creditpgadapter.NewPostgresGrantRepo(pgClients.creditDBClient)
-		balanceSnashotRepo := creditpgadapter.NewPostgresBalanceSnapshotRepo(pgClients.creditDBClient)
+		balanceSnapshotRepo := creditpgadapter.NewPostgresBalanceSnapshotRepo(pgClients.creditDBClient)
 
 		// connectors
 		featureConnector = productcatalog.NewFeatureConnector(featureRepo, meterRepository)
+		balanceSnapshotConnector := credit.NewBalanceSnapshotConnector(balanceSnapshotRepo)
 		entitlementOwnerConnector := meteredentitlement.NewEntitlementGrantOwnerAdapter(
 			featureRepo,
 			entitlementRepo,
@@ -327,7 +328,7 @@ func main() {
 		)
 		creditBalanceConnector := credit.NewBalanceConnector(
 			grantRepo,
-			balanceSnashotRepo,
+			balanceSnapshotConnector,
 			entitlementOwnerConnector,
 			streamingConnector,
 			logger,
@@ -335,7 +336,7 @@ func main() {
 		creditGrantConnector = credit.NewGrantConnector(
 			entitlementOwnerConnector,
 			grantRepo,
-			balanceSnashotRepo,
+			balanceSnapshotRepo,
 			time.Minute,
 		)
 		meteredEntitlementConnector = meteredentitlement.NewMeteredEntitlementConnector(

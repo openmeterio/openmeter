@@ -206,7 +206,7 @@ func (e *entitlementGrantOwner) LockOwnerForTx(ctx context.Context, tx *entutils
 	return e.entitlementRepo.WithTx(ctx, tx).LockEntitlementForTx(ctx, owner.NamespacedID())
 }
 
-// FIXME: this is a terrible hack to conditionally catch transactions
+// FIXME: this should be hidden and happen on the repository level
 func getRepoMaybeInTx[T any](ctx context.Context, repo T, txUser entutils.TxUser[T]) T {
 	if ctxTx, err := entutils.GetTxDriver(ctx); err == nil {
 		// we're already in a tx

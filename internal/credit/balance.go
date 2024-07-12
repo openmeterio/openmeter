@@ -1,6 +1,9 @@
 package credit
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 // Represents a point in time balance of grants
 type GrantBalanceMap map[string]float64
@@ -52,12 +55,6 @@ func (g GrantBalanceMap) ExactlyForGrants(grants []Grant) bool {
 	return true
 }
 
-func (g GrantBalanceMap) OverrideWith(gbm GrantBalanceMap) {
-	for k, v := range gbm {
-		g[k] = v
-	}
-}
-
 type GrantBalanceSnapshot struct {
 	Balances GrantBalanceMap
 	Overage  float64
@@ -66,4 +63,14 @@ type GrantBalanceSnapshot struct {
 
 func (g GrantBalanceSnapshot) Balance() float64 {
 	return g.Balances.Balance()
+}
+
+// No balance has been saved since start of measurement for the owner
+type GrantBalanceNoSavedBalanceForOwnerError struct {
+	Owner NamespacedGrantOwner
+	Time  time.Time
+}
+
+func (e GrantBalanceNoSavedBalanceForOwnerError) Error() string {
+	return fmt.Sprintf("no saved balance for owner %s in namespace %s before %s", e.Owner.ID, e.Owner.Namespace, e.Time)
 }

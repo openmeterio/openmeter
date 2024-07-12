@@ -102,6 +102,8 @@ func setupDependencies(t *testing.T) Dependencies {
 	entitlementRepo := entitlementrepo.NewPostgresEntitlementRepo(entitlementDB)
 	usageResetRepo := entitlementrepo.NewPostgresUsageResetRepo(entitlementDB)
 
+	balanceSnapshotConnector := credit.NewBalanceSnapshotConnector(balanceSnapshotRepo)
+
 	owner := meteredentitlement.NewEntitlementGrantOwnerAdapter(
 		featureRepo,
 		entitlementRepo,
@@ -112,7 +114,7 @@ func setupDependencies(t *testing.T) Dependencies {
 
 	balance := credit.NewBalanceConnector(
 		grantRepo,
-		balanceSnapshotRepo,
+		balanceSnapshotConnector,
 		owner,
 		streaming,
 		log,

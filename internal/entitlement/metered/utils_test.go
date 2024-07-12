@@ -87,6 +87,8 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 		t.Fatalf("failed to migrate database %s", err)
 	}
 
+	balanceSnapshotConnector := credit.NewBalanceSnapshotConnector(balanceSnapshotRepo)
+
 	// build adapters
 	owner := meteredentitlement.NewEntitlementGrantOwnerAdapter(
 		featureRepo,
@@ -98,7 +100,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 
 	balanceConnector := credit.NewBalanceConnector(
 		grantRepo,
-		balanceSnapshotRepo,
+		balanceSnapshotConnector,
 		owner,
 		streamingConnector,
 		testLogger,

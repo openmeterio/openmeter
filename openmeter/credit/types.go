@@ -7,6 +7,7 @@ import (
 type BalanceConnector = credit.BalanceConnector
 type BalanceHistoryParams = credit.BalanceHistoryParams
 type BalanceSnapshotRepo = credit.BalanceSnapshotRepo
+type BalanceSnapshotConnector = credit.BalanceSnapshotConnector
 type CreateGrantInput = credit.CreateGrantInput
 type DBCreateGrantInput = credit.GrantRepoCreateGrantInput
 type Engine = credit.Engine

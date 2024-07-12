@@ -12,7 +12,7 @@ import (
 
 func NewBalanceConnector(
 	gc GrantRepo,
-	bsc BalanceSnapshotRepo,
+	bsc BalanceSnapshotConnector,
 	oc OwnerConnector,
 	sc streaming.Connector,
 	log *slog.Logger,
