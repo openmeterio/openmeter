@@ -452,21 +452,23 @@ func (m *balanceConnector) getQueryUsageFn(ctx context.Context, owner Namespaced
 //  2. At the end of a segment history changes: s1.endBalance <> s2.startBalance. This means only the
 //     starting values can be saved credibly.
 func (m *balanceConnector) getLastSaveableSnapshotAt(history *GrantBurnDownHistory, lastValidBalance GrantBalanceSnapshot, at time.Time) (*GrantBalanceSnapshot, error) {
-	segments := history.Segments()
 
-	for i := len(segments) - 1; i >= 0; i-- {
-		segment := segments[i]
-		if segment.From.Add(m.snapshotGracePeriod).Before(at) {
-			s := segment.ToSnapshot()
-			if s.At.After(lastValidBalance.At) {
-				return &s, nil
-			} else {
-				return nil, fmt.Errorf("the last saveable snapshot at %s is before the previous last valid snapshot", s.At)
-			}
-		}
+	saveableSegment, err := history.LastBefore(at.Add(-m.snapshotGracePeriod))
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("no segment can be saved at %s with gracePeriod %s", at, m.snapshotGracePeriod)
+	// Segment needs to be newer than the last saved balance in order to be saved
+	if !saveableSegment.From.After(lastValidBalance.At) {
+		return nil, fmt.Errorf("the last saveable snapshot at %s is before the previous last valid snapshot", saveableSegment.From)
+	}
+
+	// We can only save the starting balance of a segment
+	return &GrantBalanceSnapshot{
+		At:       saveableSegment.From,
+		Balances: saveableSegment.BalanceAtStart,
+		Overage:  saveableSegment.OverageAtStart,
+	}, nil
 }
 
 // Fills in the snapshot's GrantBalanceMap with the provided grants so the Engine can use them.

@@ -3,6 +3,7 @@ package credit
 import (
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
@@ -109,11 +110,15 @@ func (g *GrantBurnDownHistory) Overage() float64 {
 	return lastSegment.Overage
 }
 
-// Creates a GrantBalanceSnapshot from the starting state of the segment
-func (s *GrantBurnDownHistorySegment) ToSnapshot() GrantBalanceSnapshot {
-	return GrantBalanceSnapshot{
-		Overage:  s.OverageAtStart,
-		Balances: s.BalanceAtStart,
-		At:       s.From,
+func (g *GrantBurnDownHistory) LastBefore(at time.Time) (*GrantBurnDownHistorySegment, error) {
+	segments := g.Segments()
+
+	for i := len(segments) - 1; i >= 0; i-- {
+		segment := segments[i]
+		if segment.From.Before(at) {
+			return &segment, nil
+		}
 	}
+
+	return nil, fmt.Errorf("no segment found before %s", at)
 }
