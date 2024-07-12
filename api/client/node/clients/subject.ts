@@ -140,42 +140,42 @@ export class SubjectClient extends BaseClient {
   }
 
   /**
-   * Get entitlement by ID by Feature ID or by Feature Key
+   * Get entitlement
    *
    * @example
-   * const entitlement = await openmeter.subjects.getEntitlement('customer-1', 'ai_tokens')
+   * const entitlement = await openmeter.subjects.getEntitlement('customer-1', '01J1SD3QDV86GP77TQ4PZZ4EXE')
    */
   public async getEntitlement(
     subjectIdOrKey: string,
-    entitlementIdOrFeatureIdOrFeatureKey: string,
+    entitlementId: string,
     options?: RequestOptions
   ): Promise<Entitlement> {
     return await this.request({
-      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementIdOrFeatureIdOrFeatureKey}`,
+      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementId}`,
       method: 'GET',
       options,
     })
   }
 
   /**
-   * Delete entitlement by ID by Feature ID or by Feature Key
+   * Delete entitlement
    * @example
-   * await openmeter.deleteEntitlement('customer-1', 'ai_tokens')
+   * await openmeter.deleteEntitlement('customer-1', '01J1SD3QDV86GP77TQ4PZZ4EXE')
    */
   public async deleteEntitlement(
     subjectIdOrKey: string,
-    entitlementIdOrFeatureIdOrFeatureKey: string,
+    entitlementId: string,
     options?: RequestOptions
   ): Promise<void> {
     return await this.request({
-      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementIdOrFeatureIdOrFeatureKey}`,
+      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementId}`,
       method: 'DELETE',
       options,
     })
   }
 
   /**
-   * Get entitlement value by ID by Feature Key
+   * Get entitlement value by ID or Feature Key
    *
    * @example
    * const value = await openmeter.subjects.getEntitlementValue('customer-1', 'ai_tokens')
@@ -196,7 +196,7 @@ export class SubjectClient extends BaseClient {
    * Get entitlement value at a specific time.
    *
    * @example
-   * const value = await openmeter.subjects.getEntitlementValueAt('customer-1', 'ai_tokens')
+   * const value = await openmeter.subjects.getEntitlementValueAt('customer-1', 'ai_tokens', new Date('2024-01-01'))
    */
   public async getEntitlementValueAt(
     subjectIdOrKey: string,
@@ -214,13 +214,13 @@ export class SubjectClient extends BaseClient {
   }
 
   /**
-   * Get entitlement history by ID by Feature ID or by Feature Key
+   * Get entitlement history
    * @example
-   * const entitlement = await openmeter.subjects.getEntitlementHistory('customer-1', 'ai_tokens')
+   * const entitlement = await openmeter.subjects.getEntitlementHistory('customer-1', '01J1SD3QDV86GP77TQ4PZZ4EXE')
    */
   public async getEntitlementHistory(
     subjectIdOrKey: string,
-    entitlementIdOrFeatureIdOrFeatureKey: string,
+    entitlementId: string,
     params?: GetEntitlementHistoryQueryParams,
     options?: RequestOptions
   ): Promise<WindowedBalanceHistory[]> {
@@ -228,7 +228,7 @@ export class SubjectClient extends BaseClient {
       ? BaseClient.toURLSearchParams(params)
       : undefined
     return await this.request({
-      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementIdOrFeatureIdOrFeatureKey}/history`,
+      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementId}/history`,
       method: 'GET',
       searchParams,
       options,
@@ -240,18 +240,18 @@ export class SubjectClient extends BaseClient {
    * Reset the entitlement usage and start a new period. Eligible grants will be rolled over
    *
    * @example
-   * const entitlement = await openmeter.subjects.resetEntitlementUsage('customer-1', 'ai_tokens', {
+   * const entitlement = await openmeter.subjects.resetEntitlementUsage('customer-1', '01J1SD3QDV86GP77TQ4PZZ4EXE', {
    *    retainAnchor: true
    * })
    */
   public async resetEntitlementUsage(
     subjectIdOrKey: string,
-    entitlementIdOrFeatureIdOrFeatureKey: string,
+    entitlementId: string,
     input: EntitlementResetInputs,
     options?: RequestOptions
   ): Promise<Entitlement> {
     return await this.request({
-      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementIdOrFeatureIdOrFeatureKey}/reset`,
+      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementId}/reset`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -268,7 +268,7 @@ export class SubjectClient extends BaseClient {
    * Create a grant for an entitlement.
    *
    * @example
-   * const grant = await openmeter.subjects.createEntitlementGrant('customer-1', 'ai_tokens', {
+   * const grant = await openmeter.subjects.createEntitlementGrant('customer-1', '01J1SD3QDV86GP77TQ4PZZ4EXE', {
    *    amount: 100,
    *    priority: 1,
    *    effectiveAt: '2023-01-01T00:00:00Z',
@@ -286,12 +286,12 @@ export class SubjectClient extends BaseClient {
    */
   public async createEntitlementGrant(
     subjectIdOrKey: string,
-    entitlementIdOrFeatureIdOrFeatureKey: string,
+    entitlementId: string,
     input: EntitlementGrantCreateInput,
     options?: RequestOptions
   ): Promise<EntitlementGrant> {
     return await this.request({
-      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementIdOrFeatureIdOrFeatureKey}/grants`,
+      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementId}/grants`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -304,11 +304,11 @@ export class SubjectClient extends BaseClient {
   /**
    * List entitlement grants
    * @example
-   * const entitlement = await openmeter.subjects.listEntitlementGrants('customer-1', 'ai_tokens)
+   * const entitlement = await openmeter.subjects.listEntitlementGrants('customer-1', '01J1SD3QDV86GP77TQ4PZZ4EXE')
    */
   public async listEntitlementGrants(
     subjectIdOrKey: string,
-    entitlementIdOrFeatureIdOrFeatureKey: string,
+    entitlementId: string,
     params?: ListEntitlementGrantQueryParams,
     options?: RequestOptions
   ): Promise<EntitlementGrant[]> {
@@ -316,7 +316,7 @@ export class SubjectClient extends BaseClient {
       ? BaseClient.toURLSearchParams(params)
       : undefined
     return await this.request({
-      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementIdOrFeatureIdOrFeatureKey}/grants`,
+      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementId}/grants`,
       method: 'GET',
       searchParams,
       options,

@@ -42,17 +42,14 @@ export class FeatureClient extends BaseClient {
   }
 
   /**
-   * Get Feature by ID or Key
+   * Get Feature
    *
    * @example
    * const feature = await openmeter.features.get('ai_tokens')
    */
-  public async get(
-    idOrKey: string,
-    options?: RequestOptions
-  ): Promise<Feature> {
+  public async get(id: string, options?: RequestOptions): Promise<Feature> {
     return await this.request({
-      path: `/api/v1/features/${idOrKey}`,
+      path: `/api/v1/features/${id}`,
       method: 'GET',
       options,
     })
@@ -79,18 +76,15 @@ export class FeatureClient extends BaseClient {
   }
 
   /**
-   * Archive a feature by ID or Key.
+   * Archive a feature
    * @description
    * Once a feature is archived it cannot be unarchived. If a feature is archived, new entitlements cannot be created for it, but archiving the feature does not affect existing entitlements.
    * @example
    * await openmeter.delete('ai_tokens')
    */
-  public async delete(
-    idOrKey: string,
-    options?: RequestOptions
-  ): Promise<void> {
+  public async delete(id: string, options?: RequestOptions): Promise<void> {
     return await this.request({
-      path: `/api/v1/features/${idOrKey}`,
+      path: `/api/v1/features/${id}`,
       method: 'DELETE',
       options,
     })
