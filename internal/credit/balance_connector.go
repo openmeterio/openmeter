@@ -142,14 +142,7 @@ func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner Namespac
 		for _, grant := range grants {
 			grantMap[grant.ID] = grant
 		}
-		activeBalance, err := m.excludeInactiveGrantsFromBalance(snap.Balances, grantMap, at)
-		if err != nil {
-			return nil, err
-		}
-		snap.Balances = *activeBalance
-		err = m.balanceSnapshotConnector.Save(ctx, owner, []GrantBalanceSnapshot{
-			*snap,
-		})
+		err = m.balanceSnapshotConnector.Save(ctx, owner, grantMap, *snap)
 		if err != nil {
 			return nil, fmt.Errorf("failed to save balance for owner %s at %s: %w", owner.ID, at, err)
 		}
@@ -352,7 +345,7 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 			return nil, fmt.Errorf("failed to lock owner %s: %w", owner.ID, err)
 		}
 
-		err = m.balanceSnapshotConnector.Save(txCtx, owner, []GrantBalanceSnapshot{startingSnapshot})
+		err = m.balanceSnapshotConnector.Save(txCtx, owner, grantMap, startingSnapshot)
 		if err != nil {
 			return nil, fmt.Errorf("failed to save balance for owner %s at %s: %w", owner.ID, at, err)
 		}
@@ -474,25 +467,6 @@ func (m *balanceConnector) getLastSaveableSnapshotAt(history *GrantBurnDownHisto
 	}
 
 	return nil, fmt.Errorf("no segment can be saved at %s with gracePeriod %s", at, m.snapshotGracePeriod)
-}
-
-func (m *balanceConnector) excludeInactiveGrantsFromBalance(balances GrantBalanceMap, grants map[string]Grant, at time.Time) (*GrantBalanceMap, error) {
-	filtered := &GrantBalanceMap{}
-	for grantID, grantBalance := range balances {
-		grant, ok := grants[grantID]
-		// inconsistency check, shouldn't happen
-		if !ok {
-			return nil, fmt.Errorf("attempting to roll over unknown grant %s", grantID)
-		}
-
-		// grants might become inactive at the reset time, in which case they're irrelevant for the next period
-		if !grant.ActiveAt(at) {
-			continue
-		}
-
-		filtered.Set(grantID, grantBalance)
-	}
-	return filtered, nil
 }
 
 // Fills in the snapshot's GrantBalanceMap with the provided grants so the Engine can use them.
