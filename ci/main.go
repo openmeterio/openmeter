@@ -99,7 +99,7 @@ func (m *Ci) QuickstartTest(
 	// +default=8888
 	port int,
 ) *dagger.Container {
-	return dag.Go().
+	return goModule().
 		WithSource(m.Source).
 		Container().
 		WithServiceBinding("openmeter", service).
