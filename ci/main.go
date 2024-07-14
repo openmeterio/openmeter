@@ -46,7 +46,7 @@ func New(
 ) (*Ci, error) {
 	if source == nil && ref != "" {
 		source = dag.Git("https://github.com/openmeterio/openmeter.git", dagger.GitOpts{
-			KeepGitDir: true,
+			// KeepGitDir: true,
 		}).Ref(ref).Tree()
 	}
 
