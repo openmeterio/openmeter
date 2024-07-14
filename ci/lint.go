@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 
+	"github.com/openmeterio/openmeter/ci/internal/dagger"
 	"github.com/sourcegraph/conc/pool"
 )
 
@@ -13,7 +14,7 @@ func (m *Ci) Lint() *Lint {
 }
 
 type Lint struct {
-	Source *Directory
+	Source *dagger.Directory
 }
 
 func (m *Lint) All(ctx context.Context) error {
@@ -26,19 +27,19 @@ func (m *Lint) All(ctx context.Context) error {
 	return p.Wait()
 }
 
-func (m *Lint) Go() *Container {
-	return dag.GolangciLint(GolangciLintOpts{
+func (m *Lint) Go() *dagger.Container {
+	return dag.GolangciLint(dagger.GolangciLintOpts{
 		Version:   golangciLintVersion,
 		GoVersion: goVersion,
 	}).
-		Run(m.Source, GolangciLintRunOpts{
+		Run(m.Source, dagger.GolangciLintRunOpts{
 			Verbose: true,
 		})
 }
 
-func (m *Lint) Openapi() *Container {
-	return dag.Spectral(SpectralOpts{Version: spectralVersion}).
-		Lint([]*File{m.Source.File("api/openapi.yaml")}, m.Source.File(".spectral.yaml"))
+func (m *Lint) Openapi() *dagger.Container {
+	return dag.Spectral(dagger.SpectralOpts{Version: spectralVersion}).
+		Lint([]*dagger.File{m.Source.File("api/openapi.yaml")}, m.Source.File(".spectral.yaml"))
 }
 
 func (m *Lint) Helm(ctx context.Context) error {

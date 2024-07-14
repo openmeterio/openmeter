@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/sourcegraph/conc/pool"
+
+	"github.com/openmeterio/openmeter/ci/internal/dagger"
 )
 
 // Build individual artifacts. (Useful for testing and development)
@@ -17,7 +19,7 @@ func (m *Ci) Build() *Build {
 
 type Build struct {
 	// +private
-	Source *Directory
+	Source *dagger.Directory
 }
 
 func (m *Build) All(
@@ -25,7 +27,7 @@ func (m *Build) All(
 
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
 	// +optional
-	platform Platform,
+	platform dagger.Platform,
 ) error {
 	p := pool.New().WithErrors().WithContext(ctx)
 
@@ -36,13 +38,13 @@ func (m *Build) All(
 	return p.Wait()
 }
 
-func (m *Build) containerImages(version string) []*Container {
-	platforms := []Platform{
+func (m *Build) containerImages(version string) []*dagger.Container {
+	platforms := []dagger.Platform{
 		"linux/amd64",
 		"linux/arm64",
 	}
 
-	variants := make([]*Container, 0, len(platforms))
+	variants := make([]*dagger.Container, 0, len(platforms))
 
 	for _, platform := range platforms {
 		variants = append(variants, m.containerImage(platform, version))
@@ -55,13 +57,13 @@ func (m *Build) containerImages(version string) []*Container {
 func (m *Build) ContainerImage(
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
 	// +optional
-	platform Platform,
-) *Container {
+	platform dagger.Platform,
+) *dagger.Container {
 	return m.containerImage(platform, "")
 }
 
-func (m *Build) containerImage(platform Platform, version string) *Container {
-	return dag.Container(ContainerOpts{Platform: platform}).
+func (m *Build) containerImage(platform dagger.Platform, version string) *dagger.Container {
+	return dag.Container(dagger.ContainerOpts{Platform: platform}).
 		From(alpineBaseImage).
 		WithLabel("org.opencontainers.image.title", "openmeter").
 		WithLabel("org.opencontainers.image.description", "Cloud Metering for AI, Billing and FinOps. Collect and aggregate millions of usage events in real-time.").
@@ -69,7 +71,7 @@ func (m *Build) containerImage(platform Platform, version string) *Container {
 		WithLabel("org.opencontainers.image.created", time.Now().String()). // TODO: embed commit timestamp
 		WithLabel("org.opencontainers.image.source", "https://github.com/openmeterio/openmeter").
 		WithLabel("org.opencontainers.image.licenses", "Apache-2.0").
-		With(func(c *Container) *Container {
+		With(func(c *dagger.Container) *dagger.Container {
 			if version != "" {
 				c = c.WithLabel("org.opencontainers.image.version", version)
 			}
@@ -90,7 +92,7 @@ func (m *Build) Binary() *Binary {
 
 type Binary struct {
 	// +private
-	Source *Directory
+	Source *dagger.Directory
 }
 
 // Build all binaries.
@@ -99,7 +101,7 @@ func (m *Binary) All(
 
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
 	// +optional
-	platform Platform,
+	platform dagger.Platform,
 ) error {
 	p := pool.New().WithErrors().WithContext(ctx)
 
@@ -114,12 +116,12 @@ func (m *Binary) All(
 func (m *Binary) Api(
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
 	// +optional
-	platform Platform,
-) *File {
+	platform dagger.Platform,
+) *dagger.File {
 	return m.api(platform, "")
 }
 
-func (m *Binary) api(platform Platform, version string) *File {
+func (m *Binary) api(platform dagger.Platform, version string) *dagger.File {
 	return m.buildCross(platform, version, "./cmd/server").WithName("server")
 }
 
@@ -127,16 +129,16 @@ func (m *Binary) api(platform Platform, version string) *File {
 func (m *Binary) SinkWorker(
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
 	// +optional
-	platform Platform,
-) *File {
+	platform dagger.Platform,
+) *dagger.File {
 	return m.sinkWorker(platform, "")
 }
 
-func (m *Binary) sinkWorker(platform Platform, version string) *File {
+func (m *Binary) sinkWorker(platform dagger.Platform, version string) *dagger.File {
 	return m.buildCross(platform, version, "./cmd/sink-worker").WithName("sink-worker")
 }
 
-func (m *Binary) buildCross(platform Platform, version string, pkg string) *File {
+func (m *Binary) buildCross(platform dagger.Platform, version string, pkg string) *dagger.File {
 	if version == "" {
 		version = "unknown"
 	}
@@ -145,7 +147,7 @@ func (m *Binary) buildCross(platform Platform, version string, pkg string) *File
 
 	binary := goMod.
 		WithSource(m.Source).
-		Build(GoWithSourceBuildOpts{
+		Build(dagger.GoWithSourceBuildOpts{
 			Pkg:      pkg,
 			Trimpath: true,
 			Tags:     []string{"musl"},
@@ -168,16 +170,16 @@ func (m *Binary) buildCross(platform Platform, version string, pkg string) *File
 func (m *Binary) BenthosCollector(
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
 	// +optional
-	platform Platform,
-) *File {
+	platform dagger.Platform,
+) *dagger.File {
 	return m.benthosCollector(platform, "")
 }
 
-func (m *Binary) benthosCollector(platform Platform, version string) *File {
+func (m *Binary) benthosCollector(platform dagger.Platform, version string) *dagger.File {
 	return m.build(platform, version, "./cmd/benthos-collector").WithName("benthos")
 }
 
-func (m *Binary) build(platform Platform, version string, pkg string) *File {
+func (m *Binary) build(platform dagger.Platform, version string, pkg string) *dagger.File {
 	if version == "" {
 		version = "unknown"
 	}
@@ -185,7 +187,7 @@ func (m *Binary) build(platform Platform, version string, pkg string) *File {
 	return goModule().
 		WithSource(m.Source).
 		WithPlatform(platform).
-		Build(GoWithSourceBuildOpts{
+		Build(dagger.GoWithSourceBuildOpts{
 			Pkg:      pkg,
 			Trimpath: true,
 			Ldflags: []string{
@@ -195,13 +197,13 @@ func (m *Binary) build(platform Platform, version string, pkg string) *File {
 		})
 }
 
-func goModule() *Go {
-	return dag.Go(GoOpts{Version: goBuildVersion}).
+func goModule() *dagger.Go {
+	return dag.Go(dagger.GoOpts{Version: goBuildVersion}).
 		WithModuleCache(dag.CacheVolume("openmeter-go-mod-v2")).
 		WithBuildCache(dag.CacheVolume("openmeter-go-build-v2"))
 }
 
-func goModuleCross(platform Platform) *Go {
+func goModuleCross(platform dagger.Platform) *dagger.Go {
 	container := goModule().
 		WithCgoEnabled(). // TODO: set env var instead?
 		Container().
@@ -211,7 +213,7 @@ func goModuleCross(platform Platform) *Go {
 		WithExec([]string{"xx-apk", "add", "--update", "--no-cache", "musl-dev", "gcc"}).
 		WithExec([]string{"xx-go", "--wrap"})
 
-	return dag.Go(GoOpts{Container: container})
+	return dag.Go(dagger.GoOpts{Container: container})
 }
 
 func (m *Build) HelmChart(
@@ -221,12 +223,12 @@ func (m *Build) HelmChart(
 	// Release version.
 	// +optional
 	version string,
-) *File {
+) *dagger.File {
 	return m.helmChart(name, version).File()
 }
 
-func (m *Build) helmChart(name string, version string) *HelmPackage {
-	opts := HelmChartPackageOpts{
+func (m *Build) helmChart(name string, version string) *dagger.HelmPackage {
+	opts := dagger.HelmChartPackageOpts{
 		DependencyUpdate: true,
 	}
 
@@ -238,11 +240,11 @@ func (m *Build) helmChart(name string, version string) *HelmPackage {
 	return helmChart(m.Source, name).Package(opts)
 }
 
-func helmChart(source *Directory, name string) *HelmChart {
+func helmChart(source *dagger.Directory, name string) *dagger.HelmChart {
 	chart := source.Directory("deploy/charts").Directory(name)
 
-	readme := dag.HelmDocs(HelmDocsOpts{Version: helmDocsVersion}).Generate(chart, HelmDocsGenerateOpts{
-		Templates: []*File{
+	readme := dag.HelmDocs(dagger.HelmDocsOpts{Version: helmDocsVersion}).Generate(chart, dagger.HelmDocsGenerateOpts{
+		Templates: []*dagger.File{
 			source.File("deploy/charts/template.md"),
 			chart.File("README.tmpl.md"),
 		},
@@ -251,5 +253,5 @@ func helmChart(source *Directory, name string) *HelmChart {
 
 	chart = chart.WithFile("README.md", readme)
 
-	return dag.Helm(HelmOpts{Version: helmVersion}).Chart(chart)
+	return dag.Helm(dagger.HelmOpts{Version: helmVersion}).Chart(chart)
 }

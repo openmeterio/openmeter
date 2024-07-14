@@ -2,16 +2,18 @@ package main
 
 import (
 	"fmt"
+
+	"github.com/openmeterio/openmeter/ci/internal/dagger"
 )
 
 func (m *Ci) Etoe(
 	// +optional
 	test string,
-) *Container {
+) *dagger.Container {
 	image := m.Build().ContainerImage("").
 		WithExposedPort(10000).
 		WithMountedFile("/etc/openmeter/config.yaml", m.Source.File("e2e/config.yaml")).
-		WithServiceBinding("kafka", dag.Kafka(KafkaOpts{Version: kafkaVersion}).Service()).
+		WithServiceBinding("kafka", dag.Kafka(dagger.KafkaOpts{Version: kafkaVersion}).Service()).
 		WithServiceBinding("clickhouse", clickhouse())
 
 	api := image.
@@ -35,7 +37,7 @@ func (m *Ci) Etoe(
 
 	args = append(args, "./e2e/...")
 
-	return dag.Go(GoOpts{
+	return dag.Go(dagger.GoOpts{
 		Container: goModule().
 			WithSource(m.Source).
 			Container().
@@ -47,7 +49,7 @@ func (m *Ci) Etoe(
 		Exec(args)
 }
 
-func clickhouse() *Service {
+func clickhouse() *dagger.Service {
 	return dag.Container().
 		From(fmt.Sprintf("clickhouse/clickhouse-server:%s-alpine", clickhouseVersion)).
 		WithEnvVariable("CLICKHOUSE_USER", "default").
@@ -59,14 +61,14 @@ func clickhouse() *Service {
 		AsService()
 }
 
-func redis() *Service {
+func redis() *dagger.Service {
 	return dag.Container().
 		From(fmt.Sprintf("redis:%s-alpine", redisVersion)).
 		WithExposedPort(6379).
 		AsService()
 }
 
-func postgres() *Service {
+func postgres() *dagger.Service {
 	return dag.Container().
 		From(fmt.Sprintf("postgres:%s", postgresVersion)).
 		WithEnvVariable("POSTGRES_USER", "postgres").
