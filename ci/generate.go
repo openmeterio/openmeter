@@ -1,5 +1,7 @@
 package main
 
+import "github.com/openmeterio/openmeter/ci/internal/dagger"
+
 // Generate various artifacts.
 func (m *Ci) Generate() *Generate {
 	return &Generate{
@@ -9,11 +11,11 @@ func (m *Ci) Generate() *Generate {
 
 type Generate struct {
 	// +private
-	Source *Directory
+	Source *dagger.Directory
 }
 
 // Generate the Python SDK.
-func (m *Generate) PythonSdk() *Directory {
+func (m *Generate) PythonSdk() *dagger.Directory {
 	// We build our image as the official autorest Dockerfile is outdated
 	// and not compatible with the latest autorest.
 	// More specifically, the latest autorest npm package depends on
@@ -33,7 +35,7 @@ func (m *Generate) PythonSdk() *Directory {
 }
 
 // Generate the Node SDK.
-func (m *Generate) NodeSdk() *Directory {
+func (m *Generate) NodeSdk() *dagger.Directory {
 	return dag.Container().
 		From("node:20-alpine").
 		WithExec([]string{"npm", "install", "-g", "pnpm"}).
@@ -47,7 +49,7 @@ func (m *Generate) NodeSdk() *Directory {
 }
 
 // Generate the Web SDK.
-func (m *Generate) WebSdk() *Directory {
+func (m *Generate) WebSdk() *dagger.Directory {
 	return dag.Container().
 		From("node:20-alpine").
 		WithExec([]string{"npm", "install", "-g", "pnpm"}).

@@ -7,9 +7,11 @@ import (
 	"path"
 	"strings"
 	"time"
+
+	"github.com/openmeterio/openmeter/ci/internal/dagger"
 )
 
-func (m *Ci) Release(ctx context.Context, version string, githubActor string, githubToken *Secret, pypiToken *Secret, npmToken *Secret) error {
+func (m *Ci) Release(ctx context.Context, version string, githubActor string, githubToken *dagger.Secret, pypiToken *dagger.Secret, npmToken *dagger.Secret) error {
 	p := newPipeline(ctx)
 
 	p.addJobs(
@@ -28,17 +30,15 @@ func (m *Ci) Release(ctx context.Context, version string, githubActor string, gi
 
 			releaseAssets := m.releaseAssets(version)
 
-			_, err := dag.Gh(GhOpts{
+			return dag.Gh(dagger.GhOpts{
 				Token: githubToken,
 				Repo:  "openmeterio/openmeter",
-			}).Release().Create(ctx, version, version, GhReleaseCreateOpts{
+			}).Release().Create(ctx, version, version, dagger.GhReleaseCreateOpts{
 				Files:         releaseAssets,
 				GenerateNotes: true,
 				Latest:        true,
 				VerifyTag:     true,
 			})
-
-			return err
 		},
 
 		func(ctx context.Context) error {
@@ -55,24 +55,22 @@ func (m *Ci) Release(ctx context.Context, version string, githubActor string, gi
 	return p.wait()
 }
 
-func (m *Ci) pushHelmChart(ctx context.Context, name string, version string, githubActor string, githubToken *Secret) error {
-	_, err := m.Build().
+func (m *Ci) pushHelmChart(ctx context.Context, name string, version string, githubActor string, githubToken *dagger.Secret) error {
+	return m.Build().
 		helmChart(name, version).
 		WithRegistryAuth("ghcr.io", githubActor, githubToken).
 		Publish(ctx, "oci://ghcr.io/openmeterio/helm-charts")
-
-	return err
 }
 
-func (m *Ci) releaseAssets(version string) []*File {
+func (m *Ci) releaseAssets(version string) []*dagger.File {
 	binaryArchives := m.binaryArchives(version)
 	checksums := dag.Checksum().Sha256().Calculate(binaryArchives)
 
 	return append(binaryArchives, checksums)
 }
 
-func (m *Ci) binaryArchives(version string) []*File {
-	platforms := []Platform{
+func (m *Ci) binaryArchives(version string) []*dagger.File {
+	platforms := []dagger.Platform{
 		"linux/amd64",
 		"linux/arm64",
 
@@ -80,7 +78,7 @@ func (m *Ci) binaryArchives(version string) []*File {
 		"darwin/arm64",
 	}
 
-	archives := make([]*File, 0, len(platforms))
+	archives := make([]*dagger.File, 0, len(platforms))
 
 	for _, platform := range platforms {
 		archives = append(archives, m.binaryArchive(version, platform))
@@ -89,9 +87,9 @@ func (m *Ci) binaryArchives(version string) []*File {
 	return archives
 }
 
-func (m *Ci) binaryArchive(version string, platform Platform) *File {
+func (m *Ci) binaryArchive(version string, platform dagger.Platform) *dagger.File {
 	var archiver interface {
-		Archive(name string, source *Directory) *File
+		Archive(name string, source *dagger.Directory) *dagger.File
 	} = dag.Archivist().TarGz()
 
 	if strings.HasPrefix(string(platform), "windows/") {
@@ -107,13 +105,13 @@ func (m *Ci) binaryArchive(version string, platform Platform) *File {
 	)
 }
 
-func (m *Ci) publishPythonSdk(ctx context.Context, version string, pypiToken *Secret) error {
-	_, err := dag.Python(PythonOpts{
-		Container: dag.Python(PythonOpts{Container: dag.Container().From("pypy:3.10-slim")}).
+func (m *Ci) publishPythonSdk(ctx context.Context, version string, pypiToken *dagger.Secret) error {
+	_, err := dag.Python(dagger.PythonOpts{
+		Container: dag.Python(dagger.PythonOpts{Container: dag.Container().From("pypy:3.10-slim")}).
 			WithPipCache(dag.CacheVolume("openmeter-pip")).
 			Container().
 			WithExec([]string{"pip", "--disable-pip-version-check", "install", "pipx"}).
-			WithEnvVariable("PATH", "${PATH}:/root/.local/bin", ContainerWithEnvVariableOpts{Expand: true}).
+			WithEnvVariable("PATH", "${PATH}:/root/.local/bin", dagger.ContainerWithEnvVariableOpts{Expand: true}).
 			WithExec([]string{"pipx", "install", "poetry"}),
 	}).
 		WithSource(m.Source.Directory("api/client/python")). // TODO: generate SDK on the fly?
@@ -128,17 +126,17 @@ func (m *Ci) publishPythonSdk(ctx context.Context, version string, pypiToken *Se
 	return err
 }
 
-func (m *Ci) publishNodeSdk(ctx context.Context, version string, npmToken *Secret) error {
+func (m *Ci) publishNodeSdk(ctx context.Context, version string, npmToken *dagger.Secret) error {
 	// TODO: generate SDK on the fly?
 	return m.publishToNpm(ctx, "node", version, npmToken)
 }
 
-func (m *Ci) publishWebSdk(ctx context.Context, version string, npmToken *Secret) error {
+func (m *Ci) publishWebSdk(ctx context.Context, version string, npmToken *dagger.Secret) error {
 	// TODO: generate SDK on the fly?
 	return m.publishToNpm(ctx, "web", version, npmToken)
 }
 
-func (m *Ci) publishToNpm(ctx context.Context, pkg string, version string, npmToken *Secret) error {
+func (m *Ci) publishToNpm(ctx context.Context, pkg string, version string, npmToken *dagger.Secret) error {
 	_, err := dag.Container().
 		From("node:20-alpine").
 		WithExec([]string{"npm", "install", "-g", "pnpm"}).

@@ -24,6 +24,6 @@ jobs:
           module: github.com/${{ github.repository }}@${{ github.ref }}
           args: --ref ${{ github.ref }} snapshot --stainless-token env:STAINLESS_TOKEN
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: "0.11.8"
+          version: "0.12.0"
         env:
           STAINLESS_TOKEN: ${{ secrets.STAINLESS_TOKEN }}

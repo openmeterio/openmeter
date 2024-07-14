@@ -1,8 +1,12 @@
 package main
 
-import "context"
+import (
+	"context"
 
-func (m *Ci) Snapshot(ctx context.Context, stainlessToken *Secret) error {
+	"github.com/openmeterio/openmeter/ci/internal/dagger"
+)
+
+func (m *Ci) Snapshot(ctx context.Context, stainlessToken *dagger.Secret) error {
 	p := newPipeline(ctx)
 
 	p.addJobs(func(ctx context.Context) error {
@@ -12,7 +16,7 @@ func (m *Ci) Snapshot(ctx context.Context, stainlessToken *Secret) error {
 	return p.wait()
 }
 
-func (m *Ci) uploadOpenAPISpecToStainless(ctx context.Context, stainlessToken *Secret) error {
+func (m *Ci) uploadOpenAPISpecToStainless(ctx context.Context, stainlessToken *dagger.Secret) error {
 	_, err := dag.Stainless(stainlessToken).UploadSpec("openmeter", m.Source.File("api/openapi.yaml")).Sync(ctx)
 
 	return err

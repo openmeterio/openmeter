@@ -7,6 +7,8 @@ import (
 	"slices"
 
 	"github.com/sourcegraph/conc/pool"
+
+	"github.com/openmeterio/openmeter/ci/internal/dagger"
 )
 
 func root() string {
@@ -34,11 +36,11 @@ func exclude(paths ...string) []string {
 	return append(slices.Clone(excludes), paths...)
 }
 
-func projectDir() *Directory {
+func projectDir() *dagger.Directory {
 	return dag.CurrentModule().Source().Directory(root())
 }
 
-func buildDir() *Directory {
+func buildDir() *dagger.Directory {
 	return dag.CurrentModule().Source().Directory(root())
 }
 

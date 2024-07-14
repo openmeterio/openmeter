@@ -4,25 +4,27 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
+	"github.com/openmeterio/openmeter/ci/internal/dagger"
 )
 
 const (
 	// Alpine is required for our current build (due to Kafka and CGO), but it doesn't seem to work well with golangci-lint
-	goVersion      = "1.22.4"
-	goBuildVersion = goVersion + "-alpine3.19@sha256:65b5d2d0a312fd9ef65551ad7f9cb5db1f209b7517ef6d5625cfd29248bc6c85"
+	goVersion      = "1.22.5"
+	goBuildVersion = goVersion + "-alpine3.19@sha256:0642d4f809abf039440540de1f0e83502401686e3946ed8e7398a1d94648aa6d"
 	xxBaseImage    = "tonistiigi/xx:1.4.0@sha256:0cd3f05c72d6c9b038eb135f91376ee1169ef3a330d34e418e65e2a5c2e9c0d4"
 
-	golangciLintVersion = "v1.59.0"
+	golangciLintVersion = "v1.59.1"
 	spectralVersion     = "6.11"
 	kafkaVersion        = "3.6"
 	clickhouseVersion   = "23.3.9.55"
 	redisVersion        = "7.0.12"
 	postgresVersion     = "15.3"
 
-	helmDocsVersion = "v1.13.1"
-	helmVersion     = "3.15.1"
+	helmDocsVersion = "v1.14.2"
+	helmVersion     = "3.15.2"
 
-	alpineBaseImage = "alpine:3.20.0@sha256:77726ef6b57ddf65bb551896826ec38bc3e53f75cdde31354fbffb4f25238ebd"
+	alpineBaseImage = "alpine:3.20.1@sha256:b89d9c93e9ed3597455c90a0b88a8bbb5cb7188438f70953fede212a0c4394e0"
 )
 
 type Ci struct {
@@ -30,20 +32,20 @@ type Ci struct {
 	// This will become useful once pulling from remote becomes available
 	//
 	// +private
-	Source *Directory
+	Source *dagger.Directory
 }
 
 func New(
 	// Project source directory.
 	// +optional
-	source *Directory,
+	source *dagger.Directory,
 
 	// Checkout the repository (at the designated ref) and use it as the source directory instead of the local one.
 	// +optional
 	ref string,
 ) (*Ci, error) {
 	if source == nil && ref != "" {
-		source = dag.Git("https://github.com/openmeterio/openmeter.git", GitOpts{
+		source = dag.Git("https://github.com/openmeterio/openmeter.git", dagger.GitOpts{
 			KeepGitDir: true,
 		}).Ref(ref).Tree()
 	}
@@ -82,7 +84,7 @@ func (m *Ci) Ci(ctx context.Context) error {
 	return p.wait()
 }
 
-func (m *Ci) Test() *Container {
+func (m *Ci) Test() *dagger.Container {
 	return dag.Go().
 		WithSource(m.Source).
 		Container().
@@ -92,11 +94,11 @@ func (m *Ci) Test() *Container {
 }
 
 func (m *Ci) QuickstartTest(
-	service *Service,
+	service *dagger.Service,
 
 	// +default=8888
 	port int,
-) *Container {
+) *dagger.Container {
 	return dag.Go().
 		WithSource(m.Source).
 		Container().
