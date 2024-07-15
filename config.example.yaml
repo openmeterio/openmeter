@@ -16,6 +16,11 @@ telemetry:
 #    topicMetadataRefreshInterval: 1m
 #    # Use this config parameter to enable TCP keep-alive in order to prevent the Kafka broker to close idle network connection.
 #    socketKeepAliveEnabled: true
+#    # Set list of debug contexts to enable for librdkafka
+#    # See: https://github.com/confluentinc/librdkafka/blob/master/INTRODUCTION.md#debug-contexts
+#    debugContexts:
+#      - broker
+#      - topic
 
 # dedupe:
 #   enabled: true

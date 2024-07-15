@@ -30,6 +30,11 @@ func TestKafkaIngestConfiguration(t *testing.T) {
 				BrokerAddressFamily:          "v6",
 				SocketKeepAliveEnabled:       true,
 				TopicMetadataRefreshInterval: pkgkafka.TimeDurationMilliSeconds(time.Minute),
+				DebugContexts: pkgkafka.DebugContexts{
+					"broker",
+					"topic",
+					"consumer",
+				},
 			},
 			ExpectedKafkaConfigMap: kafka.ConfigMap{
 				"bootstrap.servers":                  "127.0.0.1:29092",
@@ -43,6 +48,7 @@ func TestKafkaIngestConfiguration(t *testing.T) {
 				"socket.keepalive.enable":            true,
 				"statistics.interval.ms":             pkgkafka.TimeDurationMilliSeconds(10 * time.Second),
 				"topic.metadata.refresh.interval.ms": pkgkafka.TimeDurationMilliSeconds(time.Minute),
+				"debug":                              "broker,topic,consumer",
 			},
 		},
 		{
