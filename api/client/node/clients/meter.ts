@@ -67,6 +67,21 @@ export class MetersClient extends BaseClient {
   }
 
   /**
+   * Create a meter
+   */
+  public async create(meter: Meter, options?: RequestOptions): Promise<Meter> {
+    return this.request<Meter>({
+      method: 'POST',
+      path: `/api/v1/meters`,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(meter),
+      options,
+    })
+  }
+
+  /**
    * Get one meter by slug
    */
   public async get(slug: string, options?: RequestOptions): Promise<Meter> {
