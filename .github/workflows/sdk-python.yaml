@@ -25,7 +25,7 @@ jobs:
           ref: ${{ github.head_ref }}
 
       - name: Generate
-        uses: dagger/dagger-for-github@11048419d80c283890d0dd68187d44541f63dd89 # v5.11.0
+        uses: dagger/dagger-for-github@747585b2454aebd42233a2c1d5102ca88abb2223 # v6.0.0
         with:
           verb: call
           args: --source .:default generate python-sdk -o api/client/python
