@@ -110,7 +110,23 @@ client
   })
   .reply(204)
 
-/** Portal */
+/** Meter */
+client
+  .intercept({
+    path: '/api/v1/meters',
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(mockMeter),
+  })
+  .reply(201, mockMeter, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
 client
   .intercept({
     path: '/api/v1/meters',

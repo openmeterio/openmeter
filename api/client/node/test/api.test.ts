@@ -85,6 +85,13 @@ describe('sdk', () => {
   })
 
   describe('meters', () => {
+    describe('create', () => {
+      it('should create meter', async ({ openmeter }) => {
+        const meter = await openmeter.meters.create(mockMeter)
+        expect(meter).toEqual(mockMeter)
+      })
+    })
+
     describe('list', () => {
       it('should list meters', async ({ openmeter }) => {
         const meters = await openmeter.meters.list()
