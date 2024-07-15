@@ -64,6 +64,10 @@ type KafkaConfiguration struct {
 	// in case of large clusters where changes are more frequent.
 	// This value must not be set to value lower than 10s.
 	TopicMetadataRefreshInterval pkgkafka.TimeDurationMilliSeconds
+
+	// Enable contexts for extensive debugging of librdkafka.
+	// See: https://github.com/confluentinc/librdkafka/blob/master/INTRODUCTION.md#debug-contexts
+	DebugContexts pkgkafka.DebugContexts
 }
 
 func (c KafkaConfiguration) Validate() error {
@@ -132,6 +136,10 @@ func (c KafkaConfiguration) CreateKafkaConfig() kafka.ConfigMap {
 	if c.TopicMetadataRefreshInterval > 0 {
 		config["topic.metadata.refresh.interval.ms"] = c.TopicMetadataRefreshInterval
 		config["metadata.max.age.ms"] = 3 * c.TopicMetadataRefreshInterval
+	}
+
+	if len(c.DebugContexts) > 0 {
+		config["debug"] = c.DebugContexts.String()
 	}
 
 	return config

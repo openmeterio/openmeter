@@ -35,6 +35,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/sink"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
+	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -275,6 +276,9 @@ func initSink(config config.Configuration, logger *slog.Logger, metricMeter metr
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize kafka consumer: %s", err)
 	}
+
+	// Enable Kafka client logging
+	go pkgkafka.ConsumeLogChannel(consumer, logger.WithGroup("kafka").WithGroup("consumer"))
 
 	sinkConfig := sink.SinkConfig{
 		Logger:           logger,
