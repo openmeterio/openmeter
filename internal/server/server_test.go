@@ -512,6 +512,8 @@ func TestRoutes(t *testing.T) {
 			assert.NoError(t, err)
 			res := w.Result()
 
+			defer res.Body.Close()
+
 			// status
 			assert.Equal(t, tt.res.status, res.StatusCode, w.Body.String())
 
