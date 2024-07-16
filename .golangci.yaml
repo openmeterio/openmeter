@@ -12,19 +12,50 @@ linters-settings:
   misspell:
     locale: US
   nolintlint:
-    allow-leading-space: false # require machine-readable nolint directives (with no leading space)
-    allow-unused: false # report any unused nolint directives
-    require-specific: false # don't require nolint directives to be specific about which linter is being skipped
+    require-specific: true # require nolint directives to be specific about which linter is being skipped
   revive:
     confidence: 0
+  sloglint:
+    {}
+    # kv-only: true # enforce using key-value pairs only
+    # no-global: "all" # enforce not using global loggers
+    # context: "scope" # enforce passing a context to loggers (if available)
+    # key-naming-case: snake|camel # enforce a single key naming convention
 
 linters:
   enable:
+    - errcheck
+    # - errorlint
+    # - exhaustive
     - gci
+    # - gochecknoinits
+    # - goconst
+    # - gocritic
+    # - gocyclo
+    # - godot
+    - gofmt
+    # - gofumpt
+    # - goheader
     - goimports
+    # - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    # - lll
     - misspell
+    # - nlreturn
     - nolintlint
     # - revive
+    - sloglint
+    - staticcheck
+    # - stylecheck
+    - tenv
+    # - testifylint
+    # - unconvert
+    # - unparam
+    # - unused
+    # - whitespace
+    # - wsl
 
 issues:
   exclude-dirs:
