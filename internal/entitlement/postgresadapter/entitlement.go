@@ -35,7 +35,6 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 			db_entitlement.Or(db_entitlement.DeletedAtGT(clock.Now()), db_entitlement.DeletedAtIsNil()),
 		).
 		First(ctx)
-
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
@@ -50,12 +49,11 @@ func (a *entitlementDBAdapter) GetEntitlementOfSubject(ctx context.Context, name
 	res, err := withLatestUsageReset(a.db.Entitlement.Query()).
 		Where(
 			db_entitlement.Or(db_entitlement.DeletedAtGT(clock.Now()), db_entitlement.DeletedAtIsNil()),
-			db_entitlement.SubjectKey(string(subjectKey)),
+			db_entitlement.SubjectKey(subjectKey),
 			db_entitlement.Namespace(namespace),
 			db_entitlement.Or(db_entitlement.ID(idOrFeatureKey), db_entitlement.FeatureKey(idOrFeatureKey)),
 		).
 		First(ctx)
-
 	if err != nil {
 		if db.IsNotFound(err) {
 			return nil, &entitlement.NotFoundError{
@@ -101,7 +99,6 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlemen
 	}
 
 	res, err := cmd.Save(ctx)
-
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +128,6 @@ func (a *entitlementDBAdapter) GetEntitlementsOfSubject(ctx context.Context, nam
 			db_entitlement.Namespace(namespace),
 		).
 		All(ctx)
-
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +255,6 @@ func (a *entitlementDBAdapter) LockEntitlementForTx(ctx context.Context, entitle
 		).
 		ForUpdate().
 		Only(ctx)
-
 	if err != nil {
 		if db.IsNotFound(err) {
 			return &entitlement.NotFoundError{
@@ -296,7 +291,6 @@ func (a *entitlementDBAdapter) ListEntitlementsWithExpiredUsagePeriod(ctx contex
 			db_entitlement.CurrentUsagePeriodEndLTE(expiredBefore),
 		).
 		All(ctx)
-
 	if err != nil {
 		return nil, err
 	}

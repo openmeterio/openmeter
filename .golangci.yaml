@@ -51,7 +51,7 @@ linters:
     # - stylecheck
     - tenv
     # - testifylint
-    # - unconvert
+    - unconvert
     - unparam
     - unused
     - whitespace

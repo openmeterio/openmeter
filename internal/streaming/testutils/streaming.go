@@ -106,7 +106,7 @@ func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params *strea
 	if params.WindowSize != nil && params.WindowTimeZone != nil {
 		// prepopulate windows based on windowsize, from and to (TODO: windowtimezone will be ignored)
 		numOfSecondsBetweenToAndFrom := int(to.Sub(from).Seconds())
-		numOfWindows := int(numOfSecondsBetweenToAndFrom / int(windowSizeToDuration(*params.WindowSize).Seconds()))
+		numOfWindows := numOfSecondsBetweenToAndFrom / int(windowSizeToDuration(*params.WindowSize).Seconds())
 
 		for i := 0; i < numOfWindows; i++ {
 			rows = append(rows, models.MeterQueryRow{

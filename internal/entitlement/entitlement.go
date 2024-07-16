@@ -100,7 +100,7 @@ type UsagePeriod recurrence.Recurrence
 func (u UsagePeriod) GetCurrentPeriodAt(at time.Time) (recurrence.Period, error) {
 	rec := recurrence.Recurrence{
 		Anchor:   u.Anchor,
-		Interval: recurrence.RecurrenceInterval(u.Interval),
+		Interval: u.Interval,
 	}
 
 	nextAfter, err := rec.NextAfter(at)
