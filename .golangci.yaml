@@ -34,7 +34,7 @@ linters:
     # - gocyclo
     # - godot
     - gofmt
-    # - gofumpt
+    - gofumpt
     # - goheader
     - goimports
     # - gosec

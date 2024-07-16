@@ -3,18 +3,24 @@ package httpdriver
 import "github.com/openmeterio/openmeter/internal/productcatalog/httpdriver"
 
 // requests
-type CreateFeatureHandlerRequest = httpdriver.CreateFeatureHandlerRequest
-type DeleteFeatureHandlerRequest = httpdriver.DeleteFeatureHandlerRequest
-type GetFeatureHandlerRequest = httpdriver.GetFeatureHandlerRequest
-type ListFeaturesHandlerRequest = httpdriver.ListFeaturesHandlerRequest
+type (
+	CreateFeatureHandlerRequest = httpdriver.CreateFeatureHandlerRequest
+	DeleteFeatureHandlerRequest = httpdriver.DeleteFeatureHandlerRequest
+	GetFeatureHandlerRequest    = httpdriver.GetFeatureHandlerRequest
+	ListFeaturesHandlerRequest  = httpdriver.ListFeaturesHandlerRequest
+)
 
 // responses
-type CreateFeatureHandlerResponse = httpdriver.CreateFeatureHandlerResponse
-type DeleteFeatureHandlerResponse = httpdriver.DeleteFeatureHandlerResponse
-type GetFeatureHandlerResponse = httpdriver.GetFeatureHandlerResponse
-type ListFeaturesHandlerResponse = httpdriver.ListFeaturesHandlerResponse
+type (
+	CreateFeatureHandlerResponse = httpdriver.CreateFeatureHandlerResponse
+	DeleteFeatureHandlerResponse = httpdriver.DeleteFeatureHandlerResponse
+	GetFeatureHandlerResponse    = httpdriver.GetFeatureHandlerResponse
+	ListFeaturesHandlerResponse  = httpdriver.ListFeaturesHandlerResponse
+)
 
 // params
-type DeleteFeatureHandlerParams = httpdriver.DeleteFeatureHandlerParams
-type GetFeatureHandlerParams = httpdriver.GetFeatureHandlerParams
-type ListFeaturesHandlerParams = httpdriver.ListFeaturesHandlerParams
+type (
+	DeleteFeatureHandlerParams = httpdriver.DeleteFeatureHandlerParams
+	GetFeatureHandlerParams    = httpdriver.GetFeatureHandlerParams
+	ListFeaturesHandlerParams  = httpdriver.ListFeaturesHandlerParams
+)

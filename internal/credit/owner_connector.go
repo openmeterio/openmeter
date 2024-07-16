@@ -29,9 +29,9 @@ type OwnerConnector interface {
 	GetUsagePeriodStartAt(ctx context.Context, owner NamespacedGrantOwner, at time.Time) (time.Time, error)
 	GetOwnerSubjectKey(ctx context.Context, owner NamespacedGrantOwner) (string, error)
 
-	//FIXME: this is a terrible hack
+	// FIXME: this is a terrible hack
 	EndCurrentUsagePeriodTx(ctx context.Context, tx *entutils.TxDriver, owner NamespacedGrantOwner, params EndCurrentUsagePeriodParams) error
-	//FIXME: this is a terrible hack
+	// FIXME: this is a terrible hack
 	LockOwnerForTx(ctx context.Context, tx *entutils.TxDriver, owner NamespacedGrantOwner) error
 }
 

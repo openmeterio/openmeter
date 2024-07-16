@@ -40,7 +40,6 @@ func (c *featureDBAdapter) CreateFeature(ctx context.Context, feature productcat
 
 	entity, err := query.
 		Save(ctx)
-
 	if err != nil {
 		return productcatalog.Feature{}, err
 	}

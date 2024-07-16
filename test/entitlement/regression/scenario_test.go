@@ -162,6 +162,7 @@ func TestGrantExpiringAtReset(t *testing.T) {
 	assert.NotNil(currentBalance)
 	assert.Equal(0.0, currentBalance.Balance)
 }
+
 func TestGrantExpiringAndRecurringAtReset(t *testing.T) {
 	defer clock.ResetTime()
 	deps := setupDependencies(t)

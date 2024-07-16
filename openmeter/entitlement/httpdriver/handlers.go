@@ -9,19 +9,23 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
-type EntitlementHandler = httpdriver.EntitlementHandler
-type MeteredEntitlementHandler = httpdriver.MeteredEntitlementHandler
+type (
+	EntitlementHandler        = httpdriver.EntitlementHandler
+	MeteredEntitlementHandler = httpdriver.MeteredEntitlementHandler
+)
 
-type CreateEntitlementHandler = httpdriver.CreateEntitlementHandler
-type CreateGrantHandler = httpdriver.CreateGrantHandler
-type GetEntitlementBalanceHistoryHandler = httpdriver.GetEntitlementBalanceHistoryHandler
-type GetEntitlementValueHandler = httpdriver.GetEntitlementValueHandler
-type GetEntitlementsOfSubjectHandler = httpdriver.GetEntitlementsOfSubjectHandler
-type ListEntitlementGrantsHandler = httpdriver.ListEntitlementGrantsHandler
-type ResetEntitlementUsageHandler = httpdriver.ResetEntitlementUsageHandler
-type ListEntitlementsHandler = httpdriver.ListEntitlementsHandler
-type GetEntitlementHandler = httpdriver.GetEntitlementHandler
-type DeleteEntitlementHandler = httpdriver.DeleteEntitlementHandler
+type (
+	CreateEntitlementHandler            = httpdriver.CreateEntitlementHandler
+	CreateGrantHandler                  = httpdriver.CreateGrantHandler
+	GetEntitlementBalanceHistoryHandler = httpdriver.GetEntitlementBalanceHistoryHandler
+	GetEntitlementValueHandler          = httpdriver.GetEntitlementValueHandler
+	GetEntitlementsOfSubjectHandler     = httpdriver.GetEntitlementsOfSubjectHandler
+	ListEntitlementGrantsHandler        = httpdriver.ListEntitlementGrantsHandler
+	ResetEntitlementUsageHandler        = httpdriver.ResetEntitlementUsageHandler
+	ListEntitlementsHandler             = httpdriver.ListEntitlementsHandler
+	GetEntitlementHandler               = httpdriver.GetEntitlementHandler
+	DeleteEntitlementHandler            = httpdriver.DeleteEntitlementHandler
+)
 
 func NewEntitlementHandler(
 	connector entitlement.EntitlementConnector,

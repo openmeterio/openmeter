@@ -24,7 +24,7 @@ type EntitlementRepo interface {
 
 	ListEntitlements(ctx context.Context, params ListEntitlementsParams) ([]Entitlement, error)
 
-	//FIXME: This is a terrbile hack
+	// FIXME: This is a terrbile hack
 	LockEntitlementForTx(ctx context.Context, entitlementID models.NamespacedID) error
 
 	UpdateEntitlementUsagePeriod(ctx context.Context, entitlementID models.NamespacedID, params UpdateEntitlementUsagePeriodParams) error

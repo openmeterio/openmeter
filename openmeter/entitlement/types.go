@@ -2,12 +2,14 @@ package entitlement
 
 import "github.com/openmeterio/openmeter/internal/entitlement"
 
-type SubTypeConnector = entitlement.SubTypeConnector
-type CreateEntitlementInputs = entitlement.CreateEntitlementInputs
-type Entitlement = entitlement.Entitlement
-type EntitlementAlreadyExistsError = entitlement.AlreadyExistsError
-type EntitlementConnector = entitlement.Connector
-type EntitlementRepo = entitlement.EntitlementRepo
-type EntitlementNotFoundError = entitlement.NotFoundError
-type EntitlementValue = entitlement.EntitlementValue
-type ListEntitlementsParams = entitlement.ListEntitlementsParams
+type (
+	SubTypeConnector              = entitlement.SubTypeConnector
+	CreateEntitlementInputs       = entitlement.CreateEntitlementInputs
+	Entitlement                   = entitlement.Entitlement
+	EntitlementAlreadyExistsError = entitlement.AlreadyExistsError
+	EntitlementConnector          = entitlement.Connector
+	EntitlementRepo               = entitlement.EntitlementRepo
+	EntitlementNotFoundError      = entitlement.NotFoundError
+	EntitlementValue              = entitlement.EntitlementValue
+	ListEntitlementsParams        = entitlement.ListEntitlementsParams
+)

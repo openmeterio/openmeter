@@ -42,9 +42,11 @@ func NewFeatureHandler(
 	}
 }
 
-type GetFeatureHandlerRequest = models.NamespacedID
-type GetFeatureHandlerResponse = *productcatalog.Feature
-type GetFeatureHandlerParams = string
+type (
+	GetFeatureHandlerRequest  = models.NamespacedID
+	GetFeatureHandlerResponse = *productcatalog.Feature
+	GetFeatureHandlerParams   = string
+)
 
 type GetFeatureHandler httptransport.HandlerWithArgs[GetFeatureHandlerRequest, GetFeatureHandlerResponse, GetFeatureHandlerParams]
 
@@ -73,8 +75,10 @@ func (h *featureHandlers) GetFeature() GetFeatureHandler {
 	)
 }
 
-type CreateFeatureHandlerRequest = productcatalog.CreateFeatureInputs
-type CreateFeatureHandlerResponse = productcatalog.Feature
+type (
+	CreateFeatureHandlerRequest  = productcatalog.CreateFeatureInputs
+	CreateFeatureHandlerResponse = productcatalog.Feature
+)
 
 type CreateFeatureHandler httptransport.Handler[CreateFeatureHandlerRequest, CreateFeatureHandlerResponse]
 
@@ -113,9 +117,11 @@ func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 	)
 }
 
-type ListFeaturesHandlerRequest = productcatalog.ListFeaturesParams
-type ListFeaturesHandlerResponse = []productcatalog.Feature
-type ListFeaturesHandlerParams = api.ListFeaturesParams
+type (
+	ListFeaturesHandlerRequest  = productcatalog.ListFeaturesParams
+	ListFeaturesHandlerResponse = []productcatalog.Feature
+	ListFeaturesHandlerParams   = api.ListFeaturesParams
+)
 
 type ListFeaturesHandler httptransport.HandlerWithArgs[ListFeaturesHandlerRequest, ListFeaturesHandlerResponse, ListFeaturesHandlerParams]
 
@@ -155,9 +161,11 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 	)
 }
 
-type DeleteFeatureHandlerRequest = models.NamespacedID
-type DeleteFeatureHandlerResponse = interface{}
-type DeleteFeatureHandlerParams = string
+type (
+	DeleteFeatureHandlerRequest  = models.NamespacedID
+	DeleteFeatureHandlerResponse = interface{}
+	DeleteFeatureHandlerParams   = string
+)
 
 type DeleteFeatureHandler httptransport.HandlerWithArgs[DeleteFeatureHandlerRequest, DeleteFeatureHandlerResponse, DeleteFeatureHandlerParams]
 

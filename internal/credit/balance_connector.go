@@ -303,7 +303,6 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 			To:   at,
 		},
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate balance for reset: %w", err)
 	}
@@ -362,7 +361,6 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 
 		return nil, nil
 	})
-
 	if err != nil {
 		return nil, err
 	}

@@ -47,7 +47,7 @@ func TestHandler(t *testing.T) {
 	server := httptest.NewServer(handler)
 	client := server.Client()
 
-	now := time.Date(2023, 06, 15, 14, 33, 00, 00, time.UTC)
+	now := time.Date(2023, 0o6, 15, 14, 33, 0o0, 0o0, time.UTC)
 
 	ev := event.New()
 	ev.SetID("id")
@@ -113,7 +113,7 @@ func TestBatchHandler(t *testing.T) {
 	server := httptest.NewServer(handler)
 	client := server.Client()
 
-	now := time.Date(2023, 06, 15, 14, 33, 00, 00, time.UTC)
+	now := time.Date(2023, 0o6, 15, 14, 33, 0o0, 0o0, time.UTC)
 
 	var events []event.Event
 	for i := 1; i <= 10; i++ {

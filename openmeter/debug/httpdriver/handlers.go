@@ -7,8 +7,10 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
-type DebugHandler = httpdriver.DebugHandler
-type GetMetricsHandler = httpdriver.GetMetricsHandler
+type (
+	DebugHandler      = httpdriver.DebugHandler
+	GetMetricsHandler = httpdriver.GetMetricsHandler
+)
 
 func NewDebugHandler(
 	namespaceDecoder namespacedriver.NamespaceDecoder,

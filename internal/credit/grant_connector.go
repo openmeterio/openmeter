@@ -135,7 +135,6 @@ func (m *grantConnector) CreateGrant(ctx context.Context, owner NamespacedGrantO
 			ResetMinRollover: input.ResetMinRollover,
 			Recurrence:       input.Recurrence,
 		})
-
 		if err != nil {
 			return nil, err
 		}

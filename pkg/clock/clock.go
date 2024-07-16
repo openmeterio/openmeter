@@ -2,9 +2,7 @@ package clock
 
 import "time"
 
-var (
-	drift time.Duration
-)
+var drift time.Duration
 
 func Now() time.Time {
 	return time.Now().Add(-drift)

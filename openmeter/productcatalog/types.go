@@ -2,13 +2,15 @@ package productcatalog
 
 import "github.com/openmeterio/openmeter/internal/productcatalog"
 
-type CreateFeatureInputs = productcatalog.CreateFeatureInputs
-type Feature = productcatalog.Feature
-type FeatureConnector = productcatalog.FeatureConnector
-type FeatureRepo = productcatalog.FeatureRepo
-type FeatureInvalidFiltersError = productcatalog.FeatureInvalidFiltersError
-type FeatureInvalidMeterAggregationError = productcatalog.FeatureInvalidMeterAggregationError
-type FeatureNotFoundError = productcatalog.FeatureNotFoundError
-type FeatureOrderBy = productcatalog.FeatureOrderBy
-type FeatureWithNameAlreadyExistsError = productcatalog.FeatureWithNameAlreadyExistsError
-type ListFeaturesParams = productcatalog.ListFeaturesParams
+type (
+	CreateFeatureInputs                 = productcatalog.CreateFeatureInputs
+	Feature                             = productcatalog.Feature
+	FeatureConnector                    = productcatalog.FeatureConnector
+	FeatureRepo                         = productcatalog.FeatureRepo
+	FeatureInvalidFiltersError          = productcatalog.FeatureInvalidFiltersError
+	FeatureInvalidMeterAggregationError = productcatalog.FeatureInvalidMeterAggregationError
+	FeatureNotFoundError                = productcatalog.FeatureNotFoundError
+	FeatureOrderBy                      = productcatalog.FeatureOrderBy
+	FeatureWithNameAlreadyExistsError   = productcatalog.FeatureWithNameAlreadyExistsError
+	ListFeaturesParams                  = productcatalog.ListFeaturesParams
+)

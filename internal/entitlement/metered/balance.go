@@ -210,7 +210,8 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 			balance   float64
 			overage   float64
 			timestamp time.Time
-		}) bool {
+		},
+		) bool {
 			return tsb.timestamp.Before(row.WindowStart) || tsb.timestamp.Equal(row.WindowStart)
 		}, true)
 		if !ok {

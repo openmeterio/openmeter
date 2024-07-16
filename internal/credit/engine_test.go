@@ -25,7 +25,6 @@ func TestEngine(t *testing.T) {
 	meterSlug := "meter-1"
 
 	grant1 := makeGrant(credit.Grant{
-
 		ID:          "grant-1",
 		Amount:      100.0,
 		Priority:    1,
@@ -37,7 +36,6 @@ func TestEngine(t *testing.T) {
 	})
 
 	grant2 := makeGrant(credit.Grant{
-
 		ID:          "grant-2",
 		Amount:      100.0,
 		Priority:    1,
@@ -569,10 +567,10 @@ func TestEngine(t *testing.T) {
 				tg2 := start.AddDate(0, 0, 1)
 				tg2r := start.AddDate(0, 0, 3)
 
-				use(20, start.Add(-time.Hour))                    //g1
-				use(20, start.Add(time.Hour))                     //g1
-				use(20, start.AddDate(0, 0, 1).Add(-time.Second)) //g1 as its last period
-				use(20, start.AddDate(0, 0, 1))                   //g2 due to priority and already effective (only matters before tg2r)
+				use(20, start.Add(-time.Hour))                    // g1
+				use(20, start.Add(time.Hour))                     // g1
+				use(20, start.AddDate(0, 0, 1).Add(-time.Second)) // g1 as its last period
+				use(20, start.AddDate(0, 0, 1))                   // g2 due to priority and already effective (only matters before tg2r)
 
 				g1 := grant1
 				g1.EffectiveAt = tg1
@@ -616,11 +614,11 @@ func TestEngine(t *testing.T) {
 				tg2 := start.AddDate(0, 0, 1)
 				tg2r := start.AddDate(0, 0, 3)
 
-				use(20, start.Add(-time.Hour))                    //g1
-				use(20, start.Add(time.Hour))                     //g1
-				use(20, start.AddDate(0, 0, 1).Add(-time.Second)) //g1 as its last period
-				use(20, tg2)                                      //g2 due to priority and already effective (only matters before tg2r)
-				use(20, tg2r)                                     //g2 after first recurrence
+				use(20, start.Add(-time.Hour))                    // g1
+				use(20, start.Add(time.Hour))                     // g1
+				use(20, start.AddDate(0, 0, 1).Add(-time.Second)) // g1 as its last period
+				use(20, tg2)                                      // g2 due to priority and already effective (only matters before tg2r)
+				use(20, tg2r)                                     // g2 after first recurrence
 
 				g1 := grant1
 				g1.EffectiveAt = tg1

@@ -58,11 +58,13 @@ type CreateGrantHandlerRequest struct {
 	entitlement models.NamespacedID
 	subjectKey  string
 }
-type CreateGrantHandlerResponse = api.EntitlementGrant
-type CreateGrantHandlerParams struct {
-	SubjectKey    string
-	EntitlementID string
-}
+type (
+	CreateGrantHandlerResponse = api.EntitlementGrant
+	CreateGrantHandlerParams   struct {
+		SubjectKey    string
+		EntitlementID string
+	}
+)
 
 type CreateGrantHandler httptransport.HandlerWithArgs[CreateGrantHandlerRequest, CreateGrantHandlerResponse, CreateGrantHandlerParams]
 
@@ -137,11 +139,13 @@ type ListEntitlementGrantHandlerRequest struct {
 	ID         models.NamespacedID
 	SubjectKey string
 }
-type ListEntitlementGrantHandlerResponse = []api.EntitlementGrant
-type ListEntitlementGrantsHandlerParams struct {
-	EntitlementID string
-	SubjectKey    string
-}
+type (
+	ListEntitlementGrantHandlerResponse = []api.EntitlementGrant
+	ListEntitlementGrantsHandlerParams  struct {
+		EntitlementID string
+		SubjectKey    string
+	}
+)
 
 type ListEntitlementGrantsHandler httptransport.HandlerWithArgs[ListEntitlementGrantHandlerRequest, ListEntitlementGrantHandlerResponse, ListEntitlementGrantsHandlerParams]
 
@@ -192,11 +196,13 @@ type ResetEntitlementUsageHandlerRequest struct {
 	At            time.Time
 	RetainAnchor  bool
 }
-type ResetEntitlementUsageHandlerResponse = interface{}
-type ResetEntitlementUsageHandlerParams struct {
-	EntitlementID string
-	SubjectKey    string
-}
+type (
+	ResetEntitlementUsageHandlerResponse = interface{}
+	ResetEntitlementUsageHandlerParams   struct {
+		EntitlementID string
+		SubjectKey    string
+	}
+)
 type ResetEntitlementUsageHandler httptransport.HandlerWithArgs[ResetEntitlementUsageHandlerRequest, ResetEntitlementUsageHandlerResponse, ResetEntitlementUsageHandlerParams]
 
 func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsageHandler {
@@ -243,12 +249,14 @@ type GetEntitlementBalanceHistoryHandlerRequest struct {
 	ID     models.NamespacedID
 	params meteredentitlement.BalanceHistoryParams
 }
-type GetEntitlementBalanceHistoryHandlerResponse = api.WindowedBalanceHistory
-type GetEntitlementBalanceHistoryHandlerParams struct {
-	EntitlementID string
-	SubjectKey    string
-	Params        api.GetEntitlementHistoryParams
-}
+type (
+	GetEntitlementBalanceHistoryHandlerResponse = api.WindowedBalanceHistory
+	GetEntitlementBalanceHistoryHandlerParams   struct {
+		EntitlementID string
+		SubjectKey    string
+		Params        api.GetEntitlementHistoryParams
+	}
+)
 type GetEntitlementBalanceHistoryHandler httptransport.HandlerWithArgs[GetEntitlementBalanceHistoryHandlerRequest, GetEntitlementBalanceHistoryHandlerResponse, GetEntitlementBalanceHistoryHandlerParams]
 
 func (h *meteredEntitlementHandler) GetEntitlementBalanceHistory() GetEntitlementBalanceHistoryHandler {
