@@ -64,7 +64,6 @@ func TestCreateFeature(t *testing.T) {
 				assert.NotEmpty(t, feature.UpdatedAt)
 				assert.Nil(t, feature.ArchivedAt)
 				assert.NotEmpty(t, createFeatureOut.ID)
-
 			},
 		},
 		{

@@ -204,7 +204,6 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 	// we'll create a window for each row (same windowsize)
 	windows := make([]EntitlementBalanceHistoryWindow, 0, len(meterRows))
 	for _, row := range meterRows {
-
 		// find the last timestamped balance that was not later than the row
 		// This is not effective on a lot of rows
 		tsBalance, ok := slicesx.First(timestampedBalances, func(tsb struct {

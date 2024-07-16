@@ -103,7 +103,6 @@ func TestStats(t *testing.T) {
 			assert.Equal(t, expectedPart.CommittedOffset, topicPartition.CommittedOffset)
 			assert.Equal(t, expectedPart.ConsumerLag, topicPartition.ConsumerLag)
 			assert.Equal(t, expectedPart.TotalNumOfMessages, topicPartition.TotalNumOfMessages)
-
 		}
 	}
 }

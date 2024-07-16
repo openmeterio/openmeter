@@ -71,7 +71,6 @@ type KafkaConfiguration struct {
 }
 
 func (c KafkaConfiguration) Validate() error {
-
 	if c.Broker == "" {
 		return errors.New("broker is required")
 	}

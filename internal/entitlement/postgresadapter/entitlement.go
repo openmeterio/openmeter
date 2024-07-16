@@ -142,7 +142,6 @@ func (a *entitlementDBAdapter) GetEntitlementsOfSubject(ctx context.Context, nam
 	}
 
 	return result, nil
-
 }
 
 func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params entitlement.ListEntitlementsParams) ([]entitlement.Entitlement, error) {
@@ -195,7 +194,6 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 	}
 
 	return result, nil
-
 }
 
 func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {

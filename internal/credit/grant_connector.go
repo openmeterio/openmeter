@@ -97,7 +97,6 @@ func NewGrantConnector(
 }
 
 func (m *grantConnector) CreateGrant(ctx context.Context, owner NamespacedGrantOwner, input CreateGrantInput) (*Grant, error) {
-
 	doInTx := func(ctx context.Context, tx *entutils.TxDriver) (*Grant, error) {
 		// All metering information is stored in windowSize chunks,
 		// so we cannot do accurate calculations unless we follow that same windowing.
@@ -156,7 +155,6 @@ func (m *grantConnector) CreateGrant(ctx context.Context, owner NamespacedGrantO
 	} else {
 		return entutils.StartAndRunTx(ctx, m.grantRepo, doInTx)
 	}
-
 }
 
 func (m *grantConnector) VoidGrant(ctx context.Context, grantID models.NamespacedID) error {

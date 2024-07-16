@@ -268,7 +268,6 @@ func (e *engine) GetPhases(period recurrence.Period) ([]burnPhase, error) {
 			phaseFrom = activityChanges[acI]
 			acI++
 			rtI++
-
 		}
 	}
 
@@ -326,7 +325,6 @@ func (e *engine) getGrantActivityChanges(period recurrence.Period) []time.Time {
 				activityChanges = append(activityChanges, *grant.VoidedAt)
 			}
 		}
-
 	}
 
 	// FIXME: we should truncate on input but that's hard for voidedAt and deletedAt

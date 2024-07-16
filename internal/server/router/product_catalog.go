@@ -32,7 +32,6 @@ func (a *Router) DeleteFeature(w http.ResponseWriter, r *http.Request, featureId
 	if !a.config.EntitlementsEnabled {
 		unimplemented.DeleteFeature(w, r, featureId)
 		return
-
 	}
 	a.featureHandler.DeleteFeature().With(featureId).ServeHTTP(w, r)
 }

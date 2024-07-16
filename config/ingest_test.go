@@ -11,7 +11,6 @@ import (
 )
 
 func TestKafkaIngestConfiguration(t *testing.T) {
-
 	tests := []struct {
 		Name string
 

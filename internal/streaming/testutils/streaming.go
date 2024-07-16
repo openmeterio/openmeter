@@ -125,7 +125,6 @@ func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params *strea
 				GroupBy:     map[string]*string{},
 			})
 		}
-
 	} else {
 		rows = append(rows, models.MeterQueryRow{
 			Value:       0,
@@ -150,7 +149,6 @@ func (m *MockStreamingConnector) aggregateEvents(meterSlug string, params *strea
 			}
 		}
 		rows[i].Value = value
-
 	}
 
 	return rows, nil

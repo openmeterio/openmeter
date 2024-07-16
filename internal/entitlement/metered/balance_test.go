@@ -150,7 +150,6 @@ func TestGetEntitlementBalance(t *testing.T) {
 				assert.Equal(t, 600.0, entBalance.UsageInPeriod)
 				assert.Equal(t, 600.0, entBalance.Overage)
 				assert.Equal(t, 0.0, entBalance.Balance)
-
 			},
 		},
 		{

@@ -54,7 +54,7 @@ linters:
     # - unconvert
     # - unparam
     # - unused
-    # - whitespace
+    - whitespace
     # - wsl
 
 issues:
