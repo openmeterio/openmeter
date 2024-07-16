@@ -51,11 +51,7 @@ func TestQueryEventsTable(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run("", func(t *testing.T) {
-			gotSql, gotArgs, err := tt.query.toSQL()
-			if err != nil {
-				t.Error(err)
-				return
-			}
+			gotSql, gotArgs := tt.query.toSQL()
 
 			assert.Equal(t, tt.wantArgs, gotArgs)
 			assert.Equal(t, tt.wantSQL, gotSql)
@@ -84,11 +80,7 @@ func TestQueryEventsCount(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run("", func(t *testing.T) {
-			gotSql, gotArgs, err := tt.query.toSQL()
-			if err != nil {
-				t.Error(err)
-				return
-			}
+			gotSql, gotArgs := tt.query.toSQL()
 
 			assert.Equal(t, tt.wantArgs, gotArgs)
 			assert.Equal(t, tt.wantSQL, gotSql)
@@ -196,18 +188,16 @@ func TestDeleteMeterView(t *testing.T) {
 				Namespace: "my_namespace",
 				MeterSlug: "meter1",
 			},
-			wantSQL:  "DROP VIEW openmeter.om_my_namespace_meter1",
-			wantArgs: nil,
+			wantSQL: "DROP VIEW openmeter.om_my_namespace_meter1",
 		},
 	}
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run("", func(t *testing.T) {
-			gotSql, gotArgs := tt.data.toSQL()
+			gotSql := tt.data.toSQL()
 
 			assert.Equal(t, tt.wantSQL, gotSql)
-			assert.Equal(t, tt.wantArgs, gotArgs)
 		})
 	}
 }
@@ -439,11 +429,7 @@ func TestListMeterViewSubjects(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run("", func(t *testing.T) {
-			gotSql, gotArgs, err := tt.query.toSQL()
-			if err != nil {
-				t.Error(err)
-				return
-			}
+			gotSql, gotArgs := tt.query.toSQL()
 
 			assert.Equal(t, tt.wantArgs, gotArgs)
 			assert.Equal(t, tt.wantSQL, gotSql)
@@ -494,11 +480,7 @@ func TestQueryEvents(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		gotSql, gotArgs, err := tt.query.toSQL()
-		if err != nil {
-			t.Error(err)
-			return
-		}
+		gotSql, gotArgs := tt.query.toSQL()
 
 		assert.Equal(t, tt.wantSQL, gotSql)
 		assert.Equal(t, tt.wantArgs, gotArgs)

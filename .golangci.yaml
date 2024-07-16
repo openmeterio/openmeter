@@ -52,7 +52,7 @@ linters:
     - tenv
     # - testifylint
     # - unconvert
-    # - unparam
+    - unparam
     - unused
     - whitespace
     # - wsl

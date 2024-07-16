@@ -146,7 +146,7 @@ func (c *ClickhouseConnector) ListMeterSubjects(ctx context.Context, namespace s
 }
 
 func (c *ClickhouseConnector) CreateNamespace(ctx context.Context, namespace string) error {
-	err := c.createEventsTable(ctx, namespace)
+	err := c.createEventsTable(ctx)
 	if err != nil {
 		return fmt.Errorf("create namespace in clickhouse: %w", err)
 	}
@@ -203,7 +203,7 @@ func (c *ClickhouseConnector) CountEvents(ctx context.Context, namespace string,
 	return rows, nil
 }
 
-func (c *ClickhouseConnector) createEventsTable(ctx context.Context, namespace string) error {
+func (c *ClickhouseConnector) createEventsTable(ctx context.Context) error {
 	table := createEventsTable{
 		Database: c.config.Database,
 	}
@@ -225,10 +225,8 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 		Limit:     params.Limit,
 	}
 
-	sql, args, err := table.toSQL()
-	if err != nil {
-		return nil, fmt.Errorf("query events table to sql: %w", err)
-	}
+	sql, args := table.toSQL()
+
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
@@ -292,10 +290,8 @@ func (c *ClickhouseConnector) queryCountEvents(ctx context.Context, namespace st
 		From:      params.From,
 	}
 
-	sql, args, err := table.toSQL()
-	if err != nil {
-		return nil, fmt.Errorf("query events count to sql: %w", err)
-	}
+	sql, args := table.toSQL()
+
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
@@ -358,8 +354,10 @@ func (c *ClickhouseConnector) deleteMeterView(ctx context.Context, namespace str
 		Namespace: namespace,
 		MeterSlug: meterSlug,
 	}
-	sql, args := query.toSQL()
-	err := c.config.ClickHouse.Exec(ctx, sql, args...)
+
+	sql := query.toSQL()
+
+	err := c.config.ClickHouse.Exec(ctx, sql)
 	if err != nil {
 		if strings.Contains(err.Error(), "code: 60") {
 			return &models.MeterNotFoundError{MeterSlug: meterSlug}
@@ -463,10 +461,7 @@ func (c *ClickhouseConnector) listMeterViewSubjects(ctx context.Context, namespa
 		To:        to,
 	}
 
-	sql, args, err := query.toSQL()
-	if err != nil {
-		return nil, fmt.Errorf("list meter view subjects: %w", err)
-	}
+	sql, args := query.toSQL()
 
 	rows, err := c.config.ClickHouse.Query(ctx, sql, args...)
 	if err != nil {

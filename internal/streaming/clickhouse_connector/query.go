@@ -53,7 +53,7 @@ type queryEventsTable struct {
 	Limit     int
 }
 
-func (d queryEventsTable) toSQL() (string, []interface{}, error) {
+func (d queryEventsTable) toSQL() (string, []interface{}) {
 	tableName := GetEventsTableName(d.Database)
 	where := []string{}
 
@@ -74,7 +74,7 @@ func (d queryEventsTable) toSQL() (string, []interface{}, error) {
 	query.Limit(d.Limit)
 
 	sql, args := query.Build()
-	return sql, args, nil
+	return sql, args
 }
 
 type queryCountEvents struct {
@@ -83,7 +83,7 @@ type queryCountEvents struct {
 	From      time.Time
 }
 
-func (d queryCountEvents) toSQL() (string, []interface{}, error) {
+func (d queryCountEvents) toSQL() (string, []interface{}) {
 	tableName := GetEventsTableName(d.Database)
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
@@ -95,7 +95,7 @@ func (d queryCountEvents) toSQL() (string, []interface{}, error) {
 	query.GroupBy("subject", "is_error")
 
 	sql, args := query.Build()
-	return sql, args, nil
+	return sql, args
 }
 
 type createMeterView struct {
@@ -244,9 +244,10 @@ type deleteMeterView struct {
 	MeterSlug string
 }
 
-func (d deleteMeterView) toSQL() (string, []interface{}) {
+func (d deleteMeterView) toSQL() string {
 	viewName := GetMeterViewName(d.Database, d.Namespace, d.MeterSlug)
-	return fmt.Sprintf("DROP VIEW %s", viewName), nil
+
+	return fmt.Sprintf("DROP VIEW %s", viewName)
 }
 
 type queryMeterView struct {
@@ -404,7 +405,7 @@ type listMeterViewSubjects struct {
 	To        *time.Time
 }
 
-func (d listMeterViewSubjects) toSQL() (string, []interface{}, error) {
+func (d listMeterViewSubjects) toSQL() (string, []interface{}) {
 	viewName := GetMeterViewName(d.Database, d.Namespace, d.MeterSlug)
 
 	var where []string
@@ -427,7 +428,7 @@ func (d listMeterViewSubjects) toSQL() (string, []interface{}, error) {
 	sb.OrderBy("subject")
 
 	sql, args := sb.Build()
-	return sql, args, nil
+	return sql, args
 }
 
 func GetEventsTableName(database string) string {
