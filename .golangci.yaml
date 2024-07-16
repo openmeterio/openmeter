@@ -53,7 +53,7 @@ linters:
     # - testifylint
     # - unconvert
     # - unparam
-    # - unused
+    - unused
     - whitespace
     # - wsl
 
