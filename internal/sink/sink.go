@@ -278,7 +278,9 @@ func (s *Sink) flush(ctx context.Context) error {
 }
 
 // reportFlushMetrics reports metrics to OTel
-func (s *Sink) reportFlushMetrics(ctx context.Context, messages []SinkMessage) error {
+//
+// TODO: figure out if this needs to return an error or not
+func (s *Sink) reportFlushMetrics(ctx context.Context, messages []SinkMessage) error { //nolint: unparam
 	namespacesReport := map[string]int64{}
 
 	for _, message := range messages {

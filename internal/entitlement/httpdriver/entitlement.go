@@ -45,9 +45,11 @@ func NewEntitlementHandler(
 	}
 }
 
-type CreateEntitlementHandlerRequest = entitlement.CreateEntitlementInputs
-type CreateEntitlementHandlerResponse = *api.Entitlement
-type CreateEntitlementHandlerParams = string
+type (
+	CreateEntitlementHandlerRequest  = entitlement.CreateEntitlementInputs
+	CreateEntitlementHandlerResponse = *api.Entitlement
+	CreateEntitlementHandlerParams   = string
+)
 
 type CreateEntitlementHandler httptransport.HandlerWithArgs[CreateEntitlementHandlerRequest, CreateEntitlementHandlerResponse, CreateEntitlementHandlerParams]
 
@@ -133,7 +135,7 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 			return request, nil
 		},
 		func(ctx context.Context, request CreateEntitlementHandlerRequest) (CreateEntitlementHandlerResponse, error) {
-			res, err := h.connector.CreateEntitlement(ctx, entitlement.CreateEntitlementInputs(request))
+			res, err := h.connector.CreateEntitlement(ctx, request)
 			if err != nil {
 				return nil, err
 			}
@@ -154,12 +156,14 @@ type GetEntitlementValueHandlerRequest struct {
 	Namespace                 string
 	At                        time.Time
 }
-type GetEntitlementValueHandlerResponse = api.EntitlementValue
-type GetEntitlementValueHandlerParams struct {
-	SubjectKey                string
-	EntitlementIdOrFeatureKey string
-	Params                    api.GetEntitlementValueParams
-}
+type (
+	GetEntitlementValueHandlerResponse = api.EntitlementValue
+	GetEntitlementValueHandlerParams   struct {
+		SubjectKey                string
+		EntitlementIdOrFeatureKey string
+		Params                    api.GetEntitlementValueParams
+	}
+)
 type GetEntitlementValueHandler httptransport.HandlerWithArgs[GetEntitlementValueHandlerRequest, GetEntitlementValueHandlerResponse, GetEntitlementValueHandlerParams]
 
 func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
@@ -193,12 +197,14 @@ func (h *entitlementHandler) GetEntitlementValue() GetEntitlementValueHandler {
 	)
 }
 
-type GetEntitlementsOfSubjectHandlerRequest = models.NamespacedID
-type GetEntitlementsOfSubjectHandlerResponse = []api.Entitlement
-type GetEntitlementsOfSubjectHandlerParams struct {
-	SubjectIdOrKey string
-	Params         api.ListSubjectEntitlementsParams
-}
+type (
+	GetEntitlementsOfSubjectHandlerRequest  = models.NamespacedID
+	GetEntitlementsOfSubjectHandlerResponse = []api.Entitlement
+	GetEntitlementsOfSubjectHandlerParams   struct {
+		SubjectIdOrKey string
+		Params         api.ListSubjectEntitlementsParams
+	}
+)
 
 type GetEntitlementsOfSubjectHandler httptransport.HandlerWithArgs[GetEntitlementsOfSubjectHandlerRequest, GetEntitlementsOfSubjectHandlerResponse, GetEntitlementsOfSubjectHandlerParams]
 
@@ -241,9 +247,11 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 	)
 }
 
-type ListEntitlementsHandlerRequest = entitlement.ListEntitlementsParams
-type ListEntitlementsHandlerResponse = []api.Entitlement
-type ListEntitlementsHandlerParams = api.ListEntitlementsParams
+type (
+	ListEntitlementsHandlerRequest  = entitlement.ListEntitlementsParams
+	ListEntitlementsHandlerResponse = []api.Entitlement
+	ListEntitlementsHandlerParams   = api.ListEntitlementsParams
+)
 
 type ListEntitlementsHandler httptransport.HandlerWithArgs[ListEntitlementsHandlerRequest, ListEntitlementsHandlerResponse, ListEntitlementsHandlerParams]
 
@@ -302,10 +310,12 @@ type GetEntitlementHandlerRequest struct {
 	EntitlementId string
 	Namespace     string
 }
-type GetEntitlementHandlerResponse = *api.Entitlement
-type GetEntitlementHandlerParams struct {
-	EntitlementId string
-}
+type (
+	GetEntitlementHandlerResponse = *api.Entitlement
+	GetEntitlementHandlerParams   struct {
+		EntitlementId string
+	}
+)
 type GetEntitlementHandler httptransport.HandlerWithArgs[GetEntitlementHandlerRequest, GetEntitlementHandlerResponse, GetEntitlementHandlerParams]
 
 func (h *entitlementHandler) GetEntitlement() GetEntitlementHandler {
@@ -342,10 +352,12 @@ type DeleteEntitlementHandlerRequest struct {
 	EntitlementId string
 	Namespace     string
 }
-type DeleteEntitlementHandlerResponse = interface{}
-type DeleteEntitlementHandlerParams struct {
-	EntitlementId string
-}
+type (
+	DeleteEntitlementHandlerResponse = interface{}
+	DeleteEntitlementHandlerParams   struct {
+		EntitlementId string
+	}
+)
 type DeleteEntitlementHandler httptransport.HandlerWithArgs[DeleteEntitlementHandlerRequest, DeleteEntitlementHandlerResponse, DeleteEntitlementHandlerParams]
 
 func (h *entitlementHandler) DeleteEntitlement() DeleteEntitlementHandler {

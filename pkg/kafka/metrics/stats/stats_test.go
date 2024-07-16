@@ -23,7 +23,7 @@ func TestStats(t *testing.T) {
 	assert.Equal(t, "rdkafka", stats.ClientID)
 	assert.Equal(t, int64(22710), stats.MessageCount)
 
-	var brokerStats = []BrokerStats{
+	brokerStats := []BrokerStats{
 		{
 			Name:              "localhost:9092/2",
 			RequestsSent:      320,
@@ -61,7 +61,7 @@ func TestStats(t *testing.T) {
 		assert.Equal(t, brokerStat.ResponsesReceived, s.ResponsesReceived)
 	}
 
-	var expectedTopicStats = []TopicStats{
+	expectedTopicStats := []TopicStats{
 		{
 			Topic:       "test",
 			MetadataAge: 9060,
@@ -103,7 +103,6 @@ func TestStats(t *testing.T) {
 			assert.Equal(t, expectedPart.CommittedOffset, topicPartition.CommittedOffset)
 			assert.Equal(t, expectedPart.ConsumerLag, topicPartition.ConsumerLag)
 			assert.Equal(t, expectedPart.TotalNumOfMessages, topicPartition.TotalNumOfMessages)
-
 		}
 	}
 }

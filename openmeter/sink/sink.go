@@ -6,13 +6,15 @@ import (
 )
 
 // Sink is a streaming sink processor.
-type Sink = sink.Sink
-type SinkConfig = sink.SinkConfig
-type Storage = sink.Storage
-type FlushSuccessEvent = sink.FlushSuccessEvent
-type FlushEventHandler = sink.FlushEventHandler
-type ClickHouseStorage = sink.ClickHouseStorage
-type ClickHouseStorageConfig = sink.ClickHouseStorageConfig
+type (
+	Sink                    = sink.Sink
+	SinkConfig              = sink.SinkConfig
+	Storage                 = sink.Storage
+	FlushSuccessEvent       = sink.FlushSuccessEvent
+	FlushEventHandler       = sink.FlushEventHandler
+	ClickHouseStorage       = sink.ClickHouseStorage
+	ClickHouseStorageConfig = sink.ClickHouseStorageConfig
+)
 
 // NewSink returns a sink processor.
 func NewSink(config SinkConfig) (*sink.Sink, error) {

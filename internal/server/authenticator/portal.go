@@ -101,7 +101,6 @@ func (t *PortalTokenStrategy) Validate(tokenString string) (*PortalTokenClaims, 
 	token, err := jwt.ParseWithClaims(tokenString, &PortalTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return t.secret, nil
 	}, opts...)
-
 	if err != nil {
 		return nil, err
 	}

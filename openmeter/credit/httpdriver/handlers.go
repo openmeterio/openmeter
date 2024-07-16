@@ -7,9 +7,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
-type GrantHandler = httpdriver.GrantHandler
-type ListGrantsHandler = httpdriver.ListGrantsHandler
-type VoidGrantHandler = httpdriver.VoidGrantHandler
+type (
+	GrantHandler      = httpdriver.GrantHandler
+	ListGrantsHandler = httpdriver.ListGrantsHandler
+	VoidGrantHandler  = httpdriver.VoidGrantHandler
+)
 
 func NewGrantHandler(
 	namespaceDecoder namespacedriver.NamespaceDecoder,

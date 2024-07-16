@@ -36,7 +36,6 @@ func (a *Router) ListEvents(w http.ResponseWriter, r *http.Request, params api.L
 		models.NewStatusProblem(ctx, err, http.StatusInternalServerError).Respond(w)
 
 		return
-
 	}
 
 	render.JSON(w, r, events)

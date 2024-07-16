@@ -65,5 +65,4 @@ func TestInsertEventsQuery(t *testing.T) {
 		"my_namespace", "event data value cannot be parsed as float64: not a number", "3", "api-calls", "source", "subject-2", now.UnixMilli(), `{"duration_ms": "foo", "method": "GET", "path": "/api/v1"}`,
 	})
 	assert.Equal(t, `INSERT INTO database.om_events (namespace, validation_error, id, type, source, subject, time, data) VALUES (?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?)`, sql)
-
 }

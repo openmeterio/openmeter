@@ -19,13 +19,12 @@ func NewHandlerWithArgs[Request any, Response any, ArgType any](
 	op operation.Operation[Request, Response],
 	responseEncoder ResponseEncoder[Response],
 
-	options ...HandlerOption) HandlerWithArgs[Request, Response, ArgType] {
-
+	options ...HandlerOption,
+) HandlerWithArgs[Request, Response, ArgType] {
 	return handlerWithArgs[Request, Response, ArgType]{
 		handler:        newHandler(nil, op, responseEncoder, options...),
 		requestDecoder: requestDecoder,
 	}
-
 }
 
 type handlerWithArgs[Request any, Response any, ArgType any] struct {

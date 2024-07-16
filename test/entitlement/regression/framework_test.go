@@ -167,5 +167,4 @@ func setupDependencies(t *testing.T) Dependencies {
 
 		Log: log,
 	}
-
 }

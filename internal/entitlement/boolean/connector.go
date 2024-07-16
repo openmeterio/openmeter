@@ -68,8 +68,7 @@ func (c *connector) AfterCreate(ctx context.Context, entitlement *entitlement.En
 	return nil
 }
 
-type BooleanEntitlementValue struct {
-}
+type BooleanEntitlementValue struct{}
 
 var _ entitlement.EntitlementValue = &BooleanEntitlementValue{}
 

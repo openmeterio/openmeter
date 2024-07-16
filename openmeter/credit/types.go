@@ -4,30 +4,32 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 )
 
-type BalanceConnector = credit.BalanceConnector
-type BalanceHistoryParams = credit.BalanceHistoryParams
-type BalanceSnapshotRepo = credit.BalanceSnapshotRepo
-type CreateGrantInput = credit.CreateGrantInput
-type DBCreateGrantInput = credit.GrantRepoCreateGrantInput
-type Engine = credit.Engine
-type ExpirationPeriod = credit.ExpirationPeriod
-type ExpirationPeriodDuration = credit.ExpirationPeriodDuration
-type Grant = credit.Grant
-type GrantBalanceMap = credit.GrantBalanceMap
-type GrantBalanceNoSavedBalanceForOwnerError = credit.GrantBalanceNoSavedBalanceForOwnerError
-type GrantBalanceSnapshot = credit.GrantBalanceSnapshot
-type GrantBurnDownHistory = credit.GrantBurnDownHistory
-type GrantBurnDownHistorySegment = credit.GrantBurnDownHistorySegment
-type GrantConnector = credit.GrantConnector
-type GrantRepo = credit.GrantRepo
-type GrantNotFoundError = credit.GrantNotFoundError
-type GrantOrderBy = credit.GrantOrderBy
-type GrantOwner = credit.GrantOwner
-type GrantUsage = credit.GrantUsage
-type GrantUsageTerminationReason = credit.GrantUsageTerminationReason
-type ListGrantsParams = credit.ListGrantsParams
-type NamespacedGrantOwner = credit.NamespacedGrantOwner
-type OwnerConnector = credit.OwnerConnector
-type Pagination = credit.Pagination
-type QueryUsageFn = credit.QueryUsageFn
-type SegmentTerminationReason = credit.SegmentTerminationReason
+type (
+	BalanceConnector                        = credit.BalanceConnector
+	BalanceHistoryParams                    = credit.BalanceHistoryParams
+	BalanceSnapshotRepo                     = credit.BalanceSnapshotRepo
+	CreateGrantInput                        = credit.CreateGrantInput
+	DBCreateGrantInput                      = credit.GrantRepoCreateGrantInput
+	Engine                                  = credit.Engine
+	ExpirationPeriod                        = credit.ExpirationPeriod
+	ExpirationPeriodDuration                = credit.ExpirationPeriodDuration
+	Grant                                   = credit.Grant
+	GrantBalanceMap                         = credit.GrantBalanceMap
+	GrantBalanceNoSavedBalanceForOwnerError = credit.GrantBalanceNoSavedBalanceForOwnerError
+	GrantBalanceSnapshot                    = credit.GrantBalanceSnapshot
+	GrantBurnDownHistory                    = credit.GrantBurnDownHistory
+	GrantBurnDownHistorySegment             = credit.GrantBurnDownHistorySegment
+	GrantConnector                          = credit.GrantConnector
+	GrantRepo                               = credit.GrantRepo
+	GrantNotFoundError                      = credit.GrantNotFoundError
+	GrantOrderBy                            = credit.GrantOrderBy
+	GrantOwner                              = credit.GrantOwner
+	GrantUsage                              = credit.GrantUsage
+	GrantUsageTerminationReason             = credit.GrantUsageTerminationReason
+	ListGrantsParams                        = credit.ListGrantsParams
+	NamespacedGrantOwner                    = credit.NamespacedGrantOwner
+	OwnerConnector                          = credit.OwnerConnector
+	Pagination                              = credit.Pagination
+	QueryUsageFn                            = credit.QueryUsageFn
+	SegmentTerminationReason                = credit.SegmentTerminationReason
+)

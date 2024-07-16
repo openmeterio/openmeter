@@ -50,7 +50,6 @@ func (d *db1Adapter) Tx(ctx context.Context) (context.Context, *entutils.TxDrive
 	txCtx, rawConfig, eDriver, err := d.db.HijackTx(ctx, &sql.TxOptions{
 		ReadOnly: false,
 	})
-
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
 	}
@@ -85,7 +84,6 @@ func (d *db2Adapter) Tx(ctx context.Context) (context.Context, *entutils.TxDrive
 	txCtx, rawConfig, eDriver, err := d.db.HijackTx(ctx, &sql.TxOptions{
 		ReadOnly: false,
 	})
-
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
 	}

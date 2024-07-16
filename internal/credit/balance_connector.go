@@ -153,7 +153,6 @@ func (m *balanceConnector) GetBalanceOfOwner(ctx context.Context, owner Namespac
 		if err != nil {
 			return nil, fmt.Errorf("failed to save balance for owner %s at %s: %w", owner.ID, at, err)
 		}
-
 	}
 
 	// return balance
@@ -236,7 +235,6 @@ func (m *balanceConnector) GetBalanceHistoryOfOwner(ctx context.Context, owner N
 		}
 
 		historySegments = append(historySegments, segments...)
-
 	}
 
 	// return history
@@ -305,7 +303,6 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 			To:   at,
 		},
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate balance for reset: %w", err)
 	}
@@ -364,7 +361,6 @@ func (m *balanceConnector) ResetUsageForOwner(ctx context.Context, owner Namespa
 
 		return nil, nil
 	})
-
 	if err != nil {
 		return nil, err
 	}

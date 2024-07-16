@@ -9,7 +9,6 @@ import (
 )
 
 func TestGrantBalanceMap(t *testing.T) {
-
 	makeGrant := func(id string) credit.Grant {
 		return credit.Grant{
 			ID: id,

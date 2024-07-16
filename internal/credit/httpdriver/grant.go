@@ -42,10 +42,12 @@ func NewGrantHandler(
 type ListGrantsHandlerRequest struct {
 	params credit.ListGrantsParams
 }
-type ListGrantsHandlerResponse = []api.EntitlementGrant
-type ListGrantsHandlerParams struct {
-	Params api.ListGrantsParams
-}
+type (
+	ListGrantsHandlerResponse = []api.EntitlementGrant
+	ListGrantsHandlerParams   struct {
+		Params api.ListGrantsParams
+	}
+)
 type ListGrantsHandler httptransport.HandlerWithArgs[ListGrantsHandlerRequest, ListGrantsHandlerResponse, ListGrantsHandlerParams]
 
 func (h *grantHandler) ListGrants() ListGrantsHandler {
@@ -106,10 +108,12 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 type VoidGrantHandlerRequest struct {
 	ID models.NamespacedID
 }
-type VoidGrantHandlerResponse = interface{}
-type VoidGrantHandlerParams struct {
-	ID string
-}
+type (
+	VoidGrantHandlerResponse = interface{}
+	VoidGrantHandlerParams   struct {
+		ID string
+	}
+)
 type VoidGrantHandler httptransport.HandlerWithArgs[VoidGrantHandlerRequest, VoidGrantHandlerResponse, VoidGrantHandlerParams]
 
 func (h *grantHandler) VoidGrant() VoidGrantHandler {

@@ -268,7 +268,6 @@ func (e *engine) GetPhases(period recurrence.Period) ([]burnPhase, error) {
 			phaseFrom = activityChanges[acI]
 			acI++
 			rtI++
-
 		}
 	}
 
@@ -326,7 +325,6 @@ func (e *engine) getGrantActivityChanges(period recurrence.Period) []time.Time {
 				activityChanges = append(activityChanges, *grant.VoidedAt)
 			}
 		}
-
 	}
 
 	// FIXME: we should truncate on input but that's hard for voidedAt and deletedAt
@@ -352,7 +350,8 @@ func (e *engine) getGrantActivityChanges(period recurrence.Period) []time.Time {
 func (e *engine) getGrantRecurrenceTimes(period recurrence.Period) ([]struct {
 	time     time.Time
 	grantIDs []string
-}, error) {
+}, error,
+) {
 	times := []struct {
 		time    time.Time
 		grantID string
@@ -424,7 +423,9 @@ type burnPhase struct {
 // The correct order to burn down grants is:
 // 1. Grants with higher priority are burned down first
 // 2. Grants with earlier expiration date are burned down first
-func prioritizeGrants(grants []Grant) error {
+//
+// TODO: figure out if this needs to return an error or not
+func prioritizeGrants(grants []Grant) error { //nolint: unparam
 	if len(grants) == 0 {
 		// we don't do a thing, return early
 		// return fmt.Errorf("no grants to prioritize")

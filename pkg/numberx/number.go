@@ -1,4 +1,3 @@
 package numberx
 
-type Number interface {
-}
+type Number interface{}

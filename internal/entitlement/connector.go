@@ -112,7 +112,6 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 	}
 
 	ent, err := entutils.StartAndRunTx(ctx, c.entitlementRepo, func(ctx context.Context, tx *entutils.TxDriver) (*Entitlement, error) {
-
 		txCtx := entutils.NewTxContext(ctx, tx)
 
 		ent, err := c.entitlementRepo.WithTx(txCtx, tx).CreateEntitlement(txCtx, *repoInputs)

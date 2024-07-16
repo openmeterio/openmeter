@@ -8,11 +8,13 @@ import (
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
-type GrantOwner string
-type NamespacedGrantOwner struct {
-	Namespace string
-	ID        GrantOwner
-}
+type (
+	GrantOwner           string
+	NamespacedGrantOwner struct {
+		Namespace string
+		ID        GrantOwner
+	}
+)
 
 // Casts the NamespacedGrantOwner to a NamespacedID. Owner might not be a valid ID.
 func (n NamespacedGrantOwner) NamespacedID() models.NamespacedID {

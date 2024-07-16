@@ -57,7 +57,7 @@ func (g *grantDBADapter) VoidGrant(ctx context.Context, grantID models.Namespace
 	// TODO: transaction and locking
 	command := g.db.Grant.Update().
 		SetVoidedAt(at).
-		Where(db_grant.ID(string(grantID.ID)), db_grant.Namespace(grantID.Namespace))
+		Where(db_grant.ID(grantID.ID), db_grant.Namespace(grantID.Namespace))
 	return command.Exec(ctx)
 }
 
@@ -136,7 +136,7 @@ func (g *grantDBADapter) ListActiveGrantsBetween(ctx context.Context, owner cred
 }
 
 func (g *grantDBADapter) GetGrant(ctx context.Context, grantID models.NamespacedID) (credit.Grant, error) {
-	ent, err := g.db.Grant.Query().Where(db_grant.ID(string(grantID.ID)), db_grant.Namespace(grantID.Namespace)).Only(ctx)
+	ent, err := g.db.Grant.Query().Where(db_grant.ID(grantID.ID), db_grant.Namespace(grantID.Namespace)).Only(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
 			return credit.Grant{}, &credit.GrantNotFoundError{GrantID: grantID.ID}
@@ -158,7 +158,7 @@ func mapGrantEntity(entity *db.Grant) credit.Grant {
 			Namespace: entity.Namespace,
 		},
 		ID:       entity.ID,
-		OwnerID:  credit.GrantOwner(entity.OwnerID),
+		OwnerID:  entity.OwnerID,
 		Amount:   entity.Amount,
 		Priority: entity.Priority,
 		VoidedAt: convert.SafeDeRef(entity.VoidedAt, func(t time.Time) *time.Time {

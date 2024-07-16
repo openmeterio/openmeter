@@ -97,6 +97,7 @@ func TestNextAfter(t *testing.T) {
 		})
 	}
 }
+
 func TestPrevBefore(t *testing.T) {
 	now := time.Now().Truncate(time.Minute)
 

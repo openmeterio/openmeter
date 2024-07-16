@@ -10,7 +10,6 @@ import (
 )
 
 func TestBrokerAddressFamily(t *testing.T) {
-
 	tests := []struct {
 		Name string
 
@@ -63,7 +62,6 @@ func TestBrokerAddressFamily(t *testing.T) {
 }
 
 func TestTimeDurationMilliSeconds(t *testing.T) {
-
 	tests := []struct {
 		Name string
 

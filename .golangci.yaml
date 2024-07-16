@@ -34,7 +34,7 @@ linters:
     # - gocyclo
     # - godot
     - gofmt
-    # - gofumpt
+    - gofumpt
     # - goheader
     - goimports
     # - gosec
@@ -51,10 +51,10 @@ linters:
     # - stylecheck
     - tenv
     # - testifylint
-    # - unconvert
-    # - unparam
-    # - unused
-    # - whitespace
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
     # - wsl
 
 issues:

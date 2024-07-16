@@ -41,9 +41,11 @@ type GetMetricsHandlerRequestParams struct {
 type GetMetricsHandlerRequest struct {
 	params GetMetricsHandlerRequestParams
 }
-type GetMetricsHandlerResponse = string
-type GetMetricsHandlerParams struct{}
-type GetMetricsHandler httptransport.HandlerWithArgs[GetMetricsHandlerRequest, GetMetricsHandlerResponse, GetMetricsHandlerParams]
+type (
+	GetMetricsHandlerResponse = string
+	GetMetricsHandlerParams   struct{}
+	GetMetricsHandler         httptransport.HandlerWithArgs[GetMetricsHandlerRequest, GetMetricsHandlerResponse, GetMetricsHandlerParams]
+)
 
 func (h *debugHandler) GetMetrics() GetMetricsHandler {
 	return httptransport.NewHandlerWithArgs[GetMetricsHandlerRequest, string, GetMetricsHandlerParams](
