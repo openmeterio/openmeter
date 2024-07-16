@@ -24,6 +24,7 @@ linters-settings:
 
 linters:
   enable:
+    - bodyclose
     - errcheck
     # - errorlint
     # - exhaustive

@@ -55,6 +55,8 @@ func TestIngestEvents(t *testing.T) {
 	resp, err := client.Post(server.URL, "application/cloudevents+json", &buf)
 	require.NoError(t, err)
 
+	defer resp.Body.Close()
+
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 
 	events := collector.Events("test")
@@ -89,6 +91,8 @@ func TestIngestEvents_InvalidEvent(t *testing.T) {
 
 	resp, err := client.Post(server.URL, "application/cloudevents+json", bytes.NewBuffer([]byte(`invalid`)))
 	require.NoError(t, err)
+
+	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
@@ -131,6 +135,8 @@ func TestBatchHandler(t *testing.T) {
 
 	resp, err := client.Post(server.URL, "application/cloudevents-batch+json", &buf)
 	require.NoError(t, err)
+
+	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 
