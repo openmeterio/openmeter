@@ -70,6 +70,29 @@ const (
 	ExpirationPeriodDurationYEAR  ExpirationPeriodDuration = "YEAR"
 )
 
+// Defines values for NotificationChannelType.
+const (
+	WEBHOOK NotificationChannelType = "WEBHOOK"
+)
+
+// Defines values for NotificationEventDeliveryStatusState.
+const (
+	FAILED  NotificationEventDeliveryStatusState = "FAILED"
+	SENDING NotificationEventDeliveryStatusState = "SENDING"
+	SUCCESS NotificationEventDeliveryStatusState = "SUCCESS"
+)
+
+// Defines values for NotificationRuleBalanceThresholdValueType.
+const (
+	NUMBER  NotificationRuleBalanceThresholdValueType = "NUMBER"
+	PERCENT NotificationRuleBalanceThresholdValueType = "PERCENT"
+)
+
+// Defines values for NotificationRuleType.
+const (
+	EntitlementsBalanceThreshold NotificationRuleType = "entitlements.balance.threshold"
+)
+
 // Defines values for RecurringPeriodEnum.
 const (
 	RecurringPeriodEnumDAY   RecurringPeriodEnum = "DAY"
@@ -98,11 +121,33 @@ const (
 	ListGrantsParamsOrderByUpdatedAt ListGrantsParamsOrderBy = "updatedAt"
 )
 
+// Defines values for ListNotificationChannelsParamsOrderBy.
+const (
+	ListNotificationChannelsParamsOrderByCreatedAt ListNotificationChannelsParamsOrderBy = "createdAt"
+	ListNotificationChannelsParamsOrderById        ListNotificationChannelsParamsOrderBy = "id"
+	ListNotificationChannelsParamsOrderByType      ListNotificationChannelsParamsOrderBy = "type"
+	ListNotificationChannelsParamsOrderByUpdatedAt ListNotificationChannelsParamsOrderBy = "updatedAt"
+)
+
+// Defines values for ListNotificationEventsParamsOrderBy.
+const (
+	ListNotificationEventsParamsOrderByCreatedAt ListNotificationEventsParamsOrderBy = "createdAt"
+	ListNotificationEventsParamsOrderById        ListNotificationEventsParamsOrderBy = "id"
+)
+
+// Defines values for ListNotificationRulesParamsOrderBy.
+const (
+	ListNotificationRulesParamsOrderByCreatedAt ListNotificationRulesParamsOrderBy = "createdAt"
+	ListNotificationRulesParamsOrderById        ListNotificationRulesParamsOrderBy = "id"
+	ListNotificationRulesParamsOrderByType      ListNotificationRulesParamsOrderBy = "type"
+	ListNotificationRulesParamsOrderByUpdatedAt ListNotificationRulesParamsOrderBy = "updatedAt"
+)
+
 // Defines values for ListEntitlementGrantsParamsOrderBy.
 const (
-	ListEntitlementGrantsParamsOrderByCreatedAt ListEntitlementGrantsParamsOrderBy = "createdAt"
-	ListEntitlementGrantsParamsOrderById        ListEntitlementGrantsParamsOrderBy = "id"
-	ListEntitlementGrantsParamsOrderByUpdatedAt ListEntitlementGrantsParamsOrderBy = "updatedAt"
+	CreatedAt ListEntitlementGrantsParamsOrderBy = "createdAt"
+	Id        ListEntitlementGrantsParamsOrderBy = "id"
+	UpdatedAt ListEntitlementGrantsParamsOrderBy = "updatedAt"
 )
 
 // Defines values for GetEntitlementHistoryParamsWindowSize.
@@ -616,6 +661,78 @@ type FeatureCreateInputs struct {
 	Name string `json:"name"`
 }
 
+// GenericNotificationChannel defines model for GenericNotificationChannel.
+type GenericNotificationChannel struct {
+	// CreatedAt Timestamp when the channel was created.
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+	// Disabled Whether the channel is disabled or not.
+	Disabled *bool `json:"disabled,omitempty"`
+
+	// Id A unique identifier for the notification channel.
+	Id string `json:"id"`
+
+	// Name User friendly name of the channel.
+	Name *string `json:"name,omitempty"`
+
+	// Type The type of the notification channel.
+	Type NotificationChannelType `json:"type"`
+
+	// UpdatedAt Timestamp when the channel was modified.
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+}
+
+// GenericNotificationChannelCreateRequest defines model for GenericNotificationChannelCreateRequest.
+type GenericNotificationChannelCreateRequest struct {
+	// Disabled Whether the channel is disabled or not.
+	Disabled *bool `json:"disabled,omitempty"`
+
+	// Name User friendly name of the channel.
+	Name string `json:"name"`
+
+	// Type The type of the notification channel.
+	Type NotificationChannelType `json:"type"`
+}
+
+// GenericNotificationRule Defines the common fields of a notification rule.
+type GenericNotificationRule struct {
+	// Channels List of notification channel identifiers the rule applies to.
+	Channels *[]string `json:"channels,omitempty"`
+
+	// CreatedAt Timestamp when the rule was created.
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+	// Disabled Whether the rule is disabled or not.
+	Disabled *bool `json:"disabled,omitempty"`
+
+	// Id A unique identifier for the notification rule.
+	Id string `json:"id"`
+
+	// Name The user friendly name of the notification rule.
+	Name *string `json:"name,omitempty"`
+
+	// Type The type of the notification rule.
+	Type NotificationRuleType `json:"type"`
+
+	// UpdatedAt Timestamp when the rule was modified.
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+}
+
+// GenericNotificationRuleCreateRequest Defines the common fields of a notification rule.
+type GenericNotificationRuleCreateRequest struct {
+	// Channels List of notification channel identifiers or names the rule applies to.
+	Channels []string `json:"channels"`
+
+	// Disabled Whether the rule is disabled or not.
+	Disabled bool `json:"disabled"`
+
+	// Name The user friendly name of the notification rule.
+	Name string `json:"name"`
+
+	// Type The type of the notification rule.
+	Type NotificationRuleType `json:"type"`
+}
+
 // GrantBurnDownHistorySegment A segment of the grant burn down history.
 //
 // A given segment represents the usage of a grant between events that changed either the grant burn down priority order or the usag period.
@@ -682,6 +799,216 @@ type MeterQueryResult struct {
 
 // MeterQueryRow A row in the result of a meter query.
 type MeterQueryRow = models.MeterQueryRow
+
+// NotificationChannel defines model for NotificationChannel.
+type NotificationChannel struct {
+	union json.RawMessage
+}
+
+// NotificationChannelCreateRequest defines model for NotificationChannelCreateRequest.
+type NotificationChannelCreateRequest struct {
+	union json.RawMessage
+}
+
+// NotificationChannelType The type of the notification channel.
+type NotificationChannelType string
+
+// NotificationChannelWebhook defines model for NotificationChannelWebhook.
+type NotificationChannelWebhook struct {
+	// CreatedAt Timestamp when the channel was created.
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+	// CustomHeaders Custom HTTP headers sent as part of the webhook request.
+	CustomHeaders *map[string]interface{} `json:"customHeaders"`
+
+	// Disabled Whether the channel is disabled or not.
+	Disabled *bool `json:"disabled,omitempty"`
+
+	// Id A unique identifier for the notification channel.
+	Id string `json:"id"`
+
+	// Name User friendly name of the channel.
+	Name *string `json:"name,omitempty"`
+
+	// SigningSecret Signing secret used for webhook request validation on the receiving end.
+	//
+	// Format: `base64` encoded random bytes optionally prefixed with `whsec_`. Recommended size: 24
+	SigningSecret string `json:"signingSecret"`
+
+	// Type The type of the notification channel.
+	Type NotificationChannelType `json:"type"`
+
+	// UpdatedAt Timestamp when the channel was modified.
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+
+	// Url Webhook URL where the notification is sent.
+	Url string `json:"url"`
+}
+
+// NotificationChannelWebhookCreateRequest defines model for NotificationChannelWebhookCreateRequest.
+type NotificationChannelWebhookCreateRequest struct {
+	// CustomHeaders Custom HTTP headers sent as part of the webhook request.
+	CustomHeaders *map[string]interface{} `json:"customHeaders"`
+
+	// Disabled Whether the channel is disabled or not.
+	Disabled *bool `json:"disabled,omitempty"`
+
+	// Name User friendly name of the channel.
+	Name string `json:"name"`
+
+	// SigningSecret Signing secret used for webhook request validation on the receiving end. Automatically generated if not provided.
+	//
+	// Format: `base64` encoded random bytes optionally prefixed with `whsec_`. Recommended size: 24
+	SigningSecret *string `json:"signingSecret"`
+
+	// Type The type of the notification channel.
+	Type NotificationChannelType `json:"type"`
+
+	// Url Webhook URL where the notification is sent.
+	Url string `json:"url"`
+}
+
+// NotificationChannels defines model for NotificationChannels.
+type NotificationChannels = []NotificationChannel
+
+// NotificationEvent Notification event generated by the system based on the criteria defined in the corresponding
+// a notification rule.
+//
+// The `payload` field contains the actual message sent to the notification channel.
+type NotificationEvent struct {
+	// CreatedAt Timestamp when the notification event was created.
+	CreatedAt time.Time `json:"createdAt"`
+
+	// DeliveryStatus The delivery status of the notification event.
+	DeliveryStatus []NotificationEventDeliveryStatus `json:"deliveryStatus"`
+
+	// FeatureId The identifier of the feature defined in notification rule triggered this event.
+	FeatureId *string `json:"featureId,omitempty"`
+
+	// Id A unique identifier for the notification event.
+	Id string `json:"id"`
+
+	// Payload The actual payload sent to channel as part of the notification event.
+	//
+	// The `data` field contains the information specific to the notification event
+	// which may vary based on the `type` of the event.
+	Payload NotificationEventPayload `json:"payload"`
+
+	// RuleId The identifier of the Notification Rule which triggered this event.
+	RuleId string `json:"ruleId"`
+
+	// SubjectId The identifier of the feature defined in notification rule triggered this event.
+	SubjectId *string `json:"subjectId,omitempty"`
+}
+
+// NotificationEventDeliveryStatus defines model for NotificationEventDeliveryStatus.
+type NotificationEventDeliveryStatus struct {
+	ChannelId string                               `json:"channelId"`
+	State     NotificationEventDeliveryStatusState `json:"state"`
+	UpdatedAt time.Time                            `json:"updatedAt"`
+}
+
+// NotificationEventDeliveryStatusState defines model for NotificationEventDeliveryStatus.State.
+type NotificationEventDeliveryStatusState string
+
+// NotificationEventPayload The actual payload sent to channel as part of the notification event.
+//
+// The `data` field contains the information specific to the notification event
+// which may vary based on the `type` of the event.
+type NotificationEventPayload struct {
+	// Data Event type specific data.
+	//
+	// The format may vary based on the type of the event and the schema is defined for each event type separately.
+	Data map[string]interface{} `json:"data"`
+
+	// Id A unique identifier for the notification event.
+	Id string `json:"id"`
+
+	// Metadata Metadata information releted to the event.
+	Metadata *map[string]interface{} `json:"metadata"`
+
+	// Timestamp Timestamp when the notification event was created.
+	Timestamp time.Time `json:"timestamp"`
+
+	// Type The type of teh notification rule generated this event.
+	Type string `json:"type"`
+}
+
+// NotificationRule defines model for NotificationRule.
+type NotificationRule struct {
+	union json.RawMessage
+}
+
+// NotificationRuleBalanceThreshold defines model for NotificationRuleBalanceThreshold.
+type NotificationRuleBalanceThreshold struct {
+	// Channels List of notification channel identifiers the rule applies to.
+	Channels *[]string `json:"channels,omitempty"`
+
+	// CreatedAt Timestamp when the rule was created.
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+	// Disabled Whether the rule is disabled or not.
+	Disabled *bool `json:"disabled,omitempty"`
+
+	// Features Optional field for scoping notification based by features.
+	Features *[]string `json:"features"`
+
+	// Id A unique identifier for the notification rule.
+	Id string `json:"id"`
+
+	// Name The user friendly name of the notification rule.
+	Name *string `json:"name,omitempty"`
+
+	// Thresholds List of thresholds the rule suppose to be triggered.
+	Thresholds []NotificationRuleBalanceThresholdValue `json:"thresholds"`
+
+	// Type The type of the notification rule.
+	Type NotificationRuleType `json:"type"`
+
+	// UpdatedAt Timestamp when the rule was modified.
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+}
+
+// NotificationRuleBalanceThresholdCreateRequest defines model for NotificationRuleBalanceThresholdCreateRequest.
+type NotificationRuleBalanceThresholdCreateRequest struct {
+	// Channels List of notification channel identifiers or names the rule applies to.
+	Channels []string `json:"channels"`
+
+	// Disabled Whether the rule is disabled or not.
+	Disabled bool `json:"disabled"`
+
+	// Features Optional field for defining the scope of notification by feature.
+	Features *[]string `json:"features"`
+
+	// Name The user friendly name of the notification rule.
+	Name string `json:"name"`
+
+	// Thresholds List of thresholds the rule suppose to be triggered.
+	Thresholds []NotificationRuleBalanceThresholdValue `json:"thresholds"`
+
+	// Type The type of the notification rule.
+	Type NotificationRuleType `json:"type"`
+}
+
+// NotificationRuleBalanceThresholdValue Threshold value with multiple supported types.
+type NotificationRuleBalanceThresholdValue struct {
+	Type  NotificationRuleBalanceThresholdValueType `json:"type"`
+	Value float64                                   `json:"value"`
+}
+
+// NotificationRuleBalanceThresholdValueType defines model for NotificationRuleBalanceThresholdValue.Type.
+type NotificationRuleBalanceThresholdValueType string
+
+// NotificationRuleCreateRequest defines model for NotificationRuleCreateRequest.
+type NotificationRuleCreateRequest struct {
+	union json.RawMessage
+}
+
+// NotificationRuleType The type of the notification rule.
+type NotificationRuleType string
+
+// NotificationRules defines model for NotificationRules.
+type NotificationRules = []NotificationRule
 
 // Period A time period
 type Period struct {
@@ -789,11 +1116,17 @@ type WindowedBalanceHistory struct {
 	WindowedHistory *[]BalanceHistoryWindow `json:"windowedHistory,omitempty"`
 }
 
+// ChannelId defines model for channelId.
+type ChannelId = string
+
 // EntitlementId defines model for entitlementId.
 type EntitlementId = string
 
 // EntitlementIdOrFeatureKey defines model for entitlementIdOrFeatureKey.
 type EntitlementIdOrFeatureKey = string
+
+// EventId defines model for eventId.
+type EventId = string
 
 // FeatureId defines model for featureId.
 type FeatureId = string
@@ -806,6 +1139,9 @@ type IncludeDeleted = bool
 
 // MeterIdOrSlug A unique identifier.
 type MeterIdOrSlug = IdOrSlug
+
+// QueryFilterFeature defines model for queryFilterFeature.
+type QueryFilterFeature = []string
 
 // QueryFilterGroupBy Simple filter for group bys with exact match.
 //
@@ -821,6 +1157,9 @@ type QueryFrom = time.Time
 // QueryGroupBy defines model for queryGroupBy.
 type QueryGroupBy = []string
 
+// QueryIncludeDisabled defines model for queryIncludeDisabled.
+type QueryIncludeDisabled = bool
+
 // QueryLimit defines model for queryLimit.
 type QueryLimit = int
 
@@ -835,6 +1174,9 @@ type QueryWindowSize = WindowSize
 
 // QueryWindowTimeZone defines model for queryWindowTimeZone.
 type QueryWindowTimeZone = string
+
+// RuleId defines model for ruleId.
+type RuleId = string
 
 // SubjectIdOrKey defines model for subjectIdOrKey.
 type SubjectIdOrKey = string
@@ -958,6 +1300,72 @@ type QueryMeterParams struct {
 	GroupBy *QueryGroupBy `form:"groupBy,omitempty" json:"groupBy,omitempty"`
 }
 
+// ListNotificationChannelsParams defines parameters for ListNotificationChannels.
+type ListNotificationChannelsParams struct {
+	// Limit Number of entries to return
+	Limit *QueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Number of entries to skip
+	Offset *QueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// OrderBy Order by field
+	OrderBy *ListNotificationChannelsParamsOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+
+	// IncludeDisabled Include disabled entries.
+	IncludeDisabled *QueryIncludeDisabled `form:"includeDisabled,omitempty" json:"includeDisabled,omitempty"`
+}
+
+// ListNotificationChannelsParamsOrderBy defines parameters for ListNotificationChannels.
+type ListNotificationChannelsParamsOrderBy string
+
+// ListNotificationEventsParams defines parameters for ListNotificationEvents.
+type ListNotificationEventsParams struct {
+	// Limit Number of entries to return
+	Limit *QueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Number of entries to skip
+	Offset *QueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// OrderBy Order by field
+	OrderBy *ListNotificationEventsParamsOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+
+	// Feature Filtering by multiple features.
+	//
+	// Usage: `?feature=feature-1&feature=feature-2`
+	Feature *QueryFilterFeature `form:"feature,omitempty" json:"feature,omitempty"`
+
+	// Subject Filtering by multiple subjects.
+	//
+	// Usage: ?subject=customer-1&subject=customer-2
+	Subject *QueryFilterSubject `form:"subject,omitempty" json:"subject,omitempty"`
+}
+
+// ListNotificationEventsParamsOrderBy defines parameters for ListNotificationEvents.
+type ListNotificationEventsParamsOrderBy string
+
+// ListNotificationRulesParams defines parameters for ListNotificationRules.
+type ListNotificationRulesParams struct {
+	// Limit Number of entries to return
+	Limit *QueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Number of entries to skip
+	Offset *QueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// OrderBy Order by field
+	OrderBy *ListNotificationRulesParamsOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+
+	// IncludeDisabled Include disabled entries.
+	IncludeDisabled *QueryIncludeDisabled `form:"includeDisabled,omitempty" json:"includeDisabled,omitempty"`
+
+	// Feature Filtering by multiple features.
+	//
+	// Usage: `?feature=feature-1&feature=feature-2`
+	Feature *QueryFilterFeature `form:"feature,omitempty" json:"feature,omitempty"`
+}
+
+// ListNotificationRulesParamsOrderBy defines parameters for ListNotificationRules.
+type ListNotificationRulesParamsOrderBy string
+
 // QueryPortalMeterParams defines parameters for QueryPortalMeter.
 type QueryPortalMeterParams struct {
 	// From Start date-time in RFC 3339 format.
@@ -1067,6 +1475,18 @@ type CreateFeatureJSONRequestBody = FeatureCreateInputs
 
 // CreateMeterJSONRequestBody defines body for CreateMeter for application/json ContentType.
 type CreateMeterJSONRequestBody = Meter
+
+// CreateNotificationChannelJSONRequestBody defines body for CreateNotificationChannel for application/json ContentType.
+type CreateNotificationChannelJSONRequestBody = NotificationChannelCreateRequest
+
+// UpdateNotificationChannelJSONRequestBody defines body for UpdateNotificationChannel for application/json ContentType.
+type UpdateNotificationChannelJSONRequestBody = NotificationChannelCreateRequest
+
+// CreateNotificationRuleJSONRequestBody defines body for CreateNotificationRule for application/json ContentType.
+type CreateNotificationRuleJSONRequestBody = NotificationRuleCreateRequest
+
+// UpdateNotificationRuleJSONRequestBody defines body for UpdateNotificationRule for application/json ContentType.
+type UpdateNotificationRuleJSONRequestBody = NotificationRuleCreateRequest
 
 // CreatePortalTokenJSONRequestBody defines body for CreatePortalToken for application/json ContentType.
 type CreatePortalTokenJSONRequestBody = PortalToken
@@ -1459,6 +1879,242 @@ func (t *EntitlementCreateInputs) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+// AsNotificationChannelWebhook returns the union data inside the NotificationChannel as a NotificationChannelWebhook
+func (t NotificationChannel) AsNotificationChannelWebhook() (NotificationChannelWebhook, error) {
+	var body NotificationChannelWebhook
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromNotificationChannelWebhook overwrites any union data inside the NotificationChannel as the provided NotificationChannelWebhook
+func (t *NotificationChannel) FromNotificationChannelWebhook(v NotificationChannelWebhook) error {
+	v.Type = "WEBHOOK"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeNotificationChannelWebhook performs a merge with any union data inside the NotificationChannel, using the provided NotificationChannelWebhook
+func (t *NotificationChannel) MergeNotificationChannelWebhook(v NotificationChannelWebhook) error {
+	v.Type = "WEBHOOK"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t NotificationChannel) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t NotificationChannel) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "WEBHOOK":
+		return t.AsNotificationChannelWebhook()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t NotificationChannel) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *NotificationChannel) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsNotificationChannelWebhookCreateRequest returns the union data inside the NotificationChannelCreateRequest as a NotificationChannelWebhookCreateRequest
+func (t NotificationChannelCreateRequest) AsNotificationChannelWebhookCreateRequest() (NotificationChannelWebhookCreateRequest, error) {
+	var body NotificationChannelWebhookCreateRequest
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromNotificationChannelWebhookCreateRequest overwrites any union data inside the NotificationChannelCreateRequest as the provided NotificationChannelWebhookCreateRequest
+func (t *NotificationChannelCreateRequest) FromNotificationChannelWebhookCreateRequest(v NotificationChannelWebhookCreateRequest) error {
+	v.Type = "WEBHOOK"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeNotificationChannelWebhookCreateRequest performs a merge with any union data inside the NotificationChannelCreateRequest, using the provided NotificationChannelWebhookCreateRequest
+func (t *NotificationChannelCreateRequest) MergeNotificationChannelWebhookCreateRequest(v NotificationChannelWebhookCreateRequest) error {
+	v.Type = "WEBHOOK"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t NotificationChannelCreateRequest) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t NotificationChannelCreateRequest) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "WEBHOOK":
+		return t.AsNotificationChannelWebhookCreateRequest()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t NotificationChannelCreateRequest) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *NotificationChannelCreateRequest) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsNotificationRuleBalanceThreshold returns the union data inside the NotificationRule as a NotificationRuleBalanceThreshold
+func (t NotificationRule) AsNotificationRuleBalanceThreshold() (NotificationRuleBalanceThreshold, error) {
+	var body NotificationRuleBalanceThreshold
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromNotificationRuleBalanceThreshold overwrites any union data inside the NotificationRule as the provided NotificationRuleBalanceThreshold
+func (t *NotificationRule) FromNotificationRuleBalanceThreshold(v NotificationRuleBalanceThreshold) error {
+	v.Type = "entitlements.balance.threshold"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeNotificationRuleBalanceThreshold performs a merge with any union data inside the NotificationRule, using the provided NotificationRuleBalanceThreshold
+func (t *NotificationRule) MergeNotificationRuleBalanceThreshold(v NotificationRuleBalanceThreshold) error {
+	v.Type = "entitlements.balance.threshold"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t NotificationRule) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t NotificationRule) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "entitlements.balance.threshold":
+		return t.AsNotificationRuleBalanceThreshold()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t NotificationRule) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *NotificationRule) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsNotificationRuleBalanceThresholdCreateRequest returns the union data inside the NotificationRuleCreateRequest as a NotificationRuleBalanceThresholdCreateRequest
+func (t NotificationRuleCreateRequest) AsNotificationRuleBalanceThresholdCreateRequest() (NotificationRuleBalanceThresholdCreateRequest, error) {
+	var body NotificationRuleBalanceThresholdCreateRequest
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromNotificationRuleBalanceThresholdCreateRequest overwrites any union data inside the NotificationRuleCreateRequest as the provided NotificationRuleBalanceThresholdCreateRequest
+func (t *NotificationRuleCreateRequest) FromNotificationRuleBalanceThresholdCreateRequest(v NotificationRuleBalanceThresholdCreateRequest) error {
+	v.Type = "entitlements.balance.threshold"
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeNotificationRuleBalanceThresholdCreateRequest performs a merge with any union data inside the NotificationRuleCreateRequest, using the provided NotificationRuleBalanceThresholdCreateRequest
+func (t *NotificationRuleCreateRequest) MergeNotificationRuleBalanceThresholdCreateRequest(v NotificationRuleBalanceThresholdCreateRequest) error {
+	v.Type = "entitlements.balance.threshold"
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t NotificationRuleCreateRequest) Discriminator() (string, error) {
+	var discriminator struct {
+		Discriminator string `json:"type"`
+	}
+	err := json.Unmarshal(t.union, &discriminator)
+	return discriminator.Discriminator, err
+}
+
+func (t NotificationRuleCreateRequest) ValueByDiscriminator() (interface{}, error) {
+	discriminator, err := t.Discriminator()
+	if err != nil {
+		return nil, err
+	}
+	switch discriminator {
+	case "entitlements.balance.threshold":
+		return t.AsNotificationRuleBalanceThresholdCreateRequest()
+	default:
+		return nil, errors.New("unknown discriminator value: " + discriminator)
+	}
+}
+
+func (t NotificationRuleCreateRequest) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *NotificationRuleCreateRequest) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
 
@@ -1587,6 +2243,50 @@ type ClientInterface interface {
 
 	// ListMeterSubjects request
 	ListMeterSubjects(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListNotificationChannels request
+	ListNotificationChannels(ctx context.Context, params *ListNotificationChannelsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateNotificationChannelWithBody request with any body
+	CreateNotificationChannelWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateNotificationChannel(ctx context.Context, body CreateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteNotificationChannel request
+	DeleteNotificationChannel(ctx context.Context, channelId ChannelId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetNotificationChannel request
+	GetNotificationChannel(ctx context.Context, channelId ChannelId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateNotificationChannelWithBody request with any body
+	UpdateNotificationChannelWithBody(ctx context.Context, channelId ChannelId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateNotificationChannel(ctx context.Context, channelId ChannelId, body UpdateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListNotificationEvents request
+	ListNotificationEvents(ctx context.Context, params *ListNotificationEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetNotificationEvent request
+	GetNotificationEvent(ctx context.Context, eventId EventId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListNotificationRules request
+	ListNotificationRules(ctx context.Context, params *ListNotificationRulesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateNotificationRuleWithBody request with any body
+	CreateNotificationRuleWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateNotificationRule(ctx context.Context, body CreateNotificationRuleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteNotificationRule request
+	DeleteNotificationRule(ctx context.Context, ruleId RuleId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetNotificationRule request
+	GetNotificationRule(ctx context.Context, ruleId RuleId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateNotificationRuleWithBody request with any body
+	UpdateNotificationRuleWithBody(ctx context.Context, ruleId RuleId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateNotificationRule(ctx context.Context, ruleId RuleId, body UpdateNotificationRuleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// QueryPortalMeter request
 	QueryPortalMeter(ctx context.Context, meterSlug string, params *QueryPortalMeterParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1882,6 +2582,198 @@ func (c *Client) QueryMeter(ctx context.Context, meterIdOrSlug MeterIdOrSlug, pa
 
 func (c *Client) ListMeterSubjects(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListMeterSubjectsRequest(c.Server, meterIdOrSlug)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListNotificationChannels(ctx context.Context, params *ListNotificationChannelsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListNotificationChannelsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateNotificationChannelWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateNotificationChannelRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateNotificationChannel(ctx context.Context, body CreateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateNotificationChannelRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteNotificationChannel(ctx context.Context, channelId ChannelId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteNotificationChannelRequest(c.Server, channelId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetNotificationChannel(ctx context.Context, channelId ChannelId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetNotificationChannelRequest(c.Server, channelId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateNotificationChannelWithBody(ctx context.Context, channelId ChannelId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateNotificationChannelRequestWithBody(c.Server, channelId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateNotificationChannel(ctx context.Context, channelId ChannelId, body UpdateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateNotificationChannelRequest(c.Server, channelId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListNotificationEvents(ctx context.Context, params *ListNotificationEventsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListNotificationEventsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetNotificationEvent(ctx context.Context, eventId EventId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetNotificationEventRequest(c.Server, eventId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListNotificationRules(ctx context.Context, params *ListNotificationRulesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListNotificationRulesRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateNotificationRuleWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateNotificationRuleRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateNotificationRule(ctx context.Context, body CreateNotificationRuleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateNotificationRuleRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteNotificationRule(ctx context.Context, ruleId RuleId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteNotificationRuleRequest(c.Server, ruleId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetNotificationRule(ctx context.Context, ruleId RuleId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetNotificationRuleRequest(c.Server, ruleId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateNotificationRuleWithBody(ctx context.Context, ruleId RuleId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateNotificationRuleRequestWithBody(c.Server, ruleId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateNotificationRule(ctx context.Context, ruleId RuleId, body UpdateNotificationRuleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateNotificationRuleRequest(c.Server, ruleId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -3065,6 +3957,673 @@ func NewListMeterSubjectsRequest(server string, meterIdOrSlug MeterIdOrSlug) (*h
 	return req, nil
 }
 
+// NewListNotificationChannelsRequest generates requests for ListNotificationChannels
+func NewListNotificationChannelsRequest(server string, params *ListNotificationChannelsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notification/channels")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OrderBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.IncludeDisabled != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "includeDisabled", runtime.ParamLocationQuery, *params.IncludeDisabled); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateNotificationChannelRequest calls the generic CreateNotificationChannel builder with application/json body
+func NewCreateNotificationChannelRequest(server string, body CreateNotificationChannelJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateNotificationChannelRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateNotificationChannelRequestWithBody generates requests for CreateNotificationChannel with any type of body
+func NewCreateNotificationChannelRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notification/channels")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteNotificationChannelRequest generates requests for DeleteNotificationChannel
+func NewDeleteNotificationChannelRequest(server string, channelId ChannelId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "channelId", runtime.ParamLocationPath, channelId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notification/channels/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetNotificationChannelRequest generates requests for GetNotificationChannel
+func NewGetNotificationChannelRequest(server string, channelId ChannelId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "channelId", runtime.ParamLocationPath, channelId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notification/channels/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateNotificationChannelRequest calls the generic UpdateNotificationChannel builder with application/json body
+func NewUpdateNotificationChannelRequest(server string, channelId ChannelId, body UpdateNotificationChannelJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateNotificationChannelRequestWithBody(server, channelId, "application/json", bodyReader)
+}
+
+// NewUpdateNotificationChannelRequestWithBody generates requests for UpdateNotificationChannel with any type of body
+func NewUpdateNotificationChannelRequestWithBody(server string, channelId ChannelId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "channelId", runtime.ParamLocationPath, channelId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notification/channels/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListNotificationEventsRequest generates requests for ListNotificationEvents
+func NewListNotificationEventsRequest(server string, params *ListNotificationEventsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notification/events")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OrderBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Feature != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "feature", runtime.ParamLocationQuery, *params.Feature); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Subject != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "subject", runtime.ParamLocationQuery, *params.Subject); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetNotificationEventRequest generates requests for GetNotificationEvent
+func NewGetNotificationEventRequest(server string, eventId EventId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "eventId", runtime.ParamLocationPath, eventId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notification/events/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListNotificationRulesRequest generates requests for ListNotificationRules
+func NewListNotificationRulesRequest(server string, params *ListNotificationRulesParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notification/rules")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Offset != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OrderBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.IncludeDisabled != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "includeDisabled", runtime.ParamLocationQuery, *params.IncludeDisabled); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Feature != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "feature", runtime.ParamLocationQuery, *params.Feature); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateNotificationRuleRequest calls the generic CreateNotificationRule builder with application/json body
+func NewCreateNotificationRuleRequest(server string, body CreateNotificationRuleJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateNotificationRuleRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateNotificationRuleRequestWithBody generates requests for CreateNotificationRule with any type of body
+func NewCreateNotificationRuleRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notification/rules")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteNotificationRuleRequest generates requests for DeleteNotificationRule
+func NewDeleteNotificationRuleRequest(server string, ruleId RuleId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ruleId", runtime.ParamLocationPath, ruleId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notification/rules/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetNotificationRuleRequest generates requests for GetNotificationRule
+func NewGetNotificationRuleRequest(server string, ruleId RuleId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ruleId", runtime.ParamLocationPath, ruleId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notification/rules/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateNotificationRuleRequest calls the generic UpdateNotificationRule builder with application/json body
+func NewUpdateNotificationRuleRequest(server string, ruleId RuleId, body UpdateNotificationRuleJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateNotificationRuleRequestWithBody(server, ruleId, "application/json", bodyReader)
+}
+
+// NewUpdateNotificationRuleRequestWithBody generates requests for UpdateNotificationRule with any type of body
+func NewUpdateNotificationRuleRequestWithBody(server string, ruleId RuleId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ruleId", runtime.ParamLocationPath, ruleId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/notification/rules/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewQueryPortalMeterRequest generates requests for QueryPortalMeter
 func NewQueryPortalMeterRequest(server string, meterSlug string, params *QueryPortalMeterParams) (*http.Request, error) {
 	var err error
@@ -4106,6 +5665,50 @@ type ClientWithResponsesInterface interface {
 	// ListMeterSubjectsWithResponse request
 	ListMeterSubjectsWithResponse(ctx context.Context, meterIdOrSlug MeterIdOrSlug, reqEditors ...RequestEditorFn) (*ListMeterSubjectsResponse, error)
 
+	// ListNotificationChannelsWithResponse request
+	ListNotificationChannelsWithResponse(ctx context.Context, params *ListNotificationChannelsParams, reqEditors ...RequestEditorFn) (*ListNotificationChannelsResponse, error)
+
+	// CreateNotificationChannelWithBodyWithResponse request with any body
+	CreateNotificationChannelWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateNotificationChannelResponse, error)
+
+	CreateNotificationChannelWithResponse(ctx context.Context, body CreateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateNotificationChannelResponse, error)
+
+	// DeleteNotificationChannelWithResponse request
+	DeleteNotificationChannelWithResponse(ctx context.Context, channelId ChannelId, reqEditors ...RequestEditorFn) (*DeleteNotificationChannelResponse, error)
+
+	// GetNotificationChannelWithResponse request
+	GetNotificationChannelWithResponse(ctx context.Context, channelId ChannelId, reqEditors ...RequestEditorFn) (*GetNotificationChannelResponse, error)
+
+	// UpdateNotificationChannelWithBodyWithResponse request with any body
+	UpdateNotificationChannelWithBodyWithResponse(ctx context.Context, channelId ChannelId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateNotificationChannelResponse, error)
+
+	UpdateNotificationChannelWithResponse(ctx context.Context, channelId ChannelId, body UpdateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateNotificationChannelResponse, error)
+
+	// ListNotificationEventsWithResponse request
+	ListNotificationEventsWithResponse(ctx context.Context, params *ListNotificationEventsParams, reqEditors ...RequestEditorFn) (*ListNotificationEventsResponse, error)
+
+	// GetNotificationEventWithResponse request
+	GetNotificationEventWithResponse(ctx context.Context, eventId EventId, reqEditors ...RequestEditorFn) (*GetNotificationEventResponse, error)
+
+	// ListNotificationRulesWithResponse request
+	ListNotificationRulesWithResponse(ctx context.Context, params *ListNotificationRulesParams, reqEditors ...RequestEditorFn) (*ListNotificationRulesResponse, error)
+
+	// CreateNotificationRuleWithBodyWithResponse request with any body
+	CreateNotificationRuleWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateNotificationRuleResponse, error)
+
+	CreateNotificationRuleWithResponse(ctx context.Context, body CreateNotificationRuleJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateNotificationRuleResponse, error)
+
+	// DeleteNotificationRuleWithResponse request
+	DeleteNotificationRuleWithResponse(ctx context.Context, ruleId RuleId, reqEditors ...RequestEditorFn) (*DeleteNotificationRuleResponse, error)
+
+	// GetNotificationRuleWithResponse request
+	GetNotificationRuleWithResponse(ctx context.Context, ruleId RuleId, reqEditors ...RequestEditorFn) (*GetNotificationRuleResponse, error)
+
+	// UpdateNotificationRuleWithBodyWithResponse request with any body
+	UpdateNotificationRuleWithBodyWithResponse(ctx context.Context, ruleId RuleId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateNotificationRuleResponse, error)
+
+	UpdateNotificationRuleWithResponse(ctx context.Context, ruleId RuleId, body UpdateNotificationRuleJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateNotificationRuleResponse, error)
+
 	// QueryPortalMeterWithResponse request
 	QueryPortalMeterWithResponse(ctx context.Context, meterSlug string, params *QueryPortalMeterParams, reqEditors ...RequestEditorFn) (*QueryPortalMeterResponse, error)
 
@@ -4558,6 +6161,308 @@ func (r ListMeterSubjectsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListMeterSubjectsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListNotificationChannelsResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *NotificationChannels
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r ListNotificationChannelsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListNotificationChannelsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateNotificationChannelResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON201                       *NotificationChannel
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON409     *ConflictProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateNotificationChannelResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateNotificationChannelResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteNotificationChannelResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteNotificationChannelResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteNotificationChannelResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetNotificationChannelResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *NotificationChannel
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r GetNotificationChannelResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetNotificationChannelResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdateNotificationChannelResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *NotificationChannel
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateNotificationChannelResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateNotificationChannelResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListNotificationEventsResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *[]NotificationEvent
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r ListNotificationEventsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListNotificationEventsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetNotificationEventResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		union json.RawMessage
+	}
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r GetNotificationEventResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetNotificationEventResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListNotificationRulesResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *NotificationRules
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r ListNotificationRulesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListNotificationRulesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateNotificationRuleResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON201                       *NotificationRule
+	ApplicationproblemJSON400     *BadRequestProblemResponse
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON409     *ConflictProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateNotificationRuleResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateNotificationRuleResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteNotificationRuleResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteNotificationRuleResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteNotificationRuleResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetNotificationRuleResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *NotificationRule
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r GetNotificationRuleResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetNotificationRuleResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdateNotificationRuleResponse struct {
+	Body                          []byte
+	HTTPResponse                  *http.Response
+	JSON200                       *NotificationRule
+	ApplicationproblemJSON401     *UnauthorizedProblemResponse
+	ApplicationproblemJSON404     *NotFoundProblemResponse
+	ApplicationproblemJSONDefault *UnexpectedProblemResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateNotificationRuleResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateNotificationRuleResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -5171,6 +7076,146 @@ func (c *ClientWithResponses) ListMeterSubjectsWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseListMeterSubjectsResponse(rsp)
+}
+
+// ListNotificationChannelsWithResponse request returning *ListNotificationChannelsResponse
+func (c *ClientWithResponses) ListNotificationChannelsWithResponse(ctx context.Context, params *ListNotificationChannelsParams, reqEditors ...RequestEditorFn) (*ListNotificationChannelsResponse, error) {
+	rsp, err := c.ListNotificationChannels(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListNotificationChannelsResponse(rsp)
+}
+
+// CreateNotificationChannelWithBodyWithResponse request with arbitrary body returning *CreateNotificationChannelResponse
+func (c *ClientWithResponses) CreateNotificationChannelWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateNotificationChannelResponse, error) {
+	rsp, err := c.CreateNotificationChannelWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateNotificationChannelResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateNotificationChannelWithResponse(ctx context.Context, body CreateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateNotificationChannelResponse, error) {
+	rsp, err := c.CreateNotificationChannel(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateNotificationChannelResponse(rsp)
+}
+
+// DeleteNotificationChannelWithResponse request returning *DeleteNotificationChannelResponse
+func (c *ClientWithResponses) DeleteNotificationChannelWithResponse(ctx context.Context, channelId ChannelId, reqEditors ...RequestEditorFn) (*DeleteNotificationChannelResponse, error) {
+	rsp, err := c.DeleteNotificationChannel(ctx, channelId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteNotificationChannelResponse(rsp)
+}
+
+// GetNotificationChannelWithResponse request returning *GetNotificationChannelResponse
+func (c *ClientWithResponses) GetNotificationChannelWithResponse(ctx context.Context, channelId ChannelId, reqEditors ...RequestEditorFn) (*GetNotificationChannelResponse, error) {
+	rsp, err := c.GetNotificationChannel(ctx, channelId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetNotificationChannelResponse(rsp)
+}
+
+// UpdateNotificationChannelWithBodyWithResponse request with arbitrary body returning *UpdateNotificationChannelResponse
+func (c *ClientWithResponses) UpdateNotificationChannelWithBodyWithResponse(ctx context.Context, channelId ChannelId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateNotificationChannelResponse, error) {
+	rsp, err := c.UpdateNotificationChannelWithBody(ctx, channelId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateNotificationChannelResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateNotificationChannelWithResponse(ctx context.Context, channelId ChannelId, body UpdateNotificationChannelJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateNotificationChannelResponse, error) {
+	rsp, err := c.UpdateNotificationChannel(ctx, channelId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateNotificationChannelResponse(rsp)
+}
+
+// ListNotificationEventsWithResponse request returning *ListNotificationEventsResponse
+func (c *ClientWithResponses) ListNotificationEventsWithResponse(ctx context.Context, params *ListNotificationEventsParams, reqEditors ...RequestEditorFn) (*ListNotificationEventsResponse, error) {
+	rsp, err := c.ListNotificationEvents(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListNotificationEventsResponse(rsp)
+}
+
+// GetNotificationEventWithResponse request returning *GetNotificationEventResponse
+func (c *ClientWithResponses) GetNotificationEventWithResponse(ctx context.Context, eventId EventId, reqEditors ...RequestEditorFn) (*GetNotificationEventResponse, error) {
+	rsp, err := c.GetNotificationEvent(ctx, eventId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetNotificationEventResponse(rsp)
+}
+
+// ListNotificationRulesWithResponse request returning *ListNotificationRulesResponse
+func (c *ClientWithResponses) ListNotificationRulesWithResponse(ctx context.Context, params *ListNotificationRulesParams, reqEditors ...RequestEditorFn) (*ListNotificationRulesResponse, error) {
+	rsp, err := c.ListNotificationRules(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListNotificationRulesResponse(rsp)
+}
+
+// CreateNotificationRuleWithBodyWithResponse request with arbitrary body returning *CreateNotificationRuleResponse
+func (c *ClientWithResponses) CreateNotificationRuleWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateNotificationRuleResponse, error) {
+	rsp, err := c.CreateNotificationRuleWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateNotificationRuleResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateNotificationRuleWithResponse(ctx context.Context, body CreateNotificationRuleJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateNotificationRuleResponse, error) {
+	rsp, err := c.CreateNotificationRule(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateNotificationRuleResponse(rsp)
+}
+
+// DeleteNotificationRuleWithResponse request returning *DeleteNotificationRuleResponse
+func (c *ClientWithResponses) DeleteNotificationRuleWithResponse(ctx context.Context, ruleId RuleId, reqEditors ...RequestEditorFn) (*DeleteNotificationRuleResponse, error) {
+	rsp, err := c.DeleteNotificationRule(ctx, ruleId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteNotificationRuleResponse(rsp)
+}
+
+// GetNotificationRuleWithResponse request returning *GetNotificationRuleResponse
+func (c *ClientWithResponses) GetNotificationRuleWithResponse(ctx context.Context, ruleId RuleId, reqEditors ...RequestEditorFn) (*GetNotificationRuleResponse, error) {
+	rsp, err := c.GetNotificationRule(ctx, ruleId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetNotificationRuleResponse(rsp)
+}
+
+// UpdateNotificationRuleWithBodyWithResponse request with arbitrary body returning *UpdateNotificationRuleResponse
+func (c *ClientWithResponses) UpdateNotificationRuleWithBodyWithResponse(ctx context.Context, ruleId RuleId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateNotificationRuleResponse, error) {
+	rsp, err := c.UpdateNotificationRuleWithBody(ctx, ruleId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateNotificationRuleResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateNotificationRuleWithResponse(ctx context.Context, ruleId RuleId, body UpdateNotificationRuleJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateNotificationRuleResponse, error) {
+	rsp, err := c.UpdateNotificationRule(ctx, ruleId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateNotificationRuleResponse(rsp)
 }
 
 // QueryPortalMeterWithResponse request returning *QueryPortalMeterResponse
@@ -6087,6 +8132,572 @@ func ParseListMeterSubjectsResponse(rsp *http.Response) (*ListMeterSubjectsRespo
 	return response, nil
 }
 
+// ParseListNotificationChannelsResponse parses an HTTP response from a ListNotificationChannelsWithResponse call
+func ParseListNotificationChannelsResponse(rsp *http.Response) (*ListNotificationChannelsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListNotificationChannelsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationChannels
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateNotificationChannelResponse parses an HTTP response from a CreateNotificationChannelWithResponse call
+func ParseCreateNotificationChannelResponse(rsp *http.Response) (*CreateNotificationChannelResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateNotificationChannelResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest NotificationChannel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest ConflictProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteNotificationChannelResponse parses an HTTP response from a DeleteNotificationChannelWithResponse call
+func ParseDeleteNotificationChannelResponse(rsp *http.Response) (*DeleteNotificationChannelResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteNotificationChannelResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetNotificationChannelResponse parses an HTTP response from a GetNotificationChannelWithResponse call
+func ParseGetNotificationChannelResponse(rsp *http.Response) (*GetNotificationChannelResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetNotificationChannelResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationChannel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateNotificationChannelResponse parses an HTTP response from a UpdateNotificationChannelWithResponse call
+func ParseUpdateNotificationChannelResponse(rsp *http.Response) (*UpdateNotificationChannelResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateNotificationChannelResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationChannel
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListNotificationEventsResponse parses an HTTP response from a ListNotificationEventsWithResponse call
+func ParseListNotificationEventsResponse(rsp *http.Response) (*ListNotificationEventsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListNotificationEventsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []NotificationEvent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetNotificationEventResponse parses an HTTP response from a GetNotificationEventWithResponse call
+func ParseGetNotificationEventResponse(rsp *http.Response) (*GetNotificationEventResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetNotificationEventResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			union json.RawMessage
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListNotificationRulesResponse parses an HTTP response from a ListNotificationRulesWithResponse call
+func ParseListNotificationRulesResponse(rsp *http.Response) (*ListNotificationRulesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListNotificationRulesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationRules
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateNotificationRuleResponse parses an HTTP response from a CreateNotificationRuleWithResponse call
+func ParseCreateNotificationRuleResponse(rsp *http.Response) (*CreateNotificationRuleResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateNotificationRuleResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest NotificationRule
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest BadRequestProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest ConflictProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteNotificationRuleResponse parses an HTTP response from a DeleteNotificationRuleWithResponse call
+func ParseDeleteNotificationRuleResponse(rsp *http.Response) (*DeleteNotificationRuleResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteNotificationRuleResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetNotificationRuleResponse parses an HTTP response from a GetNotificationRuleWithResponse call
+func ParseGetNotificationRuleResponse(rsp *http.Response) (*GetNotificationRuleResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetNotificationRuleResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationRule
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateNotificationRuleResponse parses an HTTP response from a UpdateNotificationRuleWithResponse call
+func ParseUpdateNotificationRuleResponse(rsp *http.Response) (*UpdateNotificationRuleResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateNotificationRuleResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest NotificationRule
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest UnexpectedProblemResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.ApplicationproblemJSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseQueryPortalMeterResponse parses an HTTP response from a QueryPortalMeterWithResponse call
 func ParseQueryPortalMeterResponse(rsp *http.Response) (*QueryPortalMeterResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -6924,228 +9535,274 @@ func ParseResetEntitlementUsageResponse(rsp *http.Response) (*ResetEntitlementUs
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"ByNEt+9u/18AAAD//9aJ8j8jGAEA",
+	"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",
+	"evRqAQA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
