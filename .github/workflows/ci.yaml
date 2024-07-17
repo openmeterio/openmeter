@@ -47,6 +47,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
+      - name: Free Disk Space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          # Runs quick, run rm in background
+          tool-cache: true
+
+          # These run slower as use apt to uninstall packages
+          # Turned on by default, so we disable them
+          android: false
+          dotnet: false
+          haskell: false
+          large-packages: false
+          docker-images: false
+          swap-storage: false
+
       - name: Run pipeline
         uses: dagger/dagger-for-github@747585b2454aebd42233a2c1d5102ca88abb2223 # v6.0.0
         with:
@@ -78,6 +93,21 @@ jobs:
       # Required as a workaround for Dagger to properly detect Git metadata
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Free Disk Space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          # Runs quick, run rm in background
+          tool-cache: true
+
+          # These run slower as use apt to uninstall packages
+          # Turned on by default, so we disable them
+          android: false
+          dotnet: false
+          haskell: false
+          large-packages: false
+          docker-images: false
+          swap-storage: false
 
       - name: Run pipeline
         uses: dagger/dagger-for-github@747585b2454aebd42233a2c1d5102ca88abb2223 # v6.0.0
