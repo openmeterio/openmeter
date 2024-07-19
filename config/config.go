@@ -69,6 +69,10 @@ func (c Configuration) Validate() error {
 		return fmt.Errorf("entitlements: %w", err)
 	}
 
+	if len(c.Meters) == 0 {
+		return errors.New("no meters configured: add meter to configuration file")
+	}
+
 	for _, m := range c.Meters {
 		// Namespace is not configurable on per meter level
 		m.Namespace = c.Namespace.Default
