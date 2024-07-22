@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Build
-        uses: dagger/dagger-for-github@747585b2454aebd42233a2c1d5102ca88abb2223 # v6.0.0
+        uses: dagger/dagger-for-github@29d44c596610126326d4c6a567e9a23acbd61fa8 # v6.1.0
         with:
           verb: call
           module: github.com/${{ github.repository }}@${{ github.ref }}
