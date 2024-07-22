@@ -3159,7 +3159,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
     async def list_entitlement_grants(
         self,
         subject_id_or_key: str,
-        entitlement_id: str,
+        entitlement_id_or_feature_key: str,
         *,
         include_deleted: bool = False,
         order_by: str = "updatedAt",
@@ -3173,8 +3173,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
-        :param entitlement_id: A unique ULID for an entitlement. Required.
-        :type entitlement_id: str
+        :param entitlement_id_or_feature_key: The id of the entitlement or the key of the feature.
+         Required.
+        :type entitlement_id_or_feature_key: str
         :keyword include_deleted: Include deleted entries. Default value is False.
         :paramtype include_deleted: bool
         :keyword order_by: Order by field. Known values are: "id", "createdAt", and "updatedAt".
@@ -3265,7 +3266,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         _request = build_list_entitlement_grants_request(
             subject_id_or_key=subject_id_or_key,
-            entitlement_id=entitlement_id,
+            entitlement_id_or_feature_key=entitlement_id_or_feature_key,
             include_deleted=include_deleted,
             order_by=order_by,
             headers=_headers,
@@ -3300,7 +3301,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
     async def create_grant(
         self,
         subject_id_or_key: str,
-        entitlement_id: str,
+        entitlement_id_or_feature_key: str,
         body: JSON,
         *,
         content_type: str = "application/json",
@@ -3333,8 +3334,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
-        :param entitlement_id: A unique ULID for an entitlement. Required.
-        :type entitlement_id: str
+        :param entitlement_id_or_feature_key: The id of the entitlement or the key of the feature.
+         Required.
+        :type entitlement_id_or_feature_key: str
         :param body: The grant to create. Required.
         :type body: JSON
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
@@ -3454,7 +3456,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
     async def create_grant(
         self,
         subject_id_or_key: str,
-        entitlement_id: str,
+        entitlement_id_or_feature_key: str,
         body: IO[bytes],
         *,
         content_type: str = "application/json",
@@ -3487,8 +3489,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
-        :param entitlement_id: A unique ULID for an entitlement. Required.
-        :type entitlement_id: str
+        :param entitlement_id_or_feature_key: The id of the entitlement or the key of the feature.
+         Required.
+        :type entitlement_id_or_feature_key: str
         :param body: The grant to create. Required.
         :type body: IO[bytes]
         :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
@@ -3562,7 +3565,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
     @distributed_trace_async
     async def create_grant(
-        self, subject_id_or_key: str, entitlement_id: str, body: Union[JSON, IO[bytes]], **kwargs: Any
+        self, subject_id_or_key: str, entitlement_id_or_feature_key: str, body: Union[JSON, IO[bytes]], **kwargs: Any
     ) -> JSON:
         # pylint: disable=line-too-long
         """Create a grant.
@@ -3591,8 +3594,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
-        :param entitlement_id: A unique ULID for an entitlement. Required.
-        :type entitlement_id: str
+        :param entitlement_id_or_feature_key: The id of the entitlement or the key of the feature.
+         Required.
+        :type entitlement_id_or_feature_key: str
         :param body: The grant to create. Is either a JSON type or a IO[bytes] type. Required.
         :type body: JSON or IO[bytes]
         :return: JSON object
@@ -3730,7 +3734,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         _request = build_create_grant_request(
             subject_id_or_key=subject_id_or_key,
-            entitlement_id=entitlement_id,
+            entitlement_id_or_feature_key=entitlement_id_or_feature_key,
             content_type=content_type,
             json=_json,
             content=_content,

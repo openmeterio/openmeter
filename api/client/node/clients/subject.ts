@@ -286,12 +286,12 @@ export class SubjectClient extends BaseClient {
    */
   public async createEntitlementGrant(
     subjectIdOrKey: string,
-    entitlementId: string,
+    entitlementIdOrFeatureKey: string,
     input: EntitlementGrantCreateInput,
     options?: RequestOptions
   ): Promise<EntitlementGrant> {
     return await this.request({
-      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementId}/grants`,
+      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementIdOrFeatureKey}/grants`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -308,7 +308,7 @@ export class SubjectClient extends BaseClient {
    */
   public async listEntitlementGrants(
     subjectIdOrKey: string,
-    entitlementId: string,
+    entitlementIdOrFeatureKey: string,
     params?: ListEntitlementGrantQueryParams,
     options?: RequestOptions
   ): Promise<EntitlementGrant[]> {
@@ -316,7 +316,7 @@ export class SubjectClient extends BaseClient {
       ? BaseClient.toURLSearchParams(params)
       : undefined
     return await this.request({
-      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementId}/grants`,
+      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementIdOrFeatureKey}/grants`,
       method: 'GET',
       searchParams,
       options,

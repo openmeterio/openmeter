@@ -206,7 +206,7 @@ export interface paths {
      */
     delete: operations['deleteEntitlement']
   }
-  '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/grants': {
+  '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants': {
     /**
      * List grants for an entitlement
      * @description List all grants issued for an entitlement. This endpoint is intended for administrative purposes.
@@ -2006,7 +2006,7 @@ export interface operations {
       }
       path: {
         subjectIdOrKey: components['parameters']['subjectIdOrKey']
-        entitlementId: components['parameters']['entitlementId']
+        entitlementIdOrFeatureKey: components['parameters']['entitlementIdOrFeatureKey']
       }
     }
     responses: {
@@ -2038,7 +2038,7 @@ export interface operations {
     parameters: {
       path: {
         subjectIdOrKey: components['parameters']['subjectIdOrKey']
-        entitlementId: components['parameters']['entitlementId']
+        entitlementIdOrFeatureKey: components['parameters']['entitlementIdOrFeatureKey']
       }
     }
     /** @description The grant to create. */

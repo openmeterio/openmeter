@@ -962,17 +962,17 @@ paths:
           $ref: "#/components/responses/NotFoundProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
-  /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/grants:
+  /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants:
     get:
       operationId: listEntitlementGrants
       summary: List grants for an entitlement
       description: |
-        List all grants issued for an entitlement. This endpoint is intended for administrative purposes.
+        List all grants issued for an entitlement. The entitlement can be defined either by its id or featureKey.
       tags:
         - Entitlements (Experimental)
       parameters:
         - $ref: "#/components/parameters/subjectIdOrKey"
-        - $ref: "#/components/parameters/entitlementId"
+        - $ref: "#/components/parameters/entitlementIdOrFeatureKey"
         - $ref: "#/components/parameters/includeDeleted"
         - name: orderBy
           in: query
@@ -1006,7 +1006,7 @@ paths:
 
         A grant defines a given amount of usage that can be consumed for the entitlement. The grant is in effect between its effective date and its expiration date. Specifying both is mandatory for new grants.
 
-        Grants have a priority setting that determines their order of use. Lower numbers have higher priority, with 0 being the highest priority. 
+        Grants have a priority setting that determines their order of use. Lower numbers have higher priority, with 0 being the highest priority.
 
         Grants can have a recurrence setting intended to automate the manual reissuing of grants. For example, a daily recurrence is equal to reissuing that same grant every day (ignoring rollover settings).
 
@@ -1017,7 +1017,7 @@ paths:
         - Entitlements (Experimental)
       parameters:
         - $ref: "#/components/parameters/subjectIdOrKey"
-        - $ref: "#/components/parameters/entitlementId"
+        - $ref: "#/components/parameters/entitlementIdOrFeatureKey"
       requestBody:
         description: The grant to create.
         required: true
