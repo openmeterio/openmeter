@@ -3889,8 +3889,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         # pylint: disable=line-too-long
         """List grants for an entitlement.
 
-        List all grants issued for an entitlement. This endpoint is intended for administrative
-        purposes.
+        List all grants issued for an entitlement. The entitlement can be defined either by its id or
+        featureKey.
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
