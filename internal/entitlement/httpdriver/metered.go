@@ -49,22 +49,17 @@ func NewMeteredEntitlementHandler(
 	}
 }
 
-// The generated api.EntitlementMetered type doesn't really follow our openapi spec
-// so we have to manually override some fields...
-// FIXME: APIs can drift due to this
-
 type CreateGrantHandlerRequest struct {
-	inp         meteredentitlement.CreateEntitlementGrantInputs
-	entitlement models.NamespacedID
-	subjectKey  string
+	GrantInput                meteredentitlement.CreateEntitlementGrantInputs
+	EntitlementIdOrFeatureKey string
+	Namespace                 string
+	SubjectKey                string
 }
-type (
-	CreateGrantHandlerResponse = api.EntitlementGrant
-	CreateGrantHandlerParams   struct {
-		SubjectKey    string
-		EntitlementID string
-	}
-)
+type CreateGrantHandlerResponse = api.EntitlementGrant
+type CreateGrantHandlerParams struct {
+	SubjectKey                string
+	EntitlementIdOrFeatureKey string
+}
 
 type CreateGrantHandler httptransport.HandlerWithArgs[CreateGrantHandlerRequest, CreateGrantHandlerResponse, CreateGrantHandlerParams]
 
@@ -72,26 +67,24 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 	return httptransport.NewHandlerWithArgs[CreateGrantHandlerRequest, CreateGrantHandlerResponse, CreateGrantHandlerParams](
 		func(ctx context.Context, r *http.Request, params CreateGrantHandlerParams) (CreateGrantHandlerRequest, error) {
 			apiGrant := api.EntitlementGrantCreateInput{}
-			inp := CreateGrantHandlerRequest{
-				subjectKey: params.SubjectKey,
+			req := CreateGrantHandlerRequest{
+				SubjectKey: params.SubjectKey,
 			}
 
 			if err := commonhttp.JSONRequestBodyDecoder(r, &apiGrant); err != nil {
-				return inp, err
+				return req, err
 			}
 
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
-				return inp, err
+				return req, err
 			}
 
 			// TODO: match subjectKey and entitlement
-			inp.entitlement = models.NamespacedID{
-				Namespace: ns,
-				ID:        params.EntitlementID,
-			}
+			req.Namespace = ns
+			req.EntitlementIdOrFeatureKey = params.EntitlementIdOrFeatureKey
 
-			inp.inp = meteredentitlement.CreateEntitlementGrantInputs{
+			req.GrantInput = meteredentitlement.CreateEntitlementGrantInputs{
 				CreateGrantInput: credit.CreateGrantInput{
 					Amount:      apiGrant.Amount,
 					Priority:    uint8(defaultx.WithDefault(apiGrant.Priority, 0)),
@@ -106,24 +99,24 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 			}
 
 			if apiGrant.Metadata != nil {
-				inp.inp.Metadata = *apiGrant.Metadata
+				req.GrantInput.Metadata = *apiGrant.Metadata
 			}
 
 			if apiGrant.Recurrence != nil {
-				inp.inp.Recurrence = &recurrence.Recurrence{
+				req.GrantInput.Recurrence = &recurrence.Recurrence{
 					Interval: recurrence.RecurrenceInterval(apiGrant.Recurrence.Interval),
 					Anchor:   defaultx.WithDefault(apiGrant.Recurrence.Anchor, apiGrant.EffectiveAt),
 				}
 			}
 
-			return inp, nil
+			return req, nil
 		},
 		func(ctx context.Context, request CreateGrantHandlerRequest) (api.EntitlementGrant, error) {
-			grant, err := h.balanceConnector.CreateGrant(ctx, request.entitlement, request.inp)
+			grant, err := h.balanceConnector.CreateGrant(ctx, request.Namespace, request.SubjectKey, request.EntitlementIdOrFeatureKey, request.GrantInput)
 			if err != nil {
 				return api.EntitlementGrant{}, err
 			}
-			apiGrant := MapEntitlementGrantToAPI(&request.subjectKey, &grant)
+			apiGrant := MapEntitlementGrantToAPI(&request.SubjectKey, &grant)
 
 			return apiGrant, nil
 		},
@@ -136,16 +129,15 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 }
 
 type ListEntitlementGrantHandlerRequest struct {
-	ID         models.NamespacedID
-	SubjectKey string
+	EntitlementIdOrFeatureKey string
+	Namespace                 string
+	SubjectKey                string
 }
-type (
-	ListEntitlementGrantHandlerResponse = []api.EntitlementGrant
-	ListEntitlementGrantsHandlerParams  struct {
-		EntitlementID string
-		SubjectKey    string
-	}
-)
+type ListEntitlementGrantHandlerResponse = []api.EntitlementGrant
+type ListEntitlementGrantsHandlerParams struct {
+	EntitlementIdOrFeatureKey string
+	SubjectKey                string
+}
 
 type ListEntitlementGrantsHandler httptransport.HandlerWithArgs[ListEntitlementGrantHandlerRequest, ListEntitlementGrantHandlerResponse, ListEntitlementGrantsHandlerParams]
 
@@ -158,16 +150,14 @@ func (h *meteredEntitlementHandler) ListEntitlementGrants() ListEntitlementGrant
 			}
 
 			return ListEntitlementGrantHandlerRequest{
-				ID: models.NamespacedID{
-					Namespace: ns,
-					ID:        params.EntitlementID,
-				},
-				SubjectKey: params.SubjectKey,
+				Namespace:                 ns,
+				EntitlementIdOrFeatureKey: params.EntitlementIdOrFeatureKey,
+				SubjectKey:                params.SubjectKey,
 			}, nil
 		},
 		func(ctx context.Context, request ListEntitlementGrantHandlerRequest) ([]api.EntitlementGrant, error) {
 			// TODO: validate that entitlement belongs to subject
-			grants, err := h.balanceConnector.ListEntitlementGrants(ctx, request.ID)
+			grants, err := h.balanceConnector.ListEntitlementGrants(ctx, request.Namespace, request.SubjectKey, request.EntitlementIdOrFeatureKey)
 			if err != nil {
 				return nil, err
 			}

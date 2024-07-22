@@ -46,27 +46,27 @@ func (a *Router) GetEntitlementValue(w http.ResponseWriter, r *http.Request, sub
 
 // Create grant
 // (POST /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/grants)
-func (a *Router) CreateGrant(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementId api.EntitlementId) {
+func (a *Router) CreateGrant(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementIdOrFeatureKey api.EntitlementIdOrFeatureKey) {
 	if !a.config.EntitlementsEnabled {
-		unimplemented.CreateGrant(w, r, subjectIdOrKey, entitlementId)
+		unimplemented.CreateGrant(w, r, subjectIdOrKey, entitlementIdOrFeatureKey)
 		return
 	}
 	a.meteredEntitlementHandler.CreateGrant().With(httpdriver.CreateGrantHandlerParams{
-		SubjectKey:    subjectIdOrKey,
-		EntitlementID: entitlementId,
+		SubjectKey:                subjectIdOrKey,
+		EntitlementIdOrFeatureKey: entitlementIdOrFeatureKey,
 	}).ServeHTTP(w, r)
 }
 
 // List grants for an entitlement
-// (GET /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/grants)
-func (a *Router) ListEntitlementGrants(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementId api.EntitlementId, params api.ListEntitlementGrantsParams) {
+// (GET /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants)
+func (a *Router) ListEntitlementGrants(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementIdOrFeatureKey api.EntitlementIdOrFeatureKey, params api.ListEntitlementGrantsParams) {
 	if !a.config.EntitlementsEnabled {
-		unimplemented.ListEntitlementGrants(w, r, subjectIdOrKey, entitlementId, params)
+		unimplemented.ListEntitlementGrants(w, r, subjectIdOrKey, entitlementIdOrFeatureKey, params)
 		return
 	}
 	a.meteredEntitlementHandler.ListEntitlementGrants().With(httpdriver.ListEntitlementGrantsHandlerParams{
-		SubjectKey:    subjectIdOrKey,
-		EntitlementID: entitlementId,
+		SubjectKey:                subjectIdOrKey,
+		EntitlementIdOrFeatureKey: entitlementIdOrFeatureKey,
 	}).ServeHTTP(w, r)
 }
 
