@@ -14,7 +14,7 @@ env:
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
 
     steps:
       - name: Checkout repository
@@ -40,7 +40,7 @@ jobs:
 
   test:
     name: Test
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
 
     steps:
       # Required as a workaround for Dagger to properly detect Git metadata
@@ -89,7 +89,7 @@ jobs:
 
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
 
     steps:
       # Required as a workaround for Dagger to properly detect Git metadata
@@ -229,7 +229,7 @@ jobs:
 
   quickstart:
     name: Quickstart
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
 
     steps:
       - name: Checkout repository
@@ -257,7 +257,7 @@ jobs:
 
   e2e:
     name: E2E
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
 
     steps:
       # Required as a workaround for Dagger to properly detect Git metadata
