@@ -209,7 +209,7 @@ export interface paths {
   '/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants': {
     /**
      * List grants for an entitlement
-     * @description List all grants issued for an entitlement. This endpoint is intended for administrative purposes.
+     * @description List all grants issued for an entitlement. The entitlement can be defined either by its id or featureKey.
      */
     get: operations['listEntitlementGrants']
     /**
@@ -1995,7 +1995,7 @@ export interface operations {
   }
   /**
    * List grants for an entitlement
-   * @description List all grants issued for an entitlement. This endpoint is intended for administrative purposes.
+   * @description List all grants issued for an entitlement. The entitlement can be defined either by its id or featureKey.
    */
   listEntitlementGrants: {
     parameters: {
