@@ -42,6 +42,12 @@ tags:
   - name: Debug
     description: |
       Debugging endpoints. Useful for debugging and testing.
+  - name: Notification (Experimental)
+    description: |
+      Endpoints related to notification API which allows users to define rules based on system events to send notifications
+      to various channels (webhook, slack, etc).
+
+      [Learn more](https://openmeter.io/docs/getting-started/notification/overview)
 paths:
   /api/v1/events:
     get:
@@ -1213,6 +1219,353 @@ paths:
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
 
+  # Notification - Channels
+
+  /api/v1/notification/channels:
+    get:
+      operationId: listNotificationChannels
+      summary: List notification channels
+      description: |
+        List all notification channels.
+      tags:
+        - Notification (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/queryLimit"
+        - $ref: "#/components/parameters/queryOffset"
+        - name: orderBy
+          in: query
+          required: false
+          description: Order by field
+          schema:
+            type: string
+            enum:
+              - id
+              - type
+              - createdAt
+              - updatedAt
+            default: id
+        - $ref: "#/components/parameters/queryIncludeDisabled"
+      responses:
+        "200":
+          description: List of notification channels.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationChannels"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+    post:
+      operationId: createNotificationChannel
+      summary: Create a notification channel
+      description: |
+        Create a new notification channel.
+      tags:
+        - Notification (Experimental)
+      requestBody:
+        description: The notification channel to create.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationChannelCreateRequest"
+      responses:
+        "201":
+          description: Notification channel created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationChannel"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "409":
+          $ref: "#/components/responses/ConflictProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+
+  /api/v1/notification/channels/{channelId}:
+    get:
+      operationId: getNotificationChannel
+      summary: Get notification channel
+      description: |
+        Get a notification channel by id.
+      tags:
+        - Notification (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/channelId"
+      responses:
+        "200":
+          description: Notification channel found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationChannel"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+    delete:
+      operationId: deleteNotificationChannel
+      summary: Delete a notification channel
+      description: |
+        Delete notification channel by id.
+      tags:
+        - Notification (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/channelId"
+      responses:
+        "204":
+          description: Notification channel deleted.
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+    put:
+      operationId: updateNotificationChannel
+      summary: Update notification channel
+      description: |
+        Update a notification channel by id.
+      tags:
+        - Notification (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/channelId"
+      requestBody:
+        description: The notification channel to update.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationChannelCreateRequest"
+      responses:
+        "200":
+          description: Notification channel updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationChannel"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+
+  # Notification - Rules
+
+  /api/v1/notification/rules:
+    get:
+      operationId: listNotificationRules
+      summary: List notification rules
+      description: |
+        List all notification rules.
+      tags:
+        - Notification (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/queryLimit"
+        - $ref: "#/components/parameters/queryOffset"
+        - name: orderBy
+          in: query
+          required: false
+          description: Order by field
+          schema:
+            type: string
+            enum:
+              - id
+              - type
+              - createdAt
+              - updatedAt
+            default: id
+        - $ref: "#/components/parameters/queryIncludeDisabled"
+        - $ref: "#/components/parameters/queryFilterFeature"
+      responses:
+        "200":
+          description: List of notification rules.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationRules"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+    post:
+      operationId: createNotificationRule
+      summary: Create a notification rule
+      description: |
+        Create a new notification rule.
+      tags:
+        - Notification (Experimental)
+      requestBody:
+        description: The notification rule to create.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationRuleCreateRequest"
+      responses:
+        "201":
+          description: Notification rule created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationRule"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "409":
+          $ref: "#/components/responses/ConflictProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+
+  /api/v1/notification/rules/{ruleId}:
+    get:
+      operationId: getNotificationRule
+      summary: Get notification rule
+      description: |
+        Get a notification rule by id.
+      tags:
+        - Notification (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/ruleId"
+      responses:
+        "200":
+          description: Rule found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationRule"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+    delete:
+      operationId: deleteNotificationRule
+      summary: Delete a notification rule
+      description: |
+        Delete notification rule by id.
+      tags:
+        - Notification (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/ruleId"
+      responses:
+        "204":
+          description: Notification rule deleted.
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+    put:
+      operationId: updateNotificationRule
+      summary: Update a notification rule
+      description: |
+        Update a notification rule by id.
+      tags:
+        - Notification (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/ruleId"
+      requestBody:
+        description: The notification rule to update.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationRuleCreateRequest"
+      responses:
+        "200":
+          description: Notification Rule updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationRule"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+
+  # Notifications - Events
+
+  /api/v1/notification/events:
+    get:
+      operationId: listNotificationEvents
+      summary: List notification evens
+      description: |
+        List all notification events.
+      tags:
+        - Notification (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/queryLimit"
+        - $ref: "#/components/parameters/queryOffset"
+        - name: orderBy
+          in: query
+          required: false
+          description: Order by field
+          schema:
+            type: string
+            enum:
+              - id
+              - createdAt
+            default: id
+        - $ref: "#/components/parameters/queryFilterFeature"
+        - $ref: "#/components/parameters/queryFilterSubject"
+      responses:
+        "200":
+          description: List of notification events.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NotificationEvent"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+
+  /api/v1/notification/events/{eventId}:
+    get:
+      operationId: getNotificationEvent
+      summary: Get notification event
+      description: |
+        Get a notification event by id.
+      tags:
+        - Notification (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/eventId"
+      responses:
+        "200":
+          description: Notification event found.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/NotificationEvent"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+
 components:
   schemas:
     SharedMetaFields:
@@ -2342,6 +2695,442 @@ components:
           example: "tokens_total"
       example: "tokens_total"
 
+    NotificationChannelCreateRequest:
+      oneOf:
+        - $ref: "#/components/schemas/NotificationChannelWebhookCreateRequest"
+      discriminator:
+        propertyName: type
+        mapping:
+          WEBHOOK: "#/components/schemas/NotificationChannelWebhookCreateRequest"
+
+    NotificationChannel:
+      oneOf:
+        - $ref: "#/components/schemas/NotificationChannelWebhook"
+      discriminator:
+        propertyName: type
+        mapping:
+          WEBHOOK: "#/components/schemas/NotificationChannelWebhook"
+
+    NotificationChannels:
+      type: array
+      items:
+        $ref: "#/components/schemas/NotificationChannel"
+
+    NotificationChannelWebhookCreateRequest:
+      allOf:
+        - $ref: "#/components/schemas/GenericNotificationChannelCreateRequest"
+        - type: object
+          description: "Request for updating existing webhook notification channel."
+          required:
+            - url
+          properties:
+            url:
+              description: Webhook URL where the notification is sent.
+              type: string
+              example: "https://example.com/webhook"
+            customHeaders:
+              description: Custom HTTP headers sent as part of the webhook request.
+              type: object
+              additionalProperties: true
+              nullable: true
+              example:
+                X-CUSTOM-HEADER: "value"
+            signingSecret:
+              description: |
+                Signing secret used for webhook request validation on the receiving end. Automatically generated if not provided.
+
+                Format: `base64` encoded random bytes optionally prefixed with `whsec_`. Recommended size: 24
+              type: string
+              pattern: "^(whsec_)?[a-zA-Z0-9+/=]{32,100}$"
+              nullable: true
+              example: "whsec_S6g2HLnTwd9AhHwUIMFggVS9OfoPafN8"
+
+    NotificationChannelWebhook:
+      allOf:
+        - $ref: "#/components/schemas/GenericNotificationChannel"
+        - type: object
+          description: "Webhook type of notification channel"
+          required:
+            - url
+            - signingSecret
+          properties:
+            url:
+              description: Webhook URL where the notification is sent.
+              type: string
+              example: "https://example.com/webhook"
+            customHeaders:
+              description: Custom HTTP headers sent as part of the webhook request.
+              type: object
+              additionalProperties: true
+              nullable: true
+              example:
+                X-CUSTOM-HEADER: "value"
+            signingSecret:
+              description: |
+                Signing secret used for webhook request validation on the receiving end.
+
+                Format: `base64` encoded random bytes optionally prefixed with `whsec_`. Recommended size: 24
+              type: string
+              pattern: "^(whsec_)?[a-zA-Z0-9+/=]{32,100}$"
+              example: "whsec_S6g2HLnTwd9AhHwUIMFggVS9OfoPafN8"
+
+    NotificationChannelType:
+      description: The type of the notification channel.
+      type: string
+      enum:
+        - WEBHOOK
+      example: WEBHOOK
+
+    GenericNotificationChannelCreateRequest:
+      type: object
+      required:
+        - name
+        - type
+      properties:
+        name:
+          description: User friendly name of the channel.
+          type: string
+          example: "customer-webhook"
+        disabled:
+          description: Whether the channel is disabled or not.
+          type: boolean
+          default: false
+          example: false
+        type:
+          $ref: "#/components/schemas/NotificationChannelType"
+
+    GenericNotificationChannel:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          description: A unique identifier for the notification channel.
+          type: string
+          example: "01J2KNP1YTXQRXHTDJ4KPR7PZ0"
+        type:
+          $ref: "#/components/schemas/NotificationChannelType"
+        name:
+          description: User friendly name of the channel.
+          type: string
+          example: "customer-webhook"
+        createdAt:
+          description: Timestamp when the channel was created.
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        updatedAt:
+          description: Timestamp when the channel was modified.
+          type: string
+          format: date-time
+          readOnly: true
+          example: "2023-01-02T00:00:00Z"
+        disabled:
+          description: Whether the channel is disabled or not.
+          type: boolean
+          default: false
+          example: false
+
+    NotificationRuleCreateRequest:
+      oneOf:
+        - $ref: "#/components/schemas/NotificationRuleBalanceThresholdCreateRequest"
+      discriminator:
+        propertyName: type
+        mapping:
+          entitlements.balance.threshold: "#/components/schemas/NotificationRuleBalanceThresholdCreateRequest"
+
+    NotificationRule:
+      oneOf:
+        - $ref: "#/components/schemas/NotificationRuleBalanceThreshold"
+      discriminator:
+        propertyName: type
+        mapping:
+          entitlements.balance.threshold: "#/components/schemas/NotificationRuleBalanceThreshold"
+
+    NotificationRules:
+      type: array
+      items:
+        $ref: "#/components/schemas/NotificationRule"
+
+    NotificationRuleBalanceThresholdCreateRequest:
+      allOf:
+        - $ref: "#/components/schemas/GenericNotificationRuleCreateRequest"
+        - type: object
+          required:
+            - thresholds
+          properties:
+            thresholds:
+              description: List of thresholds the rule suppose to be triggered.
+              type: array
+              items:
+                $ref: "#/components/schemas/NotificationRuleBalanceThresholdValue"
+              minItems: 1
+              maxItems: 10
+              example:
+                - value: 100
+                  type: PERCENT
+                - value: 10000
+                  type: NUMBER
+            features:
+              description: Optional field for defining the scope of notification by feature.
+              type: array
+              uniqueItems: true
+              nullable: true
+              items:
+                type: string
+              example:
+                - gpt4_tokens
+
+    NotificationRuleBalanceThresholdValue:
+     description: Threshold value with multiple supported types.
+     type: object
+     required:
+       - value
+       - type
+     properties:
+       value:
+         type: number
+         format: double
+       type:
+         type: string
+         enum:
+           - NUMBER
+           - PERCENT
+
+    NotificationRuleBalanceThreshold:
+      allOf:
+        - $ref: "#/components/schemas/GenericNotificationRule"
+        - type: object
+          description: Defines notification rule base on balance thresholds.
+          required:
+            - thresholds
+          properties:
+            thresholds:
+              description: List of thresholds the rule suppose to be triggered.
+              type: array
+              items:
+                $ref: "#/components/schemas/NotificationRuleBalanceThresholdValue"
+              example:
+                - value: 100
+                  type: PERCENT
+                - value: 10000
+                  type: NUMBER
+            features:
+              description: Optional field for scoping notification based by features.
+              type: array
+              uniqueItems: true
+              nullable: true
+              items:
+                type: string
+              example:
+                - gpt4_tokens
+
+    NotificationRuleType:
+      description: The type of the notification rule.
+      type: string
+      enum:
+        - "entitlements.balance.threshold"
+      example: "entitlements.balance.threshold"
+
+    GenericNotificationRuleCreateRequest:
+      type: object
+      description: Defines the common fields of a notification rule.
+      required:
+        - type
+        - name
+        - channels
+        - disabled
+      properties:
+        type:
+          $ref: "#/components/schemas/NotificationRuleType"
+        name:
+          type: string
+          description: The user friendly name of the notification rule.
+          example: "Balance threshold reached"
+        channels:
+          description: List of notification channel identifiers or names the rule applies to.
+          type: array
+          items:
+            type: string
+          minItems: 1
+          maxItems: 5
+          example:
+            - "01G65Z755AFWAKHE12NY0CQ9FH"
+        disabled:
+          description: Whether the rule is disabled or not.
+          type: boolean
+          default: false
+          example: false
+
+    GenericNotificationRule:
+      type: object
+      description: Defines the common fields of a notification rule.
+      required:
+        - id
+        - type
+      properties:
+        id:
+          description: A unique identifier for the notification rule.
+          type: string
+          example: "01J2KNP1YTXQRXHTDJ4KPR7PZ0"
+        type:
+          $ref: "#/components/schemas/NotificationRuleType"
+        name:
+          type: string
+          description: The user friendly name of the notification rule.
+          example: "Balance threshold reached"
+        channels:
+          description: List of notification channel identifiers the rule applies to.
+          type: array
+          items:
+            type: string
+          example:
+            - "01G65Z755AFWAKHE12NY0CQ9FH"
+        createdAt:
+          description: Timestamp when the rule was created.
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        updatedAt:
+          description: Timestamp when the rule was modified.
+          type: string
+          format: date-time
+          example: "2023-01-02T00:00:00Z"
+        disabled:
+          description: Whether the rule is disabled or not.
+          type: boolean
+          default: false
+          example: false
+
+    NotificationEvent:
+      type: object
+      description: |
+        Notification event generated by the system based on the criteria defined in the corresponding
+        a notification rule.
+
+        The `payload` field contains the actual message sent to the notification channel.
+      required:
+        - id
+        - createdAt
+        - ruleId
+        - deliveryStatus
+        - payload
+      properties:
+        id:
+          description: A unique identifier for the notification event.
+          type: string
+          example: "01J2KNP1YTXQRXHTDJ4KPR7PZ0"
+        createdAt:
+          description: Timestamp when the notification event was created.
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        ruleId:
+          description: The identifier of the Notification Rule which triggered this event.
+          type: string
+          example: "01J2KNP1YTXQRXHTDJ4KPR7PZ0"
+        featureId:
+          description: The identifier of the feature defined in notification rule triggered this event.
+          type: string
+          example: "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+        subjectId:
+          description: The identifier of the feature defined in notification rule triggered this event.
+          type: string
+          example: "01G65Z755AFWAKHE12NY0CQ9FH"
+        deliveryStatus:
+          description: The delivery status of the notification event.
+          type: array
+          items:
+            $ref: "#/components/schemas/NotificationEventDeliveryStatus"
+        payload:
+          $ref: "#/components/schemas/NotificationEventPayload"
+
+    NotificationEventPayload:
+      description: |
+        The actual payload sent to channel as part of the notification event.
+
+        The `data` field contains the information specific to the notification event
+        which may vary based on the `type` of the event.
+      type: object
+      required:
+        - id
+        - type
+        - timestamp
+        - data
+      properties:
+        id:
+          description: A unique identifier for the notification event.
+          type: string
+          example: "01J34ZDJC70G3NP8TK1ZY6A297"
+        type:
+          description: The type of teh notification rule generated this event.
+          type: string
+          example: "entitlements.balance.threshold"
+        metadata:
+          description: Metadata information releted to the event.
+          type: object
+          additionalProperties: true
+          nullable: true
+        timestamp:
+          description: Timestamp when the notification event was created.
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        data:
+          description: |
+            Event type specific data.
+
+            The format may vary based on the type of the event and the schema is defined for each event type separately.
+          type: object
+          additionalProperties: true
+          example:
+            currentBalance: 10000
+            threshold: "120%"
+            feature:
+              archivedAt: "2023-01-01T00:00:00Z"
+              key: "gpt4_tokens"
+              name: "AI Tokens"
+              metadata:
+                additionalProp1: "value1"
+              meterSlug: "tokens_total"
+              meterGroupByFilters:
+                model: "gpt-4"
+              id: "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+              createdAt: "2023-01-01T00:00:00Z"
+              updatedAt: "2023-01-01T00:00:00Z"
+            subject:
+              id: "01G65Z755AFWAKHE12NY0CQ9FH"
+              key: "customer-id"
+              displayName: "Customer Name"
+              metadata:
+                hubspotId: "123456"
+              currentPeriodStart: "2023-01-01T00:00:00Z"
+              currentPeriodEnd: "2023-02-01T00:00:00Z"
+
+    NotificationEventDeliveryStatus:
+      type: object
+      required:
+        - channelId
+        - state
+        - updatedAt
+      properties:
+        channelId:
+          type: string
+        state:
+          type: string
+          enum:
+            - SUCCESS
+            - FAILED
+            - SENDING
+        updatedAt:
+          type: string
+          format: date-time
+      example:
+        channelId: "01J2ZS1ZSXZ61G5C2CZRK4GQKK"
+        state: "SUCCESS"
+        updatedAt: "2023-01-01T00:00:00Z"
+
   parameters:
     meterIdOrSlug:
       name: meterIdOrSlug
@@ -2473,6 +3262,18 @@ components:
         type: array
         items:
           type: string
+    queryFilterFeature:
+      name: feature
+      description: |
+        Filtering by multiple features.
+
+        Usage: `?feature=feature-1&feature=feature-2`
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
     queryFilterGroupBy:
       name: filterGroupBy
       in: query
@@ -2503,10 +3304,43 @@ components:
         example:
           - model
           - type
+    channelId:
+      name: channelId
+      description: A unique ULID identifier for a notification channel.
+      in: path
+      required: true
+      schema:
+        type: string
+        example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+    ruleId:
+      name: ruleId
+      description: A unique ULID identifier for a notification rule.
+      in: path
+      required: true
+      schema:
+        type: string
+        example: 01J2XYZEPMCKMBKAHXJZF8S3YQ
+    eventId:
+      name: eventId
+      description: A unique ULID identifier for a notification event.
+      in: path
+      required: true
+      schema:
+        type: string
+        example: 01J2XYZEPMCKMBKAHXJZF8S3YQ
+    queryIncludeDisabled:
+      name: includeDisabled
+      in: query
+      required: false
+      description: Include disabled entries.
+      schema:
+        type: boolean
+        default: false
+        example: true
 
   responses:
     ConflictProblemResponse:
-      description: Ledger Exists
+      description: Conflict
       content:
         application/problem+json:
           schema:
