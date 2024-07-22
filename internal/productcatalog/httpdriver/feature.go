@@ -64,7 +64,7 @@ func (h *featureHandlers) GetFeature() GetFeatureHandler {
 			}, nil
 		},
 		func(ctx context.Context, featureId GetFeatureHandlerRequest) (GetFeatureHandlerResponse, error) {
-			return h.connector.GetFeature(ctx, featureId.Namespace, featureId.ID)
+			return h.connector.GetFeature(ctx, featureId.Namespace, featureId.ID, productcatalog.IncludeArchivedFeatureFalse)
 		},
 		commonhttp.JSONResponseEncoder,
 		httptransport.AppendOptions(
