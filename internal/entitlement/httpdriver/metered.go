@@ -49,17 +49,19 @@ func NewMeteredEntitlementHandler(
 	}
 }
 
-type CreateGrantHandlerRequest struct {
-	GrantInput                meteredentitlement.CreateEntitlementGrantInputs
-	EntitlementIdOrFeatureKey string
-	Namespace                 string
-	SubjectKey                string
-}
-type CreateGrantHandlerResponse = api.EntitlementGrant
-type CreateGrantHandlerParams struct {
-	SubjectKey                string
-	EntitlementIdOrFeatureKey string
-}
+type (
+	CreateGrantHandlerRequest struct {
+		GrantInput                meteredentitlement.CreateEntitlementGrantInputs
+		EntitlementIdOrFeatureKey string
+		Namespace                 string
+		SubjectKey                string
+	}
+	CreateGrantHandlerResponse = api.EntitlementGrant
+	CreateGrantHandlerParams   struct {
+		SubjectKey                string
+		EntitlementIdOrFeatureKey string
+	}
+)
 
 type CreateGrantHandler httptransport.HandlerWithArgs[CreateGrantHandlerRequest, CreateGrantHandlerResponse, CreateGrantHandlerParams]
 
@@ -133,11 +135,13 @@ type ListEntitlementGrantHandlerRequest struct {
 	Namespace                 string
 	SubjectKey                string
 }
-type ListEntitlementGrantHandlerResponse = []api.EntitlementGrant
-type ListEntitlementGrantsHandlerParams struct {
-	EntitlementIdOrFeatureKey string
-	SubjectKey                string
-}
+type (
+	ListEntitlementGrantHandlerResponse = []api.EntitlementGrant
+	ListEntitlementGrantsHandlerParams  struct {
+		EntitlementIdOrFeatureKey string
+		SubjectKey                string
+	}
+)
 
 type ListEntitlementGrantsHandler httptransport.HandlerWithArgs[ListEntitlementGrantHandlerRequest, ListEntitlementGrantHandlerResponse, ListEntitlementGrantsHandlerParams]
 
