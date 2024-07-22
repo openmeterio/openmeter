@@ -27,10 +27,14 @@ from ..._operations._operations import (
     build_create_feature_request,
     build_create_grant_request,
     build_create_meter_request,
+    build_create_notification_channel_request,
+    build_create_notification_rule_request,
     build_create_portal_token_request,
     build_delete_entitlement_request,
     build_delete_feature_request,
     build_delete_meter_request,
+    build_delete_notification_channel_request,
+    build_delete_notification_rule_request,
     build_delete_subject_request,
     build_get_debug_metrics_request,
     build_get_entitlement_history_request,
@@ -38,6 +42,9 @@ from ..._operations._operations import (
     build_get_entitlement_value_request,
     build_get_feature_request,
     build_get_meter_request,
+    build_get_notification_channel_request,
+    build_get_notification_event_request,
+    build_get_notification_rule_request,
     build_get_subject_request,
     build_ingest_events_request,
     build_invalidate_portal_tokens_request,
@@ -48,12 +55,17 @@ from ..._operations._operations import (
     build_list_grants_request,
     build_list_meter_subjects_request,
     build_list_meters_request,
+    build_list_notification_channels_request,
+    build_list_notification_events_request,
+    build_list_notification_rules_request,
     build_list_portal_tokens_request,
     build_list_subject_entitlements_request,
     build_list_subjects_request,
     build_query_meter_request,
     build_query_portal_meter_request,
     build_reset_entitlement_usage_request,
+    build_update_notification_channel_request,
+    build_update_notification_rule_request,
     build_upsert_subject_request,
     build_void_grant_request,
 )
@@ -4245,3 +4257,1163 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             return cls(pipeline_response, cast(str, deserialized), {})  # type: ignore
 
         return cast(str, deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def list_notification_channels(
+        self, *, limit: int = 1000, offset: int = 0, order_by: str = "id", include_disabled: bool = False, **kwargs: Any
+    ) -> List[JSON]:
+        """List notification channels.
+
+        List all notification channels.
+
+        :keyword limit: Number of entries to return. Default value is 1000.
+        :paramtype limit: int
+        :keyword offset: Number of entries to skip. Default value is 0.
+        :paramtype offset: int
+        :keyword order_by: Order by field. Known values are: "id", "type", "createdAt", and
+         "updatedAt". Default value is "id".
+        :paramtype order_by: str
+        :keyword include_disabled: Include disabled entries. Default value is False.
+        :paramtype include_disabled: bool
+        :return: list of JSON object
+        :rtype: list[JSON]
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == [
+                    {}
+                ]
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+
+        _request = build_list_notification_channels_request(
+            limit=limit,
+            offset=offset,
+            order_by=order_by,
+            include_disabled=include_disabled,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
+
+        return cast(List[JSON], deserialized)  # type: ignore
+
+    @overload
+    async def create_notification_channel(
+        self, body: JSON, *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        """Create a notification channel.
+
+        Create a new notification channel.
+
+        :param body: The notification channel to create. Required.
+        :type body: JSON
+        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {}
+
+                # response body for status code(s): 409
+                response == {
+                    "detail": "str",  # A human-readable explanation specific to this occurrence
+                      of the problem. Required.
+                    "status": 0,  # The HTTP status code generated by the origin server for this
+                      occurrence of the problem. Required.
+                    "title": "str",  # A a short, human-readable summary of the problem type.
+                      Required.
+                    "type": "str",  # Type contains a URI that identifies the problem type.
+                      Required.
+                    "extensions": {
+                        "conflictingEntityId": "str"  # The id of the conflicting entity.
+                          Required.
+                    },
+                    "instance": "str"  # Optional. A URI reference that identifies the specific
+                      occurrence of the problem.
+                }
+        """
+
+    @overload
+    async def create_notification_channel(
+        self, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        """Create a notification channel.
+
+        Create a new notification channel.
+
+        :param body: The notification channel to create. Required.
+        :type body: IO[bytes]
+        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 409
+                response == {
+                    "detail": "str",  # A human-readable explanation specific to this occurrence
+                      of the problem. Required.
+                    "status": 0,  # The HTTP status code generated by the origin server for this
+                      occurrence of the problem. Required.
+                    "title": "str",  # A a short, human-readable summary of the problem type.
+                      Required.
+                    "type": "str",  # Type contains a URI that identifies the problem type.
+                      Required.
+                    "extensions": {
+                        "conflictingEntityId": "str"  # The id of the conflicting entity.
+                          Required.
+                    },
+                    "instance": "str"  # Optional. A URI reference that identifies the specific
+                      occurrence of the problem.
+                }
+        """
+
+    @distributed_trace_async
+    async def create_notification_channel(self, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
+        """Create a notification channel.
+
+        Create a new notification channel.
+
+        :param body: The notification channel to create. Is either a JSON type or a IO[bytes] type.
+         Required.
+        :type body: JSON or IO[bytes]
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {}
+
+                # response body for status code(s): 409
+                response == {
+                    "detail": "str",  # A human-readable explanation specific to this occurrence
+                      of the problem. Required.
+                    "status": 0,  # The HTTP status code generated by the origin server for this
+                      occurrence of the problem. Required.
+                    "title": "str",  # A a short, human-readable summary of the problem type.
+                      Required.
+                    "type": "str",  # Type contains a URI that identifies the problem type.
+                      Required.
+                    "extensions": {
+                        "conflictingEntityId": "str"  # The id of the conflicting entity.
+                          Required.
+                    },
+                    "instance": "str"  # Optional. A URI reference that identifies the specific
+                      occurrence of the problem.
+                }
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _params = kwargs.pop("params", {}) or {}
+
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        content_type = content_type or "application/json"
+        _json = None
+        _content = None
+        if isinstance(body, (IOBase, bytes)):
+            _content = body
+        else:
+            _json = body
+
+        _request = build_create_notification_channel_request(
+            content_type=content_type,
+            json=_json,
+            content=_content,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [201, 409]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.status_code == 201:
+            if response.content:
+                deserialized = response.json()
+            else:
+                deserialized = None
+
+        if response.status_code == 409:
+            if response.content:
+                deserialized = response.json()
+            else:
+                deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def get_notification_channel(self, channel_id: str, **kwargs: Any) -> JSON:
+        """Get notification channel.
+
+        Get a notification channel by id.
+
+        :param channel_id: A unique ULID identifier for a notification channel. Required.
+        :type channel_id: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+        """
+        error_map = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            404: lambda response: ResourceNotFoundError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        _request = build_get_notification_channel_request(
+            channel_id=channel_id,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def delete_notification_channel(  # pylint: disable=inconsistent-return-statements
+        self, channel_id: str, **kwargs: Any
+    ) -> None:
+        """Delete a notification channel.
+
+        Delete notification channel by id.
+
+        :param channel_id: A unique ULID identifier for a notification channel. Required.
+        :type channel_id: str
+        :return: None
+        :rtype: None
+        :raises ~azure.core.exceptions.HttpResponseError:
+        """
+        error_map = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            404: lambda response: ResourceNotFoundError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[None] = kwargs.pop("cls", None)
+
+        _request = build_delete_notification_channel_request(
+            channel_id=channel_id,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [204]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if cls:
+            return cls(pipeline_response, None, {})  # type: ignore
+
+    @overload
+    async def update_notification_channel(
+        self, channel_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        """Update notification channel.
+
+        Update a notification channel by id.
+
+        :param channel_id: A unique ULID identifier for a notification channel. Required.
+        :type channel_id: str
+        :param body: The notification channel to update. Required.
+        :type body: JSON
+        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {}
+        """
+
+    @overload
+    async def update_notification_channel(
+        self, channel_id: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        """Update notification channel.
+
+        Update a notification channel by id.
+
+        :param channel_id: A unique ULID identifier for a notification channel. Required.
+        :type channel_id: str
+        :param body: The notification channel to update. Required.
+        :type body: IO[bytes]
+        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+        """
+
+    @distributed_trace_async
+    async def update_notification_channel(self, channel_id: str, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
+        """Update notification channel.
+
+        Update a notification channel by id.
+
+        :param channel_id: A unique ULID identifier for a notification channel. Required.
+        :type channel_id: str
+        :param body: The notification channel to update. Is either a JSON type or a IO[bytes] type.
+         Required.
+        :type body: JSON or IO[bytes]
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {}
+        """
+        error_map = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            404: lambda response: ResourceNotFoundError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _params = kwargs.pop("params", {}) or {}
+
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        content_type = content_type or "application/json"
+        _json = None
+        _content = None
+        if isinstance(body, (IOBase, bytes)):
+            _content = body
+        else:
+            _json = body
+
+        _request = build_update_notification_channel_request(
+            channel_id=channel_id,
+            content_type=content_type,
+            json=_json,
+            content=_content,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def list_notification_rules(
+        self,
+        *,
+        limit: int = 1000,
+        offset: int = 0,
+        order_by: str = "id",
+        include_disabled: bool = False,
+        feature: Optional[List[str]] = None,
+        **kwargs: Any
+    ) -> List[JSON]:
+        """List notification rules.
+
+        List all notification rules.
+
+        :keyword limit: Number of entries to return. Default value is 1000.
+        :paramtype limit: int
+        :keyword offset: Number of entries to skip. Default value is 0.
+        :paramtype offset: int
+        :keyword order_by: Order by field. Known values are: "id", "type", "createdAt", and
+         "updatedAt". Default value is "id".
+        :paramtype order_by: str
+        :keyword include_disabled: Include disabled entries. Default value is False.
+        :paramtype include_disabled: bool
+        :keyword feature: Filtering by multiple features.
+
+         Usage: ``?feature=feature-1&feature=feature-2``. Default value is None.
+        :paramtype feature: list[str]
+        :return: list of JSON object
+        :rtype: list[JSON]
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == [
+                    {}
+                ]
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+
+        _request = build_list_notification_rules_request(
+            limit=limit,
+            offset=offset,
+            order_by=order_by,
+            include_disabled=include_disabled,
+            feature=feature,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
+
+        return cast(List[JSON], deserialized)  # type: ignore
+
+    @overload
+    async def create_notification_rule(
+        self, body: JSON, *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        """Create a notification rule.
+
+        Create a new notification rule.
+
+        :param body: The notification rule to create. Required.
+        :type body: JSON
+        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {}
+
+                # response body for status code(s): 409
+                response == {
+                    "detail": "str",  # A human-readable explanation specific to this occurrence
+                      of the problem. Required.
+                    "status": 0,  # The HTTP status code generated by the origin server for this
+                      occurrence of the problem. Required.
+                    "title": "str",  # A a short, human-readable summary of the problem type.
+                      Required.
+                    "type": "str",  # Type contains a URI that identifies the problem type.
+                      Required.
+                    "extensions": {
+                        "conflictingEntityId": "str"  # The id of the conflicting entity.
+                          Required.
+                    },
+                    "instance": "str"  # Optional. A URI reference that identifies the specific
+                      occurrence of the problem.
+                }
+        """
+
+    @overload
+    async def create_notification_rule(
+        self, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        """Create a notification rule.
+
+        Create a new notification rule.
+
+        :param body: The notification rule to create. Required.
+        :type body: IO[bytes]
+        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 409
+                response == {
+                    "detail": "str",  # A human-readable explanation specific to this occurrence
+                      of the problem. Required.
+                    "status": 0,  # The HTTP status code generated by the origin server for this
+                      occurrence of the problem. Required.
+                    "title": "str",  # A a short, human-readable summary of the problem type.
+                      Required.
+                    "type": "str",  # Type contains a URI that identifies the problem type.
+                      Required.
+                    "extensions": {
+                        "conflictingEntityId": "str"  # The id of the conflicting entity.
+                          Required.
+                    },
+                    "instance": "str"  # Optional. A URI reference that identifies the specific
+                      occurrence of the problem.
+                }
+        """
+
+    @distributed_trace_async
+    async def create_notification_rule(self, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
+        """Create a notification rule.
+
+        Create a new notification rule.
+
+        :param body: The notification rule to create. Is either a JSON type or a IO[bytes] type.
+         Required.
+        :type body: JSON or IO[bytes]
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {}
+
+                # response body for status code(s): 409
+                response == {
+                    "detail": "str",  # A human-readable explanation specific to this occurrence
+                      of the problem. Required.
+                    "status": 0,  # The HTTP status code generated by the origin server for this
+                      occurrence of the problem. Required.
+                    "title": "str",  # A a short, human-readable summary of the problem type.
+                      Required.
+                    "type": "str",  # Type contains a URI that identifies the problem type.
+                      Required.
+                    "extensions": {
+                        "conflictingEntityId": "str"  # The id of the conflicting entity.
+                          Required.
+                    },
+                    "instance": "str"  # Optional. A URI reference that identifies the specific
+                      occurrence of the problem.
+                }
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _params = kwargs.pop("params", {}) or {}
+
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        content_type = content_type or "application/json"
+        _json = None
+        _content = None
+        if isinstance(body, (IOBase, bytes)):
+            _content = body
+        else:
+            _json = body
+
+        _request = build_create_notification_rule_request(
+            content_type=content_type,
+            json=_json,
+            content=_content,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [201, 409]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.status_code == 201:
+            if response.content:
+                deserialized = response.json()
+            else:
+                deserialized = None
+
+        if response.status_code == 409:
+            if response.content:
+                deserialized = response.json()
+            else:
+                deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def get_notification_rule(self, rule_id: str, **kwargs: Any) -> JSON:
+        """Get notification rule.
+
+        Get a notification rule by id.
+
+        :param rule_id: A unique ULID identifier for a notification rule. Required.
+        :type rule_id: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+        """
+        error_map = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            404: lambda response: ResourceNotFoundError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        _request = build_get_notification_rule_request(
+            rule_id=rule_id,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def delete_notification_rule(  # pylint: disable=inconsistent-return-statements
+        self, rule_id: str, **kwargs: Any
+    ) -> None:
+        """Delete a notification rule.
+
+        Delete notification rule by id.
+
+        :param rule_id: A unique ULID identifier for a notification rule. Required.
+        :type rule_id: str
+        :return: None
+        :rtype: None
+        :raises ~azure.core.exceptions.HttpResponseError:
+        """
+        error_map = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            404: lambda response: ResourceNotFoundError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[None] = kwargs.pop("cls", None)
+
+        _request = build_delete_notification_rule_request(
+            rule_id=rule_id,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [204]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if cls:
+            return cls(pipeline_response, None, {})  # type: ignore
+
+    @overload
+    async def update_notification_rule(
+        self, rule_id: str, body: JSON, *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        """Update a notification rule.
+
+        Update a notification rule by id.
+
+        :param rule_id: A unique ULID identifier for a notification rule. Required.
+        :type rule_id: str
+        :param body: The notification rule to update. Required.
+        :type body: JSON
+        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {}
+        """
+
+    @overload
+    async def update_notification_rule(
+        self, rule_id: str, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        """Update a notification rule.
+
+        Update a notification rule by id.
+
+        :param rule_id: A unique ULID identifier for a notification rule. Required.
+        :type rule_id: str
+        :param body: The notification rule to update. Required.
+        :type body: IO[bytes]
+        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+        """
+
+    @distributed_trace_async
+    async def update_notification_rule(self, rule_id: str, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
+        """Update a notification rule.
+
+        Update a notification rule by id.
+
+        :param rule_id: A unique ULID identifier for a notification rule. Required.
+        :type rule_id: str
+        :param body: The notification rule to update. Is either a JSON type or a IO[bytes] type.
+         Required.
+        :type body: JSON or IO[bytes]
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {}
+        """
+        error_map = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            404: lambda response: ResourceNotFoundError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _params = kwargs.pop("params", {}) or {}
+
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        content_type = content_type or "application/json"
+        _json = None
+        _content = None
+        if isinstance(body, (IOBase, bytes)):
+            _content = body
+        else:
+            _json = body
+
+        _request = build_update_notification_rule_request(
+            rule_id=rule_id,
+            content_type=content_type,
+            json=_json,
+            content=_content,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def list_notification_events(
+        self,
+        *,
+        limit: int = 1000,
+        offset: int = 0,
+        order_by: str = "id",
+        feature: Optional[List[str]] = None,
+        subject: Optional[List[str]] = None,
+        **kwargs: Any
+    ) -> List[JSON]:
+        # pylint: disable=line-too-long
+        """List notification evens.
+
+        List all notification events.
+
+        :keyword limit: Number of entries to return. Default value is 1000.
+        :paramtype limit: int
+        :keyword offset: Number of entries to skip. Default value is 0.
+        :paramtype offset: int
+        :keyword order_by: Order by field. Known values are: "id" and "createdAt". Default value is
+         "id".
+        :paramtype order_by: str
+        :keyword feature: Filtering by multiple features.
+
+         Usage: ``?feature=feature-1&feature=feature-2``. Default value is None.
+        :paramtype feature: list[str]
+        :keyword subject: Filtering by multiple subjects.
+
+         Usage: ?subject=customer-1&subject=customer-2. Default value is None.
+        :paramtype subject: list[str]
+        :return: list of JSON object
+        :rtype: list[JSON]
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == [
+                    {
+                        "createdAt": "2020-02-20 00:00:00",  # Timestamp when the
+                          notification event was created. Required.
+                        "deliveryStatus": [
+                            {
+                                "channelId": "str",  # Required.
+                                "state": "str",  # Required. Known values are:
+                                  "SUCCESS", "FAILED", and "SENDING".
+                                "updatedAt": "2020-02-20 00:00:00"  # Required.
+                            }
+                        ],
+                        "id": "str",  # A unique identifier for the notification event.
+                          Required.
+                        "payload": {
+                            "data": {
+                                "str": {}  # Event type specific data.  The format
+                                  may vary based on the type of the event and the schema is defined for
+                                  each event type separately. Required.
+                            },
+                            "id": "str",  # A unique identifier for the notification
+                              event. Required.
+                            "timestamp": "2020-02-20 00:00:00",  # Timestamp when the
+                              notification event was created. Required.
+                            "type": "str",  # The type of teh notification rule generated
+                              this event. Required.
+                            "metadata": {
+                                "str": {}  # Optional. Metadata information releted
+                                  to the event.
+                            }
+                        },
+                        "ruleId": "str",  # The identifier of the Notification Rule which
+                          triggered this event. Required.
+                        "featureId": "str",  # Optional. The identifier of the feature
+                          defined in notification rule triggered this event.
+                        "subjectId": "str"  # Optional. The identifier of the feature defined
+                          in notification rule triggered this event.
+                    }
+                ]
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+
+        _request = build_list_notification_events_request(
+            limit=limit,
+            offset=offset,
+            order_by=order_by,
+            feature=feature,
+            subject=subject,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
+
+        return cast(List[JSON], deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def get_notification_event(self, event_id: str, **kwargs: Any) -> JSON:
+        """Get notification event.
+
+        Get a notification event by id.
+
+        :param event_id: A unique ULID identifier for a notification event. Required.
+        :type event_id: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+        """
+        error_map = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            404: lambda response: ResourceNotFoundError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        _request = build_get_notification_event_request(
+            event_id=event_id,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
