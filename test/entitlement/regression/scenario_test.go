@@ -387,3 +387,75 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 	assert.NotNil(currentBalance)
 	assert.Equal(488.0, currentBalance.Balance)
 }
+
+func TestCreatingEntitlementsForKeyOfArchivedFeatures(t *testing.T) {
+	defer clock.ResetTime()
+	deps := setupDependencies(t)
+	defer deps.Close()
+	ctx := context.Background()
+	assert := assert.New(t)
+
+	// Let's create a feature
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-07T14:44:19Z"))
+	feature, err := deps.FeatureConnector.CreateFeature(ctx, productcatalog.CreateFeatureInputs{
+		Name:      "feature-1",
+		Key:       "feature-1",
+		Namespace: "namespace-1",
+		MeterSlug: convert.ToPointer("meter-1"),
+	})
+	assert.NoError(err)
+	assert.NotNil(feature)
+
+	// Let's create a new entitlement for the feature
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T11:20:28Z"))
+	ent, err := deps.EntitlementConnector.CreateEntitlement(ctx, entitlement.CreateEntitlementInputs{
+		Namespace:       "namespace-1",
+		FeatureID:       &feature.ID,
+		FeatureKey:      &feature.Key,
+		SubjectKey:      "subject-1",
+		IssueAfterReset: convert.ToPointer(500.0),
+		EntitlementType: entitlement.EntitlementTypeMetered,
+		UsagePeriod: &entitlement.UsagePeriod{
+			Interval: recurrence.RecurrencePeriodMonth,
+			Anchor:   testutils.GetRFC3339Time(t, "2024-07-01T00:00:00Z"),
+		},
+	})
+	assert.NoError(err)
+	assert.NotNil(ent)
+
+	// Let's archive the feature
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T12:20:28Z"))
+	err = deps.FeatureConnector.ArchiveFeature(ctx, models.NamespacedID{
+		Namespace: "namespace-1",
+		ID:        feature.ID,
+	})
+	assert.NoError(err)
+
+	// Let's create a new feature with the same key
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T13:20:28Z"))
+	feature2, err := deps.FeatureConnector.CreateFeature(ctx, productcatalog.CreateFeatureInputs{
+		Name:      "feature-1-2",
+		Key:       "feature-1",
+		Namespace: "namespace-1",
+		MeterSlug: convert.ToPointer("meter-1"),
+	})
+	assert.NoError(err)
+	assert.NotNil(feature2)
+
+	// Let's create a new entitlement for feature2 for subject-2
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T14:20:28Z"))
+	ent2, err := deps.EntitlementConnector.CreateEntitlement(ctx, entitlement.CreateEntitlementInputs{
+		Namespace:       "namespace-1",
+		FeatureID:       &feature2.ID,
+		FeatureKey:      &feature2.Key,
+		SubjectKey:      "subject-2",
+		IssueAfterReset: convert.ToPointer(500.0),
+		EntitlementType: entitlement.EntitlementTypeMetered,
+		UsagePeriod: &entitlement.UsagePeriod{
+			Interval: recurrence.RecurrencePeriodMonth,
+			Anchor:   testutils.GetRFC3339Time(t, "2024-07-01T00:00:00Z"),
+		},
+	})
+	assert.NoError(err)
+	assert.NotNil(ent2)
+}
