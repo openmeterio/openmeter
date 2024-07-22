@@ -627,7 +627,7 @@ def build_delete_entitlement_request(subject_id_or_key: str, entitlement_id: str
 
 def build_list_entitlement_grants_request(
     subject_id_or_key: str,
-    entitlement_id: str,
+    entitlement_id_or_feature_key: str,
     *,
     include_deleted: bool = False,
     order_by: str = "updatedAt",
@@ -639,10 +639,12 @@ def build_list_entitlement_grants_request(
     accept = _headers.pop("Accept", "application/json, application/problem+json")
 
     # Construct URL
-    _url = "/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/grants"
+    _url = "/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants"
     path_format_arguments = {
         "subjectIdOrKey": _SERIALIZER.url("subject_id_or_key", subject_id_or_key, "str"),
-        "entitlementId": _SERIALIZER.url("entitlement_id", entitlement_id, "str"),
+        "entitlementIdOrFeatureKey": _SERIALIZER.url(
+            "entitlement_id_or_feature_key", entitlement_id_or_feature_key, "str"
+        ),
     }
 
     _url: str = _url.format(**path_format_arguments)  # type: ignore
@@ -659,17 +661,21 @@ def build_list_entitlement_grants_request(
     return HttpRequest(method="GET", url=_url, params=_params, headers=_headers, **kwargs)
 
 
-def build_create_grant_request(subject_id_or_key: str, entitlement_id: str, **kwargs: Any) -> HttpRequest:
+def build_create_grant_request(
+    subject_id_or_key: str, entitlement_id_or_feature_key: str, **kwargs: Any
+) -> HttpRequest:
     _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
 
     content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
     accept = _headers.pop("Accept", "application/json, application/problem+json")
 
     # Construct URL
-    _url = "/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementId}/grants"
+    _url = "/api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/grants"
     path_format_arguments = {
         "subjectIdOrKey": _SERIALIZER.url("subject_id_or_key", subject_id_or_key, "str"),
-        "entitlementId": _SERIALIZER.url("entitlement_id", entitlement_id, "str"),
+        "entitlementIdOrFeatureKey": _SERIALIZER.url(
+            "entitlement_id_or_feature_key", entitlement_id_or_feature_key, "str"
+        ),
     }
 
     _url: str = _url.format(**path_format_arguments)  # type: ignore
@@ -3874,7 +3880,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
     def list_entitlement_grants(
         self,
         subject_id_or_key: str,
-        entitlement_id: str,
+        entitlement_id_or_feature_key: str,
         *,
         include_deleted: bool = False,
         order_by: str = "updatedAt",
@@ -3888,8 +3894,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
-        :param entitlement_id: A unique ULID for an entitlement. Required.
-        :type entitlement_id: str
+        :param entitlement_id_or_feature_key: The id of the entitlement or the key of the feature.
+         Required.
+        :type entitlement_id_or_feature_key: str
         :keyword include_deleted: Include deleted entries. Default value is False.
         :paramtype include_deleted: bool
         :keyword order_by: Order by field. Known values are: "id", "createdAt", and "updatedAt".
@@ -3980,7 +3987,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         _request = build_list_entitlement_grants_request(
             subject_id_or_key=subject_id_or_key,
-            entitlement_id=entitlement_id,
+            entitlement_id_or_feature_key=entitlement_id_or_feature_key,
             include_deleted=include_deleted,
             order_by=order_by,
             headers=_headers,
@@ -4015,7 +4022,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
     def create_grant(
         self,
         subject_id_or_key: str,
-        entitlement_id: str,
+        entitlement_id_or_feature_key: str,
         body: JSON,
         *,
         content_type: str = "application/json",
@@ -4048,8 +4055,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
-        :param entitlement_id: A unique ULID for an entitlement. Required.
-        :type entitlement_id: str
+        :param entitlement_id_or_feature_key: The id of the entitlement or the key of the feature.
+         Required.
+        :type entitlement_id_or_feature_key: str
         :param body: The grant to create. Required.
         :type body: JSON
         :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
@@ -4169,7 +4177,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
     def create_grant(
         self,
         subject_id_or_key: str,
-        entitlement_id: str,
+        entitlement_id_or_feature_key: str,
         body: IO[bytes],
         *,
         content_type: str = "application/json",
@@ -4202,8 +4210,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
-        :param entitlement_id: A unique ULID for an entitlement. Required.
-        :type entitlement_id: str
+        :param entitlement_id_or_feature_key: The id of the entitlement or the key of the feature.
+         Required.
+        :type entitlement_id_or_feature_key: str
         :param body: The grant to create. Required.
         :type body: IO[bytes]
         :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
@@ -4277,7 +4286,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
     @distributed_trace
     def create_grant(
-        self, subject_id_or_key: str, entitlement_id: str, body: Union[JSON, IO[bytes]], **kwargs: Any
+        self, subject_id_or_key: str, entitlement_id_or_feature_key: str, body: Union[JSON, IO[bytes]], **kwargs: Any
     ) -> JSON:
         # pylint: disable=line-too-long
         """Create a grant.
@@ -4306,8 +4315,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         :param subject_id_or_key: A unique identifier for a subject. Required.
         :type subject_id_or_key: str
-        :param entitlement_id: A unique ULID for an entitlement. Required.
-        :type entitlement_id: str
+        :param entitlement_id_or_feature_key: The id of the entitlement or the key of the feature.
+         Required.
+        :type entitlement_id_or_feature_key: str
         :param body: The grant to create. Is either a JSON type or a IO[bytes] type. Required.
         :type body: JSON or IO[bytes]
         :return: JSON object
@@ -4445,7 +4455,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         _request = build_create_grant_request(
             subject_id_or_key=subject_id_or_key,
-            entitlement_id=entitlement_id,
+            entitlement_id_or_feature_key=entitlement_id_or_feature_key,
             content_type=content_type,
             json=_json,
             content=_content,

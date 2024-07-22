@@ -11,8 +11,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-func (e *connector) CreateGrant(ctx context.Context, entId models.NamespacedID, inputGrant CreateEntitlementGrantInputs) (EntitlementGrant, error) {
-	ent, err := e.entitlementRepo.GetEntitlement(ctx, entId)
+func (e *connector) CreateGrant(ctx context.Context, namespace string, subjectKey string, entitlementIdOrFeatureKey string, inputGrant CreateEntitlementGrantInputs) (EntitlementGrant, error) {
+	ent, err := e.entitlementRepo.GetEntitlementOfSubject(ctx, namespace, subjectKey, entitlementIdOrFeatureKey)
 	if err != nil {
 		return EntitlementGrant{}, err
 	}
@@ -20,7 +20,7 @@ func (e *connector) CreateGrant(ctx context.Context, entId models.NamespacedID, 
 	if err != nil {
 		return EntitlementGrant{}, err
 	}
-	grant, error := e.grantConnector.CreateGrant(ctx, credit.NamespacedGrantOwner{
+	grant, err := e.grantConnector.CreateGrant(ctx, credit.NamespacedGrantOwner{
 		Namespace: ent.Namespace,
 		ID:        credit.GrantOwner(ent.ID),
 	}, credit.CreateGrantInput{
@@ -33,23 +33,36 @@ func (e *connector) CreateGrant(ctx context.Context, entId models.NamespacedID, 
 		Recurrence:       inputGrant.Recurrence,
 		Metadata:         inputGrant.Metadata,
 	})
-	if error != nil {
-		if _, ok := error.(credit.OwnerNotFoundError); ok {
-			return EntitlementGrant{}, &entitlement.NotFoundError{EntitlementID: entId}
+	if err != nil {
+		if _, ok := err.(credit.OwnerNotFoundError); ok {
+			return EntitlementGrant{}, &entitlement.NotFoundError{EntitlementID: models.NamespacedID{Namespace: namespace, ID: ent.ID}}
 		}
 
-		return EntitlementGrant{}, error
+		return EntitlementGrant{}, err
 	}
 
 	g, err := GrantFromCreditGrant(*grant)
 	return *g, err
 }
 
-func (e *connector) ListEntitlementGrants(ctx context.Context, entitlementID models.NamespacedID) ([]EntitlementGrant, error) {
+func (e *connector) ListEntitlementGrants(ctx context.Context, namespace string, subjectKey string, entitlementIdOrFeatureKey string) ([]EntitlementGrant, error) {
+	// find the matching entitlement, first by ID, then by feature key
+	ent, err := e.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: entitlementIdOrFeatureKey})
+	if err != nil {
+		if _, ok := err.(*entitlement.NotFoundError); !ok {
+			return nil, err
+		} else {
+			ent, err = e.entitlementRepo.GetEntitlementOfSubject(ctx, namespace, subjectKey, entitlementIdOrFeatureKey)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	// check that we own the grant
 	grants, err := e.grantConnector.ListGrants(ctx, credit.ListGrantsParams{
-		Namespace:      entitlementID.Namespace,
-		OwnerID:        convert.ToPointer(credit.GrantOwner(entitlementID.ID)),
+		Namespace:      ent.Namespace,
+		OwnerID:        convert.ToPointer(credit.GrantOwner(ent.ID)),
 		IncludeDeleted: false,
 		OrderBy:        credit.GrantOrderByCreatedAt,
 	})
