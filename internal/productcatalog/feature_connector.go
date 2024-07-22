@@ -24,8 +24,15 @@ type FeatureConnector interface {
 	// Should just use deletedAt, there's no real "archiving"
 	ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error
 	ListFeatures(ctx context.Context, params ListFeaturesParams) ([]Feature, error)
-	GetFeature(ctx context.Context, namespace string, idOrKey string) (*Feature, error)
+	GetFeature(ctx context.Context, namespace string, idOrKey string, includeArchived IncludeArchivedFeature) (*Feature, error)
 }
+
+type IncludeArchivedFeature bool
+
+const (
+	IncludeArchivedFeatureTrue  IncludeArchivedFeature = true
+	IncludeArchivedFeatureFalse IncludeArchivedFeature = false
+)
 
 type FeatureOrderBy string
 
@@ -113,7 +120,7 @@ func (c *featureConnector) CreateFeature(ctx context.Context, feature CreateFeat
 }
 
 func (c *featureConnector) ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error {
-	_, err := c.GetFeature(ctx, featureID.Namespace, featureID.ID)
+	_, err := c.GetFeature(ctx, featureID.Namespace, featureID.ID, false)
 	if err != nil {
 		return err
 	}
@@ -124,8 +131,8 @@ func (c *featureConnector) ListFeatures(ctx context.Context, params ListFeatures
 	return c.featureRepo.ListFeatures(ctx, params)
 }
 
-func (c *featureConnector) GetFeature(ctx context.Context, namespace string, idOrKey string) (*Feature, error) {
-	feature, err := c.featureRepo.GetByIdOrKey(ctx, namespace, idOrKey, true)
+func (c *featureConnector) GetFeature(ctx context.Context, namespace string, idOrKey string, includeArchived IncludeArchivedFeature) (*Feature, error) {
+	feature, err := c.featureRepo.GetByIdOrKey(ctx, namespace, idOrKey, bool(includeArchived))
 	if err != nil {
 		return nil, err
 	}

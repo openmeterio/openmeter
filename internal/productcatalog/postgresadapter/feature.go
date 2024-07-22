@@ -96,7 +96,7 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params productcatal
 	}
 
 	if !params.IncludeArchived {
-		query = query.Where(db_feature.ArchivedAtIsNil())
+		query = query.Where(db_feature.Or(db_feature.ArchivedAtIsNil(), db_feature.ArchivedAtGT(clock.Now())))
 	}
 
 	if params.Limit > 0 {

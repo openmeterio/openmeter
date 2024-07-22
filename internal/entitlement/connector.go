@@ -7,7 +7,6 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
-	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -79,12 +78,9 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 		return nil, &models.GenericUserError{Message: "Feature ID or Key is required"}
 	}
 
-	feature, err := c.featureConnector.GetFeature(ctx, input.Namespace, *idOrFeatureKey)
+	feature, err := c.featureConnector.GetFeature(ctx, input.Namespace, *idOrFeatureKey, productcatalog.IncludeArchivedFeatureFalse)
 	if err != nil || feature == nil {
 		return nil, &productcatalog.FeatureNotFoundError{ID: *idOrFeatureKey}
-	}
-	if feature.ArchivedAt != nil && feature.ArchivedAt.Before(clock.Now()) {
-		return nil, &models.GenericUserError{Message: "Feature is archived"}
 	}
 
 	// fill featureId and featureKey
