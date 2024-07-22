@@ -10,7 +10,8 @@ func (m *Ci) Snapshot(ctx context.Context, stainlessToken *dagger.Secret) error 
 	p := newPipeline(ctx)
 
 	p.addJobs(func(ctx context.Context) error {
-		return m.uploadOpenAPISpecToStainless(ctx, stainlessToken)
+		return nil
+		// return m.uploadOpenAPISpecToStainless(ctx, stainlessToken)
 	})
 
 	return p.wait()
