@@ -107,8 +107,8 @@ func (m *Ci) binaryArchive(version string, platform dagger.Platform) *dagger.Fil
 
 func (m *Ci) publishPythonSdk(ctx context.Context, version string, pypiToken *dagger.Secret) error {
 	_, err := dag.Python(dagger.PythonOpts{
-		Container: dag.Python(dagger.PythonOpts{Container: dag.Container().From("pypy:3.10-slim")}).
-			WithPipCache(dag.CacheVolume("openmeter-pip")).
+		Container: dag.Python(dagger.PythonOpts{Container: dag.Container().From("pypy:3.10-7.3.16-slim")}).
+			WithPipCache(cacheVolume("pip")).
 			Container().
 			WithExec([]string{"pip", "--disable-pip-version-check", "install", "pipx"}).
 			WithEnvVariable("PATH", "${PATH}:/root/.local/bin", dagger.ContainerWithEnvVariableOpts{Expand: true}).
@@ -138,7 +138,7 @@ func (m *Ci) publishWebSdk(ctx context.Context, version string, npmToken *dagger
 
 func (m *Ci) publishToNpm(ctx context.Context, pkg string, version string, npmToken *dagger.Secret) error {
 	_, err := dag.Container().
-		From("node:20-alpine").
+		From("node:20.15.1-alpine3.20").
 		WithExec([]string{"npm", "install", "-g", "pnpm"}).
 		WithExec([]string{"sh", "-c", "echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' > /root/.npmrc"}).
 		WithSecretVariable("NPM_TOKEN", npmToken).
