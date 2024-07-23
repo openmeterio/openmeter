@@ -265,6 +265,78 @@ export interface paths {
      */
     get: operations['getDebugMetrics']
   }
+  '/api/v1/notification/channels': {
+    /**
+     * List notification channels
+     * @description List all notification channels.
+     */
+    get: operations['listNotificationChannels']
+    /**
+     * Create a notification channel
+     * @description Create a new notification channel.
+     */
+    post: operations['createNotificationChannel']
+  }
+  '/api/v1/notification/channels/{channelId}': {
+    /**
+     * Get notification channel
+     * @description Get a notification channel by id.
+     */
+    get: operations['getNotificationChannel']
+    /**
+     * Update notification channel
+     * @description Update a notification channel by id.
+     */
+    put: operations['updateNotificationChannel']
+    /**
+     * Delete a notification channel
+     * @description Delete notification channel by id.
+     */
+    delete: operations['deleteNotificationChannel']
+  }
+  '/api/v1/notification/rules': {
+    /**
+     * List notification rules
+     * @description List all notification rules.
+     */
+    get: operations['listNotificationRules']
+    /**
+     * Create a notification rule
+     * @description Create a new notification rule.
+     */
+    post: operations['createNotificationRule']
+  }
+  '/api/v1/notification/rules/{ruleId}': {
+    /**
+     * Get notification rule
+     * @description Get a notification rule by id.
+     */
+    get: operations['getNotificationRule']
+    /**
+     * Update a notification rule
+     * @description Update a notification rule by id.
+     */
+    put: operations['updateNotificationRule']
+    /**
+     * Delete a notification rule
+     * @description Delete notification rule by id.
+     */
+    delete: operations['deleteNotificationRule']
+  }
+  '/api/v1/notification/events': {
+    /**
+     * List notification evens
+     * @description List all notification events.
+     */
+    get: operations['listNotificationEvents']
+  }
+  '/api/v1/notification/events/{eventId}': {
+    /**
+     * Get notification event
+     * @description Get a notification event by id.
+     */
+    get: operations['getNotificationEvent']
+  }
 }
 
 export type webhooks = Record<string, never>
@@ -1205,9 +1277,344 @@ export interface components {
      * @example tokens_total
      */
     IdOrSlug: string
+    NotificationChannelCreateRequest: components['schemas']['NotificationChannelWebhookCreateRequest']
+    NotificationChannel: components['schemas']['NotificationChannelWebhook']
+    NotificationChannels: components['schemas']['NotificationChannel'][]
+    NotificationChannelWebhookCreateRequest: components['schemas']['GenericNotificationChannelCreateRequest'] & {
+      /**
+       * @description Webhook URL where the notification is sent.
+       * @example https://example.com/webhook
+       */
+      url: string
+      /**
+       * @description Custom HTTP headers sent as part of the webhook request.
+       * @example {
+       *   "X-CUSTOM-HEADER": "value"
+       * }
+       */
+      customHeaders?: {
+        [key: string]: unknown
+      } | null
+      /**
+       * @description Signing secret used for webhook request validation on the receiving end. Automatically generated if not provided.
+       *
+       * Format: `base64` encoded random bytes optionally prefixed with `whsec_`. Recommended size: 24
+       *
+       * @example whsec_S6g2HLnTwd9AhHwUIMFggVS9OfoPafN8
+       */
+      signingSecret?: string | null
+    }
+    NotificationChannelWebhook: components['schemas']['GenericNotificationChannel'] & {
+      /**
+       * @description Webhook URL where the notification is sent.
+       * @example https://example.com/webhook
+       */
+      url: string
+      /**
+       * @description Custom HTTP headers sent as part of the webhook request.
+       * @example {
+       *   "X-CUSTOM-HEADER": "value"
+       * }
+       */
+      customHeaders?: {
+        [key: string]: unknown
+      } | null
+      /**
+       * @description Signing secret used for webhook request validation on the receiving end.
+       *
+       * Format: `base64` encoded random bytes optionally prefixed with `whsec_`. Recommended size: 24
+       *
+       * @example whsec_S6g2HLnTwd9AhHwUIMFggVS9OfoPafN8
+       */
+      signingSecret: string
+    }
+    /**
+     * @description The type of the notification channel.
+     * @example WEBHOOK
+     * @enum {string}
+     */
+    NotificationChannelType: 'WEBHOOK'
+    GenericNotificationChannelCreateRequest: {
+      /**
+       * @description User friendly name of the channel.
+       * @example customer-webhook
+       */
+      name: string
+      /**
+       * @description Whether the channel is disabled or not.
+       * @default false
+       * @example false
+       */
+      disabled?: boolean
+      type: components['schemas']['NotificationChannelType']
+    }
+    GenericNotificationChannel: {
+      /**
+       * @description A unique identifier for the notification channel.
+       * @example 01J2KNP1YTXQRXHTDJ4KPR7PZ0
+       */
+      id: string
+      type: components['schemas']['NotificationChannelType']
+      /**
+       * @description User friendly name of the channel.
+       * @example customer-webhook
+       */
+      name?: string
+      /**
+       * Format: date-time
+       * @description Timestamp when the channel was created.
+       * @example 2023-01-01T00:00:00Z
+       */
+      createdAt?: string
+      /**
+       * Format: date-time
+       * @description Timestamp when the channel was modified.
+       * @example 2023-01-02T00:00:00Z
+       */
+      updatedAt?: string
+      /**
+       * @description Whether the channel is disabled or not.
+       * @default false
+       * @example false
+       */
+      disabled?: boolean
+    }
+    NotificationRuleCreateRequest: components['schemas']['NotificationRuleBalanceThresholdCreateRequest']
+    NotificationRule: components['schemas']['NotificationRuleBalanceThreshold']
+    NotificationRules: components['schemas']['NotificationRule'][]
+    NotificationRuleBalanceThresholdCreateRequest: components['schemas']['GenericNotificationRuleCreateRequest'] & {
+      /**
+       * @description List of thresholds the rule suppose to be triggered.
+       * @example [
+       *   {
+       *     "value": 100,
+       *     "type": "PERCENT"
+       *   },
+       *   {
+       *     "value": 10000,
+       *     "type": "NUMBER"
+       *   }
+       * ]
+       */
+      thresholds: components['schemas']['NotificationRuleBalanceThresholdValue'][]
+      /**
+       * @description Optional field for defining the scope of notification by feature. It may contain features by id or key.
+       *
+       * @example [
+       *   "gpt4_tokens",
+       *   "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+       * ]
+       */
+      features?: string[] | null
+    }
+    /** @description Threshold value with multiple supported types. */
+    NotificationRuleBalanceThresholdValue: {
+      /** Format: double */
+      value: number
+      /** @enum {string} */
+      type: 'NUMBER' | 'PERCENT'
+    }
+    NotificationRuleBalanceThreshold: components['schemas']['GenericNotificationRule'] & {
+      /**
+       * @description List of thresholds the rule suppose to be triggered.
+       * @example [
+       *   {
+       *     "value": 100,
+       *     "type": "PERCENT"
+       *   },
+       *   {
+       *     "value": 10000,
+       *     "type": "NUMBER"
+       *   }
+       * ]
+       */
+      thresholds: components['schemas']['NotificationRuleBalanceThresholdValue'][]
+      /**
+       * @description Optional field containing list of features the rule applies to.
+       * @example [
+       *   "gpt4_tokens",
+       *   "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+       * ]
+       */
+      features?: string[] | null
+    }
+    /**
+     * @description The type of the notification rule.
+     * @example entitlements.balance.threshold
+     * @enum {string}
+     */
+    NotificationRuleType: 'entitlements.balance.threshold'
+    /** @description Defines the common fields of a notification rule. */
+    GenericNotificationRuleCreateRequest: {
+      type: components['schemas']['NotificationRuleType']
+      /**
+       * @description The user friendly name of the notification rule.
+       * @example Balance threshold reached
+       */
+      name: string
+      /**
+       * @description List of notification channel identifiers or names the rule applies to.
+       * @example [
+       *   "01G65Z755AFWAKHE12NY0CQ9FH"
+       * ]
+       */
+      channels: string[]
+      /**
+       * @description Whether the rule is disabled or not.
+       * @default false
+       * @example false
+       */
+      disabled?: boolean
+    }
+    /** @description Defines the common fields of a notification rule. */
+    GenericNotificationRule: {
+      /**
+       * @description A unique identifier for the notification rule.
+       * @example 01J2KNP1YTXQRXHTDJ4KPR7PZ0
+       */
+      id: string
+      type: components['schemas']['NotificationRuleType']
+      /**
+       * @description The user friendly name of the notification rule.
+       * @example Balance threshold reached
+       */
+      name?: string
+      /**
+       * @description List of notification channel identifiers the rule applies to.
+       * @example [
+       *   "01G65Z755AFWAKHE12NY0CQ9FH"
+       * ]
+       */
+      channels?: string[]
+      /**
+       * Format: date-time
+       * @description Timestamp when the rule was created.
+       * @example 2023-01-01T00:00:00Z
+       */
+      createdAt?: string
+      /**
+       * Format: date-time
+       * @description Timestamp when the rule was modified.
+       * @example 2023-01-02T00:00:00Z
+       */
+      updatedAt?: string
+      /**
+       * @description Whether the rule is disabled or not.
+       * @default false
+       * @example false
+       */
+      disabled?: boolean
+    }
+    /**
+     * @description Notification event generated by the system based on the criteria defined in the corresponding
+     * a notification rule.
+     *
+     * The `payload` field contains the actual message sent to the notification channel.
+     */
+    NotificationEvent: {
+      /**
+       * @description A unique identifier for the notification event.
+       * @example 01J2KNP1YTXQRXHTDJ4KPR7PZ0
+       */
+      id: string
+      /**
+       * Format: date-time
+       * @description Timestamp when the notification event was created.
+       * @example 2023-01-01T00:00:00Z
+       */
+      createdAt: string
+      /**
+       * @description The identifier of the Notification Rule which triggered this event.
+       * @example 01J2KNP1YTXQRXHTDJ4KPR7PZ0
+       */
+      ruleId: string
+      /** @description The delivery status of the notification event. */
+      deliveryStatus: components['schemas']['NotificationEventDeliveryStatus'][]
+      payload: components['schemas']['NotificationEventPayload']
+    }
+    /**
+     * @description The actual payload sent to channel as part of the notification event.
+     *
+     * The `data` field contains the information specific to the notification event
+     * which may vary based on the `type` of the event.
+     */
+    NotificationEventPayload: {
+      /**
+       * @description A unique identifier for the notification event the payload belongs to.
+       * @example 01J2KNP1YTXQRXHTDJ4KPR7PZ0
+       */
+      id: string
+      /**
+       * @description The type of the notification rule generated this event.
+       * @example entitlements.balance.threshold
+       */
+      type: string
+      /** @description Metadata information related to the event. */
+      metadata?: {
+        [key: string]: unknown
+      } | null
+      /**
+       * Format: date-time
+       * @description Timestamp when the notification event was created.
+       * @example 2023-01-01T00:00:00Z
+       */
+      timestamp: string
+      /**
+       * @description Event type specific data.
+       *
+       * The format may vary based on the type of the event and the schema is defined for each event type separately.
+       *
+       * @example {
+       *   "currentBalance": 10000,
+       *   "threshold": "120%",
+       *   "feature": {
+       *     "archivedAt": "2023-01-01T00:00:00Z",
+       *     "key": "gpt4_tokens",
+       *     "name": "AI Tokens",
+       *     "metadata": {
+       *       "additionalProp1": "value1"
+       *     },
+       *     "meterSlug": "tokens_total",
+       *     "meterGroupByFilters": {
+       *       "model": "gpt-4"
+       *     },
+       *     "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+       *     "createdAt": "2023-01-01T00:00:00Z",
+       *     "updatedAt": "2023-01-01T00:00:00Z"
+       *   },
+       *   "subject": {
+       *     "id": "01G65Z755AFWAKHE12NY0CQ9FH",
+       *     "key": "customer-id",
+       *     "displayName": "Customer Name",
+       *     "metadata": {
+       *       "hubspotId": "123456"
+       *     },
+       *     "currentPeriodStart": "2023-01-01T00:00:00Z",
+       *     "currentPeriodEnd": "2023-02-01T00:00:00Z"
+       *   }
+       * }
+       */
+      data: {
+        [key: string]: unknown
+      }
+    }
+    /**
+     * @example {
+     *   "channelId": "01J2ZS1ZSXZ61G5C2CZRK4GQKK",
+     *   "state": "SUCCESS",
+     *   "updatedAt": "2023-01-01T00:00:00Z"
+     * }
+     */
+    NotificationEventDeliveryStatus: {
+      channelId: string
+      /** @enum {string} */
+      state: 'SUCCESS' | 'FAILED' | 'SENDING'
+      /** Format: date-time */
+      updatedAt: string
+    }
   }
   responses: {
-    /** @description Ledger Exists */
+    /** @description Conflict */
     ConflictProblemResponse: {
       content: {
         'application/problem+json': components['schemas']['ConflictProblem']
@@ -1283,9 +1690,15 @@ export interface components {
     /**
      * @description Filtering by multiple subjects.
      *
-     * Usage: ?subject=customer-1&subject=customer-2
+     * Usage: `?subject=customer-1&subject=customer-2`
      */
     queryFilterSubject?: string[]
+    /**
+     * @description Filtering by multiple features.
+     *
+     * Usage: `?feature=feature-1&feature=feature-2`
+     */
+    queryFilterFeature?: string[]
     queryFilterGroupBy?: {
       [key: string]: string
     }
@@ -1294,6 +1707,14 @@ export interface components {
      * `subject` is a reserved group by value.
      */
     queryGroupBy?: string[]
+    /** @description A unique ULID identifier for a notification channel. */
+    channelId: string
+    /** @description A unique ULID identifier for a notification rule. */
+    ruleId: string
+    /** @description A unique ULID identifier for a notification event. */
+    eventId: string
+    /** @description Include disabled entries. */
+    queryIncludeDisabled?: boolean
   }
   requestBodies: never
   headers: never
@@ -2191,6 +2612,296 @@ export interface operations {
         }
       }
       401: components['responses']['UnauthorizedProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /**
+   * List notification channels
+   * @description List all notification channels.
+   */
+  listNotificationChannels: {
+    parameters: {
+      query?: {
+        limit?: components['parameters']['queryLimit']
+        offset?: components['parameters']['queryOffset']
+        /** @description Order by field */
+        orderBy?: 'id' | 'type' | 'createdAt' | 'updatedAt'
+        includeDisabled?: components['parameters']['queryIncludeDisabled']
+      }
+    }
+    responses: {
+      /** @description List of notification channels. */
+      200: {
+        content: {
+          'application/json': components['schemas']['NotificationChannels']
+        }
+      }
+      400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /**
+   * Create a notification channel
+   * @description Create a new notification channel.
+   */
+  createNotificationChannel: {
+    /** @description The notification channel to create. */
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NotificationChannelCreateRequest']
+      }
+    }
+    responses: {
+      /** @description Notification channel created. */
+      201: {
+        content: {
+          'application/json': components['schemas']['NotificationChannel']
+        }
+      }
+      400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
+      409: components['responses']['ConflictProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /**
+   * Get notification channel
+   * @description Get a notification channel by id.
+   */
+  getNotificationChannel: {
+    parameters: {
+      path: {
+        channelId: components['parameters']['channelId']
+      }
+    }
+    responses: {
+      /** @description Notification channel found. */
+      200: {
+        content: {
+          'application/json': components['schemas']['NotificationChannel']
+        }
+      }
+      401: components['responses']['UnauthorizedProblemResponse']
+      404: components['responses']['NotFoundProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /**
+   * Update notification channel
+   * @description Update a notification channel by id.
+   */
+  updateNotificationChannel: {
+    parameters: {
+      path: {
+        channelId: components['parameters']['channelId']
+      }
+    }
+    /** @description The notification channel to update. */
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NotificationChannelCreateRequest']
+      }
+    }
+    responses: {
+      /** @description Notification channel updated. */
+      200: {
+        content: {
+          'application/json': components['schemas']['NotificationChannel']
+        }
+      }
+      401: components['responses']['UnauthorizedProblemResponse']
+      404: components['responses']['NotFoundProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /**
+   * Delete a notification channel
+   * @description Delete notification channel by id.
+   */
+  deleteNotificationChannel: {
+    parameters: {
+      path: {
+        channelId: components['parameters']['channelId']
+      }
+    }
+    responses: {
+      /** @description Notification channel deleted. */
+      204: {
+        content: never
+      }
+      401: components['responses']['UnauthorizedProblemResponse']
+      404: components['responses']['NotFoundProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /**
+   * List notification rules
+   * @description List all notification rules.
+   */
+  listNotificationRules: {
+    parameters: {
+      query?: {
+        limit?: components['parameters']['queryLimit']
+        offset?: components['parameters']['queryOffset']
+        /** @description Order by field */
+        orderBy?: 'id' | 'type' | 'createdAt' | 'updatedAt'
+        includeDisabled?: components['parameters']['queryIncludeDisabled']
+        feature?: components['parameters']['queryFilterFeature']
+      }
+    }
+    responses: {
+      /** @description List of notification rules. */
+      200: {
+        content: {
+          'application/json': components['schemas']['NotificationRules']
+        }
+      }
+      400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /**
+   * Create a notification rule
+   * @description Create a new notification rule.
+   */
+  createNotificationRule: {
+    /** @description The notification rule to create. */
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NotificationRuleCreateRequest']
+      }
+    }
+    responses: {
+      /** @description Notification rule created. */
+      201: {
+        content: {
+          'application/json': components['schemas']['NotificationRule']
+        }
+      }
+      400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
+      409: components['responses']['ConflictProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /**
+   * Get notification rule
+   * @description Get a notification rule by id.
+   */
+  getNotificationRule: {
+    parameters: {
+      path: {
+        ruleId: components['parameters']['ruleId']
+      }
+    }
+    responses: {
+      /** @description Rule found. */
+      200: {
+        content: {
+          'application/json': components['schemas']['NotificationRule']
+        }
+      }
+      401: components['responses']['UnauthorizedProblemResponse']
+      404: components['responses']['NotFoundProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /**
+   * Update a notification rule
+   * @description Update a notification rule by id.
+   */
+  updateNotificationRule: {
+    parameters: {
+      path: {
+        ruleId: components['parameters']['ruleId']
+      }
+    }
+    /** @description The notification rule to update. */
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NotificationRuleCreateRequest']
+      }
+    }
+    responses: {
+      /** @description Notification Rule updated. */
+      200: {
+        content: {
+          'application/json': components['schemas']['NotificationRule']
+        }
+      }
+      401: components['responses']['UnauthorizedProblemResponse']
+      404: components['responses']['NotFoundProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /**
+   * Delete a notification rule
+   * @description Delete notification rule by id.
+   */
+  deleteNotificationRule: {
+    parameters: {
+      path: {
+        ruleId: components['parameters']['ruleId']
+      }
+    }
+    responses: {
+      /** @description Notification rule deleted. */
+      204: {
+        content: never
+      }
+      401: components['responses']['UnauthorizedProblemResponse']
+      404: components['responses']['NotFoundProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /**
+   * List notification evens
+   * @description List all notification events.
+   */
+  listNotificationEvents: {
+    parameters: {
+      query?: {
+        limit?: components['parameters']['queryLimit']
+        offset?: components['parameters']['queryOffset']
+        /** @description Order by field */
+        orderBy?: 'id' | 'createdAt'
+        feature?: components['parameters']['queryFilterFeature']
+        subject?: components['parameters']['queryFilterSubject']
+      }
+    }
+    responses: {
+      /** @description List of notification events. */
+      200: {
+        content: {
+          'application/json': components['schemas']['NotificationEvent'][]
+        }
+      }
+      400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /**
+   * Get notification event
+   * @description Get a notification event by id.
+   */
+  getNotificationEvent: {
+    parameters: {
+      path: {
+        eventId: components['parameters']['eventId']
+      }
+    }
+    responses: {
+      /** @description Notification event found. */
+      200: {
+        content: {
+          'application/json': components['schemas']['NotificationEvent']
+        }
+      }
+      401: components['responses']['UnauthorizedProblemResponse']
+      404: components['responses']['NotFoundProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
