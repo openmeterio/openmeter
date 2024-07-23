@@ -2,10 +2,13 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "description": "OpenMeter Events Schema",
   "type": "object",
+  "additionalProperties": {
+    "cloudevents.type": "openmeter.entitlements.balance.snapshot.v1"
+  },
   "properties": {
     "entitlementId": {
       "description": "ID of the entitlement in ULID format.",
-      "$ref": "types/ulid.json"
+      "$ref": "types.json#definitions/ulid"
     },
     "namespace": {
       "description": "Namespace of the entitlement.",
@@ -13,19 +16,19 @@
     },
     "subject": {
       "description": "Subject of the entitlement we are reporting the balance for",
-      "$ref": "types/subject.json"
+      "type": "string"
     },
     "feature": {
       "description": "Feature of the entitlement we are reporting the balance for",
-      "$ref": "types/feature.json"
-    },
-    "changeAt": {
-      "description": "The timestamp of the change triggering this balance update, TODO: validate that this parses RFC3339 properly",
-      "$ref": "types/date-time.json"
+      "type": "string"
     },
     "operation": {
       "description": "The type of the operation triggering this balance change TODO: we might want to make this specific to the balance payload",
-      "type": "string"
+      "type": "string",
+      "enum": [
+        "UPDATE",
+        "DELETE"
+      ]
     },
     "balance": {
       "type": "object",
@@ -36,7 +39,7 @@
         },
         "config": {
           "description": "The configuration of the entitlement, TODO: object",
-          "$ref": "types/config.json"
+          "type": "string"
         },
         "hasAccess": {
           "description": "Whether the subject has access to the feature",
@@ -51,6 +54,10 @@
           "type": "number"
         }
       }
+    },
+    "currentUsagePeriod": {
+      "description": "The current usage period of the entitlement",
+      "$ref": "types.json#definitions/period"
     }
   },
   "required": [
