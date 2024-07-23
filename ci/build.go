@@ -65,10 +65,10 @@ func (m *Build) ContainerImage(
 func (m *Build) containerImage(platform dagger.Platform, version string) *dagger.Container {
 	return dag.Container(dagger.ContainerOpts{Platform: platform}).
 		From(alpineBaseImage).
+		WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "tzdata", "bash"}).
 		WithLabel("org.opencontainers.image.title", "openmeter").
 		WithLabel("org.opencontainers.image.description", "Cloud Metering for AI, Billing and FinOps. Collect and aggregate millions of usage events in real-time.").
 		WithLabel("org.opencontainers.image.url", "https://github.com/openmeterio/openmeter").
-		WithLabel("org.opencontainers.image.created", time.Now().String()). // TODO: embed commit timestamp
 		WithLabel("org.opencontainers.image.source", "https://github.com/openmeterio/openmeter").
 		WithLabel("org.opencontainers.image.licenses", "Apache-2.0").
 		With(func(c *dagger.Container) *dagger.Container {
@@ -78,9 +78,9 @@ func (m *Build) containerImage(platform dagger.Platform, version string) *dagger
 
 			return c
 		}).
-		WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "tzdata", "bash"}).
 		WithFile("/usr/local/bin/openmeter", m.Binary().api(platform, version)).
-		WithFile("/usr/local/bin/openmeter-sink-worker", m.Binary().sinkWorker(platform, version))
+		WithFile("/usr/local/bin/openmeter-sink-worker", m.Binary().sinkWorker(platform, version)).
+		WithLabel("org.opencontainers.image.created", time.Now().String()) // TODO: embed commit timestamp
 }
 
 // Build binaries.
@@ -199,15 +199,21 @@ func (m *Binary) build(platform dagger.Platform, version string, pkg string) *da
 
 func goModule() *dagger.Go {
 	return dag.Go(dagger.GoOpts{Version: goBuildVersion}).
-		WithModuleCache(dag.CacheVolume("openmeter-go-mod-v2")).
-		WithBuildCache(dag.CacheVolume("openmeter-go-build-v2"))
+		WithModuleCache(cacheVolume("go-mod")).
+		WithBuildCache(cacheVolume("go-build"))
 }
 
 func goModuleCross(platform dagger.Platform) *dagger.Go {
 	container := goModule().
 		WithCgoEnabled(). // TODO: set env var instead?
 		Container().
-		WithEnvVariable("TARGETPLATFORM", string(platform)).
+		With(func(c *dagger.Container) *dagger.Container {
+			if platform != "" {
+				c = c.WithEnvVariable("TARGETPLATFORM", string(platform))
+			}
+
+			return c
+		}).
 		WithDirectory("/", dag.Container().From(xxBaseImage).Rootfs()).
 		WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "make", "git", "curl", "clang", "lld"}).
 		WithExec([]string{"xx-apk", "add", "--update", "--no-cache", "musl-dev", "gcc"}).

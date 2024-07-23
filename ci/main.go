@@ -85,12 +85,12 @@ func (m *Ci) Ci(ctx context.Context) error {
 }
 
 func (m *Ci) Test() *dagger.Container {
-	return dag.Go().
+	return goModuleCross("").
 		WithSource(m.Source).
 		Container().
 		WithServiceBinding("postgres", postgres()).
 		WithEnvVariable("POSTGRES_HOST", "postgres").
-		WithExec([]string{"go", "test", "-v", "./..."})
+		WithExec([]string{"go", "test", "-tags", "musl", "-v", "./..."})
 }
 
 func (m *Ci) QuickstartTest(
