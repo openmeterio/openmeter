@@ -22,6 +22,8 @@ import (
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/internal/notification"
+	notificationhttpdriver "github.com/openmeterio/openmeter/internal/notification/httpdriver"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	productcatalog_httpdriver "github.com/openmeterio/openmeter/internal/productcatalog/driver"
 	"github.com/openmeterio/openmeter/internal/server/authenticator"
@@ -64,6 +66,7 @@ type Config struct {
 	EntitlementBalanceConnector meteredentitlement.Connector
 	GrantConnector              credit.GrantConnector
 	GrantRepo                   grant.Repo
+	NotificationConnector       notification.Connector
 
 	// FIXME: implement generic module management, loading, etc...
 	EntitlementsEnabled bool
@@ -114,6 +117,10 @@ func (c Config) Validate() error {
 		}
 	}
 
+	if c.NotificationConnector == nil {
+		return errors.New("notification connector is required")
+	}
+
 	return nil
 }
 
@@ -125,6 +132,7 @@ type Router struct {
 	debugHandler              debug_httpdriver.DebugHandler
 	entitlementHandler        entitlementdriver.EntitlementHandler
 	meteredEntitlementHandler entitlementdriver.MeteredEntitlementHandler
+	notificationHandler       notificationhttpdriver.Handler
 }
 
 // Make sure we conform to ServerInterface
@@ -174,6 +182,12 @@ func NewRouter(config Config) (*Router, error) {
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
 	}
+
+	router.notificationHandler = notificationhttpdriver.New(
+		staticNamespaceDecoder,
+		config.NotificationConnector,
+		httptransport.WithErrorHandler(config.ErrorHandler),
+	)
 
 	return router, nil
 }

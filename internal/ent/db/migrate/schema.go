@@ -203,6 +203,115 @@ var (
 			},
 		},
 	}
+	// NotificationChannelsColumns holds the columns for the "notification_channels" table.
+	NotificationChannelsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"WEBHOOK"}},
+		{Name: "name", Type: field.TypeString},
+		{Name: "disabled", Type: field.TypeBool, Nullable: true, Default: false},
+		{Name: "config", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
+	}
+	// NotificationChannelsTable holds the schema information for the "notification_channels" table.
+	NotificationChannelsTable = &schema.Table{
+		Name:       "notification_channels",
+		Columns:    NotificationChannelsColumns,
+		PrimaryKey: []*schema.Column{NotificationChannelsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "notificationchannel_id",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationChannelsColumns[0]},
+			},
+			{
+				Name:    "notificationchannel_namespace_id",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationChannelsColumns[1], NotificationChannelsColumns[0]},
+			},
+			{
+				Name:    "notificationchannel_namespace_type",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationChannelsColumns[1], NotificationChannelsColumns[5]},
+			},
+			{
+				Name:    "notificationchannel_namespace_id_type",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationChannelsColumns[1], NotificationChannelsColumns[0], NotificationChannelsColumns[5]},
+			},
+		},
+	}
+	// NotificationEventsColumns holds the columns for the "notification_events" table.
+	NotificationEventsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"entitlements.balance.threshold"}},
+		{Name: "rule", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "payload", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
+	}
+	// NotificationEventsTable holds the schema information for the "notification_events" table.
+	NotificationEventsTable = &schema.Table{
+		Name:       "notification_events",
+		Columns:    NotificationEventsColumns,
+		PrimaryKey: []*schema.Column{NotificationEventsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "notificationevent_id",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationEventsColumns[0]},
+			},
+		},
+	}
+	// NotificationEventDeliveryStatusColumns holds the columns for the "notification_event_delivery_status" table.
+	NotificationEventDeliveryStatusColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"entitlements.balance.threshold"}},
+		{Name: "state", Type: field.TypeEnum, Enums: []string{"SUCCESS", "FAILED", "SENDING"}},
+	}
+	// NotificationEventDeliveryStatusTable holds the schema information for the "notification_event_delivery_status" table.
+	NotificationEventDeliveryStatusTable = &schema.Table{
+		Name:       "notification_event_delivery_status",
+		Columns:    NotificationEventDeliveryStatusColumns,
+		PrimaryKey: []*schema.Column{NotificationEventDeliveryStatusColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "notificationeventdeliverystatus_id",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationEventDeliveryStatusColumns[0]},
+			},
+		},
+	}
+	// NotificationRulesColumns holds the columns for the "notification_rules" table.
+	NotificationRulesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"entitlements.balance.threshold"}},
+		{Name: "name", Type: field.TypeString},
+		{Name: "disabled", Type: field.TypeBool, Nullable: true, Default: false},
+		{Name: "config", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
+	}
+	// NotificationRulesTable holds the schema information for the "notification_rules" table.
+	NotificationRulesTable = &schema.Table{
+		Name:       "notification_rules",
+		Columns:    NotificationRulesColumns,
+		PrimaryKey: []*schema.Column{NotificationRulesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "notificationrule_id",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationRulesColumns[0]},
+			},
+		},
+	}
 	// UsageResetsColumns holds the columns for the "usage_resets" table.
 	UsageResetsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -244,13 +353,69 @@ var (
 			},
 		},
 	}
+	// NotificationChannelRulesColumns holds the columns for the "notification_channel_rules" table.
+	NotificationChannelRulesColumns = []*schema.Column{
+		{Name: "notification_channel_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "notification_rule_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// NotificationChannelRulesTable holds the schema information for the "notification_channel_rules" table.
+	NotificationChannelRulesTable = &schema.Table{
+		Name:       "notification_channel_rules",
+		Columns:    NotificationChannelRulesColumns,
+		PrimaryKey: []*schema.Column{NotificationChannelRulesColumns[0], NotificationChannelRulesColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "notification_channel_rules_notification_channel_id",
+				Columns:    []*schema.Column{NotificationChannelRulesColumns[0]},
+				RefColumns: []*schema.Column{NotificationChannelsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "notification_channel_rules_notification_rule_id",
+				Columns:    []*schema.Column{NotificationChannelRulesColumns[1]},
+				RefColumns: []*schema.Column{NotificationRulesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
+	// NotificationEventDeliveryStatusEventsColumns holds the columns for the "notification_event_delivery_status_events" table.
+	NotificationEventDeliveryStatusEventsColumns = []*schema.Column{
+		{Name: "notification_event_delivery_status_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "notification_event_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// NotificationEventDeliveryStatusEventsTable holds the schema information for the "notification_event_delivery_status_events" table.
+	NotificationEventDeliveryStatusEventsTable = &schema.Table{
+		Name:       "notification_event_delivery_status_events",
+		Columns:    NotificationEventDeliveryStatusEventsColumns,
+		PrimaryKey: []*schema.Column{NotificationEventDeliveryStatusEventsColumns[0], NotificationEventDeliveryStatusEventsColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "notification_event_delivery_status_events_notification_event_delivery_status_id",
+				Columns:    []*schema.Column{NotificationEventDeliveryStatusEventsColumns[0]},
+				RefColumns: []*schema.Column{NotificationEventDeliveryStatusColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "notification_event_delivery_status_events_notification_event_id",
+				Columns:    []*schema.Column{NotificationEventDeliveryStatusEventsColumns[1]},
+				RefColumns: []*schema.Column{NotificationEventsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		BalanceSnapshotsTable,
 		EntitlementsTable,
 		FeaturesTable,
 		GrantsTable,
+		NotificationChannelsTable,
+		NotificationEventsTable,
+		NotificationEventDeliveryStatusTable,
+		NotificationRulesTable,
 		UsageResetsTable,
+		NotificationChannelRulesTable,
+		NotificationEventDeliveryStatusEventsTable,
 	}
 )
 
@@ -259,4 +424,8 @@ func init() {
 	EntitlementsTable.ForeignKeys[0].RefTable = FeaturesTable
 	GrantsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	UsageResetsTable.ForeignKeys[0].RefTable = EntitlementsTable
+	NotificationChannelRulesTable.ForeignKeys[0].RefTable = NotificationChannelsTable
+	NotificationChannelRulesTable.ForeignKeys[1].RefTable = NotificationRulesTable
+	NotificationEventDeliveryStatusEventsTable.ForeignKeys[0].RefTable = NotificationEventDeliveryStatusTable
+	NotificationEventDeliveryStatusEventsTable.ForeignKeys[1].RefTable = NotificationEventsTable
 }

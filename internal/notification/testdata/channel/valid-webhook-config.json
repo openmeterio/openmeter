@@ -1,0 +1,9 @@
+{
+  "type": "WEBHOOK",
+  "url": "https://example.com/webhook",
+  "customHeaders": {
+    "header1": "value1",
+    "header2": "value2"
+  },
+  "signingSecret": "supersecret"
+}

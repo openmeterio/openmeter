@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Entitlements Balance Threshold Event",
+  "description": "OpenMeter Events Schema",
+  "type": "object",
+  "properties": {
+    "entitlement": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "feature": {
+      "type": "object",
+      "properties": {}
+    },
+    "subject": {
+      "type": "object",
+      "properties": {}
+    },
+    "balance": {
+      "type": "object",
+      "properties": {}
+    },
+    "threshold": {
+      "type": "object",
+      "properties": {}
+    }
+  }
+}

@@ -9,8 +9,15 @@ import (
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/internal/ent/db/grant"
+	"github.com/openmeterio/openmeter/internal/ent/db/notificationchannel"
+	"github.com/openmeterio/openmeter/internal/ent/db/notificationevent"
+	"github.com/openmeterio/openmeter/internal/ent/db/notificationeventdeliverystatus"
+	"github.com/openmeterio/openmeter/internal/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/internal/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/internal/ent/schema"
+	"github.com/openmeterio/openmeter/internal/notification"
+
+	"entgo.io/ent/schema/field"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -137,6 +144,126 @@ func init() {
 	dbgrantDescID := dbgrantMixinFields0[0].Descriptor()
 	// dbgrant.DefaultID holds the default value on creation for the id field.
 	dbgrant.DefaultID = dbgrantDescID.Default.(func() string)
+	notificationchannelMixin := schema.NotificationChannel{}.Mixin()
+	notificationchannelMixinFields0 := notificationchannelMixin[0].Fields()
+	_ = notificationchannelMixinFields0
+	notificationchannelMixinFields1 := notificationchannelMixin[1].Fields()
+	_ = notificationchannelMixinFields1
+	notificationchannelMixinFields2 := notificationchannelMixin[2].Fields()
+	_ = notificationchannelMixinFields2
+	notificationchannelFields := schema.NotificationChannel{}.Fields()
+	_ = notificationchannelFields
+	// notificationchannelDescNamespace is the schema descriptor for namespace field.
+	notificationchannelDescNamespace := notificationchannelMixinFields1[0].Descriptor()
+	// notificationchannel.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	notificationchannel.NamespaceValidator = notificationchannelDescNamespace.Validators[0].(func(string) error)
+	// notificationchannelDescCreatedAt is the schema descriptor for created_at field.
+	notificationchannelDescCreatedAt := notificationchannelMixinFields2[0].Descriptor()
+	// notificationchannel.DefaultCreatedAt holds the default value on creation for the created_at field.
+	notificationchannel.DefaultCreatedAt = notificationchannelDescCreatedAt.Default.(func() time.Time)
+	// notificationchannelDescUpdatedAt is the schema descriptor for updated_at field.
+	notificationchannelDescUpdatedAt := notificationchannelMixinFields2[1].Descriptor()
+	// notificationchannel.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	notificationchannel.DefaultUpdatedAt = notificationchannelDescUpdatedAt.Default.(func() time.Time)
+	// notificationchannel.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	notificationchannel.UpdateDefaultUpdatedAt = notificationchannelDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// notificationchannelDescName is the schema descriptor for name field.
+	notificationchannelDescName := notificationchannelFields[1].Descriptor()
+	// notificationchannel.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	notificationchannel.NameValidator = notificationchannelDescName.Validators[0].(func(string) error)
+	// notificationchannelDescDisabled is the schema descriptor for disabled field.
+	notificationchannelDescDisabled := notificationchannelFields[2].Descriptor()
+	// notificationchannel.DefaultDisabled holds the default value on creation for the disabled field.
+	notificationchannel.DefaultDisabled = notificationchannelDescDisabled.Default.(bool)
+	// notificationchannelDescConfig is the schema descriptor for config field.
+	notificationchannelDescConfig := notificationchannelFields[3].Descriptor()
+	notificationchannel.ValueScanner.Config = notificationchannelDescConfig.ValueScanner.(field.TypeValueScanner[notification.ChannelConfig])
+	// notificationchannelDescID is the schema descriptor for id field.
+	notificationchannelDescID := notificationchannelMixinFields0[0].Descriptor()
+	// notificationchannel.DefaultID holds the default value on creation for the id field.
+	notificationchannel.DefaultID = notificationchannelDescID.Default.(func() string)
+	notificationeventMixin := schema.NotificationEvent{}.Mixin()
+	notificationeventMixinFields0 := notificationeventMixin[0].Fields()
+	_ = notificationeventMixinFields0
+	notificationeventMixinFields1 := notificationeventMixin[1].Fields()
+	_ = notificationeventMixinFields1
+	notificationeventFields := schema.NotificationEvent{}.Fields()
+	_ = notificationeventFields
+	// notificationeventDescNamespace is the schema descriptor for namespace field.
+	notificationeventDescNamespace := notificationeventMixinFields1[0].Descriptor()
+	// notificationevent.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	notificationevent.NamespaceValidator = notificationeventDescNamespace.Validators[0].(func(string) error)
+	// notificationeventDescCreatedAt is the schema descriptor for created_at field.
+	notificationeventDescCreatedAt := notificationeventFields[0].Descriptor()
+	// notificationevent.DefaultCreatedAt holds the default value on creation for the created_at field.
+	notificationevent.DefaultCreatedAt = notificationeventDescCreatedAt.Default.(func() time.Time)
+	// notificationeventDescID is the schema descriptor for id field.
+	notificationeventDescID := notificationeventMixinFields0[0].Descriptor()
+	// notificationevent.DefaultID holds the default value on creation for the id field.
+	notificationevent.DefaultID = notificationeventDescID.Default.(func() string)
+	notificationeventdeliverystatusMixin := schema.NotificationEventDeliveryStatus{}.Mixin()
+	notificationeventdeliverystatusMixinFields0 := notificationeventdeliverystatusMixin[0].Fields()
+	_ = notificationeventdeliverystatusMixinFields0
+	notificationeventdeliverystatusMixinFields1 := notificationeventdeliverystatusMixin[1].Fields()
+	_ = notificationeventdeliverystatusMixinFields1
+	notificationeventdeliverystatusFields := schema.NotificationEventDeliveryStatus{}.Fields()
+	_ = notificationeventdeliverystatusFields
+	// notificationeventdeliverystatusDescNamespace is the schema descriptor for namespace field.
+	notificationeventdeliverystatusDescNamespace := notificationeventdeliverystatusMixinFields1[0].Descriptor()
+	// notificationeventdeliverystatus.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	notificationeventdeliverystatus.NamespaceValidator = notificationeventdeliverystatusDescNamespace.Validators[0].(func(string) error)
+	// notificationeventdeliverystatusDescCreatedAt is the schema descriptor for created_at field.
+	notificationeventdeliverystatusDescCreatedAt := notificationeventdeliverystatusFields[0].Descriptor()
+	// notificationeventdeliverystatus.DefaultCreatedAt holds the default value on creation for the created_at field.
+	notificationeventdeliverystatus.DefaultCreatedAt = notificationeventdeliverystatusDescCreatedAt.Default.(func() time.Time)
+	// notificationeventdeliverystatusDescUpdatedAt is the schema descriptor for updated_at field.
+	notificationeventdeliverystatusDescUpdatedAt := notificationeventdeliverystatusFields[1].Descriptor()
+	// notificationeventdeliverystatus.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	notificationeventdeliverystatus.DefaultUpdatedAt = notificationeventdeliverystatusDescUpdatedAt.Default.(func() time.Time)
+	// notificationeventdeliverystatus.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	notificationeventdeliverystatus.UpdateDefaultUpdatedAt = notificationeventdeliverystatusDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// notificationeventdeliverystatusDescID is the schema descriptor for id field.
+	notificationeventdeliverystatusDescID := notificationeventdeliverystatusMixinFields0[0].Descriptor()
+	// notificationeventdeliverystatus.DefaultID holds the default value on creation for the id field.
+	notificationeventdeliverystatus.DefaultID = notificationeventdeliverystatusDescID.Default.(func() string)
+	notificationruleMixin := schema.NotificationRule{}.Mixin()
+	notificationruleMixinFields0 := notificationruleMixin[0].Fields()
+	_ = notificationruleMixinFields0
+	notificationruleMixinFields1 := notificationruleMixin[1].Fields()
+	_ = notificationruleMixinFields1
+	notificationruleMixinFields2 := notificationruleMixin[2].Fields()
+	_ = notificationruleMixinFields2
+	notificationruleFields := schema.NotificationRule{}.Fields()
+	_ = notificationruleFields
+	// notificationruleDescNamespace is the schema descriptor for namespace field.
+	notificationruleDescNamespace := notificationruleMixinFields1[0].Descriptor()
+	// notificationrule.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	notificationrule.NamespaceValidator = notificationruleDescNamespace.Validators[0].(func(string) error)
+	// notificationruleDescCreatedAt is the schema descriptor for created_at field.
+	notificationruleDescCreatedAt := notificationruleMixinFields2[0].Descriptor()
+	// notificationrule.DefaultCreatedAt holds the default value on creation for the created_at field.
+	notificationrule.DefaultCreatedAt = notificationruleDescCreatedAt.Default.(func() time.Time)
+	// notificationruleDescUpdatedAt is the schema descriptor for updated_at field.
+	notificationruleDescUpdatedAt := notificationruleMixinFields2[1].Descriptor()
+	// notificationrule.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	notificationrule.DefaultUpdatedAt = notificationruleDescUpdatedAt.Default.(func() time.Time)
+	// notificationrule.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	notificationrule.UpdateDefaultUpdatedAt = notificationruleDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// notificationruleDescName is the schema descriptor for name field.
+	notificationruleDescName := notificationruleFields[1].Descriptor()
+	// notificationrule.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	notificationrule.NameValidator = notificationruleDescName.Validators[0].(func(string) error)
+	// notificationruleDescDisabled is the schema descriptor for disabled field.
+	notificationruleDescDisabled := notificationruleFields[2].Descriptor()
+	// notificationrule.DefaultDisabled holds the default value on creation for the disabled field.
+	notificationrule.DefaultDisabled = notificationruleDescDisabled.Default.(bool)
+	// notificationruleDescConfig is the schema descriptor for config field.
+	notificationruleDescConfig := notificationruleFields[3].Descriptor()
+	notificationrule.ValueScanner.Config = notificationruleDescConfig.ValueScanner.(field.TypeValueScanner[notification.RuleConfig])
+	// notificationruleDescID is the schema descriptor for id field.
+	notificationruleDescID := notificationruleMixinFields0[0].Descriptor()
+	// notificationrule.DefaultID holds the default value on creation for the id field.
+	notificationrule.DefaultID = notificationruleDescID.Default.(func() string)
 	usageresetMixin := schema.UsageReset{}.Mixin()
 	usageresetMixinFields0 := usageresetMixin[0].Fields()
 	_ = usageresetMixinFields0

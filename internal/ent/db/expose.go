@@ -81,6 +81,14 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		Grant: NewGrantClient(config),
 
+		NotificationChannel: NewNotificationChannelClient(config),
+
+		NotificationEvent: NewNotificationEventClient(config),
+
+		NotificationEventDeliveryStatus: NewNotificationEventDeliveryStatusClient(config),
+
+		NotificationRule: NewNotificationRuleClient(config),
+
 		UsageReset: NewUsageResetClient(config),
 	}
 }

@@ -20,6 +20,14 @@ type Tx struct {
 	Feature *FeatureClient
 	// Grant is the client for interacting with the Grant builders.
 	Grant *GrantClient
+	// NotificationChannel is the client for interacting with the NotificationChannel builders.
+	NotificationChannel *NotificationChannelClient
+	// NotificationEvent is the client for interacting with the NotificationEvent builders.
+	NotificationEvent *NotificationEventClient
+	// NotificationEventDeliveryStatus is the client for interacting with the NotificationEventDeliveryStatus builders.
+	NotificationEventDeliveryStatus *NotificationEventDeliveryStatusClient
+	// NotificationRule is the client for interacting with the NotificationRule builders.
+	NotificationRule *NotificationRuleClient
 	// UsageReset is the client for interacting with the UsageReset builders.
 	UsageReset *UsageResetClient
 
@@ -157,6 +165,10 @@ func (tx *Tx) init() {
 	tx.Entitlement = NewEntitlementClient(tx.config)
 	tx.Feature = NewFeatureClient(tx.config)
 	tx.Grant = NewGrantClient(tx.config)
+	tx.NotificationChannel = NewNotificationChannelClient(tx.config)
+	tx.NotificationEvent = NewNotificationEventClient(tx.config)
+	tx.NotificationEventDeliveryStatus = NewNotificationEventDeliveryStatusClient(tx.config)
+	tx.NotificationRule = NewNotificationRuleClient(tx.config)
 	tx.UsageReset = NewUsageResetClient(tx.config)
 }
 
