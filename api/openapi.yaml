@@ -2738,7 +2738,7 @@ components:
 
     NotificationChannelWebhookCreateRequest:
       allOf:
-        - $ref: "#/components/schemas/GenericNotificationChannelCreateRequest"
+        - $ref: "#/components/schemas/NotificationChannelCommonCreateRequest"
         - type: object
           description: "Request for updating existing webhook notification channel."
           required:
@@ -2766,8 +2766,9 @@ components:
               example: "whsec_S6g2HLnTwd9AhHwUIMFggVS9OfoPafN8"
 
     NotificationChannelWebhook:
+      description: Notification channel with webhook type.
       allOf:
-        - $ref: "#/components/schemas/GenericNotificationChannel"
+        - $ref: "#/components/schemas/NotificationChannelCommon"
         - type: object
           description: "Webhook type of notification channel"
           required:
@@ -2801,7 +2802,8 @@ components:
         - WEBHOOK
       example: WEBHOOK
 
-    GenericNotificationChannelCreateRequest:
+    NotificationChannelCommonCreateRequest:
+      description: Common fields for create notification channel request.
       type: object
       required:
         - name
@@ -2820,6 +2822,8 @@ components:
           $ref: "#/components/schemas/NotificationChannelType"
 
     NotificationChannelMeta:
+      description: |
+        Limited representation of notification channel which includes only the channel identifier and its type.
       type: object
       required:
         - id
@@ -2832,7 +2836,8 @@ components:
         type:
           $ref: "#/components/schemas/NotificationChannelType"
 
-    GenericNotificationChannel:
+    NotificationChannelCommon:
+      description: Common fields for notification channel resources.
       allOf:
         - $ref: "#/components/schemas/NotificationChannelMeta"
         - type: object
@@ -2880,8 +2885,11 @@ components:
         $ref: "#/components/schemas/NotificationRule"
 
     NotificationRuleBalanceThresholdCreateRequest:
+      description: |
+        Request for creating new notification rule for triggering notification events base on conditions
+        applied to current balance of entitlements.
       allOf:
-        - $ref: "#/components/schemas/GenericNotificationRuleCreateRequest"
+        - $ref: "#/components/schemas/NotificationRuleCommonCreateRequest"
         - type: object
           required:
             - thresholds
@@ -2927,8 +2935,10 @@ components:
            - PERCENT
 
     NotificationRuleBalanceThreshold:
+      description: |
+        Notification rule for triggering notification events by applying conditions to current balance of entitlements.
       allOf:
-        - $ref: "#/components/schemas/GenericNotificationRule"
+        - $ref: "#/components/schemas/NotificationRuleCommon"
         - type: object
           description: Defines notification rule base on balance thresholds.
           required:
@@ -2959,9 +2969,9 @@ components:
         - "entitlements.balance.threshold"
       example: "entitlements.balance.threshold"
 
-    GenericNotificationRuleCreateRequest:
+    NotificationRuleCommonCreateRequest:
+      description: Defines the common fields for create notification rule request.
       type: object
-      description: Defines the common fields of a notification rule.
       required:
         - type
         - name
@@ -2989,8 +2999,8 @@ components:
           example: false
 
     NotificationRuleMeta:
-      type: object
       description: Defines the common fields of a notification rule.
+      type: object
       required:
         - id
         - type
@@ -3002,7 +3012,8 @@ components:
         type:
           $ref: "#/components/schemas/NotificationRuleType"
 
-    GenericNotificationRule:
+    NotificationRuleCommon:
+      description: Common fields for notification rules.
       allOf:
         - $ref: "#/components/schemas/NotificationRuleMeta"
         - type: object
