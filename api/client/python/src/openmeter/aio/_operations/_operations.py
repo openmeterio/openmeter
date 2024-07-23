@@ -5306,8 +5306,12 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                                   to the event.
                             }
                         },
-                        "ruleId": "str"  # The identifier of the Notification Rule which
-                          triggered this event. Required.
+                        "rule": {
+                            "id": "str",  # A unique identifier for the notification
+                              rule. Required.
+                            "type": "str"  # The type of the notification rule. Required.
+                              "entitlements.balance.threshold"
+                        }
                     }
                 ]
         """
