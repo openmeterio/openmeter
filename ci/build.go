@@ -199,8 +199,8 @@ func (m *Binary) build(platform dagger.Platform, version string, pkg string) *da
 
 func goModule() *dagger.Go {
 	return dag.Go(dagger.GoOpts{Version: goBuildVersion}).
-		WithModuleCache(dag.CacheVolume("openmeter-go-mod-v2")).
-		WithBuildCache(dag.CacheVolume("openmeter-go-build-v2"))
+		WithModuleCache(cacheVolume("go-mod")).
+		WithBuildCache(cacheVolume("go-build"))
 }
 
 func goModuleCross(platform dagger.Platform) *dagger.Go {

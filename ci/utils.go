@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/sourcegraph/conc/pool"
+
+	"github.com/openmeterio/openmeter/ci/internal/dagger"
 )
 
 type syncable[T any] interface {
@@ -70,4 +73,8 @@ func (p *pipeline) wait() error {
 
 func addSyncableStep[T any](p *pipeline, s syncable[T]) {
 	p.pool.Go(syncFunc(s))
+}
+
+func cacheVolume(name string) *dagger.CacheVolume {
+	return dag.CacheVolume(fmt.Sprintf("openmeter-%s", name))
 }

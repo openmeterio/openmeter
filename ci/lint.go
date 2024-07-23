@@ -32,7 +32,7 @@ func (m *Lint) Go() *dagger.Container {
 		Version:     golangciLintVersion,
 		GoContainer: goModuleCross("").Container(),
 	}).
-		WithLinterCache(dag.CacheVolume("openmeter-golangci-lint-v2")).
+		WithLinterCache(cacheVolume("golangci-lint")).
 		Run(m.Source, dagger.GolangciLintRunOpts{
 			Verbose: true,
 		})
