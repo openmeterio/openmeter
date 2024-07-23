@@ -166,13 +166,6 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 		query = query.Where(db_entitlement.Or(db_entitlement.DeletedAtGT(clock.Now()), db_entitlement.DeletedAtIsNil()))
 	}
 
-	// if params.Limit > 0 {
-	// 	query = query.Limit(params.Limit)
-	// }
-	// if params.Offset > 0 {
-	// 	query = query.Offset(params.Offset)
-	// }
-
 	switch params.OrderBy {
 	case entitlement.ListEntitlementsOrderByCreatedAt:
 		query = query.Order(db_entitlement.ByCreatedAt())
