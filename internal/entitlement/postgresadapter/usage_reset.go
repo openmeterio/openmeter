@@ -6,10 +6,9 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 
-	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
-
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	db_usagereset "github.com/openmeterio/openmeter/internal/ent/db/usagereset"
+	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
