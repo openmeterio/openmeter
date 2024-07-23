@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "OpenMeter Events Schema",
+  "type": "object",
+  "properties": {
+    "entitlementId": {
+      "description": "ID of the entitlement in ULID format.",
+      "$ref": "types/ulid.json"
+    },
+    "namespace": {
+      "description": "Namespace of the entitlement.",
+      "type": "string"
+    },
+    "subject": {
+      "description": "Subject of the entitlement we are reporting the balance for",
+      "$ref": "types/subject.json"
+    },
+    "feature": {
+      "description": "Feature of the entitlement we are reporting the balance for",
+      "$ref": "types/feature.json"
+    },
+    "changeAt": {
+      "description": "The timestamp of the change triggering this balance update, TODO: validate that this parses RFC3339 properly",
+      "$ref": "types/date-time.json"
+    },
+    "operation": {
+      "description": "The type of the operation triggering this balance change TODO: we might want to make this specific to the balance payload",
+      "type": "string"
+    },
+    "balance": {
+      "type": "object",
+      "properties": {
+        "balance": {
+          "description": "The balance of the entitlement",
+          "type": "number"
+        },
+        "config": {
+          "description": "The configuration of the entitlement, TODO: object",
+          "$ref": "types/config.json"
+        },
+        "hasAccess": {
+          "description": "Whether the subject has access to the feature",
+          "type": "boolean"
+        },
+        "overage": {
+          "description": "The overage of the entitlement",
+          "type": "number"
+        },
+        "usage": {
+          "description": "The usage of the entitlement",
+          "type": "number"
+        }
+      }
+    }
+  },
+  "required": [
+    "entitlementId",
+    "namespace",
+    "subject",
+    "feature"
+  ]
+}

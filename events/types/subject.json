@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Subject Schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "description": "ID of the subject in ULID format, optional.",
+      "$ref": "ulid.json"
+    },
+    "key": {
+      "description": "Key of the subject. This is the key that is used to identify the subject in the external system.",
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "key"
+  ]
+}

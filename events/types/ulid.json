@@ -1,0 +1,6 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "ULID Schema",
+  "type": "string",
+  "pattern": "^[0-9A-HJ-NP-Y]{26}$"
+}

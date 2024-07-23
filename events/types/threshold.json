@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Threshold Schema",
+  "type": "object",
+  "properties": {
+    "value": {
+      "description": "Value of the notification threshold.",
+      "type": "number"
+    },
+    "type": {
+      "description": "Type of the threshold.",
+      "type": "string",
+      "enum": [
+        "PERCENT",
+        "NUMBER"
+      ]
+    }
+  },
+  "required": [
+    "value",
+    "type"
+  ]
+}
