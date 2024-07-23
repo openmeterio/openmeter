@@ -85,12 +85,12 @@ func (e *Etoe) Diff(
 		WithSource(e.Ci.Source).
 		Container().
 		WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "make", "git", "curl", "clang", "lld"}).
-		WithExec([]string{"git", "checkout", "--merge", baseRef}).
+		WithExec([]string{"git", "checkout", baseRef}).
 		WithServiceBinding("postgres", db).
 		WithExec([]string{"go", "run", "./tools/migrate"}).
 		Sync(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to migrate base ref %s: %w", baseRef, err)
 	}
 
 	_, err = goModule().
