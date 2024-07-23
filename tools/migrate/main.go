@@ -14,7 +14,7 @@ func main() {
 	slog.SetDefault(logger)
 
 	// driver := testutils.InitPostgresDB(t)
-	driver, err := entutils.GetPGDriver("postgres://postgres:postgres@localhost:5432/postgres")
+	driver, err := entutils.GetPGDriver("postgres://postgres:postgres@postgres:5432/postgres")
 	if err != nil {
 		logger.Error("failed to get pg driver", err)
 		os.Exit(1)

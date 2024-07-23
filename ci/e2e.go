@@ -85,7 +85,7 @@ func (e *Etoe) Diff(
 		WithSource(e.Ci.Source).
 		Container().
 		WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "make", "git", "curl", "clang", "lld"}).
-		WithExec([]string{"git", "checkout", baseRef}).
+		WithExec([]string{"git", "checkout", "--merge", baseRef}).
 		WithServiceBinding("postgres", db).
 		WithExec([]string{"go", "run", "./tools/migrate"}).
 		Sync(ctx)

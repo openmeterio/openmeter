@@ -14,7 +14,7 @@ import (
 
 func TestNoSchemaDiffOnMigrate(t *testing.T) {
 	// driver := testutils.InitPostgresDB(t)
-	driver, err := entutils.GetPGDriver("postgres://postgres:postgres@localhost:5432/postgres")
+	driver, err := entutils.GetPGDriver("postgres://postgres:postgres@postgres:5432/postgres")
 	if err != nil {
 		t.Fatalf("failed to get pg driver %s", err)
 	}
@@ -43,26 +43,24 @@ func TestNoSchemaDiffOnMigrate(t *testing.T) {
 			filename = file.Name()
 			break
 		}
-		t.Logf("file: %s", file.Name())
 	}
 
-	if filename == "" {
-		t.Fatalf("no up.sql found")
-	}
+	// If there's no file then there's no diff. If we have a file then we want to display its content and fail
+	if filename != "" {
+		file, err := memDir.Open(filename)
+		if err != nil {
+			t.Fatalf("failed to open diff file %s", err)
+		}
+		defer file.Close()
 
-	file, err := memDir.Open(filename)
-	if err != nil {
-		t.Fatalf("failed to open diff file %s", err)
-	}
-	defer file.Close()
+		data, err := io.ReadAll(file)
+		if err != nil {
+			t.Fatalf("failed to read diff file %s", err)
+		}
 
-	data, err := io.ReadAll(file)
-	if err != nil {
-		t.Fatalf("failed to read diff file %s", err)
-	}
-
-	// check if diff file is empty
-	if len(data) != 0 {
-		t.Fatalf("schema diff found: %s", string(data))
+		// sanity check
+		if len(data) != 0 {
+			t.Fatalf("schema diff found: %s", string(data))
+		}
 	}
 }
