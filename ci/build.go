@@ -65,10 +65,10 @@ func (m *Build) ContainerImage(
 func (m *Build) containerImage(platform dagger.Platform, version string) *dagger.Container {
 	return dag.Container(dagger.ContainerOpts{Platform: platform}).
 		From(alpineBaseImage).
+		WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "tzdata", "bash"}).
 		WithLabel("org.opencontainers.image.title", "openmeter").
 		WithLabel("org.opencontainers.image.description", "Cloud Metering for AI, Billing and FinOps. Collect and aggregate millions of usage events in real-time.").
 		WithLabel("org.opencontainers.image.url", "https://github.com/openmeterio/openmeter").
-		WithLabel("org.opencontainers.image.created", time.Now().String()). // TODO: embed commit timestamp
 		WithLabel("org.opencontainers.image.source", "https://github.com/openmeterio/openmeter").
 		WithLabel("org.opencontainers.image.licenses", "Apache-2.0").
 		With(func(c *dagger.Container) *dagger.Container {
@@ -78,9 +78,9 @@ func (m *Build) containerImage(platform dagger.Platform, version string) *dagger
 
 			return c
 		}).
-		WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "tzdata", "bash"}).
 		WithFile("/usr/local/bin/openmeter", m.Binary().api(platform, version)).
-		WithFile("/usr/local/bin/openmeter-sink-worker", m.Binary().sinkWorker(platform, version))
+		WithFile("/usr/local/bin/openmeter-sink-worker", m.Binary().sinkWorker(platform, version)).
+		WithLabel("org.opencontainers.image.created", time.Now().String()) // TODO: embed commit timestamp
 }
 
 // Build binaries.
