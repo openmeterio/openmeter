@@ -24,7 +24,7 @@ func (m *Generate) PythonSdk() *dagger.Directory {
 
 	// Autorest is incompatible with latest node version
 	return dag.Container().
-		From("node:22-slim").
+		From("node:22.5.1-slim").
 		WithExec([]string{"apt", "update"}).
 		WithExec([]string{"apt", "install", "-y", "python3", "python3-pip", "python3-venv"}).
 		WithExec([]string{"npm", "install", "-g", "autorest"}).
@@ -37,7 +37,7 @@ func (m *Generate) PythonSdk() *dagger.Directory {
 // Generate the Node SDK.
 func (m *Generate) NodeSdk() *dagger.Directory {
 	return dag.Container().
-		From("node:20-alpine").
+		From("node:20.15.1-alpine3.20").
 		WithExec([]string{"npm", "install", "-g", "pnpm"}).
 		WithDirectory("/work", m.Source.Directory("api")).
 		WithWorkdir("/work/client/node").
@@ -51,7 +51,7 @@ func (m *Generate) NodeSdk() *dagger.Directory {
 // Generate the Web SDK.
 func (m *Generate) WebSdk() *dagger.Directory {
 	return dag.Container().
-		From("node:20-alpine").
+		From("node:20.15.1-alpine3.20").
 		WithExec([]string{"npm", "install", "-g", "pnpm"}).
 		WithDirectory("/work", m.Source.Directory("api")).
 		WithWorkdir("/work/client/web").
