@@ -56,7 +56,7 @@
     }
   ],
   "source": "ci",
-  "engineVersion": "v0.12.2",
+  "engineVersion": "v0.12.0",
   "views": [
     {
       "name": "default",
