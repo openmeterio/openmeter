@@ -610,6 +610,21 @@ export interface components {
       archivedAt?: string
     } & components['schemas']['FeatureCreateInputs'] &
       components['schemas']['SharedMetaFields']
+    /** @description Limited representation of a feature resource which includes only its unique identifiers (id, key). */
+    FeatureMeta: {
+      /**
+       * @description A unique identifier for the notification rule.
+       * @example 01J2KNP1YTXQRXHTDJ4KPR7PZ0
+       */
+      id: string
+      /**
+       * @description The key is an immutable unique identifier of the feature used throughout the API,
+       * for example when interacting with a subject's entitlements.
+       *
+       * @example gpt4_tokens
+       */
+      key: string
+    }
     EntitlementCreateSharedFields: {
       /**
        * @description The feature the subject is entitled to use.
@@ -1280,7 +1295,7 @@ export interface components {
     NotificationChannelCreateRequest: components['schemas']['NotificationChannelWebhookCreateRequest']
     NotificationChannel: components['schemas']['NotificationChannelWebhook']
     NotificationChannels: components['schemas']['NotificationChannel'][]
-    NotificationChannelWebhookCreateRequest: components['schemas']['GenericNotificationChannelCreateRequest'] & {
+    NotificationChannelWebhookCreateRequest: components['schemas']['NotificationChannelCommonCreateRequest'] & {
       /**
        * @description Webhook URL where the notification is sent.
        * @example https://example.com/webhook
@@ -1304,7 +1319,8 @@ export interface components {
        */
       signingSecret?: string | null
     }
-    NotificationChannelWebhook: components['schemas']['GenericNotificationChannel'] & {
+    /** @description Notification channel with webhook type. */
+    NotificationChannelWebhook: components['schemas']['NotificationChannelCommon'] & {
       /**
        * @description Webhook URL where the notification is sent.
        * @example https://example.com/webhook
@@ -1334,7 +1350,8 @@ export interface components {
      * @enum {string}
      */
     NotificationChannelType: 'WEBHOOK'
-    GenericNotificationChannelCreateRequest: {
+    /** @description Common fields for create notification channel request. */
+    NotificationChannelCommonCreateRequest: {
       /**
        * @description User friendly name of the channel.
        * @example customer-webhook
@@ -1348,13 +1365,17 @@ export interface components {
       disabled?: boolean
       type: components['schemas']['NotificationChannelType']
     }
-    GenericNotificationChannel: {
+    /** @description Limited representation of notification channel which includes only the channel identifier and its type. */
+    NotificationChannelMeta: {
       /**
        * @description A unique identifier for the notification channel.
        * @example 01J2KNP1YTXQRXHTDJ4KPR7PZ0
        */
       id: string
       type: components['schemas']['NotificationChannelType']
+    }
+    /** @description Common fields for notification channel resources. */
+    NotificationChannelCommon: components['schemas']['NotificationChannelMeta'] & {
       /**
        * @description User friendly name of the channel.
        * @example customer-webhook
@@ -1382,7 +1403,11 @@ export interface components {
     NotificationRuleCreateRequest: components['schemas']['NotificationRuleBalanceThresholdCreateRequest']
     NotificationRule: components['schemas']['NotificationRuleBalanceThreshold']
     NotificationRules: components['schemas']['NotificationRule'][]
-    NotificationRuleBalanceThresholdCreateRequest: components['schemas']['GenericNotificationRuleCreateRequest'] & {
+    /**
+     * @description Request for creating new notification rule for triggering notification events base on conditions
+     * applied to current balance of entitlements.
+     */
+    NotificationRuleBalanceThresholdCreateRequest: components['schemas']['NotificationRuleCommonCreateRequest'] & {
       /**
        * @description List of thresholds the rule suppose to be triggered.
        * @example [
@@ -1414,7 +1439,8 @@ export interface components {
       /** @enum {string} */
       type: 'NUMBER' | 'PERCENT'
     }
-    NotificationRuleBalanceThreshold: components['schemas']['GenericNotificationRule'] & {
+    /** @description Notification rule for triggering notification events by applying conditions to current balance of entitlements. */
+    NotificationRuleBalanceThreshold: components['schemas']['NotificationRuleCommon'] & {
       /**
        * @description List of thresholds the rule suppose to be triggered.
        * @example [
@@ -1429,14 +1455,8 @@ export interface components {
        * ]
        */
       thresholds: components['schemas']['NotificationRuleBalanceThresholdValue'][]
-      /**
-       * @description Optional field containing list of features the rule applies to.
-       * @example [
-       *   "gpt4_tokens",
-       *   "01ARZ3NDEKTSV4RRFFQ69G5FAV"
-       * ]
-       */
-      features?: string[] | null
+      /** @description Optional field containing list of features the rule applies to. */
+      features?: components['schemas']['FeatureMeta'][] | null
     }
     /**
      * @description The type of the notification rule.
@@ -1444,8 +1464,8 @@ export interface components {
      * @enum {string}
      */
     NotificationRuleType: 'entitlements.balance.threshold'
-    /** @description Defines the common fields of a notification rule. */
-    GenericNotificationRuleCreateRequest: {
+    /** @description Defines the common fields for create notification rule request. */
+    NotificationRuleCommonCreateRequest: {
       type: components['schemas']['NotificationRuleType']
       /**
        * @description The user friendly name of the notification rule.
@@ -1467,25 +1487,23 @@ export interface components {
       disabled?: boolean
     }
     /** @description Defines the common fields of a notification rule. */
-    GenericNotificationRule: {
+    NotificationRuleMeta: {
       /**
        * @description A unique identifier for the notification rule.
        * @example 01J2KNP1YTXQRXHTDJ4KPR7PZ0
        */
       id: string
       type: components['schemas']['NotificationRuleType']
+    }
+    /** @description Common fields for notification rules. */
+    NotificationRuleCommon: components['schemas']['NotificationRuleMeta'] & {
       /**
        * @description The user friendly name of the notification rule.
        * @example Balance threshold reached
        */
       name?: string
-      /**
-       * @description List of notification channel identifiers the rule applies to.
-       * @example [
-       *   "01G65Z755AFWAKHE12NY0CQ9FH"
-       * ]
-       */
-      channels?: string[]
+      /** @description List of notification channels the rule applies to. */
+      channels?: components['schemas']['NotificationChannelMeta'][]
       /**
        * Format: date-time
        * @description Timestamp when the rule was created.
@@ -1523,11 +1541,7 @@ export interface components {
        * @example 2023-01-01T00:00:00Z
        */
       createdAt: string
-      /**
-       * @description The identifier of the Notification Rule which triggered this event.
-       * @example 01J2KNP1YTXQRXHTDJ4KPR7PZ0
-       */
-      ruleId: string
+      rule?: components['schemas']['NotificationRuleMeta']
       /** @description The delivery status of the notification event. */
       deliveryStatus: components['schemas']['NotificationEventDeliveryStatus'][]
       payload: components['schemas']['NotificationEventPayload']
