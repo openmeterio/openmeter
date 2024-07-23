@@ -8,17 +8,6 @@
 {{ $pkg := base $.Config.Package }}
 {{ template "header" $ }}
 
-{{/* Loop over all nodes and implement the "GoStringer" interface */}}
-{{ range $n := $.Nodes }}
-    {{ $receiver := $n.Receiver }}
-    func ({{ $receiver }} *{{ $n.Name }}) GoString() string {
-        if {{ $receiver }} == nil {
-            return fmt.Sprintf("{{ $n.Name }}(nil)")
-        }
-        return {{ $receiver }}.String()
-    }
-{{ end }}
-
 {{/* Loop over all nodes and implement "pagination.Paginator" for "XQuery" and "XSelect" */}}
 {{ range $n := $.Nodes }}
     {{ $receiver := $n.Receiver }}
