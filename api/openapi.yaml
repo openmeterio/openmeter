@@ -1859,6 +1859,26 @@ components:
               example: "2023-01-01T00:00:00Z"
         - $ref: "#/components/schemas/FeatureCreateInputs"
         - $ref: "#/components/schemas/SharedMetaFields"
+
+    FeatureMeta:
+      type: object
+      description: |
+        Limited representation of a feature resource which includes only its unique identifiers (id, key).
+      required:
+        - id
+        - key
+      properties:
+        id:
+          description: A unique identifier for the notification rule.
+          type: string
+          example: "01J2KNP1YTXQRXHTDJ4KPR7PZ0"
+        key:
+          description: |
+            The key is an immutable unique identifier of the feature used throughout the API,
+            for example when interacting with a subject's entitlements.
+          type: string
+          example: "gpt4_tokens"
+
     # Entitlement has 3 subtypes
     EntitlementCreateSharedFields:
       type: object
@@ -2718,7 +2738,7 @@ components:
 
     NotificationChannelWebhookCreateRequest:
       allOf:
-        - $ref: "#/components/schemas/GenericNotificationChannelCreateRequest"
+        - $ref: "#/components/schemas/NotificationChannelCommonCreateRequest"
         - type: object
           description: "Request for updating existing webhook notification channel."
           required:
@@ -2746,8 +2766,9 @@ components:
               example: "whsec_S6g2HLnTwd9AhHwUIMFggVS9OfoPafN8"
 
     NotificationChannelWebhook:
+      description: Notification channel with webhook type.
       allOf:
-        - $ref: "#/components/schemas/GenericNotificationChannel"
+        - $ref: "#/components/schemas/NotificationChannelCommon"
         - type: object
           description: "Webhook type of notification channel"
           required:
@@ -2781,7 +2802,8 @@ components:
         - WEBHOOK
       example: WEBHOOK
 
-    GenericNotificationChannelCreateRequest:
+    NotificationChannelCommonCreateRequest:
+      description: Common fields for create notification channel request.
       type: object
       required:
         - name
@@ -2799,7 +2821,9 @@ components:
         type:
           $ref: "#/components/schemas/NotificationChannelType"
 
-    GenericNotificationChannel:
+    NotificationChannelMeta:
+      description: |
+        Limited representation of notification channel which includes only the channel identifier and its type.
       type: object
       required:
         - id
@@ -2811,26 +2835,33 @@ components:
           example: "01J2KNP1YTXQRXHTDJ4KPR7PZ0"
         type:
           $ref: "#/components/schemas/NotificationChannelType"
-        name:
-          description: User friendly name of the channel.
-          type: string
-          example: "customer-webhook"
-        createdAt:
-          description: Timestamp when the channel was created.
-          type: string
-          format: date-time
-          example: "2023-01-01T00:00:00Z"
-        updatedAt:
-          description: Timestamp when the channel was modified.
-          type: string
-          format: date-time
-          readOnly: true
-          example: "2023-01-02T00:00:00Z"
-        disabled:
-          description: Whether the channel is disabled or not.
-          type: boolean
-          default: false
-          example: false
+
+    NotificationChannelCommon:
+      description: Common fields for notification channel resources.
+      allOf:
+        - $ref: "#/components/schemas/NotificationChannelMeta"
+        - type: object
+          properties:
+            name:
+              description: User friendly name of the channel.
+              type: string
+              example: "customer-webhook"
+            createdAt:
+              description: Timestamp when the channel was created.
+              type: string
+              format: date-time
+              example: "2023-01-01T00:00:00Z"
+            updatedAt:
+              description: Timestamp when the channel was modified.
+              type: string
+              format: date-time
+              readOnly: true
+              example: "2023-01-02T00:00:00Z"
+            disabled:
+              description: Whether the channel is disabled or not.
+              type: boolean
+              default: false
+              example: false
 
     NotificationRuleCreateRequest:
       oneOf:
@@ -2854,8 +2885,11 @@ components:
         $ref: "#/components/schemas/NotificationRule"
 
     NotificationRuleBalanceThresholdCreateRequest:
+      description: |
+        Request for creating new notification rule for triggering notification events base on conditions
+        applied to current balance of entitlements.
       allOf:
-        - $ref: "#/components/schemas/GenericNotificationRuleCreateRequest"
+        - $ref: "#/components/schemas/NotificationRuleCommonCreateRequest"
         - type: object
           required:
             - thresholds
@@ -2901,8 +2935,10 @@ components:
            - PERCENT
 
     NotificationRuleBalanceThreshold:
+      description: |
+        Notification rule for triggering notification events by applying conditions to current balance of entitlements.
       allOf:
-        - $ref: "#/components/schemas/GenericNotificationRule"
+        - $ref: "#/components/schemas/NotificationRuleCommon"
         - type: object
           description: Defines notification rule base on balance thresholds.
           required:
@@ -2924,10 +2960,7 @@ components:
               uniqueItems: true
               nullable: true
               items:
-                type: string
-              example:
-                - "gpt4_tokens"
-                - "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+                $ref: "#/components/schemas/FeatureMeta"
 
     NotificationRuleType:
       description: The type of the notification rule.
@@ -2936,9 +2969,9 @@ components:
         - "entitlements.balance.threshold"
       example: "entitlements.balance.threshold"
 
-    GenericNotificationRuleCreateRequest:
+    NotificationRuleCommonCreateRequest:
+      description: Defines the common fields for create notification rule request.
       type: object
-      description: Defines the common fields of a notification rule.
       required:
         - type
         - name
@@ -2965,9 +2998,9 @@ components:
           default: false
           example: false
 
-    GenericNotificationRule:
-      type: object
+    NotificationRuleMeta:
       description: Defines the common fields of a notification rule.
+      type: object
       required:
         - id
         - type
@@ -2978,32 +3011,38 @@ components:
           example: "01J2KNP1YTXQRXHTDJ4KPR7PZ0"
         type:
           $ref: "#/components/schemas/NotificationRuleType"
-        name:
-          type: string
-          description: The user friendly name of the notification rule.
-          example: "Balance threshold reached"
-        channels:
-          description: List of notification channel identifiers the rule applies to.
-          type: array
-          items:
-            type: string
-          example:
-            - "01G65Z755AFWAKHE12NY0CQ9FH"
-        createdAt:
-          description: Timestamp when the rule was created.
-          type: string
-          format: date-time
-          example: "2023-01-01T00:00:00Z"
-        updatedAt:
-          description: Timestamp when the rule was modified.
-          type: string
-          format: date-time
-          example: "2023-01-02T00:00:00Z"
-        disabled:
-          description: Whether the rule is disabled or not.
-          type: boolean
-          default: false
-          example: false
+
+    NotificationRuleCommon:
+      description: Common fields for notification rules.
+      allOf:
+        - $ref: "#/components/schemas/NotificationRuleMeta"
+        - type: object
+          description: Defines the common fields of a notification rule.
+          properties:
+            name:
+              type: string
+              description: The user friendly name of the notification rule.
+              example: "Balance threshold reached"
+            channels:
+              description: List of notification channels the rule applies to.
+              type: array
+              items:
+                $ref: "#/components/schemas/NotificationChannelMeta"
+            createdAt:
+              description: Timestamp when the rule was created.
+              type: string
+              format: date-time
+              example: "2023-01-01T00:00:00Z"
+            updatedAt:
+              description: Timestamp when the rule was modified.
+              type: string
+              format: date-time
+              example: "2023-01-02T00:00:00Z"
+            disabled:
+              description: Whether the rule is disabled or not.
+              type: boolean
+              default: false
+              example: false
 
     NotificationEvent:
       type: object
@@ -3028,10 +3067,8 @@ components:
           type: string
           format: date-time
           example: "2023-01-01T00:00:00Z"
-        ruleId:
-          description: The identifier of the Notification Rule which triggered this event.
-          type: string
-          example: "01J2KNP1YTXQRXHTDJ4KPR7PZ0"
+        rule:
+          $ref: "#/components/schemas/NotificationRuleMeta"
         deliveryStatus:
           description: The delivery status of the notification event.
           type: array
