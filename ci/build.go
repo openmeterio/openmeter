@@ -207,7 +207,13 @@ func goModuleCross(platform dagger.Platform) *dagger.Go {
 	container := goModule().
 		WithCgoEnabled(). // TODO: set env var instead?
 		Container().
-		WithEnvVariable("TARGETPLATFORM", string(platform)).
+		With(func(c *dagger.Container) *dagger.Container {
+			if platform != "" {
+				c = c.WithEnvVariable("TARGETPLATFORM", string(platform))
+			}
+
+			return c
+		}).
 		WithDirectory("/", dag.Container().From(xxBaseImage).Rootfs()).
 		WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "make", "git", "curl", "clang", "lld"}).
 		WithExec([]string{"xx-apk", "add", "--update", "--no-cache", "musl-dev", "gcc"}).

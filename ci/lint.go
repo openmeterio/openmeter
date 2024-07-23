@@ -29,9 +29,10 @@ func (m *Lint) All(ctx context.Context) error {
 
 func (m *Lint) Go() *dagger.Container {
 	return dag.GolangciLint(dagger.GolangciLintOpts{
-		Version:   golangciLintVersion,
-		GoVersion: goVersion,
+		Version:     golangciLintVersion,
+		GoContainer: goModuleCross("").Container(),
 	}).
+		WithLinterCache(dag.CacheVolume("openmeter-golangci-lint-v2")).
 		Run(m.Source, dagger.GolangciLintRunOpts{
 			Verbose: true,
 		})
