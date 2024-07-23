@@ -10,10 +10,14 @@ import (
 )
 
 func main() {
+	PG_URL := os.Getenv("POSTGRES_URL")
+	if PG_URL == "" {
+		PG_URL = "postgres://postgres:postgres@localhost:5432/postgres"
+	}
+
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	slog.SetDefault(logger)
 
-	// driver := testutils.InitPostgresDB(t)
 	driver, err := entutils.GetPGDriver("postgres://postgres:postgres@postgres:5432/postgres")
 	if err != nil {
 		logger.Error("failed to get pg driver", err)

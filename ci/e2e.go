@@ -78,6 +78,7 @@ func (e *Etoe) Diff(
 		WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "make", "git", "curl", "clang", "lld"}).
 		WithExec([]string{"git", "checkout", "-f", baseRef}).
 		WithServiceBinding("postgres", db).
+		WithEnvVariable("POSTGRES_URL", "postgres://postgres:postgres@postgres:5432/postgres").
 		WithExec([]string{"go", "run", "./tools/migrate"}).
 		Sync(ctx)
 	if err != nil {
@@ -88,7 +89,7 @@ func (e *Etoe) Diff(
 		WithSource(e.Ci.Source).
 		Container().
 		WithServiceBinding("postgres", db).
-		WithExec([]string{"mkdir", "-p", "./e2e/diff/tmp"}).
+		WithEnvVariable("POSTGRES_URL", "postgres://postgres:postgres@postgres:5432/postgres").
 		WithExec([]string{"go", "test", "-v", "./e2e/diff/..."}).
 		Sync(ctx)
 

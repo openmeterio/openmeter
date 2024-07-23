@@ -3,6 +3,7 @@ package e2e
 import (
 	"context"
 	"io"
+	"os"
 	"strings"
 	"testing"
 
@@ -12,17 +13,38 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
+var PG_URL string
+
+func TestMain(m *testing.M) {
+	PG_URL = os.Getenv("POSTGRES_URL")
+	if PG_URL == "" {
+		PG_URL = "postgres://postgres:postgres@localhost:5432/postgres"
+	}
+
+	os.Exit(m.Run())
+}
+
+const (
+	DIR = "./tmp/"
+)
+
 func TestNoSchemaDiffOnMigrate(t *testing.T) {
-	// driver := testutils.InitPostgresDB(t)
-	driver, err := entutils.GetPGDriver("postgres://postgres:postgres@postgres:5432/postgres")
+	driver, err := entutils.GetPGDriver(PG_URL)
 	if err != nil {
 		t.Fatalf("failed to get pg driver %s", err)
 	}
-	// initialize client & run migrations
 
 	// OpenMemDir doesn't work from inside dagger
 	// dir := migrate.OpenMemDir("migrations")
-	dir, err := migrate.NewLocalDir("./tmp")
+	err = os.RemoveAll(DIR)
+	if err != nil {
+		t.Fatalf("failed to remove dir %s", err)
+	}
+	err = os.MkdirAll(DIR, os.ModePerm)
+	if err != nil {
+		t.Fatalf("failed to create dir %s", err)
+	}
+	dir, err := migrate.NewLocalDir(DIR)
 	if err != nil {
 		t.Fatalf("failed to open local dir %s", err)
 	}
