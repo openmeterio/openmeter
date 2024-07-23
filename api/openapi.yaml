@@ -2873,14 +2873,16 @@ components:
                 - value: 10000
                   type: NUMBER
             features:
-              description: Optional field for defining the scope of notification by feature.
+              description: |
+                Optional field for defining the scope of notification by feature. It may contain features by id or key.
               type: array
               uniqueItems: true
               nullable: true
               items:
                 type: string
               example:
-                - gpt4_tokens
+                - "gpt4_tokens"
+                - "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
     NotificationRuleBalanceThresholdValue:
      description: Threshold value with multiple supported types.
@@ -2917,14 +2919,15 @@ components:
                 - value: 10000
                   type: NUMBER
             features:
-              description: Optional field for scoping notification based by features.
+              description: Optional field containing list of features the rule applies to.
               type: array
               uniqueItems: true
               nullable: true
               items:
                 type: string
               example:
-                - gpt4_tokens
+                - "gpt4_tokens"
+                - "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
     NotificationRuleType:
       description: The type of the notification rule.
@@ -2940,7 +2943,6 @@ components:
         - type
         - name
         - channels
-        - disabled
       properties:
         type:
           $ref: "#/components/schemas/NotificationRuleType"
@@ -3030,14 +3032,6 @@ components:
           description: The identifier of the Notification Rule which triggered this event.
           type: string
           example: "01J2KNP1YTXQRXHTDJ4KPR7PZ0"
-        featureId:
-          description: The identifier of the feature defined in notification rule triggered this event.
-          type: string
-          example: "01ARZ3NDEKTSV4RRFFQ69G5FAV"
-        subjectId:
-          description: The identifier of the feature defined in notification rule triggered this event.
-          type: string
-          example: "01G65Z755AFWAKHE12NY0CQ9FH"
         deliveryStatus:
           description: The delivery status of the notification event.
           type: array
@@ -3060,15 +3054,15 @@ components:
         - data
       properties:
         id:
-          description: A unique identifier for the notification event.
+          description: A unique identifier for the notification event the payload belongs to.
           type: string
-          example: "01J34ZDJC70G3NP8TK1ZY6A297"
+          example: "01J2KNP1YTXQRXHTDJ4KPR7PZ0"
         type:
-          description: The type of teh notification rule generated this event.
+          description: The type of the notification rule generated this event.
           type: string
           example: "entitlements.balance.threshold"
         metadata:
-          description: Metadata information releted to the event.
+          description: Metadata information related to the event.
           type: object
           additionalProperties: true
           nullable: true
@@ -3255,7 +3249,7 @@ components:
       description: |
         Filtering by multiple subjects.
 
-        Usage: ?subject=customer-1&subject=customer-2
+        Usage: `?subject=customer-1&subject=customer-2`
       in: query
       required: false
       schema:
