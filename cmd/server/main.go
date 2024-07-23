@@ -313,22 +313,22 @@ func main() {
 
 	// Initialize Postgres
 	if conf.Entitlements.Enabled {
-		pgClients, err := initPGClients(conf.Postgres)
+		pgDriver, dbClient, err := initPGClients(conf.Postgres)
 		if err != nil {
 			logger.Error("failed to initialize postgres clients", "error", err)
 			os.Exit(1)
 		}
-		driver = pgClients.driver
+		driver = pgDriver
 		logger.Info("Postgres clients initialized")
 
 		entitlementsTopicPublisher := eventPublisher.ForTopic(conf.Events.SystemEvents.Topic)
 
 		// db adapters
-		featureRepo := productcatalogpgadapter.NewPostgresFeatureRepo(pgClients.client, logger)
-		entitlementRepo := entitlementpgadapter.NewPostgresEntitlementRepo(pgClients.client)
-		usageResetRepo := entitlementpgadapter.NewPostgresUsageResetRepo(pgClients.client)
-		grantRepo := creditpgadapter.NewPostgresGrantRepo(pgClients.client)
-		balanceSnashotRepo := creditpgadapter.NewPostgresBalanceSnapshotRepo(pgClients.client)
+		featureRepo := productcatalogpgadapter.NewPostgresFeatureRepo(dbClient, logger)
+		entitlementRepo := entitlementpgadapter.NewPostgresEntitlementRepo(dbClient)
+		usageResetRepo := entitlementpgadapter.NewPostgresUsageResetRepo(dbClient)
+		grantRepo := creditpgadapter.NewPostgresGrantRepo(dbClient)
+		balanceSnashotRepo := creditpgadapter.NewPostgresBalanceSnapshotRepo(dbClient)
 
 		// connectors
 		featureConnector = productcatalog.NewFeatureConnector(featureRepo, meterRepository)
@@ -625,33 +625,29 @@ func initNamespace(config config.Configuration, namespaces ...namespace.Handler)
 	return namespaceManager, nil
 }
 
-type pgClients struct {
-	driver *entDialectSQL.Driver
-	client *db.Client
-}
-
 func initPGClients(config config.PostgresConfig) (
-	*pgClients,
+	*entDialectSQL.Driver,
+	*db.Client,
 	error,
 ) {
 	if err := config.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid postgres config: %w", err)
+		return nil, nil, fmt.Errorf("invalid postgres config: %w", err)
 	}
 	driver, err := entutils.GetPGDriver(config.URL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to init postgres driver: %w", err)
+		return nil, nil, fmt.Errorf("failed to init postgres driver: %w", err)
 	}
+
+	// initialize client & run migrations
+	dbClient := db.NewClient(db.Driver(driver))
 
 	// initialize client & run migrations
 	dbClient := db.NewClient(db.Driver(driver))
 
 	// TODO: use versioned migrations: https://entgo.io/docs/versioned-migrations
 	if err := dbClient.Schema.Create(context.Background()); err != nil {
-		return nil, fmt.Errorf("failed to migrate credit db: %w", err)
+		return nil, nil, fmt.Errorf("failed to migrate credit db: %w", err)
 	}
 
-	return &pgClients{
-		driver: driver,
-		client: dbClient,
-	}, nil
+	return driver, dbClient, nil
 }

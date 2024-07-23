@@ -13,6 +13,7 @@ import (
 	db_feature "github.com/openmeterio/openmeter/internal/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter"
+
 	"github.com/openmeterio/openmeter/internal/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"

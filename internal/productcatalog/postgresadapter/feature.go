@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	db_feature "github.com/openmeterio/openmeter/internal/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
+
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
