@@ -73,18 +73,20 @@ func (e *Etoe) App(
 }
 
 func (e *Etoe) Diff(
+	ctx context.Context,
 	// The base ref against which to run the diffs
 	baseRef string,
-	ctx context.Context,
 ) error {
 	db := postgres()
 
 	// Migrate DB with base state
 	_, err := goModule().
+		WithCgoEnabled().
 		WithSource(e.Ci.Source).
 		Container().
-		WithServiceBinding("postgres", db).
+		WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "make", "git", "curl", "clang", "lld"}).
 		WithExec([]string{"git", "checkout", baseRef}).
+		WithServiceBinding("postgres", db).
 		WithExec([]string{"go", "run", "./tools/migrate"}).
 		Sync(ctx)
 	if err != nil {
