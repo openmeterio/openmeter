@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
@@ -140,7 +141,7 @@ func (a *entitlementDBAdapter) GetEntitlementsOfSubject(ctx context.Context, nam
 	return result, nil
 }
 
-func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params entitlement.ListEntitlementsParams) ([]entitlement.Entitlement, error) {
+func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params entitlement.ListEntitlementsParams) (pagination.PagedResponse[entitlement.Entitlement], error) {
 	query := a.db.Entitlement.Query()
 
 	if len(params.Namespaces) > 0 {
@@ -165,12 +166,12 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 		query = query.Where(db_entitlement.Or(db_entitlement.DeletedAtGT(clock.Now()), db_entitlement.DeletedAtIsNil()))
 	}
 
-	if params.Limit > 0 {
-		query = query.Limit(params.Limit)
-	}
-	if params.Offset > 0 {
-		query = query.Offset(params.Offset)
-	}
+	// if params.Limit > 0 {
+	// 	query = query.Limit(params.Limit)
+	// }
+	// if params.Offset > 0 {
+	// 	query = query.Offset(params.Offset)
+	// }
 
 	switch params.OrderBy {
 	case entitlement.ListEntitlementsOrderByCreatedAt:
@@ -179,17 +180,24 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 		query = query.Order(db_entitlement.ByUpdatedAt())
 	}
 
-	entities, err := query.All(ctx)
-	if err != nil {
-		return nil, err
+	response := pagination.PagedResponse[entitlement.Entitlement]{
+		Page: params.Page,
 	}
 
-	result := make([]entitlement.Entitlement, 0, len(entities))
-	for _, e := range entities {
+	paged, err := query.Paginate(ctx, params.Page)
+	if err != nil {
+		return response, err
+	}
+
+	result := make([]entitlement.Entitlement, 0, len(paged.Items))
+	for _, e := range paged.Items {
 		result = append(result, *mapEntitlementEntity(e))
 	}
 
-	return result, nil
+	response.TotalCount = paged.TotalCount
+	response.Items = result
+
+	return response, nil
 }
 
 func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {

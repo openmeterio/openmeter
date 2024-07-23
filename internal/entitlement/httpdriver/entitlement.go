@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
@@ -265,8 +266,9 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 
 			p := entitlement.ListEntitlementsParams{
 				Namespaces: []string{ns},
-				Limit:      defaultx.WithDefault(params.Limit, 1000),
-				Offset:     defaultx.WithDefault(params.Offset, 0),
+				Page:       pagination.Page{PageSize: 1000, PageNumber: 1},
+				// Limit:      defaultx.WithDefault(params.Limit, 1000),
+				// Offset:     defaultx.WithDefault(params.Offset, 0),
 			}
 
 			switch defaultx.WithDefault(params.OrderBy, "") {
@@ -281,10 +283,12 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 			return p, nil
 		},
 		func(ctx context.Context, request ListEntitlementsHandlerRequest) (ListEntitlementsHandlerResponse, error) {
-			entitlements, err := h.connector.ListEntitlements(ctx, request)
+			paged, err := h.connector.ListEntitlements(ctx, request)
 			if err != nil {
 				return nil, err
 			}
+
+			entitlements := paged.Items
 
 			res := make([]api.Entitlement, 0, len(entitlements))
 			for _, e := range entitlements {

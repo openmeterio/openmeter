@@ -9,6 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type ListEntitlementsOrderBy string
@@ -23,10 +24,9 @@ type ListEntitlementsParams struct {
 	SubjectKey     string
 	FeatureIDs     []string
 	FeatureKeys    []string
-	Limit          int
-	Offset         int
 	OrderBy        ListEntitlementsOrderBy
 	IncludeDeleted bool
+	Page           pagination.Page
 }
 
 type Connector interface {
@@ -37,7 +37,7 @@ type Connector interface {
 	GetEntitlementValue(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string, at time.Time) (EntitlementValue, error)
 
 	GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]Entitlement, error)
-	ListEntitlements(ctx context.Context, params ListEntitlementsParams) ([]Entitlement, error)
+	ListEntitlements(ctx context.Context, params ListEntitlementsParams) (pagination.PagedResponse[Entitlement], error)
 }
 
 type entitlementConnector struct {
@@ -150,7 +150,7 @@ func (c *entitlementConnector) GetEntitlementValue(ctx context.Context, namespac
 	return connector.GetValue(ent, at)
 }
 
-func (c *entitlementConnector) ListEntitlements(ctx context.Context, params ListEntitlementsParams) ([]Entitlement, error) {
+func (c *entitlementConnector) ListEntitlements(ctx context.Context, params ListEntitlementsParams) (pagination.PagedResponse[Entitlement], error) {
 	return c.entitlementRepo.ListEntitlements(ctx, params)
 }
 
