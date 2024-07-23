@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/ci/internal/dagger"
@@ -9,10 +10,32 @@ import (
 func (m *Ci) Etoe(
 	// +optional
 	test string,
+) *Etoe {
+	return &Etoe{
+		Ci: m,
+	}
+}
+
+type Etoe struct {
+	Ci *Ci
+}
+
+// func (e *Etoe) All(ctx context.Context) error {
+// 	p := pool.New().WithErrors().WithContext(ctx)
+
+// 	p.Go(syncFunc(e.App("")))
+// 	p.Go(syncFunc(e.Diff("HEAD")))
+
+// 	return p.Wait()
+// }
+
+func (e *Etoe) App(
+	// +optional
+	test string,
 ) *dagger.Container {
-	image := m.Build().ContainerImage("").
+	image := e.Ci.Build().ContainerImage("").
 		WithExposedPort(10000).
-		WithMountedFile("/etc/openmeter/config.yaml", m.Source.File("e2e/config.yaml")).
+		WithMountedFile("/etc/openmeter/config.yaml", e.Ci.Source.File("e2e/config.yaml")).
 		WithServiceBinding("kafka", dag.Kafka(dagger.KafkaOpts{Version: kafkaVersion}).Service()).
 		WithServiceBinding("clickhouse", clickhouse())
 
@@ -35,11 +58,11 @@ func (m *Ci) Etoe(
 		args = append(args, "-run", fmt.Sprintf("Test%s", test))
 	}
 
-	args = append(args, "./e2e/...")
+	args = append(args, "./e2e/app/...")
 
 	return dag.Go(dagger.GoOpts{
 		Container: goModule().
-			WithSource(m.Source).
+			WithSource(e.Ci.Source).
 			Container().
 			WithServiceBinding("api", api).
 			WithServiceBinding("sink-worker", sinkWorker).
@@ -47,6 +70,35 @@ func (m *Ci) Etoe(
 			WithEnvVariable("TEST_WAIT_ON_START", "true"),
 	}).
 		Exec(args)
+}
+
+func (e *Etoe) Diff(
+	// The base ref against which to run the diffs
+	baseRef string,
+	ctx context.Context,
+) error {
+	db := postgres()
+
+	// Migrate DB with base state
+	_, err := goModule().
+		WithSource(e.Ci.Source).
+		Container().
+		WithServiceBinding("postgres", db).
+		WithExec([]string{"git", "checkout", baseRef}).
+		WithExec([]string{"go", "run", "./tools/migrate"}).
+		Sync(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = goModule().
+		WithSource(e.Ci.Source).
+		Container().
+		WithServiceBinding("postgres", db).
+		WithExec([]string{"go", "test", "-v", "./e2e/diff/..."}).
+		Sync(ctx)
+
+	return err
 }
 
 func clickhouse() *dagger.Service {

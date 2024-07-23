@@ -67,7 +67,7 @@ balance-worker: ## Run balance-worker
 .PHONY: etoe
 etoe: ## Run e2e tests
 	$(call print-target)
-	dagger call --source .:default etoe
+	dagger call --source .:default etoe app
 
 .PHONY: test
 test: ## Run tests
