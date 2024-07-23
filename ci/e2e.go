@@ -20,15 +20,6 @@ type Etoe struct {
 	Ci *Ci
 }
 
-// func (e *Etoe) All(ctx context.Context) error {
-// 	p := pool.New().WithErrors().WithContext(ctx)
-
-// 	p.Go(syncFunc(e.App("")))
-// 	p.Go(syncFunc(e.Diff("HEAD")))
-
-// 	return p.Wait()
-// }
-
 func (e *Etoe) App(
 	// +optional
 	test string,
@@ -85,7 +76,7 @@ func (e *Etoe) Diff(
 		WithSource(e.Ci.Source).
 		Container().
 		WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "make", "git", "curl", "clang", "lld"}).
-		WithExec([]string{"git", "checkout", baseRef}).
+		WithExec([]string{"git", "checkout", "-f", baseRef}).
 		WithServiceBinding("postgres", db).
 		WithExec([]string{"go", "run", "./tools/migrate"}).
 		Sync(ctx)
@@ -97,6 +88,7 @@ func (e *Etoe) Diff(
 		WithSource(e.Ci.Source).
 		Container().
 		WithServiceBinding("postgres", db).
+		WithExec([]string{"mkdir", "-p", "./e2e/diff/tmp"}).
 		WithExec([]string{"go", "test", "-v", "./e2e/diff/..."}).
 		Sync(ctx)
 

@@ -20,9 +20,14 @@ func TestNoSchemaDiffOnMigrate(t *testing.T) {
 	}
 	// initialize client & run migrations
 
-	memDir := migrate.OpenMemDir("migrations")
+	// OpenMemDir doesn't work from inside dagger
+	// dir := migrate.OpenMemDir("migrations")
+	dir, err := migrate.NewLocalDir("./tmp")
+	if err != nil {
+		t.Fatalf("failed to open local dir %s", err)
+	}
 
-	migrate, err := schema.NewMigrate(driver, schema.WithDir(memDir))
+	migrate, err := schema.NewMigrate(driver, schema.WithDir(dir))
 	if err != nil {
 		t.Fatalf("failed to create migrate %s", err)
 	}
@@ -31,7 +36,7 @@ func TestNoSchemaDiffOnMigrate(t *testing.T) {
 		t.Fatalf("failed to diff schema %s", err)
 	}
 
-	files, err := memDir.Files()
+	files, err := dir.Files()
 	if err != nil {
 		t.Fatalf("failed to list files %s", err)
 	}
@@ -47,7 +52,7 @@ func TestNoSchemaDiffOnMigrate(t *testing.T) {
 
 	// If there's no file then there's no diff. If we have a file then we want to display its content and fail
 	if filename != "" {
-		file, err := memDir.Open(filename)
+		file, err := dir.Open(filename)
 		if err != nil {
 			t.Fatalf("failed to open diff file %s", err)
 		}
