@@ -9,10 +9,10 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/openmeterio/openmeter/internal/ent/db"
+	db_feature "github.com/openmeterio/openmeter/internal/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter"
-	"github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter/ent/db"
-	db_feature "github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )

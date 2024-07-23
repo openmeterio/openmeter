@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/openmeterio/openmeter/internal/ent/db"
+	db_feature "github.com/openmeterio/openmeter/internal/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
-	"github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter/ent/db"
-	db_feature "github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter/ent/db/feature"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 )

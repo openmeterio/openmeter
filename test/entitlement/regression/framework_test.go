@@ -8,30 +8,28 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/credit"
 	grantrepo "github.com/openmeterio/openmeter/internal/credit/postgresadapter"
-	grantdb "github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db"
+	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	booleanentitlement "github.com/openmeterio/openmeter/internal/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	entitlementrepo "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter"
-	entitlementdb "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db"
 	staticentitlement "github.com/openmeterio/openmeter/internal/entitlement/static"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	productcatalogrepo "github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter"
-	productcatalogdb "github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter/ent/db"
 	streamingtestutils "github.com/openmeterio/openmeter/internal/streaming/testutils"
 	"github.com/openmeterio/openmeter/internal/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Dependencies struct {
+	DBClient *db.Client
+
 	GrantRepo           credit.GrantRepo
-	GrantDB             *grantdb.Client
 	BalanceSnapshotRepo credit.BalanceSnapshotRepo
 	GrantConnector      credit.GrantConnector
 
 	EntitlementRepo entitlement.EntitlementRepo
-	EntitlementDB   entitlementdb.Client
 
 	EntitlementConnector        entitlement.Connector
 	StaticEntitlementConnector  staticentitlement.Connector
@@ -41,16 +39,13 @@ type Dependencies struct {
 	Streaming *streamingtestutils.MockStreamingConnector
 
 	FeatureRepo      productcatalog.FeatureRepo
-	ProductCatalogDB *productcatalogdb.Client
 	FeatureConnector productcatalog.FeatureConnector
 
 	Log *slog.Logger
 }
 
 func (d *Dependencies) Close() {
-	d.GrantDB.Close()
-	d.EntitlementDB.Close()
-	d.ProductCatalogDB.Close()
+	d.DBClient.Close()
 }
 
 func setupDependencies(t *testing.T) Dependencies {
@@ -58,14 +53,14 @@ func setupDependencies(t *testing.T) Dependencies {
 	ctx := context.Background()
 	driver := testutils.InitPostgresDB(t)
 
-	// Init product catalog
-	productCatalogDB := productcatalogdb.NewClient(productcatalogdb.Driver(driver))
-
-	if err := productCatalogDB.Schema.Create(ctx); err != nil {
+	// init db
+	dbClient := db.NewClient(db.Driver(driver))
+	if err := dbClient.Schema.Create(ctx); err != nil {
 		t.Fatalf("failed to migrate database %s", err)
 	}
 
-	featureRepo := productcatalogrepo.NewPostgresFeatureRepo(productCatalogDB, log)
+	// Init product catalog
+	featureRepo := productcatalogrepo.NewPostgresFeatureRepo(dbClient, log)
 
 	meters := []models.Meter{
 		{
@@ -82,25 +77,14 @@ func setupDependencies(t *testing.T) Dependencies {
 	featureConnector := productcatalog.NewFeatureConnector(featureRepo, meterRepo) // TODO: meter repo is needed
 
 	// Init grants/credit
-	grantDB := grantdb.NewClient(grantdb.Driver(driver))
-	if err := grantDB.Schema.Create(context.Background()); err != nil {
-		t.Fatalf("failed to migrate database %s", err)
-	}
-
-	grantRepo := grantrepo.NewPostgresGrantRepo(grantDB)
-	balanceSnapshotRepo := grantrepo.NewPostgresBalanceSnapshotRepo(grantDB)
+	grantRepo := grantrepo.NewPostgresGrantRepo(dbClient)
+	balanceSnapshotRepo := grantrepo.NewPostgresBalanceSnapshotRepo(dbClient)
 
 	// Init entitlements
 	streaming := streamingtestutils.NewMockStreamingConnector(t)
 
-	entitlementDB := entitlementdb.NewClient(entitlementdb.Driver(driver))
-
-	if err := entitlementDB.Schema.Create(context.Background()); err != nil {
-		t.Fatalf("failed to migrate database %s", err)
-	}
-
-	entitlementRepo := entitlementrepo.NewPostgresEntitlementRepo(entitlementDB)
-	usageResetRepo := entitlementrepo.NewPostgresUsageResetRepo(entitlementDB)
+	entitlementRepo := entitlementrepo.NewPostgresEntitlementRepo(dbClient)
+	usageResetRepo := entitlementrepo.NewPostgresUsageResetRepo(dbClient)
 
 	owner := meteredentitlement.NewEntitlementGrantOwnerAdapter(
 		featureRepo,
@@ -145,12 +129,12 @@ func setupDependencies(t *testing.T) Dependencies {
 	)
 
 	return Dependencies{
+		DBClient: dbClient,
+
 		GrantRepo:      grantRepo,
-		GrantDB:        grantDB,
 		GrantConnector: grant,
 
 		EntitlementRepo: entitlementRepo,
-		EntitlementDB:   *entitlementDB,
 
 		EntitlementConnector:        entitlementConnector,
 		StaticEntitlementConnector:  staticEntitlementConnector,
@@ -162,7 +146,6 @@ func setupDependencies(t *testing.T) Dependencies {
 		Streaming: streaming,
 
 		FeatureRepo:      featureRepo,
-		ProductCatalogDB: productCatalogDB,
 		FeatureConnector: featureConnector,
 
 		Log: log,

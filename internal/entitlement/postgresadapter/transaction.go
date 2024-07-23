@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
-	"github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 

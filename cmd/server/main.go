@@ -37,13 +37,12 @@ import (
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/internal/credit"
 	creditpgadapter "github.com/openmeterio/openmeter/internal/credit/postgresadapter"
-	creditdb "github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db"
 	"github.com/openmeterio/openmeter/internal/debug"
+	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	booleanentitlement "github.com/openmeterio/openmeter/internal/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	entitlementpgadapter "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter"
-	entitlementdb "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db"
 	staticentitlement "github.com/openmeterio/openmeter/internal/entitlement/static"
 	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/ingest/ingestdriver"
@@ -54,7 +53,6 @@ import (
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	productcatalogpgadapter "github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter"
-	productcatalogdb "github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter/ent/db"
 	"github.com/openmeterio/openmeter/internal/server"
 	"github.com/openmeterio/openmeter/internal/server/authenticator"
 	"github.com/openmeterio/openmeter/internal/server/router"
@@ -310,11 +308,11 @@ func main() {
 		logger.Info("Postgres clients initialized")
 
 		// db adapters
-		featureRepo := productcatalogpgadapter.NewPostgresFeatureRepo(pgClients.productcatalogDBClient, logger)
-		entitlementRepo := entitlementpgadapter.NewPostgresEntitlementRepo(pgClients.entitlementDBClient)
-		usageResetRepo := entitlementpgadapter.NewPostgresUsageResetRepo(pgClients.entitlementDBClient)
-		grantRepo := creditpgadapter.NewPostgresGrantRepo(pgClients.creditDBClient)
-		balanceSnashotRepo := creditpgadapter.NewPostgresBalanceSnapshotRepo(pgClients.creditDBClient)
+		featureRepo := productcatalogpgadapter.NewPostgresFeatureRepo(pgClients.client, logger)
+		entitlementRepo := entitlementpgadapter.NewPostgresEntitlementRepo(pgClients.client)
+		usageResetRepo := entitlementpgadapter.NewPostgresUsageResetRepo(pgClients.client)
+		grantRepo := creditpgadapter.NewPostgresGrantRepo(pgClients.client)
+		balanceSnashotRepo := creditpgadapter.NewPostgresBalanceSnapshotRepo(pgClients.client)
 
 		// connectors
 		featureConnector = productcatalog.NewFeatureConnector(featureRepo, meterRepository)
@@ -575,12 +573,14 @@ func initNamespace(config config.Configuration, namespaces ...namespace.Handler)
 	return namespaceManager, nil
 }
 
-func initPGClients(config config.PostgresConfig) (*struct {
-	driver                 *entDialectSQL.Driver
-	entitlementDBClient    *entitlementdb.Client
-	productcatalogDBClient *productcatalogdb.Client
-	creditDBClient         *creditdb.Client
-}, error,
+type pgClients struct {
+	driver *entDialectSQL.Driver
+	client *db.Client
+}
+
+func initPGClients(config config.PostgresConfig) (
+	*pgClients,
+	error,
 ) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid postgres config: %w", err)
@@ -590,41 +590,16 @@ func initPGClients(config config.PostgresConfig) (*struct {
 		return nil, fmt.Errorf("failed to init postgres driver: %w", err)
 	}
 
-	// initialize clients
-	entitlementDBClient, err := entitlementpgadapter.NewClient(driver)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init entitlement db client: %w", err)
-	}
-	productcatalogDBClient, err := productcatalogpgadapter.NewClient(driver)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init productcatalog db client: %w", err)
-	}
-	creditDBClient, err := creditpgadapter.NewClient(driver)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init credit db client: %w", err)
-	}
+	// initialize client & run migrations
+	dbClient := db.NewClient(db.Driver(driver))
 
-	// run migrations
 	// TODO: use versioned migrations: https://entgo.io/docs/versioned-migrations
-	if err := creditDBClient.Schema.Create(context.Background()); err != nil {
+	if err := dbClient.Schema.Create(context.Background()); err != nil {
 		return nil, fmt.Errorf("failed to migrate credit db: %w", err)
 	}
-	if err := entitlementDBClient.Schema.Create(context.Background()); err != nil {
-		return nil, fmt.Errorf("failed to migrate entitlement db: %w", err)
-	}
-	if err := productcatalogDBClient.Schema.Create(context.Background()); err != nil {
-		return nil, fmt.Errorf("failed to migrate productcatalog db: %w", err)
-	}
 
-	return &struct {
-		driver                 *entDialectSQL.Driver
-		entitlementDBClient    *entitlementdb.Client
-		productcatalogDBClient *productcatalogdb.Client
-		creditDBClient         *creditdb.Client
-	}{
-		driver:                 driver,
-		entitlementDBClient:    entitlementDBClient,
-		productcatalogDBClient: productcatalogDBClient,
-		creditDBClient:         creditDBClient,
+	return &pgClients{
+		driver: driver,
+		client: dbClient,
 	}, nil
 }

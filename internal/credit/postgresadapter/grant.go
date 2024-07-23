@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
-	"github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db"
-	db_grant "github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db/grant"
+	"github.com/openmeterio/openmeter/internal/ent/db"
+	db_grant "github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"

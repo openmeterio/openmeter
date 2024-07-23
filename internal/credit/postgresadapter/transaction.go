@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/internal/credit"
-	"github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db"
+	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
