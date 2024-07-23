@@ -10,14 +10,12 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/credit"
 	credit_postgres_adapter "github.com/openmeterio/openmeter/internal/credit/postgresadapter"
-	credit_postgres_adapter_db "github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db"
+	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	entitlement_postgresadapter "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter"
-	entitlement_postgresadapter_db "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	productcatalog_postgresadapter "github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter"
-	productcatalog_postgresadapter_db "github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter/ent/db"
 	streaming_testutils "github.com/openmeterio/openmeter/internal/streaming/testutils"
 	"github.com/openmeterio/openmeter/internal/testutils"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -25,23 +23,19 @@ import (
 )
 
 type dependencies struct {
-	creditDBClient         *credit_postgres_adapter_db.Client
-	productcatalogDBClient *productcatalog_postgresadapter_db.Client
-	entitlementDBClient    *entitlement_postgresadapter_db.Client
-	featureRepo            productcatalog.FeatureRepo
-	entitlementRepo        entitlement.EntitlementRepo
-	usageResetRepo         meteredentitlement.UsageResetRepo
-	grantRepo              credit.GrantRepo
-	balanceSnapshotRepo    credit.BalanceSnapshotRepo
-	balanceConnector       credit.BalanceConnector
-	streamingConnector     *streaming_testutils.MockStreamingConnector
+	dbClient            *db.Client
+	featureRepo         productcatalog.FeatureRepo
+	entitlementRepo     entitlement.EntitlementRepo
+	usageResetRepo      meteredentitlement.UsageResetRepo
+	grantRepo           credit.GrantRepo
+	balanceSnapshotRepo credit.BalanceSnapshotRepo
+	balanceConnector    credit.BalanceConnector
+	streamingConnector  *streaming_testutils.MockStreamingConnector
 }
 
 // Teardown cleans up the dependencies
 func (d *dependencies) Teardown() {
-	d.creditDBClient.Close()
-	d.productcatalogDBClient.Close()
-	d.entitlementDBClient.Close()
+	d.dbClient.Close()
 }
 
 // When migrating in parallel with entgo it causes concurrent writes error
@@ -62,28 +56,19 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	// create isolated pg db for tests
 	driver := testutils.InitPostgresDB(t)
 
-	// build db clients
-	productcatalogDBClient := productcatalog_postgresadapter_db.NewClient(productcatalog_postgresadapter_db.Driver(driver))
-	featureRepo := productcatalog_postgresadapter.NewPostgresFeatureRepo(productcatalogDBClient, testLogger)
+	// build db client & adapters
+	dbClient := db.NewClient(db.Driver(driver))
 
-	entitlementDBClient := entitlement_postgresadapter_db.NewClient(entitlement_postgresadapter_db.Driver(driver))
-	entitlementRepo := entitlement_postgresadapter.NewPostgresEntitlementRepo(entitlementDBClient)
-	usageResetRepo := entitlement_postgresadapter.NewPostgresUsageResetRepo(entitlementDBClient)
-
-	creditDBClient := credit_postgres_adapter_db.NewClient(credit_postgres_adapter_db.Driver(driver))
-	grantRepo := credit_postgres_adapter.NewPostgresGrantRepo(creditDBClient)
-	balanceSnapshotRepo := credit_postgres_adapter.NewPostgresBalanceSnapshotRepo(creditDBClient)
+	featureRepo := productcatalog_postgresadapter.NewPostgresFeatureRepo(dbClient, testLogger)
+	entitlementRepo := entitlement_postgresadapter.NewPostgresEntitlementRepo(dbClient)
+	usageResetRepo := entitlement_postgresadapter.NewPostgresUsageResetRepo(dbClient)
+	grantRepo := credit_postgres_adapter.NewPostgresGrantRepo(dbClient)
+	balanceSnapshotRepo := credit_postgres_adapter.NewPostgresBalanceSnapshotRepo(dbClient)
 
 	m.Lock()
 	defer m.Unlock()
-	// migrate all clients
-	if err := productcatalogDBClient.Schema.Create(context.Background()); err != nil {
-		t.Fatalf("failed to migrate database %s", err)
-	}
-	if err := entitlementDBClient.Schema.Create(context.Background()); err != nil {
-		t.Fatalf("failed to migrate database %s", err)
-	}
-	if err := creditDBClient.Schema.Create(context.Background()); err != nil {
+	// migrate db
+	if err := dbClient.Schema.Create(context.Background()); err != nil {
 		t.Fatalf("failed to migrate database %s", err)
 	}
 
@@ -120,9 +105,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	)
 
 	return connector, &dependencies{
-		creditDBClient,
-		productcatalogDBClient,
-		entitlementDBClient,
+		dbClient,
 		featureRepo,
 		entitlementRepo,
 		usageResetRepo,

@@ -7,8 +7,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 
 	"github.com/openmeterio/openmeter/internal/credit"
-	"github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db"
-	db_balancesnapshot "github.com/openmeterio/openmeter/internal/credit/postgresadapter/ent/db/balancesnapshot"
+	"github.com/openmeterio/openmeter/internal/ent/db"
+	db_balancesnapshot "github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
 

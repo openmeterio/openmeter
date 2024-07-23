@@ -7,10 +7,10 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 
+	"github.com/openmeterio/openmeter/internal/ent/db"
+	db_entitlement "github.com/openmeterio/openmeter/internal/ent/db/entitlement"
+	db_usagereset "github.com/openmeterio/openmeter/internal/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/internal/entitlement"
-	"github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db"
-	db_entitlement "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db/entitlement"
-	"github.com/openmeterio/openmeter/internal/entitlement/postgresadapter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -305,7 +305,7 @@ func (a *entitlementDBAdapter) ListEntitlementsWithExpiredUsagePeriod(ctx contex
 
 func withLatestUsageReset(q *db.EntitlementQuery) *db.EntitlementQuery {
 	return q.WithUsageReset(func(urq *db.UsageResetQuery) {
-		urq.Order(usagereset.ByResetTime(sql.OrderDesc()))
+		urq.Order(db_usagereset.ByResetTime(sql.OrderDesc()))
 		urq.Limit(1)
 	})
 }

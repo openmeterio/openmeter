@@ -386,7 +386,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				assert.Equal(t, 0.0, entBalance.Overage)
 
 				// FIXME: we shouldn't check things that the contract is unable to tell us
-				snaps, err := deps.creditDBClient.BalanceSnapshot.Query().All(ctx)
+				snaps, err := deps.dbClient.BalanceSnapshot.Query().All(ctx)
 				assert.NoError(t, err)
 				assert.Len(t, snaps, 2) // one for the initial and one we made last time
 			},

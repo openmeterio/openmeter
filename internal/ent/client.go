@@ -1,9 +1,9 @@
-package postgresadapter
+package entdb
 
 import (
 	entsql "entgo.io/ent/dialect/sql"
 
-	"github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter/ent/db"
+	"github.com/openmeterio/openmeter/internal/ent/db"
 )
 
 func NewClient(drv *entsql.Driver) (*db.Client, error) {
