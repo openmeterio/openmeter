@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type FeatureHandler interface {
@@ -135,13 +136,15 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 			params := productcatalog.ListFeaturesParams{
 				Namespace:       ns,
 				IncludeArchived: defaultx.WithDefault(apiParams.IncludeArchived, false),
-				Offset:          defaultx.WithDefault(apiParams.Offset, 0),
-				Limit:           defaultx.WithDefault(apiParams.Limit, 0),
-				OrderBy:         defaultx.WithDefault((*productcatalog.FeatureOrderBy)(apiParams.OrderBy), productcatalog.FeatureOrderByUpdatedAt),
+				Page: pagination.Page{
+					PageSize:   defaultx.WithDefault(apiParams.PageSize, commonhttp.DefaultPageSize),
+					PageNumber: defaultx.WithDefault(apiParams.Page, commonhttp.DefaultPage),
+				},
+				OrderBy: defaultx.WithDefault((*productcatalog.FeatureOrderBy)(apiParams.OrderBy), productcatalog.FeatureOrderByUpdatedAt),
 			}
 
 			// TODO: standardize
-			if params.Limit > 1000 {
+			if params.Page.PageSize > 1000 {
 				return params, commonhttp.NewHTTPError(
 					http.StatusBadRequest,
 					fmt.Errorf("limit must be less than or equal to %d", 1000),
@@ -151,7 +154,8 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 			return params, nil
 		},
 		func(ctx context.Context, params ListFeaturesHandlerRequest) ([]productcatalog.Feature, error) {
-			return h.connector.ListFeatures(ctx, params)
+			features, err := h.connector.ListFeatures(ctx, params)
+			return features.Items, err
 		},
 		commonhttp.JSONResponseEncoder,
 		httptransport.AppendOptions(

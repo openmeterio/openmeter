@@ -1640,6 +1640,10 @@ export interface components {
     entitlementIdOrFeatureKey: string
     /** @description Include deleted entries. */
     includeDeleted?: boolean
+    /** @description Page number to return */
+    queryPage?: number
+    /** @description Number of entries to return per page */
+    queryPageSize?: number
     /** @description Number of entries to return */
     queryLimit?: number
     /** @description Number of entries to skip */
@@ -2109,8 +2113,8 @@ export interface operations {
   listEntitlements: {
     parameters: {
       query?: {
-        limit?: components['parameters']['queryLimit']
-        offset?: components['parameters']['queryOffset']
+        page?: components['parameters']['queryPage']
+        pageSize?: components['parameters']['queryPageSize']
         /** @description Order by field */
         orderBy?: 'createdAt' | 'updatedAt'
       }
@@ -2134,8 +2138,8 @@ export interface operations {
   listFeatures: {
     parameters: {
       query?: {
-        limit?: components['parameters']['queryLimit']
-        offset?: components['parameters']['queryOffset']
+        page?: components['parameters']['queryPage']
+        pageSize?: components['parameters']['queryPageSize']
         /** @description Order by field */
         orderBy?: 'id' | 'createdAt' | 'updatedAt'
         /** @description Include archived features. */
@@ -2230,8 +2234,8 @@ export interface operations {
   listGrants: {
     parameters: {
       query?: {
-        limit?: components['parameters']['queryLimit']
-        offset?: components['parameters']['queryOffset']
+        page?: components['parameters']['queryPage']
+        pageSize?: components['parameters']['queryPageSize']
         /** @description Order by field */
         orderBy?: 'id' | 'createdAt' | 'updatedAt'
         includeDeleted?: components['parameters']['includeDeleted']

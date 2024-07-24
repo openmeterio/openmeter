@@ -1904,17 +1904,17 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
     @distributed_trace_async
     async def list_entitlements(
-        self, *, limit: int = 1000, offset: int = 0, order_by: str = "createdAt", **kwargs: Any
+        self, *, page: int = 1, page_size: int = 100, order_by: str = "createdAt", **kwargs: Any
     ) -> List[JSON]:
         """List entitlements.
 
         List all entitlements regardless of subject. This endpoint is intended for administrative
         purposes.
 
-        :keyword limit: Number of entries to return. Default value is 1000.
-        :paramtype limit: int
-        :keyword offset: Number of entries to skip. Default value is 0.
-        :paramtype offset: int
+        :keyword page: Page number to return. Default value is 1.
+        :paramtype page: int
+        :keyword page_size: Number of entries to return per page. Default value is 100.
+        :paramtype page_size: int
         :keyword order_by: Order by field. Known values are: "createdAt" and "updatedAt". Default value
          is "createdAt".
         :paramtype order_by: str
@@ -1945,8 +1945,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
 
         _request = build_list_entitlements_request(
-            limit=limit,
-            offset=offset,
+            page=page,
+            page_size=page_size,
             order_by=order_by,
             headers=_headers,
             params=_params,
@@ -1980,8 +1980,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
     async def list_features(
         self,
         *,
-        limit: int = 1000,
-        offset: int = 0,
+        page: int = 1,
+        page_size: int = 100,
         order_by: str = "updatedAt",
         include_archived: bool = False,
         **kwargs: Any
@@ -1991,10 +1991,10 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
         List all features.
 
-        :keyword limit: Number of entries to return. Default value is 1000.
-        :paramtype limit: int
-        :keyword offset: Number of entries to skip. Default value is 0.
-        :paramtype offset: int
+        :keyword page: Page number to return. Default value is 1.
+        :paramtype page: int
+        :keyword page_size: Number of entries to return per page. Default value is 100.
+        :paramtype page_size: int
         :keyword order_by: Order by field. Known values are: "id", "createdAt", and "updatedAt".
          Default value is "updatedAt".
         :paramtype order_by: str
@@ -2057,8 +2057,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
 
         _request = build_list_features_request(
-            limit=limit,
-            offset=offset,
+            page=page,
+            page_size=page_size,
             order_by=order_by,
             include_archived=include_archived,
             headers=_headers,
@@ -2509,8 +2509,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
     async def list_grants(
         self,
         *,
-        limit: int = 1000,
-        offset: int = 0,
+        page: int = 1,
+        page_size: int = 100,
         order_by: str = "updatedAt",
         include_deleted: bool = False,
         **kwargs: Any
@@ -2522,10 +2522,10 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         administrative purposes only. To fetch the grants of a specific entitlement please use the
         /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
 
-        :keyword limit: Number of entries to return. Default value is 1000.
-        :paramtype limit: int
-        :keyword offset: Number of entries to skip. Default value is 0.
-        :paramtype offset: int
+        :keyword page: Page number to return. Default value is 1.
+        :paramtype page: int
+        :keyword page_size: Number of entries to return per page. Default value is 100.
+        :paramtype page_size: int
         :keyword order_by: Order by field. Known values are: "id", "createdAt", and "updatedAt".
          Default value is "updatedAt".
         :paramtype order_by: str
@@ -2615,8 +2615,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
 
         _request = build_list_grants_request(
-            limit=limit,
-            offset=offset,
+            page=page,
+            page_size=page_size,
             order_by=order_by,
             include_deleted=include_deleted,
             headers=_headers,

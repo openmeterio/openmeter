@@ -8,6 +8,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
@@ -25,7 +26,7 @@ type CreateGrantInput struct {
 type GrantConnector interface {
 	CreateGrant(ctx context.Context, owner NamespacedGrantOwner, grant CreateGrantInput) (*Grant, error)
 	VoidGrant(ctx context.Context, grantID models.NamespacedID) error
-	ListGrants(ctx context.Context, params ListGrantsParams) ([]Grant, error)
+	ListGrants(ctx context.Context, params ListGrantsParams) (pagination.PagedResponse[Grant], error)
 	ListActiveGrantsBetween(ctx context.Context, owner NamespacedGrantOwner, from, to time.Time) ([]Grant, error)
 	GetGrant(ctx context.Context, grantID models.NamespacedID) (Grant, error)
 }
@@ -44,8 +45,7 @@ type ListGrantsParams struct {
 	Namespace      string
 	OwnerID        *GrantOwner
 	IncludeDeleted bool
-	Offset         int
-	Limit          int
+	Page           pagination.Page
 	OrderBy        GrantOrderBy
 }
 
@@ -66,7 +66,7 @@ type GrantRepoCreateGrantInput struct {
 type GrantRepo interface {
 	CreateGrant(ctx context.Context, grant GrantRepoCreateGrantInput) (*Grant, error)
 	VoidGrant(ctx context.Context, grantID models.NamespacedID, at time.Time) error
-	ListGrants(ctx context.Context, params ListGrantsParams) ([]Grant, error)
+	ListGrants(ctx context.Context, params ListGrantsParams) (pagination.PagedResponse[Grant], error)
 	// ListActiveGrantsBetween returns all grants that are active at any point between the given time range.
 	ListActiveGrantsBetween(ctx context.Context, owner NamespacedGrantOwner, from, to time.Time) ([]Grant, error)
 	GetGrant(ctx context.Context, grantID models.NamespacedID) (Grant, error)
@@ -185,7 +185,7 @@ func (m *grantConnector) VoidGrant(ctx context.Context, grantID models.Namespace
 	return err
 }
 
-func (m *grantConnector) ListGrants(ctx context.Context, params ListGrantsParams) ([]Grant, error) {
+func (m *grantConnector) ListGrants(ctx context.Context, params ListGrantsParams) (pagination.PagedResponse[Grant], error) {
 	return m.grantRepo.ListGrants(ctx, params)
 }
 

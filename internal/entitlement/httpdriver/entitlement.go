@@ -266,9 +266,10 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 
 			p := entitlement.ListEntitlementsParams{
 				Namespaces: []string{ns},
-				Page:       pagination.Page{PageSize: 1000, PageNumber: 1},
-				// Limit:      defaultx.WithDefault(params.Limit, 1000),
-				// Offset:     defaultx.WithDefault(params.Offset, 0),
+				Page: pagination.Page{
+					PageSize:   defaultx.WithDefault(params.PageSize, commonhttp.DefaultPageSize),
+					PageNumber: defaultx.WithDefault(params.Page, commonhttp.DefaultPage),
+				},
 			}
 
 			switch defaultx.WithDefault(params.OrderBy, "") {

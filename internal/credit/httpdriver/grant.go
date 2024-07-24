@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type GrantHandler interface {
@@ -39,10 +40,10 @@ func NewGrantHandler(
 	}
 }
 
-type ListGrantsHandlerRequest struct {
-	params credit.ListGrantsParams
-}
 type (
+	ListGrantsHandlerRequest struct {
+		params credit.ListGrantsParams
+	}
 	ListGrantsHandlerResponse = []api.EntitlementGrant
 	ListGrantsHandlerParams   struct {
 		Params api.ListGrantsParams
@@ -62,9 +63,11 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 				params: credit.ListGrantsParams{
 					Namespace:      ns,
 					IncludeDeleted: defaultx.WithDefault(params.Params.IncludeDeleted, false),
-					Offset:         defaultx.WithDefault(params.Params.Offset, 0),
-					Limit:          defaultx.WithDefault(params.Params.Limit, 1000),
-					OrderBy:        credit.GrantOrderBy(defaultx.WithDefault((*string)(params.Params.OrderBy), string(credit.GrantOrderByCreatedAt))),
+					Page: pagination.Page{
+						PageSize:   defaultx.WithDefault(params.Params.PageSize, commonhttp.DefaultPageSize),
+						PageNumber: defaultx.WithDefault(params.Params.Page, commonhttp.DefaultPage),
+					},
+					OrderBy: credit.GrantOrderBy(defaultx.WithDefault((*string)(params.Params.OrderBy), string(credit.GrantOrderByCreatedAt))),
 				},
 			}, nil
 		},
@@ -74,8 +77,8 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 				return nil, err
 			}
 
-			apiGrants := make([]api.EntitlementGrant, 0, len(grants))
-			for _, grant := range grants {
+			apiGrants := make([]api.EntitlementGrant, 0, len(grants.Items))
+			for _, grant := range grants.Items {
 				entitlementGrant, err := meteredentitlement.GrantFromCreditGrant(grant)
 				if err != nil {
 					return nil, err
