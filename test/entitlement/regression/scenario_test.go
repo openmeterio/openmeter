@@ -327,7 +327,7 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 		OrderBy: credit.GrantOrderByCreatedAt,
 	})
 	assert.NoError(err)
-	assert.Len(grants, 1)
+	assert.Len(grants.Items, 1)
 
 	grant1 := &grants.Items[0]
 
