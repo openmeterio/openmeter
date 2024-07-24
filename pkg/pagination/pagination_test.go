@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/openmeterio/openmeter/pkg/pagination"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 func TestShouldFlattenPageInfoWhenMarshalling(t *testing.T) {

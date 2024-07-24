@@ -6,11 +6,12 @@ import (
 	"testing"
 
 	"entgo.io/ent/dialect/sql"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/openmeterio/openmeter/internal/testutils"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/testutils/ent1/db"
 	db_example "github.com/openmeterio/openmeter/pkg/framework/entutils/testutils/ent1/db/example1"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestPaginate(t *testing.T) {
