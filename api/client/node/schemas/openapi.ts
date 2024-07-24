@@ -1546,70 +1546,34 @@ export interface components {
       deliveryStatus: components['schemas']['NotificationEventDeliveryStatus'][]
       payload: components['schemas']['NotificationEventPayload']
     }
-    /**
-     * @description The actual payload sent to channel as part of the notification event.
-     *
-     * The `data` field contains the information specific to the notification event
-     * which may vary based on the `type` of the event.
-     */
-    NotificationEventPayload: {
+    /** @description The actual payload sent to channel as part of the notification event. */
+    NotificationEventPayload: components['schemas']['NotificationEventBalanceThresholdPayload']
+    /** @description Common fields for notification event payload. */
+    NotificationEventCommonPayload: {
       /**
        * @description A unique identifier for the notification event the payload belongs to.
        * @example 01J2KNP1YTXQRXHTDJ4KPR7PZ0
        */
       id: string
-      /**
-       * @description The type of the notification rule generated this event.
-       * @example entitlements.balance.threshold
-       */
-      type: string
-      /** @description Metadata information related to the event. */
-      metadata?: {
-        [key: string]: unknown
-      } | null
+      type: components['schemas']['NotificationRuleType']
       /**
        * Format: date-time
        * @description Timestamp when the notification event was created.
        * @example 2023-01-01T00:00:00Z
        */
       timestamp: string
-      /**
-       * @description Event type specific data.
-       *
-       * The format may vary based on the type of the event and the schema is defined for each event type separately.
-       *
-       * @example {
-       *   "currentBalance": 10000,
-       *   "threshold": "120%",
-       *   "feature": {
-       *     "archivedAt": "2023-01-01T00:00:00Z",
-       *     "key": "gpt4_tokens",
-       *     "name": "AI Tokens",
-       *     "metadata": {
-       *       "additionalProp1": "value1"
-       *     },
-       *     "meterSlug": "tokens_total",
-       *     "meterGroupByFilters": {
-       *       "model": "gpt-4"
-       *     },
-       *     "id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
-       *     "createdAt": "2023-01-01T00:00:00Z",
-       *     "updatedAt": "2023-01-01T00:00:00Z"
-       *   },
-       *   "subject": {
-       *     "id": "01G65Z755AFWAKHE12NY0CQ9FH",
-       *     "key": "customer-id",
-       *     "displayName": "Customer Name",
-       *     "metadata": {
-       *       "hubspotId": "123456"
-       *     },
-       *     "currentPeriodStart": "2023-01-01T00:00:00Z",
-       *     "currentPeriodEnd": "2023-02-01T00:00:00Z"
-       *   }
-       * }
-       */
+    }
+    /**
+     * @description Defines payload for notification event which is triggered when the `balance` of the `entitlement`
+     * surpass the user defined `threshold`.
+     */
+    NotificationEventBalanceThresholdPayload: components['schemas']['NotificationEventCommonPayload'] & {
       data: {
-        [key: string]: unknown
+        entitlement: components['schemas']['EntitlementMetered']
+        feature: components['schemas']['Feature']
+        subject: components['schemas']['Subject']
+        balance: components['schemas']['EntitlementValue']
+        threshold: components['schemas']['NotificationRuleBalanceThresholdValue']
       }
     }
     /**
