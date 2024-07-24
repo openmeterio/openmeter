@@ -3078,66 +3078,63 @@ components:
           $ref: "#/components/schemas/NotificationEventPayload"
 
     NotificationEventPayload:
-      description: |
-        The actual payload sent to channel as part of the notification event.
+      description: The actual payload sent to channel as part of the notification event.
+      oneOf:
+        - $ref: "#/components/schemas/NotificationEventBalanceThresholdPayload"
+      discriminator:
+        propertyName: type
+        mapping:
+          entitlements.balance.threshold: "#/components/schemas/NotificationEventBalanceThresholdPayload"
 
-        The `data` field contains the information specific to the notification event
-        which may vary based on the `type` of the event.
+    NotificationEventCommonPayload:
+      description: Common fields for notification event payload.
       type: object
       required:
         - id
         - type
         - timestamp
-        - data
       properties:
         id:
           description: A unique identifier for the notification event the payload belongs to.
           type: string
           example: "01J2KNP1YTXQRXHTDJ4KPR7PZ0"
         type:
-          description: The type of the notification rule generated this event.
-          type: string
-          example: "entitlements.balance.threshold"
-        metadata:
-          description: Metadata information related to the event.
-          type: object
-          additionalProperties: true
-          nullable: true
+          $ref: "#/components/schemas/NotificationRuleType"
         timestamp:
           description: Timestamp when the notification event was created.
           type: string
           format: date-time
           example: "2023-01-01T00:00:00Z"
-        data:
-          description: |
-            Event type specific data.
 
-            The format may vary based on the type of the event and the schema is defined for each event type separately.
-          type: object
-          additionalProperties: true
-          example:
-            currentBalance: 10000
-            threshold: "120%"
-            feature:
-              archivedAt: "2023-01-01T00:00:00Z"
-              key: "gpt4_tokens"
-              name: "AI Tokens"
-              metadata:
-                additionalProp1: "value1"
-              meterSlug: "tokens_total"
-              meterGroupByFilters:
-                model: "gpt-4"
-              id: "01ARZ3NDEKTSV4RRFFQ69G5FAV"
-              createdAt: "2023-01-01T00:00:00Z"
-              updatedAt: "2023-01-01T00:00:00Z"
-            subject:
-              id: "01G65Z755AFWAKHE12NY0CQ9FH"
-              key: "customer-id"
-              displayName: "Customer Name"
-              metadata:
-                hubspotId: "123456"
-              currentPeriodStart: "2023-01-01T00:00:00Z"
-              currentPeriodEnd: "2023-02-01T00:00:00Z"
+    NotificationEventBalanceThresholdPayload:
+      description: |
+        Defines payload for notification event which is triggered when the `balance` of the `entitlement`
+        surpass the user defined `threshold`.
+      allOf:
+        - $ref: "#/components/schemas/NotificationEventCommonPayload"
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              type: object
+              required:
+                - entitlement
+                - feature
+                - subject
+                - balance
+                - threshold
+              properties:
+                entitlement:
+                  $ref: "#/components/schemas/EntitlementMetered"
+                feature:
+                  $ref: "#/components/schemas/Feature"
+                subject:
+                  $ref: "#/components/schemas/Subject"
+                balance:
+                  $ref: "#/components/schemas/EntitlementValue"
+                threshold:
+                  $ref: "#/components/schemas/NotificationRuleBalanceThresholdValue"
 
     NotificationEventDeliveryStatus:
       type: object
