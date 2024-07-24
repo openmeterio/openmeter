@@ -2962,8 +2962,8 @@ components:
               items:
                 $ref: "#/components/schemas/FeatureMeta"
 
-    NotificationRuleType:
-      description: The type of the notification rule.
+    NotificationEventType:
+      description: The type of the notification event.
       type: string
       enum:
         - "entitlements.balance.threshold"
@@ -2978,7 +2978,7 @@ components:
         - channels
       properties:
         type:
-          $ref: "#/components/schemas/NotificationRuleType"
+          $ref: "#/components/schemas/NotificationEventType"
         name:
           type: string
           description: The user friendly name of the notification rule.
@@ -3010,7 +3010,7 @@ components:
           type: string
           example: "01J2KNP1YTXQRXHTDJ4KPR7PZ0"
         type:
-          $ref: "#/components/schemas/NotificationRuleType"
+          $ref: "#/components/schemas/NotificationEventType"
 
     NotificationRuleCommon:
       description: Common fields for notification rules.
@@ -3099,7 +3099,7 @@ components:
           type: string
           example: "01J2KNP1YTXQRXHTDJ4KPR7PZ0"
         type:
-          $ref: "#/components/schemas/NotificationRuleType"
+          $ref: "#/components/schemas/NotificationEventType"
         timestamp:
           description: Timestamp when the notification event was created.
           type: string
@@ -3139,12 +3139,12 @@ components:
     NotificationEventDeliveryStatus:
       type: object
       required:
-        - channelId
+        - channel
         - state
         - updatedAt
       properties:
-        channelId:
-          type: string
+        channel:
+          $ref: "#/components/schemas/NotificationChannelMeta"
         state:
           type: string
           enum:
@@ -3154,10 +3154,7 @@ components:
         updatedAt:
           type: string
           format: date-time
-      example:
-        channelId: "01J2ZS1ZSXZ61G5C2CZRK4GQKK"
-        state: "SUCCESS"
-        updatedAt: "2023-01-01T00:00:00Z"
+          example: "2023-01-01T00:00:00Z"
 
   parameters:
     meterIdOrSlug:
