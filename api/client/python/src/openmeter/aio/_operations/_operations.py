@@ -5247,7 +5247,6 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         subject: Optional[List[str]] = None,
         **kwargs: Any
     ) -> List[JSON]:
-        # pylint: disable=line-too-long
         """List notification evens.
 
         List all notification events.
@@ -5281,7 +5280,12 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                           notification event was created. Required.
                         "deliveryStatus": [
                             {
-                                "channelId": "str",  # Required.
+                                "channel": {
+                                    "id": "str",  # A unique identifier for the
+                                      notification channel. Required.
+                                    "type": "str"  # The type of the notification
+                                      channel. Required. "WEBHOOK"
+                                },
                                 "state": "str",  # Required. Known values are:
                                   "SUCCESS", "FAILED", and "SENDING".
                                 "updatedAt": "2020-02-20 00:00:00"  # Required.
@@ -5289,28 +5293,12 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         ],
                         "id": "str",  # A unique identifier for the notification event.
                           Required.
-                        "payload": {
-                            "data": {
-                                "str": {}  # Event type specific data.  The format
-                                  may vary based on the type of the event and the schema is defined for
-                                  each event type separately. Required.
-                            },
-                            "id": "str",  # A unique identifier for the notification
-                              event the payload belongs to. Required.
-                            "timestamp": "2020-02-20 00:00:00",  # Timestamp when the
-                              notification event was created. Required.
-                            "type": "str",  # The type of the notification rule generated
-                              this event. Required.
-                            "metadata": {
-                                "str": {}  # Optional. Metadata information related
-                                  to the event.
-                            }
-                        },
+                        "payload": {},
                         "rule": {
                             "id": "str",  # A unique identifier for the notification
                               rule. Required.
-                            "type": "str"  # The type of the notification rule. Required.
-                              "entitlements.balance.threshold"
+                            "type": "str"  # The type of the notification event.
+                              Required. "entitlements.balance.threshold"
                         }
                     }
                 ]
