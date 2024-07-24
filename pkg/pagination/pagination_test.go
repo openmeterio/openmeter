@@ -20,7 +20,8 @@ func TestShouldFlattenPageInfoWhenMarshalling(t *testing.T) {
 		},
 	}
 
-	expected := `{"items":[1,2,3],"totalCount":3,"pageSize":10,"page":1}`
+	expected := `{"pageSize":10,"page":1,"totalCount":3,"items":[1,2,3]}
+`
 
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)
@@ -31,4 +32,6 @@ func TestShouldFlattenPageInfoWhenMarshalling(t *testing.T) {
 	}
 
 	assert.JSONEq(expected, buf.String())
+	// enforces ordering
+	assert.Equal(expected, buf.String())
 }

@@ -23,23 +23,22 @@ func (p Page) IsZero() bool {
 }
 
 type PagedResponse[T any] struct {
-	Items      []T `json:"items"`
-	TotalCount int `json:"totalCount"`
-	// flattens the page struct
-	Page Page `json:"-"`
+	Page       Page `json:"-"`
+	TotalCount int  `json:"totalCount"`
+	Items      []T  `json:"items"`
 }
 
 // Implement json.Marshaler interface to flatten the Page struct
 func (p PagedResponse[T]) MarshalJSON() ([]byte, error) {
 	type Alias PagedResponse[T]
 	return json.Marshal(&struct {
-		*Alias
 		PageSize   int `json:"pageSize"`
 		PageNumber int `json:"page"`
+		*Alias
 	}{
-		Alias:      (*Alias)(&p),
 		PageSize:   p.Page.PageSize,
 		PageNumber: p.Page.PageNumber,
+		Alias:      (*Alias)(&p),
 	})
 }
 
