@@ -250,7 +250,7 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 
 type (
 	ListEntitlementsHandlerRequest  = entitlement.ListEntitlementsParams
-	ListEntitlementsHandlerResponse = []api.Entitlement
+	ListEntitlementsHandlerResponse = pagination.PagedResponse[api.Entitlement]
 	ListEntitlementsHandlerParams   = api.ListEntitlementsParams
 )
 
@@ -284,23 +284,29 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 			return p, nil
 		},
 		func(ctx context.Context, request ListEntitlementsHandlerRequest) (ListEntitlementsHandlerResponse, error) {
+			response := pagination.PagedResponse[api.Entitlement]{
+				Page: request.Page,
+			}
 			paged, err := h.connector.ListEntitlements(ctx, request)
 			if err != nil {
-				return nil, err
+				return response, err
 			}
 
 			entitlements := paged.Items
 
-			res := make([]api.Entitlement, 0, len(entitlements))
+			mapped := make([]api.Entitlement, 0, len(entitlements))
 			for _, e := range entitlements {
 				ent, err := Parser.ToAPIGeneric(&e)
 				if err != nil {
-					return nil, err
+					return response, err
 				}
-				res = append(res, *ent)
+				mapped = append(mapped, *ent)
 			}
+			response.Items = mapped
+			response.TotalCount = paged.TotalCount
+			response.Page = paged.Page
 
-			return res, nil
+			return response, nil
 		},
 		commonhttp.JSONResponseEncoder[ListEntitlementsHandlerResponse],
 		httptransport.AppendOptions(

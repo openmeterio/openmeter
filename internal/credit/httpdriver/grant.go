@@ -44,7 +44,7 @@ type (
 	ListGrantsHandlerRequest struct {
 		params credit.ListGrantsParams
 	}
-	ListGrantsHandlerResponse = []api.EntitlementGrant
+	ListGrantsHandlerResponse = pagination.PagedResponse[api.EntitlementGrant]
 	ListGrantsHandlerParams   struct {
 		Params api.ListGrantsParams
 	}
@@ -52,7 +52,7 @@ type (
 type ListGrantsHandler httptransport.HandlerWithArgs[ListGrantsHandlerRequest, ListGrantsHandlerResponse, ListGrantsHandlerParams]
 
 func (h *grantHandler) ListGrants() ListGrantsHandler {
-	return httptransport.NewHandlerWithArgs[ListGrantsHandlerRequest, []api.EntitlementGrant, ListGrantsHandlerParams](
+	return httptransport.NewHandlerWithArgs[ListGrantsHandlerRequest, ListGrantsHandlerResponse, ListGrantsHandlerParams](
 		func(ctx context.Context, r *http.Request, params ListGrantsHandlerParams) (ListGrantsHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
@@ -71,17 +71,20 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 				},
 			}, nil
 		},
-		func(ctx context.Context, request ListGrantsHandlerRequest) ([]api.EntitlementGrant, error) {
+		func(ctx context.Context, request ListGrantsHandlerRequest) (pagination.PagedResponse[api.EntitlementGrant], error) {
+			response := pagination.PagedResponse[api.EntitlementGrant]{
+				Page: request.params.Page,
+			}
 			grants, err := h.grantConnector.ListGrants(ctx, request.params)
 			if err != nil {
-				return nil, err
+				return response, err
 			}
 
 			apiGrants := make([]api.EntitlementGrant, 0, len(grants.Items))
 			for _, grant := range grants.Items {
 				entitlementGrant, err := meteredentitlement.GrantFromCreditGrant(grant)
 				if err != nil {
-					return nil, err
+					return response, err
 				}
 				// FIXME: not elegant but good for now, entitlement grants are all we have...
 				apiGrant := entitlement_httpdriver.MapEntitlementGrantToAPI(nil, entitlementGrant)
@@ -89,9 +92,13 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 				apiGrants = append(apiGrants, apiGrant)
 			}
 
-			return apiGrants, nil
+			response.Items = apiGrants
+			response.TotalCount = grants.TotalCount
+			response.Page = grants.Page
+
+			return response, nil
 		},
-		commonhttp.JSONResponseEncoder[[]api.EntitlementGrant],
+		commonhttp.JSONResponseEncoder[ListGrantsHandlerResponse],
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter, _ *http.Request) bool {

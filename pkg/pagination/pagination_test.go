@@ -1,0 +1,34 @@
+package pagination_test
+
+import (
+	"bytes"
+	"encoding/json"
+	"testing"
+
+	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestShouldFlattenPageInfoWhenMarshalling(t *testing.T) {
+	assert := assert.New(t)
+	pagedRes := pagination.PagedResponse[int]{
+		Items:      []int{1, 2, 3},
+		TotalCount: 3,
+		Page: pagination.Page{
+			PageSize:   10,
+			PageNumber: 1,
+		},
+	}
+
+	expected := `{"items":[1,2,3],"totalCount":3,"pageSize":10,"page":1}`
+
+	buf := &bytes.Buffer{}
+	enc := json.NewEncoder(buf)
+	enc.SetEscapeHTML(true)
+
+	if err := enc.Encode(pagedRes); err != nil {
+		t.Fatalf("failed to marshal paged response: %v", err)
+	}
+
+	assert.JSONEq(expected, buf.String())
+}

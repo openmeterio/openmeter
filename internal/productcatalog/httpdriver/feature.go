@@ -120,7 +120,7 @@ func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 
 type (
 	ListFeaturesHandlerRequest  = productcatalog.ListFeaturesParams
-	ListFeaturesHandlerResponse = []productcatalog.Feature
+	ListFeaturesHandlerResponse = pagination.PagedResponse[api.Feature]
 	ListFeaturesHandlerParams   = api.ListFeaturesParams
 )
 
@@ -153,9 +153,26 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 
 			return params, nil
 		},
-		func(ctx context.Context, params ListFeaturesHandlerRequest) ([]productcatalog.Feature, error) {
+		func(ctx context.Context, params ListFeaturesHandlerRequest) (ListFeaturesHandlerResponse, error) {
+			response := pagination.PagedResponse[api.Feature]{
+				Page: params.Page,
+			}
+
 			features, err := h.connector.ListFeatures(ctx, params)
-			return features.Items, err
+			if err != nil {
+				return response, err
+			}
+
+			mapped := make([]api.Feature, 0, len(features.Items))
+			for _, f := range features.Items {
+				mapped = append(mapped, MaptFeatureToResponse(f))
+			}
+
+			response.Items = mapped
+			response.TotalCount = features.TotalCount
+			response.Page = features.Page
+
+			return response, err
 		},
 		commonhttp.JSONResponseEncoder,
 		httptransport.AppendOptions(

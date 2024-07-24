@@ -1,10 +1,13 @@
 package pagination
 
-import "context"
+import (
+	"context"
+	"encoding/json"
+)
 
 type Page struct {
-	PageSize   int
-	PageNumber int
+	PageSize   int `json:"pageSize"`
+	PageNumber int `json:"page"`
 }
 
 func (p Page) Offset() int {
@@ -20,9 +23,24 @@ func (p Page) IsZero() bool {
 }
 
 type PagedResponse[T any] struct {
-	Items      []T
-	TotalCount int
-	Page       Page
+	Items      []T `json:"items"`
+	TotalCount int `json:"totalCount"`
+	// flattens the page struct
+	Page Page `json:"-"`
+}
+
+// Implement json.Marshaler interface to flatten the Page struct
+func (p PagedResponse[T]) MarshalJSON() ([]byte, error) {
+	type Alias PagedResponse[T]
+	return json.Marshal(&struct {
+		*Alias
+		PageSize   int `json:"pageSize"`
+		PageNumber int `json:"page"`
+	}{
+		Alias:      (*Alias)(&p),
+		PageSize:   p.Page.PageSize,
+		PageNumber: p.Page.PageNumber,
+	})
 }
 
 type Paginator[T any] interface {

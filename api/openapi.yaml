@@ -662,9 +662,30 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Entitlement"
+                type: object
+                required:
+                  - totalCount
+                  - page
+                  - pageSize
+                  - items
+                properties:
+                  totalCount:
+                    type: integer
+                    description: Total number of entitlements.
+                    example: 500
+                  page:
+                    type: integer
+                    description: Current page number.
+                    example: 1
+                  pageSize:
+                    type: integer
+                    description: Number of entitlements per page.
+                    example: 100
+                  items:
+                    description: List of entitlements.
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Entitlement"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
@@ -707,9 +728,30 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Feature"
+                type: object
+                required:
+                  - totalCount
+                  - page
+                  - pageSize
+                  - items
+                properties:
+                  totalCount:
+                    type: integer
+                    description: Total number of features.
+                    example: 500
+                  page:
+                    type: integer
+                    description: Current page number.
+                    example: 1
+                  pageSize:
+                    type: integer
+                    description: Number of features per page.
+                    example: 100
+                  items:
+                    description: List of features.
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Feature"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
@@ -818,9 +860,30 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/EntitlementGrant"
+                type: object
+                required:
+                  - totalCount
+                  - page
+                  - pageSize
+                  - items
+                properties:
+                  totalCount:
+                    type: integer
+                    description: Total number of grants.
+                    example: 500
+                  page:
+                    type: integer
+                    description: Current page number.
+                    example: 1
+                  pageSize:
+                    type: integer
+                    description: Number of grants per page.
+                    example: 100
+                  items:
+                    description: List of grants.
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EntitlementGrant"
         "401":
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:

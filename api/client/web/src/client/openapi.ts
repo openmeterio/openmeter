@@ -2123,7 +2123,25 @@ export interface operations {
       /** @description List of entitlements. */
       200: {
         content: {
-          'application/json': components['schemas']['Entitlement'][]
+          'application/json': {
+            /**
+             * @description Total number of entitlements.
+             * @example 500
+             */
+            totalCount: number
+            /**
+             * @description Current page number.
+             * @example 1
+             */
+            page: number
+            /**
+             * @description Number of entitlements per page.
+             * @example 100
+             */
+            pageSize: number
+            /** @description List of entitlements. */
+            items: components['schemas']['Entitlement'][]
+          }
         }
       }
       400: components['responses']['BadRequestProblemResponse']
@@ -2150,7 +2168,25 @@ export interface operations {
       /** @description List of features. */
       200: {
         content: {
-          'application/json': components['schemas']['Feature'][]
+          'application/json': {
+            /**
+             * @description Total number of features.
+             * @example 500
+             */
+            totalCount: number
+            /**
+             * @description Current page number.
+             * @example 1
+             */
+            page: number
+            /**
+             * @description Number of features per page.
+             * @example 100
+             */
+            pageSize: number
+            /** @description List of features. */
+            items: components['schemas']['Feature'][]
+          }
         }
       }
       400: components['responses']['BadRequestProblemResponse']
@@ -2245,7 +2281,25 @@ export interface operations {
       /** @description List of grants. */
       200: {
         content: {
-          'application/json': components['schemas']['EntitlementGrant'][]
+          'application/json': {
+            /**
+             * @description Total number of grants.
+             * @example 500
+             */
+            totalCount: number
+            /**
+             * @description Current page number.
+             * @example 1
+             */
+            page: number
+            /**
+             * @description Number of grants per page.
+             * @example 100
+             */
+            pageSize: number
+            /** @description List of grants. */
+            items: components['schemas']['EntitlementGrant'][]
+          }
         }
       }
       401: components['responses']['UnauthorizedProblemResponse']
