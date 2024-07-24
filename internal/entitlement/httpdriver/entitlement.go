@@ -250,7 +250,7 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 
 type (
 	ListEntitlementsHandlerRequest  = entitlement.ListEntitlementsParams
-	ListEntitlementsHandlerResponse = pagination.PagedResponse[api.Entitlement]
+	ListEntitlementsHandlerResponse = commonhttp.Union[[]api.Entitlement, pagination.PagedResponse[api.Entitlement]]
 	ListEntitlementsHandlerParams   = api.ListEntitlementsParams
 )
 
@@ -267,9 +267,11 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 			p := entitlement.ListEntitlementsParams{
 				Namespaces: []string{ns},
 				Page: pagination.Page{
-					PageSize:   defaultx.WithDefault(params.PageSize, commonhttp.DefaultPageSize),
-					PageNumber: defaultx.WithDefault(params.Page, commonhttp.DefaultPage),
+					PageSize:   defaultx.WithDefault(params.PageSize, 0),
+					PageNumber: defaultx.WithDefault(params.Page, 0),
 				},
+				Limit:  defaultx.WithDefault(params.Limit, commonhttp.DefaultPageSize),
+				Offset: defaultx.WithDefault(params.Offset, 0),
 			}
 
 			switch defaultx.WithDefault(params.OrderBy, "") {
@@ -284,8 +286,10 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 			return p, nil
 		},
 		func(ctx context.Context, request ListEntitlementsHandlerRequest) (ListEntitlementsHandlerResponse, error) {
-			response := pagination.PagedResponse[api.Entitlement]{
-				Page: request.Page,
+			// due to backward compatibility, if pagination is not provided we return a simple array
+			response := ListEntitlementsHandlerResponse{
+				Option1: &[]api.Entitlement{},
+				Option2: &pagination.PagedResponse[api.Entitlement]{},
 			}
 			paged, err := h.connector.ListEntitlements(ctx, request)
 			if err != nil {
@@ -302,9 +306,17 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 				}
 				mapped = append(mapped, *ent)
 			}
-			response.Items = mapped
-			response.TotalCount = paged.TotalCount
-			response.Page = paged.Page
+
+			if request.Page.IsZero() {
+				response.Option1 = &mapped
+			} else {
+				response.Option1 = nil
+				response.Option2 = &pagination.PagedResponse[api.Entitlement]{
+					Items:      mapped,
+					TotalCount: paged.TotalCount,
+					Page:       paged.Page,
+				}
+			}
 
 			return response, nil
 		},

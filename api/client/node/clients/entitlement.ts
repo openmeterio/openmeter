@@ -1,5 +1,6 @@
 import { components, operations } from '../schemas/openapi.js'
 import { RequestOptions, BaseClient, OpenMeterConfig } from './client.js'
+import { Paginated } from './pagination.js'
 
 export type Entitlement =
   | EntitlementMetered
@@ -42,7 +43,7 @@ export class EntitlementClient extends BaseClient {
   public async list(
     params?: ListEntitlementQueryParams,
     options?: RequestOptions
-  ): Promise<Entitlement[]> {
+  ): Promise<Entitlement[] | Paginated<Entitlement>> {
     const searchParams = params
       ? BaseClient.toURLSearchParams(params)
       : undefined

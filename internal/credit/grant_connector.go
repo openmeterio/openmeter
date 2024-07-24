@@ -47,6 +47,10 @@ type ListGrantsParams struct {
 	IncludeDeleted bool
 	Page           pagination.Page
 	OrderBy        GrantOrderBy
+	// will be deprecated
+	Limit int
+	// will be deprecated
+	Offset int
 }
 
 type GrantRepoCreateGrantInput struct {
@@ -66,6 +70,7 @@ type GrantRepoCreateGrantInput struct {
 type GrantRepo interface {
 	CreateGrant(ctx context.Context, grant GrantRepoCreateGrantInput) (*Grant, error)
 	VoidGrant(ctx context.Context, grantID models.NamespacedID, at time.Time) error
+	// For bw compatibility, if pagination is not provided we
 	ListGrants(ctx context.Context, params ListGrantsParams) (pagination.PagedResponse[Grant], error)
 	// ListActiveGrantsBetween returns all grants that are active at any point between the given time range.
 	ListActiveGrantsBetween(ctx context.Context, owner NamespacedGrantOwner, from, to time.Time) ([]Grant, error)

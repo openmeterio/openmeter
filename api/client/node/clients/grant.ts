@@ -1,5 +1,6 @@
 import { components, operations } from '../schemas/openapi.js'
 import { RequestOptions, BaseClient, OpenMeterConfig } from './client.js'
+import { Paginated } from './pagination.js'
 
 export type EntitlementGrant = components['schemas']['EntitlementGrant']
 export type EntitlementGrantCreateInput =
@@ -22,7 +23,7 @@ export class GrantClient extends BaseClient {
   public async list(
     params?: ListGrantQueryParams,
     options?: RequestOptions
-  ): Promise<EntitlementGrant[]> {
+  ): Promise<EntitlementGrant[] | Paginated<EntitlementGrant>> {
     const searchParams = params
       ? BaseClient.toURLSearchParams(params)
       : undefined

@@ -44,7 +44,7 @@ type (
 	ListGrantsHandlerRequest struct {
 		params credit.ListGrantsParams
 	}
-	ListGrantsHandlerResponse = pagination.PagedResponse[api.EntitlementGrant]
+	ListGrantsHandlerResponse = commonhttp.Union[[]api.EntitlementGrant, pagination.PagedResponse[api.EntitlementGrant]]
 	ListGrantsHandlerParams   struct {
 		Params api.ListGrantsParams
 	}
@@ -64,16 +64,20 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 					Namespace:      ns,
 					IncludeDeleted: defaultx.WithDefault(params.Params.IncludeDeleted, false),
 					Page: pagination.Page{
-						PageSize:   defaultx.WithDefault(params.Params.PageSize, commonhttp.DefaultPageSize),
-						PageNumber: defaultx.WithDefault(params.Params.Page, commonhttp.DefaultPage),
+						PageSize:   defaultx.WithDefault(params.Params.PageSize, 0),
+						PageNumber: defaultx.WithDefault(params.Params.Page, 0),
 					},
+					Limit:   defaultx.WithDefault(params.Params.Limit, commonhttp.DefaultPageSize),
+					Offset:  defaultx.WithDefault(params.Params.Offset, 0),
 					OrderBy: credit.GrantOrderBy(defaultx.WithDefault((*string)(params.Params.OrderBy), string(credit.GrantOrderByCreatedAt))),
 				},
 			}, nil
 		},
-		func(ctx context.Context, request ListGrantsHandlerRequest) (pagination.PagedResponse[api.EntitlementGrant], error) {
-			response := pagination.PagedResponse[api.EntitlementGrant]{
-				Page: request.params.Page,
+		func(ctx context.Context, request ListGrantsHandlerRequest) (ListGrantsHandlerResponse, error) {
+			// due to backward compatibility, if pagination is not provided we return a simple array
+			response := ListGrantsHandlerResponse{
+				Option1: &[]api.EntitlementGrant{},
+				Option2: &pagination.PagedResponse[api.EntitlementGrant]{},
 			}
 			grants, err := h.grantConnector.ListGrants(ctx, request.params)
 			if err != nil {
@@ -92,9 +96,16 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 				apiGrants = append(apiGrants, apiGrant)
 			}
 
-			response.Items = apiGrants
-			response.TotalCount = grants.TotalCount
-			response.Page = grants.Page
+			if request.params.Page.IsZero() {
+				response.Option1 = &apiGrants
+			} else {
+				response.Option1 = nil
+				response.Option2 = &pagination.PagedResponse[api.EntitlementGrant]{
+					Items:      apiGrants,
+					TotalCount: grants.TotalCount,
+					Page:       grants.Page,
+				}
+			}
 
 			return response, nil
 		},

@@ -48,6 +48,10 @@ type ListFeaturesParams struct {
 	IncludeArchived bool
 	Page            pagination.Page
 	OrderBy         FeatureOrderBy
+	// will be deprecated
+	Limit int
+	// will be deprecated
+	Offset int
 }
 
 type FeatureRepo interface {

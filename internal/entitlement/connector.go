@@ -27,6 +27,10 @@ type ListEntitlementsParams struct {
 	OrderBy        ListEntitlementsOrderBy
 	IncludeDeleted bool
 	Page           pagination.Page
+	// will be deprecated
+	Limit int
+	// will be deprecated
+	Offset int
 }
 
 type Connector interface {

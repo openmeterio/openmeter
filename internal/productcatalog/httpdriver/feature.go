@@ -120,7 +120,7 @@ func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 
 type (
 	ListFeaturesHandlerRequest  = productcatalog.ListFeaturesParams
-	ListFeaturesHandlerResponse = pagination.PagedResponse[api.Feature]
+	ListFeaturesHandlerResponse = commonhttp.Union[[]api.Feature, pagination.PagedResponse[api.Feature]]
 	ListFeaturesHandlerParams   = api.ListFeaturesParams
 )
 
@@ -137,9 +137,11 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 				Namespace:       ns,
 				IncludeArchived: defaultx.WithDefault(apiParams.IncludeArchived, false),
 				Page: pagination.Page{
-					PageSize:   defaultx.WithDefault(apiParams.PageSize, commonhttp.DefaultPageSize),
-					PageNumber: defaultx.WithDefault(apiParams.Page, commonhttp.DefaultPage),
+					PageSize:   defaultx.WithDefault(apiParams.PageSize, 0),
+					PageNumber: defaultx.WithDefault(apiParams.Page, 0),
 				},
+				Limit:   defaultx.WithDefault(apiParams.Limit, commonhttp.DefaultPageSize),
+				Offset:  defaultx.WithDefault(apiParams.Offset, 0),
 				OrderBy: defaultx.WithDefault((*productcatalog.FeatureOrderBy)(apiParams.OrderBy), productcatalog.FeatureOrderByUpdatedAt),
 			}
 
@@ -154,23 +156,31 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 			return params, nil
 		},
 		func(ctx context.Context, params ListFeaturesHandlerRequest) (ListFeaturesHandlerResponse, error) {
-			response := pagination.PagedResponse[api.Feature]{
-				Page: params.Page,
+			response := ListFeaturesHandlerResponse{
+				Option1: &[]api.Feature{},
+				Option2: &pagination.PagedResponse[api.Feature]{},
 			}
 
-			features, err := h.connector.ListFeatures(ctx, params)
+			paged, err := h.connector.ListFeatures(ctx, params)
 			if err != nil {
 				return response, err
 			}
 
-			mapped := make([]api.Feature, 0, len(features.Items))
-			for _, f := range features.Items {
+			mapped := make([]api.Feature, 0, len(paged.Items))
+			for _, f := range paged.Items {
 				mapped = append(mapped, MaptFeatureToResponse(f))
 			}
 
-			response.Items = mapped
-			response.TotalCount = features.TotalCount
-			response.Page = features.Page
+			if params.Page.IsZero() {
+				response.Option1 = &mapped
+			} else {
+				response.Option1 = nil
+				response.Option2 = &pagination.PagedResponse[api.Feature]{
+					Items:      mapped,
+					TotalCount: paged.TotalCount,
+					Page:       paged.Page,
+				}
+			}
 
 			return response, err
 		},

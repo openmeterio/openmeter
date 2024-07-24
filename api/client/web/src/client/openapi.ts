@@ -3,6 +3,17 @@
  * Do not make direct changes to the file.
  */
 
+/** OneOf type helpers */
+type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never }
+type XOR<T, U> = T | U extends object
+  ? (Without<T, U> & U) | (Without<U, T> & T)
+  : T | U
+type OneOf<T extends any[]> = T extends [infer Only]
+  ? Only
+  : T extends [infer A, infer B, ...infer Rest]
+    ? OneOf<[XOR<A, B>, ...Rest]>
+    : never
+
 export interface paths {
   '/api/v1/events': {
     /**
@@ -127,13 +138,14 @@ export interface paths {
     /**
      * List entitlements
      * @description List all entitlements regardless of subject. This endpoint is intended for administrative purposes.
+     * If page is provided that takes precedence and the paginated response is returned.
      */
     get: operations['listEntitlements']
   }
   '/api/v1/features': {
     /**
      * List features
-     * @description List all features.
+     * @description List all features. If page is provided that takes precedence and the paginated response is returned.
      */
     get: operations['listFeatures']
     /**
@@ -161,6 +173,8 @@ export interface paths {
     /**
      * List grants
      * @description List all grants for all the subjects and entitlements. This endpoint is intended for administrative purposes only. To fetch the grants of a specific entitlement please use the /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
+     *
+     * If page is provided that takes precedence and the paginated response is returned.
      */
     get: operations['listGrants']
   }
@@ -2109,39 +2123,47 @@ export interface operations {
   /**
    * List entitlements
    * @description List all entitlements regardless of subject. This endpoint is intended for administrative purposes.
+   * If page is provided that takes precedence and the paginated response is returned.
    */
   listEntitlements: {
     parameters: {
       query?: {
         page?: components['parameters']['queryPage']
         pageSize?: components['parameters']['queryPageSize']
+        limit?: components['parameters']['queryLimit']
+        offset?: components['parameters']['queryOffset']
         /** @description Order by field */
         orderBy?: 'createdAt' | 'updatedAt'
       }
     }
     responses: {
-      /** @description List of entitlements. */
+      /** @description List of entitlements. If page is provided that takes precedence and the paginated response is returned. */
       200: {
         content: {
-          'application/json': {
-            /**
-             * @description Total number of entitlements.
-             * @example 500
-             */
-            totalCount: number
-            /**
-             * @description Current page number.
-             * @example 1
-             */
-            page: number
-            /**
-             * @description Number of entitlements per page.
-             * @example 100
-             */
-            pageSize: number
-            /** @description List of entitlements. */
-            items: components['schemas']['Entitlement'][]
-          }
+          'application/json': OneOf<
+            [
+              components['schemas']['Entitlement'][],
+              {
+                /**
+                 * @description Total number of entitlements.
+                 * @example 500
+                 */
+                totalCount: number
+                /**
+                 * @description Current page number.
+                 * @example 1
+                 */
+                page: number
+                /**
+                 * @description Number of entitlements per page.
+                 * @example 100
+                 */
+                pageSize: number
+                /** @description List of entitlements. */
+                items: components['schemas']['Entitlement'][]
+              },
+            ]
+          >
         }
       }
       400: components['responses']['BadRequestProblemResponse']
@@ -2151,13 +2173,15 @@ export interface operations {
   }
   /**
    * List features
-   * @description List all features.
+   * @description List all features. If page is provided that takes precedence and the paginated response is returned.
    */
   listFeatures: {
     parameters: {
       query?: {
         page?: components['parameters']['queryPage']
         pageSize?: components['parameters']['queryPageSize']
+        limit?: components['parameters']['queryLimit']
+        offset?: components['parameters']['queryOffset']
         /** @description Order by field */
         orderBy?: 'id' | 'createdAt' | 'updatedAt'
         /** @description Include archived features. */
@@ -2165,28 +2189,33 @@ export interface operations {
       }
     }
     responses: {
-      /** @description List of features. */
+      /** @description List of features. If page is provided that takes precedence and the paginated response is returned. */
       200: {
         content: {
-          'application/json': {
-            /**
-             * @description Total number of features.
-             * @example 500
-             */
-            totalCount: number
-            /**
-             * @description Current page number.
-             * @example 1
-             */
-            page: number
-            /**
-             * @description Number of features per page.
-             * @example 100
-             */
-            pageSize: number
-            /** @description List of features. */
-            items: components['schemas']['Feature'][]
-          }
+          'application/json': OneOf<
+            [
+              components['schemas']['Feature'][],
+              {
+                /**
+                 * @description Total number of features.
+                 * @example 500
+                 */
+                totalCount: number
+                /**
+                 * @description Current page number.
+                 * @example 1
+                 */
+                page: number
+                /**
+                 * @description Number of features per page.
+                 * @example 100
+                 */
+                pageSize: number
+                /** @description List of features. */
+                items: components['schemas']['Feature'][]
+              },
+            ]
+          >
         }
       }
       400: components['responses']['BadRequestProblemResponse']
@@ -2266,40 +2295,49 @@ export interface operations {
   /**
    * List grants
    * @description List all grants for all the subjects and entitlements. This endpoint is intended for administrative purposes only. To fetch the grants of a specific entitlement please use the /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
+   *
+   * If page is provided that takes precedence and the paginated response is returned.
    */
   listGrants: {
     parameters: {
       query?: {
         page?: components['parameters']['queryPage']
         pageSize?: components['parameters']['queryPageSize']
+        limit?: components['parameters']['queryLimit']
+        offset?: components['parameters']['queryOffset']
         /** @description Order by field */
         orderBy?: 'id' | 'createdAt' | 'updatedAt'
         includeDeleted?: components['parameters']['includeDeleted']
       }
     }
     responses: {
-      /** @description List of grants. */
+      /** @description List of grants. If page is provided that takes precedence and the paginated response is returned. */
       200: {
         content: {
-          'application/json': {
-            /**
-             * @description Total number of grants.
-             * @example 500
-             */
-            totalCount: number
-            /**
-             * @description Current page number.
-             * @example 1
-             */
-            page: number
-            /**
-             * @description Number of grants per page.
-             * @example 100
-             */
-            pageSize: number
-            /** @description List of grants. */
-            items: components['schemas']['EntitlementGrant'][]
-          }
+          'application/json': OneOf<
+            [
+              components['schemas']['EntitlementGrant'][],
+              {
+                /**
+                 * @description Total number of grants.
+                 * @example 500
+                 */
+                totalCount: number
+                /**
+                 * @description Current page number.
+                 * @example 1
+                 */
+                page: number
+                /**
+                 * @description Number of grants per page.
+                 * @example 100
+                 */
+                pageSize: number
+                /** @description List of grants. */
+                items: components['schemas']['EntitlementGrant'][]
+              },
+            ]
+          >
         }
       }
       401: components['responses']['UnauthorizedProblemResponse']

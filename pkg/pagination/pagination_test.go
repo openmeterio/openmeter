@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/openmeterio/openmeter/pkg/pagination"
+
 	"github.com/stretchr/testify/assert"
 )
 

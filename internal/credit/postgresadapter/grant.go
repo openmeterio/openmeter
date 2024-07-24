@@ -92,6 +92,29 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params credit.ListGrant
 		Page: params.Page,
 	}
 
+	// we're using limit and offset
+	if params.Page.IsZero() {
+		if params.Limit > 0 {
+			query = query.Limit(params.Limit)
+		}
+		if params.Offset > 0 {
+			query = query.Offset(params.Offset)
+		}
+
+		entities, err := query.All(ctx)
+		if err != nil {
+			return response, err
+		}
+
+		grants := make([]credit.Grant, 0, len(entities))
+		for _, entity := range entities {
+			grants = append(grants, mapGrantEntity(entity))
+		}
+
+		response.Items = grants
+		return response, nil
+	}
+
 	paged, err := query.Paginate(ctx, params.Page)
 	if err != nil {
 		return response, err

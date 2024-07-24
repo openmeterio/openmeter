@@ -113,6 +113,29 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params productcatal
 		Page: params.Page,
 	}
 
+	// we're using limit and offset
+	if params.Page.IsZero() {
+		if params.Limit > 0 {
+			query = query.Limit(params.Limit)
+		}
+		if params.Offset > 0 {
+			query = query.Offset(params.Offset)
+		}
+
+		entities, err := query.All(ctx)
+		if err != nil {
+			return response, err
+		}
+
+		mapped := make([]productcatalog.Feature, 0, len(entities))
+		for _, entity := range entities {
+			mapped = append(mapped, mapFeatureEntity(entity))
+		}
+
+		response.Items = mapped
+		return response, nil
+	}
+
 	paged, err := query.Paginate(ctx, params.Page)
 	if err != nil {
 		return response, err

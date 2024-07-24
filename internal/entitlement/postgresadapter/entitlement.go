@@ -177,6 +177,29 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 		Page: params.Page,
 	}
 
+	// we're using limit and offset
+	if params.Page.IsZero() {
+		if params.Limit > 0 {
+			query = query.Limit(params.Limit)
+		}
+		if params.Offset > 0 {
+			query = query.Offset(params.Offset)
+		}
+
+		entities, err := query.All(ctx)
+		if err != nil {
+			return response, err
+		}
+
+		mapped := make([]entitlement.Entitlement, 0, len(entities))
+		for _, entity := range entities {
+			mapped = append(mapped, *mapEntitlementEntity(entity))
+		}
+
+		response.Items = mapped
+		return response, nil
+	}
+
 	paged, err := query.Paginate(ctx, params.Page)
 	if err != nil {
 		return response, err
