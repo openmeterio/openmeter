@@ -11,6 +11,8 @@
 {{/* Loop over all nodes and implement "pagination.Paginator" for "XQuery" and "XSelect" */}}
 {{ range $n := $.Nodes }}
     {{ $receiver := $n.Receiver }}
+    // Paginate runs the query and returns a paginated response.
+    // If page is its 0 value then it will return all the items and populate the response page accordingly.
     func ({{ $receiver }} *{{ $n.QueryName }}) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*{{ $n.Name }}], error) {
         // Get the limit and offset
         limit, offset := page.Limit(), page.Offset()
@@ -24,9 +26,6 @@
         countQuery := {{ $receiver }}.Clone()
         pagedQuery := {{ $receiver }}
 
-        // Set the limit and offset
-        pagedQuery.ctx.Limit = &limit
-        pagedQuery.ctx.Offset = &offset
 
         // Unset ordering for count query
         countQuery.order = nil
@@ -41,6 +40,17 @@
             return pagedResponse, fmt.Errorf("failed to get count: %w", err)
         }
         pagedResponse.TotalCount = count
+
+        // If page is its 0 value then return all the items
+        if page.IsZero() {
+            offset = 0
+            limit = count
+        }
+
+        // Set the limit and offset
+        pagedQuery.ctx.Limit = &limit
+        pagedQuery.ctx.Offset = &offset
+
 
         // Get the paged items
         items, err := pagedQuery.All(ctx)

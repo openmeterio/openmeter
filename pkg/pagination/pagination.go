@@ -15,6 +15,10 @@ func (p Page) Limit() int {
 	return p.PageSize
 }
 
+func (p Page) IsZero() bool {
+	return p.PageSize == 0 && p.PageNumber == 0
+}
+
 type PagedResponse[T any] struct {
 	Items      []T
 	TotalCount int

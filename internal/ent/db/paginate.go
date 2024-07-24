@@ -9,6 +9,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
 func (bs *BalanceSnapshotQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*BalanceSnapshot], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -21,10 +23,6 @@ func (bs *BalanceSnapshotQuery) Paginate(ctx context.Context, page pagination.Pa
 	// Create duplicate of the query to run for
 	countQuery := bs.Clone()
 	pagedQuery := bs
-
-	// Set the limit and offset
-	pagedQuery.ctx.Limit = &limit
-	pagedQuery.ctx.Offset = &offset
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -40,6 +38,16 @@ func (bs *BalanceSnapshotQuery) Paginate(ctx context.Context, page pagination.Pa
 	}
 	pagedResponse.TotalCount = count
 
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
 	// Get the paged items
 	items, err := pagedQuery.All(ctx)
 	pagedResponse.Items = items
@@ -49,6 +57,8 @@ func (bs *BalanceSnapshotQuery) Paginate(ctx context.Context, page pagination.Pa
 // type check
 var _ pagination.Paginator[*BalanceSnapshot] = (*BalanceSnapshotQuery)(nil)
 
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
 func (e *EntitlementQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Entitlement], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -61,10 +71,6 @@ func (e *EntitlementQuery) Paginate(ctx context.Context, page pagination.Page) (
 	// Create duplicate of the query to run for
 	countQuery := e.Clone()
 	pagedQuery := e
-
-	// Set the limit and offset
-	pagedQuery.ctx.Limit = &limit
-	pagedQuery.ctx.Offset = &offset
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -80,6 +86,16 @@ func (e *EntitlementQuery) Paginate(ctx context.Context, page pagination.Page) (
 	}
 	pagedResponse.TotalCount = count
 
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
 	// Get the paged items
 	items, err := pagedQuery.All(ctx)
 	pagedResponse.Items = items
@@ -89,6 +105,8 @@ func (e *EntitlementQuery) Paginate(ctx context.Context, page pagination.Page) (
 // type check
 var _ pagination.Paginator[*Entitlement] = (*EntitlementQuery)(nil)
 
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
 func (f *FeatureQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Feature], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -101,10 +119,6 @@ func (f *FeatureQuery) Paginate(ctx context.Context, page pagination.Page) (pagi
 	// Create duplicate of the query to run for
 	countQuery := f.Clone()
 	pagedQuery := f
-
-	// Set the limit and offset
-	pagedQuery.ctx.Limit = &limit
-	pagedQuery.ctx.Offset = &offset
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -120,6 +134,16 @@ func (f *FeatureQuery) Paginate(ctx context.Context, page pagination.Page) (pagi
 	}
 	pagedResponse.TotalCount = count
 
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
 	// Get the paged items
 	items, err := pagedQuery.All(ctx)
 	pagedResponse.Items = items
@@ -129,6 +153,8 @@ func (f *FeatureQuery) Paginate(ctx context.Context, page pagination.Page) (pagi
 // type check
 var _ pagination.Paginator[*Feature] = (*FeatureQuery)(nil)
 
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
 func (gr *GrantQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*Grant], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -141,10 +167,6 @@ func (gr *GrantQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 	// Create duplicate of the query to run for
 	countQuery := gr.Clone()
 	pagedQuery := gr
-
-	// Set the limit and offset
-	pagedQuery.ctx.Limit = &limit
-	pagedQuery.ctx.Offset = &offset
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -160,6 +182,16 @@ func (gr *GrantQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 	}
 	pagedResponse.TotalCount = count
 
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
+
 	// Get the paged items
 	items, err := pagedQuery.All(ctx)
 	pagedResponse.Items = items
@@ -169,6 +201,8 @@ func (gr *GrantQuery) Paginate(ctx context.Context, page pagination.Page) (pagin
 // type check
 var _ pagination.Paginator[*Grant] = (*GrantQuery)(nil)
 
+// Paginate runs the query and returns a paginated response.
+// If page is its 0 value then it will return all the items and populate the response page accordingly.
 func (ur *UsageResetQuery) Paginate(ctx context.Context, page pagination.Page) (pagination.PagedResponse[*UsageReset], error) {
 	// Get the limit and offset
 	limit, offset := page.Limit(), page.Offset()
@@ -181,10 +215,6 @@ func (ur *UsageResetQuery) Paginate(ctx context.Context, page pagination.Page) (
 	// Create duplicate of the query to run for
 	countQuery := ur.Clone()
 	pagedQuery := ur
-
-	// Set the limit and offset
-	pagedQuery.ctx.Limit = &limit
-	pagedQuery.ctx.Offset = &offset
 
 	// Unset ordering for count query
 	countQuery.order = nil
@@ -199,6 +229,16 @@ func (ur *UsageResetQuery) Paginate(ctx context.Context, page pagination.Page) (
 		return pagedResponse, fmt.Errorf("failed to get count: %w", err)
 	}
 	pagedResponse.TotalCount = count
+
+	// If page is its 0 value then return all the items
+	if page.IsZero() {
+		offset = 0
+		limit = count
+	}
+
+	// Set the limit and offset
+	pagedQuery.ctx.Limit = &limit
+	pagedQuery.ctx.Offset = &offset
 
 	// Get the paged items
 	items, err := pagedQuery.All(ctx)

@@ -117,4 +117,14 @@ func TestPaginate(t *testing.T) {
 		assert.Equal(0, len(paged.Items))
 		assert.Equal(10, paged.TotalCount)
 	})
+
+	t.Run("Should return all items", func(t *testing.T) {
+		paged, err := dbClient.Example1.Query().Order(db_example.ByID(sql.OrderAsc())).Paginate(ctx, pagination.Page{})
+		if err != nil {
+			t.Fatalf("failed to paginate: %s", err)
+		}
+
+		assert.Equal(10, len(paged.Items))
+		assert.Equal(10, paged.TotalCount)
+	})
 }
