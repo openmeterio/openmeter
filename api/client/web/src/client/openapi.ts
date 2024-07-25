@@ -624,6 +624,30 @@ export interface components {
       archivedAt?: string
     } & components['schemas']['FeatureCreateInputs'] &
       components['schemas']['SharedMetaFields']
+    FeaturePaginatedUnion: OneOf<
+      [
+        components['schemas']['Feature'][],
+        {
+          /**
+           * @description Total number of features.
+           * @example 500
+           */
+          totalCount: number
+          /**
+           * @description Current page number.
+           * @example 1
+           */
+          page: number
+          /**
+           * @description Number of features per page.
+           * @example 100
+           */
+          pageSize: number
+          /** @description List of features. */
+          items: components['schemas']['Feature'][]
+        },
+      ]
+    >
     /** @description Limited representation of a feature resource which includes only its unique identifiers (id, key). */
     FeatureMeta: {
       /**
@@ -768,6 +792,30 @@ export interface components {
       | components['schemas']['EntitlementMetered']
       | components['schemas']['EntitlementStatic']
       | components['schemas']['EntitlementBoolean']
+    EntitlementPaginatedUnion: OneOf<
+      [
+        components['schemas']['Entitlement'][],
+        {
+          /**
+           * @description Total number of entitlements.
+           * @example 500
+           */
+          totalCount: number
+          /**
+           * @description Current page number.
+           * @example 1
+           */
+          page: number
+          /**
+           * @description Number of entitlements per page.
+           * @example 100
+           */
+          pageSize: number
+          /** @description List of entitlements. */
+          items: components['schemas']['Entitlement'][]
+        },
+      ]
+    >
     /**
      * @description A segment of the grant burn down history.
      *
@@ -1008,6 +1056,30 @@ export interface components {
         voidedAt?: string
         recurrence?: components['schemas']['RecurringPeriod']
       }
+    EntitlementGrantPaginatedUnion: OneOf<
+      [
+        components['schemas']['EntitlementGrant'][],
+        {
+          /**
+           * @description Total number of grants.
+           * @example 500
+           */
+          totalCount: number
+          /**
+           * @description Current page number.
+           * @example 1
+           */
+          page: number
+          /**
+           * @description Number of grants per page.
+           * @example 100
+           */
+          pageSize: number
+          /** @description List of grants. */
+          items: components['schemas']['EntitlementGrant'][]
+        },
+      ]
+    >
     EntitlementValue: {
       /**
        * @description Whether the subject has access to the feature. Shared accross all entitlement types.
@@ -2140,30 +2212,7 @@ export interface operations {
       /** @description List of entitlements. If page is provided that takes precedence and the paginated response is returned. */
       200: {
         content: {
-          'application/json': OneOf<
-            [
-              components['schemas']['Entitlement'][],
-              {
-                /**
-                 * @description Total number of entitlements.
-                 * @example 500
-                 */
-                totalCount: number
-                /**
-                 * @description Current page number.
-                 * @example 1
-                 */
-                page: number
-                /**
-                 * @description Number of entitlements per page.
-                 * @example 100
-                 */
-                pageSize: number
-                /** @description List of entitlements. */
-                items: components['schemas']['Entitlement'][]
-              },
-            ]
-          >
+          'application/json': components['schemas']['EntitlementPaginatedUnion']
         }
       }
       400: components['responses']['BadRequestProblemResponse']
@@ -2192,30 +2241,7 @@ export interface operations {
       /** @description List of features. If page is provided that takes precedence and the paginated response is returned. */
       200: {
         content: {
-          'application/json': OneOf<
-            [
-              components['schemas']['Feature'][],
-              {
-                /**
-                 * @description Total number of features.
-                 * @example 500
-                 */
-                totalCount: number
-                /**
-                 * @description Current page number.
-                 * @example 1
-                 */
-                page: number
-                /**
-                 * @description Number of features per page.
-                 * @example 100
-                 */
-                pageSize: number
-                /** @description List of features. */
-                items: components['schemas']['Feature'][]
-              },
-            ]
-          >
+          'application/json': components['schemas']['FeaturePaginatedUnion']
         }
       }
       400: components['responses']['BadRequestProblemResponse']
@@ -2314,30 +2340,7 @@ export interface operations {
       /** @description List of grants. If page is provided that takes precedence and the paginated response is returned. */
       200: {
         content: {
-          'application/json': OneOf<
-            [
-              components['schemas']['EntitlementGrant'][],
-              {
-                /**
-                 * @description Total number of grants.
-                 * @example 500
-                 */
-                totalCount: number
-                /**
-                 * @description Current page number.
-                 * @example 1
-                 */
-                page: number
-                /**
-                 * @description Number of grants per page.
-                 * @example 100
-                 */
-                pageSize: number
-                /** @description List of grants. */
-                items: components['schemas']['EntitlementGrant'][]
-              },
-            ]
-          >
+          'application/json': components['schemas']['EntitlementGrantPaginatedUnion']
         }
       }
       401: components['responses']['UnauthorizedProblemResponse']
