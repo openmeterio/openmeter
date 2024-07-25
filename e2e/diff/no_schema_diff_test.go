@@ -18,9 +18,6 @@ var PG_URL string
 
 func TestMain(m *testing.M) {
 	PG_URL = os.Getenv("POSTGRES_URL")
-	if PG_URL == "" {
-		PG_URL = "postgres://postgres:postgres@localhost:5432/postgres"
-	}
 
 	os.Exit(m.Run())
 }
@@ -29,7 +26,14 @@ const (
 	DIR = "./tmp/"
 )
 
+func setup(t *testing.T) {
+	if PG_URL == "" {
+		t.Skip("POSTGRES_URL not set")
+	}
+}
+
 func TestNoSchemaDiffOnMigrate(t *testing.T) {
+	setup(t)
 	driver, err := entutils.GetPGDriver(PG_URL)
 	if err != nil {
 		t.Fatalf("failed to get pg driver %s", err)
