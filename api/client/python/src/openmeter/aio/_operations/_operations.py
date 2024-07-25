@@ -2489,6 +2489,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         page_size: int = 100,
         limit: int = 1000,
         offset: int = 0,
+        order: str = "ASC",
         order_by: str = "updatedAt",
         include_deleted: bool = False,
         **kwargs: Any
@@ -2509,6 +2510,10 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         :paramtype limit: int
         :keyword offset: Number of entries to skip. Default value is 0.
         :paramtype offset: int
+        :keyword order: Order by field.
+
+         Usage: ``?order=ASC``. Known values are: "ASC" and "DESC". Default value is "ASC".
+        :paramtype order: str
         :keyword order_by: Order by field. Known values are: "id", "createdAt", and "updatedAt".
          Default value is "updatedAt".
         :paramtype order_by: str
@@ -2536,6 +2541,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             page_size=page_size,
             limit=limit,
             offset=offset,
+            order=order,
             order_by=order_by,
             include_deleted=include_deleted,
             headers=_headers,

@@ -809,6 +809,7 @@ paths:
         - $ref: "#/components/parameters/queryPageSize"
         - $ref: "#/components/parameters/queryLimit"
         - $ref: "#/components/parameters/queryOffset"
+        - $ref: "#/components/parameters/order"
         - name: orderBy
           in: query
           required: false
@@ -3478,6 +3479,20 @@ components:
         type: boolean
         default: false
         example: true
+    order:
+      name: order
+      in: query
+      required: false
+      description: |
+        Order by field.
+
+        Usage: `?order=ASC`
+      schema:
+        type: string
+        enum:
+          - ASC
+          - DESC
+        default: ASC
 
   responses:
     ConflictProblemResponse:

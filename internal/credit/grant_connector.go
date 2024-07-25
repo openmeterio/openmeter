@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type CreateGrantInput struct {
@@ -47,6 +48,7 @@ type ListGrantsParams struct {
 	IncludeDeleted bool
 	Page           pagination.Page
 	OrderBy        GrantOrderBy
+	Order          *sortx.Order
 	// will be deprecated
 	Limit int
 	// will be deprecated
