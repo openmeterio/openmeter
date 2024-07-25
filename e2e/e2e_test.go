@@ -730,7 +730,7 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, featureListResp.StatusCode())
 		require.NotNil(t, featureListResp.JSON200)
-		features, err := featureListResp.JSON200.AsFeaturePaginatedUnion0()
+		features, err := featureListResp.JSON200.AsListFeatureResponse0()
 		require.NoError(t, err)
 		require.Len(t, features, 1)
 
@@ -767,7 +767,7 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, featureListResp.StatusCode())
 		require.NotNil(t, featureListResp.JSON200)
-		features, err := featureListResp.JSON200.AsFeaturePaginatedUnion0()
+		features, err := featureListResp.JSON200.AsListFeatureResponse0()
 		require.NoError(t, err)
 		require.Len(t, features, 1)
 

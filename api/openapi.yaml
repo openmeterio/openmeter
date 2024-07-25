@@ -666,7 +666,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/EntitlementPaginatedUnion"
+                $ref: "#/components/schemas/ListEntitlementResponse"
 
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
@@ -713,7 +713,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/FeaturePaginatedUnion"
+                $ref: "#/components/schemas/ListFeatureResponse"
 
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
@@ -828,7 +828,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/EntitlementGrantPaginatedUnion"
+                $ref: "#/components/schemas/ListEntitlementGrantResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
@@ -1868,7 +1868,7 @@ components:
         - $ref: "#/components/schemas/FeatureCreateInputs"
         - $ref: "#/components/schemas/SharedMetaFields"
 
-    FeaturePaginatedUnion:
+    ListFeatureResponse:
       oneOf:
         - type: array
           items:
@@ -2108,7 +2108,7 @@ components:
           metered: "#/components/schemas/EntitlementMetered"
           static: "#/components/schemas/EntitlementStatic"
           boolean: "#/components/schemas/EntitlementBoolean"
-    EntitlementPaginatedUnion:
+    ListEntitlementResponse:
       oneOf:
         - type: array
           items:
@@ -2424,7 +2424,7 @@ components:
               readOnly: true
             recurrence:
               $ref: "#/components/schemas/RecurringPeriod"
-    EntitlementGrantPaginatedUnion:
+    ListEntitlementGrantResponse:
       oneOf:
         - type: array
           items:

@@ -624,7 +624,7 @@ export interface components {
       archivedAt?: string
     } & components['schemas']['FeatureCreateInputs'] &
       components['schemas']['SharedMetaFields']
-    FeaturePaginatedUnion: OneOf<
+    ListFeatureResponse: OneOf<
       [
         components['schemas']['Feature'][],
         {
@@ -792,7 +792,7 @@ export interface components {
       | components['schemas']['EntitlementMetered']
       | components['schemas']['EntitlementStatic']
       | components['schemas']['EntitlementBoolean']
-    EntitlementPaginatedUnion: OneOf<
+    ListEntitlementResponse: OneOf<
       [
         components['schemas']['Entitlement'][],
         {
@@ -1056,7 +1056,7 @@ export interface components {
         voidedAt?: string
         recurrence?: components['schemas']['RecurringPeriod']
       }
-    EntitlementGrantPaginatedUnion: OneOf<
+    ListEntitlementGrantResponse: OneOf<
       [
         components['schemas']['EntitlementGrant'][],
         {
@@ -2212,7 +2212,7 @@ export interface operations {
       /** @description List of entitlements. If page is provided that takes precedence and the paginated response is returned. */
       200: {
         content: {
-          'application/json': components['schemas']['EntitlementPaginatedUnion']
+          'application/json': components['schemas']['ListEntitlementResponse']
         }
       }
       400: components['responses']['BadRequestProblemResponse']
@@ -2241,7 +2241,7 @@ export interface operations {
       /** @description List of features. If page is provided that takes precedence and the paginated response is returned. */
       200: {
         content: {
-          'application/json': components['schemas']['FeaturePaginatedUnion']
+          'application/json': components['schemas']['ListFeatureResponse']
         }
       }
       400: components['responses']['BadRequestProblemResponse']
@@ -2340,7 +2340,7 @@ export interface operations {
       /** @description List of grants. If page is provided that takes precedence and the paginated response is returned. */
       200: {
         content: {
-          'application/json': components['schemas']['EntitlementGrantPaginatedUnion']
+          'application/json': components['schemas']['ListEntitlementGrantResponse']
         }
       }
       401: components['responses']['UnauthorizedProblemResponse']
