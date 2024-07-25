@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	db_grant "github.com/openmeterio/openmeter/internal/ent/db/grant"
@@ -76,15 +77,15 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params credit.ListGrant
 	if params.OrderBy != "" {
 		switch params.OrderBy {
 		case credit.GrantOrderByCreatedAt:
-			query = query.Order(db_grant.ByCreatedAt())
+			query = query.Order(db_grant.ByCreatedAt(sql.OrderDesc()))
 		case credit.GrantOrderByUpdatedAt:
-			query = query.Order(db_grant.ByUpdatedAt())
+			query = query.Order(db_grant.ByUpdatedAt(sql.OrderDesc()))
 		case credit.GrantOrderByExpiresAt:
-			query = query.Order(db_grant.ByExpiresAt())
+			query = query.Order(db_grant.ByExpiresAt(sql.OrderDesc()))
 		case credit.GrantOrderByEffectiveAt:
-			query = query.Order(db_grant.ByEffectiveAt())
+			query = query.Order(db_grant.ByEffectiveAt(sql.OrderDesc()))
 		case credit.GrantOrderByOwner:
-			query = query.Order(db_grant.ByOwnerID())
+			query = query.Order(db_grant.ByOwnerID(sql.OrderDesc()))
 		}
 	}
 

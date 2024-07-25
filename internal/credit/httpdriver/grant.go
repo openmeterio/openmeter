@@ -69,7 +69,7 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 					},
 					Limit:   defaultx.WithDefault(params.Params.Limit, commonhttp.DefaultPageSize),
 					Offset:  defaultx.WithDefault(params.Params.Offset, 0),
-					OrderBy: credit.GrantOrderBy(defaultx.WithDefault((*string)(params.Params.OrderBy), string(credit.GrantOrderByCreatedAt))),
+					OrderBy: credit.GrantOrderBy(defaultx.WithDefault((*string)(params.Params.OrderBy), string(credit.GrantOrderByEffectiveAt))),
 				},
 			}, nil
 		},
