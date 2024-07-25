@@ -41,19 +41,20 @@ func NewPublisher(opts PublisherOptions) (Publisher, error) {
 	}, nil
 }
 
-func NewTestPublisher(t *testing.T) Publisher {
+func NewMockTopicPublisher(t *testing.T) TopicPublisher {
 	pub, err := NewPublisher(PublisherOptions{
 		Publisher: noop.Publisher{},
 	})
 
 	assert.NoError(t, err)
-	return pub
+	return pub.ForTopic("test")
 }
 
 func (p *publisher) ForTopic(topic string) TopicPublisher {
 	return &topicPublisher{
 		publisher: p.publisher,
 		topic:     topic,
+		transform: p.transform,
 	}
 }
 

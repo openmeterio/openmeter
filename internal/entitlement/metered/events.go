@@ -55,6 +55,7 @@ func (e ResetEntitlementEvent) Validate() error {
 	return nil
 }
 
+// TODO: maybe remove?
 type CreateMeteredEntitlementGrantEvent struct {
 	EntitlementGrant
 	Subject   models.SubjectKeyAndID `json:"subjectKey"`

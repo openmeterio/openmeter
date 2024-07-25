@@ -108,6 +108,7 @@ func setupDependencies(t *testing.T) Dependencies {
 		grantRepo,
 		balanceSnapshotRepo,
 		time.Minute,
+		publisher.NewMockTopicPublisher(t),
 	)
 
 	meteredEntitlementConnector := meteredentitlement.NewMeteredEntitlementConnector(
@@ -115,7 +116,9 @@ func setupDependencies(t *testing.T) Dependencies {
 		owner,
 		balance,
 		grant,
-		entitlementRepo)
+		entitlementRepo,
+		publisher.NewMockTopicPublisher(t),
+	)
 
 	staticEntitlementConnector := staticentitlement.NewStaticEntitlementConnector()
 	booleanEntitlementConnector := booleanentitlement.NewBooleanEntitlementConnector()
@@ -127,7 +130,7 @@ func setupDependencies(t *testing.T) Dependencies {
 		meteredEntitlementConnector,
 		staticEntitlementConnector,
 		booleanEntitlementConnector,
-		publisher.NewTestPublisher(t).ForTopic("entitlement"),
+		publisher.NewMockTopicPublisher(t),
 	)
 
 	return Dependencies{

@@ -322,6 +322,8 @@ func main() {
 		driver = pgClients.driver
 		logger.Info("Postgres clients initialized")
 
+		entitlementsTopicPublisher := eventPublisher.ForTopic(conf.Events.SystemEvents.Topic)
+
 		// db adapters
 		featureRepo := productcatalogpgadapter.NewPostgresFeatureRepo(pgClients.client, logger)
 		entitlementRepo := entitlementpgadapter.NewPostgresEntitlementRepo(pgClients.client)
@@ -350,6 +352,7 @@ func main() {
 			grantRepo,
 			balanceSnashotRepo,
 			time.Minute,
+			entitlementsTopicPublisher,
 		)
 		meteredEntitlementConnector = meteredentitlement.NewMeteredEntitlementConnector(
 			streamingConnector,
@@ -357,6 +360,7 @@ func main() {
 			creditBalanceConnector,
 			creditGrantConnector,
 			entitlementRepo,
+			entitlementsTopicPublisher,
 		)
 		staticEntitlementConnector := staticentitlement.NewStaticEntitlementConnector()
 		booleanEntitlementConnector := booleanentitlement.NewBooleanEntitlementConnector()
@@ -367,7 +371,7 @@ func main() {
 			meteredEntitlementConnector,
 			staticEntitlementConnector,
 			booleanEntitlementConnector,
-			eventPublisher.ForTopic(conf.Events.SystemEvents.Topic),
+			entitlementsTopicPublisher,
 		)
 	}
 

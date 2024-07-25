@@ -129,8 +129,8 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 
 		event, err := spec.NewCloudEvent(
 			spec.EventSpec{
-				Source:  spec.ComposeResourcePath(input.Namespace, "entitlement", ent.ID),
-				Subject: spec.ComposeResourcePath(input.Namespace, "subjectKey", ent.SubjectKey),
+				Source:  spec.ComposeResourcePath(input.Namespace, spec.EntityEntitlement, ent.ID),
+				Subject: spec.ComposeResourcePath(input.Namespace, spec.EntitySubjectKey, ent.SubjectKey),
 			},
 			EntitlementCreatedEvent{
 				Entitlement: *ent,
@@ -173,8 +173,8 @@ func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace 
 
 		event, err := spec.NewCloudEvent(
 			spec.EventSpec{
-				Source:  spec.ComposeResourcePath(namespace, "entitlement", ent.ID),
-				Subject: spec.ComposeResourcePath(namespace, "subjectKey", ent.SubjectKey),
+				Source:  spec.ComposeResourcePath(namespace, spec.EntityEntitlement, ent.ID),
+				Subject: spec.ComposeResourcePath(namespace, spec.EntitySubjectKey, ent.SubjectKey),
 			},
 			EntitlementDeletedEvent{
 				Entitlement: *ent,

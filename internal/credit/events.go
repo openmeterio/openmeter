@@ -19,7 +19,7 @@ const (
 type grantEvent struct {
 	Grant
 
-	SubjectKey models.SubjectKeyAndID `json:"subject"`
+	Subject models.SubjectKeyAndID `json:"subject"`
 	// Namespace from Grant cannot be used as it will never be serialized
 	Namespace models.NamespaceID `json:"namespace"`
 }
@@ -34,7 +34,7 @@ func (g grantEvent) Validate() error {
 		return errors.New("GrantOwnerID must be set")
 	}
 
-	if err := g.SubjectKey.Validate(); err != nil {
+	if err := g.Subject.Validate(); err != nil {
 		return err
 	}
 
