@@ -48,6 +48,10 @@ func (e EntitlementCreatedEvent) Spec() *spec.EventTypeSpec {
 	return &entitlementCreatedEventSpec
 }
 
+func (e EntitlementCreatedEvent) Validate() error {
+	return entitlementEvent(e).Validate()
+}
+
 type EntitlementDeletedEvent entitlementEvent
 
 var entitlementDeletedEventSpec = spec.EventTypeSpec{
@@ -59,4 +63,8 @@ var entitlementDeletedEventSpec = spec.EventTypeSpec{
 
 func (e EntitlementDeletedEvent) Spec() *spec.EventTypeSpec {
 	return &entitlementDeletedEventSpec
+}
+
+func (e EntitlementDeletedEvent) Validate() error {
+	return entitlementEvent(e).Validate()
 }

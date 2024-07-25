@@ -14,7 +14,7 @@ const (
 	EventVoidGrant   spec.EventName = "voidGrant"
 )
 
-type GrantEvent struct {
+type grantEvent struct {
 	Grant
 
 	SubjectKey models.SubjectKeyAndID `json:"subject"`
@@ -22,7 +22,7 @@ type GrantEvent struct {
 	Namespace models.NamespaceID `json:"namespace"`
 }
 
-func (g GrantEvent) Validate() error {
+func (g grantEvent) Validate() error {
 	// Basic sanity on grant
 	if g.Grant.ID == "" {
 		return errors.New("GrantID must be set")
@@ -43,7 +43,7 @@ func (g GrantEvent) Validate() error {
 	return nil
 }
 
-type GrantCreatedEvent GrantEvent
+type GrantCreatedEvent grantEvent
 
 var grantCreatedEventSpec = spec.EventTypeSpec{
 	Subsystem:   EventSubsystem,
@@ -56,7 +56,11 @@ func (e GrantCreatedEvent) Spec() *spec.EventTypeSpec {
 	return &grantCreatedEventSpec
 }
 
-type GrantVoidedEvent GrantEvent
+func (e GrantCreatedEvent) Validate() error {
+	return grantEvent(e).Validate()
+}
+
+type GrantVoidedEvent grantEvent
 
 var grantVoidedEventSpec = spec.EventTypeSpec{
 	Subsystem:   EventSubsystem,
@@ -67,4 +71,8 @@ var grantVoidedEventSpec = spec.EventTypeSpec{
 
 func (e GrantVoidedEvent) Spec() *spec.EventTypeSpec {
 	return &grantVoidedEventSpec
+}
+
+func (e GrantVoidedEvent) Validate() error {
+	return grantEvent(e).Validate()
 }
