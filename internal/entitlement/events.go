@@ -1,6 +1,9 @@
 package entitlement
 
 import (
+	"errors"
+
+	"github.com/openmeterio/openmeter/internal/event/models"
 	"github.com/openmeterio/openmeter/internal/event/spec"
 )
 
@@ -13,7 +16,23 @@ const (
 
 type entitlementEvent struct {
 	Entitlement
-	Namespace string `json:"namespace"`
+	Namespace models.NamespaceID `json:"namespace"`
+}
+
+func (e entitlementEvent) Validate() error {
+	if e.ID == "" {
+		return errors.New("ID must not be empty")
+	}
+
+	if e.SubjectKey == "" {
+		return errors.New("subjectKey must not be empty")
+	}
+
+	if err := e.Namespace.Validate(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type EntitlementCreatedEvent entitlementEvent

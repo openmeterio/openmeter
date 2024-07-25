@@ -3,7 +3,7 @@ package sink
 import (
 	"errors"
 
-	"github.com/openmeterio/openmeter/internal/event/model"
+	"github.com/openmeterio/openmeter/internal/event/models"
 	"github.com/openmeterio/openmeter/internal/event/spec"
 )
 
@@ -14,8 +14,8 @@ const (
 )
 
 type IngestEvent struct {
-	Namespace  model.NamespaceID `json:"namespace"`
-	SubjectKey string            `json:"subjectKey"`
+	Namespace  models.NamespaceID `json:"namespace"`
+	SubjectKey string             `json:"subjectKey"`
 
 	// MeterSlugs contain the list of slugs that are affected by the event. We
 	// should not use meterIDs as they are not something present in the open source
