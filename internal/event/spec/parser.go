@@ -1,17 +1,16 @@
-package types
+package spec
 
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/cloudevents/sdk-go/v2/event"
+	"github.com/oklog/ulid/v2"
 )
 
 type CloudEventsPayload interface {
 	Spec() *EventTypeSpec
-}
-
-type PayloadWithValidation interface {
 	Validate() error
 }
 
@@ -28,26 +27,41 @@ func NewCloudEvent(eventSpec EventSpec, payload CloudEventsPayload) (event.Event
 		return event.Event{}, errors.New("source is required")
 	}
 
-	if eventSpec.ID == "" {
-		return event.Event{}, errors.New("id is required")
-	}
-
 	meta := payload.Spec()
+	ev := newCloudEventFromSpec(meta, eventSpec)
 
-	if validator, ok := payload.(PayloadWithValidation); ok {
-		if err := validator.Validate(); err != nil {
-			return event.Event{}, err
-		}
+	if err := payload.Validate(); err != nil {
+		return event.Event{}, err
 	}
-
-	ev := event.New()
-	meta.FillEvent(ev)
-	eventSpec.FillEvent(ev, meta.SubjectKind)
 
 	if err := ev.SetData("application/json", payload); err != nil {
 		return event.Event{}, err
 	}
 	return ev, nil
+}
+
+// newCloudEventFromSpec generates a new cloudevents without data being set based on the event spec
+func newCloudEventFromSpec(meta *EventTypeSpec, spec EventSpec) event.Event {
+	ev := event.New()
+	ev.SetType(meta.Type())
+	ev.SetSpecVersion(string(meta.SpecVersion))
+
+	if spec.Time.IsZero() {
+		ev.SetTime(time.Now())
+	} else {
+		ev.SetTime(spec.Time)
+	}
+
+	if spec.ID == "" {
+		ev.SetID(ulid.Make().String())
+	} else {
+		ev.SetID(spec.ID)
+	}
+
+	ev.SetSource(spec.Source)
+
+	ev.SetSubject(spec.Subject)
+	return ev
 }
 
 // ParseCloudEvent unmarshals a single CloudEvent into the given payload
@@ -65,14 +79,8 @@ func ParseCloudEvent[PayloadType CloudEventsPayload](ev event.Event) (PayloadTyp
 		return payload, err
 	}
 
-	// TODO: this is a hack to avoid having to add Validate() to all payloads
-	// later we should add Validate() to all payloads or have a generator that solves it
-	// for us
-	var payloadAny any = payload
-	if validator, ok := payloadAny.(PayloadWithValidation); ok {
-		if err := validator.Validate(); err != nil {
-			return payload, err
-		}
+	if err := payload.Validate(); err != nil {
+		return payload, err
 	}
 
 	return payload, nil

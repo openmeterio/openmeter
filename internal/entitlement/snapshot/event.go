@@ -1,42 +1,19 @@
-package schema
+package snapshot
 
 import (
 	"errors"
 	"time"
 
-	"github.com/openmeterio/openmeter/internal/event/types"
+	"github.com/openmeterio/openmeter/internal/entitlement"
+	"github.com/openmeterio/openmeter/internal/event/model"
+	"github.com/openmeterio/openmeter/internal/event/spec"
+	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
-type SubjectKeyAndID struct {
-	Key string `json:"key"`
-	ID  string `json:"id,omitempty"`
-}
-
-func (s SubjectKeyAndID) Validate() error {
-	if s.Key == "" {
-		return errors.New("key is required")
-	}
-
-	return nil
-}
-
-type FeatureKeyAndID struct {
-	Key string `json:"key"`
-	ID  string `json:"id"`
-}
-
-func (f FeatureKeyAndID) Validate() error {
-	if f.Key == "" {
-		return errors.New("key is required")
-	}
-
-	if f.ID == "" {
-		return errors.New("id is required")
-	}
-
-	return nil
-}
+const (
+	EventSnapshot spec.EventName = "snapshot"
+)
 
 type BalanceOperationType string
 
@@ -63,10 +40,10 @@ type EntitlementValue struct {
 }
 
 type EntitlementBalanceSnapshotEvent struct {
-	EntitlementID string          `json:"entitlementId"`
-	Namespace     string          `json:"namespace"`
-	Subject       SubjectKeyAndID `json:"subject"`
-	Feature       FeatureKeyAndID `json:"feature"`
+	Entitlement entitlement.Entitlement `json:"entitlement"`
+	Namespace   model.NamespaceID       `json:"namespace"`
+	Subject     model.SubjectKeyAndID   `json:"subject"`
+	Feature     productcatalog.Feature  `json:"feature"`
 	// Operation is delete if the entitlement gets deleted, in that case the balance object is empty
 	Operation BalanceOperationType `json:"operation"`
 
@@ -78,15 +55,14 @@ type EntitlementBalanceSnapshotEvent struct {
 	CurrentUsagePeriod *recurrence.Period `json:"currentUsagePeriod,omitempty"`
 }
 
-var entitlementBalanceSnapshotEventSpec = types.EventTypeSpec{
-	Subsystem:   subsystemEntitlement,
-	Name:        "snapshot",
+var entitlementBalanceSnapshotEventSpec = spec.EventTypeSpec{
+	Subsystem:   entitlement.EventSubsystem,
+	Name:        EventSnapshot,
 	SpecVersion: "1.0",
 	Version:     "v1",
-	SubjectKind: subjectKindEntitlement,
 }
 
-func (e EntitlementBalanceSnapshotEvent) Spec() *types.EventTypeSpec {
+func (e EntitlementBalanceSnapshotEvent) Spec() *spec.EventTypeSpec {
 	return &entitlementBalanceSnapshotEventSpec
 }
 
@@ -95,20 +71,20 @@ func (e EntitlementBalanceSnapshotEvent) Validate() error {
 		return errors.New("operation must be either delete or update")
 	}
 
-	if e.EntitlementID == "" {
+	if e.Entitlement.ID == "" {
 		return errors.New("entitlementId is required")
 	}
 
-	if e.Namespace == "" {
-		return errors.New("namespace is required")
+	if err := e.Namespace.Validate(); err != nil {
+		return err
 	}
 
 	if err := e.Subject.Validate(); err != nil {
 		return err
 	}
 
-	if err := e.Feature.Validate(); err != nil {
-		return err
+	if e.Feature.ID == "" {
+		return errors.New("feature ID must be set")
 	}
 
 	if e.Operation == BalanceOperationUpdate {
