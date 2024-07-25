@@ -18,9 +18,9 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	slog.SetDefault(logger)
 
-	driver, err := entutils.GetPGDriver("postgres://postgres:postgres@postgres:5432/postgres")
+	driver, err := entutils.GetPGDriver(PG_URL)
 	if err != nil {
-		logger.Error("failed to get pg driver", err)
+		logger.Error("failed to get pg driver", slog.Any("error", err))
 		os.Exit(1)
 	}
 
@@ -28,7 +28,7 @@ func main() {
 	dbClient := db.NewClient(db.Driver(driver))
 
 	if err := dbClient.Schema.Create(context.Background()); err != nil {
-		logger.Error("failed to create schema", err)
+		logger.Error("failed to create schema", slog.Any("error", err))
 		os.Exit(1)
 	}
 }

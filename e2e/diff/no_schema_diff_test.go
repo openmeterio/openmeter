@@ -9,6 +9,7 @@ import (
 
 	"ariga.io/atlas/sql/migrate"
 	"entgo.io/ent/dialect/sql/schema"
+
 	entMigrate "github.com/openmeterio/openmeter/internal/ent/db/migrate"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
