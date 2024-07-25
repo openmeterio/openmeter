@@ -9,7 +9,9 @@ import (
 
 const (
 	EventSubsystem spec.EventSubsystem = "credit"
+)
 
+const (
 	EventCreateGrant spec.EventName = "createGrant"
 	EventVoidGrant   spec.EventName = "voidGrant"
 )

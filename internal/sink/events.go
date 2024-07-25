@@ -9,7 +9,9 @@ import (
 
 const (
 	EventSubsystem spec.EventSubsystem = "ingest"
+)
 
+const (
 	EventIngestion spec.EventName = "ingestion"
 )
 

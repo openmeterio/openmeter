@@ -9,7 +9,9 @@ import (
 
 const (
 	EventSubsystem spec.EventSubsystem = "entitlement"
+)
 
+const (
 	EventCreateEntitlement spec.EventName = "createEntitlement"
 	EventDeleteEntitlement spec.EventName = "deleteEntitlement"
 )

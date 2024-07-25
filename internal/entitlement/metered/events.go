@@ -10,7 +10,9 @@ import (
 
 const (
 	EventSubsystem spec.EventSubsystem = "meteredEntitlement"
+)
 
+const (
 	EventResetEntitlementUsage         spec.EventName = "resetEntitlementUsage"
 	EventCreateMeteredEntitlementGrant spec.EventName = "createMeteredEntitlementGrant"
 )
