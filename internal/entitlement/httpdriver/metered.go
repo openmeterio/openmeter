@@ -311,6 +311,17 @@ func (h *meteredEntitlementHandler) GetEntitlementBalanceHistory() GetEntitlemen
 					})
 				}
 
+				terminationReasons := []api.GrantBurnDownHistorySegmentSegmentTerminationReasons{}
+				if segment.TerminationReasons.PriorityChange {
+					terminationReasons = append(terminationReasons, api.SegmentTerminationReasonPriorityChange)
+				}
+				if len(segment.TerminationReasons.Recurrence) > 0 {
+					terminationReasons = append(terminationReasons, api.SegmentTerminationReasonRecurrence)
+				}
+				if segment.TerminationReasons.UsageReset {
+					terminationReasons = append(terminationReasons, api.SegmentTerminationReasonUsageReset)
+				}
+
 				burndown = append(burndown, api.GrantBurnDownHistorySegment{
 					BalanceAtEnd:         convert.ToPointer(segment.ApplyUsage().Balance()),
 					BalanceAtStart:       convert.ToPointer(segment.BalanceAtStart.Balance()),
@@ -323,6 +334,7 @@ func (h *meteredEntitlementHandler) GetEntitlementBalanceHistory() GetEntitlemen
 						From: segment.From,
 						To:   segment.To,
 					},
+					SegmentTerminationReasons: &terminationReasons,
 				})
 			}
 

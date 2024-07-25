@@ -873,6 +873,20 @@ export interface components {
       }
       /** @description Which grants were actually burnt down in the period and by what amount. */
       grantUsages?: readonly components['schemas']['GrantUsageRecord'][]
+      /**
+       * @description The reasons why the segment was terminated.
+       *
+       * @example [
+       *   "PRIORITY_CHANGE",
+       *   "RECURRENCE",
+       *   "USAGE_RESET"
+       * ]
+       */
+      segmentTerminationReasons?: readonly (
+        | 'PRIORITY_CHANGE'
+        | 'RECURRENCE'
+        | 'USAGE_RESET'
+      )[]
     }
     GrantUsageRecord: {
       /**
