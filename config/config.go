@@ -23,6 +23,7 @@ type Configuration struct {
 	Aggregation  AggregationConfiguration
 	Entitlements EntitlementsConfiguration
 	Dedupe       DedupeConfiguration
+	Events       EventsConfiguration
 	Ingest       IngestConfiguration
 	Meters       []*models.Meter
 	Namespace    NamespaceConfiguration
@@ -118,4 +119,5 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureSink(v)
 	ConfigureDedupe(v)
 	ConfigurePortal(v)
+	ConfigureEvents(v)
 }

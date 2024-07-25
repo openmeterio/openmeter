@@ -14,6 +14,7 @@ import (
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	entitlementrepo "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter"
 	staticentitlement "github.com/openmeterio/openmeter/internal/entitlement/static"
+	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	productcatalogrepo "github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter"
@@ -126,6 +127,7 @@ func setupDependencies(t *testing.T) Dependencies {
 		meteredEntitlementConnector,
 		staticEntitlementConnector,
 		booleanEntitlementConnector,
+		publisher.NewTestPublisher(t).ForTopic("entitlement"),
 	)
 
 	return Dependencies{

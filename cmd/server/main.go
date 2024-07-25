@@ -44,6 +44,7 @@ import (
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	entitlementpgadapter "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter"
 	staticentitlement "github.com/openmeterio/openmeter/internal/entitlement/static"
+	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
@@ -58,6 +59,8 @@ import (
 	"github.com/openmeterio/openmeter/internal/server/router"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
+	watermillkafka "github.com/openmeterio/openmeter/internal/watermill/driver/kafka"
+	"github.com/openmeterio/openmeter/internal/watermill/driver/noop"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -211,14 +214,26 @@ func main() {
 		os.Exit(1)
 	}
 
+	kafkaProducer, err := initKafkaProducer(ctx, conf, logger, metricMeter, &group)
+	if err != nil {
+		logger.Error("failed to initalize kafka producer", "error", err)
+		os.Exit(1)
+	}
+
+	eventPublisher, err := initEventPublisher(ctx, logger, conf, kafkaProducer)
+	if err != nil {
+		logger.Error("failed to initialize event publisher", "error", err)
+		os.Exit(1)
+	}
+
 	// Initialize Kafka Ingest
 	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(
 		ctx,
+		kafkaProducer,
 		conf,
 		logger,
 		metricMeter,
 		serializer.NewJSONSerializer(),
-		&group,
 	)
 	if err != nil {
 		logger.Error("failed to initialize kafka ingest", "error", err)
@@ -352,6 +367,7 @@ func main() {
 			meteredEntitlementConnector,
 			staticEntitlementConnector,
 			booleanEntitlementConnector,
+			eventPublisher.ForTopic(conf.Events.SystemEvents.Topic),
 		)
 	}
 
@@ -460,20 +476,48 @@ func main() {
 	}
 }
 
-func initKafkaIngest(ctx context.Context, config config.Configuration, logger *slog.Logger, metricMeter metric.Meter, serializer serializer.Serializer, group *run.Group) (*kafkaingest.Collector, *kafkaingest.NamespaceHandler, error) {
+func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Configuration, kafkaProducer *kafka.Producer) (publisher.Publisher, error) {
+	if !conf.Events.Enabled {
+		return publisher.NewPublisher(publisher.PublisherOptions{
+			Publisher: &noop.Publisher{},
+		})
+	}
+
+	eventDriver := watermillkafka.NewPublisher(kafkaProducer)
+	eventPublisher, err := publisher.NewPublisher(publisher.PublisherOptions{
+		Publisher: eventDriver,
+		Transform: watermillkafka.AddPartitionKeyFromSubject,
+	})
+
+	// Auto provision topics if needed
+	if conf.Events.SystemEvents.AutoProvision.Enabled {
+		adminClient, err := kafka.NewAdminClientFromProducer(kafkaProducer)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Kafka admin client: %w", err)
+		}
+
+		if err := pkgkafka.ProvisionTopic(ctx, adminClient, logger, conf.Events.SystemEvents.Topic, conf.Events.SystemEvents.AutoProvision.Partitions); err != nil {
+			return nil, fmt.Errorf("failed to auto provision topic: %w", err)
+		}
+	}
+
+	return eventPublisher, err
+}
+
+func initKafkaProducer(ctx context.Context, config config.Configuration, logger *slog.Logger, metricMeter metric.Meter, group *run.Group) (*kafka.Producer, error) {
 	// Initialize Kafka Admin Client
 	kafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
 
 	// Initialize Kafka Producer
 	producer, err := kafka.NewProducer(&kafkaConfig)
 	if err != nil {
-		return nil, nil, fmt.Errorf("init kafka ingest: %w", err)
+		return nil, fmt.Errorf("init kafka ingest: %w", err)
 	}
 
 	// Initialize Kafka Client Statistics reporter
 	kafkaMetrics, err := kafkametrics.New(metricMeter)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create Kafka client metrics: %w", err)
+		return nil, fmt.Errorf("failed to create Kafka client metrics: %w", err)
 	}
 
 	// TODO: move kafkaingest.KafkaProducerGroup to pkg/kafka
@@ -482,7 +526,10 @@ func initKafkaIngest(ctx context.Context, config config.Configuration, logger *s
 	go pkgkafka.ConsumeLogChannel(producer, logger.WithGroup("kafka").WithGroup("producer"))
 
 	slog.Debug("connected to Kafka")
+	return producer, nil
+}
 
+func initKafkaIngest(ctx context.Context, producer *kafka.Producer, config config.Configuration, logger *slog.Logger, metricMeter metric.Meter, serializer serializer.Serializer) (*kafkaingest.Collector, *kafkaingest.NamespaceHandler, error) {
 	collector, err := kafkaingest.NewCollector(
 		producer,
 		serializer,

@@ -34,6 +34,15 @@ telemetry:
 entitlements:
   enabled: true
 
+# System event generation
+events:
+  enabled: false
+# systemEvents:
+#   enabled: true
+#   topic: om_sys.api_events
+#   autoProvision:
+#     enabled: true
+#     partitions: 4
 # Consumer portal
 # portal:
 #   enabled: true
@@ -44,20 +53,20 @@ postgres:
 
 meters:
   # Sample meter to count API requests
-  - slug: api_requests_total        # Unique identifier for the meter
+  - slug: api_requests_total # Unique identifier for the meter
     description: API Requests
-    eventType: request              # Filter events by type
-    aggregation: COUNT              # Aggregation method: COUNT, SUM, etc.
+    eventType: request # Filter events by type
+    aggregation: COUNT # Aggregation method: COUNT, SUM, etc.
     groupBy:
-      method: $.method              # HTTP Method: GET, POST, etc.
-      route: $.route                # Route: /products/:product_id
+      method: $.method # HTTP Method: GET, POST, etc.
+      route: $.route # Route: /products/:product_id
 
   # Sample meter to count LLM Token Usage
   - slug: tokens_total
     description: AI Token Usage
-    eventType: prompt               # Filter events by type
+    eventType: prompt # Filter events by type
     aggregation: SUM
-    valueProperty: $.tokens         # JSONPath to parse usage value
+    valueProperty: $.tokens # JSONPath to parse usage value
     groupBy:
-      model: $.model                # AI model used: gpt4-turbo, etc.
-      type: $.type                  # Prompt type: input, output, system
+      model: $.model # AI model used: gpt4-turbo, etc.
+      type: $.type # Prompt type: input, output, system

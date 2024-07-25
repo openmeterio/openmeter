@@ -8,6 +8,7 @@ require (
 	entgo.io/ent v0.13.1
 	github.com/AppsFlyer/go-sundheit v0.5.1
 	github.com/ClickHouse/clickhouse-go/v2 v2.26.0
+	github.com/ThreeDotsLabs/watermill v1.3.5
 	github.com/XSAM/otelsql v0.32.0
 	github.com/alpacahq/alpacadecimal v0.0.4
 	github.com/avast/retry-go/v4 v4.6.0
@@ -277,6 +278,7 @@ require (
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/linkedin/goavro/v2 v2.12.0 // indirect
+	github.com/lithammer/shortuuid/v3 v3.0.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/matoous/go-nanoid/v2 v2.0.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
