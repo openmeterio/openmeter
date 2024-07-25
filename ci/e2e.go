@@ -67,33 +67,24 @@ func (e *Etoe) Diff(
 	ctx context.Context,
 	// The base ref against which to run the diffs
 	baseRef string,
-) error {
+) *dagger.Container {
 	db := postgres()
 
-	// Migrate DB with base state
-	_, err := goModule().
+	return goModule().
 		WithCgoEnabled().
 		WithSource(e.Ci.Source).
 		Container().
 		WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "make", "git", "curl", "clang", "lld"}).
+		WithServiceBinding("postgres", db).
+		WithEnvVariable("POSTGRES_URL", "postgres://postgres:postgres@postgres:5432/postgres").
+		// checkout base ref and run migrations
+		WithExec([]string{"git", "stash", "save", "-u", "-m", "localchanges"}).
 		WithExec([]string{"git", "checkout", "-f", baseRef}).
-		WithServiceBinding("postgres", db).
-		WithEnvVariable("POSTGRES_URL", "postgres://postgres:postgres@postgres:5432/postgres").
 		WithExec([]string{"go", "run", "./tools/migrate"}).
-		Sync(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to migrate base ref %s: %w", baseRef, err)
-	}
-
-	_, err = goModule().
-		WithSource(e.Ci.Source).
-		Container().
-		WithServiceBinding("postgres", db).
-		WithEnvVariable("POSTGRES_URL", "postgres://postgres:postgres@postgres:5432/postgres").
-		WithExec([]string{"go", "test", "-v", "./e2e/diff/..."}).
-		Sync(ctx)
-
-	return err
+		// switch back to current branch and run tests
+		WithExec([]string{"git", "checkout", "-"}).
+		WithExec([]string{"git", "stash", "pop"}).
+		WithExec([]string{"go", "test", "-v", "./e2e/diff/..."})
 }
 
 func clickhouse() *dagger.Service {
