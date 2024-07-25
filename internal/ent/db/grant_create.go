@@ -81,8 +81,8 @@ func (gc *GrantCreate) SetNillableDeletedAt(t *time.Time) *GrantCreate {
 }
 
 // SetOwnerID sets the "owner_id" field.
-func (gc *GrantCreate) SetOwnerID(co credit.GrantOwner) *GrantCreate {
-	gc.mutation.SetOwnerID(co)
+func (gc *GrantCreate) SetOwnerID(s string) *GrantCreate {
+	gc.mutation.SetOwnerID(s)
 	return gc
 }
 

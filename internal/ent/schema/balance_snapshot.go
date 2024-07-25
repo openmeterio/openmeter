@@ -24,7 +24,7 @@ func (BalanceSnapshot) Mixin() []ent.Mixin {
 
 func (BalanceSnapshot) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("owner_id").GoType(credit.GrantOwner("")).Immutable().SchemaType(map[string]string{
+		field.String("owner_id").Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
 		field.JSON("grant_balances", credit.GrantBalanceMap{}).Immutable().SchemaType(map[string]string{

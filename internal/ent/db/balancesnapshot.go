@@ -29,7 +29,7 @@ type BalanceSnapshot struct {
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// OwnerID holds the value of the "owner_id" field.
-	OwnerID credit.GrantOwner `json:"owner_id,omitempty"`
+	OwnerID string `json:"owner_id,omitempty"`
 	// GrantBalances holds the value of the "grant_balances" field.
 	GrantBalances credit.GrantBalanceMap `json:"grant_balances,omitempty"`
 	// Balance holds the value of the "balance" field.
@@ -129,7 +129,7 @@ func (bs *BalanceSnapshot) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field owner_id", values[i])
 			} else if value.Valid {
-				bs.OwnerID = credit.GrantOwner(value.String)
+				bs.OwnerID = value.String
 			}
 		case balancesnapshot.FieldGrantBalances:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -213,7 +213,7 @@ func (bs *BalanceSnapshot) String() string {
 	}
 	builder.WriteString(", ")
 	builder.WriteString("owner_id=")
-	builder.WriteString(fmt.Sprintf("%v", bs.OwnerID))
+	builder.WriteString(bs.OwnerID)
 	builder.WriteString(", ")
 	builder.WriteString("grant_balances=")
 	builder.WriteString(fmt.Sprintf("%v", bs.GrantBalances))

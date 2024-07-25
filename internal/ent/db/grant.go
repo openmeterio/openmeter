@@ -32,7 +32,7 @@ type Grant struct {
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// OwnerID holds the value of the "owner_id" field.
-	OwnerID credit.GrantOwner `json:"owner_id,omitempty"`
+	OwnerID string `json:"owner_id,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount float64 `json:"amount,omitempty"`
 	// Priority holds the value of the "priority" field.
@@ -152,7 +152,7 @@ func (gr *Grant) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field owner_id", values[i])
 			} else if value.Valid {
-				gr.OwnerID = credit.GrantOwner(value.String)
+				gr.OwnerID = value.String
 			}
 		case grant.FieldAmount:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
@@ -278,7 +278,7 @@ func (gr *Grant) String() string {
 	}
 	builder.WriteString(", ")
 	builder.WriteString("owner_id=")
-	builder.WriteString(fmt.Sprintf("%v", gr.OwnerID))
+	builder.WriteString(gr.OwnerID)
 	builder.WriteString(", ")
 	builder.WriteString("amount=")
 	builder.WriteString(fmt.Sprintf("%v", gr.Amount))

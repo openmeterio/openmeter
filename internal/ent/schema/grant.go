@@ -27,7 +27,7 @@ func (Grant) Mixin() []ent.Mixin {
 
 func (Grant) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("owner_id").GoType(credit.GrantOwner("")).Immutable().SchemaType(map[string]string{
+		field.String("owner_id").Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
 		field.Float("amount").Immutable().SchemaType(map[string]string{

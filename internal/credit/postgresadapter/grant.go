@@ -29,7 +29,7 @@ func NewPostgresGrantRepo(db *db.Client) credit.GrantRepo {
 func (g *grantDBADapter) CreateGrant(ctx context.Context, grant credit.GrantRepoCreateGrantInput) (*credit.Grant, error) {
 	// TODO: transaction and locking
 	command := g.db.Grant.Create().
-		SetOwnerID(grant.OwnerID).
+		SetOwnerID(string(grant.OwnerID)).
 		SetNamespace(grant.Namespace).
 		SetAmount(grant.Amount).
 		SetPriority(grant.Priority).
@@ -69,7 +69,7 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params credit.ListGrant
 	query := g.db.Grant.Query().Where(db_grant.Namespace(params.Namespace))
 
 	if params.OwnerID != nil {
-		query = query.Where(db_grant.OwnerID(*params.OwnerID))
+		query = query.Where(db_grant.OwnerID(string(*params.OwnerID)))
 	}
 
 	if !params.IncludeDeleted {
@@ -140,7 +140,7 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params credit.ListGrant
 
 func (g *grantDBADapter) ListActiveGrantsBetween(ctx context.Context, owner credit.NamespacedGrantOwner, from, to time.Time) ([]credit.Grant, error) {
 	query := g.db.Grant.Query().
-		Where(db_grant.And(db_grant.OwnerID(owner.ID), db_grant.Namespace(owner.Namespace))).
+		Where(db_grant.And(db_grant.OwnerID(string(owner.ID)), db_grant.Namespace(owner.Namespace))).
 		Where(
 			db_grant.Or(
 				db_grant.And(db_grant.EffectiveAtLT(from), db_grant.ExpiresAtGT(from)),
@@ -188,7 +188,7 @@ func mapGrantEntity(entity *db.Grant) credit.Grant {
 			Namespace: entity.Namespace,
 		},
 		ID:       entity.ID,
-		OwnerID:  entity.OwnerID,
+		OwnerID:  credit.GrantOwner(entity.OwnerID),
 		Amount:   entity.Amount,
 		Priority: entity.Priority,
 		VoidedAt: convert.SafeDeRef(entity.VoidedAt, func(t time.Time) *time.Time {

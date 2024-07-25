@@ -73,8 +73,8 @@ func (bsc *BalanceSnapshotCreate) SetNillableDeletedAt(t *time.Time) *BalanceSna
 }
 
 // SetOwnerID sets the "owner_id" field.
-func (bsc *BalanceSnapshotCreate) SetOwnerID(co credit.GrantOwner) *BalanceSnapshotCreate {
-	bsc.mutation.SetOwnerID(co)
+func (bsc *BalanceSnapshotCreate) SetOwnerID(s string) *BalanceSnapshotCreate {
+	bsc.mutation.SetOwnerID(s)
 	return bsc
 }
 

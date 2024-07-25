@@ -317,12 +317,12 @@ func (m *BalanceSnapshotMutation) ResetDeletedAt() {
 }
 
 // SetOwnerID sets the "owner_id" field.
-func (m *BalanceSnapshotMutation) SetOwnerID(co credit.GrantOwner) {
-	m.entitlement = &co
+func (m *BalanceSnapshotMutation) SetOwnerID(s string) {
+	m.entitlement = &s
 }
 
 // OwnerID returns the value of the "owner_id" field in the mutation.
-func (m *BalanceSnapshotMutation) OwnerID() (r credit.GrantOwner, exists bool) {
+func (m *BalanceSnapshotMutation) OwnerID() (r string, exists bool) {
 	v := m.entitlement
 	if v == nil {
 		return
@@ -333,7 +333,7 @@ func (m *BalanceSnapshotMutation) OwnerID() (r credit.GrantOwner, exists bool) {
 // OldOwnerID returns the old "owner_id" field's value of the BalanceSnapshot entity.
 // If the BalanceSnapshot object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BalanceSnapshotMutation) OldOwnerID(ctx context.Context) (v credit.GrantOwner, err error) {
+func (m *BalanceSnapshotMutation) OldOwnerID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldOwnerID is only allowed on UpdateOne operations")
 	}
@@ -729,7 +729,7 @@ func (m *BalanceSnapshotMutation) SetField(name string, value ent.Value) error {
 		m.SetDeletedAt(v)
 		return nil
 	case balancesnapshot.FieldOwnerID:
-		v, ok := value.(credit.GrantOwner)
+		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -4161,12 +4161,12 @@ func (m *GrantMutation) ResetDeletedAt() {
 }
 
 // SetOwnerID sets the "owner_id" field.
-func (m *GrantMutation) SetOwnerID(co credit.GrantOwner) {
-	m.entitlement = &co
+func (m *GrantMutation) SetOwnerID(s string) {
+	m.entitlement = &s
 }
 
 // OwnerID returns the value of the "owner_id" field in the mutation.
-func (m *GrantMutation) OwnerID() (r credit.GrantOwner, exists bool) {
+func (m *GrantMutation) OwnerID() (r string, exists bool) {
 	v := m.entitlement
 	if v == nil {
 		return
@@ -4177,7 +4177,7 @@ func (m *GrantMutation) OwnerID() (r credit.GrantOwner, exists bool) {
 // OldOwnerID returns the old "owner_id" field's value of the Grant entity.
 // If the Grant object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GrantMutation) OldOwnerID(ctx context.Context) (v credit.GrantOwner, err error) {
+func (m *GrantMutation) OldOwnerID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldOwnerID is only allowed on UpdateOne operations")
 	}
@@ -4924,7 +4924,7 @@ func (m *GrantMutation) SetField(name string, value ent.Value) error {
 		m.SetDeletedAt(v)
 		return nil
 	case grant.FieldOwnerID:
-		v, ok := value.(credit.GrantOwner)
+		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
