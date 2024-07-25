@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 )
 
@@ -572,6 +573,29 @@ func ArchivedAtIsNil() predicate.Feature {
 // ArchivedAtNotNil applies the NotNil predicate on the "archived_at" field.
 func ArchivedAtNotNil() predicate.Feature {
 	return predicate.Feature(sql.FieldNotNull(FieldArchivedAt))
+}
+
+// HasEntitlement applies the HasEdge predicate on the "entitlement" edge.
+func HasEntitlement() predicate.Feature {
+	return predicate.Feature(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, EntitlementTable, EntitlementColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasEntitlementWith applies the HasEdge predicate on the "entitlement" edge with a given conditions (other predicates).
+func HasEntitlementWith(preds ...predicate.Entitlement) predicate.Feature {
+	return predicate.Feature(func(s *sql.Selector) {
+		step := newEntitlementStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

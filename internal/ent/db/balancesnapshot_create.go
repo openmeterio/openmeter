@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
+	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 )
 
 // BalanceSnapshotCreate is the builder for creating a BalanceSnapshot entity.
@@ -101,6 +102,17 @@ func (bsc *BalanceSnapshotCreate) SetAt(t time.Time) *BalanceSnapshotCreate {
 	return bsc
 }
 
+// SetEntitlementID sets the "entitlement" edge to the Entitlement entity by ID.
+func (bsc *BalanceSnapshotCreate) SetEntitlementID(id string) *BalanceSnapshotCreate {
+	bsc.mutation.SetEntitlementID(id)
+	return bsc
+}
+
+// SetEntitlement sets the "entitlement" edge to the Entitlement entity.
+func (bsc *BalanceSnapshotCreate) SetEntitlement(e *Entitlement) *BalanceSnapshotCreate {
+	return bsc.SetEntitlementID(e.ID)
+}
+
 // Mutation returns the BalanceSnapshotMutation object of the builder.
 func (bsc *BalanceSnapshotCreate) Mutation() *BalanceSnapshotMutation {
 	return bsc.mutation
@@ -177,6 +189,9 @@ func (bsc *BalanceSnapshotCreate) check() error {
 	if _, ok := bsc.mutation.At(); !ok {
 		return &ValidationError{Name: "at", err: errors.New(`db: missing required field "BalanceSnapshot.at"`)}
 	}
+	if _, ok := bsc.mutation.EntitlementID(); !ok {
+		return &ValidationError{Name: "entitlement", err: errors.New(`db: missing required edge "BalanceSnapshot.entitlement"`)}
+	}
 	return nil
 }
 
@@ -220,10 +235,6 @@ func (bsc *BalanceSnapshotCreate) createSpec() (*BalanceSnapshot, *sqlgraph.Crea
 		_spec.SetField(balancesnapshot.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := bsc.mutation.OwnerID(); ok {
-		_spec.SetField(balancesnapshot.FieldOwnerID, field.TypeString, value)
-		_node.OwnerID = value
-	}
 	if value, ok := bsc.mutation.GrantBalances(); ok {
 		_spec.SetField(balancesnapshot.FieldGrantBalances, field.TypeJSON, value)
 		_node.GrantBalances = value
@@ -239,6 +250,23 @@ func (bsc *BalanceSnapshotCreate) createSpec() (*BalanceSnapshot, *sqlgraph.Crea
 	if value, ok := bsc.mutation.At(); ok {
 		_spec.SetField(balancesnapshot.FieldAt, field.TypeTime, value)
 		_node.At = value
+	}
+	if nodes := bsc.mutation.EntitlementIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   balancesnapshot.EntitlementTable,
+			Columns: []string{balancesnapshot.EntitlementColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.OwnerID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

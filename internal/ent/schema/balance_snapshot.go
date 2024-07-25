@@ -3,6 +3,7 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
@@ -48,5 +49,12 @@ func (BalanceSnapshot) Indexes() []ent.Index {
 }
 
 func (BalanceSnapshot) Edges() []ent.Edge {
-	return []ent.Edge{}
+	return []ent.Edge{
+		edge.From("entitlement", Entitlement.Type).
+			Ref("balance_snapshot").
+			Field("owner_id").
+			Required().
+			Immutable().
+			Unique(),
+	}
 }

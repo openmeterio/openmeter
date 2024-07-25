@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -11,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 )
@@ -18,11 +20,12 @@ import (
 // FeatureQuery is the builder for querying Feature entities.
 type FeatureQuery struct {
 	config
-	ctx        *QueryContext
-	order      []feature.OrderOption
-	inters     []Interceptor
-	predicates []predicate.Feature
-	modifiers  []func(*sql.Selector)
+	ctx             *QueryContext
+	order           []feature.OrderOption
+	inters          []Interceptor
+	predicates      []predicate.Feature
+	withEntitlement *EntitlementQuery
+	modifiers       []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -57,6 +60,28 @@ func (fq *FeatureQuery) Unique(unique bool) *FeatureQuery {
 func (fq *FeatureQuery) Order(o ...feature.OrderOption) *FeatureQuery {
 	fq.order = append(fq.order, o...)
 	return fq
+}
+
+// QueryEntitlement chains the current query on the "entitlement" edge.
+func (fq *FeatureQuery) QueryEntitlement() *EntitlementQuery {
+	query := (&EntitlementClient{config: fq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := fq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := fq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(feature.Table, feature.FieldID, selector),
+			sqlgraph.To(entitlement.Table, entitlement.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, feature.EntitlementTable, feature.EntitlementColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(fq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Feature entity from the query.
@@ -246,15 +271,27 @@ func (fq *FeatureQuery) Clone() *FeatureQuery {
 		return nil
 	}
 	return &FeatureQuery{
-		config:     fq.config,
-		ctx:        fq.ctx.Clone(),
-		order:      append([]feature.OrderOption{}, fq.order...),
-		inters:     append([]Interceptor{}, fq.inters...),
-		predicates: append([]predicate.Feature{}, fq.predicates...),
+		config:          fq.config,
+		ctx:             fq.ctx.Clone(),
+		order:           append([]feature.OrderOption{}, fq.order...),
+		inters:          append([]Interceptor{}, fq.inters...),
+		predicates:      append([]predicate.Feature{}, fq.predicates...),
+		withEntitlement: fq.withEntitlement.Clone(),
 		// clone intermediate query.
 		sql:  fq.sql.Clone(),
 		path: fq.path,
 	}
+}
+
+// WithEntitlement tells the query-builder to eager-load the nodes that are connected to
+// the "entitlement" edge. The optional arguments are used to configure the query builder of the edge.
+func (fq *FeatureQuery) WithEntitlement(opts ...func(*EntitlementQuery)) *FeatureQuery {
+	query := (&EntitlementClient{config: fq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	fq.withEntitlement = query
+	return fq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -333,8 +370,11 @@ func (fq *FeatureQuery) prepareQuery(ctx context.Context) error {
 
 func (fq *FeatureQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Feature, error) {
 	var (
-		nodes = []*Feature{}
-		_spec = fq.querySpec()
+		nodes       = []*Feature{}
+		_spec       = fq.querySpec()
+		loadedTypes = [1]bool{
+			fq.withEntitlement != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Feature).scanValues(nil, columns)
@@ -342,6 +382,7 @@ func (fq *FeatureQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Feat
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Feature{config: fq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if len(fq.modifiers) > 0 {
@@ -356,7 +397,45 @@ func (fq *FeatureQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Feat
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := fq.withEntitlement; query != nil {
+		if err := fq.loadEntitlement(ctx, query, nodes,
+			func(n *Feature) { n.Edges.Entitlement = []*Entitlement{} },
+			func(n *Feature, e *Entitlement) { n.Edges.Entitlement = append(n.Edges.Entitlement, e) }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (fq *FeatureQuery) loadEntitlement(ctx context.Context, query *EntitlementQuery, nodes []*Feature, init func(*Feature), assign func(*Feature, *Entitlement)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Feature)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(entitlement.FieldFeatureID)
+	}
+	query.Where(predicate.Entitlement(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(feature.EntitlementColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.FeatureID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "feature_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (fq *FeatureQuery) sqlCount(ctx context.Context) (int, error) {

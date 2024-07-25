@@ -60,5 +60,13 @@ func (Entitlement) Indexes() []ent.Index {
 func (Entitlement) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("usage_reset", UsageReset.Type),
+		edge.To("grant", Grant.Type),
+		edge.To("balance_snapshot", BalanceSnapshot.Type),
+		edge.From("feature", Feature.Type).
+			Ref("entitlement").
+			Field("feature_id").
+			Required().
+			Unique().
+			Immutable(),
 	}
 }

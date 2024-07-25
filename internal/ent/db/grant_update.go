@@ -127,7 +127,18 @@ func (gu *GrantUpdate) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (gu *GrantUpdate) check() error {
+	if _, ok := gu.mutation.EntitlementID(); gu.mutation.EntitlementCleared() && !ok {
+		return errors.New(`db: clearing a required unique edge "Grant.entitlement"`)
+	}
+	return nil
+}
+
 func (gu *GrantUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := gu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(grant.Table, grant.Columns, sqlgraph.NewFieldSpec(grant.FieldID, field.TypeString))
 	if ps := gu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -295,7 +306,18 @@ func (guo *GrantUpdateOne) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (guo *GrantUpdateOne) check() error {
+	if _, ok := guo.mutation.EntitlementID(); guo.mutation.EntitlementCleared() && !ok {
+		return errors.New(`db: clearing a required unique edge "Grant.entitlement"`)
+	}
+	return nil
+}
+
 func (guo *GrantUpdateOne) sqlSave(ctx context.Context) (_node *Grant, err error) {
+	if err := guo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(grant.Table, grant.Columns, sqlgraph.NewFieldSpec(grant.FieldID, field.TypeString))
 	id, ok := guo.mutation.ID()
 	if !ok {

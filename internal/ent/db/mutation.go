@@ -40,24 +40,25 @@ const (
 // BalanceSnapshotMutation represents an operation that mutates the BalanceSnapshot nodes in the graph.
 type BalanceSnapshotMutation struct {
 	config
-	op             Op
-	typ            string
-	id             *int
-	namespace      *string
-	created_at     *time.Time
-	updated_at     *time.Time
-	deleted_at     *time.Time
-	owner_id       *credit.GrantOwner
-	grant_balances *credit.GrantBalanceMap
-	balance        *float64
-	addbalance     *float64
-	overage        *float64
-	addoverage     *float64
-	at             *time.Time
-	clearedFields  map[string]struct{}
-	done           bool
-	oldValue       func(context.Context) (*BalanceSnapshot, error)
-	predicates     []predicate.BalanceSnapshot
+	op                 Op
+	typ                string
+	id                 *int
+	namespace          *string
+	created_at         *time.Time
+	updated_at         *time.Time
+	deleted_at         *time.Time
+	grant_balances     *credit.GrantBalanceMap
+	balance            *float64
+	addbalance         *float64
+	overage            *float64
+	addoverage         *float64
+	at                 *time.Time
+	clearedFields      map[string]struct{}
+	entitlement        *string
+	clearedentitlement bool
+	done               bool
+	oldValue           func(context.Context) (*BalanceSnapshot, error)
+	predicates         []predicate.BalanceSnapshot
 }
 
 var _ ent.Mutation = (*BalanceSnapshotMutation)(nil)
@@ -317,12 +318,12 @@ func (m *BalanceSnapshotMutation) ResetDeletedAt() {
 
 // SetOwnerID sets the "owner_id" field.
 func (m *BalanceSnapshotMutation) SetOwnerID(co credit.GrantOwner) {
-	m.owner_id = &co
+	m.entitlement = &co
 }
 
 // OwnerID returns the value of the "owner_id" field in the mutation.
 func (m *BalanceSnapshotMutation) OwnerID() (r credit.GrantOwner, exists bool) {
-	v := m.owner_id
+	v := m.entitlement
 	if v == nil {
 		return
 	}
@@ -348,7 +349,7 @@ func (m *BalanceSnapshotMutation) OldOwnerID(ctx context.Context) (v credit.Gran
 
 // ResetOwnerID resets all changes to the "owner_id" field.
 func (m *BalanceSnapshotMutation) ResetOwnerID() {
-	m.owner_id = nil
+	m.entitlement = nil
 }
 
 // SetGrantBalances sets the "grant_balances" field.
@@ -535,6 +536,46 @@ func (m *BalanceSnapshotMutation) ResetAt() {
 	m.at = nil
 }
 
+// SetEntitlementID sets the "entitlement" edge to the Entitlement entity by id.
+func (m *BalanceSnapshotMutation) SetEntitlementID(id string) {
+	m.entitlement = &id
+}
+
+// ClearEntitlement clears the "entitlement" edge to the Entitlement entity.
+func (m *BalanceSnapshotMutation) ClearEntitlement() {
+	m.clearedentitlement = true
+	m.clearedFields[balancesnapshot.FieldOwnerID] = struct{}{}
+}
+
+// EntitlementCleared reports if the "entitlement" edge to the Entitlement entity was cleared.
+func (m *BalanceSnapshotMutation) EntitlementCleared() bool {
+	return m.clearedentitlement
+}
+
+// EntitlementID returns the "entitlement" edge ID in the mutation.
+func (m *BalanceSnapshotMutation) EntitlementID() (id string, exists bool) {
+	if m.entitlement != nil {
+		return *m.entitlement, true
+	}
+	return
+}
+
+// EntitlementIDs returns the "entitlement" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// EntitlementID instead. It exists only for internal usage by the builders.
+func (m *BalanceSnapshotMutation) EntitlementIDs() (ids []string) {
+	if id := m.entitlement; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetEntitlement resets all changes to the "entitlement" edge.
+func (m *BalanceSnapshotMutation) ResetEntitlement() {
+	m.entitlement = nil
+	m.clearedentitlement = false
+}
+
 // Where appends a list predicates to the BalanceSnapshotMutation builder.
 func (m *BalanceSnapshotMutation) Where(ps ...predicate.BalanceSnapshot) {
 	m.predicates = append(m.predicates, ps...)
@@ -582,7 +623,7 @@ func (m *BalanceSnapshotMutation) Fields() []string {
 	if m.deleted_at != nil {
 		fields = append(fields, balancesnapshot.FieldDeletedAt)
 	}
-	if m.owner_id != nil {
+	if m.entitlement != nil {
 		fields = append(fields, balancesnapshot.FieldOwnerID)
 	}
 	if m.grant_balances != nil {
@@ -840,19 +881,28 @@ func (m *BalanceSnapshotMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *BalanceSnapshotMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.entitlement != nil {
+		edges = append(edges, balancesnapshot.EdgeEntitlement)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *BalanceSnapshotMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case balancesnapshot.EdgeEntitlement:
+		if id := m.entitlement; id != nil {
+			return []ent.Value{*id}
+		}
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *BalanceSnapshotMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
 	return edges
 }
 
@@ -864,25 +914,42 @@ func (m *BalanceSnapshotMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *BalanceSnapshotMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedentitlement {
+		edges = append(edges, balancesnapshot.EdgeEntitlement)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *BalanceSnapshotMutation) EdgeCleared(name string) bool {
+	switch name {
+	case balancesnapshot.EdgeEntitlement:
+		return m.clearedentitlement
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *BalanceSnapshotMutation) ClearEdge(name string) error {
+	switch name {
+	case balancesnapshot.EdgeEntitlement:
+		m.ClearEntitlement()
+		return nil
+	}
 	return fmt.Errorf("unknown BalanceSnapshot unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *BalanceSnapshotMutation) ResetEdge(name string) error {
+	switch name {
+	case balancesnapshot.EdgeEntitlement:
+		m.ResetEntitlement()
+		return nil
+	}
 	return fmt.Errorf("unknown BalanceSnapshot edge %s", name)
 }
 
@@ -898,7 +965,6 @@ type EntitlementMutation struct {
 	updated_at                    *time.Time
 	deleted_at                    *time.Time
 	entitlement_type              *entitlement.EntitlementType
-	feature_id                    *string
 	feature_key                   *string
 	subject_key                   *string
 	measure_usage_from            *time.Time
@@ -917,6 +983,14 @@ type EntitlementMutation struct {
 	usage_reset                   map[string]struct{}
 	removedusage_reset            map[string]struct{}
 	clearedusage_reset            bool
+	grant                         map[string]struct{}
+	removedgrant                  map[string]struct{}
+	clearedgrant                  bool
+	balance_snapshot              map[int]struct{}
+	removedbalance_snapshot       map[int]struct{}
+	clearedbalance_snapshot       bool
+	feature                       *string
+	clearedfeature                bool
 	done                          bool
 	oldValue                      func(context.Context) (*Entitlement, error)
 	predicates                    []predicate.Entitlement
@@ -1270,12 +1344,12 @@ func (m *EntitlementMutation) ResetEntitlementType() {
 
 // SetFeatureID sets the "feature_id" field.
 func (m *EntitlementMutation) SetFeatureID(s string) {
-	m.feature_id = &s
+	m.feature = &s
 }
 
 // FeatureID returns the value of the "feature_id" field in the mutation.
 func (m *EntitlementMutation) FeatureID() (r string, exists bool) {
-	v := m.feature_id
+	v := m.feature
 	if v == nil {
 		return
 	}
@@ -1301,7 +1375,7 @@ func (m *EntitlementMutation) OldFeatureID(ctx context.Context) (v string, err e
 
 // ResetFeatureID resets all changes to the "feature_id" field.
 func (m *EntitlementMutation) ResetFeatureID() {
-	m.feature_id = nil
+	m.feature = nil
 }
 
 // SetFeatureKey sets the "feature_key" field.
@@ -1929,6 +2003,141 @@ func (m *EntitlementMutation) ResetUsageReset() {
 	m.removedusage_reset = nil
 }
 
+// AddGrantIDs adds the "grant" edge to the Grant entity by ids.
+func (m *EntitlementMutation) AddGrantIDs(ids ...string) {
+	if m.grant == nil {
+		m.grant = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.grant[ids[i]] = struct{}{}
+	}
+}
+
+// ClearGrant clears the "grant" edge to the Grant entity.
+func (m *EntitlementMutation) ClearGrant() {
+	m.clearedgrant = true
+}
+
+// GrantCleared reports if the "grant" edge to the Grant entity was cleared.
+func (m *EntitlementMutation) GrantCleared() bool {
+	return m.clearedgrant
+}
+
+// RemoveGrantIDs removes the "grant" edge to the Grant entity by IDs.
+func (m *EntitlementMutation) RemoveGrantIDs(ids ...string) {
+	if m.removedgrant == nil {
+		m.removedgrant = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.grant, ids[i])
+		m.removedgrant[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedGrant returns the removed IDs of the "grant" edge to the Grant entity.
+func (m *EntitlementMutation) RemovedGrantIDs() (ids []string) {
+	for id := range m.removedgrant {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// GrantIDs returns the "grant" edge IDs in the mutation.
+func (m *EntitlementMutation) GrantIDs() (ids []string) {
+	for id := range m.grant {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetGrant resets all changes to the "grant" edge.
+func (m *EntitlementMutation) ResetGrant() {
+	m.grant = nil
+	m.clearedgrant = false
+	m.removedgrant = nil
+}
+
+// AddBalanceSnapshotIDs adds the "balance_snapshot" edge to the BalanceSnapshot entity by ids.
+func (m *EntitlementMutation) AddBalanceSnapshotIDs(ids ...int) {
+	if m.balance_snapshot == nil {
+		m.balance_snapshot = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.balance_snapshot[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBalanceSnapshot clears the "balance_snapshot" edge to the BalanceSnapshot entity.
+func (m *EntitlementMutation) ClearBalanceSnapshot() {
+	m.clearedbalance_snapshot = true
+}
+
+// BalanceSnapshotCleared reports if the "balance_snapshot" edge to the BalanceSnapshot entity was cleared.
+func (m *EntitlementMutation) BalanceSnapshotCleared() bool {
+	return m.clearedbalance_snapshot
+}
+
+// RemoveBalanceSnapshotIDs removes the "balance_snapshot" edge to the BalanceSnapshot entity by IDs.
+func (m *EntitlementMutation) RemoveBalanceSnapshotIDs(ids ...int) {
+	if m.removedbalance_snapshot == nil {
+		m.removedbalance_snapshot = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.balance_snapshot, ids[i])
+		m.removedbalance_snapshot[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBalanceSnapshot returns the removed IDs of the "balance_snapshot" edge to the BalanceSnapshot entity.
+func (m *EntitlementMutation) RemovedBalanceSnapshotIDs() (ids []int) {
+	for id := range m.removedbalance_snapshot {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BalanceSnapshotIDs returns the "balance_snapshot" edge IDs in the mutation.
+func (m *EntitlementMutation) BalanceSnapshotIDs() (ids []int) {
+	for id := range m.balance_snapshot {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBalanceSnapshot resets all changes to the "balance_snapshot" edge.
+func (m *EntitlementMutation) ResetBalanceSnapshot() {
+	m.balance_snapshot = nil
+	m.clearedbalance_snapshot = false
+	m.removedbalance_snapshot = nil
+}
+
+// ClearFeature clears the "feature" edge to the Feature entity.
+func (m *EntitlementMutation) ClearFeature() {
+	m.clearedfeature = true
+	m.clearedFields[entitlement.FieldFeatureID] = struct{}{}
+}
+
+// FeatureCleared reports if the "feature" edge to the Feature entity was cleared.
+func (m *EntitlementMutation) FeatureCleared() bool {
+	return m.clearedfeature
+}
+
+// FeatureIDs returns the "feature" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// FeatureID instead. It exists only for internal usage by the builders.
+func (m *EntitlementMutation) FeatureIDs() (ids []string) {
+	if id := m.feature; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetFeature resets all changes to the "feature" edge.
+func (m *EntitlementMutation) ResetFeature() {
+	m.feature = nil
+	m.clearedfeature = false
+}
+
 // Where appends a list predicates to the EntitlementMutation builder.
 func (m *EntitlementMutation) Where(ps ...predicate.Entitlement) {
 	m.predicates = append(m.predicates, ps...)
@@ -1982,7 +2191,7 @@ func (m *EntitlementMutation) Fields() []string {
 	if m.entitlement_type != nil {
 		fields = append(fields, entitlement.FieldEntitlementType)
 	}
-	if m.feature_id != nil {
+	if m.feature != nil {
 		fields = append(fields, entitlement.FieldFeatureID)
 	}
 	if m.feature_key != nil {
@@ -2447,9 +2656,18 @@ func (m *EntitlementMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *EntitlementMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 4)
 	if m.usage_reset != nil {
 		edges = append(edges, entitlement.EdgeUsageReset)
+	}
+	if m.grant != nil {
+		edges = append(edges, entitlement.EdgeGrant)
+	}
+	if m.balance_snapshot != nil {
+		edges = append(edges, entitlement.EdgeBalanceSnapshot)
+	}
+	if m.feature != nil {
+		edges = append(edges, entitlement.EdgeFeature)
 	}
 	return edges
 }
@@ -2464,15 +2682,37 @@ func (m *EntitlementMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case entitlement.EdgeGrant:
+		ids := make([]ent.Value, 0, len(m.grant))
+		for id := range m.grant {
+			ids = append(ids, id)
+		}
+		return ids
+	case entitlement.EdgeBalanceSnapshot:
+		ids := make([]ent.Value, 0, len(m.balance_snapshot))
+		for id := range m.balance_snapshot {
+			ids = append(ids, id)
+		}
+		return ids
+	case entitlement.EdgeFeature:
+		if id := m.feature; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *EntitlementMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 4)
 	if m.removedusage_reset != nil {
 		edges = append(edges, entitlement.EdgeUsageReset)
+	}
+	if m.removedgrant != nil {
+		edges = append(edges, entitlement.EdgeGrant)
+	}
+	if m.removedbalance_snapshot != nil {
+		edges = append(edges, entitlement.EdgeBalanceSnapshot)
 	}
 	return edges
 }
@@ -2487,15 +2727,36 @@ func (m *EntitlementMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case entitlement.EdgeGrant:
+		ids := make([]ent.Value, 0, len(m.removedgrant))
+		for id := range m.removedgrant {
+			ids = append(ids, id)
+		}
+		return ids
+	case entitlement.EdgeBalanceSnapshot:
+		ids := make([]ent.Value, 0, len(m.removedbalance_snapshot))
+		for id := range m.removedbalance_snapshot {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *EntitlementMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 4)
 	if m.clearedusage_reset {
 		edges = append(edges, entitlement.EdgeUsageReset)
+	}
+	if m.clearedgrant {
+		edges = append(edges, entitlement.EdgeGrant)
+	}
+	if m.clearedbalance_snapshot {
+		edges = append(edges, entitlement.EdgeBalanceSnapshot)
+	}
+	if m.clearedfeature {
+		edges = append(edges, entitlement.EdgeFeature)
 	}
 	return edges
 }
@@ -2506,6 +2767,12 @@ func (m *EntitlementMutation) EdgeCleared(name string) bool {
 	switch name {
 	case entitlement.EdgeUsageReset:
 		return m.clearedusage_reset
+	case entitlement.EdgeGrant:
+		return m.clearedgrant
+	case entitlement.EdgeBalanceSnapshot:
+		return m.clearedbalance_snapshot
+	case entitlement.EdgeFeature:
+		return m.clearedfeature
 	}
 	return false
 }
@@ -2514,6 +2781,9 @@ func (m *EntitlementMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *EntitlementMutation) ClearEdge(name string) error {
 	switch name {
+	case entitlement.EdgeFeature:
+		m.ClearFeature()
+		return nil
 	}
 	return fmt.Errorf("unknown Entitlement unique edge %s", name)
 }
@@ -2524,6 +2794,15 @@ func (m *EntitlementMutation) ResetEdge(name string) error {
 	switch name {
 	case entitlement.EdgeUsageReset:
 		m.ResetUsageReset()
+		return nil
+	case entitlement.EdgeGrant:
+		m.ResetGrant()
+		return nil
+	case entitlement.EdgeBalanceSnapshot:
+		m.ResetBalanceSnapshot()
+		return nil
+	case entitlement.EdgeFeature:
+		m.ResetFeature()
 		return nil
 	}
 	return fmt.Errorf("unknown Entitlement edge %s", name)
@@ -2546,6 +2825,9 @@ type FeatureMutation struct {
 	meter_group_by_filters *map[string]string
 	archived_at            *time.Time
 	clearedFields          map[string]struct{}
+	entitlement            map[string]struct{}
+	removedentitlement     map[string]struct{}
+	clearedentitlement     bool
 	done                   bool
 	oldValue               func(context.Context) (*Feature, error)
 	predicates             []predicate.Feature
@@ -3080,6 +3362,60 @@ func (m *FeatureMutation) ResetArchivedAt() {
 	delete(m.clearedFields, feature.FieldArchivedAt)
 }
 
+// AddEntitlementIDs adds the "entitlement" edge to the Entitlement entity by ids.
+func (m *FeatureMutation) AddEntitlementIDs(ids ...string) {
+	if m.entitlement == nil {
+		m.entitlement = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.entitlement[ids[i]] = struct{}{}
+	}
+}
+
+// ClearEntitlement clears the "entitlement" edge to the Entitlement entity.
+func (m *FeatureMutation) ClearEntitlement() {
+	m.clearedentitlement = true
+}
+
+// EntitlementCleared reports if the "entitlement" edge to the Entitlement entity was cleared.
+func (m *FeatureMutation) EntitlementCleared() bool {
+	return m.clearedentitlement
+}
+
+// RemoveEntitlementIDs removes the "entitlement" edge to the Entitlement entity by IDs.
+func (m *FeatureMutation) RemoveEntitlementIDs(ids ...string) {
+	if m.removedentitlement == nil {
+		m.removedentitlement = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.entitlement, ids[i])
+		m.removedentitlement[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedEntitlement returns the removed IDs of the "entitlement" edge to the Entitlement entity.
+func (m *FeatureMutation) RemovedEntitlementIDs() (ids []string) {
+	for id := range m.removedentitlement {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// EntitlementIDs returns the "entitlement" edge IDs in the mutation.
+func (m *FeatureMutation) EntitlementIDs() (ids []string) {
+	for id := range m.entitlement {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetEntitlement resets all changes to the "entitlement" edge.
+func (m *FeatureMutation) ResetEntitlement() {
+	m.entitlement = nil
+	m.clearedentitlement = false
+	m.removedentitlement = nil
+}
+
 // Where appends a list predicates to the FeatureMutation builder.
 func (m *FeatureMutation) Where(ps ...predicate.Feature) {
 	m.predicates = append(m.predicates, ps...)
@@ -3399,49 +3735,85 @@ func (m *FeatureMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *FeatureMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.entitlement != nil {
+		edges = append(edges, feature.EdgeEntitlement)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *FeatureMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case feature.EdgeEntitlement:
+		ids := make([]ent.Value, 0, len(m.entitlement))
+		for id := range m.entitlement {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *FeatureMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.removedentitlement != nil {
+		edges = append(edges, feature.EdgeEntitlement)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *FeatureMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case feature.EdgeEntitlement:
+		ids := make([]ent.Value, 0, len(m.removedentitlement))
+		for id := range m.removedentitlement {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *FeatureMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedentitlement {
+		edges = append(edges, feature.EdgeEntitlement)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *FeatureMutation) EdgeCleared(name string) bool {
+	switch name {
+	case feature.EdgeEntitlement:
+		return m.clearedentitlement
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *FeatureMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown Feature unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *FeatureMutation) ResetEdge(name string) error {
+	switch name {
+	case feature.EdgeEntitlement:
+		m.ResetEntitlement()
+		return nil
+	}
 	return fmt.Errorf("unknown Feature edge %s", name)
 }
 
@@ -3456,7 +3828,6 @@ type GrantMutation struct {
 	created_at            *time.Time
 	updated_at            *time.Time
 	deleted_at            *time.Time
-	owner_id              *credit.GrantOwner
 	amount                *float64
 	addamount             *float64
 	priority              *uint8
@@ -3472,6 +3843,8 @@ type GrantMutation struct {
 	recurrence_period     *recurrence.RecurrenceInterval
 	recurrence_anchor     *time.Time
 	clearedFields         map[string]struct{}
+	entitlement           *string
+	clearedentitlement    bool
 	done                  bool
 	oldValue              func(context.Context) (*Grant, error)
 	predicates            []predicate.Grant
@@ -3789,12 +4162,12 @@ func (m *GrantMutation) ResetDeletedAt() {
 
 // SetOwnerID sets the "owner_id" field.
 func (m *GrantMutation) SetOwnerID(co credit.GrantOwner) {
-	m.owner_id = &co
+	m.entitlement = &co
 }
 
 // OwnerID returns the value of the "owner_id" field in the mutation.
 func (m *GrantMutation) OwnerID() (r credit.GrantOwner, exists bool) {
-	v := m.owner_id
+	v := m.entitlement
 	if v == nil {
 		return
 	}
@@ -3820,7 +4193,7 @@ func (m *GrantMutation) OldOwnerID(ctx context.Context) (v credit.GrantOwner, er
 
 // ResetOwnerID resets all changes to the "owner_id" field.
 func (m *GrantMutation) ResetOwnerID() {
-	m.owner_id = nil
+	m.entitlement = nil
 }
 
 // SetAmount sets the "amount" field.
@@ -4302,6 +4675,46 @@ func (m *GrantMutation) ResetRecurrenceAnchor() {
 	delete(m.clearedFields, grant.FieldRecurrenceAnchor)
 }
 
+// SetEntitlementID sets the "entitlement" edge to the Entitlement entity by id.
+func (m *GrantMutation) SetEntitlementID(id string) {
+	m.entitlement = &id
+}
+
+// ClearEntitlement clears the "entitlement" edge to the Entitlement entity.
+func (m *GrantMutation) ClearEntitlement() {
+	m.clearedentitlement = true
+	m.clearedFields[grant.FieldOwnerID] = struct{}{}
+}
+
+// EntitlementCleared reports if the "entitlement" edge to the Entitlement entity was cleared.
+func (m *GrantMutation) EntitlementCleared() bool {
+	return m.clearedentitlement
+}
+
+// EntitlementID returns the "entitlement" edge ID in the mutation.
+func (m *GrantMutation) EntitlementID() (id string, exists bool) {
+	if m.entitlement != nil {
+		return *m.entitlement, true
+	}
+	return
+}
+
+// EntitlementIDs returns the "entitlement" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// EntitlementID instead. It exists only for internal usage by the builders.
+func (m *GrantMutation) EntitlementIDs() (ids []string) {
+	if id := m.entitlement; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetEntitlement resets all changes to the "entitlement" edge.
+func (m *GrantMutation) ResetEntitlement() {
+	m.entitlement = nil
+	m.clearedentitlement = false
+}
+
 // Where appends a list predicates to the GrantMutation builder.
 func (m *GrantMutation) Where(ps ...predicate.Grant) {
 	m.predicates = append(m.predicates, ps...)
@@ -4352,7 +4765,7 @@ func (m *GrantMutation) Fields() []string {
 	if m.deleted_at != nil {
 		fields = append(fields, grant.FieldDeletedAt)
 	}
-	if m.owner_id != nil {
+	if m.entitlement != nil {
 		fields = append(fields, grant.FieldOwnerID)
 	}
 	if m.amount != nil {
@@ -4774,19 +5187,28 @@ func (m *GrantMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *GrantMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.entitlement != nil {
+		edges = append(edges, grant.EdgeEntitlement)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *GrantMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case grant.EdgeEntitlement:
+		if id := m.entitlement; id != nil {
+			return []ent.Value{*id}
+		}
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *GrantMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
 	return edges
 }
 
@@ -4798,25 +5220,42 @@ func (m *GrantMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *GrantMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedentitlement {
+		edges = append(edges, grant.EdgeEntitlement)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *GrantMutation) EdgeCleared(name string) bool {
+	switch name {
+	case grant.EdgeEntitlement:
+		return m.clearedentitlement
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *GrantMutation) ClearEdge(name string) error {
+	switch name {
+	case grant.EdgeEntitlement:
+		m.ClearEntitlement()
+		return nil
+	}
 	return fmt.Errorf("unknown Grant unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *GrantMutation) ResetEdge(name string) error {
+	switch name {
+	case grant.EdgeEntitlement:
+		m.ResetEntitlement()
+		return nil
+	}
 	return fmt.Errorf("unknown Grant edge %s", name)
 }
 

@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 )
@@ -112,9 +113,45 @@ func (fu *FeatureUpdate) ClearArchivedAt() *FeatureUpdate {
 	return fu
 }
 
+// AddEntitlementIDs adds the "entitlement" edge to the Entitlement entity by IDs.
+func (fu *FeatureUpdate) AddEntitlementIDs(ids ...string) *FeatureUpdate {
+	fu.mutation.AddEntitlementIDs(ids...)
+	return fu
+}
+
+// AddEntitlement adds the "entitlement" edges to the Entitlement entity.
+func (fu *FeatureUpdate) AddEntitlement(e ...*Entitlement) *FeatureUpdate {
+	ids := make([]string, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return fu.AddEntitlementIDs(ids...)
+}
+
 // Mutation returns the FeatureMutation object of the builder.
 func (fu *FeatureUpdate) Mutation() *FeatureMutation {
 	return fu.mutation
+}
+
+// ClearEntitlement clears all "entitlement" edges to the Entitlement entity.
+func (fu *FeatureUpdate) ClearEntitlement() *FeatureUpdate {
+	fu.mutation.ClearEntitlement()
+	return fu
+}
+
+// RemoveEntitlementIDs removes the "entitlement" edge to Entitlement entities by IDs.
+func (fu *FeatureUpdate) RemoveEntitlementIDs(ids ...string) *FeatureUpdate {
+	fu.mutation.RemoveEntitlementIDs(ids...)
+	return fu
+}
+
+// RemoveEntitlement removes "entitlement" edges to Entitlement entities.
+func (fu *FeatureUpdate) RemoveEntitlement(e ...*Entitlement) *FeatureUpdate {
+	ids := make([]string, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return fu.RemoveEntitlementIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -207,6 +244,51 @@ func (fu *FeatureUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if fu.mutation.ArchivedAtCleared() {
 		_spec.ClearField(feature.FieldArchivedAt, field.TypeTime)
+	}
+	if fu.mutation.EntitlementCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   feature.EntitlementTable,
+			Columns: []string{feature.EntitlementColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := fu.mutation.RemovedEntitlementIDs(); len(nodes) > 0 && !fu.mutation.EntitlementCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   feature.EntitlementTable,
+			Columns: []string{feature.EntitlementColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := fu.mutation.EntitlementIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   feature.EntitlementTable,
+			Columns: []string{feature.EntitlementColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, fu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -312,9 +394,45 @@ func (fuo *FeatureUpdateOne) ClearArchivedAt() *FeatureUpdateOne {
 	return fuo
 }
 
+// AddEntitlementIDs adds the "entitlement" edge to the Entitlement entity by IDs.
+func (fuo *FeatureUpdateOne) AddEntitlementIDs(ids ...string) *FeatureUpdateOne {
+	fuo.mutation.AddEntitlementIDs(ids...)
+	return fuo
+}
+
+// AddEntitlement adds the "entitlement" edges to the Entitlement entity.
+func (fuo *FeatureUpdateOne) AddEntitlement(e ...*Entitlement) *FeatureUpdateOne {
+	ids := make([]string, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return fuo.AddEntitlementIDs(ids...)
+}
+
 // Mutation returns the FeatureMutation object of the builder.
 func (fuo *FeatureUpdateOne) Mutation() *FeatureMutation {
 	return fuo.mutation
+}
+
+// ClearEntitlement clears all "entitlement" edges to the Entitlement entity.
+func (fuo *FeatureUpdateOne) ClearEntitlement() *FeatureUpdateOne {
+	fuo.mutation.ClearEntitlement()
+	return fuo
+}
+
+// RemoveEntitlementIDs removes the "entitlement" edge to Entitlement entities by IDs.
+func (fuo *FeatureUpdateOne) RemoveEntitlementIDs(ids ...string) *FeatureUpdateOne {
+	fuo.mutation.RemoveEntitlementIDs(ids...)
+	return fuo
+}
+
+// RemoveEntitlement removes "entitlement" edges to Entitlement entities.
+func (fuo *FeatureUpdateOne) RemoveEntitlement(e ...*Entitlement) *FeatureUpdateOne {
+	ids := make([]string, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return fuo.RemoveEntitlementIDs(ids...)
 }
 
 // Where appends a list predicates to the FeatureUpdate builder.
@@ -437,6 +555,51 @@ func (fuo *FeatureUpdateOne) sqlSave(ctx context.Context) (_node *Feature, err e
 	}
 	if fuo.mutation.ArchivedAtCleared() {
 		_spec.ClearField(feature.FieldArchivedAt, field.TypeTime)
+	}
+	if fuo.mutation.EntitlementCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   feature.EntitlementTable,
+			Columns: []string{feature.EntitlementColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := fuo.mutation.RemovedEntitlementIDs(); len(nodes) > 0 && !fuo.mutation.EntitlementCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   feature.EntitlementTable,
+			Columns: []string{feature.EntitlementColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := fuo.mutation.EntitlementIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   feature.EntitlementTable,
+			Columns: []string{feature.EntitlementColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Feature{config: fuo.config}
 	_spec.Assign = _node.assignValues

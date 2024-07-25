@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
+	"github.com/openmeterio/openmeter/internal/ent/db/feature"
 )
 
 // Entitlement is the model entity for the Entitlement schema.
@@ -64,9 +65,15 @@ type Entitlement struct {
 type EntitlementEdges struct {
 	// UsageReset holds the value of the usage_reset edge.
 	UsageReset []*UsageReset `json:"usage_reset,omitempty"`
+	// Grant holds the value of the grant edge.
+	Grant []*Grant `json:"grant,omitempty"`
+	// BalanceSnapshot holds the value of the balance_snapshot edge.
+	BalanceSnapshot []*BalanceSnapshot `json:"balance_snapshot,omitempty"`
+	// Feature holds the value of the feature edge.
+	Feature *Feature `json:"feature,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [4]bool
 }
 
 // UsageResetOrErr returns the UsageReset value or an error if the edge
@@ -76,6 +83,35 @@ func (e EntitlementEdges) UsageResetOrErr() ([]*UsageReset, error) {
 		return e.UsageReset, nil
 	}
 	return nil, &NotLoadedError{edge: "usage_reset"}
+}
+
+// GrantOrErr returns the Grant value or an error if the edge
+// was not loaded in eager-loading.
+func (e EntitlementEdges) GrantOrErr() ([]*Grant, error) {
+	if e.loadedTypes[1] {
+		return e.Grant, nil
+	}
+	return nil, &NotLoadedError{edge: "grant"}
+}
+
+// BalanceSnapshotOrErr returns the BalanceSnapshot value or an error if the edge
+// was not loaded in eager-loading.
+func (e EntitlementEdges) BalanceSnapshotOrErr() ([]*BalanceSnapshot, error) {
+	if e.loadedTypes[2] {
+		return e.BalanceSnapshot, nil
+	}
+	return nil, &NotLoadedError{edge: "balance_snapshot"}
+}
+
+// FeatureOrErr returns the Feature value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e EntitlementEdges) FeatureOrErr() (*Feature, error) {
+	if e.Feature != nil {
+		return e.Feature, nil
+	} else if e.loadedTypes[3] {
+		return nil, &NotFoundError{label: feature.Label}
+	}
+	return nil, &NotLoadedError{edge: "feature"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -253,6 +289,21 @@ func (e *Entitlement) Value(name string) (ent.Value, error) {
 // QueryUsageReset queries the "usage_reset" edge of the Entitlement entity.
 func (e *Entitlement) QueryUsageReset() *UsageResetQuery {
 	return NewEntitlementClient(e.config).QueryUsageReset(e)
+}
+
+// QueryGrant queries the "grant" edge of the Entitlement entity.
+func (e *Entitlement) QueryGrant() *GrantQuery {
+	return NewEntitlementClient(e.config).QueryGrant(e)
+}
+
+// QueryBalanceSnapshot queries the "balance_snapshot" edge of the Entitlement entity.
+func (e *Entitlement) QueryBalanceSnapshot() *BalanceSnapshotQuery {
+	return NewEntitlementClient(e.config).QueryBalanceSnapshot(e)
+}
+
+// QueryFeature queries the "feature" edge of the Entitlement entity.
+func (e *Entitlement) QueryFeature() *FeatureQuery {
+	return NewEntitlementClient(e.config).QueryFeature(e)
 }
 
 // Update returns a builder for updating this Entitlement.

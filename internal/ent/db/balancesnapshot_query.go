@@ -12,17 +12,19 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
+	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 )
 
 // BalanceSnapshotQuery is the builder for querying BalanceSnapshot entities.
 type BalanceSnapshotQuery struct {
 	config
-	ctx        *QueryContext
-	order      []balancesnapshot.OrderOption
-	inters     []Interceptor
-	predicates []predicate.BalanceSnapshot
-	modifiers  []func(*sql.Selector)
+	ctx             *QueryContext
+	order           []balancesnapshot.OrderOption
+	inters          []Interceptor
+	predicates      []predicate.BalanceSnapshot
+	withEntitlement *EntitlementQuery
+	modifiers       []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -57,6 +59,28 @@ func (bsq *BalanceSnapshotQuery) Unique(unique bool) *BalanceSnapshotQuery {
 func (bsq *BalanceSnapshotQuery) Order(o ...balancesnapshot.OrderOption) *BalanceSnapshotQuery {
 	bsq.order = append(bsq.order, o...)
 	return bsq
+}
+
+// QueryEntitlement chains the current query on the "entitlement" edge.
+func (bsq *BalanceSnapshotQuery) QueryEntitlement() *EntitlementQuery {
+	query := (&EntitlementClient{config: bsq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := bsq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := bsq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(balancesnapshot.Table, balancesnapshot.FieldID, selector),
+			sqlgraph.To(entitlement.Table, entitlement.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, balancesnapshot.EntitlementTable, balancesnapshot.EntitlementColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(bsq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first BalanceSnapshot entity from the query.
@@ -246,15 +270,27 @@ func (bsq *BalanceSnapshotQuery) Clone() *BalanceSnapshotQuery {
 		return nil
 	}
 	return &BalanceSnapshotQuery{
-		config:     bsq.config,
-		ctx:        bsq.ctx.Clone(),
-		order:      append([]balancesnapshot.OrderOption{}, bsq.order...),
-		inters:     append([]Interceptor{}, bsq.inters...),
-		predicates: append([]predicate.BalanceSnapshot{}, bsq.predicates...),
+		config:          bsq.config,
+		ctx:             bsq.ctx.Clone(),
+		order:           append([]balancesnapshot.OrderOption{}, bsq.order...),
+		inters:          append([]Interceptor{}, bsq.inters...),
+		predicates:      append([]predicate.BalanceSnapshot{}, bsq.predicates...),
+		withEntitlement: bsq.withEntitlement.Clone(),
 		// clone intermediate query.
 		sql:  bsq.sql.Clone(),
 		path: bsq.path,
 	}
+}
+
+// WithEntitlement tells the query-builder to eager-load the nodes that are connected to
+// the "entitlement" edge. The optional arguments are used to configure the query builder of the edge.
+func (bsq *BalanceSnapshotQuery) WithEntitlement(opts ...func(*EntitlementQuery)) *BalanceSnapshotQuery {
+	query := (&EntitlementClient{config: bsq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	bsq.withEntitlement = query
+	return bsq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -333,8 +369,11 @@ func (bsq *BalanceSnapshotQuery) prepareQuery(ctx context.Context) error {
 
 func (bsq *BalanceSnapshotQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*BalanceSnapshot, error) {
 	var (
-		nodes = []*BalanceSnapshot{}
-		_spec = bsq.querySpec()
+		nodes       = []*BalanceSnapshot{}
+		_spec       = bsq.querySpec()
+		loadedTypes = [1]bool{
+			bsq.withEntitlement != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*BalanceSnapshot).scanValues(nil, columns)
@@ -342,6 +381,7 @@ func (bsq *BalanceSnapshotQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &BalanceSnapshot{config: bsq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if len(bsq.modifiers) > 0 {
@@ -356,7 +396,43 @@ func (bsq *BalanceSnapshotQuery) sqlAll(ctx context.Context, hooks ...queryHook)
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := bsq.withEntitlement; query != nil {
+		if err := bsq.loadEntitlement(ctx, query, nodes, nil,
+			func(n *BalanceSnapshot, e *Entitlement) { n.Edges.Entitlement = e }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (bsq *BalanceSnapshotQuery) loadEntitlement(ctx context.Context, query *EntitlementQuery, nodes []*BalanceSnapshot, init func(*BalanceSnapshot), assign func(*BalanceSnapshot, *Entitlement)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*BalanceSnapshot)
+	for i := range nodes {
+		fk := nodes[i].OwnerID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(entitlement.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "owner_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
 }
 
 func (bsq *BalanceSnapshotQuery) sqlCount(ctx context.Context) (int, error) {
@@ -386,6 +462,9 @@ func (bsq *BalanceSnapshotQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != balancesnapshot.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if bsq.withEntitlement != nil {
+			_spec.Node.AddColumnOnce(balancesnapshot.FieldOwnerID)
 		}
 	}
 	if ps := bsq.predicates; len(ps) > 0 {

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -31,8 +32,17 @@ const (
 	FieldOverage = "overage"
 	// FieldAt holds the string denoting the at field in the database.
 	FieldAt = "at"
+	// EdgeEntitlement holds the string denoting the entitlement edge name in mutations.
+	EdgeEntitlement = "entitlement"
 	// Table holds the table name of the balancesnapshot in the database.
 	Table = "balance_snapshots"
+	// EntitlementTable is the table that holds the entitlement relation/edge.
+	EntitlementTable = "balance_snapshots"
+	// EntitlementInverseTable is the table name for the Entitlement entity.
+	// It exists in this package in order to avoid circular dependency with the "entitlement" package.
+	EntitlementInverseTable = "entitlements"
+	// EntitlementColumn is the table column denoting the entitlement relation/edge.
+	EntitlementColumn = "owner_id"
 )
 
 // Columns holds all SQL columns for balancesnapshot fields.
@@ -116,4 +126,18 @@ func ByOverage(opts ...sql.OrderTermOption) OrderOption {
 // ByAt orders the results by the at field.
 func ByAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAt, opts...).ToFunc()
+}
+
+// ByEntitlementField orders the results by entitlement field.
+func ByEntitlementField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newEntitlementStep(), sql.OrderByField(field, opts...))
+	}
+}
+func newEntitlementStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(EntitlementInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, EntitlementTable, EntitlementColumn),
+	)
 }

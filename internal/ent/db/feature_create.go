@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/ent/db/feature"
 )
 
@@ -135,6 +136,21 @@ func (fc *FeatureCreate) SetNillableID(s *string) *FeatureCreate {
 		fc.SetID(*s)
 	}
 	return fc
+}
+
+// AddEntitlementIDs adds the "entitlement" edge to the Entitlement entity by IDs.
+func (fc *FeatureCreate) AddEntitlementIDs(ids ...string) *FeatureCreate {
+	fc.mutation.AddEntitlementIDs(ids...)
+	return fc
+}
+
+// AddEntitlement adds the "entitlement" edges to the Entitlement entity.
+func (fc *FeatureCreate) AddEntitlement(e ...*Entitlement) *FeatureCreate {
+	ids := make([]string, len(e))
+	for i := range e {
+		ids[i] = e[i].ID
+	}
+	return fc.AddEntitlementIDs(ids...)
 }
 
 // Mutation returns the FeatureMutation object of the builder.
@@ -293,6 +309,22 @@ func (fc *FeatureCreate) createSpec() (*Feature, *sqlgraph.CreateSpec) {
 	if value, ok := fc.mutation.ArchivedAt(); ok {
 		_spec.SetField(feature.FieldArchivedAt, field.TypeTime, value)
 		_node.ArchivedAt = &value
+	}
+	if nodes := fc.mutation.EntitlementIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   feature.EntitlementTable,
+			Columns: []string{feature.EntitlementColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
@@ -799,6 +800,29 @@ func RecurrenceAnchorIsNil() predicate.Grant {
 // RecurrenceAnchorNotNil applies the NotNil predicate on the "recurrence_anchor" field.
 func RecurrenceAnchorNotNil() predicate.Grant {
 	return predicate.Grant(sql.FieldNotNull(FieldRecurrenceAnchor))
+}
+
+// HasEntitlement applies the HasEdge predicate on the "entitlement" edge.
+func HasEntitlement() predicate.Grant {
+	return predicate.Grant(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, EntitlementTable, EntitlementColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasEntitlementWith applies the HasEdge predicate on the "entitlement" edge with a given conditions (other predicates).
+func HasEntitlementWith(preds ...predicate.Entitlement) predicate.Grant {
+	return predicate.Grant(func(s *sql.Selector) {
+		step := newEntitlementStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

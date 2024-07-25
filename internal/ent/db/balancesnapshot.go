@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
+	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 )
 
 // BalanceSnapshot is the model entity for the BalanceSnapshot schema.
@@ -36,8 +37,31 @@ type BalanceSnapshot struct {
 	// Overage holds the value of the "overage" field.
 	Overage float64 `json:"overage,omitempty"`
 	// At holds the value of the "at" field.
-	At           time.Time `json:"at,omitempty"`
+	At time.Time `json:"at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the BalanceSnapshotQuery when eager-loading is set.
+	Edges        BalanceSnapshotEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// BalanceSnapshotEdges holds the relations/edges for other nodes in the graph.
+type BalanceSnapshotEdges struct {
+	// Entitlement holds the value of the entitlement edge.
+	Entitlement *Entitlement `json:"entitlement,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// EntitlementOrErr returns the Entitlement value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BalanceSnapshotEdges) EntitlementOrErr() (*Entitlement, error) {
+	if e.Entitlement != nil {
+		return e.Entitlement, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: entitlement.Label}
+	}
+	return nil, &NotLoadedError{edge: "entitlement"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -144,6 +168,11 @@ func (bs *BalanceSnapshot) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (bs *BalanceSnapshot) Value(name string) (ent.Value, error) {
 	return bs.selectValues.Get(name)
+}
+
+// QueryEntitlement queries the "entitlement" edge of the BalanceSnapshot entity.
+func (bs *BalanceSnapshot) QueryEntitlement() *EntitlementQuery {
+	return NewBalanceSnapshotClient(bs.config).QueryEntitlement(bs)
 }
 
 // Update returns a builder for updating this BalanceSnapshot.

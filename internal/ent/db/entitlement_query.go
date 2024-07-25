@@ -12,7 +12,10 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
+	"github.com/openmeterio/openmeter/internal/ent/db/feature"
+	"github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 	"github.com/openmeterio/openmeter/internal/ent/db/usagereset"
 )
@@ -20,12 +23,15 @@ import (
 // EntitlementQuery is the builder for querying Entitlement entities.
 type EntitlementQuery struct {
 	config
-	ctx            *QueryContext
-	order          []entitlement.OrderOption
-	inters         []Interceptor
-	predicates     []predicate.Entitlement
-	withUsageReset *UsageResetQuery
-	modifiers      []func(*sql.Selector)
+	ctx                 *QueryContext
+	order               []entitlement.OrderOption
+	inters              []Interceptor
+	predicates          []predicate.Entitlement
+	withUsageReset      *UsageResetQuery
+	withGrant           *GrantQuery
+	withBalanceSnapshot *BalanceSnapshotQuery
+	withFeature         *FeatureQuery
+	modifiers           []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -77,6 +83,72 @@ func (eq *EntitlementQuery) QueryUsageReset() *UsageResetQuery {
 			sqlgraph.From(entitlement.Table, entitlement.FieldID, selector),
 			sqlgraph.To(usagereset.Table, usagereset.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, entitlement.UsageResetTable, entitlement.UsageResetColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryGrant chains the current query on the "grant" edge.
+func (eq *EntitlementQuery) QueryGrant() *GrantQuery {
+	query := (&GrantClient{config: eq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := eq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := eq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(entitlement.Table, entitlement.FieldID, selector),
+			sqlgraph.To(grant.Table, grant.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, entitlement.GrantTable, entitlement.GrantColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBalanceSnapshot chains the current query on the "balance_snapshot" edge.
+func (eq *EntitlementQuery) QueryBalanceSnapshot() *BalanceSnapshotQuery {
+	query := (&BalanceSnapshotClient{config: eq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := eq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := eq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(entitlement.Table, entitlement.FieldID, selector),
+			sqlgraph.To(balancesnapshot.Table, balancesnapshot.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, entitlement.BalanceSnapshotTable, entitlement.BalanceSnapshotColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryFeature chains the current query on the "feature" edge.
+func (eq *EntitlementQuery) QueryFeature() *FeatureQuery {
+	query := (&FeatureClient{config: eq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := eq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := eq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(entitlement.Table, entitlement.FieldID, selector),
+			sqlgraph.To(feature.Table, feature.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, entitlement.FeatureTable, entitlement.FeatureColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
 		return fromU, nil
@@ -271,12 +343,15 @@ func (eq *EntitlementQuery) Clone() *EntitlementQuery {
 		return nil
 	}
 	return &EntitlementQuery{
-		config:         eq.config,
-		ctx:            eq.ctx.Clone(),
-		order:          append([]entitlement.OrderOption{}, eq.order...),
-		inters:         append([]Interceptor{}, eq.inters...),
-		predicates:     append([]predicate.Entitlement{}, eq.predicates...),
-		withUsageReset: eq.withUsageReset.Clone(),
+		config:              eq.config,
+		ctx:                 eq.ctx.Clone(),
+		order:               append([]entitlement.OrderOption{}, eq.order...),
+		inters:              append([]Interceptor{}, eq.inters...),
+		predicates:          append([]predicate.Entitlement{}, eq.predicates...),
+		withUsageReset:      eq.withUsageReset.Clone(),
+		withGrant:           eq.withGrant.Clone(),
+		withBalanceSnapshot: eq.withBalanceSnapshot.Clone(),
+		withFeature:         eq.withFeature.Clone(),
 		// clone intermediate query.
 		sql:  eq.sql.Clone(),
 		path: eq.path,
@@ -291,6 +366,39 @@ func (eq *EntitlementQuery) WithUsageReset(opts ...func(*UsageResetQuery)) *Enti
 		opt(query)
 	}
 	eq.withUsageReset = query
+	return eq
+}
+
+// WithGrant tells the query-builder to eager-load the nodes that are connected to
+// the "grant" edge. The optional arguments are used to configure the query builder of the edge.
+func (eq *EntitlementQuery) WithGrant(opts ...func(*GrantQuery)) *EntitlementQuery {
+	query := (&GrantClient{config: eq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	eq.withGrant = query
+	return eq
+}
+
+// WithBalanceSnapshot tells the query-builder to eager-load the nodes that are connected to
+// the "balance_snapshot" edge. The optional arguments are used to configure the query builder of the edge.
+func (eq *EntitlementQuery) WithBalanceSnapshot(opts ...func(*BalanceSnapshotQuery)) *EntitlementQuery {
+	query := (&BalanceSnapshotClient{config: eq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	eq.withBalanceSnapshot = query
+	return eq
+}
+
+// WithFeature tells the query-builder to eager-load the nodes that are connected to
+// the "feature" edge. The optional arguments are used to configure the query builder of the edge.
+func (eq *EntitlementQuery) WithFeature(opts ...func(*FeatureQuery)) *EntitlementQuery {
+	query := (&FeatureClient{config: eq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	eq.withFeature = query
 	return eq
 }
 
@@ -372,8 +480,11 @@ func (eq *EntitlementQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*
 	var (
 		nodes       = []*Entitlement{}
 		_spec       = eq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [4]bool{
 			eq.withUsageReset != nil,
+			eq.withGrant != nil,
+			eq.withBalanceSnapshot != nil,
+			eq.withFeature != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -401,6 +512,26 @@ func (eq *EntitlementQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*
 		if err := eq.loadUsageReset(ctx, query, nodes,
 			func(n *Entitlement) { n.Edges.UsageReset = []*UsageReset{} },
 			func(n *Entitlement, e *UsageReset) { n.Edges.UsageReset = append(n.Edges.UsageReset, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := eq.withGrant; query != nil {
+		if err := eq.loadGrant(ctx, query, nodes,
+			func(n *Entitlement) { n.Edges.Grant = []*Grant{} },
+			func(n *Entitlement, e *Grant) { n.Edges.Grant = append(n.Edges.Grant, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := eq.withBalanceSnapshot; query != nil {
+		if err := eq.loadBalanceSnapshot(ctx, query, nodes,
+			func(n *Entitlement) { n.Edges.BalanceSnapshot = []*BalanceSnapshot{} },
+			func(n *Entitlement, e *BalanceSnapshot) { n.Edges.BalanceSnapshot = append(n.Edges.BalanceSnapshot, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := eq.withFeature; query != nil {
+		if err := eq.loadFeature(ctx, query, nodes, nil,
+			func(n *Entitlement, e *Feature) { n.Edges.Feature = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -437,6 +568,95 @@ func (eq *EntitlementQuery) loadUsageReset(ctx context.Context, query *UsageRese
 	}
 	return nil
 }
+func (eq *EntitlementQuery) loadGrant(ctx context.Context, query *GrantQuery, nodes []*Entitlement, init func(*Entitlement), assign func(*Entitlement, *Grant)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Entitlement)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(grant.FieldOwnerID)
+	}
+	query.Where(predicate.Grant(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(entitlement.GrantColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.OwnerID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "owner_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (eq *EntitlementQuery) loadBalanceSnapshot(ctx context.Context, query *BalanceSnapshotQuery, nodes []*Entitlement, init func(*Entitlement), assign func(*Entitlement, *BalanceSnapshot)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Entitlement)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(balancesnapshot.FieldOwnerID)
+	}
+	query.Where(predicate.BalanceSnapshot(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(entitlement.BalanceSnapshotColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.OwnerID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "owner_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (eq *EntitlementQuery) loadFeature(ctx context.Context, query *FeatureQuery, nodes []*Entitlement, init func(*Entitlement), assign func(*Entitlement, *Feature)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*Entitlement)
+	for i := range nodes {
+		fk := nodes[i].FeatureID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(feature.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "feature_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (eq *EntitlementQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := eq.querySpec()
@@ -465,6 +685,9 @@ func (eq *EntitlementQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != entitlement.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if eq.withFeature != nil {
+			_spec.Node.AddColumnOnce(entitlement.FieldFeatureID)
 		}
 	}
 	if ps := eq.predicates; len(ps) > 0 {
