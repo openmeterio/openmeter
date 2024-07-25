@@ -2,6 +2,7 @@ package entutils
 
 import (
 	"entgo.io/ent/dialect/sql"
+
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
