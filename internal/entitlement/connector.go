@@ -190,8 +190,10 @@ func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace 
 		if err := c.publisher.Publish(event); err != nil {
 			return nil, err
 		}
+
 		return ent, nil
 	})
+
 	return err
 }
 

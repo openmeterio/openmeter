@@ -8,8 +8,9 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/cloudevents/sdk-go/v2/event"
-	"github.com/openmeterio/openmeter/internal/watermill/driver/noop"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/openmeterio/openmeter/internal/watermill/driver/noop"
 )
 
 type Publisher interface {

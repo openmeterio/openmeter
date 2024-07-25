@@ -13,8 +13,7 @@ const (
 )
 
 const (
-	EventResetEntitlementUsage         spec.EventName = "resetEntitlementUsage"
-	EventCreateMeteredEntitlementGrant spec.EventName = "createMeteredEntitlementGrant"
+	EventResetEntitlementUsage spec.EventName = "resetEntitlementUsage"
 )
 
 type ResetEntitlementEvent struct {
@@ -51,39 +50,6 @@ func (e ResetEntitlementEvent) Validate() error {
 
 	if e.ResetAt.IsZero() {
 		return errors.New("resetAt must be set")
-	}
-	return nil
-}
-
-// TODO: maybe remove?
-type CreateMeteredEntitlementGrantEvent struct {
-	EntitlementGrant
-	Subject   models.SubjectKeyAndID `json:"subjectKey"`
-	Namespace models.NamespaceID     `json:"namespace"`
-}
-
-var createMeteredEntitlementGrantEventSpec = spec.EventTypeSpec{
-	Subsystem:   EventSubsystem,
-	Name:        EventCreateMeteredEntitlementGrant,
-	SpecVersion: "1.0",
-	Version:     "v1",
-}
-
-func (e CreateMeteredEntitlementGrantEvent) Spec() *spec.EventTypeSpec {
-	return &createMeteredEntitlementGrantEventSpec
-}
-
-func (e CreateMeteredEntitlementGrantEvent) Validate() error {
-	if e.ID == "" {
-		return errors.New("ID must not be empty")
-	}
-
-	if err := e.Subject.Validate(); err != nil {
-		return err
-	}
-
-	if err := e.Namespace.Validate(); err != nil {
-		return err
 	}
 	return nil
 }

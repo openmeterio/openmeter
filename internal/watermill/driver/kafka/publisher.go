@@ -22,7 +22,6 @@ func NewPublisher(producer *kafka.Producer) *Publisher {
 
 func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 	for _, message := range messages {
-
 		kafkaMessage := &kafka.Message{
 			TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
 			Value:          []byte(message.Payload),
@@ -46,13 +45,11 @@ func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
 		if err := p.producer.Produce(kafkaMessage, nil); err != nil {
 			return err
 		}
-
 	}
 
 	return nil
 }
 
-// Close should flush unsent messages, if publisher is async.
 func (p *Publisher) Close() error {
 	p.producer.Close()
 	return nil

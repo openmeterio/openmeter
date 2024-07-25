@@ -216,7 +216,7 @@ func main() {
 
 	kafkaProducer, err := initKafkaProducer(ctx, conf, logger, metricMeter, &group)
 	if err != nil {
-		logger.Error("failed to initalize kafka producer", "error", err)
+		logger.Error("failed to initialize kafka producer", "error", err)
 		os.Exit(1)
 	}
 
@@ -228,7 +228,6 @@ func main() {
 
 	// Initialize Kafka Ingest
 	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(
-		ctx,
 		kafkaProducer,
 		conf,
 		logger,
@@ -533,7 +532,7 @@ func initKafkaProducer(ctx context.Context, config config.Configuration, logger 
 	return producer, nil
 }
 
-func initKafkaIngest(ctx context.Context, producer *kafka.Producer, config config.Configuration, logger *slog.Logger, metricMeter metric.Meter, serializer serializer.Serializer) (*kafkaingest.Collector, *kafkaingest.NamespaceHandler, error) {
+func initKafkaIngest(producer *kafka.Producer, config config.Configuration, logger *slog.Logger, metricMeter metric.Meter, serializer serializer.Serializer) (*kafkaingest.Collector, *kafkaingest.NamespaceHandler, error) {
 	collector, err := kafkaingest.NewCollector(
 		producer,
 		serializer,

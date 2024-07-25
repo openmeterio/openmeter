@@ -23,7 +23,7 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 			ID:        credit.GrantOwner(entitlementID.ID),
 		}
 
-		ent, err := e.entitlementRepo.WithTx(txCtx, tx).GetEntitlement(ctx, entitlementID)
+		ent, err := e.entitlementRepo.WithTx(txCtx, tx).GetEntitlement(txCtx, entitlementID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get entitlement: %w", err)
 		}
