@@ -692,7 +692,7 @@ paths:
         - $ref: "#/components/parameters/queryPageSize"
         - $ref: "#/components/parameters/queryLimit"
         - $ref: "#/components/parameters/queryOffset"
-        - $ref: "#/components/parameters/queryFilterMeter"
+        - $ref: "#/components/parameters/queryFilterMeterSlug"
         - $ref: "#/components/parameters/order"
         - name: orderBy
           in: query
@@ -3424,12 +3424,12 @@ components:
         type: array
         items:
           type: string
-    queryFilterMeter:
-      name: meter
+    queryFilterMeterSlug:
+      name: meterSlug
       description: |
         Filtering by multiple meterSlug.
 
-        Usage: `?meter=meter-1&meter=meter-2`
+        Usage: `?meterSlug=meter-1&meterSlug=meter-2`
       in: query
       required: false
       schema:

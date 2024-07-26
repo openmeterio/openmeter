@@ -437,7 +437,7 @@ def build_list_features_request(
     page_size: int = 100,
     limit: int = 1000,
     offset: int = 0,
-    meter: Optional[List[str]] = None,
+    meter_slug: Optional[List[str]] = None,
     order: str = "ASC",
     order_by: str = "updatedAt",
     include_archived: bool = False,
@@ -460,8 +460,8 @@ def build_list_features_request(
         _params["limit"] = _SERIALIZER.query("limit", limit, "int", maximum=1000, minimum=1)
     if offset is not None:
         _params["offset"] = _SERIALIZER.query("offset", offset, "int", minimum=0)
-    if meter is not None:
-        _params["meter"] = _SERIALIZER.query("meter", meter, "[str]")
+    if meter_slug is not None:
+        _params["meterSlug"] = _SERIALIZER.query("meter_slug", meter_slug, "[str]")
     if order is not None:
         _params["order"] = _SERIALIZER.query("order", order, "str")
     if order_by is not None:
@@ -3058,7 +3058,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         page_size: int = 100,
         limit: int = 1000,
         offset: int = 0,
-        meter: Optional[List[str]] = None,
+        meter_slug: Optional[List[str]] = None,
         order: str = "ASC",
         order_by: str = "updatedAt",
         include_archived: bool = False,
@@ -3077,10 +3077,10 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         :paramtype limit: int
         :keyword offset: Number of entries to skip. Default value is 0.
         :paramtype offset: int
-        :keyword meter: Filtering by multiple meterSlug.
+        :keyword meter_slug: Filtering by multiple meterSlug.
 
-         Usage: ``?meter=meter-1&meter=meter-2``. Default value is None.
-        :paramtype meter: list[str]
+         Usage: ``?meterSlug=meter-1&meterSlug=meter-2``. Default value is None.
+        :paramtype meter_slug: list[str]
         :keyword order: Order by field.
 
          Usage: ``?order=ASC``. Known values are: "ASC" and "DESC". Default value is "ASC".
@@ -3113,7 +3113,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             page_size=page_size,
             limit=limit,
             offset=offset,
-            meter=meter,
+            meter_slug=meter_slug,
             order=order,
             order_by=order_by,
             include_archived=include_archived,

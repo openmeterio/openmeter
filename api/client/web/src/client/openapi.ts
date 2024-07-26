@@ -1766,9 +1766,9 @@ export interface components {
     /**
      * @description Filtering by multiple meterSlug.
      *
-     * Usage: `?meter=meter-1&meter=meter-2`
+     * Usage: `?meterSlug=meter-1&meterSlug=meter-2`
      */
-    queryFilterMeter?: string[]
+    queryFilterMeterSlug?: string[]
     /**
      * @description Filtering by multiple entitlement types.
      *
@@ -2253,7 +2253,7 @@ export interface operations {
         pageSize?: components['parameters']['queryPageSize']
         limit?: components['parameters']['queryLimit']
         offset?: components['parameters']['queryOffset']
-        meter?: components['parameters']['queryFilterMeter']
+        meterSlug?: components['parameters']['queryFilterMeterSlug']
         order?: components['parameters']['order']
         /** @description Order by field */
         orderBy?: 'id' | 'createdAt' | 'updatedAt'
