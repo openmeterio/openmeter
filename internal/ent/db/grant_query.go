@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 )
@@ -18,11 +19,12 @@ import (
 // GrantQuery is the builder for querying Grant entities.
 type GrantQuery struct {
 	config
-	ctx        *QueryContext
-	order      []grant.OrderOption
-	inters     []Interceptor
-	predicates []predicate.Grant
-	modifiers  []func(*sql.Selector)
+	ctx             *QueryContext
+	order           []grant.OrderOption
+	inters          []Interceptor
+	predicates      []predicate.Grant
+	withEntitlement *EntitlementQuery
+	modifiers       []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -57,6 +59,28 @@ func (gq *GrantQuery) Unique(unique bool) *GrantQuery {
 func (gq *GrantQuery) Order(o ...grant.OrderOption) *GrantQuery {
 	gq.order = append(gq.order, o...)
 	return gq
+}
+
+// QueryEntitlement chains the current query on the "entitlement" edge.
+func (gq *GrantQuery) QueryEntitlement() *EntitlementQuery {
+	query := (&EntitlementClient{config: gq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := gq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := gq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(grant.Table, grant.FieldID, selector),
+			sqlgraph.To(entitlement.Table, entitlement.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, grant.EntitlementTable, grant.EntitlementColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(gq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Grant entity from the query.
@@ -246,15 +270,27 @@ func (gq *GrantQuery) Clone() *GrantQuery {
 		return nil
 	}
 	return &GrantQuery{
-		config:     gq.config,
-		ctx:        gq.ctx.Clone(),
-		order:      append([]grant.OrderOption{}, gq.order...),
-		inters:     append([]Interceptor{}, gq.inters...),
-		predicates: append([]predicate.Grant{}, gq.predicates...),
+		config:          gq.config,
+		ctx:             gq.ctx.Clone(),
+		order:           append([]grant.OrderOption{}, gq.order...),
+		inters:          append([]Interceptor{}, gq.inters...),
+		predicates:      append([]predicate.Grant{}, gq.predicates...),
+		withEntitlement: gq.withEntitlement.Clone(),
 		// clone intermediate query.
 		sql:  gq.sql.Clone(),
 		path: gq.path,
 	}
+}
+
+// WithEntitlement tells the query-builder to eager-load the nodes that are connected to
+// the "entitlement" edge. The optional arguments are used to configure the query builder of the edge.
+func (gq *GrantQuery) WithEntitlement(opts ...func(*EntitlementQuery)) *GrantQuery {
+	query := (&EntitlementClient{config: gq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	gq.withEntitlement = query
+	return gq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -333,8 +369,11 @@ func (gq *GrantQuery) prepareQuery(ctx context.Context) error {
 
 func (gq *GrantQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Grant, error) {
 	var (
-		nodes = []*Grant{}
-		_spec = gq.querySpec()
+		nodes       = []*Grant{}
+		_spec       = gq.querySpec()
+		loadedTypes = [1]bool{
+			gq.withEntitlement != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Grant).scanValues(nil, columns)
@@ -342,6 +381,7 @@ func (gq *GrantQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Grant,
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Grant{config: gq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if len(gq.modifiers) > 0 {
@@ -356,7 +396,43 @@ func (gq *GrantQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Grant,
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := gq.withEntitlement; query != nil {
+		if err := gq.loadEntitlement(ctx, query, nodes, nil,
+			func(n *Grant, e *Entitlement) { n.Edges.Entitlement = e }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (gq *GrantQuery) loadEntitlement(ctx context.Context, query *EntitlementQuery, nodes []*Grant, init func(*Grant), assign func(*Grant, *Entitlement)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*Grant)
+	for i := range nodes {
+		fk := nodes[i].OwnerID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(entitlement.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "owner_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
 }
 
 func (gq *GrantQuery) sqlCount(ctx context.Context) (int, error) {
@@ -386,6 +462,9 @@ func (gq *GrantQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != grant.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if gq.withEntitlement != nil {
+			_spec.Node.AddColumnOnce(grant.FieldOwnerID)
 		}
 	}
 	if ps := gq.predicates; len(ps) > 0 {

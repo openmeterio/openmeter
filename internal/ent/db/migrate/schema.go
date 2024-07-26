@@ -15,32 +15,40 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "owner_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "grant_balances", Type: field.TypeJSON, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "balance", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "overage", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "at", Type: field.TypeTime},
+		{Name: "owner_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BalanceSnapshotsTable holds the schema information for the "balance_snapshots" table.
 	BalanceSnapshotsTable = &schema.Table{
 		Name:       "balance_snapshots",
 		Columns:    BalanceSnapshotsColumns,
 		PrimaryKey: []*schema.Column{BalanceSnapshotsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "balance_snapshots_entitlements_balance_snapshot",
+				Columns:    []*schema.Column{BalanceSnapshotsColumns[9]},
+				RefColumns: []*schema.Column{EntitlementsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "balancesnapshot_namespace_at",
 				Unique:  false,
-				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[9]},
+				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[8]},
 			},
 			{
 				Name:    "balancesnapshot_namespace_balance",
 				Unique:  false,
-				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[7]},
+				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[6]},
 			},
 			{
 				Name:    "balancesnapshot_namespace_balance_at",
 				Unique:  false,
-				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[7], BalanceSnapshotsColumns[9]},
+				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[6], BalanceSnapshotsColumns[8]},
 			},
 		},
 	}
@@ -53,7 +61,6 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "entitlement_type", Type: field.TypeEnum, Enums: []string{"metered", "static", "boolean"}},
-		{Name: "feature_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "feature_key", Type: field.TypeString},
 		{Name: "subject_key", Type: field.TypeString},
 		{Name: "measure_usage_from", Type: field.TypeTime, Nullable: true},
@@ -65,12 +72,21 @@ var (
 		{Name: "usage_period_anchor", Type: field.TypeTime, Nullable: true},
 		{Name: "current_usage_period_start", Type: field.TypeTime, Nullable: true},
 		{Name: "current_usage_period_end", Type: field.TypeTime, Nullable: true},
+		{Name: "feature_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// EntitlementsTable holds the schema information for the "entitlements" table.
 	EntitlementsTable = &schema.Table{
 		Name:       "entitlements",
 		Columns:    EntitlementsColumns,
 		PrimaryKey: []*schema.Column{EntitlementsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "entitlements_features_entitlement",
+				Columns:    []*schema.Column{EntitlementsColumns[18]},
+				RefColumns: []*schema.Column{FeaturesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "entitlement_id",
@@ -85,22 +101,22 @@ var (
 			{
 				Name:    "entitlement_namespace_subject_key",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[9]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[8]},
 			},
 			{
 				Name:    "entitlement_namespace_id_subject_key",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[0], EntitlementsColumns[9]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[0], EntitlementsColumns[8]},
 			},
 			{
 				Name:    "entitlement_namespace_feature_id_id",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[7], EntitlementsColumns[0]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[18], EntitlementsColumns[0]},
 			},
 			{
 				Name:    "entitlement_namespace_current_usage_period_end",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[18]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[17]},
 			},
 		},
 	}
@@ -144,7 +160,6 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "owner_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "amount", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "priority", Type: field.TypeUint8, Default: 0},
 		{Name: "effective_at", Type: field.TypeTime},
@@ -155,12 +170,21 @@ var (
 		{Name: "reset_min_rollover", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric"}},
 		{Name: "recurrence_period", Type: field.TypeEnum, Nullable: true, Enums: []string{"DAY", "WEEK", "MONTH", "YEAR"}},
 		{Name: "recurrence_anchor", Type: field.TypeTime, Nullable: true},
+		{Name: "owner_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// GrantsTable holds the schema information for the "grants" table.
 	GrantsTable = &schema.Table{
 		Name:       "grants",
 		Columns:    GrantsColumns,
 		PrimaryKey: []*schema.Column{GrantsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "grants_entitlements_grant",
+				Columns:    []*schema.Column{GrantsColumns[16]},
+				RefColumns: []*schema.Column{EntitlementsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "grant_id",
@@ -170,12 +194,12 @@ var (
 			{
 				Name:    "grant_namespace_owner_id",
 				Unique:  false,
-				Columns: []*schema.Column{GrantsColumns[1], GrantsColumns[6]},
+				Columns: []*schema.Column{GrantsColumns[1], GrantsColumns[16]},
 			},
 			{
 				Name:    "grant_effective_at_expires_at",
 				Unique:  false,
-				Columns: []*schema.Column{GrantsColumns[9], GrantsColumns[11]},
+				Columns: []*schema.Column{GrantsColumns[8], GrantsColumns[10]},
 			},
 		},
 	}
@@ -231,5 +255,8 @@ var (
 )
 
 func init() {
+	BalanceSnapshotsTable.ForeignKeys[0].RefTable = EntitlementsTable
+	EntitlementsTable.ForeignKeys[0].RefTable = FeaturesTable
+	GrantsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	UsageResetsTable.ForeignKeys[0].RefTable = EntitlementsTable
 }

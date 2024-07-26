@@ -95,7 +95,18 @@ func (bsu *BalanceSnapshotUpdate) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (bsu *BalanceSnapshotUpdate) check() error {
+	if _, ok := bsu.mutation.EntitlementID(); bsu.mutation.EntitlementCleared() && !ok {
+		return errors.New(`db: clearing a required unique edge "BalanceSnapshot.entitlement"`)
+	}
+	return nil
+}
+
 func (bsu *BalanceSnapshotUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := bsu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(balancesnapshot.Table, balancesnapshot.Columns, sqlgraph.NewFieldSpec(balancesnapshot.FieldID, field.TypeInt))
 	if ps := bsu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -213,7 +224,18 @@ func (bsuo *BalanceSnapshotUpdateOne) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (bsuo *BalanceSnapshotUpdateOne) check() error {
+	if _, ok := bsuo.mutation.EntitlementID(); bsuo.mutation.EntitlementCleared() && !ok {
+		return errors.New(`db: clearing a required unique edge "BalanceSnapshot.entitlement"`)
+	}
+	return nil
+}
+
 func (bsuo *BalanceSnapshotUpdateOne) sqlSave(ctx context.Context) (_node *BalanceSnapshot, err error) {
+	if err := bsuo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(balancesnapshot.Table, balancesnapshot.Columns, sqlgraph.NewFieldSpec(balancesnapshot.FieldID, field.TypeInt))
 	id, ok := bsuo.mutation.ID()
 	if !ok {

@@ -12,7 +12,9 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
+	"github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 	"github.com/openmeterio/openmeter/internal/ent/db/usagereset"
 )
@@ -161,6 +163,36 @@ func (eu *EntitlementUpdate) AddUsageReset(u ...*UsageReset) *EntitlementUpdate 
 	return eu.AddUsageResetIDs(ids...)
 }
 
+// AddGrantIDs adds the "grant" edge to the Grant entity by IDs.
+func (eu *EntitlementUpdate) AddGrantIDs(ids ...string) *EntitlementUpdate {
+	eu.mutation.AddGrantIDs(ids...)
+	return eu
+}
+
+// AddGrant adds the "grant" edges to the Grant entity.
+func (eu *EntitlementUpdate) AddGrant(g ...*Grant) *EntitlementUpdate {
+	ids := make([]string, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return eu.AddGrantIDs(ids...)
+}
+
+// AddBalanceSnapshotIDs adds the "balance_snapshot" edge to the BalanceSnapshot entity by IDs.
+func (eu *EntitlementUpdate) AddBalanceSnapshotIDs(ids ...int) *EntitlementUpdate {
+	eu.mutation.AddBalanceSnapshotIDs(ids...)
+	return eu
+}
+
+// AddBalanceSnapshot adds the "balance_snapshot" edges to the BalanceSnapshot entity.
+func (eu *EntitlementUpdate) AddBalanceSnapshot(b ...*BalanceSnapshot) *EntitlementUpdate {
+	ids := make([]int, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return eu.AddBalanceSnapshotIDs(ids...)
+}
+
 // Mutation returns the EntitlementMutation object of the builder.
 func (eu *EntitlementUpdate) Mutation() *EntitlementMutation {
 	return eu.mutation
@@ -185,6 +217,48 @@ func (eu *EntitlementUpdate) RemoveUsageReset(u ...*UsageReset) *EntitlementUpda
 		ids[i] = u[i].ID
 	}
 	return eu.RemoveUsageResetIDs(ids...)
+}
+
+// ClearGrant clears all "grant" edges to the Grant entity.
+func (eu *EntitlementUpdate) ClearGrant() *EntitlementUpdate {
+	eu.mutation.ClearGrant()
+	return eu
+}
+
+// RemoveGrantIDs removes the "grant" edge to Grant entities by IDs.
+func (eu *EntitlementUpdate) RemoveGrantIDs(ids ...string) *EntitlementUpdate {
+	eu.mutation.RemoveGrantIDs(ids...)
+	return eu
+}
+
+// RemoveGrant removes "grant" edges to Grant entities.
+func (eu *EntitlementUpdate) RemoveGrant(g ...*Grant) *EntitlementUpdate {
+	ids := make([]string, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return eu.RemoveGrantIDs(ids...)
+}
+
+// ClearBalanceSnapshot clears all "balance_snapshot" edges to the BalanceSnapshot entity.
+func (eu *EntitlementUpdate) ClearBalanceSnapshot() *EntitlementUpdate {
+	eu.mutation.ClearBalanceSnapshot()
+	return eu
+}
+
+// RemoveBalanceSnapshotIDs removes the "balance_snapshot" edge to BalanceSnapshot entities by IDs.
+func (eu *EntitlementUpdate) RemoveBalanceSnapshotIDs(ids ...int) *EntitlementUpdate {
+	eu.mutation.RemoveBalanceSnapshotIDs(ids...)
+	return eu
+}
+
+// RemoveBalanceSnapshot removes "balance_snapshot" edges to BalanceSnapshot entities.
+func (eu *EntitlementUpdate) RemoveBalanceSnapshot(b ...*BalanceSnapshot) *EntitlementUpdate {
+	ids := make([]int, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return eu.RemoveBalanceSnapshotIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -223,7 +297,18 @@ func (eu *EntitlementUpdate) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (eu *EntitlementUpdate) check() error {
+	if _, ok := eu.mutation.FeatureID(); eu.mutation.FeatureCleared() && !ok {
+		return errors.New(`db: clearing a required unique edge "Entitlement.feature"`)
+	}
+	return nil
+}
+
 func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := eu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(entitlement.Table, entitlement.Columns, sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString))
 	if ps := eu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -329,6 +414,96 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(usagereset.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if eu.mutation.GrantCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   entitlement.GrantTable,
+			Columns: []string{entitlement.GrantColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(grant.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := eu.mutation.RemovedGrantIDs(); len(nodes) > 0 && !eu.mutation.GrantCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   entitlement.GrantTable,
+			Columns: []string{entitlement.GrantColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(grant.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := eu.mutation.GrantIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   entitlement.GrantTable,
+			Columns: []string{entitlement.GrantColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(grant.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if eu.mutation.BalanceSnapshotCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   entitlement.BalanceSnapshotTable,
+			Columns: []string{entitlement.BalanceSnapshotColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(balancesnapshot.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := eu.mutation.RemovedBalanceSnapshotIDs(); len(nodes) > 0 && !eu.mutation.BalanceSnapshotCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   entitlement.BalanceSnapshotTable,
+			Columns: []string{entitlement.BalanceSnapshotColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(balancesnapshot.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := eu.mutation.BalanceSnapshotIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   entitlement.BalanceSnapshotTable,
+			Columns: []string{entitlement.BalanceSnapshotColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(balancesnapshot.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -487,6 +662,36 @@ func (euo *EntitlementUpdateOne) AddUsageReset(u ...*UsageReset) *EntitlementUpd
 	return euo.AddUsageResetIDs(ids...)
 }
 
+// AddGrantIDs adds the "grant" edge to the Grant entity by IDs.
+func (euo *EntitlementUpdateOne) AddGrantIDs(ids ...string) *EntitlementUpdateOne {
+	euo.mutation.AddGrantIDs(ids...)
+	return euo
+}
+
+// AddGrant adds the "grant" edges to the Grant entity.
+func (euo *EntitlementUpdateOne) AddGrant(g ...*Grant) *EntitlementUpdateOne {
+	ids := make([]string, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return euo.AddGrantIDs(ids...)
+}
+
+// AddBalanceSnapshotIDs adds the "balance_snapshot" edge to the BalanceSnapshot entity by IDs.
+func (euo *EntitlementUpdateOne) AddBalanceSnapshotIDs(ids ...int) *EntitlementUpdateOne {
+	euo.mutation.AddBalanceSnapshotIDs(ids...)
+	return euo
+}
+
+// AddBalanceSnapshot adds the "balance_snapshot" edges to the BalanceSnapshot entity.
+func (euo *EntitlementUpdateOne) AddBalanceSnapshot(b ...*BalanceSnapshot) *EntitlementUpdateOne {
+	ids := make([]int, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return euo.AddBalanceSnapshotIDs(ids...)
+}
+
 // Mutation returns the EntitlementMutation object of the builder.
 func (euo *EntitlementUpdateOne) Mutation() *EntitlementMutation {
 	return euo.mutation
@@ -511,6 +716,48 @@ func (euo *EntitlementUpdateOne) RemoveUsageReset(u ...*UsageReset) *Entitlement
 		ids[i] = u[i].ID
 	}
 	return euo.RemoveUsageResetIDs(ids...)
+}
+
+// ClearGrant clears all "grant" edges to the Grant entity.
+func (euo *EntitlementUpdateOne) ClearGrant() *EntitlementUpdateOne {
+	euo.mutation.ClearGrant()
+	return euo
+}
+
+// RemoveGrantIDs removes the "grant" edge to Grant entities by IDs.
+func (euo *EntitlementUpdateOne) RemoveGrantIDs(ids ...string) *EntitlementUpdateOne {
+	euo.mutation.RemoveGrantIDs(ids...)
+	return euo
+}
+
+// RemoveGrant removes "grant" edges to Grant entities.
+func (euo *EntitlementUpdateOne) RemoveGrant(g ...*Grant) *EntitlementUpdateOne {
+	ids := make([]string, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return euo.RemoveGrantIDs(ids...)
+}
+
+// ClearBalanceSnapshot clears all "balance_snapshot" edges to the BalanceSnapshot entity.
+func (euo *EntitlementUpdateOne) ClearBalanceSnapshot() *EntitlementUpdateOne {
+	euo.mutation.ClearBalanceSnapshot()
+	return euo
+}
+
+// RemoveBalanceSnapshotIDs removes the "balance_snapshot" edge to BalanceSnapshot entities by IDs.
+func (euo *EntitlementUpdateOne) RemoveBalanceSnapshotIDs(ids ...int) *EntitlementUpdateOne {
+	euo.mutation.RemoveBalanceSnapshotIDs(ids...)
+	return euo
+}
+
+// RemoveBalanceSnapshot removes "balance_snapshot" edges to BalanceSnapshot entities.
+func (euo *EntitlementUpdateOne) RemoveBalanceSnapshot(b ...*BalanceSnapshot) *EntitlementUpdateOne {
+	ids := make([]int, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return euo.RemoveBalanceSnapshotIDs(ids...)
 }
 
 // Where appends a list predicates to the EntitlementUpdate builder.
@@ -562,7 +809,18 @@ func (euo *EntitlementUpdateOne) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (euo *EntitlementUpdateOne) check() error {
+	if _, ok := euo.mutation.FeatureID(); euo.mutation.FeatureCleared() && !ok {
+		return errors.New(`db: clearing a required unique edge "Entitlement.feature"`)
+	}
+	return nil
+}
+
 func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlement, err error) {
+	if err := euo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(entitlement.Table, entitlement.Columns, sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString))
 	id, ok := euo.mutation.ID()
 	if !ok {
@@ -685,6 +943,96 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(usagereset.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if euo.mutation.GrantCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   entitlement.GrantTable,
+			Columns: []string{entitlement.GrantColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(grant.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := euo.mutation.RemovedGrantIDs(); len(nodes) > 0 && !euo.mutation.GrantCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   entitlement.GrantTable,
+			Columns: []string{entitlement.GrantColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(grant.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := euo.mutation.GrantIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   entitlement.GrantTable,
+			Columns: []string{entitlement.GrantColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(grant.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if euo.mutation.BalanceSnapshotCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   entitlement.BalanceSnapshotTable,
+			Columns: []string{entitlement.BalanceSnapshotColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(balancesnapshot.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := euo.mutation.RemovedBalanceSnapshotIDs(); len(nodes) > 0 && !euo.mutation.BalanceSnapshotCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   entitlement.BalanceSnapshotTable,
+			Columns: []string{entitlement.BalanceSnapshotColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(balancesnapshot.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := euo.mutation.BalanceSnapshotIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   entitlement.BalanceSnapshotTable,
+			Columns: []string{entitlement.BalanceSnapshotColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(balancesnapshot.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

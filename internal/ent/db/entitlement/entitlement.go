@@ -53,6 +53,12 @@ const (
 	FieldCurrentUsagePeriodEnd = "current_usage_period_end"
 	// EdgeUsageReset holds the string denoting the usage_reset edge name in mutations.
 	EdgeUsageReset = "usage_reset"
+	// EdgeGrant holds the string denoting the grant edge name in mutations.
+	EdgeGrant = "grant"
+	// EdgeBalanceSnapshot holds the string denoting the balance_snapshot edge name in mutations.
+	EdgeBalanceSnapshot = "balance_snapshot"
+	// EdgeFeature holds the string denoting the feature edge name in mutations.
+	EdgeFeature = "feature"
 	// Table holds the table name of the entitlement in the database.
 	Table = "entitlements"
 	// UsageResetTable is the table that holds the usage_reset relation/edge.
@@ -62,6 +68,27 @@ const (
 	UsageResetInverseTable = "usage_resets"
 	// UsageResetColumn is the table column denoting the usage_reset relation/edge.
 	UsageResetColumn = "entitlement_id"
+	// GrantTable is the table that holds the grant relation/edge.
+	GrantTable = "grants"
+	// GrantInverseTable is the table name for the Grant entity.
+	// It exists in this package in order to avoid circular dependency with the "grant" package.
+	GrantInverseTable = "grants"
+	// GrantColumn is the table column denoting the grant relation/edge.
+	GrantColumn = "owner_id"
+	// BalanceSnapshotTable is the table that holds the balance_snapshot relation/edge.
+	BalanceSnapshotTable = "balance_snapshots"
+	// BalanceSnapshotInverseTable is the table name for the BalanceSnapshot entity.
+	// It exists in this package in order to avoid circular dependency with the "balancesnapshot" package.
+	BalanceSnapshotInverseTable = "balance_snapshots"
+	// BalanceSnapshotColumn is the table column denoting the balance_snapshot relation/edge.
+	BalanceSnapshotColumn = "owner_id"
+	// FeatureTable is the table that holds the feature relation/edge.
+	FeatureTable = "entitlements"
+	// FeatureInverseTable is the table name for the Feature entity.
+	// It exists in this package in order to avoid circular dependency with the "feature" package.
+	FeatureInverseTable = "features"
+	// FeatureColumn is the table column denoting the feature relation/edge.
+	FeatureColumn = "feature_id"
 )
 
 // Columns holds all SQL columns for entitlement fields.
@@ -264,10 +291,66 @@ func ByUsageReset(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newUsageResetStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByGrantCount orders the results by grant count.
+func ByGrantCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newGrantStep(), opts...)
+	}
+}
+
+// ByGrant orders the results by grant terms.
+func ByGrant(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newGrantStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByBalanceSnapshotCount orders the results by balance_snapshot count.
+func ByBalanceSnapshotCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBalanceSnapshotStep(), opts...)
+	}
+}
+
+// ByBalanceSnapshot orders the results by balance_snapshot terms.
+func ByBalanceSnapshot(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBalanceSnapshotStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByFeatureField orders the results by feature field.
+func ByFeatureField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newFeatureStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newUsageResetStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(UsageResetInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, UsageResetTable, UsageResetColumn),
+	)
+}
+func newGrantStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(GrantInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, GrantTable, GrantColumn),
+	)
+}
+func newBalanceSnapshotStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BalanceSnapshotInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BalanceSnapshotTable, BalanceSnapshotColumn),
+	)
+}
+func newFeatureStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(FeatureInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, FeatureTable, FeatureColumn),
 	)
 }

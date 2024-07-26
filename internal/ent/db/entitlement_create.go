@@ -12,7 +12,10 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
+	"github.com/openmeterio/openmeter/internal/ent/db/feature"
+	"github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db/usagereset"
 )
 
@@ -249,6 +252,41 @@ func (ec *EntitlementCreate) AddUsageReset(u ...*UsageReset) *EntitlementCreate 
 	return ec.AddUsageResetIDs(ids...)
 }
 
+// AddGrantIDs adds the "grant" edge to the Grant entity by IDs.
+func (ec *EntitlementCreate) AddGrantIDs(ids ...string) *EntitlementCreate {
+	ec.mutation.AddGrantIDs(ids...)
+	return ec
+}
+
+// AddGrant adds the "grant" edges to the Grant entity.
+func (ec *EntitlementCreate) AddGrant(g ...*Grant) *EntitlementCreate {
+	ids := make([]string, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return ec.AddGrantIDs(ids...)
+}
+
+// AddBalanceSnapshotIDs adds the "balance_snapshot" edge to the BalanceSnapshot entity by IDs.
+func (ec *EntitlementCreate) AddBalanceSnapshotIDs(ids ...int) *EntitlementCreate {
+	ec.mutation.AddBalanceSnapshotIDs(ids...)
+	return ec
+}
+
+// AddBalanceSnapshot adds the "balance_snapshot" edges to the BalanceSnapshot entity.
+func (ec *EntitlementCreate) AddBalanceSnapshot(b ...*BalanceSnapshot) *EntitlementCreate {
+	ids := make([]int, len(b))
+	for i := range b {
+		ids[i] = b[i].ID
+	}
+	return ec.AddBalanceSnapshotIDs(ids...)
+}
+
+// SetFeature sets the "feature" edge to the Feature entity.
+func (ec *EntitlementCreate) SetFeature(f *Feature) *EntitlementCreate {
+	return ec.SetFeatureID(f.ID)
+}
+
 // Mutation returns the EntitlementMutation object of the builder.
 func (ec *EntitlementCreate) Mutation() *EntitlementMutation {
 	return ec.mutation
@@ -346,6 +384,9 @@ func (ec *EntitlementCreate) check() error {
 			return &ValidationError{Name: "usage_period_interval", err: fmt.Errorf(`db: validator failed for field "Entitlement.usage_period_interval": %w`, err)}
 		}
 	}
+	if _, ok := ec.mutation.FeatureID(); !ok {
+		return &ValidationError{Name: "feature", err: errors.New(`db: missing required edge "Entitlement.feature"`)}
+	}
 	return nil
 }
 
@@ -406,10 +447,6 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 		_spec.SetField(entitlement.FieldEntitlementType, field.TypeEnum, value)
 		_node.EntitlementType = value
 	}
-	if value, ok := ec.mutation.FeatureID(); ok {
-		_spec.SetField(entitlement.FieldFeatureID, field.TypeString, value)
-		_node.FeatureID = value
-	}
 	if value, ok := ec.mutation.FeatureKey(); ok {
 		_spec.SetField(entitlement.FieldFeatureKey, field.TypeString, value)
 		_node.FeatureKey = value
@@ -468,6 +505,55 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ec.mutation.GrantIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   entitlement.GrantTable,
+			Columns: []string{entitlement.GrantColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(grant.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ec.mutation.BalanceSnapshotIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   entitlement.BalanceSnapshotTable,
+			Columns: []string{entitlement.BalanceSnapshotColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(balancesnapshot.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := ec.mutation.FeatureIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   entitlement.FeatureTable,
+			Columns: []string{entitlement.FeatureColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(feature.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.FeatureID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

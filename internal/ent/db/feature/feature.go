@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -33,8 +34,17 @@ const (
 	FieldMeterGroupByFilters = "meter_group_by_filters"
 	// FieldArchivedAt holds the string denoting the archived_at field in the database.
 	FieldArchivedAt = "archived_at"
+	// EdgeEntitlement holds the string denoting the entitlement edge name in mutations.
+	EdgeEntitlement = "entitlement"
 	// Table holds the table name of the feature in the database.
 	Table = "features"
+	// EntitlementTable is the table that holds the entitlement relation/edge.
+	EntitlementTable = "entitlements"
+	// EntitlementInverseTable is the table name for the Entitlement entity.
+	// It exists in this package in order to avoid circular dependency with the "entitlement" package.
+	EntitlementInverseTable = "entitlements"
+	// EntitlementColumn is the table column denoting the entitlement relation/edge.
+	EntitlementColumn = "feature_id"
 )
 
 // Columns holds all SQL columns for feature fields.
@@ -125,4 +135,25 @@ func ByMeterSlug(opts ...sql.OrderTermOption) OrderOption {
 // ByArchivedAt orders the results by the archived_at field.
 func ByArchivedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldArchivedAt, opts...).ToFunc()
+}
+
+// ByEntitlementCount orders the results by entitlement count.
+func ByEntitlementCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newEntitlementStep(), opts...)
+	}
+}
+
+// ByEntitlement orders the results by entitlement terms.
+func ByEntitlement(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newEntitlementStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newEntitlementStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(EntitlementInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, EntitlementTable, EntitlementColumn),
+	)
 }

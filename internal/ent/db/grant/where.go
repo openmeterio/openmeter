@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
-	"github.com/openmeterio/openmeter/internal/credit"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
@@ -87,9 +87,8 @@ func DeletedAt(v time.Time) predicate.Grant {
 }
 
 // OwnerID applies equality check predicate on the "owner_id" field. It's identical to OwnerIDEQ.
-func OwnerID(v credit.GrantOwner) predicate.Grant {
-	vc := string(v)
-	return predicate.Grant(sql.FieldEQ(FieldOwnerID, vc))
+func OwnerID(v string) predicate.Grant {
+	return predicate.Grant(sql.FieldEQ(FieldOwnerID, v))
 }
 
 // Amount applies equality check predicate on the "amount" field. It's identical to AmountEQ.
@@ -338,87 +337,68 @@ func DeletedAtNotNil() predicate.Grant {
 }
 
 // OwnerIDEQ applies the EQ predicate on the "owner_id" field.
-func OwnerIDEQ(v credit.GrantOwner) predicate.Grant {
-	vc := string(v)
-	return predicate.Grant(sql.FieldEQ(FieldOwnerID, vc))
+func OwnerIDEQ(v string) predicate.Grant {
+	return predicate.Grant(sql.FieldEQ(FieldOwnerID, v))
 }
 
 // OwnerIDNEQ applies the NEQ predicate on the "owner_id" field.
-func OwnerIDNEQ(v credit.GrantOwner) predicate.Grant {
-	vc := string(v)
-	return predicate.Grant(sql.FieldNEQ(FieldOwnerID, vc))
+func OwnerIDNEQ(v string) predicate.Grant {
+	return predicate.Grant(sql.FieldNEQ(FieldOwnerID, v))
 }
 
 // OwnerIDIn applies the In predicate on the "owner_id" field.
-func OwnerIDIn(vs ...credit.GrantOwner) predicate.Grant {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = string(vs[i])
-	}
-	return predicate.Grant(sql.FieldIn(FieldOwnerID, v...))
+func OwnerIDIn(vs ...string) predicate.Grant {
+	return predicate.Grant(sql.FieldIn(FieldOwnerID, vs...))
 }
 
 // OwnerIDNotIn applies the NotIn predicate on the "owner_id" field.
-func OwnerIDNotIn(vs ...credit.GrantOwner) predicate.Grant {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = string(vs[i])
-	}
-	return predicate.Grant(sql.FieldNotIn(FieldOwnerID, v...))
+func OwnerIDNotIn(vs ...string) predicate.Grant {
+	return predicate.Grant(sql.FieldNotIn(FieldOwnerID, vs...))
 }
 
 // OwnerIDGT applies the GT predicate on the "owner_id" field.
-func OwnerIDGT(v credit.GrantOwner) predicate.Grant {
-	vc := string(v)
-	return predicate.Grant(sql.FieldGT(FieldOwnerID, vc))
+func OwnerIDGT(v string) predicate.Grant {
+	return predicate.Grant(sql.FieldGT(FieldOwnerID, v))
 }
 
 // OwnerIDGTE applies the GTE predicate on the "owner_id" field.
-func OwnerIDGTE(v credit.GrantOwner) predicate.Grant {
-	vc := string(v)
-	return predicate.Grant(sql.FieldGTE(FieldOwnerID, vc))
+func OwnerIDGTE(v string) predicate.Grant {
+	return predicate.Grant(sql.FieldGTE(FieldOwnerID, v))
 }
 
 // OwnerIDLT applies the LT predicate on the "owner_id" field.
-func OwnerIDLT(v credit.GrantOwner) predicate.Grant {
-	vc := string(v)
-	return predicate.Grant(sql.FieldLT(FieldOwnerID, vc))
+func OwnerIDLT(v string) predicate.Grant {
+	return predicate.Grant(sql.FieldLT(FieldOwnerID, v))
 }
 
 // OwnerIDLTE applies the LTE predicate on the "owner_id" field.
-func OwnerIDLTE(v credit.GrantOwner) predicate.Grant {
-	vc := string(v)
-	return predicate.Grant(sql.FieldLTE(FieldOwnerID, vc))
+func OwnerIDLTE(v string) predicate.Grant {
+	return predicate.Grant(sql.FieldLTE(FieldOwnerID, v))
 }
 
 // OwnerIDContains applies the Contains predicate on the "owner_id" field.
-func OwnerIDContains(v credit.GrantOwner) predicate.Grant {
-	vc := string(v)
-	return predicate.Grant(sql.FieldContains(FieldOwnerID, vc))
+func OwnerIDContains(v string) predicate.Grant {
+	return predicate.Grant(sql.FieldContains(FieldOwnerID, v))
 }
 
 // OwnerIDHasPrefix applies the HasPrefix predicate on the "owner_id" field.
-func OwnerIDHasPrefix(v credit.GrantOwner) predicate.Grant {
-	vc := string(v)
-	return predicate.Grant(sql.FieldHasPrefix(FieldOwnerID, vc))
+func OwnerIDHasPrefix(v string) predicate.Grant {
+	return predicate.Grant(sql.FieldHasPrefix(FieldOwnerID, v))
 }
 
 // OwnerIDHasSuffix applies the HasSuffix predicate on the "owner_id" field.
-func OwnerIDHasSuffix(v credit.GrantOwner) predicate.Grant {
-	vc := string(v)
-	return predicate.Grant(sql.FieldHasSuffix(FieldOwnerID, vc))
+func OwnerIDHasSuffix(v string) predicate.Grant {
+	return predicate.Grant(sql.FieldHasSuffix(FieldOwnerID, v))
 }
 
 // OwnerIDEqualFold applies the EqualFold predicate on the "owner_id" field.
-func OwnerIDEqualFold(v credit.GrantOwner) predicate.Grant {
-	vc := string(v)
-	return predicate.Grant(sql.FieldEqualFold(FieldOwnerID, vc))
+func OwnerIDEqualFold(v string) predicate.Grant {
+	return predicate.Grant(sql.FieldEqualFold(FieldOwnerID, v))
 }
 
 // OwnerIDContainsFold applies the ContainsFold predicate on the "owner_id" field.
-func OwnerIDContainsFold(v credit.GrantOwner) predicate.Grant {
-	vc := string(v)
-	return predicate.Grant(sql.FieldContainsFold(FieldOwnerID, vc))
+func OwnerIDContainsFold(v string) predicate.Grant {
+	return predicate.Grant(sql.FieldContainsFold(FieldOwnerID, v))
 }
 
 // AmountEQ applies the EQ predicate on the "amount" field.
@@ -799,6 +779,29 @@ func RecurrenceAnchorIsNil() predicate.Grant {
 // RecurrenceAnchorNotNil applies the NotNil predicate on the "recurrence_anchor" field.
 func RecurrenceAnchorNotNil() predicate.Grant {
 	return predicate.Grant(sql.FieldNotNull(FieldRecurrenceAnchor))
+}
+
+// HasEntitlement applies the HasEdge predicate on the "entitlement" edge.
+func HasEntitlement() predicate.Grant {
+	return predicate.Grant(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, EntitlementTable, EntitlementColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasEntitlementWith applies the HasEdge predicate on the "entitlement" edge with a given conditions (other predicates).
+func HasEntitlementWith(preds ...predicate.Entitlement) predicate.Grant {
+	return predicate.Grant(func(s *sql.Selector) {
+		step := newEntitlementStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

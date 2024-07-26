@@ -938,6 +938,75 @@ func HasUsageResetWith(preds ...predicate.UsageReset) predicate.Entitlement {
 	})
 }
 
+// HasGrant applies the HasEdge predicate on the "grant" edge.
+func HasGrant() predicate.Entitlement {
+	return predicate.Entitlement(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, GrantTable, GrantColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasGrantWith applies the HasEdge predicate on the "grant" edge with a given conditions (other predicates).
+func HasGrantWith(preds ...predicate.Grant) predicate.Entitlement {
+	return predicate.Entitlement(func(s *sql.Selector) {
+		step := newGrantStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasBalanceSnapshot applies the HasEdge predicate on the "balance_snapshot" edge.
+func HasBalanceSnapshot() predicate.Entitlement {
+	return predicate.Entitlement(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, BalanceSnapshotTable, BalanceSnapshotColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBalanceSnapshotWith applies the HasEdge predicate on the "balance_snapshot" edge with a given conditions (other predicates).
+func HasBalanceSnapshotWith(preds ...predicate.BalanceSnapshot) predicate.Entitlement {
+	return predicate.Entitlement(func(s *sql.Selector) {
+		step := newBalanceSnapshotStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasFeature applies the HasEdge predicate on the "feature" edge.
+func HasFeature() predicate.Entitlement {
+	return predicate.Entitlement(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, FeatureTable, FeatureColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasFeatureWith applies the HasEdge predicate on the "feature" edge with a given conditions (other predicates).
+func HasFeatureWith(preds ...predicate.Feature) predicate.Entitlement {
+	return predicate.Entitlement(func(s *sql.Selector) {
+		step := newFeatureStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Entitlement) predicate.Entitlement {
 	return predicate.Entitlement(sql.AndPredicates(predicates...))

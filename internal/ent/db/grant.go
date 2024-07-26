@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
@@ -31,7 +32,7 @@ type Grant struct {
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// OwnerID holds the value of the "owner_id" field.
-	OwnerID credit.GrantOwner `json:"owner_id,omitempty"`
+	OwnerID string `json:"owner_id,omitempty"`
 	// Amount holds the value of the "amount" field.
 	Amount float64 `json:"amount,omitempty"`
 	// Priority holds the value of the "priority" field.
@@ -52,7 +53,30 @@ type Grant struct {
 	RecurrencePeriod *recurrence.RecurrenceInterval `json:"recurrence_period,omitempty"`
 	// RecurrenceAnchor holds the value of the "recurrence_anchor" field.
 	RecurrenceAnchor *time.Time `json:"recurrence_anchor,omitempty"`
-	selectValues     sql.SelectValues
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the GrantQuery when eager-loading is set.
+	Edges        GrantEdges `json:"edges"`
+	selectValues sql.SelectValues
+}
+
+// GrantEdges holds the relations/edges for other nodes in the graph.
+type GrantEdges struct {
+	// Entitlement holds the value of the entitlement edge.
+	Entitlement *Entitlement `json:"entitlement,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// EntitlementOrErr returns the Entitlement value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e GrantEdges) EntitlementOrErr() (*Entitlement, error) {
+	if e.Entitlement != nil {
+		return e.Entitlement, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: entitlement.Label}
+	}
+	return nil, &NotLoadedError{edge: "entitlement"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -128,7 +152,7 @@ func (gr *Grant) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field owner_id", values[i])
 			} else if value.Valid {
-				gr.OwnerID = credit.GrantOwner(value.String)
+				gr.OwnerID = value.String
 			}
 		case grant.FieldAmount:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
@@ -208,6 +232,11 @@ func (gr *Grant) Value(name string) (ent.Value, error) {
 	return gr.selectValues.Get(name)
 }
 
+// QueryEntitlement queries the "entitlement" edge of the Grant entity.
+func (gr *Grant) QueryEntitlement() *EntitlementQuery {
+	return NewGrantClient(gr.config).QueryEntitlement(gr)
+}
+
 // Update returns a builder for updating this Grant.
 // Note that you need to call Grant.Unwrap() before calling this method if this Grant
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -249,7 +278,7 @@ func (gr *Grant) String() string {
 	}
 	builder.WriteString(", ")
 	builder.WriteString("owner_id=")
-	builder.WriteString(fmt.Sprintf("%v", gr.OwnerID))
+	builder.WriteString(gr.OwnerID)
 	builder.WriteString(", ")
 	builder.WriteString("amount=")
 	builder.WriteString(fmt.Sprintf("%v", gr.Amount))

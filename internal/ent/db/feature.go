@@ -37,8 +37,29 @@ type Feature struct {
 	// MeterGroupByFilters holds the value of the "meter_group_by_filters" field.
 	MeterGroupByFilters map[string]string `json:"meter_group_by_filters,omitempty"`
 	// ArchivedAt holds the value of the "archived_at" field.
-	ArchivedAt   *time.Time `json:"archived_at,omitempty"`
+	ArchivedAt *time.Time `json:"archived_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the FeatureQuery when eager-loading is set.
+	Edges        FeatureEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// FeatureEdges holds the relations/edges for other nodes in the graph.
+type FeatureEdges struct {
+	// Entitlement holds the value of the entitlement edge.
+	Entitlement []*Entitlement `json:"entitlement,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// EntitlementOrErr returns the Entitlement value or an error if the edge
+// was not loaded in eager-loading.
+func (e FeatureEdges) EntitlementOrErr() ([]*Entitlement, error) {
+	if e.loadedTypes[0] {
+		return e.Entitlement, nil
+	}
+	return nil, &NotLoadedError{edge: "entitlement"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -151,6 +172,11 @@ func (f *Feature) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (f *Feature) Value(name string) (ent.Value, error) {
 	return f.selectValues.Get(name)
+}
+
+// QueryEntitlement queries the "entitlement" edge of the Feature entity.
+func (f *Feature) QueryEntitlement() *EntitlementQuery {
+	return NewFeatureClient(f.config).QueryEntitlement(f)
 }
 
 // Update returns a builder for updating this Feature.

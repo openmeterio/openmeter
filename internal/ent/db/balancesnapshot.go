@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
+	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 )
 
 // BalanceSnapshot is the model entity for the BalanceSnapshot schema.
@@ -28,7 +29,7 @@ type BalanceSnapshot struct {
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// OwnerID holds the value of the "owner_id" field.
-	OwnerID credit.GrantOwner `json:"owner_id,omitempty"`
+	OwnerID string `json:"owner_id,omitempty"`
 	// GrantBalances holds the value of the "grant_balances" field.
 	GrantBalances credit.GrantBalanceMap `json:"grant_balances,omitempty"`
 	// Balance holds the value of the "balance" field.
@@ -36,8 +37,31 @@ type BalanceSnapshot struct {
 	// Overage holds the value of the "overage" field.
 	Overage float64 `json:"overage,omitempty"`
 	// At holds the value of the "at" field.
-	At           time.Time `json:"at,omitempty"`
+	At time.Time `json:"at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the BalanceSnapshotQuery when eager-loading is set.
+	Edges        BalanceSnapshotEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// BalanceSnapshotEdges holds the relations/edges for other nodes in the graph.
+type BalanceSnapshotEdges struct {
+	// Entitlement holds the value of the entitlement edge.
+	Entitlement *Entitlement `json:"entitlement,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// EntitlementOrErr returns the Entitlement value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BalanceSnapshotEdges) EntitlementOrErr() (*Entitlement, error) {
+	if e.Entitlement != nil {
+		return e.Entitlement, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: entitlement.Label}
+	}
+	return nil, &NotLoadedError{edge: "entitlement"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -105,7 +129,7 @@ func (bs *BalanceSnapshot) assignValues(columns []string, values []any) error {
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field owner_id", values[i])
 			} else if value.Valid {
-				bs.OwnerID = credit.GrantOwner(value.String)
+				bs.OwnerID = value.String
 			}
 		case balancesnapshot.FieldGrantBalances:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -146,6 +170,11 @@ func (bs *BalanceSnapshot) Value(name string) (ent.Value, error) {
 	return bs.selectValues.Get(name)
 }
 
+// QueryEntitlement queries the "entitlement" edge of the BalanceSnapshot entity.
+func (bs *BalanceSnapshot) QueryEntitlement() *EntitlementQuery {
+	return NewBalanceSnapshotClient(bs.config).QueryEntitlement(bs)
+}
+
 // Update returns a builder for updating this BalanceSnapshot.
 // Note that you need to call BalanceSnapshot.Unwrap() before calling this method if this BalanceSnapshot
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -184,7 +213,7 @@ func (bs *BalanceSnapshot) String() string {
 	}
 	builder.WriteString(", ")
 	builder.WriteString("owner_id=")
-	builder.WriteString(fmt.Sprintf("%v", bs.OwnerID))
+	builder.WriteString(bs.OwnerID)
 	builder.WriteString(", ")
 	builder.WriteString("grant_balances=")
 	builder.WriteString(fmt.Sprintf("%v", bs.GrantBalances))

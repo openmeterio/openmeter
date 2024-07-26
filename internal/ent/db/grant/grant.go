@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
@@ -47,8 +48,17 @@ const (
 	FieldRecurrencePeriod = "recurrence_period"
 	// FieldRecurrenceAnchor holds the string denoting the recurrence_anchor field in the database.
 	FieldRecurrenceAnchor = "recurrence_anchor"
+	// EdgeEntitlement holds the string denoting the entitlement edge name in mutations.
+	EdgeEntitlement = "entitlement"
 	// Table holds the table name of the grant in the database.
 	Table = "grants"
+	// EntitlementTable is the table that holds the entitlement relation/edge.
+	EntitlementTable = "grants"
+	// EntitlementInverseTable is the table name for the Entitlement entity.
+	// It exists in this package in order to avoid circular dependency with the "entitlement" package.
+	EntitlementInverseTable = "entitlements"
+	// EntitlementColumn is the table column denoting the entitlement relation/edge.
+	EntitlementColumn = "owner_id"
 )
 
 // Columns holds all SQL columns for grant fields.
@@ -183,4 +193,18 @@ func ByRecurrencePeriod(opts ...sql.OrderTermOption) OrderOption {
 // ByRecurrenceAnchor orders the results by the recurrence_anchor field.
 func ByRecurrenceAnchor(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRecurrenceAnchor, opts...).ToFunc()
+}
+
+// ByEntitlementField orders the results by entitlement field.
+func ByEntitlementField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newEntitlementStep(), sql.OrderByField(field, opts...))
+	}
+}
+func newEntitlementStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(EntitlementInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, EntitlementTable, EntitlementColumn),
+	)
 }

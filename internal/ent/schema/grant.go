@@ -3,6 +3,7 @@ package schema
 import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
@@ -26,7 +27,7 @@ func (Grant) Mixin() []ent.Mixin {
 
 func (Grant) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("owner_id").GoType(credit.GrantOwner("")).Immutable().SchemaType(map[string]string{
+		field.String("owner_id").Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
 		field.Float("amount").Immutable().SchemaType(map[string]string{
@@ -58,5 +59,12 @@ func (Grant) Indexes() []ent.Index {
 }
 
 func (Grant) Edges() []ent.Edge {
-	return []ent.Edge{}
+	return []ent.Edge{
+		edge.From("entitlement", Entitlement.Type).
+			Ref("grant").
+			Field("owner_id").
+			Required().
+			Immutable().
+			Unique(),
+	}
 }

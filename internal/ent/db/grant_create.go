@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
@@ -80,8 +81,8 @@ func (gc *GrantCreate) SetNillableDeletedAt(t *time.Time) *GrantCreate {
 }
 
 // SetOwnerID sets the "owner_id" field.
-func (gc *GrantCreate) SetOwnerID(co credit.GrantOwner) *GrantCreate {
-	gc.mutation.SetOwnerID(co)
+func (gc *GrantCreate) SetOwnerID(s string) *GrantCreate {
+	gc.mutation.SetOwnerID(s)
 	return gc
 }
 
@@ -191,6 +192,17 @@ func (gc *GrantCreate) SetNillableID(s *string) *GrantCreate {
 	return gc
 }
 
+// SetEntitlementID sets the "entitlement" edge to the Entitlement entity by ID.
+func (gc *GrantCreate) SetEntitlementID(id string) *GrantCreate {
+	gc.mutation.SetEntitlementID(id)
+	return gc
+}
+
+// SetEntitlement sets the "entitlement" edge to the Entitlement entity.
+func (gc *GrantCreate) SetEntitlement(e *Entitlement) *GrantCreate {
+	return gc.SetEntitlementID(e.ID)
+}
+
 // Mutation returns the GrantMutation object of the builder.
 func (gc *GrantCreate) Mutation() *GrantMutation {
 	return gc.mutation
@@ -289,6 +301,9 @@ func (gc *GrantCreate) check() error {
 			return &ValidationError{Name: "recurrence_period", err: fmt.Errorf(`db: validator failed for field "Grant.recurrence_period": %w`, err)}
 		}
 	}
+	if _, ok := gc.mutation.EntitlementID(); !ok {
+		return &ValidationError{Name: "entitlement", err: errors.New(`db: missing required edge "Grant.entitlement"`)}
+	}
 	return nil
 }
 
@@ -345,10 +360,6 @@ func (gc *GrantCreate) createSpec() (*Grant, *sqlgraph.CreateSpec) {
 		_spec.SetField(grant.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
-	if value, ok := gc.mutation.OwnerID(); ok {
-		_spec.SetField(grant.FieldOwnerID, field.TypeString, value)
-		_node.OwnerID = value
-	}
 	if value, ok := gc.mutation.Amount(); ok {
 		_spec.SetField(grant.FieldAmount, field.TypeFloat64, value)
 		_node.Amount = value
@@ -388,6 +399,23 @@ func (gc *GrantCreate) createSpec() (*Grant, *sqlgraph.CreateSpec) {
 	if value, ok := gc.mutation.RecurrenceAnchor(); ok {
 		_spec.SetField(grant.FieldRecurrenceAnchor, field.TypeTime, value)
 		_node.RecurrenceAnchor = &value
+	}
+	if nodes := gc.mutation.EntitlementIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   grant.EntitlementTable,
+			Columns: []string{grant.EntitlementColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.OwnerID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

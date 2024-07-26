@@ -345,6 +345,22 @@ func (c *BalanceSnapshotClient) GetX(ctx context.Context, id int) *BalanceSnapsh
 	return obj
 }
 
+// QueryEntitlement queries the entitlement edge of a BalanceSnapshot.
+func (c *BalanceSnapshotClient) QueryEntitlement(bs *BalanceSnapshot) *EntitlementQuery {
+	query := (&EntitlementClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := bs.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(balancesnapshot.Table, balancesnapshot.FieldID, id),
+			sqlgraph.To(entitlement.Table, entitlement.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, balancesnapshot.EntitlementTable, balancesnapshot.EntitlementColumn),
+		)
+		fromV = sqlgraph.Neighbors(bs.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *BalanceSnapshotClient) Hooks() []Hook {
 	return c.hooks.BalanceSnapshot
@@ -494,6 +510,54 @@ func (c *EntitlementClient) QueryUsageReset(e *Entitlement) *UsageResetQuery {
 	return query
 }
 
+// QueryGrant queries the grant edge of a Entitlement.
+func (c *EntitlementClient) QueryGrant(e *Entitlement) *GrantQuery {
+	query := (&GrantClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := e.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(entitlement.Table, entitlement.FieldID, id),
+			sqlgraph.To(grant.Table, grant.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, entitlement.GrantTable, entitlement.GrantColumn),
+		)
+		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBalanceSnapshot queries the balance_snapshot edge of a Entitlement.
+func (c *EntitlementClient) QueryBalanceSnapshot(e *Entitlement) *BalanceSnapshotQuery {
+	query := (&BalanceSnapshotClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := e.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(entitlement.Table, entitlement.FieldID, id),
+			sqlgraph.To(balancesnapshot.Table, balancesnapshot.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, entitlement.BalanceSnapshotTable, entitlement.BalanceSnapshotColumn),
+		)
+		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryFeature queries the feature edge of a Entitlement.
+func (c *EntitlementClient) QueryFeature(e *Entitlement) *FeatureQuery {
+	query := (&FeatureClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := e.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(entitlement.Table, entitlement.FieldID, id),
+			sqlgraph.To(feature.Table, feature.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, entitlement.FeatureTable, entitlement.FeatureColumn),
+		)
+		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *EntitlementClient) Hooks() []Hook {
 	return c.hooks.Entitlement
@@ -627,6 +691,22 @@ func (c *FeatureClient) GetX(ctx context.Context, id string) *Feature {
 	return obj
 }
 
+// QueryEntitlement queries the entitlement edge of a Feature.
+func (c *FeatureClient) QueryEntitlement(f *Feature) *EntitlementQuery {
+	query := (&EntitlementClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := f.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(feature.Table, feature.FieldID, id),
+			sqlgraph.To(entitlement.Table, entitlement.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, feature.EntitlementTable, feature.EntitlementColumn),
+		)
+		fromV = sqlgraph.Neighbors(f.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *FeatureClient) Hooks() []Hook {
 	return c.hooks.Feature
@@ -758,6 +838,22 @@ func (c *GrantClient) GetX(ctx context.Context, id string) *Grant {
 		panic(err)
 	}
 	return obj
+}
+
+// QueryEntitlement queries the entitlement edge of a Grant.
+func (c *GrantClient) QueryEntitlement(gr *Grant) *EntitlementQuery {
+	query := (&EntitlementClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := gr.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(grant.Table, grant.FieldID, id),
+			sqlgraph.To(entitlement.Table, entitlement.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, grant.EntitlementTable, grant.EntitlementColumn),
+		)
+		fromV = sqlgraph.Neighbors(gr.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.
