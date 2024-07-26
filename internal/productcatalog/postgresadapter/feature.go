@@ -6,10 +6,13 @@ import (
 	"log/slog"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
+
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	db_feature "github.com/openmeterio/openmeter/internal/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
@@ -92,21 +95,28 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params productcatal
 	query := c.db.Feature.Query().
 		Where(db_feature.Namespace(params.Namespace))
 
-	if params.MeterSlug != "" {
-		query.Where(db_feature.MeterSlugEQ(params.MeterSlug))
+	if len(params.MeterSlugs) > 0 {
+		query.Where(db_feature.MeterSlugIn(params.MeterSlugs...))
 	}
 
 	if !params.IncludeArchived {
 		query = query.Where(db_feature.Or(db_feature.ArchivedAtIsNil(), db_feature.ArchivedAtGT(clock.Now())))
 	}
 
-	switch params.OrderBy {
-	case productcatalog.FeatureOrderByCreatedAt:
-		query = query.Order(db_feature.ByCreatedAt())
-	case productcatalog.FeatureOrderByUpdatedAt:
-		query = query.Order(db_feature.ByUpdatedAt())
-	default:
-		query = query.Order(db_feature.ByCreatedAt())
+	if params.OrderBy == "" {
+		order := []sql.OrderTermOption{}
+		if !params.Order.IsDefaultValue() {
+			order = entutils.GetOrdering(params.Order)
+		}
+
+		switch params.OrderBy {
+		case productcatalog.FeatureOrderByCreatedAt:
+			query = query.Order(db_feature.ByCreatedAt(order...))
+		case productcatalog.FeatureOrderByUpdatedAt:
+			query = query.Order(db_feature.ByUpdatedAt(order...))
+		default:
+			query = query.Order(db_feature.ByCreatedAt(order...))
+		}
 	}
 
 	response := pagination.PagedResponse[productcatalog.Feature]{

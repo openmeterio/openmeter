@@ -470,6 +470,7 @@ func TestCredit(t *testing.T) {
 	subject := "customer-1"
 	meterSlug := "credit_test_meter"
 	var featureId *api.FeatureId
+	var featureKey string
 
 	const waitTime = time.Second * 4
 
@@ -488,6 +489,7 @@ func TestCredit(t *testing.T) {
 		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
 
 		featureId = resp.JSON201.Id
+		featureKey = resp.JSON201.Key
 
 		expected := &api.Feature{
 			Id:        featureId,
@@ -814,5 +816,56 @@ func TestCredit(t *testing.T) {
 		require.Equal(t, http.StatusOK, grantListResp.StatusCode())
 		require.NotNil(t, grantListResp.JSON200)
 		require.Len(t, *grantListResp.JSON200, 1)
+	})
+
+	t.Run("List entitlements", func(t *testing.T) {
+		// should return 2 entitlements for subject for feature
+		resp, err := client.ListEntitlementsWithResponse(context.Background(), &api.ListEntitlementsParams{
+			EntitlementType: &[]string{"metered"},
+			Subject:         &[]string{subject},
+			Feature:         &[]string{featureKey},
+			Page:            convert.ToPointer(1),
+			PageSize:        convert.ToPointer(10),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+		require.NotNil(t, resp.JSON200)
+		// should be a paginated response
+		resBody, err := resp.JSON200.AsListEntitlementResponse1()
+		require.NoError(t, err)
+
+		require.Equal(t, 1, resBody.Page)
+		require.Equal(t, 1, resBody.TotalCount)
+		require.Equal(t, 1, len(resBody.Items))
+
+		// should return 0 entitlements due to unused types
+		resp, err = client.ListEntitlementsWithResponse(context.Background(), &api.ListEntitlementsParams{
+			EntitlementType: &[]string{"static", "boolean"},
+			Subject:         &[]string{subject},
+			Feature:         &[]string{featureKey},
+			Page:            convert.ToPointer(1),
+			PageSize:        convert.ToPointer(10),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode())
+		require.NotNil(t, resp.JSON200)
+		// should be a paginated response
+		resBody, err = resp.JSON200.AsListEntitlementResponse1()
+		require.NoError(t, err)
+
+		require.Equal(t, 1, resBody.Page)
+		require.Equal(t, 0, resBody.TotalCount)
+		require.Equal(t, 0, len(resBody.Items))
+
+		// should return 400 for invalid type
+		resp, err = client.ListEntitlementsWithResponse(context.Background(), &api.ListEntitlementsParams{
+			EntitlementType: &[]string{"INVALID_STR"},
+			Subject:         &[]string{subject},
+			Feature:         &[]string{featureKey},
+			Page:            convert.ToPointer(1),
+			PageSize:        convert.ToPointer(10),
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusBadRequest, resp.StatusCode())
 	})
 }

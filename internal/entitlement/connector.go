@@ -13,6 +13,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type ListEntitlementsOrderBy string
@@ -22,14 +24,30 @@ const (
 	ListEntitlementsOrderByUpdatedAt ListEntitlementsOrderBy = "updated_at"
 )
 
+func (o ListEntitlementsOrderBy) Values() []ListEntitlementsOrderBy {
+	return []ListEntitlementsOrderBy{
+		ListEntitlementsOrderByCreatedAt,
+		ListEntitlementsOrderByUpdatedAt,
+	}
+}
+
+func (o ListEntitlementsOrderBy) StrValues() []string {
+	return slicesx.Map(o.Values(), func(v ListEntitlementsOrderBy) string {
+		return string(v)
+	})
+}
+
 type ListEntitlementsParams struct {
-	Namespaces     []string
-	SubjectKey     string
-	FeatureIDs     []string
-	FeatureKeys    []string
-	OrderBy        ListEntitlementsOrderBy
-	IncludeDeleted bool
-	Page           pagination.Page
+	Namespaces       []string
+	SubjectKeys      []string
+	FeatureIDs       []string
+	FeatureKeys      []string
+	FeatureIDsOrKeys []string
+	EntitlementTypes []EntitlementType
+	OrderBy          ListEntitlementsOrderBy
+	Order            sortx.Order
+	IncludeDeleted   bool
+	Page             pagination.Page
 	// will be deprecated
 	Limit int
 	// will be deprecated

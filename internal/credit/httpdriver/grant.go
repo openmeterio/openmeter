@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"slices"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
@@ -16,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/sortx"
+	"github.com/openmeterio/openmeter/pkg/strcase"
 )
 
 type GrantHandler interface {
@@ -61,6 +62,13 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 				return ListGrantsHandlerRequest{}, err
 			}
 
+			// validate OrderBy
+			if params.Params.OrderBy != nil {
+				if !slices.Contains(credit.GrantOrderBy("").StrValues(), strcase.CamelToSnake(string(*params.Params.OrderBy))) {
+					return ListGrantsHandlerRequest{}, commonhttp.NewHTTPError(http.StatusBadRequest, errors.New("invalid order by"))
+				}
+			}
+
 			return ListGrantsHandlerRequest{
 				params: credit.ListGrantsParams{
 					Namespace:      ns,
@@ -69,21 +77,14 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 						PageSize:   defaultx.WithDefault(params.Params.PageSize, 0),
 						PageNumber: defaultx.WithDefault(params.Params.Page, 0),
 					},
-					Limit:   defaultx.WithDefault(params.Params.Limit, commonhttp.DefaultPageSize),
-					Offset:  defaultx.WithDefault(params.Params.Offset, 0),
-					OrderBy: credit.GrantOrderBy(defaultx.WithDefault((*string)(params.Params.OrderBy), string(credit.GrantOrderByEffectiveAt))),
-					Order: defaultx.WithDefault(
-						convert.SafeDeRef[api.ListGrantsParamsOrder, sortx.Order](
-							params.Params.Order,
-							func(o api.ListGrantsParamsOrder) *sortx.Order {
-								if o == api.ListGrantsParamsOrderASC {
-									return convert.ToPointer(sortx.OrderAsc)
-								}
-								return convert.ToPointer(sortx.OrderDesc)
-							},
-						),
-						sortx.OrderNone,
+					Limit:  defaultx.WithDefault(params.Params.Limit, commonhttp.DefaultPageSize),
+					Offset: defaultx.WithDefault(params.Params.Offset, 0),
+					OrderBy: credit.GrantOrderBy(
+						strcase.CamelToSnake(defaultx.WithDefault((*string)(params.Params.OrderBy), string(credit.GrantOrderByEffectiveAt))),
 					),
+					Order:            commonhttp.GetSortOrder(api.ListGrantsParamsOrderSortOrderASC, params.Params.Order),
+					SubjectKeys:      convert.DerefHeaderPtr[string](params.Params.Subject),
+					FeatureIdsOrKeys: convert.DerefHeaderPtr[string](params.Params.Feature),
 				},
 			}, nil
 		},

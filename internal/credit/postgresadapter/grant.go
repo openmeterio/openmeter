@@ -8,7 +8,9 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/ent/db"
+	db_entitlement "github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	db_grant "github.com/openmeterio/openmeter/internal/ent/db/grant"
+	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -74,6 +76,23 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params credit.ListGrant
 
 	if !params.IncludeDeleted {
 		query = query.Where(db_grant.DeletedAtIsNil())
+	}
+
+	if len(params.SubjectKeys) > 0 {
+		query = query.Where(db_grant.HasEntitlementWith(db_entitlement.SubjectKeyIn(params.SubjectKeys...)))
+	}
+
+	if len(params.FeatureIdsOrKeys) > 0 {
+		var ep predicate.Entitlement
+		for i, key := range params.FeatureIdsOrKeys {
+			p := db_entitlement.Or(db_entitlement.FeatureID(key), db_entitlement.FeatureKey(key))
+			if i == 0 {
+				ep = p
+				continue
+			}
+			ep = db_entitlement.Or(ep, p)
+		}
+		query = query.Where(db_grant.HasEntitlementWith(ep))
 	}
 
 	if params.OrderBy != "" {

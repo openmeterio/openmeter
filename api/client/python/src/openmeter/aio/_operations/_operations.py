@@ -1910,6 +1910,10 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         page_size: int = 100,
         limit: int = 1000,
         offset: int = 0,
+        subject: Optional[List[str]] = None,
+        feature: Optional[List[str]] = None,
+        entitlement_type: Optional[List[str]] = None,
+        order: str = "ASC",
         order_by: str = "createdAt",
         **kwargs: Any
     ) -> Any:
@@ -1927,6 +1931,22 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         :paramtype limit: int
         :keyword offset: Number of entries to skip. Default value is 0.
         :paramtype offset: int
+        :keyword subject: Filtering by multiple subjects.
+
+         Usage: ``?subject=customer-1&subject=customer-2``. Default value is None.
+        :paramtype subject: list[str]
+        :keyword feature: Filtering by multiple features.
+
+         Usage: ``?feature=feature-1&feature=feature-2``. Default value is None.
+        :paramtype feature: list[str]
+        :keyword entitlement_type: Filtering by multiple entitlement types.
+
+         Usage: ``?entitlementType=metered&entitlementType=static``. Default value is None.
+        :paramtype entitlement_type: list[str]
+        :keyword order: Order by field.
+
+         Usage: ``?order=ASC``. Known values are: "ASC" and "DESC". Default value is "ASC".
+        :paramtype order: str
         :keyword order_by: Order by field. Known values are: "createdAt" and "updatedAt". Default value
          is "createdAt".
         :paramtype order_by: str
@@ -1953,6 +1973,10 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             page_size=page_size,
             limit=limit,
             offset=offset,
+            subject=subject,
+            feature=feature,
+            entitlement_type=entitlement_type,
+            order=order,
             order_by=order_by,
             headers=_headers,
             params=_params,
@@ -1990,6 +2014,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         page_size: int = 100,
         limit: int = 1000,
         offset: int = 0,
+        meter_slug: Optional[List[str]] = None,
+        order: str = "ASC",
         order_by: str = "updatedAt",
         include_archived: bool = False,
         **kwargs: Any
@@ -2007,6 +2033,14 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         :paramtype limit: int
         :keyword offset: Number of entries to skip. Default value is 0.
         :paramtype offset: int
+        :keyword meter_slug: Filtering by multiple meterSlug.
+
+         Usage: ``?meterSlug=meter-1&meterSlug=meter-2``. Default value is None.
+        :paramtype meter_slug: list[str]
+        :keyword order: Order by field.
+
+         Usage: ``?order=ASC``. Known values are: "ASC" and "DESC". Default value is "ASC".
+        :paramtype order: str
         :keyword order_by: Order by field. Known values are: "id", "createdAt", and "updatedAt".
          Default value is "updatedAt".
         :paramtype order_by: str
@@ -2035,6 +2069,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             page_size=page_size,
             limit=limit,
             offset=offset,
+            meter_slug=meter_slug,
+            order=order,
             order_by=order_by,
             include_archived=include_archived,
             headers=_headers,
@@ -2489,6 +2525,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         page_size: int = 100,
         limit: int = 1000,
         offset: int = 0,
+        subject: Optional[List[str]] = None,
+        feature: Optional[List[str]] = None,
         order: str = "ASC",
         order_by: str = "updatedAt",
         include_deleted: bool = False,
@@ -2510,6 +2548,14 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         :paramtype limit: int
         :keyword offset: Number of entries to skip. Default value is 0.
         :paramtype offset: int
+        :keyword subject: Filtering by multiple subjects.
+
+         Usage: ``?subject=customer-1&subject=customer-2``. Default value is None.
+        :paramtype subject: list[str]
+        :keyword feature: Filtering by multiple features.
+
+         Usage: ``?feature=feature-1&feature=feature-2``. Default value is None.
+        :paramtype feature: list[str]
         :keyword order: Order by field.
 
          Usage: ``?order=ASC``. Known values are: "ASC" and "DESC". Default value is "ASC".
@@ -2541,6 +2587,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             page_size=page_size,
             limit=limit,
             offset=offset,
+            subject=subject,
+            feature=feature,
             order=order,
             order_by=order_by,
             include_deleted=include_deleted,

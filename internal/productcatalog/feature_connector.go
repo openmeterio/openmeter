@@ -8,6 +8,8 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type CreateFeatureInputs struct {
@@ -42,12 +44,26 @@ const (
 	FeatureOrderByUpdatedAt FeatureOrderBy = "updated_at"
 )
 
+func (f FeatureOrderBy) Values() []FeatureOrderBy {
+	return []FeatureOrderBy{
+		FeatureOrderByCreatedAt,
+		FeatureOrderByUpdatedAt,
+	}
+}
+
+func (f FeatureOrderBy) StrValues() []string {
+	return slicesx.Map(f.Values(), func(v FeatureOrderBy) string {
+		return string(v)
+	})
+}
+
 type ListFeaturesParams struct {
 	Namespace       string
-	MeterSlug       string
+	MeterSlugs      []string
 	IncludeArchived bool
 	Page            pagination.Page
 	OrderBy         FeatureOrderBy
+	Order           sortx.Order
 	// will be deprecated
 	Limit int
 	// will be deprecated
