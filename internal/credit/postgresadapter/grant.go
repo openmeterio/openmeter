@@ -4,10 +4,13 @@ import (
 	"context"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
+
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	db_grant "github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
@@ -74,17 +77,21 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params credit.ListGrant
 	}
 
 	if params.OrderBy != "" {
+		order := []sql.OrderTermOption{}
+		if !params.Order.IsDefaultValue() {
+			order = entutils.GetOrdering(params.Order)
+		}
 		switch params.OrderBy {
 		case credit.GrantOrderByCreatedAt:
-			query = query.Order(db_grant.ByCreatedAt())
+			query = query.Order(db_grant.ByCreatedAt(order...))
 		case credit.GrantOrderByUpdatedAt:
-			query = query.Order(db_grant.ByUpdatedAt())
+			query = query.Order(db_grant.ByUpdatedAt(order...))
 		case credit.GrantOrderByExpiresAt:
-			query = query.Order(db_grant.ByExpiresAt())
+			query = query.Order(db_grant.ByExpiresAt(order...))
 		case credit.GrantOrderByEffectiveAt:
-			query = query.Order(db_grant.ByEffectiveAt())
+			query = query.Order(db_grant.ByEffectiveAt(order...))
 		case credit.GrantOrderByOwner:
-			query = query.Order(db_grant.ByOwnerID())
+			query = query.Order(db_grant.ByOwnerID(order...))
 		}
 	}
 

@@ -1779,6 +1779,12 @@ export interface components {
     eventId: string
     /** @description Include disabled entries. */
     queryIncludeDisabled?: boolean
+    /**
+     * @description Order by field.
+     *
+     * Usage: `?order=ASC`
+     */
+    order?: 'ASC' | 'DESC'
   }
   requestBodies: never
   headers: never
@@ -2331,6 +2337,7 @@ export interface operations {
         pageSize?: components['parameters']['queryPageSize']
         limit?: components['parameters']['queryLimit']
         offset?: components['parameters']['queryOffset']
+        order?: components['parameters']['order']
         /** @description Order by field */
         orderBy?: 'id' | 'createdAt' | 'updatedAt'
         includeDeleted?: components['parameters']['includeDeleted']

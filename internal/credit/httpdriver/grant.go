@@ -10,11 +10,13 @@ import (
 	entitlement_httpdriver "github.com/openmeterio/openmeter/internal/entitlement/httpdriver"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type GrantHandler interface {
@@ -69,7 +71,19 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 					},
 					Limit:   defaultx.WithDefault(params.Params.Limit, commonhttp.DefaultPageSize),
 					Offset:  defaultx.WithDefault(params.Params.Offset, 0),
-					OrderBy: credit.GrantOrderBy(defaultx.WithDefault((*string)(params.Params.OrderBy), string(credit.GrantOrderByCreatedAt))),
+					OrderBy: credit.GrantOrderBy(defaultx.WithDefault((*string)(params.Params.OrderBy), string(credit.GrantOrderByEffectiveAt))),
+					Order: defaultx.WithDefault(
+						convert.SafeDeRef[api.ListGrantsParamsOrder, sortx.Order](
+							params.Params.Order,
+							func(o api.ListGrantsParamsOrder) *sortx.Order {
+								if o == api.ListGrantsParamsOrderASC {
+									return convert.ToPointer(sortx.OrderAsc)
+								}
+								return convert.ToPointer(sortx.OrderDesc)
+							},
+						),
+						sortx.OrderNone,
+					),
 				},
 			}, nil
 		},
