@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
@@ -133,6 +134,14 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 			if err != nil {
 				return productcatalog.ListFeaturesParams{}, err
 			}
+
+			// validate OrderBy
+			if apiParams.OrderBy != nil {
+				if !slices.Contains(productcatalog.FeatureOrderBy("").StrValues(), string(*apiParams.OrderBy)) {
+					return productcatalog.ListFeaturesParams{}, commonhttp.NewHTTPError(http.StatusBadRequest, errors.New("invalid order by"))
+				}
+			}
+
 			params := productcatalog.ListFeaturesParams{
 				Namespace:       ns,
 				IncludeArchived: defaultx.WithDefault(apiParams.IncludeArchived, false),
@@ -140,9 +149,11 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 					PageSize:   defaultx.WithDefault(apiParams.PageSize, 0),
 					PageNumber: defaultx.WithDefault(apiParams.Page, 0),
 				},
-				Limit:   defaultx.WithDefault(apiParams.Limit, commonhttp.DefaultPageSize),
-				Offset:  defaultx.WithDefault(apiParams.Offset, 0),
-				OrderBy: defaultx.WithDefault((*productcatalog.FeatureOrderBy)(apiParams.OrderBy), productcatalog.FeatureOrderByUpdatedAt),
+				Limit:      defaultx.WithDefault(apiParams.Limit, commonhttp.DefaultPageSize),
+				Offset:     defaultx.WithDefault(apiParams.Offset, 0),
+				OrderBy:    defaultx.WithDefault((*productcatalog.FeatureOrderBy)(apiParams.OrderBy), productcatalog.FeatureOrderByUpdatedAt),
+				Order:      commonhttp.GetSortOrder(api.ListFeaturesParamsOrderSortOrderASC, apiParams.Order),
+				MeterSlugs: convert.DerefHeaderPtr[string](apiParams.MeterSlug),
 			}
 
 			// TODO: standardize

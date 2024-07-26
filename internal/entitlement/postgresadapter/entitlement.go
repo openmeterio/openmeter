@@ -9,13 +9,16 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	db_entitlement "github.com/openmeterio/openmeter/internal/ent/db/entitlement"
+	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 	db_usagereset "github.com/openmeterio/openmeter/internal/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type entitlementDBAdapter struct {
@@ -150,8 +153,27 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 
 	query = withLatestUsageReset(query)
 
-	if params.SubjectKey != "" {
-		query = query.Where(db_entitlement.SubjectKeyEQ(params.SubjectKey))
+	if len(params.SubjectKeys) > 0 {
+		query = query.Where(db_entitlement.SubjectKeyIn(params.SubjectKeys...))
+	}
+
+	if len(params.EntitlementTypes) > 0 {
+		query = query.Where(db_entitlement.EntitlementTypeIn(slicesx.Map(params.EntitlementTypes, func(t entitlement.EntitlementType) db_entitlement.EntitlementType {
+			return db_entitlement.EntitlementType(t)
+		})...))
+	}
+
+	if len(params.FeatureIDsOrKeys) > 0 {
+		var ep predicate.Entitlement
+		for i, idOrKey := range params.FeatureIDsOrKeys {
+			p := db_entitlement.Or(db_entitlement.FeatureID(idOrKey), db_entitlement.FeatureKey(idOrKey))
+			if i == 0 {
+				ep = p
+				continue
+			}
+			ep = db_entitlement.Or(ep, p)
+		}
+		query = query.Where(ep)
 	}
 
 	if len(params.FeatureIDs) > 0 {
@@ -166,11 +188,17 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 		query = query.Where(db_entitlement.Or(db_entitlement.DeletedAtGT(clock.Now()), db_entitlement.DeletedAtIsNil()))
 	}
 
-	switch params.OrderBy {
-	case entitlement.ListEntitlementsOrderByCreatedAt:
-		query = query.Order(db_entitlement.ByCreatedAt())
-	case entitlement.ListEntitlementsOrderByUpdatedAt:
-		query = query.Order(db_entitlement.ByUpdatedAt())
+	if params.OrderBy != "" {
+		order := []sql.OrderTermOption{}
+		if !params.Order.IsDefaultValue() {
+			order = entutils.GetOrdering(params.Order)
+		}
+		switch params.OrderBy {
+		case entitlement.ListEntitlementsOrderByCreatedAt:
+			query = query.Order(db_entitlement.ByCreatedAt(order...))
+		case entitlement.ListEntitlementsOrderByUpdatedAt:
+			query = query.Order(db_entitlement.ByUpdatedAt(order...))
+		}
 	}
 
 	response := pagination.PagedResponse[entitlement.Entitlement]{

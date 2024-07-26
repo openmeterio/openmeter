@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
@@ -45,13 +46,31 @@ const (
 	GrantOrderByOwner       GrantOrderBy = "owner_id" // check
 )
 
+func (f GrantOrderBy) Values() []GrantOrderBy {
+	return []GrantOrderBy{
+		GrantOrderByCreatedAt,
+		GrantOrderByUpdatedAt,
+		GrantOrderByExpiresAt,
+		GrantOrderByEffectiveAt,
+		GrantOrderByOwner,
+	}
+}
+
+func (f GrantOrderBy) StrValues() []string {
+	return slicesx.Map(f.Values(), func(v GrantOrderBy) string {
+		return string(v)
+	})
+}
+
 type ListGrantsParams struct {
-	Namespace      string
-	OwnerID        *GrantOwner
-	IncludeDeleted bool
-	Page           pagination.Page
-	OrderBy        GrantOrderBy
-	Order          sortx.Order
+	Namespace        string
+	OwnerID          *GrantOwner
+	IncludeDeleted   bool
+	SubjectKeys      []string
+	FeatureIdsOrKeys []string
+	Page             pagination.Page
+	OrderBy          GrantOrderBy
+	Order            sortx.Order
 	// will be deprecated
 	Limit int
 	// will be deprecated
