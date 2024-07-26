@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 // Adapter implements remote connector interface as driven port.
@@ -87,7 +88,7 @@ func (c *featureDBAdapter) ArchiveFeature(ctx context.Context, featureID models.
 	return nil
 }
 
-func (c *featureDBAdapter) ListFeatures(ctx context.Context, params productcatalog.ListFeaturesParams) ([]productcatalog.Feature, error) {
+func (c *featureDBAdapter) ListFeatures(ctx context.Context, params productcatalog.ListFeaturesParams) (pagination.PagedResponse[productcatalog.Feature], error) {
 	query := c.db.Feature.Query().
 		Where(db_feature.Namespace(params.Namespace))
 
@@ -99,14 +100,6 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params productcatal
 		query = query.Where(db_feature.Or(db_feature.ArchivedAtIsNil(), db_feature.ArchivedAtGT(clock.Now())))
 	}
 
-	if params.Limit > 0 {
-		query = query.Limit(params.Limit)
-	}
-
-	if params.Offset > 0 {
-		query = query.Offset(params.Offset)
-	}
-
 	switch params.OrderBy {
 	case productcatalog.FeatureOrderByCreatedAt:
 		query = query.Order(db_feature.ByCreatedAt())
@@ -116,18 +109,48 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params productcatal
 		query = query.Order(db_feature.ByCreatedAt())
 	}
 
-	entities, err := query.All(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list entities: %w", err)
+	response := pagination.PagedResponse[productcatalog.Feature]{
+		Page: params.Page,
 	}
 
-	list := make([]productcatalog.Feature, 0, len(entities))
-	for _, entity := range entities {
+	// we're using limit and offset
+	if params.Page.IsZero() {
+		if params.Limit > 0 {
+			query = query.Limit(params.Limit)
+		}
+		if params.Offset > 0 {
+			query = query.Offset(params.Offset)
+		}
+
+		entities, err := query.All(ctx)
+		if err != nil {
+			return response, err
+		}
+
+		mapped := make([]productcatalog.Feature, 0, len(entities))
+		for _, entity := range entities {
+			mapped = append(mapped, mapFeatureEntity(entity))
+		}
+
+		response.Items = mapped
+		return response, nil
+	}
+
+	paged, err := query.Paginate(ctx, params.Page)
+	if err != nil {
+		return response, err
+	}
+
+	list := make([]productcatalog.Feature, 0, len(paged.Items))
+	for _, entity := range paged.Items {
 		feature := mapFeatureEntity(entity)
 		list = append(list, feature)
 	}
 
-	return list, nil
+	response.Items = list
+	response.TotalCount = paged.TotalCount
+
+	return response, nil
 }
 
 // mapFeatureEntity maps a database feature entity to a feature model.

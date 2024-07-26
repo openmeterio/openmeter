@@ -7,6 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type CreateFeatureInputs struct {
@@ -23,7 +24,7 @@ type FeatureConnector interface {
 	CreateFeature(ctx context.Context, feature CreateFeatureInputs) (Feature, error)
 	// Should just use deletedAt, there's no real "archiving"
 	ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error
-	ListFeatures(ctx context.Context, params ListFeaturesParams) ([]Feature, error)
+	ListFeatures(ctx context.Context, params ListFeaturesParams) (pagination.PagedResponse[Feature], error)
 	GetFeature(ctx context.Context, namespace string, idOrKey string, includeArchived IncludeArchivedFeature) (*Feature, error)
 }
 
@@ -45,15 +46,18 @@ type ListFeaturesParams struct {
 	Namespace       string
 	MeterSlug       string
 	IncludeArchived bool
-	Offset          int
-	Limit           int
+	Page            pagination.Page
 	OrderBy         FeatureOrderBy
+	// will be deprecated
+	Limit int
+	// will be deprecated
+	Offset int
 }
 
 type FeatureRepo interface {
 	CreateFeature(ctx context.Context, feature CreateFeatureInputs) (Feature, error)
 	ArchiveFeature(ctx context.Context, featureID models.NamespacedID) error
-	ListFeatures(ctx context.Context, params ListFeaturesParams) ([]Feature, error)
+	ListFeatures(ctx context.Context, params ListFeaturesParams) (pagination.PagedResponse[Feature], error)
 
 	GetByIdOrKey(ctx context.Context, namespace string, idOrKey string, includeArchived bool) (*Feature, error)
 	entutils.TxCreator
@@ -127,7 +131,7 @@ func (c *featureConnector) ArchiveFeature(ctx context.Context, featureID models.
 	return c.featureRepo.ArchiveFeature(ctx, featureID)
 }
 
-func (c *featureConnector) ListFeatures(ctx context.Context, params ListFeaturesParams) ([]Feature, error) {
+func (c *featureConnector) ListFeatures(ctx context.Context, params ListFeaturesParams) (pagination.PagedResponse[Feature], error) {
 	return c.featureRepo.ListFeatures(ctx, params)
 }
 

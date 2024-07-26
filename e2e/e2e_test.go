@@ -730,7 +730,9 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, featureListResp.StatusCode())
 		require.NotNil(t, featureListResp.JSON200)
-		require.Len(t, *featureListResp.JSON200, 1)
+		features, err := featureListResp.JSON200.AsListFeatureResponse0()
+		require.NoError(t, err)
+		require.Len(t, features, 1)
 
 		resp, err := client.GetEntitlementValueWithResponse(context.Background(), subject, *entitlementId, &api.GetEntitlementValueParams{
 			Time: convert.ToPointer(eCreatedAt.Add(time.Minute * 2)),
@@ -765,7 +767,9 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, featureListResp.StatusCode())
 		require.NotNil(t, featureListResp.JSON200)
-		require.Len(t, *featureListResp.JSON200, 1)
+		features, err := featureListResp.JSON200.AsListFeatureResponse0()
+		require.NoError(t, err)
+		require.Len(t, features, 1)
 
 		// Reset usage
 		resetResp, err := client.ResetEntitlementUsageWithResponse(context.Background(), subject, *entitlementId, api.ResetEntitlementUsageJSONRequestBody{

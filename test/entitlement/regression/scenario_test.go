@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
@@ -319,14 +320,16 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 	grants, err := deps.GrantConnector.ListGrants(ctx, credit.ListGrantsParams{
 		Namespace:      "namespace-1",
 		IncludeDeleted: true,
-		Offset:         0,
-		Limit:          100,
-		OrderBy:        credit.GrantOrderByCreatedAt,
+		Page: pagination.Page{
+			PageSize:   100,
+			PageNumber: 1,
+		},
+		OrderBy: credit.GrantOrderByCreatedAt,
 	})
 	assert.NoError(err)
-	assert.Len(grants, 1)
+	assert.Len(grants.Items, 1)
 
-	grant1 := &grants[0]
+	grant1 := &grants.Items[0]
 
 	// Let's create another grant
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T12:09:40Z"))

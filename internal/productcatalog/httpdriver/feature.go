@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type FeatureHandler interface {
@@ -119,7 +120,7 @@ func (h *featureHandlers) CreateFeature() CreateFeatureHandler {
 
 type (
 	ListFeaturesHandlerRequest  = productcatalog.ListFeaturesParams
-	ListFeaturesHandlerResponse = []productcatalog.Feature
+	ListFeaturesHandlerResponse = commonhttp.Union[[]api.Feature, pagination.PagedResponse[api.Feature]]
 	ListFeaturesHandlerParams   = api.ListFeaturesParams
 )
 
@@ -135,13 +136,17 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 			params := productcatalog.ListFeaturesParams{
 				Namespace:       ns,
 				IncludeArchived: defaultx.WithDefault(apiParams.IncludeArchived, false),
-				Offset:          defaultx.WithDefault(apiParams.Offset, 0),
-				Limit:           defaultx.WithDefault(apiParams.Limit, 0),
-				OrderBy:         defaultx.WithDefault((*productcatalog.FeatureOrderBy)(apiParams.OrderBy), productcatalog.FeatureOrderByUpdatedAt),
+				Page: pagination.Page{
+					PageSize:   defaultx.WithDefault(apiParams.PageSize, 0),
+					PageNumber: defaultx.WithDefault(apiParams.Page, 0),
+				},
+				Limit:   defaultx.WithDefault(apiParams.Limit, commonhttp.DefaultPageSize),
+				Offset:  defaultx.WithDefault(apiParams.Offset, 0),
+				OrderBy: defaultx.WithDefault((*productcatalog.FeatureOrderBy)(apiParams.OrderBy), productcatalog.FeatureOrderByUpdatedAt),
 			}
 
 			// TODO: standardize
-			if params.Limit > 1000 {
+			if params.Page.PageSize > 1000 {
 				return params, commonhttp.NewHTTPError(
 					http.StatusBadRequest,
 					fmt.Errorf("limit must be less than or equal to %d", 1000),
@@ -150,8 +155,34 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 
 			return params, nil
 		},
-		func(ctx context.Context, params ListFeaturesHandlerRequest) ([]productcatalog.Feature, error) {
-			return h.connector.ListFeatures(ctx, params)
+		func(ctx context.Context, params ListFeaturesHandlerRequest) (ListFeaturesHandlerResponse, error) {
+			response := ListFeaturesHandlerResponse{
+				Option1: &[]api.Feature{},
+				Option2: &pagination.PagedResponse[api.Feature]{},
+			}
+
+			paged, err := h.connector.ListFeatures(ctx, params)
+			if err != nil {
+				return response, err
+			}
+
+			mapped := make([]api.Feature, 0, len(paged.Items))
+			for _, f := range paged.Items {
+				mapped = append(mapped, MaptFeatureToResponse(f))
+			}
+
+			if params.Page.IsZero() {
+				response.Option1 = &mapped
+			} else {
+				response.Option1 = nil
+				response.Option2 = &pagination.PagedResponse[api.Feature]{
+					Items:      mapped,
+					TotalCount: paged.TotalCount,
+					Page:       paged.Page,
+				}
+			}
+
+			return response, err
 		},
 		commonhttp.JSONResponseEncoder,
 		httptransport.AppendOptions(

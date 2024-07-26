@@ -385,7 +385,13 @@ def build_query_portal_meter_request(
 
 
 def build_list_entitlements_request(
-    *, limit: int = 1000, offset: int = 0, order_by: str = "createdAt", **kwargs: Any
+    *,
+    page: int = 1,
+    page_size: int = 100,
+    limit: int = 1000,
+    offset: int = 0,
+    order_by: str = "createdAt",
+    **kwargs: Any
 ) -> HttpRequest:
     _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
     _params = case_insensitive_dict(kwargs.pop("params", {}) or {})
@@ -396,6 +402,10 @@ def build_list_entitlements_request(
     _url = "/api/v1/entitlements"
 
     # Construct parameters
+    if page is not None:
+        _params["page"] = _SERIALIZER.query("page", page, "int", minimum=1)
+    if page_size is not None:
+        _params["pageSize"] = _SERIALIZER.query("page_size", page_size, "int", maximum=1000, minimum=1)
     if limit is not None:
         _params["limit"] = _SERIALIZER.query("limit", limit, "int", maximum=1000, minimum=1)
     if offset is not None:
@@ -410,7 +420,14 @@ def build_list_entitlements_request(
 
 
 def build_list_features_request(
-    *, limit: int = 1000, offset: int = 0, order_by: str = "updatedAt", include_archived: bool = False, **kwargs: Any
+    *,
+    page: int = 1,
+    page_size: int = 100,
+    limit: int = 1000,
+    offset: int = 0,
+    order_by: str = "updatedAt",
+    include_archived: bool = False,
+    **kwargs: Any
 ) -> HttpRequest:
     _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
     _params = case_insensitive_dict(kwargs.pop("params", {}) or {})
@@ -421,6 +438,10 @@ def build_list_features_request(
     _url = "/api/v1/features"
 
     # Construct parameters
+    if page is not None:
+        _params["page"] = _SERIALIZER.query("page", page, "int", minimum=1)
+    if page_size is not None:
+        _params["pageSize"] = _SERIALIZER.query("page_size", page_size, "int", maximum=1000, minimum=1)
     if limit is not None:
         _params["limit"] = _SERIALIZER.query("limit", limit, "int", maximum=1000, minimum=1)
     if offset is not None:
@@ -492,7 +513,14 @@ def build_delete_feature_request(feature_id: str, **kwargs: Any) -> HttpRequest:
 
 
 def build_list_grants_request(
-    *, limit: int = 1000, offset: int = 0, order_by: str = "updatedAt", include_deleted: bool = False, **kwargs: Any
+    *,
+    page: int = 1,
+    page_size: int = 100,
+    limit: int = 1000,
+    offset: int = 0,
+    order_by: str = "updatedAt",
+    include_deleted: bool = False,
+    **kwargs: Any
 ) -> HttpRequest:
     _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
     _params = case_insensitive_dict(kwargs.pop("params", {}) or {})
@@ -503,6 +531,10 @@ def build_list_grants_request(
     _url = "/api/v1/grants"
 
     # Construct parameters
+    if page is not None:
+        _params["page"] = _SERIALIZER.query("page", page, "int", minimum=1)
+    if page_size is not None:
+        _params["pageSize"] = _SERIALIZER.query("page_size", page_size, "int", maximum=1000, minimum=1)
     if limit is not None:
         _params["limit"] = _SERIALIZER.query("limit", limit, "int", maximum=1000, minimum=1)
     if offset is not None:
@@ -2889,13 +2921,25 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
     @distributed_trace
     def list_entitlements(
-        self, *, limit: int = 1000, offset: int = 0, order_by: str = "createdAt", **kwargs: Any
-    ) -> List[JSON]:
+        self,
+        *,
+        page: int = 1,
+        page_size: int = 100,
+        limit: int = 1000,
+        offset: int = 0,
+        order_by: str = "createdAt",
+        **kwargs: Any
+    ) -> Any:
         """List entitlements.
 
         List all entitlements regardless of subject. This endpoint is intended for administrative
         purposes.
+        If page is provided that takes precedence and the paginated response is returned.
 
+        :keyword page: Page number to return. Default value is 1.
+        :paramtype page: int
+        :keyword page_size: Number of entries to return per page. Default value is 100.
+        :paramtype page_size: int
         :keyword limit: Number of entries to return. Default value is 1000.
         :paramtype limit: int
         :keyword offset: Number of entries to skip. Default value is 0.
@@ -2903,17 +2947,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         :keyword order_by: Order by field. Known values are: "createdAt" and "updatedAt". Default value
          is "createdAt".
         :paramtype order_by: str
-        :return: list of JSON object
-        :rtype: list[JSON]
+        :return: any
+        :rtype: any
         :raises ~azure.core.exceptions.HttpResponseError:
-
-        Example:
-            .. code-block:: python
-
-                # response body for status code(s): 200
-                response == [
-                    {}
-                ]
         """
         error_map = {
             404: ResourceNotFoundError,
@@ -2927,9 +2963,11 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+        cls: ClsType[Any] = kwargs.pop("cls", None)
 
         _request = build_list_entitlements_request(
+            page=page,
+            page_size=page_size,
             limit=limit,
             offset=offset,
             order_by=order_by,
@@ -2957,25 +2995,31 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             deserialized = None
 
         if cls:
-            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
+            return cls(pipeline_response, cast(Any, deserialized), {})  # type: ignore
 
-        return cast(List[JSON], deserialized)  # type: ignore
+        return cast(Any, deserialized)  # type: ignore
 
     @distributed_trace
     def list_features(
         self,
         *,
+        page: int = 1,
+        page_size: int = 100,
         limit: int = 1000,
         offset: int = 0,
         order_by: str = "updatedAt",
         include_archived: bool = False,
         **kwargs: Any
-    ) -> List[JSON]:
-        # pylint: disable=line-too-long
+    ) -> Any:
         """List features.
 
-        List all features.
+        List all features. If page is provided that takes precedence and the paginated response is
+        returned.
 
+        :keyword page: Page number to return. Default value is 1.
+        :paramtype page: int
+        :keyword page_size: Number of entries to return per page. Default value is 100.
+        :paramtype page_size: int
         :keyword limit: Number of entries to return. Default value is 1000.
         :paramtype limit: int
         :keyword offset: Number of entries to skip. Default value is 0.
@@ -2985,47 +3029,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         :paramtype order_by: str
         :keyword include_archived: Include archived features. Default value is False.
         :paramtype include_archived: bool
-        :return: list of JSON object
-        :rtype: list[JSON]
+        :return: any
+        :rtype: any
         :raises ~azure.core.exceptions.HttpResponseError:
-
-        Example:
-            .. code-block:: python
-
-                # response body for status code(s): 200
-                response == [
-                    {
-                        "createdAt": "2020-02-20 00:00:00",  # The date and time the resource
-                          was created. Required.
-                        "id": "str",  # Readonly unique ULID identifier. Required.
-                        "key": "str",  # The key is an immutable unique identifier of the
-                          feature used throughout the API, for example when interacting with a
-                          subject's entitlements. The key has to be unique across all active features,
-                          but archived features can share the same key. The key should consist of
-                          lowercase alphanumeric characters and dashes. Required.
-                        "name": "str",  # The name of the feature. Required.
-                        "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource
-                          was last updated. The initial value is the same as createdAt. Required.
-                        "archivedAt": "2020-02-20 00:00:00",  # Optional. If the feature is
-                          archived, no new entitlements can be created for it.
-                        "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time
-                          the resource was deleted.
-                        "metadata": {
-                            "str": "str"  # Optional. Additional metadata for the
-                              feature, useful for syncing with external systems and annotating custom
-                              fields.
-                        },
-                        "meterGroupByFilters": {
-                            "str": "str"  # Optional. Optional meter group by filters.
-                              Useful if the meter scope is broader than what feature tracks. Example
-                              scenario would be a meter tracking all token use with groupBy fields for
-                              the model, then the feature could filter for model=gpt-4.
-                        },
-                        "meterSlug": "str"  # Optional. The meter that the feature is
-                          associated with and and based on which usage is calculated. The meter
-                          selected must have SUM or COUNT aggregation.
-                    }
-                ]
         """
         error_map = {
             404: ResourceNotFoundError,
@@ -3039,9 +3045,11 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+        cls: ClsType[Any] = kwargs.pop("cls", None)
 
         _request = build_list_features_request(
+            page=page,
+            page_size=page_size,
             limit=limit,
             offset=offset,
             order_by=order_by,
@@ -3070,9 +3078,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             deserialized = None
 
         if cls:
-            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
+            return cls(pipeline_response, cast(Any, deserialized), {})  # type: ignore
 
-        return cast(List[JSON], deserialized)  # type: ignore
+        return cast(Any, deserialized)  # type: ignore
 
     @overload
     def create_feature(self, body: JSON, *, content_type: str = "application/json", **kwargs: Any) -> JSON:
@@ -3492,19 +3500,26 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
     def list_grants(
         self,
         *,
+        page: int = 1,
+        page_size: int = 100,
         limit: int = 1000,
         offset: int = 0,
         order_by: str = "updatedAt",
         include_deleted: bool = False,
         **kwargs: Any
-    ) -> List[JSON]:
-        # pylint: disable=line-too-long
+    ) -> Any:
         """List grants.
 
         List all grants for all the subjects and entitlements. This endpoint is intended for
         administrative purposes only. To fetch the grants of a specific entitlement please use the
         /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
 
+        If page is provided that takes precedence and the paginated response is returned.
+
+        :keyword page: Page number to return. Default value is 1.
+        :paramtype page: int
+        :keyword page_size: Number of entries to return per page. Default value is 100.
+        :paramtype page_size: int
         :keyword limit: Number of entries to return. Default value is 1000.
         :paramtype limit: int
         :keyword offset: Number of entries to skip. Default value is 0.
@@ -3514,75 +3529,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         :paramtype order_by: str
         :keyword include_deleted: Include deleted entries. Default value is False.
         :paramtype include_deleted: bool
-        :return: list of JSON object
-        :rtype: list[JSON]
+        :return: any
+        :rtype: any
         :raises ~azure.core.exceptions.HttpResponseError:
-
-        Example:
-            .. code-block:: python
-
-                # response body for status code(s): 200
-                response == [
-                    {
-                        "amount": 0.0,  # The amount to grant. Should be a positive number.
-                          Required.
-                        "createdAt": "2020-02-20 00:00:00",  # The date and time the resource
-                          was created. Required.
-                        "effectiveAt": "2020-02-20 00:00:00",  # Effective date for grants
-                          and anchor for recurring grants. Provided value will be ceiled to metering
-                          windowSize (minute). Required.
-                        "entitlementId": "str",  # The unique entitlement ULID that the grant
-                          is associated with. Required.
-                        "expiration": {
-                            "count": 0,  # The expiration period count like 12 months.
-                              Required.
-                            "duration": "str"  # The expiration period duration like
-                              month. Required. Known values are: "HOUR", "DAY", "WEEK", "MONTH", and
-                              "YEAR".
-                        },
-                        "id": "str",  # Readonly unique ULID identifier. Required.
-                        "updatedAt": "2020-02-20 00:00:00",  # The date and time the resource
-                          was last updated. The initial value is the same as createdAt. Required.
-                        "deletedAt": "2020-02-20 00:00:00",  # Optional. The date and time
-                          the resource was deleted.
-                        "expiresAt": "2020-02-20 00:00:00",  # Optional. The expiration date
-                          of the grant.
-                        "maxRolloverAmount": 0,  # Optional. Default value is 0. Grants are
-                          rolled over at reset, after which they can have a different balance compared
-                          to what they had before the reset.  Balance after the reset is calculated as:
-                          Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
-                          MinRolloverAmount)).
-                        "metadata": {
-                            "str": "str"  # Optional. Dictionary of :code:`<string>`.
-                        },
-                        "minRolloverAmount": 0,  # Optional. Default value is 0. Grants are
-                          rolled over at reset, after which they can have a different balance compared
-                          to what they had before the reset.  Balance after the reset is calculated as:
-                          Balance_After_Reset = MIN(MaxRolloverAmount, MAX(Balance_Before_Reset,
-                          MinRolloverAmount)).
-                        "nextRecurrence": "2020-02-20 00:00:00",  # Optional. The next time
-                          the grant will recurr.
-                        "priority": 1,  # Optional. Default value is 1. The priority of the
-                          grant. Grants with higher priority are applied first. Priority is a positive
-                          decimal numbers. With lower numbers indicating higher importance. For
-                          example, a priority of 1 is more urgent than a priority of 2. When there are
-                          several grants available for the same subject, the system selects the grant
-                          with the highest priority. In cases where grants share the same priority
-                          level, the grant closest to its expiration will be used first. In the case of
-                          two grants have identical priorities and expiration dates, the system will
-                          use the grant that was created first.
-                        "recurrence": {
-                            "anchor": "2020-02-20 00:00:00",  # An arbitrary anchor to
-                              base the recurring period on. Required.
-                            "interval": "str"  # List of pre-defined periods that can be
-                              used for recurring & scheduling.  DAY:      Every day WEEK:     Every
-                              week MONTH:    Every month YEAR:     Every year. Required. Known values
-                              are: "DAY", "WEEK", "MONTH", and "YEAR".
-                        },
-                        "voidedAt": "2020-02-20 00:00:00"  # Optional. The date and time the
-                          grant was voided (cannot be used after that).
-                    }
-                ]
         """
         error_map = {
             404: ResourceNotFoundError,
@@ -3595,9 +3544,11 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+        cls: ClsType[Any] = kwargs.pop("cls", None)
 
         _request = build_list_grants_request(
+            page=page,
+            page_size=page_size,
             limit=limit,
             offset=offset,
             order_by=order_by,
@@ -3626,9 +3577,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             deserialized = None
 
         if cls:
-            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
+            return cls(pipeline_response, cast(Any, deserialized), {})  # type: ignore
 
-        return cast(List[JSON], deserialized)  # type: ignore
+        return cast(Any, deserialized)  # type: ignore
 
     @distributed_trace
     def void_grant(self, grant_id: str, **kwargs: Any) -> Optional[JSON]:

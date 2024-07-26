@@ -1,5 +1,6 @@
 import { components, operations } from '../schemas/openapi.js'
 import { RequestOptions, BaseClient, OpenMeterConfig } from './client.js'
+import { Paginated } from './pagination.js'
 
 export type Feature = components['schemas']['Feature']
 export type FeatureCreateInputs = components['schemas']['FeatureCreateInputs']
@@ -63,7 +64,7 @@ export class FeatureClient extends BaseClient {
   public async list(
     params?: ListFeatureQueryParams,
     options?: RequestOptions
-  ): Promise<Feature[]> {
+  ): Promise<Feature[] | Paginated<Feature>> {
     const searchParams = params
       ? BaseClient.toURLSearchParams(params)
       : undefined

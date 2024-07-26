@@ -6,6 +6,7 @@ import (
 
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
@@ -22,7 +23,7 @@ type EntitlementRepo interface {
 	GetEntitlementOfSubject(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string) (*Entitlement, error)
 	DeleteEntitlement(ctx context.Context, entitlementID models.NamespacedID) error
 
-	ListEntitlements(ctx context.Context, params ListEntitlementsParams) ([]Entitlement, error)
+	ListEntitlements(ctx context.Context, params ListEntitlementsParams) (pagination.PagedResponse[Entitlement], error)
 
 	// FIXME: This is a terrbile hack
 	LockEntitlementForTx(ctx context.Context, entitlementID models.NamespacedID) error

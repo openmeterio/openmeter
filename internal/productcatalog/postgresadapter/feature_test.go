@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter"
 	"github.com/openmeterio/openmeter/internal/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 func TestCreateFeature(t *testing.T) {
@@ -115,30 +116,36 @@ func TestCreateFeature(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				assert.Len(t, features, 2)
-				assert.Equal(t, "feature-3", features[0].Name)
+				assert.Len(t, features.Items, 2)
+				assert.Equal(t, "feature-3", features.Items[0].Name)
 
 				features, err = connector.ListFeatures(ctx, productcatalog.ListFeaturesParams{
 					Namespace: namespace,
-					Limit:     1,
+					Page: pagination.Page{
+						PageSize:   1,
+						PageNumber: 1,
+					},
 				})
 				assert.NoError(t, err)
 
-				assert.Len(t, features, 1)
-				assert.Equal(t, "feature-3", features[0].Name)
+				assert.Len(t, features.Items, 1)
+				assert.Equal(t, "feature-3", features.Items[0].Name)
 
 				features, err = connector.ListFeatures(ctx, productcatalog.ListFeaturesParams{
 					Namespace: namespace,
-					Offset:    1,
+					Page: pagination.Page{
+						PageSize:   1,
+						PageNumber: 2,
+					},
 				})
 				assert.NoError(t, err)
 
-				assert.Len(t, features, 1)
-				assert.Equal(t, "feature-2", features[0].Name)
+				assert.Len(t, features.Items, 1)
+				assert.Equal(t, "feature-2", features.Items[0].Name)
 
 				err = connector.ArchiveFeature(ctx, models.NamespacedID{
 					Namespace: namespace,
-					ID:        features[0].ID,
+					ID:        features.Items[0].ID,
 				})
 				assert.NoError(t, err)
 
@@ -148,7 +155,7 @@ func TestCreateFeature(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				assert.Len(t, features, 2)
+				assert.Len(t, features.Items, 2)
 
 				features, err = connector.ListFeatures(ctx, productcatalog.ListFeaturesParams{
 					Namespace:       namespace,
@@ -156,8 +163,8 @@ func TestCreateFeature(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				assert.Len(t, features, 1)
-				assert.Equal(t, "feature-3", features[0].Name)
+				assert.Len(t, features.Items, 1)
+				assert.Equal(t, "feature-3", features.Items[0].Name)
 			},
 		},
 		{

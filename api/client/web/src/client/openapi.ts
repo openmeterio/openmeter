@@ -3,6 +3,17 @@
  * Do not make direct changes to the file.
  */
 
+/** OneOf type helpers */
+type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never }
+type XOR<T, U> = T | U extends object
+  ? (Without<T, U> & U) | (Without<U, T> & T)
+  : T | U
+type OneOf<T extends any[]> = T extends [infer Only]
+  ? Only
+  : T extends [infer A, infer B, ...infer Rest]
+    ? OneOf<[XOR<A, B>, ...Rest]>
+    : never
+
 export interface paths {
   '/api/v1/events': {
     /**
@@ -127,13 +138,14 @@ export interface paths {
     /**
      * List entitlements
      * @description List all entitlements regardless of subject. This endpoint is intended for administrative purposes.
+     * If page is provided that takes precedence and the paginated response is returned.
      */
     get: operations['listEntitlements']
   }
   '/api/v1/features': {
     /**
      * List features
-     * @description List all features.
+     * @description List all features. If page is provided that takes precedence and the paginated response is returned.
      */
     get: operations['listFeatures']
     /**
@@ -161,6 +173,8 @@ export interface paths {
     /**
      * List grants
      * @description List all grants for all the subjects and entitlements. This endpoint is intended for administrative purposes only. To fetch the grants of a specific entitlement please use the /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
+     *
+     * If page is provided that takes precedence and the paginated response is returned.
      */
     get: operations['listGrants']
   }
@@ -610,6 +624,30 @@ export interface components {
       archivedAt?: string
     } & components['schemas']['FeatureCreateInputs'] &
       components['schemas']['SharedMetaFields']
+    ListFeatureResponse: OneOf<
+      [
+        components['schemas']['Feature'][],
+        {
+          /**
+           * @description Total number of features.
+           * @example 500
+           */
+          totalCount: number
+          /**
+           * @description Current page number.
+           * @example 1
+           */
+          page: number
+          /**
+           * @description Number of features per page.
+           * @example 100
+           */
+          pageSize: number
+          /** @description List of features. */
+          items: components['schemas']['Feature'][]
+        },
+      ]
+    >
     /** @description Limited representation of a feature resource which includes only its unique identifiers (id, key). */
     FeatureMeta: {
       /**
@@ -754,6 +792,30 @@ export interface components {
       | components['schemas']['EntitlementMetered']
       | components['schemas']['EntitlementStatic']
       | components['schemas']['EntitlementBoolean']
+    ListEntitlementResponse: OneOf<
+      [
+        components['schemas']['Entitlement'][],
+        {
+          /**
+           * @description Total number of entitlements.
+           * @example 500
+           */
+          totalCount: number
+          /**
+           * @description Current page number.
+           * @example 1
+           */
+          page: number
+          /**
+           * @description Number of entitlements per page.
+           * @example 100
+           */
+          pageSize: number
+          /** @description List of entitlements. */
+          items: components['schemas']['Entitlement'][]
+        },
+      ]
+    >
     /**
      * @description A segment of the grant burn down history.
      *
@@ -994,6 +1056,30 @@ export interface components {
         voidedAt?: string
         recurrence?: components['schemas']['RecurringPeriod']
       }
+    ListEntitlementGrantResponse: OneOf<
+      [
+        components['schemas']['EntitlementGrant'][],
+        {
+          /**
+           * @description Total number of grants.
+           * @example 500
+           */
+          totalCount: number
+          /**
+           * @description Current page number.
+           * @example 1
+           */
+          page: number
+          /**
+           * @description Number of grants per page.
+           * @example 100
+           */
+          pageSize: number
+          /** @description List of grants. */
+          items: components['schemas']['EntitlementGrant'][]
+        },
+      ]
+    >
     EntitlementValue: {
       /**
        * @description Whether the subject has access to the feature. Shared accross all entitlement types.
@@ -1640,6 +1726,10 @@ export interface components {
     entitlementIdOrFeatureKey: string
     /** @description Include deleted entries. */
     includeDeleted?: boolean
+    /** @description Page number to return */
+    queryPage?: number
+    /** @description Number of entries to return per page */
+    queryPageSize?: number
     /** @description Number of entries to return */
     queryLimit?: number
     /** @description Number of entries to skip */
@@ -2105,10 +2195,13 @@ export interface operations {
   /**
    * List entitlements
    * @description List all entitlements regardless of subject. This endpoint is intended for administrative purposes.
+   * If page is provided that takes precedence and the paginated response is returned.
    */
   listEntitlements: {
     parameters: {
       query?: {
+        page?: components['parameters']['queryPage']
+        pageSize?: components['parameters']['queryPageSize']
         limit?: components['parameters']['queryLimit']
         offset?: components['parameters']['queryOffset']
         /** @description Order by field */
@@ -2116,10 +2209,10 @@ export interface operations {
       }
     }
     responses: {
-      /** @description List of entitlements. */
+      /** @description List of entitlements. If page is provided that takes precedence and the paginated response is returned. */
       200: {
         content: {
-          'application/json': components['schemas']['Entitlement'][]
+          'application/json': components['schemas']['ListEntitlementResponse']
         }
       }
       400: components['responses']['BadRequestProblemResponse']
@@ -2129,11 +2222,13 @@ export interface operations {
   }
   /**
    * List features
-   * @description List all features.
+   * @description List all features. If page is provided that takes precedence and the paginated response is returned.
    */
   listFeatures: {
     parameters: {
       query?: {
+        page?: components['parameters']['queryPage']
+        pageSize?: components['parameters']['queryPageSize']
         limit?: components['parameters']['queryLimit']
         offset?: components['parameters']['queryOffset']
         /** @description Order by field */
@@ -2143,10 +2238,10 @@ export interface operations {
       }
     }
     responses: {
-      /** @description List of features. */
+      /** @description List of features. If page is provided that takes precedence and the paginated response is returned. */
       200: {
         content: {
-          'application/json': components['schemas']['Feature'][]
+          'application/json': components['schemas']['ListFeatureResponse']
         }
       }
       400: components['responses']['BadRequestProblemResponse']
@@ -2226,10 +2321,14 @@ export interface operations {
   /**
    * List grants
    * @description List all grants for all the subjects and entitlements. This endpoint is intended for administrative purposes only. To fetch the grants of a specific entitlement please use the /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
+   *
+   * If page is provided that takes precedence and the paginated response is returned.
    */
   listGrants: {
     parameters: {
       query?: {
+        page?: components['parameters']['queryPage']
+        pageSize?: components['parameters']['queryPageSize']
         limit?: components['parameters']['queryLimit']
         offset?: components['parameters']['queryOffset']
         /** @description Order by field */
@@ -2238,10 +2337,10 @@ export interface operations {
       }
     }
     responses: {
-      /** @description List of grants. */
+      /** @description List of grants. If page is provided that takes precedence and the paginated response is returned. */
       200: {
         content: {
-          'application/json': components['schemas']['EntitlementGrant'][]
+          'application/json': components['schemas']['ListEntitlementGrantResponse']
         }
       }
       401: components['responses']['UnauthorizedProblemResponse']

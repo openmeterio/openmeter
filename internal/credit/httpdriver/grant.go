@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type GrantHandler interface {
@@ -39,11 +40,11 @@ func NewGrantHandler(
 	}
 }
 
-type ListGrantsHandlerRequest struct {
-	params credit.ListGrantsParams
-}
 type (
-	ListGrantsHandlerResponse = []api.EntitlementGrant
+	ListGrantsHandlerRequest struct {
+		params credit.ListGrantsParams
+	}
+	ListGrantsHandlerResponse = commonhttp.Union[[]api.EntitlementGrant, pagination.PagedResponse[api.EntitlementGrant]]
 	ListGrantsHandlerParams   struct {
 		Params api.ListGrantsParams
 	}
@@ -51,7 +52,7 @@ type (
 type ListGrantsHandler httptransport.HandlerWithArgs[ListGrantsHandlerRequest, ListGrantsHandlerResponse, ListGrantsHandlerParams]
 
 func (h *grantHandler) ListGrants() ListGrantsHandler {
-	return httptransport.NewHandlerWithArgs[ListGrantsHandlerRequest, []api.EntitlementGrant, ListGrantsHandlerParams](
+	return httptransport.NewHandlerWithArgs[ListGrantsHandlerRequest, ListGrantsHandlerResponse, ListGrantsHandlerParams](
 		func(ctx context.Context, r *http.Request, params ListGrantsHandlerParams) (ListGrantsHandlerRequest, error) {
 			ns, err := h.resolveNamespace(ctx)
 			if err != nil {
@@ -62,23 +63,32 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 				params: credit.ListGrantsParams{
 					Namespace:      ns,
 					IncludeDeleted: defaultx.WithDefault(params.Params.IncludeDeleted, false),
-					Offset:         defaultx.WithDefault(params.Params.Offset, 0),
-					Limit:          defaultx.WithDefault(params.Params.Limit, 1000),
-					OrderBy:        credit.GrantOrderBy(defaultx.WithDefault((*string)(params.Params.OrderBy), string(credit.GrantOrderByCreatedAt))),
+					Page: pagination.Page{
+						PageSize:   defaultx.WithDefault(params.Params.PageSize, 0),
+						PageNumber: defaultx.WithDefault(params.Params.Page, 0),
+					},
+					Limit:   defaultx.WithDefault(params.Params.Limit, commonhttp.DefaultPageSize),
+					Offset:  defaultx.WithDefault(params.Params.Offset, 0),
+					OrderBy: credit.GrantOrderBy(defaultx.WithDefault((*string)(params.Params.OrderBy), string(credit.GrantOrderByCreatedAt))),
 				},
 			}, nil
 		},
-		func(ctx context.Context, request ListGrantsHandlerRequest) ([]api.EntitlementGrant, error) {
+		func(ctx context.Context, request ListGrantsHandlerRequest) (ListGrantsHandlerResponse, error) {
+			// due to backward compatibility, if pagination is not provided we return a simple array
+			response := ListGrantsHandlerResponse{
+				Option1: &[]api.EntitlementGrant{},
+				Option2: &pagination.PagedResponse[api.EntitlementGrant]{},
+			}
 			grants, err := h.grantConnector.ListGrants(ctx, request.params)
 			if err != nil {
-				return nil, err
+				return response, err
 			}
 
-			apiGrants := make([]api.EntitlementGrant, 0, len(grants))
-			for _, grant := range grants {
+			apiGrants := make([]api.EntitlementGrant, 0, len(grants.Items))
+			for _, grant := range grants.Items {
 				entitlementGrant, err := meteredentitlement.GrantFromCreditGrant(grant)
 				if err != nil {
-					return nil, err
+					return response, err
 				}
 				// FIXME: not elegant but good for now, entitlement grants are all we have...
 				apiGrant := entitlement_httpdriver.MapEntitlementGrantToAPI(nil, entitlementGrant)
@@ -86,9 +96,20 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 				apiGrants = append(apiGrants, apiGrant)
 			}
 
-			return apiGrants, nil
+			if request.params.Page.IsZero() {
+				response.Option1 = &apiGrants
+			} else {
+				response.Option1 = nil
+				response.Option2 = &pagination.PagedResponse[api.EntitlementGrant]{
+					Items:      apiGrants,
+					TotalCount: grants.TotalCount,
+					Page:       grants.Page,
+				}
+			}
+
+			return response, nil
 		},
-		commonhttp.JSONResponseEncoder[[]api.EntitlementGrant],
+		commonhttp.JSONResponseEncoder[ListGrantsHandlerResponse],
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithErrorEncoder(func(ctx context.Context, err error, w http.ResponseWriter, _ *http.Request) bool {

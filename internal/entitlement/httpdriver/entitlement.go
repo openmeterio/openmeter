@@ -15,6 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
@@ -249,7 +250,7 @@ func (h *entitlementHandler) GetEntitlementsOfSubjectHandler() GetEntitlementsOf
 
 type (
 	ListEntitlementsHandlerRequest  = entitlement.ListEntitlementsParams
-	ListEntitlementsHandlerResponse = []api.Entitlement
+	ListEntitlementsHandlerResponse = commonhttp.Union[[]api.Entitlement, pagination.PagedResponse[api.Entitlement]]
 	ListEntitlementsHandlerParams   = api.ListEntitlementsParams
 )
 
@@ -265,8 +266,12 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 
 			p := entitlement.ListEntitlementsParams{
 				Namespaces: []string{ns},
-				Limit:      defaultx.WithDefault(params.Limit, 1000),
-				Offset:     defaultx.WithDefault(params.Offset, 0),
+				Page: pagination.Page{
+					PageSize:   defaultx.WithDefault(params.PageSize, 0),
+					PageNumber: defaultx.WithDefault(params.Page, 0),
+				},
+				Limit:  defaultx.WithDefault(params.Limit, commonhttp.DefaultPageSize),
+				Offset: defaultx.WithDefault(params.Offset, 0),
 			}
 
 			switch defaultx.WithDefault(params.OrderBy, "") {
@@ -281,21 +286,39 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 			return p, nil
 		},
 		func(ctx context.Context, request ListEntitlementsHandlerRequest) (ListEntitlementsHandlerResponse, error) {
-			entitlements, err := h.connector.ListEntitlements(ctx, request)
+			// due to backward compatibility, if pagination is not provided we return a simple array
+			response := ListEntitlementsHandlerResponse{
+				Option1: &[]api.Entitlement{},
+				Option2: &pagination.PagedResponse[api.Entitlement]{},
+			}
+			paged, err := h.connector.ListEntitlements(ctx, request)
 			if err != nil {
-				return nil, err
+				return response, err
 			}
 
-			res := make([]api.Entitlement, 0, len(entitlements))
+			entitlements := paged.Items
+
+			mapped := make([]api.Entitlement, 0, len(entitlements))
 			for _, e := range entitlements {
 				ent, err := Parser.ToAPIGeneric(&e)
 				if err != nil {
-					return nil, err
+					return response, err
 				}
-				res = append(res, *ent)
+				mapped = append(mapped, *ent)
 			}
 
-			return res, nil
+			if request.Page.IsZero() {
+				response.Option1 = &mapped
+			} else {
+				response.Option1 = nil
+				response.Option2 = &pagination.PagedResponse[api.Entitlement]{
+					Items:      mapped,
+					TotalCount: paged.TotalCount,
+					Page:       paged.Page,
+				}
+			}
+
+			return response, nil
 		},
 		commonhttp.JSONResponseEncoder[ListEntitlementsHandlerResponse],
 		httptransport.AppendOptions(

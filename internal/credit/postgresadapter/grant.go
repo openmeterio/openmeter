@@ -9,6 +9,7 @@ import (
 	db_grant "github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
@@ -61,7 +62,7 @@ func (g *grantDBADapter) VoidGrant(ctx context.Context, grantID models.Namespace
 	return command.Exec(ctx)
 }
 
-func (g *grantDBADapter) ListGrants(ctx context.Context, params credit.ListGrantsParams) ([]credit.Grant, error) {
+func (g *grantDBADapter) ListGrants(ctx context.Context, params credit.ListGrantsParams) (pagination.PagedResponse[credit.Grant], error) {
 	query := g.db.Grant.Query().Where(db_grant.Namespace(params.Namespace))
 
 	if params.OwnerID != nil {
@@ -87,25 +88,47 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params credit.ListGrant
 		}
 	}
 
-	if params.Limit > 0 {
-		query = query.Limit(params.Limit)
+	response := pagination.PagedResponse[credit.Grant]{
+		Page: params.Page,
 	}
 
-	if params.Offset > 0 {
-		query = query.Offset(params.Offset)
+	// we're using limit and offset
+	if params.Page.IsZero() {
+		if params.Limit > 0 {
+			query = query.Limit(params.Limit)
+		}
+		if params.Offset > 0 {
+			query = query.Offset(params.Offset)
+		}
+
+		entities, err := query.All(ctx)
+		if err != nil {
+			return response, err
+		}
+
+		grants := make([]credit.Grant, 0, len(entities))
+		for _, entity := range entities {
+			grants = append(grants, mapGrantEntity(entity))
+		}
+
+		response.Items = grants
+		return response, nil
 	}
 
-	entities, err := query.All(ctx)
+	paged, err := query.Paginate(ctx, params.Page)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
 
-	grants := make([]credit.Grant, 0, len(entities))
-	for _, entity := range entities {
+	grants := make([]credit.Grant, 0, len(paged.Items))
+	for _, entity := range paged.Items {
 		grants = append(grants, mapGrantEntity(entity))
 	}
 
-	return grants, nil
+	response.Items = grants
+	response.TotalCount = paged.TotalCount
+
+	return response, nil
 }
 
 func (g *grantDBADapter) ListActiveGrantsBetween(ctx context.Context, owner credit.NamespacedGrantOwner, from, to time.Time) ([]credit.Grant, error) {

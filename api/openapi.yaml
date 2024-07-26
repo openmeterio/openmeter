@@ -640,10 +640,13 @@ paths:
       summary: List entitlements
       description: |
         List all entitlements regardless of subject. This endpoint is intended for administrative purposes.
+        If page is provided that takes precedence and the paginated response is returned.
       tags:
         - Entitlements (Experimental)
       parameters:
         # TODO: add search capabilities
+        - $ref: "#/components/parameters/queryPage"
+        - $ref: "#/components/parameters/queryPageSize"
         - $ref: "#/components/parameters/queryLimit"
         - $ref: "#/components/parameters/queryOffset"
         - name: orderBy
@@ -658,13 +661,13 @@ paths:
             default: createdAt
       responses:
         "200":
-          description: List of entitlements.
+          description: |
+            List of entitlements. If page is provided that takes precedence and the paginated response is returned.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Entitlement"
+                $ref: "#/components/schemas/ListEntitlementResponse"
+
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
@@ -677,10 +680,12 @@ paths:
       operationId: listFeatures
       summary: List features
       description: |
-        List all features.
+        List all features. If page is provided that takes precedence and the paginated response is returned.
       tags:
         - Entitlements (Experimental)
       parameters:
+        - $ref: "#/components/parameters/queryPage"
+        - $ref: "#/components/parameters/queryPageSize"
         - $ref: "#/components/parameters/queryLimit"
         - $ref: "#/components/parameters/queryOffset"
         - name: orderBy
@@ -703,13 +708,13 @@ paths:
             default: false
       responses:
         "200":
-          description: List of features.
+          description: |
+            List of features. If page is provided that takes precedence and the paginated response is returned.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Feature"
+                $ref: "#/components/schemas/ListFeatureResponse"
+
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
@@ -795,9 +800,13 @@ paths:
       summary: List grants
       description: |
         List all grants for all the subjects and entitlements. This endpoint is intended for administrative purposes only. To fetch the grants of a specific entitlement please use the /api/v1/subjects/{subjectKeyOrID}/entitlements/{entitlementOrFeatureID}/grants endpoint.
+
+        If page is provided that takes precedence and the paginated response is returned.
       tags:
         - Entitlements (Experimental)
       parameters:
+        - $ref: "#/components/parameters/queryPage"
+        - $ref: "#/components/parameters/queryPageSize"
         - $ref: "#/components/parameters/queryLimit"
         - $ref: "#/components/parameters/queryOffset"
         - name: orderBy
@@ -814,13 +823,12 @@ paths:
         - $ref: "#/components/parameters/includeDeleted"
       responses:
         "200":
-          description: List of grants.
+          description: |
+            List of grants. If page is provided that takes precedence and the paginated response is returned.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/EntitlementGrant"
+                $ref: "#/components/schemas/ListEntitlementGrantResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
@@ -1860,6 +1868,36 @@ components:
         - $ref: "#/components/schemas/FeatureCreateInputs"
         - $ref: "#/components/schemas/SharedMetaFields"
 
+    ListFeatureResponse:
+      oneOf:
+        - type: array
+          items:
+            $ref: "#/components/schemas/Feature"
+        - type: object
+          required:
+            - totalCount
+            - page
+            - pageSize
+            - items
+          properties:
+            totalCount:
+              type: integer
+              description: Total number of features.
+              example: 500
+            page:
+              type: integer
+              description: Current page number.
+              example: 1
+            pageSize:
+              type: integer
+              description: Number of features per page.
+              example: 100
+            items:
+              description: List of features.
+              type: array
+              items:
+                $ref: "#/components/schemas/Feature"
+
     FeatureMeta:
       type: object
       description: |
@@ -2070,6 +2108,35 @@ components:
           metered: "#/components/schemas/EntitlementMetered"
           static: "#/components/schemas/EntitlementStatic"
           boolean: "#/components/schemas/EntitlementBoolean"
+    ListEntitlementResponse:
+      oneOf:
+        - type: array
+          items:
+            $ref: "#/components/schemas/Entitlement"
+        - type: object
+          required:
+            - totalCount
+            - page
+            - pageSize
+            - items
+          properties:
+            totalCount:
+              type: integer
+              description: Total number of entitlements.
+              example: 500
+            page:
+              type: integer
+              description: Current page number.
+              example: 1
+            pageSize:
+              type: integer
+              description: Number of entitlements per page.
+              example: 100
+            items:
+              description: List of entitlements.
+              type: array
+              items:
+                $ref: "#/components/schemas/Entitlement"
     # Might be changed later
     GrantBurnDownHistorySegment:
       type: object
@@ -2357,6 +2424,35 @@ components:
               readOnly: true
             recurrence:
               $ref: "#/components/schemas/RecurringPeriod"
+    ListEntitlementGrantResponse:
+      oneOf:
+        - type: array
+          items:
+            $ref: "#/components/schemas/EntitlementGrant"
+        - type: object
+          required:
+            - totalCount
+            - page
+            - pageSize
+            - items
+          properties:
+            totalCount:
+              type: integer
+              description: Total number of grants.
+              example: 500
+            page:
+              type: integer
+              description: Current page number.
+              example: 1
+            pageSize:
+              type: integer
+              description: Number of grants per page.
+              example: 100
+            items:
+              description: List of grants.
+              type: array
+              items:
+                $ref: "#/components/schemas/EntitlementGrant"
     EntitlementValue:
       type: object
       required:
@@ -3213,6 +3309,26 @@ components:
         type: boolean
         default: false
         example: true
+    queryPage:
+      name: page
+      in: query
+      required: false
+      description: Page number to return
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+        example: 1
+    queryPageSize:
+      name: pageSize
+      in: query
+      required: false
+      description: Number of entries to return per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 100
     queryLimit:
       name: limit
       in: query

@@ -70,8 +70,8 @@ func (e *connector) ListEntitlementGrants(ctx context.Context, namespace string,
 		return nil, err
 	}
 
-	ents := make([]EntitlementGrant, 0, len(grants))
-	for _, grant := range grants {
+	ents := make([]EntitlementGrant, 0, len(grants.Items))
+	for _, grant := range grants.Items {
 		g, err := GrantFromCreditGrant(grant)
 		if err != nil {
 			return nil, err
