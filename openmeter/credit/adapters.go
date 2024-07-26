@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
@@ -25,6 +26,7 @@ func NewGrantConnector(
 	db GrantRepo,
 	bsdb BalanceSnapshotRepo,
 	granularity time.Duration,
+	publisher publisher.TopicPublisher,
 ) GrantConnector {
-	return credit.NewGrantConnector(oc, db, bsdb, granularity)
+	return credit.NewGrantConnector(oc, db, bsdb, granularity, publisher)
 }

@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	eventmodels "github.com/openmeterio/openmeter/internal/event/models"
+	"github.com/openmeterio/openmeter/internal/event/publisher"
+	"github.com/openmeterio/openmeter/internal/event/spec"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -52,6 +55,8 @@ type entitlementConnector struct {
 	entitlementRepo  EntitlementRepo
 	featureConnector productcatalog.FeatureConnector
 	meterRepo        meter.Repository
+
+	publisher publisher.TopicPublisher
 }
 
 func NewEntitlementConnector(
@@ -61,6 +66,7 @@ func NewEntitlementConnector(
 	meteredEntitlementConnector SubTypeConnector,
 	staticEntitlementConnector SubTypeConnector,
 	booleanEntitlementConnector SubTypeConnector,
+	publisher publisher.TopicPublisher,
 ) Connector {
 	return &entitlementConnector{
 		meteredEntitlementConnector: meteredEntitlementConnector,
@@ -69,6 +75,7 @@ func NewEntitlementConnector(
 		entitlementRepo:             entitlementRepo,
 		featureConnector:            featureConnector,
 		meterRepo:                   meterRepo,
+		publisher:                   publisher,
 	}
 }
 
@@ -124,6 +131,26 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 			return nil, err
 		}
 
+		event, err := spec.NewCloudEvent(
+			spec.EventSpec{
+				Source:  spec.ComposeResourcePath(input.Namespace, spec.EntityEntitlement, ent.ID),
+				Subject: spec.ComposeResourcePath(input.Namespace, spec.EntitySubjectKey, ent.SubjectKey),
+			},
+			EntitlementCreatedEvent{
+				Entitlement: *ent,
+				Namespace: eventmodels.NamespaceID{
+					ID: input.Namespace,
+				},
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := c.publisher.Publish(event); err != nil {
+			return nil, err
+		}
+
 		return ent, nil
 	})
 
@@ -135,7 +162,43 @@ func (c *entitlementConnector) GetEntitlement(ctx context.Context, namespace str
 }
 
 func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace string, id string) error {
-	return c.entitlementRepo.DeleteEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
+	_, err := entutils.StartAndRunTx(ctx, c.entitlementRepo, func(ctx context.Context, tx *entutils.TxDriver) (*Entitlement, error) {
+		txCtx := entutils.NewTxContext(ctx, tx)
+
+		ent, err := c.entitlementRepo.WithTx(txCtx, tx).GetEntitlement(txCtx, models.NamespacedID{Namespace: namespace, ID: id})
+		if err != nil {
+			return nil, err
+		}
+
+		err = c.entitlementRepo.WithTx(txCtx, tx).DeleteEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
+		if err != nil {
+			return nil, err
+		}
+
+		event, err := spec.NewCloudEvent(
+			spec.EventSpec{
+				Source:  spec.ComposeResourcePath(namespace, spec.EntityEntitlement, ent.ID),
+				Subject: spec.ComposeResourcePath(namespace, spec.EntitySubjectKey, ent.SubjectKey),
+			},
+			EntitlementDeletedEvent{
+				Entitlement: *ent,
+				Namespace: eventmodels.NamespaceID{
+					ID: namespace,
+				},
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := c.publisher.Publish(event); err != nil {
+			return nil, err
+		}
+
+		return ent, nil
+	})
+
+	return err
 }
 
 func (c *entitlementConnector) GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]Entitlement, error) {

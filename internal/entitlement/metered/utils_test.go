@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	entitlement_postgresadapter "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter"
+	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	productcatalog_postgresadapter "github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter"
 	streaming_testutils "github.com/openmeterio/openmeter/internal/streaming/testutils"
@@ -94,6 +95,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 		grantRepo,
 		balanceSnapshotRepo,
 		time.Minute,
+		publisher.NewMockTopicPublisher(t),
 	)
 
 	connector := meteredentitlement.NewMeteredEntitlementConnector(
@@ -102,6 +104,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 		balanceConnector,
 		grant,
 		entitlementRepo,
+		publisher.NewMockTopicPublisher(t),
 	)
 
 	return connector, &dependencies{

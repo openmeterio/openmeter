@@ -174,6 +174,16 @@ func TestComplete(t *testing.T) {
 				WindowSize: models.WindowSizeMinute,
 			},
 		},
+		Events: EventsConfiguration{
+			SystemEvents: EventSubsystemConfiguration{
+				Enabled: true,
+				Topic:   "om_sys.api_events",
+				AutoProvision: AutoProvisionConfiguration{
+					Enabled:    true,
+					Partitions: 4,
+				},
+			},
+		},
 	}
 
 	assert.Equal(t, expected, actual)

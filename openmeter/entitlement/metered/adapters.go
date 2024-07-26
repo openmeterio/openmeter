@@ -6,6 +6,7 @@ import (
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/event/publisher"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -17,6 +18,7 @@ func NewMeteredEntitlementConnector(
 	balanceConnector credit.BalanceConnector,
 	grantConnector credit.GrantConnector,
 	entitlementRepo entitlement.EntitlementRepo,
+	publisher publisher.TopicPublisher,
 ) Connector {
 	return meteredentitlement.NewMeteredEntitlementConnector(
 		streamingConnector,
@@ -24,6 +26,7 @@ func NewMeteredEntitlementConnector(
 		balanceConnector,
 		grantConnector,
 		entitlementRepo,
+		publisher,
 	)
 }
 

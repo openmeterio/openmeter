@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	eventmodels "github.com/openmeterio/openmeter/internal/event/models"
+	"github.com/openmeterio/openmeter/internal/event/publisher"
+	"github.com/openmeterio/openmeter/internal/event/spec"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -87,6 +90,8 @@ type grantConnector struct {
 	grantRepo                GrantRepo
 	balanceSnapshotConnector BalanceSnapshotRepo
 	granularity              time.Duration
+
+	publisher publisher.TopicPublisher
 }
 
 func NewGrantConnector(
@@ -94,12 +99,14 @@ func NewGrantConnector(
 	grantRepo GrantRepo,
 	balanceSnapshotConnector BalanceSnapshotRepo,
 	granularity time.Duration,
+	publisher publisher.TopicPublisher,
 ) GrantConnector {
 	return &grantConnector{
 		ownerConnector:           ownerConnector,
 		grantRepo:                grantRepo,
 		balanceSnapshotConnector: balanceSnapshotConnector,
 		granularity:              granularity,
+		publisher:                publisher,
 	}
 }
 
@@ -152,6 +159,31 @@ func (m *grantConnector) CreateGrant(ctx context.Context, owner NamespacedGrantO
 			return nil, fmt.Errorf("failed to invalidate snapshots after %s: %w", grant.EffectiveAt, err)
 		}
 
+		// publish event
+		subjectKey, err := m.ownerConnector.GetOwnerSubjectKey(ctx, owner)
+		if err != nil {
+			return nil, err
+		}
+
+		event, err := spec.NewCloudEvent(
+			spec.EventSpec{
+				Source:  spec.ComposeResourcePath(owner.Namespace, spec.EntityEntitlement, string(owner.ID), spec.EntityGrant, grant.ID),
+				Subject: spec.ComposeResourcePath(owner.Namespace, spec.EntitySubjectKey, subjectKey),
+			},
+			GrantCreatedEvent{
+				Grant:     *grant,
+				Namespace: eventmodels.NamespaceID{ID: owner.Namespace},
+				Subject:   eventmodels.SubjectKeyAndID{Key: subjectKey},
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := m.publisher.Publish(event); err != nil {
+			return nil, err
+		}
+
 		return grant, err
 	}
 
@@ -181,13 +213,40 @@ func (m *grantConnector) VoidGrant(ctx context.Context, grantID models.Namespace
 		if err != nil {
 			return nil, err
 		}
+
 		now := clock.Now().Truncate(m.granularity)
 		err = m.grantRepo.WithTx(ctx, tx).VoidGrant(ctx, grantID, now)
 		if err != nil {
 			return nil, err
 		}
+
 		err = m.balanceSnapshotConnector.WithTx(ctx, tx).InvalidateAfter(ctx, owner, now)
-		return nil, err
+		if err != nil {
+			return nil, fmt.Errorf("failed to invalidate snapshots after %s: %w", now, err)
+		}
+
+		// publish an event
+		subjectKey, err := m.ownerConnector.GetOwnerSubjectKey(ctx, owner)
+		if err != nil {
+			return nil, err
+		}
+
+		event, err := spec.NewCloudEvent(
+			spec.EventSpec{
+				Source:  spec.ComposeResourcePath(grantID.Namespace, spec.EntityEntitlement, string(owner.ID), spec.EntityGrant, grantID.ID),
+				Subject: spec.ComposeResourcePath(grantID.Namespace, spec.EntitySubjectKey, subjectKey),
+			},
+			GrantVoidedEvent{
+				Grant:     grant,
+				Namespace: eventmodels.NamespaceID{ID: owner.Namespace},
+				Subject:   eventmodels.SubjectKeyAndID{Key: subjectKey},
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, m.publisher.Publish(event)
 	})
 	return err
 }

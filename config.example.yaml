@@ -34,6 +34,15 @@ telemetry:
 entitlements:
   enabled: true
 
+# System event generation
+events:
+  enabled: false
+# systemEvents:
+#   enabled: true
+#   topic: om_sys.api_events
+#   autoProvision:
+#     enabled: true
+#     partitions: 4
 # Consumer portal
 # portal:
 #   enabled: true
