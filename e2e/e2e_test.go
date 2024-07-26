@@ -868,4 +868,16 @@ func TestCredit(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, http.StatusBadRequest, resp.StatusCode())
 	})
+
+	t.Run("Fetch entitlement history", func(t *testing.T) {
+		res, err := client.GetEntitlementHistoryWithResponse(context.Background(), subject, *entitlementId, &api.GetEntitlementHistoryParams{
+			WindowSize: api.DAY,
+		})
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, res.StatusCode())
+		require.NotNil(t, res.JSON200)
+		require.NotNil(t, res.JSON200.BurndownHistory)
+		history := *res.JSON200.BurndownHistory
+		require.NotNil(t, history[0].SegmentTerminationReasons)
+	})
 }

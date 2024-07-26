@@ -4974,6 +4974,10 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                                 "to": "2020-02-20 00:00:00"  # Period end time where
                                   the amount was applied. If applicable. Required.
                             },
+                            "segmentTerminationReasons": [
+                                "str"  # Optional. The reasons why the segment was
+                                  terminated.
+                            ],
                             "usage": 0.0  # Optional. The usage of the grant in the
                               period.
                         }

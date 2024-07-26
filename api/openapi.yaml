@@ -2211,6 +2211,25 @@ components:
           readOnly: true
           items:
             $ref: "#/components/schemas/GrantUsageRecord"
+        segmentTerminationReasons:
+          description: |
+            The reasons why the segment was terminated.
+          type: array
+          readOnly: true
+          items:
+            x-enum-varnames:
+              - SegmentTerminationReasonPriorityChange
+              - SegmentTerminationReasonRecurrence
+              - SegmentTerminationReasonUsageReset
+            type: string
+            enum:
+              - PRIORITY_CHANGE # Priority changes if grants expire, take effect, or are consumed completely.
+              - RECURRENCE # A grant recurring
+              - USAGE_RESET # Manual or scheduled usage reset, initiating rollover.
+          example:
+            - PRIORITY_CHANGE
+            - RECURRENCE
+            - USAGE_RESET
     # Might be changed later
     GrantUsageRecord:
       type: object
