@@ -17,6 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/strcase"
 )
 
 type FeatureHandler interface {
@@ -137,7 +138,7 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 
 			// validate OrderBy
 			if apiParams.OrderBy != nil {
-				if !slices.Contains(productcatalog.FeatureOrderBy("").StrValues(), string(*apiParams.OrderBy)) {
+				if !slices.Contains(productcatalog.FeatureOrderBy("").StrValues(), strcase.CamelToSnake(string(*apiParams.OrderBy))) {
 					return productcatalog.ListFeaturesParams{}, commonhttp.NewHTTPError(http.StatusBadRequest, errors.New("invalid order by"))
 				}
 			}
@@ -149,9 +150,11 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 					PageSize:   defaultx.WithDefault(apiParams.PageSize, 0),
 					PageNumber: defaultx.WithDefault(apiParams.Page, 0),
 				},
-				Limit:      defaultx.WithDefault(apiParams.Limit, commonhttp.DefaultPageSize),
-				Offset:     defaultx.WithDefault(apiParams.Offset, 0),
-				OrderBy:    defaultx.WithDefault((*productcatalog.FeatureOrderBy)(apiParams.OrderBy), productcatalog.FeatureOrderByUpdatedAt),
+				Limit:  defaultx.WithDefault(apiParams.Limit, commonhttp.DefaultPageSize),
+				Offset: defaultx.WithDefault(apiParams.Offset, 0),
+				OrderBy: productcatalog.FeatureOrderBy(
+					strcase.CamelToSnake(defaultx.WithDefault((*string)(apiParams.OrderBy), string(productcatalog.FeatureOrderByUpdatedAt))),
+				),
 				Order:      commonhttp.GetSortOrder(api.ListFeaturesParamsOrderSortOrderASC, apiParams.Order),
 				MeterSlugs: convert.DerefHeaderPtr[string](apiParams.MeterSlug),
 			}

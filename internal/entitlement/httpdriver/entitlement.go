@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/pkg/strcase"
 )
 
 type EntitlementHandler interface {
@@ -268,7 +269,7 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 
 			// validate OrderBy
 			if params.OrderBy != nil {
-				if !slices.Contains(entitlement.ListEntitlementsOrderBy("").StrValues(), string(*params.OrderBy)) {
+				if !slices.Contains(entitlement.ListEntitlementsOrderBy("").StrValues(), strcase.CamelToSnake(string(*params.OrderBy))) {
 					return entitlement.ListEntitlementsParams{}, commonhttp.NewHTTPError(http.StatusBadRequest, errors.New("invalid order by"))
 				}
 			}
@@ -289,9 +290,11 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 					PageSize:   defaultx.WithDefault(params.PageSize, 0),
 					PageNumber: defaultx.WithDefault(params.Page, 0),
 				},
-				Limit:            defaultx.WithDefault(params.Limit, commonhttp.DefaultPageSize),
-				Offset:           defaultx.WithDefault(params.Offset, 0),
-				OrderBy:          entitlement.ListEntitlementsOrderBy(defaultx.WithDefault((*string)(params.OrderBy), string(entitlement.ListEntitlementsOrderByCreatedAt))),
+				Limit:  defaultx.WithDefault(params.Limit, commonhttp.DefaultPageSize),
+				Offset: defaultx.WithDefault(params.Offset, 0),
+				OrderBy: entitlement.ListEntitlementsOrderBy(
+					strcase.CamelToSnake(defaultx.WithDefault((*string)(params.OrderBy), string(entitlement.ListEntitlementsOrderByCreatedAt))),
+				),
 				Order:            commonhttp.GetSortOrder(api.ListEntitlementsParamsOrderSortOrderASC, params.Order),
 				SubjectKeys:      convert.DerefHeaderPtr[string](params.Subject),
 				FeatureIDsOrKeys: convert.DerefHeaderPtr[string](params.Feature),
