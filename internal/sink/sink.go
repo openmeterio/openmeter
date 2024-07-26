@@ -22,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/dedupe"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/internal/meter"
+	"github.com/openmeterio/openmeter/internal/sink/flushhandler"
 	sinkmodels "github.com/openmeterio/openmeter/internal/sink/models"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 	kafkastats "github.com/openmeterio/openmeter/pkg/kafka/metrics/stats"
@@ -29,6 +30,7 @@ import (
 
 const (
 	defaultOnFlushSuccessTimeout = 5 * time.Second
+	defaultDrainTimeout          = 10 * time.Second
 )
 
 var namespaceTopicRegexp = regexp.MustCompile(`^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$`)
@@ -48,15 +50,6 @@ type Sink struct {
 	isRunning atomic.Bool
 }
 
-type FlushSuccessEvent struct {
-	Messages []sinkmodels.SinkMessage
-}
-
-type FlushEventHandler interface {
-	OnFlushSuccess(ctx context.Context, event *FlushSuccessEvent) error
-	Shutdown() error
-}
-
 type SinkConfig struct {
 	Logger          *slog.Logger
 	Tracer          trace.Tracer
@@ -74,9 +67,10 @@ type SinkConfig struct {
 	// this information is used to configure which topics the consumer subscribes and
 	// the meter configs used in event validation.
 	NamespaceRefetch time.Duration
-	// FlushEventHandler is an optional lifecycle hook, to prevent blocking the main sink logic
-	// this is always called in a go routine.
-	FlushEventHandler FlushEventHandler
+
+	// FlushEventHandlers is an optional lifecycle hook, allowing to act on successful batch
+	// flushes. To prevent blocking the main sink logic this is always called in a go routine.
+	FlushEventHandler flushhandler.FlushEventHandler
 
 	// FlushSuccessTimeout is the timeout for the OnFlushSuccess callback, after this period the context
 	// of the callback will be canceled.
@@ -256,9 +250,7 @@ func (s *Sink) flush(ctx context.Context) error {
 			ctx, cancel := context.WithTimeout(context.Background(), s.config.FlushSuccessTimeout)
 			defer cancel()
 
-			err := s.config.FlushEventHandler.OnFlushSuccess(ctx, &FlushSuccessEvent{
-				Messages: messages,
-			})
+			err := s.config.FlushEventHandler.OnFlushSuccess(ctx, messages)
 			if err != nil {
 				logger.Error("failed to invoke OnFlushSuccess callback", "err", err)
 			}
@@ -450,6 +442,12 @@ func (s *Sink) Run(ctx context.Context) error {
 	}
 
 	logger := s.config.Logger.With("operation", "run")
+	if s.config.FlushEventHandler != nil {
+		logger.Info("starting flush event handler")
+		if err := s.config.FlushEventHandler.Start(ctx); err != nil {
+			return fmt.Errorf("failed to start flush event handler: %w", err)
+		}
+	}
 	logger.Info("starting sink")
 
 	// Fetch namespaces and meters and subscribe to them
@@ -765,7 +763,9 @@ func (s *Sink) Close() error {
 
 	if s.config.FlushEventHandler != nil {
 		logger.Info("shutting down flush success handlers")
-		if err := s.config.FlushEventHandler.Shutdown(); err != nil {
+		drainTimeoutContext, cancel := context.WithTimeout(context.Background(), defaultDrainTimeout)
+		defer cancel()
+		if err := s.config.FlushEventHandler.WaitForDrain(drainTimeoutContext); err != nil {
 			logger.Error("failed to shutdown flush success handlers", slog.String("err", err.Error()))
 		}
 	}

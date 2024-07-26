@@ -10,8 +10,6 @@ type (
 	Sink                    = sink.Sink
 	SinkConfig              = sink.SinkConfig
 	Storage                 = sink.Storage
-	FlushSuccessEvent       = sink.FlushSuccessEvent
-	FlushEventHandler       = sink.FlushEventHandler
 	ClickHouseStorage       = sink.ClickHouseStorage
 	ClickHouseStorageConfig = sink.ClickHouseStorageConfig
 )
