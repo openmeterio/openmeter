@@ -1763,6 +1763,18 @@ export interface components {
      * Usage: `?feature=feature-1&feature=feature-2`
      */
     queryFilterFeature?: string[]
+    /**
+     * @description Filtering by multiple meterSlug.
+     *
+     * Usage: `?meter=meter-1&meter=meter-2`
+     */
+    queryFilterMeter?: string[]
+    /**
+     * @description Filtering by multiple entitlement types.
+     *
+     * Usage: `?entitlementType=metered&entitlementType=static`
+     */
+    queryFilterEntitlementType?: string[]
     queryFilterGroupBy?: {
       [key: string]: string
     }
@@ -2210,6 +2222,10 @@ export interface operations {
         pageSize?: components['parameters']['queryPageSize']
         limit?: components['parameters']['queryLimit']
         offset?: components['parameters']['queryOffset']
+        subject?: components['parameters']['queryFilterSubject']
+        feature?: components['parameters']['queryFilterFeature']
+        entitlementType?: components['parameters']['queryFilterEntitlementType']
+        order?: components['parameters']['order']
         /** @description Order by field */
         orderBy?: 'createdAt' | 'updatedAt'
       }
@@ -2237,6 +2253,8 @@ export interface operations {
         pageSize?: components['parameters']['queryPageSize']
         limit?: components['parameters']['queryLimit']
         offset?: components['parameters']['queryOffset']
+        meter?: components['parameters']['queryFilterMeter']
+        order?: components['parameters']['order']
         /** @description Order by field */
         orderBy?: 'id' | 'createdAt' | 'updatedAt'
         /** @description Include archived features. */
@@ -2337,6 +2355,8 @@ export interface operations {
         pageSize?: components['parameters']['queryPageSize']
         limit?: components['parameters']['queryLimit']
         offset?: components['parameters']['queryOffset']
+        subject?: components['parameters']['queryFilterSubject']
+        feature?: components['parameters']['queryFilterFeature']
         order?: components['parameters']['order']
         /** @description Order by field */
         orderBy?: 'id' | 'createdAt' | 'updatedAt'

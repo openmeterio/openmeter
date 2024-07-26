@@ -649,6 +649,10 @@ paths:
         - $ref: "#/components/parameters/queryPageSize"
         - $ref: "#/components/parameters/queryLimit"
         - $ref: "#/components/parameters/queryOffset"
+        - $ref: "#/components/parameters/queryFilterSubject"
+        - $ref: "#/components/parameters/queryFilterFeature"
+        - $ref: "#/components/parameters/queryFilterEntitlementType"
+        - $ref: "#/components/parameters/order"
         - name: orderBy
           in: query
           required: false
@@ -688,6 +692,8 @@ paths:
         - $ref: "#/components/parameters/queryPageSize"
         - $ref: "#/components/parameters/queryLimit"
         - $ref: "#/components/parameters/queryOffset"
+        - $ref: "#/components/parameters/queryFilterMeter"
+        - $ref: "#/components/parameters/order"
         - name: orderBy
           in: query
           required: false
@@ -809,6 +815,8 @@ paths:
         - $ref: "#/components/parameters/queryPageSize"
         - $ref: "#/components/parameters/queryLimit"
         - $ref: "#/components/parameters/queryOffset"
+        - $ref: "#/components/parameters/queryFilterSubject"
+        - $ref: "#/components/parameters/queryFilterFeature"
         - $ref: "#/components/parameters/order"
         - name: orderBy
           in: query
@@ -3416,6 +3424,30 @@ components:
         type: array
         items:
           type: string
+    queryFilterMeter:
+      name: meter
+      description: |
+        Filtering by multiple meterSlug.
+
+        Usage: `?meter=meter-1&meter=meter-2`
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+    queryFilterEntitlementType:
+      name: entitlementType
+      description: |
+        Filtering by multiple entitlement types.
+
+        Usage: `?entitlementType=metered&entitlementType=static`
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
     queryFilterGroupBy:
       name: filterGroupBy
       in: query
@@ -3489,6 +3521,9 @@ components:
         Usage: `?order=ASC`
       schema:
         type: string
+        x-enum-varnames:
+          - SortOrderASC
+          - SortOrderDESC
         enum:
           - ASC
           - DESC
