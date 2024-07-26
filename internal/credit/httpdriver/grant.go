@@ -72,12 +72,18 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 					Limit:   defaultx.WithDefault(params.Params.Limit, commonhttp.DefaultPageSize),
 					Offset:  defaultx.WithDefault(params.Params.Offset, 0),
 					OrderBy: credit.GrantOrderBy(defaultx.WithDefault((*string)(params.Params.OrderBy), string(credit.GrantOrderByEffectiveAt))),
-					Order: convert.SafeDeRef[api.ListGrantsParamsOrder, sortx.Order](params.Params.Order, func(o api.ListGrantsParamsOrder) *sortx.Order {
-						if o == api.ListGrantsParamsOrderASC {
-							return convert.ToPointer(sortx.OrderAsc)
-						}
-						return convert.ToPointer(sortx.OrderDesc)
-					}),
+					Order: defaultx.WithDefault(
+						convert.SafeDeRef[api.ListGrantsParamsOrder, sortx.Order](
+							params.Params.Order,
+							func(o api.ListGrantsParamsOrder) *sortx.Order {
+								if o == api.ListGrantsParamsOrderASC {
+									return convert.ToPointer(sortx.OrderAsc)
+								}
+								return convert.ToPointer(sortx.OrderDesc)
+							},
+						),
+						sortx.OrderNone,
+					),
 				},
 			}, nil
 		},

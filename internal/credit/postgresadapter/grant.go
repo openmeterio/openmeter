@@ -78,8 +78,8 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params credit.ListGrant
 
 	if params.OrderBy != "" {
 		order := []sql.OrderTermOption{}
-		if params.Order != nil {
-			order = entutils.GetOrdering(*params.Order)
+		if !params.Order.IsDefaultValue() {
+			order = entutils.GetOrdering(params.Order)
 		}
 		switch params.OrderBy {
 		case credit.GrantOrderByCreatedAt:

@@ -6,6 +6,7 @@ const (
 	OrderAsc     Order = "ASC"
 	OrderDesc    Order = "DESC"
 	OrderDefault Order = "ASC"
+	OrderNone    Order = ""
 )
 
 func (s Order) String() string {

@@ -48,7 +48,7 @@ type ListGrantsParams struct {
 	IncludeDeleted bool
 	Page           pagination.Page
 	OrderBy        GrantOrderBy
-	Order          *sortx.Order
+	Order          sortx.Order
 	// will be deprecated
 	Limit int
 	// will be deprecated
