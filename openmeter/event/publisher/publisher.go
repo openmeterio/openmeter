@@ -7,3 +7,7 @@ type (
 	PublisherOptions = publisher.PublisherOptions
 	TopicPublisher   = publisher.TopicPublisher
 )
+
+func NewPublisher(options PublisherOptions) (Publisher, error) {
+	return publisher.NewPublisher(options)
+}

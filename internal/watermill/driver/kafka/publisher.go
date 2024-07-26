@@ -1,4 +1,4 @@
-package noop
+package kafka
 
 import (
 	"github.com/ThreeDotsLabs/watermill/message"
