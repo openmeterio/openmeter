@@ -499,6 +499,8 @@ func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Co
 			return nil, fmt.Errorf("failed to create Kafka admin client: %w", err)
 		}
 
+		defer adminClient.Close()
+
 		if err := pkgkafka.ProvisionTopic(ctx, adminClient, logger, conf.Events.SystemEvents.Topic, conf.Events.SystemEvents.AutoProvision.Partitions); err != nil {
 			return nil, fmt.Errorf("failed to auto provision topic: %w", err)
 		}
