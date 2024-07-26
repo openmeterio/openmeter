@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	db_feature "github.com/openmeterio/openmeter/internal/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
