@@ -14,42 +14,35 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
-var PG_URL string
+var pgUrl string
 
 func TestMain(m *testing.M) {
-	PG_URL = os.Getenv("POSTGRES_URL")
+	pgUrl = os.Getenv("POSTGRES_URL")
 
 	os.Exit(m.Run())
 }
 
-const (
-	DIR = "./tmp/"
-)
-
 func setup(t *testing.T) {
-	if PG_URL == "" {
+	t.Helper()
+	if pgUrl == "" {
 		t.Skip("POSTGRES_URL not set")
 	}
 }
 
 func TestNoSchemaDiffOnMigrate(t *testing.T) {
 	setup(t)
-	driver, err := entutils.GetPGDriver(PG_URL)
+	driver, err := entutils.GetPGDriver(pgUrl)
 	if err != nil {
 		t.Fatalf("failed to get pg driver %s", err)
 	}
 
-	// OpenMemDir doesn't work from inside dagger
-	// dir := migrate.OpenMemDir("migrations")
-	err = os.RemoveAll(DIR)
+	tmpDirPath, err := os.MkdirTemp("", "migrate")
 	if err != nil {
-		t.Fatalf("failed to remove dir %s", err)
+		t.Fatalf("failed to create temp dir %s", err)
 	}
-	err = os.MkdirAll(DIR, os.ModePerm)
-	if err != nil {
-		t.Fatalf("failed to create dir %s", err)
-	}
-	dir, err := migrate.NewLocalDir(DIR)
+	defer os.RemoveAll(tmpDirPath)
+
+	dir, err := migrate.NewLocalDir(tmpDirPath)
 	if err != nil {
 		t.Fatalf("failed to open local dir %s", err)
 	}
