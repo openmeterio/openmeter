@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	db_entitlement "github.com/openmeterio/openmeter/internal/ent/db/entitlement"
+	db_feature "github.com/openmeterio/openmeter/internal/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 	db_usagereset "github.com/openmeterio/openmeter/internal/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/internal/entitlement"
@@ -142,6 +143,20 @@ func (a *entitlementDBAdapter) GetEntitlementsOfSubject(ctx context.Context, nam
 	}
 
 	return result, nil
+}
+
+func (a *entitlementDBAdapter) HasEntitlementForMeter(ctx context.Context, namespace string, meterSlug string) (bool, error) {
+	exists, err := a.db.Entitlement.Query().
+		Where(
+			db_entitlement.Namespace(namespace),
+			db_entitlement.HasFeatureWith(db_feature.MeterSlugEQ(meterSlug)),
+		).
+		Exist(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
 }
 
 func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params entitlement.ListEntitlementsParams) (pagination.PagedResponse[entitlement.Entitlement], error) {
