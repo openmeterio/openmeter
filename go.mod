@@ -42,7 +42,7 @@ require (
 	github.com/prometheus/client_model v0.6.1
 	github.com/prometheus/common v0.55.0
 	github.com/redis/go-redis/extra/redisotel/v9 v9.5.3
-	github.com/redis/go-redis/v9 v9.6.0
+	github.com/redis/go-redis/v9 v9.6.1
 	github.com/sagikazarmark/mapstructurex v0.1.0
 	github.com/sagikazarmark/slog-shim v0.1.0
 	github.com/samber/lo v1.46.0
