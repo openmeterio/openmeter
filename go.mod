@@ -48,7 +48,7 @@ require (
 	github.com/samber/lo v1.46.0
 	github.com/samber/slog-multi v1.2.0
 	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.20.0-alpha.5
+	github.com/spf13/viper v1.20.0-alpha.6
 	github.com/stretchr/testify v1.9.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.53.0
 	go.opentelemetry.io/otel v1.28.0
