@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
-	grantrepo "github.com/openmeterio/openmeter/internal/credit/postgresadapter"
+	grantrepo "github.com/openmeterio/openmeter/internal/credit/postgresdriver"
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	booleanentitlement "github.com/openmeterio/openmeter/internal/entitlement/boolean"

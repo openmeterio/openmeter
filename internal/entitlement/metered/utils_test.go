@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/internal/credit"
-	credit_postgres_adapter "github.com/openmeterio/openmeter/internal/credit/postgresadapter"
+	credit_postgres_adapter "github.com/openmeterio/openmeter/internal/credit/postgresdriver"
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
