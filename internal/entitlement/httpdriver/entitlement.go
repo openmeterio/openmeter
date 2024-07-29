@@ -97,6 +97,32 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 				if v.Metadata != nil {
 					request.Metadata = *v.Metadata
 				}
+				if v.MeasureUsageFrom != nil {
+					measureUsageFrom := &entitlement.MeasureUsageFromInput{}
+					apiTime, err := v.MeasureUsageFrom.AsMeasureUsageFromTime()
+					if err == nil {
+						err := measureUsageFrom.FromTime(apiTime)
+						if err != nil {
+							return request, err
+						}
+					} else {
+						apiEnum, err := v.MeasureUsageFrom.AsMeasureUsageFromEnum()
+						if err != nil {
+							return request, err
+						}
+
+						// sanity check
+						if request.UsagePeriod == nil {
+							return request, errors.New("usage period is required for enum measure usage from")
+						}
+
+						err = measureUsageFrom.FromEnum(entitlement.MeasureUsageFromEnum(apiEnum), *request.UsagePeriod, clock.Now())
+						if err != nil {
+							return request, err
+						}
+					}
+					request.MeasureUsageFrom = measureUsageFrom
+				}
 			case api.EntitlementStaticCreateInputs:
 				request = entitlement.CreateEntitlementInputs{
 					Namespace:       ns,

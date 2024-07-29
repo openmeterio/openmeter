@@ -1980,6 +1980,21 @@ components:
               $ref: "#/components/schemas/RecurringPeriod"
             currentUsagePeriod:
               $ref: "#/components/schemas/Period"
+    MeasureUsageFromEnum:
+      type: string
+      enum:
+        - CURRENT_PERIOD_START
+        - NOW
+    MeasureUsageFromTime:
+      type: string
+      format: date-time
+    MeasureUsageFrom:
+      description: |
+        The time from which usage is measured, defaults to the entitlement creation time.
+        The provided value is truncated to the granularity of the underlying meter.
+      oneOf:
+        - $ref: "#/components/schemas/MeasureUsageFromEnum"
+        - $ref: "#/components/schemas/MeasureUsageFromTime"
     EntitlementMeteredCreateInputs:
       allOf:
         - $ref: "#/components/schemas/EntitlementCreateSharedFields"
@@ -2007,6 +2022,8 @@ components:
                 Deprecated, ignored by the backend. Please use isSoftLimit instead; this field will be removed in the future.
             usagePeriod:
               $ref: "#/components/schemas/RecurringPeriodCreateInput"
+            measureUsageFrom:
+              $ref: "#/components/schemas/MeasureUsageFrom"
             issueAfterReset:
               type: number
               format: double
@@ -2049,6 +2066,7 @@ components:
       required:
         - lastReset
         - currentUsagePeriod
+        - measureUsageFrom
       properties:
         lastReset:
           description: |
@@ -2058,6 +2076,11 @@ components:
           example: "2023-01-01T00:00:00Z"
         currentUsagePeriod:
           $ref: "#/components/schemas/Period"
+        measureUsageFrom:
+          type: string
+          format: date-time
+          description: |
+            The time from which usage is measured. If not specified on creation, defaults to the entitlement creation time.
     EntitlementStaticCreateInputs:
       allOf:
         - $ref: "#/components/schemas/EntitlementCreateSharedFields"

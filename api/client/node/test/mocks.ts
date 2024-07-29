@@ -91,6 +91,7 @@ export const mockEntitlement: Entitlement = {
     from: '2024-01-01T00:00:00Z',
     to: '2024-01-01T00:00:00Z',
   },
+  measureUsageFrom: '2024-01-01T00:00:00Z',
   issueAfterReset: mockCreateEntitlementInput.issueAfterReset,
   lastReset: '2024-01-01T00:00:00Z',
   createdAt: '2024-01-01T00:00:00Z',

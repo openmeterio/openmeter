@@ -1,8 +1,11 @@
 package entitlement
 
 import (
+	"fmt"
+	"slices"
 	"time"
 
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -10,6 +13,60 @@ import (
 
 type TypedEntitlement interface {
 	GetType() EntitlementType
+}
+
+type MeasureUsageFromEnum string
+
+const (
+	MeasureUsageFromCurrentPeriodStart MeasureUsageFromEnum = "CURRENT_PERIOD_START"
+	MeasureUsageFromNow                MeasureUsageFromEnum = "NOW"
+)
+
+func (e MeasureUsageFromEnum) Values() []MeasureUsageFromEnum {
+	return []MeasureUsageFromEnum{MeasureUsageFromCurrentPeriodStart, MeasureUsageFromNow}
+}
+
+func (e MeasureUsageFromEnum) Validate() error {
+	if !slices.Contains(e.Values(), e) {
+		return fmt.Errorf("invalid value")
+	}
+	return nil
+}
+
+type MeasureUsageFromInput struct {
+	ts time.Time
+}
+
+func (m MeasureUsageFromInput) Get() time.Time {
+	return m.ts
+}
+
+func (m *MeasureUsageFromInput) FromTime(t time.Time) error {
+	if t.IsZero() {
+		return fmt.Errorf("time is zero")
+	}
+
+	m.ts = t
+	return nil
+}
+
+func (m *MeasureUsageFromInput) FromEnum(e MeasureUsageFromEnum, p UsagePeriod, t time.Time) error {
+	if err := e.Validate(); err != nil {
+		return err
+	}
+	switch e {
+	case MeasureUsageFromCurrentPeriodStart:
+		period, err := p.GetCurrentPeriodAt(clock.Now())
+		if err != nil {
+			return err
+		}
+		m.ts = period.From
+	case MeasureUsageFromNow:
+		m.ts = t
+	default:
+		return fmt.Errorf("unsupported enum value")
+	}
+	return nil
 }
 
 type CreateEntitlementInputs struct {
@@ -20,12 +77,12 @@ type CreateEntitlementInputs struct {
 	EntitlementType EntitlementType   `json:"type"`
 	Metadata        map[string]string `json:"metadata,omitempty"`
 
-	MeasureUsageFrom        *time.Time   `json:"measureUsageFrom,omitempty"`
-	IssueAfterReset         *float64     `json:"issueAfterReset,omitempty"`
-	IssueAfterResetPriority *uint8       `json:"issueAfterResetPriority,omitempty"`
-	IsSoftLimit             *bool        `json:"isSoftLimit,omitempty"`
-	Config                  []byte       `json:"config,omitempty"`
-	UsagePeriod             *UsagePeriod `json:"usagePeriod,omitempty"`
+	MeasureUsageFrom        *MeasureUsageFromInput `json:"measureUsageFrom,omitempty"`
+	IssueAfterReset         *float64               `json:"issueAfterReset,omitempty"`
+	IssueAfterResetPriority *uint8                 `json:"issueAfterResetPriority,omitempty"`
+	IsSoftLimit             *bool                  `json:"isSoftLimit,omitempty"`
+	Config                  []byte                 `json:"config,omitempty"`
+	UsagePeriod             *UsagePeriod           `json:"usagePeriod,omitempty"`
 }
 
 func (c CreateEntitlementInputs) GetType() EntitlementType {
