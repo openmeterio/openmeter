@@ -25,6 +25,8 @@ type EntitlementRepo interface {
 
 	ListEntitlements(ctx context.Context, params ListEntitlementsParams) (pagination.PagedResponse[Entitlement], error)
 
+	HasEntitlementForMeter(ctx context.Context, namespace string, meterSlug string) (bool, error)
+
 	// FIXME: This is a terrbile hack
 	LockEntitlementForTx(ctx context.Context, entitlementID models.NamespacedID) error
 

@@ -91,6 +91,19 @@ func (c *featureDBAdapter) ArchiveFeature(ctx context.Context, featureID models.
 	return nil
 }
 
+func (c *featureDBAdapter) HasActiveFeatureForMeter(ctx context.Context, namespace string, meterSlug string) (bool, error) {
+	exists, err := c.db.Feature.Query().
+		Where(db_feature.Namespace(namespace)).
+		Where(db_feature.MeterSlug(meterSlug)).
+		Where(db_feature.Or(db_feature.ArchivedAtIsNil(), db_feature.ArchivedAtGT(clock.Now()))).
+		Exist(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
 func (c *featureDBAdapter) ListFeatures(ctx context.Context, params productcatalog.ListFeaturesParams) (pagination.PagedResponse[productcatalog.Feature], error) {
 	query := c.db.Feature.Query().
 		Where(db_feature.Namespace(params.Namespace))
