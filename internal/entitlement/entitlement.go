@@ -25,6 +25,7 @@ const (
 func (e MeasureUsageFromEnum) Values() []MeasureUsageFromEnum {
 	return []MeasureUsageFromEnum{MeasureUsageFromCurrentPeriodStart, MeasureUsageFromNow}
 }
+
 func (e MeasureUsageFromEnum) Validate() error {
 	if !slices.Contains(e.Values(), e) {
 		return fmt.Errorf("invalid value")
@@ -39,13 +40,16 @@ type MeasureUsageFromInput struct {
 func (m MeasureUsageFromInput) Get() time.Time {
 	return m.ts
 }
+
 func (m *MeasureUsageFromInput) FromTime(t time.Time) error {
 	if t.IsZero() {
 		return fmt.Errorf("time is zero")
 	}
+
 	m.ts = t
 	return nil
 }
+
 func (m *MeasureUsageFromInput) FromEnum(e MeasureUsageFromEnum, p UsagePeriod, t time.Time) error {
 	if err := e.Validate(); err != nil {
 		return err

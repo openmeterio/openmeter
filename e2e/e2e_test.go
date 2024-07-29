@@ -561,7 +561,7 @@ func TestCredit(t *testing.T) {
 		randSubject := ulid.Make().String()
 		measureUsageFrom := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
 		muf := &api.MeasureUsageFrom{}
-		err := muf.FromMeasureUsageFromTime(api.MeasureUsageFromTime(measureUsageFrom))
+		err := muf.FromMeasureUsageFromTime(measureUsageFrom)
 		require.NoError(t, err)
 		meteredEntitlement := api.EntitlementMeteredCreateInputs{
 			Type:      "metered",
