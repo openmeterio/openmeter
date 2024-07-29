@@ -472,7 +472,7 @@ func TestCredit(t *testing.T) {
 	var featureId *api.FeatureId
 	var featureKey string
 
-	const waitTime = time.Second * 4
+	const waitTime = time.Second * 10
 
 	t.Run("Create Feature", func(t *testing.T) {
 		randKey := ulid.Make().String()
