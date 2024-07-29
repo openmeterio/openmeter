@@ -341,6 +341,7 @@ func main() {
 			EntitlementConnector:        entitlementConnRegistry.Entitlement,
 			EntitlementBalanceConnector: entitlementConnRegistry.MeteredEntitlement,
 			GrantConnector:              entitlementConnRegistry.Grant,
+			GrantRepo:                   entitlementConnRegistry.GrantRepo,
 			// modules
 			EntitlementsEnabled: conf.Entitlements.Enabled,
 		},

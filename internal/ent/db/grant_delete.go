@@ -8,8 +8,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
+
+	dbgrant "github.com/openmeterio/openmeter/internal/ent/db/grant"
 )
 
 // GrantDelete is the builder for deleting a Grant entity.
@@ -40,7 +41,7 @@ func (gd *GrantDelete) ExecX(ctx context.Context) int {
 }
 
 func (gd *GrantDelete) sqlExec(ctx context.Context) (int, error) {
-	_spec := sqlgraph.NewDeleteSpec(grant.Table, sqlgraph.NewFieldSpec(grant.FieldID, field.TypeString))
+	_spec := sqlgraph.NewDeleteSpec(dbgrant.Table, sqlgraph.NewFieldSpec(dbgrant.FieldID, field.TypeString))
 	if ps := gd.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -74,7 +75,7 @@ func (gdo *GrantDeleteOne) Exec(ctx context.Context) error {
 	case err != nil:
 		return err
 	case n == 0:
-		return &NotFoundError{grant.Label}
+		return &NotFoundError{dbgrant.Label}
 	default:
 		return nil
 	}

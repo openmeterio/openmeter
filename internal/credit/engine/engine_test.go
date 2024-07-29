@@ -1,4 +1,4 @@
-package credit_test
+package engine_test
 
 import (
 	"context"
@@ -12,7 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/internal/credit"
+	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	"github.com/openmeterio/openmeter/internal/credit/engine"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/internal/streaming/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -24,24 +26,24 @@ func TestEngine(t *testing.T) {
 	assert.NoError(t, err)
 	meterSlug := "meter-1"
 
-	grant1 := makeGrant(credit.Grant{
+	grant1 := makeGrant(grant.Grant{
 		ID:          "grant-1",
 		Amount:      100.0,
 		Priority:    1,
 		EffectiveAt: t1,
-		Expiration: credit.ExpirationPeriod{
-			Duration: credit.ExpirationPeriodDurationDay,
+		Expiration: grant.ExpirationPeriod{
+			Duration: grant.ExpirationPeriodDurationDay,
 			Count:    30,
 		},
 	})
 
-	grant2 := makeGrant(credit.Grant{
+	grant2 := makeGrant(grant.Grant{
 		ID:          "grant-2",
 		Amount:      100.0,
 		Priority:    1,
 		EffectiveAt: t1,
-		Expiration: credit.ExpirationPeriod{
-			Duration: credit.ExpirationPeriodDurationDay,
+		Expiration: grant.ExpirationPeriod{
+			Duration: grant.ExpirationPeriodDurationDay,
 			Count:    30,
 		},
 	})
@@ -51,19 +53,19 @@ func TestEngine(t *testing.T) {
 	// Tests with single engine
 	tt := []struct {
 		name string
-		run  func(t *testing.T, engine credit.Engine, use addUsageFunc)
+		run  func(t *testing.T, engine engine.Engine, use addUsageFunc)
 	}{
 		{
 			name: "Should return the same result on subsequent runs",
-			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
 				use(120, t1.Add(time.Hour))
 				g1 := grant1
 				g1 = makeGrant(g1)
 
 				b1, o1, s1, err1 := engine.Run(
 					context.Background(),
-					[]credit.Grant{g1},
-					credit.GrantBalanceMap{
+					[]grant.Grant{g1},
+					balancesnapshot.GrantBalanceMap{
 						g1.ID: 100.0,
 					},
 					0,
@@ -75,8 +77,8 @@ func TestEngine(t *testing.T) {
 
 				b2, o2, s2, err2 := engine.Run(
 					context.Background(),
-					[]credit.Grant{g1},
-					credit.GrantBalanceMap{
+					[]grant.Grant{g1},
+					balancesnapshot.GrantBalanceMap{
 						g1.ID: 100.0,
 					},
 					0,
@@ -93,28 +95,28 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Reports overage if there are no grants",
-			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+			run: func(t *testing.T, eng engine.Engine, use addUsageFunc) {
 				use(50.0, t1.Add(time.Hour))
-				res, overage, segments, err := engine.Run(
+				res, overage, segments, err := eng.Run(
 					context.Background(),
-					[]credit.Grant{},
-					credit.GrantBalanceMap{}, 0, recurrence.Period{
+					[]grant.Grant{},
+					balancesnapshot.GrantBalanceMap{}, 0, recurrence.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 30),
 					})
 
 				assert.NoError(t, err)
 				assert.Equal(t, 50.0, overage)
-				assert.Equal(t, credit.GrantBalanceMap{}, res)
-				assert.Equal(t, []credit.GrantBurnDownHistorySegment{
+				assert.Equal(t, balancesnapshot.GrantBalanceMap{}, res)
+				assert.Equal(t, []engine.GrantBurnDownHistorySegment{
 					{
-						BalanceAtStart: credit.GrantBalanceMap{},
-						GrantUsages:    []credit.GrantUsage{},
+						BalanceAtStart: balancesnapshot.GrantBalanceMap{},
+						GrantUsages:    []engine.GrantUsage{},
 						Period: recurrence.Period{
 							From: t1,
 							To:   t1.AddDate(0, 0, 30),
 						},
-						TerminationReasons: credit.SegmentTerminationReason{},
+						TerminationReasons: engine.SegmentTerminationReason{},
 						TotalUsage:         50.0,
 						Overage:            50.0,
 					},
@@ -123,12 +125,12 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Errors if balance was provided for nonexistent grants",
-			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
 				use(50.0, t1.Add(time.Hour))
 				_, _, _, err := engine.Run(
 					context.Background(),
-					[]credit.Grant{},
-					credit.GrantBalanceMap{
+					[]grant.Grant{},
+					balancesnapshot.GrantBalanceMap{
 						grant1.ID: 100.0,
 					}, 0, recurrence.Period{
 						From: t1,
@@ -140,7 +142,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Errors on missing balance for one of the grants",
-			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
 				use(50.0, t1.Add(time.Hour))
 				g1 := grant1
 				g1 = makeGrant(g1)
@@ -148,8 +150,8 @@ func TestEngine(t *testing.T) {
 				g2 = makeGrant(g2)
 				_, _, _, err := engine.Run(
 					context.Background(),
-					[]credit.Grant{g1, g2},
-					credit.GrantBalanceMap{
+					[]grant.Grant{g1, g2},
+					balancesnapshot.GrantBalanceMap{
 						grant1.ID: 100.0,
 					}, 0, recurrence.Period{
 						From: t1,
@@ -161,12 +163,12 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Able to burn down single active grant",
-			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
 				use(50.0, t1.Add(time.Hour))
 				res, _, _, err := engine.Run(
 					context.Background(),
-					[]credit.Grant{grant1},
-					credit.GrantBalanceMap{
+					[]grant.Grant{grant1},
+					balancesnapshot.GrantBalanceMap{
 						grant1.ID: 100.0,
 					}, 0, recurrence.Period{
 						From: t1,
@@ -179,17 +181,17 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Return 0 balance for grant with future effectiveAt",
-			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
 				use(50.0, t1.Add(time.Hour))
-				grant := grant1
-				grant.EffectiveAt = t1.AddDate(0, 0, 10)
-				grant = makeGrant(grant)
+				g := grant1
+				g.EffectiveAt = t1.AddDate(0, 0, 10)
+				g = makeGrant(g)
 
 				res, _, _, err := engine.Run(
 					context.Background(),
-					[]credit.Grant{grant},
-					credit.GrantBalanceMap{
-						grant.ID: 100.0,
+					[]grant.Grant{g},
+					balancesnapshot.GrantBalanceMap{
+						g.ID: 100.0,
 					}, 0, recurrence.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 5),
@@ -201,18 +203,18 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Return 0 balance for deleted grant",
-			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
 				use(50.0, t1.Add(time.Hour))
-				grant := grant1
-				grant.EffectiveAt = t1
-				grant.DeletedAt = &t1
-				grant = makeGrant(grant)
+				g := grant1
+				g.EffectiveAt = t1
+				g.DeletedAt = &t1
+				g = makeGrant(g)
 
 				res, _, _, err := engine.Run(
 					context.Background(),
-					[]credit.Grant{grant},
-					credit.GrantBalanceMap{
-						grant.ID: 100.0,
+					[]grant.Grant{g},
+					balancesnapshot.GrantBalanceMap{
+						g.ID: 100.0,
 					}, 0, recurrence.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 5),
@@ -224,20 +226,20 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Burns down grant until it's deleted",
-			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
 				deletionTime := t1.Add(time.Hour)
 				use(50.0, deletionTime.Add(-time.Minute))
 				use(50.0, deletionTime.Add(time.Minute))
-				grant := grant1
-				grant.EffectiveAt = t1
-				grant.DeletedAt = &deletionTime
-				grant = makeGrant(grant)
+				g := grant1
+				g.EffectiveAt = t1
+				g.DeletedAt = &deletionTime
+				g = makeGrant(g)
 
 				res, overage, history, err := engine.Run(
 					context.Background(),
-					[]credit.Grant{grant},
-					credit.GrantBalanceMap{
-						grant.ID: 100.0,
+					[]grant.Grant{g},
+					balancesnapshot.GrantBalanceMap{
+						g.ID: 100.0,
 					}, 0, recurrence.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 5),
@@ -249,25 +251,25 @@ func TestEngine(t *testing.T) {
 				assert.Len(t, history, 2)
 				assert.Equal(t, 50.0, history[0].TotalUsage)
 				assert.Equal(t, 50.0, history[1].TotalUsage)
-				assert.Equal(t, 0.0, history[1].BalanceAtStart[grant.ID])
+				assert.Equal(t, 0.0, history[1].BalanceAtStart[g.ID])
 			},
 		},
 		{
 			name: "Burns down grant until it's voided",
-			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
 				voidingTime := t1.Add(time.Hour)
 				use(50.0, voidingTime.Add(-time.Minute))
 				use(50.0, voidingTime.Add(time.Minute))
-				grant := grant1
-				grant.EffectiveAt = t1
-				grant.VoidedAt = &voidingTime
-				grant = makeGrant(grant)
+				g := grant1
+				g.EffectiveAt = t1
+				g.VoidedAt = &voidingTime
+				g = makeGrant(g)
 
 				res, overage, history, err := engine.Run(
 					context.Background(),
-					[]credit.Grant{grant},
-					credit.GrantBalanceMap{
-						grant.ID: 100.0,
+					[]grant.Grant{g},
+					balancesnapshot.GrantBalanceMap{
+						g.ID: 100.0,
 					}, 0, recurrence.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 5),
@@ -279,24 +281,24 @@ func TestEngine(t *testing.T) {
 				assert.Len(t, history, 2)
 				assert.Equal(t, 50.0, history[0].TotalUsage)
 				assert.Equal(t, 50.0, history[1].TotalUsage)
-				assert.Equal(t, 0.0, history[1].BalanceAtStart[grant.ID])
+				assert.Equal(t, 0.0, history[1].BalanceAtStart[g.ID])
 			},
 		},
 		{
 			name: "Return 0 balance for grant with past expiresAt",
-			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
 				use(50.0, t1.Add(time.Hour))
-				grant := grant1
-				grant.EffectiveAt = t1.AddDate(-1, 0, 0)
-				grant.Expiration.Duration = credit.ExpirationPeriodDurationDay
-				grant.Expiration.Count = 1
-				grant = makeGrant(grant)
+				g := grant1
+				g.EffectiveAt = t1.AddDate(-1, 0, 0)
+				g.Expiration.Duration = grant.ExpirationPeriodDurationDay
+				g.Expiration.Count = 1
+				g = makeGrant(g)
 
 				res, _, _, err := engine.Run(
 					context.Background(),
-					[]credit.Grant{grant},
-					credit.GrantBalanceMap{
-						grant.ID: 100.0,
+					[]grant.Grant{g},
+					balancesnapshot.GrantBalanceMap{
+						g.ID: 100.0,
 					}, 0, recurrence.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 5),
@@ -308,24 +310,24 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Does not burn down grant that expires at start of period",
-			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
 				use(50.0, t1.Add(time.Hour))
-				grant := grant1
-				grant.EffectiveAt = t1.AddDate(-1, 0, 0)
-				grant.Expiration.Duration = credit.ExpirationPeriodDurationDay
-				grant.Expiration.Count = 1
-				grant = makeGrant(grant)
+				g := grant1
+				g.EffectiveAt = t1.AddDate(-1, 0, 0)
+				g.Expiration.Duration = grant.ExpirationPeriodDurationDay
+				g.Expiration.Count = 1
+				g = makeGrant(g)
 
 				res, _, _, err := engine.Run(
 					context.Background(),
-					[]credit.Grant{grant},
-					credit.GrantBalanceMap{
-						grant.ID: 100.0,
+					[]grant.Grant{g},
+					balancesnapshot.GrantBalanceMap{
+						g.ID: 100.0,
 					},
 					0,
 					recurrence.Period{
-						From: grant.ExpiresAt,
-						To:   grant.ExpiresAt.AddDate(0, 0, 5),
+						From: g.ExpiresAt,
+						To:   g.ExpiresAt.AddDate(0, 0, 5),
 					})
 
 				assert.NoError(t, err)
@@ -334,22 +336,22 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Burns down grant that becomes active during phase",
-			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
 				// burn down with usage after grant effectiveAt
 				use(25.0, t1.Add(time.Hour))
 				// burn down with usage prior to grant effectiveAt
 				use(25.0, t1.Add(-time.Hour))
-				grant := grant1
-				grant.EffectiveAt = t1
-				grant.Expiration.Duration = credit.ExpirationPeriodDurationDay
-				grant.Expiration.Count = 30
-				grant = makeGrant(grant)
+				g := grant1
+				g.EffectiveAt = t1
+				g.Expiration.Duration = grant.ExpirationPeriodDurationDay
+				g.Expiration.Count = 30
+				g = makeGrant(g)
 
 				res, _, segments, err := engine.Run(
 					context.Background(),
-					[]credit.Grant{grant},
-					credit.GrantBalanceMap{
-						grant.ID: 0.0,
+					[]grant.Grant{g},
+					balancesnapshot.GrantBalanceMap{
+						g.ID: 0.0,
 					},
 					0,
 					recurrence.Period{
@@ -362,17 +364,17 @@ func TestEngine(t *testing.T) {
 
 				// sets correct starting balance for grant in segment
 				assert.Len(t, segments, 2)
-				assert.Equal(t, 0.0, segments[0].BalanceAtStart[grant.ID])
+				assert.Equal(t, 0.0, segments[0].BalanceAtStart[g.ID])
 
 				// starting balance doesnt have overage deducted
-				assert.Equal(t, grant.Amount, segments[1].BalanceAtStart[grant.ID])
+				assert.Equal(t, g.Amount, segments[1].BalanceAtStart[g.ID])
 				// but it is stored separately
 				assert.Equal(t, 25.0, segments[1].OverageAtStart)
 			},
 		},
 		{
 			name: "Burns down multiple grants",
-			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
 				// burn down with usage after grant effectiveAt
 				use(200, t1.Add(time.Hour))
 				g1 := grant1
@@ -385,8 +387,8 @@ func TestEngine(t *testing.T) {
 
 				res, _, _, err := engine.Run(
 					context.Background(),
-					[]credit.Grant{g1, g2},
-					credit.GrantBalanceMap{
+					[]grant.Grant{g1, g2},
+					balancesnapshot.GrantBalanceMap{
 						g1.ID: 100.0,
 						g2.ID: 100.0,
 					},
@@ -403,7 +405,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Burns down grant with higher priority first",
-			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
 				// burn down with usage after grant effectiveAt
 				use(120, t1.Add(time.Hour))
 				g1 := grant1
@@ -418,8 +420,8 @@ func TestEngine(t *testing.T) {
 
 				res, _, _, err := engine.Run(
 					context.Background(),
-					[]credit.Grant{g2, g1},
-					credit.GrantBalanceMap{
+					[]grant.Grant{g2, g1},
+					balancesnapshot.GrantBalanceMap{
 						g1.ID: 100.0,
 						g2.ID: 100.0,
 					},
@@ -436,7 +438,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Burns down grant that expires first",
-			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
 				// burn down with usage after grant effectiveAt
 				use(120, t1.Add(time.Hour))
 				g1 := grant1
@@ -445,14 +447,14 @@ func TestEngine(t *testing.T) {
 
 				g2 := grant2
 				g2.EffectiveAt = t1
-				g2.Expiration.Duration = credit.ExpirationPeriodDurationYear
+				g2.Expiration.Duration = grant.ExpirationPeriodDurationYear
 				g2.Expiration.Count = 100
 				g2 = makeGrant(g2)
 
 				res, _, _, err := engine.Run(
 					context.Background(),
-					[]credit.Grant{g2, g1},
-					credit.GrantBalanceMap{
+					[]grant.Grant{g2, g1},
+					balancesnapshot.GrantBalanceMap{
 						g1.ID: 100.0,
 						g2.ID: 100.0,
 					},
@@ -469,23 +471,23 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Burns down grant that expires first among many",
-			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
 				// make lots of grants
-				nGrant := func(i int) credit.Grant {
-					return makeGrant(credit.Grant{
+				nGrant := func(i int) grant.Grant {
+					return makeGrant(grant.Grant{
 						ID:          fmt.Sprintf("grant-%d", i),
 						Amount:      100.0,
 						Priority:    1,
 						EffectiveAt: t1,
-						Expiration: credit.ExpirationPeriod{
-							Duration: credit.ExpirationPeriodDurationDay,
+						Expiration: grant.ExpirationPeriod{
+							Duration: grant.ExpirationPeriodDurationDay,
 							Count:    30,
 						},
 					})
 				}
 
 				numGrants := 100000
-				grants := make([]credit.Grant, 0, numGrants)
+				grants := make([]grant.Grant, 0, numGrants)
 				for i := 0; i < numGrants; i++ {
 					grants = append(grants, nGrant(i))
 				}
@@ -495,7 +497,7 @@ func TestEngine(t *testing.T) {
 				grants[0] = makeGrant(grants[0])
 
 				gToBurn := grants[0]
-				bm := credit.GrantBalanceMap{}
+				bm := balancesnapshot.GrantBalanceMap{}
 				for _, g := range grants {
 					bm[g.ID] = 100.0
 				}
@@ -530,7 +532,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Burns down recurring grant",
-			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
 				// burn down with usage after grant effectiveAt
 				use(120, t1.Add(time.Hour))
 				g1 := grant1
@@ -543,8 +545,8 @@ func TestEngine(t *testing.T) {
 
 				res, _, _, err := engine.Run(
 					context.Background(),
-					[]credit.Grant{g1},
-					credit.GrantBalanceMap{
+					[]grant.Grant{g1},
+					balancesnapshot.GrantBalanceMap{
 						g1.ID: 100.0,
 					},
 					0,
@@ -560,7 +562,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Burns down recurring grant that takes effect later before it has recurred",
-			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
 				// burn down with usage after grant effectiveAt
 				start := t1
 				tg1 := start.AddDate(0, 0, -1)
@@ -588,8 +590,8 @@ func TestEngine(t *testing.T) {
 
 				res1, _, _, err := engine.Run(
 					context.Background(),
-					[]credit.Grant{g1, g2},
-					credit.GrantBalanceMap{
+					[]grant.Grant{g1, g2},
+					balancesnapshot.GrantBalanceMap{
 						g1.ID: 80.0, // due to use before start
 						g2.ID: 100.0,
 					},
@@ -607,7 +609,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Burns down recurring grant that takes effect later after it has recurred",
-			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
 				// burn down with usage after grant effectiveAt
 				start := t1
 				tg1 := start.AddDate(0, 0, -1)
@@ -636,8 +638,8 @@ func TestEngine(t *testing.T) {
 
 				res2, _, _, err := engine.Run(
 					context.Background(),
-					[]credit.Grant{g1, g2},
-					credit.GrantBalanceMap{
+					[]grant.Grant{g1, g2},
+					balancesnapshot.GrantBalanceMap{
 						g1.ID: 80.0, // due to use before start
 						g2.ID: 100.0,
 					},
@@ -656,7 +658,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Return GrantBurnDownHistory",
-			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
 				// burn down with usage after grant effectiveAt
 				start := t1
 				end := start.AddDate(0, 1, 0)
@@ -674,7 +676,7 @@ func TestEngine(t *testing.T) {
 				g1.Priority = 3
 				// so they dont expire
 				g1.Expiration.Count = 2
-				g1.Expiration.Duration = credit.ExpirationPeriodDurationMonth
+				g1.Expiration.Duration = grant.ExpirationPeriodDurationMonth
 				g1 = makeGrant(g1)
 
 				g2 := grant2
@@ -682,7 +684,7 @@ func TestEngine(t *testing.T) {
 				g2.Priority = 1
 				// so they dont expire
 				g2.Expiration.Count = 2
-				g2.Expiration.Duration = credit.ExpirationPeriodDurationMonth
+				g2.Expiration.Duration = grant.ExpirationPeriodDurationMonth
 				g2.Recurrence = &recurrence.Recurrence{
 					Interval: recurrence.RecurrencePeriodWeek,
 					Anchor:   tg2r,
@@ -691,8 +693,8 @@ func TestEngine(t *testing.T) {
 
 				_, _, segments, err := engine.Run(
 					context.Background(),
-					[]credit.Grant{g1, g2},
-					credit.GrantBalanceMap{
+					[]grant.Grant{g1, g2},
+					balancesnapshot.GrantBalanceMap{
 						g1.ID: 80.0, // due to use before start
 						g2.ID: 100.0,
 					},
@@ -710,7 +712,7 @@ func TestEngine(t *testing.T) {
 		},
 		{
 			name: "Should calculate sequential periods across timezones and convert to UTC",
-			run: func(t *testing.T, engine credit.Engine, use addUsageFunc) {
+			run: func(t *testing.T, engine engine.Engine, use addUsageFunc) {
 				// burn down with usage after grant effectiveAt
 				start := t1
 				t1 := start.Add(time.Hour)
@@ -736,14 +738,14 @@ func TestEngine(t *testing.T) {
 				g1.EffectiveAt = t1
 				g1.Priority = 3
 				g1.Expiration.Count = 1
-				g1.Expiration.Duration = credit.ExpirationPeriodDurationMonth
+				g1.Expiration.Duration = grant.ExpirationPeriodDurationMonth
 				g1 = makeGrant(g1)
 
 				g2 := grant2
 				g2.EffectiveAt = t2
 				g2.Priority = 1
 				g2.Expiration.Count = 1
-				g2.Expiration.Duration = credit.ExpirationPeriodDurationHour // This will expire before querying
+				g2.Expiration.Duration = grant.ExpirationPeriodDurationHour // This will expire before querying
 				g2 = makeGrant(g2)
 
 				g3 := grant2
@@ -751,13 +753,13 @@ func TestEngine(t *testing.T) {
 				g3.EffectiveAt = t3
 				g3.Priority = 2
 				g3.Expiration.Count = 1
-				g3.Expiration.Duration = credit.ExpirationPeriodDurationWeek
+				g3.Expiration.Duration = grant.ExpirationPeriodDurationWeek
 				g3 = makeGrant(g3)
 
 				_, _, segments, err := engine.Run(
 					context.Background(),
-					[]credit.Grant{g1, g2, g3},
-					credit.GrantBalanceMap{
+					[]grant.Grant{g1, g2, g3},
+					balancesnapshot.GrantBalanceMap{
 						g1.ID: 80.0, // due to use before start
 						g2.ID: 100.0,
 						g3.ID: 100.0,
@@ -808,7 +810,7 @@ func TestEngine(t *testing.T) {
 				}
 				return rows[0].Value, nil
 			}
-			tc.run(t, credit.NewEngine(queryFeatureUsage, models.WindowSizeMinute), func(usage float64, at time.Time) {
+			tc.run(t, engine.NewEngine(queryFeatureUsage, models.WindowSizeMinute), func(usage float64, at time.Time) {
 				streamingConnector.AddSimpleEvent(meterSlug, usage, at)
 			})
 		})
@@ -842,18 +844,18 @@ func TestEngine(t *testing.T) {
 				g2.Priority = 2
 				g2 = makeGrant(g2)
 
-				startingBalance := credit.GrantBalanceMap{
+				startingBalance := balancesnapshot.GrantBalanceMap{
 					g1.ID: 100.0,
 					g2.ID: 82.0,
 				}
 
-				engine1 := credit.NewEngine(queryFn, models.WindowSizeMinute) // runs for first part
-				engine2 := credit.NewEngine(queryFn, models.WindowSizeMinute) // runs for second part
-				engine3 := credit.NewEngine(queryFn, models.WindowSizeMinute) // runs for both parts
+				engine1 := engine.NewEngine(queryFn, models.WindowSizeMinute) // runs for first part
+				engine2 := engine.NewEngine(queryFn, models.WindowSizeMinute) // runs for second part
+				engine3 := engine.NewEngine(queryFn, models.WindowSizeMinute) // runs for both parts
 
 				intermediateBalance, overage, _, err := engine1.Run(
 					context.Background(),
-					[]credit.Grant{g1, g2},
+					[]grant.Grant{g1, g2},
 					startingBalance,
 					0,
 					recurrence.Period{
@@ -865,7 +867,7 @@ func TestEngine(t *testing.T) {
 
 				finalBalance1, _, _, err := engine2.Run(
 					context.Background(),
-					[]credit.Grant{g1, g2},
+					[]grant.Grant{g1, g2},
 					intermediateBalance,
 					overage,
 					recurrence.Period{
@@ -877,7 +879,7 @@ func TestEngine(t *testing.T) {
 
 				finalBalance2, _, _, err := engine3.Run(
 					context.Background(),
-					[]credit.Grant{g1, g2},
+					[]grant.Grant{g1, g2},
 					startingBalance,
 					0,
 					recurrence.Period{
@@ -907,15 +909,15 @@ func TestEngine(t *testing.T) {
 				numOfUsageEvents := rand.Intn(9999) + 1
 
 				// create random grants
-				grants := make([]credit.Grant, numOfGrants)
+				grants := make([]grant.Grant, numOfGrants)
 				for i := 0; i < numOfGrants; i++ {
-					grant := credit.Grant{
+					grant := grant.Grant{
 						ID:          fmt.Sprintf("grant-%d", i),
 						Amount:      float64(gofakeit.IntRange(10000, 1000000)), // input value limited to ints
 						Priority:    gofakeit.Uint8(),
 						EffectiveAt: gofakeit.DateRange(start, end).Truncate(granularity),
-						Expiration: credit.ExpirationPeriod{
-							Duration: credit.ExpirationPeriodDurationDay,
+						Expiration: grant.ExpirationPeriod{
+							Duration: grant.ExpirationPeriodDurationDay,
 							Count:    gofakeit.Uint8(),
 						},
 					}
@@ -935,17 +937,17 @@ func TestEngine(t *testing.T) {
 				}
 
 				// configure starting balances
-				startingBalances := make(credit.GrantBalanceMap)
+				startingBalances := make(balancesnapshot.GrantBalanceMap)
 				for _, grant := range grants {
 					startingBalances[grant.ID] = float64(gofakeit.IntRange(1, int(grant.Amount)))
 				}
 
 				// run calculation multiple times
 				balances := startingBalances.Copy()
-				results := make([]credit.GrantBalanceMap, numOfRuns)
+				results := make([]balancesnapshot.GrantBalanceMap, numOfRuns)
 				for i := 0; i < numOfRuns; i++ {
-					engine := credit.NewEngine(queryFn, models.WindowSizeMinute)
-					gCp := make([]credit.Grant, len(grants))
+					engine := engine.NewEngine(queryFn, models.WindowSizeMinute)
+					gCp := make([]grant.Grant, len(grants))
 					copy(gCp, grants)
 					result, _, _, err := engine.Run(
 						context.Background(),
@@ -960,7 +962,7 @@ func TestEngine(t *testing.T) {
 					results[i] = result.Copy()
 				}
 
-				sumVals := func(m credit.GrantBalanceMap) float64 {
+				sumVals := func(m balancesnapshot.GrantBalanceMap) float64 {
 					sum := 0.0
 					for _, v := range m {
 						sum += v
@@ -990,15 +992,15 @@ func TestEngine(t *testing.T) {
 				numOfUsageEvents := rand.Intn(99) + 1
 
 				// create random grants
-				grants := make([]credit.Grant, numOfGrants)
+				grants := make([]grant.Grant, numOfGrants)
 				for i := 0; i < numOfGrants; i++ {
-					grant := credit.Grant{
+					grant := grant.Grant{
 						ID:          fmt.Sprintf("grant-%d", i),
 						Amount:      float64(gofakeit.IntRange(10000, 1000000)), // input value limited to ints
 						Priority:    gofakeit.Uint8(),
 						EffectiveAt: gofakeit.DateRange(start, end).Truncate(granularity),
-						Expiration: credit.ExpirationPeriod{
-							Duration: credit.ExpirationPeriodDurationDay,
+						Expiration: grant.ExpirationPeriod{
+							Duration: grant.ExpirationPeriodDurationDay,
 							Count:    gofakeit.Uint8(),
 						},
 					}
@@ -1018,14 +1020,14 @@ func TestEngine(t *testing.T) {
 				}
 
 				// configure starting balances
-				startingBalances := make(credit.GrantBalanceMap)
+				startingBalances := make(balancesnapshot.GrantBalanceMap)
 				for _, grant := range grants {
 					startingBalances[grant.ID] = float64(gofakeit.IntRange(1, int(grant.Amount)))
 				}
 
 				// run calculation on single engine
-				singleEngine := credit.NewEngine(queryFn, models.WindowSizeMinute)
-				gCp := make([]credit.Grant, len(grants))
+				singleEngine := engine.NewEngine(queryFn, models.WindowSizeMinute)
+				gCp := make([]grant.Grant, len(grants))
 				copy(gCp, grants)
 				singleEngineResult, _, _, err := singleEngine.Run(
 					context.Background(),
@@ -1060,8 +1062,8 @@ func TestEngine(t *testing.T) {
 					// 	To:   pEnd,
 					// })
 
-					engine := credit.NewEngine(queryFn, models.WindowSizeMinute)
-					gCp := make([]credit.Grant, len(grants))
+					engine := engine.NewEngine(queryFn, models.WindowSizeMinute)
+					gCp := make([]grant.Grant, len(grants))
 					copy(gCp, grants)
 					balances, overage, _, err = engine.Run(
 						context.Background(),
@@ -1112,7 +1114,7 @@ func TestEngine(t *testing.T) {
 	}
 }
 
-func makeGrant(grant credit.Grant) credit.Grant {
+func makeGrant(grant grant.Grant) grant.Grant {
 	grant.ExpiresAt = grant.GetExpiration()
 	return grant
 }

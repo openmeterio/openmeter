@@ -1,4 +1,4 @@
-package credit
+package engine
 
 import (
 	"context"
@@ -8,6 +8,8 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
+	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -18,7 +20,7 @@ type Engine interface {
 	//
 	// When the engine outputs a balance, it doesn't discriminate what should be in that balance.
 	// If a grant is inactive at the end of the period, it will still be in the output.
-	Run(ctx context.Context, grants []Grant, startingBalances GrantBalanceMap, startingOverage float64, period recurrence.Period) (endingBalances GrantBalanceMap, endingOverage float64, history []GrantBurnDownHistorySegment, err error)
+	Run(ctx context.Context, grants []grant.Grant, startingBalances balancesnapshot.GrantBalanceMap, startingOverage float64, period recurrence.Period) (endingBalances balancesnapshot.GrantBalanceMap, endingOverage float64, history []GrantBurnDownHistorySegment, err error)
 }
 
 type QueryUsageFn func(ctx context.Context, from, to time.Time) (float64, error)
@@ -33,7 +35,7 @@ func NewEngine(getFeatureUsage QueryUsageFn, granuality models.WindowSize) Engin
 // engine burns down grants based on usage following the rules of Grant BurnDown.
 type engine struct {
 	// List of all grants that are active at the relevant period at some point.
-	grants []Grant
+	grants []grant.Grant
 	// Returns the total feature usage in the queried period
 	getFeatureUsage QueryUsageFn
 
@@ -50,7 +52,7 @@ var _ Engine = (*engine)(nil)
 //
 // When the engine outputs a balance, it doesn't discriminate what should be in that balance.
 // If a grant is inactive at the end of the period, it will still be in the output.
-func (e *engine) Run(ctx context.Context, grants []Grant, startingBalances GrantBalanceMap, overage float64, period recurrence.Period) (GrantBalanceMap, float64, []GrantBurnDownHistorySegment, error) {
+func (e *engine) Run(ctx context.Context, grants []grant.Grant, startingBalances balancesnapshot.GrantBalanceMap, overage float64, period recurrence.Period) (balancesnapshot.GrantBalanceMap, float64, []GrantBurnDownHistorySegment, error) {
 	if !startingBalances.ExactlyForGrants(grants) {
 		return nil, 0, nil, fmt.Errorf("provided grants and balances don't pair up, grants: %+v, balances: %+v", grants, startingBalances)
 	}
@@ -73,7 +75,7 @@ func (e *engine) Run(ctx context.Context, grants []Grant, startingBalances Grant
 	rePrioritize := false
 	recurredGrants := []string{}
 
-	grantMap := make(map[string]Grant)
+	grantMap := make(map[string]grant.Grant)
 	for _, grant := range e.grants {
 		grantMap[grant.ID] = grant
 	}
@@ -102,7 +104,7 @@ func (e *engine) Run(ctx context.Context, grants []Grant, startingBalances Grant
 		}
 
 		// get active and inactive grants in the phase
-		activeGrants := make([]Grant, 0, len(e.grants))
+		activeGrants := make([]grant.Grant, 0, len(e.grants))
 		for _, grant := range e.grants {
 			if grant.ActiveAt(phase.from) {
 				activeGrants = append(activeGrants, grant)
@@ -159,7 +161,7 @@ func (e *engine) Run(ctx context.Context, grants []Grant, startingBalances Grant
 // All calculations are done during this function.
 //
 // FIXME: calculations happen on inexact representations as float64, this can lead to rounding errors.
-func (e *engine) BurnDownGrants(startingBalances GrantBalanceMap, prioritized []Grant, usage float64) (GrantBalanceMap, []GrantUsage, float64, error) {
+func (e *engine) BurnDownGrants(startingBalances balancesnapshot.GrantBalanceMap, prioritized []grant.Grant, usage float64) (balancesnapshot.GrantBalanceMap, []GrantUsage, float64, error) {
 	balances := startingBalances.Copy()
 	uses := make([]GrantUsage, 0, len(prioritized))
 	exactUsage := alpacadecimal.NewFromFloat(usage)
@@ -356,7 +358,7 @@ func (e *engine) getGrantRecurrenceTimes(period recurrence.Period) ([]struct {
 		time    time.Time
 		grantID string
 	}{}
-	grantsWithRecurrence := slicesx.Filter(e.grants, func(grant Grant) bool {
+	grantsWithRecurrence := slicesx.Filter(e.grants, func(grant grant.Grant) bool {
 		return grant.Recurrence != nil
 	})
 	if len(grantsWithRecurrence) == 0 {
@@ -425,7 +427,7 @@ type burnPhase struct {
 // 2. Grants with earlier expiration date are burned down first
 //
 // TODO: figure out if this needs to return an error or not
-func prioritizeGrants(grants []Grant) error { //nolint: unparam
+func prioritizeGrants(grants []grant.Grant) error { //nolint: unparam
 	if len(grants) == 0 {
 		// we don't do a thing, return early
 		// return fmt.Errorf("no grants to prioritize")

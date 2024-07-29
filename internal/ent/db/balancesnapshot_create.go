@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/internal/credit"
-	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
+	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	dbbalancesnapshot "github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 )
 
@@ -79,8 +79,8 @@ func (bsc *BalanceSnapshotCreate) SetOwnerID(s string) *BalanceSnapshotCreate {
 }
 
 // SetGrantBalances sets the "grant_balances" field.
-func (bsc *BalanceSnapshotCreate) SetGrantBalances(cbm credit.GrantBalanceMap) *BalanceSnapshotCreate {
-	bsc.mutation.SetGrantBalances(cbm)
+func (bsc *BalanceSnapshotCreate) SetGrantBalances(bbm balancesnapshot.GrantBalanceMap) *BalanceSnapshotCreate {
+	bsc.mutation.SetGrantBalances(bbm)
 	return bsc
 }
 
@@ -149,11 +149,11 @@ func (bsc *BalanceSnapshotCreate) ExecX(ctx context.Context) {
 // defaults sets the default values of the builder before save.
 func (bsc *BalanceSnapshotCreate) defaults() {
 	if _, ok := bsc.mutation.CreatedAt(); !ok {
-		v := balancesnapshot.DefaultCreatedAt()
+		v := dbbalancesnapshot.DefaultCreatedAt()
 		bsc.mutation.SetCreatedAt(v)
 	}
 	if _, ok := bsc.mutation.UpdatedAt(); !ok {
-		v := balancesnapshot.DefaultUpdatedAt()
+		v := dbbalancesnapshot.DefaultUpdatedAt()
 		bsc.mutation.SetUpdatedAt(v)
 	}
 }
@@ -164,7 +164,7 @@ func (bsc *BalanceSnapshotCreate) check() error {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "BalanceSnapshot.namespace"`)}
 	}
 	if v, ok := bsc.mutation.Namespace(); ok {
-		if err := balancesnapshot.NamespaceValidator(v); err != nil {
+		if err := dbbalancesnapshot.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "BalanceSnapshot.namespace": %w`, err)}
 		}
 	}
@@ -216,47 +216,47 @@ func (bsc *BalanceSnapshotCreate) sqlSave(ctx context.Context) (*BalanceSnapshot
 func (bsc *BalanceSnapshotCreate) createSpec() (*BalanceSnapshot, *sqlgraph.CreateSpec) {
 	var (
 		_node = &BalanceSnapshot{config: bsc.config}
-		_spec = sqlgraph.NewCreateSpec(balancesnapshot.Table, sqlgraph.NewFieldSpec(balancesnapshot.FieldID, field.TypeInt))
+		_spec = sqlgraph.NewCreateSpec(dbbalancesnapshot.Table, sqlgraph.NewFieldSpec(dbbalancesnapshot.FieldID, field.TypeInt))
 	)
 	_spec.OnConflict = bsc.conflict
 	if value, ok := bsc.mutation.Namespace(); ok {
-		_spec.SetField(balancesnapshot.FieldNamespace, field.TypeString, value)
+		_spec.SetField(dbbalancesnapshot.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
 	if value, ok := bsc.mutation.CreatedAt(); ok {
-		_spec.SetField(balancesnapshot.FieldCreatedAt, field.TypeTime, value)
+		_spec.SetField(dbbalancesnapshot.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
 	if value, ok := bsc.mutation.UpdatedAt(); ok {
-		_spec.SetField(balancesnapshot.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(dbbalancesnapshot.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
 	if value, ok := bsc.mutation.DeletedAt(); ok {
-		_spec.SetField(balancesnapshot.FieldDeletedAt, field.TypeTime, value)
+		_spec.SetField(dbbalancesnapshot.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
 	if value, ok := bsc.mutation.GrantBalances(); ok {
-		_spec.SetField(balancesnapshot.FieldGrantBalances, field.TypeJSON, value)
+		_spec.SetField(dbbalancesnapshot.FieldGrantBalances, field.TypeJSON, value)
 		_node.GrantBalances = value
 	}
 	if value, ok := bsc.mutation.Balance(); ok {
-		_spec.SetField(balancesnapshot.FieldBalance, field.TypeFloat64, value)
+		_spec.SetField(dbbalancesnapshot.FieldBalance, field.TypeFloat64, value)
 		_node.Balance = value
 	}
 	if value, ok := bsc.mutation.Overage(); ok {
-		_spec.SetField(balancesnapshot.FieldOverage, field.TypeFloat64, value)
+		_spec.SetField(dbbalancesnapshot.FieldOverage, field.TypeFloat64, value)
 		_node.Overage = value
 	}
 	if value, ok := bsc.mutation.At(); ok {
-		_spec.SetField(balancesnapshot.FieldAt, field.TypeTime, value)
+		_spec.SetField(dbbalancesnapshot.FieldAt, field.TypeTime, value)
 		_node.At = value
 	}
 	if nodes := bsc.mutation.EntitlementIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   balancesnapshot.EntitlementTable,
-			Columns: []string{balancesnapshot.EntitlementColumn},
+			Table:   dbbalancesnapshot.EntitlementTable,
+			Columns: []string{dbbalancesnapshot.EntitlementColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
@@ -322,31 +322,31 @@ type (
 
 // SetUpdatedAt sets the "updated_at" field.
 func (u *BalanceSnapshotUpsert) SetUpdatedAt(v time.Time) *BalanceSnapshotUpsert {
-	u.Set(balancesnapshot.FieldUpdatedAt, v)
+	u.Set(dbbalancesnapshot.FieldUpdatedAt, v)
 	return u
 }
 
 // UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
 func (u *BalanceSnapshotUpsert) UpdateUpdatedAt() *BalanceSnapshotUpsert {
-	u.SetExcluded(balancesnapshot.FieldUpdatedAt)
+	u.SetExcluded(dbbalancesnapshot.FieldUpdatedAt)
 	return u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
 func (u *BalanceSnapshotUpsert) SetDeletedAt(v time.Time) *BalanceSnapshotUpsert {
-	u.Set(balancesnapshot.FieldDeletedAt, v)
+	u.Set(dbbalancesnapshot.FieldDeletedAt, v)
 	return u
 }
 
 // UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
 func (u *BalanceSnapshotUpsert) UpdateDeletedAt() *BalanceSnapshotUpsert {
-	u.SetExcluded(balancesnapshot.FieldDeletedAt)
+	u.SetExcluded(dbbalancesnapshot.FieldDeletedAt)
 	return u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (u *BalanceSnapshotUpsert) ClearDeletedAt() *BalanceSnapshotUpsert {
-	u.SetNull(balancesnapshot.FieldDeletedAt)
+	u.SetNull(dbbalancesnapshot.FieldDeletedAt)
 	return u
 }
 
@@ -362,25 +362,25 @@ func (u *BalanceSnapshotUpsertOne) UpdateNewValues() *BalanceSnapshotUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		if _, exists := u.create.mutation.Namespace(); exists {
-			s.SetIgnore(balancesnapshot.FieldNamespace)
+			s.SetIgnore(dbbalancesnapshot.FieldNamespace)
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
-			s.SetIgnore(balancesnapshot.FieldCreatedAt)
+			s.SetIgnore(dbbalancesnapshot.FieldCreatedAt)
 		}
 		if _, exists := u.create.mutation.OwnerID(); exists {
-			s.SetIgnore(balancesnapshot.FieldOwnerID)
+			s.SetIgnore(dbbalancesnapshot.FieldOwnerID)
 		}
 		if _, exists := u.create.mutation.GrantBalances(); exists {
-			s.SetIgnore(balancesnapshot.FieldGrantBalances)
+			s.SetIgnore(dbbalancesnapshot.FieldGrantBalances)
 		}
 		if _, exists := u.create.mutation.Balance(); exists {
-			s.SetIgnore(balancesnapshot.FieldBalance)
+			s.SetIgnore(dbbalancesnapshot.FieldBalance)
 		}
 		if _, exists := u.create.mutation.Overage(); exists {
-			s.SetIgnore(balancesnapshot.FieldOverage)
+			s.SetIgnore(dbbalancesnapshot.FieldOverage)
 		}
 		if _, exists := u.create.mutation.At(); exists {
-			s.SetIgnore(balancesnapshot.FieldAt)
+			s.SetIgnore(dbbalancesnapshot.FieldAt)
 		}
 	}))
 	return u
@@ -625,25 +625,25 @@ func (u *BalanceSnapshotUpsertBulk) UpdateNewValues() *BalanceSnapshotUpsertBulk
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		for _, b := range u.create.builders {
 			if _, exists := b.mutation.Namespace(); exists {
-				s.SetIgnore(balancesnapshot.FieldNamespace)
+				s.SetIgnore(dbbalancesnapshot.FieldNamespace)
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
-				s.SetIgnore(balancesnapshot.FieldCreatedAt)
+				s.SetIgnore(dbbalancesnapshot.FieldCreatedAt)
 			}
 			if _, exists := b.mutation.OwnerID(); exists {
-				s.SetIgnore(balancesnapshot.FieldOwnerID)
+				s.SetIgnore(dbbalancesnapshot.FieldOwnerID)
 			}
 			if _, exists := b.mutation.GrantBalances(); exists {
-				s.SetIgnore(balancesnapshot.FieldGrantBalances)
+				s.SetIgnore(dbbalancesnapshot.FieldGrantBalances)
 			}
 			if _, exists := b.mutation.Balance(); exists {
-				s.SetIgnore(balancesnapshot.FieldBalance)
+				s.SetIgnore(dbbalancesnapshot.FieldBalance)
 			}
 			if _, exists := b.mutation.Overage(); exists {
-				s.SetIgnore(balancesnapshot.FieldOverage)
+				s.SetIgnore(dbbalancesnapshot.FieldOverage)
 			}
 			if _, exists := b.mutation.At(); exists {
-				s.SetIgnore(balancesnapshot.FieldAt)
+				s.SetIgnore(dbbalancesnapshot.FieldAt)
 			}
 		}
 	}))

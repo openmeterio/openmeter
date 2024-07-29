@@ -12,10 +12,10 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
+	dbbalancesnapshot "github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/ent/db/feature"
-	"github.com/openmeterio/openmeter/internal/ent/db/grant"
+	dbgrant "github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db/usagereset"
 )
 
@@ -515,7 +515,7 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 			Columns: []string{entitlement.GrantColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(grant.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(dbgrant.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -531,7 +531,7 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 			Columns: []string{entitlement.BalanceSnapshotColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(balancesnapshot.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(dbbalancesnapshot.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

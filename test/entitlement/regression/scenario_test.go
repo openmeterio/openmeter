@@ -7,6 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/internal/credit"
+	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
@@ -57,17 +59,17 @@ func TestGrantExpiringAtReset(t *testing.T) {
 
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-06-28T14:35:24Z"))
 	grant1, err := deps.GrantConnector.CreateGrant(ctx,
-		credit.NamespacedGrantOwner{
+		grant.NamespacedGrantOwner{
 			Namespace: "namespace-1",
-			ID:        credit.GrantOwner(entitlement.ID),
+			ID:        grant.GrantOwner(entitlement.ID),
 		},
 		credit.CreateGrantInput{
 			Amount:      10,
 			Priority:    5,
 			EffectiveAt: testutils.GetRFC3339Time(t, "2024-06-28T14:35:00Z"),
-			Expiration: credit.ExpirationPeriod{
+			Expiration: grant.ExpirationPeriod{
 				Count:    1,
-				Duration: credit.ExpirationPeriodDurationYear,
+				Duration: grant.ExpirationPeriodDurationYear,
 			},
 		})
 	assert.NoError(err)
@@ -75,17 +77,17 @@ func TestGrantExpiringAtReset(t *testing.T) {
 
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-06-28T14:36:33Z"))
 	grant2, err := deps.GrantConnector.CreateGrant(ctx,
-		credit.NamespacedGrantOwner{
+		grant.NamespacedGrantOwner{
 			Namespace: "namespace-1",
-			ID:        credit.GrantOwner(entitlement.ID),
+			ID:        grant.GrantOwner(entitlement.ID),
 		},
 		credit.CreateGrantInput{
 			Amount:      20,
 			Priority:    3,
 			EffectiveAt: testutils.GetRFC3339Time(t, "2024-06-28T14:36:00Z"),
-			Expiration: credit.ExpirationPeriod{
+			Expiration: grant.ExpirationPeriod{
 				Count:    1,
-				Duration: credit.ExpirationPeriodDurationDay,
+				Duration: grant.ExpirationPeriodDurationDay,
 			},
 			ResetMaxRollover: 20,
 		})
@@ -120,17 +122,17 @@ func TestGrantExpiringAtReset(t *testing.T) {
 
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-06-30T15:35:54Z"))
 	grant3, err := deps.GrantConnector.CreateGrant(ctx,
-		credit.NamespacedGrantOwner{
+		grant.NamespacedGrantOwner{
 			Namespace: "namespace-1",
-			ID:        credit.GrantOwner(entitlement.ID),
+			ID:        grant.GrantOwner(entitlement.ID),
 		},
 		credit.CreateGrantInput{
 			Amount:      100,
 			Priority:    1,
 			EffectiveAt: testutils.GetRFC3339Time(t, "2024-06-28T15:39:00Z"),
-			Expiration: credit.ExpirationPeriod{
+			Expiration: grant.ExpirationPeriod{
 				Count:    1,
-				Duration: credit.ExpirationPeriodDurationYear,
+				Duration: grant.ExpirationPeriodDurationYear,
 			},
 		})
 	assert.NoError(err)
@@ -206,18 +208,18 @@ func TestGrantExpiringAndRecurringAtReset(t *testing.T) {
 
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-02T09:43:04Z"))
 	grant1, err := deps.GrantConnector.CreateGrant(ctx,
-		credit.NamespacedGrantOwner{
+		grant.NamespacedGrantOwner{
 			Namespace: "namespace-1",
-			ID:        credit.GrantOwner(entitlement.ID),
+			ID:        grant.GrantOwner(entitlement.ID),
 		},
 		credit.CreateGrantInput{
 			Amount:           20,
 			ResetMaxRollover: 20,
 			Priority:         1,
 			EffectiveAt:      testutils.GetRFC3339Time(t, "2024-07-02T09:43:00Z"),
-			Expiration: credit.ExpirationPeriod{
+			Expiration: grant.ExpirationPeriod{
 				Count:    1,
-				Duration: credit.ExpirationPeriodDurationWeek,
+				Duration: grant.ExpirationPeriodDurationWeek,
 			},
 			Recurrence: &recurrence.Recurrence{
 				Interval: recurrence.RecurrencePeriodDaily,
@@ -256,9 +258,9 @@ func TestGrantExpiringAndRecurringAtReset(t *testing.T) {
 	assert.Equal(0.0, currentBalance.Balance)
 
 	// Validate snapshot exists
-	snapshot, err := deps.BalanceSnapshotRepo.GetLatestValidAt(ctx, credit.NamespacedGrantOwner{
+	snapshot, err := deps.BalanceSnapshotRepo.GetLatestValidAt(ctx, grant.NamespacedGrantOwner{
 		Namespace: "namespace-1",
-		ID:        credit.GrantOwner(entitlement.ID),
+		ID:        grant.GrantOwner(entitlement.ID),
 	}, testutils.GetRFC3339Time(t, "2024-07-10T07:33:06Z"))
 	assert.NoError(err)
 	assert.NotNil(snapshot)
@@ -317,14 +319,14 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 
 	// Let's retrieve the grant so we can reference it
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T12:20:28Z"))
-	grants, err := deps.GrantConnector.ListGrants(ctx, credit.ListGrantsParams{
+	grants, err := deps.GrantRepo.ListGrants(ctx, grant.ListGrantsParams{
 		Namespace:      "namespace-1",
 		IncludeDeleted: true,
 		Page: pagination.Page{
 			PageSize:   100,
 			PageNumber: 1,
 		},
-		OrderBy: credit.GrantOrderByCreatedAt,
+		OrderBy: grant.GrantOrderByCreatedAt,
 	})
 	assert.NoError(err)
 	assert.Len(grants.Items, 1)
@@ -334,17 +336,17 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 	// Let's create another grant
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T12:09:40Z"))
 	grant2, err := deps.GrantConnector.CreateGrant(ctx,
-		credit.NamespacedGrantOwner{
+		grant.NamespacedGrantOwner{
 			Namespace: "namespace-1",
-			ID:        credit.GrantOwner(entitlement.ID),
+			ID:        grant.GrantOwner(entitlement.ID),
 		},
 		credit.CreateGrantInput{
 			Amount:      10000,
 			Priority:    1,
 			EffectiveAt: testutils.GetRFC3339Time(t, "2024-07-09T12:09:00Z"),
-			Expiration: credit.ExpirationPeriod{
+			Expiration: grant.ExpirationPeriod{
 				Count:    1,
-				Duration: credit.ExpirationPeriodDurationWeek,
+				Duration: grant.ExpirationPeriodDurationWeek,
 			},
 		})
 	assert.NoError(err)
@@ -352,14 +354,14 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 
 	// Lets create a snapshot
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T13:09:05Z"))
-	err = deps.BalanceSnapshotRepo.Save(ctx, credit.NamespacedGrantOwner{
+	err = deps.BalanceSnapshotRepo.Save(ctx, grant.NamespacedGrantOwner{
 		Namespace: "namespace-1",
-		ID:        credit.GrantOwner(entitlement.ID),
-	}, []credit.GrantBalanceSnapshot{
+		ID:        grant.GrantOwner(entitlement.ID),
+	}, []balancesnapshot.GrantBalanceSnapshot{
 		{
 			At:      testutils.GetRFC3339Time(t, "2024-07-09T13:09:00Z"),
 			Overage: 0.0,
-			Balances: credit.GrantBalanceMap{
+			Balances: balancesnapshot.GrantBalanceMap{
 				grant1.ID: 488.0,
 				grant2.ID: 10000.0,
 			},

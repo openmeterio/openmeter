@@ -5,10 +5,10 @@ package db
 import (
 	"time"
 
-	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
+	dbbalancesnapshot "github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/ent/db/feature"
-	"github.com/openmeterio/openmeter/internal/ent/db/grant"
+	dbgrant "github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/internal/ent/schema"
 )
@@ -17,27 +17,27 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
-	balancesnapshotMixin := schema.BalanceSnapshot{}.Mixin()
-	balancesnapshotMixinFields0 := balancesnapshotMixin[0].Fields()
-	_ = balancesnapshotMixinFields0
-	balancesnapshotMixinFields1 := balancesnapshotMixin[1].Fields()
-	_ = balancesnapshotMixinFields1
-	balancesnapshotFields := schema.BalanceSnapshot{}.Fields()
-	_ = balancesnapshotFields
-	// balancesnapshotDescNamespace is the schema descriptor for namespace field.
-	balancesnapshotDescNamespace := balancesnapshotMixinFields0[0].Descriptor()
-	// balancesnapshot.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
-	balancesnapshot.NamespaceValidator = balancesnapshotDescNamespace.Validators[0].(func(string) error)
-	// balancesnapshotDescCreatedAt is the schema descriptor for created_at field.
-	balancesnapshotDescCreatedAt := balancesnapshotMixinFields1[0].Descriptor()
-	// balancesnapshot.DefaultCreatedAt holds the default value on creation for the created_at field.
-	balancesnapshot.DefaultCreatedAt = balancesnapshotDescCreatedAt.Default.(func() time.Time)
-	// balancesnapshotDescUpdatedAt is the schema descriptor for updated_at field.
-	balancesnapshotDescUpdatedAt := balancesnapshotMixinFields1[1].Descriptor()
-	// balancesnapshot.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	balancesnapshot.DefaultUpdatedAt = balancesnapshotDescUpdatedAt.Default.(func() time.Time)
-	// balancesnapshot.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	balancesnapshot.UpdateDefaultUpdatedAt = balancesnapshotDescUpdatedAt.UpdateDefault.(func() time.Time)
+	dbbalancesnapshotMixin := schema.BalanceSnapshot{}.Mixin()
+	dbbalancesnapshotMixinFields0 := dbbalancesnapshotMixin[0].Fields()
+	_ = dbbalancesnapshotMixinFields0
+	dbbalancesnapshotMixinFields1 := dbbalancesnapshotMixin[1].Fields()
+	_ = dbbalancesnapshotMixinFields1
+	dbbalancesnapshotFields := schema.BalanceSnapshot{}.Fields()
+	_ = dbbalancesnapshotFields
+	// dbbalancesnapshotDescNamespace is the schema descriptor for namespace field.
+	dbbalancesnapshotDescNamespace := dbbalancesnapshotMixinFields0[0].Descriptor()
+	// dbbalancesnapshot.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	dbbalancesnapshot.NamespaceValidator = dbbalancesnapshotDescNamespace.Validators[0].(func(string) error)
+	// dbbalancesnapshotDescCreatedAt is the schema descriptor for created_at field.
+	dbbalancesnapshotDescCreatedAt := dbbalancesnapshotMixinFields1[0].Descriptor()
+	// dbbalancesnapshot.DefaultCreatedAt holds the default value on creation for the created_at field.
+	dbbalancesnapshot.DefaultCreatedAt = dbbalancesnapshotDescCreatedAt.Default.(func() time.Time)
+	// dbbalancesnapshotDescUpdatedAt is the schema descriptor for updated_at field.
+	dbbalancesnapshotDescUpdatedAt := dbbalancesnapshotMixinFields1[1].Descriptor()
+	// dbbalancesnapshot.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	dbbalancesnapshot.DefaultUpdatedAt = dbbalancesnapshotDescUpdatedAt.Default.(func() time.Time)
+	// dbbalancesnapshot.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	dbbalancesnapshot.UpdateDefaultUpdatedAt = dbbalancesnapshotDescUpdatedAt.UpdateDefault.(func() time.Time)
 	entitlementMixin := schema.Entitlement{}.Mixin()
 	entitlementMixinFields0 := entitlementMixin[0].Fields()
 	_ = entitlementMixinFields0
@@ -106,37 +106,37 @@ func init() {
 	featureDescID := featureMixinFields0[0].Descriptor()
 	// feature.DefaultID holds the default value on creation for the id field.
 	feature.DefaultID = featureDescID.Default.(func() string)
-	grantMixin := schema.Grant{}.Mixin()
-	grantMixinFields0 := grantMixin[0].Fields()
-	_ = grantMixinFields0
-	grantMixinFields1 := grantMixin[1].Fields()
-	_ = grantMixinFields1
-	grantMixinFields3 := grantMixin[3].Fields()
-	_ = grantMixinFields3
-	grantFields := schema.Grant{}.Fields()
-	_ = grantFields
-	// grantDescNamespace is the schema descriptor for namespace field.
-	grantDescNamespace := grantMixinFields1[0].Descriptor()
-	// grant.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
-	grant.NamespaceValidator = grantDescNamespace.Validators[0].(func(string) error)
-	// grantDescCreatedAt is the schema descriptor for created_at field.
-	grantDescCreatedAt := grantMixinFields3[0].Descriptor()
-	// grant.DefaultCreatedAt holds the default value on creation for the created_at field.
-	grant.DefaultCreatedAt = grantDescCreatedAt.Default.(func() time.Time)
-	// grantDescUpdatedAt is the schema descriptor for updated_at field.
-	grantDescUpdatedAt := grantMixinFields3[1].Descriptor()
-	// grant.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	grant.DefaultUpdatedAt = grantDescUpdatedAt.Default.(func() time.Time)
-	// grant.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	grant.UpdateDefaultUpdatedAt = grantDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// grantDescPriority is the schema descriptor for priority field.
-	grantDescPriority := grantFields[2].Descriptor()
-	// grant.DefaultPriority holds the default value on creation for the priority field.
-	grant.DefaultPriority = grantDescPriority.Default.(uint8)
-	// grantDescID is the schema descriptor for id field.
-	grantDescID := grantMixinFields0[0].Descriptor()
-	// grant.DefaultID holds the default value on creation for the id field.
-	grant.DefaultID = grantDescID.Default.(func() string)
+	dbgrantMixin := schema.Grant{}.Mixin()
+	dbgrantMixinFields0 := dbgrantMixin[0].Fields()
+	_ = dbgrantMixinFields0
+	dbgrantMixinFields1 := dbgrantMixin[1].Fields()
+	_ = dbgrantMixinFields1
+	dbgrantMixinFields3 := dbgrantMixin[3].Fields()
+	_ = dbgrantMixinFields3
+	dbgrantFields := schema.Grant{}.Fields()
+	_ = dbgrantFields
+	// dbgrantDescNamespace is the schema descriptor for namespace field.
+	dbgrantDescNamespace := dbgrantMixinFields1[0].Descriptor()
+	// dbgrant.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	dbgrant.NamespaceValidator = dbgrantDescNamespace.Validators[0].(func(string) error)
+	// dbgrantDescCreatedAt is the schema descriptor for created_at field.
+	dbgrantDescCreatedAt := dbgrantMixinFields3[0].Descriptor()
+	// dbgrant.DefaultCreatedAt holds the default value on creation for the created_at field.
+	dbgrant.DefaultCreatedAt = dbgrantDescCreatedAt.Default.(func() time.Time)
+	// dbgrantDescUpdatedAt is the schema descriptor for updated_at field.
+	dbgrantDescUpdatedAt := dbgrantMixinFields3[1].Descriptor()
+	// dbgrant.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	dbgrant.DefaultUpdatedAt = dbgrantDescUpdatedAt.Default.(func() time.Time)
+	// dbgrant.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	dbgrant.UpdateDefaultUpdatedAt = dbgrantDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// dbgrantDescPriority is the schema descriptor for priority field.
+	dbgrantDescPriority := dbgrantFields[2].Descriptor()
+	// dbgrant.DefaultPriority holds the default value on creation for the priority field.
+	dbgrant.DefaultPriority = dbgrantDescPriority.Default.(uint8)
+	// dbgrantDescID is the schema descriptor for id field.
+	dbgrantDescID := dbgrantMixinFields0[0].Descriptor()
+	// dbgrant.DefaultID holds the default value on creation for the id field.
+	dbgrant.DefaultID = dbgrantDescID.Default.(func() string)
 	usageresetMixin := schema.UsageReset{}.Mixin()
 	usageresetMixinFields0 := usageresetMixin[0].Fields()
 	_ = usageresetMixinFields0

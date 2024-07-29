@@ -12,10 +12,12 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
+
+	dbbalancesnapshot "github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/ent/db/feature"
-	"github.com/openmeterio/openmeter/internal/ent/db/grant"
+
+	dbgrant "github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db/usagereset"
 )
 
@@ -77,11 +79,11 @@ var (
 func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			balancesnapshot.Table: balancesnapshot.ValidColumn,
-			entitlement.Table:     entitlement.ValidColumn,
-			feature.Table:         feature.ValidColumn,
-			grant.Table:           grant.ValidColumn,
-			usagereset.Table:      usagereset.ValidColumn,
+			dbbalancesnapshot.Table: dbbalancesnapshot.ValidColumn,
+			entitlement.Table:       entitlement.ValidColumn,
+			feature.Table:           feature.ValidColumn,
+			dbgrant.Table:           dbgrant.ValidColumn,
+			usagereset.Table:        usagereset.ValidColumn,
 		})
 	})
 	return columnCheck(table, column)

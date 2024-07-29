@@ -11,7 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/internal/ent/db/grant"
+	dbgrant "github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 )
 
@@ -122,7 +122,7 @@ func (gu *GrantUpdate) ExecX(ctx context.Context) {
 // defaults sets the default values of the builder before save.
 func (gu *GrantUpdate) defaults() {
 	if _, ok := gu.mutation.UpdatedAt(); !ok {
-		v := grant.UpdateDefaultUpdatedAt()
+		v := dbgrant.UpdateDefaultUpdatedAt()
 		gu.mutation.SetUpdatedAt(v)
 	}
 }
@@ -139,7 +139,7 @@ func (gu *GrantUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if err := gu.check(); err != nil {
 		return n, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(grant.Table, grant.Columns, sqlgraph.NewFieldSpec(grant.FieldID, field.TypeString))
+	_spec := sqlgraph.NewUpdateSpec(dbgrant.Table, dbgrant.Columns, sqlgraph.NewFieldSpec(dbgrant.FieldID, field.TypeString))
 	if ps := gu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -148,35 +148,35 @@ func (gu *GrantUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 	}
 	if value, ok := gu.mutation.Metadata(); ok {
-		_spec.SetField(grant.FieldMetadata, field.TypeJSON, value)
+		_spec.SetField(dbgrant.FieldMetadata, field.TypeJSON, value)
 	}
 	if gu.mutation.MetadataCleared() {
-		_spec.ClearField(grant.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(dbgrant.FieldMetadata, field.TypeJSON)
 	}
 	if value, ok := gu.mutation.UpdatedAt(); ok {
-		_spec.SetField(grant.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(dbgrant.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := gu.mutation.DeletedAt(); ok {
-		_spec.SetField(grant.FieldDeletedAt, field.TypeTime, value)
+		_spec.SetField(dbgrant.FieldDeletedAt, field.TypeTime, value)
 	}
 	if gu.mutation.DeletedAtCleared() {
-		_spec.ClearField(grant.FieldDeletedAt, field.TypeTime)
+		_spec.ClearField(dbgrant.FieldDeletedAt, field.TypeTime)
 	}
 	if value, ok := gu.mutation.VoidedAt(); ok {
-		_spec.SetField(grant.FieldVoidedAt, field.TypeTime, value)
+		_spec.SetField(dbgrant.FieldVoidedAt, field.TypeTime, value)
 	}
 	if gu.mutation.VoidedAtCleared() {
-		_spec.ClearField(grant.FieldVoidedAt, field.TypeTime)
+		_spec.ClearField(dbgrant.FieldVoidedAt, field.TypeTime)
 	}
 	if gu.mutation.RecurrencePeriodCleared() {
-		_spec.ClearField(grant.FieldRecurrencePeriod, field.TypeEnum)
+		_spec.ClearField(dbgrant.FieldRecurrencePeriod, field.TypeEnum)
 	}
 	if gu.mutation.RecurrenceAnchorCleared() {
-		_spec.ClearField(grant.FieldRecurrenceAnchor, field.TypeTime)
+		_spec.ClearField(dbgrant.FieldRecurrenceAnchor, field.TypeTime)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, gu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
-			err = &NotFoundError{grant.Label}
+			err = &NotFoundError{dbgrant.Label}
 		} else if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -301,7 +301,7 @@ func (guo *GrantUpdateOne) ExecX(ctx context.Context) {
 // defaults sets the default values of the builder before save.
 func (guo *GrantUpdateOne) defaults() {
 	if _, ok := guo.mutation.UpdatedAt(); !ok {
-		v := grant.UpdateDefaultUpdatedAt()
+		v := dbgrant.UpdateDefaultUpdatedAt()
 		guo.mutation.SetUpdatedAt(v)
 	}
 }
@@ -318,7 +318,7 @@ func (guo *GrantUpdateOne) sqlSave(ctx context.Context) (_node *Grant, err error
 	if err := guo.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(grant.Table, grant.Columns, sqlgraph.NewFieldSpec(grant.FieldID, field.TypeString))
+	_spec := sqlgraph.NewUpdateSpec(dbgrant.Table, dbgrant.Columns, sqlgraph.NewFieldSpec(dbgrant.FieldID, field.TypeString))
 	id, ok := guo.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "Grant.id" for update`)}
@@ -326,12 +326,12 @@ func (guo *GrantUpdateOne) sqlSave(ctx context.Context) (_node *Grant, err error
 	_spec.Node.ID.Value = id
 	if fields := guo.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, grant.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, dbgrant.FieldID)
 		for _, f := range fields {
-			if !grant.ValidColumn(f) {
+			if !dbgrant.ValidColumn(f) {
 				return nil, &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 			}
-			if f != grant.FieldID {
+			if f != dbgrant.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, f)
 			}
 		}
@@ -344,38 +344,38 @@ func (guo *GrantUpdateOne) sqlSave(ctx context.Context) (_node *Grant, err error
 		}
 	}
 	if value, ok := guo.mutation.Metadata(); ok {
-		_spec.SetField(grant.FieldMetadata, field.TypeJSON, value)
+		_spec.SetField(dbgrant.FieldMetadata, field.TypeJSON, value)
 	}
 	if guo.mutation.MetadataCleared() {
-		_spec.ClearField(grant.FieldMetadata, field.TypeJSON)
+		_spec.ClearField(dbgrant.FieldMetadata, field.TypeJSON)
 	}
 	if value, ok := guo.mutation.UpdatedAt(); ok {
-		_spec.SetField(grant.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(dbgrant.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := guo.mutation.DeletedAt(); ok {
-		_spec.SetField(grant.FieldDeletedAt, field.TypeTime, value)
+		_spec.SetField(dbgrant.FieldDeletedAt, field.TypeTime, value)
 	}
 	if guo.mutation.DeletedAtCleared() {
-		_spec.ClearField(grant.FieldDeletedAt, field.TypeTime)
+		_spec.ClearField(dbgrant.FieldDeletedAt, field.TypeTime)
 	}
 	if value, ok := guo.mutation.VoidedAt(); ok {
-		_spec.SetField(grant.FieldVoidedAt, field.TypeTime, value)
+		_spec.SetField(dbgrant.FieldVoidedAt, field.TypeTime, value)
 	}
 	if guo.mutation.VoidedAtCleared() {
-		_spec.ClearField(grant.FieldVoidedAt, field.TypeTime)
+		_spec.ClearField(dbgrant.FieldVoidedAt, field.TypeTime)
 	}
 	if guo.mutation.RecurrencePeriodCleared() {
-		_spec.ClearField(grant.FieldRecurrencePeriod, field.TypeEnum)
+		_spec.ClearField(dbgrant.FieldRecurrencePeriod, field.TypeEnum)
 	}
 	if guo.mutation.RecurrenceAnchorCleared() {
-		_spec.ClearField(grant.FieldRecurrenceAnchor, field.TypeTime)
+		_spec.ClearField(dbgrant.FieldRecurrenceAnchor, field.TypeTime)
 	}
 	_node = &Grant{config: guo.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
 	if err = sqlgraph.UpdateNode(ctx, guo.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
-			err = &NotFoundError{grant.Label}
+			err = &NotFoundError{dbgrant.Label}
 		} else if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}

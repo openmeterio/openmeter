@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -20,9 +21,9 @@ func (e *connector) CreateGrant(ctx context.Context, namespace string, subjectKe
 	if err != nil {
 		return EntitlementGrant{}, err
 	}
-	grant, err := e.grantConnector.CreateGrant(ctx, credit.NamespacedGrantOwner{
+	g, err := e.grantConnector.CreateGrant(ctx, grant.NamespacedGrantOwner{
 		Namespace: ent.Namespace,
-		ID:        credit.GrantOwner(ent.ID),
+		ID:        grant.GrantOwner(ent.ID),
 	}, credit.CreateGrantInput{
 		Amount:           inputGrant.Amount,
 		Priority:         inputGrant.Priority,
@@ -34,15 +35,15 @@ func (e *connector) CreateGrant(ctx context.Context, namespace string, subjectKe
 		Metadata:         inputGrant.Metadata,
 	})
 	if err != nil {
-		if _, ok := err.(credit.OwnerNotFoundError); ok {
+		if _, ok := err.(grant.OwnerNotFoundError); ok {
 			return EntitlementGrant{}, &entitlement.NotFoundError{EntitlementID: models.NamespacedID{Namespace: namespace, ID: ent.ID}}
 		}
 
 		return EntitlementGrant{}, err
 	}
 
-	g, err := GrantFromCreditGrant(*grant)
-	return *g, err
+	eg, err := GrantFromCreditGrant(*g)
+	return *eg, err
 }
 
 func (e *connector) ListEntitlementGrants(ctx context.Context, namespace string, subjectKey string, entitlementIdOrFeatureKey string) ([]EntitlementGrant, error) {
@@ -60,11 +61,11 @@ func (e *connector) ListEntitlementGrants(ctx context.Context, namespace string,
 	}
 
 	// check that we own the grant
-	grants, err := e.grantConnector.ListGrants(ctx, credit.ListGrantsParams{
+	grants, err := e.grantRepo.ListGrants(ctx, grant.ListGrantsParams{
 		Namespace:      ent.Namespace,
-		OwnerID:        convert.ToPointer(credit.GrantOwner(ent.ID)),
+		OwnerID:        convert.ToPointer(grant.GrantOwner(ent.ID)),
 		IncludeDeleted: false,
-		OrderBy:        credit.GrantOrderByCreatedAt,
+		OrderBy:        grant.GrantOrderByCreatedAt,
 	})
 	if err != nil {
 		return nil, err
@@ -83,7 +84,7 @@ func (e *connector) ListEntitlementGrants(ctx context.Context, namespace string,
 }
 
 type EntitlementGrant struct {
-	credit.Grant
+	grant.Grant
 
 	// "removing" fields
 	OwnerID          string  `json:"-"`
@@ -97,7 +98,7 @@ type EntitlementGrant struct {
 	MinRolloverAmount float64    `json:"minRolloverAmount"`
 }
 
-func GrantFromCreditGrant(grant credit.Grant) (*EntitlementGrant, error) {
+func GrantFromCreditGrant(grant grant.Grant) (*EntitlementGrant, error) {
 	g := &EntitlementGrant{}
 	if grant.Recurrence != nil {
 		next, err := grant.Recurrence.NextAfter(clock.Now())

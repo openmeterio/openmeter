@@ -5,7 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/registry"
 	"github.com/openmeterio/openmeter/openmeter/credit"
-	creditpgadapter "github.com/openmeterio/openmeter/openmeter/credit/postgresadapter"
+	creditpgadapter "github.com/openmeterio/openmeter/openmeter/credit/postgresdriver"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
@@ -20,8 +20,8 @@ func GetEntitlementRegistry(opts registry.EntitlementOptions) *registry.Entitlem
 	featureDBAdapter := productcatalogpgadapter.NewPostgresFeatureDBAdapter(opts.DatabaseClient, opts.Logger)
 	entitlementDBAdapter := entitlementpgadapter.NewPostgresEntitlementDBAdapter(opts.DatabaseClient)
 	usageResetDBAdapter := entitlementpgadapter.NewPostgresUsageResetDBAdapter(opts.DatabaseClient)
-	grantDBAdapter := creditpgadapter.NewPostgresGrantDBAdapter(opts.DatabaseClient)
-	balanceSnashotDBAdapter := creditpgadapter.NewPostgresBalanceSnapshotDBAdapter(opts.DatabaseClient)
+	grantDBAdapter := creditpgadapter.NewPostgresGrantRepo(opts.DatabaseClient)
+	balanceSnashotDBAdapter := creditpgadapter.NewPostgresBalanceSnapshotRepo(opts.DatabaseClient)
 
 	// Initialize connectors
 	featureConnector := productcatalog.NewFeatureConnector(featureDBAdapter, opts.MeterRepository)
@@ -32,25 +32,23 @@ func GetEntitlementRegistry(opts registry.EntitlementOptions) *registry.Entitlem
 		opts.MeterRepository,
 		opts.Logger,
 	)
-	creditBalanceConnector := credit.NewBalanceConnector(
+	creditConnector := credit.NewCreditConnector(
 		grantDBAdapter,
 		balanceSnashotDBAdapter,
 		entitlementOwnerConnector,
 		opts.StreamingConnector,
 		opts.Logger,
-	)
-	grantConnector := credit.NewGrantConnector(
-		entitlementOwnerConnector,
-		grantDBAdapter,
-		balanceSnashotDBAdapter,
 		time.Minute,
 		opts.Publisher,
 	)
+	creditBalanceConnector := creditConnector
+	grantConnector := creditConnector
 	meteredEntitlementConnector := meteredentitlement.NewMeteredEntitlementConnector(
 		opts.StreamingConnector,
 		entitlementOwnerConnector,
 		creditBalanceConnector,
 		grantConnector,
+		grantDBAdapter,
 		entitlementDBAdapter,
 		opts.Publisher,
 	)
@@ -69,6 +67,7 @@ func GetEntitlementRegistry(opts registry.EntitlementOptions) *registry.Entitlem
 		EntitlementOwner:   entitlementOwnerConnector,
 		CreditBalance:      creditBalanceConnector,
 		Grant:              grantConnector,
+		GrantRepo:          grantDBAdapter,
 		MeteredEntitlement: meteredEntitlementConnector,
 		Entitlement:        entitlementConnector,
 		EntitlementRepo:    entitlementDBAdapter,

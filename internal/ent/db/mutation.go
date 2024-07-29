@@ -11,11 +11,12 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/openmeterio/openmeter/internal/credit"
-	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
+	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
+	dbbalancesnapshot "github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/ent/db/feature"
-	"github.com/openmeterio/openmeter/internal/ent/db/grant"
+	dbgrant "github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 	"github.com/openmeterio/openmeter/internal/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
@@ -47,7 +48,7 @@ type BalanceSnapshotMutation struct {
 	created_at         *time.Time
 	updated_at         *time.Time
 	deleted_at         *time.Time
-	grant_balances     *credit.GrantBalanceMap
+	grant_balances     *balancesnapshot.GrantBalanceMap
 	balance            *float64
 	addbalance         *float64
 	overage            *float64
@@ -301,19 +302,19 @@ func (m *BalanceSnapshotMutation) OldDeletedAt(ctx context.Context) (v *time.Tim
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (m *BalanceSnapshotMutation) ClearDeletedAt() {
 	m.deleted_at = nil
-	m.clearedFields[balancesnapshot.FieldDeletedAt] = struct{}{}
+	m.clearedFields[dbbalancesnapshot.FieldDeletedAt] = struct{}{}
 }
 
 // DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
 func (m *BalanceSnapshotMutation) DeletedAtCleared() bool {
-	_, ok := m.clearedFields[balancesnapshot.FieldDeletedAt]
+	_, ok := m.clearedFields[dbbalancesnapshot.FieldDeletedAt]
 	return ok
 }
 
 // ResetDeletedAt resets all changes to the "deleted_at" field.
 func (m *BalanceSnapshotMutation) ResetDeletedAt() {
 	m.deleted_at = nil
-	delete(m.clearedFields, balancesnapshot.FieldDeletedAt)
+	delete(m.clearedFields, dbbalancesnapshot.FieldDeletedAt)
 }
 
 // SetOwnerID sets the "owner_id" field.
@@ -353,12 +354,12 @@ func (m *BalanceSnapshotMutation) ResetOwnerID() {
 }
 
 // SetGrantBalances sets the "grant_balances" field.
-func (m *BalanceSnapshotMutation) SetGrantBalances(cbm credit.GrantBalanceMap) {
-	m.grant_balances = &cbm
+func (m *BalanceSnapshotMutation) SetGrantBalances(bbm balancesnapshot.GrantBalanceMap) {
+	m.grant_balances = &bbm
 }
 
 // GrantBalances returns the value of the "grant_balances" field in the mutation.
-func (m *BalanceSnapshotMutation) GrantBalances() (r credit.GrantBalanceMap, exists bool) {
+func (m *BalanceSnapshotMutation) GrantBalances() (r balancesnapshot.GrantBalanceMap, exists bool) {
 	v := m.grant_balances
 	if v == nil {
 		return
@@ -369,7 +370,7 @@ func (m *BalanceSnapshotMutation) GrantBalances() (r credit.GrantBalanceMap, exi
 // OldGrantBalances returns the old "grant_balances" field's value of the BalanceSnapshot entity.
 // If the BalanceSnapshot object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BalanceSnapshotMutation) OldGrantBalances(ctx context.Context) (v credit.GrantBalanceMap, err error) {
+func (m *BalanceSnapshotMutation) OldGrantBalances(ctx context.Context) (v balancesnapshot.GrantBalanceMap, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldGrantBalances is only allowed on UpdateOne operations")
 	}
@@ -544,7 +545,7 @@ func (m *BalanceSnapshotMutation) SetEntitlementID(id string) {
 // ClearEntitlement clears the "entitlement" edge to the Entitlement entity.
 func (m *BalanceSnapshotMutation) ClearEntitlement() {
 	m.clearedentitlement = true
-	m.clearedFields[balancesnapshot.FieldOwnerID] = struct{}{}
+	m.clearedFields[dbbalancesnapshot.FieldOwnerID] = struct{}{}
 }
 
 // EntitlementCleared reports if the "entitlement" edge to the Entitlement entity was cleared.
@@ -612,31 +613,31 @@ func (m *BalanceSnapshotMutation) Type() string {
 func (m *BalanceSnapshotMutation) Fields() []string {
 	fields := make([]string, 0, 9)
 	if m.namespace != nil {
-		fields = append(fields, balancesnapshot.FieldNamespace)
+		fields = append(fields, dbbalancesnapshot.FieldNamespace)
 	}
 	if m.created_at != nil {
-		fields = append(fields, balancesnapshot.FieldCreatedAt)
+		fields = append(fields, dbbalancesnapshot.FieldCreatedAt)
 	}
 	if m.updated_at != nil {
-		fields = append(fields, balancesnapshot.FieldUpdatedAt)
+		fields = append(fields, dbbalancesnapshot.FieldUpdatedAt)
 	}
 	if m.deleted_at != nil {
-		fields = append(fields, balancesnapshot.FieldDeletedAt)
+		fields = append(fields, dbbalancesnapshot.FieldDeletedAt)
 	}
 	if m.entitlement != nil {
-		fields = append(fields, balancesnapshot.FieldOwnerID)
+		fields = append(fields, dbbalancesnapshot.FieldOwnerID)
 	}
 	if m.grant_balances != nil {
-		fields = append(fields, balancesnapshot.FieldGrantBalances)
+		fields = append(fields, dbbalancesnapshot.FieldGrantBalances)
 	}
 	if m.balance != nil {
-		fields = append(fields, balancesnapshot.FieldBalance)
+		fields = append(fields, dbbalancesnapshot.FieldBalance)
 	}
 	if m.overage != nil {
-		fields = append(fields, balancesnapshot.FieldOverage)
+		fields = append(fields, dbbalancesnapshot.FieldOverage)
 	}
 	if m.at != nil {
-		fields = append(fields, balancesnapshot.FieldAt)
+		fields = append(fields, dbbalancesnapshot.FieldAt)
 	}
 	return fields
 }
@@ -646,23 +647,23 @@ func (m *BalanceSnapshotMutation) Fields() []string {
 // schema.
 func (m *BalanceSnapshotMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case balancesnapshot.FieldNamespace:
+	case dbbalancesnapshot.FieldNamespace:
 		return m.Namespace()
-	case balancesnapshot.FieldCreatedAt:
+	case dbbalancesnapshot.FieldCreatedAt:
 		return m.CreatedAt()
-	case balancesnapshot.FieldUpdatedAt:
+	case dbbalancesnapshot.FieldUpdatedAt:
 		return m.UpdatedAt()
-	case balancesnapshot.FieldDeletedAt:
+	case dbbalancesnapshot.FieldDeletedAt:
 		return m.DeletedAt()
-	case balancesnapshot.FieldOwnerID:
+	case dbbalancesnapshot.FieldOwnerID:
 		return m.OwnerID()
-	case balancesnapshot.FieldGrantBalances:
+	case dbbalancesnapshot.FieldGrantBalances:
 		return m.GrantBalances()
-	case balancesnapshot.FieldBalance:
+	case dbbalancesnapshot.FieldBalance:
 		return m.Balance()
-	case balancesnapshot.FieldOverage:
+	case dbbalancesnapshot.FieldOverage:
 		return m.Overage()
-	case balancesnapshot.FieldAt:
+	case dbbalancesnapshot.FieldAt:
 		return m.At()
 	}
 	return nil, false
@@ -673,23 +674,23 @@ func (m *BalanceSnapshotMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *BalanceSnapshotMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case balancesnapshot.FieldNamespace:
+	case dbbalancesnapshot.FieldNamespace:
 		return m.OldNamespace(ctx)
-	case balancesnapshot.FieldCreatedAt:
+	case dbbalancesnapshot.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
-	case balancesnapshot.FieldUpdatedAt:
+	case dbbalancesnapshot.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
-	case balancesnapshot.FieldDeletedAt:
+	case dbbalancesnapshot.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
-	case balancesnapshot.FieldOwnerID:
+	case dbbalancesnapshot.FieldOwnerID:
 		return m.OldOwnerID(ctx)
-	case balancesnapshot.FieldGrantBalances:
+	case dbbalancesnapshot.FieldGrantBalances:
 		return m.OldGrantBalances(ctx)
-	case balancesnapshot.FieldBalance:
+	case dbbalancesnapshot.FieldBalance:
 		return m.OldBalance(ctx)
-	case balancesnapshot.FieldOverage:
+	case dbbalancesnapshot.FieldOverage:
 		return m.OldOverage(ctx)
-	case balancesnapshot.FieldAt:
+	case dbbalancesnapshot.FieldAt:
 		return m.OldAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown BalanceSnapshot field %s", name)
@@ -700,63 +701,63 @@ func (m *BalanceSnapshotMutation) OldField(ctx context.Context, name string) (en
 // type.
 func (m *BalanceSnapshotMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case balancesnapshot.FieldNamespace:
+	case dbbalancesnapshot.FieldNamespace:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNamespace(v)
 		return nil
-	case balancesnapshot.FieldCreatedAt:
+	case dbbalancesnapshot.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCreatedAt(v)
 		return nil
-	case balancesnapshot.FieldUpdatedAt:
+	case dbbalancesnapshot.FieldUpdatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUpdatedAt(v)
 		return nil
-	case balancesnapshot.FieldDeletedAt:
+	case dbbalancesnapshot.FieldDeletedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
 		return nil
-	case balancesnapshot.FieldOwnerID:
+	case dbbalancesnapshot.FieldOwnerID:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetOwnerID(v)
 		return nil
-	case balancesnapshot.FieldGrantBalances:
-		v, ok := value.(credit.GrantBalanceMap)
+	case dbbalancesnapshot.FieldGrantBalances:
+		v, ok := value.(balancesnapshot.GrantBalanceMap)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetGrantBalances(v)
 		return nil
-	case balancesnapshot.FieldBalance:
+	case dbbalancesnapshot.FieldBalance:
 		v, ok := value.(float64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetBalance(v)
 		return nil
-	case balancesnapshot.FieldOverage:
+	case dbbalancesnapshot.FieldOverage:
 		v, ok := value.(float64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetOverage(v)
 		return nil
-	case balancesnapshot.FieldAt:
+	case dbbalancesnapshot.FieldAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
@@ -772,10 +773,10 @@ func (m *BalanceSnapshotMutation) SetField(name string, value ent.Value) error {
 func (m *BalanceSnapshotMutation) AddedFields() []string {
 	var fields []string
 	if m.addbalance != nil {
-		fields = append(fields, balancesnapshot.FieldBalance)
+		fields = append(fields, dbbalancesnapshot.FieldBalance)
 	}
 	if m.addoverage != nil {
-		fields = append(fields, balancesnapshot.FieldOverage)
+		fields = append(fields, dbbalancesnapshot.FieldOverage)
 	}
 	return fields
 }
@@ -785,9 +786,9 @@ func (m *BalanceSnapshotMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *BalanceSnapshotMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
-	case balancesnapshot.FieldBalance:
+	case dbbalancesnapshot.FieldBalance:
 		return m.AddedBalance()
-	case balancesnapshot.FieldOverage:
+	case dbbalancesnapshot.FieldOverage:
 		return m.AddedOverage()
 	}
 	return nil, false
@@ -798,14 +799,14 @@ func (m *BalanceSnapshotMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *BalanceSnapshotMutation) AddField(name string, value ent.Value) error {
 	switch name {
-	case balancesnapshot.FieldBalance:
+	case dbbalancesnapshot.FieldBalance:
 		v, ok := value.(float64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddBalance(v)
 		return nil
-	case balancesnapshot.FieldOverage:
+	case dbbalancesnapshot.FieldOverage:
 		v, ok := value.(float64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
@@ -820,8 +821,8 @@ func (m *BalanceSnapshotMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *BalanceSnapshotMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(balancesnapshot.FieldDeletedAt) {
-		fields = append(fields, balancesnapshot.FieldDeletedAt)
+	if m.FieldCleared(dbbalancesnapshot.FieldDeletedAt) {
+		fields = append(fields, dbbalancesnapshot.FieldDeletedAt)
 	}
 	return fields
 }
@@ -837,7 +838,7 @@ func (m *BalanceSnapshotMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *BalanceSnapshotMutation) ClearField(name string) error {
 	switch name {
-	case balancesnapshot.FieldDeletedAt:
+	case dbbalancesnapshot.FieldDeletedAt:
 		m.ClearDeletedAt()
 		return nil
 	}
@@ -848,31 +849,31 @@ func (m *BalanceSnapshotMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *BalanceSnapshotMutation) ResetField(name string) error {
 	switch name {
-	case balancesnapshot.FieldNamespace:
+	case dbbalancesnapshot.FieldNamespace:
 		m.ResetNamespace()
 		return nil
-	case balancesnapshot.FieldCreatedAt:
+	case dbbalancesnapshot.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil
-	case balancesnapshot.FieldUpdatedAt:
+	case dbbalancesnapshot.FieldUpdatedAt:
 		m.ResetUpdatedAt()
 		return nil
-	case balancesnapshot.FieldDeletedAt:
+	case dbbalancesnapshot.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
-	case balancesnapshot.FieldOwnerID:
+	case dbbalancesnapshot.FieldOwnerID:
 		m.ResetOwnerID()
 		return nil
-	case balancesnapshot.FieldGrantBalances:
+	case dbbalancesnapshot.FieldGrantBalances:
 		m.ResetGrantBalances()
 		return nil
-	case balancesnapshot.FieldBalance:
+	case dbbalancesnapshot.FieldBalance:
 		m.ResetBalance()
 		return nil
-	case balancesnapshot.FieldOverage:
+	case dbbalancesnapshot.FieldOverage:
 		m.ResetOverage()
 		return nil
-	case balancesnapshot.FieldAt:
+	case dbbalancesnapshot.FieldAt:
 		m.ResetAt()
 		return nil
 	}
@@ -883,7 +884,7 @@ func (m *BalanceSnapshotMutation) ResetField(name string) error {
 func (m *BalanceSnapshotMutation) AddedEdges() []string {
 	edges := make([]string, 0, 1)
 	if m.entitlement != nil {
-		edges = append(edges, balancesnapshot.EdgeEntitlement)
+		edges = append(edges, dbbalancesnapshot.EdgeEntitlement)
 	}
 	return edges
 }
@@ -892,7 +893,7 @@ func (m *BalanceSnapshotMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *BalanceSnapshotMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case balancesnapshot.EdgeEntitlement:
+	case dbbalancesnapshot.EdgeEntitlement:
 		if id := m.entitlement; id != nil {
 			return []ent.Value{*id}
 		}
@@ -916,7 +917,7 @@ func (m *BalanceSnapshotMutation) RemovedIDs(name string) []ent.Value {
 func (m *BalanceSnapshotMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 1)
 	if m.clearedentitlement {
-		edges = append(edges, balancesnapshot.EdgeEntitlement)
+		edges = append(edges, dbbalancesnapshot.EdgeEntitlement)
 	}
 	return edges
 }
@@ -925,7 +926,7 @@ func (m *BalanceSnapshotMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *BalanceSnapshotMutation) EdgeCleared(name string) bool {
 	switch name {
-	case balancesnapshot.EdgeEntitlement:
+	case dbbalancesnapshot.EdgeEntitlement:
 		return m.clearedentitlement
 	}
 	return false
@@ -935,7 +936,7 @@ func (m *BalanceSnapshotMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *BalanceSnapshotMutation) ClearEdge(name string) error {
 	switch name {
-	case balancesnapshot.EdgeEntitlement:
+	case dbbalancesnapshot.EdgeEntitlement:
 		m.ClearEntitlement()
 		return nil
 	}
@@ -946,7 +947,7 @@ func (m *BalanceSnapshotMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *BalanceSnapshotMutation) ResetEdge(name string) error {
 	switch name {
-	case balancesnapshot.EdgeEntitlement:
+	case dbbalancesnapshot.EdgeEntitlement:
 		m.ResetEntitlement()
 		return nil
 	}
@@ -3833,7 +3834,7 @@ type GrantMutation struct {
 	priority              *uint8
 	addpriority           *int8
 	effective_at          *time.Time
-	expiration            *credit.ExpirationPeriod
+	expiration            *grant.ExpirationPeriod
 	expires_at            *time.Time
 	voided_at             *time.Time
 	reset_max_rollover    *float64
@@ -4024,19 +4025,19 @@ func (m *GrantMutation) OldMetadata(ctx context.Context) (v map[string]string, e
 // ClearMetadata clears the value of the "metadata" field.
 func (m *GrantMutation) ClearMetadata() {
 	m.metadata = nil
-	m.clearedFields[grant.FieldMetadata] = struct{}{}
+	m.clearedFields[dbgrant.FieldMetadata] = struct{}{}
 }
 
 // MetadataCleared returns if the "metadata" field was cleared in this mutation.
 func (m *GrantMutation) MetadataCleared() bool {
-	_, ok := m.clearedFields[grant.FieldMetadata]
+	_, ok := m.clearedFields[dbgrant.FieldMetadata]
 	return ok
 }
 
 // ResetMetadata resets all changes to the "metadata" field.
 func (m *GrantMutation) ResetMetadata() {
 	m.metadata = nil
-	delete(m.clearedFields, grant.FieldMetadata)
+	delete(m.clearedFields, dbgrant.FieldMetadata)
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -4145,19 +4146,19 @@ func (m *GrantMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err err
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (m *GrantMutation) ClearDeletedAt() {
 	m.deleted_at = nil
-	m.clearedFields[grant.FieldDeletedAt] = struct{}{}
+	m.clearedFields[dbgrant.FieldDeletedAt] = struct{}{}
 }
 
 // DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
 func (m *GrantMutation) DeletedAtCleared() bool {
-	_, ok := m.clearedFields[grant.FieldDeletedAt]
+	_, ok := m.clearedFields[dbgrant.FieldDeletedAt]
 	return ok
 }
 
 // ResetDeletedAt resets all changes to the "deleted_at" field.
 func (m *GrantMutation) ResetDeletedAt() {
 	m.deleted_at = nil
-	delete(m.clearedFields, grant.FieldDeletedAt)
+	delete(m.clearedFields, dbgrant.FieldDeletedAt)
 }
 
 // SetOwnerID sets the "owner_id" field.
@@ -4345,12 +4346,12 @@ func (m *GrantMutation) ResetEffectiveAt() {
 }
 
 // SetExpiration sets the "expiration" field.
-func (m *GrantMutation) SetExpiration(cp credit.ExpirationPeriod) {
-	m.expiration = &cp
+func (m *GrantMutation) SetExpiration(gp grant.ExpirationPeriod) {
+	m.expiration = &gp
 }
 
 // Expiration returns the value of the "expiration" field in the mutation.
-func (m *GrantMutation) Expiration() (r credit.ExpirationPeriod, exists bool) {
+func (m *GrantMutation) Expiration() (r grant.ExpirationPeriod, exists bool) {
 	v := m.expiration
 	if v == nil {
 		return
@@ -4361,7 +4362,7 @@ func (m *GrantMutation) Expiration() (r credit.ExpirationPeriod, exists bool) {
 // OldExpiration returns the old "expiration" field's value of the Grant entity.
 // If the Grant object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GrantMutation) OldExpiration(ctx context.Context) (v credit.ExpirationPeriod, err error) {
+func (m *GrantMutation) OldExpiration(ctx context.Context) (v grant.ExpirationPeriod, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldExpiration is only allowed on UpdateOne operations")
 	}
@@ -4450,19 +4451,19 @@ func (m *GrantMutation) OldVoidedAt(ctx context.Context) (v *time.Time, err erro
 // ClearVoidedAt clears the value of the "voided_at" field.
 func (m *GrantMutation) ClearVoidedAt() {
 	m.voided_at = nil
-	m.clearedFields[grant.FieldVoidedAt] = struct{}{}
+	m.clearedFields[dbgrant.FieldVoidedAt] = struct{}{}
 }
 
 // VoidedAtCleared returns if the "voided_at" field was cleared in this mutation.
 func (m *GrantMutation) VoidedAtCleared() bool {
-	_, ok := m.clearedFields[grant.FieldVoidedAt]
+	_, ok := m.clearedFields[dbgrant.FieldVoidedAt]
 	return ok
 }
 
 // ResetVoidedAt resets all changes to the "voided_at" field.
 func (m *GrantMutation) ResetVoidedAt() {
 	m.voided_at = nil
-	delete(m.clearedFields, grant.FieldVoidedAt)
+	delete(m.clearedFields, dbgrant.FieldVoidedAt)
 }
 
 // SetResetMaxRollover sets the "reset_max_rollover" field.
@@ -4611,19 +4612,19 @@ func (m *GrantMutation) OldRecurrencePeriod(ctx context.Context) (v *recurrence.
 // ClearRecurrencePeriod clears the value of the "recurrence_period" field.
 func (m *GrantMutation) ClearRecurrencePeriod() {
 	m.recurrence_period = nil
-	m.clearedFields[grant.FieldRecurrencePeriod] = struct{}{}
+	m.clearedFields[dbgrant.FieldRecurrencePeriod] = struct{}{}
 }
 
 // RecurrencePeriodCleared returns if the "recurrence_period" field was cleared in this mutation.
 func (m *GrantMutation) RecurrencePeriodCleared() bool {
-	_, ok := m.clearedFields[grant.FieldRecurrencePeriod]
+	_, ok := m.clearedFields[dbgrant.FieldRecurrencePeriod]
 	return ok
 }
 
 // ResetRecurrencePeriod resets all changes to the "recurrence_period" field.
 func (m *GrantMutation) ResetRecurrencePeriod() {
 	m.recurrence_period = nil
-	delete(m.clearedFields, grant.FieldRecurrencePeriod)
+	delete(m.clearedFields, dbgrant.FieldRecurrencePeriod)
 }
 
 // SetRecurrenceAnchor sets the "recurrence_anchor" field.
@@ -4660,19 +4661,19 @@ func (m *GrantMutation) OldRecurrenceAnchor(ctx context.Context) (v *time.Time, 
 // ClearRecurrenceAnchor clears the value of the "recurrence_anchor" field.
 func (m *GrantMutation) ClearRecurrenceAnchor() {
 	m.recurrence_anchor = nil
-	m.clearedFields[grant.FieldRecurrenceAnchor] = struct{}{}
+	m.clearedFields[dbgrant.FieldRecurrenceAnchor] = struct{}{}
 }
 
 // RecurrenceAnchorCleared returns if the "recurrence_anchor" field was cleared in this mutation.
 func (m *GrantMutation) RecurrenceAnchorCleared() bool {
-	_, ok := m.clearedFields[grant.FieldRecurrenceAnchor]
+	_, ok := m.clearedFields[dbgrant.FieldRecurrenceAnchor]
 	return ok
 }
 
 // ResetRecurrenceAnchor resets all changes to the "recurrence_anchor" field.
 func (m *GrantMutation) ResetRecurrenceAnchor() {
 	m.recurrence_anchor = nil
-	delete(m.clearedFields, grant.FieldRecurrenceAnchor)
+	delete(m.clearedFields, dbgrant.FieldRecurrenceAnchor)
 }
 
 // SetEntitlementID sets the "entitlement" edge to the Entitlement entity by id.
@@ -4683,7 +4684,7 @@ func (m *GrantMutation) SetEntitlementID(id string) {
 // ClearEntitlement clears the "entitlement" edge to the Entitlement entity.
 func (m *GrantMutation) ClearEntitlement() {
 	m.clearedentitlement = true
-	m.clearedFields[grant.FieldOwnerID] = struct{}{}
+	m.clearedFields[dbgrant.FieldOwnerID] = struct{}{}
 }
 
 // EntitlementCleared reports if the "entitlement" edge to the Entitlement entity was cleared.
@@ -4751,52 +4752,52 @@ func (m *GrantMutation) Type() string {
 func (m *GrantMutation) Fields() []string {
 	fields := make([]string, 0, 16)
 	if m.namespace != nil {
-		fields = append(fields, grant.FieldNamespace)
+		fields = append(fields, dbgrant.FieldNamespace)
 	}
 	if m.metadata != nil {
-		fields = append(fields, grant.FieldMetadata)
+		fields = append(fields, dbgrant.FieldMetadata)
 	}
 	if m.created_at != nil {
-		fields = append(fields, grant.FieldCreatedAt)
+		fields = append(fields, dbgrant.FieldCreatedAt)
 	}
 	if m.updated_at != nil {
-		fields = append(fields, grant.FieldUpdatedAt)
+		fields = append(fields, dbgrant.FieldUpdatedAt)
 	}
 	if m.deleted_at != nil {
-		fields = append(fields, grant.FieldDeletedAt)
+		fields = append(fields, dbgrant.FieldDeletedAt)
 	}
 	if m.entitlement != nil {
-		fields = append(fields, grant.FieldOwnerID)
+		fields = append(fields, dbgrant.FieldOwnerID)
 	}
 	if m.amount != nil {
-		fields = append(fields, grant.FieldAmount)
+		fields = append(fields, dbgrant.FieldAmount)
 	}
 	if m.priority != nil {
-		fields = append(fields, grant.FieldPriority)
+		fields = append(fields, dbgrant.FieldPriority)
 	}
 	if m.effective_at != nil {
-		fields = append(fields, grant.FieldEffectiveAt)
+		fields = append(fields, dbgrant.FieldEffectiveAt)
 	}
 	if m.expiration != nil {
-		fields = append(fields, grant.FieldExpiration)
+		fields = append(fields, dbgrant.FieldExpiration)
 	}
 	if m.expires_at != nil {
-		fields = append(fields, grant.FieldExpiresAt)
+		fields = append(fields, dbgrant.FieldExpiresAt)
 	}
 	if m.voided_at != nil {
-		fields = append(fields, grant.FieldVoidedAt)
+		fields = append(fields, dbgrant.FieldVoidedAt)
 	}
 	if m.reset_max_rollover != nil {
-		fields = append(fields, grant.FieldResetMaxRollover)
+		fields = append(fields, dbgrant.FieldResetMaxRollover)
 	}
 	if m.reset_min_rollover != nil {
-		fields = append(fields, grant.FieldResetMinRollover)
+		fields = append(fields, dbgrant.FieldResetMinRollover)
 	}
 	if m.recurrence_period != nil {
-		fields = append(fields, grant.FieldRecurrencePeriod)
+		fields = append(fields, dbgrant.FieldRecurrencePeriod)
 	}
 	if m.recurrence_anchor != nil {
-		fields = append(fields, grant.FieldRecurrenceAnchor)
+		fields = append(fields, dbgrant.FieldRecurrenceAnchor)
 	}
 	return fields
 }
@@ -4806,37 +4807,37 @@ func (m *GrantMutation) Fields() []string {
 // schema.
 func (m *GrantMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case grant.FieldNamespace:
+	case dbgrant.FieldNamespace:
 		return m.Namespace()
-	case grant.FieldMetadata:
+	case dbgrant.FieldMetadata:
 		return m.Metadata()
-	case grant.FieldCreatedAt:
+	case dbgrant.FieldCreatedAt:
 		return m.CreatedAt()
-	case grant.FieldUpdatedAt:
+	case dbgrant.FieldUpdatedAt:
 		return m.UpdatedAt()
-	case grant.FieldDeletedAt:
+	case dbgrant.FieldDeletedAt:
 		return m.DeletedAt()
-	case grant.FieldOwnerID:
+	case dbgrant.FieldOwnerID:
 		return m.OwnerID()
-	case grant.FieldAmount:
+	case dbgrant.FieldAmount:
 		return m.Amount()
-	case grant.FieldPriority:
+	case dbgrant.FieldPriority:
 		return m.Priority()
-	case grant.FieldEffectiveAt:
+	case dbgrant.FieldEffectiveAt:
 		return m.EffectiveAt()
-	case grant.FieldExpiration:
+	case dbgrant.FieldExpiration:
 		return m.Expiration()
-	case grant.FieldExpiresAt:
+	case dbgrant.FieldExpiresAt:
 		return m.ExpiresAt()
-	case grant.FieldVoidedAt:
+	case dbgrant.FieldVoidedAt:
 		return m.VoidedAt()
-	case grant.FieldResetMaxRollover:
+	case dbgrant.FieldResetMaxRollover:
 		return m.ResetMaxRollover()
-	case grant.FieldResetMinRollover:
+	case dbgrant.FieldResetMinRollover:
 		return m.ResetMinRollover()
-	case grant.FieldRecurrencePeriod:
+	case dbgrant.FieldRecurrencePeriod:
 		return m.RecurrencePeriod()
-	case grant.FieldRecurrenceAnchor:
+	case dbgrant.FieldRecurrenceAnchor:
 		return m.RecurrenceAnchor()
 	}
 	return nil, false
@@ -4847,37 +4848,37 @@ func (m *GrantMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *GrantMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case grant.FieldNamespace:
+	case dbgrant.FieldNamespace:
 		return m.OldNamespace(ctx)
-	case grant.FieldMetadata:
+	case dbgrant.FieldMetadata:
 		return m.OldMetadata(ctx)
-	case grant.FieldCreatedAt:
+	case dbgrant.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
-	case grant.FieldUpdatedAt:
+	case dbgrant.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
-	case grant.FieldDeletedAt:
+	case dbgrant.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
-	case grant.FieldOwnerID:
+	case dbgrant.FieldOwnerID:
 		return m.OldOwnerID(ctx)
-	case grant.FieldAmount:
+	case dbgrant.FieldAmount:
 		return m.OldAmount(ctx)
-	case grant.FieldPriority:
+	case dbgrant.FieldPriority:
 		return m.OldPriority(ctx)
-	case grant.FieldEffectiveAt:
+	case dbgrant.FieldEffectiveAt:
 		return m.OldEffectiveAt(ctx)
-	case grant.FieldExpiration:
+	case dbgrant.FieldExpiration:
 		return m.OldExpiration(ctx)
-	case grant.FieldExpiresAt:
+	case dbgrant.FieldExpiresAt:
 		return m.OldExpiresAt(ctx)
-	case grant.FieldVoidedAt:
+	case dbgrant.FieldVoidedAt:
 		return m.OldVoidedAt(ctx)
-	case grant.FieldResetMaxRollover:
+	case dbgrant.FieldResetMaxRollover:
 		return m.OldResetMaxRollover(ctx)
-	case grant.FieldResetMinRollover:
+	case dbgrant.FieldResetMinRollover:
 		return m.OldResetMinRollover(ctx)
-	case grant.FieldRecurrencePeriod:
+	case dbgrant.FieldRecurrencePeriod:
 		return m.OldRecurrencePeriod(ctx)
-	case grant.FieldRecurrenceAnchor:
+	case dbgrant.FieldRecurrenceAnchor:
 		return m.OldRecurrenceAnchor(ctx)
 	}
 	return nil, fmt.Errorf("unknown Grant field %s", name)
@@ -4888,112 +4889,112 @@ func (m *GrantMutation) OldField(ctx context.Context, name string) (ent.Value, e
 // type.
 func (m *GrantMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case grant.FieldNamespace:
+	case dbgrant.FieldNamespace:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNamespace(v)
 		return nil
-	case grant.FieldMetadata:
+	case dbgrant.FieldMetadata:
 		v, ok := value.(map[string]string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetMetadata(v)
 		return nil
-	case grant.FieldCreatedAt:
+	case dbgrant.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCreatedAt(v)
 		return nil
-	case grant.FieldUpdatedAt:
+	case dbgrant.FieldUpdatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUpdatedAt(v)
 		return nil
-	case grant.FieldDeletedAt:
+	case dbgrant.FieldDeletedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
 		return nil
-	case grant.FieldOwnerID:
+	case dbgrant.FieldOwnerID:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetOwnerID(v)
 		return nil
-	case grant.FieldAmount:
+	case dbgrant.FieldAmount:
 		v, ok := value.(float64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAmount(v)
 		return nil
-	case grant.FieldPriority:
+	case dbgrant.FieldPriority:
 		v, ok := value.(uint8)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetPriority(v)
 		return nil
-	case grant.FieldEffectiveAt:
+	case dbgrant.FieldEffectiveAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetEffectiveAt(v)
 		return nil
-	case grant.FieldExpiration:
-		v, ok := value.(credit.ExpirationPeriod)
+	case dbgrant.FieldExpiration:
+		v, ok := value.(grant.ExpirationPeriod)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetExpiration(v)
 		return nil
-	case grant.FieldExpiresAt:
+	case dbgrant.FieldExpiresAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetExpiresAt(v)
 		return nil
-	case grant.FieldVoidedAt:
+	case dbgrant.FieldVoidedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetVoidedAt(v)
 		return nil
-	case grant.FieldResetMaxRollover:
+	case dbgrant.FieldResetMaxRollover:
 		v, ok := value.(float64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetResetMaxRollover(v)
 		return nil
-	case grant.FieldResetMinRollover:
+	case dbgrant.FieldResetMinRollover:
 		v, ok := value.(float64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetResetMinRollover(v)
 		return nil
-	case grant.FieldRecurrencePeriod:
+	case dbgrant.FieldRecurrencePeriod:
 		v, ok := value.(recurrence.RecurrenceInterval)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetRecurrencePeriod(v)
 		return nil
-	case grant.FieldRecurrenceAnchor:
+	case dbgrant.FieldRecurrenceAnchor:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
@@ -5009,16 +5010,16 @@ func (m *GrantMutation) SetField(name string, value ent.Value) error {
 func (m *GrantMutation) AddedFields() []string {
 	var fields []string
 	if m.addamount != nil {
-		fields = append(fields, grant.FieldAmount)
+		fields = append(fields, dbgrant.FieldAmount)
 	}
 	if m.addpriority != nil {
-		fields = append(fields, grant.FieldPriority)
+		fields = append(fields, dbgrant.FieldPriority)
 	}
 	if m.addreset_max_rollover != nil {
-		fields = append(fields, grant.FieldResetMaxRollover)
+		fields = append(fields, dbgrant.FieldResetMaxRollover)
 	}
 	if m.addreset_min_rollover != nil {
-		fields = append(fields, grant.FieldResetMinRollover)
+		fields = append(fields, dbgrant.FieldResetMinRollover)
 	}
 	return fields
 }
@@ -5028,13 +5029,13 @@ func (m *GrantMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *GrantMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
-	case grant.FieldAmount:
+	case dbgrant.FieldAmount:
 		return m.AddedAmount()
-	case grant.FieldPriority:
+	case dbgrant.FieldPriority:
 		return m.AddedPriority()
-	case grant.FieldResetMaxRollover:
+	case dbgrant.FieldResetMaxRollover:
 		return m.AddedResetMaxRollover()
-	case grant.FieldResetMinRollover:
+	case dbgrant.FieldResetMinRollover:
 		return m.AddedResetMinRollover()
 	}
 	return nil, false
@@ -5045,28 +5046,28 @@ func (m *GrantMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *GrantMutation) AddField(name string, value ent.Value) error {
 	switch name {
-	case grant.FieldAmount:
+	case dbgrant.FieldAmount:
 		v, ok := value.(float64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddAmount(v)
 		return nil
-	case grant.FieldPriority:
+	case dbgrant.FieldPriority:
 		v, ok := value.(int8)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddPriority(v)
 		return nil
-	case grant.FieldResetMaxRollover:
+	case dbgrant.FieldResetMaxRollover:
 		v, ok := value.(float64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddResetMaxRollover(v)
 		return nil
-	case grant.FieldResetMinRollover:
+	case dbgrant.FieldResetMinRollover:
 		v, ok := value.(float64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
@@ -5081,20 +5082,20 @@ func (m *GrantMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *GrantMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(grant.FieldMetadata) {
-		fields = append(fields, grant.FieldMetadata)
+	if m.FieldCleared(dbgrant.FieldMetadata) {
+		fields = append(fields, dbgrant.FieldMetadata)
 	}
-	if m.FieldCleared(grant.FieldDeletedAt) {
-		fields = append(fields, grant.FieldDeletedAt)
+	if m.FieldCleared(dbgrant.FieldDeletedAt) {
+		fields = append(fields, dbgrant.FieldDeletedAt)
 	}
-	if m.FieldCleared(grant.FieldVoidedAt) {
-		fields = append(fields, grant.FieldVoidedAt)
+	if m.FieldCleared(dbgrant.FieldVoidedAt) {
+		fields = append(fields, dbgrant.FieldVoidedAt)
 	}
-	if m.FieldCleared(grant.FieldRecurrencePeriod) {
-		fields = append(fields, grant.FieldRecurrencePeriod)
+	if m.FieldCleared(dbgrant.FieldRecurrencePeriod) {
+		fields = append(fields, dbgrant.FieldRecurrencePeriod)
 	}
-	if m.FieldCleared(grant.FieldRecurrenceAnchor) {
-		fields = append(fields, grant.FieldRecurrenceAnchor)
+	if m.FieldCleared(dbgrant.FieldRecurrenceAnchor) {
+		fields = append(fields, dbgrant.FieldRecurrenceAnchor)
 	}
 	return fields
 }
@@ -5110,19 +5111,19 @@ func (m *GrantMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *GrantMutation) ClearField(name string) error {
 	switch name {
-	case grant.FieldMetadata:
+	case dbgrant.FieldMetadata:
 		m.ClearMetadata()
 		return nil
-	case grant.FieldDeletedAt:
+	case dbgrant.FieldDeletedAt:
 		m.ClearDeletedAt()
 		return nil
-	case grant.FieldVoidedAt:
+	case dbgrant.FieldVoidedAt:
 		m.ClearVoidedAt()
 		return nil
-	case grant.FieldRecurrencePeriod:
+	case dbgrant.FieldRecurrencePeriod:
 		m.ClearRecurrencePeriod()
 		return nil
-	case grant.FieldRecurrenceAnchor:
+	case dbgrant.FieldRecurrenceAnchor:
 		m.ClearRecurrenceAnchor()
 		return nil
 	}
@@ -5133,52 +5134,52 @@ func (m *GrantMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *GrantMutation) ResetField(name string) error {
 	switch name {
-	case grant.FieldNamespace:
+	case dbgrant.FieldNamespace:
 		m.ResetNamespace()
 		return nil
-	case grant.FieldMetadata:
+	case dbgrant.FieldMetadata:
 		m.ResetMetadata()
 		return nil
-	case grant.FieldCreatedAt:
+	case dbgrant.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil
-	case grant.FieldUpdatedAt:
+	case dbgrant.FieldUpdatedAt:
 		m.ResetUpdatedAt()
 		return nil
-	case grant.FieldDeletedAt:
+	case dbgrant.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
-	case grant.FieldOwnerID:
+	case dbgrant.FieldOwnerID:
 		m.ResetOwnerID()
 		return nil
-	case grant.FieldAmount:
+	case dbgrant.FieldAmount:
 		m.ResetAmount()
 		return nil
-	case grant.FieldPriority:
+	case dbgrant.FieldPriority:
 		m.ResetPriority()
 		return nil
-	case grant.FieldEffectiveAt:
+	case dbgrant.FieldEffectiveAt:
 		m.ResetEffectiveAt()
 		return nil
-	case grant.FieldExpiration:
+	case dbgrant.FieldExpiration:
 		m.ResetExpiration()
 		return nil
-	case grant.FieldExpiresAt:
+	case dbgrant.FieldExpiresAt:
 		m.ResetExpiresAt()
 		return nil
-	case grant.FieldVoidedAt:
+	case dbgrant.FieldVoidedAt:
 		m.ResetVoidedAt()
 		return nil
-	case grant.FieldResetMaxRollover:
+	case dbgrant.FieldResetMaxRollover:
 		m.ResetResetMaxRollover()
 		return nil
-	case grant.FieldResetMinRollover:
+	case dbgrant.FieldResetMinRollover:
 		m.ResetResetMinRollover()
 		return nil
-	case grant.FieldRecurrencePeriod:
+	case dbgrant.FieldRecurrencePeriod:
 		m.ResetRecurrencePeriod()
 		return nil
-	case grant.FieldRecurrenceAnchor:
+	case dbgrant.FieldRecurrenceAnchor:
 		m.ResetRecurrenceAnchor()
 		return nil
 	}
@@ -5189,7 +5190,7 @@ func (m *GrantMutation) ResetField(name string) error {
 func (m *GrantMutation) AddedEdges() []string {
 	edges := make([]string, 0, 1)
 	if m.entitlement != nil {
-		edges = append(edges, grant.EdgeEntitlement)
+		edges = append(edges, dbgrant.EdgeEntitlement)
 	}
 	return edges
 }
@@ -5198,7 +5199,7 @@ func (m *GrantMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *GrantMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case grant.EdgeEntitlement:
+	case dbgrant.EdgeEntitlement:
 		if id := m.entitlement; id != nil {
 			return []ent.Value{*id}
 		}
@@ -5222,7 +5223,7 @@ func (m *GrantMutation) RemovedIDs(name string) []ent.Value {
 func (m *GrantMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 1)
 	if m.clearedentitlement {
-		edges = append(edges, grant.EdgeEntitlement)
+		edges = append(edges, dbgrant.EdgeEntitlement)
 	}
 	return edges
 }
@@ -5231,7 +5232,7 @@ func (m *GrantMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *GrantMutation) EdgeCleared(name string) bool {
 	switch name {
-	case grant.EdgeEntitlement:
+	case dbgrant.EdgeEntitlement:
 		return m.clearedentitlement
 	}
 	return false
@@ -5241,7 +5242,7 @@ func (m *GrantMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *GrantMutation) ClearEdge(name string) error {
 	switch name {
-	case grant.EdgeEntitlement:
+	case dbgrant.EdgeEntitlement:
 		m.ClearEntitlement()
 		return nil
 	}
@@ -5252,7 +5253,7 @@ func (m *GrantMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *GrantMutation) ResetEdge(name string) error {
 	switch name {
-	case grant.EdgeEntitlement:
+	case dbgrant.EdgeEntitlement:
 		m.ResetEntitlement()
 		return nil
 	}

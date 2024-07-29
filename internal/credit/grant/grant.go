@@ -1,4 +1,4 @@
-package credit
+package grant
 
 import (
 	"math"

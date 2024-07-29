@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 	entitlement_httpdriver "github.com/openmeterio/openmeter/internal/entitlement/httpdriver"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
@@ -29,23 +30,26 @@ type grantHandler struct {
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	options          []httptransport.HandlerOption
 	grantConnector   credit.GrantConnector
+	grantRepo        grant.GrantRepo
 }
 
 func NewGrantHandler(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	grantConnector credit.GrantConnector,
+	grantRepo grant.GrantRepo,
 	options ...httptransport.HandlerOption,
 ) GrantHandler {
 	return &grantHandler{
 		namespaceDecoder: namespaceDecoder,
 		grantConnector:   grantConnector,
+		grantRepo:        grantRepo,
 		options:          options,
 	}
 }
 
 type (
 	ListGrantsHandlerRequest struct {
-		params credit.ListGrantsParams
+		params grant.ListGrantsParams
 	}
 	ListGrantsHandlerResponse = commonhttp.Union[[]api.EntitlementGrant, pagination.PagedResponse[api.EntitlementGrant]]
 	ListGrantsHandlerParams   struct {
@@ -64,33 +68,28 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 
 			// validate OrderBy
 			if params.Params.OrderBy != nil {
-				if !slices.Contains(credit.GrantOrderBy("").StrValues(), strcase.CamelToSnake(string(*params.Params.OrderBy))) {
+				if !slices.Contains(grant.GrantOrderBy("").StrValues(), strcase.CamelToSnake(string(*params.Params.OrderBy))) {
 					return ListGrantsHandlerRequest{}, commonhttp.NewHTTPError(http.StatusBadRequest, errors.New("invalid order by"))
 				}
 			}
 
-			handlerParams := credit.ListGrantsParams{
-				Namespace:      ns,
-				IncludeDeleted: defaultx.WithDefault(params.Params.IncludeDeleted, false),
-				Page: pagination.Page{
-					PageSize:   defaultx.WithDefault(params.Params.PageSize, 0),
-					PageNumber: defaultx.WithDefault(params.Params.Page, 0),
-				},
-				Limit:  defaultx.WithDefault(params.Params.Limit, commonhttp.DefaultPageSize),
-				Offset: defaultx.WithDefault(params.Params.Offset, 0),
-				OrderBy: credit.GrantOrderBy(
-					strcase.CamelToSnake(defaultx.WithDefault((*string)(params.Params.OrderBy), string(credit.GrantOrderByEffectiveAt))),
-				),
-				Order:            commonhttp.GetSortOrder(api.ListGrantsParamsOrderSortOrderASC, params.Params.Order),
-				SubjectKeys:      convert.DerefHeaderPtr[string](params.Params.Subject),
-				FeatureIdsOrKeys: convert.DerefHeaderPtr[string](params.Params.Feature),
-			}
-			if !handlerParams.Page.IsZero() {
-				handlerParams.Page.PageNumber = defaultx.IfZero(handlerParams.Page.PageNumber, commonhttp.DefaultPage)
-				handlerParams.Page.PageSize = defaultx.IfZero(handlerParams.Page.PageSize, commonhttp.DefaultPageSize)
-			}
 			return ListGrantsHandlerRequest{
-				params: handlerParams,
+				params: grant.ListGrantsParams{
+					Namespace:      ns,
+					IncludeDeleted: defaultx.WithDefault(params.Params.IncludeDeleted, false),
+					Page: pagination.Page{
+						PageSize:   defaultx.WithDefault(params.Params.PageSize, 0),
+						PageNumber: defaultx.WithDefault(params.Params.Page, 0),
+					},
+					Limit:  defaultx.WithDefault(params.Params.Limit, commonhttp.DefaultPageSize),
+					Offset: defaultx.WithDefault(params.Params.Offset, 0),
+					OrderBy: grant.GrantOrderBy(
+						strcase.CamelToSnake(defaultx.WithDefault((*string)(params.Params.OrderBy), string(grant.GrantOrderByEffectiveAt))),
+					),
+					Order:            commonhttp.GetSortOrder(api.ListGrantsParamsOrderSortOrderASC, params.Params.Order),
+					SubjectKeys:      convert.DerefHeaderPtr[string](params.Params.Subject),
+					FeatureIdsOrKeys: convert.DerefHeaderPtr[string](params.Params.Feature),
+				},
 			}, nil
 		},
 		func(ctx context.Context, request ListGrantsHandlerRequest) (ListGrantsHandlerResponse, error) {
@@ -99,7 +98,7 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 				Option1: &[]api.EntitlementGrant{},
 				Option2: &pagination.PagedResponse[api.EntitlementGrant]{},
 			}
-			grants, err := h.grantConnector.ListGrants(ctx, request.params)
+			grants, err := h.grantRepo.ListGrants(ctx, request.params)
 			if err != nil {
 				return response, err
 			}

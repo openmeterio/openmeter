@@ -5,7 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/internal/credit"
+	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
@@ -23,7 +24,7 @@ func (e *grantDBADapter) Tx(ctx context.Context) (context.Context, *entutils.TxD
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
-func (e *grantDBADapter) WithTx(ctx context.Context, tx *entutils.TxDriver) credit.GrantRepo {
+func (e *grantDBADapter) WithTx(ctx context.Context, tx *entutils.TxDriver) grant.GrantRepo {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	return NewPostgresGrantRepo(txClient.Client())
 }
@@ -38,7 +39,7 @@ func (e *balanceSnapshotAdapter) Tx(ctx context.Context) (context.Context, *entu
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
-func (e *balanceSnapshotAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) credit.BalanceSnapshotRepo {
+func (e *balanceSnapshotAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) balancesnapshot.BalanceSnapshotRepo {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	return NewPostgresBalanceSnapshotRepo(txClient.Client())
 }

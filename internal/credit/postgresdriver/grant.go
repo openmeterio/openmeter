@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	db_entitlement "github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	db_grant "github.com/openmeterio/openmeter/internal/ent/db/grant"
@@ -22,13 +23,13 @@ type grantDBADapter struct {
 	db *db.Client
 }
 
-func NewPostgresGrantRepo(db *db.Client) credit.GrantRepo {
+func NewPostgresGrantRepo(db *db.Client) grant.GrantRepo {
 	return &grantDBADapter{
 		db: db,
 	}
 }
 
-func (g *grantDBADapter) CreateGrant(ctx context.Context, grant credit.GrantRepoCreateGrantInput) (*credit.Grant, error) {
+func (g *grantDBADapter) CreateGrant(ctx context.Context, grant grant.GrantRepoCreateGrantInput) (*grant.Grant, error) {
 	// TODO: transaction and locking
 	command := g.db.Grant.Create().
 		SetOwnerID(string(grant.OwnerID)).
@@ -67,7 +68,7 @@ func (g *grantDBADapter) VoidGrant(ctx context.Context, grantID models.Namespace
 	return command.Exec(ctx)
 }
 
-func (g *grantDBADapter) ListGrants(ctx context.Context, params credit.ListGrantsParams) (pagination.PagedResponse[credit.Grant], error) {
+func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListGrantsParams) (pagination.PagedResponse[grant.Grant], error) {
 	query := g.db.Grant.Query().Where(db_grant.Namespace(params.Namespace))
 
 	if params.OwnerID != nil {
@@ -101,20 +102,20 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params credit.ListGrant
 			order = entutils.GetOrdering(params.Order)
 		}
 		switch params.OrderBy {
-		case credit.GrantOrderByCreatedAt:
+		case grant.GrantOrderByCreatedAt:
 			query = query.Order(db_grant.ByCreatedAt(order...))
-		case credit.GrantOrderByUpdatedAt:
+		case grant.GrantOrderByUpdatedAt:
 			query = query.Order(db_grant.ByUpdatedAt(order...))
-		case credit.GrantOrderByExpiresAt:
+		case grant.GrantOrderByExpiresAt:
 			query = query.Order(db_grant.ByExpiresAt(order...))
-		case credit.GrantOrderByEffectiveAt:
+		case grant.GrantOrderByEffectiveAt:
 			query = query.Order(db_grant.ByEffectiveAt(order...))
-		case credit.GrantOrderByOwner:
+		case grant.GrantOrderByOwner:
 			query = query.Order(db_grant.ByOwnerID(order...))
 		}
 	}
 
-	response := pagination.PagedResponse[credit.Grant]{
+	response := pagination.PagedResponse[grant.Grant]{
 		Page: params.Page,
 	}
 
@@ -132,7 +133,7 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params credit.ListGrant
 			return response, err
 		}
 
-		grants := make([]credit.Grant, 0, len(entities))
+		grants := make([]grant.Grant, 0, len(entities))
 		for _, entity := range entities {
 			grants = append(grants, mapGrantEntity(entity))
 		}
@@ -146,7 +147,7 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params credit.ListGrant
 		return response, err
 	}
 
-	grants := make([]credit.Grant, 0, len(paged.Items))
+	grants := make([]grant.Grant, 0, len(paged.Items))
 	for _, entity := range paged.Items {
 		grants = append(grants, mapGrantEntity(entity))
 	}
@@ -157,7 +158,7 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params credit.ListGrant
 	return response, nil
 }
 
-func (g *grantDBADapter) ListActiveGrantsBetween(ctx context.Context, owner credit.NamespacedGrantOwner, from, to time.Time) ([]credit.Grant, error) {
+func (g *grantDBADapter) ListActiveGrantsBetween(ctx context.Context, owner grant.NamespacedGrantOwner, from, to time.Time) ([]grant.Grant, error) {
 	query := g.db.Grant.Query().
 		Where(db_grant.And(db_grant.OwnerID(string(owner.ID)), db_grant.Namespace(owner.Namespace))).
 		Where(
@@ -176,7 +177,7 @@ func (g *grantDBADapter) ListActiveGrantsBetween(ctx context.Context, owner cred
 		return nil, err
 	}
 
-	grants := make([]credit.Grant, 0, len(entities))
+	grants := make([]grant.Grant, 0, len(entities))
 	for _, entity := range entities {
 		grants = append(grants, mapGrantEntity(entity))
 	}
@@ -184,20 +185,20 @@ func (g *grantDBADapter) ListActiveGrantsBetween(ctx context.Context, owner cred
 	return grants, nil
 }
 
-func (g *grantDBADapter) GetGrant(ctx context.Context, grantID models.NamespacedID) (credit.Grant, error) {
+func (g *grantDBADapter) GetGrant(ctx context.Context, grantID models.NamespacedID) (grant.Grant, error) {
 	ent, err := g.db.Grant.Query().Where(db_grant.ID(grantID.ID), db_grant.Namespace(grantID.Namespace)).Only(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return credit.Grant{}, &credit.GrantNotFoundError{GrantID: grantID.ID}
+			return grant.Grant{}, &credit.GrantNotFoundError{GrantID: grantID.ID}
 		}
-		return credit.Grant{}, err
+		return grant.Grant{}, err
 	}
 
 	return mapGrantEntity(ent), nil
 }
 
-func mapGrantEntity(entity *db.Grant) credit.Grant {
-	g := credit.Grant{
+func mapGrantEntity(entity *db.Grant) grant.Grant {
+	g := grant.Grant{
 		ManagedModel: models.ManagedModel{
 			CreatedAt: entity.CreatedAt.In(time.UTC),
 			UpdatedAt: entity.UpdatedAt.In(time.UTC),
@@ -207,7 +208,7 @@ func mapGrantEntity(entity *db.Grant) credit.Grant {
 			Namespace: entity.Namespace,
 		},
 		ID:       entity.ID,
-		OwnerID:  credit.GrantOwner(entity.OwnerID),
+		OwnerID:  grant.GrantOwner(entity.OwnerID),
 		Amount:   entity.Amount,
 		Priority: entity.Priority,
 		VoidedAt: convert.SafeDeRef(entity.VoidedAt, func(t time.Time) *time.Time {

@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
+	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 	grantrepo "github.com/openmeterio/openmeter/internal/credit/postgresdriver"
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/internal/entitlement"
@@ -26,8 +28,8 @@ import (
 type Dependencies struct {
 	DBClient *db.Client
 
-	GrantRepo           credit.GrantRepo
-	BalanceSnapshotRepo credit.BalanceSnapshotRepo
+	GrantRepo           grant.GrantRepo
+	BalanceSnapshotRepo balancesnapshot.BalanceSnapshotRepo
 	GrantConnector      credit.GrantConnector
 
 	EntitlementRepo entitlement.EntitlementRepo
@@ -95,18 +97,12 @@ func setupDependencies(t *testing.T) Dependencies {
 		log,
 	)
 
-	balance := credit.NewBalanceConnector(
+	creditConnector := credit.NewCreditConnector(
 		grantRepo,
 		balanceSnapshotRepo,
 		owner,
 		streaming,
 		log,
-	)
-
-	grant := credit.NewGrantConnector(
-		owner,
-		grantRepo,
-		balanceSnapshotRepo,
 		time.Minute,
 		publisher.NewMockTopicPublisher(t),
 	)
@@ -114,8 +110,9 @@ func setupDependencies(t *testing.T) Dependencies {
 	meteredEntitlementConnector := meteredentitlement.NewMeteredEntitlementConnector(
 		streaming,
 		owner,
-		balance,
-		grant,
+		creditConnector,
+		creditConnector,
+		grantRepo,
 		entitlementRepo,
 		publisher.NewMockTopicPublisher(t),
 	)
@@ -137,7 +134,7 @@ func setupDependencies(t *testing.T) Dependencies {
 		DBClient: dbClient,
 
 		GrantRepo:      grantRepo,
-		GrantConnector: grant,
+		GrantConnector: creditConnector,
 
 		EntitlementRepo: entitlementRepo,
 

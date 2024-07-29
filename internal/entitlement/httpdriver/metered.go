@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
@@ -91,9 +92,9 @@ func (h *meteredEntitlementHandler) CreateGrant() CreateGrantHandler {
 					Amount:      apiGrant.Amount,
 					Priority:    uint8(defaultx.WithDefault(apiGrant.Priority, 0)),
 					EffectiveAt: apiGrant.EffectiveAt,
-					Expiration: credit.ExpirationPeriod{
+					Expiration: grant.ExpirationPeriod{
 						Count:    uint8(apiGrant.Expiration.Count),
-						Duration: credit.ExpirationPeriodDuration(apiGrant.Expiration.Duration),
+						Duration: grant.ExpirationPeriodDuration(apiGrant.Expiration.Duration),
 					},
 					ResetMaxRollover: defaultx.WithDefault(apiGrant.MaxRolloverAmount, 0),
 					ResetMinRollover: defaultx.WithDefault(apiGrant.MinRolloverAmount, 0),

@@ -12,6 +12,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 	credit_httpdriver "github.com/openmeterio/openmeter/internal/credit/httpdriver"
 	"github.com/openmeterio/openmeter/internal/debug"
 	debug_httpdriver "github.com/openmeterio/openmeter/internal/debug/httpdriver"
@@ -62,6 +63,7 @@ type Config struct {
 	EntitlementConnector        entitlement.Connector
 	EntitlementBalanceConnector meteredentitlement.Connector
 	GrantConnector              credit.GrantConnector
+	GrantRepo                   grant.GrantRepo
 
 	// FIXME: implement generic module management, loading, etc...
 	EntitlementsEnabled bool
@@ -168,6 +170,7 @@ func NewRouter(config Config) (*Router, error) {
 		router.creditHandler = credit_httpdriver.NewGrantHandler(
 			staticNamespaceDecoder,
 			config.GrantConnector,
+			config.GrantRepo,
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
 	}
