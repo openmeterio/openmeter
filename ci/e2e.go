@@ -70,26 +70,23 @@ func (e *Etoe) Diff(
 ) error {
 	db := postgres()
 
-	// Migrate DB with base state
 	_, err := goModule().
 		WithCgoEnabled().
 		WithSource(e.Ci.Source).
 		Container().
 		WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "make", "git", "curl", "clang", "lld"}).
+		WithServiceBinding("postgres", db).
+		WithEnvVariable("POSTGRES_URL", "postgres://postgres:postgres@postgres:5432/postgres").
+		// Stash local changes
+		WithExec([]string{"git", "stash", "save", "-u", "-m", "diffteststash"}).
+		WithExec([]string{"ash", "-c", "echo $(git rev-parse HEAD) > /tmp/revision"}).
+		// Migrate
 		WithExec([]string{"git", "checkout", "-f", baseRef}).
-		WithServiceBinding("postgres", db).
-		WithEnvVariable("POSTGRES_URL", "postgres://postgres:postgres@postgres:5432/postgres").
 		WithExec([]string{"go", "run", "./tools/migrate"}).
-		Sync(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to migrate base ref %s: %w", baseRef, err)
-	}
-
-	_, err = goModule().
-		WithSource(e.Ci.Source).
-		Container().
-		WithServiceBinding("postgres", db).
-		WithEnvVariable("POSTGRES_URL", "postgres://postgres:postgres@postgres:5432/postgres").
+		// Return to original version
+		WithExec([]string{"ash", "-c", "git checkout $(cat /tmp/revision)"}).
+		WithExec([]string{"ash", "-c", "git stash apply stash^{/diffteststash}"}).
+		// Run tests
 		WithExec([]string{"go", "test", "-v", "./e2e/diff/..."}).
 		Sync(ctx)
 
