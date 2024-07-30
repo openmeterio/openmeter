@@ -56,7 +56,7 @@ func (a *entitlementDBAdapter) GetEntitlementOfSubject(ctx context.Context, name
 			db_entitlement.Or(db_entitlement.DeletedAtGT(clock.Now()), db_entitlement.DeletedAtIsNil()),
 			db_entitlement.SubjectKey(subjectKey),
 			db_entitlement.Namespace(namespace),
-			db_entitlement.Or(db_entitlement.ID(idOrFeatureKey), db_entitlement.FeatureKey(idOrFeatureKey)),
+			db_entitlement.Or(db_entitlement.FeatureID(idOrFeatureKey), db_entitlement.FeatureKey(idOrFeatureKey)),
 		).
 		First(ctx)
 	if err != nil {
