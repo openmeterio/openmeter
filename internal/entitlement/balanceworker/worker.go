@@ -25,8 +25,7 @@ type WorkerOptions struct {
 	TargetTopic string
 	PoisonQueue *WorkerPoisonQueueOptions
 	Publisher   message.Publisher
-
-	Marshaler publisher.CloudEventMarshaler
+	Marshaler   publisher.CloudEventMarshaler
 
 	Entitlement *registry.Entitlement
 

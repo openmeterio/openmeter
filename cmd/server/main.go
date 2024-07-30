@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	entDialectSQL "entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql"
 	health "github.com/AppsFlyer/go-sundheit"
 	healthhttp "github.com/AppsFlyer/go-sundheit/http"
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -298,7 +298,6 @@ func main() {
 	debugConnector := debug.NewDebugConnector(streamingConnector)
 	entitlementConnRegistry := &registry.Entitlement{}
 
-	// Initialize Postgres
 	if conf.Entitlements.Enabled {
 		pgClients, err := initPGClients(conf.Postgres)
 		if err != nil {
@@ -537,7 +536,7 @@ func initNamespace(config config.Configuration, namespaces ...namespace.Handler)
 }
 
 type pgClients struct {
-	driver *entDialectSQL.Driver
+	driver *sql.Driver
 	client *db.Client
 }
 
