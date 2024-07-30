@@ -2,16 +2,16 @@ package httpdriver
 
 import (
 	"github.com/openmeterio/openmeter/internal/credit"
+	creditdriver "github.com/openmeterio/openmeter/internal/credit/driver"
 	"github.com/openmeterio/openmeter/internal/credit/grant"
-	"github.com/openmeterio/openmeter/internal/credit/httpdriver"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 )
 
 type (
-	GrantHandler      = httpdriver.GrantHandler
-	ListGrantsHandler = httpdriver.ListGrantsHandler
-	VoidGrantHandler  = httpdriver.VoidGrantHandler
+	GrantHandler      = creditdriver.GrantHandler
+	ListGrantsHandler = creditdriver.ListGrantsHandler
+	VoidGrantHandler  = creditdriver.VoidGrantHandler
 )
 
 func NewGrantHandler(
@@ -20,5 +20,5 @@ func NewGrantHandler(
 	grantRepo grant.GrantRepo,
 	options ...httptransport.HandlerOption,
 ) GrantHandler {
-	return httpdriver.NewGrantHandler(namespaceDecoder, grantConnector, grantRepo, options...)
+	return creditdriver.NewGrantHandler(namespaceDecoder, grantConnector, grantRepo, options...)
 }

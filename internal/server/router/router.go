@@ -12,8 +12,8 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
+	creditdriver "github.com/openmeterio/openmeter/internal/credit/driver"
 	"github.com/openmeterio/openmeter/internal/credit/grant"
-	credit_httpdriver "github.com/openmeterio/openmeter/internal/credit/httpdriver"
 	"github.com/openmeterio/openmeter/internal/debug"
 	debug_httpdriver "github.com/openmeterio/openmeter/internal/debug/httpdriver"
 	"github.com/openmeterio/openmeter/internal/entitlement"
@@ -121,7 +121,7 @@ type Router struct {
 	config Config
 
 	featureHandler            productcatalog_httpdriver.FeatureHandler
-	creditHandler             credit_httpdriver.GrantHandler
+	creditHandler             creditdriver.GrantHandler
 	debugHandler              debug_httpdriver.DebugHandler
 	entitlementHandler        entitlement_httpdriver.EntitlementHandler
 	meteredEntitlementHandler entitlement_httpdriver.MeteredEntitlementHandler
@@ -167,7 +167,7 @@ func NewRouter(config Config) (*Router, error) {
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
 
-		router.creditHandler = credit_httpdriver.NewGrantHandler(
+		router.creditHandler = creditdriver.NewGrantHandler(
 			staticNamespaceDecoder,
 			config.GrantConnector,
 			config.GrantRepo,
