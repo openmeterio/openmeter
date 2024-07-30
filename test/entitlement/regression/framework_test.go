@@ -9,7 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/balance"
 	"github.com/openmeterio/openmeter/internal/credit/grant"
-	grantrepo "github.com/openmeterio/openmeter/internal/credit/postgresdriver"
+	grantrepo "github.com/openmeterio/openmeter/internal/credit/postgresadapter"
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	booleanentitlement "github.com/openmeterio/openmeter/internal/entitlement/boolean"

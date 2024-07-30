@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/balance"
 	"github.com/openmeterio/openmeter/internal/credit/grant"
-	credit_postgres_adapter "github.com/openmeterio/openmeter/internal/credit/postgresdriver"
+	credit_postgres_adapter "github.com/openmeterio/openmeter/internal/credit/postgresadapter"
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
