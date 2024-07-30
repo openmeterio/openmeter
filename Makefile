@@ -29,14 +29,19 @@ build-server: ## Build server binary
 	go build -o build/server ./cmd/server
 
 .PHONY: build-sink-worker
-build-sink-worker: ## Build binary
+build-sink-worker: ## Build sink-worker binary
 	$(call print-target)
 	go build -o build/sink-worker ./cmd/sink-worker
 
 .PHONY: build-benthos-collector
-build-benthos-collector: ## Build binary
+build-benthos-collector: ## Build benthos collector binary
 	$(call print-target)
 	go build -o build/benthos-collector ./cmd/benthos-collector
+
+.PHONY: build-balance-worker
+build-balance-worker: ## Build balance-worker binary
+	$(call print-target)
+	go build -o build/balance-worker ./cmd/balance-worker
 
 config.yaml:
 	cp config.example.yaml config.yaml
@@ -52,6 +57,12 @@ sink-worker: ## Run sink-worker
 	@ if [ config.yaml -ot config.example.yaml ]; then diff -u config.yaml config.example.yaml || (echo "!!! The configuration example changed. Please update your config.yaml file accordingly (or at least touch it). !!!" && false); fi
 	$(call print-target)
 	air -c ./cmd/sink-worker/.air.toml
+
+.PHONY: balance-worker
+balance-worker: ## Run balance-worker
+	@ if [ config.yaml -ot config.example.yaml ]; then diff -u config.yaml config.example.yaml || (echo "!!! The configuration example changed. Please update your config.yaml file accordingly (or at least touch it). !!!" && false); fi
+	$(call print-target)
+	air -c ./cmd/balance-worker/.air.toml
 
 .PHONY: etoe
 etoe: ## Run e2e tests

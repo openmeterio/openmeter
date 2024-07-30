@@ -85,3 +85,22 @@ func ParseCloudEvent[PayloadType CloudEventsPayload](ev event.Event) (PayloadTyp
 
 	return payload, nil
 }
+
+type ParsedCloudEvent[PayloadType CloudEventsPayload] struct {
+	Event   event.Event
+	Payload PayloadType
+}
+
+func ParseCloudEventFromBytes[PayloadType CloudEventsPayload](data []byte) (*ParsedCloudEvent[PayloadType], error) {
+	cloudEvent := event.Event{}
+	if err := cloudEvent.UnmarshalJSON(data); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal CloudEvent: %w", err)
+	}
+
+	eventBody, err := ParseCloudEvent[PayloadType](cloudEvent)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse payload: %w", err)
+	}
+
+	return &ParsedCloudEvent[PayloadType]{Event: cloudEvent, Payload: eventBody}, nil
+}

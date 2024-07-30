@@ -10,7 +10,23 @@
       "request": "launch",
       "mode": "auto",
       "program": "${workspaceFolder}/cmd/server",
-      "args": ["--config", "${workspaceFolder}/config.yaml"]
+      "args": [
+        "--config",
+        "${workspaceFolder}/config.yaml"
+      ]
+    },
+    {
+      "name": "Launch Balance Worker",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/balance-worker",
+      "args": [
+        "--config",
+        "${workspaceFolder}/config.yaml",
+        "--telemetry-address",
+        ":10002"
+      ]
     }
   ]
 }
