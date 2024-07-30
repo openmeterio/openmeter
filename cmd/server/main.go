@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -35,15 +34,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/config"
-	"github.com/openmeterio/openmeter/internal/credit"
-	creditpgadapter "github.com/openmeterio/openmeter/internal/credit/postgresadapter"
 	"github.com/openmeterio/openmeter/internal/debug"
 	"github.com/openmeterio/openmeter/internal/ent/db"
-	"github.com/openmeterio/openmeter/internal/entitlement"
-	booleanentitlement "github.com/openmeterio/openmeter/internal/entitlement/boolean"
-	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
-	entitlementpgadapter "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter"
-	staticentitlement "github.com/openmeterio/openmeter/internal/entitlement/static"
 	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/ingest/ingestdriver"
@@ -52,8 +44,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
-	"github.com/openmeterio/openmeter/internal/productcatalog"
-	productcatalogpgadapter "github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter"
+	"github.com/openmeterio/openmeter/internal/registry"
 	"github.com/openmeterio/openmeter/internal/server"
 	"github.com/openmeterio/openmeter/internal/server/authenticator"
 	"github.com/openmeterio/openmeter/internal/server/router"
@@ -208,7 +199,7 @@ func main() {
 	var namespaceHandlers []namespace.Handler
 
 	// Initialize ClickHouse Client
-	clickHouseClient, err := initClickHouseClient(conf)
+	clickHouseClient, err := clickhouse.Open(conf.Aggregation.ClickHouse.GetClientOptions())
 	if err != nil {
 		logger.Error("failed to initialize clickhouse client", "error", err)
 		os.Exit(1)
@@ -305,11 +296,7 @@ func main() {
 	}
 
 	debugConnector := debug.NewDebugConnector(streamingConnector)
-	var entitlementConnector entitlement.Connector
-	var meteredEntitlementConnector meteredentitlement.Connector
-	var featureConnector productcatalog.FeatureConnector
-	var creditGrantConnector credit.GrantConnector
-	var driver *entDialectSQL.Driver
+	entitlementConnRegistry := &registry.Entitlement{}
 
 	// Initialize Postgres
 	if conf.Entitlements.Enabled {
@@ -318,63 +305,17 @@ func main() {
 			logger.Error("failed to initialize postgres clients", "error", err)
 			os.Exit(1)
 		}
-		driver = pgClients.driver
-		logger.Info("Postgres clients initialized")
 
-		entitlementsTopicPublisher := eventPublisher.ForTopic(conf.Events.SystemEvents.Topic)
+		defer pgClients.client.Close()
 
-		// db adapters
-		featureRepo := productcatalogpgadapter.NewPostgresFeatureRepo(pgClients.client, logger)
-		entitlementRepo := entitlementpgadapter.NewPostgresEntitlementRepo(pgClients.client)
-		usageResetRepo := entitlementpgadapter.NewPostgresUsageResetRepo(pgClients.client)
-		grantRepo := creditpgadapter.NewPostgresGrantRepo(pgClients.client)
-		balanceSnashotRepo := creditpgadapter.NewPostgresBalanceSnapshotRepo(pgClients.client)
-
-		// connectors
-		featureConnector = productcatalog.NewFeatureConnector(featureRepo, meterRepository)
-		entitlementOwnerConnector := meteredentitlement.NewEntitlementGrantOwnerAdapter(
-			featureRepo,
-			entitlementRepo,
-			usageResetRepo,
-			meterRepository,
-			logger,
-		)
-		creditBalanceConnector := credit.NewBalanceConnector(
-			grantRepo,
-			balanceSnashotRepo,
-			entitlementOwnerConnector,
-			streamingConnector,
-			logger,
-		)
-		creditGrantConnector = credit.NewGrantConnector(
-			entitlementOwnerConnector,
-			grantRepo,
-			balanceSnashotRepo,
-			time.Minute,
-			entitlementsTopicPublisher,
-		)
-		meteredEntitlementConnector = meteredentitlement.NewMeteredEntitlementConnector(
-			streamingConnector,
-			entitlementOwnerConnector,
-			creditBalanceConnector,
-			creditGrantConnector,
-			entitlementRepo,
-			entitlementsTopicPublisher,
-		)
-		staticEntitlementConnector := staticentitlement.NewStaticEntitlementConnector()
-		booleanEntitlementConnector := booleanentitlement.NewBooleanEntitlementConnector()
-		entitlementConnector = entitlement.NewEntitlementConnector(
-			entitlementRepo,
-			featureConnector,
-			meterRepository,
-			meteredEntitlementConnector,
-			staticEntitlementConnector,
-			booleanEntitlementConnector,
-			entitlementsTopicPublisher,
-		)
+		entitlementConnRegistry = registry.GetEntitlementRegistry(registry.EntitlementOptions{
+			DatabaseClient:     pgClients.client,
+			StreamingConnector: streamingConnector,
+			MeterRepository:    meterRepository,
+			Logger:             logger,
+			Publisher:          eventPublisher.ForTopic(conf.Events.SystemEvents.Topic),
+		})
 	}
-
-	defer driver.Close()
 
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{
@@ -387,10 +328,10 @@ func main() {
 			ErrorHandler:        errorsx.NewAppHandler(errorsx.NewSlogHandler(logger)),
 			// deps
 			DebugConnector:              debugConnector,
-			FeatureConnector:            featureConnector,
-			EntitlementConnector:        entitlementConnector,
-			EntitlementBalanceConnector: meteredEntitlementConnector,
-			GrantConnector:              creditGrantConnector,
+			FeatureConnector:            entitlementConnRegistry.Feature,
+			EntitlementConnector:        entitlementConnRegistry.Entitlement,
+			EntitlementBalanceConnector: entitlementConnRegistry.MeteredEntitlement,
+			GrantConnector:              entitlementConnRegistry.Grant,
 			// modules
 			EntitlementsEnabled: conf.Entitlements.Enabled,
 		},
@@ -558,36 +499,6 @@ func initKafkaIngest(producer *kafka.Producer, config config.Configuration, logg
 	}
 
 	return collector, namespaceHandler, nil
-}
-
-func initClickHouseClient(config config.Configuration) (clickhouse.Conn, error) {
-	options := &clickhouse.Options{
-		Addr: []string{config.Aggregation.ClickHouse.Address},
-		Auth: clickhouse.Auth{
-			Database: config.Aggregation.ClickHouse.Database,
-			Username: config.Aggregation.ClickHouse.Username,
-			Password: config.Aggregation.ClickHouse.Password,
-		},
-		DialTimeout:      time.Duration(10) * time.Second,
-		MaxOpenConns:     5,
-		MaxIdleConns:     5,
-		ConnMaxLifetime:  time.Duration(10) * time.Minute,
-		ConnOpenStrategy: clickhouse.ConnOpenInOrder,
-		BlockBufferSize:  10,
-	}
-	// This minimal TLS.Config is normally sufficient to connect to the secure native port (normally 9440) on a ClickHouse server.
-	// See: https://clickhouse.com/docs/en/integrations/go#using-tls
-	if config.Aggregation.ClickHouse.TLS {
-		options.TLS = &tls.Config{}
-	}
-
-	// Initialize ClickHouse
-	clickHouseClient, err := clickhouse.Open(options)
-	if err != nil {
-		return nil, fmt.Errorf("init clickhouse client: %w", err)
-	}
-
-	return clickHouseClient, nil
 }
 
 func initClickHouseStreaming(config config.Configuration, clickHouseClient clickhouse.Conn, meterRepository meter.Repository, logger *slog.Logger) (*clickhouse_connector.ClickhouseConnector, error) {

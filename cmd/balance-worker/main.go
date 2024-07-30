@@ -11,8 +11,10 @@ import (
 	"syscall"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
 	health "github.com/AppsFlyer/go-sundheit"
 	healthhttp "github.com/AppsFlyer/go-sundheit/http"
+	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/IBM/sarama"
 	"github.com/ThreeDotsLabs/watermill"
 	wmkafka "github.com/ThreeDotsLabs/watermill-kafka/v3/pkg/kafka"
@@ -33,15 +35,22 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 
 	"github.com/openmeterio/openmeter/config"
+	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/internal/entitlement/balanceworker"
 	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
-	omwatermillkafka "github.com/openmeterio/openmeter/internal/watermill/driver/kafka"
+	"github.com/openmeterio/openmeter/internal/meter"
+	"github.com/openmeterio/openmeter/internal/registry"
+	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
+	watermillkafka "github.com/openmeterio/openmeter/internal/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/pkg/contextx"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
+	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 const (
@@ -177,6 +186,43 @@ func main() {
 
 	var group run.Group
 
+	// Initialize the data sources (entitlements, productcatalog, etc.)
+	// Dependencies: meters
+	meterRepository := meter.NewInMemoryRepository(slicesx.Map(conf.Meters, func(meter *models.Meter) models.Meter {
+		return *meter
+	}))
+
+	// Dependencies: clickhouse
+	clickHouseClient, err := clickhouse.Open(conf.Aggregation.ClickHouse.GetClientOptions())
+	if err != nil {
+		logger.Error("failed to initialize clickhouse client", "error", err)
+		os.Exit(1)
+	}
+
+	// Dependencies: streamingConnector
+	clickhouseStreamingConnector, err := clickhouse_connector.NewClickhouseConnector(clickhouse_connector.ClickhouseConnectorConfig{
+		Logger:               logger,
+		ClickHouse:           clickHouseClient,
+		Database:             conf.Aggregation.ClickHouse.Database,
+		Meters:               meterRepository,
+		CreateOrReplaceMeter: conf.Aggregation.CreateOrReplaceMeter,
+		PopulateMeter:        conf.Aggregation.PopulateMeter,
+	})
+	if err != nil {
+		logger.Error("failed to initialize clickhouse aggregation", "error", err)
+		os.Exit(1)
+	}
+
+	// Dependencies: postgresql
+	pgClients, err := initPGClients(conf.Postgres)
+	if err != nil {
+		logger.Error("failed to initialize postgres clients", "error", err)
+		os.Exit(1)
+	}
+	defer pgClients.driver.Close()
+
+	logger.Info("Postgres clients initialized")
+
 	// Create  subscriber
 	wmSubscriber, err := initKafkaSubscriber(conf, logger)
 	if err != nil {
@@ -191,11 +237,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	wmPublisher, err := initEventPublisher(ctx, logger, conf, kafkaPublisher)
+	publishers, err := initEventPublisher(ctx, logger, conf, kafkaPublisher)
 	if err != nil {
 		logger.Error("failed to initialize event publisher", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
+
+	// Dependencies: entitlement
+	entitlementConnectors := registry.GetEntitlementRegistry(registry.EntitlementOptions{
+		DatabaseClient:     pgClients.client,
+		StreamingConnector: clickhouseStreamingConnector,
+		MeterRepository:    meterRepository,
+		Logger:             logger,
+		Publisher:          publishers.eventPublisher.ForTopic(conf.Events.SystemEvents.Topic),
+	})
 
 	// Initialize worker
 	workerOptions := balanceworker.WorkerOptions{
@@ -204,9 +259,10 @@ func main() {
 		Subscriber: wmSubscriber,
 
 		TargetTopic: conf.Events.SystemEvents.Topic,
-		Publisher:   wmPublisher.publisher,
+		Publisher:   publishers.watermillPublisher,
+		Marshaler:   publishers.marshaler,
 
-		Marshaler: wmPublisher.marshaler,
+		Entitlement: entitlementConnectors,
 
 		Logger: logger,
 	}
@@ -296,13 +352,14 @@ func initKafkaSubscriber(conf config.Configuration, logger *slog.Logger) (messag
 	return subscriber, nil
 }
 
-type eventPublisher struct {
-	publisher message.Publisher
-	marshaler publisher.CloudEventMarshaler
+type eventPublishers struct {
+	watermillPublisher message.Publisher
+	marshaler          publisher.CloudEventMarshaler
+	eventPublisher     publisher.Publisher
 }
 
-func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Configuration, kafkaProducer *kafka.Producer) (*eventPublisher, error) {
-	eventDriver := omwatermillkafka.NewPublisher(kafkaProducer)
+func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Configuration, kafkaProducer *kafka.Producer) (*eventPublishers, error) {
+	eventDriver := watermillkafka.NewPublisher(kafkaProducer)
 
 	if conf.BalanceWorker.PoisionQueue.AutoProvision.Enabled {
 		adminClient, err := kafka.NewAdminClientFromProducer(kafkaProducer)
@@ -321,9 +378,18 @@ func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Co
 		}
 	}
 
-	return &eventPublisher{
-		publisher: eventDriver,
-		marshaler: publisher.NewCloudEventMarshaler(omwatermillkafka.AddPartitionKeyFromSubject),
+	eventPublisher, err := publisher.NewPublisher(publisher.PublisherOptions{
+		Publisher: eventDriver,
+		Transform: watermillkafka.AddPartitionKeyFromSubject,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create event publisher: %w", err)
+	}
+
+	return &eventPublishers{
+		watermillPublisher: eventDriver,
+		marshaler:          publisher.NewCloudEventMarshaler(watermillkafka.AddPartitionKeyFromSubject),
+		eventPublisher:     eventPublisher,
 	}, nil
 }
 
@@ -349,4 +415,27 @@ func initKafkaProducer(ctx context.Context, config config.Configuration, logger 
 
 	slog.Debug("connected to Kafka")
 	return producer, nil
+}
+
+type pgClients struct {
+	driver *sql.Driver
+	client *db.Client
+}
+
+func initPGClients(config config.PostgresConfig) (
+	*pgClients,
+	error,
+) {
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid postgres config: %w", err)
+	}
+	driver, err := entutils.GetPGDriver(config.URL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init postgres driver: %w", err)
+	}
+
+	return &pgClients{
+		driver: driver,
+		client: db.NewClient(db.Driver(driver)),
+	}, nil
 }
