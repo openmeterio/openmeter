@@ -1,4 +1,4 @@
-package httpdriver
+package creditdriver
 
 import creditdriver "github.com/openmeterio/openmeter/internal/credit/driver"
 
