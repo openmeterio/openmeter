@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,10 +12,8 @@ import (
 	"syscall"
 	"time"
 
-	entDialectSQL "entgo.io/ent/dialect/sql"
 	health "github.com/AppsFlyer/go-sundheit"
 	healthhttp "github.com/AppsFlyer/go-sundheit/http"
-	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -35,15 +32,11 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/config"
-	"github.com/openmeterio/openmeter/internal/credit"
-	creditpgadapter "github.com/openmeterio/openmeter/internal/credit/postgresadapter"
+	cmdclickhouse "github.com/openmeterio/openmeter/internal/cmd/clickhouse"
+	cmdpostgres "github.com/openmeterio/openmeter/internal/cmd/postgres"
+	cmdstreaming "github.com/openmeterio/openmeter/internal/cmd/streaming"
+	"github.com/openmeterio/openmeter/internal/common/entitlement"
 	"github.com/openmeterio/openmeter/internal/debug"
-	"github.com/openmeterio/openmeter/internal/ent/db"
-	"github.com/openmeterio/openmeter/internal/entitlement"
-	booleanentitlement "github.com/openmeterio/openmeter/internal/entitlement/boolean"
-	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
-	entitlementpgadapter "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter"
-	staticentitlement "github.com/openmeterio/openmeter/internal/entitlement/static"
 	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/ingest/ingestdriver"
@@ -52,18 +45,14 @@ import (
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
-	"github.com/openmeterio/openmeter/internal/productcatalog"
-	productcatalogpgadapter "github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter"
 	"github.com/openmeterio/openmeter/internal/server"
 	"github.com/openmeterio/openmeter/internal/server/authenticator"
 	"github.com/openmeterio/openmeter/internal/server/router"
 	"github.com/openmeterio/openmeter/internal/streaming"
-	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 	watermillkafka "github.com/openmeterio/openmeter/internal/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/internal/watermill/driver/noop"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
-	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
@@ -208,7 +197,7 @@ func main() {
 	var namespaceHandlers []namespace.Handler
 
 	// Initialize ClickHouse Client
-	clickHouseClient, err := initClickHouseClient(conf)
+	clickHouseClient, err := cmdclickhouse.GetClient(conf)
 	if err != nil {
 		logger.Error("failed to initialize clickhouse client", "error", err)
 		os.Exit(1)
@@ -246,7 +235,7 @@ func main() {
 	}))
 
 	// Initialize ClickHouse Aggregation
-	clickhouseStreamingConnector, err := initClickHouseStreaming(conf, clickHouseClient, meterRepository, logger)
+	clickhouseStreamingConnector, err := cmdstreaming.GetStreaming(conf, clickHouseClient, meterRepository, logger)
 	if err != nil {
 		logger.Error("failed to initialize clickhouse aggregation", "error", err)
 		os.Exit(1)
@@ -305,76 +294,28 @@ func main() {
 	}
 
 	debugConnector := debug.NewDebugConnector(streamingConnector)
-	var entitlementConnector entitlement.Connector
-	var meteredEntitlementConnector meteredentitlement.Connector
-	var featureConnector productcatalog.FeatureConnector
-	var creditGrantConnector credit.GrantConnector
-	var driver *entDialectSQL.Driver
 
-	// Initialize Postgres
+	entitlementConnectors := &entitlement.Connectors{}
+	// Initialize Entitlements if needed
 	if conf.Entitlements.Enabled {
-		pgClients, err := initPGClients(conf.Postgres)
+		pgClients, err := cmdpostgres.GetClients(conf.Postgres)
 		if err != nil {
 			logger.Error("failed to initialize postgres clients", "error", err)
 			os.Exit(1)
 		}
-		driver = pgClients.driver
+		defer pgClients.Driver.Close()
+
 		logger.Info("Postgres clients initialized")
 
-		entitlementsTopicPublisher := eventPublisher.ForTopic(conf.Events.SystemEvents.Topic)
+		entitlementConnectors = entitlement.GetConnectors(entitlement.ConnectorsOptions{
+			DatabaseClient:     pgClients.Client,
+			StreamingConnector: streamingConnector,
+			MeterRepository:    meterRepository,
+			Logger:             logger,
+			Publisher:          eventPublisher.ForTopic(conf.Events.SystemEvents.Topic),
+		})
 
-		// db adapters
-		featureRepo := productcatalogpgadapter.NewPostgresFeatureRepo(pgClients.client, logger)
-		entitlementRepo := entitlementpgadapter.NewPostgresEntitlementRepo(pgClients.client)
-		usageResetRepo := entitlementpgadapter.NewPostgresUsageResetRepo(pgClients.client)
-		grantRepo := creditpgadapter.NewPostgresGrantRepo(pgClients.client)
-		balanceSnashotRepo := creditpgadapter.NewPostgresBalanceSnapshotRepo(pgClients.client)
-
-		// connectors
-		featureConnector = productcatalog.NewFeatureConnector(featureRepo, meterRepository)
-		entitlementOwnerConnector := meteredentitlement.NewEntitlementGrantOwnerAdapter(
-			featureRepo,
-			entitlementRepo,
-			usageResetRepo,
-			meterRepository,
-			logger,
-		)
-		creditBalanceConnector := credit.NewBalanceConnector(
-			grantRepo,
-			balanceSnashotRepo,
-			entitlementOwnerConnector,
-			streamingConnector,
-			logger,
-		)
-		creditGrantConnector = credit.NewGrantConnector(
-			entitlementOwnerConnector,
-			grantRepo,
-			balanceSnashotRepo,
-			time.Minute,
-			entitlementsTopicPublisher,
-		)
-		meteredEntitlementConnector = meteredentitlement.NewMeteredEntitlementConnector(
-			streamingConnector,
-			entitlementOwnerConnector,
-			creditBalanceConnector,
-			creditGrantConnector,
-			entitlementRepo,
-			entitlementsTopicPublisher,
-		)
-		staticEntitlementConnector := staticentitlement.NewStaticEntitlementConnector()
-		booleanEntitlementConnector := booleanentitlement.NewBooleanEntitlementConnector()
-		entitlementConnector = entitlement.NewEntitlementConnector(
-			entitlementRepo,
-			featureConnector,
-			meterRepository,
-			meteredEntitlementConnector,
-			staticEntitlementConnector,
-			booleanEntitlementConnector,
-			entitlementsTopicPublisher,
-		)
 	}
-
-	defer driver.Close()
 
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{
@@ -387,10 +328,10 @@ func main() {
 			ErrorHandler:        errorsx.NewAppHandler(errorsx.NewSlogHandler(logger)),
 			// deps
 			DebugConnector:              debugConnector,
-			FeatureConnector:            featureConnector,
-			EntitlementConnector:        entitlementConnector,
-			EntitlementBalanceConnector: meteredEntitlementConnector,
-			GrantConnector:              creditGrantConnector,
+			FeatureConnector:            entitlementConnectors.Feature,
+			EntitlementConnector:        entitlementConnectors.Entitlement,
+			EntitlementBalanceConnector: entitlementConnectors.MeteredEntitlement,
+			GrantConnector:              entitlementConnectors.Grant,
 			// modules
 			EntitlementsEnabled: conf.Entitlements.Enabled,
 		},
@@ -560,52 +501,6 @@ func initKafkaIngest(producer *kafka.Producer, config config.Configuration, logg
 	return collector, namespaceHandler, nil
 }
 
-func initClickHouseClient(config config.Configuration) (clickhouse.Conn, error) {
-	options := &clickhouse.Options{
-		Addr: []string{config.Aggregation.ClickHouse.Address},
-		Auth: clickhouse.Auth{
-			Database: config.Aggregation.ClickHouse.Database,
-			Username: config.Aggregation.ClickHouse.Username,
-			Password: config.Aggregation.ClickHouse.Password,
-		},
-		DialTimeout:      time.Duration(10) * time.Second,
-		MaxOpenConns:     5,
-		MaxIdleConns:     5,
-		ConnMaxLifetime:  time.Duration(10) * time.Minute,
-		ConnOpenStrategy: clickhouse.ConnOpenInOrder,
-		BlockBufferSize:  10,
-	}
-	// This minimal TLS.Config is normally sufficient to connect to the secure native port (normally 9440) on a ClickHouse server.
-	// See: https://clickhouse.com/docs/en/integrations/go#using-tls
-	if config.Aggregation.ClickHouse.TLS {
-		options.TLS = &tls.Config{}
-	}
-
-	// Initialize ClickHouse
-	clickHouseClient, err := clickhouse.Open(options)
-	if err != nil {
-		return nil, fmt.Errorf("init clickhouse client: %w", err)
-	}
-
-	return clickHouseClient, nil
-}
-
-func initClickHouseStreaming(config config.Configuration, clickHouseClient clickhouse.Conn, meterRepository meter.Repository, logger *slog.Logger) (*clickhouse_connector.ClickhouseConnector, error) {
-	streamingConnector, err := clickhouse_connector.NewClickhouseConnector(clickhouse_connector.ClickhouseConnectorConfig{
-		Logger:               logger,
-		ClickHouse:           clickHouseClient,
-		Database:             config.Aggregation.ClickHouse.Database,
-		Meters:               meterRepository,
-		CreateOrReplaceMeter: config.Aggregation.CreateOrReplaceMeter,
-		PopulateMeter:        config.Aggregation.PopulateMeter,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("init clickhouse streaming: %w", err)
-	}
-
-	return streamingConnector, nil
-}
-
 func initNamespace(config config.Configuration, namespaces ...namespace.Handler) (*namespace.Manager, error) {
 	namespaceManager, err := namespace.NewManager(namespace.ManagerConfig{
 		Handlers:          namespaces,
@@ -623,35 +518,4 @@ func initNamespace(config config.Configuration, namespaces ...namespace.Handler)
 	}
 	slog.Info("default namespace created")
 	return namespaceManager, nil
-}
-
-type pgClients struct {
-	driver *entDialectSQL.Driver
-	client *db.Client
-}
-
-func initPGClients(config config.PostgresConfig) (
-	*pgClients,
-	error,
-) {
-	if err := config.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid postgres config: %w", err)
-	}
-	driver, err := entutils.GetPGDriver(config.URL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init postgres driver: %w", err)
-	}
-
-	// initialize client & run migrations
-	dbClient := db.NewClient(db.Driver(driver))
-
-	// TODO: use versioned migrations: https://entgo.io/docs/versioned-migrations
-	if err := dbClient.Schema.Create(context.Background()); err != nil {
-		return nil, fmt.Errorf("failed to migrate credit db: %w", err)
-	}
-
-	return &pgClients{
-		driver: driver,
-		client: dbClient,
-	}, nil
 }

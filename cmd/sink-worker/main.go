@@ -2,18 +2,15 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"syscall"
-	"time"
 
 	health "github.com/AppsFlyer/go-sundheit"
 	healthhttp "github.com/AppsFlyer/go-sundheit/http"
-	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -31,6 +28,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/openmeterio/openmeter/config"
+	cmdclickhouse "github.com/openmeterio/openmeter/internal/cmd/clickhouse"
 	"github.com/openmeterio/openmeter/internal/dedupe"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/sink"
@@ -210,38 +208,8 @@ func main() {
 	}
 }
 
-func initClickHouseClient(config config.Configuration) (clickhouse.Conn, error) {
-	options := &clickhouse.Options{
-		Addr: []string{config.Aggregation.ClickHouse.Address},
-		Auth: clickhouse.Auth{
-			Database: config.Aggregation.ClickHouse.Database,
-			Username: config.Aggregation.ClickHouse.Username,
-			Password: config.Aggregation.ClickHouse.Password,
-		},
-		DialTimeout:      time.Duration(10) * time.Second,
-		MaxOpenConns:     5,
-		MaxIdleConns:     5,
-		ConnMaxLifetime:  time.Duration(10) * time.Minute,
-		ConnOpenStrategy: clickhouse.ConnOpenInOrder,
-		BlockBufferSize:  10,
-	}
-	// This minimal TLS.Config is normally sufficient to connect to the secure native port (normally 9440) on a ClickHouse server.
-	// See: https://clickhouse.com/docs/en/integrations/go#using-tls
-	if config.Aggregation.ClickHouse.TLS {
-		options.TLS = &tls.Config{}
-	}
-
-	// Initialize ClickHouse
-	clickHouseClient, err := clickhouse.Open(options)
-	if err != nil {
-		return nil, fmt.Errorf("init clickhouse client: %w", err)
-	}
-
-	return clickHouseClient, nil
-}
-
 func initSink(config config.Configuration, logger *slog.Logger, metricMeter metric.Meter, tracer trace.Tracer, meterRepository meter.Repository) (*sink.Sink, error) {
-	clickhouseClient, err := initClickHouseClient(config)
+	clickhouseClient, err := cmdclickhouse.GetClient(config)
 	if err != nil {
 		return nil, fmt.Errorf("init clickhouse client: %w", err)
 	}

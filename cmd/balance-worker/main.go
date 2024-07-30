@@ -33,15 +33,22 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 
 	"github.com/openmeterio/openmeter/config"
+	cmdclickhouse "github.com/openmeterio/openmeter/internal/cmd/clickhouse"
+	cmdpostgres "github.com/openmeterio/openmeter/internal/cmd/postgres"
+	cmdstreaming "github.com/openmeterio/openmeter/internal/cmd/streaming"
+	"github.com/openmeterio/openmeter/internal/common/entitlement"
 	"github.com/openmeterio/openmeter/internal/entitlement/balanceworker"
 	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
-	omwatermillkafka "github.com/openmeterio/openmeter/internal/watermill/driver/kafka"
+	"github.com/openmeterio/openmeter/internal/meter"
+	watermillkafka "github.com/openmeterio/openmeter/internal/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
+	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 const (
@@ -191,11 +198,49 @@ func main() {
 		os.Exit(1)
 	}
 
-	wmPublisher, err := initEventPublisher(ctx, logger, conf, kafkaPublisher)
+	publishers, err := initEventPublisher(ctx, logger, conf, kafkaPublisher)
 	if err != nil {
 		logger.Error("failed to initialize event publisher", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
+
+	// Initialize the data sources (entitlements, productcatalog, etc.)
+	// Dependencies: meters
+	meterRepository := meter.NewInMemoryRepository(slicesx.Map(conf.Meters, func(meter *models.Meter) models.Meter {
+		return *meter
+	}))
+
+	// Dependencies: clickhouse
+	clickHouseClient, err := cmdclickhouse.GetClient(conf)
+	if err != nil {
+		logger.Error("failed to initialize clickhouse client", "error", err)
+		os.Exit(1)
+	}
+
+	// Dependencies: streamingConnector
+	clickhouseStreamingConnector, err := cmdstreaming.GetStreaming(conf, clickHouseClient, meterRepository, logger)
+	if err != nil {
+		logger.Error("failed to initialize clickhouse aggregation", "error", err)
+		os.Exit(1)
+	}
+
+	// Depndencies: postgresql
+	pgClients, err := cmdpostgres.GetClients(conf.Postgres)
+	if err != nil {
+		logger.Error("failed to initialize postgres clients", "error", err)
+		os.Exit(1)
+	}
+	defer pgClients.Driver.Close()
+
+	logger.Info("Postgres clients initialized")
+
+	entitlementConnectors := entitlement.GetConnectors(entitlement.ConnectorsOptions{
+		DatabaseClient:     pgClients.Client,
+		StreamingConnector: clickhouseStreamingConnector,
+		MeterRepository:    meterRepository,
+		Logger:             logger,
+		Publisher:          publishers.eventPublisher.ForTopic(conf.Events.SystemEvents.Topic),
+	})
 
 	// Initialize worker
 	workerOptions := balanceworker.WorkerOptions{
@@ -204,11 +249,11 @@ func main() {
 		Subscriber: wmSubscriber,
 
 		TargetTopic: conf.Events.SystemEvents.Topic,
-		Publisher:   wmPublisher.publisher,
+		Publisher:   publishers.wmPublisher,
+		Marshaler:   publishers.marshaler,
 
-		Marshaler: wmPublisher.marshaler,
-
-		Logger: logger,
+		Entitlement: entitlementConnectors,
+		Logger:      logger,
 	}
 
 	if conf.BalanceWorker.PoisionQueue.Enabled {
@@ -296,13 +341,14 @@ func initKafkaSubscriber(conf config.Configuration, logger *slog.Logger) (messag
 	return subscriber, nil
 }
 
-type eventPublisher struct {
-	publisher message.Publisher
-	marshaler publisher.CloudEventMarshaler
+type eventPublishers struct {
+	wmPublisher    message.Publisher
+	marshaler      publisher.CloudEventMarshaler
+	eventPublisher publisher.Publisher
 }
 
-func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Configuration, kafkaProducer *kafka.Producer) (*eventPublisher, error) {
-	eventDriver := omwatermillkafka.NewPublisher(kafkaProducer)
+func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Configuration, kafkaProducer *kafka.Producer) (*eventPublishers, error) {
+	eventDriver := watermillkafka.NewPublisher(kafkaProducer)
 
 	if conf.BalanceWorker.PoisionQueue.AutoProvision.Enabled {
 		adminClient, err := kafka.NewAdminClientFromProducer(kafkaProducer)
@@ -321,9 +367,18 @@ func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Co
 		}
 	}
 
-	return &eventPublisher{
-		publisher: eventDriver,
-		marshaler: publisher.NewCloudEventMarshaler(omwatermillkafka.AddPartitionKeyFromSubject),
+	eventPublisher, err := publisher.NewPublisher(publisher.PublisherOptions{
+		Publisher: eventDriver,
+		Transform: watermillkafka.AddPartitionKeyFromSubject,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create event publisher: %w", err)
+	}
+
+	return &eventPublishers{
+		wmPublisher:    eventDriver,
+		marshaler:      publisher.NewCloudEventMarshaler(watermillkafka.AddPartitionKeyFromSubject),
+		eventPublisher: eventPublisher,
 	}, nil
 }
 

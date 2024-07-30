@@ -11,6 +11,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	"github.com/cloudevents/sdk-go/v2/event"
 
+	entitlementcommon "github.com/openmeterio/openmeter/internal/common/entitlement"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/event/spec"
@@ -24,8 +25,9 @@ type WorkerOptions struct {
 	TargetTopic string
 	PoisonQueue *WorkerPoisonQueueOptions
 	Publisher   message.Publisher
+	Marshaler   publisher.CloudEventMarshaler
 
-	Marshaler publisher.CloudEventMarshaler
+	Entitlement *entitlementcommon.Connectors
 
 	Logger *slog.Logger
 }
