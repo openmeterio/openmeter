@@ -14,15 +14,10 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/entitlement"
-	"github.com/openmeterio/openmeter/internal/entitlement/httpdriver"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
-	"github.com/openmeterio/openmeter/internal/entitlement/snapshot"
-	"github.com/openmeterio/openmeter/internal/event/models"
 	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/event/spec"
-	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/internal/registry"
-	"github.com/openmeterio/openmeter/pkg/convert"
 	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -70,6 +65,8 @@ type highWatermarkCacheEntry struct {
 }
 
 type Worker struct {
+	ctx        context.Context
+	ctxCancel  context.CancelFunc
 	opts       WorkerOptions
 	connectors *registry.Entitlement
 	router     *message.Router
@@ -101,7 +98,16 @@ func New(opts WorkerOptions) (*Worker, error) {
 		opts.Subscriber,
 		opts.TargetTopic,
 		opts.Publisher,
-		worker.handleSystemEvent,
+		worker.handleEvent,
+	)
+
+	router.AddHandler(
+		"balance_worker_ingest_events",
+		opts.IngestEventsTopic,
+		opts.Subscriber,
+		opts.TargetTopic,
+		opts.Publisher,
+		worker.handleEvent,
 	)
 
 	router.AddMiddleware(
@@ -126,7 +132,7 @@ func New(opts WorkerOptions) (*Worker, error) {
 			poisionQueue,
 		)
 
-		poisionQueueProcessor := worker.handleSystemEvent
+		poisionQueueProcessor := worker.handleEvent
 		if opts.PoisonQueue.Throttle {
 			poisionQueueProcessor = middleware.NewThrottle(
 				opts.PoisonQueue.ThrottleCount,
@@ -147,6 +153,7 @@ func New(opts WorkerOptions) (*Worker, error) {
 }
 
 func (w *Worker) Run(ctx context.Context) error {
+	w.ctx, w.ctxCancel = context.WithCancel(ctx)
 	return w.router.Run(ctx)
 }
 
@@ -155,10 +162,11 @@ func (w *Worker) Close() error {
 		return err
 	}
 
+	w.ctxCancel()
 	return nil
 }
 
-func (w *Worker) handleSystemEvent(msg *message.Message) ([]*message.Message, error) {
+func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 	w.opts.Logger.Debug("received system event", w.messageToLogFields(msg)...)
 
 	ceType, found := msg.Metadata[publisher.CloudEventsHeaderType]
@@ -172,21 +180,11 @@ func (w *Worker) handleSystemEvent(msg *message.Message) ([]*message.Message, er
 	case entitlement.EntitlementCreatedEvent{}.Spec().Type():
 		event, err := spec.ParseCloudEventFromBytes[entitlement.EntitlementCreatedEvent](msg.Payload)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse entitlement created event: %w", err)
+			w.opts.Logger.Error("failed to parse entitlement created event", w.messageToLogFields(msg)...)
+			return nil, err
 		}
 
-		return w.handleUpdateEvent(
-			msg.Context(),
-			NamespacedID{Namespace: event.Payload.Namespace.ID, ID: event.Payload.ID},
-			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, event.Payload.ID),
-		)
-	case entitlement.EntitlementDeletedEvent{}.Spec().Type():
-		event, err := spec.ParseCloudEventFromBytes[entitlement.EntitlementDeletedEvent](msg.Payload)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse entitlement deleted event: %w", err)
-		}
-
-		return w.handleEntitlementDeleteEvent(msg.Context(), event.Payload)
+		return w.handleEntitlementDeleteEvent(w.ctx, event.Payload)
 	// Grant events
 	case credit.GrantCreatedEvent{}.Spec().Type():
 		event, err := spec.ParseCloudEventFromBytes[credit.GrantCreatedEvent](msg.Payload)
@@ -194,8 +192,8 @@ func (w *Worker) handleSystemEvent(msg *message.Message) ([]*message.Message, er
 			return nil, fmt.Errorf("failed to parse grant created event: %w", err)
 		}
 
-		return w.handleUpdateEvent(
-			msg.Context(),
+		return w.handleEntitlementUpdateEvent(
+			w.ctx,
 			NamespacedID{Namespace: event.Payload.Namespace.ID, ID: string(event.Payload.OwnerID)},
 			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, string(event.Payload.OwnerID), spec.EntityGrant, event.Payload.ID),
 		)
@@ -205,10 +203,22 @@ func (w *Worker) handleSystemEvent(msg *message.Message) ([]*message.Message, er
 			return nil, fmt.Errorf("failed to parse grant voided event: %w", err)
 		}
 
-		return w.handleUpdateEvent(
-			msg.Context(),
+		return w.handleEntitlementUpdateEvent(
+			w.ctx,
 			NamespacedID{Namespace: event.Payload.Namespace.ID, ID: string(event.Payload.OwnerID)},
 			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, string(event.Payload.OwnerID), spec.EntityGrant, event.Payload.ID),
+		)
+	// Metered entitlement events
+	case meteredentitlement.ResetEntitlementEvent{}.Spec().Type():
+		event, err := spec.ParseCloudEventFromBytes[meteredentitlement.ResetEntitlementEvent](msg.Payload)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse reset entitlement event: %w", err)
+		}
+
+		return w.handleEntitlementUpdateEvent(
+			w.ctx,
+			NamespacedID{Namespace: event.Payload.Namespace.ID, ID: event.Payload.EntitlementID},
+			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, event.Payload.EntitlementID),
 		)
 	// Metered entitlement events
 	case meteredentitlement.ResetEntitlementEvent{}.Spec().Type():
@@ -223,149 +233,6 @@ func (w *Worker) handleSystemEvent(msg *message.Message) ([]*message.Message, er
 			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, event.Payload.EntitlementID),
 		)
 	}
-	return nil, nil
-}
-
-func (w *Worker) handleEntitlementDeleteEvent(ctx context.Context, delEvent entitlement.EntitlementDeletedEvent) ([]*message.Message, error) {
-	namespace := delEvent.Namespace.ID
-
-	feature, err := w.connectors.Feature.GetFeature(ctx, namespace, delEvent.FeatureID, productcatalog.IncludeArchivedFeatureTrue)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get feature: %w", err)
-	}
-
-	subjectID := ""
-	if w.opts.SubjectIDResolver != nil {
-		subjectID, err = w.opts.SubjectIDResolver.GetSubjectIDByKey(ctx, namespace, delEvent.SubjectKey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get subject ID: %w", err)
-		}
-	}
-
-	calculationTime := w.getCalculationTime()
-
-	event, err := spec.NewCloudEvent(
-		spec.EventSpec{
-			Source:  spec.ComposeResourcePath(namespace, spec.EntityEntitlement, delEvent.ID),
-			Subject: spec.ComposeResourcePath(namespace, spec.EntitySubjectKey, delEvent.SubjectKey),
-		},
-		snapshot.EntitlementBalanceSnapshotEvent{
-			Entitlement: delEvent.Entitlement,
-			Namespace: models.NamespaceID{
-				ID: namespace,
-			},
-			Subject: models.SubjectKeyAndID{
-				Key: delEvent.SubjectKey,
-				ID:  subjectID,
-			},
-			Feature:   *feature,
-			Operation: snapshot.BalanceOperationDelete,
-
-			CalculatedAt: convert.ToPointer(calculationTime),
-
-			CurrentUsagePeriod: delEvent.CurrentUsagePeriod,
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create cloud event: %w", err)
-	}
-
-	wmMessage, err := w.opts.Marshaler.MarshalEvent(event)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal cloud event: %w", err)
-	}
-
-	_ = w.highWatermarkCache.Add(delEvent.ID, highWatermarkCacheEntry{
-		HighWatermark: calculationTime,
-		IsDeleted:     true,
-	})
-
-	return []*message.Message{wmMessage}, nil
-}
-
-func (w *Worker) handleUpdateEvent(ctx context.Context, entitlementID NamespacedID, source string) ([]*message.Message, error) {
-	calculatedAt := w.getCalculationTime()
-
-	if entry, ok := w.highWatermarkCache.Get(entitlementID.ID); ok {
-		if entry.HighWatermark.After(calculatedAt) || entry.IsDeleted {
-			return nil, nil
-		}
-	}
-
-	wmMessage, err := w.createEntitlementUpdateSnapshotEvent(ctx, entitlementID, source, calculatedAt)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create entitlement update snapshot event: %w", err)
-	}
-
-	_ = w.highWatermarkCache.Add(entitlementID.ID, highWatermarkCacheEntry{
-		HighWatermark: calculatedAt,
-	})
-
-	return []*message.Message{wmMessage}, nil
-}
-
-func (w *Worker) createEntitlementUpdateSnapshotEvent(ctx context.Context, entitlementID NamespacedID, source string, calculatedAt time.Time) (*message.Message, error) {
-	entitlement, err := w.connectors.Entitlement.GetEntitlement(ctx, entitlementID.Namespace, entitlementID.ID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get entitlement: %w", err)
-	}
-
-	feature, err := w.connectors.Feature.GetFeature(ctx, entitlementID.Namespace, entitlement.FeatureID, productcatalog.IncludeArchivedFeatureTrue)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get feature: %w", err)
-	}
-
-	value, err := w.connectors.Entitlement.GetEntitlementValue(ctx, entitlementID.Namespace, entitlement.SubjectKey, entitlement.ID, calculatedAt)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get entitlement value: %w", err)
-	}
-
-	mappedValues, err := httpdriver.MapEntitlementValueToAPI(value)
-	if err != nil {
-		return nil, fmt.Errorf("failed to map entitlement value: %w", err)
-	}
-
-	subjectID := ""
-	if w.opts.SubjectIDResolver != nil {
-		subjectID, err = w.opts.SubjectIDResolver.GetSubjectIDByKey(ctx, entitlementID.Namespace, entitlementID.ID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get subject ID: %w", err)
-		}
-	}
-
-	event, err := spec.NewCloudEvent(
-		spec.EventSpec{
-			Source:  source,
-			Subject: spec.ComposeResourcePath(entitlementID.Namespace, spec.EntitySubjectKey, entitlement.SubjectKey),
-		},
-		snapshot.EntitlementBalanceSnapshotEvent{
-			Entitlement: *entitlement,
-			Namespace: models.NamespaceID{
-				ID: entitlementID.Namespace,
-			},
-			Subject: models.SubjectKeyAndID{
-				Key: entitlement.SubjectKey,
-				ID:  subjectID,
-			},
-			Feature:   *feature,
-			Operation: snapshot.BalanceOperationUpdate,
-
-			CalculatedAt: &calculatedAt,
-
-			Balance:            convert.ToPointer((snapshot.EntitlementValue)(mappedValues)),
-			CurrentUsagePeriod: entitlement.CurrentUsagePeriod,
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create cloud event: %w", err)
-	}
-
-	wmMessage, err := w.opts.Marshaler.MarshalEvent(event)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal cloud event: %w", err)
-	}
-
-	return wmMessage, nil
 }
 
 func (w *Worker) messageToLogFields(msg *message.Message) []any {
