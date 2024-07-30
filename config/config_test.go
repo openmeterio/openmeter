@@ -183,6 +183,14 @@ func TestComplete(t *testing.T) {
 					Partitions: 4,
 				},
 			},
+			IngestEvents: EventSubsystemConfiguration{
+				Enabled: true,
+				Topic:   "om_sys.ingest_events",
+				AutoProvision: AutoProvisionConfiguration{
+					Enabled:    true,
+					Partitions: 8,
+				},
+			},
 		},
 		BalanceWorker: BalanceWorkerConfiguration{
 			PoisionQueue: PoisionQueueConfiguration{

@@ -5,10 +5,16 @@ import (
 	"strings"
 )
 
+// Entitlements
 const (
 	EntityEntitlement = "entitlement"
 	EntitySubjectKey  = "subjectKey"
 	EntityGrant       = "grant"
+)
+
+// Ingestion/Events
+const (
+	EntityEvent = "event"
 )
 
 func ComposeResourcePath(namespace string, items ...string) string {

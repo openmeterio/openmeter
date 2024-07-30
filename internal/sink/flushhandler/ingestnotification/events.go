@@ -1,4 +1,4 @@
-package sink
+package ingestnotification
 
 import (
 	"errors"

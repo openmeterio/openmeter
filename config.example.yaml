@@ -43,6 +43,13 @@ events:
 #   autoProvision:
 #     enabled: true
 #     partitions: 4
+# ingestEvents:
+#   enabled: true
+#   topic: om_sys.ingest_events
+#   autoProvision:
+#     enabled: true
+#     partitions: 8
+
 # Consumer portal
 # portal:
 #   enabled: true

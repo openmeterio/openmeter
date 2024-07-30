@@ -16,6 +16,20 @@
       ]
     },
     {
+      "name": "Launch Sink-Worker",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/sink-worker",
+      "args": [
+        "--config",
+        "${workspaceFolder}/config.yaml",
+        // Let's prevent port collision with server
+        "--telemetry-address",
+        ":10001",
+      ]
+    },
+    {
       "name": "Launch Balance Worker",
       "type": "go",
       "request": "launch",

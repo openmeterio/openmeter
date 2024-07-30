@@ -11,6 +11,7 @@ import (
 type EventsConfiguration struct {
 	Enabled      bool
 	SystemEvents EventSubsystemConfiguration
+	IngestEvents EventSubsystemConfiguration
 }
 
 func (c EventsConfiguration) Validate() error {
@@ -116,4 +117,9 @@ func ConfigureEvents(v *viper.Viper) {
 	v.SetDefault("events.systemEvents.topic", "om_sys.api_events")
 	v.SetDefault("events.systemEvents.autoProvision.enabled", true)
 	v.SetDefault("events.systemEvents.autoProvision.partitions", 4)
+
+	v.SetDefault("events.ingestEvents.enabled", true)
+	v.SetDefault("events.ingestEvents.topic", "om_sys.ingest_events")
+	v.SetDefault("events.ingestEvents.autoProvision.enabled", true)
+	v.SetDefault("events.ingestEvents.autoProvision.partitions", 8)
 }
