@@ -45,7 +45,7 @@ func (g grantEvent) Validate() error {
 	return nil
 }
 
-type GrantCreatedEvent grantEvent
+type CreatedEvent grantEvent
 
 var grantCreatedEventSpec = spec.EventTypeSpec{
 	Subsystem: EventSubsystem,
@@ -53,15 +53,15 @@ var grantCreatedEventSpec = spec.EventTypeSpec{
 	Version:   "v1",
 }
 
-func (e GrantCreatedEvent) Spec() *spec.EventTypeSpec {
+func (e CreatedEvent) Spec() *spec.EventTypeSpec {
 	return &grantCreatedEventSpec
 }
 
-func (e GrantCreatedEvent) Validate() error {
+func (e CreatedEvent) Validate() error {
 	return grantEvent(e).Validate()
 }
 
-type GrantVoidedEvent grantEvent
+type VoidedEvent grantEvent
 
 var grantVoidedEventSpec = spec.EventTypeSpec{
 	Subsystem: EventSubsystem,
@@ -69,10 +69,10 @@ var grantVoidedEventSpec = spec.EventTypeSpec{
 	Version:   "v1",
 }
 
-func (e GrantVoidedEvent) Spec() *spec.EventTypeSpec {
+func (e VoidedEvent) Spec() *spec.EventTypeSpec {
 	return &grantVoidedEventSpec
 }
 
-func (e GrantVoidedEvent) Validate() error {
+func (e VoidedEvent) Validate() error {
 	return grantEvent(e).Validate()
 }

@@ -23,20 +23,20 @@ type OwnerMeter struct {
 }
 
 type OwnerConnector interface {
-	GetMeter(ctx context.Context, owner NamespacedGrantOwner) (*OwnerMeter, error)
-	GetStartOfMeasurement(ctx context.Context, owner NamespacedGrantOwner) (time.Time, error)
-	GetPeriodStartTimesBetween(ctx context.Context, owner NamespacedGrantOwner, from, to time.Time) ([]time.Time, error)
-	GetUsagePeriodStartAt(ctx context.Context, owner NamespacedGrantOwner, at time.Time) (time.Time, error)
-	GetOwnerSubjectKey(ctx context.Context, owner NamespacedGrantOwner) (string, error)
+	GetMeter(ctx context.Context, owner NamespacedOwner) (*OwnerMeter, error)
+	GetStartOfMeasurement(ctx context.Context, owner NamespacedOwner) (time.Time, error)
+	GetPeriodStartTimesBetween(ctx context.Context, owner NamespacedOwner, from, to time.Time) ([]time.Time, error)
+	GetUsagePeriodStartAt(ctx context.Context, owner NamespacedOwner, at time.Time) (time.Time, error)
+	GetOwnerSubjectKey(ctx context.Context, owner NamespacedOwner) (string, error)
 
 	// FIXME: this is a terrible hack
-	EndCurrentUsagePeriodTx(ctx context.Context, tx *entutils.TxDriver, owner NamespacedGrantOwner, params EndCurrentUsagePeriodParams) error
+	EndCurrentUsagePeriodTx(ctx context.Context, tx *entutils.TxDriver, owner NamespacedOwner, params EndCurrentUsagePeriodParams) error
 	// FIXME: this is a terrible hack
-	LockOwnerForTx(ctx context.Context, tx *entutils.TxDriver, owner NamespacedGrantOwner) error
+	LockOwnerForTx(ctx context.Context, tx *entutils.TxDriver, owner NamespacedOwner) error
 }
 
 type OwnerNotFoundError struct {
-	Owner          NamespacedGrantOwner
+	Owner          NamespacedOwner
 	AttemptedOwner string
 }
 

@@ -30,13 +30,13 @@ type grantHandler struct {
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	options          []httptransport.HandlerOption
 	grantConnector   credit.GrantConnector
-	grantRepo        grant.GrantRepo
+	grantRepo        grant.Repo
 }
 
 func NewGrantHandler(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	grantConnector credit.GrantConnector,
-	grantRepo grant.GrantRepo,
+	grantRepo grant.Repo,
 	options ...httptransport.HandlerOption,
 ) GrantHandler {
 	return &grantHandler{
@@ -49,7 +49,7 @@ func NewGrantHandler(
 
 type (
 	ListGrantsHandlerRequest struct {
-		params grant.ListGrantsParams
+		params grant.ListParams
 	}
 	ListGrantsHandlerResponse = commonhttp.Union[[]api.EntitlementGrant, pagination.PagedResponse[api.EntitlementGrant]]
 	ListGrantsHandlerParams   struct {
@@ -68,13 +68,13 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 
 			// validate OrderBy
 			if params.Params.OrderBy != nil {
-				if !slices.Contains(grant.GrantOrderBy("").StrValues(), strcase.CamelToSnake(string(*params.Params.OrderBy))) {
+				if !slices.Contains(grant.OrderBy("").StrValues(), strcase.CamelToSnake(string(*params.Params.OrderBy))) {
 					return ListGrantsHandlerRequest{}, commonhttp.NewHTTPError(http.StatusBadRequest, errors.New("invalid order by"))
 				}
 			}
 
 			return ListGrantsHandlerRequest{
-				params: grant.ListGrantsParams{
+				params: grant.ListParams{
 					Namespace:      ns,
 					IncludeDeleted: defaultx.WithDefault(params.Params.IncludeDeleted, false),
 					Page: pagination.Page{
@@ -83,8 +83,8 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 					},
 					Limit:  defaultx.WithDefault(params.Params.Limit, commonhttp.DefaultPageSize),
 					Offset: defaultx.WithDefault(params.Params.Offset, 0),
-					OrderBy: grant.GrantOrderBy(
-						strcase.CamelToSnake(defaultx.WithDefault((*string)(params.Params.OrderBy), string(grant.GrantOrderByEffectiveAt))),
+					OrderBy: grant.OrderBy(
+						strcase.CamelToSnake(defaultx.WithDefault((*string)(params.Params.OrderBy), string(grant.OrderByEffectiveAt))),
 					),
 					Order:            commonhttp.GetSortOrder(api.ListGrantsParamsOrderSortOrderASC, params.Params.Order),
 					SubjectKeys:      convert.DerefHeaderPtr[string](params.Params.Subject),

@@ -31,7 +31,7 @@ type BalanceSnapshot struct {
 	// OwnerID holds the value of the "owner_id" field.
 	OwnerID string `json:"owner_id,omitempty"`
 	// GrantBalances holds the value of the "grant_balances" field.
-	GrantBalances balance.GrantBalanceMap `json:"grant_balances,omitempty"`
+	GrantBalances balance.Map `json:"grant_balances,omitempty"`
 	// Balance holds the value of the "balance" field.
 	Balance float64 `json:"balance,omitempty"`
 	// Overage holds the value of the "overage" field.

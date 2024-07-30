@@ -9,15 +9,15 @@ import (
 )
 
 type (
-	GrantOwner           string
-	NamespacedGrantOwner struct {
+	Owner           string
+	NamespacedOwner struct {
 		Namespace string
-		ID        GrantOwner
+		ID        Owner
 	}
 )
 
 // Casts the NamespacedGrantOwner to a NamespacedID. Owner might not be a valid ID.
-func (n NamespacedGrantOwner) NamespacedID() models.NamespacedID {
+func (n NamespacedOwner) NamespacedID() models.NamespacedID {
 	return models.NamespacedID{
 		Namespace: n.Namespace,
 		ID:        string(n.ID),
@@ -33,7 +33,7 @@ type Grant struct {
 	ID string `json:"id,omitempty"`
 
 	// Generic Owner reference
-	OwnerID GrantOwner `json:"owner"`
+	OwnerID Owner `json:"owner"`
 
 	// Amount The amount to grant. Can be positive or negative number.
 	Amount float64 `json:"amount"`
@@ -115,14 +115,9 @@ func (g Grant) GetNamespacedID() models.NamespacedID {
 	}
 }
 
-func (g Grant) GetNamespacedOwner() NamespacedGrantOwner {
-	return NamespacedGrantOwner{
+func (g Grant) GetNamespacedOwner() NamespacedOwner {
+	return NamespacedOwner{
 		Namespace: g.Namespace,
 		ID:        g.OwnerID,
 	}
 }
-
-// // Render implements the chi renderer interface.
-// func (c Grant) Render(w http.ResponseWriter, r *http.Request) error {
-// 	return nil
-// }

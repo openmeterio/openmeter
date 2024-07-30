@@ -16,7 +16,7 @@ import (
 )
 
 type GrantConnector interface {
-	CreateGrant(ctx context.Context, owner grant.NamespacedGrantOwner, grant CreateGrantInput) (*grant.Grant, error)
+	CreateGrant(ctx context.Context, owner grant.NamespacedOwner, grant CreateGrantInput) (*grant.Grant, error)
 	VoidGrant(ctx context.Context, grantID models.NamespacedID) error
 }
 
@@ -33,7 +33,7 @@ type CreateGrantInput struct {
 	Recurrence       *recurrence.Recurrence
 }
 
-func (m *connector) CreateGrant(ctx context.Context, owner grant.NamespacedGrantOwner, input CreateGrantInput) (*grant.Grant, error) {
+func (m *connector) CreateGrant(ctx context.Context, owner grant.NamespacedOwner, input CreateGrantInput) (*grant.Grant, error) {
 	doInTx := func(ctx context.Context, tx *entutils.TxDriver) (*grant.Grant, error) {
 		// All metering information is stored in windowSize chunks,
 		// so we cannot do accurate calculations unless we follow that same windowing.
@@ -59,7 +59,7 @@ func (m *connector) CreateGrant(ctx context.Context, owner grant.NamespacedGrant
 		if err != nil {
 			return nil, err
 		}
-		g, err := m.grantRepo.WithTx(ctx, tx).CreateGrant(ctx, grant.GrantRepoCreateGrantInput{
+		g, err := m.grantRepo.WithTx(ctx, tx).CreateGrant(ctx, grant.RepoCreateInput{
 			OwnerID:          owner.ID,
 			Namespace:        owner.Namespace,
 			Amount:           input.Amount,
@@ -93,7 +93,7 @@ func (m *connector) CreateGrant(ctx context.Context, owner grant.NamespacedGrant
 				Source:  spec.ComposeResourcePath(owner.Namespace, spec.EntityEntitlement, string(owner.ID), spec.EntityGrant, g.ID),
 				Subject: spec.ComposeResourcePath(owner.Namespace, spec.EntitySubjectKey, subjectKey),
 			},
-			grant.GrantCreatedEvent{
+			grant.CreatedEvent{
 				Grant:     *g,
 				Namespace: eventmodels.NamespaceID{ID: owner.Namespace},
 				Subject:   eventmodels.SubjectKeyAndID{Key: subjectKey},
@@ -129,7 +129,7 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) 
 		return &models.GenericUserError{Message: "grant already voided"}
 	}
 
-	owner := grant.NamespacedGrantOwner{Namespace: grantID.Namespace, ID: g.OwnerID}
+	owner := grant.NamespacedOwner{Namespace: grantID.Namespace, ID: g.OwnerID}
 
 	_, err = entutils.StartAndRunTx(ctx, m.grantRepo, func(ctx context.Context, tx *entutils.TxDriver) (*interface{}, error) {
 		err := m.ownerConnector.LockOwnerForTx(ctx, tx, owner)
@@ -160,7 +160,7 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) 
 				Source:  spec.ComposeResourcePath(grantID.Namespace, spec.EntityEntitlement, string(owner.ID), spec.EntityGrant, grantID.ID),
 				Subject: spec.ComposeResourcePath(grantID.Namespace, spec.EntitySubjectKey, subjectKey),
 			},
-			grant.GrantVoidedEvent{
+			grant.VoidedEvent{
 				Grant:     g,
 				Namespace: eventmodels.NamespaceID{ID: owner.Namespace},
 				Subject:   eventmodels.SubjectKeyAndID{Key: subjectKey},

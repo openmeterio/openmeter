@@ -12,40 +12,40 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-type GrantOrderBy string
+type OrderBy string
 
 const (
-	GrantOrderByCreatedAt   GrantOrderBy = "created_at"
-	GrantOrderByUpdatedAt   GrantOrderBy = "updated_at"
-	GrantOrderByExpiresAt   GrantOrderBy = "expires_at"
-	GrantOrderByEffectiveAt GrantOrderBy = "effective_at"
-	GrantOrderByOwner       GrantOrderBy = "owner_id" // check
+	OrderByCreatedAt   OrderBy = "created_at"
+	OrderByUpdatedAt   OrderBy = "updated_at"
+	OrderByExpiresAt   OrderBy = "expires_at"
+	OrderByEffectiveAt OrderBy = "effective_at"
+	OrderByOwner       OrderBy = "owner_id" // check
 )
 
-func (f GrantOrderBy) Values() []GrantOrderBy {
-	return []GrantOrderBy{
-		GrantOrderByCreatedAt,
-		GrantOrderByUpdatedAt,
-		GrantOrderByExpiresAt,
-		GrantOrderByEffectiveAt,
-		GrantOrderByOwner,
+func (f OrderBy) Values() []OrderBy {
+	return []OrderBy{
+		OrderByCreatedAt,
+		OrderByUpdatedAt,
+		OrderByExpiresAt,
+		OrderByEffectiveAt,
+		OrderByOwner,
 	}
 }
 
-func (f GrantOrderBy) StrValues() []string {
-	return slicesx.Map(f.Values(), func(v GrantOrderBy) string {
+func (f OrderBy) StrValues() []string {
+	return slicesx.Map(f.Values(), func(v OrderBy) string {
 		return string(v)
 	})
 }
 
-type ListGrantsParams struct {
+type ListParams struct {
 	Namespace        string
-	OwnerID          *GrantOwner
+	OwnerID          *Owner
 	IncludeDeleted   bool
 	SubjectKeys      []string
 	FeatureIdsOrKeys []string
 	Page             pagination.Page
-	OrderBy          GrantOrderBy
+	OrderBy          OrderBy
 	Order            sortx.Order
 	// will be deprecated
 	Limit int
@@ -53,8 +53,8 @@ type ListGrantsParams struct {
 	Offset int
 }
 
-type GrantRepoCreateGrantInput struct {
-	OwnerID          GrantOwner
+type RepoCreateInput struct {
+	OwnerID          Owner
 	Namespace        string
 	Amount           float64
 	Priority         uint8
@@ -67,15 +67,15 @@ type GrantRepoCreateGrantInput struct {
 	Recurrence       *recurrence.Recurrence
 }
 
-type GrantRepo interface {
-	CreateGrant(ctx context.Context, grant GrantRepoCreateGrantInput) (*Grant, error)
+type Repo interface {
+	CreateGrant(ctx context.Context, grant RepoCreateInput) (*Grant, error)
 	VoidGrant(ctx context.Context, grantID models.NamespacedID, at time.Time) error
 	// For bw compatibility, if pagination is not provided we return a simple array
-	ListGrants(ctx context.Context, params ListGrantsParams) (pagination.PagedResponse[Grant], error)
+	ListGrants(ctx context.Context, params ListParams) (pagination.PagedResponse[Grant], error)
 	// ListActiveGrantsBetween returns all grants that are active at any point between the given time range.
-	ListActiveGrantsBetween(ctx context.Context, owner NamespacedGrantOwner, from, to time.Time) ([]Grant, error)
+	ListActiveGrantsBetween(ctx context.Context, owner NamespacedOwner, from, to time.Time) ([]Grant, error)
 	GetGrant(ctx context.Context, grantID models.NamespacedID) (Grant, error)
 
 	entutils.TxCreator
-	entutils.TxUser[GrantRepo]
+	entutils.TxUser[Repo]
 }

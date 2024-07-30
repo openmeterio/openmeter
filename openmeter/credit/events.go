@@ -14,6 +14,6 @@ const (
 )
 
 type (
-	GrantCreatedEvent = grant.GrantCreatedEvent
-	GrantVoidedEvent  = grant.GrantVoidedEvent
+	GrantCreatedEvent = grant.CreatedEvent
+	GrantVoidedEvent  = grant.VoidedEvent
 )

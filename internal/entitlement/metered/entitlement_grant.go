@@ -21,9 +21,9 @@ func (e *connector) CreateGrant(ctx context.Context, namespace string, subjectKe
 	if err != nil {
 		return EntitlementGrant{}, err
 	}
-	g, err := e.grantConnector.CreateGrant(ctx, grant.NamespacedGrantOwner{
+	g, err := e.grantConnector.CreateGrant(ctx, grant.NamespacedOwner{
 		Namespace: ent.Namespace,
-		ID:        grant.GrantOwner(ent.ID),
+		ID:        grant.Owner(ent.ID),
 	}, credit.CreateGrantInput{
 		Amount:           inputGrant.Amount,
 		Priority:         inputGrant.Priority,
@@ -61,11 +61,11 @@ func (e *connector) ListEntitlementGrants(ctx context.Context, namespace string,
 	}
 
 	// check that we own the grant
-	grants, err := e.grantRepo.ListGrants(ctx, grant.ListGrantsParams{
+	grants, err := e.grantRepo.ListGrants(ctx, grant.ListParams{
 		Namespace:      ent.Namespace,
-		OwnerID:        convert.ToPointer(grant.GrantOwner(ent.ID)),
+		OwnerID:        convert.ToPointer(grant.Owner(ent.ID)),
 		IncludeDeleted: false,
-		OrderBy:        grant.GrantOrderByCreatedAt,
+		OrderBy:        grant.OrderByCreatedAt,
 	})
 	if err != nil {
 		return nil, err

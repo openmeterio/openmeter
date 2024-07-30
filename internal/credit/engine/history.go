@@ -49,7 +49,7 @@ type GrantUsage struct {
 // It is not necessarily the largest such segment.
 type GrantBurnDownHistorySegment struct {
 	recurrence.Period
-	BalanceAtStart     balance.GrantBalanceMap
+	BalanceAtStart     balance.Map
 	TerminationReasons SegmentTerminationReason // Reason why the segment was terminated (could be multiple taking effect at same time)
 	TotalUsage         float64                  // Total usage of the feature in the Period
 	OverageAtStart     float64                  // Usage beyond what could be burnt down from the grants in the previous segment (if any)
@@ -58,7 +58,7 @@ type GrantBurnDownHistorySegment struct {
 }
 
 // Returns GrantBalanceMap at the end of the segment
-func (s GrantBurnDownHistorySegment) ApplyUsage() balance.GrantBalanceMap {
+func (s GrantBurnDownHistorySegment) ApplyUsage() balance.Map {
 	balance := s.BalanceAtStart.Copy()
 	for _, u := range s.GrantUsages {
 		balance.Burn(u.GrantID, u.Usage)
@@ -111,8 +111,8 @@ func (g *GrantBurnDownHistory) Overage() float64 {
 }
 
 // Creates a GrantBalanceSnapshot from the starting state of the segment
-func (s *GrantBurnDownHistorySegment) ToSnapshot() balance.GrantBalanceSnapshot {
-	return balance.GrantBalanceSnapshot{
+func (s *GrantBurnDownHistorySegment) ToSnapshot() balance.Snapshot {
+	return balance.Snapshot{
 		Overage:  s.OverageAtStart,
 		Balances: s.BalanceAtStart,
 		At:       s.From,

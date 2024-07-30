@@ -30,8 +30,8 @@ type dependencies struct {
 	featureRepo         productcatalog.FeatureRepo
 	entitlementRepo     entitlement.EntitlementRepo
 	usageResetRepo      meteredentitlement.UsageResetRepo
-	grantRepo           grant.GrantRepo
-	balanceSnapshotRepo balance.BalanceSnapshotRepo
+	grantRepo           grant.Repo
+	balanceSnapshotRepo balance.SnapshotRepo
 	balanceConnector    credit.BalanceConnector
 	streamingConnector  *streaming_testutils.MockStreamingConnector
 }

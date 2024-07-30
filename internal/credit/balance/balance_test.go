@@ -19,7 +19,7 @@ func TestGrantBalanceMap(t *testing.T) {
 	t.Run("ExactlyForGrants", func(t *testing.T) {
 		makeGrant("1")
 
-		gbm := balance.GrantBalanceMap{
+		gbm := balance.Map{
 			"1": 100.0,
 			"2": 100.0,
 			"3": 100.0,

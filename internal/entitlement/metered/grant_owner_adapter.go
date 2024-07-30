@@ -39,7 +39,7 @@ func NewEntitlementGrantOwnerAdapter(
 	}
 }
 
-func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner grant.NamespacedGrantOwner) (*grant.OwnerMeter, error) {
+func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner grant.NamespacedOwner) (*grant.OwnerMeter, error) {
 	// get feature of entitlement
 	entitlement, err := getRepoMaybeInTx(ctx, e.entitlementRepo, e.entitlementRepo).GetEntitlement(ctx, owner.NamespacedID())
 	if err != nil {
@@ -83,7 +83,7 @@ func (e *entitlementGrantOwner) GetMeter(ctx context.Context, owner grant.Namesp
 	}, nil
 }
 
-func (e *entitlementGrantOwner) GetStartOfMeasurement(ctx context.Context, owner grant.NamespacedGrantOwner) (time.Time, error) {
+func (e *entitlementGrantOwner) GetStartOfMeasurement(ctx context.Context, owner grant.NamespacedOwner) (time.Time, error) {
 	entitlement, err := getRepoMaybeInTx(ctx, e.entitlementRepo, e.entitlementRepo).GetEntitlement(ctx, owner.NamespacedID())
 	if err != nil {
 		return time.Time{}, &grant.OwnerNotFoundError{
@@ -100,7 +100,7 @@ func (e *entitlementGrantOwner) GetStartOfMeasurement(ctx context.Context, owner
 	return metered.MeasureUsageFrom, nil
 }
 
-func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner grant.NamespacedGrantOwner, at time.Time) (time.Time, error) {
+func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner grant.NamespacedOwner, at time.Time) (time.Time, error) {
 	// If this is the first period then return start of measurement, otherwise calculate based on anchor.
 	// To know if this is the first period check if usage has been reset.
 
@@ -115,7 +115,7 @@ func (e *entitlementGrantOwner) GetUsagePeriodStartAt(ctx context.Context, owner
 	return lastUsageReset.ResetTime, nil
 }
 
-func (e *entitlementGrantOwner) GetOwnerSubjectKey(ctx context.Context, owner grant.NamespacedGrantOwner) (string, error) {
+func (e *entitlementGrantOwner) GetOwnerSubjectKey(ctx context.Context, owner grant.NamespacedOwner) (string, error) {
 	entitlement, err := getRepoMaybeInTx(ctx, e.entitlementRepo, e.entitlementRepo).GetEntitlement(ctx, owner.NamespacedID())
 	if err != nil {
 		return "", &grant.OwnerNotFoundError{
@@ -126,7 +126,7 @@ func (e *entitlementGrantOwner) GetOwnerSubjectKey(ctx context.Context, owner gr
 	return entitlement.SubjectKey, nil
 }
 
-func (e *entitlementGrantOwner) GetPeriodStartTimesBetween(ctx context.Context, owner grant.NamespacedGrantOwner, from, to time.Time) ([]time.Time, error) {
+func (e *entitlementGrantOwner) GetPeriodStartTimesBetween(ctx context.Context, owner grant.NamespacedOwner, from, to time.Time) ([]time.Time, error) {
 	times := []time.Time{}
 	usageResets, err := getRepoMaybeInTx(ctx, e.usageResetRepo, e.usageResetRepo).GetBetween(ctx, owner.NamespacedID(), from, to)
 	if err != nil {
@@ -139,7 +139,7 @@ func (e *entitlementGrantOwner) GetPeriodStartTimesBetween(ctx context.Context, 
 }
 
 // FIXME: this is a terrible hack, write generic Atomicity stuff for connectors...
-func (e *entitlementGrantOwner) EndCurrentUsagePeriodTx(ctx context.Context, tx *entutils.TxDriver, owner grant.NamespacedGrantOwner, params grant.EndCurrentUsagePeriodParams) error {
+func (e *entitlementGrantOwner) EndCurrentUsagePeriodTx(ctx context.Context, tx *entutils.TxDriver, owner grant.NamespacedOwner, params grant.EndCurrentUsagePeriodParams) error {
 	_, err := entutils.RunInTransaction(ctx, tx, func(ctx context.Context, tx *entutils.TxDriver) (*interface{}, error) {
 		// Check if time is after current start time. If so then we can end the period
 		currentStartAt, err := e.GetUsagePeriodStartAt(ctx, owner, params.At)
@@ -166,7 +166,7 @@ func (e *entitlementGrantOwner) EndCurrentUsagePeriodTx(ctx context.Context, tx 
 	return err
 }
 
-func (e *entitlementGrantOwner) updateEntitlementUsagePeriod(ctx context.Context, tx *entutils.TxDriver, owner grant.NamespacedGrantOwner, params grant.EndCurrentUsagePeriodParams) error {
+func (e *entitlementGrantOwner) updateEntitlementUsagePeriod(ctx context.Context, tx *entutils.TxDriver, owner grant.NamespacedOwner, params grant.EndCurrentUsagePeriodParams) error {
 	er := e.entitlementRepo.WithTx(ctx, tx)
 
 	entitlementEntity, err := er.GetEntitlement(ctx, owner.NamespacedID())
@@ -202,7 +202,7 @@ func (e *entitlementGrantOwner) updateEntitlementUsagePeriod(ctx context.Context
 }
 
 // FIXME: this is a terrible hack using select for udpate...
-func (e *entitlementGrantOwner) LockOwnerForTx(ctx context.Context, tx *entutils.TxDriver, owner grant.NamespacedGrantOwner) error {
+func (e *entitlementGrantOwner) LockOwnerForTx(ctx context.Context, tx *entutils.TxDriver, owner grant.NamespacedOwner) error {
 	return e.entitlementRepo.WithTx(ctx, tx).LockEntitlementForTx(ctx, owner.NamespacedID())
 }
 

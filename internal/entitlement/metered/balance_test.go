@@ -176,8 +176,8 @@ func TestGetEntitlementBalance(t *testing.T) {
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 100, queryTime.Add(time.Minute))
 
 				// issue grants
-				_, err = deps.grantRepo.CreateGrant(ctx, grant.GrantRepoCreateGrantInput{
-					OwnerID:     grant.GrantOwner(entitlement.ID),
+				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
+					OwnerID:     grant.Owner(entitlement.ID),
 					Namespace:   namespace,
 					Amount:      1000,
 					Priority:    1,
@@ -186,8 +186,8 @@ func TestGetEntitlementBalance(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				_, err = deps.grantRepo.CreateGrant(ctx, grant.GrantRepoCreateGrantInput{
-					OwnerID:     grant.GrantOwner(entitlement.ID),
+				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
+					OwnerID:     grant.Owner(entitlement.ID),
 					Namespace:   namespace,
 					Amount:      1000,
 					Priority:    1,
@@ -223,12 +223,12 @@ func TestGetEntitlementBalance(t *testing.T) {
 				queryTime := startTime.Add(3 * time.Hour) // longer than grace period for saving snapshots
 
 				// issue grants
-				owner := grant.NamespacedGrantOwner{
+				owner := grant.NamespacedOwner{
 					Namespace: namespace,
-					ID:        grant.GrantOwner(entitlement.ID),
+					ID:        grant.Owner(entitlement.ID),
 				}
 
-				g1, err := deps.grantRepo.CreateGrant(ctx, grant.GrantRepoCreateGrantInput{
+				g1, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
 					OwnerID:     owner.ID,
 					Namespace:   namespace,
 					Amount:      1000,
@@ -238,7 +238,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				g2, err := deps.grantRepo.CreateGrant(ctx, grant.GrantRepoCreateGrantInput{
+				g2, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
 					OwnerID:     owner.ID,
 					Namespace:   namespace,
 					Amount:      1000,
@@ -255,9 +255,9 @@ func TestGetEntitlementBalance(t *testing.T) {
 				// add a balance snapshot
 				err = deps.balanceSnapshotRepo.Save(
 					ctx,
-					owner, []balance.GrantBalanceSnapshot{
+					owner, []balance.Snapshot{
 						{
-							Balances: balance.GrantBalanceMap{
+							Balances: balance.Map{
 								g1.ID: 750,
 							},
 							Overage: 0,
@@ -284,7 +284,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				// check snapshots
 				assert.NotEqual(t, snap1.At, snap2.At)
 				assert.Equal(t, 0.0, snap2.Overage)
-				assert.Equal(t, balance.GrantBalanceMap{
+				assert.Equal(t, balance.Map{
 					g1.ID: 650,  // the grant that existed so far
 					g2.ID: 1000, // the grant that was added at this instant
 				}, snap2.Balances)
@@ -310,12 +310,12 @@ func TestGetEntitlementBalance(t *testing.T) {
 				queryTime := startTime.Add(3 * time.Hour) // longer than grace period for saving snapshots
 
 				// issue grants
-				owner := grant.NamespacedGrantOwner{
+				owner := grant.NamespacedOwner{
 					Namespace: namespace,
-					ID:        grant.GrantOwner(entitlement.ID),
+					ID:        grant.Owner(entitlement.ID),
 				}
 
-				g1, err := deps.grantRepo.CreateGrant(ctx, grant.GrantRepoCreateGrantInput{
+				g1, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
 					OwnerID:     owner.ID,
 					Namespace:   namespace,
 					Amount:      1000,
@@ -325,7 +325,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				})
 				assert.NoError(t, err)
 
-				g2, err := deps.grantRepo.CreateGrant(ctx, grant.GrantRepoCreateGrantInput{
+				g2, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
 					OwnerID:     owner.ID,
 					Namespace:   namespace,
 					Amount:      1000,
@@ -342,9 +342,9 @@ func TestGetEntitlementBalance(t *testing.T) {
 				// add a balance snapshot
 				err = deps.balanceSnapshotRepo.Save(
 					ctx,
-					owner, []balance.GrantBalanceSnapshot{
+					owner, []balance.Snapshot{
 						{
-							Balances: balance.GrantBalanceMap{
+							Balances: balance.Map{
 								g1.ID: 750,
 							},
 							Overage: 0,
@@ -371,7 +371,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				// check snapshots
 				assert.NotEqual(t, snap1.At, snap2.At)
 				assert.Equal(t, 0.0, snap2.Overage)
-				assert.Equal(t, balance.GrantBalanceMap{
+				assert.Equal(t, balance.Map{
 					g1.ID: 650,  // the grant that existed so far
 					g2.ID: 1000, // the grant that was added at this instant
 				}, snap2.Balances)
@@ -473,8 +473,8 @@ func TestGetEntitlementHistory(t *testing.T) {
 
 				// issue grants
 				// grant at start
-				_, err = deps.grantRepo.CreateGrant(ctx, grant.GrantRepoCreateGrantInput{
-					OwnerID:     grant.GrantOwner(ent.ID),
+				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
+					OwnerID:     grant.Owner(ent.ID),
 					Namespace:   namespace,
 					Amount:      10000,
 					Priority:    1,
@@ -484,8 +484,8 @@ func TestGetEntitlementHistory(t *testing.T) {
 				assert.NoError(t, err)
 
 				// grant falling on 3h window
-				_, err = deps.grantRepo.CreateGrant(ctx, grant.GrantRepoCreateGrantInput{
-					OwnerID:     grant.GrantOwner(ent.ID),
+				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
+					OwnerID:     grant.Owner(ent.ID),
 					Namespace:   namespace,
 					Amount:      10000,
 					Priority:    1,
@@ -495,8 +495,8 @@ func TestGetEntitlementHistory(t *testing.T) {
 				assert.NoError(t, err)
 
 				// grant between windows
-				_, err = deps.grantRepo.CreateGrant(ctx, grant.GrantRepoCreateGrantInput{
-					OwnerID:     grant.GrantOwner(ent.ID),
+				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
+					OwnerID:     grant.Owner(ent.ID),
 					Namespace:   namespace,
 					Amount:      10000,
 					Priority:    1,
@@ -561,8 +561,8 @@ func TestGetEntitlementHistory(t *testing.T) {
 				assert.NoError(t, err)
 
 				// grant at start
-				_, err = deps.grantRepo.CreateGrant(ctx, grant.GrantRepoCreateGrantInput{
-					OwnerID:     grant.GrantOwner(ent.ID),
+				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
+					OwnerID:     grant.Owner(ent.ID),
 					Namespace:   namespace,
 					Amount:      10000,
 					Priority:    1,
@@ -595,8 +595,8 @@ func TestGetEntitlementHistory(t *testing.T) {
 				deps.streamingConnector.AddSimpleEvent(meterSlug, 100, queryTime.Add(-time.Second))
 
 				// grant after the reset
-				_, err = deps.grantRepo.CreateGrant(ctx, grant.GrantRepoCreateGrantInput{
-					OwnerID:     grant.GrantOwner(ent.ID),
+				_, err = deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
+					OwnerID:     grant.Owner(ent.ID),
 					Namespace:   namespace,
 					Amount:      10000,
 					Priority:    1,

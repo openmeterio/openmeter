@@ -28,8 +28,8 @@ import (
 type Dependencies struct {
 	DBClient *db.Client
 
-	GrantRepo           grant.GrantRepo
-	BalanceSnapshotRepo balance.BalanceSnapshotRepo
+	GrantRepo           grant.Repo
+	BalanceSnapshotRepo balance.SnapshotRepo
 	GrantConnector      credit.GrantConnector
 
 	EntitlementRepo entitlement.EntitlementRepo

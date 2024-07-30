@@ -19,9 +19,9 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 	return entutils.StartAndRunTx(ctx, e.entitlementRepo, func(ctx context.Context, tx *entutils.TxDriver) (*EntitlementBalance, error) {
 		txCtx := entutils.NewTxContext(ctx, tx)
 
-		owner := grant.NamespacedGrantOwner{
+		owner := grant.NamespacedOwner{
 			Namespace: entitlementID.Namespace,
-			ID:        grant.GrantOwner(entitlementID.ID),
+			ID:        grant.Owner(entitlementID.ID),
 		}
 
 		ent, err := e.entitlementRepo.WithTx(txCtx, tx).GetEntitlement(txCtx, entitlementID)

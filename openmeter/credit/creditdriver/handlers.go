@@ -17,7 +17,7 @@ type (
 func NewGrantHandler(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
 	grantConnector credit.GrantConnector,
-	grantRepo grant.GrantRepo,
+	grantRepo grant.Repo,
 	options ...httptransport.HandlerOption,
 ) GrantHandler {
 	return creditdriver.NewGrantHandler(namespaceDecoder, grantConnector, grantRepo, options...)

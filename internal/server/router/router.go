@@ -63,7 +63,7 @@ type Config struct {
 	EntitlementConnector        entitlement.Connector
 	EntitlementBalanceConnector meteredentitlement.Connector
 	GrantConnector              credit.GrantConnector
-	GrantRepo                   grant.GrantRepo
+	GrantRepo                   grant.Repo
 
 	// FIXME: implement generic module management, loading, etc...
 	EntitlementsEnabled bool

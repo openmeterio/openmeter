@@ -59,7 +59,7 @@ type connector struct {
 	ownerConnector     grant.OwnerConnector
 	balanceConnector   credit.BalanceConnector
 	grantConnector     credit.GrantConnector
-	grantRepo          grant.GrantRepo
+	grantRepo          grant.Repo
 	entitlementRepo    entitlement.EntitlementRepo
 
 	granularity time.Duration
@@ -71,7 +71,7 @@ func NewMeteredEntitlementConnector(
 	ownerConnector grant.OwnerConnector,
 	balanceConnector credit.BalanceConnector,
 	grantConnector credit.GrantConnector,
-	grantRepo grant.GrantRepo,
+	grantRepo grant.Repo,
 	entitlementRepo entitlement.EntitlementRepo,
 	publisher publisher.TopicPublisher,
 ) Connector {
@@ -191,9 +191,9 @@ func (c *connector) AfterCreate(ctx context.Context, end *entitlement.Entitlemen
 
 		effectiveAt := metered.CurrentUsagePeriod.From
 		amountToIssue := metered.IssueAfterReset.Amount
-		_, err := c.grantConnector.CreateGrant(ctx, grant.NamespacedGrantOwner{
+		_, err := c.grantConnector.CreateGrant(ctx, grant.NamespacedOwner{
 			Namespace: metered.Namespace,
-			ID:        grant.GrantOwner(metered.ID),
+			ID:        grant.Owner(metered.ID),
 		}, credit.CreateGrantInput{
 			Amount:      amountToIssue,
 			Priority:    defaultx.WithDefault(metered.IssueAfterReset.Priority, DefaultIssueAfterResetPriority),

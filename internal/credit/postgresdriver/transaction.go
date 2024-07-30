@@ -24,12 +24,12 @@ func (e *grantDBADapter) Tx(ctx context.Context) (context.Context, *entutils.TxD
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
-func (e *grantDBADapter) WithTx(ctx context.Context, tx *entutils.TxDriver) grant.GrantRepo {
+func (e *grantDBADapter) WithTx(ctx context.Context, tx *entutils.TxDriver) grant.Repo {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	return NewPostgresGrantRepo(txClient.Client())
 }
 
-func (e *balanceSnapshotAdapter) Tx(ctx context.Context) (context.Context, *entutils.TxDriver, error) {
+func (e *balanceSnapshotRepo) Tx(ctx context.Context) (context.Context, *entutils.TxDriver, error) {
 	txCtx, rawConfig, eDriver, err := e.db.HijackTx(ctx, &sql.TxOptions{
 		ReadOnly: false,
 	})
@@ -39,7 +39,7 @@ func (e *balanceSnapshotAdapter) Tx(ctx context.Context) (context.Context, *entu
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
-func (e *balanceSnapshotAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) balance.BalanceSnapshotRepo {
+func (e *balanceSnapshotRepo) WithTx(ctx context.Context, tx *entutils.TxDriver) balance.SnapshotRepo {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	return NewPostgresBalanceSnapshotRepo(txClient.Client())
 }

@@ -14,24 +14,24 @@ import (
 )
 
 // naive implementation of the BalanceSnapshotConnector
-type balanceSnapshotAdapter struct {
+type balanceSnapshotRepo struct {
 	db *db.Client
 }
 
-func NewPostgresBalanceSnapshotRepo(db *db.Client) balance.BalanceSnapshotRepo {
-	return &balanceSnapshotAdapter{
+func NewPostgresBalanceSnapshotRepo(db *db.Client) balance.SnapshotRepo {
+	return &balanceSnapshotRepo{
 		db: db,
 	}
 }
 
-func (b *balanceSnapshotAdapter) InvalidateAfter(ctx context.Context, owner grant.NamespacedGrantOwner, at time.Time) error {
+func (b *balanceSnapshotRepo) InvalidateAfter(ctx context.Context, owner grant.NamespacedOwner, at time.Time) error {
 	return b.db.BalanceSnapshot.Update().
 		Where(db_balancesnapshot.OwnerID(string(owner.ID)), db_balancesnapshot.Namespace(owner.Namespace), db_balancesnapshot.AtGT(at)).
 		SetDeletedAt(clock.Now()).
 		Exec(ctx)
 }
 
-func (b *balanceSnapshotAdapter) GetLatestValidAt(ctx context.Context, owner grant.NamespacedGrantOwner, at time.Time) (balance.GrantBalanceSnapshot, error) {
+func (b *balanceSnapshotRepo) GetLatestValidAt(ctx context.Context, owner grant.NamespacedOwner, at time.Time) (balance.Snapshot, error) {
 	res, err := b.db.BalanceSnapshot.Query().
 		Where(
 			db_balancesnapshot.OwnerID(string(owner.ID)),
@@ -44,15 +44,15 @@ func (b *balanceSnapshotAdapter) GetLatestValidAt(ctx context.Context, owner gra
 		First(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return balance.GrantBalanceSnapshot{}, &balance.GrantBalanceNoSavedBalanceForOwnerError{Owner: owner, Time: at}
+			return balance.Snapshot{}, &balance.NoSavedBalanceForOwnerError{Owner: owner, Time: at}
 		}
-		return balance.GrantBalanceSnapshot{}, err
+		return balance.Snapshot{}, err
 	}
 
 	return mapBalanceSnapshotEntity(res), nil
 }
 
-func (b *balanceSnapshotAdapter) Save(ctx context.Context, owner grant.NamespacedGrantOwner, balances []balance.GrantBalanceSnapshot) error {
+func (b *balanceSnapshotRepo) Save(ctx context.Context, owner grant.NamespacedOwner, balances []balance.Snapshot) error {
 	commands := make([]*db.BalanceSnapshotCreate, 0, len(balances))
 	for _, balance := range balances {
 		command := b.db.BalanceSnapshot.Create().
@@ -68,8 +68,8 @@ func (b *balanceSnapshotAdapter) Save(ctx context.Context, owner grant.Namespace
 	return err
 }
 
-func mapBalanceSnapshotEntity(entity *db.BalanceSnapshot) balance.GrantBalanceSnapshot {
-	return balance.GrantBalanceSnapshot{
+func mapBalanceSnapshotEntity(entity *db.BalanceSnapshot) balance.Snapshot {
+	return balance.Snapshot{
 		Balances: entity.GrantBalances,
 		Overage:  entity.Overage,
 		At:       entity.At.In(time.UTC),

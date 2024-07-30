@@ -48,7 +48,7 @@ type BalanceSnapshotMutation struct {
 	created_at         *time.Time
 	updated_at         *time.Time
 	deleted_at         *time.Time
-	grant_balances     *balance.GrantBalanceMap
+	grant_balances     *balance.Map
 	balance            *float64
 	addbalance         *float64
 	overage            *float64
@@ -354,12 +354,12 @@ func (m *BalanceSnapshotMutation) ResetOwnerID() {
 }
 
 // SetGrantBalances sets the "grant_balances" field.
-func (m *BalanceSnapshotMutation) SetGrantBalances(bbm balance.GrantBalanceMap) {
+func (m *BalanceSnapshotMutation) SetGrantBalances(bbm balance.Map) {
 	m.grant_balances = &bbm
 }
 
 // GrantBalances returns the value of the "grant_balances" field in the mutation.
-func (m *BalanceSnapshotMutation) GrantBalances() (r balance.GrantBalanceMap, exists bool) {
+func (m *BalanceSnapshotMutation) GrantBalances() (r balance.Map, exists bool) {
 	v := m.grant_balances
 	if v == nil {
 		return
@@ -370,7 +370,7 @@ func (m *BalanceSnapshotMutation) GrantBalances() (r balance.GrantBalanceMap, ex
 // OldGrantBalances returns the old "grant_balances" field's value of the BalanceSnapshot entity.
 // If the BalanceSnapshot object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BalanceSnapshotMutation) OldGrantBalances(ctx context.Context) (v balance.GrantBalanceMap, err error) {
+func (m *BalanceSnapshotMutation) OldGrantBalances(ctx context.Context) (v balance.Map, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldGrantBalances is only allowed on UpdateOne operations")
 	}
@@ -737,7 +737,7 @@ func (m *BalanceSnapshotMutation) SetField(name string, value ent.Value) error {
 		m.SetOwnerID(v)
 		return nil
 	case balancesnapshot.FieldGrantBalances:
-		v, ok := value.(balance.GrantBalanceMap)
+		v, ok := value.(balance.Map)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}

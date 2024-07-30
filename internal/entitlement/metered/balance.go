@@ -49,9 +49,9 @@ type BalanceHistoryParams struct {
 }
 
 func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error) {
-	nsOwner := grant.NamespacedGrantOwner{
+	nsOwner := grant.NamespacedOwner{
 		Namespace: entitlementID.Namespace,
-		ID:        grant.GrantOwner(entitlementID.ID),
+		ID:        grant.Owner(entitlementID.ID),
 	}
 	res, err := e.balanceConnector.GetBalanceOfOwner(ctx, nsOwner, at)
 	if err != nil {
@@ -132,9 +132,9 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		return nil, engine.GrantBurnDownHistory{}, &models.GenericUserError{Message: fmt.Sprintf("from cannot be before %s", ent.MeasureUsageFrom.UTC().Format(time.RFC3339))}
 	}
 
-	owner := grant.NamespacedGrantOwner{
+	owner := grant.NamespacedOwner{
 		Namespace: entitlementID.Namespace,
-		ID:        grant.GrantOwner(entitlementID.ID),
+		ID:        grant.Owner(entitlementID.ID),
 	}
 
 	ownerMeter, err := e.ownerConnector.GetMeter(ctx, owner)

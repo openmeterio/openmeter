@@ -59,9 +59,9 @@ func TestGrantExpiringAtReset(t *testing.T) {
 
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-06-28T14:35:24Z"))
 	grant1, err := deps.GrantConnector.CreateGrant(ctx,
-		grant.NamespacedGrantOwner{
+		grant.NamespacedOwner{
 			Namespace: "namespace-1",
-			ID:        grant.GrantOwner(entitlement.ID),
+			ID:        grant.Owner(entitlement.ID),
 		},
 		credit.CreateGrantInput{
 			Amount:      10,
@@ -77,9 +77,9 @@ func TestGrantExpiringAtReset(t *testing.T) {
 
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-06-28T14:36:33Z"))
 	grant2, err := deps.GrantConnector.CreateGrant(ctx,
-		grant.NamespacedGrantOwner{
+		grant.NamespacedOwner{
 			Namespace: "namespace-1",
-			ID:        grant.GrantOwner(entitlement.ID),
+			ID:        grant.Owner(entitlement.ID),
 		},
 		credit.CreateGrantInput{
 			Amount:      20,
@@ -122,9 +122,9 @@ func TestGrantExpiringAtReset(t *testing.T) {
 
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-06-30T15:35:54Z"))
 	grant3, err := deps.GrantConnector.CreateGrant(ctx,
-		grant.NamespacedGrantOwner{
+		grant.NamespacedOwner{
 			Namespace: "namespace-1",
-			ID:        grant.GrantOwner(entitlement.ID),
+			ID:        grant.Owner(entitlement.ID),
 		},
 		credit.CreateGrantInput{
 			Amount:      100,
@@ -208,9 +208,9 @@ func TestGrantExpiringAndRecurringAtReset(t *testing.T) {
 
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-02T09:43:04Z"))
 	grant1, err := deps.GrantConnector.CreateGrant(ctx,
-		grant.NamespacedGrantOwner{
+		grant.NamespacedOwner{
 			Namespace: "namespace-1",
-			ID:        grant.GrantOwner(entitlement.ID),
+			ID:        grant.Owner(entitlement.ID),
 		},
 		credit.CreateGrantInput{
 			Amount:           20,
@@ -258,9 +258,9 @@ func TestGrantExpiringAndRecurringAtReset(t *testing.T) {
 	assert.Equal(0.0, currentBalance.Balance)
 
 	// Validate snapshot exists
-	snapshot, err := deps.BalanceSnapshotRepo.GetLatestValidAt(ctx, grant.NamespacedGrantOwner{
+	snapshot, err := deps.BalanceSnapshotRepo.GetLatestValidAt(ctx, grant.NamespacedOwner{
 		Namespace: "namespace-1",
-		ID:        grant.GrantOwner(entitlement.ID),
+		ID:        grant.Owner(entitlement.ID),
 	}, testutils.GetRFC3339Time(t, "2024-07-10T07:33:06Z"))
 	assert.NoError(err)
 	assert.NotNil(snapshot)
@@ -319,14 +319,14 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 
 	// Let's retrieve the grant so we can reference it
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T12:20:28Z"))
-	grants, err := deps.GrantRepo.ListGrants(ctx, grant.ListGrantsParams{
+	grants, err := deps.GrantRepo.ListGrants(ctx, grant.ListParams{
 		Namespace:      "namespace-1",
 		IncludeDeleted: true,
 		Page: pagination.Page{
 			PageSize:   100,
 			PageNumber: 1,
 		},
-		OrderBy: grant.GrantOrderByCreatedAt,
+		OrderBy: grant.OrderByCreatedAt,
 	})
 	assert.NoError(err)
 	assert.Len(grants.Items, 1)
@@ -336,9 +336,9 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 	// Let's create another grant
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T12:09:40Z"))
 	grant2, err := deps.GrantConnector.CreateGrant(ctx,
-		grant.NamespacedGrantOwner{
+		grant.NamespacedOwner{
 			Namespace: "namespace-1",
-			ID:        grant.GrantOwner(entitlement.ID),
+			ID:        grant.Owner(entitlement.ID),
 		},
 		credit.CreateGrantInput{
 			Amount:      10000,
@@ -354,14 +354,14 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 
 	// Lets create a snapshot
 	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-09T13:09:05Z"))
-	err = deps.BalanceSnapshotRepo.Save(ctx, grant.NamespacedGrantOwner{
+	err = deps.BalanceSnapshotRepo.Save(ctx, grant.NamespacedOwner{
 		Namespace: "namespace-1",
-		ID:        grant.GrantOwner(entitlement.ID),
-	}, []balance.GrantBalanceSnapshot{
+		ID:        grant.Owner(entitlement.ID),
+	}, []balance.Snapshot{
 		{
 			At:      testutils.GetRFC3339Time(t, "2024-07-09T13:09:00Z"),
 			Overage: 0.0,
-			Balances: balance.GrantBalanceMap{
+			Balances: balance.Map{
 				grant1.ID: 488.0,
 				grant2.ID: 10000.0,
 			},
