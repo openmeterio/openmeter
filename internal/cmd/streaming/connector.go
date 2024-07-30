@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
+
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"

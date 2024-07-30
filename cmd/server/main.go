@@ -314,7 +314,6 @@ func main() {
 			Logger:             logger,
 			Publisher:          eventPublisher.ForTopic(conf.Events.SystemEvents.Topic),
 		})
-
 	}
 
 	s, err := server.NewServer(&server.Config{
