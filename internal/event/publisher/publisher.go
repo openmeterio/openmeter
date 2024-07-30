@@ -13,6 +13,13 @@ import (
 	"github.com/openmeterio/openmeter/internal/watermill/driver/noop"
 )
 
+const (
+	CloudEventsHeaderType    = "ce_type"
+	CloudEventsHeaderTime    = "ce_time"
+	CloudEventsHeaderSource  = "ce_source"
+	CloudEventsHeaderSubject = "ce_subject"
+)
+
 type Publisher interface {
 	ForTopic(topic string) TopicPublisher
 }
@@ -28,7 +35,7 @@ type PublisherOptions struct {
 
 type publisher struct {
 	publisher message.Publisher
-	transform TransformFunc
+	marshaler CloudEventMarshaler
 }
 
 func NewPublisher(opts PublisherOptions) (Publisher, error) {
@@ -38,7 +45,7 @@ func NewPublisher(opts PublisherOptions) (Publisher, error) {
 
 	return &publisher{
 		publisher: opts.Publisher,
-		transform: opts.Transform,
+		marshaler: NewCloudEventMarshaler(opts.Transform),
 	}, nil
 }
 
@@ -55,7 +62,7 @@ func (p *publisher) ForTopic(topic string) TopicPublisher {
 	return &topicPublisher{
 		publisher: p.publisher,
 		topic:     topic,
-		transform: p.transform,
+		marshaler: p.marshaler,
 	}
 }
 
@@ -66,29 +73,52 @@ type TopicPublisher interface {
 type topicPublisher struct {
 	publisher message.Publisher
 	topic     string
-	transform TransformFunc
+	marshaler CloudEventMarshaler
 }
 
 func (p *topicPublisher) Publish(event event.Event) error {
-	payload, err := event.MarshalJSON()
+	msg, err := p.marshaler.MarshalEvent(event)
 	if err != nil {
 		return err
 	}
 
-	msg := message.NewMessage(watermill.NewUUID(), payload)
-	msg.Metadata.Set("ce_type", event.Type())
-	msg.Metadata.Set("ce_time", event.Time().In(time.UTC).Format(time.RFC3339))
-	msg.Metadata.Set("ce_source", event.Source())
-	if event.Subject() != "" {
-		msg.Metadata.Set("ce_subject", event.Subject())
+	return p.publisher.Publish(p.topic, msg)
+}
+
+type CloudEventMarshaler interface {
+	MarshalEvent(event.Event) (*message.Message, error)
+}
+
+type cloudEventMarshaler struct {
+	transform TransformFunc
+}
+
+func NewCloudEventMarshaler(transform TransformFunc) CloudEventMarshaler {
+	return &cloudEventMarshaler{
+		transform: transform,
+	}
+}
+
+func (m *cloudEventMarshaler) MarshalEvent(event event.Event) (*message.Message, error) {
+	payload, err := event.MarshalJSON()
+	if err != nil {
+		return nil, err
 	}
 
-	if p.transform != nil {
-		msg, err = p.transform(msg, event)
+	msg := message.NewMessage(watermill.NewUUID(), payload)
+	msg.Metadata.Set(CloudEventsHeaderType, event.Type())
+	msg.Metadata.Set(CloudEventsHeaderTime, event.Time().In(time.UTC).Format(time.RFC3339))
+	msg.Metadata.Set(CloudEventsHeaderSource, event.Source())
+	if event.Subject() != "" {
+		msg.Metadata.Set(CloudEventsHeaderSubject, event.Subject())
+	}
+
+	if m.transform != nil {
+		msg, err = m.transform(msg, event)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return p.publisher.Publish(p.topic, msg)
+	return msg, nil
 }

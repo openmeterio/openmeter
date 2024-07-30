@@ -184,6 +184,26 @@ func TestComplete(t *testing.T) {
 				},
 			},
 		},
+		BalanceWorker: BalanceWorkerConfiguration{
+			PoisionQueue: PoisionQueueConfiguration{
+				Enabled: true,
+				Topic:   "om_sys.balance_worker_poision",
+				AutoProvision: AutoProvisionConfiguration{
+					Enabled:    true,
+					Partitions: 1,
+				},
+				Throttle: ThrottleConfiguration{
+					Enabled:  true,
+					Count:    10,
+					Duration: time.Second,
+				},
+			},
+			Retry: RetryConfiguration{
+				MaxRetries:      5,
+				InitialInterval: 100 * time.Millisecond,
+			},
+			ConsumerGroupName: "om_balance_worker",
+		},
 	}
 
 	assert.Equal(t, expected, actual)
