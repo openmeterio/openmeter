@@ -5,7 +5,7 @@ package db
 import (
 	"time"
 
-	dbbalancesnapshot "github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
+	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/internal/ent/db/grant"
@@ -17,27 +17,27 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
-	dbbalancesnapshotMixin := schema.BalanceSnapshot{}.Mixin()
-	dbbalancesnapshotMixinFields0 := dbbalancesnapshotMixin[0].Fields()
-	_ = dbbalancesnapshotMixinFields0
-	dbbalancesnapshotMixinFields1 := dbbalancesnapshotMixin[1].Fields()
-	_ = dbbalancesnapshotMixinFields1
-	dbbalancesnapshotFields := schema.BalanceSnapshot{}.Fields()
-	_ = dbbalancesnapshotFields
-	// dbbalancesnapshotDescNamespace is the schema descriptor for namespace field.
-	dbbalancesnapshotDescNamespace := dbbalancesnapshotMixinFields0[0].Descriptor()
-	// dbbalancesnapshot.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
-	dbbalancesnapshot.NamespaceValidator = dbbalancesnapshotDescNamespace.Validators[0].(func(string) error)
-	// dbbalancesnapshotDescCreatedAt is the schema descriptor for created_at field.
-	dbbalancesnapshotDescCreatedAt := dbbalancesnapshotMixinFields1[0].Descriptor()
-	// dbbalancesnapshot.DefaultCreatedAt holds the default value on creation for the created_at field.
-	dbbalancesnapshot.DefaultCreatedAt = dbbalancesnapshotDescCreatedAt.Default.(func() time.Time)
-	// dbbalancesnapshotDescUpdatedAt is the schema descriptor for updated_at field.
-	dbbalancesnapshotDescUpdatedAt := dbbalancesnapshotMixinFields1[1].Descriptor()
-	// dbbalancesnapshot.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	dbbalancesnapshot.DefaultUpdatedAt = dbbalancesnapshotDescUpdatedAt.Default.(func() time.Time)
-	// dbbalancesnapshot.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
-	dbbalancesnapshot.UpdateDefaultUpdatedAt = dbbalancesnapshotDescUpdatedAt.UpdateDefault.(func() time.Time)
+	balancesnapshotMixin := schema.BalanceSnapshot{}.Mixin()
+	balancesnapshotMixinFields0 := balancesnapshotMixin[0].Fields()
+	_ = balancesnapshotMixinFields0
+	balancesnapshotMixinFields1 := balancesnapshotMixin[1].Fields()
+	_ = balancesnapshotMixinFields1
+	balancesnapshotFields := schema.BalanceSnapshot{}.Fields()
+	_ = balancesnapshotFields
+	// balancesnapshotDescNamespace is the schema descriptor for namespace field.
+	balancesnapshotDescNamespace := balancesnapshotMixinFields0[0].Descriptor()
+	// balancesnapshot.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	balancesnapshot.NamespaceValidator = balancesnapshotDescNamespace.Validators[0].(func(string) error)
+	// balancesnapshotDescCreatedAt is the schema descriptor for created_at field.
+	balancesnapshotDescCreatedAt := balancesnapshotMixinFields1[0].Descriptor()
+	// balancesnapshot.DefaultCreatedAt holds the default value on creation for the created_at field.
+	balancesnapshot.DefaultCreatedAt = balancesnapshotDescCreatedAt.Default.(func() time.Time)
+	// balancesnapshotDescUpdatedAt is the schema descriptor for updated_at field.
+	balancesnapshotDescUpdatedAt := balancesnapshotMixinFields1[1].Descriptor()
+	// balancesnapshot.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	balancesnapshot.DefaultUpdatedAt = balancesnapshotDescUpdatedAt.Default.(func() time.Time)
+	// balancesnapshot.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	balancesnapshot.UpdateDefaultUpdatedAt = balancesnapshotDescUpdatedAt.UpdateDefault.(func() time.Time)
 	entitlementMixin := schema.Entitlement{}.Mixin()
 	entitlementMixinFields0 := entitlementMixin[0].Fields()
 	_ = entitlementMixinFields0

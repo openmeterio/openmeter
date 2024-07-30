@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	"github.com/openmeterio/openmeter/internal/credit/balance"
 	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
@@ -309,7 +309,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				}, resetTime)
 				assert.NoError(t, err)
 
-				assert.Equal(t, balancesnapshot.GrantBalanceMap{
+				assert.Equal(t, balance.GrantBalanceMap{
 					g1.ID: 400,
 					g2.ID: 100,
 				}, creditBalance.Balances)
@@ -415,7 +415,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				}, resetTime1)
 				assert.NoError(t, err)
 
-				assert.Equal(t, balancesnapshot.GrantBalanceMap{
+				assert.Equal(t, balance.GrantBalanceMap{
 					g1.ID: 400,
 					g2.ID: 100,
 				}, creditBalance.Balances)
@@ -456,7 +456,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 				}, resetTime2)
 				assert.NoError(t, err)
 
-				assert.Equal(t, balancesnapshot.GrantBalanceMap{
+				assert.Equal(t, balance.GrantBalanceMap{
 					g1.ID: 100,
 					g2.ID: 100,
 					g3.ID: 1000,

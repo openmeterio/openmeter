@@ -2,7 +2,7 @@ package credit
 
 import (
 	"github.com/openmeterio/openmeter/internal/credit"
-	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	"github.com/openmeterio/openmeter/internal/credit/balance"
 	"github.com/openmeterio/openmeter/internal/credit/engine"
 	"github.com/openmeterio/openmeter/internal/credit/grant"
 )
@@ -11,16 +11,16 @@ type (
 	CreditConnector                         = credit.CreditConnector
 	BalanceConnector                        = credit.BalanceConnector
 	BalanceHistoryParams                    = credit.BalanceHistoryParams
-	BalanceSnapshotRepo                     = balancesnapshot.BalanceSnapshotRepo
+	BalanceSnapshotRepo                     = balance.BalanceSnapshotRepo
 	CreateGrantInput                        = credit.CreateGrantInput
 	DBCreateGrantInput                      = grant.GrantRepoCreateGrantInput
 	Engine                                  = engine.Engine
 	ExpirationPeriod                        = grant.ExpirationPeriod
 	ExpirationPeriodDuration                = grant.ExpirationPeriodDuration
 	Grant                                   = grant.Grant
-	GrantBalanceMap                         = balancesnapshot.GrantBalanceMap
-	GrantBalanceNoSavedBalanceForOwnerError = balancesnapshot.GrantBalanceNoSavedBalanceForOwnerError
-	GrantBalanceSnapshot                    = balancesnapshot.GrantBalanceSnapshot
+	GrantBalanceMap                         = balance.GrantBalanceMap
+	GrantBalanceNoSavedBalanceForOwnerError = balance.GrantBalanceNoSavedBalanceForOwnerError
+	GrantBalanceSnapshot                    = balance.GrantBalanceSnapshot
 	GrantBurnDownHistory                    = engine.GrantBurnDownHistory
 	GrantBurnDownHistorySegment             = engine.GrantBurnDownHistorySegment
 	GrantConnector                          = credit.GrantConnector

@@ -1,4 +1,4 @@
-package balancesnapshot
+package balance
 
 import (
 	"time"

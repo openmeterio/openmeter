@@ -10,8 +10,8 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
-	dbbalancesnapshot "github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
+	"github.com/openmeterio/openmeter/internal/credit/balance"
+	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 )
 
@@ -31,7 +31,7 @@ type BalanceSnapshot struct {
 	// OwnerID holds the value of the "owner_id" field.
 	OwnerID string `json:"owner_id,omitempty"`
 	// GrantBalances holds the value of the "grant_balances" field.
-	GrantBalances balancesnapshot.GrantBalanceMap `json:"grant_balances,omitempty"`
+	GrantBalances balance.GrantBalanceMap `json:"grant_balances,omitempty"`
 	// Balance holds the value of the "balance" field.
 	Balance float64 `json:"balance,omitempty"`
 	// Overage holds the value of the "overage" field.
@@ -69,15 +69,15 @@ func (*BalanceSnapshot) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case dbbalancesnapshot.FieldGrantBalances:
+		case balancesnapshot.FieldGrantBalances:
 			values[i] = new([]byte)
-		case dbbalancesnapshot.FieldBalance, dbbalancesnapshot.FieldOverage:
+		case balancesnapshot.FieldBalance, balancesnapshot.FieldOverage:
 			values[i] = new(sql.NullFloat64)
-		case dbbalancesnapshot.FieldID:
+		case balancesnapshot.FieldID:
 			values[i] = new(sql.NullInt64)
-		case dbbalancesnapshot.FieldNamespace, dbbalancesnapshot.FieldOwnerID:
+		case balancesnapshot.FieldNamespace, balancesnapshot.FieldOwnerID:
 			values[i] = new(sql.NullString)
-		case dbbalancesnapshot.FieldCreatedAt, dbbalancesnapshot.FieldUpdatedAt, dbbalancesnapshot.FieldDeletedAt, dbbalancesnapshot.FieldAt:
+		case balancesnapshot.FieldCreatedAt, balancesnapshot.FieldUpdatedAt, balancesnapshot.FieldDeletedAt, balancesnapshot.FieldAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -94,44 +94,44 @@ func (bs *BalanceSnapshot) assignValues(columns []string, values []any) error {
 	}
 	for i := range columns {
 		switch columns[i] {
-		case dbbalancesnapshot.FieldID:
+		case balancesnapshot.FieldID:
 			value, ok := values[i].(*sql.NullInt64)
 			if !ok {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			bs.ID = int(value.Int64)
-		case dbbalancesnapshot.FieldNamespace:
+		case balancesnapshot.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
 				bs.Namespace = value.String
 			}
-		case dbbalancesnapshot.FieldCreatedAt:
+		case balancesnapshot.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				bs.CreatedAt = value.Time
 			}
-		case dbbalancesnapshot.FieldUpdatedAt:
+		case balancesnapshot.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				bs.UpdatedAt = value.Time
 			}
-		case dbbalancesnapshot.FieldDeletedAt:
+		case balancesnapshot.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
 				bs.DeletedAt = new(time.Time)
 				*bs.DeletedAt = value.Time
 			}
-		case dbbalancesnapshot.FieldOwnerID:
+		case balancesnapshot.FieldOwnerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field owner_id", values[i])
 			} else if value.Valid {
 				bs.OwnerID = value.String
 			}
-		case dbbalancesnapshot.FieldGrantBalances:
+		case balancesnapshot.FieldGrantBalances:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field grant_balances", values[i])
 			} else if value != nil && len(*value) > 0 {
@@ -139,19 +139,19 @@ func (bs *BalanceSnapshot) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field grant_balances: %w", err)
 				}
 			}
-		case dbbalancesnapshot.FieldBalance:
+		case balancesnapshot.FieldBalance:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
 				return fmt.Errorf("unexpected type %T for field balance", values[i])
 			} else if value.Valid {
 				bs.Balance = value.Float64
 			}
-		case dbbalancesnapshot.FieldOverage:
+		case balancesnapshot.FieldOverage:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
 				return fmt.Errorf("unexpected type %T for field overage", values[i])
 			} else if value.Valid {
 				bs.Overage = value.Float64
 			}
-		case dbbalancesnapshot.FieldAt:
+		case balancesnapshot.FieldAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field at", values[i])
 			} else if value.Valid {

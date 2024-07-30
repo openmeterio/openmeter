@@ -11,9 +11,9 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	"github.com/openmeterio/openmeter/internal/credit/balance"
 	"github.com/openmeterio/openmeter/internal/credit/grant"
-	dbbalancesnapshot "github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
+	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/internal/ent/db/grant"
@@ -48,7 +48,7 @@ type BalanceSnapshotMutation struct {
 	created_at         *time.Time
 	updated_at         *time.Time
 	deleted_at         *time.Time
-	grant_balances     *balancesnapshot.GrantBalanceMap
+	grant_balances     *balance.GrantBalanceMap
 	balance            *float64
 	addbalance         *float64
 	overage            *float64
@@ -302,19 +302,19 @@ func (m *BalanceSnapshotMutation) OldDeletedAt(ctx context.Context) (v *time.Tim
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (m *BalanceSnapshotMutation) ClearDeletedAt() {
 	m.deleted_at = nil
-	m.clearedFields[dbbalancesnapshot.FieldDeletedAt] = struct{}{}
+	m.clearedFields[balancesnapshot.FieldDeletedAt] = struct{}{}
 }
 
 // DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
 func (m *BalanceSnapshotMutation) DeletedAtCleared() bool {
-	_, ok := m.clearedFields[dbbalancesnapshot.FieldDeletedAt]
+	_, ok := m.clearedFields[balancesnapshot.FieldDeletedAt]
 	return ok
 }
 
 // ResetDeletedAt resets all changes to the "deleted_at" field.
 func (m *BalanceSnapshotMutation) ResetDeletedAt() {
 	m.deleted_at = nil
-	delete(m.clearedFields, dbbalancesnapshot.FieldDeletedAt)
+	delete(m.clearedFields, balancesnapshot.FieldDeletedAt)
 }
 
 // SetOwnerID sets the "owner_id" field.
@@ -354,12 +354,12 @@ func (m *BalanceSnapshotMutation) ResetOwnerID() {
 }
 
 // SetGrantBalances sets the "grant_balances" field.
-func (m *BalanceSnapshotMutation) SetGrantBalances(bbm balancesnapshot.GrantBalanceMap) {
+func (m *BalanceSnapshotMutation) SetGrantBalances(bbm balance.GrantBalanceMap) {
 	m.grant_balances = &bbm
 }
 
 // GrantBalances returns the value of the "grant_balances" field in the mutation.
-func (m *BalanceSnapshotMutation) GrantBalances() (r balancesnapshot.GrantBalanceMap, exists bool) {
+func (m *BalanceSnapshotMutation) GrantBalances() (r balance.GrantBalanceMap, exists bool) {
 	v := m.grant_balances
 	if v == nil {
 		return
@@ -370,7 +370,7 @@ func (m *BalanceSnapshotMutation) GrantBalances() (r balancesnapshot.GrantBalanc
 // OldGrantBalances returns the old "grant_balances" field's value of the BalanceSnapshot entity.
 // If the BalanceSnapshot object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *BalanceSnapshotMutation) OldGrantBalances(ctx context.Context) (v balancesnapshot.GrantBalanceMap, err error) {
+func (m *BalanceSnapshotMutation) OldGrantBalances(ctx context.Context) (v balance.GrantBalanceMap, err error) {
 	if !m.op.Is(OpUpdateOne) {
 		return v, errors.New("OldGrantBalances is only allowed on UpdateOne operations")
 	}
@@ -545,7 +545,7 @@ func (m *BalanceSnapshotMutation) SetEntitlementID(id string) {
 // ClearEntitlement clears the "entitlement" edge to the Entitlement entity.
 func (m *BalanceSnapshotMutation) ClearEntitlement() {
 	m.clearedentitlement = true
-	m.clearedFields[dbbalancesnapshot.FieldOwnerID] = struct{}{}
+	m.clearedFields[balancesnapshot.FieldOwnerID] = struct{}{}
 }
 
 // EntitlementCleared reports if the "entitlement" edge to the Entitlement entity was cleared.
@@ -613,31 +613,31 @@ func (m *BalanceSnapshotMutation) Type() string {
 func (m *BalanceSnapshotMutation) Fields() []string {
 	fields := make([]string, 0, 9)
 	if m.namespace != nil {
-		fields = append(fields, dbbalancesnapshot.FieldNamespace)
+		fields = append(fields, balancesnapshot.FieldNamespace)
 	}
 	if m.created_at != nil {
-		fields = append(fields, dbbalancesnapshot.FieldCreatedAt)
+		fields = append(fields, balancesnapshot.FieldCreatedAt)
 	}
 	if m.updated_at != nil {
-		fields = append(fields, dbbalancesnapshot.FieldUpdatedAt)
+		fields = append(fields, balancesnapshot.FieldUpdatedAt)
 	}
 	if m.deleted_at != nil {
-		fields = append(fields, dbbalancesnapshot.FieldDeletedAt)
+		fields = append(fields, balancesnapshot.FieldDeletedAt)
 	}
 	if m.entitlement != nil {
-		fields = append(fields, dbbalancesnapshot.FieldOwnerID)
+		fields = append(fields, balancesnapshot.FieldOwnerID)
 	}
 	if m.grant_balances != nil {
-		fields = append(fields, dbbalancesnapshot.FieldGrantBalances)
+		fields = append(fields, balancesnapshot.FieldGrantBalances)
 	}
 	if m.balance != nil {
-		fields = append(fields, dbbalancesnapshot.FieldBalance)
+		fields = append(fields, balancesnapshot.FieldBalance)
 	}
 	if m.overage != nil {
-		fields = append(fields, dbbalancesnapshot.FieldOverage)
+		fields = append(fields, balancesnapshot.FieldOverage)
 	}
 	if m.at != nil {
-		fields = append(fields, dbbalancesnapshot.FieldAt)
+		fields = append(fields, balancesnapshot.FieldAt)
 	}
 	return fields
 }
@@ -647,23 +647,23 @@ func (m *BalanceSnapshotMutation) Fields() []string {
 // schema.
 func (m *BalanceSnapshotMutation) Field(name string) (ent.Value, bool) {
 	switch name {
-	case dbbalancesnapshot.FieldNamespace:
+	case balancesnapshot.FieldNamespace:
 		return m.Namespace()
-	case dbbalancesnapshot.FieldCreatedAt:
+	case balancesnapshot.FieldCreatedAt:
 		return m.CreatedAt()
-	case dbbalancesnapshot.FieldUpdatedAt:
+	case balancesnapshot.FieldUpdatedAt:
 		return m.UpdatedAt()
-	case dbbalancesnapshot.FieldDeletedAt:
+	case balancesnapshot.FieldDeletedAt:
 		return m.DeletedAt()
-	case dbbalancesnapshot.FieldOwnerID:
+	case balancesnapshot.FieldOwnerID:
 		return m.OwnerID()
-	case dbbalancesnapshot.FieldGrantBalances:
+	case balancesnapshot.FieldGrantBalances:
 		return m.GrantBalances()
-	case dbbalancesnapshot.FieldBalance:
+	case balancesnapshot.FieldBalance:
 		return m.Balance()
-	case dbbalancesnapshot.FieldOverage:
+	case balancesnapshot.FieldOverage:
 		return m.Overage()
-	case dbbalancesnapshot.FieldAt:
+	case balancesnapshot.FieldAt:
 		return m.At()
 	}
 	return nil, false
@@ -674,23 +674,23 @@ func (m *BalanceSnapshotMutation) Field(name string) (ent.Value, bool) {
 // database failed.
 func (m *BalanceSnapshotMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
 	switch name {
-	case dbbalancesnapshot.FieldNamespace:
+	case balancesnapshot.FieldNamespace:
 		return m.OldNamespace(ctx)
-	case dbbalancesnapshot.FieldCreatedAt:
+	case balancesnapshot.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
-	case dbbalancesnapshot.FieldUpdatedAt:
+	case balancesnapshot.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
-	case dbbalancesnapshot.FieldDeletedAt:
+	case balancesnapshot.FieldDeletedAt:
 		return m.OldDeletedAt(ctx)
-	case dbbalancesnapshot.FieldOwnerID:
+	case balancesnapshot.FieldOwnerID:
 		return m.OldOwnerID(ctx)
-	case dbbalancesnapshot.FieldGrantBalances:
+	case balancesnapshot.FieldGrantBalances:
 		return m.OldGrantBalances(ctx)
-	case dbbalancesnapshot.FieldBalance:
+	case balancesnapshot.FieldBalance:
 		return m.OldBalance(ctx)
-	case dbbalancesnapshot.FieldOverage:
+	case balancesnapshot.FieldOverage:
 		return m.OldOverage(ctx)
-	case dbbalancesnapshot.FieldAt:
+	case balancesnapshot.FieldAt:
 		return m.OldAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown BalanceSnapshot field %s", name)
@@ -701,63 +701,63 @@ func (m *BalanceSnapshotMutation) OldField(ctx context.Context, name string) (en
 // type.
 func (m *BalanceSnapshotMutation) SetField(name string, value ent.Value) error {
 	switch name {
-	case dbbalancesnapshot.FieldNamespace:
+	case balancesnapshot.FieldNamespace:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetNamespace(v)
 		return nil
-	case dbbalancesnapshot.FieldCreatedAt:
+	case balancesnapshot.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCreatedAt(v)
 		return nil
-	case dbbalancesnapshot.FieldUpdatedAt:
+	case balancesnapshot.FieldUpdatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUpdatedAt(v)
 		return nil
-	case dbbalancesnapshot.FieldDeletedAt:
+	case balancesnapshot.FieldDeletedAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDeletedAt(v)
 		return nil
-	case dbbalancesnapshot.FieldOwnerID:
+	case balancesnapshot.FieldOwnerID:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetOwnerID(v)
 		return nil
-	case dbbalancesnapshot.FieldGrantBalances:
-		v, ok := value.(balancesnapshot.GrantBalanceMap)
+	case balancesnapshot.FieldGrantBalances:
+		v, ok := value.(balance.GrantBalanceMap)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetGrantBalances(v)
 		return nil
-	case dbbalancesnapshot.FieldBalance:
+	case balancesnapshot.FieldBalance:
 		v, ok := value.(float64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetBalance(v)
 		return nil
-	case dbbalancesnapshot.FieldOverage:
+	case balancesnapshot.FieldOverage:
 		v, ok := value.(float64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetOverage(v)
 		return nil
-	case dbbalancesnapshot.FieldAt:
+	case balancesnapshot.FieldAt:
 		v, ok := value.(time.Time)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
@@ -773,10 +773,10 @@ func (m *BalanceSnapshotMutation) SetField(name string, value ent.Value) error {
 func (m *BalanceSnapshotMutation) AddedFields() []string {
 	var fields []string
 	if m.addbalance != nil {
-		fields = append(fields, dbbalancesnapshot.FieldBalance)
+		fields = append(fields, balancesnapshot.FieldBalance)
 	}
 	if m.addoverage != nil {
-		fields = append(fields, dbbalancesnapshot.FieldOverage)
+		fields = append(fields, balancesnapshot.FieldOverage)
 	}
 	return fields
 }
@@ -786,9 +786,9 @@ func (m *BalanceSnapshotMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *BalanceSnapshotMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
-	case dbbalancesnapshot.FieldBalance:
+	case balancesnapshot.FieldBalance:
 		return m.AddedBalance()
-	case dbbalancesnapshot.FieldOverage:
+	case balancesnapshot.FieldOverage:
 		return m.AddedOverage()
 	}
 	return nil, false
@@ -799,14 +799,14 @@ func (m *BalanceSnapshotMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *BalanceSnapshotMutation) AddField(name string, value ent.Value) error {
 	switch name {
-	case dbbalancesnapshot.FieldBalance:
+	case balancesnapshot.FieldBalance:
 		v, ok := value.(float64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddBalance(v)
 		return nil
-	case dbbalancesnapshot.FieldOverage:
+	case balancesnapshot.FieldOverage:
 		v, ok := value.(float64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
@@ -821,8 +821,8 @@ func (m *BalanceSnapshotMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *BalanceSnapshotMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(dbbalancesnapshot.FieldDeletedAt) {
-		fields = append(fields, dbbalancesnapshot.FieldDeletedAt)
+	if m.FieldCleared(balancesnapshot.FieldDeletedAt) {
+		fields = append(fields, balancesnapshot.FieldDeletedAt)
 	}
 	return fields
 }
@@ -838,7 +838,7 @@ func (m *BalanceSnapshotMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *BalanceSnapshotMutation) ClearField(name string) error {
 	switch name {
-	case dbbalancesnapshot.FieldDeletedAt:
+	case balancesnapshot.FieldDeletedAt:
 		m.ClearDeletedAt()
 		return nil
 	}
@@ -849,31 +849,31 @@ func (m *BalanceSnapshotMutation) ClearField(name string) error {
 // It returns an error if the field is not defined in the schema.
 func (m *BalanceSnapshotMutation) ResetField(name string) error {
 	switch name {
-	case dbbalancesnapshot.FieldNamespace:
+	case balancesnapshot.FieldNamespace:
 		m.ResetNamespace()
 		return nil
-	case dbbalancesnapshot.FieldCreatedAt:
+	case balancesnapshot.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil
-	case dbbalancesnapshot.FieldUpdatedAt:
+	case balancesnapshot.FieldUpdatedAt:
 		m.ResetUpdatedAt()
 		return nil
-	case dbbalancesnapshot.FieldDeletedAt:
+	case balancesnapshot.FieldDeletedAt:
 		m.ResetDeletedAt()
 		return nil
-	case dbbalancesnapshot.FieldOwnerID:
+	case balancesnapshot.FieldOwnerID:
 		m.ResetOwnerID()
 		return nil
-	case dbbalancesnapshot.FieldGrantBalances:
+	case balancesnapshot.FieldGrantBalances:
 		m.ResetGrantBalances()
 		return nil
-	case dbbalancesnapshot.FieldBalance:
+	case balancesnapshot.FieldBalance:
 		m.ResetBalance()
 		return nil
-	case dbbalancesnapshot.FieldOverage:
+	case balancesnapshot.FieldOverage:
 		m.ResetOverage()
 		return nil
-	case dbbalancesnapshot.FieldAt:
+	case balancesnapshot.FieldAt:
 		m.ResetAt()
 		return nil
 	}
@@ -884,7 +884,7 @@ func (m *BalanceSnapshotMutation) ResetField(name string) error {
 func (m *BalanceSnapshotMutation) AddedEdges() []string {
 	edges := make([]string, 0, 1)
 	if m.entitlement != nil {
-		edges = append(edges, dbbalancesnapshot.EdgeEntitlement)
+		edges = append(edges, balancesnapshot.EdgeEntitlement)
 	}
 	return edges
 }
@@ -893,7 +893,7 @@ func (m *BalanceSnapshotMutation) AddedEdges() []string {
 // name in this mutation.
 func (m *BalanceSnapshotMutation) AddedIDs(name string) []ent.Value {
 	switch name {
-	case dbbalancesnapshot.EdgeEntitlement:
+	case balancesnapshot.EdgeEntitlement:
 		if id := m.entitlement; id != nil {
 			return []ent.Value{*id}
 		}
@@ -917,7 +917,7 @@ func (m *BalanceSnapshotMutation) RemovedIDs(name string) []ent.Value {
 func (m *BalanceSnapshotMutation) ClearedEdges() []string {
 	edges := make([]string, 0, 1)
 	if m.clearedentitlement {
-		edges = append(edges, dbbalancesnapshot.EdgeEntitlement)
+		edges = append(edges, balancesnapshot.EdgeEntitlement)
 	}
 	return edges
 }
@@ -926,7 +926,7 @@ func (m *BalanceSnapshotMutation) ClearedEdges() []string {
 // was cleared in this mutation.
 func (m *BalanceSnapshotMutation) EdgeCleared(name string) bool {
 	switch name {
-	case dbbalancesnapshot.EdgeEntitlement:
+	case balancesnapshot.EdgeEntitlement:
 		return m.clearedentitlement
 	}
 	return false
@@ -936,7 +936,7 @@ func (m *BalanceSnapshotMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *BalanceSnapshotMutation) ClearEdge(name string) error {
 	switch name {
-	case dbbalancesnapshot.EdgeEntitlement:
+	case balancesnapshot.EdgeEntitlement:
 		m.ClearEntitlement()
 		return nil
 	}
@@ -947,7 +947,7 @@ func (m *BalanceSnapshotMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *BalanceSnapshotMutation) ResetEdge(name string) error {
 	switch name {
-	case dbbalancesnapshot.EdgeEntitlement:
+	case balancesnapshot.EdgeEntitlement:
 		m.ResetEntitlement()
 		return nil
 	}

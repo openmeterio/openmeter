@@ -11,7 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	dbbalancesnapshot "github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
+	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 )
 
@@ -90,7 +90,7 @@ func (bsu *BalanceSnapshotUpdate) ExecX(ctx context.Context) {
 // defaults sets the default values of the builder before save.
 func (bsu *BalanceSnapshotUpdate) defaults() {
 	if _, ok := bsu.mutation.UpdatedAt(); !ok {
-		v := dbbalancesnapshot.UpdateDefaultUpdatedAt()
+		v := balancesnapshot.UpdateDefaultUpdatedAt()
 		bsu.mutation.SetUpdatedAt(v)
 	}
 }
@@ -107,7 +107,7 @@ func (bsu *BalanceSnapshotUpdate) sqlSave(ctx context.Context) (n int, err error
 	if err := bsu.check(); err != nil {
 		return n, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(dbbalancesnapshot.Table, dbbalancesnapshot.Columns, sqlgraph.NewFieldSpec(dbbalancesnapshot.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(balancesnapshot.Table, balancesnapshot.Columns, sqlgraph.NewFieldSpec(balancesnapshot.FieldID, field.TypeInt))
 	if ps := bsu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -116,17 +116,17 @@ func (bsu *BalanceSnapshotUpdate) sqlSave(ctx context.Context) (n int, err error
 		}
 	}
 	if value, ok := bsu.mutation.UpdatedAt(); ok {
-		_spec.SetField(dbbalancesnapshot.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(balancesnapshot.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := bsu.mutation.DeletedAt(); ok {
-		_spec.SetField(dbbalancesnapshot.FieldDeletedAt, field.TypeTime, value)
+		_spec.SetField(balancesnapshot.FieldDeletedAt, field.TypeTime, value)
 	}
 	if bsu.mutation.DeletedAtCleared() {
-		_spec.ClearField(dbbalancesnapshot.FieldDeletedAt, field.TypeTime)
+		_spec.ClearField(balancesnapshot.FieldDeletedAt, field.TypeTime)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, bsu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
-			err = &NotFoundError{dbbalancesnapshot.Label}
+			err = &NotFoundError{balancesnapshot.Label}
 		} else if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}
@@ -219,7 +219,7 @@ func (bsuo *BalanceSnapshotUpdateOne) ExecX(ctx context.Context) {
 // defaults sets the default values of the builder before save.
 func (bsuo *BalanceSnapshotUpdateOne) defaults() {
 	if _, ok := bsuo.mutation.UpdatedAt(); !ok {
-		v := dbbalancesnapshot.UpdateDefaultUpdatedAt()
+		v := balancesnapshot.UpdateDefaultUpdatedAt()
 		bsuo.mutation.SetUpdatedAt(v)
 	}
 }
@@ -236,7 +236,7 @@ func (bsuo *BalanceSnapshotUpdateOne) sqlSave(ctx context.Context) (_node *Balan
 	if err := bsuo.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(dbbalancesnapshot.Table, dbbalancesnapshot.Columns, sqlgraph.NewFieldSpec(dbbalancesnapshot.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(balancesnapshot.Table, balancesnapshot.Columns, sqlgraph.NewFieldSpec(balancesnapshot.FieldID, field.TypeInt))
 	id, ok := bsuo.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`db: missing "BalanceSnapshot.id" for update`)}
@@ -244,12 +244,12 @@ func (bsuo *BalanceSnapshotUpdateOne) sqlSave(ctx context.Context) (_node *Balan
 	_spec.Node.ID.Value = id
 	if fields := bsuo.fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, dbbalancesnapshot.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, balancesnapshot.FieldID)
 		for _, f := range fields {
-			if !dbbalancesnapshot.ValidColumn(f) {
+			if !balancesnapshot.ValidColumn(f) {
 				return nil, &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 			}
-			if f != dbbalancesnapshot.FieldID {
+			if f != balancesnapshot.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, f)
 			}
 		}
@@ -262,20 +262,20 @@ func (bsuo *BalanceSnapshotUpdateOne) sqlSave(ctx context.Context) (_node *Balan
 		}
 	}
 	if value, ok := bsuo.mutation.UpdatedAt(); ok {
-		_spec.SetField(dbbalancesnapshot.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(balancesnapshot.FieldUpdatedAt, field.TypeTime, value)
 	}
 	if value, ok := bsuo.mutation.DeletedAt(); ok {
-		_spec.SetField(dbbalancesnapshot.FieldDeletedAt, field.TypeTime, value)
+		_spec.SetField(balancesnapshot.FieldDeletedAt, field.TypeTime, value)
 	}
 	if bsuo.mutation.DeletedAtCleared() {
-		_spec.ClearField(dbbalancesnapshot.FieldDeletedAt, field.TypeTime)
+		_spec.ClearField(balancesnapshot.FieldDeletedAt, field.TypeTime)
 	}
 	_node = &BalanceSnapshot{config: bsuo.config}
 	_spec.Assign = _node.assignValues
 	_spec.ScanValues = _node.scanValues
 	if err = sqlgraph.UpdateNode(ctx, bsuo.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
-			err = &NotFoundError{dbbalancesnapshot.Label}
+			err = &NotFoundError{balancesnapshot.Label}
 		} else if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
 		}

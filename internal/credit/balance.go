@@ -7,7 +7,7 @@ import (
 	"sort"
 	"time"
 
-	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	"github.com/openmeterio/openmeter/internal/credit/balance"
 	"github.com/openmeterio/openmeter/internal/credit/engine"
 	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/pkg/clock"
@@ -24,9 +24,9 @@ type ResetUsageForOwnerParams struct {
 
 // Generic connector for balance related operations.
 type BalanceConnector interface {
-	GetBalanceOfOwner(ctx context.Context, owner grant.NamespacedGrantOwner, at time.Time) (*balancesnapshot.GrantBalanceSnapshot, error)
+	GetBalanceOfOwner(ctx context.Context, owner grant.NamespacedGrantOwner, at time.Time) (*balance.GrantBalanceSnapshot, error)
 	GetBalanceHistoryOfOwner(ctx context.Context, owner grant.NamespacedGrantOwner, params BalanceHistoryParams) (engine.GrantBurnDownHistory, error)
-	ResetUsageForOwner(ctx context.Context, owner grant.NamespacedGrantOwner, params ResetUsageForOwnerParams) (balanceAfterReset *balancesnapshot.GrantBalanceSnapshot, err error)
+	ResetUsageForOwner(ctx context.Context, owner grant.NamespacedGrantOwner, params ResetUsageForOwnerParams) (balanceAfterReset *balance.GrantBalanceSnapshot, err error)
 }
 
 type BalanceHistoryParams struct {
@@ -36,14 +36,14 @@ type BalanceHistoryParams struct {
 
 var _ BalanceConnector = &connector{}
 
-func (m *connector) GetBalanceOfOwner(ctx context.Context, owner grant.NamespacedGrantOwner, at time.Time) (*balancesnapshot.GrantBalanceSnapshot, error) {
+func (m *connector) GetBalanceOfOwner(ctx context.Context, owner grant.NamespacedGrantOwner, at time.Time) (*balance.GrantBalanceSnapshot, error) {
 	// To include the current last minute lets round it trunc to the next minute
 	if trunc := at.Truncate(time.Minute); trunc.Before(at) {
 		at = trunc.Add(time.Minute)
 	}
 
 	// get last valid grantbalances
-	balance, err := m.getLastValidBalanceSnapshotForOwnerAt(ctx, owner, at)
+	bal, err := m.getLastValidBalanceSnapshotForOwnerAt(ctx, owner, at)
 	if err != nil {
 		return nil, err
 	}
@@ -52,21 +52,21 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, owner grant.Namespace
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current usage period start for owner %s at %s: %w", owner.ID, at, err)
 	}
-	if balance.At.Before(periodStart) {
+	if bal.At.Before(periodStart) {
 		// This is an inconsistency check. It can only happen if we lost our snapshot for the last reset.
 		//
 		// The engine doesn't manage rollovers at usage reset so it cannot be used to calculate GrantBurnDown across resets.
-		return nil, fmt.Errorf("last valid balance snapshot %s is before current period start at %s, no snapshot was created for reset", balance.At, periodStart)
+		return nil, fmt.Errorf("last valid balance snapshot %s is before current period start at %s, no snapshot was created for reset", bal.At, periodStart)
 	}
 
 	// get all relevant grants
-	grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, owner, balance.At, at)
+	grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, owner, bal.At, at)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list active grants at %s for owner %s: %w", at, owner.ID, err)
 	}
 	// These grants might not be present in the starting balance so lets fill them
 	// This is only possible in case the grant becomes active exactly at the start of the current period
-	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&balance, grants, balance.At)
+	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&bal, grants, bal.At)
 
 	ownerSubjectKey, err := m.ownerConnector.GetOwnerSubjectKey(ctx, owner)
 	if err != nil {
@@ -83,10 +83,10 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, owner grant.Namespace
 	result, overage, segments, err := eng.Run(
 		ctx,
 		grants,
-		balance.Balances,
-		balance.Overage,
+		bal.Balances,
+		bal.Overage,
 		recurrence.Period{
-			From: balance.At,
+			From: bal.At,
 			To:   at,
 		},
 	)
@@ -107,7 +107,7 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, owner grant.Namespace
 	// just so it can be saved...
 	//
 	// FIXME: we should do this comparison not with the queried time but the current time...
-	if snap, err := m.getLastSaveableSnapshotAt(history, balance, at); err == nil {
+	if snap, err := m.getLastSaveableSnapshotAt(history, bal, at); err == nil {
 		grantMap := make(map[string]grant.Grant, len(grants))
 		for _, grant := range grants {
 			grantMap[grant.ID] = grant
@@ -117,7 +117,7 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, owner grant.Namespace
 			return nil, err
 		}
 		snap.Balances = *activeBalance
-		err = m.balanceSnapshotRepo.Save(ctx, owner, []balancesnapshot.GrantBalanceSnapshot{
+		err = m.balanceSnapshotRepo.Save(ctx, owner, []balance.GrantBalanceSnapshot{
 			*snap,
 		})
 		if err != nil {
@@ -126,7 +126,7 @@ func (m *connector) GetBalanceOfOwner(ctx context.Context, owner grant.Namespace
 	}
 
 	// return balance
-	return &balancesnapshot.GrantBalanceSnapshot{
+	return &balance.GrantBalanceSnapshot{
 		At:       at,
 		Balances: result,
 		Overage:  overage,
@@ -215,7 +215,7 @@ func (m *connector) GetBalanceHistoryOfOwner(ctx context.Context, owner grant.Na
 	return *history, err
 }
 
-func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.NamespacedGrantOwner, params ResetUsageForOwnerParams) (*balancesnapshot.GrantBalanceSnapshot, error) {
+func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.NamespacedGrantOwner, params ResetUsageForOwnerParams) (*balance.GrantBalanceSnapshot, error) {
 	// Cannot reset for the future
 	if params.At.After(clock.Now()) {
 		return nil, &models.GenericUserError{Message: fmt.Sprintf("cannot reset at %s in the future", params.At)}
@@ -240,24 +240,24 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 		return nil, &models.GenericUserError{Message: fmt.Sprintf("reset at %s is before current usage period start %s", at, periodStart)}
 	}
 
-	balance, err := m.getLastValidBalanceSnapshotForOwnerAt(ctx, owner, at)
+	bal, err := m.getLastValidBalanceSnapshotForOwnerAt(ctx, owner, at)
 	if err != nil {
 		return nil, err
 	}
 
-	if balance.At.Before(periodStart) {
+	if bal.At.Before(periodStart) {
 		// This is an inconsistency check. It can only happen if we lost our snapshot for the last reset.
 		//
 		// The engine doesn't manage rollovers at usage reset so it cannot be used to calculate GrantBurnDown across resets.
 		// FIXME: this is theoretically possible, we need to handle it, add capability to ledger.
-		return nil, fmt.Errorf("last valid balance snapshot %s is before current period start at %s, no snapshot was created for reset", balance.At, periodStart)
+		return nil, fmt.Errorf("last valid balance snapshot %s is before current period start at %s, no snapshot was created for reset", bal.At, periodStart)
 	}
 
-	grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, owner, balance.At, at)
+	grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, owner, bal.At, at)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list active grants at %s for owner %s: %w", at, owner.ID, err)
 	}
-	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&balance, grants, balance.At)
+	m.populateBalanceSnapshotWithMissingGrantsActiveAt(&bal, grants, bal.At)
 
 	engineParams, err := m.getQueryUsageFn(ctx, owner, ownerMeter.SubjectKey)
 	if err != nil {
@@ -268,10 +268,10 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 	endingBalance, _, _, err := eng.Run(
 		ctx,
 		grants,
-		balance.Balances,
-		balance.Overage,
+		bal.Balances,
+		bal.Overage,
 		recurrence.Period{
-			From: balance.At,
+			From: bal.At,
 			To:   at,
 		},
 	)
@@ -286,7 +286,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 
 	// We have to roll over the grants and save the starting balance for the next period at the reset time.
 	// Engine treates the output balance as a period end (exclusive), but we need to treat it as a period start (inclusive).
-	startingBalance := balancesnapshot.GrantBalanceMap{}
+	startingBalance := balance.GrantBalanceMap{}
 	for grantID, grantBalance := range endingBalance {
 		grant, ok := grantMap[grantID]
 		// inconsistency check, shouldn't happen
@@ -302,7 +302,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 		startingBalance.Set(grantID, grant.RolloverBalance(grantBalance))
 	}
 
-	startingSnapshot := balancesnapshot.GrantBalanceSnapshot{
+	startingSnapshot := balance.GrantBalanceSnapshot{
 		At:       at,
 		Balances: startingBalance,
 		Overage:  0.0, // Overage is forgiven at reset
@@ -312,13 +312,13 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 	// We should introduce an abstraction, maybe an AtomicOperation with something like an AtimicityGuarantee
 	// (these would practically mirror entutils.TxUser & entutils.TxDriver) and then write an implementation of the
 	// using the ent transactions we have.
-	_, err = entutils.StartAndRunTx(ctx, m.balanceSnapshotRepo, func(txCtx context.Context, tx *entutils.TxDriver) (*balancesnapshot.GrantBalanceSnapshot, error) {
+	_, err = entutils.StartAndRunTx(ctx, m.balanceSnapshotRepo, func(txCtx context.Context, tx *entutils.TxDriver) (*balance.GrantBalanceSnapshot, error) {
 		err := m.ownerConnector.LockOwnerForTx(ctx, tx, owner)
 		if err != nil {
 			return nil, fmt.Errorf("failed to lock owner %s: %w", owner.ID, err)
 		}
 
-		err = m.balanceSnapshotRepo.WithTx(txCtx, tx).Save(ctx, owner, []balancesnapshot.GrantBalanceSnapshot{startingSnapshot})
+		err = m.balanceSnapshotRepo.WithTx(txCtx, tx).Save(ctx, owner, []balance.GrantBalanceSnapshot{startingSnapshot})
 		if err != nil {
 			return nil, fmt.Errorf("failed to save balance for owner %s at %s: %w", owner.ID, at, err)
 		}
@@ -344,24 +344,24 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 //
 // If no snapshot exists returns a default snapshot for measurement start to recalculate the entire history
 // in case no usable snapshot was found.
-func (m *connector) getLastValidBalanceSnapshotForOwnerAt(ctx context.Context, owner grant.NamespacedGrantOwner, at time.Time) (balancesnapshot.GrantBalanceSnapshot, error) {
-	balance, err := m.balanceSnapshotRepo.GetLatestValidAt(ctx, owner, at)
+func (m *connector) getLastValidBalanceSnapshotForOwnerAt(ctx context.Context, owner grant.NamespacedGrantOwner, at time.Time) (balance.GrantBalanceSnapshot, error) {
+	bal, err := m.balanceSnapshotRepo.GetLatestValidAt(ctx, owner, at)
 	if err != nil {
-		if _, ok := err.(*balancesnapshot.GrantBalanceNoSavedBalanceForOwnerError); ok {
+		if _, ok := err.(*balance.GrantBalanceNoSavedBalanceForOwnerError); ok {
 			// if no snapshot is found we have to calculate from start of time on all grants and usage
 			m.logger.Debug(fmt.Sprintf("no saved balance found for owner %s before %s, calculating from start of time", owner.ID, at))
 
 			startOfMeasurement, err := m.ownerConnector.GetStartOfMeasurement(ctx, owner)
 			if err != nil {
-				return balance, err
+				return bal, err
 			}
 
 			grants, err := m.grantRepo.ListActiveGrantsBetween(ctx, owner, startOfMeasurement, at)
 			if err != nil {
-				return balance, err
+				return bal, err
 			}
 
-			balances := balancesnapshot.GrantBalanceMap{}
+			balances := balance.GrantBalanceMap{}
 			for _, grant := range grants {
 				if grant.ActiveAt(startOfMeasurement) {
 					// Grants that are active at the start will have full balance
@@ -372,17 +372,17 @@ func (m *connector) getLastValidBalanceSnapshotForOwnerAt(ctx context.Context, o
 				}
 			}
 
-			balance = balancesnapshot.GrantBalanceSnapshot{
+			bal = balance.GrantBalanceSnapshot{
 				At:       startOfMeasurement,
 				Balances: balances,
 				Overage:  0.0, // There cannot be overage at the start of measurement
 			}
 		} else {
-			return balance, fmt.Errorf("failed to get latest valid grant balance at %s for owner %s: %w", at, owner.ID, err)
+			return bal, fmt.Errorf("failed to get latest valid grant balance at %s for owner %s: %w", at, owner.ID, err)
 		}
 	}
 
-	return balance, nil
+	return bal, nil
 }
 
 type engineParams struct {
@@ -424,7 +424,7 @@ func (m *connector) getQueryUsageFn(ctx context.Context, owner grant.NamespacedG
 //  1. We can save a segment if it is older than graceperiod.
 //  2. At the end of a segment history changes: s1.endBalance <> s2.startBalance. This means only the
 //     starting values can be saved credibly.
-func (m *connector) getLastSaveableSnapshotAt(history *engine.GrantBurnDownHistory, lastValidBalance balancesnapshot.GrantBalanceSnapshot, at time.Time) (*balancesnapshot.GrantBalanceSnapshot, error) {
+func (m *connector) getLastSaveableSnapshotAt(history *engine.GrantBurnDownHistory, lastValidBalance balance.GrantBalanceSnapshot, at time.Time) (*balance.GrantBalanceSnapshot, error) {
 	segments := history.Segments()
 
 	for i := len(segments) - 1; i >= 0; i-- {
@@ -442,8 +442,8 @@ func (m *connector) getLastSaveableSnapshotAt(history *engine.GrantBurnDownHisto
 	return nil, fmt.Errorf("no segment can be saved at %s with gracePeriod %s", at, m.snapshotGracePeriod)
 }
 
-func (m *connector) excludeInactiveGrantsFromBalance(balances balancesnapshot.GrantBalanceMap, grants map[string]grant.Grant, at time.Time) (*balancesnapshot.GrantBalanceMap, error) {
-	filtered := &balancesnapshot.GrantBalanceMap{}
+func (m *connector) excludeInactiveGrantsFromBalance(balances balance.GrantBalanceMap, grants map[string]grant.Grant, at time.Time) (*balance.GrantBalanceMap, error) {
+	filtered := &balance.GrantBalanceMap{}
 	for grantID, grantBalance := range balances {
 		grant, ok := grants[grantID]
 		// inconsistency check, shouldn't happen
@@ -462,7 +462,7 @@ func (m *connector) excludeInactiveGrantsFromBalance(balances balancesnapshot.Gr
 }
 
 // Fills in the snapshot's GrantBalanceMap with the provided grants so the Engine can use them.
-func (m *connector) populateBalanceSnapshotWithMissingGrantsActiveAt(snapshot *balancesnapshot.GrantBalanceSnapshot, grants []grant.Grant, at time.Time) {
+func (m *connector) populateBalanceSnapshotWithMissingGrantsActiveAt(snapshot *balance.GrantBalanceSnapshot, grants []grant.Grant, at time.Time) {
 	for _, grant := range grants {
 		if _, ok := snapshot.Balances[grant.ID]; !ok {
 			if grant.ActiveAt(at) {

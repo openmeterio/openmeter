@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	"github.com/openmeterio/openmeter/internal/credit/balance"
 	"github.com/openmeterio/openmeter/internal/credit/engine"
 	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/streaming"
@@ -65,7 +65,7 @@ func TestEngine(t *testing.T) {
 				b1, o1, s1, err1 := engine.Run(
 					context.Background(),
 					[]grant.Grant{g1},
-					balancesnapshot.GrantBalanceMap{
+					balance.GrantBalanceMap{
 						g1.ID: 100.0,
 					},
 					0,
@@ -78,7 +78,7 @@ func TestEngine(t *testing.T) {
 				b2, o2, s2, err2 := engine.Run(
 					context.Background(),
 					[]grant.Grant{g1},
-					balancesnapshot.GrantBalanceMap{
+					balance.GrantBalanceMap{
 						g1.ID: 100.0,
 					},
 					0,
@@ -100,17 +100,17 @@ func TestEngine(t *testing.T) {
 				res, overage, segments, err := eng.Run(
 					context.Background(),
 					[]grant.Grant{},
-					balancesnapshot.GrantBalanceMap{}, 0, recurrence.Period{
+					balance.GrantBalanceMap{}, 0, recurrence.Period{
 						From: t1,
 						To:   t1.AddDate(0, 0, 30),
 					})
 
 				assert.NoError(t, err)
 				assert.Equal(t, 50.0, overage)
-				assert.Equal(t, balancesnapshot.GrantBalanceMap{}, res)
+				assert.Equal(t, balance.GrantBalanceMap{}, res)
 				assert.Equal(t, []engine.GrantBurnDownHistorySegment{
 					{
-						BalanceAtStart: balancesnapshot.GrantBalanceMap{},
+						BalanceAtStart: balance.GrantBalanceMap{},
 						GrantUsages:    []engine.GrantUsage{},
 						Period: recurrence.Period{
 							From: t1,
@@ -130,7 +130,7 @@ func TestEngine(t *testing.T) {
 				_, _, _, err := engine.Run(
 					context.Background(),
 					[]grant.Grant{},
-					balancesnapshot.GrantBalanceMap{
+					balance.GrantBalanceMap{
 						grant1.ID: 100.0,
 					}, 0, recurrence.Period{
 						From: t1,
@@ -151,7 +151,7 @@ func TestEngine(t *testing.T) {
 				_, _, _, err := engine.Run(
 					context.Background(),
 					[]grant.Grant{g1, g2},
-					balancesnapshot.GrantBalanceMap{
+					balance.GrantBalanceMap{
 						grant1.ID: 100.0,
 					}, 0, recurrence.Period{
 						From: t1,
@@ -168,7 +168,7 @@ func TestEngine(t *testing.T) {
 				res, _, _, err := engine.Run(
 					context.Background(),
 					[]grant.Grant{grant1},
-					balancesnapshot.GrantBalanceMap{
+					balance.GrantBalanceMap{
 						grant1.ID: 100.0,
 					}, 0, recurrence.Period{
 						From: t1,
@@ -190,7 +190,7 @@ func TestEngine(t *testing.T) {
 				res, _, _, err := engine.Run(
 					context.Background(),
 					[]grant.Grant{g},
-					balancesnapshot.GrantBalanceMap{
+					balance.GrantBalanceMap{
 						g.ID: 100.0,
 					}, 0, recurrence.Period{
 						From: t1,
@@ -213,7 +213,7 @@ func TestEngine(t *testing.T) {
 				res, _, _, err := engine.Run(
 					context.Background(),
 					[]grant.Grant{g},
-					balancesnapshot.GrantBalanceMap{
+					balance.GrantBalanceMap{
 						g.ID: 100.0,
 					}, 0, recurrence.Period{
 						From: t1,
@@ -238,7 +238,7 @@ func TestEngine(t *testing.T) {
 				res, overage, history, err := engine.Run(
 					context.Background(),
 					[]grant.Grant{g},
-					balancesnapshot.GrantBalanceMap{
+					balance.GrantBalanceMap{
 						g.ID: 100.0,
 					}, 0, recurrence.Period{
 						From: t1,
@@ -268,7 +268,7 @@ func TestEngine(t *testing.T) {
 				res, overage, history, err := engine.Run(
 					context.Background(),
 					[]grant.Grant{g},
-					balancesnapshot.GrantBalanceMap{
+					balance.GrantBalanceMap{
 						g.ID: 100.0,
 					}, 0, recurrence.Period{
 						From: t1,
@@ -297,7 +297,7 @@ func TestEngine(t *testing.T) {
 				res, _, _, err := engine.Run(
 					context.Background(),
 					[]grant.Grant{g},
-					balancesnapshot.GrantBalanceMap{
+					balance.GrantBalanceMap{
 						g.ID: 100.0,
 					}, 0, recurrence.Period{
 						From: t1,
@@ -321,7 +321,7 @@ func TestEngine(t *testing.T) {
 				res, _, _, err := engine.Run(
 					context.Background(),
 					[]grant.Grant{g},
-					balancesnapshot.GrantBalanceMap{
+					balance.GrantBalanceMap{
 						g.ID: 100.0,
 					},
 					0,
@@ -350,7 +350,7 @@ func TestEngine(t *testing.T) {
 				res, _, segments, err := engine.Run(
 					context.Background(),
 					[]grant.Grant{g},
-					balancesnapshot.GrantBalanceMap{
+					balance.GrantBalanceMap{
 						g.ID: 0.0,
 					},
 					0,
@@ -388,7 +388,7 @@ func TestEngine(t *testing.T) {
 				res, _, _, err := engine.Run(
 					context.Background(),
 					[]grant.Grant{g1, g2},
-					balancesnapshot.GrantBalanceMap{
+					balance.GrantBalanceMap{
 						g1.ID: 100.0,
 						g2.ID: 100.0,
 					},
@@ -421,7 +421,7 @@ func TestEngine(t *testing.T) {
 				res, _, _, err := engine.Run(
 					context.Background(),
 					[]grant.Grant{g2, g1},
-					balancesnapshot.GrantBalanceMap{
+					balance.GrantBalanceMap{
 						g1.ID: 100.0,
 						g2.ID: 100.0,
 					},
@@ -454,7 +454,7 @@ func TestEngine(t *testing.T) {
 				res, _, _, err := engine.Run(
 					context.Background(),
 					[]grant.Grant{g2, g1},
-					balancesnapshot.GrantBalanceMap{
+					balance.GrantBalanceMap{
 						g1.ID: 100.0,
 						g2.ID: 100.0,
 					},
@@ -497,7 +497,7 @@ func TestEngine(t *testing.T) {
 				grants[0] = makeGrant(grants[0])
 
 				gToBurn := grants[0]
-				bm := balancesnapshot.GrantBalanceMap{}
+				bm := balance.GrantBalanceMap{}
 				for _, g := range grants {
 					bm[g.ID] = 100.0
 				}
@@ -546,7 +546,7 @@ func TestEngine(t *testing.T) {
 				res, _, _, err := engine.Run(
 					context.Background(),
 					[]grant.Grant{g1},
-					balancesnapshot.GrantBalanceMap{
+					balance.GrantBalanceMap{
 						g1.ID: 100.0,
 					},
 					0,
@@ -591,7 +591,7 @@ func TestEngine(t *testing.T) {
 				res1, _, _, err := engine.Run(
 					context.Background(),
 					[]grant.Grant{g1, g2},
-					balancesnapshot.GrantBalanceMap{
+					balance.GrantBalanceMap{
 						g1.ID: 80.0, // due to use before start
 						g2.ID: 100.0,
 					},
@@ -639,7 +639,7 @@ func TestEngine(t *testing.T) {
 				res2, _, _, err := engine.Run(
 					context.Background(),
 					[]grant.Grant{g1, g2},
-					balancesnapshot.GrantBalanceMap{
+					balance.GrantBalanceMap{
 						g1.ID: 80.0, // due to use before start
 						g2.ID: 100.0,
 					},
@@ -694,7 +694,7 @@ func TestEngine(t *testing.T) {
 				_, _, segments, err := engine.Run(
 					context.Background(),
 					[]grant.Grant{g1, g2},
-					balancesnapshot.GrantBalanceMap{
+					balance.GrantBalanceMap{
 						g1.ID: 80.0, // due to use before start
 						g2.ID: 100.0,
 					},
@@ -759,7 +759,7 @@ func TestEngine(t *testing.T) {
 				_, _, segments, err := engine.Run(
 					context.Background(),
 					[]grant.Grant{g1, g2, g3},
-					balancesnapshot.GrantBalanceMap{
+					balance.GrantBalanceMap{
 						g1.ID: 80.0, // due to use before start
 						g2.ID: 100.0,
 						g3.ID: 100.0,
@@ -844,7 +844,7 @@ func TestEngine(t *testing.T) {
 				g2.Priority = 2
 				g2 = makeGrant(g2)
 
-				startingBalance := balancesnapshot.GrantBalanceMap{
+				startingBalance := balance.GrantBalanceMap{
 					g1.ID: 100.0,
 					g2.ID: 82.0,
 				}
@@ -937,14 +937,14 @@ func TestEngine(t *testing.T) {
 				}
 
 				// configure starting balances
-				startingBalances := make(balancesnapshot.GrantBalanceMap)
+				startingBalances := make(balance.GrantBalanceMap)
 				for _, grant := range grants {
 					startingBalances[grant.ID] = float64(gofakeit.IntRange(1, int(grant.Amount)))
 				}
 
 				// run calculation multiple times
 				balances := startingBalances.Copy()
-				results := make([]balancesnapshot.GrantBalanceMap, numOfRuns)
+				results := make([]balance.GrantBalanceMap, numOfRuns)
 				for i := 0; i < numOfRuns; i++ {
 					engine := engine.NewEngine(queryFn, models.WindowSizeMinute)
 					gCp := make([]grant.Grant, len(grants))
@@ -962,7 +962,7 @@ func TestEngine(t *testing.T) {
 					results[i] = result.Copy()
 				}
 
-				sumVals := func(m balancesnapshot.GrantBalanceMap) float64 {
+				sumVals := func(m balance.GrantBalanceMap) float64 {
 					sum := 0.0
 					for _, v := range m {
 						sum += v
@@ -1020,7 +1020,7 @@ func TestEngine(t *testing.T) {
 				}
 
 				// configure starting balances
-				startingBalances := make(balancesnapshot.GrantBalanceMap)
+				startingBalances := make(balance.GrantBalanceMap)
 				for _, grant := range grants {
 					startingBalances[grant.ID] = float64(gofakeit.IntRange(1, int(grant.Amount)))
 				}

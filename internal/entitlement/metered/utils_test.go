@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/internal/credit"
-	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	"github.com/openmeterio/openmeter/internal/credit/balance"
 	"github.com/openmeterio/openmeter/internal/credit/grant"
 	credit_postgres_adapter "github.com/openmeterio/openmeter/internal/credit/postgresdriver"
 	"github.com/openmeterio/openmeter/internal/ent/db"
@@ -31,7 +31,7 @@ type dependencies struct {
 	entitlementRepo     entitlement.EntitlementRepo
 	usageResetRepo      meteredentitlement.UsageResetRepo
 	grantRepo           grant.GrantRepo
-	balanceSnapshotRepo balancesnapshot.BalanceSnapshotRepo
+	balanceSnapshotRepo balance.BalanceSnapshotRepo
 	balanceConnector    credit.BalanceConnector
 	streamingConnector  *streaming_testutils.MockStreamingConnector
 }

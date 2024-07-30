@@ -1,11 +1,11 @@
-package balancesnapshot_test
+package balance_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	balance "github.com/openmeterio/openmeter/internal/credit/balance"
 	"github.com/openmeterio/openmeter/internal/credit/grant"
 )
 
@@ -19,7 +19,7 @@ func TestGrantBalanceMap(t *testing.T) {
 	t.Run("ExactlyForGrants", func(t *testing.T) {
 		makeGrant("1")
 
-		gbm := balancesnapshot.GrantBalanceMap{
+		gbm := balance.GrantBalanceMap{
 			"1": 100.0,
 			"2": 100.0,
 			"3": 100.0,

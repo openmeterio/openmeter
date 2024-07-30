@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	"github.com/openmeterio/openmeter/internal/credit/balance"
 	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -39,7 +39,7 @@ func (e *balanceSnapshotAdapter) Tx(ctx context.Context) (context.Context, *entu
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
-func (e *balanceSnapshotAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) balancesnapshot.BalanceSnapshotRepo {
+func (e *balanceSnapshotAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) balance.BalanceSnapshotRepo {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
 	return NewPostgresBalanceSnapshotRepo(txClient.Client())
 }

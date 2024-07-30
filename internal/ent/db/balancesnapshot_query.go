@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	dbbalancesnapshot "github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
+	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 )
@@ -21,7 +21,7 @@ import (
 type BalanceSnapshotQuery struct {
 	config
 	ctx             *QueryContext
-	order           []dbbalancesnapshot.OrderOption
+	order           []balancesnapshot.OrderOption
 	inters          []Interceptor
 	predicates      []predicate.BalanceSnapshot
 	withEntitlement *EntitlementQuery
@@ -57,7 +57,7 @@ func (bsq *BalanceSnapshotQuery) Unique(unique bool) *BalanceSnapshotQuery {
 }
 
 // Order specifies how the records should be ordered.
-func (bsq *BalanceSnapshotQuery) Order(o ...dbbalancesnapshot.OrderOption) *BalanceSnapshotQuery {
+func (bsq *BalanceSnapshotQuery) Order(o ...balancesnapshot.OrderOption) *BalanceSnapshotQuery {
 	bsq.order = append(bsq.order, o...)
 	return bsq
 }
@@ -74,9 +74,9 @@ func (bsq *BalanceSnapshotQuery) QueryEntitlement() *EntitlementQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(dbbalancesnapshot.Table, dbbalancesnapshot.FieldID, selector),
+			sqlgraph.From(balancesnapshot.Table, balancesnapshot.FieldID, selector),
 			sqlgraph.To(entitlement.Table, entitlement.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, dbbalancesnapshot.EntitlementTable, dbbalancesnapshot.EntitlementColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, balancesnapshot.EntitlementTable, balancesnapshot.EntitlementColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(bsq.driver.Dialect(), step)
 		return fromU, nil
@@ -92,7 +92,7 @@ func (bsq *BalanceSnapshotQuery) First(ctx context.Context) (*BalanceSnapshot, e
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{dbbalancesnapshot.Label}
+		return nil, &NotFoundError{balancesnapshot.Label}
 	}
 	return nodes[0], nil
 }
@@ -114,7 +114,7 @@ func (bsq *BalanceSnapshotQuery) FirstID(ctx context.Context) (id int, err error
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{dbbalancesnapshot.Label}
+		err = &NotFoundError{balancesnapshot.Label}
 		return
 	}
 	return ids[0], nil
@@ -141,9 +141,9 @@ func (bsq *BalanceSnapshotQuery) Only(ctx context.Context) (*BalanceSnapshot, er
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{dbbalancesnapshot.Label}
+		return nil, &NotFoundError{balancesnapshot.Label}
 	default:
-		return nil, &NotSingularError{dbbalancesnapshot.Label}
+		return nil, &NotSingularError{balancesnapshot.Label}
 	}
 }
 
@@ -168,9 +168,9 @@ func (bsq *BalanceSnapshotQuery) OnlyID(ctx context.Context) (id int, err error)
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{dbbalancesnapshot.Label}
+		err = &NotFoundError{balancesnapshot.Label}
 	default:
-		err = &NotSingularError{dbbalancesnapshot.Label}
+		err = &NotSingularError{balancesnapshot.Label}
 	}
 	return
 }
@@ -209,7 +209,7 @@ func (bsq *BalanceSnapshotQuery) IDs(ctx context.Context) (ids []int, err error)
 		bsq.Unique(true)
 	}
 	ctx = setContextOp(ctx, bsq.ctx, ent.OpQueryIDs)
-	if err = bsq.Select(dbbalancesnapshot.FieldID).Scan(ctx, &ids); err != nil {
+	if err = bsq.Select(balancesnapshot.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
@@ -273,7 +273,7 @@ func (bsq *BalanceSnapshotQuery) Clone() *BalanceSnapshotQuery {
 	return &BalanceSnapshotQuery{
 		config:          bsq.config,
 		ctx:             bsq.ctx.Clone(),
-		order:           append([]dbbalancesnapshot.OrderOption{}, bsq.order...),
+		order:           append([]balancesnapshot.OrderOption{}, bsq.order...),
 		inters:          append([]Interceptor{}, bsq.inters...),
 		predicates:      append([]predicate.BalanceSnapshot{}, bsq.predicates...),
 		withEntitlement: bsq.withEntitlement.Clone(),
@@ -305,14 +305,14 @@ func (bsq *BalanceSnapshotQuery) WithEntitlement(opts ...func(*EntitlementQuery)
 //	}
 //
 //	client.BalanceSnapshot.Query().
-//		GroupBy(dbbalancesnapshot.FieldNamespace).
+//		GroupBy(balancesnapshot.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
 func (bsq *BalanceSnapshotQuery) GroupBy(field string, fields ...string) *BalanceSnapshotGroupBy {
 	bsq.ctx.Fields = append([]string{field}, fields...)
 	grbuild := &BalanceSnapshotGroupBy{build: bsq}
 	grbuild.flds = &bsq.ctx.Fields
-	grbuild.label = dbbalancesnapshot.Label
+	grbuild.label = balancesnapshot.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -327,12 +327,12 @@ func (bsq *BalanceSnapshotQuery) GroupBy(field string, fields ...string) *Balanc
 //	}
 //
 //	client.BalanceSnapshot.Query().
-//		Select(dbbalancesnapshot.FieldNamespace).
+//		Select(balancesnapshot.FieldNamespace).
 //		Scan(ctx, &v)
 func (bsq *BalanceSnapshotQuery) Select(fields ...string) *BalanceSnapshotSelect {
 	bsq.ctx.Fields = append(bsq.ctx.Fields, fields...)
 	sbuild := &BalanceSnapshotSelect{BalanceSnapshotQuery: bsq}
-	sbuild.label = dbbalancesnapshot.Label
+	sbuild.label = balancesnapshot.Label
 	sbuild.flds, sbuild.scan = &bsq.ctx.Fields, sbuild.Scan
 	return sbuild
 }
@@ -354,7 +354,7 @@ func (bsq *BalanceSnapshotQuery) prepareQuery(ctx context.Context) error {
 		}
 	}
 	for _, f := range bsq.ctx.Fields {
-		if !dbbalancesnapshot.ValidColumn(f) {
+		if !balancesnapshot.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
@@ -449,7 +449,7 @@ func (bsq *BalanceSnapshotQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (bsq *BalanceSnapshotQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(dbbalancesnapshot.Table, dbbalancesnapshot.Columns, sqlgraph.NewFieldSpec(dbbalancesnapshot.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewQuerySpec(balancesnapshot.Table, balancesnapshot.Columns, sqlgraph.NewFieldSpec(balancesnapshot.FieldID, field.TypeInt))
 	_spec.From = bsq.sql
 	if unique := bsq.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -458,14 +458,14 @@ func (bsq *BalanceSnapshotQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := bsq.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, dbbalancesnapshot.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, balancesnapshot.FieldID)
 		for i := range fields {
-			if fields[i] != dbbalancesnapshot.FieldID {
+			if fields[i] != balancesnapshot.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
 		if bsq.withEntitlement != nil {
-			_spec.Node.AddColumnOnce(dbbalancesnapshot.FieldOwnerID)
+			_spec.Node.AddColumnOnce(balancesnapshot.FieldOwnerID)
 		}
 	}
 	if ps := bsq.predicates; len(ps) > 0 {
@@ -493,10 +493,10 @@ func (bsq *BalanceSnapshotQuery) querySpec() *sqlgraph.QuerySpec {
 
 func (bsq *BalanceSnapshotQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(bsq.driver.Dialect())
-	t1 := builder.Table(dbbalancesnapshot.Table)
+	t1 := builder.Table(balancesnapshot.Table)
 	columns := bsq.ctx.Fields
 	if len(columns) == 0 {
-		columns = dbbalancesnapshot.Columns
+		columns = balancesnapshot.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if bsq.sql != nil {

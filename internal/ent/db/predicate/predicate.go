@@ -6,7 +6,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
-// BalanceSnapshot is the predicate function for dbbalancesnapshot builders.
+// BalanceSnapshot is the predicate function for balancesnapshot builders.
 type BalanceSnapshot func(*sql.Selector)
 
 // Entitlement is the predicate function for entitlement builders.

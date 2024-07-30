@@ -8,7 +8,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 
-	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	"github.com/openmeterio/openmeter/internal/credit/balance"
 	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
@@ -20,7 +20,7 @@ type Engine interface {
 	//
 	// When the engine outputs a balance, it doesn't discriminate what should be in that balance.
 	// If a grant is inactive at the end of the period, it will still be in the output.
-	Run(ctx context.Context, grants []grant.Grant, startingBalances balancesnapshot.GrantBalanceMap, startingOverage float64, period recurrence.Period) (endingBalances balancesnapshot.GrantBalanceMap, endingOverage float64, history []GrantBurnDownHistorySegment, err error)
+	Run(ctx context.Context, grants []grant.Grant, startingBalances balance.GrantBalanceMap, startingOverage float64, period recurrence.Period) (endingBalances balance.GrantBalanceMap, endingOverage float64, history []GrantBurnDownHistorySegment, err error)
 }
 
 type QueryUsageFn func(ctx context.Context, from, to time.Time) (float64, error)
@@ -52,7 +52,7 @@ var _ Engine = (*engine)(nil)
 //
 // When the engine outputs a balance, it doesn't discriminate what should be in that balance.
 // If a grant is inactive at the end of the period, it will still be in the output.
-func (e *engine) Run(ctx context.Context, grants []grant.Grant, startingBalances balancesnapshot.GrantBalanceMap, overage float64, period recurrence.Period) (balancesnapshot.GrantBalanceMap, float64, []GrantBurnDownHistorySegment, error) {
+func (e *engine) Run(ctx context.Context, grants []grant.Grant, startingBalances balance.GrantBalanceMap, overage float64, period recurrence.Period) (balance.GrantBalanceMap, float64, []GrantBurnDownHistorySegment, error) {
 	if !startingBalances.ExactlyForGrants(grants) {
 		return nil, 0, nil, fmt.Errorf("provided grants and balances don't pair up, grants: %+v, balances: %+v", grants, startingBalances)
 	}
@@ -161,7 +161,7 @@ func (e *engine) Run(ctx context.Context, grants []grant.Grant, startingBalances
 // All calculations are done during this function.
 //
 // FIXME: calculations happen on inexact representations as float64, this can lead to rounding errors.
-func (e *engine) BurnDownGrants(startingBalances balancesnapshot.GrantBalanceMap, prioritized []grant.Grant, usage float64) (balancesnapshot.GrantBalanceMap, []GrantUsage, float64, error) {
+func (e *engine) BurnDownGrants(startingBalances balance.GrantBalanceMap, prioritized []grant.Grant, usage float64) (balance.GrantBalanceMap, []GrantUsage, float64, error) {
 	balances := startingBalances.Copy()
 	uses := make([]GrantUsage, 0, len(prioritized))
 	exactUsage := alpacadecimal.NewFromFloat(usage)

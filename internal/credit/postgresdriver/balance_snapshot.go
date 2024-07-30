@@ -6,7 +6,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 
-	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	"github.com/openmeterio/openmeter/internal/credit/balance"
 	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	db_balancesnapshot "github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
@@ -18,7 +18,7 @@ type balanceSnapshotAdapter struct {
 	db *db.Client
 }
 
-func NewPostgresBalanceSnapshotRepo(db *db.Client) balancesnapshot.BalanceSnapshotRepo {
+func NewPostgresBalanceSnapshotRepo(db *db.Client) balance.BalanceSnapshotRepo {
 	return &balanceSnapshotAdapter{
 		db: db,
 	}
@@ -31,7 +31,7 @@ func (b *balanceSnapshotAdapter) InvalidateAfter(ctx context.Context, owner gran
 		Exec(ctx)
 }
 
-func (b *balanceSnapshotAdapter) GetLatestValidAt(ctx context.Context, owner grant.NamespacedGrantOwner, at time.Time) (balancesnapshot.GrantBalanceSnapshot, error) {
+func (b *balanceSnapshotAdapter) GetLatestValidAt(ctx context.Context, owner grant.NamespacedGrantOwner, at time.Time) (balance.GrantBalanceSnapshot, error) {
 	res, err := b.db.BalanceSnapshot.Query().
 		Where(
 			db_balancesnapshot.OwnerID(string(owner.ID)),
@@ -44,15 +44,15 @@ func (b *balanceSnapshotAdapter) GetLatestValidAt(ctx context.Context, owner gra
 		First(ctx)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return balancesnapshot.GrantBalanceSnapshot{}, &balancesnapshot.GrantBalanceNoSavedBalanceForOwnerError{Owner: owner, Time: at}
+			return balance.GrantBalanceSnapshot{}, &balance.GrantBalanceNoSavedBalanceForOwnerError{Owner: owner, Time: at}
 		}
-		return balancesnapshot.GrantBalanceSnapshot{}, err
+		return balance.GrantBalanceSnapshot{}, err
 	}
 
 	return mapBalanceSnapshotEntity(res), nil
 }
 
-func (b *balanceSnapshotAdapter) Save(ctx context.Context, owner grant.NamespacedGrantOwner, balances []balancesnapshot.GrantBalanceSnapshot) error {
+func (b *balanceSnapshotAdapter) Save(ctx context.Context, owner grant.NamespacedGrantOwner, balances []balance.GrantBalanceSnapshot) error {
 	commands := make([]*db.BalanceSnapshotCreate, 0, len(balances))
 	for _, balance := range balances {
 		command := b.db.BalanceSnapshot.Create().
@@ -68,8 +68,8 @@ func (b *balanceSnapshotAdapter) Save(ctx context.Context, owner grant.Namespace
 	return err
 }
 
-func mapBalanceSnapshotEntity(entity *db.BalanceSnapshot) balancesnapshot.GrantBalanceSnapshot {
-	return balancesnapshot.GrantBalanceSnapshot{
+func mapBalanceSnapshotEntity(entity *db.BalanceSnapshot) balance.GrantBalanceSnapshot {
+	return balance.GrantBalanceSnapshot{
 		Balances: entity.GrantBalances,
 		Overage:  entity.Overage,
 		At:       entity.At.In(time.UTC),

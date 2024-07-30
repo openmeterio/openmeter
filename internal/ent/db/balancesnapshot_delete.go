@@ -8,9 +8,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
-
-	dbbalancesnapshot "github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 )
 
 // BalanceSnapshotDelete is the builder for deleting a BalanceSnapshot entity.
@@ -41,7 +40,7 @@ func (bsd *BalanceSnapshotDelete) ExecX(ctx context.Context) int {
 }
 
 func (bsd *BalanceSnapshotDelete) sqlExec(ctx context.Context) (int, error) {
-	_spec := sqlgraph.NewDeleteSpec(dbbalancesnapshot.Table, sqlgraph.NewFieldSpec(dbbalancesnapshot.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewDeleteSpec(balancesnapshot.Table, sqlgraph.NewFieldSpec(balancesnapshot.FieldID, field.TypeInt))
 	if ps := bsd.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -75,7 +74,7 @@ func (bsdo *BalanceSnapshotDeleteOne) Exec(ctx context.Context) error {
 	case err != nil:
 		return err
 	case n == 0:
-		return &NotFoundError{dbbalancesnapshot.Label}
+		return &NotFoundError{balancesnapshot.Label}
 	default:
 		return nil
 	}

@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/internal/credit"
-	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	"github.com/openmeterio/openmeter/internal/credit/balance"
 	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
@@ -357,11 +357,11 @@ func TestBalanceCalculationsAfterVoiding(t *testing.T) {
 	err = deps.BalanceSnapshotRepo.Save(ctx, grant.NamespacedGrantOwner{
 		Namespace: "namespace-1",
 		ID:        grant.GrantOwner(entitlement.ID),
-	}, []balancesnapshot.GrantBalanceSnapshot{
+	}, []balance.GrantBalanceSnapshot{
 		{
 			At:      testutils.GetRFC3339Time(t, "2024-07-09T13:09:00Z"),
 			Overage: 0.0,
-			Balances: balancesnapshot.GrantBalanceMap{
+			Balances: balance.GrantBalanceMap{
 				grant1.ID: 488.0,
 				grant2.ID: 10000.0,
 			},

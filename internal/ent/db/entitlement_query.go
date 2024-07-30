@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	dbbalancesnapshot "github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
+	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/internal/ent/db/grant"
@@ -126,7 +126,7 @@ func (eq *EntitlementQuery) QueryBalanceSnapshot() *BalanceSnapshotQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(entitlement.Table, entitlement.FieldID, selector),
-			sqlgraph.To(dbbalancesnapshot.Table, dbbalancesnapshot.FieldID),
+			sqlgraph.To(balancesnapshot.Table, balancesnapshot.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, entitlement.BalanceSnapshotTable, entitlement.BalanceSnapshotColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
@@ -610,7 +610,7 @@ func (eq *EntitlementQuery) loadBalanceSnapshot(ctx context.Context, query *Bala
 		}
 	}
 	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(dbbalancesnapshot.FieldOwnerID)
+		query.ctx.AppendFieldOnce(balancesnapshot.FieldOwnerID)
 	}
 	query.Where(predicate.BalanceSnapshot(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(entitlement.BalanceSnapshotColumn), fks...))

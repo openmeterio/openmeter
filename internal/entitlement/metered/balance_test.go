@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	"github.com/openmeterio/openmeter/internal/credit/balance"
 	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
@@ -255,9 +255,9 @@ func TestGetEntitlementBalance(t *testing.T) {
 				// add a balance snapshot
 				err = deps.balanceSnapshotRepo.Save(
 					ctx,
-					owner, []balancesnapshot.GrantBalanceSnapshot{
+					owner, []balance.GrantBalanceSnapshot{
 						{
-							Balances: balancesnapshot.GrantBalanceMap{
+							Balances: balance.GrantBalanceMap{
 								g1.ID: 750,
 							},
 							Overage: 0,
@@ -284,7 +284,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				// check snapshots
 				assert.NotEqual(t, snap1.At, snap2.At)
 				assert.Equal(t, 0.0, snap2.Overage)
-				assert.Equal(t, balancesnapshot.GrantBalanceMap{
+				assert.Equal(t, balance.GrantBalanceMap{
 					g1.ID: 650,  // the grant that existed so far
 					g2.ID: 1000, // the grant that was added at this instant
 				}, snap2.Balances)
@@ -342,9 +342,9 @@ func TestGetEntitlementBalance(t *testing.T) {
 				// add a balance snapshot
 				err = deps.balanceSnapshotRepo.Save(
 					ctx,
-					owner, []balancesnapshot.GrantBalanceSnapshot{
+					owner, []balance.GrantBalanceSnapshot{
 						{
-							Balances: balancesnapshot.GrantBalanceMap{
+							Balances: balance.GrantBalanceMap{
 								g1.ID: 750,
 							},
 							Overage: 0,
@@ -371,7 +371,7 @@ func TestGetEntitlementBalance(t *testing.T) {
 				// check snapshots
 				assert.NotEqual(t, snap1.At, snap2.At)
 				assert.Equal(t, 0.0, snap2.Overage)
-				assert.Equal(t, balancesnapshot.GrantBalanceMap{
+				assert.Equal(t, balance.GrantBalanceMap{
 					g1.ID: 650,  // the grant that existed so far
 					g2.ID: 1000, // the grant that was added at this instant
 				}, snap2.Balances)

@@ -7,7 +7,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
-	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	"github.com/openmeterio/openmeter/internal/credit/balance"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
@@ -27,7 +27,7 @@ func (BalanceSnapshot) Fields() []ent.Field {
 		field.String("owner_id").Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "char(26)",
 		}),
-		field.JSON("grant_balances", balancesnapshot.GrantBalanceMap{}).Immutable().SchemaType(map[string]string{
+		field.JSON("grant_balances", balance.GrantBalanceMap{}).Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "jsonb",
 		}),
 		field.Float("balance").Immutable().SchemaType(map[string]string{

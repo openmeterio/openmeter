@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
-	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	"github.com/openmeterio/openmeter/internal/credit/balance"
 	"github.com/openmeterio/openmeter/internal/credit/grant"
 	grantrepo "github.com/openmeterio/openmeter/internal/credit/postgresdriver"
 	"github.com/openmeterio/openmeter/internal/ent/db"
@@ -29,7 +29,7 @@ type Dependencies struct {
 	DBClient *db.Client
 
 	GrantRepo           grant.GrantRepo
-	BalanceSnapshotRepo balancesnapshot.BalanceSnapshotRepo
+	BalanceSnapshotRepo balance.BalanceSnapshotRepo
 	GrantConnector      credit.GrantConnector
 
 	EntitlementRepo entitlement.EntitlementRepo

@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"time"
 
-	balancesnapshot "github.com/openmeterio/openmeter/internal/credit/balance_snapshot"
+	"github.com/openmeterio/openmeter/internal/credit/balance"
 	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/streaming"
@@ -18,7 +18,7 @@ type CreditConnector interface {
 type connector struct {
 	// grants and balance snapshots are managed in this same package
 	grantRepo           grant.GrantRepo
-	balanceSnapshotRepo balancesnapshot.BalanceSnapshotRepo
+	balanceSnapshotRepo balance.BalanceSnapshotRepo
 	// external dependencies
 	publisher          publisher.TopicPublisher
 	ownerConnector     grant.OwnerConnector
@@ -31,7 +31,7 @@ type connector struct {
 
 func NewCreditConnector(
 	grantRepo grant.GrantRepo,
-	balanceSnapshotRepo balancesnapshot.BalanceSnapshotRepo,
+	balanceSnapshotRepo balance.BalanceSnapshotRepo,
 	ownerConnector grant.OwnerConnector,
 	streamingConnector streaming.Connector,
 	logger *slog.Logger,

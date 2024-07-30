@@ -15,7 +15,7 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	dbbalancesnapshot "github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
+	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/internal/ent/db/grant"
@@ -248,13 +248,13 @@ func NewBalanceSnapshotClient(c config) *BalanceSnapshotClient {
 }
 
 // Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `dbbalancesnapshot.Hooks(f(g(h())))`.
+// A call to `Use(f, g, h)` equals to `balancesnapshot.Hooks(f(g(h())))`.
 func (c *BalanceSnapshotClient) Use(hooks ...Hook) {
 	c.hooks.BalanceSnapshot = append(c.hooks.BalanceSnapshot, hooks...)
 }
 
 // Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `dbbalancesnapshot.Intercept(f(g(h())))`.
+// A call to `Intercept(f, g, h)` equals to `balancesnapshot.Intercept(f(g(h())))`.
 func (c *BalanceSnapshotClient) Intercept(interceptors ...Interceptor) {
 	c.inters.BalanceSnapshot = append(c.inters.BalanceSnapshot, interceptors...)
 }
@@ -316,7 +316,7 @@ func (c *BalanceSnapshotClient) DeleteOne(bs *BalanceSnapshot) *BalanceSnapshotD
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
 func (c *BalanceSnapshotClient) DeleteOneID(id int) *BalanceSnapshotDeleteOne {
-	builder := c.Delete().Where(dbbalancesnapshot.ID(id))
+	builder := c.Delete().Where(balancesnapshot.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
 	return &BalanceSnapshotDeleteOne{builder}
@@ -333,7 +333,7 @@ func (c *BalanceSnapshotClient) Query() *BalanceSnapshotQuery {
 
 // Get returns a BalanceSnapshot entity by its id.
 func (c *BalanceSnapshotClient) Get(ctx context.Context, id int) (*BalanceSnapshot, error) {
-	return c.Query().Where(dbbalancesnapshot.ID(id)).Only(ctx)
+	return c.Query().Where(balancesnapshot.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
@@ -351,9 +351,9 @@ func (c *BalanceSnapshotClient) QueryEntitlement(bs *BalanceSnapshot) *Entitleme
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := bs.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(dbbalancesnapshot.Table, dbbalancesnapshot.FieldID, id),
+			sqlgraph.From(balancesnapshot.Table, balancesnapshot.FieldID, id),
 			sqlgraph.To(entitlement.Table, entitlement.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, dbbalancesnapshot.EntitlementTable, dbbalancesnapshot.EntitlementColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, balancesnapshot.EntitlementTable, balancesnapshot.EntitlementColumn),
 		)
 		fromV = sqlgraph.Neighbors(bs.driver.Dialect(), step)
 		return fromV, nil
@@ -533,7 +533,7 @@ func (c *EntitlementClient) QueryBalanceSnapshot(e *Entitlement) *BalanceSnapsho
 		id := e.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(entitlement.Table, entitlement.FieldID, id),
-			sqlgraph.To(dbbalancesnapshot.Table, dbbalancesnapshot.FieldID),
+			sqlgraph.To(balancesnapshot.Table, balancesnapshot.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, entitlement.BalanceSnapshotTable, entitlement.BalanceSnapshotColumn),
 		)
 		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)

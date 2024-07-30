@@ -78,7 +78,7 @@ const (
 	// BalanceSnapshotTable is the table that holds the balance_snapshot relation/edge.
 	BalanceSnapshotTable = "balance_snapshots"
 	// BalanceSnapshotInverseTable is the table name for the BalanceSnapshot entity.
-	// It exists in this package in order to avoid circular dependency with the "dbbalancesnapshot" package.
+	// It exists in this package in order to avoid circular dependency with the "balancesnapshot" package.
 	BalanceSnapshotInverseTable = "balance_snapshots"
 	// BalanceSnapshotColumn is the table column denoting the balance_snapshot relation/edge.
 	BalanceSnapshotColumn = "owner_id"
