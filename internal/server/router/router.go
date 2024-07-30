@@ -23,7 +23,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
-	productcatalog_httpdriver "github.com/openmeterio/openmeter/internal/productcatalog/httpdriver"
+	productcatalog_httpdriver "github.com/openmeterio/openmeter/internal/productcatalog/driver"
 	"github.com/openmeterio/openmeter/internal/server/authenticator"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/errorsx"

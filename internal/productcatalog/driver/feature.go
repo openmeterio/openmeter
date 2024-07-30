@@ -1,4 +1,4 @@
-package httpdriver
+package productcatalogdriver
 
 import (
 	"context"
