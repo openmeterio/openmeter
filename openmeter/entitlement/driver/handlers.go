@@ -2,7 +2,7 @@ package httpdriver
 
 import (
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/internal/entitlement/httpdriver"
+	httpdriver "github.com/openmeterio/openmeter/internal/entitlement/driver"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"

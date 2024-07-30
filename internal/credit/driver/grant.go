@@ -9,7 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/credit/grant"
-	entitlement_httpdriver "github.com/openmeterio/openmeter/internal/entitlement/httpdriver"
+	entitlement_httpdriver "github.com/openmeterio/openmeter/internal/entitlement/driver"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/pkg/convert"

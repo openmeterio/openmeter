@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/debug"
 	debug_httpdriver "github.com/openmeterio/openmeter/internal/debug/httpdriver"
 	"github.com/openmeterio/openmeter/internal/entitlement"
-	entitlement_httpdriver "github.com/openmeterio/openmeter/internal/entitlement/httpdriver"
+	entitlement_httpdriver "github.com/openmeterio/openmeter/internal/entitlement/driver"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"

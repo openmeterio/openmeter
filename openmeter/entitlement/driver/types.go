@@ -1,6 +1,6 @@
 package httpdriver
 
-import "github.com/openmeterio/openmeter/internal/entitlement/httpdriver"
+import httpdriver "github.com/openmeterio/openmeter/internal/entitlement/driver"
 
 // requests
 type (

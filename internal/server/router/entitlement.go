@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/internal/entitlement/httpdriver"
+	httpdriver "github.com/openmeterio/openmeter/internal/entitlement/driver"
 )
 
 // Create entitlement
