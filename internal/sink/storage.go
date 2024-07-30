@@ -7,11 +7,12 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/huandu/go-sqlbuilder"
 
+	sinkmodels "github.com/openmeterio/openmeter/internal/sink/models"
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 )
 
 type Storage interface {
-	BatchInsert(ctx context.Context, messages []SinkMessage) error
+	BatchInsert(ctx context.Context, messages []sinkmodels.SinkMessage) error
 }
 
 type ClickHouseStorageConfig struct {
@@ -29,7 +30,7 @@ type ClickHouseStorage struct {
 	config ClickHouseStorageConfig
 }
 
-func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []SinkMessage) error {
+func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmodels.SinkMessage) error {
 	query := InsertEventsQuery{
 		Database: c.config.Database,
 		Messages: messages,
@@ -49,7 +50,7 @@ func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []SinkMess
 
 type InsertEventsQuery struct {
 	Database string
-	Messages []SinkMessage
+	Messages []sinkmodels.SinkMessage
 }
 
 func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {

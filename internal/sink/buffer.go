@@ -5,16 +5,18 @@ import (
 	"sync"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+
+	sinkmodels "github.com/openmeterio/openmeter/internal/sink/models"
 )
 
 type SinkBuffer struct {
 	mu   sync.Mutex
-	data map[string]SinkMessage
+	data map[string]sinkmodels.SinkMessage
 }
 
 func NewSinkBuffer() *SinkBuffer {
 	return &SinkBuffer{
-		data: map[string]SinkMessage{},
+		data: map[string]sinkmodels.SinkMessage{},
 	}
 }
 
@@ -24,7 +26,7 @@ func (b *SinkBuffer) Size() int {
 	return len(b.data)
 }
 
-func (b *SinkBuffer) Add(message SinkMessage) {
+func (b *SinkBuffer) Add(message sinkmodels.SinkMessage) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	// Unique identifier for each message (topic + partition + offset)
@@ -32,10 +34,10 @@ func (b *SinkBuffer) Add(message SinkMessage) {
 	b.data[key] = message
 }
 
-func (b *SinkBuffer) Dequeue() []SinkMessage {
+func (b *SinkBuffer) Dequeue() []sinkmodels.SinkMessage {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	list := []SinkMessage{}
+	list := []sinkmodels.SinkMessage{}
 	for key, message := range b.data {
 		list = append(list, message)
 		delete(b.data, key)
