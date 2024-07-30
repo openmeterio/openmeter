@@ -9,6 +9,7 @@ import (
 
 	"github.com/oliveagle/jsonpath"
 
+	sinkmodels "github.com/openmeterio/openmeter/internal/sink/models"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -37,12 +38,12 @@ func (n *NamespaceStore) AddMeter(meter models.Meter) {
 }
 
 // ValidateEvent validates a single event by matching it with the corresponding meter if any
-func (n *NamespaceStore) ValidateEvent(_ context.Context, m *SinkMessage) {
+func (n *NamespaceStore) ValidateEvent(_ context.Context, m *sinkmodels.SinkMessage) {
 	namespaceStore, ok := n.namespaces[m.Namespace]
 	if !ok || namespaceStore == nil {
 		// We drop events from unknown org
-		m.Status = ProcessingStatus{
-			State: DROP,
+		m.Status = sinkmodels.ProcessingStatus{
+			State: sinkmodels.DROP,
 			Error: fmt.Errorf("namespace not found: %s", m.Namespace),
 		}
 
@@ -66,21 +67,21 @@ func (n *NamespaceStore) ValidateEvent(_ context.Context, m *SinkMessage) {
 
 	if len(m.Meters) <= 0 {
 		// Mark as invalid so we can show it to the user
-		m.Status = ProcessingStatus{
-			State: INVALID,
+		m.Status = sinkmodels.ProcessingStatus{
+			State: sinkmodels.INVALID,
 			Error: fmt.Errorf("no meter found for event type: %s", m.Serialized.Type),
 		}
 	}
 }
 
 // validateEventWithMeter validates a single event against a single meter
-func validateEventWithMeter(meter models.Meter, m *SinkMessage) {
+func validateEventWithMeter(meter models.Meter, m *sinkmodels.SinkMessage) {
 	// Parse CloudEvents data as JSON, currently we only support JSON encoding
 	var data interface{}
 	err := json.Unmarshal([]byte(m.Serialized.Data), &data)
 	if err != nil {
-		m.Status = ProcessingStatus{
-			State: INVALID,
+		m.Status = sinkmodels.ProcessingStatus{
+			State: sinkmodels.INVALID,
 			Error: errors.New("cannot unmarshal event data as json"),
 		}
 
@@ -95,16 +96,16 @@ func validateEventWithMeter(meter models.Meter, m *SinkMessage) {
 	// Get value from event data by value property
 	valueRaw, err := jsonpath.JsonPathLookup(data, meter.ValueProperty)
 	if err != nil {
-		m.Status = ProcessingStatus{
-			State: INVALID,
+		m.Status = sinkmodels.ProcessingStatus{
+			State: sinkmodels.INVALID,
 			Error: fmt.Errorf("event data is missing value property at %s", meter.ValueProperty),
 		}
 
 		return
 	}
 	if valueRaw == nil {
-		m.Status = ProcessingStatus{
-			State: INVALID,
+		m.Status = sinkmodels.ProcessingStatus{
+			State: sinkmodels.INVALID,
 			Error: errors.New("event data value cannot be null"),
 		}
 
@@ -119,8 +120,8 @@ func validateEventWithMeter(meter models.Meter, m *SinkMessage) {
 		case string, float64:
 			// No need to do anything
 		default:
-			m.Status = ProcessingStatus{
-				State: INVALID,
+			m.Status = sinkmodels.ProcessingStatus{
+				State: sinkmodels.INVALID,
 				Error: errors.New("event data value property must be string for unique count aggregation"),
 			}
 
@@ -132,8 +133,8 @@ func validateEventWithMeter(meter models.Meter, m *SinkMessage) {
 		case string:
 			_, err = strconv.ParseFloat(value, 64)
 			if err != nil {
-				m.Status = ProcessingStatus{
-					State: INVALID,
+				m.Status = sinkmodels.ProcessingStatus{
+					State: sinkmodels.INVALID,
 					Error: fmt.Errorf("event data value cannot be parsed as float64: %s", value),
 				}
 
@@ -142,8 +143,8 @@ func validateEventWithMeter(meter models.Meter, m *SinkMessage) {
 		case float64:
 			// No need to do anything
 		default:
-			m.Status = ProcessingStatus{
-				State: INVALID,
+			m.Status = sinkmodels.ProcessingStatus{
+				State: sinkmodels.INVALID,
 				Error: errors.New("event data value property cannot be parsed"),
 			}
 

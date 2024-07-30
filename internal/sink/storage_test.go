@@ -9,6 +9,7 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/internal/sink"
+	sinkmodels "github.com/openmeterio/openmeter/internal/sink/models"
 )
 
 func TestInsertEventsQuery(t *testing.T) {
@@ -16,7 +17,7 @@ func TestInsertEventsQuery(t *testing.T) {
 
 	query := sink.InsertEventsQuery{
 		Database: "database",
-		Messages: []sink.SinkMessage{
+		Messages: []sinkmodels.SinkMessage{
 			{
 				Namespace: "my_namespace",
 				Serialized: &serializer.CloudEventsKafkaPayload{
@@ -41,8 +42,8 @@ func TestInsertEventsQuery(t *testing.T) {
 			},
 			{
 				Namespace: "my_namespace",
-				Status: sink.ProcessingStatus{
-					State: sink.INVALID,
+				Status: sinkmodels.ProcessingStatus{
+					State: sinkmodels.INVALID,
 					Error: errors.New("event data value cannot be parsed as float64: not a number"),
 				},
 				Serialized: &serializer.CloudEventsKafkaPayload{

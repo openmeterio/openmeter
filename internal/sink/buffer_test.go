@@ -7,13 +7,14 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/internal/sink"
+	sinkmodels "github.com/openmeterio/openmeter/internal/sink/models"
 )
 
 func TestBuffer(t *testing.T) {
 	buffer := sink.NewSinkBuffer()
 	topic := "my-topic"
 
-	sinkMessage1 := sink.SinkMessage{
+	sinkMessage1 := sinkmodels.SinkMessage{
 		KafkaMessage: &kafka.Message{
 			TopicPartition: kafka.TopicPartition{
 				Topic:     &topic,
@@ -22,7 +23,7 @@ func TestBuffer(t *testing.T) {
 			},
 		},
 	}
-	sinkMessage2 := sink.SinkMessage{
+	sinkMessage2 := sinkmodels.SinkMessage{
 		KafkaMessage: &kafka.Message{
 			TopicPartition: kafka.TopicPartition{
 				Topic:     &topic,
@@ -39,7 +40,7 @@ func TestBuffer(t *testing.T) {
 	buffer.Add(sinkMessage2)
 
 	assert.Equal(t, 2, buffer.Size())
-	assert.ElementsMatch(t, []sink.SinkMessage{sinkMessage1, sinkMessage2}, buffer.Dequeue())
+	assert.ElementsMatch(t, []sinkmodels.SinkMessage{sinkMessage1, sinkMessage2}, buffer.Dequeue())
 }
 
 func TestBufferRemoveByPartitions(t *testing.T) {
@@ -57,12 +58,12 @@ func TestBufferRemoveByPartitions(t *testing.T) {
 		Offset:    1,
 	}
 
-	sinkMessage1 := sink.SinkMessage{
+	sinkMessage1 := sinkmodels.SinkMessage{
 		KafkaMessage: &kafka.Message{
 			TopicPartition: partition1,
 		},
 	}
-	sinkMessage2 := sink.SinkMessage{
+	sinkMessage2 := sinkmodels.SinkMessage{
 		KafkaMessage: &kafka.Message{
 			TopicPartition: partition2,
 		},

@@ -22,9 +22,9 @@ import (
 	"github.com/openmeterio/openmeter/internal/dedupe"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest/serializer"
 	"github.com/openmeterio/openmeter/internal/meter"
+	sinkmodels "github.com/openmeterio/openmeter/internal/sink/models"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 	kafkastats "github.com/openmeterio/openmeter/pkg/kafka/metrics/stats"
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 const (
@@ -32,15 +32,6 @@ const (
 )
 
 var namespaceTopicRegexp = regexp.MustCompile(`^om_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)_events$`)
-
-type SinkMessage struct {
-	Namespace    string
-	KafkaMessage *kafka.Message
-	Serialized   *serializer.CloudEventsKafkaPayload
-	Status       ProcessingStatus
-	// Meters contains the list of meters this message affects
-	Meters []models.Meter
-}
 
 type Sink struct {
 	config            SinkConfig
@@ -58,7 +49,7 @@ type Sink struct {
 }
 
 type FlushSuccessEvent struct {
-	Messages []SinkMessage
+	Messages []sinkmodels.SinkMessage
 }
 
 type FlushEventHandler interface {
@@ -280,7 +271,7 @@ func (s *Sink) flush(ctx context.Context) error {
 // reportFlushMetrics reports metrics to OTel
 //
 // TODO: figure out if this needs to return an error or not
-func (s *Sink) reportFlushMetrics(ctx context.Context, messages []SinkMessage) error { //nolint: unparam
+func (s *Sink) reportFlushMetrics(ctx context.Context, messages []sinkmodels.SinkMessage) error { //nolint: unparam
 	namespacesReport := map[string]int64{}
 
 	for _, message := range messages {
@@ -296,19 +287,19 @@ func (s *Sink) reportFlushMetrics(ctx context.Context, messages []SinkMessage) e
 }
 
 // persist persists a batch of messages to storage or deadletters
-func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) error {
+func (s *Sink) persistToStorage(ctx context.Context, messages []sinkmodels.SinkMessage) error {
 	logger := s.config.Logger.With("operation", "persistToStorage")
 	persistCtx, persistSpan := s.config.Tracer.Start(ctx, "persist")
 	defer persistSpan.End()
 
-	batch := []SinkMessage{}
+	batch := []sinkmodels.SinkMessage{}
 
 	// Flter out dropped messages
 	for _, message := range messages {
 		switch message.Status.State {
-		case OK, INVALID:
+		case sinkmodels.OK, sinkmodels.INVALID:
 			// Do nothing: include in batch
-		case DROP:
+		case sinkmodels.DROP:
 			// Skip message from batch
 			logger.Debug("dropping message",
 				slog.String("status", message.Status.State.String()),
@@ -341,7 +332,7 @@ func (s *Sink) persistToStorage(ctx context.Context, messages []SinkMessage) err
 }
 
 // dedupeSet sets the dedupe keys in Deduplicator with retry
-func (s *Sink) dedupeSet(ctx context.Context, messages []SinkMessage) error {
+func (s *Sink) dedupeSet(ctx context.Context, messages []sinkmodels.SinkMessage) error {
 	logger := s.config.Logger.With("operation", "dedupeSet")
 	dedupeCtx, dedupeSet := s.config.Tracer.Start(ctx, "dedupe-set")
 	dedupeSet.SetAttributes(
@@ -667,23 +658,23 @@ func (s *Sink) rebalance(c *kafka.Consumer, event kafka.Event) error {
 	return nil
 }
 
-func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (*SinkMessage, error) {
+func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (*sinkmodels.SinkMessage, error) {
 	if e == nil {
 		return nil, fmt.Errorf("kafka message is nil")
 	}
 
-	sinkMessage := &SinkMessage{
+	sinkMessage := &sinkmodels.SinkMessage{
 		KafkaMessage: e,
-		Status: ProcessingStatus{
-			State: OK,
+		Status: sinkmodels.ProcessingStatus{
+			State: sinkmodels.OK,
 		},
 	}
 
 	// Get Namespace
 	namespace, err := getNamespace(*e.TopicPartition.Topic)
 	if err != nil {
-		sinkMessage.Status = ProcessingStatus{
-			State: DROP,
+		sinkMessage.Status = sinkmodels.ProcessingStatus{
+			State: sinkmodels.DROP,
 			Error: fmt.Errorf("failed to get namespace from topic: %s, %s", *e.TopicPartition.Topic, err),
 		}
 
@@ -695,8 +686,8 @@ func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (*SinkMessage
 	kafkaCloudEvent := &serializer.CloudEventsKafkaPayload{}
 	err = json.Unmarshal(e.Value, kafkaCloudEvent)
 	if err != nil {
-		sinkMessage.Status = ProcessingStatus{
-			State: DROP,
+		sinkMessage.Status = sinkmodels.ProcessingStatus{
+			State: sinkmodels.DROP,
 			Error: fmt.Errorf("failed to json parse kafka message: %w", err),
 		}
 
@@ -719,8 +710,8 @@ func (s *Sink) parseMessage(ctx context.Context, e *kafka.Message) (*SinkMessage
 		}
 
 		if !isUnique {
-			sinkMessage.Status = ProcessingStatus{
-				State: DROP,
+			sinkMessage.Status = sinkmodels.ProcessingStatus{
+				State: sinkmodels.DROP,
 				Error: errors.New("skipping non unique message"),
 			}
 
@@ -810,9 +801,9 @@ func getTopics(ns NamespaceStore) []string {
 }
 
 // dedupeSinkMessages removes duplicates from a list of events
-func dedupeSinkMessages(events []SinkMessage) []SinkMessage {
+func dedupeSinkMessages(events []sinkmodels.SinkMessage) []sinkmodels.SinkMessage {
 	keys := make(map[string]bool)
-	list := []SinkMessage{}
+	list := []sinkmodels.SinkMessage{}
 
 	for _, event := range events {
 		key := dedupe.Item{
