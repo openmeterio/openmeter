@@ -53,6 +53,17 @@ func (e EntitlementCreatedEvent) Validate() error {
 	return entitlementEvent(e).Validate()
 }
 
+func (e EntitlementCreatedEvent) EventName() string {
+	return e.Spec().Type()
+}
+
+func (e EntitlementCreatedEvent) EventMetadata() spec.EventMetadata {
+	return spec.EventMetadata{
+		Source:  spec.ComposeResourcePath(e.Namespace.ID, spec.EntityEntitlement, e.ID),
+		Subject: spec.ComposeResourcePath(e.Namespace.ID, spec.EntitySubjectKey, e.SubjectKey),
+	}
+}
+
 type EntitlementDeletedEvent entitlementEvent
 
 var entitlementDeletedEventSpec = spec.EventTypeSpec{
@@ -67,4 +78,15 @@ func (e EntitlementDeletedEvent) Spec() *spec.EventTypeSpec {
 
 func (e EntitlementDeletedEvent) Validate() error {
 	return entitlementEvent(e).Validate()
+}
+
+func (e EntitlementDeletedEvent) EventName() string {
+	return e.Spec().Type()
+}
+
+func (e EntitlementDeletedEvent) EventMetadata() spec.EventMetadata {
+	return spec.EventMetadata{
+		Source:  spec.ComposeResourcePath(e.Namespace.ID, spec.EntityEntitlement, e.ID),
+		Subject: spec.ComposeResourcePath(e.Namespace.ID, spec.EntitySubjectKey, e.SubjectKey),
+	}
 }

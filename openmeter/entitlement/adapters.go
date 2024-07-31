@@ -1,8 +1,8 @@
 package entitlement
 
 import (
+	"github.com/ThreeDotsLabs/watermill/components/cqrs"
 	"github.com/openmeterio/openmeter/internal/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/event/publisher"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
@@ -14,7 +14,7 @@ func NewEntitlementConnector(
 	metered SubTypeConnector,
 	static SubTypeConnector,
 	boolean SubTypeConnector,
-	publisher publisher.TopicPublisher,
+	eventBus *cqrs.EventBus,
 ) EntitlementConnector {
-	return entitlement.NewEntitlementConnector(edb, fc, meterRepo, metered, static, boolean, publisher)
+	return entitlement.NewEntitlementConnector(edb, fc, meterRepo, metered, static, boolean, eventBus)
 }
