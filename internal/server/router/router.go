@@ -17,7 +17,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/debug"
 	debug_httpdriver "github.com/openmeterio/openmeter/internal/debug/httpdriver"
 	"github.com/openmeterio/openmeter/internal/entitlement"
-	entitlement_httpdriver "github.com/openmeterio/openmeter/internal/entitlement/driver"
+	entitlementdriver "github.com/openmeterio/openmeter/internal/entitlement/driver"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
@@ -123,8 +123,8 @@ type Router struct {
 	featureHandler            productcatalog_httpdriver.FeatureHandler
 	creditHandler             creditdriver.GrantHandler
 	debugHandler              debug_httpdriver.DebugHandler
-	entitlementHandler        entitlement_httpdriver.EntitlementHandler
-	meteredEntitlementHandler entitlement_httpdriver.MeteredEntitlementHandler
+	entitlementHandler        entitlementdriver.EntitlementHandler
+	meteredEntitlementHandler entitlementdriver.MeteredEntitlementHandler
 }
 
 // Make sure we conform to ServerInterface
@@ -154,13 +154,13 @@ func NewRouter(config Config) (*Router, error) {
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
 
-		router.entitlementHandler = entitlement_httpdriver.NewEntitlementHandler(
+		router.entitlementHandler = entitlementdriver.NewEntitlementHandler(
 			config.EntitlementConnector,
 			staticNamespaceDecoder,
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
 
-		router.meteredEntitlementHandler = entitlement_httpdriver.NewMeteredEntitlementHandler(
+		router.meteredEntitlementHandler = entitlementdriver.NewMeteredEntitlementHandler(
 			config.EntitlementConnector,
 			config.EntitlementBalanceConnector,
 			staticNamespaceDecoder,

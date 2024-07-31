@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
-	httpdriver "github.com/openmeterio/openmeter/internal/entitlement/driver"
+	entitlementdriver "github.com/openmeterio/openmeter/internal/entitlement/driver"
 )
 
 // Create entitlement
@@ -24,7 +24,7 @@ func (a *Router) ListSubjectEntitlements(w http.ResponseWriter, r *http.Request,
 		unimplemented.ListSubjectEntitlements(w, r, subjectIdOrKey, params)
 		return
 	}
-	a.entitlementHandler.GetEntitlementsOfSubjectHandler().With(httpdriver.GetEntitlementsOfSubjectHandlerParams{
+	a.entitlementHandler.GetEntitlementsOfSubjectHandler().With(entitlementdriver.GetEntitlementsOfSubjectHandlerParams{
 		SubjectIdOrKey: subjectIdOrKey,
 		Params:         params,
 	}).ServeHTTP(w, r)
@@ -37,7 +37,7 @@ func (a *Router) GetEntitlementValue(w http.ResponseWriter, r *http.Request, sub
 		unimplemented.GetEntitlementValue(w, r, subjectIdOrKey, entitlementIdOrFeatureKey, params)
 		return
 	}
-	a.entitlementHandler.GetEntitlementValue().With(httpdriver.GetEntitlementValueHandlerParams{
+	a.entitlementHandler.GetEntitlementValue().With(entitlementdriver.GetEntitlementValueHandlerParams{
 		SubjectKey:                subjectIdOrKey,
 		EntitlementIdOrFeatureKey: entitlementIdOrFeatureKey,
 		Params:                    params,
@@ -51,7 +51,7 @@ func (a *Router) CreateGrant(w http.ResponseWriter, r *http.Request, subjectIdOr
 		unimplemented.CreateGrant(w, r, subjectIdOrKey, entitlementIdOrFeatureKey)
 		return
 	}
-	a.meteredEntitlementHandler.CreateGrant().With(httpdriver.CreateGrantHandlerParams{
+	a.meteredEntitlementHandler.CreateGrant().With(entitlementdriver.CreateGrantHandlerParams{
 		SubjectKey:                subjectIdOrKey,
 		EntitlementIdOrFeatureKey: entitlementIdOrFeatureKey,
 	}).ServeHTTP(w, r)
@@ -64,7 +64,7 @@ func (a *Router) ListEntitlementGrants(w http.ResponseWriter, r *http.Request, s
 		unimplemented.ListEntitlementGrants(w, r, subjectIdOrKey, entitlementIdOrFeatureKey, params)
 		return
 	}
-	a.meteredEntitlementHandler.ListEntitlementGrants().With(httpdriver.ListEntitlementGrantsHandlerParams{
+	a.meteredEntitlementHandler.ListEntitlementGrants().With(entitlementdriver.ListEntitlementGrantsHandlerParams{
 		SubjectKey:                subjectIdOrKey,
 		EntitlementIdOrFeatureKey: entitlementIdOrFeatureKey,
 	}).ServeHTTP(w, r)
@@ -77,7 +77,7 @@ func (a *Router) ResetEntitlementUsage(w http.ResponseWriter, r *http.Request, s
 		unimplemented.ResetEntitlementUsage(w, r, subjectIdOrKey, entitlementId)
 		return
 	}
-	a.meteredEntitlementHandler.ResetEntitlementUsage().With(httpdriver.ResetEntitlementUsageHandlerParams{
+	a.meteredEntitlementHandler.ResetEntitlementUsage().With(entitlementdriver.ResetEntitlementUsageHandlerParams{
 		SubjectKey:    subjectIdOrKey,
 		EntitlementID: entitlementId,
 	}).ServeHTTP(w, r)
@@ -90,7 +90,7 @@ func (a *Router) GetEntitlementHistory(w http.ResponseWriter, r *http.Request, s
 		unimplemented.GetEntitlementHistory(w, r, subjectIdOrKey, entitlementId, params)
 		return
 	}
-	a.meteredEntitlementHandler.GetEntitlementBalanceHistory().With(httpdriver.GetEntitlementBalanceHistoryHandlerParams{
+	a.meteredEntitlementHandler.GetEntitlementBalanceHistory().With(entitlementdriver.GetEntitlementBalanceHistoryHandlerParams{
 		EntitlementID: entitlementId,
 		SubjectKey:    subjectIdOrKey,
 		Params:        params,
@@ -114,7 +114,7 @@ func (a *Router) DeleteEntitlement(w http.ResponseWriter, r *http.Request, subje
 		unimplemented.DeleteEntitlement(w, r, subjectIdOrKey, entitlementId)
 		return
 	}
-	a.entitlementHandler.DeleteEntitlement().With(httpdriver.DeleteEntitlementHandlerParams{
+	a.entitlementHandler.DeleteEntitlement().With(entitlementdriver.DeleteEntitlementHandlerParams{
 		EntitlementId: entitlementId,
 	}).ServeHTTP(w, r)
 }
@@ -126,7 +126,7 @@ func (a *Router) GetEntitlement(w http.ResponseWriter, r *http.Request, subjectI
 		unimplemented.GetEntitlement(w, r, subjectIdOrKey, entitlementId)
 		return
 	}
-	a.entitlementHandler.GetEntitlement().With(httpdriver.GetEntitlementHandlerParams{
+	a.entitlementHandler.GetEntitlement().With(entitlementdriver.GetEntitlementHandlerParams{
 		EntitlementId: entitlementId,
 	}).ServeHTTP(w, r)
 }
