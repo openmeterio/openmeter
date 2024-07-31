@@ -16,6 +16,8 @@ import (
 	health "github.com/AppsFlyer/go-sundheit"
 	healthhttp "github.com/AppsFlyer/go-sundheit/http"
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/ThreeDotsLabs/watermill"
+	"github.com/ThreeDotsLabs/watermill/components/cqrs"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/go-chi/chi/v5"
@@ -37,7 +39,6 @@ import (
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/internal/debug"
 	"github.com/openmeterio/openmeter/internal/ent/db"
-	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
@@ -54,6 +55,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 	watermillkafka "github.com/openmeterio/openmeter/internal/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/internal/watermill/driver/noop"
+	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -226,6 +228,12 @@ func main() {
 		}
 	}()
 
+	eventBus, err := initEventBus(eventPublisher.watermillPublisher, conf, logger)
+	if err != nil {
+		logger.Error("failed to initialize event bus", "error", err)
+		os.Exit(1)
+	}
+
 	// Initialize Kafka Ingest
 	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(
 		kafkaProducer,
@@ -322,7 +330,7 @@ func main() {
 			StreamingConnector: streamingConnector,
 			MeterRepository:    meterRepository,
 			Logger:             logger,
-			Publisher:          eventPublishers.eventPublisher.ForTopic(conf.Events.SystemEvents.Topic),
+			EventBus:           eventBus,
 		})
 	}
 
@@ -430,24 +438,9 @@ func main() {
 	}
 }
 
-type publishers struct {
-	eventPublisher publisher.Publisher
-	driver         message.Publisher
-}
-
-func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter) (*publishers, error) {
+func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Configuration, kafkaProducer *kafka.Producer) (message.Publisher, error) {
 	if !conf.Events.Enabled {
-		publisher, err := publisher.NewPublisher(publisher.PublisherOptions{
-			Publisher: &noop.Publisher{},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to create event driver: %w", err)
-		}
-
-		return &publishers{
-			eventPublisher: publisher,
-			driver:         &noop.Publisher{},
-		}, nil
+		return &noop.Publisher{}, nil
 	}
 
 	provisionTopics := []watermillkafka.AutoProvisionTopic{}
@@ -458,7 +451,7 @@ func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Co
 		})
 	}
 
-	eventDriver, err := watermillkafka.NewPublisher(ctx, watermillkafka.PublisherOptions{
+	return watermillkafka.NewPublisher(ctx, watermillkafka.PublisherOptions{
 		KafkaConfig:     conf.Ingest.Kafka.KafkaConfiguration,
 		ProvisionTopics: provisionTopics,
 		ClientID:        otelName,
@@ -466,19 +459,6 @@ func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Co
 		MetricMeter:     metricMeter,
 		DebugLogging:    conf.Telemetry.Log.Level == slog.LevelDebug,
 	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create event driver: %w", err)
-	}
-
-	eventPublisher, err := publisher.NewPublisher(publisher.PublisherOptions{
-		Publisher: eventDriver,
-		Transform: watermillkafka.AddPartitionKeyFromSubject,
-	})
-
-	return &publishers{
-		eventPublisher: eventPublisher,
-		driver:         eventDriver,
-	}, err
 }
 
 func initKafkaProducer(ctx context.Context, config config.Configuration, logger *slog.Logger, metricMeter metric.Meter, group *run.Group) (*kafka.Producer, error) {
@@ -596,4 +576,16 @@ func initPGClients(config config.PostgresConfig) (
 		driver: driver,
 		client: dbClient,
 	}, nil
+}
+
+func initEventBus(publisher message.Publisher, config config.Configuration, logger *slog.Logger) (*cqrs.EventBus, error) {
+	return cqrs.NewEventBusWithConfig(publisher, cqrs.EventBusConfig{
+		GeneratePublishTopic: func(params cqrs.GenerateEventPublishTopicParams) (string, error) {
+			// TODO: make it generic between sink / server
+			return config.Events.SystemEvents.Topic, nil
+		},
+
+		Marshaler: marshaler.New(),
+		Logger:    watermill.NewSlogLogger(logger),
+	})
 }
