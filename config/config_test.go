@@ -211,6 +211,7 @@ func TestComplete(t *testing.T) {
 				InitialInterval: 100 * time.Millisecond,
 			},
 			ConsumerGroupName: "om_balance_worker",
+			ChunkSize:         500,
 		},
 		NotificationService: NotificationServiceConfiguration{
 			Consumer: NotificationServiceConsumerConfiguration{

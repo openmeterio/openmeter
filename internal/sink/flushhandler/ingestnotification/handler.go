@@ -13,17 +13,24 @@ import (
 	sinkmodels "github.com/openmeterio/openmeter/internal/sink/models"
 	"github.com/openmeterio/openmeter/openmeter/event/publisher"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type handler struct {
 	publisher publisher.TopicPublisher
 	logger    *slog.Logger
+	config    HandlerConfig
 }
 
-func NewHandler(logger *slog.Logger, metricMeter metric.Meter, publisher publisher.TopicPublisher) (flushhandler.FlushEventHandler, error) {
+type HandlerConfig struct {
+	MaxEventsInBatch int
+}
+
+func NewHandler(logger *slog.Logger, metricMeter metric.Meter, publisher publisher.TopicPublisher, config HandlerConfig) (flushhandler.FlushEventHandler, error) {
 	handler := &handler{
 		publisher: publisher,
 		logger:    logger,
+		config:    config,
 	}
 
 	return flushhandler.NewFlushEventHandler(
@@ -40,25 +47,33 @@ func NewHandler(logger *slog.Logger, metricMeter metric.Meter, publisher publish
 func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMessage) error {
 	var finalErr error
 
-	for _, message := range events {
-		if message.Serialized == nil {
-			// In case the incoming event was not supported by the parser (e.g. non-json payload)
-			continue
-		}
+	// Filter meaningful events for downstream
+	filtered := slicesx.Filter(events, func(event sinkmodels.SinkMessage) bool {
+		// We explicityl ignore non-parseable & non-meter affecting events
+		return event.Serialized != nil && len(event.Meters) > 0
+	})
 
-		if len(message.Meters) == 0 {
-			// If the change doesn't affect a meter, we should not care about it
-			continue
-		}
+	if len(filtered) == 0 {
+		h.logger.Debug("no events to process in batch for ingest notification")
+		return nil
+	}
 
-		event, err := spec.NewCloudEvent(spec.EventSpec{
-			ID:      message.Serialized.Id,
-			Source:  spec.ComposeResourcePath(message.Namespace, spec.EntityEvent, message.Serialized.Id),
-			Subject: spec.ComposeResourcePath(message.Namespace, spec.EntitySubjectKey, message.Serialized.Subject),
-		}, EventIngested{
+	// Map the filtered events to the ingest event
+	iEvents := slicesx.Map(filtered, func(message sinkmodels.SinkMessage) IngestEventData {
+		return IngestEventData{
 			Namespace:  eventmodels.NamespaceID{ID: message.Namespace},
 			SubjectKey: message.Serialized.Subject,
 			MeterSlugs: h.getMeterSlugsFromMeters(message.Meters),
+		}
+	})
+
+	// We need to chunk the events to not exceed message size limits
+	chunkedEvents := slicesx.Chunk(iEvents, h.config.MaxEventsInBatch)
+	for _, chunk := range chunkedEvents {
+		event, err := spec.NewCloudEvent(spec.EventSpec{
+			Source: spec.ComposeResourcePathRaw(string(EventBatchedIngest{}.Spec().Subsystem)),
+		}, EventBatchedIngest{
+			Events: chunk,
 		})
 		if err != nil {
 			finalErr = errors.Join(finalErr, err)

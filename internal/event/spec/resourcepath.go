@@ -18,5 +18,9 @@ const (
 )
 
 func ComposeResourcePath(namespace string, items ...string) string {
-	return fmt.Sprintf("//openmeter.io/namespace/%s/%s", namespace, strings.Join(items, "/"))
+	return ComposeResourcePathRaw(append([]string{"namespace", namespace}, items...)...)
+}
+
+func ComposeResourcePathRaw(items ...string) string {
+	return fmt.Sprintf("//openmeter.io/%s", strings.Join(items, "/"))
 }

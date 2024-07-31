@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/event/spec"
 	"github.com/openmeterio/openmeter/internal/registry"
 	"github.com/openmeterio/openmeter/internal/sink/flushhandler/ingestnotification"
+	wmmiddleware "github.com/openmeterio/openmeter/internal/watermill/middleware"
 	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -47,6 +48,7 @@ type WorkerOptions struct {
 	Marshaler   publisher.CloudEventMarshaler
 
 	Entitlement *registry.Entitlement
+	Repo        BalanceWorkerRepository
 	// External connectors
 	SubjectIDResolver SubjectIDResolver
 
@@ -65,9 +67,14 @@ type highWatermarkCacheEntry struct {
 	IsDeleted     bool
 }
 
+type connectors struct {
+	entitlement *registry.Entitlement
+	repo        BalanceWorkerRepository
+}
+
 type Worker struct {
 	opts       WorkerOptions
-	connectors *registry.Entitlement
+	connectors connectors
 	router     *message.Router
 
 	highWatermarkCache *lru.Cache[string, highWatermarkCacheEntry]
@@ -87,7 +94,7 @@ func New(opts WorkerOptions) (*Worker, error) {
 	worker := &Worker{
 		opts:               opts,
 		router:             router,
-		connectors:         opts.Entitlement,
+		connectors:         connectors{entitlement: opts.Entitlement, repo: opts.Repo},
 		highWatermarkCache: highWatermarkCache,
 	}
 
@@ -122,21 +129,21 @@ func New(opts WorkerOptions) (*Worker, error) {
 	)
 
 	if opts.DLQ != nil {
-		poisionQueue, err := middleware.PoisonQueue(opts.Publisher, opts.DLQ.Topic)
+		dlq, err := wmmiddleware.DLQ(opts.Publisher, opts.DLQ.Topic, nil)
 		if err != nil {
 			return nil, err
 		}
 
 		router.AddMiddleware(
-			poisionQueue,
+			dlq,
 		)
 
-		poisionQueueProcessor := worker.handleEvent
+		dlqProcessor := worker.handleEvent
 		if opts.DLQ.Throttle {
-			poisionQueueProcessor = middleware.NewThrottle(
+			dlqProcessor = middleware.NewThrottle(
 				opts.DLQ.ThrottleCount,
 				opts.DLQ.ThrottleDuration,
-			).Middleware(poisionQueueProcessor)
+			).Middleware(dlqProcessor)
 		}
 		router.AddHandler(
 			"balance_worker_process_poison_queue",
@@ -144,7 +151,7 @@ func New(opts WorkerOptions) (*Worker, error) {
 			opts.Subscriber,
 			opts.TargetTopic,
 			opts.Publisher,
-			poisionQueueProcessor,
+			dlqProcessor,
 		)
 	}
 
@@ -174,8 +181,8 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 
 	switch ceType {
 	// Entitlement events
-	case entitlement.EntitlementCreatedEvent{}.Spec().Type():
-		event, err := spec.ParseCloudEventFromBytes[entitlement.EntitlementCreatedEvent](msg.Payload)
+	case entitlement.EntitlementDeletedEvent{}.Spec().Type():
+		event, err := spec.ParseCloudEventFromBytes[entitlement.EntitlementDeletedEvent](msg.Payload)
 		if err != nil {
 			w.opts.Logger.Error("failed to parse entitlement created event", w.messageToLogFields(msg)...)
 			return nil, err
@@ -230,17 +237,15 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 			NamespacedID{Namespace: event.Payload.Namespace.ID, ID: event.Payload.EntitlementID},
 			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, event.Payload.EntitlementID),
 		)
-
-	// Ingest event
-	case ingestnotification.EventIngested{}.Spec().Type():
-		event, err := spec.ParseCloudEventFromBytes[ingestnotification.EventIngested](msg.Payload)
+	// Ingest events
+	case ingestnotification.EventBatchedIngest{}.Spec().Type():
+		event, err := spec.ParseCloudEventFromBytes[ingestnotification.EventBatchedIngest](msg.Payload)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse ingest event: %w", err)
 		}
 
-		return w.handleIngestEvent(msg.Context(), event.Payload)
+		return w.handleBatchedIngestEvent(msg.Context(), event.Payload)
 	}
-
 	return nil, nil
 }
 
