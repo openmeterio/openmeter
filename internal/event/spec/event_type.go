@@ -1,5 +1,6 @@
 package spec
 
+// TODO: move to metadata
 import (
 	"fmt"
 	"time"
@@ -28,6 +29,8 @@ type EventTypeSpec struct {
 	cloudEventType string
 }
 
+// TODO: "string constructor"
+
 func (s *EventTypeSpec) Type() string {
 	if s.cloudEventType != "" {
 		return s.cloudEventType
@@ -37,6 +40,30 @@ func (s *EventTypeSpec) Type() string {
 }
 
 type EventSpec struct {
+	// ID of the event
+	ID string
+
+	// Time specifies when the event occurred
+	Time time.Time
+
+	// Subject meta
+	// Examples for source and subject pairs
+	//  grant:
+	//      source: //openmeter.io/namespace/<id>/entitlement/<id>/grant/<id>
+	//      subject: //openmeter.io/namespace/<id>/subject/<subjectID>
+	//
+	//  entitlement:
+	//      source: //openmeter.io/namespace/<id>/entitlement/<id>
+	//      subject: //openmeter.io/namespace/<id>/subject/<subjectID>
+	//
+	//  ingest:
+	//      source: //openmeter.io/namespace/<id>/event
+	//      subject: //openmeter.io/namespace/<id>/subject/<subjectID>
+	Subject string
+	Source  string
+}
+
+type EventMetadata struct {
 	// ID of the event
 	ID string
 
