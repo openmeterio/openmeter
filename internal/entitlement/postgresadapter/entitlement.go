@@ -2,6 +2,7 @@ package postgresadapter
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 	db_usagereset "github.com/openmeterio/openmeter/internal/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/internal/entitlement"
+	"github.com/openmeterio/openmeter/internal/entitlement/balanceworker"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -26,7 +28,12 @@ type entitlementDBAdapter struct {
 	db *db.Client
 }
 
-func NewPostgresEntitlementRepo(db *db.Client) entitlement.EntitlementRepo {
+type repo interface {
+	entitlement.EntitlementRepo
+	balanceworker.BalanceWorkerRepository
+}
+
+func NewPostgresEntitlementRepo(db *db.Client) repo {
 	return &entitlementDBAdapter{
 		db: db,
 	}
@@ -123,6 +130,47 @@ func (a *entitlementDBAdapter) DeleteEntitlement(ctx context.Context, entitlemen
 		return &entitlement.NotFoundError{EntitlementID: entitlementID}
 	}
 	return nil
+}
+
+func (a *entitlementDBAdapter) ListAffectedEntitlements(ctx context.Context, eventFilters []balanceworker.IngestEventQueryFilter) ([]balanceworker.IngestEventDataResponse, error) {
+	if len(eventFilters) == 0 {
+		return nil, fmt.Errorf("no eventFilters provided")
+	}
+
+	query := a.db.Entitlement.Query()
+
+	var ep predicate.Entitlement
+	for i, pair := range eventFilters {
+		p := db_entitlement.And(
+			db_entitlement.Namespace(pair.Namespace),
+			db_entitlement.SubjectKey(pair.SubjectKey),
+			db_entitlement.HasFeatureWith(db_feature.MeterSlugIn(pair.MeterSlugs...)),
+		)
+		if i == 0 {
+			ep = p
+			continue
+		}
+		ep = db_entitlement.Or(ep, p)
+	}
+
+	query = query.Where(ep)
+
+	entities, err := query.WithFeature().All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]balanceworker.IngestEventDataResponse, 0, len(entities))
+	for _, e := range entities {
+		result = append(result, balanceworker.IngestEventDataResponse{
+			Namespace:     e.Namespace,
+			EntitlementID: e.ID,
+			SubjectKey:    e.SubjectKey,
+			MeterSlug:     e.Edges.Feature.MeterSlug,
+		})
+	}
+
+	return result, nil
 }
 
 func (a *entitlementDBAdapter) GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]entitlement.Entitlement, error) {

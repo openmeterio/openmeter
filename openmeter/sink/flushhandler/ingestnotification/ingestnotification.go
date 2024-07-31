@@ -20,7 +20,8 @@ const (
 )
 
 type (
-	IngestEvent = ingestnotification.IngestEvent
+	IngestEventData    = ingestnotification.IngestEventData
+	BatchedIngestEvent = ingestnotification.BatchedIngestEvent
 )
 
 // Ingest notification handler

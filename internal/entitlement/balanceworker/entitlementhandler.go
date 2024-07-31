@@ -19,7 +19,7 @@ import (
 func (w *Worker) handleEntitlementDeleteEvent(ctx context.Context, delEvent entitlement.EntitlementDeletedEvent) ([]*message.Message, error) {
 	namespace := delEvent.Namespace.ID
 
-	feature, err := w.connectors.Feature.GetFeature(ctx, namespace, delEvent.FeatureID, productcatalog.IncludeArchivedFeatureTrue)
+	feature, err := w.connectors.entitlement.Feature.GetFeature(ctx, namespace, delEvent.FeatureID, productcatalog.IncludeArchivedFeatureTrue)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get feature: %w", err)
 	}
@@ -95,17 +95,17 @@ func (w *Worker) handleEntitlementUpdateEvent(ctx context.Context, entitlementID
 }
 
 func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementID NamespacedID, source string, calculatedAt time.Time) (*message.Message, error) {
-	entitlement, err := w.connectors.Entitlement.GetEntitlement(ctx, entitlementID.Namespace, entitlementID.ID)
+	entitlement, err := w.connectors.entitlement.Entitlement.GetEntitlement(ctx, entitlementID.Namespace, entitlementID.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get entitlement: %w", err)
 	}
 
-	feature, err := w.connectors.Feature.GetFeature(ctx, entitlementID.Namespace, entitlement.FeatureID, productcatalog.IncludeArchivedFeatureTrue)
+	feature, err := w.connectors.entitlement.Feature.GetFeature(ctx, entitlementID.Namespace, entitlement.FeatureID, productcatalog.IncludeArchivedFeatureTrue)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get feature: %w", err)
 	}
 
-	value, err := w.connectors.Entitlement.GetEntitlementValue(ctx, entitlementID.Namespace, entitlement.SubjectKey, entitlement.ID, calculatedAt)
+	value, err := w.connectors.entitlement.Entitlement.GetEntitlementValue(ctx, entitlementID.Namespace, entitlement.SubjectKey, entitlement.ID, calculatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get entitlement value: %w", err)
 	}

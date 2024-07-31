@@ -7,12 +7,14 @@ import (
 
 	"go.opentelemetry.io/otel/metric"
 
+	"github.com/oklog/ulid/v2"
 	eventmodels "github.com/openmeterio/openmeter/internal/event/models"
 	"github.com/openmeterio/openmeter/internal/event/spec"
 	"github.com/openmeterio/openmeter/internal/sink/flushhandler"
 	sinkmodels "github.com/openmeterio/openmeter/internal/sink/models"
 	"github.com/openmeterio/openmeter/openmeter/event/publisher"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type handler struct {
@@ -40,36 +42,41 @@ func NewHandler(logger *slog.Logger, metricMeter metric.Meter, publisher publish
 func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMessage) error {
 	var finalErr error
 
-	for _, message := range events {
-		if message.Serialized == nil {
-			// In case the incoming event was not supported by the parser (e.g. non-json payload)
-			continue
-		}
+	// Filter meaningful events for downstream
+	filtered := slicesx.Filter(events, func(event sinkmodels.SinkMessage) bool {
+		// We explicityl ignore non-parseable & non-meter affecting events
+		return event.Serialized != nil && len(event.Meters) > 0
+	})
 
-		if len(message.Meters) == 0 {
-			// If the change doesn't affect a meter, we should not care about it
-			continue
-		}
+	if len(filtered) == 0 {
+		h.logger.Debug("no events to process in batch for ingest notification")
+		return nil
+	}
 
-		event, err := spec.NewCloudEvent(spec.EventSpec{
-			ID:      message.Serialized.Id,
-			Source:  spec.ComposeResourcePath(message.Namespace, spec.EntityEvent, message.Serialized.Id),
-			Subject: spec.ComposeResourcePath(message.Namespace, spec.EntitySubjectKey, message.Serialized.Subject),
-		}, IngestEvent{
+	// Map the filtered events to the ingest event
+	iEvents := slicesx.Map(filtered, func(message sinkmodels.SinkMessage) IngestEventData {
+		return IngestEventData{
 			Namespace:  eventmodels.NamespaceID{ID: message.Namespace},
 			SubjectKey: message.Serialized.Subject,
 			MeterSlugs: h.getMeterSlugsFromMeters(message.Meters),
-		})
-		if err != nil {
-			finalErr = errors.Join(finalErr, err)
-			h.logger.Error("failed to create change notification", "error", err)
-			continue
 		}
+	})
 
-		if err := h.publisher.Publish(event); err != nil {
-			finalErr = errors.Join(finalErr, err)
-			h.logger.Error("failed to publish change notification", "error", err)
-		}
+	event, err := spec.NewCloudEvent(spec.EventSpec{
+		ID:     ulid.Make().String(), // If we're using ID for correlation then this breaks that chain
+		Source: spec.ComposeResourcePathRaw(string(BatchedIngestEvent{}.Spec().Subsystem)),
+	}, BatchedIngestEvent{
+		Events: iEvents,
+	})
+	if err != nil {
+		finalErr = errors.Join(finalErr, err)
+		h.logger.Error("failed to create change notification", "error", err)
+		return finalErr
+	}
+
+	if err := h.publisher.Publish(event); err != nil {
+		finalErr = errors.Join(finalErr, err)
+		h.logger.Error("failed to publish change notification", "error", err)
 	}
 
 	return finalErr

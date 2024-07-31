@@ -10,7 +10,10 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
+
 	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/openmeterio/openmeter/internal/sink/flushhandler/ingestnotification"
+	wmmiddleware "github.com/openmeterio/openmeter/internal/watermill/middleware"
 
 	"github.com/openmeterio/openmeter/internal/credit"
 	"github.com/openmeterio/openmeter/internal/entitlement"
@@ -26,7 +29,7 @@ const (
 
 	// defaultClockDrift specifies how much clock drift is allowed when calculating the current time between the worker nodes.
 	// with AWS, Google Cloud 1ms is guaranteed, this should work well for any NTP based setup.
-	defaultClockDrift = time.Millisecond
+	defaultClockDrift = time.Millisecond // THIS IS NOT WHAT IT DOES
 )
 
 type NamespacedID = pkgmodels.NamespacedID
@@ -41,18 +44,19 @@ type WorkerOptions struct {
 	Subscriber        message.Subscriber
 
 	TargetTopic string
-	PoisonQueue *WorkerPoisonQueueOptions
+	DLQ         *WorkerDLQOptions
 	Publisher   message.Publisher
 	Marshaler   publisher.CloudEventMarshaler
 
 	Entitlement *registry.Entitlement
+	Repo        BalanceWorkerRepository
 	// External connectors
 	SubjectIDResolver SubjectIDResolver
 
 	Logger *slog.Logger
 }
 
-type WorkerPoisonQueueOptions struct {
+type WorkerDLQOptions struct {
 	Topic            string
 	Throttle         bool
 	ThrottleDuration time.Duration
@@ -64,11 +68,16 @@ type highWatermarkCacheEntry struct {
 	IsDeleted     bool
 }
 
+type connectors struct {
+	entitlement *registry.Entitlement
+	repo        BalanceWorkerRepository
+}
+
 type Worker struct {
 	ctx        context.Context
 	ctxCancel  context.CancelFunc
 	opts       WorkerOptions
-	connectors *registry.Entitlement
+	connectors connectors
 	router     *message.Router
 
 	highWatermarkCache *lru.Cache[string, highWatermarkCacheEntry]
@@ -88,7 +97,7 @@ func New(opts WorkerOptions) (*Worker, error) {
 	worker := &Worker{
 		opts:               opts,
 		router:             router,
-		connectors:         opts.Entitlement,
+		connectors:         connectors{entitlement: opts.Entitlement, repo: opts.Repo},
 		highWatermarkCache: highWatermarkCache,
 	}
 
@@ -122,30 +131,30 @@ func New(opts WorkerOptions) (*Worker, error) {
 		middleware.Recoverer,
 	)
 
-	if opts.PoisonQueue != nil {
-		poisionQueue, err := middleware.PoisonQueue(opts.Publisher, opts.PoisonQueue.Topic)
+	if opts.DLQ != nil {
+		dlq, err := wmmiddleware.DLQ(opts.Publisher, opts.DLQ.Topic, nil)
 		if err != nil {
 			return nil, err
 		}
 
 		router.AddMiddleware(
-			poisionQueue,
+			dlq,
 		)
 
-		poisionQueueProcessor := worker.handleEvent
-		if opts.PoisonQueue.Throttle {
-			poisionQueueProcessor = middleware.NewThrottle(
-				opts.PoisonQueue.ThrottleCount,
-				opts.PoisonQueue.ThrottleDuration,
-			).Middleware(poisionQueueProcessor)
+		dlqProcessor := worker.handleEvent
+		if opts.DLQ.Throttle {
+			dlqProcessor = middleware.NewThrottle(
+				opts.DLQ.ThrottleCount,
+				opts.DLQ.ThrottleDuration,
+			).Middleware(dlqProcessor)
 		}
 		router.AddHandler(
-			"balance_worker_process_poison_queue",
-			opts.PoisonQueue.Topic,
+			"balance_worker_process_dlq",
+			opts.DLQ.Topic,
 			opts.Subscriber,
 			opts.TargetTopic,
 			opts.Publisher,
-			poisionQueueProcessor,
+			dlqProcessor,
 		)
 	}
 
@@ -177,8 +186,8 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 
 	switch ceType {
 	// Entitlement events
-	case entitlement.EntitlementCreatedEvent{}.Spec().Type():
-		event, err := spec.ParseCloudEventFromBytes[entitlement.EntitlementCreatedEvent](msg.Payload)
+	case entitlement.EntitlementDeletedEvent{}.Spec().Type():
+		event, err := spec.ParseCloudEventFromBytes[entitlement.EntitlementDeletedEvent](msg.Payload)
 		if err != nil {
 			w.opts.Logger.Error("failed to parse entitlement created event", w.messageToLogFields(msg)...)
 			return nil, err
@@ -222,17 +231,28 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 		)
 	// Metered entitlement events
 	case meteredentitlement.ResetEntitlementEvent{}.Spec().Type():
-		event, err := spec.ParseCloudEventFromBytes[meteredentitlement.ResetEntitlementEvent](msg.Payload)
+		// event, err := spec.ParseCloudEventFromBytes[meteredentitlement.ResetEntitlementEvent](msg.Payload)
+		// if err != nil {
+		// 	return nil, fmt.Errorf("failed to parse reset entitlement event: %w", err)
+		// }
+
+		// return w.handleUpdateEvent(
+		// 	msg.Context(),
+		// 	NamespacedID{Namespace: event.Payload.Namespace.ID, ID: event.Payload.EntitlementID},
+		// 	spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, event.Payload.EntitlementID),
+		// )
+
+		return nil, nil
+	// Ingest events
+	case ingestnotification.BatchedIngestEvent{}.Spec().Type():
+		event, err := spec.ParseCloudEventFromBytes[ingestnotification.BatchedIngestEvent](msg.Payload)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse reset entitlement event: %w", err)
+			return nil, fmt.Errorf("failed to parse ingest event: %w", err)
 		}
 
-		return w.handleUpdateEvent(
-			msg.Context(),
-			NamespacedID{Namespace: event.Payload.Namespace.ID, ID: event.Payload.EntitlementID},
-			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, event.Payload.EntitlementID),
-		)
+		return w.handleBatchedIngestEvent(w.ctx, event.Payload)
 	}
+	return nil, nil
 }
 
 func (w *Worker) messageToLogFields(msg *message.Message) []any {
