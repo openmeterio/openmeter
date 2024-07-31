@@ -289,7 +289,9 @@ func initIngestEventPublisher(ctx context.Context, logger *slog.Logger, conf con
 		kafkaProducer.Close()
 	})
 
-	ingestNotificationHandler, err := ingestnotification.NewHandler(logger, metricMeter, targetTopic)
+	ingestNotificationHandler, err := ingestnotification.NewHandler(logger, metricMeter, targetTopic, ingestnotification.HandlerConfig{
+		MaxEventsInBatch: conf.BalanceWorker.ChunkSize,
+	})
 	if err != nil {
 		return nil, err
 	}

@@ -65,7 +65,7 @@ func (n *NamespaceStore) ValidateEvent(_ context.Context, m *sinkmodels.SinkMess
 		}
 	}
 
-	if len(m.Meters) <= 0 {
+	if len(m.Meters) == 0 {
 		// Mark as invalid so we can show it to the user
 		m.Status = sinkmodels.ProcessingStatus{
 			State: sinkmodels.INVALID,
