@@ -2,14 +2,12 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"syscall"
-	"time"
 
 	health "github.com/AppsFlyer/go-sundheit"
 	healthhttp "github.com/AppsFlyer/go-sundheit/http"
@@ -230,36 +228,6 @@ func main() {
 	}
 }
 
-func initClickHouseClient(config config.Configuration) (clickhouse.Conn, error) {
-	options := &clickhouse.Options{
-		Addr: []string{config.Aggregation.ClickHouse.Address},
-		Auth: clickhouse.Auth{
-			Database: config.Aggregation.ClickHouse.Database,
-			Username: config.Aggregation.ClickHouse.Username,
-			Password: config.Aggregation.ClickHouse.Password,
-		},
-		DialTimeout:      time.Duration(10) * time.Second,
-		MaxOpenConns:     5,
-		MaxIdleConns:     5,
-		ConnMaxLifetime:  time.Duration(10) * time.Minute,
-		ConnOpenStrategy: clickhouse.ConnOpenInOrder,
-		BlockBufferSize:  10,
-	}
-	// This minimal TLS.Config is normally sufficient to connect to the secure native port (normally 9440) on a ClickHouse server.
-	// See: https://clickhouse.com/docs/en/integrations/go#using-tls
-	if config.Aggregation.ClickHouse.TLS {
-		options.TLS = &tls.Config{}
-	}
-
-	// Initialize ClickHouse
-	clickHouseClient, err := clickhouse.Open(options)
-	if err != nil {
-		return nil, fmt.Errorf("init clickhouse client: %w", err)
-	}
-
-	return clickHouseClient, nil
-}
-
 func initKafkaProducer(ctx context.Context, config config.Configuration, logger *slog.Logger, metricMeter metric.Meter, group *run.Group) (*kafka.Producer, error) {
 	// Initialize Kafka Admin Client
 	kafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
@@ -331,7 +299,7 @@ func initIngestEventPublisher(ctx context.Context, logger *slog.Logger, conf con
 }
 
 func initSink(config config.Configuration, logger *slog.Logger, metricMeter metric.Meter, tracer trace.Tracer, meterRepository meter.Repository, flushHandler flushhandler.FlushEventHandler) (*sink.Sink, error) {
-	clickhouseClient, err := initClickHouseClient(config)
+	clickhouseClient, err := clickhouse.Open(config.Aggregation.ClickHouse.GetClientOptions())
 	if err != nil {
 		return nil, fmt.Errorf("init clickhouse client: %w", err)
 	}

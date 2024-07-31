@@ -1,9 +1,12 @@
 package config
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
+	"time"
 
+	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/spf13/viper"
 )
 
@@ -40,6 +43,30 @@ func (c ClickHouseAggregationConfiguration) Validate() error {
 	}
 
 	return nil
+}
+
+func (c ClickHouseAggregationConfiguration) GetClientOptions() *clickhouse.Options {
+	options := &clickhouse.Options{
+		Addr: []string{c.Address},
+		Auth: clickhouse.Auth{
+			Database: c.Database,
+			Username: c.Username,
+			Password: c.Password,
+		},
+		DialTimeout:      time.Duration(10) * time.Second,
+		MaxOpenConns:     5,
+		MaxIdleConns:     5,
+		ConnMaxLifetime:  time.Duration(10) * time.Minute,
+		ConnOpenStrategy: clickhouse.ConnOpenInOrder,
+		BlockBufferSize:  10,
+	}
+	// This minimal TLS.Config is normally sufficient to connect to the secure native port (normally 9440) on a ClickHouse server.
+	// See: https://clickhouse.com/docs/en/integrations/go#using-tls
+	if c.TLS {
+		options.TLS = &tls.Config{}
+	}
+
+	return options
 }
 
 // ConfigureAggregation configures some defaults in the Viper instance.

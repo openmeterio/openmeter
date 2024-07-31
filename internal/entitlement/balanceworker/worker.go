@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/event/spec"
+	"github.com/openmeterio/openmeter/internal/registry"
 )
 
 type WorkerOptions struct {
@@ -26,6 +27,8 @@ type WorkerOptions struct {
 	Publisher   message.Publisher
 
 	Marshaler publisher.CloudEventMarshaler
+
+	Entitlement *registry.Entitlement
 
 	Logger *slog.Logger
 }
