@@ -39,7 +39,7 @@ func (w *Worker) handleEntitlementDeleteEvent(ctx context.Context, delEvent enti
 			Source:  spec.ComposeResourcePath(namespace, spec.EntityEntitlement, delEvent.ID),
 			Subject: spec.ComposeResourcePath(namespace, spec.EntitySubjectKey, delEvent.SubjectKey),
 		},
-		snapshot.EntitlementBalanceSnapshotEvent{
+		snapshot.SnapshotEvent{
 			Entitlement: delEvent.Entitlement,
 			Namespace: models.NamespaceID{
 				ID: namespace,
@@ -128,7 +128,7 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementID Namespac
 			Source:  source,
 			Subject: spec.ComposeResourcePath(entitlementID.Namespace, spec.EntitySubjectKey, entitlement.SubjectKey),
 		},
-		snapshot.EntitlementBalanceSnapshotEvent{
+		snapshot.SnapshotEvent{
 			Entitlement: *entitlement,
 			Namespace: models.NamespaceID{
 				ID: entitlementID.Namespace,

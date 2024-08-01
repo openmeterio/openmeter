@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/sink/flushhandler/ingestnotification"
 )
 
-func (w *Worker) handleIngestEvent(ctx context.Context, event ingestnotification.IngestEvent) ([]*message.Message, error) {
+func (w *Worker) handleIngestEvent(ctx context.Context, event ingestnotification.EventIngested) ([]*message.Message, error) {
 	affectedEntitlements, err := w.GetEntitlementsAffectedByMeterSubject(ctx, event.Namespace.ID, event.MeterSlugs, event.SubjectKey)
 	if err != nil {
 		return nil, err

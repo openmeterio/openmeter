@@ -219,21 +219,8 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 		)
 
 	// Metered entitlement events
-	case meteredentitlement.ResetEntitlementEvent{}.Spec().Type():
-		event, err := spec.ParseCloudEventFromBytes[meteredentitlement.ResetEntitlementEvent](msg.Payload)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse reset entitlement event: %w", err)
-		}
-
-		return w.handleEntitlementUpdateEvent(
-			msg.Context(),
-			NamespacedID{Namespace: event.Payload.Namespace.ID, ID: event.Payload.EntitlementID},
-			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, event.Payload.EntitlementID),
-		)
-
-	// Metered entitlement events
-	case meteredentitlement.ResetEntitlementEvent{}.Spec().Type():
-		event, err := spec.ParseCloudEventFromBytes[meteredentitlement.ResetEntitlementEvent](msg.Payload)
+	case meteredentitlement.EntitlementResetEvent{}.Spec().Type():
+		event, err := spec.ParseCloudEventFromBytes[meteredentitlement.EntitlementResetEvent](msg.Payload)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse reset entitlement event: %w", err)
 		}
@@ -245,8 +232,8 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 		)
 
 	// Ingest event
-	case ingestnotification.IngestEvent{}.Spec().Type():
-		event, err := spec.ParseCloudEventFromBytes[ingestnotification.IngestEvent](msg.Payload)
+	case ingestnotification.EventIngested{}.Spec().Type():
+		event, err := spec.ParseCloudEventFromBytes[ingestnotification.EventIngested](msg.Payload)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse ingest event: %w", err)
 		}
