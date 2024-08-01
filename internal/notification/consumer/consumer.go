@@ -23,14 +23,14 @@ type Options struct {
 
 	Publisher message.Publisher
 
-	PoisonQueue *PoisonQueueOptions
+	DLQ *DLQOptions
 
 	Entitlement *registry.Entitlement
 
 	Logger *slog.Logger
 }
 
-type PoisonQueueOptions struct {
+type DLQOptions struct {
 	Topic            string
 	Throttle         bool
 	ThrottleDuration time.Duration
@@ -71,8 +71,8 @@ func New(opts Options) (*Consumer, error) {
 		middleware.Recoverer,
 	)
 
-	if opts.PoisonQueue != nil {
-		poisionQueue, err := middleware.PoisonQueue(opts.Publisher, opts.PoisonQueue.Topic)
+	if opts.DLQ != nil {
+		poisionQueue, err := middleware.PoisonQueue(opts.Publisher, opts.DLQ.Topic)
 		if err != nil {
 			return nil, err
 		}
@@ -82,15 +82,15 @@ func New(opts Options) (*Consumer, error) {
 		)
 
 		poisionQueueProcessor := nopublisher.NoPublisherHandlerToHandlerFunc(consumer.handleSystemEvent)
-		if opts.PoisonQueue.Throttle {
+		if opts.DLQ.Throttle {
 			poisionQueueProcessor = middleware.NewThrottle(
-				opts.PoisonQueue.ThrottleCount,
-				opts.PoisonQueue.ThrottleDuration,
+				opts.DLQ.ThrottleCount,
+				opts.DLQ.ThrottleDuration,
 			).Middleware(poisionQueueProcessor)
 		}
 		router.AddNoPublisherHandler(
 			"balance_consumer_process_poison_queue",
-			opts.PoisonQueue.Topic,
+			opts.DLQ.Topic,
 			opts.Subscriber,
 			nopublisher.HandlerFuncToNoPublisherHandler(poisionQueueProcessor),
 		)

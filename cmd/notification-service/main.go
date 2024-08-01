@@ -264,12 +264,12 @@ func main() {
 		Logger: logger,
 	}
 
-	if conf.NotificationService.Consumer.PoisionQueue.Enabled {
-		consumerOptions.PoisonQueue = &consumer.PoisonQueueOptions{
-			Topic:            conf.NotificationService.Consumer.PoisionQueue.Topic,
-			Throttle:         conf.NotificationService.Consumer.PoisionQueue.Throttle.Enabled,
-			ThrottleDuration: conf.NotificationService.Consumer.PoisionQueue.Throttle.Duration,
-			ThrottleCount:    conf.NotificationService.Consumer.PoisionQueue.Throttle.Count,
+	if conf.NotificationService.Consumer.DLQ.Enabled {
+		consumerOptions.DLQ = &consumer.DLQOptions{
+			Topic:            conf.NotificationService.Consumer.DLQ.Topic,
+			Throttle:         conf.NotificationService.Consumer.DLQ.Throttle.Enabled,
+			ThrottleDuration: conf.NotificationService.Consumer.DLQ.Throttle.Duration,
+			ThrottleCount:    conf.NotificationService.Consumer.DLQ.Throttle.Count,
 		}
 	}
 
@@ -358,7 +358,7 @@ type eventPublishers struct {
 func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Configuration, kafkaProducer *kafka.Producer) (*eventPublishers, error) {
 	eventDriver := watermillkafka.NewPublisher(kafkaProducer)
 
-	if conf.NotificationService.Consumer.PoisionQueue.AutoProvision.Enabled {
+	if conf.NotificationService.Consumer.DLQ.AutoProvision.Enabled {
 		adminClient, err := kafka.NewAdminClientFromProducer(kafkaProducer)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create Kafka admin client: %w", err)
@@ -369,8 +369,8 @@ func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Co
 		if err := pkgkafka.ProvisionTopic(ctx,
 			adminClient,
 			logger,
-			conf.NotificationService.Consumer.PoisionQueue.Topic,
-			conf.NotificationService.Consumer.PoisionQueue.AutoProvision.Partitions); err != nil {
+			conf.NotificationService.Consumer.DLQ.Topic,
+			conf.NotificationService.Consumer.DLQ.AutoProvision.Partitions); err != nil {
 			return nil, fmt.Errorf("failed to auto provision topic: %w", err)
 		}
 	}

@@ -13,7 +13,7 @@ type NotificationServiceConfiguration struct {
 }
 
 type NotificationServiceConsumerConfiguration struct {
-	PoisionQueue      PoisionQueueConfiguration
+	DLQ               DLQConfiguration
 	Retry             RetryConfiguration
 	ConsumerGroupName string
 }
@@ -26,7 +26,7 @@ func (c NotificationServiceConfiguration) Validate() error {
 }
 
 func (c NotificationServiceConsumerConfiguration) Validate() error {
-	if err := c.PoisionQueue.Validate(); err != nil {
+	if err := c.DLQ.Validate(); err != nil {
 		return fmt.Errorf("poision queue: %w", err)
 	}
 
@@ -41,15 +41,15 @@ func (c NotificationServiceConsumerConfiguration) Validate() error {
 }
 
 func ConfigureNotificationService(v *viper.Viper) {
-	v.SetDefault("notificationService.consumer.poisionQueue.enabled", true)
-	v.SetDefault("notificationService.consumer.poisionQueue.topic", "om_sys.notification_service_poision")
-	v.SetDefault("notificationService.consumer.poisionQueue.autoProvision.enabled", true)
-	v.SetDefault("notificationService.consumer.poisionQueue.autoProvision.partitions", 1)
+	v.SetDefault("notificationService.consumer.dlq.enabled", true)
+	v.SetDefault("notificationService.consumer.dlq.topic", "om_sys.notification_service_dlq")
+	v.SetDefault("notificationService.consumer.dlq.autoProvision.enabled", true)
+	v.SetDefault("notificationService.consumer.dlq.autoProvision.partitions", 1)
 
-	v.SetDefault("notificationService.consumer.poisionQueue.throttle.enabled", true)
+	v.SetDefault("notificationService.consumer.dlq.throttle.enabled", true)
 	// Let's throttle poision queue to 10 messages per second
-	v.SetDefault("notificationService.consumer.poisionQueue.throttle.count", 10)
-	v.SetDefault("notificationService.consumer.poisionQueue.throttle.duration", time.Second)
+	v.SetDefault("notificationService.consumer.dlq.throttle.count", 10)
+	v.SetDefault("notificationService.consumer.dlq.throttle.duration", time.Second)
 
 	v.SetDefault("notificationService.consumer.retry.maxRetries", 5)
 	v.SetDefault("notificationService.consumer.retry.initialInterval", 100*time.Millisecond)

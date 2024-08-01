@@ -267,12 +267,12 @@ func main() {
 		Logger: logger,
 	}
 
-	if conf.BalanceWorker.PoisionQueue.Enabled {
-		workerOptions.PoisonQueue = &balanceworker.WorkerPoisonQueueOptions{
-			Topic:            conf.BalanceWorker.PoisionQueue.Topic,
-			Throttle:         conf.BalanceWorker.PoisionQueue.Throttle.Enabled,
-			ThrottleDuration: conf.BalanceWorker.PoisionQueue.Throttle.Duration,
-			ThrottleCount:    conf.BalanceWorker.PoisionQueue.Throttle.Count,
+	if conf.BalanceWorker.DLQ.Enabled {
+		workerOptions.DLQ = &balanceworker.WorkerDLQOptions{
+			Topic:            conf.BalanceWorker.DLQ.Topic,
+			Throttle:         conf.BalanceWorker.DLQ.Throttle.Enabled,
+			ThrottleDuration: conf.BalanceWorker.DLQ.Throttle.Duration,
+			ThrottleCount:    conf.BalanceWorker.DLQ.Throttle.Count,
 		}
 	}
 
@@ -361,7 +361,7 @@ type eventPublishers struct {
 func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Configuration, kafkaProducer *kafka.Producer) (*eventPublishers, error) {
 	eventDriver := watermillkafka.NewPublisher(kafkaProducer)
 
-	if conf.BalanceWorker.PoisionQueue.AutoProvision.Enabled {
+	if conf.BalanceWorker.DLQ.AutoProvision.Enabled {
 		adminClient, err := kafka.NewAdminClientFromProducer(kafkaProducer)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create Kafka admin client: %w", err)
@@ -372,8 +372,8 @@ func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Co
 		if err := pkgkafka.ProvisionTopic(ctx,
 			adminClient,
 			logger,
-			conf.BalanceWorker.PoisionQueue.Topic,
-			conf.BalanceWorker.PoisionQueue.AutoProvision.Partitions); err != nil {
+			conf.BalanceWorker.DLQ.Topic,
+			conf.BalanceWorker.DLQ.AutoProvision.Partitions); err != nil {
 			return nil, fmt.Errorf("failed to auto provision topic: %w", err)
 		}
 	}

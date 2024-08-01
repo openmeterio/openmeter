@@ -9,13 +9,13 @@ import (
 )
 
 type BalanceWorkerConfiguration struct {
-	PoisionQueue      PoisionQueueConfiguration
+	DLQ               DLQConfiguration
 	Retry             RetryConfiguration
 	ConsumerGroupName string
 }
 
 func (c BalanceWorkerConfiguration) Validate() error {
-	if err := c.PoisionQueue.Validate(); err != nil {
+	if err := c.DLQ.Validate(); err != nil {
 		return fmt.Errorf("poision queue: %w", err)
 	}
 
@@ -30,15 +30,15 @@ func (c BalanceWorkerConfiguration) Validate() error {
 }
 
 func ConfigureBalanceWorker(v *viper.Viper) {
-	v.SetDefault("balanceWorker.poisionQueue.enabled", true)
-	v.SetDefault("balanceWorker.poisionQueue.topic", "om_sys.balance_worker_poision")
-	v.SetDefault("balanceWorker.poisionQueue.autoProvision.enabled", true)
-	v.SetDefault("balanceWorker.poisionQueue.autoProvision.partitions", 1)
+	v.SetDefault("balanceWorker.dlq.enabled", true)
+	v.SetDefault("balanceWorker.dlq.topic", "om_sys.balance_worker_dlq")
+	v.SetDefault("balanceWorker.dlq.autoProvision.enabled", true)
+	v.SetDefault("balanceWorker.dlq.autoProvision.partitions", 1)
 
-	v.SetDefault("balanceWorker.poisionQueue.throttle.enabled", true)
+	v.SetDefault("balanceWorker.dlq.throttle.enabled", true)
 	// Let's throttle poision queue to 10 messages per second
-	v.SetDefault("balanceWorker.poisionQueue.throttle.count", 10)
-	v.SetDefault("balanceWorker.poisionQueue.throttle.duration", time.Second)
+	v.SetDefault("balanceWorker.dlq.throttle.count", 10)
+	v.SetDefault("balanceWorker.dlq.throttle.duration", time.Second)
 
 	v.SetDefault("balanceWorker.retry.maxRetries", 5)
 	v.SetDefault("balanceWorker.retry.initialInterval", 100*time.Millisecond)
