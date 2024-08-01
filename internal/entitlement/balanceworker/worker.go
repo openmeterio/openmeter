@@ -66,8 +66,6 @@ type highWatermarkCacheEntry struct {
 }
 
 type Worker struct {
-	ctx        context.Context
-	ctxCancel  context.CancelFunc
 	opts       WorkerOptions
 	connectors *registry.Entitlement
 	router     *message.Router
@@ -154,7 +152,6 @@ func New(opts WorkerOptions) (*Worker, error) {
 }
 
 func (w *Worker) Run(ctx context.Context) error {
-	w.ctx, w.ctxCancel = context.WithCancel(ctx)
 	return w.router.Run(ctx)
 }
 
@@ -163,7 +160,6 @@ func (w *Worker) Close() error {
 		return err
 	}
 
-	w.ctxCancel()
 	return nil
 }
 
@@ -185,7 +181,7 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 			return nil, err
 		}
 		return w.handleEntitlementUpdateEvent(
-			w.ctx,
+			msg.Context(),
 			NamespacedID{Namespace: event.Payload.Namespace.ID, ID: event.Payload.ID},
 			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, event.Payload.ID),
 		)
@@ -196,7 +192,7 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 			return nil, err
 		}
 
-		return w.handleEntitlementDeleteEvent(w.ctx, event.Payload)
+		return w.handleEntitlementDeleteEvent(msg.Context(), event.Payload)
 
 	// Grant events
 	case credit.GrantCreatedEvent{}.Spec().Type():
@@ -206,7 +202,7 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 		}
 
 		return w.handleEntitlementUpdateEvent(
-			w.ctx,
+			msg.Context(),
 			NamespacedID{Namespace: event.Payload.Namespace.ID, ID: string(event.Payload.OwnerID)},
 			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, string(event.Payload.OwnerID), spec.EntityGrant, event.Payload.ID),
 		)
@@ -217,7 +213,7 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 		}
 
 		return w.handleEntitlementUpdateEvent(
-			w.ctx,
+			msg.Context(),
 			NamespacedID{Namespace: event.Payload.Namespace.ID, ID: string(event.Payload.OwnerID)},
 			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, string(event.Payload.OwnerID), spec.EntityGrant, event.Payload.ID),
 		)
@@ -230,7 +226,7 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 		}
 
 		return w.handleEntitlementUpdateEvent(
-			w.ctx,
+			msg.Context(),
 			NamespacedID{Namespace: event.Payload.Namespace.ID, ID: event.Payload.EntitlementID},
 			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, event.Payload.EntitlementID),
 		)
@@ -255,7 +251,7 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 			return nil, fmt.Errorf("failed to parse ingest event: %w", err)
 		}
 
-		return w.handleIngestEvent(w.ctx, event.Payload)
+		return w.handleIngestEvent(msg.Context(), event.Payload)
 	}
 
 	return nil, nil
