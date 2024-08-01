@@ -15,12 +15,8 @@ const (
 	EventSubsystem = ingestnotification.EventSubsystem
 )
 
-const (
-	EventIngestion = ingestnotification.EventIngestion
-)
-
 type (
-	IngestEvent = ingestnotification.IngestEvent
+	IngestEvent = ingestnotification.EventIngested
 )
 
 // Ingest notification handler

@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	EventSnapshot spec.EventName = "snapshot"
+	snapshotEventName spec.EventName = "entitlement.snapshot"
 )
 
 type BalanceOperationType string
@@ -39,7 +39,7 @@ type EntitlementValue struct {
 	Usage *float64 `json:"usage,omitempty"`
 }
 
-type EntitlementBalanceSnapshotEvent struct {
+type SnapshotEvent struct {
 	Entitlement entitlement.Entitlement `json:"entitlement"`
 	Namespace   models.NamespaceID      `json:"namespace"`
 	Subject     models.SubjectKeyAndID  `json:"subject"`
@@ -55,18 +55,17 @@ type EntitlementBalanceSnapshotEvent struct {
 	CurrentUsagePeriod *recurrence.Period `json:"currentUsagePeriod,omitempty"`
 }
 
-var entitlementBalanceSnapshotEventSpec = spec.EventTypeSpec{
-	Subsystem:   entitlement.EventSubsystem,
-	Name:        EventSnapshot,
-	SpecVersion: "1.0",
-	Version:     "v1",
+var SnapshotEventSpec = spec.EventTypeSpec{
+	Subsystem: entitlement.EventSubsystem,
+	Name:      snapshotEventName,
+	Version:   "v1",
 }
 
-func (e EntitlementBalanceSnapshotEvent) Spec() *spec.EventTypeSpec {
-	return &entitlementBalanceSnapshotEventSpec
+func (e SnapshotEvent) Spec() *spec.EventTypeSpec {
+	return &SnapshotEventSpec
 }
 
-func (e EntitlementBalanceSnapshotEvent) Validate() error {
+func (e SnapshotEvent) Validate() error {
 	if e.Operation != BalanceOperationDelete && e.Operation != BalanceOperationUpdate {
 		return errors.New("operation must be either delete or update")
 	}

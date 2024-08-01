@@ -23,9 +23,6 @@ type EventTypeSpec struct {
 	// Version is the version of the event (e.g. v1, v2, etc)
 	Version EventVersion
 
-	// SpecVersion is the version of the event spec (e.g. 1.0, 1.1, etc)
-	SpecVersion EventSpecVersion
-
 	// cloudEventType is the actual cloud event type, so that we don't have the calculate it
 	// for each message
 	cloudEventType string
@@ -35,7 +32,7 @@ func (s *EventTypeSpec) Type() string {
 	if s.cloudEventType != "" {
 		return s.cloudEventType
 	}
-	s.cloudEventType = fmt.Sprintf("openmeter.%s.%s.%s", s.Subsystem, s.Version, s.Name)
+	s.cloudEventType = fmt.Sprintf("io.openmeter.%s.%s.%s", s.Subsystem, s.Version, s.Name)
 	return s.cloudEventType
 }
 

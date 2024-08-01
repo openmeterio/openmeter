@@ -55,7 +55,7 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 			ID:      message.Serialized.Id,
 			Source:  spec.ComposeResourcePath(message.Namespace, spec.EntityEvent, message.Serialized.Id),
 			Subject: spec.ComposeResourcePath(message.Namespace, spec.EntitySubjectKey, message.Serialized.Subject),
-		}, IngestEvent{
+		}, EventIngested{
 			Namespace:  eventmodels.NamespaceID{ID: message.Namespace},
 			SubjectKey: message.Serialized.Subject,
 			MeterSlugs: h.getMeterSlugsFromMeters(message.Meters),

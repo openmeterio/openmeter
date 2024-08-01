@@ -15,10 +15,9 @@ type event struct {
 
 func (e event) Spec() *spec.EventTypeSpec {
 	return &spec.EventTypeSpec{
-		Subsystem:   "subsys",
-		Name:        "test",
-		SpecVersion: "1.0",
-		Version:     "v1",
+		Subsystem: "subsys",
+		Name:      "test",
+		Version:   "v1",
 	}
 }
 
@@ -44,7 +43,7 @@ func TestParserSanity(t *testing.T) {
 		})
 
 	assert.NoError(t, err)
-	assert.Equal(t, "openmeter.subsys.v1.test", cloudEvent.Type())
+	assert.Equal(t, "io.openmeter.subsys.v1.test", cloudEvent.Type())
 	assert.Equal(t, "//openmeter.io/namespace/default/subject/ID", cloudEvent.Subject())
 	assert.Equal(t, "somesource", cloudEvent.Source())
 

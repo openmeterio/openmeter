@@ -6,10 +6,6 @@ const (
 	EventSubsystem = meteredentitlement.EventSubsystem
 )
 
-const (
-	EventResetEntitlementUsage = meteredentitlement.EventResetEntitlementUsage
-)
-
 type (
-	ResetEntitlementEvent = meteredentitlement.ResetEntitlementEvent
+	EntitlementResetEvent = meteredentitlement.EntitlementResetEvent
 )

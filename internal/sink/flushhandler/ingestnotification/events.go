@@ -12,10 +12,10 @@ const (
 )
 
 const (
-	EventIngestion spec.EventName = "ingestion"
+	ingestedEventName spec.EventName = "event.ingested"
 )
 
-type IngestEvent struct {
+type EventIngested struct {
 	Namespace  models.NamespaceID `json:"namespace"`
 	SubjectKey string             `json:"subjectKey"`
 
@@ -26,17 +26,16 @@ type IngestEvent struct {
 }
 
 var ingestEventSpec = spec.EventTypeSpec{
-	Subsystem:   EventSubsystem,
-	Name:        EventIngestion,
-	SpecVersion: "1.0",
-	Version:     "v1",
+	Subsystem: EventSubsystem,
+	Name:      ingestedEventName,
+	Version:   "v1",
 }
 
-func (i IngestEvent) Spec() *spec.EventTypeSpec {
+func (i EventIngested) Spec() *spec.EventTypeSpec {
 	return &ingestEventSpec
 }
 
-func (i IngestEvent) Validate() error {
+func (i EventIngested) Validate() error {
 	if err := i.Namespace.Validate(); err != nil {
 		return err
 	}
