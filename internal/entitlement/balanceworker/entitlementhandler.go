@@ -32,7 +32,7 @@ func (w *Worker) handleEntitlementDeleteEvent(ctx context.Context, delEvent enti
 		}
 	}
 
-	calculationTime := w.getCalculationTime()
+	calculationTime := time.Now()
 
 	event, err := spec.NewCloudEvent(
 		spec.EventSpec{
@@ -66,7 +66,7 @@ func (w *Worker) handleEntitlementDeleteEvent(ctx context.Context, delEvent enti
 	}
 
 	_ = w.highWatermarkCache.Add(delEvent.ID, highWatermarkCacheEntry{
-		HighWatermark: calculationTime,
+		HighWatermark: calculationTime.Add(-defaultClockDrift),
 		IsDeleted:     true,
 	})
 
@@ -74,7 +74,7 @@ func (w *Worker) handleEntitlementDeleteEvent(ctx context.Context, delEvent enti
 }
 
 func (w *Worker) handleEntitlementUpdateEvent(ctx context.Context, entitlementID NamespacedID, source string) ([]*message.Message, error) {
-	calculatedAt := w.getCalculationTime()
+	calculatedAt := time.Now()
 
 	if entry, ok := w.highWatermarkCache.Get(entitlementID.ID); ok {
 		if entry.HighWatermark.After(calculatedAt) || entry.IsDeleted {
@@ -88,7 +88,7 @@ func (w *Worker) handleEntitlementUpdateEvent(ctx context.Context, entitlementID
 	}
 
 	_ = w.highWatermarkCache.Add(entitlementID.ID, highWatermarkCacheEntry{
-		HighWatermark: calculatedAt,
+		HighWatermark: calculatedAt.Add(-defaultClockDrift),
 	})
 
 	return []*message.Message{wmMessage}, nil

@@ -18,6 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/event/spec"
 	"github.com/openmeterio/openmeter/internal/registry"
+	"github.com/openmeterio/openmeter/internal/sink/flushhandler/ingestnotification"
 	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -183,8 +184,20 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 			w.opts.Logger.Error("failed to parse entitlement created event", w.messageToLogFields(msg)...)
 			return nil, err
 		}
+		return w.handleEntitlementUpdateEvent(
+			w.ctx,
+			NamespacedID{Namespace: event.Payload.Namespace.ID, ID: event.Payload.ID},
+			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, event.Payload.ID),
+		)
+	case entitlement.EntitlementDeletedEvent{}.Spec().Type():
+		event, err := spec.ParseCloudEventFromBytes[entitlement.EntitlementDeletedEvent](msg.Payload)
+		if err != nil {
+			w.opts.Logger.Error("failed to parse entitlement deleted event", w.messageToLogFields(msg)...)
+			return nil, err
+		}
 
 		return w.handleEntitlementDeleteEvent(w.ctx, event.Payload)
+
 	// Grant events
 	case credit.GrantCreatedEvent{}.Spec().Type():
 		event, err := spec.ParseCloudEventFromBytes[credit.GrantCreatedEvent](msg.Payload)
@@ -208,6 +221,7 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 			NamespacedID{Namespace: event.Payload.Namespace.ID, ID: string(event.Payload.OwnerID)},
 			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, string(event.Payload.OwnerID), spec.EntityGrant, event.Payload.ID),
 		)
+
 	// Metered entitlement events
 	case meteredentitlement.ResetEntitlementEvent{}.Spec().Type():
 		event, err := spec.ParseCloudEventFromBytes[meteredentitlement.ResetEntitlementEvent](msg.Payload)
@@ -220,6 +234,7 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 			NamespacedID{Namespace: event.Payload.Namespace.ID, ID: event.Payload.EntitlementID},
 			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, event.Payload.EntitlementID),
 		)
+
 	// Metered entitlement events
 	case meteredentitlement.ResetEntitlementEvent{}.Spec().Type():
 		event, err := spec.ParseCloudEventFromBytes[meteredentitlement.ResetEntitlementEvent](msg.Payload)
@@ -227,12 +242,23 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 			return nil, fmt.Errorf("failed to parse reset entitlement event: %w", err)
 		}
 
-		return w.handleUpdateEvent(
+		return w.handleEntitlementUpdateEvent(
 			msg.Context(),
 			NamespacedID{Namespace: event.Payload.Namespace.ID, ID: event.Payload.EntitlementID},
 			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, event.Payload.EntitlementID),
 		)
+
+	// Ingest event
+	case ingestnotification.IngestEvent{}.Spec().Type():
+		event, err := spec.ParseCloudEventFromBytes[ingestnotification.IngestEvent](msg.Payload)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse ingest event: %w", err)
+		}
+
+		return w.handleIngestEvent(w.ctx, event.Payload)
 	}
+
+	return nil, nil
 }
 
 func (w *Worker) messageToLogFields(msg *message.Message) []any {
@@ -247,8 +273,4 @@ func (w *Worker) messageToLogFields(msg *message.Message) []any {
 
 	out = append(out, slog.String("message_metadata", string(meta)))
 	return out
-}
-
-func (*Worker) getCalculationTime() time.Time {
-	return time.Now().Add(-defaultClockDrift).UTC()
 }
