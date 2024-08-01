@@ -212,6 +212,28 @@ func TestComplete(t *testing.T) {
 			},
 			ConsumerGroupName: "om_balance_worker",
 		},
+		NotificationService: NotificationServiceConfiguration{
+			Consumer: NotificationServiceConsumerConfiguration{
+				PoisionQueue: PoisionQueueConfiguration{
+					Enabled: true,
+					Topic:   "om_sys.notification_service_poision",
+					AutoProvision: AutoProvisionConfiguration{
+						Enabled:    true,
+						Partitions: 1,
+					},
+					Throttle: ThrottleConfiguration{
+						Enabled:  true,
+						Count:    10,
+						Duration: time.Second,
+					},
+				},
+				Retry: RetryConfiguration{
+					MaxRetries:      5,
+					InitialInterval: 100 * time.Millisecond,
+				},
+				ConsumerGroupName: "om_notification_service",
+			},
+		},
 	}
 
 	assert.Equal(t, expected, actual)

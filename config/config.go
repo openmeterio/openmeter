@@ -20,17 +20,18 @@ type Configuration struct {
 
 	Telemetry TelemetryConfig
 
-	Aggregation   AggregationConfiguration
-	Entitlements  EntitlementsConfiguration
-	Dedupe        DedupeConfiguration
-	Events        EventsConfiguration
-	Ingest        IngestConfiguration
-	Meters        []*models.Meter
-	Namespace     NamespaceConfiguration
-	Portal        PortalConfiguration
-	Postgres      PostgresConfig
-	Sink          SinkConfiguration
-	BalanceWorker BalanceWorkerConfiguration
+	Aggregation         AggregationConfiguration
+	Entitlements        EntitlementsConfiguration
+	Dedupe              DedupeConfiguration
+	Events              EventsConfiguration
+	Ingest              IngestConfiguration
+	Meters              []*models.Meter
+	Namespace           NamespaceConfiguration
+	Portal              PortalConfiguration
+	Postgres            PostgresConfig
+	Sink                SinkConfiguration
+	BalanceWorker       BalanceWorkerConfiguration
+	NotificationService NotificationServiceConfiguration
 }
 
 // Validate validates the configuration.
@@ -93,6 +94,10 @@ func (c Configuration) Validate() error {
 		return fmt.Errorf("balance worker: %w", err)
 	}
 
+	if err := c.NotificationService.Validate(); err != nil {
+		return fmt.Errorf("notification service: %w", err)
+	}
+
 	return nil
 }
 
@@ -126,4 +131,5 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigurePortal(v)
 	ConfigureEvents(v)
 	ConfigureBalanceWorker(v)
+	ConfigureNotificationService(v)
 }
