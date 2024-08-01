@@ -41,6 +41,19 @@
         "--telemetry-address",
         ":10002"
       ]
+    },
+    {
+      "name": "Launch Notification Service",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/notification-service",
+      "args": [
+        "--config",
+        "${workspaceFolder}/config.yaml",
+        "--telemetry-address",
+        ":10003"
+      ]
     }
   ]
 }

@@ -43,6 +43,11 @@ build-balance-worker: ## Build balance-worker binary
 	$(call print-target)
 	go build -o build/balance-worker ./cmd/balance-worker
 
+.PHONY: build-notification-service
+build-notification-service: ## Build notification-service binary
+	$(call print-target)
+	go build -o build/notification-service ./cmd/notification-service
+
 config.yaml:
 	cp config.example.yaml config.yaml
 
@@ -63,6 +68,12 @@ balance-worker: ## Run balance-worker
 	@ if [ config.yaml -ot config.example.yaml ]; then diff -u config.yaml config.example.yaml || (echo "!!! The configuration example changed. Please update your config.yaml file accordingly (or at least touch it). !!!" && false); fi
 	$(call print-target)
 	air -c ./cmd/balance-worker/.air.toml
+
+.PHONY: notification-service
+notification-service: ## Run notification-service
+	@ if [ config.yaml -ot config.example.yaml ]; then diff -u config.yaml config.example.yaml || (echo "!!! The configuration example changed. Please update your config.yaml file accordingly (or at least touch it). !!!" && false); fi
+	$(call print-target)
+	air -c ./cmd/notification-service/.air.toml
 
 .PHONY: etoe
 etoe: ## Run e2e tests
