@@ -13,10 +13,10 @@ const (
 )
 
 const (
-	EventResetEntitlementUsage spec.EventName = "resetEntitlementUsage"
+	resetEntitlementEventName spec.EventName = "entitlement.reset"
 )
 
-type ResetEntitlementEvent struct {
+type EntitlementResetEvent struct {
 	EntitlementID string                 `json:"entitlementId"`
 	Namespace     models.NamespaceID     `json:"namespace"`
 	Subject       models.SubjectKeyAndID `json:"subject"`
@@ -25,17 +25,16 @@ type ResetEntitlementEvent struct {
 }
 
 var resetEntitlementEventSpec = spec.EventTypeSpec{
-	Subsystem:   EventSubsystem,
-	Name:        EventResetEntitlementUsage,
-	SpecVersion: "1.0",
-	Version:     "v1",
+	Subsystem: EventSubsystem,
+	Name:      resetEntitlementEventName,
+	Version:   "v1",
 }
 
-func (e ResetEntitlementEvent) Spec() *spec.EventTypeSpec {
+func (e EntitlementResetEvent) Spec() *spec.EventTypeSpec {
 	return &resetEntitlementEventSpec
 }
 
-func (e ResetEntitlementEvent) Validate() error {
+func (e EntitlementResetEvent) Validate() error {
 	if e.EntitlementID == "" {
 		return errors.New("entitlementID must be set")
 	}

@@ -49,7 +49,7 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 				Source:  spec.ComposeResourcePath(entitlementID.Namespace, spec.EntityEntitlement, entitlementID.ID),
 				Subject: spec.ComposeResourcePath(entitlementID.Namespace, spec.EntitySubjectKey, ent.SubjectKey),
 			},
-			ResetEntitlementEvent{
+			EntitlementResetEvent{
 				EntitlementID: entitlementID.ID,
 				Namespace: eventmodels.NamespaceID{
 					ID: entitlementID.Namespace,

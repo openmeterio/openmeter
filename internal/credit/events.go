@@ -12,8 +12,8 @@ const (
 )
 
 const (
-	EventCreateGrant spec.EventName = "createGrant"
-	EventVoidGrant   spec.EventName = "voidGrant"
+	grantCreatedEventName spec.EventName = "grant.created"
+	grantVoidedEventName  spec.EventName = "grant.voided"
 )
 
 type grantEvent struct {
@@ -48,10 +48,9 @@ func (g grantEvent) Validate() error {
 type GrantCreatedEvent grantEvent
 
 var grantCreatedEventSpec = spec.EventTypeSpec{
-	Subsystem:   EventSubsystem,
-	Name:        EventCreateGrant,
-	SpecVersion: "1.0",
-	Version:     "v1",
+	Subsystem: EventSubsystem,
+	Name:      grantCreatedEventName,
+	Version:   "v1",
 }
 
 func (e GrantCreatedEvent) Spec() *spec.EventTypeSpec {
@@ -65,10 +64,9 @@ func (e GrantCreatedEvent) Validate() error {
 type GrantVoidedEvent grantEvent
 
 var grantVoidedEventSpec = spec.EventTypeSpec{
-	Subsystem:   EventSubsystem,
-	Name:        EventVoidGrant,
-	SpecVersion: "1.0",
-	Version:     "v1",
+	Subsystem: EventSubsystem,
+	Name:      grantVoidedEventName,
+	Version:   "v1",
 }
 
 func (e GrantVoidedEvent) Spec() *spec.EventTypeSpec {

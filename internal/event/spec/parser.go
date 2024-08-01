@@ -44,7 +44,7 @@ func NewCloudEvent(eventSpec EventSpec, payload CloudEventsPayload) (event.Event
 func newCloudEventFromSpec(meta *EventTypeSpec, spec EventSpec) event.Event {
 	ev := event.New()
 	ev.SetType(meta.Type())
-	ev.SetSpecVersion(string(meta.SpecVersion))
+	ev.SetSpecVersion(event.CloudEventsVersionV1)
 
 	if spec.Time.IsZero() {
 		ev.SetTime(time.Now())

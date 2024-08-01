@@ -12,8 +12,8 @@ const (
 )
 
 const (
-	EventCreateEntitlement spec.EventName = "createEntitlement"
-	EventDeleteEntitlement spec.EventName = "deleteEntitlement"
+	entitlementCreatedEventName spec.EventName = "entitlement.created"
+	entitlementDeletedEventName spec.EventName = "entitlement.deleted"
 )
 
 type entitlementEvent struct {
@@ -40,10 +40,9 @@ func (e entitlementEvent) Validate() error {
 type EntitlementCreatedEvent entitlementEvent
 
 var entitlementCreatedEventSpec = spec.EventTypeSpec{
-	Subsystem:   EventSubsystem,
-	Name:        EventCreateEntitlement,
-	SpecVersion: "1.0",
-	Version:     "v1",
+	Subsystem: EventSubsystem,
+	Name:      entitlementCreatedEventName,
+	Version:   "v1",
 }
 
 func (e EntitlementCreatedEvent) Spec() *spec.EventTypeSpec {
@@ -57,10 +56,9 @@ func (e EntitlementCreatedEvent) Validate() error {
 type EntitlementDeletedEvent entitlementEvent
 
 var entitlementDeletedEventSpec = spec.EventTypeSpec{
-	Subsystem:   EventSubsystem,
-	Name:        EventDeleteEntitlement,
-	SpecVersion: "1.0",
-	Version:     "v1",
+	Subsystem: EventSubsystem,
+	Name:      entitlementDeletedEventName,
+	Version:   "v1",
 }
 
 func (e EntitlementDeletedEvent) Spec() *spec.EventTypeSpec {
