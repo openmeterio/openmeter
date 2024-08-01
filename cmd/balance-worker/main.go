@@ -55,7 +55,7 @@ import (
 
 const (
 	defaultShutdownTimeout = 5 * time.Second
-	otelName               = "openmeter.io/backend"
+	otelName               = "openmeter.io/balance-worker"
 )
 
 func main() {
