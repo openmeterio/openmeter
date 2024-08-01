@@ -48,14 +48,14 @@ func (c AutoProvisionConfiguration) Validate() error {
 	return nil
 }
 
-type PoisionQueueConfiguration struct {
+type DLQConfiguration struct {
 	Enabled       bool
 	Topic         string
 	AutoProvision AutoProvisionConfiguration
 	Throttle      ThrottleConfiguration
 }
 
-func (c PoisionQueueConfiguration) Validate() error {
+func (c DLQConfiguration) Validate() error {
 	if !c.Enabled {
 		return nil
 	}

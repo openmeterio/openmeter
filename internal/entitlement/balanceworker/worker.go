@@ -42,7 +42,7 @@ type WorkerOptions struct {
 	Subscriber        message.Subscriber
 
 	TargetTopic string
-	PoisonQueue *WorkerPoisonQueueOptions
+	DLQ         *WorkerDLQOptions
 	Publisher   message.Publisher
 	Marshaler   publisher.CloudEventMarshaler
 
@@ -53,7 +53,7 @@ type WorkerOptions struct {
 	Logger *slog.Logger
 }
 
-type WorkerPoisonQueueOptions struct {
+type WorkerDLQOptions struct {
 	Topic            string
 	Throttle         bool
 	ThrottleDuration time.Duration
@@ -121,8 +121,8 @@ func New(opts WorkerOptions) (*Worker, error) {
 		middleware.Recoverer,
 	)
 
-	if opts.PoisonQueue != nil {
-		poisionQueue, err := middleware.PoisonQueue(opts.Publisher, opts.PoisonQueue.Topic)
+	if opts.DLQ != nil {
+		poisionQueue, err := middleware.PoisonQueue(opts.Publisher, opts.DLQ.Topic)
 		if err != nil {
 			return nil, err
 		}
@@ -132,15 +132,15 @@ func New(opts WorkerOptions) (*Worker, error) {
 		)
 
 		poisionQueueProcessor := worker.handleEvent
-		if opts.PoisonQueue.Throttle {
+		if opts.DLQ.Throttle {
 			poisionQueueProcessor = middleware.NewThrottle(
-				opts.PoisonQueue.ThrottleCount,
-				opts.PoisonQueue.ThrottleDuration,
+				opts.DLQ.ThrottleCount,
+				opts.DLQ.ThrottleDuration,
 			).Middleware(poisionQueueProcessor)
 		}
 		router.AddHandler(
 			"balance_worker_process_poison_queue",
-			opts.PoisonQueue.Topic,
+			opts.DLQ.Topic,
 			opts.Subscriber,
 			opts.TargetTopic,
 			opts.Publisher,

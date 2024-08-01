@@ -193,9 +193,9 @@ func TestComplete(t *testing.T) {
 			},
 		},
 		BalanceWorker: BalanceWorkerConfiguration{
-			PoisionQueue: PoisionQueueConfiguration{
+			DLQ: DLQConfiguration{
 				Enabled: true,
-				Topic:   "om_sys.balance_worker_poision",
+				Topic:   "om_sys.balance_worker_dlq",
 				AutoProvision: AutoProvisionConfiguration{
 					Enabled:    true,
 					Partitions: 1,
@@ -214,9 +214,9 @@ func TestComplete(t *testing.T) {
 		},
 		NotificationService: NotificationServiceConfiguration{
 			Consumer: NotificationServiceConsumerConfiguration{
-				PoisionQueue: PoisionQueueConfiguration{
+				DLQ: DLQConfiguration{
 					Enabled: true,
-					Topic:   "om_sys.notification_service_poision",
+					Topic:   "om_sys.notification_service_dlq",
 					AutoProvision: AutoProvisionConfiguration{
 						Enabled:    true,
 						Partitions: 1,
