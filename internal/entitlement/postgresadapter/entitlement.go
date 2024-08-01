@@ -356,6 +356,7 @@ func (a *entitlementDBAdapter) ListEntitlementsWithExpiredUsagePeriod(ctx contex
 			db_entitlement.Namespace(namespace),
 			db_entitlement.CurrentUsagePeriodEndNotNil(),
 			db_entitlement.CurrentUsagePeriodEndLTE(expiredBefore),
+			db_entitlement.Or(db_entitlement.DeletedAtIsNil(), db_entitlement.DeletedAtGT(clock.Now())),
 		).
 		All(ctx)
 	if err != nil {
