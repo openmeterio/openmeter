@@ -255,8 +255,8 @@ func main() {
 	// Initialize worker
 	workerOptions := balanceworker.WorkerOptions{
 		SystemEventsTopic: conf.Events.SystemEvents.Topic,
-		// TODO: IngestEventsTopic
-		Subscriber: wmSubscriber,
+		IngestEventsTopic: conf.Events.IngestEvents.Topic,
+		Subscriber:        wmSubscriber,
 
 		TargetTopic: conf.Events.SystemEvents.Topic,
 		Publisher:   publishers.watermillPublisher,
