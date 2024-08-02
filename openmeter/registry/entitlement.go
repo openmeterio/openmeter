@@ -1,6 +1,9 @@
 package registry
 
-import "github.com/openmeterio/openmeter/internal/registry"
+import (
+	"github.com/openmeterio/openmeter/internal/registry"
+	registrybuilder "github.com/openmeterio/openmeter/internal/registry/builder"
+)
 
 type (
 	Entitlement        = registry.Entitlement
@@ -8,5 +11,5 @@ type (
 )
 
 func GetEntitlementRegistry(opts EntitlementOptions) *Entitlement {
-	return registry.GetEntitlementRegistry(opts)
+	return registrybuilder.GetEntitlementRegistry(opts)
 }
