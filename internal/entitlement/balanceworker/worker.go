@@ -66,8 +66,6 @@ type highWatermarkCacheEntry struct {
 	IsDeleted     bool
 }
 
-type connectors struct{}
-
 type Worker struct {
 	opts        WorkerOptions
 	entitlement *registry.Entitlement
