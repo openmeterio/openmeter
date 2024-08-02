@@ -69,23 +69,28 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 				}
 			}
 
-			return ListGrantsHandlerRequest{
-				params: credit.ListGrantsParams{
-					Namespace:      ns,
-					IncludeDeleted: defaultx.WithDefault(params.Params.IncludeDeleted, false),
-					Page: pagination.Page{
-						PageSize:   defaultx.WithDefault(params.Params.PageSize, 0),
-						PageNumber: defaultx.WithDefault(params.Params.Page, 0),
-					},
-					Limit:  defaultx.WithDefault(params.Params.Limit, commonhttp.DefaultPageSize),
-					Offset: defaultx.WithDefault(params.Params.Offset, 0),
-					OrderBy: credit.GrantOrderBy(
-						strcase.CamelToSnake(defaultx.WithDefault((*string)(params.Params.OrderBy), string(credit.GrantOrderByEffectiveAt))),
-					),
-					Order:            commonhttp.GetSortOrder(api.ListGrantsParamsOrderSortOrderASC, params.Params.Order),
-					SubjectKeys:      convert.DerefHeaderPtr[string](params.Params.Subject),
-					FeatureIdsOrKeys: convert.DerefHeaderPtr[string](params.Params.Feature),
+			handlerParams := credit.ListGrantsParams{
+				Namespace:      ns,
+				IncludeDeleted: defaultx.WithDefault(params.Params.IncludeDeleted, false),
+				Page: pagination.Page{
+					PageSize:   defaultx.WithDefault(params.Params.PageSize, 0),
+					PageNumber: defaultx.WithDefault(params.Params.Page, 0),
 				},
+				Limit:  defaultx.WithDefault(params.Params.Limit, commonhttp.DefaultPageSize),
+				Offset: defaultx.WithDefault(params.Params.Offset, 0),
+				OrderBy: credit.GrantOrderBy(
+					strcase.CamelToSnake(defaultx.WithDefault((*string)(params.Params.OrderBy), string(credit.GrantOrderByEffectiveAt))),
+				),
+				Order:            commonhttp.GetSortOrder(api.ListGrantsParamsOrderSortOrderASC, params.Params.Order),
+				SubjectKeys:      convert.DerefHeaderPtr[string](params.Params.Subject),
+				FeatureIdsOrKeys: convert.DerefHeaderPtr[string](params.Params.Feature),
+			}
+			if !handlerParams.Page.IsZero() {
+				handlerParams.Page.PageNumber = defaultx.IfZero(handlerParams.Page.PageNumber, commonhttp.DefaultPage)
+				handlerParams.Page.PageSize = defaultx.IfZero(handlerParams.Page.PageSize, commonhttp.DefaultPageSize)
+			}
+			return ListGrantsHandlerRequest{
+				params: handlerParams,
 			}, nil
 		},
 		func(ctx context.Context, request ListGrantsHandlerRequest) (ListGrantsHandlerResponse, error) {

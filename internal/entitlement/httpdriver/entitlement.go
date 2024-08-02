@@ -25,6 +25,7 @@ import (
 type EntitlementHandler interface {
 	CreateEntitlement() CreateEntitlementHandler
 	GetEntitlement() GetEntitlementHandler
+	GetEntitlementById() GetEntitlementByIdHandler
 	DeleteEntitlement() DeleteEntitlementHandler
 	GetEntitlementValue() GetEntitlementValueHandler
 	GetEntitlementsOfSubjectHandler() GetEntitlementsOfSubjectHandler
@@ -328,6 +329,10 @@ func (h *entitlementHandler) ListEntitlements() ListEntitlementsHandler {
 					return entitlement.EntitlementType(s)
 				}),
 			}
+			if !p.Page.IsZero() {
+				p.Page.PageNumber = defaultx.IfZero(p.Page.PageNumber, commonhttp.DefaultPage)
+				p.Page.PageSize = defaultx.IfZero(p.Page.PageSize, commonhttp.DefaultPageSize)
+			}
 
 			switch defaultx.WithDefault(params.OrderBy, "") {
 			case "createdAt":
@@ -418,6 +423,48 @@ func (h *entitlementHandler) GetEntitlement() GetEntitlementHandler {
 			return Parser.ToAPIGeneric(entitlement)
 		},
 		commonhttp.JSONResponseEncoder[GetEntitlementHandlerResponse],
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("getEntitlement"),
+			httptransport.WithErrorEncoder(getErrorEncoder()),
+		)...,
+	)
+}
+
+type GetEntitlementByIdHandlerRequest struct {
+	EntitlementId string
+	Namespace     string
+}
+type (
+	GetEntitlementByIdHandlerResponse = *api.Entitlement
+	GetEntitlementByIdHandlerParams   struct {
+		EntitlementId string
+	}
+)
+type GetEntitlementByIdHandler httptransport.HandlerWithArgs[GetEntitlementByIdHandlerRequest, GetEntitlementByIdHandlerResponse, GetEntitlementByIdHandlerParams]
+
+func (h *entitlementHandler) GetEntitlementById() GetEntitlementByIdHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, params GetEntitlementByIdHandlerParams) (GetEntitlementByIdHandlerRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return GetEntitlementByIdHandlerRequest{}, err
+			}
+
+			return GetEntitlementByIdHandlerRequest{
+				EntitlementId: params.EntitlementId,
+				Namespace:     ns,
+			}, nil
+		},
+		func(ctx context.Context, request GetEntitlementByIdHandlerRequest) (GetEntitlementByIdHandlerResponse, error) {
+			entitlement, err := h.connector.GetEntitlement(ctx, request.Namespace, request.EntitlementId)
+			if err != nil {
+				return nil, err
+			}
+
+			return Parser.ToAPIGeneric(entitlement)
+		},
+		commonhttp.JSONResponseEncoder[GetEntitlementByIdHandlerResponse],
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getEntitlement"),

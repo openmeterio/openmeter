@@ -130,3 +130,15 @@ func (a *Router) GetEntitlement(w http.ResponseWriter, r *http.Request, subjectI
 		EntitlementId: entitlementId,
 	}).ServeHTTP(w, r)
 }
+
+// Get an entitlement
+// (GET /api/v1/entitlements/{entitlementId})
+func (a *Router) GetEntitlementById(w http.ResponseWriter, r *http.Request, entitlementId api.EntitlementId) {
+	if !a.config.EntitlementsEnabled {
+		unimplemented.GetEntitlementById(w, r, entitlementId)
+		return
+	}
+	a.entitlementHandler.GetEntitlementById().With(httpdriver.GetEntitlementByIdHandlerParams{
+		EntitlementId: entitlementId,
+	}).ServeHTTP(w, r)
+}
