@@ -30,16 +30,16 @@ transforms:
       - filter_requests
     source: |
       .cloudevent.specversion = "1.0"
-      .cloudevent.id = .timestamp
+      .cloudevent.id = uuid_v7()
       .cloudevent.source = .container_id
-      .cloudevent.type = "api-calls"
+      .cloudevent.type = "request"
       .cloudevent.subject = .message.user
       .cloudevent.time = .timestamp
       response_time, err = to_string(.message.response_time)
       if err != null { log(err, level: "error") }
       .cloudevent.data.duration_ms = response_time
       .cloudevent.data.method = .message.method
-      .cloudevent.data.path = .message.path
+      .cloudevent.data.route = .message.route
       . = .cloudevent
 
 sinks:
@@ -55,7 +55,7 @@ sinks:
     type: http
     inputs:
       - cloudevents
-    uri: http://openmeter:8888/api/v1alpha1/events
+    uri: http://openmeter:8888/api/v1/events
     method: post
     request:
       headers:

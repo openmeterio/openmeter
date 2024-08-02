@@ -12,13 +12,23 @@ sink:
 
 meters:
   # Sample meter to count API requests
-  - slug: api_requests_total         # Unique identifier for the meter
+  - slug: api_requests_total        # Unique identifier for the meter
     description: API Requests
     eventType: request              # Filter events by type
     aggregation: COUNT              # Aggregation method: COUNT, SUM, etc.
     groupBy:
       method: $.method              # HTTP Method: GET, POST, etc.
       route: $.route                # Route: /products/:product_id
+
+  # Sample meter to sum API request duration
+  - slug: api_requests_duration
+    description: API Request Duration
+    eventType: request
+    aggregation: SUM
+    valueProperty: $.duration_ms     # JSONPath to parse usage value
+    groupBy:
+      method: $.method
+      route: $.route
 
   # Sample meter to count LLM Token Usage
   - slug: tokens_total
