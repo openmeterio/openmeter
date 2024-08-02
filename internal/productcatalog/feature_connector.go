@@ -58,7 +58,7 @@ func (f FeatureOrderBy) StrValues() []string {
 }
 
 type ListFeaturesParams struct {
-	IDs             []string
+	IDsOrKeys       []string
 	Namespace       string
 	MeterSlugs      []string
 	IncludeArchived bool
