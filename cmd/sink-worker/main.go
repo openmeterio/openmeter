@@ -257,28 +257,23 @@ func initIngestEventPublisher(ctx context.Context, logger *slog.Logger, conf con
 		return nil, nil
 	}
 
-	eventDriver := watermillkafka.NewPublisher(kafkaProducer)
+	eventDriver, err := watermillkafka.NewPublisherFromOMConfig(watermillkafka.PublisherOptions{
+		KafkaConfig: conf.Ingest.Kafka.KafkaConfiguration,
+		ClientID:    otelName,
+		Logger:      logger,
+
+		ProvisionTopics: []watermillkafka.AutoProvisionTopic{
+			{
+				Topic:         conf.Events.IngestEvents.Topic,
+				NumPartitions: int32(conf.Events.IngestEvents.AutoProvision.Partitions),
+			},
+		},
+	})
+
 	eventPublisher, err := publisher.NewPublisher(publisher.PublisherOptions{
 		Publisher: eventDriver,
 		Transform: watermillkafka.AddPartitionKeyFromSubject,
 	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create event publisher: %w", err)
-	}
-
-	// Auto provision topics if needed
-	if conf.Events.IngestEvents.AutoProvision.Enabled {
-		adminClient, err := kafka.NewAdminClientFromProducer(kafkaProducer)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create Kafka admin client: %w", err)
-		}
-
-		defer adminClient.Close()
-
-		if err := pkgkafka.ProvisionTopic(ctx, adminClient, logger, conf.Events.IngestEvents.Topic, conf.Events.IngestEvents.AutoProvision.Partitions); err != nil {
-			return nil, fmt.Errorf("failed to auto provision topic: %w", err)
-		}
-	}
 
 	targetTopic := eventPublisher.ForTopic(conf.Events.IngestEvents.Topic)
 
@@ -286,7 +281,9 @@ func initIngestEventPublisher(ctx context.Context, logger *slog.Logger, conf con
 	// We should only close the producer once the ingest events are fully processed
 	flushHandlerMux.OnDrainComplete(func() {
 		logger.Info("shutting down kafka producer")
-		kafkaProducer.Close()
+		if err := eventDriver.Close(); err != nil {
+			logger.Error("failed to close kafka producer", slog.String("error", err.Error()))
+		}
 	})
 
 	ingestNotificationHandler, err := ingestnotification.NewHandler(logger, metricMeter, targetTopic, ingestnotification.HandlerConfig{

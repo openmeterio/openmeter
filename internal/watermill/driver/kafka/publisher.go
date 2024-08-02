@@ -1,63 +1,80 @@
 package kafka
 
 import (
-	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/cloudevents/sdk-go/v2/event"
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"crypto/tls"
+	"errors"
+	"fmt"
+	"log/slog"
+
+	"github.com/IBM/sarama"
+	"github.com/ThreeDotsLabs/watermill"
+	"github.com/ThreeDotsLabs/watermill-kafka/v3/pkg/kafka"
+	"github.com/openmeterio/openmeter/config"
 )
 
-const (
-	PartitionKeyMetadataKey = "x-kafka-partition-key"
-)
-
-type Publisher struct {
-	producer *kafka.Producer
+type PublisherOptions struct {
+	KafkaConfig     config.KafkaConfiguration
+	ProvisionTopics []AutoProvisionTopic
+	ClientID        string
+	Logger          *slog.Logger
 }
 
-var _ message.Publisher = (*Publisher)(nil)
-
-func NewPublisher(producer *kafka.Producer) *Publisher {
-	return &Publisher{producer: producer}
-}
-
-func (p *Publisher) Publish(topic string, messages ...*message.Message) error {
-	for _, message := range messages {
-		kafkaMessage := &kafka.Message{
-			TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-			Value:          []byte(message.Payload),
-			Headers:        make([]kafka.Header, 0, len(message.Metadata)),
-		}
-
-		for k, v := range message.Metadata {
-			if k == PartitionKeyMetadataKey {
-				continue
-			}
-			kafkaMessage.Headers = append(kafkaMessage.Headers, kafka.Header{
-				Key:   k,
-				Value: []byte(v),
-			})
-		}
-
-		if partitionKey, ok := message.Metadata[PartitionKeyMetadataKey]; ok {
-			kafkaMessage.Key = []byte(partitionKey)
-		}
-
-		if err := p.producer.Produce(kafkaMessage, nil); err != nil {
-			return err
-		}
+func (o *PublisherOptions) Validate() error {
+	if err := o.KafkaConfig.Validate(); err != nil {
+		return fmt.Errorf("invalid kafka config: %w", err)
 	}
 
+	if o.ClientID == "" {
+		return errors.New("client ID is required")
+	}
+
+	if o.Logger == nil {
+		return errors.New("logger is required")
+	}
 	return nil
 }
 
-func (p *Publisher) Close() error {
-	p.producer.Close()
-	return nil
-}
-
-func AddPartitionKeyFromSubject(watermillIn *message.Message, cloudEvent event.Event) (*message.Message, error) {
-	if cloudEvent.Subject() != "" {
-		watermillIn.Metadata[PartitionKeyMetadataKey] = cloudEvent.Subject()
+func NewPublisherFromOMConfig(in PublisherOptions) (*kafka.Publisher, error) {
+	if err := in.Validate(); err != nil {
+		return nil, err
 	}
-	return watermillIn, nil
+
+	// TODO: we need to have a proper metric bridge between the sarama metrics based on https://github.com/rcrowley/go-metrics
+	// and OTEL. I haven't found any libraries, so we might want to have a package in our org for that.
+
+	// This means that we, right now have 0 metrics for the sarama lib.
+
+	wmConfig := kafka.PublisherConfig{
+		Brokers:               []string{in.KafkaConfig.Broker},
+		OverwriteSaramaConfig: sarama.NewConfig(),
+		Marshaler:             marshalerWithPartitionKey{},
+		OTELEnabled:           true, // This relies on the global trace provider
+	}
+
+	wmConfig.OverwriteSaramaConfig.Metadata.RefreshFrequency = in.KafkaConfig.TopicMetadataRefreshInterval.Duration()
+	wmConfig.OverwriteSaramaConfig.ClientID = "openmeter/balance-worker"
+
+	switch in.KafkaConfig.SecurityProtocol {
+	case "SASL_SSL":
+		wmConfig.OverwriteSaramaConfig.Net.SASL.Enable = true
+		wmConfig.OverwriteSaramaConfig.Net.SASL.User = in.KafkaConfig.SaslUsername
+		wmConfig.OverwriteSaramaConfig.Net.SASL.Password = in.KafkaConfig.SaslPassword
+		wmConfig.OverwriteSaramaConfig.Net.SASL.Mechanism = sarama.SASLMechanism(in.KafkaConfig.SecurityProtocol)
+		wmConfig.OverwriteSaramaConfig.Net.TLS.Enable = true
+		wmConfig.OverwriteSaramaConfig.Net.TLS.Config = &tls.Config{}
+	default:
+	}
+
+	// Producer specific settings
+	wmConfig.OverwriteSaramaConfig.Producer.Return.Successes = true
+
+	if err := wmConfig.Validate(); err != nil {
+		return nil, err
+	}
+
+	if err := provisionTopics(in.KafkaConfig.Broker, wmConfig.OverwriteSaramaConfig, in.ProvisionTopics); err != nil {
+		return nil, err
+	}
+
+	return kafka.NewPublisher(wmConfig, watermill.NewSlogLogger(in.Logger))
 }
