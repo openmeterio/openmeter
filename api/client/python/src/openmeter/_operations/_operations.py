@@ -431,6 +431,25 @@ def build_list_entitlements_request(
     return HttpRequest(method="GET", url=_url, params=_params, headers=_headers, **kwargs)
 
 
+def build_get_entitlement_by_id_request(entitlement_id: str, **kwargs: Any) -> HttpRequest:
+    _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+
+    accept = _headers.pop("Accept", "application/json, application/problem+json")
+
+    # Construct URL
+    _url = "/api/v1/entitlements/{entitlementId}"
+    path_format_arguments = {
+        "entitlementId": _SERIALIZER.url("entitlement_id", entitlement_id, "str"),
+    }
+
+    _url: str = _url.format(**path_format_arguments)  # type: ignore
+
+    # Construct headers
+    _headers["Accept"] = _SERIALIZER.header("accept", accept, "str")
+
+    return HttpRequest(method="GET", url=_url, headers=_headers, **kwargs)
+
+
 def build_list_features_request(
     *,
     page: int = 1,
@@ -3049,6 +3068,70 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             return cls(pipeline_response, cast(Any, deserialized), {})  # type: ignore
 
         return cast(Any, deserialized)  # type: ignore
+
+    @distributed_trace
+    def get_entitlement_by_id(self, entitlement_id: str, **kwargs: Any) -> JSON:
+        """Get an entitlement.
+
+        Get entitlement by id.
+
+        :param entitlement_id: A unique ULID for an entitlement. Required.
+        :type entitlement_id: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == {
+                    "lastReset": "2020-02-20 00:00:00"  # Optional. The last time usage was
+                      reset.
+                }
+        """
+        error_map = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            404: lambda response: ResourceNotFoundError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        _request = build_get_entitlement_by_id_request(
+            entitlement_id=entitlement_id,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = self._client._pipeline.run(  # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
 
     @distributed_trace
     def list_features(

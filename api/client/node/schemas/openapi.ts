@@ -142,6 +142,13 @@ export interface paths {
      */
     get: operations['listEntitlements']
   }
+  '/api/v1/entitlements/{entitlementId}': {
+    /**
+     * Get an entitlement
+     * @description Get entitlement by id.
+     */
+    get: operations['getEntitlementById']
+  }
   '/api/v1/features': {
     /**
      * List features
@@ -2256,6 +2263,37 @@ export interface operations {
       }
       400: components['responses']['BadRequestProblemResponse']
       401: components['responses']['UnauthorizedProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /**
+   * Get an entitlement
+   * @description Get entitlement by id.
+   */
+  getEntitlementById: {
+    parameters: {
+      path: {
+        entitlementId: components['parameters']['entitlementId']
+      }
+    }
+    responses: {
+      /** @description Entitlement found. */
+      200: {
+        content: {
+          'application/json': {
+            type: 'json'
+          } & Omit<components['schemas']['Entitlement'], 'type'> & {
+              /**
+               * Format: date-time
+               * @description The last time usage was reset.
+               * @example 2023-01-01T00:00:00Z
+               */
+              lastReset?: string
+            }
+        }
+      }
+      401: components['responses']['UnauthorizedProblemResponse']
+      404: components['responses']['NotFoundProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
