@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/event/spec"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/internal/sink/flushhandler/ingestnotification"
+	"github.com/openmeterio/openmeter/internal/watermill"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
@@ -21,11 +22,26 @@ func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestnotif
 			MeterSlugs: e.MeterSlugs,
 		}
 	})
-	affectedEntitlements, err := w.connectors.repo.ListAffectedEntitlements(ctx, filters)
-	if err != nil {
-		return nil, err
+	affectedEntitlements, repoErr := w.connectors.repo.ListAffectedEntitlements(ctx, filters)
+	if repoErr != nil {
+		ev, err := spec.NewCloudEvent(
+			spec.EventSpec{
+				Source: spec.ComposeResourcePathRaw(string(ingestnotification.EventBatchedIngest{}.Spec().Subsystem)), // TODO: this should be a different source
+			},
+			event,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		msg, err := w.opts.Marshaler.MarshalEvent(ev)
+		if err != nil {
+			return nil, err
+		}
+		return nil, watermill.NewRetryableError([]*message.Message{msg}, repoErr)
 	}
 
+	failedEntitlementInfo := make([]IngestEventDataResponse, 0)
 	var handlingError error
 
 	result := make([]*message.Message, 0, len(affectedEntitlements))
@@ -38,13 +54,19 @@ func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestnotif
 		if err != nil {
 			// TODO: add error information too
 			handlingError = multierror.Append(handlingError, err)
+			failedEntitlementInfo = append(failedEntitlementInfo, entitlement)
 			continue
 		}
 
 		result = append(result, messages...)
 	}
 
-	return result, handlingError
+	var err error
+	if len(failedEntitlementInfo) > 0 {
+		err = w.newEntitlementProcessingFailedError(failedEntitlementInfo, handlingError)
+	}
+
+	return result, err
 }
 
 func (w *Worker) GetEntitlementsAffectedByMeterSubject(ctx context.Context, namespace string, meterSlugs []string, subject string) ([]NamespacedID, error) {
