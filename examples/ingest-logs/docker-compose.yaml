@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   # Container to generate demo logs
   demologs:
@@ -19,7 +17,7 @@ services:
         sleep 1;
       done'
   vector:
-    image: timberio/vector:0.32.X-alpine
+    image: timberio/vector:0.40.X-alpine
     hostname: vector
     container_name: vector
     command: --config /etc/vector/vector.yaml
