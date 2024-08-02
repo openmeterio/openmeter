@@ -12,7 +12,7 @@ const (
 )
 
 const (
-	ingestedEventName spec.EventName = "event.ingested"
+	ingestedEventName spec.EventName = "events.ingested"
 )
 
 type EventBatchedIngest struct {
