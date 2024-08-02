@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ThreeDotsLabs/watermill/components/cqrs"
+	"github.com/openmeterio/openmeter/internal/event"
 	eventmodels "github.com/openmeterio/openmeter/internal/event/models"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
@@ -73,7 +73,7 @@ type entitlementConnector struct {
 	featureConnector productcatalog.FeatureConnector
 	meterRepo        meter.Repository
 
-	eventBus *cqrs.EventBus
+	publisher event.Publisher
 }
 
 func NewEntitlementConnector(
@@ -83,7 +83,7 @@ func NewEntitlementConnector(
 	meteredEntitlementConnector SubTypeConnector,
 	staticEntitlementConnector SubTypeConnector,
 	booleanEntitlementConnector SubTypeConnector,
-	eventBus *cqrs.EventBus,
+	publisher event.Publisher,
 ) Connector {
 	return &entitlementConnector{
 		meteredEntitlementConnector: meteredEntitlementConnector,
@@ -92,7 +92,7 @@ func NewEntitlementConnector(
 		entitlementRepo:             entitlementRepo,
 		featureConnector:            featureConnector,
 		meterRepo:                   meterRepo,
-		eventBus:                    eventBus,
+		publisher:                   publisher,
 	}
 }
 
@@ -148,7 +148,7 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 			return nil, err
 		}
 
-		err = c.eventBus.Publish(ctx, EntitlementCreatedEvent{
+		err = c.publisher.Publish(ctx, EntitlementCreatedEvent{
 			Entitlement: *ent,
 			Namespace: eventmodels.NamespaceID{
 				ID: input.Namespace,
@@ -182,7 +182,7 @@ func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace 
 			return nil, err
 		}
 
-		err = c.eventBus.Publish(ctx, EntitlementDeletedEvent{
+		err = c.publisher.Publish(ctx, EntitlementDeletedEvent{
 			Entitlement: *ent,
 			Namespace: eventmodels.NamespaceID{
 				ID: namespace,
