@@ -24,6 +24,7 @@ type (
 	ResetEntitlementUsageHandler        = httpdriver.ResetEntitlementUsageHandler
 	ListEntitlementsHandler             = httpdriver.ListEntitlementsHandler
 	GetEntitlementHandler               = httpdriver.GetEntitlementHandler
+	GetEntitlementByIdHandler           = httpdriver.GetEntitlementByIdHandler
 	DeleteEntitlementHandler            = httpdriver.DeleteEntitlementHandler
 )
 
