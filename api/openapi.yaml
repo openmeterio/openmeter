@@ -678,6 +678,38 @@ paths:
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
+  /api/v1/entitlements/{entitlementId}:
+    get:
+      operationId: getEntitlementById
+      summary: Get an entitlement
+      description: |
+        Get entitlement by id.
+      tags:
+        - Entitlements (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/entitlementId"
+      responses:
+        "200":
+          description: Entitlement found.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Entitlement"
+                  - type: object
+                    properties:
+                      lastReset:
+                        description: The last time usage was reset.
+                        readOnly: true
+                        type: string
+                        format: date-time
+                        example: "2023-01-01T00:00:00Z"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
   # Feature
   /api/v1/features:
     get:

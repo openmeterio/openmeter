@@ -159,6 +159,11 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 				MeterSlugs: convert.DerefHeaderPtr[string](apiParams.MeterSlug),
 			}
 
+			if !params.Page.IsZero() {
+				params.Page.PageNumber = defaultx.IfZero(params.Page.PageNumber, commonhttp.DefaultPage)
+				params.Page.PageSize = defaultx.IfZero(params.Page.PageSize, commonhttp.DefaultPageSize)
+			}
+
 			// TODO: standardize
 			if params.Page.PageSize > 1000 {
 				return params, commonhttp.NewHTTPError(

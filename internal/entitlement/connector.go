@@ -236,6 +236,11 @@ func (c *entitlementConnector) GetEntitlementValue(ctx context.Context, namespac
 }
 
 func (c *entitlementConnector) ListEntitlements(ctx context.Context, params ListEntitlementsParams) (pagination.PagedResponse[Entitlement], error) {
+	if !params.Page.IsZero() {
+		if err := params.Page.Validate(); err != nil {
+			return pagination.PagedResponse[Entitlement]{}, err
+		}
+	}
 	return c.entitlementRepo.ListEntitlements(ctx, params)
 }
 

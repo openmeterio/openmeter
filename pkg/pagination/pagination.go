@@ -3,7 +3,17 @@ package pagination
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 )
+
+type InvalidError struct {
+	p   Page
+	msg string
+}
+
+func (e InvalidError) Error() string {
+	return fmt.Sprintf("invalid page: %+v, %s", e.p, e.msg)
+}
 
 type Page struct {
 	PageSize   int `json:"pageSize"`
@@ -16,6 +26,18 @@ func (p Page) Offset() int {
 
 func (p Page) Limit() int {
 	return p.PageSize
+}
+
+func (p Page) Validate() error {
+	if p.PageSize < 0 {
+		return &InvalidError{p, "pagesize cannot be negative"}
+	}
+
+	if p.PageNumber < 1 {
+		return &InvalidError{p, "page has to be at least 1"}
+	}
+
+	return nil
 }
 
 func (p Page) IsZero() bool {

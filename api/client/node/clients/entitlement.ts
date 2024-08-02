@@ -54,4 +54,17 @@ export class EntitlementClient extends BaseClient {
       options,
     })
   }
+
+  /**
+   * List all entitlements regardless of subject.
+   * @example
+   * const entitlement = await openmeter.entitlements.list()
+   */
+  public async get(id: string, options?: RequestOptions): Promise<Entitlement> {
+    return await this.request({
+      path: `/api/v1/entitlements/${id}`,
+      method: 'GET',
+      options,
+    })
+  }
 }

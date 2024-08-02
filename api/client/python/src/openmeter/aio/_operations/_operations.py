@@ -37,6 +37,7 @@ from ..._operations._operations import (
     build_delete_notification_rule_request,
     build_delete_subject_request,
     build_get_debug_metrics_request,
+    build_get_entitlement_by_id_request,
     build_get_entitlement_history_request,
     build_get_entitlement_request,
     build_get_entitlement_value_request,
@@ -2005,6 +2006,70 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             return cls(pipeline_response, cast(Any, deserialized), {})  # type: ignore
 
         return cast(Any, deserialized)  # type: ignore
+
+    @distributed_trace_async
+    async def get_entitlement_by_id(self, entitlement_id: str, **kwargs: Any) -> JSON:
+        """Get an entitlement.
+
+        Get entitlement by id.
+
+        :param entitlement_id: A unique ULID for an entitlement. Required.
+        :type entitlement_id: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 200
+                response == {
+                    "lastReset": "2020-02-20 00:00:00"  # Optional. The last time usage was
+                      reset.
+                }
+        """
+        error_map = {
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            404: lambda response: ResourceNotFoundError(response=response),
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = kwargs.pop("headers", {}) or {}
+        _params = kwargs.pop("params", {}) or {}
+
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        _request = build_get_entitlement_by_id_request(
+            entitlement_id=entitlement_id,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = await self._client._pipeline.run(  # type: ignore # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [200]:
+            if _stream:
+                await response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.content:
+            deserialized = response.json()
+        else:
+            deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
 
     @distributed_trace_async
     async def list_features(

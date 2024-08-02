@@ -150,6 +150,11 @@ func (c *featureConnector) ArchiveFeature(ctx context.Context, featureID models.
 }
 
 func (c *featureConnector) ListFeatures(ctx context.Context, params ListFeaturesParams) (pagination.PagedResponse[Feature], error) {
+	if !params.Page.IsZero() {
+		if err := params.Page.Validate(); err != nil {
+			return pagination.PagedResponse[Feature]{}, err
+		}
+	}
 	return c.featureRepo.ListFeatures(ctx, params)
 }
 
