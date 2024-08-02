@@ -66,15 +66,13 @@ type highWatermarkCacheEntry struct {
 	IsDeleted     bool
 }
 
-type connectors struct {
-	entitlement *registry.Entitlement
-	repo        BalanceWorkerRepository
-}
+type connectors struct{}
 
 type Worker struct {
-	opts       WorkerOptions
-	connectors connectors
-	router     *message.Router
+	opts        WorkerOptions
+	entitlement *registry.Entitlement
+	repo        BalanceWorkerRepository
+	router      *message.Router
 
 	highWatermarkCache *lru.Cache[string, highWatermarkCacheEntry]
 }
@@ -93,7 +91,8 @@ func New(opts WorkerOptions) (*Worker, error) {
 	worker := &Worker{
 		opts:               opts,
 		router:             router,
-		connectors:         connectors{entitlement: opts.Entitlement, repo: opts.Repo},
+		entitlement:        opts.Entitlement,
+		repo:               opts.Repo,
 		highWatermarkCache: highWatermarkCache,
 	}
 

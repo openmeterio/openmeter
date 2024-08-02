@@ -21,7 +21,7 @@ func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestnotif
 			MeterSlugs: e.MeterSlugs,
 		}
 	})
-	affectedEntitlements, err := w.connectors.repo.ListAffectedEntitlements(ctx, filters)
+	affectedEntitlements, err := w.repo.ListAffectedEntitlements(ctx, filters)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestnotif
 }
 
 func (w *Worker) GetEntitlementsAffectedByMeterSubject(ctx context.Context, namespace string, meterSlugs []string, subject string) ([]NamespacedID, error) {
-	featuresByMeter, err := w.connectors.entitlement.Feature.ListFeatures(ctx, productcatalog.ListFeaturesParams{
+	featuresByMeter, err := w.entitlement.Feature.ListFeatures(ctx, productcatalog.ListFeaturesParams{
 		Namespace:  namespace,
 		MeterSlugs: meterSlugs,
 	})
@@ -61,7 +61,7 @@ func (w *Worker) GetEntitlementsAffectedByMeterSubject(ctx context.Context, name
 		featureIDs = append(featureIDs, feature.ID)
 	}
 
-	entitlements, err := w.connectors.entitlement.Entitlement.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
+	entitlements, err := w.entitlement.Entitlement.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
 		Namespaces:  []string{namespace},
 		SubjectKeys: []string{subject},
 		FeatureIDs:  featureIDs,
