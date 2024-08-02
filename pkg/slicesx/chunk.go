@@ -20,7 +20,9 @@ func Chunk[T any](s []T, size int) [][]T {
 
 		if len(chunk) == size || i == len(s)-1 {
 			chunks = append(chunks, chunk)
-			chunk = make([]T, 0, size)
+			if i != len(s)-1 {
+				chunk = make([]T, 0, size)
+			}
 		}
 	}
 
