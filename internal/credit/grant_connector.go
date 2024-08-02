@@ -271,6 +271,11 @@ func (m *grantConnector) VoidGrant(ctx context.Context, grantID models.Namespace
 }
 
 func (m *grantConnector) ListGrants(ctx context.Context, params ListGrantsParams) (pagination.PagedResponse[Grant], error) {
+	if !params.Page.IsZero() {
+		if err := params.Page.Validate(); err != nil {
+			return pagination.PagedResponse[Grant]{}, err
+		}
+	}
 	return m.grantRepo.ListGrants(ctx, params)
 }
 

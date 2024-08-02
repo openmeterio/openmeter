@@ -135,7 +135,7 @@ func (h *grantHandler) ListGrants() ListGrantsHandler {
 					).EncodeError(ctx, w)
 					return true
 				}
-				return false
+				return commonhttp.HandleErrorIfTypeMatches[*pagination.InvalidError](ctx, http.StatusBadRequest, err, w)
 			}),
 		)...,
 	)
