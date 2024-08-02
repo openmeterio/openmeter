@@ -112,6 +112,12 @@ func (c *featureDBAdapter) ListFeatures(ctx context.Context, params productcatal
 		query.Where(db_feature.MeterSlugIn(params.MeterSlugs...))
 	}
 
+	if len(params.IDsOrKeys) > 0 {
+		for _, idOrKey := range params.IDsOrKeys {
+			query.Where(db_feature.Or(db_feature.Key(idOrKey), db_feature.ID(idOrKey)))
+		}
+	}
+
 	if !params.IncludeArchived {
 		query = query.Where(db_feature.Or(db_feature.ArchivedAtIsNil(), db_feature.ArchivedAtGT(clock.Now())))
 	}
