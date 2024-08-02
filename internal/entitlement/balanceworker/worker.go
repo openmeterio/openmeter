@@ -19,6 +19,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/event/spec"
 	"github.com/openmeterio/openmeter/internal/registry"
 	"github.com/openmeterio/openmeter/internal/sink/flushhandler/ingestnotification"
+	wmmiddleware "github.com/openmeterio/openmeter/internal/watermill/middleware"
 	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -128,21 +129,21 @@ func New(opts WorkerOptions) (*Worker, error) {
 	)
 
 	if opts.DLQ != nil {
-		poisionQueue, err := middleware.PoisonQueue(opts.Publisher, opts.DLQ.Topic)
+		dlq, err := wmmiddleware.DLQ(opts.Publisher, opts.DLQ.Topic, nil)
 		if err != nil {
 			return nil, err
 		}
 
 		router.AddMiddleware(
-			poisionQueue,
+			dlq,
 		)
 
-		poisionQueueProcessor := worker.handleEvent
+		dlqProcessor := worker.handleEvent
 		if opts.DLQ.Throttle {
-			poisionQueueProcessor = middleware.NewThrottle(
+			dlqProcessor = middleware.NewThrottle(
 				opts.DLQ.ThrottleCount,
 				opts.DLQ.ThrottleDuration,
-			).Middleware(poisionQueueProcessor)
+			).Middleware(dlqProcessor)
 		}
 		router.AddHandler(
 			"balance_worker_process_poison_queue",
@@ -150,7 +151,7 @@ func New(opts WorkerOptions) (*Worker, error) {
 			opts.Subscriber,
 			opts.TargetTopic,
 			opts.Publisher,
-			poisionQueueProcessor,
+			dlqProcessor,
 		)
 	}
 
