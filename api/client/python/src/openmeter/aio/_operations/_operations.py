@@ -4298,32 +4298,51 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
     @distributed_trace_async
     async def list_notification_channels(
-        self, *, limit: int = 1000, offset: int = 0, order_by: str = "id", include_disabled: bool = False, **kwargs: Any
-    ) -> List[JSON]:
+        self,
+        *,
+        page: int = 1,
+        page_size: int = 100,
+        order_by: str = "id",
+        order: str = "ASC",
+        include_disabled: bool = False,
+        include_deleted: bool = False,
+        **kwargs: Any
+    ) -> JSON:
         """List notification channels.
 
         List all notification channels.
 
-        :keyword limit: Number of entries to return. Default value is 1000.
-        :paramtype limit: int
-        :keyword offset: Number of entries to skip. Default value is 0.
-        :paramtype offset: int
+        :keyword page: Page number to return. Default value is 1.
+        :paramtype page: int
+        :keyword page_size: Number of entries to return per page. Default value is 100.
+        :paramtype page_size: int
         :keyword order_by: Order by field. Known values are: "id", "type", "createdAt", and
          "updatedAt". Default value is "id".
         :paramtype order_by: str
+        :keyword order: Order by field.
+
+         Usage: ``?order=ASC``. Known values are: "ASC" and "DESC". Default value is "ASC".
+        :paramtype order: str
         :keyword include_disabled: Include disabled entries. Default value is False.
         :paramtype include_disabled: bool
-        :return: list of JSON object
-        :rtype: list[JSON]
+        :keyword include_deleted: Include deleted entries. Default value is False.
+        :paramtype include_deleted: bool
+        :return: JSON object
+        :rtype: JSON
         :raises ~azure.core.exceptions.HttpResponseError:
 
         Example:
             .. code-block:: python
 
                 # response body for status code(s): 200
-                response == [
-                    {}
-                ]
+                response == {
+                    "items": [
+                        {}
+                    ],
+                    "page": 0,  # Current page number. Required.
+                    "pageSize": 0,  # Number of channels per page. Required.
+                    "totalCount": 0  # Total number of channels. Required.
+                }
         """
         error_map = {
             404: ResourceNotFoundError,
@@ -4337,13 +4356,15 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
 
         _request = build_list_notification_channels_request(
-            limit=limit,
-            offset=offset,
+            page=page,
+            page_size=page_size,
             order_by=order_by,
+            order=order,
             include_disabled=include_disabled,
+            include_deleted=include_deleted,
             headers=_headers,
             params=_params,
         )
@@ -4368,9 +4389,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             deserialized = None
 
         if cls:
-            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
 
-        return cast(List[JSON], deserialized)  # type: ignore
+        return cast(JSON, deserialized)  # type: ignore
 
     @overload
     async def create_notification_channel(
@@ -4783,41 +4804,59 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
     async def list_notification_rules(
         self,
         *,
-        limit: int = 1000,
-        offset: int = 0,
+        page: int = 1,
+        page_size: int = 100,
         order_by: str = "id",
+        order: str = "ASC",
         include_disabled: bool = False,
+        include_deleted: bool = False,
         feature: Optional[List[str]] = None,
+        channel: Optional[List[str]] = None,
         **kwargs: Any
-    ) -> List[JSON]:
+    ) -> JSON:
         """List notification rules.
 
         List all notification rules.
 
-        :keyword limit: Number of entries to return. Default value is 1000.
-        :paramtype limit: int
-        :keyword offset: Number of entries to skip. Default value is 0.
-        :paramtype offset: int
+        :keyword page: Page number to return. Default value is 1.
+        :paramtype page: int
+        :keyword page_size: Number of entries to return per page. Default value is 100.
+        :paramtype page_size: int
         :keyword order_by: Order by field. Known values are: "id", "type", "createdAt", and
          "updatedAt". Default value is "id".
         :paramtype order_by: str
+        :keyword order: Order by field.
+
+         Usage: ``?order=ASC``. Known values are: "ASC" and "DESC". Default value is "ASC".
+        :paramtype order: str
         :keyword include_disabled: Include disabled entries. Default value is False.
         :paramtype include_disabled: bool
+        :keyword include_deleted: Include deleted entries. Default value is False.
+        :paramtype include_deleted: bool
         :keyword feature: Filtering by multiple features.
 
          Usage: ``?feature=feature-1&feature=feature-2``. Default value is None.
         :paramtype feature: list[str]
-        :return: list of JSON object
-        :rtype: list[JSON]
+        :keyword channel: Filtering by multiple notification channels.
+
+         Usage: ``?channel=channel-1&channel=channel-2``. Default value is None.
+        :paramtype channel: list[str]
+        :return: JSON object
+        :rtype: JSON
         :raises ~azure.core.exceptions.HttpResponseError:
 
         Example:
             .. code-block:: python
 
                 # response body for status code(s): 200
-                response == [
-                    {}
-                ]
+                response == {
+                    "items": [
+                        {}
+                    ],
+                    "page": 0,  # Current page number. Required.
+                    "pageSize": 0,  # Number of rules per page. Required.
+                    "totalCount": 0  # Total number of rules. Required.
+                }
         """
         error_map = {
             404: ResourceNotFoundError,
@@ -4831,14 +4870,17 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
 
         _request = build_list_notification_rules_request(
-            limit=limit,
-            offset=offset,
+            page=page,
+            page_size=page_size,
             order_by=order_by,
+            order=order,
             include_disabled=include_disabled,
+            include_deleted=include_deleted,
             feature=feature,
+            channel=channel,
             headers=_headers,
             params=_params,
         )
@@ -4863,9 +4905,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             deserialized = None
 
         if cls:
-            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
 
-        return cast(List[JSON], deserialized)  # type: ignore
+        return cast(JSON, deserialized)  # type: ignore
 
     @overload
     async def create_notification_rule(
@@ -5278,24 +5320,37 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
     async def list_notification_events(
         self,
         *,
-        limit: int = 1000,
-        offset: int = 0,
-        order_by: str = "id",
+        page: int = 1,
+        page_size: int = 100,
+        order_by: str = "createdAt",
+        order: str = "ASC",
+        from_parameter: Optional[datetime.datetime] = None,
+        to: Optional[datetime.datetime] = None,
         feature: Optional[List[str]] = None,
         subject: Optional[List[str]] = None,
         **kwargs: Any
-    ) -> List[JSON]:
+    ) -> JSON:
         """List notification evens.
 
         List all notification events.
 
-        :keyword limit: Number of entries to return. Default value is 1000.
-        :paramtype limit: int
-        :keyword offset: Number of entries to skip. Default value is 0.
-        :paramtype offset: int
+        :keyword page: Page number to return. Default value is 1.
+        :paramtype page: int
+        :keyword page_size: Number of entries to return per page. Default value is 100.
+        :paramtype page_size: int
         :keyword order_by: Order by field. Known values are: "id" and "createdAt". Default value is
-         "id".
+         "createdAt".
         :paramtype order_by: str
+        :keyword order: Order by field.
+
+         Usage: ``?order=ASC``. Known values are: "ASC" and "DESC". Default value is "ASC".
+        :paramtype order: str
+        :keyword from_parameter: Start date-time in RFC 3339 format.
+         Inclusive. Default value is None.
+        :paramtype from_parameter: ~datetime.datetime
+        :keyword to: End date-time in RFC 3339 format.
+         Inclusive. Default value is None.
+        :paramtype to: ~datetime.datetime
         :keyword feature: Filtering by multiple features.
 
          Usage: ``?feature=feature-1&feature=feature-2``. Default value is None.
@@ -5304,42 +5359,43 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
          Usage: ``?subject=customer-1&subject=customer-2``. Default value is None.
         :paramtype subject: list[str]
-        :return: list of JSON object
-        :rtype: list[JSON]
+        :return: JSON object
+        :rtype: JSON
         :raises ~azure.core.exceptions.HttpResponseError:
 
         Example:
             .. code-block:: python
 
                 # response body for status code(s): 200
-                response == [
-                    {
-                        "createdAt": "2020-02-20 00:00:00",  # Timestamp when the
-                          notification event was created. Required.
-                        "deliveryStatus": [
-                            {
-                                "channel": {
-                                    "id": "str",  # A unique identifier for the
-                                      notification channel. Required.
-                                    "type": "str"  # The type of the notification
-                                      channel. Required. "WEBHOOK"
-                                },
-                                "state": "str",  # Required. Known values are:
-                                  "SUCCESS", "FAILED", and "SENDING".
-                                "updatedAt": "2020-02-20 00:00:00"  # Required.
-                            }
-                        ],
-                        "id": "str",  # A unique identifier for the notification event.
-                          Required.
-                        "payload": {},
-                        "rule": {
+                response == {
+                    "items": [
+                        {
+                            "createdAt": "2020-02-20 00:00:00",  # Timestamp when the
+                              notification event was created. Required.
+                            "deliveryStatus": [
+                                {
+                                    "channel": {
+                                        "id": "str",  # A unique identifier
+                                          for the notification channel. Required.
+                                        "type": "str"  # The type of the
+                                          notification channel. Required. "WEBHOOK"
+                                    },
+                                    "state": "str",  # Required. Known values
+                                      are: "SUCCESS", "FAILED", and "SENDING".
+                                    "updatedAt": "2020-02-20 00:00:00"  #
+                                      Required.
+                                }
+                            ],
                             "id": "str",  # A unique identifier for the notification
-                              rule. Required.
-                            "type": "str"  # The type of the notification event.
-                              Required. "entitlements.balance.threshold"
+                              event. Required.
+                            "payload": {},
+                            "rule": {}
                         }
-                    }
-                ]
+                    ],
+                    "page": 0,  # Current page number. Required.
+                    "pageSize": 0,  # Number of rules per page. Required.
+                    "totalCount": 0  # Total number of rules. Required.
+                }
         """
         error_map = {
             404: ResourceNotFoundError,
@@ -5353,12 +5409,15 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         _headers = kwargs.pop("headers", {}) or {}
         _params = kwargs.pop("params", {}) or {}
 
-        cls: ClsType[List[JSON]] = kwargs.pop("cls", None)
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
 
         _request = build_list_notification_events_request(
-            limit=limit,
-            offset=offset,
+            page=page,
+            page_size=page_size,
             order_by=order_by,
+            order=order,
+            from_parameter=from_parameter,
+            to=to,
             feature=feature,
             subject=subject,
             headers=_headers,
@@ -5385,9 +5444,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             deserialized = None
 
         if cls:
-            return cls(pipeline_response, cast(List[JSON], deserialized), {})  # type: ignore
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
 
-        return cast(List[JSON], deserialized)  # type: ignore
+        return cast(JSON, deserialized)  # type: ignore
 
     @distributed_trace_async
     async def get_notification_event(self, event_id: str, **kwargs: Any) -> JSON:
