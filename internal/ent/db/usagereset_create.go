@@ -174,7 +174,7 @@ func (urc *UsageResetCreate) check() error {
 	if _, ok := urc.mutation.ResetTime(); !ok {
 		return &ValidationError{Name: "reset_time", err: errors.New(`db: missing required field "UsageReset.reset_time"`)}
 	}
-	if _, ok := urc.mutation.EntitlementID(); !ok {
+	if len(urc.mutation.EntitlementIDs()) == 0 {
 		return &ValidationError{Name: "entitlement", err: errors.New(`db: missing required edge "UsageReset.entitlement"`)}
 	}
 	return nil

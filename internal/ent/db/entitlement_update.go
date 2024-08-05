@@ -299,7 +299,7 @@ func (eu *EntitlementUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (eu *EntitlementUpdate) check() error {
-	if _, ok := eu.mutation.FeatureID(); eu.mutation.FeatureCleared() && !ok {
+	if eu.mutation.FeatureCleared() && len(eu.mutation.FeatureIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "Entitlement.feature"`)
 	}
 	return nil
@@ -811,7 +811,7 @@ func (euo *EntitlementUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (euo *EntitlementUpdateOne) check() error {
-	if _, ok := euo.mutation.FeatureID(); euo.mutation.FeatureCleared() && !ok {
+	if euo.mutation.FeatureCleared() && len(euo.mutation.FeatureIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "Entitlement.feature"`)
 	}
 	return nil

@@ -97,7 +97,7 @@ func (bsu *BalanceSnapshotUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (bsu *BalanceSnapshotUpdate) check() error {
-	if _, ok := bsu.mutation.EntitlementID(); bsu.mutation.EntitlementCleared() && !ok {
+	if bsu.mutation.EntitlementCleared() && len(bsu.mutation.EntitlementIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BalanceSnapshot.entitlement"`)
 	}
 	return nil
@@ -226,7 +226,7 @@ func (bsuo *BalanceSnapshotUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (bsuo *BalanceSnapshotUpdateOne) check() error {
-	if _, ok := bsuo.mutation.EntitlementID(); bsuo.mutation.EntitlementCleared() && !ok {
+	if bsuo.mutation.EntitlementCleared() && len(bsuo.mutation.EntitlementIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "BalanceSnapshot.entitlement"`)
 	}
 	return nil

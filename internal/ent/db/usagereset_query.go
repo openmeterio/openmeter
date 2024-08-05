@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -86,7 +87,7 @@ func (urq *UsageResetQuery) QueryEntitlement() *EntitlementQuery {
 // First returns the first UsageReset entity from the query.
 // Returns a *NotFoundError when no UsageReset was found.
 func (urq *UsageResetQuery) First(ctx context.Context) (*UsageReset, error) {
-	nodes, err := urq.Limit(1).All(setContextOp(ctx, urq.ctx, "First"))
+	nodes, err := urq.Limit(1).All(setContextOp(ctx, urq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +110,7 @@ func (urq *UsageResetQuery) FirstX(ctx context.Context) *UsageReset {
 // Returns a *NotFoundError when no UsageReset ID was found.
 func (urq *UsageResetQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = urq.Limit(1).IDs(setContextOp(ctx, urq.ctx, "FirstID")); err != nil {
+	if ids, err = urq.Limit(1).IDs(setContextOp(ctx, urq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -132,7 +133,7 @@ func (urq *UsageResetQuery) FirstIDX(ctx context.Context) string {
 // Returns a *NotSingularError when more than one UsageReset entity is found.
 // Returns a *NotFoundError when no UsageReset entities are found.
 func (urq *UsageResetQuery) Only(ctx context.Context) (*UsageReset, error) {
-	nodes, err := urq.Limit(2).All(setContextOp(ctx, urq.ctx, "Only"))
+	nodes, err := urq.Limit(2).All(setContextOp(ctx, urq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +161,7 @@ func (urq *UsageResetQuery) OnlyX(ctx context.Context) *UsageReset {
 // Returns a *NotFoundError when no entities are found.
 func (urq *UsageResetQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = urq.Limit(2).IDs(setContextOp(ctx, urq.ctx, "OnlyID")); err != nil {
+	if ids, err = urq.Limit(2).IDs(setContextOp(ctx, urq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -185,7 +186,7 @@ func (urq *UsageResetQuery) OnlyIDX(ctx context.Context) string {
 
 // All executes the query and returns a list of UsageResets.
 func (urq *UsageResetQuery) All(ctx context.Context) ([]*UsageReset, error) {
-	ctx = setContextOp(ctx, urq.ctx, "All")
+	ctx = setContextOp(ctx, urq.ctx, ent.OpQueryAll)
 	if err := urq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -207,7 +208,7 @@ func (urq *UsageResetQuery) IDs(ctx context.Context) (ids []string, err error) {
 	if urq.ctx.Unique == nil && urq.path != nil {
 		urq.Unique(true)
 	}
-	ctx = setContextOp(ctx, urq.ctx, "IDs")
+	ctx = setContextOp(ctx, urq.ctx, ent.OpQueryIDs)
 	if err = urq.Select(usagereset.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -225,7 +226,7 @@ func (urq *UsageResetQuery) IDsX(ctx context.Context) []string {
 
 // Count returns the count of the given query.
 func (urq *UsageResetQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, urq.ctx, "Count")
+	ctx = setContextOp(ctx, urq.ctx, ent.OpQueryCount)
 	if err := urq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -243,7 +244,7 @@ func (urq *UsageResetQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (urq *UsageResetQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, urq.ctx, "Exist")
+	ctx = setContextOp(ctx, urq.ctx, ent.OpQueryExist)
 	switch _, err := urq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -565,7 +566,7 @@ func (urgb *UsageResetGroupBy) Aggregate(fns ...AggregateFunc) *UsageResetGroupB
 
 // Scan applies the selector query and scans the result into the given value.
 func (urgb *UsageResetGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, urgb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, urgb.build.ctx, ent.OpQueryGroupBy)
 	if err := urgb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -613,7 +614,7 @@ func (urs *UsageResetSelect) Aggregate(fns ...AggregateFunc) *UsageResetSelect {
 
 // Scan applies the selector query and scans the result into the given value.
 func (urs *UsageResetSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, urs.ctx, "Select")
+	ctx = setContextOp(ctx, urs.ctx, ent.OpQuerySelect)
 	if err := urs.prepareQuery(ctx); err != nil {
 		return err
 	}

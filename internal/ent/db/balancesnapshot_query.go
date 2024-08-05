@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -86,7 +87,7 @@ func (bsq *BalanceSnapshotQuery) QueryEntitlement() *EntitlementQuery {
 // First returns the first BalanceSnapshot entity from the query.
 // Returns a *NotFoundError when no BalanceSnapshot was found.
 func (bsq *BalanceSnapshotQuery) First(ctx context.Context) (*BalanceSnapshot, error) {
-	nodes, err := bsq.Limit(1).All(setContextOp(ctx, bsq.ctx, "First"))
+	nodes, err := bsq.Limit(1).All(setContextOp(ctx, bsq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +110,7 @@ func (bsq *BalanceSnapshotQuery) FirstX(ctx context.Context) *BalanceSnapshot {
 // Returns a *NotFoundError when no BalanceSnapshot ID was found.
 func (bsq *BalanceSnapshotQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = bsq.Limit(1).IDs(setContextOp(ctx, bsq.ctx, "FirstID")); err != nil {
+	if ids, err = bsq.Limit(1).IDs(setContextOp(ctx, bsq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -132,7 +133,7 @@ func (bsq *BalanceSnapshotQuery) FirstIDX(ctx context.Context) int {
 // Returns a *NotSingularError when more than one BalanceSnapshot entity is found.
 // Returns a *NotFoundError when no BalanceSnapshot entities are found.
 func (bsq *BalanceSnapshotQuery) Only(ctx context.Context) (*BalanceSnapshot, error) {
-	nodes, err := bsq.Limit(2).All(setContextOp(ctx, bsq.ctx, "Only"))
+	nodes, err := bsq.Limit(2).All(setContextOp(ctx, bsq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +161,7 @@ func (bsq *BalanceSnapshotQuery) OnlyX(ctx context.Context) *BalanceSnapshot {
 // Returns a *NotFoundError when no entities are found.
 func (bsq *BalanceSnapshotQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = bsq.Limit(2).IDs(setContextOp(ctx, bsq.ctx, "OnlyID")); err != nil {
+	if ids, err = bsq.Limit(2).IDs(setContextOp(ctx, bsq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -185,7 +186,7 @@ func (bsq *BalanceSnapshotQuery) OnlyIDX(ctx context.Context) int {
 
 // All executes the query and returns a list of BalanceSnapshots.
 func (bsq *BalanceSnapshotQuery) All(ctx context.Context) ([]*BalanceSnapshot, error) {
-	ctx = setContextOp(ctx, bsq.ctx, "All")
+	ctx = setContextOp(ctx, bsq.ctx, ent.OpQueryAll)
 	if err := bsq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -207,7 +208,7 @@ func (bsq *BalanceSnapshotQuery) IDs(ctx context.Context) (ids []int, err error)
 	if bsq.ctx.Unique == nil && bsq.path != nil {
 		bsq.Unique(true)
 	}
-	ctx = setContextOp(ctx, bsq.ctx, "IDs")
+	ctx = setContextOp(ctx, bsq.ctx, ent.OpQueryIDs)
 	if err = bsq.Select(balancesnapshot.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -225,7 +226,7 @@ func (bsq *BalanceSnapshotQuery) IDsX(ctx context.Context) []int {
 
 // Count returns the count of the given query.
 func (bsq *BalanceSnapshotQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, bsq.ctx, "Count")
+	ctx = setContextOp(ctx, bsq.ctx, ent.OpQueryCount)
 	if err := bsq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -243,7 +244,7 @@ func (bsq *BalanceSnapshotQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (bsq *BalanceSnapshotQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, bsq.ctx, "Exist")
+	ctx = setContextOp(ctx, bsq.ctx, ent.OpQueryExist)
 	switch _, err := bsq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -565,7 +566,7 @@ func (bsgb *BalanceSnapshotGroupBy) Aggregate(fns ...AggregateFunc) *BalanceSnap
 
 // Scan applies the selector query and scans the result into the given value.
 func (bsgb *BalanceSnapshotGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, bsgb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, bsgb.build.ctx, ent.OpQueryGroupBy)
 	if err := bsgb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -613,7 +614,7 @@ func (bss *BalanceSnapshotSelect) Aggregate(fns ...AggregateFunc) *BalanceSnapsh
 
 // Scan applies the selector query and scans the result into the given value.
 func (bss *BalanceSnapshotSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, bss.ctx, "Select")
+	ctx = setContextOp(ctx, bss.ctx, ent.OpQuerySelect)
 	if err := bss.prepareQuery(ctx); err != nil {
 		return err
 	}

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -87,7 +88,7 @@ func (fq *FeatureQuery) QueryEntitlement() *EntitlementQuery {
 // First returns the first Feature entity from the query.
 // Returns a *NotFoundError when no Feature was found.
 func (fq *FeatureQuery) First(ctx context.Context) (*Feature, error) {
-	nodes, err := fq.Limit(1).All(setContextOp(ctx, fq.ctx, "First"))
+	nodes, err := fq.Limit(1).All(setContextOp(ctx, fq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +111,7 @@ func (fq *FeatureQuery) FirstX(ctx context.Context) *Feature {
 // Returns a *NotFoundError when no Feature ID was found.
 func (fq *FeatureQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = fq.Limit(1).IDs(setContextOp(ctx, fq.ctx, "FirstID")); err != nil {
+	if ids, err = fq.Limit(1).IDs(setContextOp(ctx, fq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -133,7 +134,7 @@ func (fq *FeatureQuery) FirstIDX(ctx context.Context) string {
 // Returns a *NotSingularError when more than one Feature entity is found.
 // Returns a *NotFoundError when no Feature entities are found.
 func (fq *FeatureQuery) Only(ctx context.Context) (*Feature, error) {
-	nodes, err := fq.Limit(2).All(setContextOp(ctx, fq.ctx, "Only"))
+	nodes, err := fq.Limit(2).All(setContextOp(ctx, fq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +162,7 @@ func (fq *FeatureQuery) OnlyX(ctx context.Context) *Feature {
 // Returns a *NotFoundError when no entities are found.
 func (fq *FeatureQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = fq.Limit(2).IDs(setContextOp(ctx, fq.ctx, "OnlyID")); err != nil {
+	if ids, err = fq.Limit(2).IDs(setContextOp(ctx, fq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -186,7 +187,7 @@ func (fq *FeatureQuery) OnlyIDX(ctx context.Context) string {
 
 // All executes the query and returns a list of Features.
 func (fq *FeatureQuery) All(ctx context.Context) ([]*Feature, error) {
-	ctx = setContextOp(ctx, fq.ctx, "All")
+	ctx = setContextOp(ctx, fq.ctx, ent.OpQueryAll)
 	if err := fq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -208,7 +209,7 @@ func (fq *FeatureQuery) IDs(ctx context.Context) (ids []string, err error) {
 	if fq.ctx.Unique == nil && fq.path != nil {
 		fq.Unique(true)
 	}
-	ctx = setContextOp(ctx, fq.ctx, "IDs")
+	ctx = setContextOp(ctx, fq.ctx, ent.OpQueryIDs)
 	if err = fq.Select(feature.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -226,7 +227,7 @@ func (fq *FeatureQuery) IDsX(ctx context.Context) []string {
 
 // Count returns the count of the given query.
 func (fq *FeatureQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, fq.ctx, "Count")
+	ctx = setContextOp(ctx, fq.ctx, ent.OpQueryCount)
 	if err := fq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -244,7 +245,7 @@ func (fq *FeatureQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (fq *FeatureQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, fq.ctx, "Exist")
+	ctx = setContextOp(ctx, fq.ctx, ent.OpQueryExist)
 	switch _, err := fq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -565,7 +566,7 @@ func (fgb *FeatureGroupBy) Aggregate(fns ...AggregateFunc) *FeatureGroupBy {
 
 // Scan applies the selector query and scans the result into the given value.
 func (fgb *FeatureGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, fgb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, fgb.build.ctx, ent.OpQueryGroupBy)
 	if err := fgb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -613,7 +614,7 @@ func (fs *FeatureSelect) Aggregate(fns ...AggregateFunc) *FeatureSelect {
 
 // Scan applies the selector query and scans the result into the given value.
 func (fs *FeatureSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, fs.ctx, "Select")
+	ctx = setContextOp(ctx, fs.ctx, ent.OpQuerySelect)
 	if err := fs.prepareQuery(ctx); err != nil {
 		return err
 	}
