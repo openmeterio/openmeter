@@ -12,10 +12,40 @@ const (
 )
 
 const (
-	ingestedEventName spec.EventName = "event.ingested"
+	ingestedEventName spec.EventName = "events.ingested"
 )
 
-type EventIngested struct {
+type EventBatchedIngest struct {
+	Events []IngestEventData `json:"events"`
+}
+
+var batchIngestEventSpec = spec.EventTypeSpec{
+	Subsystem: EventSubsystem,
+	Name:      ingestedEventName,
+	Version:   "v1",
+}
+
+func (b EventBatchedIngest) Spec() *spec.EventTypeSpec {
+	return &batchIngestEventSpec
+}
+
+func (b EventBatchedIngest) Validate() error {
+	if len(b.Events) == 0 {
+		return errors.New("events must not be empty")
+	}
+
+	var finalErr error
+
+	for _, e := range b.Events {
+		if err := e.Validate(); err != nil {
+			finalErr = errors.Join(finalErr, err)
+		}
+	}
+
+	return finalErr
+}
+
+type IngestEventData struct {
 	Namespace  models.NamespaceID `json:"namespace"`
 	SubjectKey string             `json:"subjectKey"`
 
@@ -25,17 +55,7 @@ type EventIngested struct {
 	MeterSlugs []string `json:"meterSlugs"`
 }
 
-var ingestEventSpec = spec.EventTypeSpec{
-	Subsystem: EventSubsystem,
-	Name:      ingestedEventName,
-	Version:   "v1",
-}
-
-func (i EventIngested) Spec() *spec.EventTypeSpec {
-	return &ingestEventSpec
-}
-
-func (i EventIngested) Validate() error {
+func (i IngestEventData) Validate() error {
 	if err := i.Namespace.Validate(); err != nil {
 		return err
 	}

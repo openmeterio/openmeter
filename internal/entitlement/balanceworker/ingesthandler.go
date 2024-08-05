@@ -4,38 +4,51 @@ import (
 	"context"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/event/spec"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/internal/sink/flushhandler/ingestnotification"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func (w *Worker) handleIngestEvent(ctx context.Context, event ingestnotification.EventIngested) ([]*message.Message, error) {
-	affectedEntitlements, err := w.GetEntitlementsAffectedByMeterSubject(ctx, event.Namespace.ID, event.MeterSlugs, event.SubjectKey)
+func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestnotification.EventBatchedIngest) ([]*message.Message, error) {
+	filters := slicesx.Map(event.Events, func(e ingestnotification.IngestEventData) IngestEventQueryFilter {
+		return IngestEventQueryFilter{
+			Namespace:  e.Namespace.ID,
+			SubjectKey: e.SubjectKey,
+			MeterSlugs: e.MeterSlugs,
+		}
+	})
+	affectedEntitlements, err := w.repo.ListAffectedEntitlements(ctx, filters)
 	if err != nil {
 		return nil, err
 	}
+
+	var handlingError error
 
 	result := make([]*message.Message, 0, len(affectedEntitlements))
 	for _, entitlement := range affectedEntitlements {
 		messages, err := w.handleEntitlementUpdateEvent(
 			ctx,
-			entitlement,
+			NamespacedID{Namespace: entitlement.Namespace, ID: entitlement.EntitlementID},
 			spec.ComposeResourcePath(entitlement.Namespace, spec.EntityEvent),
 		)
 		if err != nil {
-			return nil, err
+			// TODO: add error information too
+			handlingError = multierror.Append(handlingError, err)
+			continue
 		}
 
 		result = append(result, messages...)
 	}
 
-	return result, nil
+	return result, handlingError
 }
 
 func (w *Worker) GetEntitlementsAffectedByMeterSubject(ctx context.Context, namespace string, meterSlugs []string, subject string) ([]NamespacedID, error) {
-	featuresByMeter, err := w.connectors.Feature.ListFeatures(ctx, productcatalog.ListFeaturesParams{
+	featuresByMeter, err := w.entitlement.Feature.ListFeatures(ctx, productcatalog.ListFeaturesParams{
 		Namespace:  namespace,
 		MeterSlugs: meterSlugs,
 	})
@@ -48,7 +61,7 @@ func (w *Worker) GetEntitlementsAffectedByMeterSubject(ctx context.Context, name
 		featureIDs = append(featureIDs, feature.ID)
 	}
 
-	entitlements, err := w.connectors.Entitlement.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
+	entitlements, err := w.entitlement.Entitlement.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
 		Namespaces:  []string{namespace},
 		SubjectKeys: []string{subject},
 		FeatureIDs:  featureIDs,

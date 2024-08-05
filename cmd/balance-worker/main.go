@@ -37,10 +37,12 @@ import (
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/internal/entitlement/balanceworker"
+	entitlementpgadapter "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter"
 	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/registry"
+	registrybuilder "github.com/openmeterio/openmeter/internal/registry/builder"
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 	watermillkafka "github.com/openmeterio/openmeter/internal/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/pkg/contextx"
@@ -244,7 +246,7 @@ func main() {
 	}
 
 	// Dependencies: entitlement
-	entitlementConnectors := registry.GetEntitlementRegistry(registry.EntitlementOptions{
+	entitlementConnectors := registrybuilder.GetEntitlementRegistry(registry.EntitlementOptions{
 		DatabaseClient:     pgClients.client,
 		StreamingConnector: clickhouseStreamingConnector,
 		MeterRepository:    meterRepository,
@@ -263,6 +265,7 @@ func main() {
 		Marshaler:   publishers.marshaler,
 
 		Entitlement: entitlementConnectors,
+		Repo:        entitlementpgadapter.NewPostgresEntitlementRepo(pgClients.client),
 
 		Logger: logger,
 	}

@@ -45,6 +45,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/internal/registry"
+	registrybuilder "github.com/openmeterio/openmeter/internal/registry/builder"
 	"github.com/openmeterio/openmeter/internal/server"
 	"github.com/openmeterio/openmeter/internal/server/authenticator"
 	"github.com/openmeterio/openmeter/internal/server/router"
@@ -308,7 +309,7 @@ func main() {
 
 		defer pgClients.client.Close()
 
-		entitlementConnRegistry = registry.GetEntitlementRegistry(registry.EntitlementOptions{
+		entitlementConnRegistry = registrybuilder.GetEntitlementRegistry(registry.EntitlementOptions{
 			DatabaseClient:     pgClients.client,
 			StreamingConnector: streamingConnector,
 			MeterRepository:    meterRepository,

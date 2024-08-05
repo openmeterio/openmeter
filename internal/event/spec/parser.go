@@ -64,9 +64,9 @@ func newCloudEventFromSpec(meta *EventTypeSpec, spec EventSpec) event.Event {
 	return ev
 }
 
-// ParseCloudEvent unmarshals a single CloudEvent into the given payload
+// ParseCloudEvent unmarshals and validates a single CloudEvent into the given payload
 // example usage:
-// ingest, err := UnmarshalCloudEvent[schema.IngestEvent](ev)
+// ingest, err := ParseCloudEvent[schema.IngestEvent](ev)
 func ParseCloudEvent[PayloadType CloudEventsPayload](ev event.Event) (PayloadType, error) {
 	var payload PayloadType
 

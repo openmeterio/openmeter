@@ -11,6 +11,7 @@ import (
 type BalanceWorkerConfiguration struct {
 	DLQ               DLQConfiguration
 	Retry             RetryConfiguration
+	ChunkSize         int
 	ConsumerGroupName string
 }
 
@@ -26,6 +27,12 @@ func (c BalanceWorkerConfiguration) Validate() error {
 	if c.ConsumerGroupName == "" {
 		return errors.New("consumer group name is required")
 	}
+
+	// Can be 0
+	if c.ChunkSize > 1000 {
+		return errors.New("chunk size must be less than 1000")
+	}
+
 	return nil
 }
 
@@ -44,4 +51,5 @@ func ConfigureBalanceWorker(v *viper.Viper) {
 	v.SetDefault("balanceWorker.retry.initialInterval", 100*time.Millisecond)
 
 	v.SetDefault("balanceWorker.consumerGroupName", "om_balance_worker")
+	v.SetDefault("balanceWorker.chunkSize", 500)
 }

@@ -41,6 +41,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/notification/consumer"
 	"github.com/openmeterio/openmeter/internal/registry"
+	registrybuilder "github.com/openmeterio/openmeter/internal/registry/builder"
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 	watermillkafka "github.com/openmeterio/openmeter/internal/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/pkg/contextx"
@@ -244,7 +245,7 @@ func main() {
 	}
 
 	// Dependencies: entitlement
-	entitlementConnectors := registry.GetEntitlementRegistry(registry.EntitlementOptions{
+	entitlementConnectors := registrybuilder.GetEntitlementRegistry(registry.EntitlementOptions{
 		DatabaseClient:     pgClients.client,
 		StreamingConnector: clickhouseStreamingConnector,
 		MeterRepository:    meterRepository,

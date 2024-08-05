@@ -47,6 +47,7 @@ type WorkerOptions struct {
 	Marshaler   publisher.CloudEventMarshaler
 
 	Entitlement *registry.Entitlement
+	Repo        BalanceWorkerRepository
 	// External connectors
 	SubjectIDResolver SubjectIDResolver
 
@@ -66,9 +67,10 @@ type highWatermarkCacheEntry struct {
 }
 
 type Worker struct {
-	opts       WorkerOptions
-	connectors *registry.Entitlement
-	router     *message.Router
+	opts        WorkerOptions
+	entitlement *registry.Entitlement
+	repo        BalanceWorkerRepository
+	router      *message.Router
 
 	highWatermarkCache *lru.Cache[string, highWatermarkCacheEntry]
 }
@@ -87,7 +89,8 @@ func New(opts WorkerOptions) (*Worker, error) {
 	worker := &Worker{
 		opts:               opts,
 		router:             router,
-		connectors:         opts.Entitlement,
+		entitlement:        opts.Entitlement,
+		repo:               opts.Repo,
 		highWatermarkCache: highWatermarkCache,
 	}
 
@@ -174,8 +177,8 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 
 	switch ceType {
 	// Entitlement events
-	case entitlement.EntitlementCreatedEvent{}.Spec().Type():
-		event, err := spec.ParseCloudEventFromBytes[entitlement.EntitlementCreatedEvent](msg.Payload)
+	case entitlement.EntitlementDeletedEvent{}.Spec().Type():
+		event, err := spec.ParseCloudEventFromBytes[entitlement.EntitlementDeletedEvent](msg.Payload)
 		if err != nil {
 			w.opts.Logger.Error("failed to parse entitlement created event", w.messageToLogFields(msg)...)
 			return nil, err
@@ -230,17 +233,15 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 			NamespacedID{Namespace: event.Payload.Namespace.ID, ID: event.Payload.EntitlementID},
 			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, event.Payload.EntitlementID),
 		)
-
-	// Ingest event
-	case ingestnotification.EventIngested{}.Spec().Type():
-		event, err := spec.ParseCloudEventFromBytes[ingestnotification.EventIngested](msg.Payload)
+	// Ingest events
+	case ingestnotification.EventBatchedIngest{}.Spec().Type():
+		event, err := spec.ParseCloudEventFromBytes[ingestnotification.EventBatchedIngest](msg.Payload)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse ingest event: %w", err)
 		}
 
-		return w.handleIngestEvent(msg.Context(), event.Payload)
+		return w.handleBatchedIngestEvent(msg.Context(), event.Payload)
 	}
-
 	return nil, nil
 }
 

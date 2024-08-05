@@ -16,10 +16,11 @@ const (
 )
 
 type (
-	IngestEvent = ingestnotification.EventIngested
+	IngestEventData    = ingestnotification.IngestEventData
+	EventBatchedIngest = ingestnotification.EventBatchedIngest
 )
 
 // Ingest notification handler
-func NewHandler(logger *slog.Logger, metricMeter metric.Meter, publisher publisher.TopicPublisher) (flushhandler.FlushEventHandler, error) {
-	return ingestnotification.NewHandler(logger, metricMeter, publisher)
+func NewHandler(logger *slog.Logger, metricMeter metric.Meter, publisher publisher.TopicPublisher, config ingestnotification.HandlerConfig) (flushhandler.FlushEventHandler, error) {
+	return ingestnotification.NewHandler(logger, metricMeter, publisher, config)
 }
