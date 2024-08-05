@@ -79,8 +79,8 @@ func (bsc *BalanceSnapshotCreate) SetOwnerID(s string) *BalanceSnapshotCreate {
 }
 
 // SetGrantBalances sets the "grant_balances" field.
-func (bsc *BalanceSnapshotCreate) SetGrantBalances(bbm balance.Map) *BalanceSnapshotCreate {
-	bsc.mutation.SetGrantBalances(bbm)
+func (bsc *BalanceSnapshotCreate) SetGrantBalances(b balance.Map) *BalanceSnapshotCreate {
+	bsc.mutation.SetGrantBalances(b)
 	return bsc
 }
 

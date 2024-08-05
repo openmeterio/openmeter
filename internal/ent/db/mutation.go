@@ -354,8 +354,8 @@ func (m *BalanceSnapshotMutation) ResetOwnerID() {
 }
 
 // SetGrantBalances sets the "grant_balances" field.
-func (m *BalanceSnapshotMutation) SetGrantBalances(bbm balance.Map) {
-	m.grant_balances = &bbm
+func (m *BalanceSnapshotMutation) SetGrantBalances(b balance.Map) {
+	m.grant_balances = &b
 }
 
 // GrantBalances returns the value of the "grant_balances" field in the mutation.
