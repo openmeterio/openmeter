@@ -41,8 +41,9 @@ func TestQuickstart(t *testing.T) {
 		ev.SetSubject("customer-1")
 		ev.SetTime(time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC))
 		_ = ev.SetData("application/json", map[string]string{
-			"method": "GET",
-			"route":  "/hello",
+			"method":      "GET",
+			"route":       "/hello",
+			"duration_ms": "40",
 		})
 
 		require.EventuallyWithT(t, func(t *assert.CollectT) {
@@ -60,8 +61,9 @@ func TestQuickstart(t *testing.T) {
 		ev.SetSubject("customer-1")
 		ev.SetTime(time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC))
 		_ = ev.SetData("application/json", map[string]string{
-			"method": "GET",
-			"route":  "/hello",
+			"method":      "GET",
+			"route":       "/hello",
+			"duration_ms": "40",
 		})
 
 		require.EventuallyWithT(t, func(t *assert.CollectT) {
@@ -79,8 +81,9 @@ func TestQuickstart(t *testing.T) {
 		ev.SetSubject("customer-1")
 		ev.SetTime(time.Date(2023, time.January, 2, 0, 0, 0, 0, time.UTC))
 		_ = ev.SetData("application/json", map[string]string{
-			"method": "GET",
-			"route":  "/hello",
+			"method":      "GET",
+			"route":       "/hello",
+			"duration_ms": "40",
 		})
 
 		require.EventuallyWithT(t, func(t *assert.CollectT) {
