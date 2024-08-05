@@ -1,4 +1,4 @@
-package httpdriver
+package productcatalogdriver
 
 import productcatalogdriver "github.com/openmeterio/openmeter/internal/productcatalog/driver"
 

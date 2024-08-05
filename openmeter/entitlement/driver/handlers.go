@@ -1,4 +1,4 @@
-package httpdriver
+package entitlementdriver
 
 import (
 	"github.com/openmeterio/openmeter/api"
