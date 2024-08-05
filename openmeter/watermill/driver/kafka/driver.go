@@ -13,7 +13,8 @@ const (
 )
 
 type (
-	PublisherOptions = watermillkafka.PublisherOptions
+	PublisherOptions   = watermillkafka.PublisherOptions
+	AutoProvisionTopic = watermillkafka.AutoProvisionTopic
 )
 
 func NewPublisher(in PublisherOptions) (*kafka.Publisher, error) {

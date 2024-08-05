@@ -262,7 +262,7 @@ func initIngestEventPublisher(logger *slog.Logger, conf config.Configuration, me
 	})
 
 	ingestNotificationHandler, err := ingestnotification.NewHandler(logger, metricMeter, targetTopic, ingestnotification.HandlerConfig{
-		MaxEventsInBatch: conf.BalanceWorker.ChunkSize,
+		MaxEventsInBatch: conf.Sink.IngestNotifications.MaxEventsInBatch,
 	})
 	if err != nil {
 		return nil, err
