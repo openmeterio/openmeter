@@ -84,10 +84,7 @@ func NewPublisher(ctx context.Context, in PublisherOptions) (*kafka.Publisher, e
 		wmConfig.OverwriteSaramaConfig.Net.SASL.Handshake = true
 
 		wmConfig.OverwriteSaramaConfig.Net.TLS.Enable = true
-		wmConfig.OverwriteSaramaConfig.Net.TLS.Config = &tls.Config{
-			ClientAuth:         tls.NoClientCert,
-			InsecureSkipVerify: true,
-		}
+		wmConfig.OverwriteSaramaConfig.Net.TLS.Config = &tls.Config{}
 
 		switch in.KafkaConfig.SaslMechanisms {
 		case "PLAIN":
