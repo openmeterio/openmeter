@@ -18,6 +18,7 @@ const (
 type (
 	IngestEventData    = ingestnotification.IngestEventData
 	EventBatchedIngest = ingestnotification.EventBatchedIngest
+	HandlerConfig      = ingestnotification.HandlerConfig
 )
 
 // Ingest notification handler

@@ -2,17 +2,19 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/spf13/viper"
 )
 
 type SinkConfiguration struct {
-	GroupId          string
-	Dedupe           DedupeConfiguration
-	MinCommitCount   int
-	MaxCommitWait    time.Duration
-	NamespaceRefetch time.Duration
+	GroupId             string
+	Dedupe              DedupeConfiguration
+	MinCommitCount      int
+	MaxCommitWait       time.Duration
+	NamespaceRefetch    time.Duration
+	IngestNotifications IngestNotificationsConfiguration
 }
 
 func (c SinkConfiguration) Validate() error {
@@ -26,6 +28,26 @@ func (c SinkConfiguration) Validate() error {
 
 	if c.NamespaceRefetch < 1 {
 		return errors.New("NamespaceRefetch must be greater than 0")
+	}
+
+	if err := c.IngestNotifications.Validate(); err != nil {
+		return fmt.Errorf("ingest notifications: %w", err)
+	}
+
+	return nil
+}
+
+type IngestNotificationsConfiguration struct {
+	MaxEventsInBatch int
+}
+
+func (c IngestNotificationsConfiguration) Validate() error {
+	if c.MaxEventsInBatch < 0 {
+		return errors.New("ChunkSize must not be negative")
+	}
+
+	if c.MaxEventsInBatch > 1000 {
+		return errors.New("ChunkSize must not be greater than 1000")
 	}
 
 	return nil
@@ -56,4 +78,5 @@ func ConfigureSink(v *viper.Viper) {
 	v.SetDefault("sink.minCommitCount", 500)
 	v.SetDefault("sink.maxCommitWait", "5s")
 	v.SetDefault("sink.namespaceRefetch", "15s")
+	v.SetDefault("sink.ingestNotifications.maxEventsInBatch", 500)
 }
