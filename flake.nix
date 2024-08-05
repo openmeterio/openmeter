@@ -91,6 +91,11 @@
               # python
               poetry
 
+              # FIXME: Building as a go module is not supported by maintainers:
+              # - GH issue for atlas: https://github.com/ariga/atlas/issues/2582
+              # - Module src we use: https://github.com/NixOS/nixpkgs/blob/6d54ef5bc208956deca392af75ad9568e4a58429/pkgs/development/tools/database/atlas/default.nix#L8
+              atlas
+
               just
               semver-tool
 
