@@ -35,7 +35,6 @@ import (
 
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/openmeter/debug"
-	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
@@ -49,6 +48,7 @@ import (
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
+	"github.com/openmeterio/openmeter/openmeter/registry/startup"
 	"github.com/openmeterio/openmeter/openmeter/server"
 	"github.com/openmeterio/openmeter/openmeter/server/authenticator"
 	"github.com/openmeterio/openmeter/openmeter/server/router"
@@ -322,46 +322,42 @@ func main() {
 	debugConnector := debug.NewDebugConnector(streamingConnector)
 	entitlementConnRegistry := &registry.Entitlement{}
 
-	var entClient *entdb.Client
+	// Initialize Postgres driver
+	postgresDriver, err := pgdriver.NewPostgresDriver(
+		ctx,
+		conf.Postgres.URL,
+		pgdriver.WithTracerProvider(otelTracerProvider),
+		pgdriver.WithMeterProvider(otelMeterProvider),
+	)
+	if err != nil {
+		logger.Error("failed to initialize postgres driver", "error", err)
+		os.Exit(1)
+	}
+
+	defer func() {
+		if err = postgresDriver.Close(); err != nil {
+			logger.Error("failed to close postgres driver", "error", err)
+		}
+	}()
+
+	// Initialize Ent driver
+	entPostgresDriver := entdriver.NewEntPostgresDriver(postgresDriver.DB())
+	defer func() {
+		if err = entPostgresDriver.Close(); err != nil {
+			logger.Error("failed to close ent driver", "error", err)
+		}
+	}()
+
+	entClient := entPostgresDriver.Client()
+
+	if err := startup.DB(conf.Postgres, entClient); err != nil {
+		logger.Error("failed to initialize database", "error", err)
+		os.Exit(1)
+	}
+
+	logger.Info("Postgres client initialized")
+
 	if conf.Entitlements.Enabled {
-		// Initialize Postgres driver
-		var postgresDriver *pgdriver.Driver
-		postgresDriver, err = pgdriver.NewPostgresDriver(
-			ctx,
-			conf.Postgres.URL,
-			pgdriver.WithTracerProvider(otelTracerProvider),
-			pgdriver.WithMeterProvider(otelMeterProvider),
-		)
-		if err != nil {
-			logger.Error("failed to initialize postgres driver", "error", err)
-			os.Exit(1)
-		}
-
-		defer func() {
-			if err = postgresDriver.Close(); err != nil {
-				logger.Error("failed to close postgres driver", "error", err)
-			}
-		}()
-
-		// Initialize Ent driver
-		entPostgresDriver := entdriver.NewEntPostgresDriver(postgresDriver.DB())
-		defer func() {
-			if err = entPostgresDriver.Close(); err != nil {
-				logger.Error("failed to close ent driver", "error", err)
-			}
-		}()
-
-		entClient = entPostgresDriver.Client()
-
-		// Run database schema creation
-		err = entClient.Schema.Create(ctx)
-		if err != nil {
-			logger.Error("failed to create schema in database", "error", err)
-			os.Exit(1)
-		}
-
-		logger.Info("Postgres client initialized")
-
 		entitlementConnRegistry = registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 			DatabaseClient:     entClient,
 			StreamingConnector: streamingConnector,
@@ -372,6 +368,7 @@ func main() {
 	}
 
 	var notificationService notification.Service
+
 	if conf.Notification.Enabled {
 		if !conf.Entitlements.Enabled {
 			logger.Error("failed to initialize notification service: entitlements must be enabled")

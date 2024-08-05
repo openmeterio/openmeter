@@ -35,6 +35,7 @@ import (
 	notificationservice "github.com/openmeterio/openmeter/openmeter/notification/service"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
+	"github.com/openmeterio/openmeter/openmeter/registry/startup"
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
@@ -241,9 +242,8 @@ func main() {
 	entClient := entPostgresDriver.Client()
 
 	// Run database schema creation
-	err = entClient.Schema.Create(ctx)
-	if err != nil {
-		logger.Error("failed to create database schema", "error", err)
+	if err := startup.DB(conf.Postgres, entClient); err != nil {
+		logger.Error("failed to initialize database", "error", err)
 		os.Exit(1)
 	}
 

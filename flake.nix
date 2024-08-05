@@ -100,11 +100,15 @@
               # python
               poetry
 
+              self'.packages.atlasx
+
               just
               semver-tool
 
               dagger
               licensei
+
+              go-migrate
             ];
 
             env = {
@@ -145,6 +149,26 @@
               "-s"
               "-X main.version=v${version}"
             ];
+          };
+
+          atlasx = pkgs.stdenv.mkDerivation rec {
+            pname = "atlasx";
+            version = "0.25.0";
+            src = pkgs.fetchurl {
+              # License: https://ariga.io/legal/atlas/eula/eula-20240804.pdf
+              url = "https://release.ariga.io/atlas/atlas-darwin-arm64-v${version}";
+              hash = "sha256-bYJtNDE13UhJWL4ALLKI0sHMZrDS//kFWzguGX63EAo=";
+            };
+
+            unpackPhase = ''
+              cp $src atlas
+            '';
+
+            installPhase = ''
+              mkdir -p $out/bin
+              cp atlas $out/bin/atlas
+            '';
+
           };
         };
       };
