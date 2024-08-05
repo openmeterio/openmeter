@@ -1279,8 +1279,8 @@ paths:
       tags:
         - Notification (Experimental)
       parameters:
-        - $ref: "#/components/parameters/queryLimit"
-        - $ref: "#/components/parameters/queryOffset"
+        - $ref: "#/components/parameters/queryPage"
+        - $ref: "#/components/parameters/queryPageSize"
         - name: orderBy
           in: query
           required: false
@@ -1293,14 +1293,16 @@ paths:
               - createdAt
               - updatedAt
             default: id
+        - $ref: "#/components/parameters/order"
         - $ref: "#/components/parameters/queryIncludeDisabled"
+        - $ref: "#/components/parameters/includeDeleted"
       responses:
         "200":
           description: List of notification channels.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NotificationChannels"
+                $ref: "#/components/schemas/NotificationChannelsResponse"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
@@ -1419,8 +1421,8 @@ paths:
       tags:
         - Notification (Experimental)
       parameters:
-        - $ref: "#/components/parameters/queryLimit"
-        - $ref: "#/components/parameters/queryOffset"
+        - $ref: "#/components/parameters/queryPage"
+        - $ref: "#/components/parameters/queryPageSize"
         - name: orderBy
           in: query
           required: false
@@ -1433,15 +1435,18 @@ paths:
               - createdAt
               - updatedAt
             default: id
+        - $ref: "#/components/parameters/order"
         - $ref: "#/components/parameters/queryIncludeDisabled"
+        - $ref: "#/components/parameters/includeDeleted"
         - $ref: "#/components/parameters/queryFilterFeature"
+        - $ref: "#/components/parameters/queryFilterChannel"
       responses:
         "200":
           description: List of notification rules.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NotificationRules"
+                $ref: "#/components/schemas/NotificationRulesResponse"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
@@ -1560,8 +1565,8 @@ paths:
       tags:
         - Notification (Experimental)
       parameters:
-        - $ref: "#/components/parameters/queryLimit"
-        - $ref: "#/components/parameters/queryOffset"
+        - $ref: "#/components/parameters/queryPage"
+        - $ref: "#/components/parameters/queryPageSize"
         - name: orderBy
           in: query
           required: false
@@ -1571,7 +1576,10 @@ paths:
             enum:
               - id
               - createdAt
-            default: id
+            default: createdAt
+        - $ref: "#/components/parameters/order"
+        - $ref: "#/components/parameters/queryFrom"
+        - $ref: "#/components/parameters/queryTo"
         - $ref: "#/components/parameters/queryFilterFeature"
         - $ref: "#/components/parameters/queryFilterSubject"
       responses:
@@ -1580,9 +1588,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/NotificationEvent"
+                $ref: "#/components/schemas/NotificationEventsResponse"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
@@ -2892,9 +2898,33 @@ components:
           WEBHOOK: "#/components/schemas/NotificationChannelWebhook"
 
     NotificationChannels:
+      description: List of channels.
       type: array
       items:
         $ref: "#/components/schemas/NotificationChannel"
+
+    NotificationChannelsResponse:
+      type: object
+      required:
+        - totalCount
+        - page
+        - pageSize
+        - items
+      properties:
+        totalCount:
+          type: integer
+          description: Total number of channels.
+          example: 500
+        page:
+          type: integer
+          description: Current page number.
+          example: 1
+        pageSize:
+          type: integer
+          description: Number of channels per page.
+          example: 100
+        items:
+          $ref: "#/components/schemas/NotificationChannels"
 
     NotificationChannelWebhookCreateRequest:
       allOf:
@@ -3001,6 +3031,11 @@ components:
       allOf:
         - $ref: "#/components/schemas/NotificationChannelMeta"
         - type: object
+          required:
+            - name
+            - createdAt
+            - updatedAt
+            - disabled
           properties:
             name:
               description: User friendly name of the channel.
@@ -3015,7 +3050,11 @@ components:
               description: Timestamp when the channel was modified.
               type: string
               format: date-time
-              readOnly: true
+              example: "2023-01-02T00:00:00Z"
+            deletedAt:
+              description: Timestamp when the channel was deleted.
+              type: string
+              format: date-time
               example: "2023-01-02T00:00:00Z"
             disabled:
               description: Whether the channel is disabled or not.
@@ -3040,9 +3079,33 @@ components:
           entitlements.balance.threshold: "#/components/schemas/NotificationRuleBalanceThreshold"
 
     NotificationRules:
+      description: List of rules.
       type: array
       items:
         $ref: "#/components/schemas/NotificationRule"
+
+    NotificationRulesResponse:
+      type: object
+      required:
+        - totalCount
+        - page
+        - pageSize
+        - items
+      properties:
+        totalCount:
+          type: integer
+          description: Total number of rules.
+          example: 500
+        page:
+          type: integer
+          description: Current page number.
+          example: 1
+        pageSize:
+          type: integer
+          description: Number of rules per page.
+          example: 100
+        items:
+          $ref: "#/components/schemas/NotificationRules"
 
     NotificationRuleBalanceThresholdCreateRequest:
       description: |
@@ -3178,6 +3241,12 @@ components:
         - $ref: "#/components/schemas/NotificationRuleMeta"
         - type: object
           description: Defines the common fields of a notification rule.
+          required:
+            - name
+            - channels
+            - createdAt
+            - updatedAt
+            - disabled
           properties:
             name:
               type: string
@@ -3198,6 +3267,11 @@ components:
               type: string
               format: date-time
               example: "2023-01-02T00:00:00Z"
+            deletedAt:
+              description: Timestamp when the channel was deleted.
+              type: string
+              format: date-time
+              example: "2023-01-02T00:00:00Z"
             disabled:
               description: Whether the rule is disabled or not.
               type: boolean
@@ -3214,7 +3288,7 @@ components:
       required:
         - id
         - createdAt
-        - ruleId
+        - rule
         - deliveryStatus
         - payload
       properties:
@@ -3228,7 +3302,7 @@ components:
           format: date-time
           example: "2023-01-01T00:00:00Z"
         rule:
-          $ref: "#/components/schemas/NotificationRuleMeta"
+          $ref: "#/components/schemas/NotificationRule"
         deliveryStatus:
           description: The delivery status of the notification event.
           type: array
@@ -3315,6 +3389,35 @@ components:
           type: string
           format: date-time
           example: "2023-01-01T00:00:00Z"
+
+    NotificationEvents:
+      description: List of notification events.
+      type: array
+      items:
+        $ref: "#/components/schemas/NotificationEvent"
+
+    NotificationEventsResponse:
+      type: object
+      required:
+        - totalCount
+        - page
+        - pageSize
+        - items
+      properties:
+        totalCount:
+          type: integer
+          description: Total number of rules.
+          example: 500
+        page:
+          type: integer
+          description: Current page number.
+          example: 1
+        pageSize:
+          type: integer
+          description: Number of rules per page.
+          example: 100
+        items:
+          $ref: "#/components/schemas/NotificationEvents"
 
   parameters:
     meterIdOrSlug:
@@ -3497,6 +3600,18 @@ components:
         Filtering by multiple entitlement types.
 
         Usage: `?entitlementType=metered&entitlementType=static`
+      in: query
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+    queryFilterChannel:
+      name: channel
+      description: |
+        Filtering by multiple notification channels.
+
+        Usage: `?channel=channel-1&channel=channel-2`
       in: query
       required: false
       schema:
