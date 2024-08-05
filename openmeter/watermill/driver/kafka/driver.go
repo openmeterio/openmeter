@@ -1,9 +1,9 @@
 package kafka
 
 import (
+	"github.com/ThreeDotsLabs/watermill-kafka/v3/pkg/kafka"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/cloudevents/sdk-go/v2/event"
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 
 	watermillkafka "github.com/openmeterio/openmeter/internal/watermill/driver/kafka"
 )
@@ -13,11 +13,11 @@ const (
 )
 
 type (
-	Publisher = watermillkafka.Publisher
+	PublisherOptions = watermillkafka.PublisherOptions
 )
 
-func NewPublisher(producer *kafka.Producer) *Publisher {
-	return watermillkafka.NewPublisher(producer)
+func NewPublisher(in PublisherOptions) (*kafka.Publisher, error) {
+	return watermillkafka.NewPublisher(in)
 }
 
 func AddPartitionKeyFromSubject(watermillIn *message.Message, cloudEvent event.Event) (*message.Message, error) {

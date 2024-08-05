@@ -16,6 +16,7 @@ import (
 	health "github.com/AppsFlyer/go-sundheit"
 	healthhttp "github.com/AppsFlyer/go-sundheit/http"
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -212,11 +213,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	eventPublisher, err := initEventPublisher(ctx, logger, conf, kafkaProducer)
+	eventPublishers, err := initEventPublisher(logger, conf, metricMeter)
 	if err != nil {
 		logger.Error("failed to initialize event publisher", "error", err)
 		os.Exit(1)
 	}
+
+	defer func() {
+		logger.Info("closing event publisher")
+		if err = eventPublishers.driver.Close(); err != nil {
+			logger.Error("failed to close event publisher", "error", err)
+		}
+	}()
 
 	// Initialize Kafka Ingest
 	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(
@@ -314,7 +322,7 @@ func main() {
 			StreamingConnector: streamingConnector,
 			MeterRepository:    meterRepository,
 			Logger:             logger,
-			Publisher:          eventPublisher.ForTopic(conf.Events.SystemEvents.Topic),
+			Publisher:          eventPublishers.eventPublisher.ForTopic(conf.Events.SystemEvents.Topic),
 		})
 	}
 
@@ -421,34 +429,54 @@ func main() {
 	}
 }
 
-func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Configuration, kafkaProducer *kafka.Producer) (publisher.Publisher, error) {
+type publishers struct {
+	eventPublisher publisher.Publisher
+	driver         message.Publisher
+}
+
+func initEventPublisher(logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter) (*publishers, error) {
 	if !conf.Events.Enabled {
-		return publisher.NewPublisher(publisher.PublisherOptions{
+		publisher, err := publisher.NewPublisher(publisher.PublisherOptions{
 			Publisher: &noop.Publisher{},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create event driver: %w", err)
+		}
+
+		return &publishers{
+			eventPublisher: publisher,
+			driver:         &noop.Publisher{},
+		}, nil
+	}
+
+	provisionTopics := []watermillkafka.AutoProvisionTopic{}
+	if conf.Events.SystemEvents.AutoProvision.Enabled {
+		provisionTopics = append(provisionTopics, watermillkafka.AutoProvisionTopic{
+			Topic:         conf.Events.SystemEvents.Topic,
+			NumPartitions: int32(conf.Events.SystemEvents.AutoProvision.Partitions),
 		})
 	}
 
-	eventDriver := watermillkafka.NewPublisher(kafkaProducer)
+	eventDriver, err := watermillkafka.NewPublisher(watermillkafka.PublisherOptions{
+		KafkaConfig:     conf.Ingest.Kafka.KafkaConfiguration,
+		ProvisionTopics: provisionTopics,
+		ClientID:        otelName,
+		Logger:          logger,
+		MetricMeter:     metricMeter,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create event driver: %w", err)
+	}
+
 	eventPublisher, err := publisher.NewPublisher(publisher.PublisherOptions{
 		Publisher: eventDriver,
 		Transform: watermillkafka.AddPartitionKeyFromSubject,
 	})
 
-	// Auto provision topics if needed
-	if conf.Events.SystemEvents.AutoProvision.Enabled {
-		adminClient, err := kafka.NewAdminClientFromProducer(kafkaProducer)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create Kafka admin client: %w", err)
-		}
-
-		defer adminClient.Close()
-
-		if err := pkgkafka.ProvisionTopic(ctx, adminClient, logger, conf.Events.SystemEvents.Topic, conf.Events.SystemEvents.AutoProvision.Partitions); err != nil {
-			return nil, fmt.Errorf("failed to auto provision topic: %w", err)
-		}
-	}
-
-	return eventPublisher, err
+	return &publishers{
+		eventPublisher: eventPublisher,
+		driver:         eventDriver,
+	}, err
 }
 
 func initKafkaProducer(ctx context.Context, config config.Configuration, logger *slog.Logger, metricMeter metric.Meter, group *run.Group) (*kafka.Producer, error) {

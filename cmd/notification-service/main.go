@@ -19,7 +19,6 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	wmkafka "github.com/ThreeDotsLabs/watermill-kafka/v3/pkg/kafka"
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-slog/otelslog"
@@ -37,7 +36,6 @@ import (
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/internal/event/publisher"
-	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/notification/consumer"
 	"github.com/openmeterio/openmeter/internal/registry"
@@ -48,8 +46,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
-	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
-	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -139,6 +135,7 @@ func main() {
 		}
 	}()
 	otel.SetMeterProvider(otelMeterProvider)
+
 	metricMeter := otelMeterProvider.Meter(otelName)
 
 	if conf.Telemetry.Metrics.Exporters.Prometheus.Enabled {
@@ -232,17 +229,18 @@ func main() {
 	}
 
 	// Create publisher
-	kafkaPublisher, err := initKafkaProducer(ctx, conf, logger, metricMeter, &group)
-	if err != nil {
-		logger.Error("failed to initialize Kafka producer", slog.String("error", err.Error()))
-		os.Exit(1)
-	}
-
-	publishers, err := initEventPublisher(ctx, logger, conf, kafkaPublisher)
+	publishers, err := initEventPublisher(logger, conf, metricMeter)
 	if err != nil {
 		logger.Error("failed to initialize event publisher", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
+
+	defer func() {
+		// We are using sync producer, so it is fine to close this as a last step
+		if err := publishers.watermillPublisher.Close(); err != nil {
+			logger.Error("failed to close kafka producer", slog.String("error", err.Error()))
+		}
+	}()
 
 	// Dependencies: entitlement
 	entitlementConnectors := registrybuilder.GetEntitlementRegistry(registry.EntitlementOptions{
@@ -356,24 +354,24 @@ type eventPublishers struct {
 	eventPublisher     publisher.Publisher
 }
 
-func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Configuration, kafkaProducer *kafka.Producer) (*eventPublishers, error) {
-	eventDriver := watermillkafka.NewPublisher(kafkaProducer)
-
+func initEventPublisher(logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter) (*eventPublishers, error) {
+	provisionTopics := []watermillkafka.AutoProvisionTopic{}
 	if conf.NotificationService.Consumer.DLQ.AutoProvision.Enabled {
-		adminClient, err := kafka.NewAdminClientFromProducer(kafkaProducer)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create Kafka admin client: %w", err)
-		}
+		provisionTopics = append(provisionTopics, watermillkafka.AutoProvisionTopic{
+			Topic:         conf.NotificationService.Consumer.DLQ.Topic,
+			NumPartitions: int32(conf.NotificationService.Consumer.DLQ.AutoProvision.Partitions),
+		})
+	}
 
-		defer adminClient.Close()
-
-		if err := pkgkafka.ProvisionTopic(ctx,
-			adminClient,
-			logger,
-			conf.NotificationService.Consumer.DLQ.Topic,
-			conf.NotificationService.Consumer.DLQ.AutoProvision.Partitions); err != nil {
-			return nil, fmt.Errorf("failed to auto provision topic: %w", err)
-		}
+	eventDriver, err := watermillkafka.NewPublisher(watermillkafka.PublisherOptions{
+		KafkaConfig:     conf.Ingest.Kafka.KafkaConfiguration,
+		ProvisionTopics: provisionTopics,
+		ClientID:        otelName,
+		Logger:          logger,
+		MetricMeter:     metricMeter,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create event driver: %w", err)
 	}
 
 	eventPublisher, err := publisher.NewPublisher(publisher.PublisherOptions{
@@ -389,30 +387,6 @@ func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Co
 		marshaler:          publisher.NewCloudEventMarshaler(watermillkafka.AddPartitionKeyFromSubject),
 		eventPublisher:     eventPublisher,
 	}, nil
-}
-
-func initKafkaProducer(ctx context.Context, config config.Configuration, logger *slog.Logger, metricMeter metric.Meter, group *run.Group) (*kafka.Producer, error) {
-	// Initialize Kafka Admin Client
-	kafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
-
-	// Initialize Kafka Producer
-	producer, err := kafka.NewProducer(&kafkaConfig)
-	if err != nil {
-		return nil, fmt.Errorf("init kafka ingest: %w", err)
-	}
-
-	// Initialize Kafka Client Statistics reporter
-	kafkaMetrics, err := kafkametrics.New(metricMeter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Kafka client metrics: %w", err)
-	}
-
-	group.Add(kafkaingest.KafkaProducerGroup(ctx, producer, logger, kafkaMetrics))
-
-	go pkgkafka.ConsumeLogChannel(producer, logger.WithGroup("kafka").WithGroup("producer"))
-
-	slog.Debug("connected to Kafka")
-	return producer, nil
 }
 
 type pgClients struct {
