@@ -230,7 +230,7 @@ func main() {
 	}
 
 	// Create publisher
-	publishers, err := initEventPublisher(logger, conf, metricMeter)
+	publishers, err := initEventPublisher(ctx, logger, conf, metricMeter)
 	if err != nil {
 		logger.Error("failed to initialize event publisher", slog.String("error", err.Error()))
 		os.Exit(1)
@@ -359,7 +359,7 @@ type eventPublishers struct {
 	eventPublisher     publisher.Publisher
 }
 
-func initEventPublisher(logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter) (*eventPublishers, error) {
+func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter) (*eventPublishers, error) {
 	provisionTopics := []watermillkafka.AutoProvisionTopic{}
 	if conf.BalanceWorker.DLQ.AutoProvision.Enabled {
 		provisionTopics = append(provisionTopics, watermillkafka.AutoProvisionTopic{
@@ -368,12 +368,13 @@ func initEventPublisher(logger *slog.Logger, conf config.Configuration, metricMe
 		})
 	}
 
-	eventDriver, err := watermillkafka.NewPublisher(watermillkafka.PublisherOptions{
+	eventDriver, err := watermillkafka.NewPublisher(ctx, watermillkafka.PublisherOptions{
 		KafkaConfig:     conf.Ingest.Kafka.KafkaConfiguration,
 		ProvisionTopics: provisionTopics,
 		ClientID:        otelName,
 		Logger:          logger,
 		MetricMeter:     metricMeter,
+		DebugLogging:    conf.Telemetry.Log.Level == slog.LevelDebug,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create event driver: %w", err)

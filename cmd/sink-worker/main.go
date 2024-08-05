@@ -161,7 +161,7 @@ func main() {
 	var group run.Group
 
 	// initialize system event producer
-	ingestEventFlushHandler, err := initIngestEventPublisher(logger, conf, metricMeter)
+	ingestEventFlushHandler, err := initIngestEventPublisher(ctx, logger, conf, metricMeter)
 	if err != nil {
 		logger.Error("failed to initialize event publisher", "error", err)
 		os.Exit(1)
@@ -220,15 +220,16 @@ func main() {
 	}
 }
 
-func initIngestEventPublisher(logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter) (flushhandler.FlushEventHandler, error) {
+func initIngestEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter) (flushhandler.FlushEventHandler, error) {
 	if !conf.Events.Enabled {
 		return nil, nil
 	}
 
-	eventDriver, err := watermillkafka.NewPublisher(watermillkafka.PublisherOptions{
-		KafkaConfig: conf.Ingest.Kafka.KafkaConfiguration,
-		ClientID:    otelName,
-		Logger:      logger,
+	eventDriver, err := watermillkafka.NewPublisher(ctx, watermillkafka.PublisherOptions{
+		KafkaConfig:  conf.Ingest.Kafka.KafkaConfiguration,
+		ClientID:     otelName,
+		Logger:       logger,
+		DebugLogging: conf.Telemetry.Log.Level == slog.LevelDebug,
 
 		ProvisionTopics: []watermillkafka.AutoProvisionTopic{
 			{

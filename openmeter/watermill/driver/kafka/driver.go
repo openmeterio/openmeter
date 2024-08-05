@@ -1,6 +1,8 @@
 package kafka
 
 import (
+	"context"
+
 	"github.com/ThreeDotsLabs/watermill-kafka/v3/pkg/kafka"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/cloudevents/sdk-go/v2/event"
@@ -17,8 +19,8 @@ type (
 	AutoProvisionTopic = watermillkafka.AutoProvisionTopic
 )
 
-func NewPublisher(in PublisherOptions) (*kafka.Publisher, error) {
-	return watermillkafka.NewPublisher(in)
+func NewPublisher(ctx context.Context, in PublisherOptions) (*kafka.Publisher, error) {
+	return watermillkafka.NewPublisher(ctx, in)
 }
 
 func AddPartitionKeyFromSubject(watermillIn *message.Message, cloudEvent event.Event) (*message.Message, error) {

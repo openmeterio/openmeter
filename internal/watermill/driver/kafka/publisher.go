@@ -1,6 +1,7 @@
 package kafka
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -26,6 +27,7 @@ type PublisherOptions struct {
 	Logger          *slog.Logger
 	MetricMeter     otelmetric.Meter
 	MeterPrefix     string
+	DebugLogging    bool
 }
 
 func (o *PublisherOptions) Validate() error {
@@ -47,7 +49,7 @@ func (o *PublisherOptions) Validate() error {
 	return nil
 }
 
-func NewPublisher(in PublisherOptions) (*kafka.Publisher, error) {
+func NewPublisher(ctx context.Context, in PublisherOptions) (*kafka.Publisher, error) {
 	if err := in.Validate(); err != nil {
 		return nil, err
 	}
@@ -66,18 +68,38 @@ func NewPublisher(in PublisherOptions) (*kafka.Publisher, error) {
 	wmConfig.OverwriteSaramaConfig.Metadata.RefreshFrequency = in.KafkaConfig.TopicMetadataRefreshInterval.Duration()
 	wmConfig.OverwriteSaramaConfig.ClientID = "openmeter/balance-worker"
 
-	switch in.KafkaConfig.SecurityProtocol {
-	case "SASL_SSL":
-		wmConfig.OverwriteSaramaConfig.Net.SASL.Enable = true
-		wmConfig.OverwriteSaramaConfig.Net.SASL.User = in.KafkaConfig.SaslUsername
-		wmConfig.OverwriteSaramaConfig.Net.SASL.Password = in.KafkaConfig.SaslPassword
-		wmConfig.OverwriteSaramaConfig.Net.SASL.Mechanism = sarama.SASLMechanism(in.KafkaConfig.SecurityProtocol)
-		wmConfig.OverwriteSaramaConfig.Net.TLS.Enable = true
-		wmConfig.OverwriteSaramaConfig.Net.TLS.Config = &tls.Config{}
-	default:
+	// These are globals, so we cannot append the publisher/subscriber name to them
+	sarama.Logger = &SaramaLoggerAdaptor{
+		loggerFunc: in.Logger.Info,
 	}
 
-	// Producer specific settings
+	if in.DebugLogging {
+		sarama.DebugLogger = &SaramaLoggerAdaptor{
+			loggerFunc: in.Logger.Debug,
+		}
+	}
+
+	if in.KafkaConfig.SecurityProtocol == "SASL_SSL" {
+		wmConfig.OverwriteSaramaConfig.Net.SASL.Enable = true
+		wmConfig.OverwriteSaramaConfig.Net.SASL.Handshake = true
+
+		wmConfig.OverwriteSaramaConfig.Net.TLS.Enable = true
+		wmConfig.OverwriteSaramaConfig.Net.TLS.Config = &tls.Config{
+			ClientAuth:         tls.NoClientCert,
+			InsecureSkipVerify: true,
+		}
+
+		switch in.KafkaConfig.SaslMechanisms {
+		case "PLAIN":
+			wmConfig.OverwriteSaramaConfig.Net.SASL.User = in.KafkaConfig.SaslUsername
+			wmConfig.OverwriteSaramaConfig.Net.SASL.Password = in.KafkaConfig.SaslPassword
+			wmConfig.OverwriteSaramaConfig.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+		default:
+			return nil, fmt.Errorf("unsupported SASL mechanism: %s", in.KafkaConfig.SaslMechanisms)
+		}
+	}
+
+	wmConfig.OverwriteSaramaConfig.Producer.Retry.Max = 10
 	wmConfig.OverwriteSaramaConfig.Producer.Return.Successes = true
 
 	meterRegistry, err := metrics.NewRegistry(metrics.NewRegistryOptions{
@@ -95,7 +117,7 @@ func NewPublisher(in PublisherOptions) (*kafka.Publisher, error) {
 		return nil, err
 	}
 
-	if err := provisionTopics(in.KafkaConfig.Broker, wmConfig.OverwriteSaramaConfig, in.ProvisionTopics); err != nil {
+	if err := provisionTopics(ctx, in.Logger, in.KafkaConfig.CreateKafkaConfig(), in.ProvisionTopics); err != nil {
 		return nil, err
 	}
 
