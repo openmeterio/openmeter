@@ -47,7 +47,7 @@ func (o *PublisherOptions) Validate() error {
 	return nil
 }
 
-func NewPublisherFromOMConfig(in PublisherOptions) (*kafka.Publisher, error) {
+func NewPublisher(in PublisherOptions) (*kafka.Publisher, error) {
 	if err := in.Validate(); err != nil {
 		return nil, err
 	}
@@ -55,11 +55,6 @@ func NewPublisherFromOMConfig(in PublisherOptions) (*kafka.Publisher, error) {
 	if in.MeterPrefix == "" {
 		in.MeterPrefix = defaultMeterPrefix
 	}
-
-	// TODO: we need to have a proper metric bridge between the sarama metrics based on https://github.com/rcrowley/go-metrics
-	// and OTEL. I haven't found any libraries, so we might want to have a package in our org for that.
-
-	// This means that we, right now have 0 metrics for the sarama lib.
 
 	wmConfig := kafka.PublisherConfig{
 		Brokers:               []string{in.KafkaConfig.Broker},

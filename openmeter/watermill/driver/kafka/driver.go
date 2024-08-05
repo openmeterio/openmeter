@@ -16,8 +16,8 @@ type (
 	PublisherOptions = watermillkafka.PublisherOptions
 )
 
-func NewPublisherFromOMConfig(in PublisherOptions) (*kafka.Publisher, error) {
-	return watermillkafka.NewPublisherFromOMConfig(in)
+func NewPublisher(in PublisherOptions) (*kafka.Publisher, error) {
+	return watermillkafka.NewPublisher(in)
 }
 
 func AddPartitionKeyFromSubject(watermillIn *message.Message, cloudEvent event.Event) (*message.Message, error) {

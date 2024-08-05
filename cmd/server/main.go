@@ -457,7 +457,7 @@ func initEventPublisher(logger *slog.Logger, conf config.Configuration, metricMe
 		})
 	}
 
-	eventDriver, err := watermillkafka.NewPublisherFromOMConfig(watermillkafka.PublisherOptions{
+	eventDriver, err := watermillkafka.NewPublisher(watermillkafka.PublisherOptions{
 		KafkaConfig:     conf.Ingest.Kafka.KafkaConfiguration,
 		ProvisionTopics: provisionTopics,
 		ClientID:        otelName,
