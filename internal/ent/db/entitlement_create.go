@@ -384,7 +384,7 @@ func (ec *EntitlementCreate) check() error {
 			return &ValidationError{Name: "usage_period_interval", err: fmt.Errorf(`db: validator failed for field "Entitlement.usage_period_interval": %w`, err)}
 		}
 	}
-	if _, ok := ec.mutation.FeatureID(); !ok {
+	if len(ec.mutation.FeatureIDs()) == 0 {
 		return &ValidationError{Name: "feature", err: errors.New(`db: missing required edge "Entitlement.feature"`)}
 	}
 	return nil

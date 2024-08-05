@@ -129,7 +129,7 @@ func (gu *GrantUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (gu *GrantUpdate) check() error {
-	if _, ok := gu.mutation.EntitlementID(); gu.mutation.EntitlementCleared() && !ok {
+	if gu.mutation.EntitlementCleared() && len(gu.mutation.EntitlementIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "Grant.entitlement"`)
 	}
 	return nil
@@ -308,7 +308,7 @@ func (guo *GrantUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (guo *GrantUpdateOne) check() error {
-	if _, ok := guo.mutation.EntitlementID(); guo.mutation.EntitlementCleared() && !ok {
+	if guo.mutation.EntitlementCleared() && len(guo.mutation.EntitlementIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "Grant.entitlement"`)
 	}
 	return nil

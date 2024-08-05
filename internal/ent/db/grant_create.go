@@ -301,7 +301,7 @@ func (gc *GrantCreate) check() error {
 			return &ValidationError{Name: "recurrence_period", err: fmt.Errorf(`db: validator failed for field "Grant.recurrence_period": %w`, err)}
 		}
 	}
-	if _, ok := gc.mutation.EntitlementID(); !ok {
+	if len(gc.mutation.EntitlementIDs()) == 0 {
 		return &ValidationError{Name: "entitlement", err: errors.New(`db: missing required edge "Grant.entitlement"`)}
 	}
 	return nil

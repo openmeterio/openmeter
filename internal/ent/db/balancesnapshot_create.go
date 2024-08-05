@@ -189,7 +189,7 @@ func (bsc *BalanceSnapshotCreate) check() error {
 	if _, ok := bsc.mutation.At(); !ok {
 		return &ValidationError{Name: "at", err: errors.New(`db: missing required field "BalanceSnapshot.at"`)}
 	}
-	if _, ok := bsc.mutation.EntitlementID(); !ok {
+	if len(bsc.mutation.EntitlementIDs()) == 0 {
 		return &ValidationError{Name: "entitlement", err: errors.New(`db: missing required edge "BalanceSnapshot.entitlement"`)}
 	}
 	return nil

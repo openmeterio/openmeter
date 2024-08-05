@@ -97,7 +97,7 @@ func (uru *UsageResetUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (uru *UsageResetUpdate) check() error {
-	if _, ok := uru.mutation.EntitlementID(); uru.mutation.EntitlementCleared() && !ok {
+	if uru.mutation.EntitlementCleared() && len(uru.mutation.EntitlementIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "UsageReset.entitlement"`)
 	}
 	return nil
@@ -226,7 +226,7 @@ func (uruo *UsageResetUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (uruo *UsageResetUpdateOne) check() error {
-	if _, ok := uruo.mutation.EntitlementID(); uruo.mutation.EntitlementCleared() && !ok {
+	if uruo.mutation.EntitlementCleared() && len(uruo.mutation.EntitlementIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "UsageReset.entitlement"`)
 	}
 	return nil
