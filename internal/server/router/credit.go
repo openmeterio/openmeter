@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/openmeterio/openmeter/api"
-	"github.com/openmeterio/openmeter/internal/credit/httpdriver"
+	creditdriver "github.com/openmeterio/openmeter/internal/credit/driver"
 )
 
 // List grants
@@ -14,7 +14,7 @@ func (a *Router) ListGrants(w http.ResponseWriter, r *http.Request, params api.L
 		unimplemented.ListGrants(w, r, params)
 		return
 	}
-	a.creditHandler.ListGrants().With(httpdriver.ListGrantsHandlerParams{
+	a.creditHandler.ListGrants().With(creditdriver.ListGrantsHandlerParams{
 		Params: params,
 	}).ServeHTTP(w, r)
 }
@@ -26,7 +26,7 @@ func (a *Router) VoidGrant(w http.ResponseWriter, r *http.Request, grantId api.G
 		unimplemented.VoidGrant(w, r, grantId)
 		return
 	}
-	a.creditHandler.VoidGrant().With(httpdriver.VoidGrantHandlerParams{
+	a.creditHandler.VoidGrant().With(creditdriver.VoidGrantHandlerParams{
 		ID: grantId,
 	}).ServeHTTP(w, r)
 }

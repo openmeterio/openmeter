@@ -12,17 +12,18 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/credit"
-	credit_httpdriver "github.com/openmeterio/openmeter/internal/credit/httpdriver"
+	creditdriver "github.com/openmeterio/openmeter/internal/credit/driver"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/debug"
 	debug_httpdriver "github.com/openmeterio/openmeter/internal/debug/httpdriver"
 	"github.com/openmeterio/openmeter/internal/entitlement"
-	entitlement_httpdriver "github.com/openmeterio/openmeter/internal/entitlement/httpdriver"
+	entitlementdriver "github.com/openmeterio/openmeter/internal/entitlement/driver"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
-	productcatalog_httpdriver "github.com/openmeterio/openmeter/internal/productcatalog/httpdriver"
+	productcatalog_httpdriver "github.com/openmeterio/openmeter/internal/productcatalog/driver"
 	"github.com/openmeterio/openmeter/internal/server/authenticator"
 	"github.com/openmeterio/openmeter/internal/streaming"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
@@ -62,6 +63,7 @@ type Config struct {
 	EntitlementConnector        entitlement.Connector
 	EntitlementBalanceConnector meteredentitlement.Connector
 	GrantConnector              credit.GrantConnector
+	GrantRepo                   grant.Repo
 
 	// FIXME: implement generic module management, loading, etc...
 	EntitlementsEnabled bool
@@ -119,10 +121,10 @@ type Router struct {
 	config Config
 
 	featureHandler            productcatalog_httpdriver.FeatureHandler
-	creditHandler             credit_httpdriver.GrantHandler
+	creditHandler             creditdriver.GrantHandler
 	debugHandler              debug_httpdriver.DebugHandler
-	entitlementHandler        entitlement_httpdriver.EntitlementHandler
-	meteredEntitlementHandler entitlement_httpdriver.MeteredEntitlementHandler
+	entitlementHandler        entitlementdriver.EntitlementHandler
+	meteredEntitlementHandler entitlementdriver.MeteredEntitlementHandler
 }
 
 // Make sure we conform to ServerInterface
@@ -152,22 +154,23 @@ func NewRouter(config Config) (*Router, error) {
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
 
-		router.entitlementHandler = entitlement_httpdriver.NewEntitlementHandler(
+		router.entitlementHandler = entitlementdriver.NewEntitlementHandler(
 			config.EntitlementConnector,
 			staticNamespaceDecoder,
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
 
-		router.meteredEntitlementHandler = entitlement_httpdriver.NewMeteredEntitlementHandler(
+		router.meteredEntitlementHandler = entitlementdriver.NewMeteredEntitlementHandler(
 			config.EntitlementConnector,
 			config.EntitlementBalanceConnector,
 			staticNamespaceDecoder,
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
 
-		router.creditHandler = credit_httpdriver.NewGrantHandler(
+		router.creditHandler = creditdriver.NewGrantHandler(
 			staticNamespaceDecoder,
 			config.GrantConnector,
+			config.GrantRepo,
 			httptransport.WithErrorHandler(config.ErrorHandler),
 		)
 	}

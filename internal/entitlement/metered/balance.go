@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit/engine"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
@@ -47,13 +49,13 @@ type BalanceHistoryParams struct {
 }
 
 func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error) {
-	nsOwner := credit.NamespacedGrantOwner{
+	nsOwner := grant.NamespacedOwner{
 		Namespace: entitlementID.Namespace,
-		ID:        credit.GrantOwner(entitlementID.ID),
+		ID:        grant.Owner(entitlementID.ID),
 	}
 	res, err := e.balanceConnector.GetBalanceOfOwner(ctx, nsOwner, at)
 	if err != nil {
-		if _, ok := err.(*credit.OwnerNotFoundError); ok {
+		if _, ok := err.(*grant.OwnerNotFoundError); ok {
 			return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
 		}
 		return nil, err
@@ -99,22 +101,22 @@ func (e *connector) GetEntitlementBalance(ctx context.Context, entitlementID mod
 	}, nil
 }
 
-func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, credit.GrantBurnDownHistory, error) {
+func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, engine.GrantBurnDownHistory, error) {
 	// TODO: we should guard against abuse, getting history is expensive
 
 	// validate that we're working with a metered entitlement
 	entRepoEntity, err := e.entitlementRepo.GetEntitlement(ctx, entitlementID)
 	if err != nil {
-		return nil, credit.GrantBurnDownHistory{}, err
+		return nil, engine.GrantBurnDownHistory{}, err
 	}
 
 	if entRepoEntity == nil {
-		return nil, credit.GrantBurnDownHistory{}, &entitlement.NotFoundError{EntitlementID: entitlementID}
+		return nil, engine.GrantBurnDownHistory{}, &entitlement.NotFoundError{EntitlementID: entitlementID}
 	}
 
 	ent, err := ParseFromGenericEntitlement(entRepoEntity)
 	if err != nil {
-		return nil, credit.GrantBurnDownHistory{}, err
+		return nil, engine.GrantBurnDownHistory{}, err
 	}
 
 	if params.From == nil {
@@ -127,17 +129,17 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 
 	// query period cannot be before start of measuring usage
 	if params.From.Before(ent.MeasureUsageFrom) {
-		return nil, credit.GrantBurnDownHistory{}, &models.GenericUserError{Message: fmt.Sprintf("from cannot be before %s", ent.MeasureUsageFrom.UTC().Format(time.RFC3339))}
+		return nil, engine.GrantBurnDownHistory{}, &models.GenericUserError{Message: fmt.Sprintf("from cannot be before %s", ent.MeasureUsageFrom.UTC().Format(time.RFC3339))}
 	}
 
-	owner := credit.NamespacedGrantOwner{
+	owner := grant.NamespacedOwner{
 		Namespace: entitlementID.Namespace,
-		ID:        credit.GrantOwner(entitlementID.ID),
+		ID:        grant.Owner(entitlementID.ID),
 	}
 
 	ownerMeter, err := e.ownerConnector.GetMeter(ctx, owner)
 	if err != nil {
-		return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("failed to get owner query params: %w", err)
+		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to get owner query params: %w", err)
 	}
 
 	// 1. we get the burndown history
@@ -146,7 +148,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		To:   params.To.Truncate(ownerMeter.WindowSize.Duration()),
 	})
 	if err != nil {
-		return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("failed to get balance history: %w", err)
+		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to get balance history: %w", err)
 	}
 
 	// 2. and we get the windowed usage data
@@ -159,7 +161,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 
 	meterRows, err := e.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.MeterSlug, meterQuery)
 	if err != nil {
-		return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("failed to query meter: %w", err)
+		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to query meter: %w", err)
 	}
 
 	// If we get 0 rows that means the windowsize is larger than the queried period.
@@ -171,7 +173,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 		nonWindowedParams.WindowTimeZone = nil
 		meterRows, err = e.streamingConnector.QueryMeter(ctx, owner.Namespace, ownerMeter.MeterSlug, &nonWindowedParams)
 		if err != nil {
-			return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("failed to query meter: %w", err)
+			return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("failed to query meter: %w", err)
 		}
 	}
 
@@ -181,7 +183,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 	segments := burndownHistory.Segments()
 
 	if len(segments) == 0 {
-		return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("returned history is empty")
+		return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("returned history is empty")
 	}
 
 	timestampedBalances := make([]struct {
@@ -215,7 +217,7 @@ func (e *connector) GetEntitlementBalanceHistory(ctx context.Context, entitlemen
 			return tsb.timestamp.Before(row.WindowStart) || tsb.timestamp.Equal(row.WindowStart)
 		}, true)
 		if !ok {
-			return nil, credit.GrantBurnDownHistory{}, fmt.Errorf("no balance found for time %s", row.WindowStart.Format(time.RFC3339))
+			return nil, engine.GrantBurnDownHistory{}, fmt.Errorf("no balance found for time %s", row.WindowStart.Format(time.RFC3339))
 		}
 
 		window := EntitlementBalanceHistoryWindow{

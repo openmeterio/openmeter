@@ -7,7 +7,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
-	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
@@ -35,7 +35,7 @@ func (Grant) Fields() []ent.Field {
 		}),
 		field.Uint8("priority").Default(0).Immutable(),
 		field.Time("effective_at").Immutable(),
-		field.JSON("expiration", credit.ExpirationPeriod{}).Immutable().SchemaType(map[string]string{
+		field.JSON("expiration", grant.ExpirationPeriod{}).Immutable().SchemaType(map[string]string{
 			dialect.Postgres: "jsonb",
 		}),
 		field.Time("expires_at").Immutable(),

@@ -1,12 +1,14 @@
 package credit
 
-import "github.com/openmeterio/openmeter/internal/credit"
+import (
+	"github.com/openmeterio/openmeter/internal/credit/grant"
+)
 
 const (
-	EventSubsystem = credit.EventSubsystem
+	EventSubsystem = grant.EventSubsystem
 )
 
 type (
-	GrantCreatedEvent = credit.GrantCreatedEvent
-	GrantVoidedEvent  = credit.GrantVoidedEvent
+	GrantCreatedEvent = grant.CreatedEvent
+	GrantVoidedEvent  = grant.VoidedEvent
 )

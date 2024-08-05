@@ -15,7 +15,8 @@ import (
 	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/ent/db/feature"
-	"github.com/openmeterio/openmeter/internal/ent/db/grant"
+
+	dbgrant "github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db/usagereset"
 )
 
@@ -80,7 +81,7 @@ func checkColumn(table, column string) error {
 			balancesnapshot.Table: balancesnapshot.ValidColumn,
 			entitlement.Table:     entitlement.ValidColumn,
 			feature.Table:         feature.ValidColumn,
-			grant.Table:           grant.ValidColumn,
+			dbgrant.Table:         dbgrant.ValidColumn,
 			usagereset.Table:      usagereset.ValidColumn,
 		})
 	})

@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit/engine"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/internal/streaming"
@@ -25,7 +27,7 @@ type Connector interface {
 	entitlement.SubTypeConnector
 
 	GetEntitlementBalance(ctx context.Context, entitlementID models.NamespacedID, at time.Time) (*EntitlementBalance, error)
-	GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, credit.GrantBurnDownHistory, error)
+	GetEntitlementBalanceHistory(ctx context.Context, entitlementID models.NamespacedID, params BalanceHistoryParams) ([]EntitlementBalanceHistoryWindow, engine.GrantBurnDownHistory, error)
 	ResetEntitlementUsage(ctx context.Context, entitlementID models.NamespacedID, params ResetEntitlementUsageParams) (balanceAfterReset *EntitlementBalance, err error)
 
 	ResetEntitlementsWithExpiredUsagePeriod(ctx context.Context, namespace string, highwatermark time.Time) ([]models.NamespacedID, error)
@@ -54,9 +56,10 @@ func (m *MeteredEntitlementValue) HasAccess() bool {
 
 type connector struct {
 	streamingConnector streaming.Connector
-	ownerConnector     credit.OwnerConnector
+	ownerConnector     grant.OwnerConnector
 	balanceConnector   credit.BalanceConnector
 	grantConnector     credit.GrantConnector
+	grantRepo          grant.Repo
 	entitlementRepo    entitlement.EntitlementRepo
 
 	granularity time.Duration
@@ -65,9 +68,10 @@ type connector struct {
 
 func NewMeteredEntitlementConnector(
 	streamingConnector streaming.Connector,
-	ownerConnector credit.OwnerConnector,
+	ownerConnector grant.OwnerConnector,
 	balanceConnector credit.BalanceConnector,
 	grantConnector credit.GrantConnector,
+	grantRepo grant.Repo,
 	entitlementRepo entitlement.EntitlementRepo,
 	publisher publisher.TopicPublisher,
 ) Connector {
@@ -76,6 +80,7 @@ func NewMeteredEntitlementConnector(
 		ownerConnector:     ownerConnector,
 		balanceConnector:   balanceConnector,
 		grantConnector:     grantConnector,
+		grantRepo:          grantRepo,
 		entitlementRepo:    entitlementRepo,
 
 		// FIXME: This should be configurable
@@ -186,16 +191,16 @@ func (c *connector) AfterCreate(ctx context.Context, end *entitlement.Entitlemen
 
 		effectiveAt := metered.CurrentUsagePeriod.From
 		amountToIssue := metered.IssueAfterReset.Amount
-		_, err := c.grantConnector.CreateGrant(ctx, credit.NamespacedGrantOwner{
+		_, err := c.grantConnector.CreateGrant(ctx, grant.NamespacedOwner{
 			Namespace: metered.Namespace,
-			ID:        credit.GrantOwner(metered.ID),
+			ID:        grant.Owner(metered.ID),
 		}, credit.CreateGrantInput{
 			Amount:      amountToIssue,
 			Priority:    defaultx.WithDefault(metered.IssueAfterReset.Priority, DefaultIssueAfterResetPriority),
 			EffectiveAt: effectiveAt,
-			Expiration: credit.ExpirationPeriod{
+			Expiration: grant.ExpirationPeriod{
 				Count:    100, // This is a bit of an issue... It would make sense for recurring tags to not have an expiration
-				Duration: credit.ExpirationPeriodDurationYear,
+				Duration: grant.ExpirationPeriodDurationYear,
 			},
 			// These two in conjunction make the grant always have `amountToIssue` balance after a reset
 			ResetMaxRollover: amountToIssue,

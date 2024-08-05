@@ -18,6 +18,7 @@ type Entitlement struct {
 	EntitlementOwner   credit.OwnerConnector
 	CreditBalance      credit.BalanceConnector
 	Grant              credit.GrantConnector
+	GrantRepo          credit.GrantRepo
 	MeteredEntitlement meteredentitlement.Connector
 	Entitlement        entitlement.EntitlementConnector
 	EntitlementRepo    entitlement.EntitlementRepo

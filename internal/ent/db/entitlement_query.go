@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/ent/db/feature"
-	"github.com/openmeterio/openmeter/internal/ent/db/grant"
+	dbgrant "github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 	"github.com/openmeterio/openmeter/internal/ent/db/usagereset"
 )
@@ -104,7 +104,7 @@ func (eq *EntitlementQuery) QueryGrant() *GrantQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(entitlement.Table, entitlement.FieldID, selector),
-			sqlgraph.To(grant.Table, grant.FieldID),
+			sqlgraph.To(dbgrant.Table, dbgrant.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, entitlement.GrantTable, entitlement.GrantColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
@@ -580,7 +580,7 @@ func (eq *EntitlementQuery) loadGrant(ctx context.Context, query *GrantQuery, no
 		}
 	}
 	if len(query.ctx.Fields) > 0 {
-		query.ctx.AppendFieldOnce(grant.FieldOwnerID)
+		query.ctx.AppendFieldOnce(dbgrant.FieldOwnerID)
 	}
 	query.Where(predicate.Grant(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(entitlement.GrantColumn), fks...))

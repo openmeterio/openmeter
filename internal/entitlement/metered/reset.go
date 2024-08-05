@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	eventmodels "github.com/openmeterio/openmeter/internal/event/models"
 	"github.com/openmeterio/openmeter/internal/event/spec"
@@ -18,9 +19,9 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 	return entutils.StartAndRunTx(ctx, e.entitlementRepo, func(ctx context.Context, tx *entutils.TxDriver) (*EntitlementBalance, error) {
 		txCtx := entutils.NewTxContext(ctx, tx)
 
-		owner := credit.NamespacedGrantOwner{
+		owner := grant.NamespacedOwner{
 			Namespace: entitlementID.Namespace,
-			ID:        credit.GrantOwner(entitlementID.ID),
+			ID:        grant.Owner(entitlementID.ID),
 		}
 
 		ent, err := e.entitlementRepo.WithTx(txCtx, tx).GetEntitlement(txCtx, entitlementID)
@@ -38,7 +39,7 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 			RetainAnchor: params.RetainAnchor,
 		})
 		if err != nil {
-			if _, ok := err.(*credit.OwnerNotFoundError); ok {
+			if _, ok := err.(*grant.OwnerNotFoundError); ok {
 				return nil, &entitlement.NotFoundError{EntitlementID: entitlementID}
 			}
 			return nil, err

@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
-	"github.com/openmeterio/openmeter/internal/ent/db/grant"
+	dbgrant "github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 )
 
@@ -21,7 +21,7 @@ import (
 type GrantQuery struct {
 	config
 	ctx             *QueryContext
-	order           []grant.OrderOption
+	order           []dbgrant.OrderOption
 	inters          []Interceptor
 	predicates      []predicate.Grant
 	withEntitlement *EntitlementQuery
@@ -57,7 +57,7 @@ func (gq *GrantQuery) Unique(unique bool) *GrantQuery {
 }
 
 // Order specifies how the records should be ordered.
-func (gq *GrantQuery) Order(o ...grant.OrderOption) *GrantQuery {
+func (gq *GrantQuery) Order(o ...dbgrant.OrderOption) *GrantQuery {
 	gq.order = append(gq.order, o...)
 	return gq
 }
@@ -74,9 +74,9 @@ func (gq *GrantQuery) QueryEntitlement() *EntitlementQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(grant.Table, grant.FieldID, selector),
+			sqlgraph.From(dbgrant.Table, dbgrant.FieldID, selector),
 			sqlgraph.To(entitlement.Table, entitlement.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, grant.EntitlementTable, grant.EntitlementColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, dbgrant.EntitlementTable, dbgrant.EntitlementColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(gq.driver.Dialect(), step)
 		return fromU, nil
@@ -92,7 +92,7 @@ func (gq *GrantQuery) First(ctx context.Context) (*Grant, error) {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{grant.Label}
+		return nil, &NotFoundError{dbgrant.Label}
 	}
 	return nodes[0], nil
 }
@@ -114,7 +114,7 @@ func (gq *GrantQuery) FirstID(ctx context.Context) (id string, err error) {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{grant.Label}
+		err = &NotFoundError{dbgrant.Label}
 		return
 	}
 	return ids[0], nil
@@ -141,9 +141,9 @@ func (gq *GrantQuery) Only(ctx context.Context) (*Grant, error) {
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{grant.Label}
+		return nil, &NotFoundError{dbgrant.Label}
 	default:
-		return nil, &NotSingularError{grant.Label}
+		return nil, &NotSingularError{dbgrant.Label}
 	}
 }
 
@@ -168,9 +168,9 @@ func (gq *GrantQuery) OnlyID(ctx context.Context) (id string, err error) {
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{grant.Label}
+		err = &NotFoundError{dbgrant.Label}
 	default:
-		err = &NotSingularError{grant.Label}
+		err = &NotSingularError{dbgrant.Label}
 	}
 	return
 }
@@ -209,7 +209,7 @@ func (gq *GrantQuery) IDs(ctx context.Context) (ids []string, err error) {
 		gq.Unique(true)
 	}
 	ctx = setContextOp(ctx, gq.ctx, ent.OpQueryIDs)
-	if err = gq.Select(grant.FieldID).Scan(ctx, &ids); err != nil {
+	if err = gq.Select(dbgrant.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
@@ -273,7 +273,7 @@ func (gq *GrantQuery) Clone() *GrantQuery {
 	return &GrantQuery{
 		config:          gq.config,
 		ctx:             gq.ctx.Clone(),
-		order:           append([]grant.OrderOption{}, gq.order...),
+		order:           append([]dbgrant.OrderOption{}, gq.order...),
 		inters:          append([]Interceptor{}, gq.inters...),
 		predicates:      append([]predicate.Grant{}, gq.predicates...),
 		withEntitlement: gq.withEntitlement.Clone(),
@@ -305,14 +305,14 @@ func (gq *GrantQuery) WithEntitlement(opts ...func(*EntitlementQuery)) *GrantQue
 //	}
 //
 //	client.Grant.Query().
-//		GroupBy(grant.FieldNamespace).
+//		GroupBy(dbgrant.FieldNamespace).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
 func (gq *GrantQuery) GroupBy(field string, fields ...string) *GrantGroupBy {
 	gq.ctx.Fields = append([]string{field}, fields...)
 	grbuild := &GrantGroupBy{build: gq}
 	grbuild.flds = &gq.ctx.Fields
-	grbuild.label = grant.Label
+	grbuild.label = dbgrant.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -327,12 +327,12 @@ func (gq *GrantQuery) GroupBy(field string, fields ...string) *GrantGroupBy {
 //	}
 //
 //	client.Grant.Query().
-//		Select(grant.FieldNamespace).
+//		Select(dbgrant.FieldNamespace).
 //		Scan(ctx, &v)
 func (gq *GrantQuery) Select(fields ...string) *GrantSelect {
 	gq.ctx.Fields = append(gq.ctx.Fields, fields...)
 	sbuild := &GrantSelect{GrantQuery: gq}
-	sbuild.label = grant.Label
+	sbuild.label = dbgrant.Label
 	sbuild.flds, sbuild.scan = &gq.ctx.Fields, sbuild.Scan
 	return sbuild
 }
@@ -354,7 +354,7 @@ func (gq *GrantQuery) prepareQuery(ctx context.Context) error {
 		}
 	}
 	for _, f := range gq.ctx.Fields {
-		if !grant.ValidColumn(f) {
+		if !dbgrant.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("db: invalid field %q for query", f)}
 		}
 	}
@@ -449,7 +449,7 @@ func (gq *GrantQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (gq *GrantQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(grant.Table, grant.Columns, sqlgraph.NewFieldSpec(grant.FieldID, field.TypeString))
+	_spec := sqlgraph.NewQuerySpec(dbgrant.Table, dbgrant.Columns, sqlgraph.NewFieldSpec(dbgrant.FieldID, field.TypeString))
 	_spec.From = gq.sql
 	if unique := gq.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -458,14 +458,14 @@ func (gq *GrantQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := gq.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, grant.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, dbgrant.FieldID)
 		for i := range fields {
-			if fields[i] != grant.FieldID {
+			if fields[i] != dbgrant.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
 		if gq.withEntitlement != nil {
-			_spec.Node.AddColumnOnce(grant.FieldOwnerID)
+			_spec.Node.AddColumnOnce(dbgrant.FieldOwnerID)
 		}
 	}
 	if ps := gq.predicates; len(ps) > 0 {
@@ -493,10 +493,10 @@ func (gq *GrantQuery) querySpec() *sqlgraph.QuerySpec {
 
 func (gq *GrantQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(gq.driver.Dialect())
-	t1 := builder.Table(grant.Table)
+	t1 := builder.Table(dbgrant.Table)
 	columns := gq.ctx.Fields
 	if len(columns) == 0 {
-		columns = grant.Columns
+		columns = dbgrant.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if gq.sql != nil {

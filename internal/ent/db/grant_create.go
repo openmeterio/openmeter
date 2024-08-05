@@ -12,9 +12,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
-	"github.com/openmeterio/openmeter/internal/ent/db/grant"
+	dbgrant "github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
@@ -113,8 +113,8 @@ func (gc *GrantCreate) SetEffectiveAt(t time.Time) *GrantCreate {
 }
 
 // SetExpiration sets the "expiration" field.
-func (gc *GrantCreate) SetExpiration(cp credit.ExpirationPeriod) *GrantCreate {
-	gc.mutation.SetExpiration(cp)
+func (gc *GrantCreate) SetExpiration(gp grant.ExpirationPeriod) *GrantCreate {
+	gc.mutation.SetExpiration(gp)
 	return gc
 }
 
@@ -239,19 +239,19 @@ func (gc *GrantCreate) ExecX(ctx context.Context) {
 // defaults sets the default values of the builder before save.
 func (gc *GrantCreate) defaults() {
 	if _, ok := gc.mutation.CreatedAt(); !ok {
-		v := grant.DefaultCreatedAt()
+		v := dbgrant.DefaultCreatedAt()
 		gc.mutation.SetCreatedAt(v)
 	}
 	if _, ok := gc.mutation.UpdatedAt(); !ok {
-		v := grant.DefaultUpdatedAt()
+		v := dbgrant.DefaultUpdatedAt()
 		gc.mutation.SetUpdatedAt(v)
 	}
 	if _, ok := gc.mutation.Priority(); !ok {
-		v := grant.DefaultPriority
+		v := dbgrant.DefaultPriority
 		gc.mutation.SetPriority(v)
 	}
 	if _, ok := gc.mutation.ID(); !ok {
-		v := grant.DefaultID()
+		v := dbgrant.DefaultID()
 		gc.mutation.SetID(v)
 	}
 }
@@ -262,7 +262,7 @@ func (gc *GrantCreate) check() error {
 		return &ValidationError{Name: "namespace", err: errors.New(`db: missing required field "Grant.namespace"`)}
 	}
 	if v, ok := gc.mutation.Namespace(); ok {
-		if err := grant.NamespaceValidator(v); err != nil {
+		if err := dbgrant.NamespaceValidator(v); err != nil {
 			return &ValidationError{Name: "namespace", err: fmt.Errorf(`db: validator failed for field "Grant.namespace": %w`, err)}
 		}
 	}
@@ -297,7 +297,7 @@ func (gc *GrantCreate) check() error {
 		return &ValidationError{Name: "reset_min_rollover", err: errors.New(`db: missing required field "Grant.reset_min_rollover"`)}
 	}
 	if v, ok := gc.mutation.RecurrencePeriod(); ok {
-		if err := grant.RecurrencePeriodValidator(v); err != nil {
+		if err := dbgrant.RecurrencePeriodValidator(v); err != nil {
 			return &ValidationError{Name: "recurrence_period", err: fmt.Errorf(`db: validator failed for field "Grant.recurrence_period": %w`, err)}
 		}
 	}
@@ -333,7 +333,7 @@ func (gc *GrantCreate) sqlSave(ctx context.Context) (*Grant, error) {
 func (gc *GrantCreate) createSpec() (*Grant, *sqlgraph.CreateSpec) {
 	var (
 		_node = &Grant{config: gc.config}
-		_spec = sqlgraph.NewCreateSpec(grant.Table, sqlgraph.NewFieldSpec(grant.FieldID, field.TypeString))
+		_spec = sqlgraph.NewCreateSpec(dbgrant.Table, sqlgraph.NewFieldSpec(dbgrant.FieldID, field.TypeString))
 	)
 	_spec.OnConflict = gc.conflict
 	if id, ok := gc.mutation.ID(); ok {
@@ -341,71 +341,71 @@ func (gc *GrantCreate) createSpec() (*Grant, *sqlgraph.CreateSpec) {
 		_spec.ID.Value = id
 	}
 	if value, ok := gc.mutation.Namespace(); ok {
-		_spec.SetField(grant.FieldNamespace, field.TypeString, value)
+		_spec.SetField(dbgrant.FieldNamespace, field.TypeString, value)
 		_node.Namespace = value
 	}
 	if value, ok := gc.mutation.Metadata(); ok {
-		_spec.SetField(grant.FieldMetadata, field.TypeJSON, value)
+		_spec.SetField(dbgrant.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
 	}
 	if value, ok := gc.mutation.CreatedAt(); ok {
-		_spec.SetField(grant.FieldCreatedAt, field.TypeTime, value)
+		_spec.SetField(dbgrant.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
 	}
 	if value, ok := gc.mutation.UpdatedAt(); ok {
-		_spec.SetField(grant.FieldUpdatedAt, field.TypeTime, value)
+		_spec.SetField(dbgrant.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
 	if value, ok := gc.mutation.DeletedAt(); ok {
-		_spec.SetField(grant.FieldDeletedAt, field.TypeTime, value)
+		_spec.SetField(dbgrant.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
 	}
 	if value, ok := gc.mutation.Amount(); ok {
-		_spec.SetField(grant.FieldAmount, field.TypeFloat64, value)
+		_spec.SetField(dbgrant.FieldAmount, field.TypeFloat64, value)
 		_node.Amount = value
 	}
 	if value, ok := gc.mutation.Priority(); ok {
-		_spec.SetField(grant.FieldPriority, field.TypeUint8, value)
+		_spec.SetField(dbgrant.FieldPriority, field.TypeUint8, value)
 		_node.Priority = value
 	}
 	if value, ok := gc.mutation.EffectiveAt(); ok {
-		_spec.SetField(grant.FieldEffectiveAt, field.TypeTime, value)
+		_spec.SetField(dbgrant.FieldEffectiveAt, field.TypeTime, value)
 		_node.EffectiveAt = value
 	}
 	if value, ok := gc.mutation.Expiration(); ok {
-		_spec.SetField(grant.FieldExpiration, field.TypeJSON, value)
+		_spec.SetField(dbgrant.FieldExpiration, field.TypeJSON, value)
 		_node.Expiration = value
 	}
 	if value, ok := gc.mutation.ExpiresAt(); ok {
-		_spec.SetField(grant.FieldExpiresAt, field.TypeTime, value)
+		_spec.SetField(dbgrant.FieldExpiresAt, field.TypeTime, value)
 		_node.ExpiresAt = value
 	}
 	if value, ok := gc.mutation.VoidedAt(); ok {
-		_spec.SetField(grant.FieldVoidedAt, field.TypeTime, value)
+		_spec.SetField(dbgrant.FieldVoidedAt, field.TypeTime, value)
 		_node.VoidedAt = &value
 	}
 	if value, ok := gc.mutation.ResetMaxRollover(); ok {
-		_spec.SetField(grant.FieldResetMaxRollover, field.TypeFloat64, value)
+		_spec.SetField(dbgrant.FieldResetMaxRollover, field.TypeFloat64, value)
 		_node.ResetMaxRollover = value
 	}
 	if value, ok := gc.mutation.ResetMinRollover(); ok {
-		_spec.SetField(grant.FieldResetMinRollover, field.TypeFloat64, value)
+		_spec.SetField(dbgrant.FieldResetMinRollover, field.TypeFloat64, value)
 		_node.ResetMinRollover = value
 	}
 	if value, ok := gc.mutation.RecurrencePeriod(); ok {
-		_spec.SetField(grant.FieldRecurrencePeriod, field.TypeEnum, value)
+		_spec.SetField(dbgrant.FieldRecurrencePeriod, field.TypeEnum, value)
 		_node.RecurrencePeriod = &value
 	}
 	if value, ok := gc.mutation.RecurrenceAnchor(); ok {
-		_spec.SetField(grant.FieldRecurrenceAnchor, field.TypeTime, value)
+		_spec.SetField(dbgrant.FieldRecurrenceAnchor, field.TypeTime, value)
 		_node.RecurrenceAnchor = &value
 	}
 	if nodes := gc.mutation.EntitlementIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
 			Inverse: true,
-			Table:   grant.EntitlementTable,
-			Columns: []string{grant.EntitlementColumn},
+			Table:   dbgrant.EntitlementTable,
+			Columns: []string{dbgrant.EntitlementColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(entitlement.FieldID, field.TypeString),
@@ -471,67 +471,67 @@ type (
 
 // SetMetadata sets the "metadata" field.
 func (u *GrantUpsert) SetMetadata(v map[string]string) *GrantUpsert {
-	u.Set(grant.FieldMetadata, v)
+	u.Set(dbgrant.FieldMetadata, v)
 	return u
 }
 
 // UpdateMetadata sets the "metadata" field to the value that was provided on create.
 func (u *GrantUpsert) UpdateMetadata() *GrantUpsert {
-	u.SetExcluded(grant.FieldMetadata)
+	u.SetExcluded(dbgrant.FieldMetadata)
 	return u
 }
 
 // ClearMetadata clears the value of the "metadata" field.
 func (u *GrantUpsert) ClearMetadata() *GrantUpsert {
-	u.SetNull(grant.FieldMetadata)
+	u.SetNull(dbgrant.FieldMetadata)
 	return u
 }
 
 // SetUpdatedAt sets the "updated_at" field.
 func (u *GrantUpsert) SetUpdatedAt(v time.Time) *GrantUpsert {
-	u.Set(grant.FieldUpdatedAt, v)
+	u.Set(dbgrant.FieldUpdatedAt, v)
 	return u
 }
 
 // UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
 func (u *GrantUpsert) UpdateUpdatedAt() *GrantUpsert {
-	u.SetExcluded(grant.FieldUpdatedAt)
+	u.SetExcluded(dbgrant.FieldUpdatedAt)
 	return u
 }
 
 // SetDeletedAt sets the "deleted_at" field.
 func (u *GrantUpsert) SetDeletedAt(v time.Time) *GrantUpsert {
-	u.Set(grant.FieldDeletedAt, v)
+	u.Set(dbgrant.FieldDeletedAt, v)
 	return u
 }
 
 // UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
 func (u *GrantUpsert) UpdateDeletedAt() *GrantUpsert {
-	u.SetExcluded(grant.FieldDeletedAt)
+	u.SetExcluded(dbgrant.FieldDeletedAt)
 	return u
 }
 
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (u *GrantUpsert) ClearDeletedAt() *GrantUpsert {
-	u.SetNull(grant.FieldDeletedAt)
+	u.SetNull(dbgrant.FieldDeletedAt)
 	return u
 }
 
 // SetVoidedAt sets the "voided_at" field.
 func (u *GrantUpsert) SetVoidedAt(v time.Time) *GrantUpsert {
-	u.Set(grant.FieldVoidedAt, v)
+	u.Set(dbgrant.FieldVoidedAt, v)
 	return u
 }
 
 // UpdateVoidedAt sets the "voided_at" field to the value that was provided on create.
 func (u *GrantUpsert) UpdateVoidedAt() *GrantUpsert {
-	u.SetExcluded(grant.FieldVoidedAt)
+	u.SetExcluded(dbgrant.FieldVoidedAt)
 	return u
 }
 
 // ClearVoidedAt clears the value of the "voided_at" field.
 func (u *GrantUpsert) ClearVoidedAt() *GrantUpsert {
-	u.SetNull(grant.FieldVoidedAt)
+	u.SetNull(dbgrant.FieldVoidedAt)
 	return u
 }
 
@@ -542,7 +542,7 @@ func (u *GrantUpsert) ClearVoidedAt() *GrantUpsert {
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
 //			sql.ResolveWith(func(u *sql.UpdateSet) {
-//				u.SetIgnore(grant.FieldID)
+//				u.SetIgnore(dbgrant.FieldID)
 //			}),
 //		).
 //		Exec(ctx)
@@ -550,43 +550,43 @@ func (u *GrantUpsertOne) UpdateNewValues() *GrantUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		if _, exists := u.create.mutation.ID(); exists {
-			s.SetIgnore(grant.FieldID)
+			s.SetIgnore(dbgrant.FieldID)
 		}
 		if _, exists := u.create.mutation.Namespace(); exists {
-			s.SetIgnore(grant.FieldNamespace)
+			s.SetIgnore(dbgrant.FieldNamespace)
 		}
 		if _, exists := u.create.mutation.CreatedAt(); exists {
-			s.SetIgnore(grant.FieldCreatedAt)
+			s.SetIgnore(dbgrant.FieldCreatedAt)
 		}
 		if _, exists := u.create.mutation.OwnerID(); exists {
-			s.SetIgnore(grant.FieldOwnerID)
+			s.SetIgnore(dbgrant.FieldOwnerID)
 		}
 		if _, exists := u.create.mutation.Amount(); exists {
-			s.SetIgnore(grant.FieldAmount)
+			s.SetIgnore(dbgrant.FieldAmount)
 		}
 		if _, exists := u.create.mutation.Priority(); exists {
-			s.SetIgnore(grant.FieldPriority)
+			s.SetIgnore(dbgrant.FieldPriority)
 		}
 		if _, exists := u.create.mutation.EffectiveAt(); exists {
-			s.SetIgnore(grant.FieldEffectiveAt)
+			s.SetIgnore(dbgrant.FieldEffectiveAt)
 		}
 		if _, exists := u.create.mutation.Expiration(); exists {
-			s.SetIgnore(grant.FieldExpiration)
+			s.SetIgnore(dbgrant.FieldExpiration)
 		}
 		if _, exists := u.create.mutation.ExpiresAt(); exists {
-			s.SetIgnore(grant.FieldExpiresAt)
+			s.SetIgnore(dbgrant.FieldExpiresAt)
 		}
 		if _, exists := u.create.mutation.ResetMaxRollover(); exists {
-			s.SetIgnore(grant.FieldResetMaxRollover)
+			s.SetIgnore(dbgrant.FieldResetMaxRollover)
 		}
 		if _, exists := u.create.mutation.ResetMinRollover(); exists {
-			s.SetIgnore(grant.FieldResetMinRollover)
+			s.SetIgnore(dbgrant.FieldResetMinRollover)
 		}
 		if _, exists := u.create.mutation.RecurrencePeriod(); exists {
-			s.SetIgnore(grant.FieldRecurrencePeriod)
+			s.SetIgnore(dbgrant.FieldRecurrencePeriod)
 		}
 		if _, exists := u.create.mutation.RecurrenceAnchor(); exists {
-			s.SetIgnore(grant.FieldRecurrenceAnchor)
+			s.SetIgnore(dbgrant.FieldRecurrenceAnchor)
 		}
 	}))
 	return u
@@ -868,7 +868,7 @@ type GrantUpsertBulk struct {
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
 //			sql.ResolveWith(func(u *sql.UpdateSet) {
-//				u.SetIgnore(grant.FieldID)
+//				u.SetIgnore(dbgrant.FieldID)
 //			}),
 //		).
 //		Exec(ctx)
@@ -877,43 +877,43 @@ func (u *GrantUpsertBulk) UpdateNewValues() *GrantUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		for _, b := range u.create.builders {
 			if _, exists := b.mutation.ID(); exists {
-				s.SetIgnore(grant.FieldID)
+				s.SetIgnore(dbgrant.FieldID)
 			}
 			if _, exists := b.mutation.Namespace(); exists {
-				s.SetIgnore(grant.FieldNamespace)
+				s.SetIgnore(dbgrant.FieldNamespace)
 			}
 			if _, exists := b.mutation.CreatedAt(); exists {
-				s.SetIgnore(grant.FieldCreatedAt)
+				s.SetIgnore(dbgrant.FieldCreatedAt)
 			}
 			if _, exists := b.mutation.OwnerID(); exists {
-				s.SetIgnore(grant.FieldOwnerID)
+				s.SetIgnore(dbgrant.FieldOwnerID)
 			}
 			if _, exists := b.mutation.Amount(); exists {
-				s.SetIgnore(grant.FieldAmount)
+				s.SetIgnore(dbgrant.FieldAmount)
 			}
 			if _, exists := b.mutation.Priority(); exists {
-				s.SetIgnore(grant.FieldPriority)
+				s.SetIgnore(dbgrant.FieldPriority)
 			}
 			if _, exists := b.mutation.EffectiveAt(); exists {
-				s.SetIgnore(grant.FieldEffectiveAt)
+				s.SetIgnore(dbgrant.FieldEffectiveAt)
 			}
 			if _, exists := b.mutation.Expiration(); exists {
-				s.SetIgnore(grant.FieldExpiration)
+				s.SetIgnore(dbgrant.FieldExpiration)
 			}
 			if _, exists := b.mutation.ExpiresAt(); exists {
-				s.SetIgnore(grant.FieldExpiresAt)
+				s.SetIgnore(dbgrant.FieldExpiresAt)
 			}
 			if _, exists := b.mutation.ResetMaxRollover(); exists {
-				s.SetIgnore(grant.FieldResetMaxRollover)
+				s.SetIgnore(dbgrant.FieldResetMaxRollover)
 			}
 			if _, exists := b.mutation.ResetMinRollover(); exists {
-				s.SetIgnore(grant.FieldResetMinRollover)
+				s.SetIgnore(dbgrant.FieldResetMinRollover)
 			}
 			if _, exists := b.mutation.RecurrencePeriod(); exists {
-				s.SetIgnore(grant.FieldRecurrencePeriod)
+				s.SetIgnore(dbgrant.FieldRecurrencePeriod)
 			}
 			if _, exists := b.mutation.RecurrenceAnchor(); exists {
-				s.SetIgnore(grant.FieldRecurrenceAnchor)
+				s.SetIgnore(dbgrant.FieldRecurrenceAnchor)
 			}
 		}
 	}))

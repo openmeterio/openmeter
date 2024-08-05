@@ -35,8 +35,8 @@ import (
 
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/internal/ent/db"
+	entitlementpgadapter "github.com/openmeterio/openmeter/internal/entitlement/adapter"
 	"github.com/openmeterio/openmeter/internal/entitlement/balanceworker"
-	entitlementpgadapter "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter"
 	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/registry"

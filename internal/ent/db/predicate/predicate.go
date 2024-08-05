@@ -15,7 +15,7 @@ type Entitlement func(*sql.Selector)
 // Feature is the predicate function for feature builders.
 type Feature func(*sql.Selector)
 
-// Grant is the predicate function for grant builders.
+// Grant is the predicate function for dbgrant builders.
 type Grant func(*sql.Selector)
 
 // UsageReset is the predicate function for usagereset builders.

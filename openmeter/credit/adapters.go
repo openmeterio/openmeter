@@ -9,24 +9,22 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
-// TODO: adapters have to be exported here
-
-func NewBalanceConnector(
-	gc GrantRepo,
-	bsc BalanceSnapshotRepo,
-	oc OwnerConnector,
-	sc streaming.Connector,
-	log *slog.Logger,
-) BalanceConnector {
-	return credit.NewBalanceConnector(gc, bsc, oc, sc, log)
-}
-
-func NewGrantConnector(
-	oc OwnerConnector,
-	db GrantRepo,
-	bsdb BalanceSnapshotRepo,
+func NewCreditConnector(
+	grantRepo GrantRepo,
+	balanceSnapshotRepo BalanceSnapshotRepo,
+	ownerConnector OwnerConnector,
+	streamingConnector streaming.Connector,
+	logger *slog.Logger,
 	granularity time.Duration,
 	publisher publisher.TopicPublisher,
-) GrantConnector {
-	return credit.NewGrantConnector(oc, db, bsdb, granularity, publisher)
+) CreditConnector {
+	return credit.NewCreditConnector(
+		grantRepo,
+		balanceSnapshotRepo,
+		ownerConnector,
+		streamingConnector,
+		logger,
+		granularity,
+		publisher,
+	)
 }

@@ -10,9 +10,9 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
-	"github.com/openmeterio/openmeter/internal/ent/db/grant"
+	dbgrant "github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
@@ -40,7 +40,7 @@ type Grant struct {
 	// EffectiveAt holds the value of the "effective_at" field.
 	EffectiveAt time.Time `json:"effective_at,omitempty"`
 	// Expiration holds the value of the "expiration" field.
-	Expiration credit.ExpirationPeriod `json:"expiration,omitempty"`
+	Expiration grant.ExpirationPeriod `json:"expiration,omitempty"`
 	// ExpiresAt holds the value of the "expires_at" field.
 	ExpiresAt time.Time `json:"expires_at,omitempty"`
 	// VoidedAt holds the value of the "voided_at" field.
@@ -84,15 +84,15 @@ func (*Grant) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case grant.FieldMetadata, grant.FieldExpiration:
+		case dbgrant.FieldMetadata, dbgrant.FieldExpiration:
 			values[i] = new([]byte)
-		case grant.FieldAmount, grant.FieldResetMaxRollover, grant.FieldResetMinRollover:
+		case dbgrant.FieldAmount, dbgrant.FieldResetMaxRollover, dbgrant.FieldResetMinRollover:
 			values[i] = new(sql.NullFloat64)
-		case grant.FieldPriority:
+		case dbgrant.FieldPriority:
 			values[i] = new(sql.NullInt64)
-		case grant.FieldID, grant.FieldNamespace, grant.FieldOwnerID, grant.FieldRecurrencePeriod:
+		case dbgrant.FieldID, dbgrant.FieldNamespace, dbgrant.FieldOwnerID, dbgrant.FieldRecurrencePeriod:
 			values[i] = new(sql.NullString)
-		case grant.FieldCreatedAt, grant.FieldUpdatedAt, grant.FieldDeletedAt, grant.FieldEffectiveAt, grant.FieldExpiresAt, grant.FieldVoidedAt, grant.FieldRecurrenceAnchor:
+		case dbgrant.FieldCreatedAt, dbgrant.FieldUpdatedAt, dbgrant.FieldDeletedAt, dbgrant.FieldEffectiveAt, dbgrant.FieldExpiresAt, dbgrant.FieldVoidedAt, dbgrant.FieldRecurrenceAnchor:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -109,19 +109,19 @@ func (gr *Grant) assignValues(columns []string, values []any) error {
 	}
 	for i := range columns {
 		switch columns[i] {
-		case grant.FieldID:
+		case dbgrant.FieldID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				gr.ID = value.String
 			}
-		case grant.FieldNamespace:
+		case dbgrant.FieldNamespace:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field namespace", values[i])
 			} else if value.Valid {
 				gr.Namespace = value.String
 			}
-		case grant.FieldMetadata:
+		case dbgrant.FieldMetadata:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field metadata", values[i])
 			} else if value != nil && len(*value) > 0 {
@@ -129,50 +129,50 @@ func (gr *Grant) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
-		case grant.FieldCreatedAt:
+		case dbgrant.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				gr.CreatedAt = value.Time
 			}
-		case grant.FieldUpdatedAt:
+		case dbgrant.FieldUpdatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				gr.UpdatedAt = value.Time
 			}
-		case grant.FieldDeletedAt:
+		case dbgrant.FieldDeletedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
 			} else if value.Valid {
 				gr.DeletedAt = new(time.Time)
 				*gr.DeletedAt = value.Time
 			}
-		case grant.FieldOwnerID:
+		case dbgrant.FieldOwnerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field owner_id", values[i])
 			} else if value.Valid {
 				gr.OwnerID = value.String
 			}
-		case grant.FieldAmount:
+		case dbgrant.FieldAmount:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
 				return fmt.Errorf("unexpected type %T for field amount", values[i])
 			} else if value.Valid {
 				gr.Amount = value.Float64
 			}
-		case grant.FieldPriority:
+		case dbgrant.FieldPriority:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field priority", values[i])
 			} else if value.Valid {
 				gr.Priority = uint8(value.Int64)
 			}
-		case grant.FieldEffectiveAt:
+		case dbgrant.FieldEffectiveAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field effective_at", values[i])
 			} else if value.Valid {
 				gr.EffectiveAt = value.Time
 			}
-		case grant.FieldExpiration:
+		case dbgrant.FieldExpiration:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field expiration", values[i])
 			} else if value != nil && len(*value) > 0 {
@@ -180,39 +180,39 @@ func (gr *Grant) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field expiration: %w", err)
 				}
 			}
-		case grant.FieldExpiresAt:
+		case dbgrant.FieldExpiresAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field expires_at", values[i])
 			} else if value.Valid {
 				gr.ExpiresAt = value.Time
 			}
-		case grant.FieldVoidedAt:
+		case dbgrant.FieldVoidedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field voided_at", values[i])
 			} else if value.Valid {
 				gr.VoidedAt = new(time.Time)
 				*gr.VoidedAt = value.Time
 			}
-		case grant.FieldResetMaxRollover:
+		case dbgrant.FieldResetMaxRollover:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
 				return fmt.Errorf("unexpected type %T for field reset_max_rollover", values[i])
 			} else if value.Valid {
 				gr.ResetMaxRollover = value.Float64
 			}
-		case grant.FieldResetMinRollover:
+		case dbgrant.FieldResetMinRollover:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
 				return fmt.Errorf("unexpected type %T for field reset_min_rollover", values[i])
 			} else if value.Valid {
 				gr.ResetMinRollover = value.Float64
 			}
-		case grant.FieldRecurrencePeriod:
+		case dbgrant.FieldRecurrencePeriod:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field recurrence_period", values[i])
 			} else if value.Valid {
 				gr.RecurrencePeriod = new(recurrence.RecurrenceInterval)
 				*gr.RecurrencePeriod = recurrence.RecurrenceInterval(value.String)
 			}
-		case grant.FieldRecurrenceAnchor:
+		case dbgrant.FieldRecurrenceAnchor:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field recurrence_anchor", values[i])
 			} else if value.Valid {

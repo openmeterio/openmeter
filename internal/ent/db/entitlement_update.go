@@ -14,7 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
-	"github.com/openmeterio/openmeter/internal/ent/db/grant"
+	dbgrant "github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 	"github.com/openmeterio/openmeter/internal/ent/db/usagereset"
 )
@@ -429,7 +429,7 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{entitlement.GrantColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(grant.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(dbgrant.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -442,7 +442,7 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{entitlement.GrantColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(grant.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(dbgrant.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -458,7 +458,7 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{entitlement.GrantColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(grant.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(dbgrant.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -958,7 +958,7 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 			Columns: []string{entitlement.GrantColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(grant.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(dbgrant.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -971,7 +971,7 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 			Columns: []string{entitlement.GrantColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(grant.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(dbgrant.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -987,7 +987,7 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 			Columns: []string{entitlement.GrantColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(grant.FieldID, field.TypeString),
+				IDSpec: sqlgraph.NewFieldSpec(dbgrant.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

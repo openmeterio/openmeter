@@ -7,17 +7,19 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
-	grantrepo "github.com/openmeterio/openmeter/internal/credit/postgresadapter"
+	grantrepo "github.com/openmeterio/openmeter/internal/credit/adapter"
+	"github.com/openmeterio/openmeter/internal/credit/balance"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/internal/entitlement"
+	entitlementrepo "github.com/openmeterio/openmeter/internal/entitlement/adapter"
 	booleanentitlement "github.com/openmeterio/openmeter/internal/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
-	entitlementrepo "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter"
 	staticentitlement "github.com/openmeterio/openmeter/internal/entitlement/static"
 	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
-	productcatalogrepo "github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter"
+	productcatalogrepo "github.com/openmeterio/openmeter/internal/productcatalog/adapter"
 	streamingtestutils "github.com/openmeterio/openmeter/internal/streaming/testutils"
 	"github.com/openmeterio/openmeter/internal/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -26,8 +28,8 @@ import (
 type Dependencies struct {
 	DBClient *db.Client
 
-	GrantRepo           credit.GrantRepo
-	BalanceSnapshotRepo credit.BalanceSnapshotRepo
+	GrantRepo           grant.Repo
+	BalanceSnapshotRepo balance.SnapshotRepo
 	GrantConnector      credit.GrantConnector
 
 	EntitlementRepo entitlement.EntitlementRepo
@@ -95,18 +97,12 @@ func setupDependencies(t *testing.T) Dependencies {
 		log,
 	)
 
-	balance := credit.NewBalanceConnector(
+	creditConnector := credit.NewCreditConnector(
 		grantRepo,
 		balanceSnapshotRepo,
 		owner,
 		streaming,
 		log,
-	)
-
-	grant := credit.NewGrantConnector(
-		owner,
-		grantRepo,
-		balanceSnapshotRepo,
 		time.Minute,
 		publisher.NewMockTopicPublisher(t),
 	)
@@ -114,8 +110,9 @@ func setupDependencies(t *testing.T) Dependencies {
 	meteredEntitlementConnector := meteredentitlement.NewMeteredEntitlementConnector(
 		streaming,
 		owner,
-		balance,
-		grant,
+		creditConnector,
+		creditConnector,
+		grantRepo,
 		entitlementRepo,
 		publisher.NewMockTopicPublisher(t),
 	)
@@ -137,7 +134,7 @@ func setupDependencies(t *testing.T) Dependencies {
 		DBClient: dbClient,
 
 		GrantRepo:      grantRepo,
-		GrantConnector: grant,
+		GrantConnector: creditConnector,
 
 		EntitlementRepo: entitlementRepo,
 

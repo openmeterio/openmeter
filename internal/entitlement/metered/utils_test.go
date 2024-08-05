@@ -9,14 +9,16 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openmeterio/openmeter/internal/credit"
-	credit_postgres_adapter "github.com/openmeterio/openmeter/internal/credit/postgresadapter"
+	credit_postgres_adapter "github.com/openmeterio/openmeter/internal/credit/adapter"
+	"github.com/openmeterio/openmeter/internal/credit/balance"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/internal/entitlement"
+	entitlement_postgresadapter "github.com/openmeterio/openmeter/internal/entitlement/adapter"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
-	entitlement_postgresadapter "github.com/openmeterio/openmeter/internal/entitlement/postgresadapter"
 	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
-	productcatalog_postgresadapter "github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter"
+	productcatalog_postgresadapter "github.com/openmeterio/openmeter/internal/productcatalog/adapter"
 	streaming_testutils "github.com/openmeterio/openmeter/internal/streaming/testutils"
 	"github.com/openmeterio/openmeter/internal/testutils"
 	"github.com/openmeterio/openmeter/openmeter/meter"
@@ -28,8 +30,8 @@ type dependencies struct {
 	featureRepo         productcatalog.FeatureRepo
 	entitlementRepo     entitlement.EntitlementRepo
 	usageResetRepo      meteredentitlement.UsageResetRepo
-	grantRepo           credit.GrantRepo
-	balanceSnapshotRepo credit.BalanceSnapshotRepo
+	grantRepo           grant.Repo
+	balanceSnapshotRepo balance.SnapshotRepo
 	balanceConnector    credit.BalanceConnector
 	streamingConnector  *streaming_testutils.MockStreamingConnector
 }
@@ -82,18 +84,12 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 		testLogger,
 	)
 
-	balanceConnector := credit.NewBalanceConnector(
+	creditConnector := credit.NewCreditConnector(
 		grantRepo,
 		balanceSnapshotRepo,
 		owner,
 		streamingConnector,
 		testLogger,
-	)
-
-	grant := credit.NewGrantConnector(
-		owner,
-		grantRepo,
-		balanceSnapshotRepo,
 		time.Minute,
 		publisher.NewMockTopicPublisher(t),
 	)
@@ -101,8 +97,9 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	connector := meteredentitlement.NewMeteredEntitlementConnector(
 		streamingConnector,
 		owner,
-		balanceConnector,
-		grant,
+		creditConnector,
+		creditConnector,
+		grantRepo,
 		entitlementRepo,
 		publisher.NewMockTopicPublisher(t),
 	)
@@ -114,7 +111,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 		usageResetRepo,
 		grantRepo,
 		balanceSnapshotRepo,
-		balanceConnector,
+		creditConnector,
 		streamingConnector,
 	}
 }

@@ -2,34 +2,37 @@ package credit
 
 import (
 	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit/balance"
+	"github.com/openmeterio/openmeter/internal/credit/engine"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 )
 
 type (
+	CreditConnector                         = credit.CreditConnector
 	BalanceConnector                        = credit.BalanceConnector
 	BalanceHistoryParams                    = credit.BalanceHistoryParams
-	BalanceSnapshotRepo                     = credit.BalanceSnapshotRepo
+	BalanceSnapshotRepo                     = balance.SnapshotRepo
 	CreateGrantInput                        = credit.CreateGrantInput
-	DBCreateGrantInput                      = credit.GrantRepoCreateGrantInput
-	Engine                                  = credit.Engine
-	ExpirationPeriod                        = credit.ExpirationPeriod
-	ExpirationPeriodDuration                = credit.ExpirationPeriodDuration
-	Grant                                   = credit.Grant
-	GrantBalanceMap                         = credit.GrantBalanceMap
-	GrantBalanceNoSavedBalanceForOwnerError = credit.GrantBalanceNoSavedBalanceForOwnerError
-	GrantBalanceSnapshot                    = credit.GrantBalanceSnapshot
-	GrantBurnDownHistory                    = credit.GrantBurnDownHistory
-	GrantBurnDownHistorySegment             = credit.GrantBurnDownHistorySegment
+	DBCreateGrantInput                      = grant.RepoCreateInput
+	Engine                                  = engine.Engine
+	ExpirationPeriod                        = grant.ExpirationPeriod
+	ExpirationPeriodDuration                = grant.ExpirationPeriodDuration
+	Grant                                   = grant.Grant
+	GrantBalanceMap                         = balance.Map
+	GrantBalanceNoSavedBalanceForOwnerError = balance.NoSavedBalanceForOwnerError
+	GrantBalanceSnapshot                    = balance.Snapshot
+	GrantBurnDownHistory                    = engine.GrantBurnDownHistory
+	GrantBurnDownHistorySegment             = engine.GrantBurnDownHistorySegment
 	GrantConnector                          = credit.GrantConnector
-	GrantRepo                               = credit.GrantRepo
+	GrantRepo                               = grant.Repo
 	GrantNotFoundError                      = credit.GrantNotFoundError
-	GrantOrderBy                            = credit.GrantOrderBy
-	GrantOwner                              = credit.GrantOwner
-	GrantUsage                              = credit.GrantUsage
-	GrantUsageTerminationReason             = credit.GrantUsageTerminationReason
-	ListGrantsParams                        = credit.ListGrantsParams
-	NamespacedGrantOwner                    = credit.NamespacedGrantOwner
-	OwnerConnector                          = credit.OwnerConnector
-	Pagination                              = credit.Pagination
-	QueryUsageFn                            = credit.QueryUsageFn
-	SegmentTerminationReason                = credit.SegmentTerminationReason
+	GrantOrderBy                            = grant.OrderBy
+	GrantOwner                              = grant.Owner
+	GrantUsage                              = engine.GrantUsage
+	GrantUsageTerminationReason             = engine.GrantUsageTerminationReason
+	ListGrantsParams                        = grant.ListParams
+	NamespacedGrantOwner                    = grant.NamespacedOwner
+	OwnerConnector                          = grant.OwnerConnector
+	QueryUsageFn                            = engine.QueryUsageFn
+	SegmentTerminationReason                = engine.SegmentTerminationReason
 )

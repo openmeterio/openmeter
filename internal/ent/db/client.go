@@ -18,7 +18,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/internal/ent/db/feature"
-	"github.com/openmeterio/openmeter/internal/ent/db/grant"
+	dbgrant "github.com/openmeterio/openmeter/internal/ent/db/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db/usagereset"
 )
 
@@ -517,7 +517,7 @@ func (c *EntitlementClient) QueryGrant(e *Entitlement) *GrantQuery {
 		id := e.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(entitlement.Table, entitlement.FieldID, id),
-			sqlgraph.To(grant.Table, grant.FieldID),
+			sqlgraph.To(dbgrant.Table, dbgrant.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, entitlement.GrantTable, entitlement.GrantColumn),
 		)
 		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
@@ -743,13 +743,13 @@ func NewGrantClient(c config) *GrantClient {
 }
 
 // Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `grant.Hooks(f(g(h())))`.
+// A call to `Use(f, g, h)` equals to `dbgrant.Hooks(f(g(h())))`.
 func (c *GrantClient) Use(hooks ...Hook) {
 	c.hooks.Grant = append(c.hooks.Grant, hooks...)
 }
 
 // Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `grant.Intercept(f(g(h())))`.
+// A call to `Intercept(f, g, h)` equals to `dbgrant.Intercept(f(g(h())))`.
 func (c *GrantClient) Intercept(interceptors ...Interceptor) {
 	c.inters.Grant = append(c.inters.Grant, interceptors...)
 }
@@ -811,7 +811,7 @@ func (c *GrantClient) DeleteOne(gr *Grant) *GrantDeleteOne {
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
 func (c *GrantClient) DeleteOneID(id string) *GrantDeleteOne {
-	builder := c.Delete().Where(grant.ID(id))
+	builder := c.Delete().Where(dbgrant.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
 	return &GrantDeleteOne{builder}
@@ -828,7 +828,7 @@ func (c *GrantClient) Query() *GrantQuery {
 
 // Get returns a Grant entity by its id.
 func (c *GrantClient) Get(ctx context.Context, id string) (*Grant, error) {
-	return c.Query().Where(grant.ID(id)).Only(ctx)
+	return c.Query().Where(dbgrant.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
@@ -846,9 +846,9 @@ func (c *GrantClient) QueryEntitlement(gr *Grant) *EntitlementQuery {
 	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := gr.ID
 		step := sqlgraph.NewStep(
-			sqlgraph.From(grant.Table, grant.FieldID, id),
+			sqlgraph.From(dbgrant.Table, dbgrant.FieldID, id),
 			sqlgraph.To(entitlement.Table, entitlement.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, grant.EntitlementTable, grant.EntitlementColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, dbgrant.EntitlementTable, dbgrant.EntitlementColumn),
 		)
 		fromV = sqlgraph.Neighbors(gr.driver.Dialect(), step)
 		return fromV, nil

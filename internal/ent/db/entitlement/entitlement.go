@@ -71,7 +71,7 @@ const (
 	// GrantTable is the table that holds the grant relation/edge.
 	GrantTable = "grants"
 	// GrantInverseTable is the table name for the Grant entity.
-	// It exists in this package in order to avoid circular dependency with the "grant" package.
+	// It exists in this package in order to avoid circular dependency with the "dbgrant" package.
 	GrantInverseTable = "grants"
 	// GrantColumn is the table column denoting the grant relation/edge.
 	GrantColumn = "owner_id"

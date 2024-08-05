@@ -1,128 +1,183 @@
 package credit
 
 import (
-	"math"
+	"context"
+	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/internal/credit/grant"
+	eventmodels "github.com/openmeterio/openmeter/internal/event/models"
+	"github.com/openmeterio/openmeter/internal/event/spec"
+	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
-type (
-	GrantOwner           string
-	NamespacedGrantOwner struct {
-		Namespace string
-		ID        GrantOwner
-	}
-)
-
-// Casts the NamespacedGrantOwner to a NamespacedID. Owner might not be a valid ID.
-func (n NamespacedGrantOwner) NamespacedID() models.NamespacedID {
-	return models.NamespacedID{
-		Namespace: n.Namespace,
-		ID:        string(n.ID),
-	}
+type GrantConnector interface {
+	CreateGrant(ctx context.Context, owner grant.NamespacedOwner, grant CreateGrantInput) (*grant.Grant, error)
+	VoidGrant(ctx context.Context, grantID models.NamespacedID) error
 }
 
-// Grant is an immutable definition used to increase balance.
-type Grant struct {
-	models.ManagedModel
-	models.NamespacedModel
+var _ GrantConnector = &connector{}
 
-	// ID is the readonly identifies of a grant.
-	ID string `json:"id,omitempty"`
-
-	// Generic Owner reference
-	OwnerID GrantOwner `json:"owner"`
-
-	// Amount The amount to grant. Can be positive or negative number.
-	Amount float64 `json:"amount"`
-
-	// Priority is a positive decimal numbers. With lower numbers indicating higher importance;
-	// for example, a priority of 1 is more urgent than a priority of 2.
-	// When there are several credit grants available for a single invoice, the system selects the credit with the highest priority.
-	// In cases where credit grants share the same priority level, the grant closest to its expiration will be used first.
-	// In the case of two credits have identical priorities and expiration dates, the system will use the credit that was created first.
-	Priority uint8 `json:"priority"`
-
-	// EffectiveAt The effective date.
-	EffectiveAt time.Time `json:"effectiveAt"`
-
-	// Expiration The expiration configuration.
-	Expiration ExpirationPeriod `json:"expiration"`
-	// ExpiresAt contains the exact expiration date calculated from effectiveAt and Expiration for rendering.
-	// ExpiresAt is exclusive, meaning that the grant is no longer active after this time, but it is still active at the time.
-	ExpiresAt time.Time `json:"expiresAt"`
-
-	Metadata map[string]string `json:"metadata,omitempty"`
-
-	// For user initiated voiding of the grant.
-	VoidedAt *time.Time `json:"voidedAt,omitempty"`
-
-	// How much of the grant can be rolled over after a reset operation.
-	// Balance after a reset will be between ResetMinRollover and ResetMaxRollover.
-	ResetMaxRollover float64 `json:"resetMaxRollover"`
-
-	// How much balance the grant must have after a reset.
-	// Balance after a reset will be between ResetMinRollover and ResetMaxRollover.
-	ResetMinRollover float64 `json:"resetMinRollover"`
-
-	// Recurrence config for the grant. If nil the grant doesn't recur.
-	Recurrence *recurrence.Recurrence `json:"recurrence,omitempty"`
+type CreateGrantInput struct {
+	Amount           float64
+	Priority         uint8
+	EffectiveAt      time.Time
+	Expiration       grant.ExpirationPeriod
+	Metadata         map[string]string
+	ResetMaxRollover float64
+	ResetMinRollover float64
+	Recurrence       *recurrence.Recurrence
 }
 
-// Calculates expiration from effectiveAt and Expiration.
-func (g Grant) GetExpiration() time.Time {
-	return g.Expiration.GetExpiration(g.EffectiveAt)
-}
-
-func (g Grant) ActiveAt(t time.Time) bool {
-	if g.DeletedAt != nil {
-		if g.DeletedAt.Before(t) || g.DeletedAt.Equal(t) {
-			return false
+func (m *connector) CreateGrant(ctx context.Context, owner grant.NamespacedOwner, input CreateGrantInput) (*grant.Grant, error) {
+	doInTx := func(ctx context.Context, tx *entutils.TxDriver) (*grant.Grant, error) {
+		// All metering information is stored in windowSize chunks,
+		// so we cannot do accurate calculations unless we follow that same windowing.
+		meter, err := m.ownerConnector.GetMeter(ctx, owner)
+		if err != nil {
+			return nil, err
 		}
+		granularity := meter.WindowSize.Duration()
+		input.EffectiveAt = input.EffectiveAt.Truncate(granularity)
+		if input.Recurrence != nil {
+			input.Recurrence.Anchor = input.Recurrence.Anchor.Truncate(granularity)
+		}
+		periodStart, err := m.ownerConnector.GetUsagePeriodStartAt(ctx, owner, clock.Now())
+		if err != nil {
+			return nil, err
+		}
+
+		if input.EffectiveAt.Before(periodStart) {
+			return nil, &models.GenericUserError{Message: "grant effective date is before the current usage period"}
+		}
+
+		err = m.ownerConnector.LockOwnerForTx(ctx, tx, owner)
+		if err != nil {
+			return nil, err
+		}
+		g, err := m.grantRepo.WithTx(ctx, tx).CreateGrant(ctx, grant.RepoCreateInput{
+			OwnerID:          owner.ID,
+			Namespace:        owner.Namespace,
+			Amount:           input.Amount,
+			Priority:         input.Priority,
+			EffectiveAt:      input.EffectiveAt,
+			Expiration:       input.Expiration,
+			ExpiresAt:        input.Expiration.GetExpiration(input.EffectiveAt),
+			Metadata:         input.Metadata,
+			ResetMaxRollover: input.ResetMaxRollover,
+			ResetMinRollover: input.ResetMinRollover,
+			Recurrence:       input.Recurrence,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		// invalidate snapshots
+		err = m.balanceSnapshotRepo.WithTx(ctx, tx).InvalidateAfter(ctx, owner, g.EffectiveAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to invalidate snapshots after %s: %w", g.EffectiveAt, err)
+		}
+
+		// publish event
+		subjectKey, err := m.ownerConnector.GetOwnerSubjectKey(ctx, owner)
+		if err != nil {
+			return nil, err
+		}
+
+		event, err := spec.NewCloudEvent(
+			spec.EventSpec{
+				Source:  spec.ComposeResourcePath(owner.Namespace, spec.EntityEntitlement, string(owner.ID), spec.EntityGrant, g.ID),
+				Subject: spec.ComposeResourcePath(owner.Namespace, spec.EntitySubjectKey, subjectKey),
+			},
+			grant.CreatedEvent{
+				Grant:     *g,
+				Namespace: eventmodels.NamespaceID{ID: owner.Namespace},
+				Subject:   eventmodels.SubjectKeyAndID{Key: subjectKey},
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := m.publisher.Publish(event); err != nil {
+			return nil, err
+		}
+
+		return g, err
 	}
+
+	if ctxTx, err := entutils.GetTxDriver(ctx); err == nil {
+		// we're already in a tx
+		return doInTx(ctx, ctxTx)
+	} else {
+		return entutils.StartAndRunTx(ctx, m.grantRepo, doInTx)
+	}
+}
+
+func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) error {
+	// can we void grants that have been used?
+	g, err := m.grantRepo.GetGrant(ctx, grantID)
+	if err != nil {
+		return err
+	}
+
 	if g.VoidedAt != nil {
-		if g.VoidedAt.Before(t) || g.VoidedAt.Equal(t) {
-			return false
+		return &models.GenericUserError{Message: "grant already voided"}
+	}
+
+	owner := grant.NamespacedOwner{Namespace: grantID.Namespace, ID: g.OwnerID}
+
+	_, err = entutils.StartAndRunTx(ctx, m.grantRepo, func(ctx context.Context, tx *entutils.TxDriver) (*interface{}, error) {
+		err := m.ownerConnector.LockOwnerForTx(ctx, tx, owner)
+		if err != nil {
+			return nil, err
 		}
-	}
-	return (g.EffectiveAt.Before(t) || g.EffectiveAt.Equal(t)) && g.ExpiresAt.After(t)
+
+		now := clock.Now().Truncate(m.granularity)
+		err = m.grantRepo.WithTx(ctx, tx).VoidGrant(ctx, grantID, now)
+		if err != nil {
+			return nil, err
+		}
+
+		// invalidate snapshots
+		err = m.balanceSnapshotRepo.WithTx(ctx, tx).InvalidateAfter(ctx, owner, now)
+		if err != nil {
+			return nil, fmt.Errorf("failed to invalidate snapshots after %s: %w", g.EffectiveAt, err)
+		}
+
+		// publish an event
+		subjectKey, err := m.ownerConnector.GetOwnerSubjectKey(ctx, owner)
+		if err != nil {
+			return nil, err
+		}
+
+		event, err := spec.NewCloudEvent(
+			spec.EventSpec{
+				Source:  spec.ComposeResourcePath(grantID.Namespace, spec.EntityEntitlement, string(owner.ID), spec.EntityGrant, grantID.ID),
+				Subject: spec.ComposeResourcePath(grantID.Namespace, spec.EntitySubjectKey, subjectKey),
+			},
+			grant.VoidedEvent{
+				Grant:     g,
+				Namespace: eventmodels.NamespaceID{ID: owner.Namespace},
+				Subject:   eventmodels.SubjectKeyAndID{Key: subjectKey},
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, m.publisher.Publish(event)
+	})
+	return err
 }
 
-// Calculates the new balance after a recurrence from the current balance
-func (g Grant) RecurrenceBalance(currentBalance float64) float64 {
-	// if it was wrongfully called on a non-recurring grant do nothing
-	if g.Recurrence == nil {
-		return currentBalance
-	}
-
-	// We have no rollover settings for recurring grants
-	return g.Amount
+type GrantNotFoundError struct {
+	GrantID string
 }
 
-// Calculates the new balance after a rollover from the current balance
-func (g Grant) RolloverBalance(currentBalance float64) float64 {
-	// At a rollover the maximum balance that can remain is the ResetMaxRollover,
-	// while the minimum that has to be granted is ResetMinRollover.
-	return math.Min(g.ResetMaxRollover, math.Max(g.ResetMinRollover, currentBalance))
+func (e *GrantNotFoundError) Error() string {
+	return fmt.Sprintf("grant not found: %s", e.GrantID)
 }
-
-func (g Grant) GetNamespacedID() models.NamespacedID {
-	return models.NamespacedID{
-		Namespace: g.Namespace,
-		ID:        g.ID,
-	}
-}
-
-func (g Grant) GetNamespacedOwner() NamespacedGrantOwner {
-	return NamespacedGrantOwner{
-		Namespace: g.Namespace,
-		ID:        g.OwnerID,
-	}
-}
-
-// // Render implements the chi renderer interface.
-// func (c Grant) Render(w http.ResponseWriter, r *http.Request) error {
-// 	return nil
-// }

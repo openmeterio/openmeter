@@ -11,7 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit/balance"
 	"github.com/openmeterio/openmeter/internal/ent/db/balancesnapshot"
 	"github.com/openmeterio/openmeter/internal/ent/db/entitlement"
 )
@@ -79,8 +79,8 @@ func (bsc *BalanceSnapshotCreate) SetOwnerID(s string) *BalanceSnapshotCreate {
 }
 
 // SetGrantBalances sets the "grant_balances" field.
-func (bsc *BalanceSnapshotCreate) SetGrantBalances(cbm credit.GrantBalanceMap) *BalanceSnapshotCreate {
-	bsc.mutation.SetGrantBalances(cbm)
+func (bsc *BalanceSnapshotCreate) SetGrantBalances(b balance.Map) *BalanceSnapshotCreate {
+	bsc.mutation.SetGrantBalances(b)
 	return bsc
 }
 

@@ -17,6 +17,7 @@ func NewMeteredEntitlementConnector(
 	ownerConnector credit.OwnerConnector,
 	balanceConnector credit.BalanceConnector,
 	grantConnector credit.GrantConnector,
+	grantRepo credit.GrantRepo,
 	entitlementRepo entitlement.EntitlementRepo,
 	publisher publisher.TopicPublisher,
 ) Connector {
@@ -25,6 +26,7 @@ func NewMeteredEntitlementConnector(
 		ownerConnector,
 		balanceConnector,
 		grantConnector,
+		grantRepo,
 		entitlementRepo,
 		publisher,
 	)

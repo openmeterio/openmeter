@@ -12,7 +12,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	lru "github.com/hashicorp/golang-lru/v2"
 
-	"github.com/openmeterio/openmeter/internal/credit"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	"github.com/openmeterio/openmeter/internal/event/publisher"
@@ -198,8 +198,8 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 		return w.handleEntitlementDeleteEvent(msg.Context(), event.Payload)
 
 	// Grant events
-	case credit.GrantCreatedEvent{}.Spec().Type():
-		event, err := spec.ParseCloudEventFromBytes[credit.GrantCreatedEvent](msg.Payload)
+	case grant.CreatedEvent{}.Spec().Type():
+		event, err := spec.ParseCloudEventFromBytes[grant.CreatedEvent](msg.Payload)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse grant created event: %w", err)
 		}
@@ -209,8 +209,8 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 			NamespacedID{Namespace: event.Payload.Namespace.ID, ID: string(event.Payload.OwnerID)},
 			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, string(event.Payload.OwnerID), spec.EntityGrant, event.Payload.ID),
 		)
-	case credit.GrantVoidedEvent{}.Spec().Type():
-		event, err := spec.ParseCloudEventFromBytes[credit.GrantVoidedEvent](msg.Payload)
+	case grant.VoidedEvent{}.Spec().Type():
+		event, err := spec.ParseCloudEventFromBytes[grant.VoidedEvent](msg.Payload)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse grant voided event: %w", err)
 		}
