@@ -9,7 +9,14 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-kafka/v3/pkg/kafka"
+	otelmetric "go.opentelemetry.io/otel/metric"
+
 	"github.com/openmeterio/openmeter/config"
+	"github.com/openmeterio/openmeter/internal/watermill/driver/kafka/metrics"
+)
+
+const (
+	defaultMeterPrefix = "sarama.publisher."
 )
 
 type PublisherOptions struct {
@@ -17,6 +24,8 @@ type PublisherOptions struct {
 	ProvisionTopics []AutoProvisionTopic
 	ClientID        string
 	Logger          *slog.Logger
+	MetricMeter     otelmetric.Meter
+	MeterPrefix     string
 }
 
 func (o *PublisherOptions) Validate() error {
@@ -31,12 +40,20 @@ func (o *PublisherOptions) Validate() error {
 	if o.Logger == nil {
 		return errors.New("logger is required")
 	}
+
+	if o.MetricMeter == nil {
+		return errors.New("metric meter is required")
+	}
 	return nil
 }
 
 func NewPublisherFromOMConfig(in PublisherOptions) (*kafka.Publisher, error) {
 	if err := in.Validate(); err != nil {
 		return nil, err
+	}
+
+	if in.MeterPrefix == "" {
+		in.MeterPrefix = defaultMeterPrefix
 	}
 
 	// TODO: we need to have a proper metric bridge between the sarama metrics based on https://github.com/rcrowley/go-metrics
@@ -67,6 +84,17 @@ func NewPublisherFromOMConfig(in PublisherOptions) (*kafka.Publisher, error) {
 
 	// Producer specific settings
 	wmConfig.OverwriteSaramaConfig.Producer.Return.Successes = true
+
+	meterRegistry, err := metrics.NewRegistry(metrics.NewRegistryOptions{
+		MetricMeter:     in.MetricMeter,
+		NameTransformFn: metrics.MetricAddNamePrefix(in.MeterPrefix),
+		ErrorHandler:    metrics.LoggingErrorHandler(in.Logger),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	wmConfig.OverwriteSaramaConfig.MetricRegistry = meterRegistry
 
 	if err := wmConfig.Validate(); err != nil {
 		return nil, err

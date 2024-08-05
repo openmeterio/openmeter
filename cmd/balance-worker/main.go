@@ -28,6 +28,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
@@ -136,6 +137,8 @@ func main() {
 	}()
 	otel.SetMeterProvider(otelMeterProvider)
 
+	metricMeter := otelMeterProvider.Meter(otelName)
+
 	if conf.Telemetry.Metrics.Exporters.Prometheus.Enabled {
 		telemetryRouter.Handle("/metrics", promhttp.Handler())
 	}
@@ -227,7 +230,7 @@ func main() {
 	}
 
 	// Create publisher
-	publishers, err := initEventPublisher(logger, conf)
+	publishers, err := initEventPublisher(logger, conf, metricMeter)
 	if err != nil {
 		logger.Error("failed to initialize event publisher", slog.String("error", err.Error()))
 		os.Exit(1)
@@ -356,7 +359,7 @@ type eventPublishers struct {
 	eventPublisher     publisher.Publisher
 }
 
-func initEventPublisher(logger *slog.Logger, conf config.Configuration) (*eventPublishers, error) {
+func initEventPublisher(logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter) (*eventPublishers, error) {
 	provisionTopics := []watermillkafka.AutoProvisionTopic{}
 	if conf.BalanceWorker.DLQ.AutoProvision.Enabled {
 		provisionTopics = append(provisionTopics, watermillkafka.AutoProvisionTopic{
@@ -370,6 +373,7 @@ func initEventPublisher(logger *slog.Logger, conf config.Configuration) (*eventP
 		ProvisionTopics: provisionTopics,
 		ClientID:        otelName,
 		Logger:          logger,
+		MetricMeter:     metricMeter,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create event driver: %w", err)

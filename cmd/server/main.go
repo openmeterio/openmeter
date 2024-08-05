@@ -213,7 +213,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	eventPublishers, err := initEventPublisher(logger, conf)
+	eventPublishers, err := initEventPublisher(logger, conf, metricMeter)
 	if err != nil {
 		logger.Error("failed to initialize event publisher", "error", err)
 		os.Exit(1)
@@ -434,7 +434,7 @@ type publishers struct {
 	driver         message.Publisher
 }
 
-func initEventPublisher(logger *slog.Logger, conf config.Configuration) (*publishers, error) {
+func initEventPublisher(logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter) (*publishers, error) {
 	if !conf.Events.Enabled {
 		publisher, err := publisher.NewPublisher(publisher.PublisherOptions{
 			Publisher: &noop.Publisher{},
@@ -447,7 +447,6 @@ func initEventPublisher(logger *slog.Logger, conf config.Configuration) (*publis
 			eventPublisher: publisher,
 			driver:         &noop.Publisher{},
 		}, nil
-
 	}
 
 	provisionTopics := []watermillkafka.AutoProvisionTopic{}
@@ -463,6 +462,7 @@ func initEventPublisher(logger *slog.Logger, conf config.Configuration) (*publis
 		ProvisionTopics: provisionTopics,
 		ClientID:        otelName,
 		Logger:          logger,
+		MetricMeter:     metricMeter,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create event driver: %w", err)
