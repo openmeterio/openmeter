@@ -27,6 +27,7 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.1.0
 	github.com/golang-cz/devslog v0.0.8
 	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/golang-migrate/migrate/v4 v4.17.1
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/huandu/go-sqlbuilder v1.28.1

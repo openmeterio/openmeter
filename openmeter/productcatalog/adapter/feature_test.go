@@ -16,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 func TestCreateFeature(t *testing.T) {
@@ -216,13 +217,16 @@ func TestCreateFeature(t *testing.T) {
 			defer m.Unlock()
 
 			driver := testutils.InitPostgresDB(t)
-			dbClient := db.NewClient(db.Driver(driver))
-
-			if err := dbClient.Schema.Create(context.Background()); err != nil {
-				t.Fatalf("failed to migrate database %s", err)
-			}
-
+			defer driver.SQLDriver.Close()
+			dbClient := db.NewClient(db.Driver(driver.EntDriver))
 			defer dbClient.Close()
+
+			m.Lock()
+			defer m.Unlock()
+
+			if err := migrate.Up(driver.URL); err != nil {
+				t.Fatalf("failed to migrate db: %s", err.Error())
+			}
 
 			dbConnector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
 			tc.run(t, dbConnector)
@@ -235,11 +239,11 @@ func TestCreateFeature(t *testing.T) {
 		defer m.Unlock()
 
 		driver := testutils.InitPostgresDB(t)
-		dbClient := db.NewClient(db.Driver(driver))
+		dbClient := db.NewClient(db.Driver(driver.EntDriver))
 		defer dbClient.Close()
 
-		if err := dbClient.Schema.Create(context.Background()); err != nil {
-			t.Fatalf("failed to migrate database %s", err)
+		if err := migrate.Up(driver.URL); err != nil {
+			t.Fatalf("failed to migrate db: %s", err.Error())
 		}
 
 		dbConnector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))

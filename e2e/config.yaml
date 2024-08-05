@@ -30,6 +30,7 @@ entitlements:
 
 postgres:
   url: postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
+  autoMigrate: true
 
 meters:
   - slug: ingest
