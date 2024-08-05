@@ -11,7 +11,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
@@ -173,23 +172,6 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) 
 		return nil, m.publisher.Publish(event)
 	})
 	return err
-}
-
-func (m *connector) ListGrants(ctx context.Context, params grant.ListGrantsParams) (pagination.PagedResponse[grant.Grant], error) {
-	if !params.Page.IsZero() {
-		if err := params.Page.Validate(); err != nil {
-			return pagination.PagedResponse[grant.Grant]{}, err
-		}
-	}
-	return m.grantRepo.ListGrants(ctx, params)
-}
-
-func (m *connector) ListActiveGrantsBetween(ctx context.Context, owner grant.NamespacedGrantOwner, from, to time.Time) ([]grant.Grant, error) {
-	return m.grantRepo.ListActiveGrantsBetween(ctx, owner, from, to)
-}
-
-func (m *connector) GetGrant(ctx context.Context, grantID models.NamespacedID) (grant.Grant, error) {
-	return m.grantRepo.GetGrant(ctx, grantID)
 }
 
 type GrantNotFoundError struct {

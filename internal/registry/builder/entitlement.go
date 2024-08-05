@@ -5,7 +5,7 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/registry"
 	"github.com/openmeterio/openmeter/openmeter/credit"
-	creditpgadapter "github.com/openmeterio/openmeter/openmeter/credit/postgresdriver"
+	creditpgadapter "github.com/openmeterio/openmeter/openmeter/credit/postgresadapter"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"

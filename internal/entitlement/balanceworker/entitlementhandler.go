@@ -8,7 +8,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
-	"github.com/openmeterio/openmeter/internal/entitlement/httpdriver"
+	entitlementdriver "github.com/openmeterio/openmeter/internal/entitlement/driver"
 	"github.com/openmeterio/openmeter/internal/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/internal/event/models"
 	"github.com/openmeterio/openmeter/internal/event/spec"
@@ -110,7 +110,7 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementID Namespac
 		return nil, fmt.Errorf("failed to get entitlement value: %w", err)
 	}
 
-	mappedValues, err := httpdriver.MapEntitlementValueToAPI(value)
+	mappedValues, err := entitlementdriver.MapEntitlementValueToAPI(value)
 	if err != nil {
 		return nil, fmt.Errorf("failed to map entitlement value: %w", err)
 	}

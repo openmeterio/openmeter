@@ -8,11 +8,6 @@ const (
 	EventSubsystem = grant.EventSubsystem
 )
 
-const (
-	EventCreateGrant = grant.GrantCreatedEvent
-	EventVoidGrant   = grant.GrantVoidedEvent
-)
-
 type (
 	GrantCreatedEvent = grant.CreatedEvent
 	GrantVoidedEvent  = grant.VoidedEvent

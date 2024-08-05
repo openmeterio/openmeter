@@ -138,7 +138,7 @@ func (a *Router) GetEntitlementById(w http.ResponseWriter, r *http.Request, enti
 		unimplemented.GetEntitlementById(w, r, entitlementId)
 		return
 	}
-	a.entitlementHandler.GetEntitlementById().With(httpdriver.GetEntitlementByIdHandlerParams{
+	a.entitlementHandler.GetEntitlementById().With(entitlementdriver.GetEntitlementByIdHandlerParams{
 		EntitlementId: entitlementId,
 	}).ServeHTTP(w, r)
 }
