@@ -1,7 +1,7 @@
-package postgresadapter
+package adapter
 
 import (
-	postgresadapter "github.com/openmeterio/openmeter/internal/credit/postgresadapter"
+	postgresadapter "github.com/openmeterio/openmeter/internal/credit/adapter"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/entdb"
 )

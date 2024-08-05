@@ -1,4 +1,4 @@
-package postgresadapter
+package adapter
 
 import (
 	"context"

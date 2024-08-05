@@ -1,20 +1,20 @@
-package postgresadapter
+package adapter
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
 
+	"github.com/openmeterio/openmeter/internal/credit/balance"
+	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/ent/db"
-	"github.com/openmeterio/openmeter/internal/entitlement"
-	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
 // We implement entuitls.TxUser[T] and entuitls.TxCreator here
 // There ought to be a better way....
 
-func (e *entitlementDBAdapter) Tx(ctx context.Context) (context.Context, *entutils.TxDriver, error) {
+func (e *grantDBADapter) Tx(ctx context.Context) (context.Context, *entutils.TxDriver, error) {
 	txCtx, rawConfig, eDriver, err := e.db.HijackTx(ctx, &sql.TxOptions{
 		ReadOnly: false,
 	})
@@ -24,13 +24,13 @@ func (e *entitlementDBAdapter) Tx(ctx context.Context) (context.Context, *entuti
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
-func (e *entitlementDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) entitlement.EntitlementRepo {
+func (e *grantDBADapter) WithTx(ctx context.Context, tx *entutils.TxDriver) grant.Repo {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
-	return NewPostgresEntitlementRepo(txClient.Client())
+	return NewPostgresGrantRepo(txClient.Client())
 }
 
-func (u *usageResetDBAdapter) Tx(ctx context.Context) (context.Context, *entutils.TxDriver, error) {
-	txCtx, rawConfig, eDriver, err := u.db.HijackTx(ctx, &sql.TxOptions{
+func (e *balanceSnapshotRepo) Tx(ctx context.Context) (context.Context, *entutils.TxDriver, error) {
+	txCtx, rawConfig, eDriver, err := e.db.HijackTx(ctx, &sql.TxOptions{
 		ReadOnly: false,
 	})
 	if err != nil {
@@ -39,7 +39,7 @@ func (u *usageResetDBAdapter) Tx(ctx context.Context) (context.Context, *entutil
 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
 }
 
-func (u *usageResetDBAdapter) WithTx(ctx context.Context, tx *entutils.TxDriver) meteredentitlement.UsageResetRepo {
+func (e *balanceSnapshotRepo) WithTx(ctx context.Context, tx *entutils.TxDriver) balance.SnapshotRepo {
 	txClient := db.NewTxClientFromRawConfig(ctx, *tx.GetConfig())
-	return NewPostgresUsageResetRepo(txClient.Client())
+	return NewPostgresBalanceSnapshotRepo(txClient.Client())
 }

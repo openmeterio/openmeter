@@ -5,14 +5,14 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/registry"
 	"github.com/openmeterio/openmeter/openmeter/credit"
-	creditpgadapter "github.com/openmeterio/openmeter/openmeter/credit/postgresadapter"
+	creditpgadapter "github.com/openmeterio/openmeter/openmeter/credit/adapter"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	entitlementpgadapter "github.com/openmeterio/openmeter/openmeter/entitlement/adapter"
 	booleanentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
-	entitlementpgadapter "github.com/openmeterio/openmeter/openmeter/entitlement/postgresadapter"
 	staticentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/static"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
-	productcatalogpgadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/postgresadapter"
+	productcatalogpgadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 )
 
 func GetEntitlementRegistry(opts registry.EntitlementOptions) *registry.Entitlement {

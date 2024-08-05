@@ -1,4 +1,4 @@
-package postgresadapter_test
+package adapter_test
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	db_feature "github.com/openmeterio/openmeter/internal/ent/db/feature"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
-	"github.com/openmeterio/openmeter/internal/productcatalog/postgresadapter"
+	"github.com/openmeterio/openmeter/internal/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/internal/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -224,7 +224,7 @@ func TestCreateFeature(t *testing.T) {
 
 			defer dbClient.Close()
 
-			dbConnector := postgresadapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
+			dbConnector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
 			tc.run(t, dbConnector)
 		})
 	}
@@ -239,7 +239,7 @@ func TestCreateFeature(t *testing.T) {
 			t.Fatalf("failed to migrate database %s", err)
 		}
 
-		dbConnector := postgresadapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
+		dbConnector := adapter.NewPostgresFeatureRepo(dbClient, testutils.NewLogger(t))
 		ctx := context.Background()
 		featureIn := testFeature
 
