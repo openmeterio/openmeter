@@ -94,7 +94,9 @@
               # FIXME: Building as a go module is not supported by maintainers:
               # - GH issue for atlas: https://github.com/ariga/atlas/issues/2582
               # - Module src we use: https://github.com/NixOS/nixpkgs/blob/6d54ef5bc208956deca392af75ad9568e4a58429/pkgs/development/tools/database/atlas/default.nix#L8
-              atlas
+              # - building from src doesn't actually work: https://github.com/ariga/atlas/issues/2388
+              # atlas
+              self'.packages.atlas
 
               just
               semver-tool
@@ -141,6 +143,25 @@
               "-s"
               "-X main.version=v${version}"
             ];
+          };
+
+          atlas = pkgs.stdenv.mkDerivation rec {
+            pname = "atlas";
+            version = "0.25.0";
+            src = pkgs.fetchurl {
+              url = "https://release.ariga.io/atlas/atlas-community-darwin-arm64-v${version}";
+              hash = "sha256-jkKK1PAhS/jZiKux6ht7bciHuVhX+8CBfvw1Da9aY6k=";
+            };
+
+            unpackPhase = ''
+              cp $src atlas
+            '';
+
+            installPhase = ''
+              mkdir -p $out/bin
+              cp atlas $out/bin/atlas
+            '';
+
           };
         };
       };
