@@ -91,12 +91,7 @@
               # python
               poetry
 
-              # FIXME: Building as a go module is not supported by maintainers:
-              # - GH issue for atlas: https://github.com/ariga/atlas/issues/2582
-              # - Module src we use: https://github.com/NixOS/nixpkgs/blob/6d54ef5bc208956deca392af75ad9568e4a58429/pkgs/development/tools/database/atlas/default.nix#L8
-              # - building from src doesn't actually work: https://github.com/ariga/atlas/issues/2388
-              # atlas
-              self'.packages.atlas
+              self'.packages.atlasx
 
               just
               semver-tool
@@ -145,12 +140,13 @@
             ];
           };
 
-          atlas = pkgs.stdenv.mkDerivation rec {
-            pname = "atlas";
+          atlasx = pkgs.stdenv.mkDerivation rec {
+            pname = "atlasx";
             version = "0.25.0";
             src = pkgs.fetchurl {
-              url = "https://release.ariga.io/atlas/atlas-community-darwin-arm64-v${version}";
-              hash = "sha256-jkKK1PAhS/jZiKux6ht7bciHuVhX+8CBfvw1Da9aY6k=";
+              # License: https://ariga.io/legal/atlas/eula/eula-20240804.pdf
+              url = "https://release.ariga.io/atlas/atlas-darwin-arm64-v${version}";
+              hash = "sha256-bYJtNDE13UhJWL4ALLKI0sHMZrDS//kFWzguGX63EAo=";
             };
 
             unpackPhase = ''
