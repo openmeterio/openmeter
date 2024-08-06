@@ -587,9 +587,11 @@ func initPGClients(config config.PostgresConfig) (
 	// initialize client & run migrations
 	dbClient := db.NewClient(db.Driver(driver))
 
-	// TODO: use versioned migrations: https://entgo.io/docs/versioned-migrations
-	if err := dbClient.Schema.Create(context.Background()); err != nil {
-		return nil, fmt.Errorf("failed to migrate credit db: %w", err)
+	if config.AutoMigrate {
+		// TODO: use versioned migrations: https://entgo.io/docs/versioned-migrations
+		if err := dbClient.Schema.Create(context.Background()); err != nil {
+			return nil, fmt.Errorf("failed to migrate credit db: %w", err)
+		}
 	}
 
 	return &pgClients{
