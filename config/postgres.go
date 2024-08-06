@@ -5,6 +5,8 @@ import "errors"
 type PostgresConfig struct {
 	// URL is the PostgreSQL database connection URL.
 	URL string `yaml:"url"`
+	// AutoMigrate is a flag that indicates whether the database should be automatically migrated.
+	AutoMigrate bool `yaml:"autoMigrate"`
 }
 
 // Validate validates the configuration.
