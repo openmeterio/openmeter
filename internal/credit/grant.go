@@ -102,7 +102,7 @@ func (m *connector) CreateGrant(ctx context.Context, owner grant.NamespacedOwner
 			return nil, err
 		}
 
-		if err := m.publisher.Publish(event); err != nil {
+		if err := m.publisher.Publish(ctx, event); err != nil {
 			return nil, err
 		}
 
@@ -169,7 +169,7 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) 
 			return nil, err
 		}
 
-		return nil, m.publisher.Publish(event)
+		return nil, m.publisher.Publish(ctx, event)
 	})
 	return err
 }

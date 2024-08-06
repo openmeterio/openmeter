@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
-	"github.com/openmeterio/openmeter/internal/event/publisher"
+	"github.com/openmeterio/openmeter/internal/event"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
 )
 
@@ -16,7 +16,7 @@ func NewCreditConnector(
 	streamingConnector streaming.Connector,
 	logger *slog.Logger,
 	granularity time.Duration,
-	publisher publisher.TopicPublisher,
+	publisher event.Publisher,
 ) CreditConnector {
 	return credit.NewCreditConnector(
 		grantRepo,

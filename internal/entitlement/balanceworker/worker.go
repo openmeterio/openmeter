@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill"
+	"github.com/ThreeDotsLabs/watermill/components/cqrs"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -15,6 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
+	"github.com/openmeterio/openmeter/internal/event"
 	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/event/spec"
 	"github.com/openmeterio/openmeter/internal/registry"
@@ -43,8 +45,9 @@ type WorkerOptions struct {
 
 	TargetTopic string
 	DLQ         *WorkerDLQOptions
-	Publisher   message.Publisher
-	Marshaler   publisher.CloudEventMarshaler
+	Publisher   event.Publisher
+	// TODO: do we want to have this?!
+	GroupEventProcessorConfig cqrs.EventGroupProcessorConfig
 
 	Entitlement *registry.Entitlement
 	Repo        BalanceWorkerRepository
@@ -93,25 +96,25 @@ func New(opts WorkerOptions) (*Worker, error) {
 		repo:               opts.Repo,
 		highWatermarkCache: highWatermarkCache,
 	}
+	/*
+		router.AddHandler(
+			"balance_worker_system_events",
+			opts.SystemEventsTopic,
+			opts.Subscriber,
+			opts.TargetTopic,
+			opts.Publisher,
+			worker.handleEvent,
+		)
 
-	router.AddHandler(
-		"balance_worker_system_events",
-		opts.SystemEventsTopic,
-		opts.Subscriber,
-		opts.TargetTopic,
-		opts.Publisher,
-		worker.handleEvent,
-	)
-
-	router.AddHandler(
-		"balance_worker_ingest_events",
-		opts.IngestEventsTopic,
-		opts.Subscriber,
-		opts.TargetTopic,
-		opts.Publisher,
-		worker.handleEvent,
-	)
-
+		router.AddHandler(
+			"balance_worker_ingest_events",
+			opts.IngestEventsTopic,
+			opts.Subscriber,
+			opts.TargetTopic,
+			opts.Publisher,
+			worker.handleEvent,
+		)
+	*/
 	router.AddMiddleware(
 		middleware.CorrelationID,
 
@@ -151,6 +154,24 @@ func New(opts WorkerOptions) (*Worker, error) {
 		)
 	}
 
+	config := opts.GroupEventProcessorConfig
+
+	eventProcessor, err := cqrs.NewEventGroupProcessorWithConfig(router, config)
+	if err != nil {
+		return nil, err
+	}
+
+	eventProcessor.AddHandlersGroup(
+		"balance_worker_system_events",
+		cqrs.NewGroupEventHandler(func(ctx context.Context, event *entitlement.EntitlementDeletedEvent) error {
+			worker.handleEntitlementUpdateEvent(
+				ctx,
+				NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
+				spec.ComposeResourcePath(event.Namespace.ID, spec.EntityEntitlement, event.ID),
+			)
+		}),
+	)
+
 	return worker, nil
 }
 
@@ -177,8 +198,8 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 
 	switch ceType {
 	// Entitlement events
-	case entitlement.EntitlementDeletedEvent{}.Spec().Type():
-		event, err := spec.ParseCloudEventFromBytes[entitlement.EntitlementDeletedEvent](msg.Payload)
+	case entitlement.EntitlementCreatedEvent{}.Spec().Type():
+		event, err := spec.ParseCloudEventFromBytes[entitlement.EntitlementCreatedEvent](msg.Payload)
 		if err != nil {
 			w.opts.Logger.Error("failed to parse entitlement created event", w.messageToLogFields(msg)...)
 			return nil, err

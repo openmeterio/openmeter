@@ -66,7 +66,7 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 			return nil, err
 		}
 
-		if err := e.publisher.Publish(event); err != nil {
+		if err := e.publisher.Publish(ctx, event); err != nil {
 			return nil, err
 		}
 

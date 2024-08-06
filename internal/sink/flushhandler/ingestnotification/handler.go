@@ -11,13 +11,13 @@ import (
 	"github.com/openmeterio/openmeter/internal/event/spec"
 	"github.com/openmeterio/openmeter/internal/sink/flushhandler"
 	sinkmodels "github.com/openmeterio/openmeter/internal/sink/models"
-	"github.com/openmeterio/openmeter/openmeter/event/publisher"
+	"github.com/openmeterio/openmeter/openmeter/event"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type handler struct {
-	publisher publisher.TopicPublisher
+	publisher event.Publisher
 	logger    *slog.Logger
 	config    HandlerConfig
 }
@@ -26,7 +26,7 @@ type HandlerConfig struct {
 	MaxEventsInBatch int
 }
 
-func NewHandler(logger *slog.Logger, metricMeter metric.Meter, publisher publisher.TopicPublisher, config HandlerConfig) (flushhandler.FlushEventHandler, error) {
+func NewHandler(logger *slog.Logger, metricMeter metric.Meter, publisher event.Publisher, config HandlerConfig) (flushhandler.FlushEventHandler, error) {
 	handler := &handler{
 		publisher: publisher,
 		logger:    logger,
@@ -81,7 +81,7 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 			continue
 		}
 
-		if err := h.publisher.Publish(event); err != nil {
+		if err := h.publisher.Publish(ctx, event); err != nil {
 			finalErr = errors.Join(finalErr, err)
 			h.logger.Error("failed to publish change notification", "error", err)
 		}

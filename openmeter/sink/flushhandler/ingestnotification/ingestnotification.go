@@ -6,7 +6,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/internal/sink/flushhandler/ingestnotification"
-	"github.com/openmeterio/openmeter/openmeter/event/publisher"
+	"github.com/openmeterio/openmeter/openmeter/event"
 	"github.com/openmeterio/openmeter/openmeter/sink/flushhandler"
 )
 
@@ -22,6 +22,6 @@ type (
 )
 
 // Ingest notification handler
-func NewHandler(logger *slog.Logger, metricMeter metric.Meter, publisher publisher.TopicPublisher, config ingestnotification.HandlerConfig) (flushhandler.FlushEventHandler, error) {
+func NewHandler(logger *slog.Logger, metricMeter metric.Meter, publisher event.Publisher, config ingestnotification.HandlerConfig) (flushhandler.FlushEventHandler, error) {
 	return ingestnotification.NewHandler(logger, metricMeter, publisher, config)
 }

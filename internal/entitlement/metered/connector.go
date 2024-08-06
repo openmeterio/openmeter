@@ -9,9 +9,9 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit/engine"
 	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/entitlement"
+	"github.com/openmeterio/openmeter/internal/event"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/internal/streaming"
-	"github.com/openmeterio/openmeter/openmeter/event/publisher"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -63,7 +63,7 @@ type connector struct {
 	entitlementRepo    entitlement.EntitlementRepo
 
 	granularity time.Duration
-	publisher   publisher.TopicPublisher
+	publisher   event.Publisher
 }
 
 func NewMeteredEntitlementConnector(
@@ -73,7 +73,7 @@ func NewMeteredEntitlementConnector(
 	grantConnector credit.GrantConnector,
 	grantRepo grant.Repo,
 	entitlementRepo entitlement.EntitlementRepo,
-	publisher publisher.TopicPublisher,
+	publisher event.Publisher,
 ) Connector {
 	return &connector{
 		streamingConnector: streamingConnector,
