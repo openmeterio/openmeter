@@ -123,6 +123,13 @@ migrate-apply: ## Apply migrations
 		--baseline "20240806133826" \
 		--url "${url}"
 
+.PHONY: migrate-local
+.SILENT: # don't echo commands
+migrate-local: ## Apply migrations
+	atlas migrate apply \
+		--dir "file://migrations" \
+		--url "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+
 .PHONY: migrate-down
 .SILENT: # don't echo commands
 migrate-down: ## Apply migrations
