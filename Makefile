@@ -105,6 +105,50 @@ seed: ## Seed OpenMeter with test data
 	$(call print-target)
 	benthos -c etc/seed/seed.yaml
 
+.PHONY: migrate-diff
+.SILENT: # don't echo commands
+migrate-diff: ## Diff migrations
+	@ if [ -z "${mname}" ]; then echo "!!! Please provide a migration mname using 'make migrate-diff mname=<migration-name>' !!!" && exit 1 && false; fi
+	atlas migrate diff ${mname} \
+		--dir "file://migrations" \
+		--to "ent://internal/ent/schema" \
+		--dev-url "docker://postgres/15/test?search_path=public"
+
+.PHONY: migrate-apply
+.SILENT: # don't echo commands
+migrate-apply: ## Apply migrations
+	@ if [ -z "${url}" ]; then echo "!!! Please provide a migration url using 'make migrate-apply url=<db-url>' !!!" && exit 1 && false; fi
+	atlas migrate apply \
+		--dir "file://migrations" \
+		--baseline "20240806133826" \
+		--url "${url}"
+
+.PHONY: migrate-down
+.SILENT: # don't echo commands
+migrate-down: ## Apply migrations
+	@ if [ -z "${url}" ]; then echo "!!! Please provide a migration url using 'make migrate-apply url=<db-url>' !!!" && exit 1 && false; fi
+	atlas migrate down \
+		--dir "file://migrations" \
+		--dev-url "docker://postgres/15/test?search_path=public" \
+		--url "${url}"
+
+.PHONY: migrate-status
+.SILENT: # don't echo commands
+migrate-status: ## Check migrations
+	@ if [ -z "${url}" ]; then echo "!!! Please provide a migration url using 'make migrate-status url=<db-url>' !!!" && exit 1 && false; fi
+	atlas migrate status \
+		--dir "file://migrations" \
+		--url "${url}"
+
+.PHONY: migrate-lint
+.SILENT: # don't echo commands
+migrate-lint: ## Lint migrations
+	atlas migrate lint \
+		--config="file://atlas.hcl" \
+		--dev-url="docker://postgres/15/test?search_path=public" \
+		--dir="file://migrations" \
+		--latest=10
+
 .PHONY: help
 .DEFAULT_GOAL := help
 help:
