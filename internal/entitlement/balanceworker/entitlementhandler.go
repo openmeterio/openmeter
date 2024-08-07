@@ -10,9 +10,10 @@ import (
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	entitlementdriver "github.com/openmeterio/openmeter/internal/entitlement/driver"
 	"github.com/openmeterio/openmeter/internal/entitlement/snapshot"
+	"github.com/openmeterio/openmeter/internal/event/metadata"
 	"github.com/openmeterio/openmeter/internal/event/models"
-	"github.com/openmeterio/openmeter/internal/event/spec"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/convert"
 )
 
@@ -34,11 +35,8 @@ func (w *Worker) handleEntitlementDeleteEvent(ctx context.Context, delEvent enti
 
 	calculationTime := time.Now()
 
-	event, err := spec.NewCloudEvent(
-		spec.EventSpec{
-			Source:  spec.ComposeResourcePath(namespace, spec.EntityEntitlement, delEvent.ID),
-			Subject: spec.ComposeResourcePath(namespace, spec.EntitySubjectKey, delEvent.SubjectKey),
-		},
+	event := marshaler.WithSource(
+		metadata.ComposeResourcePath(namespace, metadata.EntityEntitlement, delEvent.ID),
 		snapshot.SnapshotEvent{
 			Entitlement: delEvent.Entitlement,
 			Namespace: models.NamespaceID{
@@ -56,11 +54,8 @@ func (w *Worker) handleEntitlementDeleteEvent(ctx context.Context, delEvent enti
 			CurrentUsagePeriod: delEvent.CurrentUsagePeriod,
 		},
 	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create cloud event: %w", err)
-	}
 
-	wmMessage, err := w.opts.Marshaler.MarshalEvent(event)
+	wmMessage, err := w.opts.Marshaler.Marshal(event)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal cloud event: %w", err)
 	}
@@ -123,11 +118,8 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementID Namespac
 		}
 	}
 
-	event, err := spec.NewCloudEvent(
-		spec.EventSpec{
-			Source:  source,
-			Subject: spec.ComposeResourcePath(entitlementID.Namespace, spec.EntitySubjectKey, entitlement.SubjectKey),
-		},
+	event := marshaler.WithSource(
+		source,
 		snapshot.SnapshotEvent{
 			Entitlement: *entitlement,
 			Namespace: models.NamespaceID{
@@ -146,11 +138,8 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementID Namespac
 			CurrentUsagePeriod: entitlement.CurrentUsagePeriod,
 		},
 	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create cloud event: %w", err)
-	}
 
-	wmMessage, err := w.opts.Marshaler.MarshalEvent(event)
+	wmMessage, err := w.opts.Marshaler.Marshal(event)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal cloud event: %w", err)
 	}

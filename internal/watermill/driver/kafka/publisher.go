@@ -62,11 +62,14 @@ func NewPublisher(ctx context.Context, in PublisherOptions) (*kafka.Publisher, e
 		Brokers:               []string{in.KafkaConfig.Broker},
 		OverwriteSaramaConfig: sarama.NewConfig(),
 		Marshaler:             marshalerWithPartitionKey{},
-		OTELEnabled:           true, // This relies on the global trace provider
+		Tracer:                kafka.NewOTELSaramaTracer(), // This relies on the global trace provider
 	}
 
 	wmConfig.OverwriteSaramaConfig.Metadata.RefreshFrequency = in.KafkaConfig.TopicMetadataRefreshInterval.Duration()
-	wmConfig.OverwriteSaramaConfig.ClientID = "openmeter/balance-worker"
+	if in.ClientID == "" {
+		return nil, errors.New("client ID is required")
+	}
+	wmConfig.OverwriteSaramaConfig.ClientID = fmt.Sprintf("%s-publisher", in.ClientID)
 
 	// These are globals, so we cannot append the publisher/subscriber name to them
 	sarama.Logger = &SaramaLoggerAdaptor{

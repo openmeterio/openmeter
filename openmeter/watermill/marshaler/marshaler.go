@@ -10,7 +10,8 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	cloudevents "github.com/cloudevents/sdk-go/v2/event"
 	"github.com/oklog/ulid/v2"
-	"github.com/openmeterio/openmeter/internal/event/spec"
+
+	"github.com/openmeterio/openmeter/internal/event/metadata"
 )
 
 const (
@@ -20,22 +21,32 @@ const (
 	CloudEventsHeaderSubject = "ce_subject"
 )
 
+const (
+	UnknownEventName = "io.openmeter.unknown"
+)
+
 type TransformFunc func(watermillIn *message.Message, cloudEvent cloudevents.Event) (*message.Message, error)
 
-type event interface {
+type Marshaler = cqrs.CommandEventMarshaler
+
+type Event interface {
 	EventName() string
-	EventMetadata() spec.EventMetadata
+	EventMetadata() metadata.EventMetadata
 	Validate() error
 }
 
-type marshaler struct{}
+type marshaler struct {
+	transform TransformFunc
+}
 
-func New() cqrs.CommandEventMarshaler {
-	return &marshaler{}
+func New(transform TransformFunc) Marshaler {
+	return &marshaler{
+		transform: transform,
+	}
 }
 
 func (m *marshaler) Marshal(v interface{}) (*message.Message, error) {
-	ev, ok := v.(event)
+	ev, ok := v.(Event)
 	if !ok {
 		return nil, errors.New("invalid event type")
 	}
@@ -61,19 +72,17 @@ func (m *marshaler) Marshal(v interface{}) (*message.Message, error) {
 		msg.Metadata.Set(CloudEventsHeaderSubject, ce.Subject())
 	}
 
-	/*
-		// TODO!
-			if m.transform != nil {
-				msg, err = m.transform(msg, event)
-				if err != nil {
-					return nil, err
-				}
-			}*/
+	if m.transform != nil {
+		msg, err = m.transform(msg, ce)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return msg, nil
 }
 
-func NewCloudEvent(ev event) (cloudevents.Event, error) {
+func NewCloudEvent(ev Event) (cloudevents.Event, error) {
 	metadata := ev.EventMetadata()
 	// Mandatory cloud events fields
 	if metadata.Source == "" {
@@ -116,14 +125,25 @@ func (m *marshaler) Unmarshal(msg *message.Message, v interface{}) error {
 		return fmt.Errorf("failed to unmarshal CloudEvent: %w", err)
 	}
 
-	return json.Unmarshal(cloudEvent.Data(), v)
+	err := json.Unmarshal(cloudEvent.Data(), v)
+	if err != nil {
+		return err
+	}
+
+	ev, ok := v.(Event)
+	if !ok {
+		return errors.New("invalid event type")
+	}
+
+	return ev.Validate()
 }
 
 func (m *marshaler) Name(v interface{}) string {
-	ev, ok := v.(event)
+	ev, ok := v.(Event)
 	if !ok {
-		// TODO: how to report error
-		return "TODO"
+		// This event name is passed to most of the cqrs functions, but given that we cannot
+		// return an error here, we are generating a name that's unlikely to match any event.
+		return UnknownEventName
 	}
 
 	return ev.EventName()

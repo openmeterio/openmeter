@@ -10,7 +10,6 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	eventmodels "github.com/openmeterio/openmeter/internal/event/models"
-	"github.com/openmeterio/openmeter/internal/event/spec"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -45,28 +44,19 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 			return nil, err
 		}
 
-		event, err := spec.NewCloudEvent(
-			spec.EventSpec{
-				Source:  spec.ComposeResourcePath(entitlementID.Namespace, spec.EntityEntitlement, entitlementID.ID),
-				Subject: spec.ComposeResourcePath(entitlementID.Namespace, spec.EntitySubjectKey, ent.SubjectKey),
+		event := EntitlementResetEvent{
+			EntitlementID: entitlementID.ID,
+			Namespace: eventmodels.NamespaceID{
+				ID: entitlementID.Namespace,
 			},
-			EntitlementResetEvent{
-				EntitlementID: entitlementID.ID,
-				Namespace: eventmodels.NamespaceID{
-					ID: entitlementID.Namespace,
-				},
-				Subject: eventmodels.SubjectKeyAndID{
-					Key: ent.SubjectKey,
-				},
-				ResetAt:      params.At,
-				RetainAnchor: params.RetainAnchor,
+			Subject: eventmodels.SubjectKeyAndID{
+				Key: ent.SubjectKey,
 			},
-		)
-		if err != nil {
-			return nil, err
+			ResetAt:      params.At,
+			RetainAnchor: params.RetainAnchor,
 		}
 
-		if err := e.publisher.Publish(event); err != nil {
+		if err := e.publisher.Publish(ctx, event); err != nil {
 			return nil, err
 		}
 

@@ -8,16 +8,16 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	eventmodels "github.com/openmeterio/openmeter/internal/event/models"
-	"github.com/openmeterio/openmeter/internal/event/spec"
 	"github.com/openmeterio/openmeter/internal/sink/flushhandler"
+	ingestevents "github.com/openmeterio/openmeter/internal/sink/flushhandler/ingestnotification/events"
 	sinkmodels "github.com/openmeterio/openmeter/internal/sink/models"
-	"github.com/openmeterio/openmeter/openmeter/event/publisher"
+	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type handler struct {
-	publisher publisher.TopicPublisher
+	publisher eventbus.Publisher
 	logger    *slog.Logger
 	config    HandlerConfig
 }
@@ -26,7 +26,7 @@ type HandlerConfig struct {
 	MaxEventsInBatch int
 }
 
-func NewHandler(logger *slog.Logger, metricMeter metric.Meter, publisher publisher.TopicPublisher, config HandlerConfig) (flushhandler.FlushEventHandler, error) {
+func NewHandler(logger *slog.Logger, metricMeter metric.Meter, publisher eventbus.Publisher, config HandlerConfig) (flushhandler.FlushEventHandler, error) {
 	handler := &handler{
 		publisher: publisher,
 		logger:    logger,
@@ -59,8 +59,8 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 	}
 
 	// Map the filtered events to the ingest event
-	iEvents := slicesx.Map(filtered, func(message sinkmodels.SinkMessage) IngestEventData {
-		return IngestEventData{
+	iEvents := slicesx.Map(filtered, func(message sinkmodels.SinkMessage) ingestevents.IngestEventData {
+		return ingestevents.IngestEventData{
 			Namespace:  eventmodels.NamespaceID{ID: message.Namespace},
 			SubjectKey: message.Serialized.Subject,
 			MeterSlugs: h.getMeterSlugsFromMeters(message.Meters),
@@ -70,18 +70,7 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 	// We need to chunk the events to not exceed message size limits
 	chunkedEvents := slicesx.Chunk(iEvents, h.config.MaxEventsInBatch)
 	for _, chunk := range chunkedEvents {
-		event, err := spec.NewCloudEvent(spec.EventSpec{
-			Source: spec.ComposeResourcePathRaw(string(EventBatchedIngest{}.Spec().Subsystem)),
-		}, EventBatchedIngest{
-			Events: chunk,
-		})
-		if err != nil {
-			finalErr = errors.Join(finalErr, err)
-			h.logger.Error("failed to create change notification", "error", err)
-			continue
-		}
-
-		if err := h.publisher.Publish(event); err != nil {
+		if err := h.publisher.Publish(ctx, ingestevents.EventBatchedIngest{Events: chunk}); err != nil {
 			finalErr = errors.Join(finalErr, err)
 			h.logger.Error("failed to publish change notification", "error", err)
 		}

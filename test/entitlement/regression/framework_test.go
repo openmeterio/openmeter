@@ -16,12 +16,12 @@ import (
 	booleanentitlement "github.com/openmeterio/openmeter/internal/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	staticentitlement "github.com/openmeterio/openmeter/internal/entitlement/static"
-	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	productcatalogrepo "github.com/openmeterio/openmeter/internal/productcatalog/adapter"
 	streamingtestutils "github.com/openmeterio/openmeter/internal/streaming/testutils"
 	"github.com/openmeterio/openmeter/internal/testutils"
+	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -89,6 +89,8 @@ func setupDependencies(t *testing.T) Dependencies {
 	entitlementRepo := entitlementrepo.NewPostgresEntitlementRepo(dbClient)
 	usageResetRepo := entitlementrepo.NewPostgresUsageResetRepo(dbClient)
 
+	mockPublisher := eventbus.NewMock(t)
+
 	owner := meteredentitlement.NewEntitlementGrantOwnerAdapter(
 		featureRepo,
 		entitlementRepo,
@@ -104,7 +106,7 @@ func setupDependencies(t *testing.T) Dependencies {
 		streaming,
 		log,
 		time.Minute,
-		publisher.NewMockTopicPublisher(t),
+		mockPublisher,
 	)
 
 	meteredEntitlementConnector := meteredentitlement.NewMeteredEntitlementConnector(
@@ -114,7 +116,7 @@ func setupDependencies(t *testing.T) Dependencies {
 		creditConnector,
 		grantRepo,
 		entitlementRepo,
-		publisher.NewMockTopicPublisher(t),
+		mockPublisher,
 	)
 
 	staticEntitlementConnector := staticentitlement.NewStaticEntitlementConnector()
@@ -127,7 +129,7 @@ func setupDependencies(t *testing.T) Dependencies {
 		meteredEntitlementConnector,
 		staticEntitlementConnector,
 		booleanEntitlementConnector,
-		publisher.NewMockTopicPublisher(t),
+		mockPublisher,
 	)
 
 	return Dependencies{

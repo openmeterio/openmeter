@@ -1,8 +1,11 @@
 package event
 
-import "context"
+import (
+	"context"
+
+	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
+)
 
 type Publisher interface {
-	// TODO: can we constraint it to accept only events?
-	Publish(ctx context.Context, event any) error
+	Publish(ctx context.Context, event marshaler.Event) error
 }

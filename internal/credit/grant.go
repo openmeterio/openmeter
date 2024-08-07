@@ -7,7 +7,6 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/credit/grant"
 	eventmodels "github.com/openmeterio/openmeter/internal/event/models"
-	"github.com/openmeterio/openmeter/internal/event/spec"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -87,22 +86,13 @@ func (m *connector) CreateGrant(ctx context.Context, owner grant.NamespacedOwner
 			return nil, err
 		}
 
-		event, err := spec.NewCloudEvent(
-			spec.EventSpec{
-				Source:  spec.ComposeResourcePath(owner.Namespace, spec.EntityEntitlement, string(owner.ID), spec.EntityGrant, g.ID),
-				Subject: spec.ComposeResourcePath(owner.Namespace, spec.EntitySubjectKey, subjectKey),
-			},
-			grant.CreatedEvent{
-				Grant:     *g,
-				Namespace: eventmodels.NamespaceID{ID: owner.Namespace},
-				Subject:   eventmodels.SubjectKeyAndID{Key: subjectKey},
-			},
-		)
-		if err != nil {
-			return nil, err
+		event := grant.CreatedEvent{
+			Grant:     *g,
+			Namespace: eventmodels.NamespaceID{ID: owner.Namespace},
+			Subject:   eventmodels.SubjectKeyAndID{Key: subjectKey},
 		}
 
-		if err := m.publisher.Publish(event); err != nil {
+		if err := m.publisher.Publish(ctx, event); err != nil {
 			return nil, err
 		}
 
@@ -154,22 +144,11 @@ func (m *connector) VoidGrant(ctx context.Context, grantID models.NamespacedID) 
 			return nil, err
 		}
 
-		event, err := spec.NewCloudEvent(
-			spec.EventSpec{
-				Source:  spec.ComposeResourcePath(grantID.Namespace, spec.EntityEntitlement, string(owner.ID), spec.EntityGrant, grantID.ID),
-				Subject: spec.ComposeResourcePath(grantID.Namespace, spec.EntitySubjectKey, subjectKey),
-			},
-			grant.VoidedEvent{
-				Grant:     g,
-				Namespace: eventmodels.NamespaceID{ID: owner.Namespace},
-				Subject:   eventmodels.SubjectKeyAndID{Key: subjectKey},
-			},
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		return nil, m.publisher.Publish(event)
+		return nil, m.publisher.Publish(ctx, grant.VoidedEvent{
+			Grant:     g,
+			Namespace: eventmodels.NamespaceID{ID: owner.Namespace},
+			Subject:   eventmodels.SubjectKeyAndID{Key: subjectKey},
+		})
 	})
 	return err
 }

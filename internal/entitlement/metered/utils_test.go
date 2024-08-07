@@ -16,12 +16,12 @@ import (
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	entitlement_postgresadapter "github.com/openmeterio/openmeter/internal/entitlement/adapter"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
-	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	productcatalog_postgresadapter "github.com/openmeterio/openmeter/internal/productcatalog/adapter"
 	streaming_testutils "github.com/openmeterio/openmeter/internal/streaming/testutils"
 	"github.com/openmeterio/openmeter/internal/testutils"
 	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -75,6 +75,8 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 		t.Fatalf("failed to migrate database %s", err)
 	}
 
+	mockPublisher := eventbus.NewMock(t)
+
 	// build adapters
 	owner := meteredentitlement.NewEntitlementGrantOwnerAdapter(
 		featureRepo,
@@ -91,7 +93,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 		streamingConnector,
 		testLogger,
 		time.Minute,
-		publisher.NewMockTopicPublisher(t),
+		mockPublisher,
 	)
 
 	connector := meteredentitlement.NewMeteredEntitlementConnector(
@@ -101,7 +103,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 		creditConnector,
 		grantRepo,
 		entitlementRepo,
-		publisher.NewMockTopicPublisher(t),
+		mockPublisher,
 	)
 
 	return connector, &dependencies{
