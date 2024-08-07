@@ -35,13 +35,14 @@ import (
 
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/internal/ent/db"
-	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/notification/consumer"
 	"github.com/openmeterio/openmeter/internal/registry"
 	registrybuilder "github.com/openmeterio/openmeter/internal/registry/builder"
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
+	"github.com/openmeterio/openmeter/internal/watermill/driver/kafka"
 	watermillkafka "github.com/openmeterio/openmeter/internal/watermill/driver/kafka"
+	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
@@ -229,7 +230,7 @@ func main() {
 	}
 
 	// Create publisher
-	publishers, err := initEventPublisher(ctx, logger, conf, metricMeter)
+	eventPublisherDriver, err := initEventPublisherDriver(ctx, logger, conf, metricMeter)
 	if err != nil {
 		logger.Error("failed to initialize event publisher", slog.String("error", err.Error()))
 		os.Exit(1)
@@ -237,10 +238,21 @@ func main() {
 
 	defer func() {
 		// We are using sync producer, so it is fine to close this as a last step
-		if err := publishers.watermillPublisher.Close(); err != nil {
+		if err := eventPublisherDriver.Close(); err != nil {
 			logger.Error("failed to close kafka producer", slog.String("error", err.Error()))
 		}
 	}()
+
+	eventPublisher, err := eventbus.New(eventbus.Options{
+		Publisher:              eventPublisherDriver,
+		Config:                 conf.Events,
+		Logger:                 logger,
+		MarshalerTransformFunc: kafka.AddPartitionKeyFromSubject,
+	})
+	if err != nil {
+		logger.Error("failed to initialize event publisher", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
 
 	// Dependencies: entitlement
 	entitlementConnectors := registrybuilder.GetEntitlementRegistry(registry.EntitlementOptions{
@@ -248,7 +260,7 @@ func main() {
 		StreamingConnector: clickhouseStreamingConnector,
 		MeterRepository:    meterRepository,
 		Logger:             logger,
-		Publisher:          publishers.eventPublisher.ForTopic(conf.Events.SystemEvents.Topic),
+		Publisher:          eventPublisher,
 	})
 
 	// Initialize consumer
@@ -256,7 +268,8 @@ func main() {
 		SystemEventsTopic: conf.Events.SystemEvents.Topic,
 		Subscriber:        wmSubscriber,
 
-		Publisher: publishers.watermillPublisher,
+		Publisher: eventPublisherDriver,
+		Marshaler: eventPublisher.Marshaler(),
 
 		Entitlement: entitlementConnectors,
 
@@ -348,13 +361,7 @@ func initKafkaSubscriber(conf config.Configuration, logger *slog.Logger) (messag
 	return subscriber, nil
 }
 
-type eventPublishers struct {
-	watermillPublisher message.Publisher
-	marshaler          publisher.CloudEventMarshaler
-	eventPublisher     publisher.Publisher
-}
-
-func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter) (*eventPublishers, error) {
+func initEventPublisherDriver(ctx context.Context, logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter) (message.Publisher, error) {
 	provisionTopics := []watermillkafka.AutoProvisionTopic{}
 	if conf.NotificationService.Consumer.DLQ.AutoProvision.Enabled {
 		provisionTopics = append(provisionTopics, watermillkafka.AutoProvisionTopic{
@@ -363,7 +370,7 @@ func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Co
 		})
 	}
 
-	eventDriver, err := watermillkafka.NewPublisher(ctx, watermillkafka.PublisherOptions{
+	return watermillkafka.NewPublisher(ctx, watermillkafka.PublisherOptions{
 		KafkaConfig:     conf.Ingest.Kafka.KafkaConfiguration,
 		ProvisionTopics: provisionTopics,
 		ClientID:        otelName,
@@ -371,23 +378,6 @@ func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Co
 		MetricMeter:     metricMeter,
 		DebugLogging:    conf.Telemetry.Log.Level == slog.LevelDebug,
 	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create event driver: %w", err)
-	}
-
-	eventPublisher, err := publisher.NewPublisher(publisher.PublisherOptions{
-		Publisher: eventDriver,
-		Transform: watermillkafka.AddPartitionKeyFromSubject,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create event publisher: %w", err)
-	}
-
-	return &eventPublishers{
-		watermillPublisher: eventDriver,
-		marshaler:          publisher.NewCloudEventMarshaler(watermillkafka.AddPartitionKeyFromSubject),
-		eventPublisher:     eventPublisher,
-	}, nil
 }
 
 type pgClients struct {

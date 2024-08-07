@@ -1,32 +1,35 @@
-package ingestnotification
+package events
 
 import (
 	"errors"
 
 	"github.com/openmeterio/openmeter/internal/event/models"
 	"github.com/openmeterio/openmeter/internal/event/spec"
+	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 )
 
 const (
 	EventSubsystem spec.EventSubsystem = "ingest"
 )
 
-const (
-	ingestedEventName spec.EventName = "events.ingested"
-)
-
 type EventBatchedIngest struct {
 	Events []IngestEventData `json:"events"`
 }
 
-var batchIngestEventSpec = spec.EventTypeSpec{
-	Subsystem: EventSubsystem,
-	Name:      ingestedEventName,
-	Version:   "v1",
-}
+var (
+	_ marshaler.Event = EventBatchedIngest{}
 
-func (b EventBatchedIngest) Spec() *spec.EventTypeSpec {
-	return &batchIngestEventSpec
+	batchIngestEventSpec = spec.EventTypeSpec{
+		Subsystem: EventSubsystem,
+		Name:      "events.ingested",
+		Version:   "v1",
+	}
+	batchIngestEventName  = spec.GetEventName(batchIngestEventSpec)
+	EventVersionSubsystem = batchIngestEventSpec.VersionSubsystem()
+)
+
+func (b EventBatchedIngest) EventName() string {
+	return batchIngestEventName
 }
 
 func (b EventBatchedIngest) Validate() error {
@@ -43,6 +46,12 @@ func (b EventBatchedIngest) Validate() error {
 	}
 
 	return finalErr
+}
+
+func (b EventBatchedIngest) EventMetadata() spec.EventMetadata {
+	return spec.EventMetadata{
+		Source: spec.ComposeResourcePathRaw(string(EventSubsystem)),
+	}
 }
 
 type IngestEventData struct {

@@ -3,9 +3,9 @@ package registry
 import (
 	"log/slog"
 
-	"github.com/ThreeDotsLabs/watermill/components/cqrs"
 	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/internal/meter"
+	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
@@ -29,6 +29,5 @@ type EntitlementOptions struct {
 	StreamingConnector streaming.Connector
 	Logger             *slog.Logger
 	MeterRepository    meter.Repository
-	// TODO: let's have an interface for the publisher, instead of watermill deps
-	EventBus *cqrs.EventBus
+	Publisher          eventbus.Publisher
 }

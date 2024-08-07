@@ -11,10 +11,9 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 
 	"github.com/openmeterio/openmeter/internal/entitlement/snapshot"
-	"github.com/openmeterio/openmeter/internal/event/publisher"
-	"github.com/openmeterio/openmeter/internal/event/spec"
 	"github.com/openmeterio/openmeter/internal/registry"
 	"github.com/openmeterio/openmeter/internal/watermill/nopublisher"
+	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 )
 
 type Options struct {
@@ -22,6 +21,7 @@ type Options struct {
 	Subscriber        message.Subscriber
 
 	Publisher message.Publisher
+	Marshaler marshaler.Marshaler
 
 	DLQ *DLQOptions
 
@@ -113,21 +113,22 @@ func (w *Consumer) Close() error {
 func (w *Consumer) handleSystemEvent(msg *message.Message) error {
 	w.opts.Logger.Debug("received system event", w.messageToLogFields(msg)...)
 
-	ceType, found := msg.Metadata[publisher.CloudEventsHeaderType]
+	ceType, found := msg.Metadata[marshaler.CloudEventsHeaderType]
 	if !found {
 		w.opts.Logger.Warn("missing CloudEvents type, ignoring message")
 		return nil
 	}
 
 	switch ceType {
-	case snapshot.SnapshotEvent{}.Spec().Type():
-		event, err := spec.ParseCloudEventFromBytes[snapshot.SnapshotEvent](msg.Payload)
-		if err != nil {
+	case snapshot.SnapshotEvent{}.EventName():
+		event := snapshot.SnapshotEvent{}
+
+		if err := w.opts.Marshaler.Unmarshal(msg, &event); err != nil {
 			w.opts.Logger.Error("failed to parse entitlement created event", w.messageToLogFields(msg)...)
 			return err
 		}
 
-		return w.handleSnapshotEvent(msg.Context(), event.Payload)
+		return w.handleSnapshotEvent(msg.Context(), event)
 	}
 	return nil
 }

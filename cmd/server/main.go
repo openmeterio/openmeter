@@ -16,8 +16,6 @@ import (
 	health "github.com/AppsFlyer/go-sundheit"
 	healthhttp "github.com/AppsFlyer/go-sundheit/http"
 	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill/components/cqrs"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/go-chi/chi/v5"
@@ -55,7 +53,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 	watermillkafka "github.com/openmeterio/openmeter/internal/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/internal/watermill/driver/noop"
-	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
+	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -215,7 +213,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	eventPublishers, err := initEventPublisher(ctx, logger, conf, metricMeter)
+	eventPublisherDriver, err := initEventPublisherDriver(ctx, logger, conf, metricMeter)
 	if err != nil {
 		logger.Error("failed to initialize event publisher", "error", err)
 		os.Exit(1)
@@ -223,12 +221,17 @@ func main() {
 
 	defer func() {
 		logger.Info("closing event publisher")
-		if err = eventPublishers.driver.Close(); err != nil {
+		if err = eventPublisherDriver.Close(); err != nil {
 			logger.Error("failed to close event publisher", "error", err)
 		}
 	}()
 
-	eventBus, err := initEventBus(eventPublisher.watermillPublisher, conf, logger)
+	eventPublisher, err := eventbus.New(eventbus.Options{
+		Publisher:              eventPublisherDriver,
+		Config:                 conf.Events,
+		Logger:                 logger,
+		MarshalerTransformFunc: watermillkafka.AddPartitionKeyFromSubject,
+	})
 	if err != nil {
 		logger.Error("failed to initialize event bus", "error", err)
 		os.Exit(1)
@@ -330,7 +333,7 @@ func main() {
 			StreamingConnector: streamingConnector,
 			MeterRepository:    meterRepository,
 			Logger:             logger,
-			EventBus:           eventBus,
+			Publisher:          eventPublisher,
 		})
 	}
 
@@ -438,7 +441,7 @@ func main() {
 	}
 }
 
-func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Configuration, kafkaProducer *kafka.Producer) (message.Publisher, error) {
+func initEventPublisherDriver(ctx context.Context, logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter) (message.Publisher, error) {
 	if !conf.Events.Enabled {
 		return &noop.Publisher{}, nil
 	}
@@ -576,16 +579,4 @@ func initPGClients(config config.PostgresConfig) (
 		driver: driver,
 		client: dbClient,
 	}, nil
-}
-
-func initEventBus(publisher message.Publisher, config config.Configuration, logger *slog.Logger) (*cqrs.EventBus, error) {
-	return cqrs.NewEventBusWithConfig(publisher, cqrs.EventBusConfig{
-		GeneratePublishTopic: func(params cqrs.GenerateEventPublishTopicParams) (string, error) {
-			// TODO: make it generic between sink / server
-			return config.Events.SystemEvents.Topic, nil
-		},
-
-		Marshaler: marshaler.New(),
-		Logger:    watermill.NewSlogLogger(logger),
-	})
 }

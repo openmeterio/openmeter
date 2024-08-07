@@ -5,15 +5,11 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/event/models"
 	"github.com/openmeterio/openmeter/internal/event/spec"
+	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 )
 
 const (
 	EventSubsystem spec.EventSubsystem = "entitlement"
-)
-
-const (
-	entitlementCreatedEventName spec.EventName = "entitlement.created"
-	entitlementDeletedEventName spec.EventName = "entitlement.deleted"
 )
 
 type entitlementEvent struct {
@@ -39,22 +35,22 @@ func (e entitlementEvent) Validate() error {
 
 type EntitlementCreatedEvent entitlementEvent
 
-var entitlementCreatedEventSpec = spec.EventTypeSpec{
-	Subsystem: EventSubsystem,
-	Name:      entitlementCreatedEventName,
-	Version:   "v1",
-}
+var (
+	_ marshaler.Event = EntitlementCreatedEvent{}
 
-func (e EntitlementCreatedEvent) Spec() *spec.EventTypeSpec {
-	return &entitlementCreatedEventSpec
-}
+	entitlementCreatedEventName = spec.GetEventName(spec.EventTypeSpec{
+		Subsystem: EventSubsystem,
+		Name:      "entitlement.created",
+		Version:   "v1",
+	})
+)
 
 func (e EntitlementCreatedEvent) Validate() error {
 	return entitlementEvent(e).Validate()
 }
 
 func (e EntitlementCreatedEvent) EventName() string {
-	return e.Spec().Type()
+	return entitlementCreatedEventName
 }
 
 func (e EntitlementCreatedEvent) EventMetadata() spec.EventMetadata {
@@ -66,22 +62,22 @@ func (e EntitlementCreatedEvent) EventMetadata() spec.EventMetadata {
 
 type EntitlementDeletedEvent entitlementEvent
 
-var entitlementDeletedEventSpec = spec.EventTypeSpec{
-	Subsystem: EventSubsystem,
-	Name:      entitlementDeletedEventName,
-	Version:   "v1",
-}
+var (
+	_ marshaler.Event = EntitlementDeletedEvent{}
 
-func (e EntitlementDeletedEvent) Spec() *spec.EventTypeSpec {
-	return &entitlementDeletedEventSpec
-}
+	entitlementDeletedEventName = spec.GetEventName(spec.EventTypeSpec{
+		Subsystem: EventSubsystem,
+		Name:      "entitlement.deleted",
+		Version:   "v1",
+	})
+)
 
 func (e EntitlementDeletedEvent) Validate() error {
 	return entitlementEvent(e).Validate()
 }
 
 func (e EntitlementDeletedEvent) EventName() string {
-	return e.Spec().Type()
+	return entitlementDeletedEventName
 }
 
 func (e EntitlementDeletedEvent) EventMetadata() spec.EventMetadata {
