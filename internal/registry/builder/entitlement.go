@@ -64,6 +64,7 @@ func GetEntitlementRegistry(opts registry.EntitlementOptions) *registry.Entitlem
 
 	return &registry.Entitlement{
 		Feature:            featureConnector,
+		FeatureRepo:        featureDBAdapter,
 		EntitlementOwner:   entitlementOwnerConnector,
 		CreditBalance:      creditBalanceConnector,
 		Grant:              grantConnector,

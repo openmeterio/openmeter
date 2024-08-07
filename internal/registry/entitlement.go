@@ -15,6 +15,7 @@ import (
 
 type Entitlement struct {
 	Feature            productcatalog.FeatureConnector
+	FeatureRepo        productcatalog.FeatureRepo
 	EntitlementOwner   credit.OwnerConnector
 	CreditBalance      credit.BalanceConnector
 	Grant              credit.GrantConnector
