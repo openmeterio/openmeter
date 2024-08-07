@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openmeterio/openmeter/internal/event"
 	eventmodels "github.com/openmeterio/openmeter/internal/event/models"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
+	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -73,7 +73,7 @@ type entitlementConnector struct {
 	featureConnector productcatalog.FeatureConnector
 	meterRepo        meter.Repository
 
-	publisher event.Publisher
+	publisher eventbus.Publisher
 }
 
 func NewEntitlementConnector(
@@ -83,7 +83,7 @@ func NewEntitlementConnector(
 	meteredEntitlementConnector SubTypeConnector,
 	staticEntitlementConnector SubTypeConnector,
 	booleanEntitlementConnector SubTypeConnector,
-	publisher event.Publisher,
+	publisher eventbus.Publisher,
 ) Connector {
 	return &entitlementConnector{
 		meteredEntitlementConnector: meteredEntitlementConnector,

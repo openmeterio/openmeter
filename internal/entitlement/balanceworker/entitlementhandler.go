@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ThreeDotsLabs/watermill/message"
-
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	entitlementdriver "github.com/openmeterio/openmeter/internal/entitlement/driver"
 	"github.com/openmeterio/openmeter/internal/entitlement/snapshot"
@@ -17,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/convert"
 )
 
-func (w *Worker) handleEntitlementDeleteEvent(ctx context.Context, delEvent entitlement.EntitlementDeletedEvent) ([]*message.Message, error) {
+func (w *Worker) handleEntitlementDeleteEvent(ctx context.Context, delEvent entitlement.EntitlementDeletedEvent) (marshaler.Event, error) {
 	namespace := delEvent.Namespace.ID
 
 	feature, err := w.entitlement.Feature.GetFeature(ctx, namespace, delEvent.FeatureID, productcatalog.IncludeArchivedFeatureTrue)
@@ -55,20 +53,15 @@ func (w *Worker) handleEntitlementDeleteEvent(ctx context.Context, delEvent enti
 		},
 	)
 
-	wmMessage, err := w.opts.Marshaler.Marshal(event)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal cloud event: %w", err)
-	}
-
 	_ = w.highWatermarkCache.Add(delEvent.ID, highWatermarkCacheEntry{
 		HighWatermark: calculationTime.Add(-defaultClockDrift),
 		IsDeleted:     true,
 	})
 
-	return []*message.Message{wmMessage}, nil
+	return event, nil
 }
 
-func (w *Worker) handleEntitlementUpdateEvent(ctx context.Context, entitlementID NamespacedID, source string) ([]*message.Message, error) {
+func (w *Worker) handleEntitlementUpdateEvent(ctx context.Context, entitlementID NamespacedID, source string) (marshaler.Event, error) {
 	calculatedAt := time.Now()
 
 	if entry, ok := w.highWatermarkCache.Get(entitlementID.ID); ok {
@@ -77,7 +70,7 @@ func (w *Worker) handleEntitlementUpdateEvent(ctx context.Context, entitlementID
 		}
 	}
 
-	wmMessage, err := w.createSnapshotEvent(ctx, entitlementID, source, calculatedAt)
+	snapshot, err := w.createSnapshotEvent(ctx, entitlementID, source, calculatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create entitlement update snapshot event: %w", err)
 	}
@@ -86,10 +79,10 @@ func (w *Worker) handleEntitlementUpdateEvent(ctx context.Context, entitlementID
 		HighWatermark: calculatedAt.Add(-defaultClockDrift),
 	})
 
-	return []*message.Message{wmMessage}, nil
+	return snapshot, nil
 }
 
-func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementID NamespacedID, source string, calculatedAt time.Time) (*message.Message, error) {
+func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementID NamespacedID, source string, calculatedAt time.Time) (marshaler.Event, error) {
 	entitlement, err := w.entitlement.Entitlement.GetEntitlement(ctx, entitlementID.Namespace, entitlementID.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get entitlement: %w", err)
@@ -139,10 +132,5 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementID Namespac
 		},
 	)
 
-	wmMessage, err := w.opts.Marshaler.Marshal(event)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal cloud event: %w", err)
-	}
-
-	return wmMessage, nil
+	return event, nil
 }

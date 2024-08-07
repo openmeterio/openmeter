@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -15,9 +14,6 @@ import (
 	health "github.com/AppsFlyer/go-sundheit"
 	healthhttp "github.com/AppsFlyer/go-sundheit/http"
 	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/IBM/sarama"
-	"github.com/ThreeDotsLabs/watermill"
-	wmkafka "github.com/ThreeDotsLabs/watermill-kafka/v3/pkg/kafka"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -43,6 +39,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/watermill/driver/kafka"
 	watermillkafka "github.com/openmeterio/openmeter/internal/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
+	"github.com/openmeterio/openmeter/internal/watermill/router"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
@@ -223,7 +220,10 @@ func main() {
 	logger.Info("Postgres clients initialized")
 
 	// Create  subscriber
-	wmSubscriber, err := initKafkaSubscriber(conf, logger)
+	wmSubscriber, err := watermillkafka.NewSubscriber(watermillkafka.SubscriberOptions{
+		Broker:            wmBrokerConfiguration(conf, logger, metricMeter),
+		ConsumerGroupName: conf.NotificationService.Consumer.ConsumerGroupName,
+	})
 	if err != nil {
 		logger.Error("failed to initialize Kafka subscriber", slog.String("error", err.Error()))
 		os.Exit(1)
@@ -266,23 +266,18 @@ func main() {
 	// Initialize consumer
 	consumerOptions := consumer.Options{
 		SystemEventsTopic: conf.Events.SystemEvents.Topic,
-		Subscriber:        wmSubscriber,
+		Router: router.Options{
+			Subscriber: wmSubscriber,
+			Publisher:  eventPublisherDriver,
+			Logger:     logger,
 
-		Publisher: eventPublisherDriver,
+			DLQ: conf.NotificationService.Consumer.DLQ,
+		},
 		Marshaler: eventPublisher.Marshaler(),
 
 		Entitlement: entitlementConnectors,
 
 		Logger: logger,
-	}
-
-	if conf.NotificationService.Consumer.DLQ.Enabled {
-		consumerOptions.DLQ = &consumer.DLQOptions{
-			Topic:            conf.NotificationService.Consumer.DLQ.Topic,
-			Throttle:         conf.NotificationService.Consumer.DLQ.Throttle.Enabled,
-			ThrottleDuration: conf.NotificationService.Consumer.DLQ.Throttle.Duration,
-			ThrottleCount:    conf.NotificationService.Consumer.DLQ.Throttle.Count,
-		}
 	}
 
 	notifictionConsumer, err := consumer.New(consumerOptions)
@@ -323,42 +318,14 @@ func main() {
 	}
 }
 
-func initKafkaSubscriber(conf config.Configuration, logger *slog.Logger) (message.Subscriber, error) {
-	wmConfig := wmkafka.SubscriberConfig{
-		Brokers:               []string{conf.Ingest.Kafka.Broker},
-		OverwriteSaramaConfig: sarama.NewConfig(),
-		ConsumerGroup:         conf.NotificationService.Consumer.ConsumerGroupName,
-		ReconnectRetrySleep:   100 * time.Millisecond,
-		Unmarshaler:           wmkafka.DefaultMarshaler{},
+func wmBrokerConfiguration(conf config.Configuration, logger *slog.Logger, metricMeter metric.Meter) kafka.BrokerOptions {
+	return kafka.BrokerOptions{
+		KafkaConfig:  conf.Ingest.Kafka.KafkaConfiguration,
+		ClientID:     otelName,
+		Logger:       logger,
+		MetricMeter:  metricMeter,
+		DebugLogging: conf.Telemetry.Log.Level == slog.LevelDebug,
 	}
-
-	wmConfig.OverwriteSaramaConfig.Metadata.RefreshFrequency = conf.Ingest.Kafka.TopicMetadataRefreshInterval.Duration()
-	wmConfig.OverwriteSaramaConfig.ClientID = "openmeter/notification-service"
-
-	switch conf.Ingest.Kafka.SecurityProtocol {
-	case "SASL_SSL":
-		wmConfig.OverwriteSaramaConfig.Net.SASL.Enable = true
-		wmConfig.OverwriteSaramaConfig.Net.SASL.User = conf.Ingest.Kafka.SaslUsername
-		wmConfig.OverwriteSaramaConfig.Net.SASL.Password = conf.Ingest.Kafka.SaslPassword
-		wmConfig.OverwriteSaramaConfig.Net.SASL.Mechanism = sarama.SASLMechanism(conf.Ingest.Kafka.SecurityProtocol)
-		wmConfig.OverwriteSaramaConfig.Net.TLS.Enable = true
-		wmConfig.OverwriteSaramaConfig.Net.TLS.Config = &tls.Config{}
-	default:
-	}
-
-	if err := wmConfig.Validate(); err != nil {
-		logger.Error("failed to validate Kafka subscriber configuration", slog.String("error", err.Error()))
-		return nil, err
-	}
-
-	// Initialize Kafka subscriber
-	subscriber, err := wmkafka.NewSubscriber(wmConfig, watermill.NewSlogLogger(logger))
-	if err != nil {
-		logger.Error("failed to initialize Kafka subscriber", slog.String("error", err.Error()))
-		return nil, err
-	}
-
-	return subscriber, nil
 }
 
 func initEventPublisherDriver(ctx context.Context, logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter) (message.Publisher, error) {
@@ -371,12 +338,8 @@ func initEventPublisherDriver(ctx context.Context, logger *slog.Logger, conf con
 	}
 
 	return watermillkafka.NewPublisher(ctx, watermillkafka.PublisherOptions{
-		KafkaConfig:     conf.Ingest.Kafka.KafkaConfiguration,
+		Broker:          wmBrokerConfiguration(conf, logger, metricMeter),
 		ProvisionTopics: provisionTopics,
-		ClientID:        otelName,
-		Logger:          logger,
-		MetricMeter:     metricMeter,
-		DebugLogging:    conf.Telemetry.Log.Level == slog.LevelDebug,
 	})
 }
 

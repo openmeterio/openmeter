@@ -25,9 +25,22 @@ type Options struct {
 }
 
 type Publisher interface {
+	// Publish publishes an event to the event bus
 	Publish(ctx context.Context, event marshaler.Event) error
 
+	// WithContext is a convinience method to publish from the router. Usually if we need
+	// to publish from the router, a function returns a marshaler.Event and an error. Using this
+	// method we can inline the publish call and avoid the need to check for errors:
+	//
+	//    return p.WithContext(ctx).PublishIfNoError(worker.handleEvent(ctx, event))
+	WithContext(ctx context.Context) ContextPublisher
+
 	Marshaler() marshaler.Marshaler
+}
+
+type ContextPublisher interface {
+	// PublishIfNoError publishes an event if the error is nil or returns the error
+	PublishIfNoError(event marshaler.Event, err error) error
 }
 
 type publisher struct {
@@ -41,6 +54,26 @@ func (p publisher) Publish(ctx context.Context, event marshaler.Event) error {
 
 func (p publisher) Marshaler() marshaler.Marshaler {
 	return p.marshaler
+}
+
+type contextPublisher struct {
+	publisher *publisher
+	ctx       context.Context
+}
+
+func (p publisher) WithContext(ctx context.Context) ContextPublisher {
+	return contextPublisher{
+		publisher: &p,
+		ctx:       ctx,
+	}
+}
+
+func (p contextPublisher) PublishIfNoError(event marshaler.Event, err error) error {
+	if err != nil {
+		return err
+	}
+
+	return p.publisher.Publish(p.ctx, event)
 }
 
 func New(opts Options) (Publisher, error) {

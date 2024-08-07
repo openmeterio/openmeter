@@ -15,12 +15,18 @@ const (
 )
 
 type (
+	BrokerOptions      = watermillkafka.BrokerOptions
 	PublisherOptions   = watermillkafka.PublisherOptions
 	AutoProvisionTopic = watermillkafka.AutoProvisionTopic
+	SubscriberOptions  = watermillkafka.SubscriberOptions
 )
 
 func NewPublisher(ctx context.Context, in PublisherOptions) (*kafka.Publisher, error) {
 	return watermillkafka.NewPublisher(ctx, in)
+}
+
+func NewSubscriber(in SubscriberOptions) (message.Subscriber, error) {
+	return watermillkafka.NewSubscriber(in)
 }
 
 func AddPartitionKeyFromSubject(watermillIn *message.Message, cloudEvent event.Event) (*message.Message, error) {

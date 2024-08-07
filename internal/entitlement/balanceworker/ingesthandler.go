@@ -2,9 +2,7 @@ package balanceworker
 
 import (
 	"context"
-
-	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/hashicorp/go-multierror"
+	"errors"
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/event/metadata"
@@ -13,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevents.EventBatchedIngest) ([]*message.Message, error) {
+func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevents.EventBatchedIngest) error {
 	filters := slicesx.Map(event.Events, func(e ingestevents.IngestEventData) IngestEventQueryFilter {
 		return IngestEventQueryFilter{
 			Namespace:  e.Namespace.ID,
@@ -23,28 +21,29 @@ func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevent
 	})
 	affectedEntitlements, err := w.repo.ListAffectedEntitlements(ctx, filters)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	var handlingError error
 
-	result := make([]*message.Message, 0, len(affectedEntitlements))
 	for _, entitlement := range affectedEntitlements {
-		messages, err := w.handleEntitlementUpdateEvent(
+		event, err := w.handleEntitlementUpdateEvent(
 			ctx,
 			NamespacedID{Namespace: entitlement.Namespace, ID: entitlement.EntitlementID},
 			metadata.ComposeResourcePath(entitlement.Namespace, metadata.EntityEvent),
 		)
 		if err != nil {
 			// TODO: add error information too
-			handlingError = multierror.Append(handlingError, err)
+			handlingError = errors.Join(handlingError, err)
 			continue
 		}
 
-		result = append(result, messages...)
+		if err := w.opts.EventBus.Publish(ctx, event); err != nil {
+			handlingError = errors.Join(handlingError, err)
+		}
 	}
 
-	return result, handlingError
+	return handlingError
 }
 
 func (w *Worker) GetEntitlementsAffectedByMeterSubject(ctx context.Context, namespace string, meterSlugs []string, subject string) ([]NamespacedID, error) {

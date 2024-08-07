@@ -226,10 +226,13 @@ func initIngestEventPublisher(ctx context.Context, logger *slog.Logger, conf con
 	}
 
 	eventDriver, err := watermillkafka.NewPublisher(ctx, watermillkafka.PublisherOptions{
-		KafkaConfig:  conf.Ingest.Kafka.KafkaConfiguration,
-		ClientID:     otelName,
-		Logger:       logger,
-		DebugLogging: conf.Telemetry.Log.Level == slog.LevelDebug,
+		Broker: watermillkafka.BrokerOptions{
+			KafkaConfig:  conf.Ingest.Kafka.KafkaConfiguration,
+			ClientID:     otelName,
+			Logger:       logger,
+			DebugLogging: conf.Telemetry.Log.Level == slog.LevelDebug,
+			MetricMeter:  metricMeter,
+		},
 
 		ProvisionTopics: []watermillkafka.AutoProvisionTopic{
 			{
@@ -237,7 +240,6 @@ func initIngestEventPublisher(ctx context.Context, logger *slog.Logger, conf con
 				NumPartitions: int32(conf.Events.IngestEvents.AutoProvision.Partitions),
 			},
 		},
-		MetricMeter: metricMeter,
 	})
 	if err != nil {
 		return nil, err
