@@ -5,6 +5,14 @@ env "local" {
   migration {
     // Define the directory where the migrations are stored.
     dir = "file://migrations"
+    // We use golang-migrate
+    format = golang-migrate
+  }
+
+  format {
+    migrate {
+      diff = "{{ sql . \"  \" }}"
+    }
   }
 
   // Define the URL of the database which is managed in this environment.
@@ -28,8 +36,16 @@ env "remote" {
   migration {
     // Define the directory where the migrations are stored.
     dir = "file://migrations"
+    // We use golang-migrate
+    format = golang-migrate
     // Remote deployments already had auto deploy present
-    baseline = "20240806133826"
+    baseline = "20240807123504"
+  }
+
+  format {
+    migrate {
+      diff = "{{ sql . \"  \" }}"
+    }
   }
 
   // Define the URL of the Dev Database for this environment
