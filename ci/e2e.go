@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/ci/internal/dagger"
@@ -9,10 +10,23 @@ import (
 func (m *Ci) Etoe(
 	// +optional
 	test string,
+) *Etoe {
+	return &Etoe{
+		Ci: m,
+	}
+}
+
+type Etoe struct {
+	Ci *Ci
+}
+
+func (e *Etoe) App(
+	// +optional
+	test string,
 ) *dagger.Container {
-	image := m.Build().ContainerImage("").
+	image := e.Ci.Build().ContainerImage("").
 		WithExposedPort(10000).
-		WithMountedFile("/etc/openmeter/config.yaml", m.Source.File("e2e/config.yaml")).
+		WithMountedFile("/etc/openmeter/config.yaml", e.Ci.Source.File("e2e/config.yaml")).
 		WithServiceBinding("kafka", dag.Kafka(dagger.KafkaOpts{Version: kafkaVersion}).Service()).
 		WithServiceBinding("clickhouse", clickhouse())
 
@@ -35,11 +49,11 @@ func (m *Ci) Etoe(
 		args = append(args, "-run", fmt.Sprintf("Test%s", test))
 	}
 
-	args = append(args, "./e2e/...")
+	args = append(args, "./e2e/app/...")
 
 	return dag.Go(dagger.GoOpts{
 		Container: goModule().
-			WithSource(m.Source).
+			WithSource(e.Ci.Source).
 			Container().
 			WithServiceBinding("api", api).
 			WithServiceBinding("sink-worker", sinkWorker).
@@ -47,6 +61,36 @@ func (m *Ci) Etoe(
 			WithEnvVariable("TEST_WAIT_ON_START", "true"),
 	}).
 		Exec(args)
+}
+
+func (e *Etoe) Diff(
+	ctx context.Context,
+	// The base ref against which to run the diffs
+	baseRef string,
+) error {
+	db := postgres()
+
+	_, err := goModule().
+		WithCgoEnabled().
+		WithSource(e.Ci.Source).
+		Container().
+		WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "make", "git", "curl", "clang", "lld"}).
+		WithServiceBinding("postgres", db).
+		WithEnvVariable("POSTGRES_URL", "postgres://postgres:postgres@postgres:5432/postgres").
+		// Stash local changes
+		WithExec([]string{"git", "stash", "save", "-u", "-m", "diffteststash"}).
+		WithExec([]string{"ash", "-c", "echo $(git rev-parse HEAD) > /tmp/revision"}).
+		// Migrate
+		WithExec([]string{"git", "checkout", "-f", baseRef}).
+		WithExec([]string{"go", "run", "./tools/migrate"}).
+		// Return to original version
+		WithExec([]string{"ash", "-c", "git checkout $(cat /tmp/revision)"}).
+		WithExec([]string{"ash", "-c", "git stash apply stash^{/diffteststash}"}).
+		// Run tests
+		WithExec([]string{"go", "test", "-v", "./e2e/diff/..."}).
+		Sync(ctx)
+
+	return err
 }
 
 func clickhouse() *dagger.Service {
