@@ -2,9 +2,9 @@ package entitlement
 
 import (
 	"github.com/openmeterio/openmeter/internal/entitlement"
-	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
 func NewEntitlementConnector(

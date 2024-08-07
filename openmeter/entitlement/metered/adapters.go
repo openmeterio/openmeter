@@ -4,12 +4,12 @@ import (
 	"log/slog"
 
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
-	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
 func NewMeteredEntitlementConnector(

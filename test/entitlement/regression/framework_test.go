@@ -21,7 +21,7 @@ import (
 	productcatalogrepo "github.com/openmeterio/openmeter/internal/productcatalog/adapter"
 	streamingtestutils "github.com/openmeterio/openmeter/internal/streaming/testutils"
 	"github.com/openmeterio/openmeter/internal/testutils"
-	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 

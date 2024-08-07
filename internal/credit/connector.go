@@ -7,7 +7,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit/balance"
 	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/streaming"
-	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
 type CreditConnector interface {

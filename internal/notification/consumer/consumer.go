@@ -12,8 +12,8 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/entitlement/snapshot"
 	"github.com/openmeterio/openmeter/internal/registry"
-	"github.com/openmeterio/openmeter/internal/watermill/nopublisher"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
+	"github.com/openmeterio/openmeter/openmeter/watermill/nopublisher"
 )
 
 type Options struct {

@@ -13,7 +13,7 @@ import (
 	otelmetric "go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/config"
-	"github.com/openmeterio/openmeter/internal/watermill/driver/kafka/metrics"
+	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka/metrics"
 )
 
 const (

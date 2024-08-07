@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/internal/streaming"
-	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"

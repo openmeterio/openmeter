@@ -11,7 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/sink/flushhandler"
 	ingestevents "github.com/openmeterio/openmeter/internal/sink/flushhandler/ingestnotification/events"
 	sinkmodels "github.com/openmeterio/openmeter/internal/sink/models"
-	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )

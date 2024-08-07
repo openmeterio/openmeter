@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/credit"
-	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
 func NewCreditConnector(
