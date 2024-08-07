@@ -98,6 +98,8 @@
 
               dagger
               licensei
+
+              go-migrate
             ];
 
             env = {
