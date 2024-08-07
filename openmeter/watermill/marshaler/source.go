@@ -1,6 +1,7 @@
 package marshaler
 
 import (
+	"encoding/json"
 	"errors"
 
 	"github.com/openmeterio/openmeter/internal/event/metadata"
@@ -41,4 +42,10 @@ func (e *eventWithSource) Validate() error {
 
 func (e *eventWithSource) EventName() string {
 	return e.Event.EventName()
+}
+
+// MarshalJSON marshals the event only, as JSON library embeds the Event name into the output,
+// if the composed object is a pointer to an interface. (e.g. we would get "Event": {} in the payload)
+func (e *eventWithSource) MarshalJSON() ([]byte, error) {
+	return json.Marshal(e.Event)
 }
