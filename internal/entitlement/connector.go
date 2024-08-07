@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openmeterio/openmeter/internal/event"
 	eventmodels "github.com/openmeterio/openmeter/internal/event/models"
-	"github.com/openmeterio/openmeter/internal/event/publisher"
-	"github.com/openmeterio/openmeter/internal/event/spec"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -74,7 +73,7 @@ type entitlementConnector struct {
 	featureConnector productcatalog.FeatureConnector
 	meterRepo        meter.Repository
 
-	publisher publisher.TopicPublisher
+	publisher event.Publisher
 }
 
 func NewEntitlementConnector(
@@ -84,7 +83,7 @@ func NewEntitlementConnector(
 	meteredEntitlementConnector SubTypeConnector,
 	staticEntitlementConnector SubTypeConnector,
 	booleanEntitlementConnector SubTypeConnector,
-	publisher publisher.TopicPublisher,
+	publisher event.Publisher,
 ) Connector {
 	return &entitlementConnector{
 		meteredEntitlementConnector: meteredEntitlementConnector,
@@ -149,23 +148,13 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 			return nil, err
 		}
 
-		event, err := spec.NewCloudEvent(
-			spec.EventSpec{
-				Source:  spec.ComposeResourcePath(input.Namespace, spec.EntityEntitlement, ent.ID),
-				Subject: spec.ComposeResourcePath(input.Namespace, spec.EntitySubjectKey, ent.SubjectKey),
+		err = c.publisher.Publish(ctx, EntitlementCreatedEvent{
+			Entitlement: *ent,
+			Namespace: eventmodels.NamespaceID{
+				ID: input.Namespace,
 			},
-			EntitlementCreatedEvent{
-				Entitlement: *ent,
-				Namespace: eventmodels.NamespaceID{
-					ID: input.Namespace,
-				},
-			},
-		)
+		})
 		if err != nil {
-			return nil, err
-		}
-
-		if err := c.publisher.Publish(event); err != nil {
 			return nil, err
 		}
 
@@ -193,23 +182,13 @@ func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace 
 			return nil, err
 		}
 
-		event, err := spec.NewCloudEvent(
-			spec.EventSpec{
-				Source:  spec.ComposeResourcePath(namespace, spec.EntityEntitlement, ent.ID),
-				Subject: spec.ComposeResourcePath(namespace, spec.EntitySubjectKey, ent.SubjectKey),
+		err = c.publisher.Publish(ctx, EntitlementDeletedEvent{
+			Entitlement: *ent,
+			Namespace: eventmodels.NamespaceID{
+				ID: namespace,
 			},
-			EntitlementDeletedEvent{
-				Entitlement: *ent,
-				Namespace: eventmodels.NamespaceID{
-					ID: namespace,
-				},
-			},
-		)
+		})
 		if err != nil {
-			return nil, err
-		}
-
-		if err := c.publisher.Publish(event); err != nil {
 			return nil, err
 		}
 

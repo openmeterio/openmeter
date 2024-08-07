@@ -30,12 +30,12 @@ import (
 
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/internal/dedupe"
-	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/sink"
 	"github.com/openmeterio/openmeter/internal/sink/flushhandler"
 	"github.com/openmeterio/openmeter/internal/sink/flushhandler/ingestnotification"
 	watermillkafka "github.com/openmeterio/openmeter/internal/watermill/driver/kafka"
+	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -243,15 +243,15 @@ func initIngestEventPublisher(ctx context.Context, logger *slog.Logger, conf con
 		return nil, err
 	}
 
-	eventPublisher, err := publisher.NewPublisher(publisher.PublisherOptions{
-		Publisher: eventDriver,
-		Transform: watermillkafka.AddPartitionKeyFromSubject,
+	eventPublisher, err := eventbus.New(eventbus.Options{
+		Publisher:              eventDriver,
+		Config:                 conf.Events,
+		Logger:                 logger,
+		MarshalerTransformFunc: watermillkafka.AddPartitionKeyFromSubject,
 	})
 	if err != nil {
 		return nil, err
 	}
-
-	targetTopic := eventPublisher.ForTopic(conf.Events.IngestEvents.Topic)
 
 	flushHandlerMux := flushhandler.NewFlushEventHandlers()
 	// We should only close the producer once the ingest events are fully processed
@@ -262,7 +262,7 @@ func initIngestEventPublisher(ctx context.Context, logger *slog.Logger, conf con
 		}
 	})
 
-	ingestNotificationHandler, err := ingestnotification.NewHandler(logger, metricMeter, targetTopic, ingestnotification.HandlerConfig{
+	ingestNotificationHandler, err := ingestnotification.NewHandler(logger, metricMeter, eventPublisher, ingestnotification.HandlerConfig{
 		MaxEventsInBatch: conf.Sink.IngestNotifications.MaxEventsInBatch,
 	})
 	if err != nil {

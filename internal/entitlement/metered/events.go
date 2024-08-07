@@ -4,16 +4,13 @@ import (
 	"errors"
 	"time"
 
+	"github.com/openmeterio/openmeter/internal/event/metadata"
 	"github.com/openmeterio/openmeter/internal/event/models"
-	"github.com/openmeterio/openmeter/internal/event/spec"
+	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 )
 
 const (
-	EventSubsystem spec.EventSubsystem = "meteredEntitlement"
-)
-
-const (
-	resetEntitlementEventName spec.EventName = "entitlement.reset"
+	EventSubsystem metadata.EventSubsystem = "meteredEntitlement"
 )
 
 type EntitlementResetEvent struct {
@@ -24,14 +21,25 @@ type EntitlementResetEvent struct {
 	RetainAnchor  bool                   `json:"retainAnchor"`
 }
 
-var resetEntitlementEventSpec = spec.EventTypeSpec{
-	Subsystem: EventSubsystem,
-	Name:      resetEntitlementEventName,
-	Version:   "v1",
+var (
+	_ marshaler.Event = EntitlementResetEvent{}
+
+	resetEntitlementEventName = metadata.GetEventName(metadata.EventType{
+		Subsystem: EventSubsystem,
+		Name:      "entitlement.reset",
+		Version:   "v1",
+	})
+)
+
+func (e EntitlementResetEvent) EventName() string {
+	return resetEntitlementEventName
 }
 
-func (e EntitlementResetEvent) Spec() *spec.EventTypeSpec {
-	return &resetEntitlementEventSpec
+func (e EntitlementResetEvent) EventMetadata() metadata.EventMetadata {
+	return metadata.EventMetadata{
+		Source:  metadata.ComposeResourcePath(e.Namespace.ID, metadata.EntityEntitlement, e.EntitlementID),
+		Subject: metadata.ComposeResourcePath(e.Namespace.ID, metadata.EntitySubjectKey, e.Subject.Key),
+	}
 }
 
 func (e EntitlementResetEvent) Validate() error {

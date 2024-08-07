@@ -5,14 +5,11 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
+	"github.com/openmeterio/openmeter/internal/event/metadata"
 	"github.com/openmeterio/openmeter/internal/event/models"
-	"github.com/openmeterio/openmeter/internal/event/spec"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
-)
-
-const (
-	snapshotEventName spec.EventName = "entitlement.snapshot"
 )
 
 type BalanceOperationType string
@@ -55,14 +52,24 @@ type SnapshotEvent struct {
 	CurrentUsagePeriod *recurrence.Period `json:"currentUsagePeriod,omitempty"`
 }
 
-var SnapshotEventSpec = spec.EventTypeSpec{
-	Subsystem: entitlement.EventSubsystem,
-	Name:      snapshotEventName,
-	Version:   "v1",
+var (
+	_ marshaler.Event = SnapshotEvent{}
+
+	snapshotEventName = metadata.GetEventName(metadata.EventType{
+		Subsystem: entitlement.EventSubsystem,
+		Name:      "entitlement.snapshot",
+		Version:   "v1",
+	})
+)
+
+func (e SnapshotEvent) EventName() string {
+	return snapshotEventName
 }
 
-func (e SnapshotEvent) Spec() *spec.EventTypeSpec {
-	return &SnapshotEventSpec
+func (e SnapshotEvent) EventMetadata() metadata.EventMetadata {
+	return metadata.EventMetadata{
+		Subject: metadata.ComposeResourcePath(e.Namespace.ID, metadata.EntitySubjectKey, e.Subject.Key),
+	}
 }
 
 func (e SnapshotEvent) Validate() error {

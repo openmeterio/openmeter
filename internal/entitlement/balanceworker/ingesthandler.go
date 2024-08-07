@@ -7,14 +7,14 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
-	"github.com/openmeterio/openmeter/internal/event/spec"
+	"github.com/openmeterio/openmeter/internal/event/metadata"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
-	"github.com/openmeterio/openmeter/internal/sink/flushhandler/ingestnotification"
+	ingestevents "github.com/openmeterio/openmeter/internal/sink/flushhandler/ingestnotification/events"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestnotification.EventBatchedIngest) ([]*message.Message, error) {
-	filters := slicesx.Map(event.Events, func(e ingestnotification.IngestEventData) IngestEventQueryFilter {
+func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevents.EventBatchedIngest) ([]*message.Message, error) {
+	filters := slicesx.Map(event.Events, func(e ingestevents.IngestEventData) IngestEventQueryFilter {
 		return IngestEventQueryFilter{
 			Namespace:  e.Namespace.ID,
 			SubjectKey: e.SubjectKey,
@@ -33,7 +33,7 @@ func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestnotif
 		messages, err := w.handleEntitlementUpdateEvent(
 			ctx,
 			NamespacedID{Namespace: entitlement.Namespace, ID: entitlement.EntitlementID},
-			spec.ComposeResourcePath(entitlement.Namespace, spec.EntityEvent),
+			metadata.ComposeResourcePath(entitlement.Namespace, metadata.EntityEvent),
 		)
 		if err != nil {
 			// TODO: add error information too

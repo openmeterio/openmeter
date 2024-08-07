@@ -3,17 +3,13 @@ package entitlement
 import (
 	"errors"
 
+	"github.com/openmeterio/openmeter/internal/event/metadata"
 	"github.com/openmeterio/openmeter/internal/event/models"
-	"github.com/openmeterio/openmeter/internal/event/spec"
+	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 )
 
 const (
-	EventSubsystem spec.EventSubsystem = "entitlement"
-)
-
-const (
-	entitlementCreatedEventName spec.EventName = "entitlement.created"
-	entitlementDeletedEventName spec.EventName = "entitlement.deleted"
+	EventSubsystem metadata.EventSubsystem = "entitlement"
 )
 
 type entitlementEvent struct {
@@ -39,32 +35,54 @@ func (e entitlementEvent) Validate() error {
 
 type EntitlementCreatedEvent entitlementEvent
 
-var entitlementCreatedEventSpec = spec.EventTypeSpec{
-	Subsystem: EventSubsystem,
-	Name:      entitlementCreatedEventName,
-	Version:   "v1",
-}
+var (
+	_ marshaler.Event = EntitlementCreatedEvent{}
 
-func (e EntitlementCreatedEvent) Spec() *spec.EventTypeSpec {
-	return &entitlementCreatedEventSpec
-}
+	entitlementCreatedEventName = metadata.GetEventName(metadata.EventType{
+		Subsystem: EventSubsystem,
+		Name:      "entitlement.created",
+		Version:   "v1",
+	})
+)
 
 func (e EntitlementCreatedEvent) Validate() error {
 	return entitlementEvent(e).Validate()
 }
 
+func (e EntitlementCreatedEvent) EventName() string {
+	return entitlementCreatedEventName
+}
+
+func (e EntitlementCreatedEvent) EventMetadata() metadata.EventMetadata {
+	return metadata.EventMetadata{
+		Source:  metadata.ComposeResourcePath(e.Namespace.ID, metadata.EntityEntitlement, e.ID),
+		Subject: metadata.ComposeResourcePath(e.Namespace.ID, metadata.EntitySubjectKey, e.SubjectKey),
+	}
+}
+
 type EntitlementDeletedEvent entitlementEvent
 
-var entitlementDeletedEventSpec = spec.EventTypeSpec{
-	Subsystem: EventSubsystem,
-	Name:      entitlementDeletedEventName,
-	Version:   "v1",
-}
+var (
+	_ marshaler.Event = EntitlementDeletedEvent{}
 
-func (e EntitlementDeletedEvent) Spec() *spec.EventTypeSpec {
-	return &entitlementDeletedEventSpec
-}
+	entitlementDeletedEventName = metadata.GetEventName(metadata.EventType{
+		Subsystem: EventSubsystem,
+		Name:      "entitlement.deleted",
+		Version:   "v1",
+	})
+)
 
 func (e EntitlementDeletedEvent) Validate() error {
 	return entitlementEvent(e).Validate()
+}
+
+func (e EntitlementDeletedEvent) EventName() string {
+	return entitlementDeletedEventName
+}
+
+func (e EntitlementDeletedEvent) EventMetadata() metadata.EventMetadata {
+	return metadata.EventMetadata{
+		Source:  metadata.ComposeResourcePath(e.Namespace.ID, metadata.EntityEntitlement, e.ID),
+		Subject: metadata.ComposeResourcePath(e.Namespace.ID, metadata.EntitySubjectKey, e.SubjectKey),
+	}
 }

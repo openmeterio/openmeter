@@ -3,17 +3,13 @@ package grant
 import (
 	"errors"
 
+	"github.com/openmeterio/openmeter/internal/event/metadata"
 	"github.com/openmeterio/openmeter/internal/event/models"
-	"github.com/openmeterio/openmeter/internal/event/spec"
+	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 )
 
 const (
-	EventSubsystem spec.EventSubsystem = "credit"
-)
-
-const (
-	grantCreatedEventName spec.EventName = "grant.created"
-	grantVoidedEventName  spec.EventName = "grant.voided"
+	EventSubsystem metadata.EventSubsystem = "credit"
 )
 
 type grantEvent struct {
@@ -45,16 +41,31 @@ func (g grantEvent) Validate() error {
 	return nil
 }
 
-type CreatedEvent grantEvent
-
-var grantCreatedEventSpec = spec.EventTypeSpec{
-	Subsystem: EventSubsystem,
-	Name:      grantCreatedEventName,
-	Version:   "v1",
+func (e grantEvent) EventMetadata() metadata.EventMetadata {
+	return metadata.EventMetadata{
+		Source:  metadata.ComposeResourcePath(e.Namespace.ID, metadata.EntityEntitlement, string(e.OwnerID), metadata.EntityGrant, e.ID),
+		Subject: metadata.ComposeResourcePath(e.Namespace.ID, metadata.EntitySubjectKey, e.Subject.Key),
+	}
 }
 
-func (e CreatedEvent) Spec() *spec.EventTypeSpec {
-	return &grantCreatedEventSpec
+type CreatedEvent grantEvent
+
+var (
+	_ marshaler.Event = CreatedEvent{}
+
+	grantCreatedEventName = metadata.GetEventName(metadata.EventType{
+		Subsystem: EventSubsystem,
+		Name:      "grant.created",
+		Version:   "v1",
+	})
+)
+
+func (e CreatedEvent) EventName() string {
+	return grantCreatedEventName
+}
+
+func (e CreatedEvent) EventMetadata() metadata.EventMetadata {
+	return grantEvent(e).EventMetadata()
 }
 
 func (e CreatedEvent) Validate() error {
@@ -63,14 +74,22 @@ func (e CreatedEvent) Validate() error {
 
 type VoidedEvent grantEvent
 
-var grantVoidedEventSpec = spec.EventTypeSpec{
-	Subsystem: EventSubsystem,
-	Name:      grantVoidedEventName,
-	Version:   "v1",
+var (
+	_ marshaler.Event = VoidedEvent{}
+
+	grantVoidedEventName = metadata.GetEventName(metadata.EventType{
+		Subsystem: EventSubsystem,
+		Name:      "grant.voided",
+		Version:   "v1",
+	})
+)
+
+func (e VoidedEvent) EventName() string {
+	return grantVoidedEventName
 }
 
-func (e VoidedEvent) Spec() *spec.EventTypeSpec {
-	return &grantVoidedEventSpec
+func (e VoidedEvent) EventMetadata() metadata.EventMetadata {
+	return grantEvent(e).EventMetadata()
 }
 
 func (e VoidedEvent) Validate() error {

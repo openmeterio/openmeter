@@ -37,7 +37,6 @@ import (
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/internal/debug"
 	"github.com/openmeterio/openmeter/internal/ent/db"
-	"github.com/openmeterio/openmeter/internal/event/publisher"
 	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
@@ -54,6 +53,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 	watermillkafka "github.com/openmeterio/openmeter/internal/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/internal/watermill/driver/noop"
+	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -213,7 +213,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	eventPublishers, err := initEventPublisher(ctx, logger, conf, metricMeter)
+	eventPublisherDriver, err := initEventPublisherDriver(ctx, logger, conf, metricMeter)
 	if err != nil {
 		logger.Error("failed to initialize event publisher", "error", err)
 		os.Exit(1)
@@ -221,10 +221,21 @@ func main() {
 
 	defer func() {
 		logger.Info("closing event publisher")
-		if err = eventPublishers.driver.Close(); err != nil {
+		if err = eventPublisherDriver.Close(); err != nil {
 			logger.Error("failed to close event publisher", "error", err)
 		}
 	}()
+
+	eventPublisher, err := eventbus.New(eventbus.Options{
+		Publisher:              eventPublisherDriver,
+		Config:                 conf.Events,
+		Logger:                 logger,
+		MarshalerTransformFunc: watermillkafka.AddPartitionKeyFromSubject,
+	})
+	if err != nil {
+		logger.Error("failed to initialize event bus", "error", err)
+		os.Exit(1)
+	}
 
 	// Initialize Kafka Ingest
 	ingestCollector, kafkaIngestNamespaceHandler, err := initKafkaIngest(
@@ -322,7 +333,7 @@ func main() {
 			StreamingConnector: streamingConnector,
 			MeterRepository:    meterRepository,
 			Logger:             logger,
-			Publisher:          eventPublishers.eventPublisher.ForTopic(conf.Events.SystemEvents.Topic),
+			Publisher:          eventPublisher,
 		})
 	}
 
@@ -430,24 +441,9 @@ func main() {
 	}
 }
 
-type publishers struct {
-	eventPublisher publisher.Publisher
-	driver         message.Publisher
-}
-
-func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter) (*publishers, error) {
+func initEventPublisherDriver(ctx context.Context, logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter) (message.Publisher, error) {
 	if !conf.Events.Enabled {
-		publisher, err := publisher.NewPublisher(publisher.PublisherOptions{
-			Publisher: &noop.Publisher{},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to create event driver: %w", err)
-		}
-
-		return &publishers{
-			eventPublisher: publisher,
-			driver:         &noop.Publisher{},
-		}, nil
+		return &noop.Publisher{}, nil
 	}
 
 	provisionTopics := []watermillkafka.AutoProvisionTopic{}
@@ -458,7 +454,7 @@ func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Co
 		})
 	}
 
-	eventDriver, err := watermillkafka.NewPublisher(ctx, watermillkafka.PublisherOptions{
+	return watermillkafka.NewPublisher(ctx, watermillkafka.PublisherOptions{
 		KafkaConfig:     conf.Ingest.Kafka.KafkaConfiguration,
 		ProvisionTopics: provisionTopics,
 		ClientID:        otelName,
@@ -466,19 +462,6 @@ func initEventPublisher(ctx context.Context, logger *slog.Logger, conf config.Co
 		MetricMeter:     metricMeter,
 		DebugLogging:    conf.Telemetry.Log.Level == slog.LevelDebug,
 	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create event driver: %w", err)
-	}
-
-	eventPublisher, err := publisher.NewPublisher(publisher.PublisherOptions{
-		Publisher: eventDriver,
-		Transform: watermillkafka.AddPartitionKeyFromSubject,
-	})
-
-	return &publishers{
-		eventPublisher: eventPublisher,
-		driver:         eventDriver,
-	}, err
 }
 
 func initKafkaProducer(ctx context.Context, config config.Configuration, logger *slog.Logger, metricMeter metric.Meter, group *run.Group) (*kafka.Producer, error) {

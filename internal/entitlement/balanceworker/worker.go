@@ -15,10 +15,10 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
-	"github.com/openmeterio/openmeter/internal/event/publisher"
-	"github.com/openmeterio/openmeter/internal/event/spec"
+	"github.com/openmeterio/openmeter/internal/event/metadata"
 	"github.com/openmeterio/openmeter/internal/registry"
-	"github.com/openmeterio/openmeter/internal/sink/flushhandler/ingestnotification"
+	ingestevents "github.com/openmeterio/openmeter/internal/sink/flushhandler/ingestnotification/events"
+	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
 	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -44,7 +44,7 @@ type WorkerOptions struct {
 	TargetTopic string
 	DLQ         *WorkerDLQOptions
 	Publisher   message.Publisher
-	Marshaler   publisher.CloudEventMarshaler
+	Marshaler   marshaler.Marshaler
 
 	Entitlement *registry.Entitlement
 	Repo        BalanceWorkerRepository
@@ -169,7 +169,7 @@ func (w *Worker) Close() error {
 func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 	w.opts.Logger.Debug("received system event", w.messageToLogFields(msg)...)
 
-	ceType, found := msg.Metadata[publisher.CloudEventsHeaderType]
+	ceType, found := msg.Metadata[marshaler.CloudEventsHeaderType]
 	if !found {
 		w.opts.Logger.Warn("missing CloudEvents type, ignoring message")
 		return nil, nil
@@ -177,70 +177,80 @@ func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
 
 	switch ceType {
 	// Entitlement events
-	case entitlement.EntitlementCreatedEvent{}.Spec().Type():
-		event, err := spec.ParseCloudEventFromBytes[entitlement.EntitlementCreatedEvent](msg.Payload)
-		if err != nil {
+	case entitlement.EntitlementCreatedEvent{}.EventName():
+		event := entitlement.EntitlementCreatedEvent{}
+
+		if err := w.opts.Marshaler.Unmarshal(msg, &event); err != nil {
 			w.opts.Logger.Error("failed to parse entitlement created event", w.messageToLogFields(msg)...)
 			return nil, err
 		}
+
 		return w.handleEntitlementUpdateEvent(
 			msg.Context(),
-			NamespacedID{Namespace: event.Payload.Namespace.ID, ID: event.Payload.ID},
-			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, event.Payload.ID),
+			NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
+			metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID),
 		)
-	case entitlement.EntitlementDeletedEvent{}.Spec().Type():
-		event, err := spec.ParseCloudEventFromBytes[entitlement.EntitlementDeletedEvent](msg.Payload)
-		if err != nil {
+
+	case entitlement.EntitlementDeletedEvent{}.EventName():
+		event := entitlement.EntitlementDeletedEvent{}
+
+		if err := w.opts.Marshaler.Unmarshal(msg, &event); err != nil {
 			w.opts.Logger.Error("failed to parse entitlement deleted event", w.messageToLogFields(msg)...)
 			return nil, err
 		}
 
-		return w.handleEntitlementDeleteEvent(msg.Context(), event.Payload)
+		return w.handleEntitlementDeleteEvent(msg.Context(), event)
 
 	// Grant events
-	case grant.CreatedEvent{}.Spec().Type():
-		event, err := spec.ParseCloudEventFromBytes[grant.CreatedEvent](msg.Payload)
-		if err != nil {
+	case grant.CreatedEvent{}.EventName():
+		event := grant.CreatedEvent{}
+
+		if err := w.opts.Marshaler.Unmarshal(msg, &event); err != nil {
 			return nil, fmt.Errorf("failed to parse grant created event: %w", err)
 		}
 
 		return w.handleEntitlementUpdateEvent(
 			msg.Context(),
-			NamespacedID{Namespace: event.Payload.Namespace.ID, ID: string(event.Payload.OwnerID)},
-			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, string(event.Payload.OwnerID), spec.EntityGrant, event.Payload.ID),
+			NamespacedID{Namespace: event.Namespace.ID, ID: string(event.OwnerID)},
+			metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, string(event.OwnerID), metadata.EntityGrant, event.ID),
 		)
-	case grant.VoidedEvent{}.Spec().Type():
-		event, err := spec.ParseCloudEventFromBytes[grant.VoidedEvent](msg.Payload)
-		if err != nil {
+
+	case grant.VoidedEvent{}.EventName():
+		event := grant.VoidedEvent{}
+
+		if err := w.opts.Marshaler.Unmarshal(msg, &event); err != nil {
 			return nil, fmt.Errorf("failed to parse grant voided event: %w", err)
 		}
 
 		return w.handleEntitlementUpdateEvent(
 			msg.Context(),
-			NamespacedID{Namespace: event.Payload.Namespace.ID, ID: string(event.Payload.OwnerID)},
-			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, string(event.Payload.OwnerID), spec.EntityGrant, event.Payload.ID),
+			NamespacedID{Namespace: event.Namespace.ID, ID: string(event.OwnerID)},
+			metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, string(event.OwnerID), metadata.EntityGrant, event.ID),
 		)
 
 	// Metered entitlement events
-	case meteredentitlement.EntitlementResetEvent{}.Spec().Type():
-		event, err := spec.ParseCloudEventFromBytes[meteredentitlement.EntitlementResetEvent](msg.Payload)
-		if err != nil {
+	case meteredentitlement.EntitlementResetEvent{}.EventName():
+		event := meteredentitlement.EntitlementResetEvent{}
+
+		if err := w.opts.Marshaler.Unmarshal(msg, &event); err != nil {
 			return nil, fmt.Errorf("failed to parse reset entitlement event: %w", err)
 		}
 
 		return w.handleEntitlementUpdateEvent(
 			msg.Context(),
-			NamespacedID{Namespace: event.Payload.Namespace.ID, ID: event.Payload.EntitlementID},
-			spec.ComposeResourcePath(event.Payload.Namespace.ID, spec.EntityEntitlement, event.Payload.EntitlementID),
+			NamespacedID{Namespace: event.Namespace.ID, ID: event.EntitlementID},
+			metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.EntitlementID),
 		)
+
 	// Ingest events
-	case ingestnotification.EventBatchedIngest{}.Spec().Type():
-		event, err := spec.ParseCloudEventFromBytes[ingestnotification.EventBatchedIngest](msg.Payload)
-		if err != nil {
+	case ingestevents.EventBatchedIngest{}.EventName():
+		event := ingestevents.EventBatchedIngest{}
+
+		if err := w.opts.Marshaler.Unmarshal(msg, &event); err != nil {
 			return nil, fmt.Errorf("failed to parse ingest event: %w", err)
 		}
 
-		return w.handleBatchedIngestEvent(msg.Context(), event.Payload)
+		return w.handleBatchedIngestEvent(msg.Context(), event)
 	}
 	return nil, nil
 }

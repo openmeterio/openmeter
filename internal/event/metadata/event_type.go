@@ -1,4 +1,4 @@
-package spec
+package metadata
 
 import (
 	"fmt"
@@ -6,14 +6,12 @@ import (
 )
 
 type (
-	EventSubsystem   string
-	EventName        string
-	EventVersion     string
-	EventSubjectKind string
-	EventSpecVersion string
+	EventSubsystem string
+	EventName      string
+	EventVersion   string
 )
 
-type EventTypeSpec struct {
+type EventType struct {
 	// Subsystem defines which connector/component is responsible for the event (e.g. ingest, entitlements, etc)
 	Subsystem EventSubsystem
 
@@ -22,21 +20,21 @@ type EventTypeSpec struct {
 
 	// Version is the version of the event (e.g. v1, v2, etc)
 	Version EventVersion
-
-	// cloudEventType is the actual cloud event type, so that we don't have the calculate it
-	// for each message
-	cloudEventType string
 }
 
-func (s *EventTypeSpec) Type() string {
-	if s.cloudEventType != "" {
-		return s.cloudEventType
-	}
-	s.cloudEventType = fmt.Sprintf("io.openmeter.%s.%s.%s", s.Subsystem, s.Version, s.Name)
-	return s.cloudEventType
+func (s *EventType) EventName() string {
+	return fmt.Sprintf("io.openmeter.%s.%s.%s", s.Subsystem, s.Version, s.Name)
 }
 
-type EventSpec struct {
+func (s *EventType) VersionSubsystem() string {
+	return fmt.Sprintf("io.openmeter.%s.%s", s.Subsystem, s.Version)
+}
+
+func GetEventName(spec EventType) string {
+	return spec.EventName()
+}
+
+type EventMetadata struct {
 	// ID of the event
 	ID string
 

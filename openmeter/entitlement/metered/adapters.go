@@ -4,9 +4,9 @@ import (
 	"log/slog"
 
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
+	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/credit"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
-	"github.com/openmeterio/openmeter/openmeter/event/publisher"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/streaming"
@@ -19,7 +19,7 @@ func NewMeteredEntitlementConnector(
 	grantConnector credit.GrantConnector,
 	grantRepo credit.GrantRepo,
 	entitlementRepo entitlement.EntitlementRepo,
-	publisher publisher.TopicPublisher,
+	publisher eventbus.Publisher,
 ) Connector {
 	return meteredentitlement.NewMeteredEntitlementConnector(
 		streamingConnector,
