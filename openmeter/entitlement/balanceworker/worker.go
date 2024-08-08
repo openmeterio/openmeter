@@ -6,6 +6,8 @@ type (
 	Worker           = balanceworker.Worker
 	WorkerOptions    = balanceworker.WorkerOptions
 	WorkerDLQOptions = balanceworker.WorkerDLQOptions
+
+	SubjectIDResolver = balanceworker.SubjectIDResolver
 )
 
 func New(opts WorkerOptions) (*Worker, error) {

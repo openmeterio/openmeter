@@ -112,7 +112,7 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementID Namespac
 
 	subjectID := ""
 	if w.opts.SubjectIDResolver != nil {
-		subjectID, err = w.opts.SubjectIDResolver.GetSubjectIDByKey(ctx, entitlementID.Namespace, entitlementID.ID)
+		subjectID, err = w.opts.SubjectIDResolver.GetSubjectIDByKey(ctx, entitlementID.Namespace, entitlement.SubjectKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get subject ID: %w", err)
 		}
