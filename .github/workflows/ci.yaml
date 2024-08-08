@@ -308,15 +308,15 @@ jobs:
         if: always()
         continue-on-error: true
 
-      - name: Upload Dagger Engine logs as artifact
-        uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029 # v4.3.5
-        if: always() && steps.export-dagger-engine-logs.outcome == 'success'
-        with:
-          name: "[${{ github.job }}] Dagger Engine logs"
-          path: |
-            engine.stdout.log
-            engine.stderr.log
-          retention-days: 14
+      # - name: Upload Dagger Engine logs as artifact
+      #   uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029 # v4.3.5
+      #   if: always() && steps.export-dagger-engine-logs.outcome == 'success'
+      #   with:
+      #     name: "[${{ github.job }}] Dagger Engine logs"
+      #     path: |
+      #       engine.stdout.log
+      #       engine.stderr.log
+      #     retention-days: 14
 
   dagger:
     name: CI
@@ -370,12 +370,12 @@ jobs:
         if: always()
         continue-on-error: true
 
-      - name: Upload Dagger Engine logs as artifact
-        uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029 # v4.3.5
-        if: always() && steps.export-dagger-engine-logs.outcome == 'success'
-        with:
-          name: "[${{ github.job }}] Dagger Engine logs"
-          path: |
-            engine.stdout.log
-            engine.stderr.log
-          retention-days: 14
+      # - name: Upload Dagger Engine logs as artifact
+      #   uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029 # v4.3.5
+      #   if: always() && steps.export-dagger-engine-logs.outcome == 'success'
+      #   with:
+      #     name: "[${{ github.job }}] Dagger Engine logs"
+      #     path: |
+      #       engine.stdout.log
+      #       engine.stderr.log
+      #     retention-days: 14
