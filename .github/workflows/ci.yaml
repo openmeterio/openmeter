@@ -359,3 +359,40 @@ jobs:
             engine.stdout.log
             engine.stderr.log
           retention-days: 14
+
+  e2e-8:
+    name: E2E8
+    runs-on: depot-ubuntu-22.04-8
+
+    steps:
+      # Required as a workaround for Dagger to properly detect Git metadata
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Run pipeline
+        uses: dagger/dagger-for-github@29a88e72255e732147ba18a670978b90bcc59efd # v6.4.0
+        with:
+          verb: call
+          module: github.com/${{ github.repository }}@${{ github.ref }}
+          args: --ref ${{ github.ref }} etoe
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          version: ${{ env.DAGGER_VERSION }}
+
+  dagger-8:
+    name: CI8
+    runs-on: depot-ubuntu-22.04-8
+
+    steps:
+      # Required as a workaround for Dagger to properly detect Git metadata
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Run pipeline
+        uses: dagger/dagger-for-github@29a88e72255e732147ba18a670978b90bcc59efd # v6.4.0
+        # timeout-minutes: 40
+        with:
+          verb: call
+          module: github.com/${{ github.repository }}@${{ github.ref }}
+          args: --ref ${{ github.ref }} ci
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          version: ${{ env.DAGGER_VERSION }}
