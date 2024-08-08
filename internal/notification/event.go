@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type payloadObjectMapper interface {
@@ -190,18 +191,20 @@ var _ validator = (*ListEventsInput)(nil)
 type ListEventsInput struct {
 	pagination.Page
 
-	Namespaces []string
+	Namespaces []string `json:"namespaces,omitempty"`
+	Events     []string `json:"events,omitempty"`
+
+	From time.Time `json:"from,omitempty"`
+	To   time.Time `json:"to,omitempty"`
+
+	Subjects []string `json:"subjects,omitempty"`
+	Features []string `json:"features,omitempty"`
 
 	OrderBy api.ListNotificationEventsParamsOrderBy
-
-	From time.Time
-	To   time.Time
-
-	SubjectFilter []string
-	FeatureFilter []string
+	Order   sortx.Order
 }
 
-func (i *ListEventsInput) Validate(_ context.Context, _ Connector) error {
+func (i *ListEventsInput) Validate(_ context.Context, _ Service) error {
 	if i.From.After(i.To) {
 		return ValidationError{
 			Err: fmt.Errorf("invalid time period: period start (%s) is after the period end (%s)", i.From, i.To),
@@ -229,7 +232,7 @@ type GetEventInput struct {
 	models.NamespacedID
 }
 
-func (i GetEventInput) Validate(_ context.Context, _ Connector) error {
+func (i GetEventInput) Validate(_ context.Context, _ Service) error {
 	if i.Namespace == "" {
 		return ValidationError{
 			Err: fmt.Errorf("namespace must be provided"),
@@ -258,20 +261,18 @@ type CreateEventInput struct {
 
 	// Type of the notification Event (e.g. entitlements.balance.threshold)
 	Type EventType `json:"type"`
-	// CreatedAt Timestamp when the notification event was created.
-	CreatedAt time.Time `json:"createdAt"`
 	// Payload is the actual payload sent to Channel as part of the notification Event.
 	Payload EventPayload `json:"payload"`
 	// Rule defines the notification Rule that generated this Event.
 	Rule Rule `json:"rule"`
 }
 
-func (i CreateEventInput) Validate(ctx context.Context, connector Connector) error {
+func (i CreateEventInput) Validate(ctx context.Context, service Service) error {
 	if err := i.Type.Validate(); err != nil {
 		return err
 	}
 
-	if err := i.Rule.Validate(ctx, connector); err != nil {
+	if err := i.Rule.Validate(ctx, service); err != nil {
 		return err
 	}
 
@@ -310,12 +311,15 @@ type EventDeliveryStatusOrderBy string
 type EventDeliveryStatus struct {
 	models.NamespacedModel
 
+	// ID is the unique identifier for Event.
+	ID string `json:"id"`
 	// ID defines the Event identifier the EventDeliveryStatus belongs to.
 	EventID string `json:"eventId"`
 
 	ChannelID string                   `json:"channelId"`
 	State     EventDeliveryStatusState `json:"state"`
-	UpdatedAt time.Time                `json:"updatedAt"`
+	CreatedAt time.Time                `json:"createdAt"`
+	UpdatedAt time.Time                `json:"updatedAt,omitempty"`
 }
 
 var _ validator = (*ListEventsDeliveryStatusInput)(nil)
@@ -323,16 +327,16 @@ var _ validator = (*ListEventsDeliveryStatusInput)(nil)
 type ListEventsDeliveryStatusInput struct {
 	pagination.Page
 
-	Namespaces []string
+	Namespaces []string `json:"namespaces,omitempty"`
 
-	From time.Time
-	To   time.Time
+	From time.Time `json:"from,omitempty"`
+	To   time.Time `json:"to,omitempty"`
 
-	EventIDs   []string
-	ChannelIDs []string
+	EventIDs   []string `json:"eventIds,omitempty"`
+	ChannelIDs []string `json:"chanelIds,omitempty"`
 }
 
-func (i ListEventsDeliveryStatusInput) Validate(_ context.Context, _ Connector) error {
+func (i ListEventsDeliveryStatusInput) Validate(_ context.Context, _ Service) error {
 	if i.From.After(i.To) {
 		return ValidationError{
 			Err: fmt.Errorf("invalid time range: parameter From (%s) is after To (%s)", i.From, i.To),
@@ -349,11 +353,10 @@ var _ validator = (*GetEventDeliveryStatusInput)(nil)
 type GetEventDeliveryStatusInput struct {
 	models.NamespacedModel
 
-	// ID defines the Event identifier the EventDeliveryStatus belongs to.
-	EventID string `json:"eventId"`
+	ID string `json:"id"`
 }
 
-func (i GetEventDeliveryStatusInput) Validate(_ context.Context, _ Connector) error {
+func (i GetEventDeliveryStatusInput) Validate(_ context.Context, _ Service) error {
 	return nil
 }
 
@@ -362,14 +365,14 @@ var _ validator = (*CreateEventDeliveryStatusInput)(nil)
 type CreateEventDeliveryStatusInput struct {
 	models.NamespacedModel
 
-	// ID defines the Event identifier the EventDeliveryStatus belongs to.
-	EventID   string                   `json:"eventId"`
-	State     EventDeliveryStatusState `json:"state"`
-	ChannelID string                   `json:"channelId"`
-	Timestamp time.Time                `json:"timestamp"`
+	State EventDeliveryStatusState `json:"state"`
+	// EventID defines the Event identifier the EventDeliveryStatus belongs to.
+	EventID string `json:"eventId"`
+	// ChannelID defines the Channel identifier the EventDeliveryStatus belongs to.
+	ChannelID string `json:"channelId"`
 }
 
-func (i CreateEventDeliveryStatusInput) Validate(_ context.Context, _ Connector) error {
+func (i CreateEventDeliveryStatusInput) Validate(_ context.Context, _ Service) error {
 	if i.Namespace == "" {
 		return ValidationError{
 			Err: fmt.Errorf("namespace must be provided"),
@@ -383,18 +386,25 @@ func (i CreateEventDeliveryStatusInput) Validate(_ context.Context, _ Connector)
 	return nil
 }
 
-// GetCreatedAtFromEventID returns the timestamp when the Event was created diverged from the Event.ID
-// which must be in ULID format. It returns an error if Event.ID is not a valid ULID.
-// Note: it helps with scoping the query used for fetching Event from database.
-func GetCreatedAtFromEventID(eventID string) (time.Time, error) {
-	id, err := ulid.Parse(eventID)
-	if err != nil {
-		return time.Time{}, ValidationError{
-			Err: fmt.Errorf("failed to parse event id %q: %w", eventID, err),
+var _ validator = (*UpdateEventDeliveryStatusInput)(nil)
+
+type UpdateEventDeliveryStatusInput struct {
+	models.NamespacedModel
+
+	ID    string                   `json:"id"`
+	State EventDeliveryStatusState `json:"state"`
+}
+
+func (i UpdateEventDeliveryStatusInput) Validate(_ context.Context, _ Service) error {
+	if i.Namespace == "" {
+		return ValidationError{
+			Err: fmt.Errorf("namespace must be provided"),
 		}
 	}
 
-	createdAt := time.UnixMilli(int64(id.Time()))
+	if err := i.State.Validate(); err != nil {
+		return err
+	}
 
-	return createdAt, nil
+	return nil
 }

@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	notificationeventtypes "github.com/openmeterio/openmeter/internal/notification/eventtypes"
 	notificationwebhook "github.com/openmeterio/openmeter/internal/notification/webhook"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
@@ -37,7 +36,7 @@ type WebhookTestSuite struct {
 
 func (s *WebhookTestSuite) Setup(ctx context.Context, t *testing.T) {
 	err := s.Env.NotificationWebhook().RegisterEventTypes(ctx, notificationwebhook.RegisterEventTypesInputs{
-		EvenTypes: notificationeventtypes.NotificationEventTypes,
+		EvenTypes: notificationwebhook.NotificationEventTypes,
 	})
 	assert.NoError(t, err, "Registering event types must not fail")
 }
@@ -168,7 +167,7 @@ func (s *WebhookTestSuite) TestListWebhook(ctx context.Context, t *testing.T) {
 	createIn2 := clone.Clone(createWebhookInput).(notificationwebhook.CreateWebhookInputs)
 	createIn2.Description = convert.ToPointer("TestListWebhook2")
 	createIn2.EventTypes = []string{
-		notificationeventtypes.EntitlementsBalanceThresholdType,
+		notificationwebhook.EntitlementsBalanceThresholdType,
 	}
 
 	webhook2, err := wb.CreateWebhook(ctx, createIn2)

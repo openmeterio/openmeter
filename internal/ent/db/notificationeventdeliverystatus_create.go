@@ -59,13 +59,19 @@ func (nedsc *NotificationEventDeliveryStatusCreate) SetNillableUpdatedAt(t *time
 	return nedsc
 }
 
-// SetType sets the "type" field.
-func (nedsc *NotificationEventDeliveryStatusCreate) SetType(nt notification.EventType) *NotificationEventDeliveryStatusCreate {
-	nedsc.mutation.SetType(nt)
+// SetEventID sets the "event_id" field.
+func (nedsc *NotificationEventDeliveryStatusCreate) SetEventID(s string) *NotificationEventDeliveryStatusCreate {
+	nedsc.mutation.SetEventID(s)
 	return nedsc
 }
 
-// SetState sets the "State" field.
+// SetChannelID sets the "channel_id" field.
+func (nedsc *NotificationEventDeliveryStatusCreate) SetChannelID(s string) *NotificationEventDeliveryStatusCreate {
+	nedsc.mutation.SetChannelID(s)
+	return nedsc
+}
+
+// SetState sets the "state" field.
 func (nedsc *NotificationEventDeliveryStatusCreate) SetState(ndss notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusCreate {
 	nedsc.mutation.SetState(ndss)
 	return nedsc
@@ -165,20 +171,28 @@ func (nedsc *NotificationEventDeliveryStatusCreate) check() error {
 	if _, ok := nedsc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "NotificationEventDeliveryStatus.updated_at"`)}
 	}
-	if _, ok := nedsc.mutation.GetType(); !ok {
-		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "NotificationEventDeliveryStatus.type"`)}
+	if _, ok := nedsc.mutation.EventID(); !ok {
+		return &ValidationError{Name: "event_id", err: errors.New(`db: missing required field "NotificationEventDeliveryStatus.event_id"`)}
 	}
-	if v, ok := nedsc.mutation.GetType(); ok {
-		if err := notificationeventdeliverystatus.TypeValidator(v); err != nil {
-			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.type": %w`, err)}
+	if v, ok := nedsc.mutation.EventID(); ok {
+		if err := notificationeventdeliverystatus.EventIDValidator(v); err != nil {
+			return &ValidationError{Name: "event_id", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.event_id": %w`, err)}
+		}
+	}
+	if _, ok := nedsc.mutation.ChannelID(); !ok {
+		return &ValidationError{Name: "channel_id", err: errors.New(`db: missing required field "NotificationEventDeliveryStatus.channel_id"`)}
+	}
+	if v, ok := nedsc.mutation.ChannelID(); ok {
+		if err := notificationeventdeliverystatus.ChannelIDValidator(v); err != nil {
+			return &ValidationError{Name: "channel_id", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.channel_id": %w`, err)}
 		}
 	}
 	if _, ok := nedsc.mutation.State(); !ok {
-		return &ValidationError{Name: "State", err: errors.New(`db: missing required field "NotificationEventDeliveryStatus.State"`)}
+		return &ValidationError{Name: "state", err: errors.New(`db: missing required field "NotificationEventDeliveryStatus.state"`)}
 	}
 	if v, ok := nedsc.mutation.State(); ok {
 		if err := notificationeventdeliverystatus.StateValidator(v); err != nil {
-			return &ValidationError{Name: "State", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.State": %w`, err)}
+			return &ValidationError{Name: "state", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.state": %w`, err)}
 		}
 	}
 	return nil
@@ -229,9 +243,13 @@ func (nedsc *NotificationEventDeliveryStatusCreate) createSpec() (*NotificationE
 		_spec.SetField(notificationeventdeliverystatus.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
 	}
-	if value, ok := nedsc.mutation.GetType(); ok {
-		_spec.SetField(notificationeventdeliverystatus.FieldType, field.TypeEnum, value)
-		_node.Type = value
+	if value, ok := nedsc.mutation.EventID(); ok {
+		_spec.SetField(notificationeventdeliverystatus.FieldEventID, field.TypeString, value)
+		_node.EventID = value
+	}
+	if value, ok := nedsc.mutation.ChannelID(); ok {
+		_spec.SetField(notificationeventdeliverystatus.FieldChannelID, field.TypeString, value)
+		_node.ChannelID = value
 	}
 	if value, ok := nedsc.mutation.State(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldState, field.TypeEnum, value)
@@ -317,13 +335,13 @@ func (u *NotificationEventDeliveryStatusUpsert) UpdateUpdatedAt() *NotificationE
 	return u
 }
 
-// SetState sets the "State" field.
+// SetState sets the "state" field.
 func (u *NotificationEventDeliveryStatusUpsert) SetState(v notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpsert {
 	u.Set(notificationeventdeliverystatus.FieldState, v)
 	return u
 }
 
-// UpdateState sets the "State" field to the value that was provided on create.
+// UpdateState sets the "state" field to the value that was provided on create.
 func (u *NotificationEventDeliveryStatusUpsert) UpdateState() *NotificationEventDeliveryStatusUpsert {
 	u.SetExcluded(notificationeventdeliverystatus.FieldState)
 	return u
@@ -352,8 +370,11 @@ func (u *NotificationEventDeliveryStatusUpsertOne) UpdateNewValues() *Notificati
 		if _, exists := u.create.mutation.CreatedAt(); exists {
 			s.SetIgnore(notificationeventdeliverystatus.FieldCreatedAt)
 		}
-		if _, exists := u.create.mutation.GetType(); exists {
-			s.SetIgnore(notificationeventdeliverystatus.FieldType)
+		if _, exists := u.create.mutation.EventID(); exists {
+			s.SetIgnore(notificationeventdeliverystatus.FieldEventID)
+		}
+		if _, exists := u.create.mutation.ChannelID(); exists {
+			s.SetIgnore(notificationeventdeliverystatus.FieldChannelID)
 		}
 	}))
 	return u
@@ -400,14 +421,14 @@ func (u *NotificationEventDeliveryStatusUpsertOne) UpdateUpdatedAt() *Notificati
 	})
 }
 
-// SetState sets the "State" field.
+// SetState sets the "state" field.
 func (u *NotificationEventDeliveryStatusUpsertOne) SetState(v notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpsertOne {
 	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
 		s.SetState(v)
 	})
 }
 
-// UpdateState sets the "State" field to the value that was provided on create.
+// UpdateState sets the "state" field to the value that was provided on create.
 func (u *NotificationEventDeliveryStatusUpsertOne) UpdateState() *NotificationEventDeliveryStatusUpsertOne {
 	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
 		s.UpdateState()
@@ -603,8 +624,11 @@ func (u *NotificationEventDeliveryStatusUpsertBulk) UpdateNewValues() *Notificat
 			if _, exists := b.mutation.CreatedAt(); exists {
 				s.SetIgnore(notificationeventdeliverystatus.FieldCreatedAt)
 			}
-			if _, exists := b.mutation.GetType(); exists {
-				s.SetIgnore(notificationeventdeliverystatus.FieldType)
+			if _, exists := b.mutation.EventID(); exists {
+				s.SetIgnore(notificationeventdeliverystatus.FieldEventID)
+			}
+			if _, exists := b.mutation.ChannelID(); exists {
+				s.SetIgnore(notificationeventdeliverystatus.FieldChannelID)
 			}
 		}
 	}))
@@ -652,14 +676,14 @@ func (u *NotificationEventDeliveryStatusUpsertBulk) UpdateUpdatedAt() *Notificat
 	})
 }
 
-// SetState sets the "State" field.
+// SetState sets the "state" field.
 func (u *NotificationEventDeliveryStatusUpsertBulk) SetState(v notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpsertBulk {
 	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
 		s.SetState(v)
 	})
 }
 
-// UpdateState sets the "State" field to the value that was provided on create.
+// UpdateState sets the "state" field to the value that was provided on create.
 func (u *NotificationEventDeliveryStatusUpsertBulk) UpdateState() *NotificationEventDeliveryStatusUpsertBulk {
 	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
 		s.UpdateState()

@@ -18,8 +18,7 @@ var createEventInput = notification.CreateEventInput{
 	NamespacedModel: models.NamespacedModel{
 		Namespace: TestNamespace,
 	},
-	Type:      notification.EventTypeBalanceThreshold,
-	CreatedAt: time.Now(),
+	Type: notification.EventTypeBalanceThreshold,
 	Payload: notification.EventPayload{
 		EventPayloadMeta: notification.EventPayloadMeta{
 			Type: notification.EventTypeBalanceThreshold,
@@ -99,13 +98,13 @@ type EventTestSuite struct {
 }
 
 func (s *EventTestSuite) Setup(ctx context.Context, t *testing.T) {
-	connector := s.Env.NotificationConn()
+	service := s.Env.Notification()
 
 	channelIn := clone.Clone(createChannelInput).(notification.CreateChannelInput)
 	channelIn.Name = "NotificationEvent"
 	channelIn.Config.WebHook.URL = "https://play.svix.com/in/e_vfY684MsprnBfc8IR04tSJH4K1T/"
 
-	channel, err := connector.CreateChannel(ctx, channelIn)
+	channel, err := service.CreateChannel(ctx, channelIn)
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel, "Channel must not be nil")
 
@@ -117,7 +116,7 @@ func (s *EventTestSuite) Setup(ctx context.Context, t *testing.T) {
 		s.channel.ID,
 	}
 
-	rule, err := connector.CreateRule(ctx, ruleIn)
+	rule, err := service.CreateRule(ctx, ruleIn)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule, "Rule must not be nil")
 
@@ -127,24 +126,24 @@ func (s *EventTestSuite) Setup(ctx context.Context, t *testing.T) {
 }
 
 func (s *EventTestSuite) TestCreateEvent(ctx context.Context, t *testing.T) {
-	connector := s.Env.NotificationConn()
+	service := s.Env.Notification()
 
 	input := clone.Clone(createEventInput).(notification.CreateEventInput)
 	input.Rule = s.rule
 
-	event, err := connector.CreateEvent(ctx, input)
+	event, err := service.CreateEvent(ctx, input)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, event, "Rule must not be nil")
 
 	// FIXME: add more assertions
 }
 func (s *EventTestSuite) TestListEvents(ctx context.Context, t *testing.T) {
-	connector := s.Env.NotificationConn()
+	service := s.Env.Notification()
 
 	input := clone.Clone(createEventInput).(notification.CreateEventInput)
 	input.Rule = s.rule
 
-	event, err := connector.CreateEvent(ctx, input)
+	event, err := service.CreateEvent(ctx, input)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, event, "Rule must not be nil")
 
@@ -156,7 +155,7 @@ func (s *EventTestSuite) TestListEvents(ctx context.Context, t *testing.T) {
 		To:   event.CreatedAt.Add(time.Minute),
 	}
 
-	events, err := connector.ListEvents(ctx, input2)
+	events, err := service.ListEvents(ctx, input2)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, event, "Rule must not be nil")
 

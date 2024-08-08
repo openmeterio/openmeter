@@ -41,11 +41,11 @@ type ChannelTestSuite struct {
 }
 
 func (s *ChannelTestSuite) TestCreate(ctx context.Context, t *testing.T) {
-	connector := s.Env.NotificationConn()
+	service := s.Env.Notification()
 
 	input := clone.Clone(createChannelInput).(notification.CreateChannelInput)
 
-	channel, err := connector.CreateChannel(ctx, input)
+	channel, err := service.CreateChannel(ctx, input)
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel, "Channel must not be nil")
 	assert.NotEmpty(t, channel.ID, "Channel ID must not be empty")
@@ -55,21 +55,21 @@ func (s *ChannelTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 }
 
 func (s *ChannelTestSuite) TestList(ctx context.Context, t *testing.T) {
-	connector := s.Env.NotificationConn()
+	service := s.Env.Notification()
 
 	input1 := clone.Clone(createChannelInput).(notification.CreateChannelInput)
 	input1.Name = "NotificationListChannel1"
-	channel1, err := connector.CreateChannel(ctx, input1)
+	channel1, err := service.CreateChannel(ctx, input1)
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel1, "Channel must not be nil")
 
 	input2 := clone.Clone(createChannelInput).(notification.CreateChannelInput)
 	input2.Name = "NotificationListChannel2"
-	channel2, err := connector.CreateChannel(ctx, input2)
+	channel2, err := service.CreateChannel(ctx, input2)
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel2, "Channel must not be nil")
 
-	list, err := connector.ListChannels(ctx, notification.ListChannelsInput{
+	list, err := service.ListChannels(ctx, notification.ListChannelsInput{
 		Namespaces: []string{
 			input1.Namespace,
 			input2.Namespace,
@@ -93,12 +93,12 @@ func (s *ChannelTestSuite) TestList(ctx context.Context, t *testing.T) {
 }
 
 func (s *ChannelTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
-	connector := s.Env.NotificationConn()
+	service := s.Env.Notification()
 
 	input := clone.Clone(createChannelInput).(notification.CreateChannelInput)
 	input.Name = "NotificationUpdateChannel1"
 
-	channel, err := connector.CreateChannel(ctx, input)
+	channel, err := service.CreateChannel(ctx, input)
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel, "Channel must not be nil")
 
@@ -123,7 +123,7 @@ func (s *ChannelTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 		ID: channel.ID,
 	}
 
-	channel2, err := connector.UpdateChannel(ctx, input2)
+	channel2, err := service.UpdateChannel(ctx, input2)
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel2, "Channel must not be nil")
 
@@ -133,16 +133,16 @@ func (s *ChannelTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 }
 
 func (s *ChannelTestSuite) TestDelete(ctx context.Context, t *testing.T) {
-	connector := s.Env.NotificationConn()
+	service := s.Env.Notification()
 
 	input := clone.Clone(createChannelInput).(notification.CreateChannelInput)
 	input.Name = "NotificationDeleteChannel1"
 
-	channel, err := connector.CreateChannel(ctx, input)
+	channel, err := service.CreateChannel(ctx, input)
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel, "Channel must not be nil")
 
-	err = connector.DeleteChannel(ctx, notification.DeleteChannelInput{
+	err = service.DeleteChannel(ctx, notification.DeleteChannelInput{
 		Namespace: channel.Namespace,
 		ID:        channel.ID,
 	})
@@ -150,16 +150,16 @@ func (s *ChannelTestSuite) TestDelete(ctx context.Context, t *testing.T) {
 }
 
 func (s *ChannelTestSuite) TestGet(ctx context.Context, t *testing.T) {
-	connector := s.Env.NotificationConn()
+	service := s.Env.Notification()
 
 	input := clone.Clone(createChannelInput).(notification.CreateChannelInput)
 	input.Name = "NotificationGetChannel1"
 
-	channel, err := connector.CreateChannel(ctx, input)
+	channel, err := service.CreateChannel(ctx, input)
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel, "Channel must not be nil")
 
-	channel2, err := connector.GetChannel(ctx, notification.GetChannelInput{
+	channel2, err := service.GetChannel(ctx, notification.GetChannelInput{
 		Namespace: channel.Namespace,
 		ID:        channel.ID,
 	})

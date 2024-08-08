@@ -10,15 +10,15 @@ import (
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 )
 
-type Connector interface {
+type Service interface {
 	FeatureConnector
 
-	ChannelConnector
-	RuleConnector
-	EventConnector
+	ChannelService
+	RuleService
+	EventService
 }
 
-type ChannelConnector interface {
+type ChannelService interface {
 	ListChannels(ctx context.Context, params ListChannelsInput) (ListChannelsResult, error)
 	CreateChannel(ctx context.Context, params CreateChannelInput) (*Channel, error)
 	DeleteChannel(ctx context.Context, params DeleteChannelInput) error
@@ -26,7 +26,7 @@ type ChannelConnector interface {
 	UpdateChannel(ctx context.Context, params UpdateChannelInput) (*Channel, error)
 }
 
-type RuleConnector interface {
+type RuleService interface {
 	ListRules(ctx context.Context, params ListRulesInput) (ListRulesResult, error)
 	CreateRule(ctx context.Context, params CreateRuleInput) (*Rule, error)
 	DeleteRule(ctx context.Context, params DeleteRuleInput) error
@@ -34,7 +34,7 @@ type RuleConnector interface {
 	UpdateRule(ctx context.Context, params UpdateRuleInput) (*Rule, error)
 }
 
-type EventConnector interface {
+type EventService interface {
 	ListEvents(ctx context.Context, params ListEventsInput) (ListEventsResult, error)
 	GetEvent(ctx context.Context, params GetEventInput) (*Event, error)
 	CreateEvent(ctx context.Context, params CreateEventInput) (*Event, error)
@@ -47,16 +47,16 @@ type FeatureConnector interface {
 	ListFeature(ctx context.Context, namespace string, features ...string) ([]productcatalog.Feature, error)
 }
 
-var _ Connector = (*connector)(nil)
+var _ Service = (*service)(nil)
 
-type connector struct {
+type service struct {
 	feature productcatalog.FeatureConnector
 
 	repo    Repository
 	webhook webhook.Handler
 }
 
-type ConnectorConfig struct {
+type Config struct {
 	Repository Repository
 
 	FeatureConnector productcatalog.FeatureConnector
@@ -65,7 +65,7 @@ type ConnectorConfig struct {
 	Logger *slog.Logger
 }
 
-func NewConnector(config ConnectorConfig) (Connector, error) {
+func New(config Config) (Service, error) {
 	if config.Repository == nil {
 		return nil, errors.New("missing repository")
 	}
@@ -75,17 +75,17 @@ func NewConnector(config ConnectorConfig) (Connector, error) {
 	}
 
 	if config.Webhook == nil {
-		return nil, errors.New("missing webhook connector")
+		return nil, errors.New("missing webhook handler")
 	}
 
-	return &connector{
+	return &service{
 		repo:    config.Repository,
 		feature: config.FeatureConnector,
 		webhook: config.Webhook,
 	}, nil
 }
 
-func (c connector) ListFeature(ctx context.Context, namespace string, features ...string) ([]productcatalog.Feature, error) {
+func (c service) ListFeature(ctx context.Context, namespace string, features ...string) ([]productcatalog.Feature, error) {
 	resp, err := c.feature.ListFeatures(ctx, productcatalog.ListFeaturesParams{
 		IDsOrKeys:       features,
 		Namespace:       namespace,
@@ -99,7 +99,7 @@ func (c connector) ListFeature(ctx context.Context, namespace string, features .
 	return resp.Items, nil
 }
 
-func (c connector) ListChannels(ctx context.Context, params ListChannelsInput) (ListChannelsResult, error) {
+func (c service) ListChannels(ctx context.Context, params ListChannelsInput) (ListChannelsResult, error) {
 	if err := params.Validate(ctx, c); err != nil {
 		return ListChannelsResult{}, fmt.Errorf("invalid params: %w", err)
 	}
@@ -107,12 +107,12 @@ func (c connector) ListChannels(ctx context.Context, params ListChannelsInput) (
 	return c.repo.ListChannels(ctx, params)
 }
 
-func (c connector) CreateChannel(ctx context.Context, params CreateChannelInput) (*Channel, error) {
+func (c service) CreateChannel(ctx context.Context, params CreateChannelInput) (*Channel, error) {
 	if err := params.Validate(ctx, c); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
-	// FIXME: this should be in transaction
+	// FIXME: this must be in transaction
 
 	channel, err := c.repo.CreateChannel(ctx, params)
 	if err != nil {
@@ -121,11 +121,17 @@ func (c connector) CreateChannel(ctx context.Context, params CreateChannelInput)
 
 	switch params.Type {
 	case ChannelTypeWebhook:
+		var headers map[string]string
+		headers, err = interfaceMapToStringMap(channel.Config.WebHook.CustomHeaders)
+		if err != nil {
+			return nil, fmt.Errorf("failed to cast custom headers: %w", err)
+		}
+
 		_, err = c.webhook.CreateWebhook(ctx, webhook.CreateWebhookInputs{
 			Namespace:     params.Namespace,
 			ID:            &channel.ID,
 			URL:           channel.Config.WebHook.URL,
-			CustomHeaders: nil, // FIXME
+			CustomHeaders: headers,
 			Disabled:      channel.Disabled,
 			Secret:        &channel.Config.WebHook.SigningSecret,
 		})
@@ -139,7 +145,7 @@ func (c connector) CreateChannel(ctx context.Context, params CreateChannelInput)
 	return channel, nil
 }
 
-func (c connector) DeleteChannel(ctx context.Context, params DeleteChannelInput) error {
+func (c service) DeleteChannel(ctx context.Context, params DeleteChannelInput) error {
 	if err := params.Validate(ctx, c); err != nil {
 		return fmt.Errorf("invalid params: %w", err)
 	}
@@ -147,7 +153,7 @@ func (c connector) DeleteChannel(ctx context.Context, params DeleteChannelInput)
 	return c.repo.DeleteChannel(ctx, params)
 }
 
-func (c connector) GetChannel(ctx context.Context, params GetChannelInput) (*Channel, error) {
+func (c service) GetChannel(ctx context.Context, params GetChannelInput) (*Channel, error) {
 	if err := params.Validate(ctx, c); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
@@ -155,7 +161,7 @@ func (c connector) GetChannel(ctx context.Context, params GetChannelInput) (*Cha
 	return c.repo.GetChannel(ctx, params)
 }
 
-func (c connector) UpdateChannel(ctx context.Context, params UpdateChannelInput) (*Channel, error) {
+func (c service) UpdateChannel(ctx context.Context, params UpdateChannelInput) (*Channel, error) {
 	if err := params.Validate(ctx, c); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
@@ -174,7 +180,7 @@ func (c connector) UpdateChannel(ctx context.Context, params UpdateChannelInput)
 		}
 	}
 
-	// FIXME: this needs to be in transaction
+	// FIXME: this must to be in transaction
 
 	channel, err = c.repo.UpdateChannel(ctx, params)
 	if err != nil {
@@ -183,11 +189,17 @@ func (c connector) UpdateChannel(ctx context.Context, params UpdateChannelInput)
 
 	switch params.Type {
 	case ChannelTypeWebhook:
+		var headers map[string]string
+		headers, err = interfaceMapToStringMap(channel.Config.WebHook.CustomHeaders)
+		if err != nil {
+			return nil, fmt.Errorf("failed to cast custom headers: %w", err)
+		}
+
 		_, err = c.webhook.UpdateWebhook(ctx, webhook.UpdateWebhookInputs{
 			Namespace:     params.Namespace,
 			ID:            channel.ID,
 			URL:           channel.Config.WebHook.URL,
-			CustomHeaders: nil, // FIXME
+			CustomHeaders: headers,
 			Disabled:      channel.Disabled,
 			Secret:        &channel.Config.WebHook.SigningSecret,
 		})
@@ -201,7 +213,7 @@ func (c connector) UpdateChannel(ctx context.Context, params UpdateChannelInput)
 	return channel, nil
 }
 
-func (c connector) ListRules(ctx context.Context, params ListRulesInput) (ListRulesResult, error) {
+func (c service) ListRules(ctx context.Context, params ListRulesInput) (ListRulesResult, error) {
 	if err := params.Validate(ctx, c); err != nil {
 		return ListRulesResult{}, fmt.Errorf("invalid params: %w", err)
 	}
@@ -209,7 +221,7 @@ func (c connector) ListRules(ctx context.Context, params ListRulesInput) (ListRu
 	return c.repo.ListRules(ctx, params)
 }
 
-func (c connector) CreateRule(ctx context.Context, params CreateRuleInput) (*Rule, error) {
+func (c service) CreateRule(ctx context.Context, params CreateRuleInput) (*Rule, error) {
 	if err := params.Validate(ctx, c); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
@@ -242,7 +254,7 @@ func (c connector) CreateRule(ctx context.Context, params CreateRuleInput) (*Rul
 	return rule, nil
 }
 
-func (c connector) DeleteRule(ctx context.Context, params DeleteRuleInput) error {
+func (c service) DeleteRule(ctx context.Context, params DeleteRuleInput) error {
 	if err := params.Validate(ctx, c); err != nil {
 		return fmt.Errorf("invalid params: %w", err)
 	}
@@ -276,7 +288,7 @@ func (c connector) DeleteRule(ctx context.Context, params DeleteRuleInput) error
 	return c.repo.DeleteRule(ctx, params)
 }
 
-func (c connector) GetRule(ctx context.Context, params GetRuleInput) (*Rule, error) {
+func (c service) GetRule(ctx context.Context, params GetRuleInput) (*Rule, error) {
 	if err := params.Validate(ctx, c); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
@@ -284,7 +296,7 @@ func (c connector) GetRule(ctx context.Context, params GetRuleInput) (*Rule, err
 	return c.repo.GetRule(ctx, params)
 }
 
-func (c connector) UpdateRule(ctx context.Context, params UpdateRuleInput) (*Rule, error) {
+func (c service) UpdateRule(ctx context.Context, params UpdateRuleInput) (*Rule, error) {
 	if err := params.Validate(ctx, c); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
@@ -306,7 +318,7 @@ func (c connector) UpdateRule(ctx context.Context, params UpdateRuleInput) (*Rul
 	return c.repo.UpdateRule(ctx, params)
 }
 
-func (c connector) ListEvents(ctx context.Context, params ListEventsInput) (ListEventsResult, error) {
+func (c service) ListEvents(ctx context.Context, params ListEventsInput) (ListEventsResult, error) {
 	if err := params.Validate(ctx, c); err != nil {
 		return ListEventsResult{}, fmt.Errorf("invalid params: %w", err)
 	}
@@ -314,7 +326,7 @@ func (c connector) ListEvents(ctx context.Context, params ListEventsInput) (List
 	return c.repo.ListEvents(ctx, params)
 }
 
-func (c connector) GetEvent(ctx context.Context, params GetEventInput) (*Event, error) {
+func (c service) GetEvent(ctx context.Context, params GetEventInput) (*Event, error) {
 	if err := params.Validate(ctx, c); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
@@ -322,7 +334,7 @@ func (c connector) GetEvent(ctx context.Context, params GetEventInput) (*Event, 
 	return c.repo.GetEvent(ctx, params)
 }
 
-func (c connector) CreateEvent(ctx context.Context, params CreateEventInput) (*Event, error) {
+func (c service) CreateEvent(ctx context.Context, params CreateEventInput) (*Event, error) {
 	if err := params.Validate(ctx, c); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
@@ -330,7 +342,7 @@ func (c connector) CreateEvent(ctx context.Context, params CreateEventInput) (*E
 	return c.repo.CreateEvent(ctx, params)
 }
 
-func (c connector) ListEventsDeliveryStatus(ctx context.Context, params ListEventsDeliveryStatusInput) (ListEventsDeliveryStatusResult, error) {
+func (c service) ListEventsDeliveryStatus(ctx context.Context, params ListEventsDeliveryStatusInput) (ListEventsDeliveryStatusResult, error) {
 	if err := params.Validate(ctx, c); err != nil {
 		return ListEventsDeliveryStatusResult{}, fmt.Errorf("invalid params: %w", err)
 	}
@@ -338,7 +350,7 @@ func (c connector) ListEventsDeliveryStatus(ctx context.Context, params ListEven
 	return c.repo.ListEventsDeliveryStatus(ctx, params)
 }
 
-func (c connector) GetEventDeliveryStatus(ctx context.Context, params GetEventDeliveryStatusInput) (*EventDeliveryStatus, error) {
+func (c service) GetEventDeliveryStatus(ctx context.Context, params GetEventDeliveryStatusInput) (*EventDeliveryStatus, error) {
 	if err := params.Validate(ctx, c); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
@@ -346,10 +358,29 @@ func (c connector) GetEventDeliveryStatus(ctx context.Context, params GetEventDe
 	return c.repo.GetEventDeliveryStatus(ctx, params)
 }
 
-func (c connector) CreateEventDeliveryStatus(ctx context.Context, params CreateEventDeliveryStatusInput) (*EventDeliveryStatus, error) {
+func (c service) CreateEventDeliveryStatus(ctx context.Context, params CreateEventDeliveryStatusInput) (*EventDeliveryStatus, error) {
 	if err := params.Validate(ctx, c); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
 	return c.repo.CreateEventDeliveryStatus(ctx, params)
+}
+
+func interfaceMapToStringMap(m map[string]interface{}) (map[string]string, error) {
+	var s map[string]string
+	if len(m) > 0 {
+		s = make(map[string]string, len(m))
+		for k, v := range m {
+			switch t := v.(type) {
+			case string:
+				s[k] = t
+			case fmt.Stringer:
+				s[k] = t.String()
+			default:
+				return s, fmt.Errorf("failed to cast value with %T to string", t)
+			}
+		}
+	}
+
+	return s, nil
 }

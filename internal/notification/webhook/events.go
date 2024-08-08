@@ -1,11 +1,9 @@
-package eventtypes
+package webhook
 
 import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
-
-	notificationwebhook "github.com/openmeterio/openmeter/internal/notification/webhook"
 )
 
 const (
@@ -14,11 +12,11 @@ const (
 	EntitlementsBalanceThresholdDescription = "Notification event for entitlements balance threshold violations"
 )
 
-var NotificationEventTypes = []notificationwebhook.EventType{
+var NotificationEventTypes = []EventType{
 	EntitlementsBalanceThresholdEventType,
 }
 
-var EntitlementsBalanceThresholdEventType = notificationwebhook.EventType{
+var EntitlementsBalanceThresholdEventType = EventType{
 	Name:        EntitlementsBalanceThresholdType,
 	Description: EntitlementsBalanceThresholdDescription,
 	GroupName:   EntitlementsEventGroupName,

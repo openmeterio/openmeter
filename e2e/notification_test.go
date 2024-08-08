@@ -20,7 +20,7 @@ const (
 func TestNotification(t *testing.T) {
 	env, err := notificatione2e.NewNotificationTestEnv(PostgresURL, ClickhouseAddr, SvixServerURL, SvixJWTSigningSecret)
 	require.NoError(t, err, "NotificationTestEnv() failed")
-	require.NotNil(t, env.NotificationConn())
+	require.NotNil(t, env.Notification())
 	require.NotNil(t, env.NotificationRepo())
 	require.NotNil(t, env.FeatureConn())
 

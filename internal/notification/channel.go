@@ -149,13 +149,11 @@ func (w WebHookChannelConfig) Validate() error {
 	return nil
 }
 
-type ChannelOrderBy string
-
 const (
-	ChannelOrderByID        = ChannelOrderBy(api.ListNotificationChannelsParamsOrderById)
-	ChannelOrderByType      = ChannelOrderBy(api.ListNotificationChannelsParamsOrderByType)
-	ChannelOrderByCreatedAt = ChannelOrderBy(api.ListNotificationChannelsParamsOrderByCreatedAt)
-	ChannelOrderByUpdatedAt = ChannelOrderBy(api.ListNotificationChannelsParamsOrderByUpdatedAt)
+	ChannelOrderByID        = api.ListNotificationChannelsParamsOrderById
+	ChannelOrderByType      = api.ListNotificationChannelsParamsOrderByType
+	ChannelOrderByCreatedAt = api.ListNotificationChannelsParamsOrderByCreatedAt
+	ChannelOrderByUpdatedAt = api.ListNotificationChannelsParamsOrderByUpdatedAt
 )
 
 const (
@@ -170,12 +168,13 @@ type ListChannelsInput struct {
 
 	Namespaces      []string
 	Channels        []string
-	OrderBy         ChannelOrderBy
-	Order           sortx.Order
 	IncludeDisabled bool
+
+	OrderBy api.ListNotificationChannelsParamsOrderBy
+	Order   sortx.Order
 }
 
-func (i ListChannelsInput) Validate(_ context.Context, _ Connector) error {
+func (i ListChannelsInput) Validate(_ context.Context, _ Service) error {
 	return nil
 }
 
@@ -196,7 +195,7 @@ type CreateChannelInput struct {
 	Config ChannelConfig
 }
 
-func (i CreateChannelInput) Validate(_ context.Context, _ Connector) error {
+func (i CreateChannelInput) Validate(_ context.Context, _ Service) error {
 	if i.Namespace == "" {
 		return ValidationError{
 			Err: errors.New("namespace is required"),
@@ -281,7 +280,7 @@ func (i UpdateChannelInput) FromNotificationChannelWebhookCreateRequest(r api.No
 	}
 }
 
-func (i UpdateChannelInput) Validate(_ context.Context, _ Connector) error {
+func (i UpdateChannelInput) Validate(_ context.Context, _ Service) error {
 	if i.Namespace == "" {
 		return ValidationError{
 			Err: errors.New("namespace is required"),
@@ -315,7 +314,7 @@ var _ validator = (*GetChannelInput)(nil)
 
 type GetChannelInput models.NamespacedID
 
-func (i GetChannelInput) Validate(_ context.Context, _ Connector) error {
+func (i GetChannelInput) Validate(_ context.Context, _ Service) error {
 	if i.Namespace == "" {
 		return ValidationError{
 			Err: errors.New("namespace is required"),
@@ -335,7 +334,7 @@ var _ validator = (*DeleteChannelInput)(nil)
 
 type DeleteChannelInput models.NamespacedID
 
-func (i DeleteChannelInput) Validate(_ context.Context, _ Connector) error {
+func (i DeleteChannelInput) Validate(_ context.Context, _ Service) error {
 	if i.Namespace == "" {
 		return ValidationError{
 			Err: errors.New("namespace is required"),

@@ -222,6 +222,14 @@ func init() {
 	notificationeventdeliverystatus.DefaultUpdatedAt = notificationeventdeliverystatusDescUpdatedAt.Default.(func() time.Time)
 	// notificationeventdeliverystatus.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	notificationeventdeliverystatus.UpdateDefaultUpdatedAt = notificationeventdeliverystatusDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// notificationeventdeliverystatusDescEventID is the schema descriptor for event_id field.
+	notificationeventdeliverystatusDescEventID := notificationeventdeliverystatusFields[2].Descriptor()
+	// notificationeventdeliverystatus.EventIDValidator is a validator for the "event_id" field. It is called by the builders before save.
+	notificationeventdeliverystatus.EventIDValidator = notificationeventdeliverystatusDescEventID.Validators[0].(func(string) error)
+	// notificationeventdeliverystatusDescChannelID is the schema descriptor for channel_id field.
+	notificationeventdeliverystatusDescChannelID := notificationeventdeliverystatusFields[3].Descriptor()
+	// notificationeventdeliverystatus.ChannelIDValidator is a validator for the "channel_id" field. It is called by the builders before save.
+	notificationeventdeliverystatus.ChannelIDValidator = notificationeventdeliverystatusDescChannelID.Validators[0].(func(string) error)
 	// notificationeventdeliverystatusDescID is the schema descriptor for id field.
 	notificationeventdeliverystatusDescID := notificationeventdeliverystatusMixinFields0[0].Descriptor()
 	// notificationeventdeliverystatus.DefaultID holds the default value on creation for the id field.

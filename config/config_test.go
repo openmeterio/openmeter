@@ -237,6 +237,11 @@ func TestComplete(t *testing.T) {
 				ConsumerGroupName: "om_notification_service",
 			},
 		},
+		Svix: SvixConfiguration{
+			APIToken:  "test-svix-token",
+			ServerURL: "http://127.0.0.1:8071",
+			Debug:     true,
+		},
 	}
 
 	assert.Equal(t, expected, actual)

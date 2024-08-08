@@ -46,6 +46,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/internal/notification"
 	notificationrepository "github.com/openmeterio/openmeter/internal/notification/repository"
+	notificationwebhook "github.com/openmeterio/openmeter/internal/notification/webhook"
 	"github.com/openmeterio/openmeter/internal/registry"
 	registrybuilder "github.com/openmeterio/openmeter/internal/registry/builder"
 	"github.com/openmeterio/openmeter/internal/server"
@@ -326,17 +327,10 @@ func main() {
 		logger.Error("failed to initialize postgres clients", "error", err)
 		os.Exit(1)
 	}
+	defer pgClients.client.Close()
 	logger.Info("Postgres clients initialized")
 
 	if conf.Entitlements.Enabled {
-		pgClients, err := initPGClients(conf.Postgres)
-		if err != nil {
-			logger.Error("failed to initialize postgres clients", "error", err)
-			os.Exit(1)
-		}
-
-		defer pgClients.client.Close()
-
 		entitlementConnRegistry = registrybuilder.GetEntitlementRegistry(registry.EntitlementOptions{
 			DatabaseClient:     pgClients.client,
 			StreamingConnector: streamingConnector,
@@ -347,29 +341,29 @@ func main() {
 	}
 
 	notificationRepo, err := notificationrepository.New(notificationrepository.Config{
-		Postgres: notificationrepository.PostgresAdapterConfig{
-			Client: pgClients.client,
-			Logger: logger.WithGroup("notification.postgres"),
-		},
-		Clickhouse: notificationrepository.ClickhouseAdapterConfig{
-			Connection:              clickHouseClient,
-			Logger:                  logger.WithGroup("notification.clickhouse"),
-			Database:                "openmeter",                       // FIXME: move this to config
-			EventsTableName:         "om_notification_events",          // FIXME: move this to config
-			DeliveryStatusTableName: "om_notification_delivery_status", // FIXME: move this to config
-		},
+		Client: pgClients.client,
+		Logger: logger.WithGroup("notification.postgres"),
 	})
 	if err != nil {
 		logger.Error("failed to initialize notification repository", "error", err)
 		os.Exit(1)
 	}
 
-	notificationConnector, err := notification.NewConnector(notification.ConnectorConfig{
+	notificationWebhook, err := notificationwebhook.New(notificationwebhook.Config{
+		SvixConfig: conf.Svix,
+	})
+	if err != nil {
+		logger.Error("failed to initialize notification repository", "error", err)
+		os.Exit(1)
+	}
+
+	notificationService, err := notification.New(notification.Config{
 		Repository:       notificationRepo,
+		Webhook:          notificationWebhook,
 		FeatureConnector: entitlementConnRegistry.Feature,
 	})
 	if err != nil {
-		logger.Error("failed to initialize notification connector", "error", err)
+		logger.Error("failed to initialize notification service", "error", err)
 		os.Exit(1)
 	}
 
@@ -389,7 +383,7 @@ func main() {
 			EntitlementBalanceConnector: entitlementConnRegistry.MeteredEntitlement,
 			GrantConnector:              entitlementConnRegistry.Grant,
 			GrantRepo:                   entitlementConnRegistry.GrantRepo,
-			NotificationConnector:       notificationConnector,
+			Notification:                notificationService,
 			// modules
 			EntitlementsEnabled: conf.Entitlements.Enabled,
 		},

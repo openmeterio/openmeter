@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -229,8 +230,33 @@ type Handler interface {
 	SendMessage(ctx context.Context, params SendMessageInputs) (*Message, error)
 }
 
-type Config = svixConfig
+type Config struct {
+	SvixConfig
 
-func NewHandler(config Config) (Handler, error) {
-	return newSvixWebhookHandler(config)
+	RegisterEvenTypes []EventType
+}
+
+func New(config Config) (Handler, error) {
+	if config.RegisterEvenTypes == nil {
+		config.RegisterEvenTypes = NotificationEventTypes
+	}
+
+	handler, err := newSvixWebhookHandler(config.SvixConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize Svix webhook handler: %w", err)
+	}
+
+	if len(config.RegisterEvenTypes) > 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		err = handler.RegisterEventTypes(ctx, RegisterEventTypesInputs{
+			EvenTypes: config.RegisterEvenTypes,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to register event types: %w", err)
+		}
+	}
+
+	return handler, nil
 }

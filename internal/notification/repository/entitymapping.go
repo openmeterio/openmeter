@@ -59,3 +59,32 @@ func RuleFromDBEntity(e db.NotificationRule) *notification.Rule {
 		Config:   e.Config,
 	}
 }
+
+func EventFromDBEntity(e db.NotificationEvent) *notification.Event {
+	return &notification.Event{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: e.Namespace,
+		},
+		ID:             e.ID,
+		Type:           e.Type,
+		CreatedAt:      e.CreatedAt,
+		DeliveryStatus: nil,
+		// FIXME:
+		Payload: notification.EventPayload{},
+		// FIXME:
+		Rule: notification.Rule{},
+	}
+}
+
+func EventDeliveryStatusFromDBEntity(e db.NotificationEventDeliveryStatus) *notification.EventDeliveryStatus {
+	return &notification.EventDeliveryStatus{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: e.Namespace,
+		},
+		ID:        e.ID,
+		ChannelID: e.ChannelID,
+		State:     e.State,
+		CreatedAt: e.CreatedAt,
+		UpdatedAt: e.UpdatedAt,
+	}
+}

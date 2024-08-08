@@ -33,7 +33,7 @@ func (h *handler) ListRules() ListRulesHandler {
 			req := ListRulesRequest{
 				Namespaces:      []string{ns},
 				IncludeDisabled: defaultx.WithDefault(params.IncludeDisabled, notification.DefaultDisabled),
-				OrderBy:         notification.RuleOrderBy(defaultx.WithDefault(params.OrderBy, api.ListNotificationRulesParamsOrderById)),
+				OrderBy:         defaultx.WithDefault(params.OrderBy, api.ListNotificationRulesParamsOrderById),
 				Order:           sortx.Order(defaultx.WithDefault(params.Order, api.SortOrderASC)),
 				Page: pagination.Page{
 					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),
@@ -44,7 +44,7 @@ func (h *handler) ListRules() ListRulesHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request ListRulesRequest) (ListRulesResponse, error) {
-			resp, err := h.connector.ListRules(ctx, request)
+			resp, err := h.service.ListRules(ctx, request)
 			if err != nil {
 				return ListRulesResponse{}, fmt.Errorf("failed to list rules: %w", err)
 			}
@@ -122,7 +122,7 @@ func (h *handler) CreateRule() CreateRuleHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request CreateRuleRequest) (CreateRuleResponse, error) {
-			rule, err := h.connector.CreateRule(ctx, request)
+			rule, err := h.service.CreateRule(ctx, request)
 			if err != nil {
 				return CreateRuleResponse{}, fmt.Errorf("failed to create rule: %w", err)
 			}
@@ -183,7 +183,7 @@ func (h *handler) UpdateRule() UpdateRuleHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request UpdateRuleRequest) (UpdateRuleResponse, error) {
-			rule, err := h.connector.UpdateRule(ctx, request)
+			rule, err := h.service.UpdateRule(ctx, request)
 			if err != nil {
 				return UpdateRuleResponse{}, fmt.Errorf("failed to update rule: %w", err)
 			}
@@ -219,7 +219,7 @@ func (h *handler) DeleteRule() DeleteRuleHandler {
 			}, nil
 		},
 		func(ctx context.Context, request DeleteRuleRequest) (DeleteRuleResponse, error) {
-			err := h.connector.DeleteRule(ctx, request)
+			err := h.service.DeleteRule(ctx, request)
 			if err != nil {
 				return nil, fmt.Errorf("failed to delete rule: %w", err)
 			}
@@ -255,7 +255,7 @@ func (h *handler) GetRule() GetRuleHandler {
 			}, nil
 		},
 		func(ctx context.Context, request GetRuleRequest) (GetRuleResponse, error) {
-			rule, err := h.connector.GetRule(ctx, request)
+			rule, err := h.service.GetRule(ctx, request)
 			if err != nil {
 				return GetRuleResponse{}, fmt.Errorf("failed to get rule: %w", err)
 			}

@@ -18,7 +18,7 @@ const (
 
 type TestEnv interface {
 	NotificationRepo() notification.Repository
-	NotificationConn() notification.Connector
+	Notification() notification.Service
 	NotificationWebhook() notificationwebhook.Handler
 
 	FeatureConn() productcatalog.FeatureConnector
@@ -30,7 +30,7 @@ var _ TestEnv = (*testEnv)(nil)
 
 type testEnv struct {
 	notificationRepo notification.Repository
-	notification     notification.Connector
+	notification     notification.Service
 	webhook          notificationwebhook.Handler
 
 	feature productcatalog.FeatureConnector
@@ -46,7 +46,7 @@ func (n testEnv) NotificationRepo() notification.Repository {
 	return n.notificationRepo
 }
 
-func (n testEnv) NotificationConn() notification.Connector {
+func (n testEnv) Notification() notification.Service {
 	return n.notification
 }
 
@@ -88,17 +88,8 @@ func NewNotificationTestEnv(postgresURL, clickhouseAddr, svixServerURL, svixJWTS
 	}()
 
 	repo, err := notificationrepository.New(notificationrepository.Config{
-		Postgres: notificationrepository.PostgresAdapterConfig{
-			Client: pgClient,
-			Logger: logger.WithGroup("postgres"),
-		},
-		Clickhouse: notificationrepository.ClickhouseAdapterConfig{
-			Connection:              chClient,
-			Logger:                  logger.WithGroup("clickhouse"),
-			Database:                "openmeter",
-			EventsTableName:         "om_notification_events",
-			DeliveryStatusTableName: "om_notification_delivery_status",
-		},
+		Client: pgClient,
+		Logger: logger.WithGroup("postgres"),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create notification repo: %w", err)
@@ -106,17 +97,19 @@ func NewNotificationTestEnv(postgresURL, clickhouseAddr, svixServerURL, svixJWTS
 
 	// Setup webhook provider
 
-	authToken, err := NewSvixAuthToken(svixJWTSigningSecret)
+	apiToken, err := NewSvixAuthToken(svixJWTSigningSecret)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate Svix auth token: %w", err)
+		return nil, fmt.Errorf("failed to generate Svix API token: %w", err)
 	}
 
-	logger.Info("Svix Auth Token", slog.String("token", authToken))
+	logger.Info("Svix API Token", slog.String("token", apiToken))
 
-	webhook, err := notificationwebhook.NewHandler(notificationwebhook.Config{
-		ServerURL: svixServerURL,
-		AuthToken: authToken,
-		Debug:     false,
+	webhook, err := notificationwebhook.New(notificationwebhook.Config{
+		SvixConfig: notificationwebhook.SvixConfig{
+			APIToken:  apiToken,
+			ServerURL: svixServerURL,
+			Debug:     false,
+		},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create webhook handler: %w", err)
@@ -125,7 +118,7 @@ func NewNotificationTestEnv(postgresURL, clickhouseAddr, svixServerURL, svixJWTS
 	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(pgClient, logger.WithGroup("feature.postgres"))
 	featureConnector := productcatalog.NewFeatureConnector(featureAdapter, meterRepository)
 
-	connector, err := notification.NewConnector(notification.ConnectorConfig{
+	connector, err := notification.New(notification.Config{
 		Repository:       repo,
 		FeatureConnector: featureConnector,
 		Webhook:          webhook,

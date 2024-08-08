@@ -81,6 +81,16 @@ func UpdatedAt(v time.Time) predicate.NotificationEventDeliveryStatus {
 	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldUpdatedAt, v))
 }
 
+// EventID applies equality check predicate on the "event_id" field. It's identical to EventIDEQ.
+func EventID(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldEventID, v))
+}
+
+// ChannelID applies equality check predicate on the "channel_id" field. It's identical to ChannelIDEQ.
+func ChannelID(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldChannelID, v))
+}
+
 // NamespaceEQ applies the EQ predicate on the "namespace" field.
 func NamespaceEQ(v string) predicate.NotificationEventDeliveryStatus {
 	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldNamespace, v))
@@ -226,49 +236,149 @@ func UpdatedAtLTE(v time.Time) predicate.NotificationEventDeliveryStatus {
 	return predicate.NotificationEventDeliveryStatus(sql.FieldLTE(FieldUpdatedAt, v))
 }
 
-// TypeEQ applies the EQ predicate on the "type" field.
-func TypeEQ(v notification.EventType) predicate.NotificationEventDeliveryStatus {
-	vc := v
-	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldType, vc))
+// EventIDEQ applies the EQ predicate on the "event_id" field.
+func EventIDEQ(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldEventID, v))
 }
 
-// TypeNEQ applies the NEQ predicate on the "type" field.
-func TypeNEQ(v notification.EventType) predicate.NotificationEventDeliveryStatus {
-	vc := v
-	return predicate.NotificationEventDeliveryStatus(sql.FieldNEQ(FieldType, vc))
+// EventIDNEQ applies the NEQ predicate on the "event_id" field.
+func EventIDNEQ(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldNEQ(FieldEventID, v))
 }
 
-// TypeIn applies the In predicate on the "type" field.
-func TypeIn(vs ...notification.EventType) predicate.NotificationEventDeliveryStatus {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.NotificationEventDeliveryStatus(sql.FieldIn(FieldType, v...))
+// EventIDIn applies the In predicate on the "event_id" field.
+func EventIDIn(vs ...string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldIn(FieldEventID, vs...))
 }
 
-// TypeNotIn applies the NotIn predicate on the "type" field.
-func TypeNotIn(vs ...notification.EventType) predicate.NotificationEventDeliveryStatus {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.NotificationEventDeliveryStatus(sql.FieldNotIn(FieldType, v...))
+// EventIDNotIn applies the NotIn predicate on the "event_id" field.
+func EventIDNotIn(vs ...string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldNotIn(FieldEventID, vs...))
 }
 
-// StateEQ applies the EQ predicate on the "State" field.
+// EventIDGT applies the GT predicate on the "event_id" field.
+func EventIDGT(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldGT(FieldEventID, v))
+}
+
+// EventIDGTE applies the GTE predicate on the "event_id" field.
+func EventIDGTE(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldGTE(FieldEventID, v))
+}
+
+// EventIDLT applies the LT predicate on the "event_id" field.
+func EventIDLT(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldLT(FieldEventID, v))
+}
+
+// EventIDLTE applies the LTE predicate on the "event_id" field.
+func EventIDLTE(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldLTE(FieldEventID, v))
+}
+
+// EventIDContains applies the Contains predicate on the "event_id" field.
+func EventIDContains(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldContains(FieldEventID, v))
+}
+
+// EventIDHasPrefix applies the HasPrefix predicate on the "event_id" field.
+func EventIDHasPrefix(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldHasPrefix(FieldEventID, v))
+}
+
+// EventIDHasSuffix applies the HasSuffix predicate on the "event_id" field.
+func EventIDHasSuffix(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldHasSuffix(FieldEventID, v))
+}
+
+// EventIDEqualFold applies the EqualFold predicate on the "event_id" field.
+func EventIDEqualFold(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldEqualFold(FieldEventID, v))
+}
+
+// EventIDContainsFold applies the ContainsFold predicate on the "event_id" field.
+func EventIDContainsFold(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldContainsFold(FieldEventID, v))
+}
+
+// ChannelIDEQ applies the EQ predicate on the "channel_id" field.
+func ChannelIDEQ(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldChannelID, v))
+}
+
+// ChannelIDNEQ applies the NEQ predicate on the "channel_id" field.
+func ChannelIDNEQ(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldNEQ(FieldChannelID, v))
+}
+
+// ChannelIDIn applies the In predicate on the "channel_id" field.
+func ChannelIDIn(vs ...string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldIn(FieldChannelID, vs...))
+}
+
+// ChannelIDNotIn applies the NotIn predicate on the "channel_id" field.
+func ChannelIDNotIn(vs ...string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldNotIn(FieldChannelID, vs...))
+}
+
+// ChannelIDGT applies the GT predicate on the "channel_id" field.
+func ChannelIDGT(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldGT(FieldChannelID, v))
+}
+
+// ChannelIDGTE applies the GTE predicate on the "channel_id" field.
+func ChannelIDGTE(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldGTE(FieldChannelID, v))
+}
+
+// ChannelIDLT applies the LT predicate on the "channel_id" field.
+func ChannelIDLT(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldLT(FieldChannelID, v))
+}
+
+// ChannelIDLTE applies the LTE predicate on the "channel_id" field.
+func ChannelIDLTE(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldLTE(FieldChannelID, v))
+}
+
+// ChannelIDContains applies the Contains predicate on the "channel_id" field.
+func ChannelIDContains(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldContains(FieldChannelID, v))
+}
+
+// ChannelIDHasPrefix applies the HasPrefix predicate on the "channel_id" field.
+func ChannelIDHasPrefix(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldHasPrefix(FieldChannelID, v))
+}
+
+// ChannelIDHasSuffix applies the HasSuffix predicate on the "channel_id" field.
+func ChannelIDHasSuffix(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldHasSuffix(FieldChannelID, v))
+}
+
+// ChannelIDEqualFold applies the EqualFold predicate on the "channel_id" field.
+func ChannelIDEqualFold(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldEqualFold(FieldChannelID, v))
+}
+
+// ChannelIDContainsFold applies the ContainsFold predicate on the "channel_id" field.
+func ChannelIDContainsFold(v string) predicate.NotificationEventDeliveryStatus {
+	return predicate.NotificationEventDeliveryStatus(sql.FieldContainsFold(FieldChannelID, v))
+}
+
+// StateEQ applies the EQ predicate on the "state" field.
 func StateEQ(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
 	vc := v
 	return predicate.NotificationEventDeliveryStatus(sql.FieldEQ(FieldState, vc))
 }
 
-// StateNEQ applies the NEQ predicate on the "State" field.
+// StateNEQ applies the NEQ predicate on the "state" field.
 func StateNEQ(v notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
 	vc := v
 	return predicate.NotificationEventDeliveryStatus(sql.FieldNEQ(FieldState, vc))
 }
 
-// StateIn applies the In predicate on the "State" field.
+// StateIn applies the In predicate on the "state" field.
 func StateIn(vs ...notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
 	v := make([]any, len(vs))
 	for i := range v {
@@ -277,7 +387,7 @@ func StateIn(vs ...notification.EventDeliveryStatusState) predicate.Notification
 	return predicate.NotificationEventDeliveryStatus(sql.FieldIn(FieldState, v...))
 }
 
-// StateNotIn applies the NotIn predicate on the "State" field.
+// StateNotIn applies the NotIn predicate on the "state" field.
 func StateNotIn(vs ...notification.EventDeliveryStatusState) predicate.NotificationEventDeliveryStatus {
 	v := make([]any, len(vs))
 	for i := range v {

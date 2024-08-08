@@ -41,7 +41,7 @@ type EventHandler interface {
 var _ Handler = (*handler)(nil)
 
 type handler struct {
-	connector        notification.Connector
+	service          notification.Service
 	namespaceDecoder namespacedriver.NamespaceDecoder
 	options          []httptransport.HandlerOption
 }
@@ -57,11 +57,11 @@ func (h *handler) resolveNamespace(ctx context.Context) (string, error) {
 
 func New(
 	namespaceDecoder namespacedriver.NamespaceDecoder,
-	connector notification.Connector,
+	service notification.Service,
 	options ...httptransport.HandlerOption,
 ) Handler {
 	return &handler{
-		connector:        connector,
+		service:          service,
 		namespaceDecoder: namespaceDecoder,
 		options:          options,
 	}

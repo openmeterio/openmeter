@@ -3,10 +3,10 @@ package notification
 import "github.com/openmeterio/openmeter/internal/notification"
 
 type (
-	ConnectorConfig = notification.ConnectorConfig
-	Connector       = notification.Connector
+	Config  = notification.Config
+	Service = notification.Service
 )
 
-func NewConnector(config ConnectorConfig) (Connector, error) {
-	return notification.NewConnector(config)
+func New(config Config) (Service, error) {
+	return notification.New(config)
 }

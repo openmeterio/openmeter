@@ -101,7 +101,7 @@ func (r Rule) AsNotificationRuleBalanceThreshold() api.NotificationRuleBalanceTh
 	}
 }
 
-func (r Rule) Validate(ctx context.Context, connector Connector) error {
+func (r Rule) Validate(ctx context.Context, service Service) error {
 	if r.Namespace == "" {
 		return ValidationError{
 			Err: errors.New("namespace is required"),
@@ -124,7 +124,7 @@ func (r Rule) Validate(ctx context.Context, connector Connector) error {
 		return err
 	}
 
-	if err := r.Config.Validate(ctx, connector, r.Namespace); err != nil {
+	if err := r.Config.Validate(ctx, service, r.Namespace); err != nil {
 		return err
 	}
 
@@ -169,10 +169,10 @@ type RuleConfig struct {
 }
 
 // Validate invokes channel type specific validator and returns an error if channel configuration is invalid.
-func (c RuleConfig) Validate(ctx context.Context, connector Connector, namespace string) error {
+func (c RuleConfig) Validate(ctx context.Context, service Service, namespace string) error {
 	switch c.Type {
 	case RuleTypeBalanceThreshold:
-		return c.BalanceThreshold.Validate(ctx, connector, namespace)
+		return c.BalanceThreshold.Validate(ctx, service, namespace)
 	default:
 		return fmt.Errorf("unknown rule type: %s", c.Type)
 	}
@@ -187,7 +187,7 @@ type BalanceThresholdRuleConfig struct {
 }
 
 // Validate returns an error if balance threshold configuration is invalid.
-func (b BalanceThresholdRuleConfig) Validate(ctx context.Context, connector Connector, namespace string) error {
+func (b BalanceThresholdRuleConfig) Validate(ctx context.Context, service Service, namespace string) error {
 	if len(b.Thresholds) == 0 {
 		return fmt.Errorf("must provide at least one threshold")
 	}
@@ -217,7 +217,7 @@ func (b BalanceThresholdRuleConfig) Validate(ctx context.Context, connector Conn
 		}
 	}
 
-	features, err := connector.ListFeature(ctx, namespace, b.Features...)
+	features, err := service.ListFeature(ctx, namespace, b.Features...)
 	if err != nil {
 		return err
 	}
@@ -247,10 +247,10 @@ func (b BalanceThresholdRuleConfig) Validate(ctx context.Context, connector Conn
 type RuleOrderBy string
 
 const (
-	RuleOrderByID        = RuleOrderBy(api.ListNotificationRulesParamsOrderById)
-	RuleOrderByType      = RuleOrderBy(api.ListNotificationRulesParamsOrderByType)
-	RuleOrderByCreatedAt = RuleOrderBy(api.ListNotificationRulesParamsOrderByCreatedAt)
-	RuleOrderByUpdatedAt = RuleOrderBy(api.ListNotificationRulesParamsOrderByUpdatedAt)
+	RuleOrderByID        = api.ListNotificationRulesParamsOrderById
+	RuleOrderByType      = api.ListNotificationRulesParamsOrderByType
+	RuleOrderByCreatedAt = api.ListNotificationRulesParamsOrderByCreatedAt
+	RuleOrderByUpdatedAt = api.ListNotificationRulesParamsOrderByUpdatedAt
 )
 
 var _ validator = (*ListRulesInput)(nil)
@@ -260,12 +260,13 @@ type ListRulesInput struct {
 
 	Namespaces      []string
 	Rules           []string
-	OrderBy         RuleOrderBy
-	Order           sortx.Order
 	IncludeDisabled bool
+
+	OrderBy api.ListNotificationRulesParamsOrderBy
+	Order   sortx.Order
 }
 
-func (i ListRulesInput) Validate(_ context.Context, _ Connector) error {
+func (i ListRulesInput) Validate(_ context.Context, _ Service) error {
 	return nil
 }
 
@@ -288,7 +289,7 @@ type CreateRuleInput struct {
 	Channels []string
 }
 
-func (i CreateRuleInput) Validate(ctx context.Context, connector Connector) error {
+func (i CreateRuleInput) Validate(ctx context.Context, service Service) error {
 	if i.Namespace == "" {
 		return ValidationError{
 			Err: errors.New("namespace is required"),
@@ -305,7 +306,7 @@ func (i CreateRuleInput) Validate(ctx context.Context, connector Connector) erro
 		}
 	}
 
-	if err := i.Config.Validate(ctx, connector, i.Namespace); err != nil {
+	if err := i.Config.Validate(ctx, service, i.Namespace); err != nil {
 		return err
 	}
 
@@ -353,7 +354,7 @@ type UpdateRuleInput struct {
 	ID string
 }
 
-func (i UpdateRuleInput) Validate(ctx context.Context, connector Connector) error {
+func (i UpdateRuleInput) Validate(ctx context.Context, service Service) error {
 	if i.Namespace == "" {
 		return ValidationError{
 			Err: errors.New("namespace is required"),
@@ -370,7 +371,7 @@ func (i UpdateRuleInput) Validate(ctx context.Context, connector Connector) erro
 		}
 	}
 
-	if err := i.Config.Validate(ctx, connector, i.Namespace); err != nil {
+	if err := i.Config.Validate(ctx, service, i.Namespace); err != nil {
 		return err
 	}
 
@@ -409,7 +410,7 @@ var _ validator = (*GetRuleInput)(nil)
 
 type GetRuleInput models.NamespacedID
 
-func (i GetRuleInput) Validate(_ context.Context, _ Connector) error {
+func (i GetRuleInput) Validate(_ context.Context, _ Service) error {
 	if i.Namespace == "" {
 		return ValidationError{
 			Err: errors.New("namespace is required"),
@@ -429,7 +430,7 @@ var _ validator = (*DeleteRuleInput)(nil)
 
 type DeleteRuleInput models.NamespacedID
 
-func (i DeleteRuleInput) Validate(_ context.Context, _ Connector) error {
+func (i DeleteRuleInput) Validate(_ context.Context, _ Service) error {
 	if i.Namespace == "" {
 		return ValidationError{
 			Err: errors.New("namespace is required"),

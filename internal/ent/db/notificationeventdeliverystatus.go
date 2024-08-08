@@ -24,10 +24,12 @@ type NotificationEventDeliveryStatus struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// EventID holds the value of the "event_id" field.
+	EventID string `json:"event_id,omitempty"`
+	// ChannelID holds the value of the "channel_id" field.
+	ChannelID string `json:"channel_id,omitempty"`
 	// The event type the rule associated with
-	Type notification.EventType `json:"type,omitempty"`
-	// The event type the rule associated with
-	State notification.EventDeliveryStatusState `json:"State,omitempty"`
+	State notification.EventDeliveryStatusState `json:"state,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the NotificationEventDeliveryStatusQuery when eager-loading is set.
 	Edges        NotificationEventDeliveryStatusEdges `json:"edges"`
@@ -57,7 +59,7 @@ func (*NotificationEventDeliveryStatus) scanValues(columns []string) ([]any, err
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case notificationeventdeliverystatus.FieldID, notificationeventdeliverystatus.FieldNamespace, notificationeventdeliverystatus.FieldType, notificationeventdeliverystatus.FieldState:
+		case notificationeventdeliverystatus.FieldID, notificationeventdeliverystatus.FieldNamespace, notificationeventdeliverystatus.FieldEventID, notificationeventdeliverystatus.FieldChannelID, notificationeventdeliverystatus.FieldState:
 			values[i] = new(sql.NullString)
 		case notificationeventdeliverystatus.FieldCreatedAt, notificationeventdeliverystatus.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -100,15 +102,21 @@ func (neds *NotificationEventDeliveryStatus) assignValues(columns []string, valu
 			} else if value.Valid {
 				neds.UpdatedAt = value.Time
 			}
-		case notificationeventdeliverystatus.FieldType:
+		case notificationeventdeliverystatus.FieldEventID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field type", values[i])
+				return fmt.Errorf("unexpected type %T for field event_id", values[i])
 			} else if value.Valid {
-				neds.Type = notification.EventType(value.String)
+				neds.EventID = value.String
+			}
+		case notificationeventdeliverystatus.FieldChannelID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field channel_id", values[i])
+			} else if value.Valid {
+				neds.ChannelID = value.String
 			}
 		case notificationeventdeliverystatus.FieldState:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field State", values[i])
+				return fmt.Errorf("unexpected type %T for field state", values[i])
 			} else if value.Valid {
 				neds.State = notification.EventDeliveryStatusState(value.String)
 			}
@@ -162,10 +170,13 @@ func (neds *NotificationEventDeliveryStatus) String() string {
 	builder.WriteString("updated_at=")
 	builder.WriteString(neds.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	builder.WriteString("type=")
-	builder.WriteString(fmt.Sprintf("%v", neds.Type))
+	builder.WriteString("event_id=")
+	builder.WriteString(neds.EventID)
 	builder.WriteString(", ")
-	builder.WriteString("State=")
+	builder.WriteString("channel_id=")
+	builder.WriteString(neds.ChannelID)
+	builder.WriteString(", ")
+	builder.WriteString("state=")
 	builder.WriteString(fmt.Sprintf("%v", neds.State))
 	builder.WriteByte(')')
 	return builder.String()

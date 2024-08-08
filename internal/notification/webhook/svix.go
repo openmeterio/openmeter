@@ -28,12 +28,11 @@ const (
 	NullChannel = "__null_channel"
 )
 
-type svixConfig struct {
-	ServerURL string
-	AuthToken string
-	Debug     bool
+type SvixConfig struct {
+	APIToken string
 
-	RegisterEvenTypes []EventType
+	ServerURL string
+	Debug     bool
 }
 
 var _ Handler = (*svixWebhookHandler)(nil)
@@ -42,7 +41,7 @@ type svixWebhookHandler struct {
 	client *svix.Svix
 }
 
-func newSvixWebhookHandler(config svixConfig) (Handler, error) {
+func newSvixWebhookHandler(config SvixConfig) (Handler, error) {
 	opts := svix.SvixOptions{
 		Debug: config.Debug,
 	}
@@ -55,21 +54,9 @@ func newSvixWebhookHandler(config svixConfig) (Handler, error) {
 		}
 	}
 
-	handler := &svixWebhookHandler{
-		client: svix.New(config.AuthToken, &opts),
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	err = handler.RegisterEventTypes(ctx, RegisterEventTypesInputs{
-		EvenTypes: config.RegisterEvenTypes,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to register event types: %w", err)
-	}
-
-	return handler, nil
+	return &svixWebhookHandler{
+		client: svix.New(config.APIToken, &opts),
+	}, nil
 }
 
 func (h svixWebhookHandler) RegisterEventTypes(ctx context.Context, params RegisterEventTypesInputs) error {

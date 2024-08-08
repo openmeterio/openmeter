@@ -32,6 +32,7 @@ type Configuration struct {
 	Sink                SinkConfiguration
 	BalanceWorker       BalanceWorkerConfiguration
 	NotificationService NotificationServiceConfiguration
+	Svix                SvixConfiguration
 }
 
 // Validate validates the configuration.
@@ -96,6 +97,10 @@ func (c Configuration) Validate() error {
 
 	if err := c.NotificationService.Validate(); err != nil {
 		return fmt.Errorf("notification service: %w", err)
+	}
+
+	if err := c.Svix.Validate(); err != nil {
+		return fmt.Errorf("svix: %w", err)
 	}
 
 	return nil

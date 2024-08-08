@@ -33,7 +33,7 @@ func (h *handler) ListChannels() ListChannelsHandler {
 			req := ListChannelsRequest{
 				Namespaces:      []string{ns},
 				IncludeDisabled: defaultx.WithDefault(params.IncludeDisabled, notification.DefaultDisabled),
-				OrderBy:         notification.ChannelOrderBy(defaultx.WithDefault(params.OrderBy, api.ListNotificationChannelsParamsOrderById)),
+				OrderBy:         defaultx.WithDefault(params.OrderBy, api.ListNotificationChannelsParamsOrderById),
 				Order:           sortx.Order(defaultx.WithDefault(params.Order, api.ListNotificationChannelsParamsOrderSortOrderASC)),
 				Page: pagination.Page{
 					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),
@@ -44,7 +44,7 @@ func (h *handler) ListChannels() ListChannelsHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request ListChannelsRequest) (ListChannelsResponse, error) {
-			resp, err := h.connector.ListChannels(ctx, request)
+			resp, err := h.service.ListChannels(ctx, request)
 			if err != nil {
 				return ListChannelsResponse{}, fmt.Errorf("failed to list channels: %w", err)
 			}
@@ -122,7 +122,7 @@ func (h *handler) CreateChannel() CreateChannelHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request CreateChannelRequest) (CreateChannelResponse, error) {
-			channel, err := h.connector.CreateChannel(ctx, request)
+			channel, err := h.service.CreateChannel(ctx, request)
 			if err != nil {
 				return CreateChannelResponse{}, fmt.Errorf("failed to create channel: %w", err)
 			}
@@ -183,7 +183,7 @@ func (h *handler) UpdateChannel() UpdateChannelHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request UpdateChannelRequest) (UpdateChannelResponse, error) {
-			channel, err := h.connector.UpdateChannel(ctx, request)
+			channel, err := h.service.UpdateChannel(ctx, request)
 			if err != nil {
 				return UpdateChannelResponse{}, fmt.Errorf("failed to update channel: %w", err)
 			}
@@ -219,7 +219,7 @@ func (h *handler) DeleteChannel() DeleteChannelHandler {
 			}, nil
 		},
 		func(ctx context.Context, request DeleteChannelRequest) (DeleteChannelResponse, error) {
-			err := h.connector.DeleteChannel(ctx, request)
+			err := h.service.DeleteChannel(ctx, request)
 			if err != nil {
 				return nil, fmt.Errorf("failed to delete channel: %w", err)
 			}
@@ -255,7 +255,7 @@ func (h *handler) GetChannel() GetChannelHandler {
 			}, nil
 		},
 		func(ctx context.Context, request GetChannelRequest) (GetChannelResponse, error) {
-			channel, err := h.connector.GetChannel(ctx, request)
+			channel, err := h.service.GetChannel(ctx, request)
 			if err != nil {
 				return GetChannelResponse{}, fmt.Errorf("failed to get channel: %w", err)
 			}

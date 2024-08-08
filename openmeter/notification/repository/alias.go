@@ -6,10 +6,8 @@ import (
 )
 
 type (
-	Config                  = notificationrepository.Config
-	Repository              = notification.Repository
-	PostgresAdapterConfig   = notificationrepository.PostgresAdapterConfig
-	ClickhouseAdapterConfig = notificationrepository.ClickhouseAdapterConfig
+	Config     = notificationrepository.Config
+	Repository = notification.Repository
 )
 
 func New(config Config) (Repository, error) {

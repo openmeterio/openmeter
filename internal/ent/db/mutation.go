@@ -6763,8 +6763,9 @@ type NotificationEventDeliveryStatusMutation struct {
 	namespace     *string
 	created_at    *time.Time
 	updated_at    *time.Time
-	_type         *notification.EventType
-	_State        *notification.EventDeliveryStatusState
+	event_id      *string
+	channel_id    *string
+	state         *notification.EventDeliveryStatusState
 	clearedFields map[string]struct{}
 	events        map[string]struct{}
 	removedevents map[string]struct{}
@@ -6986,57 +6987,93 @@ func (m *NotificationEventDeliveryStatusMutation) ResetUpdatedAt() {
 	m.updated_at = nil
 }
 
-// SetType sets the "type" field.
-func (m *NotificationEventDeliveryStatusMutation) SetType(nt notification.EventType) {
-	m._type = &nt
+// SetEventID sets the "event_id" field.
+func (m *NotificationEventDeliveryStatusMutation) SetEventID(s string) {
+	m.event_id = &s
 }
 
-// GetType returns the value of the "type" field in the mutation.
-func (m *NotificationEventDeliveryStatusMutation) GetType() (r notification.EventType, exists bool) {
-	v := m._type
+// EventID returns the value of the "event_id" field in the mutation.
+func (m *NotificationEventDeliveryStatusMutation) EventID() (r string, exists bool) {
+	v := m.event_id
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldType returns the old "type" field's value of the NotificationEventDeliveryStatus entity.
+// OldEventID returns the old "event_id" field's value of the NotificationEventDeliveryStatus entity.
 // If the NotificationEventDeliveryStatus object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NotificationEventDeliveryStatusMutation) OldType(ctx context.Context) (v notification.EventType, err error) {
+func (m *NotificationEventDeliveryStatusMutation) OldEventID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldType is only allowed on UpdateOne operations")
+		return v, errors.New("OldEventID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldType requires an ID field in the mutation")
+		return v, errors.New("OldEventID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldType: %w", err)
+		return v, fmt.Errorf("querying old value for OldEventID: %w", err)
 	}
-	return oldValue.Type, nil
+	return oldValue.EventID, nil
 }
 
-// ResetType resets all changes to the "type" field.
-func (m *NotificationEventDeliveryStatusMutation) ResetType() {
-	m._type = nil
+// ResetEventID resets all changes to the "event_id" field.
+func (m *NotificationEventDeliveryStatusMutation) ResetEventID() {
+	m.event_id = nil
 }
 
-// SetState sets the "State" field.
-func (m *NotificationEventDeliveryStatusMutation) SetState(ndss notification.EventDeliveryStatusState) {
-	m._State = &ndss
+// SetChannelID sets the "channel_id" field.
+func (m *NotificationEventDeliveryStatusMutation) SetChannelID(s string) {
+	m.channel_id = &s
 }
 
-// State returns the value of the "State" field in the mutation.
-func (m *NotificationEventDeliveryStatusMutation) State() (r notification.EventDeliveryStatusState, exists bool) {
-	v := m._State
+// ChannelID returns the value of the "channel_id" field in the mutation.
+func (m *NotificationEventDeliveryStatusMutation) ChannelID() (r string, exists bool) {
+	v := m.channel_id
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldState returns the old "State" field's value of the NotificationEventDeliveryStatus entity.
+// OldChannelID returns the old "channel_id" field's value of the NotificationEventDeliveryStatus entity.
+// If the NotificationEventDeliveryStatus object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NotificationEventDeliveryStatusMutation) OldChannelID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChannelID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChannelID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChannelID: %w", err)
+	}
+	return oldValue.ChannelID, nil
+}
+
+// ResetChannelID resets all changes to the "channel_id" field.
+func (m *NotificationEventDeliveryStatusMutation) ResetChannelID() {
+	m.channel_id = nil
+}
+
+// SetState sets the "state" field.
+func (m *NotificationEventDeliveryStatusMutation) SetState(ndss notification.EventDeliveryStatusState) {
+	m.state = &ndss
+}
+
+// State returns the value of the "state" field in the mutation.
+func (m *NotificationEventDeliveryStatusMutation) State() (r notification.EventDeliveryStatusState, exists bool) {
+	v := m.state
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldState returns the old "state" field's value of the NotificationEventDeliveryStatus entity.
 // If the NotificationEventDeliveryStatus object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *NotificationEventDeliveryStatusMutation) OldState(ctx context.Context) (v notification.EventDeliveryStatusState, err error) {
@@ -7053,9 +7090,9 @@ func (m *NotificationEventDeliveryStatusMutation) OldState(ctx context.Context) 
 	return oldValue.State, nil
 }
 
-// ResetState resets all changes to the "State" field.
+// ResetState resets all changes to the "state" field.
 func (m *NotificationEventDeliveryStatusMutation) ResetState() {
-	m._State = nil
+	m.state = nil
 }
 
 // AddEventIDs adds the "events" edge to the NotificationEvent entity by ids.
@@ -7146,7 +7183,7 @@ func (m *NotificationEventDeliveryStatusMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *NotificationEventDeliveryStatusMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 6)
 	if m.namespace != nil {
 		fields = append(fields, notificationeventdeliverystatus.FieldNamespace)
 	}
@@ -7156,10 +7193,13 @@ func (m *NotificationEventDeliveryStatusMutation) Fields() []string {
 	if m.updated_at != nil {
 		fields = append(fields, notificationeventdeliverystatus.FieldUpdatedAt)
 	}
-	if m._type != nil {
-		fields = append(fields, notificationeventdeliverystatus.FieldType)
+	if m.event_id != nil {
+		fields = append(fields, notificationeventdeliverystatus.FieldEventID)
 	}
-	if m._State != nil {
+	if m.channel_id != nil {
+		fields = append(fields, notificationeventdeliverystatus.FieldChannelID)
+	}
+	if m.state != nil {
 		fields = append(fields, notificationeventdeliverystatus.FieldState)
 	}
 	return fields
@@ -7176,8 +7216,10 @@ func (m *NotificationEventDeliveryStatusMutation) Field(name string) (ent.Value,
 		return m.CreatedAt()
 	case notificationeventdeliverystatus.FieldUpdatedAt:
 		return m.UpdatedAt()
-	case notificationeventdeliverystatus.FieldType:
-		return m.GetType()
+	case notificationeventdeliverystatus.FieldEventID:
+		return m.EventID()
+	case notificationeventdeliverystatus.FieldChannelID:
+		return m.ChannelID()
 	case notificationeventdeliverystatus.FieldState:
 		return m.State()
 	}
@@ -7195,8 +7237,10 @@ func (m *NotificationEventDeliveryStatusMutation) OldField(ctx context.Context, 
 		return m.OldCreatedAt(ctx)
 	case notificationeventdeliverystatus.FieldUpdatedAt:
 		return m.OldUpdatedAt(ctx)
-	case notificationeventdeliverystatus.FieldType:
-		return m.OldType(ctx)
+	case notificationeventdeliverystatus.FieldEventID:
+		return m.OldEventID(ctx)
+	case notificationeventdeliverystatus.FieldChannelID:
+		return m.OldChannelID(ctx)
 	case notificationeventdeliverystatus.FieldState:
 		return m.OldState(ctx)
 	}
@@ -7229,12 +7273,19 @@ func (m *NotificationEventDeliveryStatusMutation) SetField(name string, value en
 		}
 		m.SetUpdatedAt(v)
 		return nil
-	case notificationeventdeliverystatus.FieldType:
-		v, ok := value.(notification.EventType)
+	case notificationeventdeliverystatus.FieldEventID:
+		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetType(v)
+		m.SetEventID(v)
+		return nil
+	case notificationeventdeliverystatus.FieldChannelID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChannelID(v)
 		return nil
 	case notificationeventdeliverystatus.FieldState:
 		v, ok := value.(notification.EventDeliveryStatusState)
@@ -7301,8 +7352,11 @@ func (m *NotificationEventDeliveryStatusMutation) ResetField(name string) error 
 	case notificationeventdeliverystatus.FieldUpdatedAt:
 		m.ResetUpdatedAt()
 		return nil
-	case notificationeventdeliverystatus.FieldType:
-		m.ResetType()
+	case notificationeventdeliverystatus.FieldEventID:
+		m.ResetEventID()
+		return nil
+	case notificationeventdeliverystatus.FieldChannelID:
+		m.ResetChannelID()
 		return nil
 	case notificationeventdeliverystatus.FieldState:
 		m.ResetState()

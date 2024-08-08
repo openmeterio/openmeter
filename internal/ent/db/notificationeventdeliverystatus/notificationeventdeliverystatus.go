@@ -22,8 +22,10 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
-	// FieldType holds the string denoting the type field in the database.
-	FieldType = "type"
+	// FieldEventID holds the string denoting the event_id field in the database.
+	FieldEventID = "event_id"
+	// FieldChannelID holds the string denoting the channel_id field in the database.
+	FieldChannelID = "channel_id"
 	// FieldState holds the string denoting the state field in the database.
 	FieldState = "state"
 	// EdgeEvents holds the string denoting the events edge name in mutations.
@@ -43,7 +45,8 @@ var Columns = []string{
 	FieldNamespace,
 	FieldCreatedAt,
 	FieldUpdatedAt,
-	FieldType,
+	FieldEventID,
+	FieldChannelID,
 	FieldState,
 }
 
@@ -72,27 +75,21 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// EventIDValidator is a validator for the "event_id" field. It is called by the builders before save.
+	EventIDValidator func(string) error
+	// ChannelIDValidator is a validator for the "channel_id" field. It is called by the builders before save.
+	ChannelIDValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
 
-// TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
-func TypeValidator(_type notification.EventType) error {
-	switch _type {
-	case "entitlements.balance.threshold":
-		return nil
-	default:
-		return fmt.Errorf("notificationeventdeliverystatus: invalid enum value for type field: %q", _type)
-	}
-}
-
-// StateValidator is a validator for the "State" field enum values. It is called by the builders before save.
-func StateValidator(_state notification.EventDeliveryStatusState) error {
-	switch _state {
+// StateValidator is a validator for the "state" field enum values. It is called by the builders before save.
+func StateValidator(s notification.EventDeliveryStatusState) error {
+	switch s {
 	case "SUCCESS", "FAILED", "SENDING":
 		return nil
 	default:
-		return fmt.Errorf("notificationeventdeliverystatus: invalid enum value for State field: %q", _state)
+		return fmt.Errorf("notificationeventdeliverystatus: invalid enum value for state field: %q", s)
 	}
 }
 
@@ -119,12 +116,17 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
-// ByType orders the results by the type field.
-func ByType(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldType, opts...).ToFunc()
+// ByEventID orders the results by the event_id field.
+func ByEventID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEventID, opts...).ToFunc()
 }
 
-// ByState orders the results by the State field.
+// ByChannelID orders the results by the channel_id field.
+func ByChannelID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldChannelID, opts...).ToFunc()
+}
+
+// ByState orders the results by the state field.
 func ByState(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldState, opts...).ToFunc()
 }

@@ -1,3 +1,3 @@
-package eventtypes
+package webhook
 
 //FIXME: add tests for event schema parsing

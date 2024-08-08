@@ -37,16 +37,16 @@ func (h *handler) ListEvents() ListEventsHandler {
 					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),
 					PageNumber: defaultx.WithDefault(params.Page, notification.DefaultPageNumber),
 				},
-				SubjectFilter: defaultx.WithDefault(params.Subject, nil),
-				FeatureFilter: defaultx.WithDefault(params.Feature, nil),
-				From:          defaultx.WithDefault(params.From, time.Time{}),
-				To:            defaultx.WithDefault(params.To, time.Time{}),
+				Subjects: defaultx.WithDefault(params.Subject, nil),
+				Features: defaultx.WithDefault(params.Feature, nil),
+				From:     defaultx.WithDefault(params.From, time.Time{}),
+				To:       defaultx.WithDefault(params.To, time.Time{}),
 			}
 
 			return req, nil
 		},
 		func(ctx context.Context, request ListEventsRequest) (ListEventsResponse, error) {
-			resp, err := h.connector.ListEvents(ctx, request)
+			resp, err := h.service.ListEvents(ctx, request)
 			if err != nil {
 				return ListEventsResponse{}, fmt.Errorf("failed to list events: %w", err)
 			}
@@ -104,7 +104,7 @@ func (h *handler) GetEvent() GetEventHandler {
 			return req, nil
 		},
 		func(ctx context.Context, request GetEventRequest) (GetEventResponse, error) {
-			event, err := h.connector.GetEvent(ctx, request)
+			event, err := h.service.GetEvent(ctx, request)
 			if err != nil {
 				return GetEventResponse{}, fmt.Errorf("failed to get event: %w", err)
 			}

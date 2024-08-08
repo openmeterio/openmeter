@@ -66,7 +66,7 @@ type Config struct {
 	EntitlementBalanceConnector meteredentitlement.Connector
 	GrantConnector              credit.GrantConnector
 	GrantRepo                   grant.Repo
-	NotificationConnector       notification.Connector
+	Notification                notification.Service
 
 	// FIXME: implement generic module management, loading, etc...
 	EntitlementsEnabled bool
@@ -117,8 +117,8 @@ func (c Config) Validate() error {
 		}
 	}
 
-	if c.NotificationConnector == nil {
-		return errors.New("notification connector is required")
+	if c.Notification == nil {
+		return errors.New("notification service is required")
 	}
 
 	return nil
@@ -185,7 +185,7 @@ func NewRouter(config Config) (*Router, error) {
 
 	router.notificationHandler = notificationhttpdriver.New(
 		staticNamespaceDecoder,
-		config.NotificationConnector,
+		config.Notification,
 		httptransport.WithErrorHandler(config.ErrorHandler),
 	)
 

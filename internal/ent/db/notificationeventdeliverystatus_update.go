@@ -36,13 +36,13 @@ func (nedsu *NotificationEventDeliveryStatusUpdate) SetUpdatedAt(t time.Time) *N
 	return nedsu
 }
 
-// SetState sets the "State" field.
+// SetState sets the "state" field.
 func (nedsu *NotificationEventDeliveryStatusUpdate) SetState(ndss notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpdate {
 	nedsu.mutation.SetState(ndss)
 	return nedsu
 }
 
-// SetNillableState sets the "State" field if the given value is not nil.
+// SetNillableState sets the "state" field if the given value is not nil.
 func (nedsu *NotificationEventDeliveryStatusUpdate) SetNillableState(ndss *notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpdate {
 	if ndss != nil {
 		nedsu.SetState(*ndss)
@@ -131,7 +131,7 @@ func (nedsu *NotificationEventDeliveryStatusUpdate) defaults() {
 func (nedsu *NotificationEventDeliveryStatusUpdate) check() error {
 	if v, ok := nedsu.mutation.State(); ok {
 		if err := notificationeventdeliverystatus.StateValidator(v); err != nil {
-			return &ValidationError{Name: "State", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.State": %w`, err)}
+			return &ValidationError{Name: "state", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.state": %w`, err)}
 		}
 	}
 	return nil
@@ -226,13 +226,13 @@ func (nedsuo *NotificationEventDeliveryStatusUpdateOne) SetUpdatedAt(t time.Time
 	return nedsuo
 }
 
-// SetState sets the "State" field.
+// SetState sets the "state" field.
 func (nedsuo *NotificationEventDeliveryStatusUpdateOne) SetState(ndss notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpdateOne {
 	nedsuo.mutation.SetState(ndss)
 	return nedsuo
 }
 
-// SetNillableState sets the "State" field if the given value is not nil.
+// SetNillableState sets the "state" field if the given value is not nil.
 func (nedsuo *NotificationEventDeliveryStatusUpdateOne) SetNillableState(ndss *notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusUpdateOne {
 	if ndss != nil {
 		nedsuo.SetState(*ndss)
@@ -334,7 +334,7 @@ func (nedsuo *NotificationEventDeliveryStatusUpdateOne) defaults() {
 func (nedsuo *NotificationEventDeliveryStatusUpdateOne) check() error {
 	if v, ok := nedsuo.mutation.State(); ok {
 		if err := notificationeventdeliverystatus.StateValidator(v); err != nil {
-			return &ValidationError{Name: "State", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.State": %w`, err)}
+			return &ValidationError{Name: "state", err: fmt.Errorf(`db: validator failed for field "NotificationEventDeliveryStatus.state": %w`, err)}
 		}
 	}
 	return nil

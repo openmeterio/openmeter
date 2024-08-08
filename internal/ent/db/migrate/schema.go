@@ -271,7 +271,8 @@ var (
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "type", Type: field.TypeEnum, Enums: []string{"entitlements.balance.threshold"}},
+		{Name: "event_id", Type: field.TypeString},
+		{Name: "channel_id", Type: field.TypeString},
 		{Name: "state", Type: field.TypeEnum, Enums: []string{"SUCCESS", "FAILED", "SENDING"}},
 	}
 	// NotificationEventDeliveryStatusTable holds the schema information for the "notification_event_delivery_status" table.

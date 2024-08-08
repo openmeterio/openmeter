@@ -47,12 +47,12 @@ type RuleTestSuite struct {
 }
 
 func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
-	connector := s.Env.NotificationConn()
+	service := s.Env.Notification()
 
 	input := clone.Clone(createChannelInput).(notification.CreateChannelInput)
 	input.Name = "NotificationRule"
 
-	channel, err := connector.CreateChannel(ctx, input)
+	channel, err := service.CreateChannel(ctx, input)
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel, "Channel must not be nil")
 
@@ -64,11 +64,11 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 }
 
 func (s *RuleTestSuite) TestCreate(ctx context.Context, t *testing.T) {
-	connector := s.Env.NotificationConn()
+	service := s.Env.Notification()
 
 	input := clone.Clone(createRuleInput).(notification.CreateRuleInput)
 
-	rule, err := connector.CreateRule(ctx, input)
+	rule, err := service.CreateRule(ctx, input)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule, "Rule must not be nil")
 	assert.NotEmpty(t, rule.ID, "Rule ID must not be empty")
@@ -78,21 +78,21 @@ func (s *RuleTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 }
 
 func (s *RuleTestSuite) TestList(ctx context.Context, t *testing.T) {
-	connector := s.Env.NotificationConn()
+	service := s.Env.Notification()
 
 	input1 := clone.Clone(createRuleInput).(notification.CreateRuleInput)
 	input1.Name = "NotificationListRule1"
-	rule1, err := connector.CreateRule(ctx, input1)
+	rule1, err := service.CreateRule(ctx, input1)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule1, "Rule must not be nil")
 
 	input2 := clone.Clone(createRuleInput).(notification.CreateRuleInput)
 	input2.Name = "NotificationListRule2"
-	rule2, err := connector.CreateRule(ctx, input2)
+	rule2, err := service.CreateRule(ctx, input2)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule2, "Rule must not be nil")
 
-	list, err := connector.ListRules(ctx, notification.ListRulesInput{
+	list, err := service.ListRules(ctx, notification.ListRulesInput{
 		Namespaces: []string{
 			input1.Namespace,
 			input2.Namespace,
@@ -115,11 +115,11 @@ func (s *RuleTestSuite) TestList(ctx context.Context, t *testing.T) {
 	assert.EqualValues(t, expectedList, list.Items, "Unexpected items returned by listing rules")
 }
 func (s *RuleTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
-	connector := s.Env.NotificationConn()
+	service := s.Env.Notification()
 
 	input1 := clone.Clone(createRuleInput).(notification.CreateRuleInput)
 	input1.Name = "NotificationUpdateRule1"
-	rule, err := connector.CreateRule(ctx, input1)
+	rule, err := service.CreateRule(ctx, input1)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule, "Rule must not be nil")
 
@@ -143,7 +143,7 @@ func (s *RuleTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 		ID: rule.ID,
 	}
 
-	rule2, err := connector.UpdateRule(ctx, input2)
+	rule2, err := service.UpdateRule(ctx, input2)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule2, "Rule must not be nil")
 
@@ -152,29 +152,29 @@ func (s *RuleTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 	assert.EqualValues(t, input2.Config, rule2.Config, "Rule config must be the same")
 }
 func (s *RuleTestSuite) TestDelete(ctx context.Context, t *testing.T) {
-	connector := s.Env.NotificationConn()
+	service := s.Env.Notification()
 
 	input := clone.Clone(createRuleInput).(notification.CreateRuleInput)
 	input.Name = "NotificationDeleteRule1"
 
-	rule, err := connector.CreateRule(ctx, input)
+	rule, err := service.CreateRule(ctx, input)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule, "Rule must not be nil")
 	assert.NotEmpty(t, rule.ID, "Rule ID must not be empty")
 
-	err = connector.DeleteRule(ctx, notification.DeleteRuleInput{
+	err = service.DeleteRule(ctx, notification.DeleteRuleInput{
 		Namespace: rule.Namespace,
 		ID:        rule.ID,
 	})
 	require.NoError(t, err, "Deleting rule must not return error")
 }
 func (s *RuleTestSuite) TestGet(ctx context.Context, t *testing.T) {
-	connector := s.Env.NotificationConn()
+	service := s.Env.Notification()
 
 	input1 := clone.Clone(createRuleInput).(notification.CreateRuleInput)
 	input1.Name = "NotificationGetRule1"
 
-	rule, err := connector.CreateRule(ctx, input1)
+	rule, err := service.CreateRule(ctx, input1)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule, "Rule must not be nil")
 
@@ -183,7 +183,7 @@ func (s *RuleTestSuite) TestGet(ctx context.Context, t *testing.T) {
 		ID:        rule.ID,
 	}
 
-	rule2, err := connector.GetRule(ctx, input2)
+	rule2, err := service.GetRule(ctx, input2)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule2, "Rule must not be nil")
 
