@@ -267,6 +267,7 @@ jobs:
       matrix:
         os:
           [
+            "ubuntu-latest-large",
             "depot-ubuntu-22.04-4",
             "depot-ubuntu-22.04-8",
             "depot-ubuntu-22.04-16",
@@ -332,6 +333,7 @@ jobs:
       matrix:
         os:
           [
+            "ubuntu-latest-large",
             "depot-ubuntu-22.04-4",
             "depot-ubuntu-22.04-8",
             "depot-ubuntu-22.04-16",
