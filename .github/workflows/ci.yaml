@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 env:
-  DAGGER_VERSION: 0.12.0
+  DAGGER_VERSION: 0.12.4
 
 jobs:
   build:

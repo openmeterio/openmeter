@@ -13,7 +13,7 @@ func (m *Ci) Etoe(
 	image := m.Build().ContainerImage("").
 		WithExposedPort(10000).
 		WithMountedFile("/etc/openmeter/config.yaml", m.Source.File("e2e/config.yaml")).
-		WithServiceBinding("kafka", dag.Kafka(dagger.KafkaOpts{Version: kafkaVersion}).Service()).
+		WithServiceBinding("kafka", dag.Kafka(dagger.KafkaOpts{Version: kafkaVersion}).SingleNode().Service()).
 		WithServiceBinding("clickhouse", clickhouse())
 
 	api := image.
