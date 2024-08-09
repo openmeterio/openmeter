@@ -46,11 +46,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
+      - name: Set up Depot CLI
+        uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5 # v1.6.0
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
+      # - name: Set up QEMU
+      #   uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
+      #
+      # - name: Set up Docker Buildx
+      #   uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
 
       - name: Set image name
         id: image-name
@@ -90,7 +93,8 @@ jobs:
 
       - name: Build and push image
         id: build
-        uses: docker/build-push-action@16ebe778df0e7752d2cfcbd924afdbbd89c1a755 # v6.6.1
+        # uses: docker/build-push-action@16ebe778df0e7752d2cfcbd924afdbbd89c1a755 # v6.6.1
+        uses: depot/build-push-action@e7743ee6585d261968c7ae0ef64977ee98c09d74 # v1.13.0
         with:
           context: .
           target: ${{ matrix.target }}
@@ -103,6 +107,7 @@ jobs:
           cache-to: type=gha,mode=max,ignore-error=true
           outputs: ${{ steps.build-output.outputs.value }}
           # push: ${{ inputs.publish }}
+          project: qghgtfxxh4
 
       - name: Set image ref
         id: image-ref
@@ -156,11 +161,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
+      - name: Set up Depot CLI
+        uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5 # v1.6.0
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
+      # - name: Set up QEMU
+      #   uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
+      #
+      # - name: Set up Docker Buildx
+      #   uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
 
       - name: Set image name
         id: image-name
@@ -200,7 +208,8 @@ jobs:
 
       - name: Build and push image
         id: build
-        uses: docker/build-push-action@16ebe778df0e7752d2cfcbd924afdbbd89c1a755 # v6.6.1
+        # uses: docker/build-push-action@16ebe778df0e7752d2cfcbd924afdbbd89c1a755 # v6.6.1
+        uses: depot/build-push-action@e7743ee6585d261968c7ae0ef64977ee98c09d74 # v1.13.0
         with:
           context: .
           file: benthos-collector.Dockerfile
@@ -213,6 +222,7 @@ jobs:
           cache-to: type=gha,mode=max,ignore-error=true
           outputs: ${{ steps.build-output.outputs.value }}
           # push: ${{ inputs.publish }}
+          project: qghgtfxxh4
 
       - name: Set image ref
         id: image-ref
