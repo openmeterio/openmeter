@@ -14,7 +14,7 @@ env:
 jobs:
   build:
     name: Build
-    runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
+    runs-on: depot-ubuntu-latest-8
 
     steps:
       - name: Checkout repository
@@ -40,28 +40,12 @@ jobs:
 
   test:
     name: Test
-    runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
+    runs-on: depot-ubuntu-latest-8
 
     steps:
       # Required as a workaround for Dagger to properly detect Git metadata
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Free Disk Space
-        uses: jlumbroso/free-disk-space@v1.3.1
-        if: github.actor == 'dependabot[bot]'
-        with:
-          # Runs quick, run rm in background
-          tool-cache: true
-
-          # These run slower as use apt to uninstall packages
-          # Turned on by default, so we disable them
-          android: false
-          dotnet: false
-          haskell: false
-          large-packages: false
-          docker-images: false
-          swap-storage: false
 
       - name: Run pipeline
         uses: dagger/dagger-for-github@29a88e72255e732147ba18a670978b90bcc59efd # v6.4.0
@@ -90,28 +74,12 @@ jobs:
 
   lint:
     name: Lint
-    runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
+    runs-on: depot-ubuntu-latest-8
 
     steps:
       # Required as a workaround for Dagger to properly detect Git metadata
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Free Disk Space
-        uses: jlumbroso/free-disk-space@v1.3.1
-        if: github.actor == 'dependabot[bot]'
-        with:
-          # Runs quick, run rm in background
-          tool-cache: true
-
-          # These run slower as use apt to uninstall packages
-          # Turned on by default, so we disable them
-          android: false
-          dotnet: false
-          haskell: false
-          large-packages: false
-          docker-images: false
-          swap-storage: false
 
       - name: Run pipeline
         uses: dagger/dagger-for-github@29a88e72255e732147ba18a670978b90bcc59efd # v6.4.0
@@ -231,7 +199,7 @@ jobs:
 
   quickstart:
     name: Quickstart
-    runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
+    runs-on: depot-ubuntu-latest-8
 
     steps:
       - name: Checkout repository
