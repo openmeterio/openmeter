@@ -63,6 +63,7 @@ import (
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 const (
@@ -562,7 +563,7 @@ func initPGClients(config config.PostgresConfig) (
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid postgres config: %w", err)
 	}
-	driver, err := entutils.GetPGDriver(config.URL)
+	driver, err := entutils.GetEntDriver(config.URL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init postgres driver: %w", err)
 	}
@@ -571,9 +572,8 @@ func initPGClients(config config.PostgresConfig) (
 	dbClient := db.NewClient(db.Driver(driver))
 
 	if config.AutoMigrate {
-		// TODO: use versioned migrations: https://entgo.io/docs/versioned-migrations
-		if err := dbClient.Schema.Create(context.Background()); err != nil {
-			return nil, fmt.Errorf("failed to migrate credit db: %w", err)
+		if err := migrate.Up(config.URL); err != nil {
+			return nil, fmt.Errorf("failed to migrate db: %w", err)
 		}
 	}
 

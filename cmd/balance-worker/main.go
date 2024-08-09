@@ -396,7 +396,7 @@ func initPGClients(config config.PostgresConfig) (
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid postgres config: %w", err)
 	}
-	driver, err := entutils.GetPGDriver(config.URL)
+	driver, err := entutils.GetEntDriver(config.URL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init postgres driver: %w", err)
 	}
