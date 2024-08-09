@@ -423,6 +423,30 @@ func (a *entitlementDBAdapter) ListEntitlementsWithExpiredUsagePeriod(ctx contex
 	return result, nil
 }
 
+type namespacesWithCount struct {
+	Namespace string
+	Count     int
+}
+
+func (a *entitlementDBAdapter) ListNamespacesWithActiveEntitlements(ctx context.Context, includeDeletedAfter time.Time) ([]string, error) {
+	namespaces := []namespacesWithCount{}
+
+	err := a.db.Entitlement.Query().
+		Where(
+			db_entitlement.Or(db_entitlement.DeletedAtGT(includeDeletedAfter), db_entitlement.DeletedAtIsNil()),
+		).
+		GroupBy(db_entitlement.FieldNamespace).
+		Aggregate(db.Count()).
+		Scan(ctx, &namespaces)
+	if err != nil {
+		return nil, err
+	}
+
+	return slicesx.Map(namespaces, func(n namespacesWithCount) string {
+		return n.Namespace
+	}), nil
+}
+
 func withLatestUsageReset(q *db.EntitlementQuery) *db.EntitlementQuery {
 	return q.WithUsageReset(func(urq *db.UsageResetQuery) {
 		urq.Order(db_usagereset.ByResetTime(sql.OrderDesc()))
