@@ -1,7 +1,6 @@
 package meteredentitlement_test
 
 import (
-	"context"
 	"sync"
 	"testing"
 	"time"
@@ -23,6 +22,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 type dependencies struct {
@@ -60,7 +60,7 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	driver := testutils.InitPostgresDB(t)
 
 	// build db client & adapters
-	dbClient := db.NewClient(db.Driver(driver))
+	dbClient := db.NewClient(db.Driver(driver.EntDriver))
 
 	featureRepo := productcatalog_postgresadapter.NewPostgresFeatureRepo(dbClient, testLogger)
 	entitlementRepo := entitlement_postgresadapter.NewPostgresEntitlementRepo(dbClient)
@@ -71,8 +71,8 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	m.Lock()
 	defer m.Unlock()
 	// migrate db
-	if err := dbClient.Schema.Create(context.Background()); err != nil {
-		t.Fatalf("failed to migrate database %s", err)
+	if err := migrate.Up(driver.URL); err != nil {
+		t.Fatalf("failed to migrate db: %s", err.Error())
 	}
 
 	mockPublisher := eventbus.NewMock(t)

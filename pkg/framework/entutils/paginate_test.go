@@ -21,7 +21,7 @@ func TestPaginate(t *testing.T) {
 	driver := testutils.InitPostgresDB(t)
 
 	// build db clients
-	dbClient := db.NewClient(db.Driver(driver))
+	dbClient := db.NewClient(db.Driver(driver.EntDriver))
 	defer dbClient.Close()
 
 	if err := dbClient.Schema.Create(context.Background()); err != nil {
