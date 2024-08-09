@@ -102,9 +102,6 @@ func (e SnapshotEvent) Validate() error {
 			return errors.New("balance is required for balance update")
 		}
 
-		if e.CurrentUsagePeriod == nil {
-			return errors.New("currentUsagePeriod is required for balance update")
-		}
 	}
 
 	return nil
