@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func EventuallyWithTf(t *testing.T, fn func(c *assert.CollectT, saveErr func(err any)), wait time.Duration, interval time.Duration) {
@@ -19,7 +20,7 @@ func EventuallyWithTf(t *testing.T, fn func(c *assert.CollectT, saveErr func(err
 		return v[0]
 	}
 
-	assert.EventuallyWithTf(t, func(c *assert.CollectT) {
+	require.EventuallyWithTf(t, func(c *assert.CollectT) {
 		fn(c, saveErr)
 	}, wait, interval, "%w", firstVal(sm.Load(errKey)))
 }

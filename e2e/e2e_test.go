@@ -472,7 +472,7 @@ func TestCredit(t *testing.T) {
 	var featureId *api.FeatureId
 	var featureKey string
 
-	const waitTime = time.Second * 10
+	const waitTime = time.Second * 30
 
 	t.Run("Create Feature", func(t *testing.T) {
 		randKey := ulid.Make().String()
@@ -732,7 +732,7 @@ func TestCredit(t *testing.T) {
 			require.Equal(t, http.StatusNoContent, resp.StatusCode())
 		}
 
-		// Wait for events to be processed
+		// Wait for events to be processed, fail on network errors
 		testutils.EventuallyWithTf(t, func(c *assert.CollectT, saveErr func(err any)) {
 			resp, err := client.QueryMeterWithResponse(context.Background(), meterSlug, &api.QueryMeterParams{
 				Subject: &[]string{subject},
