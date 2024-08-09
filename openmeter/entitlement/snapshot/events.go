@@ -3,12 +3,12 @@ package snapshot
 import "github.com/openmeterio/openmeter/internal/entitlement/snapshot"
 
 type (
-	BalanceOperationType = snapshot.BalanceOperationType
+	ValueOperationType = snapshot.ValueOperationType
 )
 
 const (
-	BalanceOperationUpdate = snapshot.BalanceOperationUpdate
-	BalanceOperationDelete = snapshot.BalanceOperationDelete
+	ValueOperationUpdate = snapshot.ValueOperationUpdate
+	ValueOperationDelete = snapshot.ValueOperationDelete
 )
 
 type (

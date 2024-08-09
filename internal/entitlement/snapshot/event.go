@@ -12,11 +12,11 @@ import (
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
-type BalanceOperationType string
+type ValueOperationType string
 
 const (
-	BalanceOperationUpdate BalanceOperationType = "update"
-	BalanceOperationDelete BalanceOperationType = "delete"
+	ValueOperationUpdate ValueOperationType = "update"
+	ValueOperationDelete ValueOperationType = "delete"
 )
 
 type EntitlementValue struct {
@@ -42,13 +42,13 @@ type SnapshotEvent struct {
 	Subject     models.SubjectKeyAndID  `json:"subject"`
 	Feature     productcatalog.Feature  `json:"feature"`
 	// Operation is delete if the entitlement gets deleted, in that case the balance object is empty
-	Operation BalanceOperationType `json:"operation"`
+	Operation ValueOperationType `json:"operation"`
 
 	// CalculatedAt specifies when the balance calculation was performed. It can be used to verify
 	// in edge-worker if the store already contains the required item.
 	CalculatedAt *time.Time `json:"calculatedAt,omitempty"`
 
-	Balance            *EntitlementValue  `json:"balance,omitempty"`
+	Value              *EntitlementValue  `json:"value,omitempty"`
 	CurrentUsagePeriod *recurrence.Period `json:"currentUsagePeriod,omitempty"`
 }
 
@@ -58,7 +58,7 @@ var (
 	snapshotEventName = metadata.GetEventName(metadata.EventType{
 		Subsystem: entitlement.EventSubsystem,
 		Name:      "entitlement.snapshot",
-		Version:   "v1",
+		Version:   "v2",
 	})
 )
 
@@ -73,7 +73,7 @@ func (e SnapshotEvent) EventMetadata() metadata.EventMetadata {
 }
 
 func (e SnapshotEvent) Validate() error {
-	if e.Operation != BalanceOperationDelete && e.Operation != BalanceOperationUpdate {
+	if e.Operation != ValueOperationDelete && e.Operation != ValueOperationUpdate {
 		return errors.New("operation must be either delete or update")
 	}
 
@@ -93,18 +93,18 @@ func (e SnapshotEvent) Validate() error {
 		return errors.New("feature ID must be set")
 	}
 
-	if e.Operation == BalanceOperationUpdate {
-		if e.CalculatedAt == nil {
-			return errors.New("calculatedAt is required for balance update")
-		}
+	if e.CalculatedAt == nil {
+		return errors.New("calculatedAt is required ")
+	}
 
-		if e.Balance == nil {
+	switch e.Operation {
+	case ValueOperationUpdate:
+		if e.Value == nil {
 			return errors.New("balance is required for balance update")
 		}
-
-		if e.CurrentUsagePeriod == nil {
-			return errors.New("currentUsagePeriod is required for balance update")
-		}
+	case ValueOperationDelete:
+	default:
+		return errors.New("operation must be either delete or update")
 	}
 
 	return nil
