@@ -455,12 +455,14 @@ func initEventPublisherDriver(ctx context.Context, logger *slog.Logger, conf con
 	}
 
 	return watermillkafka.NewPublisher(ctx, watermillkafka.PublisherOptions{
-		KafkaConfig:     conf.Ingest.Kafka.KafkaConfiguration,
+		Broker: watermillkafka.BrokerOptions{
+			KafkaConfig:  conf.Ingest.Kafka.KafkaConfiguration,
+			ClientID:     otelName,
+			Logger:       logger,
+			MetricMeter:  metricMeter,
+			DebugLogging: conf.Telemetry.Log.Level == slog.LevelDebug,
+		},
 		ProvisionTopics: provisionTopics,
-		ClientID:        otelName,
-		Logger:          logger,
-		MetricMeter:     metricMeter,
-		DebugLogging:    conf.Telemetry.Log.Level == slog.LevelDebug,
 	})
 }
 

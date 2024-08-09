@@ -7,8 +7,9 @@ import (
 )
 
 type (
-	Publisher = eventbus.Publisher
-	Options   = eventbus.Options
+	Publisher        = eventbus.Publisher
+	ContextPublisher = eventbus.ContextPublisher
+	Options          = eventbus.Options
 )
 
 func New(options Options) (Publisher, error) {

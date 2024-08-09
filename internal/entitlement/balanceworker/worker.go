@@ -2,14 +2,11 @@ package balanceworker
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
 
-	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	lru "github.com/hashicorp/golang-lru/v2"
 
 	"github.com/openmeterio/openmeter/internal/credit/grant"
@@ -18,7 +15,9 @@ import (
 	"github.com/openmeterio/openmeter/internal/event/metadata"
 	"github.com/openmeterio/openmeter/internal/registry"
 	ingestevents "github.com/openmeterio/openmeter/internal/sink/flushhandler/ingestnotification/events"
-	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
+	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
+	"github.com/openmeterio/openmeter/internal/watermill/grouphandler"
+	"github.com/openmeterio/openmeter/internal/watermill/router"
 	pkgmodels "github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -39,12 +38,9 @@ type SubjectIDResolver interface {
 type WorkerOptions struct {
 	SystemEventsTopic string
 	IngestEventsTopic string
-	Subscriber        message.Subscriber
 
-	TargetTopic string
-	DLQ         *WorkerDLQOptions
-	Publisher   message.Publisher
-	Marshaler   marshaler.Marshaler
+	Router   router.Options
+	EventBus eventbus.Publisher
 
 	Entitlement *registry.Entitlement
 	Repo        BalanceWorkerRepository
@@ -52,13 +48,6 @@ type WorkerOptions struct {
 	SubjectIDResolver SubjectIDResolver
 
 	Logger *slog.Logger
-}
-
-type WorkerDLQOptions struct {
-	Topic            string
-	Throttle         bool
-	ThrottleDuration time.Duration
-	ThrottleCount    int64
 }
 
 type highWatermarkCacheEntry struct {
@@ -76,11 +65,6 @@ type Worker struct {
 }
 
 func New(opts WorkerOptions) (*Worker, error) {
-	router, err := message.NewRouter(message.RouterConfig{}, watermill.NewSlogLogger(opts.Logger))
-	if err != nil {
-		return nil, err
-	}
-
 	highWatermarkCache, err := lru.New[string, highWatermarkCacheEntry](defaultHighWatermarkCacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create high watermark cache: %w", err)
@@ -88,70 +72,99 @@ func New(opts WorkerOptions) (*Worker, error) {
 
 	worker := &Worker{
 		opts:               opts,
-		router:             router,
 		entitlement:        opts.Entitlement,
 		repo:               opts.Repo,
 		highWatermarkCache: highWatermarkCache,
 	}
 
-	router.AddHandler(
+	eventHandler := worker.eventHandler()
+
+	router, err := router.NewDefaultRouter(opts.Router, eventHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	worker.router = router
+
+	router.AddNoPublisherHandler(
 		"balance_worker_system_events",
 		opts.SystemEventsTopic,
-		opts.Subscriber,
-		opts.TargetTopic,
-		opts.Publisher,
-		worker.handleEvent,
+		opts.Router.Subscriber,
+		eventHandler,
 	)
 
-	router.AddHandler(
-		"balance_worker_ingest_events",
-		opts.IngestEventsTopic,
-		opts.Subscriber,
-		opts.TargetTopic,
-		opts.Publisher,
-		worker.handleEvent,
-	)
-
-	router.AddMiddleware(
-		middleware.CorrelationID,
-
-		middleware.Retry{
-			MaxRetries:      5,
-			InitialInterval: 100 * time.Millisecond,
-			Logger:          watermill.NewSlogLogger(opts.Logger),
-		}.Middleware,
-
-		middleware.Recoverer,
-	)
-
-	if opts.DLQ != nil {
-		poisionQueue, err := middleware.PoisonQueue(opts.Publisher, opts.DLQ.Topic)
-		if err != nil {
-			return nil, err
-		}
-
-		router.AddMiddleware(
-			poisionQueue,
-		)
-
-		poisionQueueProcessor := worker.handleEvent
-		if opts.DLQ.Throttle {
-			poisionQueueProcessor = middleware.NewThrottle(
-				opts.DLQ.ThrottleCount,
-				opts.DLQ.ThrottleDuration,
-			).Middleware(poisionQueueProcessor)
-		}
-		router.AddHandler(
-			"balance_worker_process_poison_queue",
-			opts.DLQ.Topic,
-			opts.Subscriber,
-			opts.TargetTopic,
-			opts.Publisher,
-			poisionQueueProcessor,
+	if opts.SystemEventsTopic != opts.IngestEventsTopic {
+		router.AddNoPublisherHandler(
+			"balance_worker_ingest_events",
+			opts.IngestEventsTopic,
+			opts.Router.Subscriber,
+			eventHandler,
 		)
 	}
 
 	return worker, nil
+}
+
+func (w *Worker) eventHandler() message.NoPublishHandlerFunc {
+	return grouphandler.NewNoPublishingHandler(
+		w.opts.EventBus.Marshaler(),
+
+		// Entitlement created event
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *entitlement.EntitlementCreatedEvent) error {
+			return w.opts.EventBus.
+				WithContext(ctx).
+				PublishIfNoError(w.handleEntitlementUpdateEvent(
+					ctx,
+					NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
+					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID),
+				))
+		}),
+
+		// Entitlement deleted event
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *entitlement.EntitlementDeletedEvent) error {
+			return w.opts.EventBus.
+				WithContext(ctx).
+				PublishIfNoError(w.handleEntitlementDeleteEvent(ctx, *event))
+		}),
+
+		// Grant created event
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *grant.CreatedEvent) error {
+			return w.opts.EventBus.
+				WithContext(ctx).
+				PublishIfNoError(w.handleEntitlementUpdateEvent(
+					ctx,
+					NamespacedID{Namespace: event.Namespace.ID, ID: string(event.OwnerID)},
+					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, string(event.OwnerID), metadata.EntityGrant, event.ID),
+				))
+		}),
+
+		// Grant voided event
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *grant.VoidedEvent) error {
+			return w.opts.EventBus.
+				WithContext(ctx).
+				PublishIfNoError(w.handleEntitlementUpdateEvent(
+					ctx,
+					NamespacedID{Namespace: event.Namespace.ID, ID: string(event.OwnerID)},
+					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, string(event.OwnerID), metadata.EntityGrant, event.ID),
+				))
+		}),
+
+		// Metered entitlement reset event
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *meteredentitlement.EntitlementResetEvent) error {
+			return w.opts.EventBus.
+				WithContext(ctx).
+				PublishIfNoError(w.handleEntitlementUpdateEvent(
+					ctx,
+					NamespacedID{Namespace: event.Namespace.ID, ID: event.EntitlementID},
+					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.EntitlementID),
+				))
+		}),
+
+		// Ingest batched event
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *ingestevents.EventBatchedIngest) error {
+			return w.handleBatchedIngestEvent(ctx, *event)
+		}),
+	)
 }
 
 func (w *Worker) Run(ctx context.Context) error {
@@ -164,107 +177,4 @@ func (w *Worker) Close() error {
 	}
 
 	return nil
-}
-
-func (w *Worker) handleEvent(msg *message.Message) ([]*message.Message, error) {
-	w.opts.Logger.Debug("received system event", w.messageToLogFields(msg)...)
-
-	ceType, found := msg.Metadata[marshaler.CloudEventsHeaderType]
-	if !found {
-		w.opts.Logger.Warn("missing CloudEvents type, ignoring message")
-		return nil, nil
-	}
-
-	switch ceType {
-	// Entitlement events
-	case entitlement.EntitlementCreatedEvent{}.EventName():
-		event := entitlement.EntitlementCreatedEvent{}
-
-		if err := w.opts.Marshaler.Unmarshal(msg, &event); err != nil {
-			w.opts.Logger.Error("failed to parse entitlement created event", w.messageToLogFields(msg)...)
-			return nil, err
-		}
-
-		return w.handleEntitlementUpdateEvent(
-			msg.Context(),
-			NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
-			metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID),
-		)
-
-	case entitlement.EntitlementDeletedEvent{}.EventName():
-		event := entitlement.EntitlementDeletedEvent{}
-
-		if err := w.opts.Marshaler.Unmarshal(msg, &event); err != nil {
-			w.opts.Logger.Error("failed to parse entitlement deleted event", w.messageToLogFields(msg)...)
-			return nil, err
-		}
-
-		return w.handleEntitlementDeleteEvent(msg.Context(), event)
-
-	// Grant events
-	case grant.CreatedEvent{}.EventName():
-		event := grant.CreatedEvent{}
-
-		if err := w.opts.Marshaler.Unmarshal(msg, &event); err != nil {
-			return nil, fmt.Errorf("failed to parse grant created event: %w", err)
-		}
-
-		return w.handleEntitlementUpdateEvent(
-			msg.Context(),
-			NamespacedID{Namespace: event.Namespace.ID, ID: string(event.OwnerID)},
-			metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, string(event.OwnerID), metadata.EntityGrant, event.ID),
-		)
-
-	case grant.VoidedEvent{}.EventName():
-		event := grant.VoidedEvent{}
-
-		if err := w.opts.Marshaler.Unmarshal(msg, &event); err != nil {
-			return nil, fmt.Errorf("failed to parse grant voided event: %w", err)
-		}
-
-		return w.handleEntitlementUpdateEvent(
-			msg.Context(),
-			NamespacedID{Namespace: event.Namespace.ID, ID: string(event.OwnerID)},
-			metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, string(event.OwnerID), metadata.EntityGrant, event.ID),
-		)
-
-	// Metered entitlement events
-	case meteredentitlement.EntitlementResetEvent{}.EventName():
-		event := meteredentitlement.EntitlementResetEvent{}
-
-		if err := w.opts.Marshaler.Unmarshal(msg, &event); err != nil {
-			return nil, fmt.Errorf("failed to parse reset entitlement event: %w", err)
-		}
-
-		return w.handleEntitlementUpdateEvent(
-			msg.Context(),
-			NamespacedID{Namespace: event.Namespace.ID, ID: event.EntitlementID},
-			metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.EntitlementID),
-		)
-
-	// Ingest events
-	case ingestevents.EventBatchedIngest{}.EventName():
-		event := ingestevents.EventBatchedIngest{}
-
-		if err := w.opts.Marshaler.Unmarshal(msg, &event); err != nil {
-			return nil, fmt.Errorf("failed to parse ingest event: %w", err)
-		}
-
-		return w.handleBatchedIngestEvent(msg.Context(), event)
-	}
-	return nil, nil
-}
-
-func (w *Worker) messageToLogFields(msg *message.Message) []any {
-	out := make([]any, 0, 3)
-	out = append(out, slog.String("message_uuid", msg.UUID))
-	out = append(out, slog.String("message_payload", string(msg.Payload)))
-
-	meta, err := json.Marshal(msg.Metadata)
-	if err != nil {
-		return out
-	}
-
-	out = append(out, slog.String("message_metadata", string(meta)))
-	return out
 }
