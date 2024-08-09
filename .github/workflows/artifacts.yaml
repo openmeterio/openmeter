@@ -81,7 +81,8 @@ jobs:
         with:
           cond: ${{ inputs.publish }}
           if_true: type=image,push=true
-          if_false: type=oci,dest=image.tar
+          if_false: type=image,push=true
+          # if_false: type=oci,dest=image.tar
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
@@ -113,21 +114,21 @@ jobs:
         id: image-ref
         run: echo "value=${{ steps.image-name.outputs.value }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
 
-      - name: Fetch image
-        run: skopeo --insecure-policy copy docker://${{ steps.image-ref.outputs.value }} oci-archive:image.tar
-        if: inputs.publish
-
-      - name: Extract OCI tarball
-        run: |
-          mkdir -p image
-          tar -xf image.tar -C image
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8 # 0.24.0
-        with:
-          input: image
-          format: sarif
-          output: trivy-results.sarif
+      # - name: Fetch image
+      #   run: skopeo --insecure-policy copy docker://${{ steps.image-ref.outputs.value }} oci-archive:image.tar
+      #   if: inputs.publish
+      #
+      # - name: Extract OCI tarball
+      #   run: |
+      #     mkdir -p image
+      #     tar -xf image.tar -C image
+      #
+      # - name: Run Trivy vulnerability scanner
+      #   uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8 # 0.24.0
+      #   with:
+      #     input: image
+      #     format: sarif
+      #     output: trivy-results.sarif
 
       # - name: Upload Trivy scan results as artifact
       #   uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
@@ -136,10 +137,10 @@ jobs:
       #     path: trivy-results.sarif
       #     retention-days: 5
 
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@eb055d739abdc2e8de2e5f4ba1a8b246daa779aa # v3.26.0
-        with:
-          sarif_file: trivy-results.sarif
+      # - name: Upload Trivy scan results to GitHub Security tab
+      #   uses: github/codeql-action/upload-sarif@eb055d739abdc2e8de2e5f4ba1a8b246daa779aa # v3.26.0
+      #   with:
+      #     sarif_file: trivy-results.sarif
 
   benthos-collector-container-image:
     name: Benthos Collector Container image
@@ -196,7 +197,8 @@ jobs:
         with:
           cond: ${{ inputs.publish }}
           if_true: type=image,push=true
-          if_false: type=oci,dest=image.tar
+          if_false: type=image,push=true
+          # if_false: type=oci,dest=image.tar
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
@@ -228,21 +230,21 @@ jobs:
         id: image-ref
         run: echo "value=${{ steps.image-name.outputs.value }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
 
-      - name: Fetch image
-        run: skopeo --insecure-policy copy docker://${{ steps.image-ref.outputs.value }} oci-archive:image.tar
-        if: inputs.publish
-
-      - name: Extract OCI tarball
-        run: |
-          mkdir -p image
-          tar -xf image.tar -C image
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8 # 0.24.0
-        with:
-          input: image
-          format: sarif
-          output: trivy-results.sarif
+      # - name: Fetch image
+      #   run: skopeo --insecure-policy copy docker://${{ steps.image-ref.outputs.value }} oci-archive:image.tar
+      #   if: inputs.publish
+      #
+      # - name: Extract OCI tarball
+      #   run: |
+      #     mkdir -p image
+      #     tar -xf image.tar -C image
+      #
+      # - name: Run Trivy vulnerability scanner
+      #   uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8 # 0.24.0
+      #   with:
+      #     input: image
+      #     format: sarif
+      #     output: trivy-results.sarif
 
       # - name: Upload Trivy scan results as artifact
       #   uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
@@ -251,7 +253,7 @@ jobs:
       #     path: trivy-results.sarif
       #     retention-days: 5
 
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@eb055d739abdc2e8de2e5f4ba1a8b246daa779aa # v3.26.0
-        with:
-          sarif_file: trivy-results.sarif
+      # - name: Upload Trivy scan results to GitHub Security tab
+      #   uses: github/codeql-action/upload-sarif@eb055d739abdc2e8de2e5f4ba1a8b246daa779aa # v3.26.0
+      #   with:
+      #     sarif_file: trivy-results.sarif
