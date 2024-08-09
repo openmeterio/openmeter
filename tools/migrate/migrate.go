@@ -41,7 +41,7 @@ func Up(conn string) error {
 
 	defer m.Close()
 	err = m.Up()
-	if err != nil {
+	if err != nil && err != migrate.ErrNoChange {
 		return err
 	}
 	return nil
