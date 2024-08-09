@@ -291,6 +291,7 @@ func TestTransaction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// create isolated pg db for tests
 			driver := testutils.InitPostgresDB(t)
+			defer driver.EntDriver.Close()
 
 			// build db clients
 			db1Client := db1.NewClient(db1.Driver(driver.EntDriver))
