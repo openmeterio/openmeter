@@ -15,9 +15,30 @@ OpenMeter is a Real-Time and Scalable Usage Metering for AI, Usage-Based Billing
 
 Learn more about OpenMeter at [https://openmeter.io](https://openmeter.io).
 
-## Quickstart
+## Try It
+
+Get started with the latest version of OpenMeter in minutes.
+
+### Local
+
+```sh
+git clone git@github.com:openmeterio/openmeter.git
+cd openmeter/quickstart
+docker compose up -d
+```
 
 Check out the [quickstart guide](/quickstart) for a 5-minute overview and demo of OpenMeter.
+
+### Cloud
+
+[Sign up](https://openmeter.cloud) for a free account and start metering your usage in the cloud.
+
+> [!TIP]
+> Check out how OpenMeter Cloud compares with the self-hosted version in our [comparison guide](https://openmeter.io/docs/cloud#comparison).
+
+### Deploy
+
+Deploy OpenMeter to your Kubernetes cluster using our [Helm chart](https://openmeter.io/docs/manage/deploy/kubernetes).
 
 ## Links
 
