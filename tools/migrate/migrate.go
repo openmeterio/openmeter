@@ -21,9 +21,8 @@ type Migrate = migrate.Migrate
 var omMigrations embed.FS
 
 // NewMigrate creates a new migrate instance.
-// fs is expected to contain a migrations directory with the migration files.
-func NewMigrate(conn string, fs fs.FS) (*Migrate, error) {
-	d, err := iofs.New(fs, "migrations")
+func NewMigrate(conn string, fs fs.FS, fsPath string) (*Migrate, error) {
+	d, err := iofs.New(fs, fsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +34,7 @@ func Up(conn string) error {
 	if err != nil {
 		return err
 	}
-	m, err := NewMigrate(conn, omMigrations)
+	m, err := NewMigrate(conn, omMigrations, "migrations")
 	if err != nil {
 		return err
 	}
