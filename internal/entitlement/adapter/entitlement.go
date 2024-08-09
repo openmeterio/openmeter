@@ -251,6 +251,10 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 		query = query.Where(db_entitlement.Or(db_entitlement.DeletedAtGT(clock.Now()), db_entitlement.DeletedAtIsNil()))
 	}
 
+	if !params.IncludeDeletedAfter.IsZero() {
+		query = query.Where(db_entitlement.Or(db_entitlement.DeletedAtGT(params.IncludeDeletedAfter), db_entitlement.DeletedAtIsNil()))
+	}
+
 	if params.OrderBy != "" {
 		order := []sql.OrderTermOption{}
 		if !params.Order.IsDefaultValue() {

@@ -50,6 +50,7 @@ require (
 	github.com/sagikazarmark/slog-shim v0.1.0
 	github.com/samber/lo v1.46.0
 	github.com/samber/slog-multi v1.2.0
+	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.20.0-alpha.6
 	github.com/stretchr/testify v1.9.0
@@ -175,7 +176,7 @@ require (
 	github.com/couchbase/gocbcoreps v0.1.2 // indirect
 	github.com/couchbase/goprotostellar v1.0.2 // indirect
 	github.com/couchbaselabs/gocbconnstr/v2 v2.0.0-20230515165046-68b522a21131 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/danieljoos/wincred v1.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/denisenkom/go-mssqldb v0.12.3 // indirect
@@ -248,6 +249,7 @@ require (
 	github.com/hashicorp/raft v1.7.0 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/influxdata/go-syslog/v3 v3.0.0 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c // indirect
 	github.com/invopop/yaml v0.2.0 // indirect
