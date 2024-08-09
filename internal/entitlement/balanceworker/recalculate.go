@@ -21,9 +21,9 @@ import (
 )
 
 const (
-	// defaultIncludeDeletedDuration is the default duration for which deleted entitlements are included in recalculation.
+	// DefaultIncludeDeletedDuration is the default duration for which deleted entitlements are included in recalculation.
 	// This ensures that the recent deleted snapshot events are also resent.
-	defaultIncludeDeletedDuration = 24 * time.Hour
+	DefaultIncludeDeletedDuration = 24 * time.Hour
 
 	defaultLRUCacheSize = 10_000
 )
@@ -66,7 +66,7 @@ func (r *Recalculator) Recalculate(ctx context.Context) error {
 		entitlement.ListEntitlementsParams{
 			Namespaces:          []string{r.opts.Namespace},
 			IncludeDeleted:      true,
-			IncludeDeletedAfter: time.Now().Add(-defaultIncludeDeletedDuration),
+			IncludeDeletedAfter: time.Now().Add(-DefaultIncludeDeletedDuration),
 		})
 	if err != nil {
 		return err
