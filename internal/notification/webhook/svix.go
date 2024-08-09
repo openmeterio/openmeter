@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"time"
@@ -33,6 +34,20 @@ type SvixConfig struct {
 
 	ServerURL string
 	Debug     bool
+}
+
+func (c SvixConfig) Validate() error {
+	if c.APIToken == "" {
+		return errors.New("no API token provided")
+	}
+
+	if c.ServerURL != "" {
+		if _, err := url.Parse(c.ServerURL); err != nil {
+			return fmt.Errorf("invalid server URL: %w", err)
+		}
+	}
+
+	return nil
 }
 
 var _ Handler = (*svixWebhookHandler)(nil)

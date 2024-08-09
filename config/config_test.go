@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 
+	notificationwebhook "github.com/openmeterio/openmeter/internal/notification/webhook"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/redis"
@@ -237,7 +238,7 @@ func TestComplete(t *testing.T) {
 				ConsumerGroupName: "om_notification_service",
 			},
 		},
-		Svix: SvixConfiguration{
+		Svix: notificationwebhook.SvixConfig{
 			APIToken:  "test-svix-token",
 			ServerURL: "http://127.0.0.1:8071",
 			Debug:     true,
