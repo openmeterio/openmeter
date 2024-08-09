@@ -4,7 +4,7 @@ env "local" {
 
   migration {
     // Define the directory where the migrations are stored.
-    dir = "file://migrations"
+    dir = "file://tools/migrate/migrations"
     // We use golang-migrate
     format = golang-migrate
   }
@@ -35,7 +35,7 @@ env "remote" {
 
   migration {
     // Define the directory where the migrations are stored.
-    dir = "file://migrations"
+    dir = "file://tools/migrate/migrations"
     // We use golang-migrate
     format = golang-migrate
     // Remote deployments already had auto deploy present

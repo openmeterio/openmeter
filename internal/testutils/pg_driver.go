@@ -9,14 +9,15 @@ import (
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 	_ "github.com/jackc/pgx/v5/stdlib" // pgx database driver
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/peterldowns/pgtestdb"
 )
 
-// EntMigrator is a migrator for pgtestdb.
-type EntMigrator struct{}
+// NoopMigrator is a migrator for pgtestdb.
+type NoopMigrator struct{}
 
 // Hash returns the md5 hash of the schema file.
-func (m *EntMigrator) Hash() (string, error) {
+func (m *NoopMigrator) Hash() (string, error) {
 	return "", nil
 }
 
@@ -24,7 +25,7 @@ func (m *EntMigrator) Hash() (string, error) {
 // database.
 //
 //	atlas schema apply --auto-approve --url $DB --to file://$schemaFilePath
-func (m *EntMigrator) Migrate(
+func (m *NoopMigrator) Migrate(
 	ctx context.Context,
 	db *sql.DB,
 	templateConf pgtestdb.Config,
@@ -33,7 +34,7 @@ func (m *EntMigrator) Migrate(
 }
 
 // Prepare is a no-op method.
-func (*EntMigrator) Prepare(
+func (*NoopMigrator) Prepare(
 	_ context.Context,
 	_ *sql.DB,
 	_ pgtestdb.Config,
@@ -42,7 +43,7 @@ func (*EntMigrator) Prepare(
 }
 
 // Verify is a no-op method.
-func (*EntMigrator) Verify(
+func (*NoopMigrator) Verify(
 	_ context.Context,
 	_ *sql.DB,
 	_ pgtestdb.Config,
@@ -50,7 +51,13 @@ func (*EntMigrator) Verify(
 	return nil
 }
 
-func InitPostgresDB(t *testing.T) *entsql.Driver {
+type TestDB struct {
+	EntDriver *entsql.Driver
+	SQLDriver *sql.DB
+	URL       string
+}
+
+func InitPostgresDB(t *testing.T) *TestDB {
 	t.Helper()
 
 	// Dagger will set the POSTGRES_HOST environment variable for `make test`.
@@ -62,12 +69,25 @@ func InitPostgresDB(t *testing.T) *entsql.Driver {
 	}
 
 	// TODO: fix migrations
-	return entsql.OpenDB(dialect.Postgres, pgtestdb.New(t, pgtestdb.Config{
+	dbConf := pgtestdb.Custom(t, pgtestdb.Config{
 		DriverName: "pgx",
 		User:       "postgres",
 		Password:   "postgres",
 		Host:       host,
 		Port:       "5432",
 		Options:    "sslmode=disable",
-	}, &EntMigrator{}))
+	}, &NoopMigrator{})
+
+	sqlDriver, err := entutils.GetSQLDriver(dbConf.URL())
+	if err != nil {
+		t.Fatalf("failed to get pg driver: %s", err)
+	}
+
+	entDriver := entsql.OpenDB(dialect.Postgres, sqlDriver)
+
+	return &TestDB{
+		EntDriver: entDriver,
+		SQLDriver: sqlDriver,
+		URL:       dbConf.URL(),
+	}
 }
