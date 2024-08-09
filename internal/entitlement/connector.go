@@ -37,16 +37,17 @@ func (o ListEntitlementsOrderBy) StrValues() []string {
 }
 
 type ListEntitlementsParams struct {
-	Namespaces       []string
-	SubjectKeys      []string
-	FeatureIDs       []string
-	FeatureKeys      []string
-	FeatureIDsOrKeys []string
-	EntitlementTypes []EntitlementType
-	OrderBy          ListEntitlementsOrderBy
-	Order            sortx.Order
-	IncludeDeleted   bool
-	Page             pagination.Page
+	Namespaces          []string
+	SubjectKeys         []string
+	FeatureIDs          []string
+	FeatureKeys         []string
+	FeatureIDsOrKeys    []string
+	EntitlementTypes    []EntitlementType
+	OrderBy             ListEntitlementsOrderBy
+	Order               sortx.Order
+	IncludeDeleted      bool
+	IncludeDeletedAfter time.Time
+	Page                pagination.Page
 	// will be deprecated
 	Limit int
 	// will be deprecated

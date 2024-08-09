@@ -12,3 +12,12 @@ type (
 func New(opts WorkerOptions) (*Worker, error) {
 	return balanceworker.New(opts)
 }
+
+type (
+	Recalculator        = balanceworker.Recalculator
+	RecalculatorOptions = balanceworker.RecalculatorOptions
+)
+
+func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
+	return balanceworker.NewRecalculator(opts)
+}
