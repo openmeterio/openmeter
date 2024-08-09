@@ -45,7 +45,7 @@ func (w *Worker) handleEntitlementDeleteEvent(ctx context.Context, delEvent enti
 				ID:  subjectID,
 			},
 			Feature:   *feature,
-			Operation: snapshot.BalanceOperationDelete,
+			Operation: snapshot.ValueOperationDelete,
 
 			CalculatedAt: convert.ToPointer(calculationTime),
 
@@ -123,11 +123,11 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementID Namespac
 				ID:  subjectID,
 			},
 			Feature:   *feature,
-			Operation: snapshot.BalanceOperationUpdate,
+			Operation: snapshot.ValueOperationUpdate,
 
 			CalculatedAt: &calculatedAt,
 
-			Balance:            convert.ToPointer((snapshot.EntitlementValue)(mappedValues)),
+			Value:              convert.ToPointer((snapshot.EntitlementValue)(mappedValues)),
 			CurrentUsagePeriod: entitlement.CurrentUsagePeriod,
 		},
 	)
