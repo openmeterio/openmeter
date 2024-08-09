@@ -340,6 +340,8 @@ func (c service) CreateEvent(ctx context.Context, params CreateEventInput) (*Eve
 	}
 
 	return c.repo.CreateEvent(ctx, params)
+
+	// ADD event sending here
 }
 
 func (c service) ListEventsDeliveryStatus(ctx context.Context, params ListEventsDeliveryStatusInput) (ListEventsDeliveryStatusResult, error) {

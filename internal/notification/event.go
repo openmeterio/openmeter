@@ -157,14 +157,29 @@ type EventPayload struct {
 	BalanceThreshold BalanceThresholdPayload `json:"balanceThreshold"`
 }
 
-func (c EventPayload) Validate() error {
-	switch c.Type {
+func (p EventPayload) Validate() error {
+	switch p.Type {
 	case EventTypeBalanceThreshold:
-		return c.BalanceThreshold.Validate()
+		return p.BalanceThreshold.Validate()
 	default:
 		return ValidationError{
-			Err: fmt.Errorf("invalid event type: %s", c.Type),
+			Err: fmt.Errorf("invalid event type: %s", p.Type),
 		}
+	}
+}
+
+func (p EventPayload) FromNotificationEventBalanceThresholdPayload(r api.NotificationEventBalanceThresholdPayload) EventPayload {
+	return EventPayload{
+		EventPayloadMeta: EventPayloadMeta{
+			Type: EventType(r.Type),
+		},
+		BalanceThreshold: BalanceThresholdPayload{
+			Entitlement: r.Data.Entitlement,
+			Feature:     r.Data.Feature,
+			Subject:     r.Data.Subject,
+			Balance:     r.Data.Balance,
+			Threshold:   r.Data.Threshold,
+		},
 	}
 }
 

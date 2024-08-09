@@ -1595,6 +1595,38 @@ paths:
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
+    post:
+      operationId: createNotificationEvent
+      summary: Create a notification event
+      description: |
+        Create a new notification event.
+      tags:
+        - Notifications (Experimental)
+      requestBody:
+        description: The notification event to create.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationEventCreateRequest"
+      responses:
+        "201":
+          description: Notification event created.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/NotificationEvent"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "409":
+          $ref: "#/components/responses/ConflictProblemResponse"
+        "501":
+          $ref: "#/components/responses/NotImplementedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
 
   /api/v1/notification/events/{eventId}:
     get:
@@ -3278,6 +3310,23 @@ components:
               default: false
               example: false
 
+    NotificationEventCreateRequest:
+      type: object
+      description: |
+        Request for creating new notification event with specific type and payload.
+      required:
+        - type
+        - payload
+        - ruleId
+      properties:
+        type:
+          $ref: "#/components/schemas/NotificationEventType"
+        payload:
+          $ref: "#/components/schemas/NotificationEventPayload"
+        ruleId:
+          type: string
+          example: "01J2KNP1YTXQRXHTDJ4KPR7PZ0"
+
     NotificationEvent:
       type: object
       description: |
@@ -3287,6 +3336,7 @@ components:
         The `payload` field contains the actual message sent to the notification channel.
       required:
         - id
+        - type
         - createdAt
         - rule
         - deliveryStatus
@@ -3296,6 +3346,8 @@ components:
           description: A unique identifier for the notification event.
           type: string
           example: "01J2KNP1YTXQRXHTDJ4KPR7PZ0"
+        type:
+          $ref: "#/components/schemas/NotificationEventType"
         createdAt:
           description: Timestamp when the notification event was created.
           type: string
