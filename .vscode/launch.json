@@ -54,6 +54,19 @@
         "--telemetry-address",
         ":10003"
       ]
-    }
+    },
+    {
+      "name": "Launch recalculate entitlement snapshots",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/jobs",
+      "args": [
+        "--config",
+        "${workspaceFolder}/config.yaml",
+        "entitlement",
+        "recalculate-balance-snapshots"
+      ]
+    },
   ]
 }

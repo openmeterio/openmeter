@@ -24,6 +24,7 @@ type EntitlementRepo interface {
 	DeleteEntitlement(ctx context.Context, entitlementID models.NamespacedID) error
 
 	ListEntitlements(ctx context.Context, params ListEntitlementsParams) (pagination.PagedResponse[Entitlement], error)
+	ListNamespacesWithActiveEntitlements(ctx context.Context, includeDeletedAfter time.Time) ([]string, error)
 
 	HasEntitlementForMeter(ctx context.Context, namespace string, meterSlug string) (bool, error)
 
