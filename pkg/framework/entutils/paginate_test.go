@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/testutils/ent1/db"
 	db_example "github.com/openmeterio/openmeter/pkg/framework/entutils/testutils/ent1/db/example1"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 func TestPaginate(t *testing.T) {
@@ -21,11 +22,11 @@ func TestPaginate(t *testing.T) {
 	driver := testutils.InitPostgresDB(t)
 
 	// build db clients
-	dbClient := db.NewClient(db.Driver(driver))
+	dbClient := db.NewClient(db.Driver(driver.EntDriver))
 	defer dbClient.Close()
 
-	if err := dbClient.Schema.Create(context.Background()); err != nil {
-		t.Fatalf("failed to migrate database %s", err)
+	if err := migrate.Up(driver.URL); err != nil {
+		t.Fatalf("failed to migrate db: %s", err.Error())
 	}
 
 	// insert items

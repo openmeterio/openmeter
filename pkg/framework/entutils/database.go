@@ -1,6 +1,8 @@
 package entutils
 
 import (
+	"database/sql"
+
 	"entgo.io/ent/dialect"
 	entDialectSQL "entgo.io/ent/dialect/sql"
 	"github.com/XSAM/otelsql"
@@ -8,11 +10,15 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 )
 
-func GetPGDriver(databaseURL string) (*entDialectSQL.Driver, error) {
-	// TODO: inject trace and metrics provider
-	database, err := otelsql.Open("pgx", databaseURL, otelsql.WithAttributes(
+func GetSQLDriver(databaseURL string) (*sql.DB, error) {
+	return otelsql.Open("pgx", databaseURL, otelsql.WithAttributes(
 		semconv.DBSystemPostgreSQL,
 	))
+}
+
+func GetEntDriver(databaseURL string) (*entDialectSQL.Driver, error) {
+	// TODO: inject trace and metrics provider
+	database, err := GetSQLDriver(databaseURL)
 	if err != nil {
 		return nil, err
 	}

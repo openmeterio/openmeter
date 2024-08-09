@@ -293,8 +293,8 @@ func TestTransaction(t *testing.T) {
 			driver := testutils.InitPostgresDB(t)
 
 			// build db clients
-			db1Client := db1.NewClient(db1.Driver(driver))
-			db2Client := db2.NewClient(db2.Driver(driver))
+			db1Client := db1.NewClient(db1.Driver(driver.EntDriver))
+			db2Client := db2.NewClient(db2.Driver(driver.EntDriver))
 
 			if err := db1Client.Schema.Create(context.Background()); err != nil {
 				t.Fatalf("failed to migrate database %s", err)
