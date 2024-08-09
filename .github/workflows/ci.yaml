@@ -14,7 +14,7 @@ env:
 jobs:
   build:
     name: Build
-    runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
+    runs-on: depot-ubuntu-latest-8
 
     steps:
       - name: Checkout repository
@@ -40,28 +40,12 @@ jobs:
 
   test:
     name: Test
-    runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
+    runs-on: depot-ubuntu-latest-8
 
     steps:
       # Required as a workaround for Dagger to properly detect Git metadata
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Free Disk Space
-        uses: jlumbroso/free-disk-space@v1.3.1
-        if: github.actor == 'dependabot[bot]'
-        with:
-          # Runs quick, run rm in background
-          tool-cache: true
-
-          # These run slower as use apt to uninstall packages
-          # Turned on by default, so we disable them
-          android: false
-          dotnet: false
-          haskell: false
-          large-packages: false
-          docker-images: false
-          swap-storage: false
 
       - name: Run pipeline
         uses: dagger/dagger-for-github@29a88e72255e732147ba18a670978b90bcc59efd # v6.4.0
@@ -90,28 +74,12 @@ jobs:
 
   lint:
     name: Lint
-    runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
+    runs-on: depot-ubuntu-latest-8
 
     steps:
       # Required as a workaround for Dagger to properly detect Git metadata
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Free Disk Space
-        uses: jlumbroso/free-disk-space@v1.3.1
-        if: github.actor == 'dependabot[bot]'
-        with:
-          # Runs quick, run rm in background
-          tool-cache: true
-
-          # These run slower as use apt to uninstall packages
-          # Turned on by default, so we disable them
-          android: false
-          dotnet: false
-          haskell: false
-          large-packages: false
-          docker-images: false
-          swap-storage: false
 
       - name: Run pipeline
         uses: dagger/dagger-for-github@29a88e72255e732147ba18a670978b90bcc59efd # v6.4.0
@@ -140,16 +108,13 @@ jobs:
 
   commit-hooks:
     name: Commit hooks
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-latest-4
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 0
-
-      - name: Free disk space
-        uses: ./.github/actions/free-disk-space
 
       - name: Set up Nix
         uses: cachix/install-nix-action@ba0dd844c9180cbf77aa72a116d6fbc515d0e87b # v27
@@ -231,7 +196,7 @@ jobs:
 
   quickstart:
     name: Quickstart
-    runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
+    runs-on: depot-ubuntu-latest-8
 
     steps:
       - name: Checkout repository
@@ -259,44 +224,12 @@ jobs:
 
   e2e:
     name: E2E
-    # runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          [
-            "ubuntu-latest-large",
-            "depot-ubuntu-22.04-4",
-            "depot-ubuntu-22.04-8",
-            "depot-ubuntu-22.04-16",
-            "depot-ubuntu-22.04-32",
-            "depot-ubuntu-22.04-4-io",
-            "depot-ubuntu-22.04-8-io",
-            "depot-ubuntu-22.04-32-io",
-          ]
+    runs-on: depot-ubuntu-latest-16
 
     steps:
       # Required as a workaround for Dagger to properly detect Git metadata
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      # - name: Free Disk Space
-      #   uses: jlumbroso/free-disk-space@v1.3.1
-      #   if: github.actor == 'dependabot[bot]'
-      #   with:
-      #     # Runs quick, run rm in background
-      #     tool-cache: true
-      #
-      #     # These run slower as use apt to uninstall packages
-      #     # Turned on by default, so we disable them
-      #     android: false
-      #     dotnet: false
-      #     haskell: false
-      #     large-packages: false
-      #     docker-images: false
-      #     swap-storage: false
 
       - name: Run pipeline
         uses: dagger/dagger-for-github@29a88e72255e732147ba18a670978b90bcc59efd # v6.4.0
@@ -313,61 +246,27 @@ jobs:
         if: always()
         continue-on-error: true
 
-      # - name: Upload Dagger Engine logs as artifact
-      #   uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029 # v4.3.5
-      #   if: always() && steps.export-dagger-engine-logs.outcome == 'success'
-      #   with:
-      #     name: "[${{ github.job }}] Dagger Engine logs"
-      #     path: |
-      #       engine.stdout.log
-      #       engine.stderr.log
-      #     retention-days: 14
+      - name: Upload Dagger Engine logs as artifact
+        uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029 # v4.3.5
+        if: always() && steps.export-dagger-engine-logs.outcome == 'success'
+        with:
+          name: "[${{ github.job }}] Dagger Engine logs"
+          path: |
+            engine.stdout.log
+            engine.stderr.log
+          retention-days: 14
 
   dagger:
     name: CI
-    # runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          [
-            "ubuntu-latest-large",
-            "depot-ubuntu-22.04-4",
-            "depot-ubuntu-22.04-8",
-            "depot-ubuntu-22.04-16",
-            "depot-ubuntu-22.04-32",
-            "depot-ubuntu-22.04-4-io",
-            "depot-ubuntu-22.04-8-io",
-            "depot-ubuntu-22.04-16-io",
-            "depot-ubuntu-22.04-32-io",
-          ]
+    runs-on: depot-ubuntu-latest-16
 
     steps:
       # Required as a workaround for Dagger to properly detect Git metadata
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      # - name: Free Disk Space
-      #   uses: jlumbroso/free-disk-space@v1.3.1
-      #   if: github.actor == 'dependabot[bot]'
-      #   with:
-      #     # Runs quick, run rm in background
-      #     tool-cache: true
-      #
-      #     # These run slower as use apt to uninstall packages
-      #     # Turned on by default, so we disable them
-      #     android: false
-      #     dotnet: false
-      #     haskell: false
-      #     large-packages: false
-      #     docker-images: false
-      #     swap-storage: false
-
       - name: Run pipeline
         uses: dagger/dagger-for-github@29a88e72255e732147ba18a670978b90bcc59efd # v6.4.0
-        # timeout-minutes: 40
         with:
           verb: call
           module: github.com/${{ github.repository }}@${{ github.ref }}
@@ -381,12 +280,12 @@ jobs:
         if: always()
         continue-on-error: true
 
-      # - name: Upload Dagger Engine logs as artifact
-      #   uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029 # v4.3.5
-      #   if: always() && steps.export-dagger-engine-logs.outcome == 'success'
-      #   with:
-      #     name: "[${{ github.job }}] Dagger Engine logs"
-      #     path: |
-      #       engine.stdout.log
-      #       engine.stderr.log
-      #     retention-days: 14
+      - name: Upload Dagger Engine logs as artifact
+        uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029 # v4.3.5
+        if: always() && steps.export-dagger-engine-logs.outcome == 'success'
+        with:
+          name: "[${{ github.job }}] Dagger Engine logs"
+          path: |
+            engine.stdout.log
+            engine.stderr.log
+          retention-days: 14

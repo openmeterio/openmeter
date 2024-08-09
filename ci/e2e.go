@@ -39,6 +39,8 @@ func (m *Ci) Etoe(
 
 	return dag.Go(dagger.GoOpts{
 		Container: goModule().
+			WithModuleCache(cacheVolume("go-mod-e2e")).
+			WithBuildCache(cacheVolume("go-build-e2e")).
 			WithSource(m.Source).
 			Container().
 			WithServiceBinding("api", api).
