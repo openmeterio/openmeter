@@ -108,16 +108,13 @@ jobs:
 
   commit-hooks:
     name: Commit hooks
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-latest-4
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 0
-
-      - name: Free disk space
-        uses: ./.github/actions/free-disk-space
 
       - name: Set up Nix
         uses: cachix/install-nix-action@ba0dd844c9180cbf77aa72a116d6fbc515d0e87b # v27
