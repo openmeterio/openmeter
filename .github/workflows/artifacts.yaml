@@ -117,8 +117,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max,ignore-error=true
-          outputs: ${{ steps.build-output.outputs.value }}
-          # push: ${{ inputs.publish }}
+          # outputs: ${{ steps.build-output.outputs.value }}
+          push: ${{ inputs.publish }}
           project: qghgtfxxh4
 
       - name: Set image ref
@@ -233,8 +233,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max,ignore-error=true
-          outputs: ${{ steps.build-output.outputs.value }}
-          # push: ${{ inputs.publish }}
+          # outputs: ${{ steps.build-output.outputs.value }}
+          push: ${{ inputs.publish }}
           project: qghgtfxxh4
 
       - name: Set image ref
