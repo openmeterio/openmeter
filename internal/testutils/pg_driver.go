@@ -9,8 +9,9 @@ import (
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 	_ "github.com/jackc/pgx/v5/stdlib" // pgx database driver
-	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/peterldowns/pgtestdb"
+
+	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 )
 
 // NoopMigrator is a migrator for pgtestdb.
