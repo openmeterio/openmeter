@@ -5,7 +5,7 @@ import "time"
 var drift time.Duration
 
 func Now() time.Time {
-	return time.Now().Add(-drift)
+	return time.Now().Add(-drift).Local()
 }
 
 func SetTime(t time.Time) time.Time {
