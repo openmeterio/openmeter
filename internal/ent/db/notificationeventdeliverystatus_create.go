@@ -77,6 +77,14 @@ func (nedsc *NotificationEventDeliveryStatusCreate) SetState(ndss notification.E
 	return nedsc
 }
 
+// SetNillableState sets the "state" field if the given value is not nil.
+func (nedsc *NotificationEventDeliveryStatusCreate) SetNillableState(ndss *notification.EventDeliveryStatusState) *NotificationEventDeliveryStatusCreate {
+	if ndss != nil {
+		nedsc.SetState(*ndss)
+	}
+	return nedsc
+}
+
 // SetID sets the "id" field.
 func (nedsc *NotificationEventDeliveryStatusCreate) SetID(s string) *NotificationEventDeliveryStatusCreate {
 	nedsc.mutation.SetID(s)
@@ -148,6 +156,10 @@ func (nedsc *NotificationEventDeliveryStatusCreate) defaults() {
 	if _, ok := nedsc.mutation.UpdatedAt(); !ok {
 		v := notificationeventdeliverystatus.DefaultUpdatedAt()
 		nedsc.mutation.SetUpdatedAt(v)
+	}
+	if _, ok := nedsc.mutation.State(); !ok {
+		v := notificationeventdeliverystatus.DefaultState
+		nedsc.mutation.SetState(v)
 	}
 	if _, ok := nedsc.mutation.ID(); !ok {
 		v := notificationeventdeliverystatus.DefaultID()

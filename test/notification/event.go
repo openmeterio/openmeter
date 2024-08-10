@@ -2,6 +2,7 @@ package notification
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/notification"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -82,14 +84,14 @@ func NewBalanceThresholdPayload() notification.EventPayload {
 	}
 }
 
-func NewCreateEventInput(t notification.EventType, rule notification.Rule, payload notification.EventPayload) notification.CreateEventInput {
+func NewCreateEventInput(t notification.EventType, ruleID string, payload notification.EventPayload) notification.CreateEventInput {
 	return notification.CreateEventInput{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: TestNamespace,
 		},
 		Type:    t,
 		Payload: payload,
-		Rule:    rule,
+		RuleID:  ruleID,
 	}
 }
 
@@ -111,7 +113,9 @@ func (s *EventTestSuite) Setup(ctx context.Context, t *testing.T) {
 	require.NoError(t, err, "Getting meter must not return error")
 
 	feature, err := s.Env.Feature().GetFeature(ctx, TestNamespace, TestFeatureKey, false)
-	require.NoError(t, err, "Getting feature must not return error")
+	if _, ok := errorsx.ErrorAs[*productcatalog.FeatureNotFoundError](err); !ok {
+		require.NoError(t, err, "Getting feature must not return error")
+	}
 	if feature != nil {
 		s.feature = *feature
 	} else {
@@ -130,7 +134,6 @@ func (s *EventTestSuite) Setup(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
 	channelIn := NewCreateChannelInput("NotificationEventTest")
-	channelIn.Config.WebHook.URL = TestWebhookURL
 
 	channel, err := service.CreateChannel(ctx, channelIn)
 	require.NoError(t, err, "Creating channel must not return error")
@@ -150,7 +153,7 @@ func (s *EventTestSuite) Setup(ctx context.Context, t *testing.T) {
 func (s *EventTestSuite) TestCreateEvent(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	input := NewCreateEventInput(notification.EventTypeBalanceThreshold, s.rule, NewBalanceThresholdPayload())
+	input := NewCreateEventInput(notification.EventTypeBalanceThreshold, s.rule.ID, NewBalanceThresholdPayload())
 
 	event, err := service.CreateEvent(ctx, input)
 	require.NoError(t, err, "Creating rule must not return error")
@@ -159,14 +162,34 @@ func (s *EventTestSuite) TestCreateEvent(ctx context.Context, t *testing.T) {
 	assert.Equal(t, float64(50), event.Payload.BalanceThreshold.Threshold.Value)
 }
 
+func (s *EventTestSuite) TestGetEvent(ctx context.Context, t *testing.T) {
+	service := s.Env.Notification()
+
+	input := NewCreateEventInput(notification.EventTypeBalanceThreshold, s.rule.ID, NewBalanceThresholdPayload())
+
+	event, err := service.CreateEvent(ctx, input)
+	require.NoError(t, err, "Creating rule must not return error")
+	require.NotNil(t, event, "Rule must not be nil")
+
+	event2, err := service.GetEvent(ctx, notification.GetEventInput{
+		NamespacedID: models.NamespacedID{
+			Namespace: event.Namespace,
+			ID:        event.ID,
+		},
+	})
+	require.NoError(t, err, "Creating rule must not return error")
+	require.NotNil(t, event2, "Rule must not be nil")
+
+}
+
 func (s *EventTestSuite) TestListEvents(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	createIn := NewCreateEventInput(notification.EventTypeBalanceThreshold, s.rule, NewBalanceThresholdPayload())
+	createIn := NewCreateEventInput(notification.EventTypeBalanceThreshold, s.rule.ID, NewBalanceThresholdPayload())
 
 	event, err := service.CreateEvent(ctx, createIn)
-	require.NoError(t, err, "Creating rule must not return error")
-	require.NotNil(t, event, "Rule must not be nil")
+	require.NoError(t, err, "Creating notification event must not return error")
+	require.NotNil(t, event, "Notification event must not be nil")
 
 	listIn := notification.ListEventsInput{
 		Namespaces: []string{
@@ -178,23 +201,94 @@ func (s *EventTestSuite) TestListEvents(ctx context.Context, t *testing.T) {
 	}
 
 	events, err := service.ListEvents(ctx, listIn)
-	require.NoError(t, err, "Creating rule must not return error")
-	require.NotNil(t, event, "Rule must not be nil")
+	require.NoError(t, err, "Listing notification events must not return error")
+	require.NotNil(t, event, "Notification events must not be nil")
 
 	expectedList := []notification.Event{
 		*event,
 	}
 
 	assert.EqualValues(t, expectedList, events.Items, "Unexpected items returned by listing events")
-
-	// FIXME: add more assertions
-
 }
 
-func (s *EventTestSuite) TestCreateDeliveryStatus(ctx context.Context, t *testing.T) {
-	// FIXME:
+func (s *EventTestSuite) TestListDeliveryStatus(ctx context.Context, t *testing.T) {
+	service := s.Env.Notification()
+
+	createIn := NewCreateEventInput(notification.EventTypeBalanceThreshold, s.rule.ID, NewBalanceThresholdPayload())
+
+	event, err := service.CreateEvent(ctx, createIn)
+	require.NoError(t, err, "Creating notification event must not return error")
+	require.NotNil(t, event, "Notification event must not be nil")
+
+	listIn := notification.ListEventsDeliveryStatusInput{
+		Namespaces: []string{
+			event.Namespace,
+		},
+		Events: []string{event.ID},
+	}
+
+	statuses, err := service.ListEventsDeliveryStatus(ctx, listIn)
+	require.NoError(t, err, "Listing notification event delivery statuses must not return error")
+	require.NotNil(t, event, "Notification event delivery statuses must not be nil")
+
+	assert.Equal(t, statuses.TotalCount, len(s.rule.Channels), "Unexpected number of delivery statuses returned by listing events")
+
+	channelsIDs := func() []string {
+		var channelIDs []string
+		for _, channel := range s.rule.Channels {
+			channelIDs = append(channelIDs, channel.ID)
+		}
+
+		return channelIDs
+	}()
+
+	for _, status := range statuses.Items {
+		assert.Equal(t, status.EventID, event.ID, "Unexpected event ID returned by listing events")
+		assert.Truef(t, slices.Contains(channelsIDs, status.ChannelID), "Unexpected channel ID")
+	}
 }
 
-func (s *EventTestSuite) TestListCreateDeliveryStatus(ctx context.Context, t *testing.T) {
-	// FIXME:
+func (s *EventTestSuite) TestUpdateDeliveryStatus(ctx context.Context, t *testing.T) {
+	service := s.Env.Notification()
+
+	createIn := NewCreateEventInput(notification.EventTypeBalanceThreshold, s.rule.ID, NewBalanceThresholdPayload())
+
+	event, err := service.CreateEvent(ctx, createIn)
+	require.NoError(t, err, "Creating notification event must not return error")
+	require.NotNil(t, event, "Notification event must not be nil")
+
+	subTests := []struct {
+		Name  string
+		Input notification.UpdateEventDeliveryStatusInput
+	}{
+		{
+			Name: "WithID",
+			Input: notification.UpdateEventDeliveryStatusInput{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: event.Namespace,
+				},
+				ID:    event.DeliveryStatus[0].ID,
+				State: notification.EventDeliveryStatusStateFailed,
+			},
+		},
+		{
+			Name: "WithEventIDAndChannelID",
+			Input: notification.UpdateEventDeliveryStatusInput{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: event.Namespace,
+				},
+				EventID:   event.ID,
+				ChannelID: event.Rule.Channels[0].ID,
+				State:     notification.EventDeliveryStatusStateSuccess,
+			},
+		},
+	}
+
+	for _, test := range subTests {
+		t.Run(test.Name, func(t *testing.T) {
+			status, err := service.UpdateEventDeliveryStatus(ctx, test.Input)
+			require.NoError(t, err, "Updating notification event delivery status must not return error")
+			require.NotNil(t, status, "Notification event must not be nil")
+		})
+	}
 }

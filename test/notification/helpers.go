@@ -74,7 +74,7 @@ func NewPGClient(url string) (*db.Client, error) {
 	dbClient := db.NewClient(db.Driver(driver))
 
 	if err = dbClient.Schema.Create(context.Background()); err != nil {
-		return nil, fmt.Errorf("failed to migrate credit db: %w", err)
+		return nil, fmt.Errorf("failed to migrate databse schme: %w", err)
 	}
 
 	return dbClient, nil

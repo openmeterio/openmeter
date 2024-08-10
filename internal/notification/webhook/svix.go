@@ -177,7 +177,7 @@ func (h svixWebhookHandler) GetOrUpdateEndpointSecret(ctx context.Context, appID
 	return resp, nil
 }
 
-func (h svixWebhookHandler) CreateWebhook(ctx context.Context, params CreateWebhookInputs) (*Webhook, error) {
+func (h svixWebhookHandler) CreateWebhook(ctx context.Context, params CreateWebhookInput) (*Webhook, error) {
 	if err := params.Validate(); err != nil {
 		return nil, fmt.Errorf("failed to validate UpdateWebhookInputs: %w", err)
 	}
@@ -277,7 +277,7 @@ func (h svixWebhookHandler) CreateWebhook(ctx context.Context, params CreateWebh
 	return webhook, nil
 }
 
-func (h svixWebhookHandler) UpdateWebhook(ctx context.Context, params UpdateWebhookInputs) (*Webhook, error) {
+func (h svixWebhookHandler) UpdateWebhook(ctx context.Context, params UpdateWebhookInput) (*Webhook, error) {
 	if err := params.Validate(); err != nil {
 		return nil, fmt.Errorf("failed to validate UpdateWebhookInputs: %w", err)
 	}
@@ -349,8 +349,8 @@ func (h svixWebhookHandler) UpdateWebhook(ctx context.Context, params UpdateWebh
 	return webhook, nil
 }
 
-func (h svixWebhookHandler) UpdateWebhookChannels(ctx context.Context, params UpdateWebhookChannelsInputs) (*Webhook, error) {
-	webhook, err := h.GetWebhook(ctx, GetWebhookInputs{
+func (h svixWebhookHandler) UpdateWebhookChannels(ctx context.Context, params UpdateWebhookChannelsInput) (*Webhook, error) {
+	webhook, err := h.GetWebhook(ctx, GetWebhookInput{
 		Namespace: params.Namespace,
 		ID:        params.ID,
 	})
@@ -387,7 +387,7 @@ func (h svixWebhookHandler) UpdateWebhookChannels(ctx context.Context, params Up
 		}
 	}
 
-	webhook, err = h.UpdateWebhook(ctx, UpdateWebhookInputs{
+	webhook, err = h.UpdateWebhook(ctx, UpdateWebhookInput{
 		Namespace:     webhook.Namespace,
 		ID:            webhook.ID,
 		URL:           webhook.URL,
@@ -406,7 +406,7 @@ func (h svixWebhookHandler) UpdateWebhookChannels(ctx context.Context, params Up
 	return webhook, nil
 }
 
-func (h svixWebhookHandler) DeleteWebhook(ctx context.Context, params DeleteWebhookInputs) error {
+func (h svixWebhookHandler) DeleteWebhook(ctx context.Context, params DeleteWebhookInput) error {
 	if err := params.Validate(); err != nil {
 		return fmt.Errorf("failed to validate DeleteWebhookInputs: %w", err)
 	}
@@ -419,7 +419,7 @@ func (h svixWebhookHandler) DeleteWebhook(ctx context.Context, params DeleteWebh
 	return nil
 }
 
-func (h svixWebhookHandler) GetWebhook(ctx context.Context, params GetWebhookInputs) (*Webhook, error) {
+func (h svixWebhookHandler) GetWebhook(ctx context.Context, params GetWebhookInput) (*Webhook, error) {
 	if err := params.Validate(); err != nil {
 		return nil, fmt.Errorf("failed to validate GetWebhookInputs: %w", err)
 	}
@@ -449,7 +449,7 @@ func (h svixWebhookHandler) GetWebhook(ctx context.Context, params GetWebhookInp
 	return webhook, nil
 }
 
-func (h svixWebhookHandler) ListWebhooks(ctx context.Context, params ListWebhooksInputs) ([]Webhook, error) {
+func (h svixWebhookHandler) ListWebhooks(ctx context.Context, params ListWebhooksInput) ([]Webhook, error) {
 	listOut, err := h.client.Endpoint.List(ctx, params.Namespace, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list Svix endpoints: %w", err)
@@ -505,7 +505,7 @@ func (h svixWebhookHandler) ListWebhooks(ctx context.Context, params ListWebhook
 	return webhooks, nil
 }
 
-func (h svixWebhookHandler) SendMessage(ctx context.Context, params SendMessageInputs) (*Message, error) {
+func (h svixWebhookHandler) SendMessage(ctx context.Context, params SendMessageInput) (*Message, error) {
 	if err := params.Validate(); err != nil {
 		return nil, fmt.Errorf("failed to validate SendMessageInputs: %w", err)
 	}

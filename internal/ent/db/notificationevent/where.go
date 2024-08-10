@@ -76,9 +76,9 @@ func CreatedAt(v time.Time) predicate.NotificationEvent {
 	return predicate.NotificationEvent(sql.FieldEQ(FieldCreatedAt, v))
 }
 
-// Rule applies equality check predicate on the "rule" field. It's identical to RuleEQ.
-func Rule(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldEQ(FieldRule, v))
+// RuleID applies equality check predicate on the "rule_id" field. It's identical to RuleIDEQ.
+func RuleID(v string) predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldEQ(FieldRuleID, v))
 }
 
 // Payload applies equality check predicate on the "payload" field. It's identical to PayloadEQ.
@@ -221,69 +221,69 @@ func TypeNotIn(vs ...notification.EventType) predicate.NotificationEvent {
 	return predicate.NotificationEvent(sql.FieldNotIn(FieldType, v...))
 }
 
-// RuleEQ applies the EQ predicate on the "rule" field.
-func RuleEQ(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldEQ(FieldRule, v))
+// RuleIDEQ applies the EQ predicate on the "rule_id" field.
+func RuleIDEQ(v string) predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldEQ(FieldRuleID, v))
 }
 
-// RuleNEQ applies the NEQ predicate on the "rule" field.
-func RuleNEQ(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldNEQ(FieldRule, v))
+// RuleIDNEQ applies the NEQ predicate on the "rule_id" field.
+func RuleIDNEQ(v string) predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldNEQ(FieldRuleID, v))
 }
 
-// RuleIn applies the In predicate on the "rule" field.
-func RuleIn(vs ...string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldIn(FieldRule, vs...))
+// RuleIDIn applies the In predicate on the "rule_id" field.
+func RuleIDIn(vs ...string) predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldIn(FieldRuleID, vs...))
 }
 
-// RuleNotIn applies the NotIn predicate on the "rule" field.
-func RuleNotIn(vs ...string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldNotIn(FieldRule, vs...))
+// RuleIDNotIn applies the NotIn predicate on the "rule_id" field.
+func RuleIDNotIn(vs ...string) predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldNotIn(FieldRuleID, vs...))
 }
 
-// RuleGT applies the GT predicate on the "rule" field.
-func RuleGT(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldGT(FieldRule, v))
+// RuleIDGT applies the GT predicate on the "rule_id" field.
+func RuleIDGT(v string) predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldGT(FieldRuleID, v))
 }
 
-// RuleGTE applies the GTE predicate on the "rule" field.
-func RuleGTE(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldGTE(FieldRule, v))
+// RuleIDGTE applies the GTE predicate on the "rule_id" field.
+func RuleIDGTE(v string) predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldGTE(FieldRuleID, v))
 }
 
-// RuleLT applies the LT predicate on the "rule" field.
-func RuleLT(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldLT(FieldRule, v))
+// RuleIDLT applies the LT predicate on the "rule_id" field.
+func RuleIDLT(v string) predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldLT(FieldRuleID, v))
 }
 
-// RuleLTE applies the LTE predicate on the "rule" field.
-func RuleLTE(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldLTE(FieldRule, v))
+// RuleIDLTE applies the LTE predicate on the "rule_id" field.
+func RuleIDLTE(v string) predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldLTE(FieldRuleID, v))
 }
 
-// RuleContains applies the Contains predicate on the "rule" field.
-func RuleContains(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldContains(FieldRule, v))
+// RuleIDContains applies the Contains predicate on the "rule_id" field.
+func RuleIDContains(v string) predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldContains(FieldRuleID, v))
 }
 
-// RuleHasPrefix applies the HasPrefix predicate on the "rule" field.
-func RuleHasPrefix(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldHasPrefix(FieldRule, v))
+// RuleIDHasPrefix applies the HasPrefix predicate on the "rule_id" field.
+func RuleIDHasPrefix(v string) predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldHasPrefix(FieldRuleID, v))
 }
 
-// RuleHasSuffix applies the HasSuffix predicate on the "rule" field.
-func RuleHasSuffix(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldHasSuffix(FieldRule, v))
+// RuleIDHasSuffix applies the HasSuffix predicate on the "rule_id" field.
+func RuleIDHasSuffix(v string) predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldHasSuffix(FieldRuleID, v))
 }
 
-// RuleEqualFold applies the EqualFold predicate on the "rule" field.
-func RuleEqualFold(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldEqualFold(FieldRule, v))
+// RuleIDEqualFold applies the EqualFold predicate on the "rule_id" field.
+func RuleIDEqualFold(v string) predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldEqualFold(FieldRuleID, v))
 }
 
-// RuleContainsFold applies the ContainsFold predicate on the "rule" field.
-func RuleContainsFold(v string) predicate.NotificationEvent {
-	return predicate.NotificationEvent(sql.FieldContainsFold(FieldRule, v))
+// RuleIDContainsFold applies the ContainsFold predicate on the "rule_id" field.
+func RuleIDContainsFold(v string) predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldContainsFold(FieldRuleID, v))
 }
 
 // PayloadEQ applies the EQ predicate on the "payload" field.
@@ -366,6 +366,29 @@ func HasDeliveryStatuses() predicate.NotificationEvent {
 func HasDeliveryStatusesWith(preds ...predicate.NotificationEventDeliveryStatus) predicate.NotificationEvent {
 	return predicate.NotificationEvent(func(s *sql.Selector) {
 		step := newDeliveryStatusesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasRules applies the HasEdge predicate on the "rules" edge.
+func HasRules() predicate.NotificationEvent {
+	return predicate.NotificationEvent(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, RulesTable, RulesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasRulesWith applies the HasEdge predicate on the "rules" edge with a given conditions (other predicates).
+func HasRulesWith(preds ...predicate.NotificationRule) predicate.NotificationEvent {
+	return predicate.NotificationEvent(func(s *sql.Selector) {
+		step := newRulesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

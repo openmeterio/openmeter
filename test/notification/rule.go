@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/notification"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/errorsx"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -59,7 +60,9 @@ func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
 	require.NoError(t, err, "Getting meter must not return error")
 
 	feature, err := s.Env.Feature().GetFeature(ctx, TestNamespace, TestFeatureKey, false)
-	require.NoError(t, err, "Getting feature must not return error")
+	if _, ok := errorsx.ErrorAs[*productcatalog.FeatureNotFoundError](err); !ok {
+		require.NoError(t, err, "Getting feature must not return error")
+	}
 	if feature != nil {
 		s.feature = *feature
 	} else {
@@ -122,20 +125,20 @@ func (s *RuleTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 func (s *RuleTestSuite) TestList(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	input1 := NewCreateRuleInput("NotificationListRule1", s.channel.ID)
-	rule1, err := service.CreateRule(ctx, input1)
+	createIn1 := NewCreateRuleInput("NotificationListRule1", s.channel.ID)
+	rule1, err := service.CreateRule(ctx, createIn1)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule1, "Rule must not be nil")
 
-	input2 := NewCreateRuleInput("NotificationListRule2", s.channel.ID)
-	rule2, err := service.CreateRule(ctx, input2)
+	createIn2 := NewCreateRuleInput("NotificationListRule2", s.channel.ID)
+	rule2, err := service.CreateRule(ctx, createIn2)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule2, "Rule must not be nil")
 
 	list, err := service.ListRules(ctx, notification.ListRulesInput{
 		Namespaces: []string{
-			input1.Namespace,
-			input2.Namespace,
+			createIn1.Namespace,
+			createIn2.Namespace,
 		},
 		Rules: []string{
 			rule1.ID,
@@ -157,12 +160,12 @@ func (s *RuleTestSuite) TestList(ctx context.Context, t *testing.T) {
 func (s *RuleTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	input1 := NewCreateRuleInput("NotificationUpdateRule1", s.channel.ID)
-	rule, err := service.CreateRule(ctx, input1)
+	createIn := NewCreateRuleInput("NotificationUpdateRule1", s.channel.ID)
+	rule, err := service.CreateRule(ctx, createIn)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule, "Rule must not be nil")
 
-	input2 := notification.UpdateRuleInput{
+	updateIn := notification.UpdateRuleInput{
 		NamespacedModel: rule.NamespacedModel,
 		Type:            rule.Type,
 		Name:            "NotificationUpdateRule2",
@@ -182,20 +185,20 @@ func (s *RuleTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 		ID: rule.ID,
 	}
 
-	rule2, err := service.UpdateRule(ctx, input2)
+	rule2, err := service.UpdateRule(ctx, updateIn)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule2, "Rule must not be nil")
 
-	assert.Equal(t, input2.Disabled, rule2.Disabled, "Rule must not be disabled")
-	assert.Equal(t, input2.Type, rule2.Type, "Rule type must be the same")
-	assert.EqualValues(t, input2.Config, rule2.Config, "Rule config must be the same")
+	assert.Equal(t, updateIn.Disabled, rule2.Disabled, "Rule must not be disabled")
+	assert.Equal(t, updateIn.Type, rule2.Type, "Rule type must be the same")
+	assert.EqualValues(t, updateIn.Config, rule2.Config, "Rule config must be the same")
 }
 func (s *RuleTestSuite) TestDelete(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	input := NewCreateRuleInput("NotificationDeleteRule1", s.channel.ID)
+	createIn := NewCreateRuleInput("NotificationDeleteRule1", s.channel.ID)
 
-	rule, err := service.CreateRule(ctx, input)
+	rule, err := service.CreateRule(ctx, createIn)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule, "Rule must not be nil")
 	assert.NotEmpty(t, rule.ID, "Rule ID must not be empty")
@@ -209,18 +212,18 @@ func (s *RuleTestSuite) TestDelete(ctx context.Context, t *testing.T) {
 func (s *RuleTestSuite) TestGet(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	input1 := NewCreateRuleInput("NotificationGetRule1", s.channel.ID)
+	createIn := NewCreateRuleInput("NotificationGetRule1", s.channel.ID)
 
-	rule, err := service.CreateRule(ctx, input1)
+	rule, err := service.CreateRule(ctx, createIn)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule, "Rule must not be nil")
 
-	input2 := notification.GetRuleInput{
+	getIn := notification.GetRuleInput{
 		Namespace: rule.Namespace,
 		ID:        rule.ID,
 	}
 
-	rule2, err := service.GetRule(ctx, input2)
+	rule2, err := service.GetRule(ctx, getIn)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule2, "Rule must not be nil")
 

@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/internal/ent/db/notificationchannel"
+	"github.com/openmeterio/openmeter/internal/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/internal/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/internal/notification"
 )
@@ -132,6 +133,21 @@ func (nrc *NotificationRuleCreate) AddChannels(n ...*NotificationChannel) *Notif
 		ids[i] = n[i].ID
 	}
 	return nrc.AddChannelIDs(ids...)
+}
+
+// AddEventIDs adds the "events" edge to the NotificationEvent entity by IDs.
+func (nrc *NotificationRuleCreate) AddEventIDs(ids ...string) *NotificationRuleCreate {
+	nrc.mutation.AddEventIDs(ids...)
+	return nrc
+}
+
+// AddEvents adds the "events" edges to the NotificationEvent entity.
+func (nrc *NotificationRuleCreate) AddEvents(n ...*NotificationEvent) *NotificationRuleCreate {
+	ids := make([]string, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return nrc.AddEventIDs(ids...)
 }
 
 // Mutation returns the NotificationRuleMutation object of the builder.
@@ -306,6 +322,22 @@ func (nrc *NotificationRuleCreate) createSpec() (*NotificationRule, *sqlgraph.Cr
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(notificationchannel.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := nrc.mutation.EventsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   notificationrule.EventsTable,
+			Columns: []string{notificationrule.EventsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notificationevent.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -42,34 +42,34 @@ type ChannelTestSuite struct {
 func (s *ChannelTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	input := NewCreateChannelInput("NotificationCreateChannel")
+	createIn := NewCreateChannelInput("NotificationCreateChannel")
 
-	channel, err := service.CreateChannel(ctx, input)
+	channel, err := service.CreateChannel(ctx, createIn)
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel, "Channel must not be nil")
 	assert.NotEmpty(t, channel.ID, "Channel ID must not be empty")
-	assert.Equal(t, input.Disabled, channel.Disabled, "Channel must not be disabled")
-	assert.Equal(t, input.Type, channel.Type, "Channel type must be the same")
-	assert.EqualValues(t, input.Config, channel.Config, "Channel config must be the same")
+	assert.Equal(t, createIn.Disabled, channel.Disabled, "Channel must not be disabled")
+	assert.Equal(t, createIn.Type, channel.Type, "Channel type must be the same")
+	assert.EqualValues(t, createIn.Config, channel.Config, "Channel config must be the same")
 }
 
 func (s *ChannelTestSuite) TestList(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	input1 := NewCreateChannelInput("NotificationListChannel1")
-	channel1, err := service.CreateChannel(ctx, input1)
+	createIn1 := NewCreateChannelInput("NotificationListChannel1")
+	channel1, err := service.CreateChannel(ctx, createIn1)
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel1, "Channel must not be nil")
 
-	input2 := NewCreateChannelInput("NotificationListChannel2")
-	channel2, err := service.CreateChannel(ctx, input2)
+	createIn2 := NewCreateChannelInput("NotificationListChannel2")
+	channel2, err := service.CreateChannel(ctx, createIn2)
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel2, "Channel must not be nil")
 
 	list, err := service.ListChannels(ctx, notification.ListChannelsInput{
 		Namespaces: []string{
-			input1.Namespace,
-			input2.Namespace,
+			createIn1.Namespace,
+			createIn2.Namespace,
 		},
 		Channels: []string{
 			channel1.ID,
@@ -92,16 +92,16 @@ func (s *ChannelTestSuite) TestList(ctx context.Context, t *testing.T) {
 func (s *ChannelTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	input := NewCreateChannelInput("NotificationUpdateChannel1")
+	createIn := NewCreateChannelInput("NotificationUpdateChannel1")
 
-	channel, err := service.CreateChannel(ctx, input)
+	channel, err := service.CreateChannel(ctx, createIn)
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel, "Channel must not be nil")
 
 	secret, err := notificationwebhook.NewSigningSecretWithDefaultSize()
 	require.NoError(t, err, "Generating new signing secret must not return an error")
 
-	input2 := notification.UpdateChannelInput{
+	updateIn := notification.UpdateChannelInput{
 		NamespacedModel: channel.NamespacedModel,
 		Type:            channel.Type,
 		Name:            "NotificationUpdateChannel2",
@@ -119,21 +119,21 @@ func (s *ChannelTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 		ID: channel.ID,
 	}
 
-	channel2, err := service.UpdateChannel(ctx, input2)
+	channel2, err := service.UpdateChannel(ctx, updateIn)
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel2, "Channel must not be nil")
 
-	assert.Equal(t, input2.Disabled, channel2.Disabled, "Channel must not be disabled")
-	assert.Equal(t, input2.Type, channel2.Type, "Channel type must be the same")
-	assert.EqualValues(t, input2.Config, channel2.Config, "Channel config must be the same")
+	assert.Equal(t, updateIn.Disabled, channel2.Disabled, "Channel must not be disabled")
+	assert.Equal(t, updateIn.Type, channel2.Type, "Channel type must be the same")
+	assert.EqualValues(t, updateIn.Config, channel2.Config, "Channel config must be the same")
 }
 
 func (s *ChannelTestSuite) TestDelete(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	input := NewCreateChannelInput("NotificationDeleteChannel1")
+	createIn := NewCreateChannelInput("NotificationDeleteChannel1")
 
-	channel, err := service.CreateChannel(ctx, input)
+	channel, err := service.CreateChannel(ctx, createIn)
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel, "Channel must not be nil")
 
@@ -147,9 +147,9 @@ func (s *ChannelTestSuite) TestDelete(ctx context.Context, t *testing.T) {
 func (s *ChannelTestSuite) TestGet(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	input := NewCreateChannelInput("NotificationGetChannel1")
+	createIn := NewCreateChannelInput("NotificationGetChannel1")
 
-	channel, err := service.CreateChannel(ctx, input)
+	channel, err := service.CreateChannel(ctx, createIn)
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel, "Channel must not be nil")
 

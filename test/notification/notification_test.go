@@ -128,16 +128,20 @@ func TestNotification(t *testing.T) {
 			testSuite.TestCreateEvent(ctx, t)
 		})
 
+		t.Run("GetEvent", func(t *testing.T) {
+			testSuite.TestGetEvent(ctx, t)
+		})
+
 		t.Run("ListEvents", func(t *testing.T) {
 			testSuite.TestListEvents(ctx, t)
 		})
 
-		t.Run("CreateDeliveryStatus", func(t *testing.T) {
-			testSuite.TestCreateDeliveryStatus(ctx, t)
+		t.Run("TestListDeliveryStatus", func(t *testing.T) {
+			testSuite.TestListDeliveryStatus(ctx, t)
 		})
 
-		t.Run("ListCreateDeliveryStatus", func(t *testing.T) {
-			testSuite.TestListCreateDeliveryStatus(ctx, t)
+		t.Run("TestUpdateDeliveryStatus", func(t *testing.T) {
+			testSuite.TestUpdateDeliveryStatus(ctx, t)
 		})
 	})
 }

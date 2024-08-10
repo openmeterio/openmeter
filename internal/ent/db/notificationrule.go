@@ -44,9 +44,11 @@ type NotificationRule struct {
 type NotificationRuleEdges struct {
 	// Channels holds the value of the channels edge.
 	Channels []*NotificationChannel `json:"channels,omitempty"`
+	// Events holds the value of the events edge.
+	Events []*NotificationEvent `json:"events,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // ChannelsOrErr returns the Channels value or an error if the edge
@@ -56,6 +58,15 @@ func (e NotificationRuleEdges) ChannelsOrErr() ([]*NotificationChannel, error) {
 		return e.Channels, nil
 	}
 	return nil, &NotLoadedError{edge: "channels"}
+}
+
+// EventsOrErr returns the Events value or an error if the edge
+// was not loaded in eager-loading.
+func (e NotificationRuleEdges) EventsOrErr() ([]*NotificationEvent, error) {
+	if e.loadedTypes[1] {
+		return e.Events, nil
+	}
+	return nil, &NotLoadedError{edge: "events"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -157,6 +168,11 @@ func (nr *NotificationRule) Value(name string) (ent.Value, error) {
 // QueryChannels queries the "channels" edge of the NotificationRule entity.
 func (nr *NotificationRule) QueryChannels() *NotificationChannelQuery {
 	return NewNotificationRuleClient(nr.config).QueryChannels(nr)
+}
+
+// QueryEvents queries the "events" edge of the NotificationRule entity.
+func (nr *NotificationRule) QueryEvents() *NotificationEventQuery {
+	return NewNotificationRuleClient(nr.config).QueryEvents(nr)
 }
 
 // Update returns a builder for updating this NotificationRule.

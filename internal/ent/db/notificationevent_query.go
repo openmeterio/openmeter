@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/internal/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/internal/ent/db/notificationeventdeliverystatus"
+	"github.com/openmeterio/openmeter/internal/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 )
 
@@ -26,6 +27,7 @@ type NotificationEventQuery struct {
 	inters               []Interceptor
 	predicates           []predicate.NotificationEvent
 	withDeliveryStatuses *NotificationEventDeliveryStatusQuery
+	withRules            *NotificationRuleQuery
 	modifiers            []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -78,6 +80,28 @@ func (neq *NotificationEventQuery) QueryDeliveryStatuses() *NotificationEventDel
 			sqlgraph.From(notificationevent.Table, notificationevent.FieldID, selector),
 			sqlgraph.To(notificationeventdeliverystatus.Table, notificationeventdeliverystatus.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, true, notificationevent.DeliveryStatusesTable, notificationevent.DeliveryStatusesPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(neq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryRules chains the current query on the "rules" edge.
+func (neq *NotificationEventQuery) QueryRules() *NotificationRuleQuery {
+	query := (&NotificationRuleClient{config: neq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := neq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := neq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(notificationevent.Table, notificationevent.FieldID, selector),
+			sqlgraph.To(notificationrule.Table, notificationrule.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, notificationevent.RulesTable, notificationevent.RulesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(neq.driver.Dialect(), step)
 		return fromU, nil
@@ -278,6 +302,7 @@ func (neq *NotificationEventQuery) Clone() *NotificationEventQuery {
 		inters:               append([]Interceptor{}, neq.inters...),
 		predicates:           append([]predicate.NotificationEvent{}, neq.predicates...),
 		withDeliveryStatuses: neq.withDeliveryStatuses.Clone(),
+		withRules:            neq.withRules.Clone(),
 		// clone intermediate query.
 		sql:  neq.sql.Clone(),
 		path: neq.path,
@@ -292,6 +317,17 @@ func (neq *NotificationEventQuery) WithDeliveryStatuses(opts ...func(*Notificati
 		opt(query)
 	}
 	neq.withDeliveryStatuses = query
+	return neq
+}
+
+// WithRules tells the query-builder to eager-load the nodes that are connected to
+// the "rules" edge. The optional arguments are used to configure the query builder of the edge.
+func (neq *NotificationEventQuery) WithRules(opts ...func(*NotificationRuleQuery)) *NotificationEventQuery {
+	query := (&NotificationRuleClient{config: neq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	neq.withRules = query
 	return neq
 }
 
@@ -373,8 +409,9 @@ func (neq *NotificationEventQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 	var (
 		nodes       = []*NotificationEvent{}
 		_spec       = neq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			neq.withDeliveryStatuses != nil,
+			neq.withRules != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -404,6 +441,12 @@ func (neq *NotificationEventQuery) sqlAll(ctx context.Context, hooks ...queryHoo
 			func(n *NotificationEvent, e *NotificationEventDeliveryStatus) {
 				n.Edges.DeliveryStatuses = append(n.Edges.DeliveryStatuses, e)
 			}); err != nil {
+			return nil, err
+		}
+	}
+	if query := neq.withRules; query != nil {
+		if err := neq.loadRules(ctx, query, nodes, nil,
+			func(n *NotificationEvent, e *NotificationRule) { n.Edges.Rules = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -471,6 +514,35 @@ func (neq *NotificationEventQuery) loadDeliveryStatuses(ctx context.Context, que
 	}
 	return nil
 }
+func (neq *NotificationEventQuery) loadRules(ctx context.Context, query *NotificationRuleQuery, nodes []*NotificationEvent, init func(*NotificationEvent), assign func(*NotificationEvent, *NotificationRule)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*NotificationEvent)
+	for i := range nodes {
+		fk := nodes[i].RuleID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(notificationrule.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "rule_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
 
 func (neq *NotificationEventQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := neq.querySpec()
@@ -499,6 +571,9 @@ func (neq *NotificationEventQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != notificationevent.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if neq.withRules != nil {
+			_spec.Node.AddColumnOnce(notificationevent.FieldRuleID)
 		}
 	}
 	if ps := neq.predicates; len(ps) > 0 {

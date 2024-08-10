@@ -2,6 +2,7 @@ package notification
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -67,6 +68,8 @@ func (e Event) AsNotificationEvent() (api.NotificationEvent, error) {
 				Type: api.NotificationChannelType(channel.Type),
 			}
 		}
+
+		deliveryStatuses = append(deliveryStatuses, status)
 	}
 
 	event := api.NotificationEvent{
@@ -183,6 +186,21 @@ func (p EventPayload) FromNotificationEventBalanceThresholdPayload(r api.Notific
 	}
 }
 
+func (p EventPayload) AsNotificationEventBalanceThresholdPayload(eventId string, ts time.Time) api.NotificationEventBalanceThresholdPayload {
+	return api.NotificationEventBalanceThresholdPayload{
+		Data: struct {
+			Balance     api.EntitlementValue                      `json:"balance"`
+			Entitlement api.EntitlementMetered                    `json:"entitlement"`
+			Feature     api.Feature                               `json:"feature"`
+			Subject     api.Subject                               `json:"subject"`
+			Threshold   api.NotificationRuleBalanceThresholdValue `json:"threshold"`
+		}{},
+		Id:        eventId,
+		Timestamp: ts,
+		Type:      api.EntitlementsBalanceThreshold,
+	}
+}
+
 type BalanceThresholdPayload struct {
 	Entitlement api.EntitlementMetered                    `json:"entitlement"`
 	Feature     api.Feature                               `json:"feature"`
@@ -278,16 +296,12 @@ type CreateEventInput struct {
 	Type EventType `json:"type"`
 	// Payload is the actual payload sent to Channel as part of the notification Event.
 	Payload EventPayload `json:"payload"`
-	// Rule defines the notification Rule that generated this Event.
-	Rule Rule `json:"rule"`
+	// RuleID defines the notification Rule that generated this Event.
+	RuleID string `json:"ruleId"`
 }
 
 func (i CreateEventInput) Validate(ctx context.Context, service Service) error {
 	if err := i.Type.Validate(); err != nil {
-		return err
-	}
-
-	if err := i.Rule.Validate(ctx, service); err != nil {
 		return err
 	}
 
@@ -342,13 +356,20 @@ var _ validator = (*ListEventsDeliveryStatusInput)(nil)
 type ListEventsDeliveryStatusInput struct {
 	pagination.Page
 
-	Namespaces []string `json:"namespaces,omitempty"`
+	// Namespaces is a list of namespaces to be used to filter the list of EventDeliveryStatus to be returned.
+	Namespaces []string
 
-	From time.Time `json:"from,omitempty"`
-	To   time.Time `json:"to,omitempty"`
+	// From limits the scope fo the request by defining the earliest date to be used for lookup.
+	// This filter is applied to EventDeliveryStatus.UpdatedAt field.
+	From time.Time
+	// To limits the scope fo the request by defining the latest date to be used for lookup.
+	// This filter is applied to EventDeliveryStatus.UpdatedAt field.
+	To time.Time
 
-	EventIDs   []string `json:"eventIds,omitempty"`
-	ChannelIDs []string `json:"chanelIds,omitempty"`
+	// Events is a list of Event identifiers used as filter.
+	Events []string
+	// Channels is a list of Channel identifiers used as filter.
+	Channels []string
 }
 
 func (i ListEventsDeliveryStatusInput) Validate(_ context.Context, _ Service) error {
@@ -368,34 +389,25 @@ var _ validator = (*GetEventDeliveryStatusInput)(nil)
 type GetEventDeliveryStatusInput struct {
 	models.NamespacedModel
 
-	ID string `json:"id"`
+	// ID the unique identifier of the EventDeliveryStatus.
+	ID string
+	// EventID defines the Event identifier the EventDeliveryStatus belongs to. Must be provided if ID is empty.
+	EventID string
+	// ChannelID defines the Channel identifier the EventDeliveryStatus belongs to. Must be provided if ID is empty.
+	ChannelID string
 }
 
 func (i GetEventDeliveryStatusInput) Validate(_ context.Context, _ Service) error {
-	return nil
-}
-
-var _ validator = (*CreateEventDeliveryStatusInput)(nil)
-
-type CreateEventDeliveryStatusInput struct {
-	models.NamespacedModel
-
-	State EventDeliveryStatusState `json:"state"`
-	// EventID defines the Event identifier the EventDeliveryStatus belongs to.
-	EventID string `json:"eventId"`
-	// ChannelID defines the Channel identifier the EventDeliveryStatus belongs to.
-	ChannelID string `json:"channelId"`
-}
-
-func (i CreateEventDeliveryStatusInput) Validate(_ context.Context, _ Service) error {
 	if i.Namespace == "" {
 		return ValidationError{
 			Err: fmt.Errorf("namespace must be provided"),
 		}
 	}
 
-	if err := i.State.Validate(); err != nil {
-		return err
+	if i.ID == "" && (i.EventID == "" || i.ChannelID == "") {
+		return ValidationError{
+			Err: fmt.Errorf("delivery status ID or both channel ID and event ID must be provided"),
+		}
 	}
 
 	return nil
@@ -406,8 +418,14 @@ var _ validator = (*UpdateEventDeliveryStatusInput)(nil)
 type UpdateEventDeliveryStatusInput struct {
 	models.NamespacedModel
 
-	ID    string                   `json:"id"`
-	State EventDeliveryStatusState `json:"state"`
+	// ID the unique identifier of the EventDeliveryStatus.
+	ID string
+	// State is the delivery state of the Event.
+	State EventDeliveryStatusState
+	// EventID defines the Event identifier the EventDeliveryStatus belongs to. Must be provided if ID is empty.
+	EventID string
+	// ChannelID defines the Channel identifier the EventDeliveryStatus belongs to. Must be provided if ID is empty.
+	ChannelID string
 }
 
 func (i UpdateEventDeliveryStatusInput) Validate(_ context.Context, _ Service) error {
@@ -421,5 +439,25 @@ func (i UpdateEventDeliveryStatusInput) Validate(_ context.Context, _ Service) e
 		return err
 	}
 
+	if i.ID == "" && (i.EventID == "" || i.ChannelID == "") {
+		return ValidationError{
+			Err: fmt.Errorf("delivery status ID or both channel ID and event ID must be provided"),
+		}
+	}
+
 	return nil
+}
+
+func PayloadToMapInterface(t any) (map[string]interface{}, error) {
+	b, err := json.Marshal(t)
+	if err != nil {
+		return nil, err
+	}
+
+	var m map[string]interface{}
+	if err := json.Unmarshal(b, &m); err != nil {
+		return nil, err
+	}
+
+	return m, nil
 }

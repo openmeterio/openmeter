@@ -217,27 +217,29 @@ func (b BalanceThresholdRuleConfig) Validate(ctx context.Context, service Servic
 		}
 	}
 
-	features, err := service.ListFeature(ctx, namespace, b.Features...)
-	if err != nil {
-		return err
-	}
-
-	if len(b.Features) != len(features) {
-		featureIdOrKeys := make(map[string]struct{}, len(features))
-		for _, feature := range features {
-			featureIdOrKeys[feature.ID] = struct{}{}
-			featureIdOrKeys[feature.Key] = struct{}{}
+	if len(b.Features) > 0 {
+		features, err := service.ListFeature(ctx, namespace, b.Features...)
+		if err != nil {
+			return err
 		}
 
-		missingFeatures := make([]string, 0)
-		for _, featureIdOrKey := range b.Features {
-			if _, ok := featureIdOrKeys[featureIdOrKey]; !ok {
-				missingFeatures = append(missingFeatures, featureIdOrKey)
+		if len(b.Features) != len(features) {
+			featureIdOrKeys := make(map[string]struct{}, len(features))
+			for _, feature := range features {
+				featureIdOrKeys[feature.ID] = struct{}{}
+				featureIdOrKeys[feature.Key] = struct{}{}
 			}
-		}
 
-		return ValidationError{
-			Err: fmt.Errorf("non-existing channels: %v", missingFeatures),
+			missingFeatures := make([]string, 0)
+			for _, featureIdOrKey := range b.Features {
+				if _, ok := featureIdOrKeys[featureIdOrKey]; !ok {
+					missingFeatures = append(missingFeatures, featureIdOrKey)
+				}
+			}
+
+			return ValidationError{
+				Err: fmt.Errorf("non-existing features: %v", missingFeatures),
+			}
 		}
 	}
 

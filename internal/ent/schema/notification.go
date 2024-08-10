@@ -56,7 +56,6 @@ func (NotificationChannel) Edges() []ent.Edge {
 
 func (NotificationChannel) Indexes() []ent.Index {
 	return []ent.Index{
-		index.Fields("namespace", "id"),
 		index.Fields("namespace", "type"),
 		index.Fields("namespace", "id", "type"),
 	}
@@ -83,7 +82,9 @@ func (NotificationRule) Fields() []ent.Field {
 		field.String("name").
 			NotEmpty().
 			Comment("The name of the rule"),
-		field.Bool("disabled").Default(false).Optional().
+		field.Bool("disabled").
+			Default(false).
+			Optional().
 			Comment("Whether the rule is disabled or not"),
 		field.String("config").
 			GoType(notification.RuleConfig{}).
@@ -98,6 +99,15 @@ func (NotificationRule) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("channels", NotificationChannel.Type).
 			Ref("rules"),
+		edge.To("events", NotificationEvent.Type),
+	}
+}
+
+func (NotificationRule) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "id"),
+		index.Fields("namespace", "type"),
+		index.Fields("namespace", "id", "type"),
 	}
 }
 
@@ -121,11 +131,9 @@ func (NotificationEvent) Fields() []ent.Field {
 			GoType(notification.EventType("")).
 			Immutable().
 			Comment("The event type the rule associated with"),
-		// FIXME: add custom value scanner
-		field.String("rule").
-			SchemaType(map[string]string{
-				dialect.Postgres: "jsonb",
-			}),
+		field.String("rule_id").Immutable().SchemaType(map[string]string{
+			dialect.Postgres: "char(26)",
+		}),
 		// FIXME: add custom value scanner
 		field.String("payload").
 			SchemaType(map[string]string{
@@ -138,6 +146,20 @@ func (NotificationEvent) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("delivery_statuses", NotificationEventDeliveryStatus.Type).
 			Ref("events"),
+		edge.From("rules", NotificationRule.Type).
+			Ref("events").
+			Field("rule_id").
+			Required().
+			Unique().
+			Immutable(),
+	}
+}
+
+func (NotificationEvent) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "id"),
+		index.Fields("namespace", "type"),
+		index.Fields("namespace", "id", "type"),
 	}
 }
 
@@ -168,13 +190,23 @@ func (NotificationEventDeliveryStatus) Fields() []ent.Field {
 			Immutable(),
 		field.Enum("state").
 			GoType(notification.EventDeliveryStatusState("")).
-			Comment("The event type the rule associated with"),
+			Default(string(notification.EventDeliveryStatusStateSending)),
 	}
 }
 
 func (NotificationEventDeliveryStatus) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("events", NotificationEvent.Type),
+	}
+}
+
+func (NotificationEventDeliveryStatus) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "id"),
+		index.Fields("namespace", "id", "event_id"),
+		index.Fields("namespace", "id", "event_id", "channel_id"),
+		index.Fields("namespace", "event_id", "channel_id"),
+		index.Fields("namespace", "state"),
 	}
 }
 

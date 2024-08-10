@@ -28,20 +28,6 @@ func (neu *NotificationEventUpdate) Where(ps ...predicate.NotificationEvent) *No
 	return neu
 }
 
-// SetRule sets the "rule" field.
-func (neu *NotificationEventUpdate) SetRule(s string) *NotificationEventUpdate {
-	neu.mutation.SetRule(s)
-	return neu
-}
-
-// SetNillableRule sets the "rule" field if the given value is not nil.
-func (neu *NotificationEventUpdate) SetNillableRule(s *string) *NotificationEventUpdate {
-	if s != nil {
-		neu.SetRule(*s)
-	}
-	return neu
-}
-
 // SetPayload sets the "payload" field.
 func (neu *NotificationEventUpdate) SetPayload(s string) *NotificationEventUpdate {
 	neu.mutation.SetPayload(s)
@@ -124,7 +110,18 @@ func (neu *NotificationEventUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (neu *NotificationEventUpdate) check() error {
+	if neu.mutation.RulesCleared() && len(neu.mutation.RulesIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "NotificationEvent.rules"`)
+	}
+	return nil
+}
+
 func (neu *NotificationEventUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := neu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(notificationevent.Table, notificationevent.Columns, sqlgraph.NewFieldSpec(notificationevent.FieldID, field.TypeString))
 	if ps := neu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -132,9 +129,6 @@ func (neu *NotificationEventUpdate) sqlSave(ctx context.Context) (n int, err err
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := neu.mutation.Rule(); ok {
-		_spec.SetField(notificationevent.FieldRule, field.TypeString, value)
 	}
 	if value, ok := neu.mutation.Payload(); ok {
 		_spec.SetField(notificationevent.FieldPayload, field.TypeString, value)
@@ -202,20 +196,6 @@ type NotificationEventUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *NotificationEventMutation
-}
-
-// SetRule sets the "rule" field.
-func (neuo *NotificationEventUpdateOne) SetRule(s string) *NotificationEventUpdateOne {
-	neuo.mutation.SetRule(s)
-	return neuo
-}
-
-// SetNillableRule sets the "rule" field if the given value is not nil.
-func (neuo *NotificationEventUpdateOne) SetNillableRule(s *string) *NotificationEventUpdateOne {
-	if s != nil {
-		neuo.SetRule(*s)
-	}
-	return neuo
 }
 
 // SetPayload sets the "payload" field.
@@ -313,7 +293,18 @@ func (neuo *NotificationEventUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (neuo *NotificationEventUpdateOne) check() error {
+	if neuo.mutation.RulesCleared() && len(neuo.mutation.RulesIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "NotificationEvent.rules"`)
+	}
+	return nil
+}
+
 func (neuo *NotificationEventUpdateOne) sqlSave(ctx context.Context) (_node *NotificationEvent, err error) {
+	if err := neuo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(notificationevent.Table, notificationevent.Columns, sqlgraph.NewFieldSpec(notificationevent.FieldID, field.TypeString))
 	id, ok := neuo.mutation.ID()
 	if !ok {
@@ -338,9 +329,6 @@ func (neuo *NotificationEventUpdateOne) sqlSave(ctx context.Context) (_node *Not
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := neuo.mutation.Rule(); ok {
-		_spec.SetField(notificationevent.FieldRule, field.TypeString, value)
 	}
 	if value, ok := neuo.mutation.Payload(); ok {
 		_spec.SetField(notificationevent.FieldPayload, field.TypeString, value)

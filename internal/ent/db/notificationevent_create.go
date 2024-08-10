@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/internal/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/internal/ent/db/notificationeventdeliverystatus"
+	"github.com/openmeterio/openmeter/internal/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/internal/notification"
 )
 
@@ -51,9 +52,9 @@ func (nec *NotificationEventCreate) SetType(nt notification.EventType) *Notifica
 	return nec
 }
 
-// SetRule sets the "rule" field.
-func (nec *NotificationEventCreate) SetRule(s string) *NotificationEventCreate {
-	nec.mutation.SetRule(s)
+// SetRuleID sets the "rule_id" field.
+func (nec *NotificationEventCreate) SetRuleID(s string) *NotificationEventCreate {
+	nec.mutation.SetRuleID(s)
 	return nec
 }
 
@@ -90,6 +91,17 @@ func (nec *NotificationEventCreate) AddDeliveryStatuses(n ...*NotificationEventD
 		ids[i] = n[i].ID
 	}
 	return nec.AddDeliveryStatusIDs(ids...)
+}
+
+// SetRulesID sets the "rules" edge to the NotificationRule entity by ID.
+func (nec *NotificationEventCreate) SetRulesID(id string) *NotificationEventCreate {
+	nec.mutation.SetRulesID(id)
+	return nec
+}
+
+// SetRules sets the "rules" edge to the NotificationRule entity.
+func (nec *NotificationEventCreate) SetRules(n *NotificationRule) *NotificationEventCreate {
+	return nec.SetRulesID(n.ID)
 }
 
 // Mutation returns the NotificationEventMutation object of the builder.
@@ -158,11 +170,14 @@ func (nec *NotificationEventCreate) check() error {
 			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "NotificationEvent.type": %w`, err)}
 		}
 	}
-	if _, ok := nec.mutation.Rule(); !ok {
-		return &ValidationError{Name: "rule", err: errors.New(`db: missing required field "NotificationEvent.rule"`)}
+	if _, ok := nec.mutation.RuleID(); !ok {
+		return &ValidationError{Name: "rule_id", err: errors.New(`db: missing required field "NotificationEvent.rule_id"`)}
 	}
 	if _, ok := nec.mutation.Payload(); !ok {
 		return &ValidationError{Name: "payload", err: errors.New(`db: missing required field "NotificationEvent.payload"`)}
+	}
+	if len(nec.mutation.RulesIDs()) == 0 {
+		return &ValidationError{Name: "rules", err: errors.New(`db: missing required edge "NotificationEvent.rules"`)}
 	}
 	return nil
 }
@@ -212,10 +227,6 @@ func (nec *NotificationEventCreate) createSpec() (*NotificationEvent, *sqlgraph.
 		_spec.SetField(notificationevent.FieldType, field.TypeEnum, value)
 		_node.Type = value
 	}
-	if value, ok := nec.mutation.Rule(); ok {
-		_spec.SetField(notificationevent.FieldRule, field.TypeString, value)
-		_node.Rule = value
-	}
 	if value, ok := nec.mutation.Payload(); ok {
 		_spec.SetField(notificationevent.FieldPayload, field.TypeString, value)
 		_node.Payload = value
@@ -234,6 +245,23 @@ func (nec *NotificationEventCreate) createSpec() (*NotificationEvent, *sqlgraph.
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := nec.mutation.RulesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   notificationevent.RulesTable,
+			Columns: []string{notificationevent.RulesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notificationrule.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.RuleID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -288,18 +316,6 @@ type (
 	}
 )
 
-// SetRule sets the "rule" field.
-func (u *NotificationEventUpsert) SetRule(v string) *NotificationEventUpsert {
-	u.Set(notificationevent.FieldRule, v)
-	return u
-}
-
-// UpdateRule sets the "rule" field to the value that was provided on create.
-func (u *NotificationEventUpsert) UpdateRule() *NotificationEventUpsert {
-	u.SetExcluded(notificationevent.FieldRule)
-	return u
-}
-
 // SetPayload sets the "payload" field.
 func (u *NotificationEventUpsert) SetPayload(v string) *NotificationEventUpsert {
 	u.Set(notificationevent.FieldPayload, v)
@@ -338,6 +354,9 @@ func (u *NotificationEventUpsertOne) UpdateNewValues() *NotificationEventUpsertO
 		if _, exists := u.create.mutation.GetType(); exists {
 			s.SetIgnore(notificationevent.FieldType)
 		}
+		if _, exists := u.create.mutation.RuleID(); exists {
+			s.SetIgnore(notificationevent.FieldRuleID)
+		}
 	}))
 	return u
 }
@@ -367,20 +386,6 @@ func (u *NotificationEventUpsertOne) Update(set func(*NotificationEventUpsert)) 
 		set(&NotificationEventUpsert{UpdateSet: update})
 	}))
 	return u
-}
-
-// SetRule sets the "rule" field.
-func (u *NotificationEventUpsertOne) SetRule(v string) *NotificationEventUpsertOne {
-	return u.Update(func(s *NotificationEventUpsert) {
-		s.SetRule(v)
-	})
-}
-
-// UpdateRule sets the "rule" field to the value that was provided on create.
-func (u *NotificationEventUpsertOne) UpdateRule() *NotificationEventUpsertOne {
-	return u.Update(func(s *NotificationEventUpsert) {
-		s.UpdateRule()
-	})
 }
 
 // SetPayload sets the "payload" field.
@@ -589,6 +594,9 @@ func (u *NotificationEventUpsertBulk) UpdateNewValues() *NotificationEventUpsert
 			if _, exists := b.mutation.GetType(); exists {
 				s.SetIgnore(notificationevent.FieldType)
 			}
+			if _, exists := b.mutation.RuleID(); exists {
+				s.SetIgnore(notificationevent.FieldRuleID)
+			}
 		}
 	}))
 	return u
@@ -619,20 +627,6 @@ func (u *NotificationEventUpsertBulk) Update(set func(*NotificationEventUpsert))
 		set(&NotificationEventUpsert{UpdateSet: update})
 	}))
 	return u
-}
-
-// SetRule sets the "rule" field.
-func (u *NotificationEventUpsertBulk) SetRule(v string) *NotificationEventUpsertBulk {
-	return u.Update(func(s *NotificationEventUpsert) {
-		s.SetRule(v)
-	})
-}
-
-// UpdateRule sets the "rule" field to the value that was provided on create.
-func (u *NotificationEventUpsertBulk) UpdateRule() *NotificationEventUpsertBulk {
-	return u.Update(func(s *NotificationEventUpsert) {
-		s.UpdateRule()
-	})
 }
 
 // SetPayload sets the "payload" field.

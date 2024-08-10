@@ -6122,12 +6122,13 @@ type NotificationEventMutation struct {
 	namespace                *string
 	created_at               *time.Time
 	_type                    *notification.EventType
-	rule                     *string
 	payload                  *string
 	clearedFields            map[string]struct{}
 	delivery_statuses        map[string]struct{}
 	removeddelivery_statuses map[string]struct{}
 	cleareddelivery_statuses bool
+	rules                    *string
+	clearedrules             bool
 	done                     bool
 	oldValue                 func(context.Context) (*NotificationEvent, error)
 	predicates               []predicate.NotificationEvent
@@ -6345,40 +6346,40 @@ func (m *NotificationEventMutation) ResetType() {
 	m._type = nil
 }
 
-// SetRule sets the "rule" field.
-func (m *NotificationEventMutation) SetRule(s string) {
-	m.rule = &s
+// SetRuleID sets the "rule_id" field.
+func (m *NotificationEventMutation) SetRuleID(s string) {
+	m.rules = &s
 }
 
-// Rule returns the value of the "rule" field in the mutation.
-func (m *NotificationEventMutation) Rule() (r string, exists bool) {
-	v := m.rule
+// RuleID returns the value of the "rule_id" field in the mutation.
+func (m *NotificationEventMutation) RuleID() (r string, exists bool) {
+	v := m.rules
 	if v == nil {
 		return
 	}
 	return *v, true
 }
 
-// OldRule returns the old "rule" field's value of the NotificationEvent entity.
+// OldRuleID returns the old "rule_id" field's value of the NotificationEvent entity.
 // If the NotificationEvent object wasn't provided to the builder, the object is fetched from the database.
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *NotificationEventMutation) OldRule(ctx context.Context) (v string, err error) {
+func (m *NotificationEventMutation) OldRuleID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldRule is only allowed on UpdateOne operations")
+		return v, errors.New("OldRuleID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldRule requires an ID field in the mutation")
+		return v, errors.New("OldRuleID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
-		return v, fmt.Errorf("querying old value for OldRule: %w", err)
+		return v, fmt.Errorf("querying old value for OldRuleID: %w", err)
 	}
-	return oldValue.Rule, nil
+	return oldValue.RuleID, nil
 }
 
-// ResetRule resets all changes to the "rule" field.
-func (m *NotificationEventMutation) ResetRule() {
-	m.rule = nil
+// ResetRuleID resets all changes to the "rule_id" field.
+func (m *NotificationEventMutation) ResetRuleID() {
+	m.rules = nil
 }
 
 // SetPayload sets the "payload" field.
@@ -6471,6 +6472,46 @@ func (m *NotificationEventMutation) ResetDeliveryStatuses() {
 	m.removeddelivery_statuses = nil
 }
 
+// SetRulesID sets the "rules" edge to the NotificationRule entity by id.
+func (m *NotificationEventMutation) SetRulesID(id string) {
+	m.rules = &id
+}
+
+// ClearRules clears the "rules" edge to the NotificationRule entity.
+func (m *NotificationEventMutation) ClearRules() {
+	m.clearedrules = true
+	m.clearedFields[notificationevent.FieldRuleID] = struct{}{}
+}
+
+// RulesCleared reports if the "rules" edge to the NotificationRule entity was cleared.
+func (m *NotificationEventMutation) RulesCleared() bool {
+	return m.clearedrules
+}
+
+// RulesID returns the "rules" edge ID in the mutation.
+func (m *NotificationEventMutation) RulesID() (id string, exists bool) {
+	if m.rules != nil {
+		return *m.rules, true
+	}
+	return
+}
+
+// RulesIDs returns the "rules" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// RulesID instead. It exists only for internal usage by the builders.
+func (m *NotificationEventMutation) RulesIDs() (ids []string) {
+	if id := m.rules; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetRules resets all changes to the "rules" edge.
+func (m *NotificationEventMutation) ResetRules() {
+	m.rules = nil
+	m.clearedrules = false
+}
+
 // Where appends a list predicates to the NotificationEventMutation builder.
 func (m *NotificationEventMutation) Where(ps ...predicate.NotificationEvent) {
 	m.predicates = append(m.predicates, ps...)
@@ -6515,8 +6556,8 @@ func (m *NotificationEventMutation) Fields() []string {
 	if m._type != nil {
 		fields = append(fields, notificationevent.FieldType)
 	}
-	if m.rule != nil {
-		fields = append(fields, notificationevent.FieldRule)
+	if m.rules != nil {
+		fields = append(fields, notificationevent.FieldRuleID)
 	}
 	if m.payload != nil {
 		fields = append(fields, notificationevent.FieldPayload)
@@ -6535,8 +6576,8 @@ func (m *NotificationEventMutation) Field(name string) (ent.Value, bool) {
 		return m.CreatedAt()
 	case notificationevent.FieldType:
 		return m.GetType()
-	case notificationevent.FieldRule:
-		return m.Rule()
+	case notificationevent.FieldRuleID:
+		return m.RuleID()
 	case notificationevent.FieldPayload:
 		return m.Payload()
 	}
@@ -6554,8 +6595,8 @@ func (m *NotificationEventMutation) OldField(ctx context.Context, name string) (
 		return m.OldCreatedAt(ctx)
 	case notificationevent.FieldType:
 		return m.OldType(ctx)
-	case notificationevent.FieldRule:
-		return m.OldRule(ctx)
+	case notificationevent.FieldRuleID:
+		return m.OldRuleID(ctx)
 	case notificationevent.FieldPayload:
 		return m.OldPayload(ctx)
 	}
@@ -6588,12 +6629,12 @@ func (m *NotificationEventMutation) SetField(name string, value ent.Value) error
 		}
 		m.SetType(v)
 		return nil
-	case notificationevent.FieldRule:
+	case notificationevent.FieldRuleID:
 		v, ok := value.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
-		m.SetRule(v)
+		m.SetRuleID(v)
 		return nil
 	case notificationevent.FieldPayload:
 		v, ok := value.(string)
@@ -6660,8 +6701,8 @@ func (m *NotificationEventMutation) ResetField(name string) error {
 	case notificationevent.FieldType:
 		m.ResetType()
 		return nil
-	case notificationevent.FieldRule:
-		m.ResetRule()
+	case notificationevent.FieldRuleID:
+		m.ResetRuleID()
 		return nil
 	case notificationevent.FieldPayload:
 		m.ResetPayload()
@@ -6672,9 +6713,12 @@ func (m *NotificationEventMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *NotificationEventMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.delivery_statuses != nil {
 		edges = append(edges, notificationevent.EdgeDeliveryStatuses)
+	}
+	if m.rules != nil {
+		edges = append(edges, notificationevent.EdgeRules)
 	}
 	return edges
 }
@@ -6689,13 +6733,17 @@ func (m *NotificationEventMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case notificationevent.EdgeRules:
+		if id := m.rules; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *NotificationEventMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.removeddelivery_statuses != nil {
 		edges = append(edges, notificationevent.EdgeDeliveryStatuses)
 	}
@@ -6718,9 +6766,12 @@ func (m *NotificationEventMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *NotificationEventMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.cleareddelivery_statuses {
 		edges = append(edges, notificationevent.EdgeDeliveryStatuses)
+	}
+	if m.clearedrules {
+		edges = append(edges, notificationevent.EdgeRules)
 	}
 	return edges
 }
@@ -6731,6 +6782,8 @@ func (m *NotificationEventMutation) EdgeCleared(name string) bool {
 	switch name {
 	case notificationevent.EdgeDeliveryStatuses:
 		return m.cleareddelivery_statuses
+	case notificationevent.EdgeRules:
+		return m.clearedrules
 	}
 	return false
 }
@@ -6739,6 +6792,9 @@ func (m *NotificationEventMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *NotificationEventMutation) ClearEdge(name string) error {
 	switch name {
+	case notificationevent.EdgeRules:
+		m.ClearRules()
+		return nil
 	}
 	return fmt.Errorf("unknown NotificationEvent unique edge %s", name)
 }
@@ -6749,6 +6805,9 @@ func (m *NotificationEventMutation) ResetEdge(name string) error {
 	switch name {
 	case notificationevent.EdgeDeliveryStatuses:
 		m.ResetDeliveryStatuses()
+		return nil
+	case notificationevent.EdgeRules:
+		m.ResetRules()
 		return nil
 	}
 	return fmt.Errorf("unknown NotificationEvent edge %s", name)
@@ -7467,6 +7526,9 @@ type NotificationRuleMutation struct {
 	channels        map[string]struct{}
 	removedchannels map[string]struct{}
 	clearedchannels bool
+	events          map[string]struct{}
+	removedevents   map[string]struct{}
+	clearedevents   bool
 	done            bool
 	oldValue        func(context.Context) (*NotificationRule, error)
 	predicates      []predicate.NotificationRule
@@ -7944,6 +8006,60 @@ func (m *NotificationRuleMutation) ResetChannels() {
 	m.removedchannels = nil
 }
 
+// AddEventIDs adds the "events" edge to the NotificationEvent entity by ids.
+func (m *NotificationRuleMutation) AddEventIDs(ids ...string) {
+	if m.events == nil {
+		m.events = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.events[ids[i]] = struct{}{}
+	}
+}
+
+// ClearEvents clears the "events" edge to the NotificationEvent entity.
+func (m *NotificationRuleMutation) ClearEvents() {
+	m.clearedevents = true
+}
+
+// EventsCleared reports if the "events" edge to the NotificationEvent entity was cleared.
+func (m *NotificationRuleMutation) EventsCleared() bool {
+	return m.clearedevents
+}
+
+// RemoveEventIDs removes the "events" edge to the NotificationEvent entity by IDs.
+func (m *NotificationRuleMutation) RemoveEventIDs(ids ...string) {
+	if m.removedevents == nil {
+		m.removedevents = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.events, ids[i])
+		m.removedevents[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedEvents returns the removed IDs of the "events" edge to the NotificationEvent entity.
+func (m *NotificationRuleMutation) RemovedEventsIDs() (ids []string) {
+	for id := range m.removedevents {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// EventsIDs returns the "events" edge IDs in the mutation.
+func (m *NotificationRuleMutation) EventsIDs() (ids []string) {
+	for id := range m.events {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetEvents resets all changes to the "events" edge.
+func (m *NotificationRuleMutation) ResetEvents() {
+	m.events = nil
+	m.clearedevents = false
+	m.removedevents = nil
+}
+
 // Where appends a list predicates to the NotificationRuleMutation builder.
 func (m *NotificationRuleMutation) Where(ps ...predicate.NotificationRule) {
 	m.predicates = append(m.predicates, ps...)
@@ -8211,9 +8327,12 @@ func (m *NotificationRuleMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *NotificationRuleMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.channels != nil {
 		edges = append(edges, notificationrule.EdgeChannels)
+	}
+	if m.events != nil {
+		edges = append(edges, notificationrule.EdgeEvents)
 	}
 	return edges
 }
@@ -8228,15 +8347,24 @@ func (m *NotificationRuleMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case notificationrule.EdgeEvents:
+		ids := make([]ent.Value, 0, len(m.events))
+		for id := range m.events {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *NotificationRuleMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.removedchannels != nil {
 		edges = append(edges, notificationrule.EdgeChannels)
+	}
+	if m.removedevents != nil {
+		edges = append(edges, notificationrule.EdgeEvents)
 	}
 	return edges
 }
@@ -8251,15 +8379,24 @@ func (m *NotificationRuleMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case notificationrule.EdgeEvents:
+		ids := make([]ent.Value, 0, len(m.removedevents))
+		for id := range m.removedevents {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *NotificationRuleMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedchannels {
 		edges = append(edges, notificationrule.EdgeChannels)
+	}
+	if m.clearedevents {
+		edges = append(edges, notificationrule.EdgeEvents)
 	}
 	return edges
 }
@@ -8270,6 +8407,8 @@ func (m *NotificationRuleMutation) EdgeCleared(name string) bool {
 	switch name {
 	case notificationrule.EdgeChannels:
 		return m.clearedchannels
+	case notificationrule.EdgeEvents:
+		return m.clearedevents
 	}
 	return false
 }
@@ -8288,6 +8427,9 @@ func (m *NotificationRuleMutation) ResetEdge(name string) error {
 	switch name {
 	case notificationrule.EdgeChannels:
 		m.ResetChannels()
+		return nil
+	case notificationrule.EdgeEvents:
+		m.ResetEvents()
 		return nil
 	}
 	return fmt.Errorf("unknown NotificationRule edge %s", name)

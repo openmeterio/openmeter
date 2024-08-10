@@ -22,12 +22,14 @@ const (
 	FieldCreatedAt = "created_at"
 	// FieldType holds the string denoting the type field in the database.
 	FieldType = "type"
-	// FieldRule holds the string denoting the rule field in the database.
-	FieldRule = "rule"
+	// FieldRuleID holds the string denoting the rule_id field in the database.
+	FieldRuleID = "rule_id"
 	// FieldPayload holds the string denoting the payload field in the database.
 	FieldPayload = "payload"
 	// EdgeDeliveryStatuses holds the string denoting the delivery_statuses edge name in mutations.
 	EdgeDeliveryStatuses = "delivery_statuses"
+	// EdgeRules holds the string denoting the rules edge name in mutations.
+	EdgeRules = "rules"
 	// Table holds the table name of the notificationevent in the database.
 	Table = "notification_events"
 	// DeliveryStatusesTable is the table that holds the delivery_statuses relation/edge. The primary key declared below.
@@ -35,6 +37,13 @@ const (
 	// DeliveryStatusesInverseTable is the table name for the NotificationEventDeliveryStatus entity.
 	// It exists in this package in order to avoid circular dependency with the "notificationeventdeliverystatus" package.
 	DeliveryStatusesInverseTable = "notification_event_delivery_status"
+	// RulesTable is the table that holds the rules relation/edge.
+	RulesTable = "notification_events"
+	// RulesInverseTable is the table name for the NotificationRule entity.
+	// It exists in this package in order to avoid circular dependency with the "notificationrule" package.
+	RulesInverseTable = "notification_rules"
+	// RulesColumn is the table column denoting the rules relation/edge.
+	RulesColumn = "rule_id"
 )
 
 // Columns holds all SQL columns for notificationevent fields.
@@ -43,7 +52,7 @@ var Columns = []string{
 	FieldNamespace,
 	FieldCreatedAt,
 	FieldType,
-	FieldRule,
+	FieldRuleID,
 	FieldPayload,
 }
 
@@ -105,9 +114,9 @@ func ByType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldType, opts...).ToFunc()
 }
 
-// ByRule orders the results by the rule field.
-func ByRule(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldRule, opts...).ToFunc()
+// ByRuleID orders the results by the rule_id field.
+func ByRuleID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRuleID, opts...).ToFunc()
 }
 
 // ByPayload orders the results by the payload field.
@@ -128,10 +137,24 @@ func ByDeliveryStatuses(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption 
 		sqlgraph.OrderByNeighborTerms(s, newDeliveryStatusesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByRulesField orders the results by rules field.
+func ByRulesField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newRulesStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newDeliveryStatusesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(DeliveryStatusesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2M, true, DeliveryStatusesTable, DeliveryStatusesPrimaryKey...),
+	)
+}
+func newRulesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(RulesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, RulesTable, RulesColumn),
 	)
 }

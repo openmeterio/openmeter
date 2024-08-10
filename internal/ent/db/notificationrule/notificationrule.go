@@ -35,6 +35,8 @@ const (
 	FieldConfig = "config"
 	// EdgeChannels holds the string denoting the channels edge name in mutations.
 	EdgeChannels = "channels"
+	// EdgeEvents holds the string denoting the events edge name in mutations.
+	EdgeEvents = "events"
 	// Table holds the table name of the notificationrule in the database.
 	Table = "notification_rules"
 	// ChannelsTable is the table that holds the channels relation/edge. The primary key declared below.
@@ -42,6 +44,13 @@ const (
 	// ChannelsInverseTable is the table name for the NotificationChannel entity.
 	// It exists in this package in order to avoid circular dependency with the "notificationchannel" package.
 	ChannelsInverseTable = "notification_channels"
+	// EventsTable is the table that holds the events relation/edge.
+	EventsTable = "notification_events"
+	// EventsInverseTable is the table name for the NotificationEvent entity.
+	// It exists in this package in order to avoid circular dependency with the "notificationevent" package.
+	EventsInverseTable = "notification_events"
+	// EventsColumn is the table column denoting the events relation/edge.
+	EventsColumn = "rule_id"
 )
 
 // Columns holds all SQL columns for notificationrule fields.
@@ -165,10 +174,31 @@ func ByChannels(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newChannelsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByEventsCount orders the results by events count.
+func ByEventsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newEventsStep(), opts...)
+	}
+}
+
+// ByEvents orders the results by events terms.
+func ByEvents(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newEventsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newChannelsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(ChannelsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2M, true, ChannelsTable, ChannelsPrimaryKey...),
+	)
+}
+func newEventsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(EventsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, EventsTable, EventsColumn),
 	)
 }

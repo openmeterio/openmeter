@@ -34,6 +34,5 @@ type EventRepository interface {
 	CreateEvent(ctx context.Context, params CreateEventInput) (*Event, error)
 	ListEventsDeliveryStatus(ctx context.Context, params ListEventsDeliveryStatusInput) (pagination.PagedResponse[EventDeliveryStatus], error)
 	GetEventDeliveryStatus(ctx context.Context, params GetEventDeliveryStatusInput) (*EventDeliveryStatus, error)
-	CreateEventDeliveryStatus(ctx context.Context, params CreateEventDeliveryStatusInput) (*EventDeliveryStatus, error)
 	UpdateEventDeliveryStatus(ctx context.Context, params UpdateEventDeliveryStatusInput) (*EventDeliveryStatus, error)
 }

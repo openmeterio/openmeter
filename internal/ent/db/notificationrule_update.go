@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/internal/ent/db/notificationchannel"
+	"github.com/openmeterio/openmeter/internal/ent/db/notificationevent"
 	"github.com/openmeterio/openmeter/internal/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/internal/ent/db/predicate"
 	"github.com/openmeterio/openmeter/internal/notification"
@@ -119,6 +120,21 @@ func (nru *NotificationRuleUpdate) AddChannels(n ...*NotificationChannel) *Notif
 	return nru.AddChannelIDs(ids...)
 }
 
+// AddEventIDs adds the "events" edge to the NotificationEvent entity by IDs.
+func (nru *NotificationRuleUpdate) AddEventIDs(ids ...string) *NotificationRuleUpdate {
+	nru.mutation.AddEventIDs(ids...)
+	return nru
+}
+
+// AddEvents adds the "events" edges to the NotificationEvent entity.
+func (nru *NotificationRuleUpdate) AddEvents(n ...*NotificationEvent) *NotificationRuleUpdate {
+	ids := make([]string, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return nru.AddEventIDs(ids...)
+}
+
 // Mutation returns the NotificationRuleMutation object of the builder.
 func (nru *NotificationRuleUpdate) Mutation() *NotificationRuleMutation {
 	return nru.mutation
@@ -143,6 +159,27 @@ func (nru *NotificationRuleUpdate) RemoveChannels(n ...*NotificationChannel) *No
 		ids[i] = n[i].ID
 	}
 	return nru.RemoveChannelIDs(ids...)
+}
+
+// ClearEvents clears all "events" edges to the NotificationEvent entity.
+func (nru *NotificationRuleUpdate) ClearEvents() *NotificationRuleUpdate {
+	nru.mutation.ClearEvents()
+	return nru
+}
+
+// RemoveEventIDs removes the "events" edge to NotificationEvent entities by IDs.
+func (nru *NotificationRuleUpdate) RemoveEventIDs(ids ...string) *NotificationRuleUpdate {
+	nru.mutation.RemoveEventIDs(ids...)
+	return nru
+}
+
+// RemoveEvents removes "events" edges to NotificationEvent entities.
+func (nru *NotificationRuleUpdate) RemoveEvents(n ...*NotificationEvent) *NotificationRuleUpdate {
+	ids := make([]string, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return nru.RemoveEventIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -273,6 +310,51 @@ func (nru *NotificationRuleUpdate) sqlSave(ctx context.Context) (n int, err erro
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if nru.mutation.EventsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   notificationrule.EventsTable,
+			Columns: []string{notificationrule.EventsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notificationevent.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := nru.mutation.RemovedEventsIDs(); len(nodes) > 0 && !nru.mutation.EventsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   notificationrule.EventsTable,
+			Columns: []string{notificationrule.EventsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notificationevent.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := nru.mutation.EventsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   notificationrule.EventsTable,
+			Columns: []string{notificationrule.EventsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notificationevent.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, nru.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{notificationrule.Label}
@@ -382,6 +464,21 @@ func (nruo *NotificationRuleUpdateOne) AddChannels(n ...*NotificationChannel) *N
 	return nruo.AddChannelIDs(ids...)
 }
 
+// AddEventIDs adds the "events" edge to the NotificationEvent entity by IDs.
+func (nruo *NotificationRuleUpdateOne) AddEventIDs(ids ...string) *NotificationRuleUpdateOne {
+	nruo.mutation.AddEventIDs(ids...)
+	return nruo
+}
+
+// AddEvents adds the "events" edges to the NotificationEvent entity.
+func (nruo *NotificationRuleUpdateOne) AddEvents(n ...*NotificationEvent) *NotificationRuleUpdateOne {
+	ids := make([]string, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return nruo.AddEventIDs(ids...)
+}
+
 // Mutation returns the NotificationRuleMutation object of the builder.
 func (nruo *NotificationRuleUpdateOne) Mutation() *NotificationRuleMutation {
 	return nruo.mutation
@@ -406,6 +503,27 @@ func (nruo *NotificationRuleUpdateOne) RemoveChannels(n ...*NotificationChannel)
 		ids[i] = n[i].ID
 	}
 	return nruo.RemoveChannelIDs(ids...)
+}
+
+// ClearEvents clears all "events" edges to the NotificationEvent entity.
+func (nruo *NotificationRuleUpdateOne) ClearEvents() *NotificationRuleUpdateOne {
+	nruo.mutation.ClearEvents()
+	return nruo
+}
+
+// RemoveEventIDs removes the "events" edge to NotificationEvent entities by IDs.
+func (nruo *NotificationRuleUpdateOne) RemoveEventIDs(ids ...string) *NotificationRuleUpdateOne {
+	nruo.mutation.RemoveEventIDs(ids...)
+	return nruo
+}
+
+// RemoveEvents removes "events" edges to NotificationEvent entities.
+func (nruo *NotificationRuleUpdateOne) RemoveEvents(n ...*NotificationEvent) *NotificationRuleUpdateOne {
+	ids := make([]string, len(n))
+	for i := range n {
+		ids[i] = n[i].ID
+	}
+	return nruo.RemoveEventIDs(ids...)
 }
 
 // Where appends a list predicates to the NotificationRuleUpdate builder.
@@ -559,6 +677,51 @@ func (nruo *NotificationRuleUpdateOne) sqlSave(ctx context.Context) (_node *Noti
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(notificationchannel.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if nruo.mutation.EventsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   notificationrule.EventsTable,
+			Columns: []string{notificationrule.EventsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notificationevent.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := nruo.mutation.RemovedEventsIDs(); len(nodes) > 0 && !nruo.mutation.EventsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   notificationrule.EventsTable,
+			Columns: []string{notificationrule.EventsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notificationevent.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := nruo.mutation.EventsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   notificationrule.EventsTable,
+			Columns: []string{notificationrule.EventsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(notificationevent.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

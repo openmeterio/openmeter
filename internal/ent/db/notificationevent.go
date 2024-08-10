@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/internal/ent/db/notificationevent"
+	"github.com/openmeterio/openmeter/internal/ent/db/notificationrule"
 	"github.com/openmeterio/openmeter/internal/notification"
 )
 
@@ -24,8 +25,8 @@ type NotificationEvent struct {
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// The event type the rule associated with
 	Type notification.EventType `json:"type,omitempty"`
-	// Rule holds the value of the "rule" field.
-	Rule string `json:"rule,omitempty"`
+	// RuleID holds the value of the "rule_id" field.
+	RuleID string `json:"rule_id,omitempty"`
 	// Payload holds the value of the "payload" field.
 	Payload string `json:"payload,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -38,9 +39,11 @@ type NotificationEvent struct {
 type NotificationEventEdges struct {
 	// DeliveryStatuses holds the value of the delivery_statuses edge.
 	DeliveryStatuses []*NotificationEventDeliveryStatus `json:"delivery_statuses,omitempty"`
+	// Rules holds the value of the rules edge.
+	Rules *NotificationRule `json:"rules,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // DeliveryStatusesOrErr returns the DeliveryStatuses value or an error if the edge
@@ -52,12 +55,23 @@ func (e NotificationEventEdges) DeliveryStatusesOrErr() ([]*NotificationEventDel
 	return nil, &NotLoadedError{edge: "delivery_statuses"}
 }
 
+// RulesOrErr returns the Rules value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e NotificationEventEdges) RulesOrErr() (*NotificationRule, error) {
+	if e.Rules != nil {
+		return e.Rules, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: notificationrule.Label}
+	}
+	return nil, &NotLoadedError{edge: "rules"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*NotificationEvent) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case notificationevent.FieldID, notificationevent.FieldNamespace, notificationevent.FieldType, notificationevent.FieldRule, notificationevent.FieldPayload:
+		case notificationevent.FieldID, notificationevent.FieldNamespace, notificationevent.FieldType, notificationevent.FieldRuleID, notificationevent.FieldPayload:
 			values[i] = new(sql.NullString)
 		case notificationevent.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -100,11 +114,11 @@ func (ne *NotificationEvent) assignValues(columns []string, values []any) error 
 			} else if value.Valid {
 				ne.Type = notification.EventType(value.String)
 			}
-		case notificationevent.FieldRule:
+		case notificationevent.FieldRuleID:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field rule", values[i])
+				return fmt.Errorf("unexpected type %T for field rule_id", values[i])
 			} else if value.Valid {
-				ne.Rule = value.String
+				ne.RuleID = value.String
 			}
 		case notificationevent.FieldPayload:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -128,6 +142,11 @@ func (ne *NotificationEvent) Value(name string) (ent.Value, error) {
 // QueryDeliveryStatuses queries the "delivery_statuses" edge of the NotificationEvent entity.
 func (ne *NotificationEvent) QueryDeliveryStatuses() *NotificationEventDeliveryStatusQuery {
 	return NewNotificationEventClient(ne.config).QueryDeliveryStatuses(ne)
+}
+
+// QueryRules queries the "rules" edge of the NotificationEvent entity.
+func (ne *NotificationEvent) QueryRules() *NotificationRuleQuery {
+	return NewNotificationEventClient(ne.config).QueryRules(ne)
 }
 
 // Update returns a builder for updating this NotificationEvent.
@@ -162,8 +181,8 @@ func (ne *NotificationEvent) String() string {
 	builder.WriteString("type=")
 	builder.WriteString(fmt.Sprintf("%v", ne.Type))
 	builder.WriteString(", ")
-	builder.WriteString("rule=")
-	builder.WriteString(ne.Rule)
+	builder.WriteString("rule_id=")
+	builder.WriteString(ne.RuleID)
 	builder.WriteString(", ")
 	builder.WriteString("payload=")
 	builder.WriteString(ne.Payload)

@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/ent/db"
@@ -35,6 +37,17 @@ func ChannelFromDBEntity(e db.NotificationChannel) *notification.Channel {
 }
 
 func RuleFromDBEntity(e db.NotificationRule) *notification.Rule {
+	var channels []notification.Channel
+	if len(e.Edges.Channels) > 0 {
+		for _, channel := range e.Edges.Channels {
+			if channel == nil {
+				continue
+			}
+
+			channels = append(channels, *ChannelFromDBEntity(*channel))
+		}
+	}
+
 	return &notification.Rule{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: e.Namespace,
@@ -57,10 +70,34 @@ func RuleFromDBEntity(e db.NotificationRule) *notification.Rule {
 		Name:     e.Name,
 		Disabled: e.Disabled,
 		Config:   e.Config,
+		Channels: channels,
 	}
 }
 
-func EventFromDBEntity(e db.NotificationEvent) *notification.Event {
+func EventFromDBEntity(e db.NotificationEvent) (*notification.Event, error) {
+	payload := notification.EventPayload{}
+	if err := json.Unmarshal([]byte(e.Payload), &payload); err != nil {
+		return nil, fmt.Errorf("failed to serialize notification event payload: %w", err)
+	}
+
+	var statuses []notification.EventDeliveryStatus
+	if len(e.Edges.DeliveryStatuses) > 0 {
+		statuses = make([]notification.EventDeliveryStatus, 0, len(e.Edges.DeliveryStatuses))
+		for _, status := range e.Edges.DeliveryStatuses {
+			if status == nil {
+				continue
+			}
+
+			statuses = append(statuses, *EventDeliveryStatusFromDBEntity(*status))
+		}
+	}
+
+	ruleRow, err := e.Edges.RulesOrErr()
+	if err != nil {
+		return nil, err
+	}
+	rule := RuleFromDBEntity(*ruleRow)
+
 	return &notification.Event{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: e.Namespace,
@@ -68,12 +105,10 @@ func EventFromDBEntity(e db.NotificationEvent) *notification.Event {
 		ID:             e.ID,
 		Type:           e.Type,
 		CreatedAt:      e.CreatedAt,
-		DeliveryStatus: nil,
-		// FIXME:
-		Payload: notification.EventPayload{},
-		// FIXME:
-		Rule: notification.Rule{},
-	}
+		Payload:        payload,
+		Rule:           *rule,
+		DeliveryStatus: statuses,
+	}, nil
 }
 
 func EventDeliveryStatusFromDBEntity(e db.NotificationEventDeliveryStatus) *notification.EventDeliveryStatus {
@@ -83,6 +118,7 @@ func EventDeliveryStatusFromDBEntity(e db.NotificationEventDeliveryStatus) *noti
 		},
 		ID:        e.ID,
 		ChannelID: e.ChannelID,
+		EventID:   e.EventID,
 		State:     e.State,
 		CreatedAt: e.CreatedAt,
 		UpdatedAt: e.UpdatedAt,

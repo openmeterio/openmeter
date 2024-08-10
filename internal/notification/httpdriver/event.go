@@ -159,22 +159,13 @@ func (h *handler) CreateEvent() CreateEventHandler {
 
 			}
 
-			var rule *notification.Rule
-			rule, err = h.service.GetRule(ctx, notification.GetRuleInput{
-				Namespace: ns,
-				ID:        body.RuleId,
-			})
-			if err != nil {
-				return CreateEventRequest{}, fmt.Errorf("failed to get rule: %w", err)
-			}
-
 			req := CreateEventRequest{
 				NamespacedModel: models.NamespacedModel{
 					Namespace: ns,
 				},
 				Type:    notification.EventType(body.Type),
 				Payload: payload,
-				Rule:    *rule,
+				RuleID:  body.RuleId,
 			}
 
 			return req, nil

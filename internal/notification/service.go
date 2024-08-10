@@ -40,7 +40,7 @@ type EventService interface {
 	CreateEvent(ctx context.Context, params CreateEventInput) (*Event, error)
 	ListEventsDeliveryStatus(ctx context.Context, params ListEventsDeliveryStatusInput) (ListEventsDeliveryStatusResult, error)
 	GetEventDeliveryStatus(ctx context.Context, params GetEventDeliveryStatusInput) (*EventDeliveryStatus, error)
-	CreateEventDeliveryStatus(ctx context.Context, params CreateEventDeliveryStatusInput) (*EventDeliveryStatus, error)
+	UpdateEventDeliveryStatus(ctx context.Context, params UpdateEventDeliveryStatusInput) (*EventDeliveryStatus, error)
 }
 
 type FeatureConnector interface {
@@ -54,6 +54,8 @@ type service struct {
 
 	repo    Repository
 	webhook webhook.Handler
+
+	logger *slog.Logger
 }
 
 type Config struct {
@@ -127,7 +129,7 @@ func (c service) CreateChannel(ctx context.Context, params CreateChannelInput) (
 			return nil, fmt.Errorf("failed to cast custom headers: %w", err)
 		}
 
-		_, err = c.webhook.CreateWebhook(ctx, webhook.CreateWebhookInputs{
+		_, err = c.webhook.CreateWebhook(ctx, webhook.CreateWebhookInput{
 			Namespace:     params.Namespace,
 			ID:            &channel.ID,
 			URL:           channel.Config.WebHook.URL,
@@ -195,7 +197,7 @@ func (c service) UpdateChannel(ctx context.Context, params UpdateChannelInput) (
 			return nil, fmt.Errorf("failed to cast custom headers: %w", err)
 		}
 
-		_, err = c.webhook.UpdateWebhook(ctx, webhook.UpdateWebhookInputs{
+		_, err = c.webhook.UpdateWebhook(ctx, webhook.UpdateWebhookInput{
 			Namespace:     params.Namespace,
 			ID:            channel.ID,
 			URL:           channel.Config.WebHook.URL,
@@ -236,7 +238,7 @@ func (c service) CreateRule(ctx context.Context, params CreateRuleInput) (*Rule,
 	for _, channel := range rule.Channels {
 		switch channel.Type {
 		case ChannelTypeWebhook:
-			_, err = c.webhook.UpdateWebhookChannels(ctx, webhook.UpdateWebhookChannelsInputs{
+			_, err = c.webhook.UpdateWebhookChannels(ctx, webhook.UpdateWebhookChannelsInput{
 				Namespace: params.Namespace,
 				ID:        channel.ID,
 				AddChannels: []string{
@@ -270,7 +272,7 @@ func (c service) DeleteRule(ctx context.Context, params DeleteRuleInput) error {
 	for _, channel := range rule.Channels {
 		switch channel.Type {
 		case ChannelTypeWebhook:
-			_, err = c.webhook.UpdateWebhookChannels(ctx, webhook.UpdateWebhookChannelsInputs{
+			_, err = c.webhook.UpdateWebhookChannels(ctx, webhook.UpdateWebhookChannelsInput{
 				Namespace: params.Namespace,
 				ID:        channel.ID,
 				RemoveChannels: []string{
@@ -339,9 +341,61 @@ func (c service) CreateEvent(ctx context.Context, params CreateEventInput) (*Eve
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
-	return c.repo.CreateEvent(ctx, params)
+	rule, err := c.repo.GetRule(ctx, GetRuleInput{
+		Namespace: params.Namespace,
+		ID:        params.RuleID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get rule: %w", err)
+	}
+	if rule.Disabled {
+		return nil, ValidationError{
+			Err: errors.New("failed to send event: rule is disabled"),
+		}
+	}
 
-	// ADD event sending here
+	event, err := c.repo.CreateEvent(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create event: %w", err)
+	}
+
+	// FIXME: create a dispatch service and send events from there
+
+	go func() {
+		payload := params.Payload.AsNotificationEventBalanceThresholdPayload(event.ID, event.CreatedAt)
+		payloadMap, err := PayloadToMapInterface(payload)
+		if err != nil {
+			c.logger.Error("failed to cast event payload", "error", err)
+
+			return
+		}
+
+		for _, channel := range rule.Channels {
+			switch channel.Type {
+			case ChannelTypeWebhook:
+				_, err = c.webhook.SendMessage(ctx, webhook.SendMessageInput{
+					Namespace: params.Namespace,
+					EventID:   event.ID,
+					EventType: string(event.Type),
+					Channels:  []string{rule.ID},
+					Payload:   payloadMap,
+				})
+				if err != nil {
+					c.logger.Error("failed to send message", "error", err)
+				}
+			}
+		}
+	}()
+
+	return event, nil
+}
+
+func (c service) UpdateEventDeliveryStatus(ctx context.Context, params UpdateEventDeliveryStatusInput) (*EventDeliveryStatus, error) {
+	if err := params.Validate(ctx, c); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+
+	return c.repo.UpdateEventDeliveryStatus(ctx, params)
 }
 
 func (c service) ListEventsDeliveryStatus(ctx context.Context, params ListEventsDeliveryStatusInput) (ListEventsDeliveryStatusResult, error) {
@@ -358,14 +412,6 @@ func (c service) GetEventDeliveryStatus(ctx context.Context, params GetEventDeli
 	}
 
 	return c.repo.GetEventDeliveryStatus(ctx, params)
-}
-
-func (c service) CreateEventDeliveryStatus(ctx context.Context, params CreateEventDeliveryStatusInput) (*EventDeliveryStatus, error) {
-	if err := params.Validate(ctx, c); err != nil {
-		return nil, fmt.Errorf("invalid params: %w", err)
-	}
-
-	return c.repo.CreateEventDeliveryStatus(ctx, params)
 }
 
 func interfaceMapToStringMap(m map[string]interface{}) (map[string]string, error) {

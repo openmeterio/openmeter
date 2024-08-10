@@ -33,9 +33,9 @@ type validator interface {
 	Validate() error
 }
 
-var _ validator = (*ListWebhooksInputs)(nil)
+var _ validator = (*ListWebhooksInput)(nil)
 
-type ListWebhooksInputs struct {
+type ListWebhooksInput struct {
 	Namespace string
 
 	IDs        []string
@@ -43,7 +43,7 @@ type ListWebhooksInputs struct {
 	Channels   []string
 }
 
-func (i ListWebhooksInputs) Validate() error {
+func (i ListWebhooksInput) Validate() error {
 	if i.Namespace == "" {
 		return errors.New("namespace is required")
 	}
@@ -51,9 +51,9 @@ func (i ListWebhooksInputs) Validate() error {
 	return nil
 }
 
-var _ validator = (*CreateWebhookInputs)(nil)
+var _ validator = (*CreateWebhookInput)(nil)
 
-type CreateWebhookInputs struct {
+type CreateWebhookInput struct {
 	Namespace string
 
 	ID            *string
@@ -67,7 +67,7 @@ type CreateWebhookInputs struct {
 	Channels      []string
 }
 
-func (i CreateWebhookInputs) Validate() error {
+func (i CreateWebhookInput) Validate() error {
 	if i.Namespace == "" {
 		return errors.New("namespace is required")
 	}
@@ -86,9 +86,9 @@ func (i CreateWebhookInputs) Validate() error {
 	return nil
 }
 
-var _ validator = (*UpdateWebhookInputs)(nil)
+var _ validator = (*UpdateWebhookInput)(nil)
 
-type UpdateWebhookInputs struct {
+type UpdateWebhookInput struct {
 	Namespace string
 
 	ID            string
@@ -102,7 +102,7 @@ type UpdateWebhookInputs struct {
 	Channels      []string
 }
 
-func (i UpdateWebhookInputs) Validate() error {
+func (i UpdateWebhookInput) Validate() error {
 	if i.Namespace == "" {
 		return errors.New("namespace is required")
 	}
@@ -127,7 +127,9 @@ func (i UpdateWebhookInputs) Validate() error {
 	return nil
 }
 
-type UpdateWebhookChannelsInputs struct {
+var _ validator = (*UpdateWebhookChannelsInput)(nil)
+
+type UpdateWebhookChannelsInput struct {
 	Namespace string
 
 	ID             string
@@ -135,7 +137,7 @@ type UpdateWebhookChannelsInputs struct {
 	RemoveChannels []string
 }
 
-func (i UpdateWebhookChannelsInputs) Validate() error {
+func (i UpdateWebhookChannelsInput) Validate() error {
 	if i.Namespace == "" {
 		return errors.New("namespace is required")
 	}
@@ -147,15 +149,15 @@ func (i UpdateWebhookChannelsInputs) Validate() error {
 	return nil
 }
 
-var _ validator = (*GetWebhookInputs)(nil)
+var _ validator = (*GetWebhookInput)(nil)
 
-type GetWebhookInputs struct {
+type GetWebhookInput struct {
 	Namespace string
 
 	ID string
 }
 
-func (i GetWebhookInputs) Validate() error {
+func (i GetWebhookInput) Validate() error {
 	if i.Namespace == "" {
 		return errors.New("namespace is required")
 	}
@@ -167,7 +169,7 @@ func (i GetWebhookInputs) Validate() error {
 	return nil
 }
 
-type DeleteWebhookInputs = GetWebhookInputs
+type DeleteWebhookInput = GetWebhookInput
 
 type Message struct {
 	Namespace string
@@ -179,9 +181,9 @@ type Message struct {
 	Payload   map[string]interface{}
 }
 
-var _ validator = (*SendMessageInputs)(nil)
+var _ validator = (*SendMessageInput)(nil)
 
-type SendMessageInputs struct {
+type SendMessageInput struct {
 	Namespace string
 
 	EventID   string
@@ -190,7 +192,7 @@ type SendMessageInputs struct {
 	Payload   map[string]interface{}
 }
 
-func (i SendMessageInputs) Validate() error {
+func (i SendMessageInput) Validate() error {
 	if i.Namespace == "" {
 		return errors.New("namespace is required")
 	}
@@ -221,13 +223,13 @@ type EventType struct {
 
 type Handler interface {
 	RegisterEventTypes(ctx context.Context, params RegisterEventTypesInputs) error
-	ListWebhooks(ctx context.Context, params ListWebhooksInputs) ([]Webhook, error)
-	CreateWebhook(ctx context.Context, params CreateWebhookInputs) (*Webhook, error)
-	UpdateWebhook(ctx context.Context, params UpdateWebhookInputs) (*Webhook, error)
-	UpdateWebhookChannels(ctx context.Context, params UpdateWebhookChannelsInputs) (*Webhook, error)
-	GetWebhook(ctx context.Context, params GetWebhookInputs) (*Webhook, error)
-	DeleteWebhook(ctx context.Context, params DeleteWebhookInputs) error
-	SendMessage(ctx context.Context, params SendMessageInputs) (*Message, error)
+	ListWebhooks(ctx context.Context, params ListWebhooksInput) ([]Webhook, error)
+	CreateWebhook(ctx context.Context, params CreateWebhookInput) (*Webhook, error)
+	UpdateWebhook(ctx context.Context, params UpdateWebhookInput) (*Webhook, error)
+	UpdateWebhookChannels(ctx context.Context, params UpdateWebhookChannelsInput) (*Webhook, error)
+	GetWebhook(ctx context.Context, params GetWebhookInput) (*Webhook, error)
+	DeleteWebhook(ctx context.Context, params DeleteWebhookInput) error
+	SendMessage(ctx context.Context, params SendMessageInput) (*Message, error)
 }
 
 type Config struct {

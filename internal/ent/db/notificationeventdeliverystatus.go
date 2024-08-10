@@ -28,7 +28,7 @@ type NotificationEventDeliveryStatus struct {
 	EventID string `json:"event_id,omitempty"`
 	// ChannelID holds the value of the "channel_id" field.
 	ChannelID string `json:"channel_id,omitempty"`
-	// The event type the rule associated with
+	// State holds the value of the "state" field.
 	State notification.EventDeliveryStatusState `json:"state,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the NotificationEventDeliveryStatusQuery when eager-loading is set.

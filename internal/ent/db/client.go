@@ -1190,6 +1190,22 @@ func (c *NotificationEventClient) QueryDeliveryStatuses(ne *NotificationEvent) *
 	return query
 }
 
+// QueryRules queries the rules edge of a NotificationEvent.
+func (c *NotificationEventClient) QueryRules(ne *NotificationEvent) *NotificationRuleQuery {
+	query := (&NotificationRuleClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := ne.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(notificationevent.Table, notificationevent.FieldID, id),
+			sqlgraph.To(notificationrule.Table, notificationrule.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, notificationevent.RulesTable, notificationevent.RulesColumn),
+		)
+		fromV = sqlgraph.Neighbors(ne.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *NotificationEventClient) Hooks() []Hook {
 	return c.hooks.NotificationEvent
@@ -1481,6 +1497,22 @@ func (c *NotificationRuleClient) QueryChannels(nr *NotificationRule) *Notificati
 			sqlgraph.From(notificationrule.Table, notificationrule.FieldID, id),
 			sqlgraph.To(notificationchannel.Table, notificationchannel.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, true, notificationrule.ChannelsTable, notificationrule.ChannelsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(nr.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryEvents queries the events edge of a NotificationRule.
+func (c *NotificationRuleClient) QueryEvents(nr *NotificationRule) *NotificationEventQuery {
+	query := (&NotificationEventClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := nr.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(notificationrule.Table, notificationrule.FieldID, id),
+			sqlgraph.To(notificationevent.Table, notificationevent.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, notificationrule.EventsTable, notificationrule.EventsColumn),
 		)
 		fromV = sqlgraph.Neighbors(nr.driver.Dialect(), step)
 		return fromV, nil
