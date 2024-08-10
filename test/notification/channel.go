@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/huandu/go-clone"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -13,28 +12,28 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var createChannelInput = notification.CreateChannelInput{
-	NamespacedModel: models.NamespacedModel{
-		Namespace: TestNamespace,
-	},
-	Type:     notification.ChannelTypeWebhook,
-	Name:     "NotificationChannelTest",
-	Disabled: false,
-	Config: notification.ChannelConfig{
-		ChannelConfigMeta: notification.ChannelConfigMeta{
-			Type: notification.ChannelTypeWebhook,
+func NewCreateChannelInput(name string) notification.CreateChannelInput {
+	return notification.CreateChannelInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: TestNamespace,
 		},
-		WebHook: notification.WebHookChannelConfig{
-			CustomHeaders: map[string]interface{}{
-				"X-TEST-HEADER": "NotificationTestCreate1",
+		Type:     notification.ChannelTypeWebhook,
+		Name:     name,
+		Disabled: false,
+		Config: notification.ChannelConfig{
+			ChannelConfigMeta: notification.ChannelConfigMeta{
+				Type: notification.ChannelTypeWebhook,
 			},
-			URL:           "http://example.com",
-			SigningSecret: "whsec_Fk5kgr5qTdPdQIDniFv+6K0WN2bUpdGjjGtaNeAx8N8=",
+			WebHook: notification.WebHookChannelConfig{
+				CustomHeaders: map[string]interface{}{
+					"X-TEST-HEADER": "NotificationChannelTest",
+				},
+				URL:           TestWebhookURL,
+				SigningSecret: TestSigningSecret,
+			},
 		},
-	},
+	}
 }
-
-// TODO: test channels with features
 
 type ChannelTestSuite struct {
 	Env TestEnv
@@ -43,7 +42,7 @@ type ChannelTestSuite struct {
 func (s *ChannelTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	input := clone.Clone(createChannelInput).(notification.CreateChannelInput)
+	input := NewCreateChannelInput("NotificationCreateChannel")
 
 	channel, err := service.CreateChannel(ctx, input)
 	require.NoError(t, err, "Creating channel must not return error")
@@ -57,14 +56,12 @@ func (s *ChannelTestSuite) TestCreate(ctx context.Context, t *testing.T) {
 func (s *ChannelTestSuite) TestList(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	input1 := clone.Clone(createChannelInput).(notification.CreateChannelInput)
-	input1.Name = "NotificationListChannel1"
+	input1 := NewCreateChannelInput("NotificationListChannel1")
 	channel1, err := service.CreateChannel(ctx, input1)
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel1, "Channel must not be nil")
 
-	input2 := clone.Clone(createChannelInput).(notification.CreateChannelInput)
-	input2.Name = "NotificationListChannel2"
+	input2 := NewCreateChannelInput("NotificationListChannel2")
 	channel2, err := service.CreateChannel(ctx, input2)
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel2, "Channel must not be nil")
@@ -95,8 +92,7 @@ func (s *ChannelTestSuite) TestList(ctx context.Context, t *testing.T) {
 func (s *ChannelTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	input := clone.Clone(createChannelInput).(notification.CreateChannelInput)
-	input.Name = "NotificationUpdateChannel1"
+	input := NewCreateChannelInput("NotificationUpdateChannel1")
 
 	channel, err := service.CreateChannel(ctx, input)
 	require.NoError(t, err, "Creating channel must not return error")
@@ -135,8 +131,7 @@ func (s *ChannelTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 func (s *ChannelTestSuite) TestDelete(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	input := clone.Clone(createChannelInput).(notification.CreateChannelInput)
-	input.Name = "NotificationDeleteChannel1"
+	input := NewCreateChannelInput("NotificationDeleteChannel1")
 
 	channel, err := service.CreateChannel(ctx, input)
 	require.NoError(t, err, "Creating channel must not return error")
@@ -152,8 +147,7 @@ func (s *ChannelTestSuite) TestDelete(ctx context.Context, t *testing.T) {
 func (s *ChannelTestSuite) TestGet(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	input := clone.Clone(createChannelInput).(notification.CreateChannelInput)
-	input.Name = "NotificationGetChannel1"
+	input := NewCreateChannelInput("NotificationGetChannel1")
 
 	channel, err := service.CreateChannel(ctx, input)
 	require.NoError(t, err, "Creating channel must not return error")

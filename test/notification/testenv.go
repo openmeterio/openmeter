@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/notification"
 	notificationrepository "github.com/openmeterio/openmeter/internal/notification/repository"
 	notificationwebhook "github.com/openmeterio/openmeter/internal/notification/webhook"
@@ -13,7 +14,17 @@ import (
 )
 
 const (
-	TestNamespace = "default"
+	TestNamespace   = "default"
+	TestMeterSlug   = "api-call"
+	TestFeatureName = "API Requests"
+	TestFeatureKey  = "api-call"
+	TestSubjectKey  = "john-doe"
+	// TestWebhookURL is the target URL where the notifications are sent to.
+	// Use the following URL to verify notifications events sent over webhook channel:
+	// https://play.svix.com/view/e_eyihAQHBB5d6T9ck1iYevP825pg
+	TestWebhookURL = "https://play.svix.com/in/e_eyihAQHBB5d6T9ck1iYevP825pg/"
+	// TestSigningSecret used for verifying events sent to webhook.
+	TestSigningSecret = "whsec_Fk5kgr5qTdPdQIDniFv+6K0WN2bUpdGjjGtaNeAx8N8="
 )
 
 type TestEnv interface {
@@ -21,7 +32,8 @@ type TestEnv interface {
 	Notification() notification.Service
 	NotificationWebhook() notificationwebhook.Handler
 
-	FeatureConn() productcatalog.FeatureConnector
+	Feature() productcatalog.FeatureConnector
+	Meter() meter.Repository
 
 	Close() error
 }
@@ -34,6 +46,7 @@ type testEnv struct {
 	webhook          notificationwebhook.Handler
 
 	feature productcatalog.FeatureConnector
+	meter   meter.Repository
 
 	closerFunc func() error
 }
@@ -54,11 +67,15 @@ func (n testEnv) NotificationWebhook() notificationwebhook.Handler {
 	return n.webhook
 }
 
-func (n testEnv) FeatureConn() productcatalog.FeatureConnector {
+func (n testEnv) Feature() productcatalog.FeatureConnector {
 	return n.feature
 }
 
-func NewNotificationTestEnv(postgresURL, clickhouseAddr, svixServerURL, svixJWTSigningSecret string) (TestEnv, error) {
+func (n testEnv) Meter() meter.Repository {
+	return n.meter
+}
+
+func NewTestEnv(postgresURL, clickhouseAddr, svixServerURL, svixJWTSigningSecret string) (TestEnv, error) {
 	logger := slog.Default().WithGroup("notification")
 
 	chClient, err := NewClickhouseClient(clickhouseAddr)
@@ -73,8 +90,6 @@ func NewNotificationTestEnv(postgresURL, clickhouseAddr, svixServerURL, svixJWTS
 		}
 	}()
 
-	meterRepository := NewMeterRepository()
-
 	pgClient, err := NewPGClient(postgresURL)
 	if err != nil {
 		return nil, err
@@ -86,6 +101,11 @@ func NewNotificationTestEnv(postgresURL, clickhouseAddr, svixServerURL, svixJWTS
 			}
 		}
 	}()
+
+	meterRepository := NewMeterRepository()
+
+	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(pgClient, logger.WithGroup("feature.postgres"))
+	featureConnector := productcatalog.NewFeatureConnector(featureAdapter, meterRepository)
 
 	repo, err := notificationrepository.New(notificationrepository.Config{
 		Client: pgClient,
@@ -114,9 +134,6 @@ func NewNotificationTestEnv(postgresURL, clickhouseAddr, svixServerURL, svixJWTS
 	if err != nil {
 		return nil, fmt.Errorf("failed to create webhook handler: %w", err)
 	}
-
-	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(pgClient, logger.WithGroup("feature.postgres"))
-	featureConnector := productcatalog.NewFeatureConnector(featureAdapter, meterRepository)
 
 	connector, err := notification.New(notification.Config{
 		Repository:       repo,
@@ -147,6 +164,7 @@ func NewNotificationTestEnv(postgresURL, clickhouseAddr, svixServerURL, svixJWTS
 		notification:     connector,
 		webhook:          webhook,
 		feature:          featureConnector,
+		meter:            meterRepository,
 		closerFunc:       closerFunc,
 	}, nil
 }

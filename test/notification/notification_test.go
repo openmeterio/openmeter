@@ -1,12 +1,10 @@
-package e2e
+package notification
 
 import (
 	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	notificatione2e "github.com/openmeterio/openmeter/e2e/notification"
 )
 
 const (
@@ -18,11 +16,11 @@ const (
 )
 
 func TestNotification(t *testing.T) {
-	env, err := notificatione2e.NewNotificationTestEnv(PostgresURL, ClickhouseAddr, SvixServerURL, SvixJWTSigningSecret)
+	env, err := NewTestEnv(PostgresURL, ClickhouseAddr, SvixServerURL, SvixJWTSigningSecret)
 	require.NoError(t, err, "NotificationTestEnv() failed")
 	require.NotNil(t, env.Notification())
 	require.NotNil(t, env.NotificationRepo())
-	require.NotNil(t, env.FeatureConn())
+	require.NotNil(t, env.Feature())
 
 	defer func() {
 		if err := env.Close(); err != nil {
@@ -35,7 +33,7 @@ func TestNotification(t *testing.T) {
 
 	// Test suite for testing integration with webhook provider (Svix)
 	t.Run("Webhook", func(t *testing.T) {
-		testSuite := notificatione2e.WebhookTestSuite{
+		testSuite := WebhookTestSuite{
 			Env: env,
 		}
 
@@ -64,7 +62,7 @@ func TestNotification(t *testing.T) {
 
 	// Test suite covering notification channels
 	t.Run("Channel", func(t *testing.T) {
-		testSuite := notificatione2e.ChannelTestSuite{
+		testSuite := ChannelTestSuite{
 			Env: env,
 		}
 
@@ -91,7 +89,7 @@ func TestNotification(t *testing.T) {
 
 	// Test suite covering notification rules
 	t.Run("Rule", func(t *testing.T) {
-		testSuite := notificatione2e.RuleTestSuite{
+		testSuite := RuleTestSuite{
 			Env: env,
 		}
 
@@ -120,7 +118,7 @@ func TestNotification(t *testing.T) {
 
 	// Test suite covering notification events
 	t.Run("Event", func(t *testing.T) {
-		testSuite := notificatione2e.EventTestSuite{
+		testSuite := EventTestSuite{
 			Env: env,
 		}
 

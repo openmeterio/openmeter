@@ -29,7 +29,6 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
-	github.com/huandu/go-clone v1.7.2
 	github.com/huandu/go-sqlbuilder v1.28.1
 	github.com/jackc/pgx/v5 v5.6.0
 	github.com/lmittmann/tint v1.0.5
@@ -71,6 +70,7 @@ require (
 	google.golang.org/protobuf v1.34.2
 	k8s.io/apimachinery v0.30.3
 	k8s.io/client-go v0.30.3
+	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
 	sigs.k8s.io/controller-runtime v0.18.4
 )
 
@@ -408,7 +408,6 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.120.1 // indirect
-	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
 	lukechampine.com/uint128 v1.3.0 // indirect
 	modernc.org/cc/v3 v3.40.0 // indirect
 	modernc.org/ccgo/v3 v3.16.13 // indirect

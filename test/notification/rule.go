@@ -4,90 +4,130 @@ import (
 	"context"
 	"testing"
 
-	"github.com/huandu/go-clone"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/openmeterio/openmeter/internal/notification"
+	"github.com/openmeterio/openmeter/internal/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
-var createRuleInput = notification.CreateRuleInput{
-	NamespacedModel: models.NamespacedModel{
-		Namespace: TestNamespace,
-	},
-	Type:     notification.RuleTypeBalanceThreshold,
-	Name:     "NotificationRuleTest",
-	Disabled: false,
-	Config: notification.RuleConfig{
-		RuleConfigMeta: notification.RuleConfigMeta{
-			Type: notification.RuleTypeBalanceThreshold,
+func NewCreateRuleInput(name string, channels ...string) notification.CreateRuleInput {
+	return notification.CreateRuleInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: TestNamespace,
 		},
-		BalanceThreshold: notification.BalanceThresholdRuleConfig{
-			Features: nil,
-			Thresholds: []notification.BalanceThreshold{
-				{
-					Type:  notification.BalanceThresholdTypeNumber,
-					Value: 1000,
-				},
-				{
-					Type:  notification.BalanceThresholdTypePercent,
-					Value: 95,
+		Type:     notification.RuleTypeBalanceThreshold,
+		Name:     name,
+		Disabled: false,
+		Config: notification.RuleConfig{
+			RuleConfigMeta: notification.RuleConfigMeta{
+				Type: notification.RuleTypeBalanceThreshold,
+			},
+			BalanceThreshold: notification.BalanceThresholdRuleConfig{
+				Features: nil,
+				Thresholds: []notification.BalanceThreshold{
+					{
+						Type:  notification.BalanceThresholdTypeNumber,
+						Value: 1000,
+					},
+					{
+						Type:  notification.BalanceThresholdTypePercent,
+						Value: 95,
+					},
 				},
 			},
 		},
-	},
-	Channels: nil,
+		Channels: channels,
+	}
 }
 
 type RuleTestSuite struct {
 	Env TestEnv
 
 	channel notification.Channel
+	feature productcatalog.Feature
 }
 
 func (s *RuleTestSuite) Setup(ctx context.Context, t *testing.T) {
+	t.Helper()
+
 	service := s.Env.Notification()
 
-	input := clone.Clone(createChannelInput).(notification.CreateChannelInput)
-	input.Name = "NotificationRule"
+	meter, err := s.Env.Meter().GetMeterByIDOrSlug(ctx, TestNamespace, TestMeterSlug)
+	require.NoError(t, err, "Getting meter must not return error")
+
+	feature, err := s.Env.Feature().GetFeature(ctx, TestNamespace, TestFeatureKey, false)
+	require.NoError(t, err, "Getting feature must not return error")
+	if feature != nil {
+		s.feature = *feature
+	} else {
+		s.feature, err = s.Env.Feature().CreateFeature(ctx, productcatalog.CreateFeatureInputs{
+			Name:                TestFeatureName,
+			Key:                 TestFeatureKey,
+			Namespace:           TestNamespace,
+			MeterSlug:           convert.ToPointer(meter.Slug),
+			MeterGroupByFilters: meter.GroupBy,
+		})
+	}
+	require.NoError(t, err, "Creating feature must not return error")
+
+	input := NewCreateChannelInput("NotificationRuleTest")
 
 	channel, err := service.CreateChannel(ctx, input)
 	require.NoError(t, err, "Creating channel must not return error")
 	require.NotNil(t, channel, "Channel must not be nil")
 
 	s.channel = *channel
-
-	createRuleInput.Channels = []string{
-		s.channel.ID,
-	}
 }
 
 func (s *RuleTestSuite) TestCreate(ctx context.Context, t *testing.T) {
+	t.Helper()
+
 	service := s.Env.Notification()
 
-	input := clone.Clone(createRuleInput).(notification.CreateRuleInput)
+	tests := []struct {
+		Name     string
+		CreateIn notification.CreateRuleInput
+	}{
+		{
+			Name:     "WithoutFeature",
+			CreateIn: NewCreateRuleInput("NotificationCreateRuleWithoutFeature", s.channel.ID),
+		},
+		{
+			Name: "WithFeature",
+			CreateIn: func() notification.CreateRuleInput {
+				createIn := NewCreateRuleInput("NotificationCreateRuleWithFeature", s.channel.ID)
+				createIn.Config.BalanceThreshold.Features = []string{s.feature.Key}
 
-	rule, err := service.CreateRule(ctx, input)
-	require.NoError(t, err, "Creating rule must not return error")
-	require.NotNil(t, rule, "Rule must not be nil")
-	assert.NotEmpty(t, rule.ID, "Rule ID must not be empty")
-	assert.Equal(t, input.Disabled, rule.Disabled, "Rule must not be disabled")
-	assert.Equal(t, input.Type, rule.Type, "Rule type must be the same")
-	assert.EqualValues(t, input.Config, rule.Config, "Rule config must be the same")
+				return createIn
+			}(),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			rule, err := service.CreateRule(ctx, test.CreateIn)
+			require.NoError(t, err, "Creating rule must not return error")
+			require.NotNil(t, rule, "Rule must not be nil")
+			assert.NotEmpty(t, rule.ID, "Rule ID must not be empty")
+			assert.Equal(t, test.CreateIn.Disabled, rule.Disabled, "Rule must not be disabled")
+			assert.Equal(t, test.CreateIn.Type, rule.Type, "Rule type must be the same")
+			assert.EqualValues(t, test.CreateIn.Config, rule.Config, "Rule config must be the same")
+		})
+	}
 }
 
 func (s *RuleTestSuite) TestList(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	input1 := clone.Clone(createRuleInput).(notification.CreateRuleInput)
-	input1.Name = "NotificationListRule1"
+	input1 := NewCreateRuleInput("NotificationListRule1", s.channel.ID)
 	rule1, err := service.CreateRule(ctx, input1)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule1, "Rule must not be nil")
 
-	input2 := clone.Clone(createRuleInput).(notification.CreateRuleInput)
-	input2.Name = "NotificationListRule2"
+	input2 := NewCreateRuleInput("NotificationListRule2", s.channel.ID)
 	rule2, err := service.CreateRule(ctx, input2)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule2, "Rule must not be nil")
@@ -117,8 +157,7 @@ func (s *RuleTestSuite) TestList(ctx context.Context, t *testing.T) {
 func (s *RuleTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	input1 := clone.Clone(createRuleInput).(notification.CreateRuleInput)
-	input1.Name = "NotificationUpdateRule1"
+	input1 := NewCreateRuleInput("NotificationUpdateRule1", s.channel.ID)
 	rule, err := service.CreateRule(ctx, input1)
 	require.NoError(t, err, "Creating rule must not return error")
 	require.NotNil(t, rule, "Rule must not be nil")
@@ -154,8 +193,7 @@ func (s *RuleTestSuite) TestUpdate(ctx context.Context, t *testing.T) {
 func (s *RuleTestSuite) TestDelete(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	input := clone.Clone(createRuleInput).(notification.CreateRuleInput)
-	input.Name = "NotificationDeleteRule1"
+	input := NewCreateRuleInput("NotificationDeleteRule1", s.channel.ID)
 
 	rule, err := service.CreateRule(ctx, input)
 	require.NoError(t, err, "Creating rule must not return error")
@@ -171,8 +209,7 @@ func (s *RuleTestSuite) TestDelete(ctx context.Context, t *testing.T) {
 func (s *RuleTestSuite) TestGet(ctx context.Context, t *testing.T) {
 	service := s.Env.Notification()
 
-	input1 := clone.Clone(createRuleInput).(notification.CreateRuleInput)
-	input1.Name = "NotificationGetRule1"
+	input1 := NewCreateRuleInput("NotificationGetRule1", s.channel.ID)
 
 	rule, err := service.CreateRule(ctx, input1)
 	require.NoError(t, err, "Creating rule must not return error")
@@ -193,15 +230,4 @@ func (s *RuleTestSuite) TestGet(ctx context.Context, t *testing.T) {
 	assert.Equal(t, rule.Type, rule.Type, "Rule type must be the same")
 	assert.Equal(t, rule.Channels, rule.Channels, "Rule channels must be the same")
 	assert.EqualValues(t, rule.Config, rule.Config, "Rule config must be the same")
-}
-
-func RunRuleTests(ctx context.Context, t *testing.T, env TestEnv) {
-	if t == nil {
-		panic("t is nil")
-	}
-
-	if env == nil {
-		panic("env is nil")
-	}
-
 }

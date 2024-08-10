@@ -49,9 +49,9 @@ func NewClickhouseClient(addr string) (clickhousedriver.Conn, error) {
 func NewMeterRepository() meter.Repository {
 	return meter.NewInMemoryRepository([]models.Meter{
 		{
-			Namespace:     "default",
+			Namespace:     TestNamespace,
 			ID:            ulid.MustNew(ulid.Timestamp(time.Now().UTC()), rand.Reader).String(),
-			Slug:          "api-request",
+			Slug:          TestMeterSlug,
 			Aggregation:   models.MeterAggregationSum,
 			EventType:     "request",
 			ValueProperty: "$.duration_ms",
@@ -73,7 +73,7 @@ func NewPGClient(url string) (*db.Client, error) {
 	// initialize client & run migrations
 	dbClient := db.NewClient(db.Driver(driver))
 
-	if err := dbClient.Schema.Create(context.Background()); err != nil {
+	if err = dbClient.Schema.Create(context.Background()); err != nil {
 		return nil, fmt.Errorf("failed to migrate credit db: %w", err)
 	}
 
