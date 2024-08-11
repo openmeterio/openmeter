@@ -17,9 +17,9 @@ const (
 	golangciLintVersion = "v1.59.1"
 	spectralVersion     = "6.11"
 	kafkaVersion        = "3.6"
-	clickhouseVersion   = "23.3.9.55"
+	clickhouseVersion   = "24.5.5.78"
 	redisVersion        = "7.0.12"
-	postgresVersion     = "15.3"
+	postgresVersion     = "14.9"
 
 	helmDocsVersion = "v1.14.2"
 	helmVersion     = "3.15.2"
