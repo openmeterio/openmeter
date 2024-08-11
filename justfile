@@ -1,3 +1,8 @@
+[private]
+default:
+  @just --list
+
+# tag and release a new version
 release:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -23,3 +28,7 @@ release:
 
     git tag -m "Release ${version}" $version
     git push origin $version
+
+# update CI dependency versions
+update-versions:
+    dagger call --source .:default dev update-versions export --path ci/versions.go
