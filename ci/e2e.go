@@ -29,7 +29,7 @@ func (m *Ci) Etoe(
 		WithExec([]string{"openmeter-sink-worker", "--config", "/etc/openmeter/config.yaml"}).
 		AsService()
 
-	args := []string{"go", "test", "-v"}
+	args := []string{"go", "test", "-count=1", "-v"}
 
 	if test != "" {
 		args = append(args, "-run", fmt.Sprintf("Test%s", test))
