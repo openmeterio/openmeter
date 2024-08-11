@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/dave/jennifer/jen"
+	"github.com/elliotchance/orderedmap/v2"
 	"github.com/google/go-github/v63/github"
 
 	"github.com/openmeterio/openmeter/ci/internal/dagger"
@@ -39,7 +40,7 @@ func (m *Dev) UpdateVersions(
 		githubClient = githubClient.WithAuthToken(token)
 	}
 
-	versions := make(map[string]string)
+	versions := orderedmap.NewOrderedMap[string, string]()
 
 	// GolangCI Lint
 	{
@@ -48,7 +49,7 @@ func (m *Dev) UpdateVersions(
 			return nil, err
 		}
 
-		versions["golangciLint"] = release.GetTagName()
+		versions.Set("golangciLint", release.GetTagName())
 	}
 
 	// Helm
@@ -58,7 +59,7 @@ func (m *Dev) UpdateVersions(
 			return nil, err
 		}
 
-		versions["helm"] = strings.TrimPrefix(release.GetTagName(), "v")
+		versions.Set("helm", strings.TrimPrefix(release.GetTagName(), "v"))
 	}
 
 	// Helm docs
@@ -68,7 +69,7 @@ func (m *Dev) UpdateVersions(
 			return nil, err
 		}
 
-		versions["helmDocs"] = release.GetTagName()
+		versions.Set("helmDocs", release.GetTagName())
 	}
 
 	// Spectral
@@ -78,13 +79,15 @@ func (m *Dev) UpdateVersions(
 			return nil, err
 		}
 
-		versions["spectral"] = strings.TrimPrefix(release.GetTagName(), "v")
+		versions.Set("spectral", strings.TrimPrefix(release.GetTagName(), "v"))
 	}
 
 	f := jen.NewFile("main")
 
 	f.Const().DefsFunc(func(g *jen.Group) {
-		for tool, version := range versions {
+		for _, tool := range versions.Keys() {
+			version, _ := versions.Get(tool)
+
 			g.Id(tool + "Version").Op("=").Lit(version)
 		}
 	})

@@ -6,6 +6,7 @@ require (
 	github.com/99designs/gqlgen v0.17.49
 	github.com/Khan/genqlient v0.7.0
 	github.com/dave/jennifer v1.7.0
+	github.com/elliotchance/orderedmap/v2 v2.2.0
 	github.com/google/go-github/v63 v63.0.0
 	github.com/sourcegraph/conc v0.3.0
 	github.com/vektah/gqlparser/v2 v2.5.16
