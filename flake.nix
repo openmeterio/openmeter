@@ -67,7 +67,16 @@
               mage
 
               # Kafka build dependencies
-              rdkafka # https://github.com/confluentinc/confluent-kafka-go#librdkafka
+              # https://github.com/confluentinc/confluent-kafka-go#librdkafka
+              (rdkafka.overrideAttrs (_: rec {
+                version = "2.5.0";
+                src = fetchFromGitHub {
+                  owner = "confluentinc";
+                  repo = "librdkafka";
+                  rev = "v${version}";
+                  sha256 = "sha256-NKrfnygzutdUkQbBuTQ/V46S9KlZH8sSOIBUA1eSfBQ=";
+                };
+              }))
               cyrus_sasl
               pkg-config
               # confluent-platform
