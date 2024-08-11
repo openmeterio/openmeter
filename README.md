@@ -8,16 +8,41 @@
   </h1>
 </p>
 
+[![GitHub Release](https://img.shields.io/github/v/release/openmeterio/openmeter?style=flat-square)](https://github.com/openmeterio/openmeter/releases/latest)
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/openmeterio/openmeter/ci.yaml?style=flat-square)](https://github.com/openmeterio/openmeter/actions/workflows/ci.yaml)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/openmeterio/openmeter/badge?style=flat-square)](https://api.securityscorecards.dev/projects/github.com/openmeterio/openmeter)
+[![Go Report Card](https://goreportcard.com/badge/github.com/openmeterio/openmeter?style=flat-square)](https://goreportcard.com/report/github.com/openmeterio/openmeter)
+![GitHub Repo stars](https://img.shields.io/github/stars/openmeterio/openmeter)
+![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/openmeterio?label=Follow)
 
 OpenMeter is a Real-Time and Scalable Usage Metering for AI, Usage-Based Billing, Infrastructure, and IoT use-cases.
 
 Learn more about OpenMeter at [https://openmeter.io](https://openmeter.io).
 
-## Quickstart
+## Try It
+
+Get started with the latest version of OpenMeter in minutes.
+
+### Local
+
+```sh
+git clone git@github.com:openmeterio/openmeter.git
+cd openmeter/quickstart
+docker compose up -d
+```
 
 Check out the [quickstart guide](/quickstart) for a 5-minute overview and demo of OpenMeter.
+
+### Cloud
+
+[Sign up](https://openmeter.cloud) for a free account and start metering your usage in the cloud.
+
+> [!TIP]
+> Check out how OpenMeter Cloud compares with the self-hosted version in our [comparison guide](https://openmeter.io/docs/cloud#comparison).
+
+### Deploy
+
+Deploy OpenMeter to your Kubernetes cluster using our [Helm chart](https://openmeter.io/docs/manage/deploy/kubernetes).
 
 ## Links
 
