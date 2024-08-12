@@ -29,7 +29,7 @@ type entitlementConnectors struct {
 
 func initEntitlements(ctx context.Context, conf config.Configuration, logger *slog.Logger, metricMeter metric.Meter, otelName string) (*entitlementConnectors, error) {
 	// Postgresql
-	entDriver, err := entutils.GetPGDriver(conf.Postgres.URL)
+	entDriver, err := entutils.GetEntDriver(conf.Postgres.URL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init postgres driver: %w", err)
 	}
