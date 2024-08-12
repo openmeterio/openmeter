@@ -251,6 +251,10 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 		query = query.Where(db_entitlement.Or(db_entitlement.DeletedAtGT(clock.Now()), db_entitlement.DeletedAtIsNil()))
 	}
 
+	if !params.IncludeDeletedAfter.IsZero() {
+		query = query.Where(db_entitlement.Or(db_entitlement.DeletedAtGT(params.IncludeDeletedAfter), db_entitlement.DeletedAtIsNil()))
+	}
+
 	if params.OrderBy != "" {
 		order := []sql.OrderTermOption{}
 		if !params.Order.IsDefaultValue() {
@@ -417,6 +421,30 @@ func (a *entitlementDBAdapter) ListEntitlementsWithExpiredUsagePeriod(ctx contex
 	}
 
 	return result, nil
+}
+
+type namespacesWithCount struct {
+	Namespace string
+	Count     int
+}
+
+func (a *entitlementDBAdapter) ListNamespacesWithActiveEntitlements(ctx context.Context, includeDeletedAfter time.Time) ([]string, error) {
+	namespaces := []namespacesWithCount{}
+
+	err := a.db.Entitlement.Query().
+		Where(
+			db_entitlement.Or(db_entitlement.DeletedAtGT(includeDeletedAfter), db_entitlement.DeletedAtIsNil()),
+		).
+		GroupBy(db_entitlement.FieldNamespace).
+		Aggregate(db.Count()).
+		Scan(ctx, &namespaces)
+	if err != nil {
+		return nil, err
+	}
+
+	return slicesx.Map(namespaces, func(n namespacesWithCount) string {
+		return n.Namespace
+	}), nil
 }
 
 func withLatestUsageReset(q *db.EntitlementQuery) *db.EntitlementQuery {
