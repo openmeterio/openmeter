@@ -19,8 +19,9 @@ import (
 )
 
 type ResetEntitlementUsageParams struct {
-	At           time.Time
-	RetainAnchor bool
+	At              time.Time
+	RetainAnchor    bool
+	PreserveOverage bool
 }
 
 type Connector interface {

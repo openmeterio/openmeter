@@ -40,9 +40,6 @@ type engine struct {
 	getFeatureUsage QueryUsageFn
 
 	granularity time.Duration
-
-	// Whether the engine was able to execute all calculations exactly
-	calcsExact bool // TODO: add public API and checking
 }
 
 // Ensure engine implements Engine
@@ -63,7 +60,7 @@ func (e *engine) Run(ctx context.Context, grants []grant.Grant, startingBalances
 		return nil, 0, nil, fmt.Errorf("failed to get burn phases: %w", err)
 	}
 
-	err = prioritizeGrants(e.grants)
+	err = PrioritizeGrants(e.grants)
 	if err != nil {
 		return nil, 0, nil, fmt.Errorf("failed to prioritize grants: %w", err)
 	}
@@ -85,7 +82,7 @@ func (e *engine) Run(ctx context.Context, grants []grant.Grant, startingBalances
 	for _, phase := range phases {
 		// reprioritize grants if needed
 		if rePrioritize {
-			err = prioritizeGrants(e.grants)
+			err = PrioritizeGrants(e.grants)
 			if err != nil {
 				return nil, 0, nil, fmt.Errorf("failed to prioritize grants: %w", err)
 			}
@@ -136,7 +133,7 @@ func (e *engine) Run(ctx context.Context, grants []grant.Grant, startingBalances
 		if err != nil {
 			return nil, 0, nil, fmt.Errorf("failed to get feature usage for period %s - %s: %w", period.From, period.To, err)
 		}
-		balancesAtPhaseStart, segment.GrantUsages, overage, err = e.BurnDownGrants(balancesAtPhaseStart, activeGrants, usage+overage)
+		balancesAtPhaseStart, segment.GrantUsages, overage, err = BurnDownGrants(balancesAtPhaseStart, activeGrants, usage+overage)
 		if err != nil {
 			return nil, 0, nil, fmt.Errorf("failed to burn down grants in period %s - %s: %w", period.From, period.To, err)
 		}
@@ -155,54 +152,6 @@ func (e *engine) Run(ctx context.Context, grants []grant.Grant, startingBalances
 		}
 	}
 	return balancesAtPhaseStart, overage, segments, nil
-}
-
-// Burns down the grants of the priority sorted list. Manages overage.
-// All calculations are done during this function.
-//
-// FIXME: calculations happen on inexact representations as float64, this can lead to rounding errors.
-func (e *engine) BurnDownGrants(startingBalances balance.Map, prioritized []grant.Grant, usage float64) (balance.Map, []GrantUsage, float64, error) {
-	balances := startingBalances.Copy()
-	uses := make([]GrantUsage, 0, len(prioritized))
-	exactUsage := alpacadecimal.NewFromFloat(usage)
-
-	getFloat := func(d alpacadecimal.Decimal) float64 {
-		f, exact := d.Float64()
-		if !exact {
-			e.calcsExact = false
-		}
-		return f
-	}
-
-	for _, grant := range prioritized {
-		grantBalance := balances[grant.ID]
-		// if grant has no balance, skip
-		if grantBalance == 0 {
-			continue
-		}
-		exactBalance := alpacadecimal.NewFromFloat(grantBalance)
-		// if grant balance is less than usage, burn the grant and subtract the balance from usage
-		if exactBalance.LessThanOrEqual(exactUsage) {
-			balances.Set(grant.ID, 0) // 0 usage to avoid arithmetic errors
-			exactUsage = exactUsage.Sub(exactBalance)
-			uses = append(uses, GrantUsage{
-				GrantID:           grant.ID,
-				Usage:             grantBalance,
-				TerminationReason: GrantUsageTerminationReasonExhausted,
-			})
-			// if grant balance is more than usage, burn the grant with the usage
-		} else {
-			balances.Burn(grant.ID, getFloat(exactUsage))
-			uses = append(uses, GrantUsage{
-				GrantID:           grant.ID,
-				Usage:             getFloat(exactUsage),
-				TerminationReason: GrantUsageTerminationReasonSegmentTermination,
-			})
-			exactUsage = alpacadecimal.NewFromFloat(0)
-		}
-	}
-
-	return balances, uses, getFloat(exactUsage), nil
 }
 
 // Calculates the burn phases for the given period.
@@ -427,7 +376,7 @@ type burnPhase struct {
 // 2. Grants with earlier expiration date are burned down first
 //
 // TODO: figure out if this needs to return an error or not
-func prioritizeGrants(grants []grant.Grant) error { //nolint: unparam
+func PrioritizeGrants(grants []grant.Grant) error {
 	if len(grants) == 0 {
 		// we don't do a thing, return early
 		// return fmt.Errorf("no grants to prioritize")
@@ -445,6 +394,49 @@ func prioritizeGrants(grants []grant.Grant) error { //nolint: unparam
 	})
 
 	return nil
+}
+
+// Burns down the grants of the priority sorted list. Manages overage.
+//
+// FIXME: calculations happen on inexact representations as float64, this can lead to rounding errors.
+func BurnDownGrants(startingBalances balance.Map, prioritized []grant.Grant, usage float64) (balance.Map, []GrantUsage, float64, error) {
+	balances := startingBalances.Copy()
+	uses := make([]GrantUsage, 0, len(prioritized))
+	exactUsage := alpacadecimal.NewFromFloat(usage)
+
+	getFloat := func(d alpacadecimal.Decimal) float64 {
+		return d.InexactFloat64()
+	}
+
+	for _, grant := range prioritized {
+		grantBalance := balances[grant.ID]
+		// if grant has no balance, skip
+		if grantBalance == 0 {
+			continue
+		}
+		exactBalance := alpacadecimal.NewFromFloat(grantBalance)
+		// if grant balance is less than usage, burn the grant and subtract the balance from usage
+		if exactBalance.LessThanOrEqual(exactUsage) {
+			balances.Set(grant.ID, 0) // 0 usage to avoid arithmetic errors
+			exactUsage = exactUsage.Sub(exactBalance)
+			uses = append(uses, GrantUsage{
+				GrantID:           grant.ID,
+				Usage:             grantBalance,
+				TerminationReason: GrantUsageTerminationReasonExhausted,
+			})
+			// if grant balance is more than usage, burn the grant with the usage
+		} else {
+			balances.Burn(grant.ID, getFloat(exactUsage))
+			uses = append(uses, GrantUsage{
+				GrantID:           grant.ID,
+				Usage:             getFloat(exactUsage),
+				TerminationReason: GrantUsageTerminationReasonSegmentTermination,
+			})
+			exactUsage = alpacadecimal.NewFromFloat(0)
+		}
+	}
+
+	return balances, uses, getFloat(exactUsage), nil
 }
 
 func later(t1 time.Time, t2 time.Time) time.Time {

@@ -34,8 +34,9 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 		}
 
 		balanceAfterReset, err := e.balanceConnector.ResetUsageForOwner(txCtx, owner, credit.ResetUsageForOwnerParams{
-			At:           params.At,
-			RetainAnchor: params.RetainAnchor,
+			At:              params.At,
+			RetainAnchor:    params.RetainAnchor,
+			PreserveOverage: params.PreserveOverage,
 		})
 		if err != nil {
 			if _, ok := err.(*grant.OwnerNotFoundError); ok {
