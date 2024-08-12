@@ -32,6 +32,7 @@ CREATE TABLE "entitlements" (
   "issue_after_reset" double precision NULL,
   "issue_after_reset_priority" smallint NULL,
   "is_soft_limit" boolean NULL,
+  "preserve_overage_at_reset" boolean NULL,
   "config" jsonb NULL,
   "usage_period_interval" character varying NULL,
   "usage_period_anchor" timestamptz NULL,

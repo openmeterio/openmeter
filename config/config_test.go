@@ -40,6 +40,9 @@ func TestComplete(t *testing.T) {
 	}
 
 	expected := Configuration{
+		Postgres: PostgresConfig{
+			AutoMigrate: AutoMigrateEnt,
+		},
 		Address:     "127.0.0.1:8888",
 		Environment: "local",
 		Telemetry: TelemetryConfig{
