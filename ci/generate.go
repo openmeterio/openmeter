@@ -45,7 +45,8 @@ func (m *Generate) NodeSdk() *dagger.Directory {
 		WithExec([]string{"pnpm", "run", "generate"}).
 		WithExec([]string{"pnpm", "build"}).
 		WithExec([]string{"pnpm", "test"}).
-		Directory("/work/client/node")
+		Directory("/work/client/node").
+		WithoutDirectory("node_modules")
 }
 
 // Generate the Web SDK.
@@ -57,5 +58,6 @@ func (m *Generate) WebSdk() *dagger.Directory {
 		WithWorkdir("/work/client/web").
 		WithExec([]string{"pnpm", "install", "--frozen-lockfile"}).
 		WithExec([]string{"pnpm", "run", "generate"}).
-		Directory("/work/client/web")
+		Directory("/work/client/web").
+		WithoutDirectory("node_modules")
 }
