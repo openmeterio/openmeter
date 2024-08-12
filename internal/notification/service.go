@@ -149,7 +149,8 @@ func (c service) CreateChannel(ctx context.Context, params CreateChannelInput) (
 			return nil, fmt.Errorf("failed to cast custom headers: %w", err)
 		}
 
-		_, err = c.webhook.CreateWebhook(ctx, webhook.CreateWebhookInput{
+		var wb *webhook.Webhook
+		wb, err = c.webhook.CreateWebhook(ctx, webhook.CreateWebhookInput{
 			Namespace:     params.Namespace,
 			ID:            &channel.ID,
 			URL:           channel.Config.WebHook.URL,
@@ -159,6 +160,21 @@ func (c service) CreateChannel(ctx context.Context, params CreateChannelInput) (
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to create webhook for channel: %w", err)
+		}
+
+		updateIn := UpdateChannelInput{
+			NamespacedModel: channel.NamespacedModel,
+			Type:            channel.Type,
+			Name:            channel.Name,
+			Disabled:        channel.Disabled,
+			Config:          channel.Config,
+			ID:              channel.ID,
+		}
+		updateIn.Config.WebHook.SigningSecret = wb.Secret
+
+		channel, err = c.repo.UpdateChannel(ctx, updateIn)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update channel: %w", err)
 		}
 	default:
 		return nil, fmt.Errorf("invalid channel type: %s", channel.Type)
