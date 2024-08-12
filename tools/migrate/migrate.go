@@ -18,7 +18,7 @@ const (
 type Migrate = migrate.Migrate
 
 //go:embed migrations
-var omMigrations embed.FS
+var OMMigrations embed.FS
 
 // NewMigrate creates a new migrate instance.
 func NewMigrate(conn string, fs fs.FS, fsPath string) (*Migrate, error) {
@@ -34,7 +34,7 @@ func Up(conn string) error {
 	if err != nil {
 		return err
 	}
-	m, err := NewMigrate(conn, omMigrations, "migrations")
+	m, err := NewMigrate(conn, OMMigrations, "migrations")
 	if err != nil {
 		return err
 	}

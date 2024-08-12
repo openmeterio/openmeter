@@ -11,10 +11,6 @@
   ],
   "dependencies": [
     {
-      "name": "kafka",
-      "source": "github.com/sagikazarmark/daggerverse/kafka@c964ee26f982c4db0282523cd06f75ecb7e1102f"
-    },
-    {
       "name": "archivist",
       "source": "github.com/sagikazarmark/daggerverse/archivist@8f444e2c2b8e8162cea76d702086034ed3edc4f1"
     },
@@ -41,6 +37,10 @@
     {
       "name": "helm-docs",
       "source": "github.com/sagikazarmark/daggerverse/helm-docs@8f444e2c2b8e8162cea76d702086034ed3edc4f1"
+    },
+    {
+      "name": "kafka",
+      "source": "github.com/sagikazarmark/daggerverse/kafka@c964ee26f982c4db0282523cd06f75ecb7e1102f"
     },
     {
       "name": "python",
