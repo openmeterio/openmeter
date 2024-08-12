@@ -120,6 +120,7 @@ func EventDeliveryStatusFromDBEntity(e db.NotificationEventDeliveryStatus) *noti
 		ChannelID: e.ChannelID,
 		EventID:   e.EventID,
 		State:     e.State,
+		Reason:    e.Reason,
 		CreatedAt: e.CreatedAt,
 		UpdatedAt: e.UpdatedAt,
 	}

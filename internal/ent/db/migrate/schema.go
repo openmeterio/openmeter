@@ -291,7 +291,8 @@ var (
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "event_id", Type: field.TypeString},
 		{Name: "channel_id", Type: field.TypeString},
-		{Name: "state", Type: field.TypeEnum, Enums: []string{"SUCCESS", "FAILED", "SENDING"}, Default: "SENDING"},
+		{Name: "state", Type: field.TypeEnum, Enums: []string{"SUCCESS", "FAILED", "SENDING", "PENDING"}, Default: "PENDING"},
+		{Name: "reason", Type: field.TypeString, Nullable: true},
 	}
 	// NotificationEventDeliveryStatusTable holds the schema information for the "notification_event_delivery_status" table.
 	NotificationEventDeliveryStatusTable = &schema.Table{

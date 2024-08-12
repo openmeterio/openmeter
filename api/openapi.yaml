@@ -3437,6 +3437,10 @@ components:
             - SUCCESS
             - FAILED
             - SENDING
+            - PENDING
+        reason:
+          type: string
+          example: "Failed to dispatch event"
         updatedAt:
           type: string
           format: date-time

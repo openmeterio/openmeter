@@ -30,6 +30,8 @@ type NotificationEventDeliveryStatus struct {
 	ChannelID string `json:"channel_id,omitempty"`
 	// State holds the value of the "state" field.
 	State notification.EventDeliveryStatusState `json:"state,omitempty"`
+	// Reason holds the value of the "reason" field.
+	Reason string `json:"reason,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the NotificationEventDeliveryStatusQuery when eager-loading is set.
 	Edges        NotificationEventDeliveryStatusEdges `json:"edges"`
@@ -59,7 +61,7 @@ func (*NotificationEventDeliveryStatus) scanValues(columns []string) ([]any, err
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case notificationeventdeliverystatus.FieldID, notificationeventdeliverystatus.FieldNamespace, notificationeventdeliverystatus.FieldEventID, notificationeventdeliverystatus.FieldChannelID, notificationeventdeliverystatus.FieldState:
+		case notificationeventdeliverystatus.FieldID, notificationeventdeliverystatus.FieldNamespace, notificationeventdeliverystatus.FieldEventID, notificationeventdeliverystatus.FieldChannelID, notificationeventdeliverystatus.FieldState, notificationeventdeliverystatus.FieldReason:
 			values[i] = new(sql.NullString)
 		case notificationeventdeliverystatus.FieldCreatedAt, notificationeventdeliverystatus.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -120,6 +122,12 @@ func (neds *NotificationEventDeliveryStatus) assignValues(columns []string, valu
 			} else if value.Valid {
 				neds.State = notification.EventDeliveryStatusState(value.String)
 			}
+		case notificationeventdeliverystatus.FieldReason:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field reason", values[i])
+			} else if value.Valid {
+				neds.Reason = value.String
+			}
 		default:
 			neds.selectValues.Set(columns[i], values[i])
 		}
@@ -178,6 +186,9 @@ func (neds *NotificationEventDeliveryStatus) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("state=")
 	builder.WriteString(fmt.Sprintf("%v", neds.State))
+	builder.WriteString(", ")
+	builder.WriteString("reason=")
+	builder.WriteString(neds.Reason)
 	builder.WriteByte(')')
 	return builder.String()
 }

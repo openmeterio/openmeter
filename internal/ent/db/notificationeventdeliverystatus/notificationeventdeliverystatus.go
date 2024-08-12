@@ -28,6 +28,8 @@ const (
 	FieldChannelID = "channel_id"
 	// FieldState holds the string denoting the state field in the database.
 	FieldState = "state"
+	// FieldReason holds the string denoting the reason field in the database.
+	FieldReason = "reason"
 	// EdgeEvents holds the string denoting the events edge name in mutations.
 	EdgeEvents = "events"
 	// Table holds the table name of the notificationeventdeliverystatus in the database.
@@ -48,6 +50,7 @@ var Columns = []string{
 	FieldEventID,
 	FieldChannelID,
 	FieldState,
+	FieldReason,
 }
 
 var (
@@ -83,12 +86,12 @@ var (
 	DefaultID func() string
 )
 
-const DefaultState notification.EventDeliveryStatusState = "SENDING"
+const DefaultState notification.EventDeliveryStatusState = "PENDING"
 
 // StateValidator is a validator for the "state" field enum values. It is called by the builders before save.
 func StateValidator(s notification.EventDeliveryStatusState) error {
 	switch s {
-	case "SUCCESS", "FAILED", "SENDING":
+	case "SUCCESS", "FAILED", "SENDING", "PENDING":
 		return nil
 	default:
 		return fmt.Errorf("notificationeventdeliverystatus: invalid enum value for state field: %q", s)
@@ -131,6 +134,11 @@ func ByChannelID(opts ...sql.OrderTermOption) OrderOption {
 // ByState orders the results by the state field.
 func ByState(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldState, opts...).ToFunc()
+}
+
+// ByReason orders the results by the reason field.
+func ByReason(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReason, opts...).ToFunc()
 }
 
 // ByEventsCount orders the results by events count.

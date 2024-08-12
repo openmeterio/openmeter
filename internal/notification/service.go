@@ -55,6 +55,8 @@ type service struct {
 	repo    Repository
 	webhook webhook.Handler
 
+	eventHandler EventHandler
+
 	logger *slog.Logger
 }
 
@@ -68,6 +70,10 @@ type Config struct {
 }
 
 func New(config Config) (Service, error) {
+	if config.Logger == nil {
+		config.Logger = slog.Default()
+	}
+
 	if config.Repository == nil {
 		return nil, errors.New("missing repository")
 	}
@@ -80,10 +86,24 @@ func New(config Config) (Service, error) {
 		return nil, errors.New("missing webhook handler")
 	}
 
+	eventHandler, err := NewEventHandler(EventHandlerConfig{
+		Repository: config.Repository,
+		Webhook:    config.Webhook,
+		Logger:     config.Logger,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize notification event handler: %w", err)
+	}
+
+	if err = eventHandler.Start(); err != nil {
+		return nil, fmt.Errorf("failed to initialize notification event handler: %w", err)
+	}
+
 	return &service{
-		repo:    config.Repository,
-		feature: config.FeatureConnector,
-		webhook: config.Webhook,
+		repo:         config.Repository,
+		feature:      config.FeatureConnector,
+		webhook:      config.Webhook,
+		eventHandler: eventHandler,
 	}, nil
 }
 

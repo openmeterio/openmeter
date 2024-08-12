@@ -576,7 +576,7 @@ func (r repository) CreateEvent(ctx context.Context, params notification.CreateE
 			SetNamespace(params.Namespace).
 			SetEventID(eventRow.ID).
 			SetChannelID(channel.ID).
-			SetState(notification.EventDeliveryStatusStateSending).
+			SetState(notification.EventDeliveryStatusStatePending).
 			AddEvents(eventRow)
 
 		statusBulkQuery = append(statusBulkQuery, q)
@@ -609,6 +609,10 @@ func (r repository) ListEventsDeliveryStatus(ctx context.Context, params notific
 
 	if len(params.Channels) > 0 {
 		query = query.Where(statusdb.ChannelIDIn(params.Channels...))
+	}
+
+	if len(params.States) > 0 {
+		query = query.Where(statusdb.StateIn(params.States...))
 	}
 
 	if !params.From.IsZero() {

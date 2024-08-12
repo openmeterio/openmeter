@@ -85,6 +85,20 @@ func (nedsc *NotificationEventDeliveryStatusCreate) SetNillableState(ndss *notif
 	return nedsc
 }
 
+// SetReason sets the "reason" field.
+func (nedsc *NotificationEventDeliveryStatusCreate) SetReason(s string) *NotificationEventDeliveryStatusCreate {
+	nedsc.mutation.SetReason(s)
+	return nedsc
+}
+
+// SetNillableReason sets the "reason" field if the given value is not nil.
+func (nedsc *NotificationEventDeliveryStatusCreate) SetNillableReason(s *string) *NotificationEventDeliveryStatusCreate {
+	if s != nil {
+		nedsc.SetReason(*s)
+	}
+	return nedsc
+}
+
 // SetID sets the "id" field.
 func (nedsc *NotificationEventDeliveryStatusCreate) SetID(s string) *NotificationEventDeliveryStatusCreate {
 	nedsc.mutation.SetID(s)
@@ -267,6 +281,10 @@ func (nedsc *NotificationEventDeliveryStatusCreate) createSpec() (*NotificationE
 		_spec.SetField(notificationeventdeliverystatus.FieldState, field.TypeEnum, value)
 		_node.State = value
 	}
+	if value, ok := nedsc.mutation.Reason(); ok {
+		_spec.SetField(notificationeventdeliverystatus.FieldReason, field.TypeString, value)
+		_node.Reason = value
+	}
 	if nodes := nedsc.mutation.EventsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
@@ -359,6 +377,24 @@ func (u *NotificationEventDeliveryStatusUpsert) UpdateState() *NotificationEvent
 	return u
 }
 
+// SetReason sets the "reason" field.
+func (u *NotificationEventDeliveryStatusUpsert) SetReason(v string) *NotificationEventDeliveryStatusUpsert {
+	u.Set(notificationeventdeliverystatus.FieldReason, v)
+	return u
+}
+
+// UpdateReason sets the "reason" field to the value that was provided on create.
+func (u *NotificationEventDeliveryStatusUpsert) UpdateReason() *NotificationEventDeliveryStatusUpsert {
+	u.SetExcluded(notificationeventdeliverystatus.FieldReason)
+	return u
+}
+
+// ClearReason clears the value of the "reason" field.
+func (u *NotificationEventDeliveryStatusUpsert) ClearReason() *NotificationEventDeliveryStatusUpsert {
+	u.SetNull(notificationeventdeliverystatus.FieldReason)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -444,6 +480,27 @@ func (u *NotificationEventDeliveryStatusUpsertOne) SetState(v notification.Event
 func (u *NotificationEventDeliveryStatusUpsertOne) UpdateState() *NotificationEventDeliveryStatusUpsertOne {
 	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
 		s.UpdateState()
+	})
+}
+
+// SetReason sets the "reason" field.
+func (u *NotificationEventDeliveryStatusUpsertOne) SetReason(v string) *NotificationEventDeliveryStatusUpsertOne {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.SetReason(v)
+	})
+}
+
+// UpdateReason sets the "reason" field to the value that was provided on create.
+func (u *NotificationEventDeliveryStatusUpsertOne) UpdateReason() *NotificationEventDeliveryStatusUpsertOne {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.UpdateReason()
+	})
+}
+
+// ClearReason clears the value of the "reason" field.
+func (u *NotificationEventDeliveryStatusUpsertOne) ClearReason() *NotificationEventDeliveryStatusUpsertOne {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.ClearReason()
 	})
 }
 
@@ -699,6 +756,27 @@ func (u *NotificationEventDeliveryStatusUpsertBulk) SetState(v notification.Even
 func (u *NotificationEventDeliveryStatusUpsertBulk) UpdateState() *NotificationEventDeliveryStatusUpsertBulk {
 	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
 		s.UpdateState()
+	})
+}
+
+// SetReason sets the "reason" field.
+func (u *NotificationEventDeliveryStatusUpsertBulk) SetReason(v string) *NotificationEventDeliveryStatusUpsertBulk {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.SetReason(v)
+	})
+}
+
+// UpdateReason sets the "reason" field to the value that was provided on create.
+func (u *NotificationEventDeliveryStatusUpsertBulk) UpdateReason() *NotificationEventDeliveryStatusUpsertBulk {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.UpdateReason()
+	})
+}
+
+// ClearReason clears the value of the "reason" field.
+func (u *NotificationEventDeliveryStatusUpsertBulk) ClearReason() *NotificationEventDeliveryStatusUpsertBulk {
+	return u.Update(func(s *NotificationEventDeliveryStatusUpsert) {
+		s.ClearReason()
 	})
 }
 

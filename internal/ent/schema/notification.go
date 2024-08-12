@@ -190,7 +190,9 @@ func (NotificationEventDeliveryStatus) Fields() []ent.Field {
 			Immutable(),
 		field.Enum("state").
 			GoType(notification.EventDeliveryStatusState("")).
-			Default(string(notification.EventDeliveryStatusStateSending)),
+			Default(string(notification.EventDeliveryStatusStatePending)),
+		field.String("reason").
+			Optional(),
 	}
 }
 

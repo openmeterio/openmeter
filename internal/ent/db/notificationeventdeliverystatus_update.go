@@ -50,6 +50,26 @@ func (nedsu *NotificationEventDeliveryStatusUpdate) SetNillableState(ndss *notif
 	return nedsu
 }
 
+// SetReason sets the "reason" field.
+func (nedsu *NotificationEventDeliveryStatusUpdate) SetReason(s string) *NotificationEventDeliveryStatusUpdate {
+	nedsu.mutation.SetReason(s)
+	return nedsu
+}
+
+// SetNillableReason sets the "reason" field if the given value is not nil.
+func (nedsu *NotificationEventDeliveryStatusUpdate) SetNillableReason(s *string) *NotificationEventDeliveryStatusUpdate {
+	if s != nil {
+		nedsu.SetReason(*s)
+	}
+	return nedsu
+}
+
+// ClearReason clears the value of the "reason" field.
+func (nedsu *NotificationEventDeliveryStatusUpdate) ClearReason() *NotificationEventDeliveryStatusUpdate {
+	nedsu.mutation.ClearReason()
+	return nedsu
+}
+
 // AddEventIDs adds the "events" edge to the NotificationEvent entity by IDs.
 func (nedsu *NotificationEventDeliveryStatusUpdate) AddEventIDs(ids ...string) *NotificationEventDeliveryStatusUpdate {
 	nedsu.mutation.AddEventIDs(ids...)
@@ -155,6 +175,12 @@ func (nedsu *NotificationEventDeliveryStatusUpdate) sqlSave(ctx context.Context)
 	if value, ok := nedsu.mutation.State(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldState, field.TypeEnum, value)
 	}
+	if value, ok := nedsu.mutation.Reason(); ok {
+		_spec.SetField(notificationeventdeliverystatus.FieldReason, field.TypeString, value)
+	}
+	if nedsu.mutation.ReasonCleared() {
+		_spec.ClearField(notificationeventdeliverystatus.FieldReason, field.TypeString)
+	}
 	if nedsu.mutation.EventsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
@@ -237,6 +263,26 @@ func (nedsuo *NotificationEventDeliveryStatusUpdateOne) SetNillableState(ndss *n
 	if ndss != nil {
 		nedsuo.SetState(*ndss)
 	}
+	return nedsuo
+}
+
+// SetReason sets the "reason" field.
+func (nedsuo *NotificationEventDeliveryStatusUpdateOne) SetReason(s string) *NotificationEventDeliveryStatusUpdateOne {
+	nedsuo.mutation.SetReason(s)
+	return nedsuo
+}
+
+// SetNillableReason sets the "reason" field if the given value is not nil.
+func (nedsuo *NotificationEventDeliveryStatusUpdateOne) SetNillableReason(s *string) *NotificationEventDeliveryStatusUpdateOne {
+	if s != nil {
+		nedsuo.SetReason(*s)
+	}
+	return nedsuo
+}
+
+// ClearReason clears the value of the "reason" field.
+func (nedsuo *NotificationEventDeliveryStatusUpdateOne) ClearReason() *NotificationEventDeliveryStatusUpdateOne {
+	nedsuo.mutation.ClearReason()
 	return nedsuo
 }
 
@@ -374,6 +420,12 @@ func (nedsuo *NotificationEventDeliveryStatusUpdateOne) sqlSave(ctx context.Cont
 	}
 	if value, ok := nedsuo.mutation.State(); ok {
 		_spec.SetField(notificationeventdeliverystatus.FieldState, field.TypeEnum, value)
+	}
+	if value, ok := nedsuo.mutation.Reason(); ok {
+		_spec.SetField(notificationeventdeliverystatus.FieldReason, field.TypeString, value)
+	}
+	if nedsuo.mutation.ReasonCleared() {
+		_spec.ClearField(notificationeventdeliverystatus.FieldReason, field.TypeString)
 	}
 	if nedsuo.mutation.EventsCleared() {
 		edge := &sqlgraph.EdgeSpec{

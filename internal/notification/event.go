@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
@@ -35,6 +36,14 @@ type Event struct {
 	Payload EventPayload `json:"payload"`
 	// Rule defines the notification Rule that generated this Event.
 	Rule Rule `json:"rule"`
+}
+
+func (e Event) ChannelTypes() []ChannelType {
+	channelTypes := slicesx.Map(e.Rule.Channels, func(channel Channel) ChannelType {
+		return channel.Type
+	})
+
+	return slicesx.Dedupe(channelTypes)
 }
 
 func (e Event) AsNotificationEvent() (api.NotificationEvent, error) {
@@ -312,13 +321,14 @@ const (
 	EventDeliveryStatusStateSuccess = EventDeliveryStatusState(api.SUCCESS)
 	EventDeliveryStatusStateFailed  = EventDeliveryStatusState(api.FAILED)
 	EventDeliveryStatusStateSending = EventDeliveryStatusState(api.SENDING)
+	EventDeliveryStatusStatePending = EventDeliveryStatusState(api.PENDING)
 )
 
 type EventDeliveryStatusState string
 
 func (e EventDeliveryStatusState) Validate() error {
 	switch e {
-	case EventDeliveryStatusStateSuccess, EventDeliveryStatusStateFailed, EventDeliveryStatusStateSending:
+	case EventDeliveryStatusStateSuccess, EventDeliveryStatusStateFailed, EventDeliveryStatusStateSending, EventDeliveryStatusStatePending:
 		return nil
 	default:
 		return ValidationError{
@@ -332,6 +342,7 @@ func (e EventDeliveryStatusState) Values() []string {
 		string(EventDeliveryStatusStateSuccess),
 		string(EventDeliveryStatusStateFailed),
 		string(EventDeliveryStatusStateSending),
+		string(EventDeliveryStatusStatePending),
 	}
 }
 
@@ -342,11 +353,12 @@ type EventDeliveryStatus struct {
 
 	// ID is the unique identifier for Event.
 	ID string `json:"id"`
-	// ID defines the Event identifier the EventDeliveryStatus belongs to.
+	// EventID defines the Event identifier the EventDeliveryStatus belongs to.
 	EventID string `json:"eventId"`
 
 	ChannelID string                   `json:"channelId"`
 	State     EventDeliveryStatusState `json:"state"`
+	Reason    string                   `json:"reason,omitempty"`
 	CreatedAt time.Time                `json:"createdAt"`
 	UpdatedAt time.Time                `json:"updatedAt,omitempty"`
 }
@@ -370,6 +382,8 @@ type ListEventsDeliveryStatusInput struct {
 	Events []string
 	// Channels is a list of Channel identifiers used as filter.
 	Channels []string
+	// State is a list of Event State used as filter.
+	States []EventDeliveryStatusState
 }
 
 func (i ListEventsDeliveryStatusInput) Validate(_ context.Context, _ Service) error {
@@ -422,6 +436,8 @@ type UpdateEventDeliveryStatusInput struct {
 	ID string
 	// State is the delivery state of the Event.
 	State EventDeliveryStatusState
+	// Reason describes the reason for the latest State transition.
+	Reason string
 	// EventID defines the Event identifier the EventDeliveryStatus belongs to. Must be provided if ID is empty.
 	EventID string
 	// ChannelID defines the Channel identifier the EventDeliveryStatus belongs to. Must be provided if ID is empty.
