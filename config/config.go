@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -33,7 +32,7 @@ type Configuration struct {
 	Sink                SinkConfiguration
 	BalanceWorker       BalanceWorkerConfiguration
 	NotificationService NotificationServiceConfiguration
-	Svix                notificationwebhook.SvixConfig
+	Svix                SvixConfig
 }
 
 // Validate validates the configuration.
