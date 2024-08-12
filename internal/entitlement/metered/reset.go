@@ -10,6 +10,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/credit/grant"
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	eventmodels "github.com/openmeterio/openmeter/internal/event/models"
+	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -28,7 +29,7 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 			return nil, fmt.Errorf("failed to get entitlement: %w", err)
 		}
 
-		_, err = ParseFromGenericEntitlement(ent)
+		mEnt, err := ParseFromGenericEntitlement(ent)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse entitlement: %w", err)
 		}
@@ -36,7 +37,7 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 		balanceAfterReset, err := e.balanceConnector.ResetUsageForOwner(txCtx, owner, credit.ResetUsageForOwnerParams{
 			At:              params.At,
 			RetainAnchor:    params.RetainAnchor,
-			PreserveOverage: params.PreserveOverage,
+			PreserveOverage: defaultx.WithDefault(params.PreserveOverage, mEnt.PreserveOverageAtReset),
 		})
 		if err != nil {
 			if _, ok := err.(*grant.OwnerNotFoundError); ok {

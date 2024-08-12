@@ -67,6 +67,7 @@ var (
 		{Name: "issue_after_reset", Type: field.TypeFloat64, Nullable: true},
 		{Name: "issue_after_reset_priority", Type: field.TypeUint8, Nullable: true},
 		{Name: "is_soft_limit", Type: field.TypeBool, Nullable: true},
+		{Name: "preserve_overage_at_reset", Type: field.TypeBool, Nullable: true},
 		{Name: "config", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "usage_period_interval", Type: field.TypeEnum, Nullable: true, Enums: []string{"DAY", "WEEK", "MONTH", "YEAR"}},
 		{Name: "usage_period_anchor", Type: field.TypeTime, Nullable: true},
@@ -82,7 +83,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "entitlements_features_entitlement",
-				Columns:    []*schema.Column{EntitlementsColumns[18]},
+				Columns:    []*schema.Column{EntitlementsColumns[19]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -111,12 +112,12 @@ var (
 			{
 				Name:    "entitlement_namespace_feature_id_id",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[18], EntitlementsColumns[0]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[19], EntitlementsColumns[0]},
 			},
 			{
 				Name:    "entitlement_namespace_current_usage_period_end",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[17]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[18]},
 			},
 		},
 	}

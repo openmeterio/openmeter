@@ -41,6 +41,8 @@ const (
 	FieldIssueAfterResetPriority = "issue_after_reset_priority"
 	// FieldIsSoftLimit holds the string denoting the is_soft_limit field in the database.
 	FieldIsSoftLimit = "is_soft_limit"
+	// FieldPreserveOverageAtReset holds the string denoting the preserve_overage_at_reset field in the database.
+	FieldPreserveOverageAtReset = "preserve_overage_at_reset"
 	// FieldConfig holds the string denoting the config field in the database.
 	FieldConfig = "config"
 	// FieldUsagePeriodInterval holds the string denoting the usage_period_interval field in the database.
@@ -107,6 +109,7 @@ var Columns = []string{
 	FieldIssueAfterReset,
 	FieldIssueAfterResetPriority,
 	FieldIsSoftLimit,
+	FieldPreserveOverageAtReset,
 	FieldConfig,
 	FieldUsagePeriodInterval,
 	FieldUsagePeriodAnchor,
@@ -256,6 +259,11 @@ func ByIssueAfterResetPriority(opts ...sql.OrderTermOption) OrderOption {
 // ByIsSoftLimit orders the results by the is_soft_limit field.
 func ByIsSoftLimit(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIsSoftLimit, opts...).ToFunc()
+}
+
+// ByPreserveOverageAtReset orders the results by the preserve_overage_at_reset field.
+func ByPreserveOverageAtReset(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPreserveOverageAtReset, opts...).ToFunc()
 }
 
 // ByUsagePeriodInterval orders the results by the usage_period_interval field.

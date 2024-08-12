@@ -45,6 +45,8 @@ type Entitlement struct {
 	IssueAfterResetPriority *uint8 `json:"issue_after_reset_priority,omitempty"`
 	// IsSoftLimit holds the value of the "is_soft_limit" field.
 	IsSoftLimit *bool `json:"is_soft_limit,omitempty"`
+	// PreserveOverageAtReset holds the value of the "preserve_overage_at_reset" field.
+	PreserveOverageAtReset *bool `json:"preserve_overage_at_reset,omitempty"`
 	// Config holds the value of the "config" field.
 	Config []uint8 `json:"config,omitempty"`
 	// UsagePeriodInterval holds the value of the "usage_period_interval" field.
@@ -121,7 +123,7 @@ func (*Entitlement) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case entitlement.FieldMetadata, entitlement.FieldConfig:
 			values[i] = new([]byte)
-		case entitlement.FieldIsSoftLimit:
+		case entitlement.FieldIsSoftLimit, entitlement.FieldPreserveOverageAtReset:
 			values[i] = new(sql.NullBool)
 		case entitlement.FieldIssueAfterReset:
 			values[i] = new(sql.NullFloat64)
@@ -236,6 +238,13 @@ func (e *Entitlement) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				e.IsSoftLimit = new(bool)
 				*e.IsSoftLimit = value.Bool
+			}
+		case entitlement.FieldPreserveOverageAtReset:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field preserve_overage_at_reset", values[i])
+			} else if value.Valid {
+				e.PreserveOverageAtReset = new(bool)
+				*e.PreserveOverageAtReset = value.Bool
 			}
 		case entitlement.FieldConfig:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -375,6 +384,11 @@ func (e *Entitlement) String() string {
 	builder.WriteString(", ")
 	if v := e.IsSoftLimit; v != nil {
 		builder.WriteString("is_soft_limit=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := e.PreserveOverageAtReset; v != nil {
+		builder.WriteString("preserve_overage_at_reset=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
 	}
 	builder.WriteString(", ")

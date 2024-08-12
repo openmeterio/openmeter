@@ -39,14 +39,15 @@ func (parser) ToMetered(e *entitlement.Entitlement) (*api.EntitlementMetered, er
 				return convert.ToPointer(int(p))
 			})
 		}),
-		MeasureUsageFrom:   metered.MeasureUsageFrom,
-		Metadata:           convert.MapToPointer(metered.Metadata),
-		SubjectKey:         metered.SubjectKey,
-		Type:               api.EntitlementMeteredType(metered.EntitlementType),
-		UpdatedAt:          &metered.UpdatedAt,
-		UsagePeriod:        *mapUsagePeriod(e.UsagePeriod),
-		CurrentUsagePeriod: *mapPeriod(e.CurrentUsagePeriod),
-		LastReset:          metered.LastReset,
+		MeasureUsageFrom:       metered.MeasureUsageFrom,
+		Metadata:               convert.MapToPointer(metered.Metadata),
+		SubjectKey:             metered.SubjectKey,
+		Type:                   api.EntitlementMeteredType(metered.EntitlementType),
+		UpdatedAt:              &metered.UpdatedAt,
+		UsagePeriod:            *mapUsagePeriod(e.UsagePeriod),
+		CurrentUsagePeriod:     *mapPeriod(e.CurrentUsagePeriod),
+		LastReset:              metered.LastReset,
+		PreserveOverageAtReset: convert.ToPointer(metered.PreserveOverageAtReset),
 	}, nil
 }
 

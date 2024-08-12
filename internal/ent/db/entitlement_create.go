@@ -161,6 +161,20 @@ func (ec *EntitlementCreate) SetNillableIsSoftLimit(b *bool) *EntitlementCreate 
 	return ec
 }
 
+// SetPreserveOverageAtReset sets the "preserve_overage_at_reset" field.
+func (ec *EntitlementCreate) SetPreserveOverageAtReset(b bool) *EntitlementCreate {
+	ec.mutation.SetPreserveOverageAtReset(b)
+	return ec
+}
+
+// SetNillablePreserveOverageAtReset sets the "preserve_overage_at_reset" field if the given value is not nil.
+func (ec *EntitlementCreate) SetNillablePreserveOverageAtReset(b *bool) *EntitlementCreate {
+	if b != nil {
+		ec.SetPreserveOverageAtReset(*b)
+	}
+	return ec
+}
+
 // SetConfig sets the "config" field.
 func (ec *EntitlementCreate) SetConfig(u []uint8) *EntitlementCreate {
 	ec.mutation.SetConfig(u)
@@ -471,6 +485,10 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 		_spec.SetField(entitlement.FieldIsSoftLimit, field.TypeBool, value)
 		_node.IsSoftLimit = &value
 	}
+	if value, ok := ec.mutation.PreserveOverageAtReset(); ok {
+		_spec.SetField(entitlement.FieldPreserveOverageAtReset, field.TypeBool, value)
+		_node.PreserveOverageAtReset = &value
+	}
 	if value, ok := ec.mutation.Config(); ok {
 		_spec.SetField(entitlement.FieldConfig, field.TypeJSON, value)
 		_node.Config = value
@@ -774,6 +792,9 @@ func (u *EntitlementUpsertOne) UpdateNewValues() *EntitlementUpsertOne {
 		}
 		if _, exists := u.create.mutation.IsSoftLimit(); exists {
 			s.SetIgnore(entitlement.FieldIsSoftLimit)
+		}
+		if _, exists := u.create.mutation.PreserveOverageAtReset(); exists {
+			s.SetIgnore(entitlement.FieldPreserveOverageAtReset)
 		}
 		if _, exists := u.create.mutation.UsagePeriodInterval(); exists {
 			s.SetIgnore(entitlement.FieldUsagePeriodInterval)
@@ -1161,6 +1182,9 @@ func (u *EntitlementUpsertBulk) UpdateNewValues() *EntitlementUpsertBulk {
 			}
 			if _, exists := b.mutation.IsSoftLimit(); exists {
 				s.SetIgnore(entitlement.FieldIsSoftLimit)
+			}
+			if _, exists := b.mutation.PreserveOverageAtReset(); exists {
+				s.SetIgnore(entitlement.FieldPreserveOverageAtReset)
 			}
 			if _, exists := b.mutation.UsagePeriodInterval(); exists {
 				s.SetIgnore(entitlement.FieldUsagePeriodInterval)

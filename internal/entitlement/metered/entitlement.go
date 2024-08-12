@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
+	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
@@ -37,6 +38,9 @@ type Entitlement struct {
 
 	// CurrentPeriod defines the current period for usage calculations.
 	CurrentUsagePeriod recurrence.Period `json:"currentUsagePeriod,omitempty"`
+
+	// PreserveOverageAtReset defines if overage should be preserved when the entitlement is reset.
+	PreserveOverageAtReset bool `json:"preserveOverageAtReset,omitempty"`
 
 	// LastReset defines the last time the entitlement was reset.
 	LastReset time.Time `json:"lastReset"`
@@ -80,11 +84,12 @@ func ParseFromGenericEntitlement(model *entitlement.Entitlement) (*Entitlement, 
 	ent := Entitlement{
 		GenericProperties: model.GenericProperties,
 
-		MeasureUsageFrom:   *model.MeasureUsageFrom,
-		IsSoftLimit:        *model.IsSoftLimit,
-		UsagePeriod:        *model.UsagePeriod,
-		LastReset:          *model.LastReset,
-		CurrentUsagePeriod: *model.CurrentUsagePeriod,
+		MeasureUsageFrom:       *model.MeasureUsageFrom,
+		IsSoftLimit:            *model.IsSoftLimit,
+		UsagePeriod:            *model.UsagePeriod,
+		LastReset:              *model.LastReset,
+		CurrentUsagePeriod:     *model.CurrentUsagePeriod,
+		PreserveOverageAtReset: defaultx.WithDefault(model.PreserveOverageAtReset, false),
 	}
 
 	if model.IssueAfterReset != nil {

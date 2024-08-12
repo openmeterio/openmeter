@@ -974,6 +974,7 @@ type EntitlementMutation struct {
 	issue_after_reset_priority    *uint8
 	addissue_after_reset_priority *int8
 	is_soft_limit                 *bool
+	preserve_overage_at_reset     *bool
 	_config                       *[]uint8
 	append_config                 []uint8
 	usage_period_interval         *entitlement.UsagePeriodInterval
@@ -1689,6 +1690,55 @@ func (m *EntitlementMutation) ResetIsSoftLimit() {
 	delete(m.clearedFields, entitlement.FieldIsSoftLimit)
 }
 
+// SetPreserveOverageAtReset sets the "preserve_overage_at_reset" field.
+func (m *EntitlementMutation) SetPreserveOverageAtReset(b bool) {
+	m.preserve_overage_at_reset = &b
+}
+
+// PreserveOverageAtReset returns the value of the "preserve_overage_at_reset" field in the mutation.
+func (m *EntitlementMutation) PreserveOverageAtReset() (r bool, exists bool) {
+	v := m.preserve_overage_at_reset
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPreserveOverageAtReset returns the old "preserve_overage_at_reset" field's value of the Entitlement entity.
+// If the Entitlement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EntitlementMutation) OldPreserveOverageAtReset(ctx context.Context) (v *bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPreserveOverageAtReset is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPreserveOverageAtReset requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPreserveOverageAtReset: %w", err)
+	}
+	return oldValue.PreserveOverageAtReset, nil
+}
+
+// ClearPreserveOverageAtReset clears the value of the "preserve_overage_at_reset" field.
+func (m *EntitlementMutation) ClearPreserveOverageAtReset() {
+	m.preserve_overage_at_reset = nil
+	m.clearedFields[entitlement.FieldPreserveOverageAtReset] = struct{}{}
+}
+
+// PreserveOverageAtResetCleared returns if the "preserve_overage_at_reset" field was cleared in this mutation.
+func (m *EntitlementMutation) PreserveOverageAtResetCleared() bool {
+	_, ok := m.clearedFields[entitlement.FieldPreserveOverageAtReset]
+	return ok
+}
+
+// ResetPreserveOverageAtReset resets all changes to the "preserve_overage_at_reset" field.
+func (m *EntitlementMutation) ResetPreserveOverageAtReset() {
+	m.preserve_overage_at_reset = nil
+	delete(m.clearedFields, entitlement.FieldPreserveOverageAtReset)
+}
+
 // SetConfig sets the "config" field.
 func (m *EntitlementMutation) SetConfig(u []uint8) {
 	m._config = &u
@@ -2173,7 +2223,7 @@ func (m *EntitlementMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *EntitlementMutation) Fields() []string {
-	fields := make([]string, 0, 18)
+	fields := make([]string, 0, 19)
 	if m.namespace != nil {
 		fields = append(fields, entitlement.FieldNamespace)
 	}
@@ -2212,6 +2262,9 @@ func (m *EntitlementMutation) Fields() []string {
 	}
 	if m.is_soft_limit != nil {
 		fields = append(fields, entitlement.FieldIsSoftLimit)
+	}
+	if m.preserve_overage_at_reset != nil {
+		fields = append(fields, entitlement.FieldPreserveOverageAtReset)
 	}
 	if m._config != nil {
 		fields = append(fields, entitlement.FieldConfig)
@@ -2262,6 +2315,8 @@ func (m *EntitlementMutation) Field(name string) (ent.Value, bool) {
 		return m.IssueAfterResetPriority()
 	case entitlement.FieldIsSoftLimit:
 		return m.IsSoftLimit()
+	case entitlement.FieldPreserveOverageAtReset:
+		return m.PreserveOverageAtReset()
 	case entitlement.FieldConfig:
 		return m.Config()
 	case entitlement.FieldUsagePeriodInterval:
@@ -2307,6 +2362,8 @@ func (m *EntitlementMutation) OldField(ctx context.Context, name string) (ent.Va
 		return m.OldIssueAfterResetPriority(ctx)
 	case entitlement.FieldIsSoftLimit:
 		return m.OldIsSoftLimit(ctx)
+	case entitlement.FieldPreserveOverageAtReset:
+		return m.OldPreserveOverageAtReset(ctx)
 	case entitlement.FieldConfig:
 		return m.OldConfig(ctx)
 	case entitlement.FieldUsagePeriodInterval:
@@ -2416,6 +2473,13 @@ func (m *EntitlementMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetIsSoftLimit(v)
+		return nil
+	case entitlement.FieldPreserveOverageAtReset:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPreserveOverageAtReset(v)
 		return nil
 	case entitlement.FieldConfig:
 		v, ok := value.([]uint8)
@@ -2527,6 +2591,9 @@ func (m *EntitlementMutation) ClearedFields() []string {
 	if m.FieldCleared(entitlement.FieldIsSoftLimit) {
 		fields = append(fields, entitlement.FieldIsSoftLimit)
 	}
+	if m.FieldCleared(entitlement.FieldPreserveOverageAtReset) {
+		fields = append(fields, entitlement.FieldPreserveOverageAtReset)
+	}
 	if m.FieldCleared(entitlement.FieldConfig) {
 		fields = append(fields, entitlement.FieldConfig)
 	}
@@ -2573,6 +2640,9 @@ func (m *EntitlementMutation) ClearField(name string) error {
 		return nil
 	case entitlement.FieldIsSoftLimit:
 		m.ClearIsSoftLimit()
+		return nil
+	case entitlement.FieldPreserveOverageAtReset:
+		m.ClearPreserveOverageAtReset()
 		return nil
 	case entitlement.FieldConfig:
 		m.ClearConfig()
@@ -2635,6 +2705,9 @@ func (m *EntitlementMutation) ResetField(name string) error {
 		return nil
 	case entitlement.FieldIsSoftLimit:
 		m.ResetIsSoftLimit()
+		return nil
+	case entitlement.FieldPreserveOverageAtReset:
+		m.ResetPreserveOverageAtReset()
 		return nil
 	case entitlement.FieldConfig:
 		m.ResetConfig()

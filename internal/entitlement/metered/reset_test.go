@@ -365,7 +365,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 					models.NamespacedID{Namespace: namespace, ID: ent.ID},
 					meteredentitlement.ResetEntitlementUsageParams{
 						At:              resetTime,
-						PreserveOverage: true,
+						PreserveOverage: convert.ToPointer(true),
 					})
 
 				assert.NoError(t, err)
@@ -437,7 +437,7 @@ func TestResetEntitlementUsage(t *testing.T) {
 					models.NamespacedID{Namespace: namespace, ID: ent.ID},
 					meteredentitlement.ResetEntitlementUsageParams{
 						At:              resetTime,
-						PreserveOverage: true,
+						PreserveOverage: convert.ToPointer(true),
 					})
 
 				assert.NoError(t, err)

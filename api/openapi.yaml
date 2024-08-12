@@ -1230,6 +1230,12 @@ paths:
                     Determines whether the usage period anchor is retained or reset to the effectiveAt time.
                     - If true, the usage period anchor is retained.
                     - If false, the usage period anchor is reset to the effectiveAt time.
+                preserveOverage:
+                  type: boolean
+                  description: |
+                    Determines whether the overage is preserved or forgiven, overriding the entitlement's default behavior.
+                    - If true, the overage is preserved.
+                    - If false, the overage is forgiven.
       responses:
         "204":
           description: Entitlement reset.
@@ -2078,6 +2084,11 @@ components:
               example: 1
               description: |
                 Defines the grant priority for the default grant. If provided, issueAfterReset must have a value.
+            preserveOverageAtReset:
+              type: boolean
+              default: false
+              description: |
+                If true, the overage is preserved at reset. If false, the usage is forgiven.
     EntitlementCreateInputs:
       oneOf:
         - $ref: "#/components/schemas/EntitlementMeteredCreateInputs"

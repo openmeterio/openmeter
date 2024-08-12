@@ -21,7 +21,7 @@ import (
 type ResetEntitlementUsageParams struct {
 	At              time.Time
 	RetainAnchor    bool
-	PreserveOverage bool
+	PreserveOverage *bool
 }
 
 type Connector interface {
@@ -173,6 +173,7 @@ func (c *connector) BeforeCreate(model entitlement.CreateEntitlementInputs, feat
 		IsSoftLimit:             model.IsSoftLimit,
 		UsagePeriod:             model.UsagePeriod,
 		CurrentUsagePeriod:      &currentPeriod,
+		PreserveOverageAtReset:  model.PreserveOverageAtReset,
 	}, nil
 }
 

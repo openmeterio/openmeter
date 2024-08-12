@@ -83,6 +83,7 @@ type CreateEntitlementInputs struct {
 	IsSoftLimit             *bool                  `json:"isSoftLimit,omitempty"`
 	Config                  []byte                 `json:"config,omitempty"`
 	UsagePeriod             *UsagePeriod           `json:"usagePeriod,omitempty"`
+	PreserveOverageAtReset  *bool                  `json:"preserveOverageAtReset,omitempty"`
 }
 
 func (c CreateEntitlementInputs) GetType() EntitlementType {
@@ -100,6 +101,7 @@ type Entitlement struct {
 	IssueAfterResetPriority *uint8     `json:"issueAfterResetPriority,omitempty"`
 	IsSoftLimit             *bool      `json:"isSoftLimit,omitempty"`
 	LastReset               *time.Time `json:"lastReset,omitempty"`
+	PreserveOverageAtReset  *bool      `json:"preserveOverageAtReset,omitempty"`
 
 	// static
 	Config []byte `json:"config,omitempty"`
