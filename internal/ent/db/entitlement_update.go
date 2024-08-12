@@ -344,6 +344,9 @@ func (eu *EntitlementUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if eu.mutation.IsSoftLimitCleared() {
 		_spec.ClearField(entitlement.FieldIsSoftLimit, field.TypeBool)
 	}
+	if eu.mutation.PreserveOverageAtResetCleared() {
+		_spec.ClearField(entitlement.FieldPreserveOverageAtReset, field.TypeBool)
+	}
 	if value, ok := eu.mutation.Config(); ok {
 		_spec.SetField(entitlement.FieldConfig, field.TypeJSON, value)
 	}
@@ -872,6 +875,9 @@ func (euo *EntitlementUpdateOne) sqlSave(ctx context.Context) (_node *Entitlemen
 	}
 	if euo.mutation.IsSoftLimitCleared() {
 		_spec.ClearField(entitlement.FieldIsSoftLimit, field.TypeBool)
+	}
+	if euo.mutation.PreserveOverageAtResetCleared() {
+		_spec.ClearField(entitlement.FieldPreserveOverageAtReset, field.TypeBool)
 	}
 	if value, ok := euo.mutation.Config(); ok {
 		_spec.SetField(entitlement.FieldConfig, field.TypeJSON, value)

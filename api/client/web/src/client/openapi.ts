@@ -761,6 +761,12 @@ export interface components {
        * @example 1
        */
       issueAfterResetPriority?: number
+      /**
+       * @description If true, the overage is preserved at reset. If false, the usage is forgiven.
+       *
+       * @default false
+       */
+      preserveOverageAtReset?: boolean
     }
     EntitlementCreateInputs:
       | components['schemas']['EntitlementMeteredCreateInputs']
@@ -2815,6 +2821,12 @@ export interface operations {
            * - If false, the usage period anchor is reset to the effectiveAt time.
            */
           retainAnchor?: boolean
+          /**
+           * @description Determines whether the overage is preserved or forgiven, overriding the entitlement's default behavior.
+           * - If true, the overage is preserved.
+           * - If false, the overage is forgiven.
+           */
+          preserveOverage?: boolean
         }
       }
     }

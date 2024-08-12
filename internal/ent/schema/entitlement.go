@@ -37,6 +37,7 @@ func (Entitlement) Fields() []ent.Field {
 		field.Float("issue_after_reset").Optional().Nillable().Immutable(),
 		field.Uint8("issue_after_reset_priority").Optional().Nillable().Immutable(),
 		field.Bool("is_soft_limit").Optional().Nillable().Immutable(),
+		field.Bool("preserve_overage_at_reset").Optional().Nillable().Immutable(),
 		field.JSON("config", []byte{}).SchemaType(map[string]string{
 			dialect.Postgres: "jsonb",
 		}).Optional(),

@@ -18,8 +18,9 @@ import (
 )
 
 type ResetUsageForOwnerParams struct {
-	At           time.Time
-	RetainAnchor bool
+	At              time.Time
+	RetainAnchor    bool
+	PreserveOverage bool
 }
 
 // Generic connector for balance related operations.
@@ -265,7 +266,7 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 	}
 	eng := engine.NewEngine(engineParams.QueryUsageFn, engineParams.Grantuality)
 
-	endingBalance, _, _, err := eng.Run(
+	endingBalance, endingOverage, _, err := eng.Run(
 		ctx,
 		grants,
 		bal.Balances,
@@ -302,10 +303,27 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 		startingBalance.Set(grantID, grant.RolloverBalance(grantBalance))
 	}
 
+	startingOverage := 0.0
+	if params.PreserveOverage {
+		startingOverage = endingOverage
+	}
+
+	gCopy := make([]grant.Grant, len(grants))
+	copy(gCopy, grants)
+	err = engine.PrioritizeGrants(gCopy)
+	if err != nil {
+		return nil, fmt.Errorf("failed to burn down overage from previous period: failed to prioritize grants: %w", err)
+	}
+
+	startingBalance, _, startingOverage, err = engine.BurnDownGrants(startingBalance, grants, startingOverage)
+	if err != nil {
+		return nil, fmt.Errorf("failed to burn down overage from previous period: %w", err)
+	}
+
 	startingSnapshot := balance.Snapshot{
 		At:       at,
 		Balances: startingBalance,
-		Overage:  0.0, // Overage is forgiven at reset
+		Overage:  startingOverage,
 	}
 
 	// FIXME: this is a bad hack to be able to pass around transactions on the connector level.

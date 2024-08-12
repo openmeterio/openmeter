@@ -94,6 +94,7 @@ func (h *entitlementHandler) CreateEntitlement() CreateEntitlementHandler {
 						Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now()), // TODO: shouldn't we truncate this?
 						Interval: recurrence.RecurrenceInterval(v.UsagePeriod.Interval),
 					},
+					PreserveOverageAtReset: v.PreserveOverageAtReset,
 				}
 				if v.Metadata != nil {
 					request.Metadata = *v.Metadata

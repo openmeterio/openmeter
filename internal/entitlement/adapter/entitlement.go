@@ -92,6 +92,7 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, entitlemen
 		SetNillableMeasureUsageFrom(entitlement.MeasureUsageFrom).
 		SetNillableIssueAfterReset(entitlement.IssueAfterReset).
 		SetNillableIssueAfterResetPriority(entitlement.IssueAfterResetPriority).
+		SetNillablePreserveOverageAtReset(entitlement.PreserveOverageAtReset).
 		SetNillableIsSoftLimit(entitlement.IsSoftLimit)
 
 	if entitlement.UsagePeriod != nil {
@@ -333,6 +334,7 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 		IssueAfterReset:         e.IssueAfterReset,
 		IssueAfterResetPriority: e.IssueAfterResetPriority,
 		IsSoftLimit:             e.IsSoftLimit,
+		PreserveOverageAtReset:  e.PreserveOverageAtReset,
 	}
 
 	switch {

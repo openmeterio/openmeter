@@ -35,7 +35,7 @@ type Grant struct {
 	// Generic Owner reference
 	OwnerID Owner `json:"owner"`
 
-	// Amount The amount to grant. Can be positive or negative number.
+	// Amount The amount to grant. Must be positive.
 	Amount float64 `json:"amount"`
 
 	// Priority is a positive decimal numbers. With lower numbers indicating higher importance;

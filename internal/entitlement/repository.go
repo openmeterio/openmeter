@@ -53,4 +53,5 @@ type CreateEntitlementRepoInputs struct {
 	Config                  []byte             `json:"config,omitempty"`
 	UsagePeriod             *UsagePeriod       `json:"usagePeriod,omitempty"`
 	CurrentUsagePeriod      *recurrence.Period `json:"currentUsagePeriod,omitempty"`
+	PreserveOverageAtReset  *bool              `json:"preserveOverageAtReset,omitempty"`
 }

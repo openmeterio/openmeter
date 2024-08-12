@@ -4110,6 +4110,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                       reset takes effect, defaults to now. The reset cannot be in the future. The
                       provided value is truncated to the minute due to how historical meter data is
                       stored.
+                    "preserveOverage": bool,  # Optional. Determines whether the overage is
+                      preserved or forgiven, overriding the entitlement's default behavior.   * If
+                      true, the overage is preserved. * If false, the overage is forgiven.
                     "retainAnchor": bool  # Optional. Determines whether the usage period anchor
                       is retained or reset to the effectiveAt time.   * If true, the usage period
                       anchor is retained. * If false, the usage period anchor is reset to the
@@ -4187,6 +4190,9 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                       reset takes effect, defaults to now. The reset cannot be in the future. The
                       provided value is truncated to the minute due to how historical meter data is
                       stored.
+                    "preserveOverage": bool,  # Optional. Determines whether the overage is
+                      preserved or forgiven, overriding the entitlement's default behavior.   * If
+                      true, the overage is preserved. * If false, the overage is forgiven.
                     "retainAnchor": bool  # Optional. Determines whether the usage period anchor
                       is retained or reset to the effectiveAt time.   * If true, the usage period
                       anchor is retained. * If false, the usage period anchor is reset to the

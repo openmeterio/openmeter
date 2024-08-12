@@ -161,6 +161,7 @@ func (g *grantDBADapter) ListGrants(ctx context.Context, params grant.ListParams
 func (g *grantDBADapter) ListActiveGrantsBetween(ctx context.Context, owner grant.NamespacedOwner, from, to time.Time) ([]grant.Grant, error) {
 	query := g.db.Grant.Query().
 		Where(db_grant.And(db_grant.OwnerID(string(owner.ID)), db_grant.Namespace(owner.Namespace))).
+		Where(db_grant.AmountGTE(0.0)). // For a time we allowed negative grant amounts with an undefined behavior, for continuity we just silently ignore them.
 		Where(
 			db_grant.Or(
 				db_grant.And(db_grant.EffectiveAtLT(from), db_grant.ExpiresAtGT(from)),

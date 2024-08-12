@@ -316,6 +316,150 @@ func TestResetEntitlementUsage(t *testing.T) {
 			},
 		},
 		{
+			name: "Should preserve overage after reset and deduct it from new balance",
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
+				ctx := context.Background()
+				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+
+				// create featute in db
+				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
+				assert.NoError(t, err)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feature)
+				inp.MeasureUsageFrom = &startTime
+				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
+				assert.NoError(t, err)
+
+				// issue grants
+				g1, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
+					OwnerID:          grant.Owner(ent.ID),
+					Namespace:        namespace,
+					Amount:           1000,
+					Priority:         1,
+					EffectiveAt:      startTime.Add(time.Hour * 2),
+					ExpiresAt:        startTime.AddDate(0, 0, 3),
+					ResetMaxRollover: 1000, // full amount can be rolled over
+				})
+				assert.NoError(t, err)
+
+				g2, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
+					OwnerID:     grant.Owner(ent.ID),
+					Namespace:   namespace,
+					Amount:      1000,
+					Priority:    3,
+					EffectiveAt: startTime.Add(time.Hour * 2),
+					ExpiresAt:   startTime.AddDate(0, 0, 3),
+					// After each reset has a new 500 balance
+					ResetMaxRollover: 500,
+					ResetMinRollover: 500,
+				})
+				assert.NoError(t, err)
+
+				// usage on ledger that will cause overage
+				deps.streamingConnector.AddSimpleEvent(meterSlug, 2100, startTime.Add(time.Minute))
+
+				// resetTime before snapshot
+				resetTime := startTime.Add(time.Hour * 5)
+				balanceAfterReset, err := connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At:              resetTime,
+						PreserveOverage: convert.ToPointer(true),
+					})
+
+				assert.NoError(t, err)
+				assert.Equal(t, 0.0, balanceAfterReset.UsageInPeriod) // 0 usage right after reset
+				assert.Equal(t, 400.0, balanceAfterReset.Balance)     // (1000 + 1000 - 2100) + 500 = 400
+				assert.Equal(t, 0.0, balanceAfterReset.Overage)       // Overage is carried to new period
+				assert.Equal(t, resetTime, balanceAfterReset.StartOfPeriod)
+
+				// get detailed balance from credit connector to check individual grant balances
+				creditBalance, err := deps.balanceConnector.GetBalanceOfOwner(ctx, grant.NamespacedOwner{
+					Namespace: namespace,
+					ID:        grant.Owner(ent.ID),
+				}, resetTime)
+				assert.NoError(t, err)
+
+				assert.Equal(t, balance.Map{
+					g1.ID: 0,
+					g2.ID: 400,
+				}, creditBalance.Balances)
+			},
+		},
+		{
+			name: "Should preserve overage after reset and deduct it from new balance resulting in overage at start of period",
+			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
+				ctx := context.Background()
+				startTime := testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z")
+
+				// create featute in db
+				feature, err := deps.featureRepo.CreateFeature(ctx, exampleFeature)
+				assert.NoError(t, err)
+
+				// create entitlement in db
+				inp := getEntitlement(t, feature)
+				inp.MeasureUsageFrom = &startTime
+				ent, err := deps.entitlementRepo.CreateEntitlement(ctx, inp)
+				assert.NoError(t, err)
+
+				// issue grants
+				g1, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
+					OwnerID:          grant.Owner(ent.ID),
+					Namespace:        namespace,
+					Amount:           1000,
+					Priority:         1,
+					EffectiveAt:      startTime.Add(time.Hour * 2),
+					ExpiresAt:        startTime.AddDate(0, 0, 3),
+					ResetMaxRollover: 1000, // full amount can be rolled over
+				})
+				assert.NoError(t, err)
+
+				g2, err := deps.grantRepo.CreateGrant(ctx, grant.RepoCreateInput{
+					OwnerID:     grant.Owner(ent.ID),
+					Namespace:   namespace,
+					Amount:      1000,
+					Priority:    3,
+					EffectiveAt: startTime.Add(time.Hour * 2),
+					ExpiresAt:   startTime.AddDate(0, 0, 3),
+					// After each reset has a new 500 balance
+					ResetMaxRollover: 500,
+					ResetMinRollover: 500,
+				})
+				assert.NoError(t, err)
+
+				// usage on ledger that will cause overage
+				deps.streamingConnector.AddSimpleEvent(meterSlug, 2600, startTime.Add(time.Minute))
+
+				// resetTime before snapshot
+				resetTime := startTime.Add(time.Hour * 5)
+				balanceAfterReset, err := connector.ResetEntitlementUsage(ctx,
+					models.NamespacedID{Namespace: namespace, ID: ent.ID},
+					meteredentitlement.ResetEntitlementUsageParams{
+						At:              resetTime,
+						PreserveOverage: convert.ToPointer(true),
+					})
+
+				assert.NoError(t, err)
+				assert.Equal(t, 0.0, balanceAfterReset.UsageInPeriod) // 0 usage right after reset
+				assert.Equal(t, 0.0, balanceAfterReset.Balance)       // (1000 + 1000 - 2600) + 500 = -100 => 0
+				assert.Equal(t, 100.0, balanceAfterReset.Overage)     // Overage is carried to new period
+				assert.Equal(t, resetTime, balanceAfterReset.StartOfPeriod)
+
+				// get detailed balance from credit connector to check individual grant balances
+				creditBalance, err := deps.balanceConnector.GetBalanceOfOwner(ctx, grant.NamespacedOwner{
+					Namespace: namespace,
+					ID:        grant.Owner(ent.ID),
+				}, resetTime)
+				assert.NoError(t, err)
+
+				assert.Equal(t, balance.Map{
+					g1.ID: 0,
+					g2.ID: 0,
+				}, creditBalance.Balances)
+			},
+		},
+		{
 			name: "Should return proper last reset time after reset",
 			run: func(t *testing.T, connector meteredentitlement.Connector, deps *dependencies) {
 				ctx := context.Background()

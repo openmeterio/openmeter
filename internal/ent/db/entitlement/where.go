@@ -120,6 +120,11 @@ func IsSoftLimit(v bool) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldIsSoftLimit, v))
 }
 
+// PreserveOverageAtReset applies equality check predicate on the "preserve_overage_at_reset" field. It's identical to PreserveOverageAtResetEQ.
+func PreserveOverageAtReset(v bool) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldPreserveOverageAtReset, v))
+}
+
 // UsagePeriodAnchor applies equality check predicate on the "usage_period_anchor" field. It's identical to UsagePeriodAnchorEQ.
 func UsagePeriodAnchor(v time.Time) predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldEQ(FieldUsagePeriodAnchor, v))
@@ -723,6 +728,26 @@ func IsSoftLimitIsNil() predicate.Entitlement {
 // IsSoftLimitNotNil applies the NotNil predicate on the "is_soft_limit" field.
 func IsSoftLimitNotNil() predicate.Entitlement {
 	return predicate.Entitlement(sql.FieldNotNull(FieldIsSoftLimit))
+}
+
+// PreserveOverageAtResetEQ applies the EQ predicate on the "preserve_overage_at_reset" field.
+func PreserveOverageAtResetEQ(v bool) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldEQ(FieldPreserveOverageAtReset, v))
+}
+
+// PreserveOverageAtResetNEQ applies the NEQ predicate on the "preserve_overage_at_reset" field.
+func PreserveOverageAtResetNEQ(v bool) predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNEQ(FieldPreserveOverageAtReset, v))
+}
+
+// PreserveOverageAtResetIsNil applies the IsNil predicate on the "preserve_overage_at_reset" field.
+func PreserveOverageAtResetIsNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldIsNull(FieldPreserveOverageAtReset))
+}
+
+// PreserveOverageAtResetNotNil applies the NotNil predicate on the "preserve_overage_at_reset" field.
+func PreserveOverageAtResetNotNil() predicate.Entitlement {
+	return predicate.Entitlement(sql.FieldNotNull(FieldPreserveOverageAtReset))
 }
 
 // ConfigIsNil applies the IsNil predicate on the "config" field.

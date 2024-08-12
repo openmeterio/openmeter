@@ -185,11 +185,12 @@ func (h *meteredEntitlementHandler) ListEntitlementGrants() ListEntitlementGrant
 }
 
 type ResetEntitlementUsageHandlerRequest struct {
-	EntitlementID string
-	Namespace     string
-	SubjectID     string
-	At            time.Time
-	RetainAnchor  bool
+	EntitlementID   string
+	Namespace       string
+	SubjectID       string
+	At              time.Time
+	RetainAnchor    bool
+	PreserveOverage *bool
 }
 type (
 	ResetEntitlementUsageHandlerResponse = interface{}
@@ -215,11 +216,12 @@ func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsag
 			}
 
 			return ResetEntitlementUsageHandlerRequest{
-				EntitlementID: params.EntitlementID,
-				Namespace:     ns,
-				SubjectID:     params.SubjectKey,
-				At:            defaultx.WithDefault(body.EffectiveAt, clock.Now()),
-				RetainAnchor:  defaultx.WithDefault(body.RetainAnchor, false),
+				EntitlementID:   params.EntitlementID,
+				Namespace:       ns,
+				SubjectID:       params.SubjectKey,
+				At:              defaultx.WithDefault(body.EffectiveAt, clock.Now()),
+				RetainAnchor:    defaultx.WithDefault(body.RetainAnchor, false),
+				PreserveOverage: body.PreserveOverage,
 			}, nil
 		},
 		func(ctx context.Context, request ResetEntitlementUsageHandlerRequest) (interface{}, error) {
@@ -227,8 +229,9 @@ func (h *meteredEntitlementHandler) ResetEntitlementUsage() ResetEntitlementUsag
 				Namespace: request.Namespace,
 				ID:        request.EntitlementID,
 			}, meteredentitlement.ResetEntitlementUsageParams{
-				At:           request.At,
-				RetainAnchor: request.RetainAnchor,
+				At:              request.At,
+				RetainAnchor:    request.RetainAnchor,
+				PreserveOverage: request.PreserveOverage,
 			})
 			return nil, err
 		},
