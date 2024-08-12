@@ -44,31 +44,7 @@ RUN go build -ldflags "-linkmode external -extldflags \"-static\" -X main.versio
 RUN xx-verify /usr/local/bin/openmeter-notification-service
 
 
-FROM gcr.io/distroless/base-debian11:latest@sha256:ac69aa622ea5dcbca0803ca877d47d069f51bd4282d5c96977e0390d7d256455 AS distroless
-
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-
-COPY --from=builder /usr/local/bin/openmeter /usr/local/bin/
-COPY --from=builder /usr/local/bin/openmeter-sink-worker /usr/local/bin/
-COPY --from=builder /usr/local/bin/openmeter-balance-worker /usr/local/bin/
-COPY --from=builder /usr/local/bin/openmeter-notification-service /usr/local/bin/
-COPY --from=builder /usr/local/src/openmeter/go.* /usr/local/src/openmeter/
-
-CMD openmeter
-
-FROM redhat/ubi8-micro:8.10-9@sha256:fb9d280bfa1214c9faa5079cbafeb2b7380d56961c11d3cc8e32c0a5b10327e5 AS ubi8
-
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-
-COPY --from=builder /usr/local/bin/openmeter /usr/local/bin/
-COPY --from=builder /usr/local/bin/openmeter-sink-worker /usr/local/bin/
-COPY --from=builder /usr/local/bin/openmeter-balance-worker /usr/local/bin/
-COPY --from=builder /usr/local/bin/openmeter-notification-service /usr/local/bin/
-COPY --from=builder /usr/local/src/openmeter/go.* /usr/local/src/openmeter/
-
-CMD openmeter
-
-FROM alpine:3.20.2@sha256:0a4eaa0eecf5f8c050e5bba433f58c052be7587ee8af3e8b3910ef9ab5fbe9f5 AS alpine
+FROM alpine:3.20.2@sha256:0a4eaa0eecf5f8c050e5bba433f58c052be7587ee8af3e8b3910ef9ab5fbe9f5
 
 RUN apk add --update --no-cache ca-certificates tzdata bash
 
