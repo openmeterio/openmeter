@@ -2409,6 +2409,7 @@ components:
           type: number
           format: double
           example: 100
+          minimum: 0
         priority:
           description: |
             The priority of the grant. Grants with higher priority are applied first.
