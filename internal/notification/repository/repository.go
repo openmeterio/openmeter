@@ -212,7 +212,8 @@ func (r repository) UpdateChannel(ctx context.Context, params notification.Updat
 }
 
 func (r repository) ListRules(ctx context.Context, params notification.ListRulesInput) (pagination.PagedResponse[notification.Rule], error) {
-	query := r.db.NotificationRule.Query().QueryChannels().QueryRules()
+	query := r.db.NotificationRule.Query().
+		Where(ruledb.DeletedAtIsNil()) // Do not return deleted Rules
 
 	if len(params.Namespaces) > 0 {
 		query = query.Where(ruledb.NamespaceIn(params.Namespaces...))
@@ -225,6 +226,8 @@ func (r repository) ListRules(ctx context.Context, params notification.ListRules
 	if !params.IncludeDisabled {
 		query = query.Where(ruledb.Disabled(false))
 	}
+
+	query = query.WithChannels()
 
 	order := entutils.GetOrdering(sortx.OrderDefault)
 	if !params.Order.IsDefaultValue() {
@@ -434,7 +437,15 @@ func (r repository) ListEvents(ctx context.Context, params notification.ListEven
 	}
 
 	// Eager load DeliveryStatus, Rules (including Channels)
-	query = query.WithDeliveryStatuses().WithRules(func(query *entdb.NotificationRuleQuery) {
+	if len(params.DeliveryStatusStates) > 0 {
+		query = query.WithDeliveryStatuses(func(query *entdb.NotificationEventDeliveryStatusQuery) {
+			query.Where(statusdb.StateIn(params.DeliveryStatusStates...))
+		})
+	} else {
+		query = query.WithDeliveryStatuses()
+	}
+
+	query = query.WithRules(func(query *entdb.NotificationRuleQuery) {
 		query.WithChannels()
 	})
 

@@ -242,6 +242,8 @@ type ListEventsInput struct {
 	Subjects []string `json:"subjects,omitempty"`
 	Features []string `json:"features,omitempty"`
 
+	DeliveryStatusStates []EventDeliveryStatusState `json:"deliveryStatusStates,omitempty"`
+
 	OrderBy api.ListNotificationEventsParamsOrderBy
 	Order   sortx.Order
 }
