@@ -558,14 +558,14 @@ type pgClients struct {
 	client *db.Client
 }
 
-func initPGClients(config config.PostgresConfig) (
+func initPGClients(cfg config.PostgresConfig) (
 	*pgClients,
 	error,
 ) {
-	if err := config.Validate(); err != nil {
+	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid postgres config: %w", err)
 	}
-	driver, err := entutils.GetEntDriver(config.URL)
+	driver, err := entutils.GetEntDriver(cfg.URL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init postgres driver: %w", err)
 	}
@@ -573,9 +573,16 @@ func initPGClients(config config.PostgresConfig) (
 	// initialize client & run migrations
 	dbClient := db.NewClient(db.Driver(driver))
 
-	if config.AutoMigrate {
-		if err := migrate.Up(config.URL); err != nil {
-			return nil, fmt.Errorf("failed to migrate db: %w", err)
+	if cfg.AutoMigrate.Enabled() {
+		switch cfg.AutoMigrate {
+		case config.AutoMigrateEnt:
+			if err := dbClient.Schema.Create(context.Background()); err != nil {
+				return nil, fmt.Errorf("failed to migrate credit db: %w", err)
+			}
+		case config.AutoMigrateMigration:
+			if err := migrate.Up(cfg.URL); err != nil {
+				return nil, fmt.Errorf("failed to migrate db: %w", err)
+			}
 		}
 	}
 

@@ -57,7 +57,7 @@ events:
 
 postgres:
   url: postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
-  autoMigrate: true # Runs migrations as part of the service startup
+  autoMigrate: ent # Runs migrations as part of the service startup, valid values are: ent, migration, false
 
 meters:
   # Sample meter to count API requests
