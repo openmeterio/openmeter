@@ -13,9 +13,9 @@
         inputs.devenv.flakeModule
       ];
 
-      systems = [ "x86_64-linux" "x86_64-darwin" "aarch64-darwin" ];
+      systems = [ "x86_64-linux" "x86_64-darwin" "aarch64-darwin" "aarch64-linux" ];
 
-      perSystem = { config, self', inputs', pkgs, system, ... }: rec {
+      perSystem = { config, self', inputs', pkgs, lib, system, ... }: rec {
         _module.args.pkgs = import inputs.nixpkgs {
           inherit system;
 
@@ -23,6 +23,7 @@
             (final: prev: {
               dagger = inputs'.dagger.packages.dagger;
               licensei = self'.packages.licensei;
+              atlasx = self'.packages.atlasx;
             })
           ];
         };
@@ -100,7 +101,7 @@
               # python
               poetry
 
-              self'.packages.atlasx
+              atlasx
 
               just
               semver-tool
@@ -126,6 +127,19 @@
           };
 
           ci = devenv.shells.default;
+
+          # Lighteweight target to use inside dagger
+          dagger = {
+            languages = {
+              go = devenv.shells.default.languages.go;
+            };
+            packages = with pkgs; [
+              gnumake
+              git
+              atlasx
+            ];
+            containers = devenv.shells.default.containers;
+          };
         };
 
         packages = {
@@ -151,25 +165,42 @@
             ];
           };
 
-          atlasx = pkgs.stdenv.mkDerivation rec {
-            pname = "atlasx";
-            version = "0.25.0";
-            src = pkgs.fetchurl {
-              # License: https://ariga.io/legal/atlas/eula/eula-20240804.pdf
-              url = "https://release.ariga.io/atlas/atlas-darwin-arm64-v${version}";
-              hash = "sha256-bYJtNDE13UhJWL4ALLKI0sHMZrDS//kFWzguGX63EAo=";
+          atlasx =
+            let
+              systemMappings = {
+                x86_64-linux = "linux-amd64";
+                x86_64-darwin = "darwin-amd64";
+                aarch64-darwin = "darwin-arm64";
+                aarch64-linux = "linux-arm64";
+              };
+              hashMappings = {
+                x86_64-linux = "sha256-6270kOQ0uqiv/ljHtAi41uCzb+bkf+99rnmsc87/n6w=";
+                x86_64-darwin = "sha256-KeOp6LeHIY59Y2DJVAhMcr9xyb3KItFqEs6y9+uA7rM=";
+                aarch64-darwin = "sha256-bYJtNDE13UhJWL4ALLKI0sHMZrDS//kFWzguGX63EAo=";
+                aarch64-linux = "sha256-pRLZo7bwFJ1Xxlw2Afi/tAT6HSEvQ/B83ZzHGzCKXT8=";
+              };
+            in
+            pkgs.stdenv.mkDerivation rec {
+              pname = "atlasx";
+              version = "0.25.0";
+
+              src = pkgs.fetchurl {
+                # License: https://ariga.io/legal/atlas/eula/eula-20240804.pdf
+                url = "https://release.ariga.io/atlas/atlas-${systemMappings."${system}"}-v${version}";
+                hash = hashMappings."${system}";
+              };
+
+              unpackPhase = ''
+                cp $src atlas
+              '';
+
+              installPhase = ''
+                mkdir -p $out/bin
+                cp atlas $out/bin/atlas
+                chmod +x $out/bin/atlas
+              '';
+
             };
-
-            unpackPhase = ''
-              cp $src atlas
-            '';
-
-            installPhase = ''
-              mkdir -p $out/bin
-              cp atlas $out/bin/atlas
-            '';
-
-          };
         };
       };
     };

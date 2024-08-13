@@ -72,6 +72,42 @@ jobs:
             engine.stderr.log
           retention-days: 14
 
+  migrations:
+    name: Migration Checks
+    runs-on: depot-ubuntu-latest-8
+
+    steps:
+      # Required as a workaround for Dagger to properly detect Git metadata
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 0 # Needed to compare against base branch
+
+      - name: Run pipeline
+        uses: dagger/dagger-for-github@29a88e72255e732147ba18a670978b90bcc59efd # v6.4.0
+        with:
+          verb: call
+          module: github.com/${{ github.repository }}@${{ github.ref }}
+          args: --ref ${{ github.ref }} migrate check
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          version: ${{ env.DAGGER_VERSION }}
+
+      - name: Export Dagger Engine logs
+        id: export-dagger-engine-logs
+        run: docker logs $(docker container list --all --filter 'name=^dagger-engine-*' --format '{{.Names}}') > engine.stdout.log 2> engine.stderr.log
+        if: always()
+        continue-on-error: true
+
+      - name: Upload Dagger Engine logs as artifact
+        uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029 # v4.3.5
+        if: always() && steps.export-dagger-engine-logs.outcome == 'success'
+        with:
+          name: "[${{ github.job }}] Dagger Engine logs"
+          path: |
+            engine.stdout.log
+            engine.stderr.log
+          retention-days: 14
+
   lint:
     name: Lint
     runs-on: depot-ubuntu-latest-8
