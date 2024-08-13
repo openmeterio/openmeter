@@ -366,6 +366,11 @@ func main() {
 		logger.Error("failed to initialize notification service", "error", err)
 		os.Exit(1)
 	}
+	defer func() {
+		if err = notificationService.Close(); err != nil {
+			logger.Error("failed to close notification service", "error", err)
+		}
+	}()
 
 	s, err := server.NewServer(&server.Config{
 		RouterConfig: router.Config{

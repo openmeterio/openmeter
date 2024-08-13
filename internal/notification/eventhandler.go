@@ -2,6 +2,7 @@ package notification
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -12,29 +13,29 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-const (
-	DefaultEventHandlerWorkers = 5
-)
+const DefaultReconcileInterval = 15 * time.Second
 
 type EventHandler interface {
-	Dispatcher
+	EventDispatcher
+	EventReconciler
 
 	Start() error
 	Close() error
 }
 
-type Reconviler interface {
-	Reconcile(ctx context.Context)
+type EventReconciler interface {
+	Reconcile(ctx context.Context) error
 }
 
-type Dispatcher interface {
-	Dispatch(Event)
+type EventDispatcher interface {
+	Dispatch(*Event) error
 }
 
 type EventHandlerConfig struct {
-	Repository Repository
-	Webhook    webhook.Handler
-	Logger     *slog.Logger
+	Repository        Repository
+	Webhook           webhook.Handler
+	Logger            *slog.Logger
+	ReconcileInterval time.Duration
 }
 
 func (c EventHandlerConfig) Validate() error {
@@ -50,6 +51,10 @@ func (c EventHandlerConfig) Validate() error {
 		c.Logger = slog.Default()
 	}
 
+	if c.ReconcileInterval == 0 {
+		c.ReconcileInterval = DefaultReconcileInterval
+	}
+
 	return nil
 }
 
@@ -58,14 +63,37 @@ var _ EventHandler = (*handler)(nil)
 type handler struct {
 	repo    Repository
 	webhook webhook.Handler
+	logger  *slog.Logger
 
-	logger *slog.Logger
+	reconcileInterval time.Duration
 
 	stopCh chan struct{}
 }
 
 func (h *handler) Start() error {
-	// FIXME: start reconciler in background
+	go func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		ticker := time.NewTicker(h.reconcileInterval)
+		defer ticker.Stop()
+
+		logger := h.logger.WithGroup("reconciler")
+
+		for {
+			select {
+			case <-h.stopCh:
+				logger.Debug("close event received: stopping reconciler")
+				return
+			case <-ticker.C:
+				if err := h.Reconcile(ctx); err != nil {
+					logger.Error("failed to reconcile event(s)", "error", err)
+				}
+			default:
+			}
+		}
+	}()
+
 	return nil
 }
 
@@ -75,20 +103,19 @@ func (h *handler) Close() error {
 	return nil
 }
 
-func (h *handler) reconcilePending(ctx context.Context, status EventDeliveryStatus) error {
-	// FIXME: implement
-	return nil
+func (h *handler) reconcilePending(ctx context.Context, event *Event) error {
+	return h.dispatch(ctx, event)
 }
 
-func (h *handler) reconcileSending(ctx context.Context, status EventDeliveryStatus) error {
-	// FIXME: implement
+func (h *handler) reconcileSending(_ context.Context, _ *Event) error {
+	// TODO(chrisgacsal): implement when EventDeliveryStatusStateSending state is need to be handled
 	return nil
 }
 
 func (h *handler) Reconcile(ctx context.Context) error {
-	statuses, err := h.repo.ListEventsDeliveryStatus(ctx, ListEventsDeliveryStatusInput{
+	events, err := h.repo.ListEvents(ctx, ListEventsInput{
 		Page: pagination.Page{},
-		States: []EventDeliveryStatusState{
+		DeliveryStatusStates: []EventDeliveryStatusState{
 			EventDeliveryStatusStatePending,
 			EventDeliveryStatusStateSending,
 		},
@@ -98,23 +125,32 @@ func (h *handler) Reconcile(ctx context.Context) error {
 		return fmt.Errorf("failed to fetch notification delivery statuses for reconciliation: %w", err)
 	}
 
-	for _, status := range statuses.Items {
-		switch status.State {
-		case EventDeliveryStatusStatePending:
-			err = h.reconcilePending(ctx, status)
-		case EventDeliveryStatusStateSending:
-			err = h.reconcileSending(ctx, status)
+	for _, event := range events.Items {
+		var errs error
+		for _, state := range event.DeliveryStates() {
+			switch state {
+			case EventDeliveryStatusStatePending:
+				if err = h.reconcilePending(ctx, &event); err != nil {
+					errs = errors.Join(errs, err)
+				}
+			case EventDeliveryStatusStateSending:
+				if err = h.reconcileSending(ctx, &event); err != nil {
+					errs = errors.Join(errs, err)
+				}
+			case EventDeliveryStatusStateFailed:
+				// NOTE(chrisgacsal): reconcile failed events when adding support for retry on event delivery failure
+			}
 		}
 
-		if err != nil {
-			return fmt.Errorf("failed to reconcile notification delivery status state: %w", err)
+		if errs != nil {
+			return fmt.Errorf("failed to reconcile notification event: %w", errs)
 		}
 	}
 
 	return nil
 }
 
-func (h *handler) dispatchWebhook(ctx context.Context, event Event) error {
+func (h *handler) dispatchWebhook(ctx context.Context, event *Event) error {
 	channelIDs := slicesx.Map(event.Rule.Channels, func(channel Channel) string {
 		return channel.ID
 	})
@@ -141,9 +177,8 @@ func (h *handler) dispatchWebhook(ctx context.Context, event Event) error {
 
 	logger := h.logger.With("eventID", event.ID, "eventType", event.Type)
 
-	stateReason := ""
-	state := EventDeliveryStatusStateSending
-
+	var stateReason string
+	state := EventDeliveryStatusStateSuccess
 	_, err := h.webhook.SendMessage(ctx, sendIn)
 	if err != nil {
 		logger.Error("failed to send webhook message: error returned by webhook service", "error", err)
@@ -169,27 +204,38 @@ func (h *handler) dispatchWebhook(ctx context.Context, event Event) error {
 	return nil
 }
 
-func (h *handler) Dispatch(event Event) {
+func (h *handler) dispatch(ctx context.Context, event *Event) error {
+	var errs error
+
+	for _, channelType := range event.ChannelTypes() {
+		var err error
+
+		switch channelType {
+		case ChannelTypeWebhook:
+			err = h.dispatchWebhook(ctx, event)
+		default:
+			err = fmt.Errorf("unknown channel type: %s", channelType)
+		}
+
+		if err != nil {
+			errs = errors.Join(errs, err)
+		}
+	}
+
+	return errs
+}
+
+func (h *handler) Dispatch(event *Event) error {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		logger := h.logger.With("eventID", event.ID, "eventType", event.Type)
-
-		var err error
-		for _, channelType := range event.ChannelTypes() {
-			switch channelType {
-			case ChannelTypeWebhook:
-				err = h.dispatchWebhook(ctx, event)
-			default:
-				h.logger.Error("unknown channel type", "type", channelType)
-			}
-
-			if err != nil {
-				logger.Error("failed to dispatch event", "error", err)
-			}
+		if err := h.dispatch(ctx, event); err != nil {
+			h.logger.Warn("failed to dispatch event", "eventID", event.ID, "error", err)
 		}
 	}()
+
+	return nil
 }
 
 func NewEventHandler(config EventHandlerConfig) (EventHandler, error) {

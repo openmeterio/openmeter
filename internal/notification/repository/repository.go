@@ -710,7 +710,8 @@ func (r repository) UpdateEventDeliveryStatus(ctx context.Context, params notifi
 		}
 
 		updateQuery = r.db.NotificationEventDeliveryStatus.UpdateOne(statusRow).
-			SetState(params.State)
+			SetState(params.State).
+			SetReason(params.Reason)
 	}
 
 	updateRow, err := updateQuery.Save(ctx)

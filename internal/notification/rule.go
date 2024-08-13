@@ -183,7 +183,7 @@ type BalanceThresholdRuleConfig struct {
 	// Features stores the list of features the rule is associated with.
 	Features []string `json:"features"`
 	// Thresholds stores the list of thresholds used to trigger a new notification event if the balance exceeds one of the thresholds.
-	Thresholds []BalanceThreshold
+	Thresholds []BalanceThreshold `json:"thresholds"`
 }
 
 // Validate returns an error if balance threshold configuration is invalid.

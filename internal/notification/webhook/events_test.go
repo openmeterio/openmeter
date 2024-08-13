@@ -1,3 +1,3 @@
 package webhook
 
-//FIXME: add tests for event schema parsing
+// TODO(chrisgacsal): add tests for event schema parsing

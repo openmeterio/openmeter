@@ -46,6 +46,14 @@ func (e Event) ChannelTypes() []ChannelType {
 	return slicesx.Dedupe(channelTypes)
 }
 
+func (e Event) DeliveryStates() []EventDeliveryStatusState {
+	stateTypes := slicesx.Map(e.DeliveryStatus, func(status EventDeliveryStatus) EventDeliveryStatusState {
+		return status.State
+	})
+
+	return slicesx.Dedupe(stateTypes)
+}
+
 func (e Event) AsNotificationEvent() (api.NotificationEvent, error) {
 	var err error
 

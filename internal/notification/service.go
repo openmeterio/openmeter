@@ -11,11 +11,13 @@ import (
 )
 
 type Service interface {
-	FeatureConnector
+	FeatureService
 
 	ChannelService
 	RuleService
 	EventService
+
+	Close() error
 }
 
 type ChannelService interface {
@@ -43,7 +45,7 @@ type EventService interface {
 	UpdateEventDeliveryStatus(ctx context.Context, params UpdateEventDeliveryStatusInput) (*EventDeliveryStatus, error)
 }
 
-type FeatureConnector interface {
+type FeatureService interface {
 	ListFeature(ctx context.Context, namespace string, features ...string) ([]productcatalog.Feature, error)
 }
 
@@ -58,6 +60,10 @@ type service struct {
 	eventHandler EventHandler
 
 	logger *slog.Logger
+}
+
+func (c service) Close() error {
+	return c.eventHandler.Close()
 }
 
 type Config struct {
@@ -395,33 +401,9 @@ func (c service) CreateEvent(ctx context.Context, params CreateEventInput) (*Eve
 		return nil, fmt.Errorf("failed to create event: %w", err)
 	}
 
-	// FIXME: create a dispatch service and send events from there
-
-	go func() {
-		payload := params.Payload.AsNotificationEventBalanceThresholdPayload(event.ID, event.CreatedAt)
-		payloadMap, err := PayloadToMapInterface(payload)
-		if err != nil {
-			c.logger.Error("failed to cast event payload", "error", err)
-
-			return
-		}
-
-		for _, channel := range rule.Channels {
-			switch channel.Type {
-			case ChannelTypeWebhook:
-				_, err = c.webhook.SendMessage(ctx, webhook.SendMessageInput{
-					Namespace: params.Namespace,
-					EventID:   event.ID,
-					EventType: string(event.Type),
-					Channels:  []string{rule.ID},
-					Payload:   payloadMap,
-				})
-				if err != nil {
-					c.logger.Error("failed to send message", "error", err)
-				}
-			}
-		}
-	}()
+	if err = c.eventHandler.Dispatch(event); err != nil {
+		return nil, fmt.Errorf("failed to dispatch event: %w", err)
+	}
 
 	return event, nil
 }

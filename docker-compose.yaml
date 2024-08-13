@@ -119,5 +119,3 @@ services:
     depends_on:
       - postgres
       - redis
-
-  # FIXME: add webhook receiver based on benthos
