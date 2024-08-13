@@ -13,6 +13,7 @@ import (
 
 type Handler interface {
 	ChannelHandler
+	RuleHandler
 }
 
 type ChannelHandler interface {
@@ -21,6 +22,14 @@ type ChannelHandler interface {
 	DeleteChannel() DeleteChannelHandler
 	GetChannel() GetChannelHandler
 	UpdateChannel() UpdateChannelHandler
+}
+
+type RuleHandler interface {
+	ListRules() ListRulesHandler
+	CreateRule() CreateRuleHandler
+	DeleteRule() DeleteRuleHandler
+	GetRule() GetRuleHandler
+	UpdateRule() UpdateRuleHandler
 }
 
 var _ Handler = (*handler)(nil)
