@@ -30,7 +30,10 @@ import (
 
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/internal/meter"
+	"github.com/openmeterio/openmeter/internal/notification"
 	"github.com/openmeterio/openmeter/internal/notification/consumer"
+	notificationrepository "github.com/openmeterio/openmeter/internal/notification/repository"
+	notificationwebhook "github.com/openmeterio/openmeter/internal/notification/webhook"
 	"github.com/openmeterio/openmeter/internal/registry"
 	registrybuilder "github.com/openmeterio/openmeter/internal/registry/builder"
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
@@ -283,13 +286,41 @@ func main() {
 	}
 
 	// Dependencies: entitlement
-	entitlementConnectors := registrybuilder.GetEntitlementRegistry(registry.EntitlementOptions{
+	entitlementConnRegistry := registrybuilder.GetEntitlementRegistry(registry.EntitlementOptions{
 		DatabaseClient:     entClient,
 		StreamingConnector: clickhouseStreamingConnector,
 		MeterRepository:    meterRepository,
 		Logger:             logger,
 		Publisher:          eventPublisher,
 	})
+
+	// Dependencies: notification
+	notificationRepo, err := notificationrepository.New(notificationrepository.Config{
+		Client: entClient,
+		Logger: logger.WithGroup("notification.postgres"),
+	})
+	if err != nil {
+		logger.Error("failed to initialize notification repository", "error", err)
+		os.Exit(1)
+	}
+
+	notificationWebhook, err := notificationwebhook.New(notificationwebhook.Config{
+		SvixConfig: conf.Svix,
+	})
+	if err != nil {
+		logger.Error("failed to initialize notification repository", "error", err)
+		os.Exit(1)
+	}
+
+	notificationService, err := notification.New(notification.Config{
+		Repository:       notificationRepo,
+		Webhook:          notificationWebhook,
+		FeatureConnector: entitlementConnRegistry.Feature,
+	})
+	if err != nil {
+		logger.Error("failed to initialize notification service", "error", err)
+		os.Exit(1)
+	}
 
 	// Initialize consumer
 	consumerOptions := consumer.Options{
@@ -303,7 +334,7 @@ func main() {
 		},
 		Marshaler: eventPublisher.Marshaler(),
 
-		Entitlement: entitlementConnectors,
+		Notification: notificationService,
 
 		Logger: logger,
 	}
