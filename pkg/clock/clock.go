@@ -5,7 +5,8 @@ import "time"
 var drift time.Duration
 
 func Now() time.Time {
-	return time.Now().Add(-drift)
+	t := time.Now().Add(-drift)
+	return t.Round(0) // Remove monotonic time reading
 }
 
 func SetTime(t time.Time) time.Time {
