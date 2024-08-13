@@ -1653,6 +1653,33 @@ paths:
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
 
+  /api/v1/notification/webhook/svix:
+    post:
+      operationId: receiveSvixOperationalEvent
+      summary: Receive Svix operational events
+      description: |
+        Callback endpoint used by Svix to notify about operational events
+      tags:
+        - Notifications (Experimental)
+      requestBody:
+        description: The operational event.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SvixOperationalWebhookRequest"
+      responses:
+        "204":
+          description: Operational webhook request accepted
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "501":
+          $ref: "#/components/responses/NotImplementedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+
 components:
   schemas:
     SharedMetaFields:
@@ -3474,6 +3501,26 @@ components:
           example: 100
         items:
           $ref: "#/components/schemas/NotificationEvents"
+
+    SvixOperationalWebhookRequest:
+      type: object
+      required:
+        - type
+        - data
+      properties:
+        type:
+          type: string
+          enum:
+            - "endpoint.created"
+            - "endpoint.deleted"
+            - "endpoint.disabled"
+            - "endpoint.updated"
+            - "message.attempt.exhausted"
+            - "message.attempt.failing"
+            - "message.attempt.recovered"
+        data:
+          type: object
+          additionalProperties: true
 
   parameters:
     meterIdOrSlug:
