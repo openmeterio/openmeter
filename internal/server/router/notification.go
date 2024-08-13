@@ -42,6 +42,12 @@ func (a *Router) ListNotificationEvents(w http.ResponseWriter, r *http.Request, 
 	unimplemented.ListNotificationEvents(w, r, params)
 }
 
+// Create a notification event
+// (POST /api/v1/notification/events)
+func (a *Router) CreateNotificationEvent(w http.ResponseWriter, r *http.Request) {
+	unimplemented.CreateNotificationEvent(w, r)
+}
+
 // Get notification event
 // (GET /api/v1/notification/events/{eventId})
 func (a *Router) GetNotificationEvent(w http.ResponseWriter, r *http.Request, eventID api.EventId) {
@@ -76,4 +82,10 @@ func (a *Router) GetNotificationRule(w http.ResponseWriter, r *http.Request, rul
 // (PUT /api/v1/notification/rules/{ruleId})
 func (a *Router) UpdateNotificationRule(w http.ResponseWriter, r *http.Request, ruleID api.RuleId) {
 	unimplemented.UpdateNotificationRule(w, r, ruleID)
+}
+
+// Receive Svix operational events
+// (POST /api/v1/notification/webhook/svix)
+func (a *Router) ReceiveSvixOperationalEvent(w http.ResponseWriter, r *http.Request) {
+	unimplemented.ReceiveSvixOperationalEvent(w, r)
 }

@@ -1601,6 +1601,38 @@ paths:
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
+    post:
+      operationId: createNotificationEvent
+      summary: Create a notification event
+      description: |
+        Create a new notification event.
+      tags:
+        - Notifications (Experimental)
+      requestBody:
+        description: The notification event to create.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationEventCreateRequest"
+      responses:
+        "201":
+          description: Notification event created.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/NotificationEvent"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "409":
+          $ref: "#/components/responses/ConflictProblemResponse"
+        "501":
+          $ref: "#/components/responses/NotImplementedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
 
   /api/v1/notification/events/{eventId}:
     get:
@@ -1624,6 +1656,33 @@ paths:
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         "404":
           $ref: "#/components/responses/NotFoundProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+
+  /api/v1/notification/webhook/svix:
+    post:
+      operationId: receiveSvixOperationalEvent
+      summary: Receive Svix operational events
+      description: |
+        Callback endpoint used by Svix to notify about operational events
+      tags:
+        - Notifications (Experimental)
+      requestBody:
+        description: The operational event.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SvixOperationalWebhookRequest"
+      responses:
+        "204":
+          description: Operational webhook request accepted
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "501":
+          $ref: "#/components/responses/NotImplementedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
 
@@ -3290,6 +3349,23 @@ components:
               default: false
               example: false
 
+    NotificationEventCreateRequest:
+      type: object
+      description: |
+        Request for creating new notification event with specific type and payload.
+      required:
+        - type
+        - payload
+        - ruleId
+      properties:
+        type:
+          $ref: "#/components/schemas/NotificationEventType"
+        payload:
+          $ref: "#/components/schemas/NotificationEventPayload"
+        ruleId:
+          type: string
+          example: "01J2KNP1YTXQRXHTDJ4KPR7PZ0"
+
     NotificationEvent:
       type: object
       description: |
@@ -3299,6 +3375,7 @@ components:
         The `payload` field contains the actual message sent to the notification channel.
       required:
         - id
+        - type
         - createdAt
         - rule
         - deliveryStatus
@@ -3308,6 +3385,8 @@ components:
           description: A unique identifier for the notification event.
           type: string
           example: "01J2KNP1YTXQRXHTDJ4KPR7PZ0"
+        type:
+          $ref: "#/components/schemas/NotificationEventType"
         createdAt:
           description: Timestamp when the notification event was created.
           type: string
@@ -3368,7 +3447,7 @@ components:
                 - entitlement
                 - feature
                 - subject
-                - balance
+                - value
                 - threshold
               properties:
                 entitlement:
@@ -3377,7 +3456,7 @@ components:
                   $ref: "#/components/schemas/Feature"
                 subject:
                   $ref: "#/components/schemas/Subject"
-                balance:
+                value:
                   $ref: "#/components/schemas/EntitlementValue"
                 threshold:
                   $ref: "#/components/schemas/NotificationRuleBalanceThresholdValue"
@@ -3397,6 +3476,10 @@ components:
             - SUCCESS
             - FAILED
             - SENDING
+            - PENDING
+        reason:
+          type: string
+          example: "Failed to dispatch event"
         updatedAt:
           type: string
           format: date-time
@@ -3430,6 +3513,26 @@ components:
           example: 100
         items:
           $ref: "#/components/schemas/NotificationEvents"
+
+    SvixOperationalWebhookRequest:
+      type: object
+      required:
+        - type
+        - data
+      properties:
+        type:
+          type: string
+          enum:
+            - "endpoint.created"
+            - "endpoint.deleted"
+            - "endpoint.disabled"
+            - "endpoint.updated"
+            - "message.attempt.exhausted"
+            - "message.attempt.failing"
+            - "message.attempt.recovered"
+        data:
+          type: object
+          additionalProperties: true
 
   parameters:
     meterIdOrSlug:
