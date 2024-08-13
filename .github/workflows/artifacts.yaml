@@ -108,7 +108,7 @@ jobs:
           cache-to: type=gha,mode=max,ignore-error=true
           # outputs: ${{ steps.build-output.outputs.value }}
           push: ${{ inputs.publish }}
-          project: qghgtfxxh4
+          project: mx1q1j4nzh
 
       - name: Set image ref
         id: image-ref
@@ -224,7 +224,7 @@ jobs:
           cache-to: type=gha,mode=max,ignore-error=true
           # outputs: ${{ steps.build-output.outputs.value }}
           push: ${{ inputs.publish }}
-          project: qghgtfxxh4
+          project: mx1q1j4nzh
 
       - name: Set image ref
         id: image-ref
