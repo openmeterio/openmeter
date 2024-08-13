@@ -57,6 +57,54 @@ func (f GrantFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.GrantMutation", m)
 }
 
+// The NotificationChannelFunc type is an adapter to allow the use of ordinary
+// function as NotificationChannel mutator.
+type NotificationChannelFunc func(context.Context, *db.NotificationChannelMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f NotificationChannelFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.NotificationChannelMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.NotificationChannelMutation", m)
+}
+
+// The NotificationEventFunc type is an adapter to allow the use of ordinary
+// function as NotificationEvent mutator.
+type NotificationEventFunc func(context.Context, *db.NotificationEventMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f NotificationEventFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.NotificationEventMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.NotificationEventMutation", m)
+}
+
+// The NotificationEventDeliveryStatusFunc type is an adapter to allow the use of ordinary
+// function as NotificationEventDeliveryStatus mutator.
+type NotificationEventDeliveryStatusFunc func(context.Context, *db.NotificationEventDeliveryStatusMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f NotificationEventDeliveryStatusFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.NotificationEventDeliveryStatusMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.NotificationEventDeliveryStatusMutation", m)
+}
+
+// The NotificationRuleFunc type is an adapter to allow the use of ordinary
+// function as NotificationRule mutator.
+type NotificationRuleFunc func(context.Context, *db.NotificationRuleMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f NotificationRuleFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.NotificationRuleMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.NotificationRuleMutation", m)
+}
+
 // The UsageResetFunc type is an adapter to allow the use of ordinary
 // function as UsageReset mutator.
 type UsageResetFunc func(context.Context, *db.UsageResetMutation) (db.Value, error)
