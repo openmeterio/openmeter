@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/openmeterio/openmeter/internal/ent/db"
@@ -69,5 +71,57 @@ func RuleFromDBEntity(e db.NotificationRule) *notification.Rule {
 		Disabled: e.Disabled,
 		Config:   e.Config,
 		Channels: channels,
+	}
+}
+
+func EventFromDBEntity(e db.NotificationEvent) (*notification.Event, error) {
+	payload := notification.EventPayload{}
+	if err := json.Unmarshal([]byte(e.Payload), &payload); err != nil {
+		return nil, fmt.Errorf("failed to serialize notification event payload: %w", err)
+	}
+
+	var statuses []notification.EventDeliveryStatus
+	if len(e.Edges.DeliveryStatuses) > 0 {
+		statuses = make([]notification.EventDeliveryStatus, 0, len(e.Edges.DeliveryStatuses))
+		for _, status := range e.Edges.DeliveryStatuses {
+			if status == nil {
+				continue
+			}
+
+			statuses = append(statuses, *EventDeliveryStatusFromDBEntity(*status))
+		}
+	}
+
+	ruleRow, err := e.Edges.RulesOrErr()
+	if err != nil {
+		return nil, err
+	}
+	rule := RuleFromDBEntity(*ruleRow)
+
+	return &notification.Event{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: e.Namespace,
+		},
+		ID:             e.ID,
+		Type:           e.Type,
+		CreatedAt:      e.CreatedAt,
+		Payload:        payload,
+		Rule:           *rule,
+		DeliveryStatus: statuses,
+	}, nil
+}
+
+func EventDeliveryStatusFromDBEntity(e db.NotificationEventDeliveryStatus) *notification.EventDeliveryStatus {
+	return &notification.EventDeliveryStatus{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: e.Namespace,
+		},
+		ID:        e.ID,
+		ChannelID: e.ChannelID,
+		EventID:   e.EventID,
+		State:     e.State,
+		Reason:    e.Reason,
+		CreatedAt: e.CreatedAt,
+		UpdatedAt: e.UpdatedAt,
 	}
 }

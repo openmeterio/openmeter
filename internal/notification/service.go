@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/openmeterio/openmeter/internal/notification/webhook"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
@@ -14,6 +15,9 @@ type Service interface {
 
 	ChannelService
 	RuleService
+	EventService
+
+	Close() error
 }
 
 type ChannelService interface {
@@ -32,6 +36,15 @@ type RuleService interface {
 	UpdateRule(ctx context.Context, params UpdateRuleInput) (*Rule, error)
 }
 
+type EventService interface {
+	ListEvents(ctx context.Context, params ListEventsInput) (ListEventsResult, error)
+	GetEvent(ctx context.Context, params GetEventInput) (*Event, error)
+	CreateEvent(ctx context.Context, params CreateEventInput) (*Event, error)
+	ListEventsDeliveryStatus(ctx context.Context, params ListEventsDeliveryStatusInput) (ListEventsDeliveryStatusResult, error)
+	GetEventDeliveryStatus(ctx context.Context, params GetEventDeliveryStatusInput) (*EventDeliveryStatus, error)
+	UpdateEventDeliveryStatus(ctx context.Context, params UpdateEventDeliveryStatusInput) (*EventDeliveryStatus, error)
+}
+
 type FeatureService interface {
 	ListFeature(ctx context.Context, namespace string, features ...string) ([]productcatalog.Feature, error)
 }
@@ -43,13 +56,21 @@ type service struct {
 
 	repo    Repository
 	webhook webhook.Handler
+
+	eventHandler EventHandler
+}
+
+func (c service) Close() error {
+	return c.eventHandler.Close()
 }
 
 type Config struct {
-	Repository Repository
-
 	FeatureConnector productcatalog.FeatureConnector
-	Webhook          webhook.Handler
+
+	Repository Repository
+	Webhook    webhook.Handler
+
+	Logger *slog.Logger
 }
 
 func New(config Config) (Service, error) {
@@ -65,10 +86,24 @@ func New(config Config) (Service, error) {
 		return nil, errors.New("missing webhook handler")
 	}
 
+	eventHandler, err := NewEventHandler(EventHandlerConfig{
+		Repository: config.Repository,
+		Webhook:    config.Webhook,
+		Logger:     config.Logger,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize notification event handler: %w", err)
+	}
+
+	if err = eventHandler.Start(); err != nil {
+		return nil, fmt.Errorf("failed to initialize notification event handler: %w", err)
+	}
+
 	return &service{
-		repo:    config.Repository,
-		feature: config.FeatureConnector,
-		webhook: config.Webhook,
+		repo:         config.Repository,
+		feature:      config.FeatureConnector,
+		webhook:      config.Webhook,
+		eventHandler: eventHandler,
 	}, nil
 }
 
@@ -316,6 +351,76 @@ func (c service) UpdateRule(ctx context.Context, params UpdateRuleInput) (*Rule,
 	}
 
 	return c.repo.UpdateRule(ctx, params)
+}
+
+func (c service) ListEvents(ctx context.Context, params ListEventsInput) (ListEventsResult, error) {
+	if err := params.Validate(ctx, c); err != nil {
+		return ListEventsResult{}, fmt.Errorf("invalid params: %w", err)
+	}
+
+	return c.repo.ListEvents(ctx, params)
+}
+
+func (c service) GetEvent(ctx context.Context, params GetEventInput) (*Event, error) {
+	if err := params.Validate(ctx, c); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+
+	return c.repo.GetEvent(ctx, params)
+}
+
+func (c service) CreateEvent(ctx context.Context, params CreateEventInput) (*Event, error) {
+	if err := params.Validate(ctx, c); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+
+	rule, err := c.repo.GetRule(ctx, GetRuleInput{
+		Namespace: params.Namespace,
+		ID:        params.RuleID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get rule: %w", err)
+	}
+	if rule.Disabled {
+		return nil, ValidationError{
+			Err: errors.New("failed to send event: rule is disabled"),
+		}
+	}
+
+	event, err := c.repo.CreateEvent(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create event: %w", err)
+	}
+
+	if err = c.eventHandler.Dispatch(event); err != nil {
+		return nil, fmt.Errorf("failed to dispatch event: %w", err)
+	}
+
+	return event, nil
+}
+
+func (c service) UpdateEventDeliveryStatus(ctx context.Context, params UpdateEventDeliveryStatusInput) (*EventDeliveryStatus, error) {
+	if err := params.Validate(ctx, c); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+
+	return c.repo.UpdateEventDeliveryStatus(ctx, params)
+}
+
+func (c service) ListEventsDeliveryStatus(ctx context.Context, params ListEventsDeliveryStatusInput) (ListEventsDeliveryStatusResult, error) {
+	if err := params.Validate(ctx, c); err != nil {
+		return ListEventsDeliveryStatusResult{}, fmt.Errorf("invalid params: %w", err)
+	}
+
+	return c.repo.ListEventsDeliveryStatus(ctx, params)
+}
+
+func (c service) GetEventDeliveryStatus(ctx context.Context, params GetEventDeliveryStatusInput) (*EventDeliveryStatus, error) {
+	if err := params.Validate(ctx, c); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+
+	return c.repo.GetEventDeliveryStatus(ctx, params)
 }
 
 func interfaceMapToStringMap(m map[string]interface{}) (map[string]string, error) {
