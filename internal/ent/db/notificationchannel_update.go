@@ -188,6 +188,11 @@ func (ncu *NotificationChannelUpdate) check() error {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "NotificationChannel.name": %w`, err)}
 		}
 	}
+	if v, ok := ncu.mutation.Config(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "config", err: fmt.Errorf(`db: validator failed for field "NotificationChannel.config": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -462,6 +467,11 @@ func (ncuo *NotificationChannelUpdateOne) check() error {
 	if v, ok := ncuo.mutation.Name(); ok {
 		if err := notificationchannel.NameValidator(v); err != nil {
 			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "NotificationChannel.name": %w`, err)}
+		}
+	}
+	if v, ok := ncuo.mutation.Config(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "config", err: fmt.Errorf(`db: validator failed for field "NotificationChannel.config": %w`, err)}
 		}
 	}
 	return nil
