@@ -1159,6 +1159,23 @@ def build_list_notification_events_request(
     return HttpRequest(method="GET", url=_url, params=_params, headers=_headers, **kwargs)
 
 
+def build_create_notification_event_request(**kwargs: Any) -> HttpRequest:
+    _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+
+    content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+    accept = _headers.pop("Accept", "application/json, application/problem+json")
+
+    # Construct URL
+    _url = "/api/v1/notification/events"
+
+    # Construct headers
+    if content_type is not None:
+        _headers["Content-Type"] = _SERIALIZER.header("content_type", content_type, "str")
+    _headers["Accept"] = _SERIALIZER.header("accept", accept, "str")
+
+    return HttpRequest(method="POST", url=_url, headers=_headers, **kwargs)
+
+
 def build_get_notification_event_request(event_id: str, **kwargs: Any) -> HttpRequest:
     _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
 
@@ -1176,6 +1193,23 @@ def build_get_notification_event_request(event_id: str, **kwargs: Any) -> HttpRe
     _headers["Accept"] = _SERIALIZER.header("accept", accept, "str")
 
     return HttpRequest(method="GET", url=_url, headers=_headers, **kwargs)
+
+
+def build_receive_svix_operational_event_request(**kwargs: Any) -> HttpRequest:  # pylint: disable=name-too-long
+    _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+
+    content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+    accept = _headers.pop("Accept", "application/problem+json")
+
+    # Construct URL
+    _url = "/api/v1/notification/webhook/svix"
+
+    # Construct headers
+    if content_type is not None:
+        _headers["Content-Type"] = _SERIALIZER.header("content_type", content_type, "str")
+    _headers["Accept"] = _SERIALIZER.header("accept", accept, "str")
+
+    return HttpRequest(method="POST", url=_url, headers=_headers, **kwargs)
 
 
 class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-methods
@@ -6472,15 +6506,19 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                                           notification channel. Required. "WEBHOOK"
                                     },
                                     "state": "str",  # Required. Known values
-                                      are: "SUCCESS", "FAILED", and "SENDING".
-                                    "updatedAt": "2020-02-20 00:00:00"  #
+                                      are: "SUCCESS", "FAILED", "SENDING", and "PENDING".
+                                    "updatedAt": "2020-02-20 00:00:00",  #
                                       Required.
+                                    "reason": "str"  # Optional. The delivery
+                                      status of the notification event. Required.
                                 }
                             ],
                             "id": "str",  # A unique identifier for the notification
                               event. Required.
                             "payload": {},
-                            "rule": {}
+                            "rule": {},
+                            "type": "str"  # The type of the notification event.
+                              Required. "entitlements.balance.threshold"
                         }
                     ],
                     "page": 0,  # Current page number. Required.
@@ -6533,6 +6571,195 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             deserialized = response.json()
         else:
             deserialized = None
+
+        if cls:
+            return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
+
+        return cast(JSON, deserialized)  # type: ignore
+
+    @overload
+    def create_notification_event(self, body: JSON, *, content_type: str = "application/json", **kwargs: Any) -> JSON:
+        """Create a notification event.
+
+        Create a new notification event.
+
+        :param body: The notification event to create. Required.
+        :type body: JSON
+        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "payload": {},
+                    "ruleId": "str",  # Required.
+                    "type": "str"  # The type of the notification event. Required.
+                      "entitlements.balance.threshold"
+                }
+
+                # response body for status code(s): 409
+                response == {
+                    "detail": "str",  # A human-readable explanation specific to this occurrence
+                      of the problem. Required.
+                    "status": 0,  # The HTTP status code generated by the origin server for this
+                      occurrence of the problem. Required.
+                    "title": "str",  # A a short, human-readable summary of the problem type.
+                      Required.
+                    "type": "str",  # Type contains a URI that identifies the problem type.
+                      Required.
+                    "extensions": {
+                        "conflictingEntityId": "str"  # The id of the conflicting entity.
+                          Required.
+                    },
+                    "instance": "str"  # Optional. A URI reference that identifies the specific
+                      occurrence of the problem.
+                }
+        """
+
+    @overload
+    def create_notification_event(
+        self, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
+    ) -> JSON:
+        """Create a notification event.
+
+        Create a new notification event.
+
+        :param body: The notification event to create. Required.
+        :type body: IO[bytes]
+        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # response body for status code(s): 409
+                response == {
+                    "detail": "str",  # A human-readable explanation specific to this occurrence
+                      of the problem. Required.
+                    "status": 0,  # The HTTP status code generated by the origin server for this
+                      occurrence of the problem. Required.
+                    "title": "str",  # A a short, human-readable summary of the problem type.
+                      Required.
+                    "type": "str",  # Type contains a URI that identifies the problem type.
+                      Required.
+                    "extensions": {
+                        "conflictingEntityId": "str"  # The id of the conflicting entity.
+                          Required.
+                    },
+                    "instance": "str"  # Optional. A URI reference that identifies the specific
+                      occurrence of the problem.
+                }
+        """
+
+    @distributed_trace
+    def create_notification_event(self, body: Union[JSON, IO[bytes]], **kwargs: Any) -> JSON:
+        """Create a notification event.
+
+        Create a new notification event.
+
+        :param body: The notification event to create. Is either a JSON type or a IO[bytes] type.
+         Required.
+        :type body: JSON or IO[bytes]
+        :return: JSON object
+        :rtype: JSON
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "payload": {},
+                    "ruleId": "str",  # Required.
+                    "type": "str"  # The type of the notification event. Required.
+                      "entitlements.balance.threshold"
+                }
+
+                # response body for status code(s): 409
+                response == {
+                    "detail": "str",  # A human-readable explanation specific to this occurrence
+                      of the problem. Required.
+                    "status": 0,  # The HTTP status code generated by the origin server for this
+                      occurrence of the problem. Required.
+                    "title": "str",  # A a short, human-readable summary of the problem type.
+                      Required.
+                    "type": "str",  # Type contains a URI that identifies the problem type.
+                      Required.
+                    "extensions": {
+                        "conflictingEntityId": "str"  # The id of the conflicting entity.
+                          Required.
+                    },
+                    "instance": "str"  # Optional. A URI reference that identifies the specific
+                      occurrence of the problem.
+                }
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            501: HttpResponseError,
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _params = kwargs.pop("params", {}) or {}
+
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[JSON] = kwargs.pop("cls", None)
+
+        content_type = content_type or "application/json"
+        _json = None
+        _content = None
+        if isinstance(body, (IOBase, bytes)):
+            _content = body
+        else:
+            _json = body
+
+        _request = build_create_notification_event_request(
+            content_type=content_type,
+            json=_json,
+            content=_content,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = self._client._pipeline.run(  # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [201, 409]:
+            if _stream:
+                response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if response.status_code == 201:
+            if response.content:
+                deserialized = response.json()
+            else:
+                deserialized = None
+
+        if response.status_code == 409:
+            if response.content:
+                deserialized = response.json()
+            else:
+                deserialized = None
 
         if cls:
             return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
@@ -6593,3 +6820,132 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             return cls(pipeline_response, cast(JSON, deserialized), {})  # type: ignore
 
         return cast(JSON, deserialized)  # type: ignore
+
+    @overload
+    def receive_svix_operational_event(  # pylint: disable=inconsistent-return-statements
+        self, body: JSON, *, content_type: str = "application/json", **kwargs: Any
+    ) -> None:
+        # pylint: disable=line-too-long
+        """Receive Svix operational events.
+
+        Callback endpoint used by Svix to notify about operational events.
+
+        :param body: The operational event. Required.
+        :type body: JSON
+        :keyword content_type: Body Parameter content-type. Content type parameter for JSON body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: None
+        :rtype: None
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "data": {
+                        "str": {}  # Dictionary of :code:`<any>`. Required.
+                    },
+                    "type": "str"  # Required. Known values are: "endpoint.created",
+                      "endpoint.deleted", "endpoint.disabled", "endpoint.updated",
+                      "message.attempt.exhausted", "message.attempt.failing", and
+                      "message.attempt.recovered".
+                }
+        """
+
+    @overload
+    def receive_svix_operational_event(  # pylint: disable=inconsistent-return-statements
+        self, body: IO[bytes], *, content_type: str = "application/json", **kwargs: Any
+    ) -> None:
+        """Receive Svix operational events.
+
+        Callback endpoint used by Svix to notify about operational events.
+
+        :param body: The operational event. Required.
+        :type body: IO[bytes]
+        :keyword content_type: Body Parameter content-type. Content type parameter for binary body.
+         Default value is "application/json".
+        :paramtype content_type: str
+        :return: None
+        :rtype: None
+        :raises ~azure.core.exceptions.HttpResponseError:
+        """
+
+    @distributed_trace
+    def receive_svix_operational_event(  # pylint: disable=inconsistent-return-statements
+        self, body: Union[JSON, IO[bytes]], **kwargs: Any
+    ) -> None:
+        # pylint: disable=line-too-long
+        """Receive Svix operational events.
+
+        Callback endpoint used by Svix to notify about operational events.
+
+        :param body: The operational event. Is either a JSON type or a IO[bytes] type. Required.
+        :type body: JSON or IO[bytes]
+        :return: None
+        :rtype: None
+        :raises ~azure.core.exceptions.HttpResponseError:
+
+        Example:
+            .. code-block:: python
+
+                # JSON input template you can fill out and use as your body input.
+                body = {
+                    "data": {
+                        "str": {}  # Dictionary of :code:`<any>`. Required.
+                    },
+                    "type": "str"  # Required. Known values are: "endpoint.created",
+                      "endpoint.deleted", "endpoint.disabled", "endpoint.updated",
+                      "message.attempt.exhausted", "message.attempt.failing", and
+                      "message.attempt.recovered".
+                }
+        """
+        error_map = {
+            404: ResourceNotFoundError,
+            409: ResourceExistsError,
+            304: ResourceNotModifiedError,
+            400: HttpResponseError,
+            401: lambda response: ClientAuthenticationError(response=response),
+            501: HttpResponseError,
+        }
+        error_map.update(kwargs.pop("error_map", {}) or {})
+
+        _headers = case_insensitive_dict(kwargs.pop("headers", {}) or {})
+        _params = kwargs.pop("params", {}) or {}
+
+        content_type: Optional[str] = kwargs.pop("content_type", _headers.pop("Content-Type", None))
+        cls: ClsType[None] = kwargs.pop("cls", None)
+
+        content_type = content_type or "application/json"
+        _json = None
+        _content = None
+        if isinstance(body, (IOBase, bytes)):
+            _content = body
+        else:
+            _json = body
+
+        _request = build_receive_svix_operational_event_request(
+            content_type=content_type,
+            json=_json,
+            content=_content,
+            headers=_headers,
+            params=_params,
+        )
+        _request.url = self._client.format_url(_request.url)
+
+        _stream = False
+        pipeline_response: PipelineResponse = self._client._pipeline.run(  # pylint: disable=protected-access
+            _request, stream=_stream, **kwargs
+        )
+
+        response = pipeline_response.http_response
+
+        if response.status_code not in [204]:
+            if _stream:
+                response.read()  # Load the body in memory and close the socket
+            map_error(status_code=response.status_code, response=response, error_map=error_map)  # type: ignore
+            raise HttpResponseError(response=response)
+
+        if cls:
+            return cls(pipeline_response, None, {})  # type: ignore
