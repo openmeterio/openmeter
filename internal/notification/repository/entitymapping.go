@@ -33,3 +33,41 @@ func ChannelFromDBEntity(e db.NotificationChannel) *notification.Channel {
 		Config:   e.Config,
 	}
 }
+
+func RuleFromDBEntity(e db.NotificationRule) *notification.Rule {
+	var channels []notification.Channel
+	if len(e.Edges.Channels) > 0 {
+		for _, channel := range e.Edges.Channels {
+			if channel == nil {
+				continue
+			}
+
+			channels = append(channels, *ChannelFromDBEntity(*channel))
+		}
+	}
+
+	return &notification.Rule{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: e.Namespace,
+		},
+		ManagedModel: models.ManagedModel{
+			CreatedAt: e.CreatedAt.UTC(),
+			UpdatedAt: e.UpdatedAt.UTC(),
+			DeletedAt: func() *time.Time {
+				if e.DeletedAt == nil {
+					return nil
+				}
+
+				deletedAt := e.DeletedAt.UTC()
+
+				return &deletedAt
+			}(),
+		},
+		ID:       e.ID,
+		Type:     e.Type,
+		Name:     e.Name,
+		Disabled: e.Disabled,
+		Config:   e.Config,
+		Channels: channels,
+	}
+}

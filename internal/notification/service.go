@@ -10,7 +10,10 @@ import (
 )
 
 type Service interface {
+	FeatureService
+
 	ChannelService
+	RuleService
 }
 
 type ChannelService interface {
@@ -21,6 +24,14 @@ type ChannelService interface {
 	UpdateChannel(ctx context.Context, params UpdateChannelInput) (*Channel, error)
 }
 
+type RuleService interface {
+	ListRules(ctx context.Context, params ListRulesInput) (ListRulesResult, error)
+	CreateRule(ctx context.Context, params CreateRuleInput) (*Rule, error)
+	DeleteRule(ctx context.Context, params DeleteRuleInput) error
+	GetRule(ctx context.Context, params GetRuleInput) (*Rule, error)
+	UpdateRule(ctx context.Context, params UpdateRuleInput) (*Rule, error)
+}
+
 type FeatureService interface {
 	ListFeature(ctx context.Context, namespace string, features ...string) ([]productcatalog.Feature, error)
 }
@@ -28,18 +39,26 @@ type FeatureService interface {
 var _ Service = (*service)(nil)
 
 type service struct {
+	feature productcatalog.FeatureConnector
+
 	repo    Repository
 	webhook webhook.Handler
 }
 
 type Config struct {
 	Repository Repository
-	Webhook    webhook.Handler
+
+	FeatureConnector productcatalog.FeatureConnector
+	Webhook          webhook.Handler
 }
 
 func New(config Config) (Service, error) {
 	if config.Repository == nil {
 		return nil, errors.New("missing repository")
+	}
+
+	if config.FeatureConnector == nil {
+		return nil, errors.New("missing feature connector")
 	}
 
 	if config.Webhook == nil {
@@ -48,8 +67,23 @@ func New(config Config) (Service, error) {
 
 	return &service{
 		repo:    config.Repository,
+		feature: config.FeatureConnector,
 		webhook: config.Webhook,
 	}, nil
+}
+
+func (c service) ListFeature(ctx context.Context, namespace string, features ...string) ([]productcatalog.Feature, error) {
+	resp, err := c.feature.ListFeatures(ctx, productcatalog.ListFeaturesParams{
+		IDsOrKeys:       features,
+		Namespace:       namespace,
+		MeterSlugs:      nil,
+		IncludeArchived: false,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get features: %w", err)
+	}
+
+	return resp.Items, nil
 }
 
 func (c service) ListChannels(ctx context.Context, params ListChannelsInput) (ListChannelsResult, error) {
@@ -180,6 +214,108 @@ func (c service) UpdateChannel(ctx context.Context, params UpdateChannelInput) (
 	}
 
 	return channel, nil
+}
+
+func (c service) ListRules(ctx context.Context, params ListRulesInput) (ListRulesResult, error) {
+	if err := params.Validate(ctx, c); err != nil {
+		return ListRulesResult{}, fmt.Errorf("invalid params: %w", err)
+	}
+
+	return c.repo.ListRules(ctx, params)
+}
+
+func (c service) CreateRule(ctx context.Context, params CreateRuleInput) (*Rule, error) {
+	if err := params.Validate(ctx, c); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+
+	// FIXME: transaction
+
+	rule, err := c.repo.CreateRule(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create rule: %w", err)
+	}
+
+	for _, channel := range rule.Channels {
+		switch channel.Type {
+		case ChannelTypeWebhook:
+			_, err = c.webhook.UpdateWebhookChannels(ctx, webhook.UpdateWebhookChannelsInput{
+				Namespace: params.Namespace,
+				ID:        channel.ID,
+				AddChannels: []string{
+					rule.ID,
+				},
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to update webhook for channel: %w", err)
+			}
+		default:
+			return nil, fmt.Errorf("invalid channel type: %s", channel.Type)
+		}
+	}
+
+	return rule, nil
+}
+
+func (c service) DeleteRule(ctx context.Context, params DeleteRuleInput) error {
+	if err := params.Validate(ctx, c); err != nil {
+		return fmt.Errorf("invalid params: %w", err)
+	}
+
+	rule, err := c.repo.GetRule(ctx, GetRuleInput(params))
+	if err != nil {
+		return fmt.Errorf("failed to get rule: %w", err)
+	}
+
+	for _, channel := range rule.Channels {
+		switch channel.Type {
+		case ChannelTypeWebhook:
+			_, err = c.webhook.UpdateWebhookChannels(ctx, webhook.UpdateWebhookChannelsInput{
+				Namespace: params.Namespace,
+				ID:        channel.ID,
+				RemoveChannels: []string{
+					rule.ID,
+				},
+			})
+			if err != nil {
+				return fmt.Errorf("failed to update webhook for channel: %w", err)
+			}
+		default:
+			return fmt.Errorf("invalid channel type: %s", channel.Type)
+		}
+	}
+
+	return c.repo.DeleteRule(ctx, params)
+}
+
+func (c service) GetRule(ctx context.Context, params GetRuleInput) (*Rule, error) {
+	if err := params.Validate(ctx, c); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+
+	return c.repo.GetRule(ctx, params)
+}
+
+func (c service) UpdateRule(ctx context.Context, params UpdateRuleInput) (*Rule, error) {
+	if err := params.Validate(ctx, c); err != nil {
+		return nil, fmt.Errorf("invalid params: %w", err)
+	}
+
+	channel, err := c.repo.GetRule(ctx, GetRuleInput{
+		ID:        params.ID,
+		Namespace: params.Namespace,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get rule: %w", err)
+	}
+
+	if channel.DeletedAt != nil {
+		return nil, UpdateAfterDeleteError{
+			Err: errors.New("not allowed to update deleted rule"),
+		}
+	}
+
+	return c.repo.UpdateRule(ctx, params)
 }
 
 func interfaceMapToStringMap(m map[string]interface{}) (map[string]string, error) {
