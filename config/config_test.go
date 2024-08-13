@@ -197,44 +197,42 @@ func TestComplete(t *testing.T) {
 			},
 		},
 		BalanceWorker: BalanceWorkerConfiguration{
-			DLQ: DLQConfiguration{
-				Enabled: true,
-				Topic:   "om_sys.balance_worker_dlq",
-				AutoProvision: AutoProvisionConfiguration{
-					Enabled:    true,
-					Partitions: 1,
+			ConsumerConfiguration: ConsumerConfiguration{
+				ProcessingTimeout: 30 * time.Second,
+				Retry: RetryConfiguration{
+					InitialInterval: 10 * time.Millisecond,
+					MaxInterval:     time.Second,
+					MaxElapsedTime:  time.Minute,
 				},
-				Throttle: ThrottleConfiguration{
-					Enabled:  true,
-					Count:    10,
-					Duration: time.Second,
+				DLQ: DLQConfiguration{
+					Enabled: true,
+					Topic:   "om_sys.balance_worker_dlq",
+					AutoProvision: DLQAutoProvisionConfiguration{
+						Enabled:    true,
+						Partitions: 1,
+						Retention:  90 * 24 * time.Hour,
+					},
 				},
+				ConsumerGroupName: "om_balance_worker",
 			},
-			Retry: RetryConfiguration{
-				MaxRetries:      5,
-				InitialInterval: 100 * time.Millisecond,
-			},
-			ConsumerGroupName: "om_balance_worker",
 		},
 		Notification: NotificationConfiguration{
 			Enabled: true,
-			Consumer: NotificationConsumerConfiguration{
+			Consumer: ConsumerConfiguration{
+				ProcessingTimeout: 30 * time.Second,
+				Retry: RetryConfiguration{
+					InitialInterval: 10 * time.Millisecond,
+					MaxInterval:     time.Second,
+					MaxElapsedTime:  time.Minute,
+				},
 				DLQ: DLQConfiguration{
 					Enabled: true,
 					Topic:   "om_sys.notification_service_dlq",
-					AutoProvision: AutoProvisionConfiguration{
+					AutoProvision: DLQAutoProvisionConfiguration{
 						Enabled:    true,
 						Partitions: 1,
+						Retention:  90 * 24 * time.Hour,
 					},
-					Throttle: ThrottleConfiguration{
-						Enabled:  true,
-						Count:    10,
-						Duration: time.Second,
-					},
-				},
-				Retry: RetryConfiguration{
-					MaxRetries:      5,
-					InitialInterval: 100 * time.Millisecond,
 				},
 				ConsumerGroupName: "om_notification_service",
 			},

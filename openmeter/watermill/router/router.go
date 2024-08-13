@@ -10,6 +10,6 @@ type (
 	Options = router.Options
 )
 
-func NewDefaultRouter(opts Options, dlqHandler message.NoPublishHandlerFunc) (*message.Router, error) {
-	return router.NewDefaultRouter(opts, dlqHandler)
+func NewDefaultRouter(opts Options) (*message.Router, error) {
+	return router.NewDefaultRouter(opts)
 }

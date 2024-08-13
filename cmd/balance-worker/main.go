@@ -276,7 +276,7 @@ func main() {
 			Publisher:  eventPublisherDriver,
 			Logger:     logger,
 
-			DLQ: conf.BalanceWorker.DLQ,
+			Config: conf.BalanceWorker.ConsumerConfiguration,
 		},
 
 		EventBus: eventPublisher,
