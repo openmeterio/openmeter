@@ -26,6 +26,7 @@ type (
 	GetEntitlementHandler               = httpdriver.GetEntitlementHandler
 	GetEntitlementByIdHandler           = httpdriver.GetEntitlementByIdHandler
 	DeleteEntitlementHandler            = httpdriver.DeleteEntitlementHandler
+	OverrideEntitlementHandler          = httpdriver.OverrideEntitlementHandler
 )
 
 func NewEntitlementHandler(

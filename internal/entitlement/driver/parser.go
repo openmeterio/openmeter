@@ -9,7 +9,9 @@ import (
 	booleanentitlement "github.com/openmeterio/openmeter/internal/entitlement/boolean"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	staticentitlement "github.com/openmeterio/openmeter/internal/entitlement/static"
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/convert"
+	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
 
@@ -182,4 +184,105 @@ func mapPeriod(u *recurrence.Period) *api.Period {
 		From: u.From,
 		To:   u.To,
 	}
+}
+
+func ParseAPICreateInput(inp *api.EntitlementCreateInputs, ns string, subjectIdOrKey string) (entitlement.CreateEntitlementInputs, error) {
+	request := entitlement.CreateEntitlementInputs{}
+	if inp == nil {
+		return request, errors.New("input is nil")
+	}
+
+	value, err := inp.ValueByDiscriminator()
+	if err != nil {
+		return request, err
+	}
+
+	switch v := value.(type) {
+	case api.EntitlementMeteredCreateInputs:
+		request = entitlement.CreateEntitlementInputs{
+			Namespace:       ns,
+			FeatureID:       v.FeatureId,
+			FeatureKey:      v.FeatureKey,
+			SubjectKey:      subjectIdOrKey,
+			EntitlementType: entitlement.EntitlementTypeMetered,
+			IsSoftLimit:     v.IsSoftLimit,
+			IssueAfterReset: v.IssueAfterReset,
+			IssueAfterResetPriority: convert.SafeDeRef(v.IssueAfterResetPriority, func(i int) *uint8 {
+				return convert.ToPointer(uint8(i))
+			}),
+			UsagePeriod: &entitlement.UsagePeriod{
+				Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now()), // TODO: shouldn't we truncate this?
+				Interval: recurrence.RecurrenceInterval(v.UsagePeriod.Interval),
+			},
+			PreserveOverageAtReset: v.PreserveOverageAtReset,
+		}
+		if v.Metadata != nil {
+			request.Metadata = *v.Metadata
+		}
+		if v.MeasureUsageFrom != nil {
+			measureUsageFrom := &entitlement.MeasureUsageFromInput{}
+			apiTime, err := v.MeasureUsageFrom.AsMeasureUsageFromTime()
+			if err == nil {
+				err := measureUsageFrom.FromTime(apiTime)
+				if err != nil {
+					return request, err
+				}
+			} else {
+				apiEnum, err := v.MeasureUsageFrom.AsMeasureUsageFromEnum()
+				if err != nil {
+					return request, err
+				}
+
+				// sanity check
+				if request.UsagePeriod == nil {
+					return request, errors.New("usage period is required for enum measure usage from")
+				}
+
+				err = measureUsageFrom.FromEnum(entitlement.MeasureUsageFromEnum(apiEnum), *request.UsagePeriod, clock.Now())
+				if err != nil {
+					return request, err
+				}
+			}
+			request.MeasureUsageFrom = measureUsageFrom
+		}
+	case api.EntitlementStaticCreateInputs:
+		request = entitlement.CreateEntitlementInputs{
+			Namespace:       ns,
+			FeatureID:       v.FeatureId,
+			FeatureKey:      v.FeatureKey,
+			SubjectKey:      subjectIdOrKey,
+			EntitlementType: entitlement.EntitlementTypeStatic,
+			Config:          []byte(v.Config),
+		}
+		if v.UsagePeriod != nil {
+			request.UsagePeriod = &entitlement.UsagePeriod{
+				Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now()), // TODO: shouldn't we truncate this?
+				Interval: recurrence.RecurrenceInterval(v.UsagePeriod.Interval),
+			}
+		}
+		if v.Metadata != nil {
+			request.Metadata = *v.Metadata
+		}
+	case api.EntitlementBooleanCreateInputs:
+		request = entitlement.CreateEntitlementInputs{
+			Namespace:       ns,
+			FeatureID:       v.FeatureId,
+			FeatureKey:      v.FeatureKey,
+			SubjectKey:      subjectIdOrKey,
+			EntitlementType: entitlement.EntitlementTypeBoolean,
+		}
+		if v.UsagePeriod != nil {
+			request.UsagePeriod = &entitlement.UsagePeriod{
+				Anchor:   defaultx.WithDefault(v.UsagePeriod.Anchor, clock.Now()), // TODO: shouldn't we truncate this?
+				Interval: recurrence.RecurrenceInterval(v.UsagePeriod.Interval),
+			}
+		}
+		if v.Metadata != nil {
+			request.Metadata = *v.Metadata
+		}
+	default:
+		return request, errors.New("unknown entitlement type")
+	}
+
+	return request, nil
 }
