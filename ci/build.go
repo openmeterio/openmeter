@@ -80,6 +80,8 @@ func (m *Build) containerImage(platform dagger.Platform, version string) *dagger
 		}).
 		WithFile("/usr/local/bin/openmeter", m.Binary().api(platform, version)).
 		WithFile("/usr/local/bin/openmeter-sink-worker", m.Binary().sinkWorker(platform, version)).
+		WithFile("/usr/local/bin/openmeter-balance-worker", m.Binary().balanceWorker(platform, version)).
+		WithFile("/usr/local/bin/openmeter-notification-service", m.Binary().notificationService(platform, version)).
 		WithLabel("org.opencontainers.image.created", time.Now().String()) // TODO: embed commit timestamp
 }
 
@@ -107,6 +109,8 @@ func (m *Binary) All(
 
 	p.Go(syncFunc(m.Api(platform)))
 	p.Go(syncFunc(m.SinkWorker(platform)))
+	p.Go(syncFunc(m.BalanceWorker(platform)))
+	p.Go(syncFunc(m.NotificationService(platform)))
 	p.Go(syncFunc(m.BenthosCollector(platform)))
 
 	return p.Wait()
@@ -136,6 +140,32 @@ func (m *Binary) SinkWorker(
 
 func (m *Binary) sinkWorker(platform dagger.Platform, version string) *dagger.File {
 	return m.buildCross(platform, version, "./cmd/sink-worker").WithName("sink-worker")
+}
+
+// Build the balance worker binary.
+func (m *Binary) BalanceWorker(
+	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
+	// +optional
+	platform dagger.Platform,
+) *dagger.File {
+	return m.balanceWorker(platform, "")
+}
+
+func (m *Binary) balanceWorker(platform dagger.Platform, version string) *dagger.File {
+	return m.buildCross(platform, version, "./cmd/balance-worker").WithName("balance-worker")
+}
+
+// Build the notification service binary.
+func (m *Binary) NotificationService(
+	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
+	// +optional
+	platform dagger.Platform,
+) *dagger.File {
+	return m.notificationService(platform, "")
+}
+
+func (m *Binary) notificationService(platform dagger.Platform, version string) *dagger.File {
+	return m.buildCross(platform, version, "./cmd/notification-service").WithName("notification-service")
 }
 
 func (m *Binary) buildCross(platform dagger.Platform, version string, pkg string) *dagger.File {
