@@ -6,7 +6,7 @@ type (
 	Worker        = balanceworker.Worker
 	WorkerOptions = balanceworker.WorkerOptions
 
-	SubjectIDResolver = balanceworker.SubjectIDResolver
+	SubjectResolver = balanceworker.SubjectResolver
 )
 
 func New(opts WorkerOptions) (*Worker, error) {

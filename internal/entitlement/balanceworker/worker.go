@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	meteredentitlement "github.com/openmeterio/openmeter/internal/entitlement/metered"
 	"github.com/openmeterio/openmeter/internal/event/metadata"
+	"github.com/openmeterio/openmeter/internal/event/models"
 	"github.com/openmeterio/openmeter/internal/registry"
 	ingestevents "github.com/openmeterio/openmeter/internal/sink/flushhandler/ingestnotification/events"
 	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
@@ -31,8 +32,8 @@ const (
 
 type NamespacedID = pkgmodels.NamespacedID
 
-type SubjectIDResolver interface {
-	GetSubjectIDByKey(ctx context.Context, namespace, key string) (string, error)
+type SubjectResolver interface {
+	GetSubjectByKey(ctx context.Context, namespace, key string) (models.Subject, error)
 }
 
 type WorkerOptions struct {
@@ -45,7 +46,7 @@ type WorkerOptions struct {
 	Entitlement *registry.Entitlement
 	Repo        BalanceWorkerRepository
 	// External connectors
-	SubjectIDResolver SubjectIDResolver
+	SubjectResolver SubjectResolver
 
 	Logger *slog.Logger
 }

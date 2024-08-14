@@ -29,17 +29,17 @@ const (
 )
 
 type RecalculatorOptions struct {
-	Entitlement       *registry.Entitlement
-	Namespace         string
-	SubjectIDResolver SubjectIDResolver
-	EventBus          eventbus.Publisher
+	Entitlement     *registry.Entitlement
+	Namespace       string
+	SubjectResolver SubjectResolver
+	EventBus        eventbus.Publisher
 }
 
 type Recalculator struct {
 	opts RecalculatorOptions
 
-	featureCache   *lru.Cache[string, productcatalog.Feature]
-	subjectIDCache *lru.Cache[string, string]
+	featureCache *lru.Cache[string, productcatalog.Feature]
+	subjectCache *lru.Cache[string, models.Subject]
 }
 
 func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
@@ -48,15 +48,15 @@ func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
 		return nil, fmt.Errorf("failed to create feature cache: %w", err)
 	}
 
-	subjectIDCache, err := lru.New[string, string](defaultLRUCacheSize)
+	subjectCache, err := lru.New[string, models.Subject](defaultLRUCacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create subject ID cache: %w", err)
 	}
 
 	return &Recalculator{
-		opts:           opts,
-		featureCache:   featureCache,
-		subjectIDCache: subjectIDCache,
+		opts:         opts,
+		featureCache: featureCache,
+		subjectCache: subjectCache,
 	}, nil
 }
 
@@ -95,7 +95,7 @@ func (r *Recalculator) processEntitlements(ctx context.Context, entitlements []e
 }
 
 func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent entitlement.Entitlement) error {
-	subjectID, err := r.getSubjectIDByKey(ctx, r.opts.Namespace, ent.SubjectKey)
+	subject, err := r.getSubjectByKey(ctx, r.opts.Namespace, ent.SubjectKey)
 	if err != nil {
 		return err
 	}
@@ -112,10 +112,7 @@ func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent enti
 			Namespace: models.NamespaceID{
 				ID: ent.Namespace,
 			},
-			Subject: models.SubjectKeyAndID{
-				Key: ent.SubjectKey,
-				ID:  subjectID,
-			},
+			Subject:   subject,
 			Feature:   feature,
 			Operation: snapshot.ValueOperationDelete,
 
@@ -129,7 +126,7 @@ func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent enti
 }
 
 func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent entitlement.Entitlement) error {
-	subjectID, err := r.getSubjectIDByKey(ctx, r.opts.Namespace, ent.SubjectKey)
+	subject, err := r.getSubjectByKey(ctx, r.opts.Namespace, ent.SubjectKey)
 	if err != nil {
 		return err
 	}
@@ -158,10 +155,7 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 			Namespace: models.NamespaceID{
 				ID: ent.Namespace,
 			},
-			Subject: models.SubjectKeyAndID{
-				Key: ent.SubjectKey,
-				ID:  subjectID,
-			},
+			Subject:   subject,
 			Feature:   feature,
 			Operation: snapshot.ValueOperationUpdate,
 
@@ -175,21 +169,25 @@ func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent enti
 	return r.opts.EventBus.Publish(ctx, event)
 }
 
-func (r *Recalculator) getSubjectIDByKey(ctx context.Context, ns, key string) (string, error) {
-	if r.opts.SubjectIDResolver == nil {
-		return "", nil
+func (r *Recalculator) getSubjectByKey(ctx context.Context, ns, key string) (models.Subject, error) {
+	if r.opts.SubjectResolver == nil {
+		return models.Subject{
+			Key: key,
+		}, nil
 	}
 
-	if id, ok := r.subjectIDCache.Get(key); ok {
+	if id, ok := r.subjectCache.Get(key); ok {
 		return id, nil
 	}
 
-	id, err := r.opts.SubjectIDResolver.GetSubjectIDByKey(ctx, ns, key)
+	id, err := r.opts.SubjectResolver.GetSubjectByKey(ctx, ns, key)
 	if err != nil {
-		return "", err
+		return models.Subject{
+			Key: key,
+		}, err
 	}
 
-	r.subjectIDCache.Add(key, id)
+	r.subjectCache.Add(key, id)
 	return id, nil
 }
 
