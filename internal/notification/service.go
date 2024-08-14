@@ -134,53 +134,55 @@ func (c service) CreateChannel(ctx context.Context, params CreateChannelInput) (
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
-	// FIXME: this must be in transaction
+	txFunc := func(ctx context.Context, repo TxRepository) (*Channel, error) {
+		channel, err := repo.CreateChannel(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create channel: %w", err)
+		}
 
-	channel, err := c.repo.CreateChannel(ctx, params)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create channel: %w", err)
+		switch params.Type {
+		case ChannelTypeWebhook:
+			var headers map[string]string
+			headers, err = interfaceMapToStringMap(channel.Config.WebHook.CustomHeaders)
+			if err != nil {
+				return nil, fmt.Errorf("failed to cast custom headers: %w", err)
+			}
+
+			var wb *webhook.Webhook
+			wb, err = c.webhook.CreateWebhook(ctx, webhook.CreateWebhookInput{
+				Namespace:     params.Namespace,
+				ID:            &channel.ID,
+				URL:           channel.Config.WebHook.URL,
+				CustomHeaders: headers,
+				Disabled:      channel.Disabled,
+				Secret:        &channel.Config.WebHook.SigningSecret,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to create webhook for channel: %w", err)
+			}
+
+			updateIn := UpdateChannelInput{
+				NamespacedModel: channel.NamespacedModel,
+				Type:            channel.Type,
+				Name:            channel.Name,
+				Disabled:        channel.Disabled,
+				Config:          channel.Config,
+				ID:              channel.ID,
+			}
+			updateIn.Config.WebHook.SigningSecret = wb.Secret
+
+			channel, err = repo.UpdateChannel(ctx, updateIn)
+			if err != nil {
+				return nil, fmt.Errorf("failed to update channel: %w", err)
+			}
+		default:
+			return nil, fmt.Errorf("invalid channel type: %s", channel.Type)
+		}
+
+		return channel, nil
 	}
 
-	switch params.Type {
-	case ChannelTypeWebhook:
-		var headers map[string]string
-		headers, err = interfaceMapToStringMap(channel.Config.WebHook.CustomHeaders)
-		if err != nil {
-			return nil, fmt.Errorf("failed to cast custom headers: %w", err)
-		}
-
-		var wb *webhook.Webhook
-		wb, err = c.webhook.CreateWebhook(ctx, webhook.CreateWebhookInput{
-			Namespace:     params.Namespace,
-			ID:            &channel.ID,
-			URL:           channel.Config.WebHook.URL,
-			CustomHeaders: headers,
-			Disabled:      channel.Disabled,
-			Secret:        &channel.Config.WebHook.SigningSecret,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to create webhook for channel: %w", err)
-		}
-
-		updateIn := UpdateChannelInput{
-			NamespacedModel: channel.NamespacedModel,
-			Type:            channel.Type,
-			Name:            channel.Name,
-			Disabled:        channel.Disabled,
-			Config:          channel.Config,
-			ID:              channel.ID,
-		}
-		updateIn.Config.WebHook.SigningSecret = wb.Secret
-
-		channel, err = c.repo.UpdateChannel(ctx, updateIn)
-		if err != nil {
-			return nil, fmt.Errorf("failed to update channel: %w", err)
-		}
-	default:
-		return nil, fmt.Errorf("invalid channel type: %s", channel.Type)
-	}
-
-	return channel, nil
+	return WithTx[*Channel](ctx, c.repo, txFunc)
 }
 
 func (c service) DeleteChannel(ctx context.Context, params DeleteChannelInput) error {
@@ -188,7 +190,18 @@ func (c service) DeleteChannel(ctx context.Context, params DeleteChannelInput) e
 		return fmt.Errorf("invalid params: %w", err)
 	}
 
-	return c.repo.DeleteChannel(ctx, params)
+	txFunc := func(ctx context.Context, repo TxRepository) error {
+		if err := c.webhook.DeleteWebhook(ctx, webhook.DeleteWebhookInput{
+			Namespace: params.Namespace,
+			ID:        params.ID,
+		}); err != nil {
+			return fmt.Errorf("failed to delete webhook: %w", err)
+		}
+
+		return repo.DeleteChannel(ctx, params)
+	}
+
+	return WithTxNoValue(ctx, c.repo, txFunc)
 }
 
 func (c service) GetChannel(ctx context.Context, params GetChannelInput) (*Channel, error) {
@@ -218,37 +231,39 @@ func (c service) UpdateChannel(ctx context.Context, params UpdateChannelInput) (
 		}
 	}
 
-	// FIXME: this must to be in transaction
-
-	channel, err = c.repo.UpdateChannel(ctx, params)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create channel: %w", err)
-	}
-
-	switch params.Type {
-	case ChannelTypeWebhook:
-		var headers map[string]string
-		headers, err = interfaceMapToStringMap(channel.Config.WebHook.CustomHeaders)
+	txFunc := func(ctx context.Context, repo TxRepository) (*Channel, error) {
+		channel, err = repo.UpdateChannel(ctx, params)
 		if err != nil {
-			return nil, fmt.Errorf("failed to cast custom headers: %w", err)
+			return nil, fmt.Errorf("failed to create channel: %w", err)
 		}
 
-		_, err = c.webhook.UpdateWebhook(ctx, webhook.UpdateWebhookInput{
-			Namespace:     params.Namespace,
-			ID:            channel.ID,
-			URL:           channel.Config.WebHook.URL,
-			CustomHeaders: headers,
-			Disabled:      channel.Disabled,
-			Secret:        &channel.Config.WebHook.SigningSecret,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to update webhook for channel: %w", err)
+		switch params.Type {
+		case ChannelTypeWebhook:
+			var headers map[string]string
+			headers, err = interfaceMapToStringMap(channel.Config.WebHook.CustomHeaders)
+			if err != nil {
+				return nil, fmt.Errorf("failed to cast custom headers: %w", err)
+			}
+
+			_, err = c.webhook.UpdateWebhook(ctx, webhook.UpdateWebhookInput{
+				Namespace:     params.Namespace,
+				ID:            channel.ID,
+				URL:           channel.Config.WebHook.URL,
+				CustomHeaders: headers,
+				Disabled:      channel.Disabled,
+				Secret:        &channel.Config.WebHook.SigningSecret,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to update webhook for channel: %w", err)
+			}
+		default:
+			return nil, fmt.Errorf("invalid channel type: %s", channel.Type)
 		}
-	default:
-		return nil, fmt.Errorf("invalid channel type: %s", channel.Type)
+
+		return channel, nil
 	}
 
-	return channel, nil
+	return WithTx[*Channel](ctx, c.repo, txFunc)
 }
 
 func (c service) ListRules(ctx context.Context, params ListRulesInput) (ListRulesResult, error) {
@@ -264,32 +279,34 @@ func (c service) CreateRule(ctx context.Context, params CreateRuleInput) (*Rule,
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
-	// FIXME: transaction
-
-	rule, err := c.repo.CreateRule(ctx, params)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create rule: %w", err)
-	}
-
-	for _, channel := range rule.Channels {
-		switch channel.Type {
-		case ChannelTypeWebhook:
-			_, err = c.webhook.UpdateWebhookChannels(ctx, webhook.UpdateWebhookChannelsInput{
-				Namespace: params.Namespace,
-				ID:        channel.ID,
-				AddChannels: []string{
-					rule.ID,
-				},
-			})
-			if err != nil {
-				return nil, fmt.Errorf("failed to update webhook for channel: %w", err)
-			}
-		default:
-			return nil, fmt.Errorf("invalid channel type: %s", channel.Type)
+	txFunc := func(ctx context.Context, repo TxRepository) (*Rule, error) {
+		rule, err := repo.CreateRule(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create rule: %w", err)
 		}
+
+		for _, channel := range rule.Channels {
+			switch channel.Type {
+			case ChannelTypeWebhook:
+				_, err = c.webhook.UpdateWebhookChannels(ctx, webhook.UpdateWebhookChannelsInput{
+					Namespace: params.Namespace,
+					ID:        channel.ID,
+					AddChannels: []string{
+						rule.ID,
+					},
+				})
+				if err != nil {
+					return nil, fmt.Errorf("failed to update webhook for channel: %w", err)
+				}
+			default:
+				return nil, fmt.Errorf("invalid channel type: %s", channel.Type)
+			}
+		}
+
+		return rule, nil
 	}
 
-	return rule, nil
+	return WithTx[*Rule](ctx, c.repo, txFunc)
 }
 
 func (c service) DeleteRule(ctx context.Context, params DeleteRuleInput) error {
@@ -297,30 +314,34 @@ func (c service) DeleteRule(ctx context.Context, params DeleteRuleInput) error {
 		return fmt.Errorf("invalid params: %w", err)
 	}
 
-	rule, err := c.repo.GetRule(ctx, GetRuleInput(params))
-	if err != nil {
-		return fmt.Errorf("failed to get rule: %w", err)
-	}
-
-	for _, channel := range rule.Channels {
-		switch channel.Type {
-		case ChannelTypeWebhook:
-			_, err = c.webhook.UpdateWebhookChannels(ctx, webhook.UpdateWebhookChannelsInput{
-				Namespace: params.Namespace,
-				ID:        channel.ID,
-				RemoveChannels: []string{
-					rule.ID,
-				},
-			})
-			if err != nil {
-				return fmt.Errorf("failed to update webhook for channel: %w", err)
-			}
-		default:
-			return fmt.Errorf("invalid channel type: %s", channel.Type)
+	txFunc := func(ctx context.Context, repo TxRepository) error {
+		rule, err := c.repo.GetRule(ctx, GetRuleInput(params))
+		if err != nil {
+			return fmt.Errorf("failed to get rule: %w", err)
 		}
+
+		for _, channel := range rule.Channels {
+			switch channel.Type {
+			case ChannelTypeWebhook:
+				_, err = c.webhook.UpdateWebhookChannels(ctx, webhook.UpdateWebhookChannelsInput{
+					Namespace: params.Namespace,
+					ID:        channel.ID,
+					RemoveChannels: []string{
+						rule.ID,
+					},
+				})
+				if err != nil {
+					return fmt.Errorf("failed to update webhook for channel: %w", err)
+				}
+			default:
+				return fmt.Errorf("invalid channel type: %s", channel.Type)
+			}
+		}
+
+		return c.repo.DeleteRule(ctx, params)
 	}
 
-	return c.repo.DeleteRule(ctx, params)
+	return WithTxNoValue(ctx, c.repo, txFunc)
 }
 
 func (c service) GetRule(ctx context.Context, params GetRuleInput) (*Rule, error) {
@@ -336,21 +357,25 @@ func (c service) UpdateRule(ctx context.Context, params UpdateRuleInput) (*Rule,
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
-	channel, err := c.repo.GetRule(ctx, GetRuleInput{
-		ID:        params.ID,
-		Namespace: params.Namespace,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get rule: %w", err)
-	}
-
-	if channel.DeletedAt != nil {
-		return nil, UpdateAfterDeleteError{
-			Err: errors.New("not allowed to update deleted rule"),
+	txFunc := func(ctx context.Context, repo TxRepository) (*Rule, error) {
+		channel, err := repo.GetRule(ctx, GetRuleInput{
+			ID:        params.ID,
+			Namespace: params.Namespace,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get rule: %w", err)
 		}
+
+		if channel.DeletedAt != nil {
+			return nil, UpdateAfterDeleteError{
+				Err: errors.New("not allowed to update deleted rule"),
+			}
+		}
+
+		return c.repo.UpdateRule(ctx, params)
 	}
 
-	return c.repo.UpdateRule(ctx, params)
+	return WithTx[*Rule](ctx, c.repo, txFunc)
 }
 
 func (c service) ListEvents(ctx context.Context, params ListEventsInput) (ListEventsResult, error) {
