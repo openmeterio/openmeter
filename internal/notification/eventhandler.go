@@ -47,14 +47,6 @@ func (c *EventHandlerConfig) Validate() error {
 		return fmt.Errorf("webhook is required")
 	}
 
-	if c.Logger == nil {
-		c.Logger = slog.Default()
-	}
-
-	if c.ReconcileInterval == 0 {
-		c.ReconcileInterval = DefaultReconcileInterval
-	}
-
 	return nil
 }
 
@@ -248,9 +240,19 @@ func NewEventHandler(config EventHandlerConfig) (EventHandler, error) {
 		return nil, err
 	}
 
+	if config.ReconcileInterval == 0 {
+		config.ReconcileInterval = DefaultReconcileInterval
+	}
+
+	if config.Logger == nil {
+		config.Logger = slog.Default()
+	}
+
 	return &handler{
-		repo:    config.Repository,
-		webhook: config.Webhook,
-		stopCh:  make(chan struct{}),
+		repo:              config.Repository,
+		webhook:           config.Webhook,
+		reconcileInterval: config.ReconcileInterval,
+		logger:            config.Logger,
+		stopCh:            make(chan struct{}),
 	}, nil
 }
