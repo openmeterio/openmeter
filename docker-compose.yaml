@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.0
@@ -51,10 +49,10 @@ services:
       retries: 100
 
   # Deduplication
-  # docker compose --profile dedupe-redis up
+  # docker compose --profile redis up
   redis:
     profiles:
-      - dedupe-redis
+      - redis
     image: redis:7.0.12-alpine
     ports:
       - 127.0.0.1:6379:6379
@@ -101,3 +99,21 @@ services:
       - "postgres"
       - "-c"
       - "wal_level=logical"
+
+  svix:
+    image: svix/svix-server:v1.29
+    profiles:
+      - webhook
+    environment:
+      WAIT_FOR: "true"  # We want to wait for the default services
+      SVIX_REDIS_DSN: "redis://redis:6379"
+      SVIX_DB_DSN: "postgresql://postgres:postgres@postgres/postgres"
+      SVIX_CACHE_TYPE: "redis"
+      SVIX_JWT_SECRET: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MjI5NzYyNzMsImV4cCI6MjAzODMzNjI3MywibmJmIjoxNzIyOTc2MjczLCJpc3MiOiJzdml4LXNlcnZlciIsInN1YiI6Im9yZ18yM3JiOFlkR3FNVDBxSXpwZ0d3ZFhmSGlyTXUifQ.PomP6JWRI62W5N4GtNdJm2h635Q5F54eij0J3BU-_Ds"
+      SVIX_LOG_LEVEL: "info"
+      SVIX_QUEUE_TYPE: "redis"
+    ports:
+      - "8071:8071"
+    depends_on:
+      - postgres
+      - redis

@@ -1,9 +1,9 @@
 # A Self-Documenting Makefile: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 
 .PHONY: up
-up: ## Start the dependencies via docker compose
+up: ## Start the dependencies via docker compose. `export COMPOSE_PROFILES=dev,redis,...`
 	$(call print-target)
-	docker compose --profile ksqldb up -d
+	docker compose up -d
 
 .PHONY: down
 down: ## Stop the dependencies via docker compose
