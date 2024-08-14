@@ -15,7 +15,7 @@
 
       systems = [ "x86_64-linux" "x86_64-darwin" "aarch64-darwin" "aarch64-linux" ];
 
-      perSystem = { config, self', inputs', pkgs, system, ... }: rec {
+      perSystem = { config, self', inputs', pkgs, lib, system, ... }: rec {
         _module.args.pkgs = import inputs.nixpkgs {
           inherit system;
 
@@ -117,7 +117,14 @@
             containers = pkgs.lib.mkForce { };
           };
 
-          ci = devenv.shells.default;
+          ci = lib.mkMerge [
+            devenv.shells.default
+            {
+              packages = with pkgs; [
+                git
+              ] ++ devenv.shells.default.packages;
+            }
+          ];
         };
 
         packages = {
