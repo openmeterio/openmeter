@@ -8,6 +8,7 @@ const (
 	clickhouseVersion = "24.5.5.78"
 	redisVersion      = "7.0.12"
 	postgresVersion   = "14.9"
+	svixVersion       = "v1.29"
 
 	// TODO: add update mechanism for versions below
 

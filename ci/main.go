@@ -87,7 +87,10 @@ func (m *Ci) Test() *dagger.Container {
 		WithSource(m.Source).
 		Container().
 		WithServiceBinding("postgres", postgres()).
+		WithServiceBinding("svix", svix()).
 		WithEnvVariable("POSTGRES_HOST", "postgres").
+		WithEnvVariable("SVIX_HOST", "svix").
+		WithEnvVariable("SVIX_JWT_SECRET", SvixJWTSingingSecret).
 		WithExec([]string{"go", "test", "-tags", "musl", "-v", "./..."})
 }
 

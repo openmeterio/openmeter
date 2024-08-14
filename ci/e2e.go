@@ -79,3 +79,20 @@ func postgres() *dagger.Service {
 		WithExposedPort(5432).
 		AsService()
 }
+
+const (
+	SvixJWTSingingSecret = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MjI5NzYyNzMsImV4cCI6MjAzODMzNjI3MywibmJmIjoxNzIyOTc2MjczLCJpc3MiOiJzdml4LXNlcnZlciIsInN1YiI6Im9yZ18yM3JiOFlkR3FNVDBxSXpwZ0d3ZFhmSGlyTXUifQ.PomP6JWRI62W5N4GtNdJm2h635Q5F54eij0J3BU-_Ds"
+)
+
+func svix() *dagger.Service {
+	return dag.Container().
+		From(fmt.Sprintf("svix/svix-server:%s", svixVersion)).
+		WithEnvVariable("WAIT_FOR", "true").
+		WithEnvVariable("SVIX_QUEUE_TYPE", "memory").
+		WithEnvVariable("SVIX_CACHE_TYPE", "memory").
+		WithEnvVariable("SVIX_DB_DSN", "postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable").
+		WithEnvVariable("SVIX_JWT_SECRET", SvixJWTSingingSecret).
+		WithServiceBinding("postgres", postgres()).
+		WithExposedPort(8071).
+		AsService()
+}
