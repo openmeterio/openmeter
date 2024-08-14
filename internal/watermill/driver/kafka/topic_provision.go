@@ -3,6 +3,8 @@ package kafka
 import (
 	"context"
 	"log/slog"
+	"strconv"
+	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 )
@@ -10,6 +12,7 @@ import (
 type AutoProvisionTopic struct {
 	Topic         string
 	NumPartitions int32
+	Retention     time.Duration
 }
 
 // provisionTopics creates the topics if they don't exist. This relies on the confluent kafka lib, as the sarama doesn't seem to
@@ -26,10 +29,15 @@ func provisionTopics(ctx context.Context, logger *slog.Logger, config kafka.Conf
 	defer adminClient.Close()
 
 	for _, topic := range topics {
+		topicConfig := map[string]string{}
+		if topic.Retention > 0 {
+			topicConfig["retention.ms"] = strconv.FormatInt(topic.Retention.Milliseconds(), 10)
+		}
 		result, err := adminClient.CreateTopics(ctx, []kafka.TopicSpecification{
 			{
 				Topic:         topic.Topic,
 				NumPartitions: int(topic.NumPartitions),
+				Config:        topicConfig,
 			},
 		})
 		if err != nil {

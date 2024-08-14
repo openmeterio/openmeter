@@ -341,6 +341,7 @@ func initEventPublisherDriver(ctx context.Context, broker watermillkafka.BrokerO
 		provisionTopics = append(provisionTopics, watermillkafka.AutoProvisionTopic{
 			Topic:         conf.BalanceWorker.DLQ.Topic,
 			NumPartitions: int32(conf.BalanceWorker.DLQ.AutoProvision.Partitions),
+			Retention:     conf.BalanceWorker.DLQ.AutoProvision.Retention,
 		})
 	}
 
