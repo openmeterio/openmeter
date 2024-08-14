@@ -117,14 +117,19 @@
             containers = pkgs.lib.mkForce { };
           };
 
-          ci = lib.mkMerge [
-            devenv.shells.default
-            {
-              packages = with pkgs; [
-                git
-              ] ++ devenv.shells.default.packages;
-            }
-          ];
+          ci = devenv.shells.default;
+
+          # Lighteweight target to use inside dagger
+          dagger = {
+            languages = {
+              go = devenv.shells.default.languages.go;
+            };
+            packages = with pkgs; [
+              gnumake
+              git
+              atlasx
+            ];
+          };
         };
 
         packages = {
@@ -171,7 +176,7 @@
 
               src = pkgs.fetchurl {
                 # License: https://ariga.io/legal/atlas/eula/eula-20240804.pdf
-                url = "https://release.ariga.io/atlas/atlas-${"${systemMappings."${system}" }"}-v${version}";
+                url = "https://release.ariga.io/atlas/atlas-${systemMappings."${system}"}-v${version}";
                 hash = hashMappings."${system}";
               };
 
