@@ -222,7 +222,7 @@ func main() {
 	// Create  subscriber
 	wmSubscriber, err := watermillkafka.NewSubscriber(watermillkafka.SubscriberOptions{
 		Broker:            wmBrokerConfiguration(conf, logger, metricMeter),
-		ConsumerGroupName: conf.NotificationService.Consumer.ConsumerGroupName,
+		ConsumerGroupName: conf.Notification.Consumer.ConsumerGroupName,
 	})
 	if err != nil {
 		logger.Error("failed to initialize Kafka subscriber", slog.String("error", err.Error()))
@@ -271,7 +271,7 @@ func main() {
 			Publisher:  eventPublisherDriver,
 			Logger:     logger,
 
-			DLQ: conf.NotificationService.Consumer.DLQ,
+			DLQ: conf.Notification.Consumer.DLQ,
 		},
 		Marshaler: eventPublisher.Marshaler(),
 
@@ -330,10 +330,10 @@ func wmBrokerConfiguration(conf config.Configuration, logger *slog.Logger, metri
 
 func initEventPublisherDriver(ctx context.Context, logger *slog.Logger, conf config.Configuration, metricMeter metric.Meter) (message.Publisher, error) {
 	provisionTopics := []watermillkafka.AutoProvisionTopic{}
-	if conf.NotificationService.Consumer.DLQ.AutoProvision.Enabled {
+	if conf.Notification.Consumer.DLQ.AutoProvision.Enabled {
 		provisionTopics = append(provisionTopics, watermillkafka.AutoProvisionTopic{
-			Topic:         conf.NotificationService.Consumer.DLQ.Topic,
-			NumPartitions: int32(conf.NotificationService.Consumer.DLQ.AutoProvision.Partitions),
+			Topic:         conf.Notification.Consumer.DLQ.Topic,
+			NumPartitions: int32(conf.Notification.Consumer.DLQ.AutoProvision.Partitions),
 		})
 	}
 
