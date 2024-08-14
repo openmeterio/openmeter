@@ -129,6 +129,7 @@
               git
               atlasx
             ];
+            containers = devenv.shells.default.containers;
           };
         };
 
