@@ -1,7 +1,6 @@
 package notification
 
 import (
-	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -87,22 +86,9 @@ const (
 )
 
 func NewTestEnv() (TestEnv, error) {
-	postgresHost := defaultx.IfZero(os.Getenv("POSTGRES_HOST"), DefaultPostgresHost)
-	if postgresHost == "" {
-		return nil, errors.New("POSTGRES_HOST environment variable not set")
-	}
-
-	svixHost := defaultx.IfZero(os.Getenv("SVIX_HOST"), DefaultSvixHost)
-	if svixHost == "" {
-		return nil, errors.New("SVIX_HOST environment variable not set")
-	}
-
-	svixJWTSigningSecret := defaultx.IfZero(os.Getenv("SVIX_JWT_SECRET"), DefaultSvixJWTSigningSecret)
-	if svixJWTSigningSecret == "" {
-		return nil, errors.New("SVIX_JWT_SECRET environment variable not set")
-	}
-
 	logger := slog.Default().WithGroup("notification")
+
+	postgresHost := defaultx.IfZero(os.Getenv("POSTGRES_HOST"), DefaultPostgresHost)
 
 	pgClient, err := NewPGClient(fmt.Sprintf(PostgresURLTemplate, postgresHost))
 	if err != nil {
@@ -130,6 +116,9 @@ func NewTestEnv() (TestEnv, error) {
 	}
 
 	// Setup webhook provider
+
+	svixHost := defaultx.IfZero(os.Getenv("SVIX_HOST"), DefaultSvixHost)
+	svixJWTSigningSecret := defaultx.IfZero(os.Getenv("SVIX_JWT_SECRET"), DefaultSvixJWTSigningSecret)
 
 	apiToken, err := NewSvixAuthToken(svixJWTSigningSecret)
 	if err != nil {
