@@ -18,6 +18,11 @@ gen-api: ## Generate API and SDKs
 	dagger call --source .:default generate web-sdk -o api/client/web
 	dagger call --source .:default generate python-sdk -o api/client/python
 
+.PHONY: migrate-check
+migrate-check: ## Validate migrations
+	$(call print-target)
+	dagger call --source .:default migrate check
+
 .PHONY: generate
 generate: ## Generate code
 	$(call print-target)
