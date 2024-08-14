@@ -83,6 +83,7 @@ func postgres() *dagger.Service {
 	return pg().AsService()
 }
 
+// Creates a postgres service unique by name
 func postgresNamed(name string) *dagger.Service {
 	return pg().WithLabel("uniq-name", name).AsService()
 }

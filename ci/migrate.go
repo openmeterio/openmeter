@@ -30,11 +30,16 @@ func (m *Migrate) Check(
 	nix := nix(m.Source)
 	p := pool.New().WithErrors().WithContext(ctx)
 
+	// Always validate schema is generated
+	p.Go(syncFunc(nix.
+		WithExec([]string{"sh", "-c", "nix develop --impure .#dagger -c go generate ./internal/ent/..."}).
+		WithExec([]string{"sh", "-c", "nix develop --impure .#dagger -c sh -c 'if [[ -n $(git status --porcelain ./internal/ent) ]]; then echo \"Ent schema wasnt generated\"; exit 1; fi' "}),
+	))
 	// Always validate migrations are in sync with schema
 	p.Go(syncFunc(nix.
 		WithServiceBinding("postgres", postgresNamed("no-diff")).
 		WithExec([]string{"sh", "-c", "nix develop --impure .#dagger -c atlas migrate --env ci diff test"}).
-		WithExec([]string{"sh", "-c", "if [[ -n $(git status --porcelain ./tools/migrate/migrations) ]]; then echo 'Migrations directory is dirty'; exit 1; fi"}),
+		WithExec([]string{"sh", "-c", "nix develop --impure .#dagger -c sh -c 'if [[ -n $(git status --porcelain ./tools/migrate/migrations) ]]; then echo \"Migrations directory is dirty\"; exit 1; fi' "}),
 	))
 	// Always lint last 10 migrations
 	p.Go(syncFunc(nix.
