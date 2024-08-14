@@ -52,12 +52,56 @@ var _ notification.Repository = (*repository)(nil)
 
 type repository struct {
 	db *entdb.Client
+	tx *entdb.Tx
 
 	logger *slog.Logger
 }
 
+func (r repository) Commit() error {
+	if r.tx != nil {
+		return r.tx.Commit()
+	}
+
+	return nil
+}
+
+func (r repository) Rollback() error {
+	if r.tx != nil {
+		return r.tx.Rollback()
+	}
+
+	return nil
+}
+
+func (r repository) client() *entdb.Client {
+	if r.tx != nil {
+		return r.tx.Client()
+	}
+
+	return r.db
+}
+
+func (r repository) WithTx(ctx context.Context) (notification.TxRepository, error) {
+	if r.tx != nil {
+		return r, nil
+	}
+
+	tx, err := r.db.Tx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create transaction: %w", err)
+	}
+
+	return &repository{
+		db:     r.db,
+		tx:     tx,
+		logger: r.logger,
+	}, nil
+}
+
 func (r repository) ListChannels(ctx context.Context, params notification.ListChannelsInput) (pagination.PagedResponse[notification.Channel], error) {
-	query := r.db.NotificationChannel.Query().
+	db := r.client()
+
+	query := db.NotificationChannel.Query().
 		Where(channeldb.DeletedAtIsNil()) // Do not return deleted channels
 
 	if len(params.Namespaces) > 0 {
@@ -116,7 +160,9 @@ func (r repository) ListChannels(ctx context.Context, params notification.ListCh
 }
 
 func (r repository) CreateChannel(ctx context.Context, params notification.CreateChannelInput) (*notification.Channel, error) {
-	query := r.db.NotificationChannel.Create().
+	db := r.client()
+
+	query := db.NotificationChannel.Create().
 		SetType(params.Type).
 		SetName(params.Name).
 		SetNamespace(params.Namespace).
@@ -136,7 +182,9 @@ func (r repository) CreateChannel(ctx context.Context, params notification.Creat
 }
 
 func (r repository) DeleteChannel(ctx context.Context, params notification.DeleteChannelInput) error {
-	query := r.db.NotificationChannel.UpdateOneID(params.ID).
+	db := r.client()
+
+	query := db.NotificationChannel.UpdateOneID(params.ID).
 		SetDeletedAt(clock.Now().UTC()).
 		SetDisabled(true)
 
@@ -158,7 +206,9 @@ func (r repository) DeleteChannel(ctx context.Context, params notification.Delet
 }
 
 func (r repository) GetChannel(ctx context.Context, params notification.GetChannelInput) (*notification.Channel, error) {
-	query := r.db.NotificationChannel.Query().
+	db := r.client()
+
+	query := db.NotificationChannel.Query().
 		Where(channeldb.ID(params.ID)).
 		Where(channeldb.Namespace(params.Namespace))
 
@@ -184,7 +234,9 @@ func (r repository) GetChannel(ctx context.Context, params notification.GetChann
 }
 
 func (r repository) UpdateChannel(ctx context.Context, params notification.UpdateChannelInput) (*notification.Channel, error) {
-	query := r.db.NotificationChannel.UpdateOneID(params.ID).
+	db := r.client()
+
+	query := db.NotificationChannel.UpdateOneID(params.ID).
 		SetUpdatedAt(clock.Now().UTC()).
 		SetDisabled(params.Disabled).
 		SetConfig(params.Config).
@@ -212,7 +264,9 @@ func (r repository) UpdateChannel(ctx context.Context, params notification.Updat
 }
 
 func (r repository) ListRules(ctx context.Context, params notification.ListRulesInput) (pagination.PagedResponse[notification.Rule], error) {
-	query := r.db.NotificationRule.Query().
+	db := r.client()
+
+	query := db.NotificationRule.Query().
 		Where(ruledb.DeletedAtIsNil()) // Do not return deleted Rules
 
 	if len(params.Namespaces) > 0 {
@@ -273,7 +327,9 @@ func (r repository) ListRules(ctx context.Context, params notification.ListRules
 }
 
 func (r repository) CreateRule(ctx context.Context, params notification.CreateRuleInput) (*notification.Rule, error) {
-	query := r.db.NotificationRule.Create().
+	db := r.client()
+
+	query := db.NotificationRule.Create().
 		SetType(params.Type).
 		SetName(params.Name).
 		SetNamespace(params.Namespace).
@@ -290,7 +346,7 @@ func (r repository) CreateRule(ctx context.Context, params notification.CreateRu
 		return nil, fmt.Errorf("invalid query result: nil notification rule received")
 	}
 
-	channelsQuery := r.db.NotificationChannel.Query().
+	channelsQuery := db.NotificationChannel.Query().
 		Where(channeldb.Namespace(params.Namespace)).
 		Where(channeldb.IDIn(params.Channels...))
 
@@ -305,7 +361,9 @@ func (r repository) CreateRule(ctx context.Context, params notification.CreateRu
 }
 
 func (r repository) DeleteRule(ctx context.Context, params notification.DeleteRuleInput) error {
-	query := r.db.NotificationRule.UpdateOneID(params.ID).
+	db := r.client()
+
+	query := db.NotificationRule.UpdateOneID(params.ID).
 		Where(ruledb.Namespace(params.Namespace)).
 		SetDeletedAt(clock.Now().UTC()).
 		SetDisabled(true)
@@ -328,7 +386,9 @@ func (r repository) DeleteRule(ctx context.Context, params notification.DeleteRu
 }
 
 func (r repository) GetRule(ctx context.Context, params notification.GetRuleInput) (*notification.Rule, error) {
-	query := r.db.NotificationRule.Query().
+	db := r.client()
+
+	query := db.NotificationRule.Query().
 		Where(ruledb.ID(params.ID)).
 		Where(ruledb.Namespace(params.Namespace)).
 		WithChannels()
@@ -355,7 +415,9 @@ func (r repository) GetRule(ctx context.Context, params notification.GetRuleInpu
 }
 
 func (r repository) UpdateRule(ctx context.Context, params notification.UpdateRuleInput) (*notification.Rule, error) {
-	query := r.db.NotificationRule.UpdateOneID(params.ID).
+	db := r.client()
+
+	query := db.NotificationRule.UpdateOneID(params.ID).
 		SetUpdatedAt(clock.Now().UTC()).
 		SetDisabled(params.Disabled).
 		SetConfig(params.Config).
@@ -380,7 +442,7 @@ func (r repository) UpdateRule(ctx context.Context, params notification.UpdateRu
 		return nil, fmt.Errorf("invalid query result: nil notification rule received")
 	}
 
-	channelsQuery := r.db.NotificationChannel.Query().
+	channelsQuery := db.NotificationChannel.Query().
 		Where(channeldb.Namespace(params.Namespace)).
 		Where(channeldb.IDIn(params.Channels...))
 
@@ -395,7 +457,9 @@ func (r repository) UpdateRule(ctx context.Context, params notification.UpdateRu
 }
 
 func (r repository) ListEvents(ctx context.Context, params notification.ListEventsInput) (pagination.PagedResponse[notification.Event], error) {
-	query := r.db.NotificationEvent.Query()
+	db := r.client()
+
+	query := db.NotificationEvent.Query()
 
 	if len(params.Namespaces) > 0 {
 		query = query.Where(eventdb.NamespaceIn(params.Namespaces...))
@@ -471,7 +535,9 @@ func (r repository) ListEvents(ctx context.Context, params notification.ListEven
 }
 
 func (r repository) GetEvent(ctx context.Context, params notification.GetEventInput) (*notification.Event, error) {
-	query := r.db.NotificationEvent.Query().
+	db := r.client()
+
+	query := db.NotificationEvent.Query().
 		Where(eventdb.Namespace(params.Namespace)).
 		Where(eventdb.ID(params.ID)).
 		WithDeliveryStatuses().
@@ -509,7 +575,9 @@ func (r repository) CreateEvent(ctx context.Context, params notification.CreateE
 		return nil, fmt.Errorf("failed to serialize notification event payload: %w", err)
 	}
 
-	query := r.db.NotificationEvent.Create().
+	db := r.client()
+
+	query := db.NotificationEvent.Create().
 		SetType(params.Type).
 		SetNamespace(params.Namespace).
 		SetRuleID(params.RuleID).
@@ -524,7 +592,7 @@ func (r repository) CreateEvent(ctx context.Context, params notification.CreateE
 		return nil, errors.New("invalid query response: nil notification event received")
 	}
 
-	ruleQuery := r.db.NotificationRule.Query().
+	ruleQuery := db.NotificationRule.Query().
 		Where(ruledb.Namespace(params.Namespace)).
 		Where(ruledb.ID(params.RuleID)).
 		Where(ruledb.DeletedAtIsNil()).
@@ -560,7 +628,7 @@ func (r repository) CreateEvent(ctx context.Context, params notification.CreateE
 			continue
 		}
 
-		q := r.db.NotificationEventDeliveryStatus.Create().
+		q := db.NotificationEventDeliveryStatus.Create().
 			SetNamespace(params.Namespace).
 			SetEventID(eventRow.ID).
 			SetChannelID(channel.ID).
@@ -570,7 +638,7 @@ func (r repository) CreateEvent(ctx context.Context, params notification.CreateE
 		statusBulkQuery = append(statusBulkQuery, q)
 	}
 
-	statusQuery := r.db.NotificationEventDeliveryStatus.CreateBulk(statusBulkQuery...)
+	statusQuery := db.NotificationEventDeliveryStatus.CreateBulk(statusBulkQuery...)
 
 	statusRows, err := statusQuery.Save(ctx)
 	if err != nil {
@@ -588,7 +656,9 @@ func (r repository) CreateEvent(ctx context.Context, params notification.CreateE
 }
 
 func (r repository) ListEventsDeliveryStatus(ctx context.Context, params notification.ListEventsDeliveryStatusInput) (pagination.PagedResponse[notification.EventDeliveryStatus], error) {
-	query := r.db.NotificationEventDeliveryStatus.Query()
+	db := r.client()
+
+	query := db.NotificationEventDeliveryStatus.Query()
 
 	if len(params.Namespaces) > 0 {
 		query = query.Where(statusdb.NamespaceIn(params.Namespaces...))
@@ -640,7 +710,9 @@ func (r repository) ListEventsDeliveryStatus(ctx context.Context, params notific
 }
 
 func (r repository) GetEventDeliveryStatus(ctx context.Context, params notification.GetEventDeliveryStatusInput) (*notification.EventDeliveryStatus, error) {
-	query := r.db.NotificationEventDeliveryStatus.Query().
+	db := r.client()
+
+	query := db.NotificationEventDeliveryStatus.Query().
 		Where(statusdb.Namespace(params.Namespace)).
 		Where(statusdb.ID(params.ID))
 
@@ -667,10 +739,12 @@ func (r repository) GetEventDeliveryStatus(ctx context.Context, params notificat
 func (r repository) UpdateEventDeliveryStatus(ctx context.Context, params notification.UpdateEventDeliveryStatusInput) (*notification.EventDeliveryStatus, error) {
 	var updateQuery *entdb.NotificationEventDeliveryStatusUpdateOne
 
+	db := r.client()
+
 	if params.ID != "" {
-		updateQuery = r.db.NotificationEventDeliveryStatus.UpdateOneID(params.ID).SetState(params.State)
+		updateQuery = db.NotificationEventDeliveryStatus.UpdateOneID(params.ID).SetState(params.State)
 	} else {
-		getQuery := r.db.NotificationEventDeliveryStatus.Query().
+		getQuery := db.NotificationEventDeliveryStatus.Query().
 			Where(statusdb.Namespace(params.Namespace)).
 			Where(statusdb.EventID(params.EventID)).
 			Where(statusdb.ChannelID(params.ChannelID))
@@ -689,7 +763,7 @@ func (r repository) UpdateEventDeliveryStatus(ctx context.Context, params notifi
 			return nil, fmt.Errorf("failed to udpate notification event delivery status: %w", err)
 		}
 
-		updateQuery = r.db.NotificationEventDeliveryStatus.UpdateOne(statusRow).
+		updateQuery = db.NotificationEventDeliveryStatus.UpdateOne(statusRow).
 			SetState(params.State).
 			SetReason(params.Reason)
 	}
