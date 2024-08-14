@@ -70,12 +70,19 @@ func redis() *dagger.Service {
 		AsService()
 }
 
-func postgres() *dagger.Service {
+func pg() *dagger.Container {
 	return dag.Container().
 		From(fmt.Sprintf("postgres:%s", postgresVersion)).
 		WithEnvVariable("POSTGRES_USER", "postgres").
 		WithEnvVariable("POSTGRES_PASSWORD", "postgres").
 		WithEnvVariable("POSTGRES_DB", "postgres").
-		WithExposedPort(5432).
-		AsService()
+		WithExposedPort(5432)
+}
+
+func postgres() *dagger.Service {
+	return pg().AsService()
+}
+
+func postgresNamed(name string) *dagger.Service {
+	return pg().WithLabel("uniq-name", name).AsService()
 }
