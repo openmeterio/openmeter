@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/openmeterio/openmeter/ci/internal/dagger"
 	"github.com/sourcegraph/conc/pool"
@@ -20,13 +19,7 @@ type Migrate struct {
 
 func (m *Migrate) Check(
 	ctx context.Context,
-	// +optional
-	baseRef string,
 ) error {
-	if baseRef == "" {
-		baseRef = "main"
-	}
-
 	nix := nix(m.Source)
 	p := pool.New().WithErrors().WithContext(ctx)
 
@@ -45,11 +38,6 @@ func (m *Migrate) Check(
 	p.Go(syncFunc(nix.
 		WithServiceBinding("postgres", postgresNamed("last-10")).
 		WithExec([]string{"sh", "-c", "nix develop --impure .#dagger -c atlas migrate --env ci lint --latest 10"}),
-	))
-	// Always compare changes with base branch (main)
-	p.Go(syncFunc(nix.
-		WithServiceBinding("postgres", postgresNamed("basebranch")).
-		WithExec([]string{"sh", "-c", fmt.Sprintf("nix develop --impure .#dagger -c atlas migrate --env ci lint --git-base \"%s\"", baseRef)}),
 	))
 	// Validate checksum is intact
 	p.Go(syncFunc(nix.
