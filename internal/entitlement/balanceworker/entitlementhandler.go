@@ -23,11 +23,14 @@ func (w *Worker) handleEntitlementDeleteEvent(ctx context.Context, delEvent enti
 		return nil, fmt.Errorf("failed to get feature: %w", err)
 	}
 
-	subjectID := ""
-	if w.opts.SubjectIDResolver != nil {
-		subjectID, err = w.opts.SubjectIDResolver.GetSubjectIDByKey(ctx, namespace, delEvent.SubjectKey)
+	subject := models.Subject{
+		Key: delEvent.SubjectKey,
+	}
+
+	if w.opts.SubjectResolver != nil {
+		subject, err = w.opts.SubjectResolver.GetSubjectByKey(ctx, namespace, delEvent.SubjectKey)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get subject ID: %w", err)
+			return nil, fmt.Errorf("failed to get subject: %w", err)
 		}
 	}
 
@@ -40,10 +43,7 @@ func (w *Worker) handleEntitlementDeleteEvent(ctx context.Context, delEvent enti
 			Namespace: models.NamespaceID{
 				ID: namespace,
 			},
-			Subject: models.SubjectKeyAndID{
-				Key: delEvent.SubjectKey,
-				ID:  subjectID,
-			},
+			Subject:   subject,
 			Feature:   *feature,
 			Operation: snapshot.ValueOperationDelete,
 
@@ -103,9 +103,11 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementID Namespac
 		return nil, fmt.Errorf("failed to map entitlement value: %w", err)
 	}
 
-	subjectID := ""
-	if w.opts.SubjectIDResolver != nil {
-		subjectID, err = w.opts.SubjectIDResolver.GetSubjectIDByKey(ctx, entitlementID.Namespace, entitlement.SubjectKey)
+	subject := models.Subject{
+		Key: entitlement.SubjectKey,
+	}
+	if w.opts.SubjectResolver != nil {
+		subject, err = w.opts.SubjectResolver.GetSubjectByKey(ctx, entitlementID.Namespace, entitlement.SubjectKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get subject ID: %w", err)
 		}
@@ -118,10 +120,7 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementID Namespac
 			Namespace: models.NamespaceID{
 				ID: entitlementID.Namespace,
 			},
-			Subject: models.SubjectKeyAndID{
-				Key: entitlement.SubjectKey,
-				ID:  subjectID,
-			},
+			Subject:   subject,
 			Feature:   *feature,
 			Operation: snapshot.ValueOperationUpdate,
 

@@ -2,19 +2,6 @@ package models
 
 import "errors"
 
-type SubjectKeyAndID struct {
-	Key string `json:"key"`
-	ID  string `json:"id,omitempty"`
-}
-
-func (s SubjectKeyAndID) Validate() error {
-	if s.Key == "" {
-		return errors.New("key is required")
-	}
-
-	return nil
-}
-
 type FeatureKeyAndID struct {
 	Key string `json:"key"`
 	ID  string `json:"id"`

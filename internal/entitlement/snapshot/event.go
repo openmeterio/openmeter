@@ -39,7 +39,7 @@ type EntitlementValue struct {
 type SnapshotEvent struct {
 	Entitlement entitlement.Entitlement `json:"entitlement"`
 	Namespace   models.NamespaceID      `json:"namespace"`
-	Subject     models.SubjectKeyAndID  `json:"subject"`
+	Subject     models.Subject          `json:"subject"`
 	Feature     productcatalog.Feature  `json:"feature"`
 	// Operation is delete if the entitlement gets deleted, in that case the balance object is empty
 	Operation ValueOperationType `json:"operation"`
