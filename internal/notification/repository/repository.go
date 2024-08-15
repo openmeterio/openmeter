@@ -581,7 +581,8 @@ func (r repository) CreateEvent(ctx context.Context, params notification.CreateE
 		SetType(params.Type).
 		SetNamespace(params.Namespace).
 		SetRuleID(params.RuleID).
-		SetPayload(string(payloadJSON))
+		SetPayload(string(payloadJSON)).
+		SetAnnotations(params.Annotations)
 
 	eventRow, err := query.Save(ctx)
 	if err != nil {

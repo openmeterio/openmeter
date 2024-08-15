@@ -1599,6 +1599,35 @@ paths:
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
 
+  /api/v1/notification/rules/{ruleId}/test:
+    post:
+      operationId: testNotificationRule
+      summary: Test notification rule
+      description: |
+        Test a notification rule by sending a test event with random data.
+      tags:
+        - Notification (Experimental)
+      parameters:
+        - $ref: "#/components/parameters/ruleId"
+      responses:
+        "201":
+          description: Test notification event sent.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/NotificationEvent"
+        "400":
+          $ref: "#/components/responses/BadRequestProblemResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        "409":
+          $ref: "#/components/responses/ConflictProblemResponse"
+        "501":
+          $ref: "#/components/responses/NotImplementedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+
   # Notifications - Events
 
   /api/v1/notification/events:
@@ -1638,38 +1667,6 @@ paths:
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
           $ref: "#/components/responses/UnauthorizedProblemResponse"
-        default:
-          $ref: "#/components/responses/UnexpectedProblemResponse"
-    post:
-      operationId: createNotificationEvent
-      summary: Create a notification event
-      description: |
-        Create a new notification event.
-      tags:
-        - Notifications (Experimental)
-      requestBody:
-        description: The notification event to create.
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/NotificationEventCreateRequest"
-      responses:
-        "201":
-          description: Notification event created.
-          content:
-            application/json:
-              schema:
-                oneOf:
-                  - $ref: "#/components/schemas/NotificationEvent"
-        "400":
-          $ref: "#/components/responses/BadRequestProblemResponse"
-        "401":
-          $ref: "#/components/responses/UnauthorizedProblemResponse"
-        "409":
-          $ref: "#/components/responses/ConflictProblemResponse"
-        "501":
-          $ref: "#/components/responses/NotImplementedProblemResponse"
         default:
           $ref: "#/components/responses/UnexpectedProblemResponse"
 
@@ -3252,20 +3249,20 @@ components:
                 - "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
     NotificationRuleBalanceThresholdValue:
-     description: Threshold value with multiple supported types.
-     type: object
-     required:
-       - value
-       - type
-     properties:
-       value:
-         type: number
-         format: double
-       type:
-         type: string
-         enum:
-           - NUMBER
-           - PERCENT
+      description: Threshold value with multiple supported types.
+      type: object
+      required:
+        - value
+        - type
+      properties:
+        value:
+          type: number
+          format: double
+        type:
+          type: string
+          enum:
+            - NUMBER
+            - PERCENT
 
     NotificationRuleBalanceThreshold:
       description: |
@@ -3440,6 +3437,14 @@ components:
             $ref: "#/components/schemas/NotificationEventDeliveryStatus"
         payload:
           $ref: "#/components/schemas/NotificationEventPayload"
+        annotations:
+          description: |
+            List of annotations managed by the system.
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            test-event: "true"
 
     NotificationEventPayload:
       description: The actual payload sent to channel as part of the notification event.

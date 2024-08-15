@@ -64,6 +64,12 @@ func (nec *NotificationEventCreate) SetPayload(s string) *NotificationEventCreat
 	return nec
 }
 
+// SetAnnotations sets the "annotations" field.
+func (nec *NotificationEventCreate) SetAnnotations(m map[string]interface{}) *NotificationEventCreate {
+	nec.mutation.SetAnnotations(m)
+	return nec
+}
+
 // SetID sets the "id" field.
 func (nec *NotificationEventCreate) SetID(s string) *NotificationEventCreate {
 	nec.mutation.SetID(s)
@@ -186,7 +192,10 @@ func (nec *NotificationEventCreate) sqlSave(ctx context.Context) (*NotificationE
 	if err := nec.check(); err != nil {
 		return nil, err
 	}
-	_node, _spec := nec.createSpec()
+	_node, _spec, err := nec.createSpec()
+	if err != nil {
+		return nil, err
+	}
 	if err := sqlgraph.CreateNode(ctx, nec.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
 			err = &ConstraintError{msg: err.Error(), wrap: err}
@@ -205,7 +214,7 @@ func (nec *NotificationEventCreate) sqlSave(ctx context.Context) (*NotificationE
 	return _node, nil
 }
 
-func (nec *NotificationEventCreate) createSpec() (*NotificationEvent, *sqlgraph.CreateSpec) {
+func (nec *NotificationEventCreate) createSpec() (*NotificationEvent, *sqlgraph.CreateSpec, error) {
 	var (
 		_node = &NotificationEvent{config: nec.config}
 		_spec = sqlgraph.NewCreateSpec(notificationevent.Table, sqlgraph.NewFieldSpec(notificationevent.FieldID, field.TypeString))
@@ -230,6 +239,14 @@ func (nec *NotificationEventCreate) createSpec() (*NotificationEvent, *sqlgraph.
 	if value, ok := nec.mutation.Payload(); ok {
 		_spec.SetField(notificationevent.FieldPayload, field.TypeString, value)
 		_node.Payload = value
+	}
+	if value, ok := nec.mutation.Annotations(); ok {
+		vv, err := notificationevent.ValueScanner.Annotations.Value(value)
+		if err != nil {
+			return nil, nil, err
+		}
+		_spec.SetField(notificationevent.FieldAnnotations, field.TypeString, vv)
+		_node.Annotations = value
 	}
 	if nodes := nec.mutation.DeliveryStatusesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -264,7 +281,7 @@ func (nec *NotificationEventCreate) createSpec() (*NotificationEvent, *sqlgraph.
 		_node.RuleID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	return _node, _spec
+	return _node, _spec, nil
 }
 
 // OnConflict allows configuring the `ON CONFLICT` / `ON DUPLICATE KEY` clause
@@ -325,6 +342,24 @@ func (u *NotificationEventUpsert) SetPayload(v string) *NotificationEventUpsert 
 // UpdatePayload sets the "payload" field to the value that was provided on create.
 func (u *NotificationEventUpsert) UpdatePayload() *NotificationEventUpsert {
 	u.SetExcluded(notificationevent.FieldPayload)
+	return u
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *NotificationEventUpsert) SetAnnotations(v map[string]interface{}) *NotificationEventUpsert {
+	u.Set(notificationevent.FieldAnnotations, v)
+	return u
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *NotificationEventUpsert) UpdateAnnotations() *NotificationEventUpsert {
+	u.SetExcluded(notificationevent.FieldAnnotations)
+	return u
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *NotificationEventUpsert) ClearAnnotations() *NotificationEventUpsert {
+	u.SetNull(notificationevent.FieldAnnotations)
 	return u
 }
 
@@ -402,6 +437,27 @@ func (u *NotificationEventUpsertOne) UpdatePayload() *NotificationEventUpsertOne
 	})
 }
 
+// SetAnnotations sets the "annotations" field.
+func (u *NotificationEventUpsertOne) SetAnnotations(v map[string]interface{}) *NotificationEventUpsertOne {
+	return u.Update(func(s *NotificationEventUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *NotificationEventUpsertOne) UpdateAnnotations() *NotificationEventUpsertOne {
+	return u.Update(func(s *NotificationEventUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *NotificationEventUpsertOne) ClearAnnotations() *NotificationEventUpsertOne {
+	return u.Update(func(s *NotificationEventUpsert) {
+		s.ClearAnnotations()
+	})
+}
+
 // Exec executes the query.
 func (u *NotificationEventUpsertOne) Exec(ctx context.Context) error {
 	if len(u.create.conflict) == 0 {
@@ -470,7 +526,10 @@ func (necb *NotificationEventCreateBulk) Save(ctx context.Context) ([]*Notificat
 				}
 				builder.mutation = mutation
 				var err error
-				nodes[i], specs[i] = builder.createSpec()
+				nodes[i], specs[i], err = builder.createSpec()
+				if err != nil {
+					return nil, err
+				}
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, necb.builders[i+1].mutation)
 				} else {
@@ -640,6 +699,27 @@ func (u *NotificationEventUpsertBulk) SetPayload(v string) *NotificationEventUps
 func (u *NotificationEventUpsertBulk) UpdatePayload() *NotificationEventUpsertBulk {
 	return u.Update(func(s *NotificationEventUpsert) {
 		s.UpdatePayload()
+	})
+}
+
+// SetAnnotations sets the "annotations" field.
+func (u *NotificationEventUpsertBulk) SetAnnotations(v map[string]interface{}) *NotificationEventUpsertBulk {
+	return u.Update(func(s *NotificationEventUpsert) {
+		s.SetAnnotations(v)
+	})
+}
+
+// UpdateAnnotations sets the "annotations" field to the value that was provided on create.
+func (u *NotificationEventUpsertBulk) UpdateAnnotations() *NotificationEventUpsertBulk {
+	return u.Update(func(s *NotificationEventUpsert) {
+		s.UpdateAnnotations()
+	})
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (u *NotificationEventUpsertBulk) ClearAnnotations() *NotificationEventUpsertBulk {
+	return u.Update(func(s *NotificationEventUpsert) {
+		s.ClearAnnotations()
 	})
 }
 

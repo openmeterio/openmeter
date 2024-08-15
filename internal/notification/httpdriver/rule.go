@@ -7,6 +7,7 @@ import (
 
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/internal/notification"
+	"github.com/openmeterio/openmeter/internal/notification/internal"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/framework/commonhttp"
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
@@ -266,6 +267,74 @@ func (h *handler) GetRule() GetRuleHandler {
 		httptransport.AppendOptions(
 			h.options,
 			httptransport.WithOperationName("getNotificationRule"),
+			httptransport.WithErrorEncoder(errorEncoder()),
+		)...,
+	)
+}
+
+type TestRuleRequest struct {
+	models.NamespacedModel
+
+	// RuleID defines the notification Rule that generated this Event.
+	RuleID string `json:"ruleId"`
+}
+
+type (
+	TestRuleResponse = api.NotificationEvent
+	TestRuleHandler  httptransport.HandlerWithArgs[TestRuleRequest, TestRuleResponse, api.RuleId]
+)
+
+func (h *handler) TestRule() TestRuleHandler {
+	return httptransport.NewHandlerWithArgs(
+		func(ctx context.Context, r *http.Request, ruleID api.RuleId) (TestRuleRequest, error) {
+			ns, err := h.resolveNamespace(ctx)
+			if err != nil {
+				return TestRuleRequest{}, fmt.Errorf("failed to resolve namespace: %w", err)
+			}
+
+			req := TestRuleRequest{
+				NamespacedModel: models.NamespacedModel{
+					Namespace: ns,
+				},
+				RuleID: ruleID,
+			}
+
+			return req, nil
+		},
+		func(ctx context.Context, request TestRuleRequest) (TestRuleResponse, error) {
+			rule, err := h.service.GetRule(ctx, notification.GetRuleInput{
+				Namespace: request.NamespacedModel.Namespace,
+				ID:        request.RuleID,
+			})
+			if err != nil {
+				return TestRuleResponse{}, fmt.Errorf("failed to get rule: %w", err)
+			}
+
+			var payload notification.EventPayload
+			switch rule.Type {
+			case notification.RuleTypeBalanceThreshold:
+				payload = internal.NewTestEventPayload(notification.EventTypeBalanceThreshold)
+			}
+
+			event, err := h.service.CreateEvent(ctx, notification.CreateEventInput{
+				NamespacedModel: request.NamespacedModel,
+				Type:            notification.EventType(rule.Type),
+				Payload:         payload,
+				RuleID:          rule.ID,
+				Annotations: notification.Annotations{
+					notification.AnnotationRuleTestEvent: true,
+				},
+			})
+			if err != nil {
+				return TestRuleResponse{}, fmt.Errorf("failed to create test event: %w", err)
+			}
+
+			return event.AsNotificationEvent()
+		},
+		commonhttp.JSONResponseEncoderWithStatus[TestRuleResponse](http.StatusOK),
+		httptransport.AppendOptions(
+			h.options,
+			httptransport.WithOperationName("createNotificationEvent"),
 			httptransport.WithErrorEncoder(errorEncoder()),
 		)...,
 	)
