@@ -28,7 +28,7 @@ permissions:
 jobs:
   container-image:
     name: Container image
-    runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
+    runs-on: ubuntu-latest
 
     permissions:
       contents: read
@@ -124,7 +124,7 @@ jobs:
 
   benthos-collector-container-image:
     name: Benthos Collector Container image
-    runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
+    runs-on: ubuntu-latest
 
     permissions:
       contents: read
