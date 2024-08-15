@@ -34,26 +34,24 @@ func New(opts Options) (*Consumer, error) {
 		opts: opts,
 	}
 
-	handler := grouphandler.NewNoPublishingHandler(opts.Marshaler,
-		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *snapshot.SnapshotEvent) error {
-			if event == nil {
-				return nil
-			}
-
-			return consumer.handleSnapshotEvent(ctx, *event)
-		}),
-	)
-
-	router, err := router.NewDefaultRouter(opts.Router, handler)
+	router, err := router.NewDefaultRouter(opts.Router)
 	if err != nil {
 		return nil, err
 	}
 
-	router.AddNoPublisherHandler(
+	_ = router.AddNoPublisherHandler(
 		"balance_consumer_system_events",
 		opts.SystemEventsTopic,
 		opts.Router.Subscriber,
-		handler,
+		grouphandler.NewNoPublishingHandler(opts.Marshaler,
+			grouphandler.NewGroupEventHandler(func(ctx context.Context, event *snapshot.SnapshotEvent) error {
+				if event == nil {
+					return nil
+				}
+
+				return consumer.handleSnapshotEvent(ctx, *event)
+			}),
+		),
 	)
 
 	return &Consumer{

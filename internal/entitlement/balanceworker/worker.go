@@ -78,15 +78,14 @@ func New(opts WorkerOptions) (*Worker, error) {
 		highWatermarkCache: highWatermarkCache,
 	}
 
-	eventHandler := worker.eventHandler()
-
-	router, err := router.NewDefaultRouter(opts.Router, eventHandler)
+	router, err := router.NewDefaultRouter(opts.Router)
 	if err != nil {
 		return nil, err
 	}
 
 	worker.router = router
 
+	eventHandler := worker.eventHandler()
 	router.AddNoPublisherHandler(
 		"balance_worker_system_events",
 		opts.SystemEventsTopic,

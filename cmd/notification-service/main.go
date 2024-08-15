@@ -271,7 +271,7 @@ func main() {
 			Publisher:  eventPublisherDriver,
 			Logger:     logger,
 
-			DLQ: conf.Notification.Consumer.DLQ,
+			Config: conf.Notification.Consumer,
 		},
 		Marshaler: eventPublisher.Marshaler(),
 
@@ -334,6 +334,7 @@ func initEventPublisherDriver(ctx context.Context, logger *slog.Logger, conf con
 		provisionTopics = append(provisionTopics, watermillkafka.AutoProvisionTopic{
 			Topic:         conf.Notification.Consumer.DLQ.Topic,
 			NumPartitions: int32(conf.Notification.Consumer.DLQ.AutoProvision.Partitions),
+			Retention:     conf.BalanceWorker.DLQ.AutoProvision.Retention,
 		})
 	}
 

@@ -3,14 +3,12 @@ package router
 import (
 	"errors"
 	"log/slog"
-	"time"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 
 	"github.com/openmeterio/openmeter/config"
-	"github.com/openmeterio/openmeter/internal/watermill/nopublisher"
 )
 
 type Options struct {
@@ -18,7 +16,7 @@ type Options struct {
 	Publisher  message.Publisher
 	Logger     *slog.Logger
 
-	DLQ config.DLQConfiguration
+	Config config.ConsumerConfiguration
 }
 
 func (o *Options) Validate() error {
@@ -26,7 +24,7 @@ func (o *Options) Validate() error {
 		return errors.New("subscriber is required")
 	}
 
-	if o.DLQ.Enabled && o.Publisher == nil {
+	if o.Publisher == nil {
 		return errors.New("publisher is required")
 	}
 
@@ -34,10 +32,8 @@ func (o *Options) Validate() error {
 		return errors.New("logger is required")
 	}
 
-	if o.DLQ.Enabled {
-		if err := o.DLQ.Validate(); err != nil {
-			return err
-		}
+	if err := o.Config.Validate(); err != nil {
+		return err
 	}
 
 	return nil
@@ -45,19 +41,9 @@ func (o *Options) Validate() error {
 
 // NewDefaultRouter creates a new router with the default middlewares, in case your consumer
 // would mandate a different setup, feel free to create your own router
-//
-// dlqHandler is the handler that will be called when a message is consumed from the DLQ,
-// this is specified separately as the options struct is initialized externally from the consumer
-// and the handler is initialized internally
-func NewDefaultRouter(opts Options, dlqHandler message.NoPublishHandlerFunc) (*message.Router, error) {
+func NewDefaultRouter(opts Options) (*message.Router, error) {
 	if err := opts.Validate(); err != nil {
 		return nil, err
-	}
-
-	if opts.DLQ.Enabled {
-		if dlqHandler == nil {
-			return nil, errors.New("dlq handler is required")
-		}
 	}
 
 	router, err := message.NewRouter(message.RouterConfig{}, watermill.NewSlogLogger(opts.Logger))
@@ -65,41 +51,45 @@ func NewDefaultRouter(opts Options, dlqHandler message.NoPublishHandlerFunc) (*m
 		return nil, err
 	}
 
+	// This should be the outermost middleware, to catch failures including the ones caused by Recoverer
+
+	// If retry queue is not enabled, we can directly push messages to the DLQ
+	poisionQueue, err := middleware.PoisonQueue(opts.Publisher, opts.Config.DLQ.Topic)
+	if err != nil {
+		return nil, err
+	}
+
+	router.AddMiddleware(
+		poisionQueue,
+	)
+
 	router.AddMiddleware(
 		middleware.CorrelationID,
-
-		middleware.Retry{
-			MaxRetries:      5,
-			InitialInterval: 100 * time.Millisecond,
-			Logger:          watermill.NewSlogLogger(opts.Logger),
-		}.Middleware,
-
 		middleware.Recoverer,
 	)
 
-	if opts.DLQ.Enabled {
-		poisionQueue, err := middleware.PoisonQueue(opts.Publisher, opts.DLQ.Topic)
-		if err != nil {
-			return nil, err
-		}
+	router.AddMiddleware(middleware.Retry{
+		MaxRetries:      opts.Config.Retry.MaxRetries,
+		InitialInterval: opts.Config.Retry.InitialInterval,
+		MaxInterval:     opts.Config.Retry.MaxInterval,
+		MaxElapsedTime:  opts.Config.Retry.MaxElapsedTime,
 
+		Multiplier:          1.5,
+		RandomizationFactor: 0.25,
+		Logger:              watermill.NewSlogLogger(opts.Logger),
+	}.Middleware)
+
+	// This should be after Retry, so that we can retry on timeouts before pushing to DLQ
+	if opts.Config.ProcessingTimeout > 0 {
 		router.AddMiddleware(
-			poisionQueue,
-		)
-
-		poisionQueueProcessor := nopublisher.NoPublisherHandlerToHandlerFunc(dlqHandler)
-		if opts.DLQ.Throttle.Enabled {
-			poisionQueueProcessor = middleware.NewThrottle(
-				opts.DLQ.Throttle.Count,
-				opts.DLQ.Throttle.Duration,
-			).Middleware(poisionQueueProcessor)
-		}
-		router.AddNoPublisherHandler(
-			"process_dlq",
-			opts.DLQ.Topic,
-			opts.Subscriber,
-			nopublisher.HandlerFuncToNoPublisherHandler(poisionQueueProcessor),
+			// The Timeout middleware keeps the messages context overridden after returning, thus the retry will
+			// also timeout, thus we need to save the context before applying the Timeout middleware
+			//
+			// Issue: https://github.com/ThreeDotsLabs/watermill/issues/467
+			RestoreContext,
+			middleware.Timeout(opts.Config.ProcessingTimeout),
 		)
 	}
+
 	return router, nil
 }
