@@ -22,6 +22,8 @@ import (
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/namespace"
 	"github.com/openmeterio/openmeter/internal/namespace/namespacedriver"
+	"github.com/openmeterio/openmeter/internal/notification"
+	"github.com/openmeterio/openmeter/internal/productcatalog"
 	"github.com/openmeterio/openmeter/internal/server/authenticator"
 	"github.com/openmeterio/openmeter/internal/server/router"
 	"github.com/openmeterio/openmeter/internal/streaming"
@@ -134,6 +136,7 @@ func makeRequest(r *http.Request) (*httptest.ResponseRecorder, error) {
 			NamespaceManager:    namespaceManager,
 			PortalTokenStrategy: portalTokenStrategy,
 			ErrorHandler:        errorsx.NopHandler{},
+			Notification:        &NoopNotificationService{},
 		},
 		RouterHook: func(r chi.Router) {},
 	})
@@ -532,4 +535,80 @@ func TestRoutes(t *testing.T) {
 			}
 		})
 	}
+}
+
+var _ notification.Service = (*NoopNotificationService)(nil)
+
+type NoopNotificationService struct{}
+
+func (n NoopNotificationService) ListFeature(_ context.Context, _ string, _ ...string) ([]productcatalog.Feature, error) {
+	return []productcatalog.Feature{}, nil
+}
+
+func (n NoopNotificationService) ListChannels(_ context.Context, _ notification.ListChannelsInput) (notification.ListChannelsResult, error) {
+	return notification.ListChannelsResult{}, nil
+}
+
+func (n NoopNotificationService) CreateChannel(_ context.Context, _ notification.CreateChannelInput) (*notification.Channel, error) {
+	return &notification.Channel{}, nil
+}
+
+func (n NoopNotificationService) DeleteChannel(_ context.Context, _ notification.DeleteChannelInput) error {
+	return nil
+}
+
+func (n NoopNotificationService) GetChannel(_ context.Context, _ notification.GetChannelInput) (*notification.Channel, error) {
+	return &notification.Channel{}, nil
+}
+
+func (n NoopNotificationService) UpdateChannel(_ context.Context, _ notification.UpdateChannelInput) (*notification.Channel, error) {
+	return &notification.Channel{}, nil
+}
+
+func (n NoopNotificationService) ListRules(_ context.Context, _ notification.ListRulesInput) (notification.ListRulesResult, error) {
+	return notification.ListRulesResult{}, nil
+}
+
+func (n NoopNotificationService) CreateRule(_ context.Context, _ notification.CreateRuleInput) (*notification.Rule, error) {
+	return &notification.Rule{}, nil
+}
+
+func (n NoopNotificationService) DeleteRule(_ context.Context, _ notification.DeleteRuleInput) error {
+	return nil
+}
+
+func (n NoopNotificationService) GetRule(_ context.Context, _ notification.GetRuleInput) (*notification.Rule, error) {
+	return &notification.Rule{}, nil
+}
+
+func (n NoopNotificationService) UpdateRule(_ context.Context, _ notification.UpdateRuleInput) (*notification.Rule, error) {
+	return &notification.Rule{}, nil
+}
+
+func (n NoopNotificationService) ListEvents(_ context.Context, _ notification.ListEventsInput) (notification.ListEventsResult, error) {
+	return notification.ListEventsResult{}, nil
+}
+
+func (n NoopNotificationService) GetEvent(_ context.Context, _ notification.GetEventInput) (*notification.Event, error) {
+	return &notification.Event{}, nil
+}
+
+func (n NoopNotificationService) CreateEvent(_ context.Context, _ notification.CreateEventInput) (*notification.Event, error) {
+	return &notification.Event{}, nil
+}
+
+func (n NoopNotificationService) ListEventsDeliveryStatus(_ context.Context, _ notification.ListEventsDeliveryStatusInput) (notification.ListEventsDeliveryStatusResult, error) {
+	return notification.ListEventsDeliveryStatusResult{}, nil
+}
+
+func (n NoopNotificationService) GetEventDeliveryStatus(_ context.Context, _ notification.GetEventDeliveryStatusInput) (*notification.EventDeliveryStatus, error) {
+	return &notification.EventDeliveryStatus{}, nil
+}
+
+func (n NoopNotificationService) UpdateEventDeliveryStatus(_ context.Context, _ notification.UpdateEventDeliveryStatusInput) (*notification.EventDeliveryStatus, error) {
+	return &notification.EventDeliveryStatus{}, nil
+}
+
+func (n NoopNotificationService) Close() error {
+	return nil
 }

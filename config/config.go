@@ -20,18 +20,19 @@ type Configuration struct {
 
 	Telemetry TelemetryConfig
 
-	Aggregation         AggregationConfiguration
-	Entitlements        EntitlementsConfiguration
-	Dedupe              DedupeConfiguration
-	Events              EventsConfiguration
-	Ingest              IngestConfiguration
-	Meters              []*models.Meter
-	Namespace           NamespaceConfiguration
-	Portal              PortalConfiguration
-	Postgres            PostgresConfig
-	Sink                SinkConfiguration
-	BalanceWorker       BalanceWorkerConfiguration
-	NotificationService NotificationServiceConfiguration
+	Aggregation   AggregationConfiguration
+	Entitlements  EntitlementsConfiguration
+	Dedupe        DedupeConfiguration
+	Events        EventsConfiguration
+	Ingest        IngestConfiguration
+	Meters        []*models.Meter
+	Namespace     NamespaceConfiguration
+	Portal        PortalConfiguration
+	Postgres      PostgresConfig
+	Sink          SinkConfiguration
+	BalanceWorker BalanceWorkerConfiguration
+	Notification  NotificationConfiguration
+	Svix          SvixConfig
 }
 
 // Validate validates the configuration.
@@ -94,8 +95,14 @@ func (c Configuration) Validate() error {
 		return fmt.Errorf("balance worker: %w", err)
 	}
 
-	if err := c.NotificationService.Validate(); err != nil {
-		return fmt.Errorf("notification service: %w", err)
+	if c.Notification.Enabled {
+		if err := c.Notification.Validate(); err != nil {
+			return fmt.Errorf("notification: %w", err)
+		}
+
+		if err := c.Svix.Validate(); err != nil {
+			return fmt.Errorf("svix: %w", err)
+		}
 	}
 
 	return nil
@@ -131,5 +138,5 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigurePortal(v)
 	ConfigureEvents(v)
 	ConfigureBalanceWorker(v)
-	ConfigureNotificationService(v)
+	ConfigureNotification(v)
 }

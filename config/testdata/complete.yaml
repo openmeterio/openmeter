@@ -89,3 +89,11 @@ meters:
     groupBy:
       method: $.method
       path: $.path
+
+notification:
+  enabled: true
+
+svix:
+  apiToken: test-svix-token
+  serverURL: http://127.0.0.1:8071
+  debug: true
