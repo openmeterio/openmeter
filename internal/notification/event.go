@@ -205,7 +205,13 @@ func (p EventPayload) AsNotificationEventBalanceThresholdPayload(eventId string,
 			Subject     api.Subject                               `json:"subject"`
 			Threshold   api.NotificationRuleBalanceThresholdValue `json:"threshold"`
 			Value       api.EntitlementValue                      `json:"value"`
-		}{},
+		}{
+			Entitlement: p.BalanceThreshold.Entitlement,
+			Feature:     p.BalanceThreshold.Feature,
+			Subject:     p.BalanceThreshold.Subject,
+			Threshold:   p.BalanceThreshold.Threshold,
+			Value:       p.BalanceThreshold.Value,
+		},
 		Id:        eventId,
 		Timestamp: ts,
 		Type:      api.EntitlementsBalanceThreshold,
@@ -471,7 +477,7 @@ func PayloadToMapInterface(t any) (map[string]interface{}, error) {
 	}
 
 	var m map[string]interface{}
-	if err := json.Unmarshal(b, &m); err != nil {
+	if err = json.Unmarshal(b, &m); err != nil {
 		return nil, err
 	}
 
