@@ -353,17 +353,19 @@ export interface paths {
      */
     delete: operations['deleteNotificationRule']
   }
+  '/api/v1/notification/rules/{ruleId}/test': {
+    /**
+     * Test notification rule
+     * @description Test a notification rule by sending a test event with random data.
+     */
+    post: operations['testNotificationRule']
+  }
   '/api/v1/notification/events': {
     /**
      * List notification evens
      * @description List all notification events.
      */
     get: operations['listNotificationEvents']
-    /**
-     * Create a notification event
-     * @description Create a new notification event.
-     */
-    post: operations['createNotificationEvent']
   }
   '/api/v1/notification/events/{eventId}': {
     /**
@@ -1740,6 +1742,16 @@ export interface components {
       /** @description The delivery status of the notification event. */
       deliveryStatus: components['schemas']['NotificationEventDeliveryStatus'][]
       payload: components['schemas']['NotificationEventPayload']
+      /**
+       * @description List of annotations managed by the system.
+       *
+       * @example {
+       *   "test-event": "true"
+       * }
+       */
+      annotations?: {
+        [key: string]: string
+      }
     }
     /** @description The actual payload sent to channel as part of the notification event. */
     NotificationEventPayload: components['schemas']['NotificationEventBalanceThresholdPayload']
@@ -3184,6 +3196,30 @@ export interface operations {
     }
   }
   /**
+   * Test notification rule
+   * @description Test a notification rule by sending a test event with random data.
+   */
+  testNotificationRule: {
+    parameters: {
+      path: {
+        ruleId: components['parameters']['ruleId']
+      }
+    }
+    responses: {
+      /** @description Test notification event sent. */
+      201: {
+        content: {
+          'application/json': components['schemas']['NotificationEvent']
+        }
+      }
+      400: components['responses']['BadRequestProblemResponse']
+      401: components['responses']['UnauthorizedProblemResponse']
+      409: components['responses']['ConflictProblemResponse']
+      501: components['responses']['NotImplementedProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /**
    * List notification evens
    * @description List all notification events.
    */
@@ -3210,31 +3246,6 @@ export interface operations {
       }
       400: components['responses']['BadRequestProblemResponse']
       401: components['responses']['UnauthorizedProblemResponse']
-      default: components['responses']['UnexpectedProblemResponse']
-    }
-  }
-  /**
-   * Create a notification event
-   * @description Create a new notification event.
-   */
-  createNotificationEvent: {
-    /** @description The notification event to create. */
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['NotificationEventCreateRequest']
-      }
-    }
-    responses: {
-      /** @description Notification event created. */
-      201: {
-        content: {
-          'application/json': components['schemas']['NotificationEvent']
-        }
-      }
-      400: components['responses']['BadRequestProblemResponse']
-      401: components['responses']['UnauthorizedProblemResponse']
-      409: components['responses']['ConflictProblemResponse']
-      501: components['responses']['NotImplementedProblemResponse']
       default: components['responses']['UnexpectedProblemResponse']
     }
   }
