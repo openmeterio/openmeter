@@ -142,3 +142,16 @@ func (a *Router) GetEntitlementById(w http.ResponseWriter, r *http.Request, enti
 		EntitlementId: entitlementId,
 	}).ServeHTTP(w, r)
 }
+
+// Override an entitlement
+// (PUT /api/v1/subjects/{subjectIdOrKey}/entitlements/{entitlementIdOrFeatureKey}/override)
+func (a *Router) OverrideEntitlement(w http.ResponseWriter, r *http.Request, subjectIdOrKey api.SubjectIdOrKey, entitlementIdOrFeatureKey api.EntitlementIdOrFeatureKey) {
+	if !a.config.EntitlementsEnabled {
+		unimplemented.OverrideEntitlement(w, r, subjectIdOrKey, entitlementIdOrFeatureKey)
+		return
+	}
+	a.entitlementHandler.OverrideEntitlement().With(entitlementdriver.OverrideEntitlementHandlerParams{
+		SubjectIdOrKey:            subjectIdOrKey,
+		EntitlementIdOrFeatureKey: entitlementIdOrFeatureKey,
+	}).ServeHTTP(w, r)
+}

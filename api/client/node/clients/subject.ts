@@ -119,6 +119,39 @@ export class SubjectClient extends BaseClient {
   }
 
   /**
+   * Override Entitlement
+   * Enables zero downtime upgrades and downgrades of entitlements.
+   * @remarks
+   * Input should be either `EntitlementMeteredCreateInputs`, `EntitlementStaticCreateInputs`, or `EntitlementBooleanCreateInputs`
+   * @example
+   * // Issue 10,000,000 tokens every month
+   * const entitlement = await openmeter.subjects.overrideEntitlement('customer-1', 'ai_tokens', {
+   *    type: 'metered',
+   *    featureKey: 'ai_tokens',
+   *    usagePeriod: {
+   *      interval: 'MONTH',
+   *    },
+   *    issueAfterReset: 10000000,
+   * })
+   */
+  public async overrideEntitlement(
+    subjectIdOrKey: string,
+    entitlementIdOrFeatureKey: string,
+    input: EntitlementCreateInputs,
+    options?: RequestOptions
+  ): Promise<Entitlement> {
+    return await this.request({
+      path: `/api/v1/subjects/${subjectIdOrKey}/entitlements/${entitlementIdOrFeatureKey}/override`,
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(input),
+      options,
+    })
+  }
+
+  /**
    * List entitlements of a subject
    * @example
    * const entitlement = await openmeter.subjects.listEntitlements('customer-1')

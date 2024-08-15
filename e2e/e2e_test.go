@@ -853,6 +853,44 @@ func TestCredit(t *testing.T) {
 		require.Len(t, *grantListResp.JSON200, 1)
 	})
 
+	t.Run("Override previous entitlement", func(t *testing.T) {
+		meteredEntitlement := api.EntitlementMeteredCreateInputs{
+			Type:      "metered",
+			FeatureId: featureId,
+			UsagePeriod: api.RecurringPeriodCreateInput{
+				Anchor:   convert.ToPointer(time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)),
+				Interval: "MONTH",
+			},
+		}
+		body := &api.CreateEntitlementJSONRequestBody{}
+		err := body.FromEntitlementMeteredCreateInputs(meteredEntitlement)
+		require.NoError(t, err)
+
+		subject := "test-override"
+
+		// create an entitlement
+		resp, err := client.CreateEntitlementWithResponse(context.Background(), subject, *body)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+
+		metered, err := resp.JSON201.AsEntitlementMetered()
+		require.NoError(t, err)
+
+		entId := metered.Id
+
+		// Override entitlement
+		resp2, err := client.OverrideEntitlementWithResponse(context.Background(), subject, *entId, *body)
+
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, resp.StatusCode(), "Invalid status code [response_body=%s]", string(resp.Body))
+
+		metered, err = resp2.JSON201.AsEntitlementMetered()
+		require.NoError(t, err)
+
+		require.Equal(t, metered.SubjectKey, subject)
+		require.NotEqual(t, metered.Id, entId)
+	})
+
 	t.Run("List entitlements", func(t *testing.T) {
 		// should return 2 entitlements for subject for feature
 		resp, err := client.ListEntitlementsWithResponse(context.Background(), &api.ListEntitlementsParams{

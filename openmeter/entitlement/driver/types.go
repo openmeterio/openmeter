@@ -15,6 +15,7 @@ type (
 	GetEntitlementHandlerRequest               = httpdriver.GetEntitlementHandlerRequest
 	GetEntitlementByIdHandlerRequest           = httpdriver.GetEntitlementByIdHandlerRequest
 	DeleteEntitlementHandlerRequest            = httpdriver.DeleteEntitlementHandlerRequest
+	OverrideEntitlementHandlerRequest          = httpdriver.OverrideEntitlementHandlerRequest
 )
 
 // responses
@@ -30,6 +31,7 @@ type (
 	GetEntitlementHandlerResponse               = httpdriver.GetEntitlementHandlerResponse
 	GetEntitlementByIdHandlerResponse           = httpdriver.GetEntitlementByIdHandlerResponse
 	DeleteEntitlementHandlerResponse            = httpdriver.DeleteEntitlementHandlerResponse
+	OverrideEntitlementHandlerResponse          = httpdriver.OverrideEntitlementHandlerResponse
 )
 
 // params
@@ -45,4 +47,5 @@ type (
 	GetEntitlementHandlerParams               = httpdriver.GetEntitlementHandlerParams
 	GetEntitlementByIdHandlerParams           = httpdriver.GetEntitlementByIdHandlerParams
 	DeleteEntitlementHandlerParams            = httpdriver.DeleteEntitlementHandlerParams
+	OverrideEntitlementHandlerParams          = httpdriver.OverrideEntitlementHandlerParams
 )
