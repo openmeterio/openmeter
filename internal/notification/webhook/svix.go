@@ -30,15 +30,15 @@ const (
 )
 
 type SvixConfig struct {
-	APIToken string
+	APIKey string
 
 	ServerURL string
 	Debug     bool
 }
 
 func (c SvixConfig) Validate() error {
-	if c.APIToken == "" {
-		return errors.New("no API token provided")
+	if c.APIKey == "" {
+		return errors.New("API key is required")
 	}
 
 	if c.ServerURL != "" {
@@ -70,7 +70,7 @@ func newSvixWebhookHandler(config SvixConfig) (Handler, error) {
 	}
 
 	return &svixWebhookHandler{
-		client: svix.New(config.APIToken, &opts),
+		client: svix.New(config.APIKey, &opts),
 	}, nil
 }
 

@@ -82,5 +82,5 @@ notification:
   enabled: true
 
 svix:
-  apiToken: secret
+  apiKey: secret
   serverURL: http://localhost:8071

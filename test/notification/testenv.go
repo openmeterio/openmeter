@@ -120,16 +120,16 @@ func NewTestEnv() (TestEnv, error) {
 	svixHost := defaultx.IfZero(os.Getenv("SVIX_HOST"), DefaultSvixHost)
 	svixJWTSigningSecret := defaultx.IfZero(os.Getenv("SVIX_JWT_SECRET"), DefaultSvixJWTSigningSecret)
 
-	apiToken, err := NewSvixAuthToken(svixJWTSigningSecret)
+	svixAPIKey, err := NewSvixAuthToken(svixJWTSigningSecret)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate Svix API token: %w", err)
 	}
 
-	logger.Info("Svix API Token", slog.String("token", apiToken))
+	logger.Info("Svix API key", slog.String("apiKey", svixAPIKey))
 
 	webhook, err := notificationwebhook.New(notificationwebhook.Config{
 		SvixConfig: notificationwebhook.SvixConfig{
-			APIToken:  apiToken,
+			APIKey:    svixAPIKey,
 			ServerURL: fmt.Sprintf(SvixServerURLTemplate, svixHost),
 			Debug:     false,
 		},
