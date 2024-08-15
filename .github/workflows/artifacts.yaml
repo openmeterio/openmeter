@@ -73,17 +73,6 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=ref,event=branch,suffix=-{{sha}}-{{date 'X'}},enable={{is_default_branch}}
 
-      # Multiple exporters are not supported yet
-      # See https://github.com/moby/buildkit/pull/2760
-      - name: Determine build output
-        uses: haya14busa/action-cond@94f77f7a80cd666cb3155084e428254fea4281fd # v1.2.1
-        id: build-output
-        with:
-          cond: ${{ inputs.publish }}
-          if_true: type=image,push=true
-          if_false: type=image,push=true
-          # if_false: type=oci,dest=image.tar
-
       - name: Login to GitHub Container Registry
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
@@ -104,31 +93,30 @@ jobs:
           platforms: linux/amd64,linux/arm64 # The confluent library and UBI8 don't support ARMv7
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max,ignore-error=true
-          # outputs: ${{ steps.build-output.outputs.value }}
           push: ${{ inputs.publish }}
+          save: true
           project: mx1q1j4nzh
 
       - name: Set image ref
         id: image-ref
         run: echo "value=${{ steps.image-name.outputs.value }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
 
-      # - name: Fetch image
-      #   run: skopeo --insecure-policy copy docker://${{ steps.image-ref.outputs.value }} oci-archive:image.tar
-      #   if: inputs.publish
-      #
-      # - name: Extract OCI tarball
-      #   run: |
-      #     mkdir -p image
-      #     tar -xf image.tar -C image
-      #
-      # - name: Run Trivy vulnerability scanner
-      #   uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8 # 0.24.0
-      #   with:
-      #     input: image
-      #     format: sarif
-      #     output: trivy-results.sarif
+      - name: Retrieve pull token
+        id: pull-token
+        run: |
+          PULL_TOKEN="$(depot pull-token --project mx1q1j4nzh)"
+          echo "token=$PULL_TOKEN" >> "$GITHUB_OUTPUT"
+          echo "::add-mask::$PULL_TOKEN"
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8 # 0.24.0
+        with:
+          image-ref: registry.depot.dev/mx1q1j4nzh:${{ steps.build.outputs.build-id }}
+          format: sarif
+          output: trivy-results.sarif
+        env:
+          TRIVY_USERNAME: x-token
+          TRIVY_PASSWORD: ${{ steps.pull-token.outputs.token }}
 
       # - name: Upload Trivy scan results as artifact
       #   uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
@@ -189,17 +177,6 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=ref,event=branch,suffix=-{{sha}}-{{date 'X'}},enable={{is_default_branch}}
 
-      # Multiple exporters are not supported yet
-      # See https://github.com/moby/buildkit/pull/2760
-      - name: Determine build output
-        uses: haya14busa/action-cond@94f77f7a80cd666cb3155084e428254fea4281fd # v1.2.1
-        id: build-output
-        with:
-          cond: ${{ inputs.publish }}
-          if_true: type=image,push=true
-          if_false: type=image,push=true
-          # if_false: type=oci,dest=image.tar
-
       - name: Login to GitHub Container Registry
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
@@ -220,31 +197,30 @@ jobs:
           platforms: linux/amd64,linux/arm64 # The confluent library and UBI8 don't support ARMv7
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max,ignore-error=true
-          # outputs: ${{ steps.build-output.outputs.value }}
           push: ${{ inputs.publish }}
+          save: true
           project: mx1q1j4nzh
 
       - name: Set image ref
         id: image-ref
         run: echo "value=${{ steps.image-name.outputs.value }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
 
-      # - name: Fetch image
-      #   run: skopeo --insecure-policy copy docker://${{ steps.image-ref.outputs.value }} oci-archive:image.tar
-      #   if: inputs.publish
-      #
-      # - name: Extract OCI tarball
-      #   run: |
-      #     mkdir -p image
-      #     tar -xf image.tar -C image
-      #
-      # - name: Run Trivy vulnerability scanner
-      #   uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8 # 0.24.0
-      #   with:
-      #     input: image
-      #     format: sarif
-      #     output: trivy-results.sarif
+      - name: Retrieve pull token
+        id: pull-token
+        run: |
+          PULL_TOKEN="$(depot pull-token --project mx1q1j4nzh)"
+          echo "token=$PULL_TOKEN" >> "$GITHUB_OUTPUT"
+          echo "::add-mask::$PULL_TOKEN"
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8 # 0.24.0
+        with:
+          image-ref: registry.depot.dev/mx1q1j4nzh:${{ steps.build.outputs.build-id }}
+          format: sarif
+          output: trivy-results.sarif
+        env:
+          TRIVY_USERNAME: x-token
+          TRIVY_PASSWORD: ${{ steps.pull-token.outputs.token }}
 
       # - name: Upload Trivy scan results as artifact
       #   uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
