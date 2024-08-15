@@ -28,7 +28,7 @@ permissions:
 jobs:
   container-image:
     name: Container image
-    runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
+    runs-on: ubuntu-latest
 
     permissions:
       contents: read
@@ -80,7 +80,6 @@ jobs:
         uses: depot/build-push-action@e7743ee6585d261968c7ae0ef64977ee98c09d74 # v1.13.0
         with:
           context: .
-          target: ${{ matrix.target }}
           build-args: |
             VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
           platforms: linux/amd64,linux/arm64 # The confluent library doesn't support ARMv7
@@ -88,7 +87,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           push: ${{ inputs.publish }}
           save: true
-          project: mx1q1j4nzh
+          project: ${{ vars.DEPOT_PROJECT }}
 
       - name: Set image ref
         id: image-ref
@@ -97,14 +96,14 @@ jobs:
       - name: Retrieve pull token
         id: pull-token
         run: |
-          PULL_TOKEN="$(depot pull-token --project mx1q1j4nzh)"
+          PULL_TOKEN="$(depot pull-token --project ${{ vars.DEPOT_PROJECT }})"
           echo "token=$PULL_TOKEN" >> "$GITHUB_OUTPUT"
           echo "::add-mask::$PULL_TOKEN"
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8 # 0.24.0
         with:
-          image-ref: registry.depot.dev/mx1q1j4nzh:${{ steps.build.outputs.build-id }}
+          image-ref: registry.depot.dev/${{ vars.DEPOT_PROJECT }}:${{ steps.build.outputs.build-id }}
           format: sarif
           output: trivy-results.sarif
         env:
@@ -125,7 +124,7 @@ jobs:
 
   benthos-collector-container-image:
     name: Benthos Collector Container image
-    runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
+    runs-on: ubuntu-latest
 
     permissions:
       contents: read
@@ -185,7 +184,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           push: ${{ inputs.publish }}
           save: true
-          project: mx1q1j4nzh
+          project: ${{ vars.DEPOT_PROJECT }}
 
       - name: Set image ref
         id: image-ref
@@ -194,14 +193,14 @@ jobs:
       - name: Retrieve pull token
         id: pull-token
         run: |
-          PULL_TOKEN="$(depot pull-token --project mx1q1j4nzh)"
+          PULL_TOKEN="$(depot pull-token --project ${{ vars.DEPOT_PROJECT }})"
           echo "token=$PULL_TOKEN" >> "$GITHUB_OUTPUT"
           echo "::add-mask::$PULL_TOKEN"
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8 # 0.24.0
         with:
-          image-ref: registry.depot.dev/mx1q1j4nzh:${{ steps.build.outputs.build-id }}
+          image-ref: registry.depot.dev/${{ vars.DEPOT_PROJECT }}:${{ steps.build.outputs.build-id }}
           format: sarif
           output: trivy-results.sarif
         env:
