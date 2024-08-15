@@ -80,7 +80,6 @@ jobs:
         uses: depot/build-push-action@e7743ee6585d261968c7ae0ef64977ee98c09d74 # v1.13.0
         with:
           context: .
-          target: ${{ matrix.target }}
           build-args: |
             VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
           platforms: linux/amd64,linux/arm64 # The confluent library doesn't support ARMv7
