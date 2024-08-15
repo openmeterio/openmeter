@@ -49,12 +49,6 @@ jobs:
       - name: Set up Depot CLI
         uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5 # v1.6.0
 
-      # - name: Set up QEMU
-      #   uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
-      #
-      # - name: Set up Docker Buildx
-      #   uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
-
       - name: Set image name
         id: image-name
         run: echo "value=ghcr.io/${{ github.repository }}" >> "$GITHUB_OUTPUT"
@@ -83,14 +77,13 @@ jobs:
 
       - name: Build and push image
         id: build
-        # uses: docker/build-push-action@16ebe778df0e7752d2cfcbd924afdbbd89c1a755 # v6.6.1
         uses: depot/build-push-action@e7743ee6585d261968c7ae0ef64977ee98c09d74 # v1.13.0
         with:
           context: .
           target: ${{ matrix.target }}
           build-args: |
             VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
-          platforms: linux/amd64,linux/arm64 # The confluent library and UBI8 don't support ARMv7
+          platforms: linux/amd64,linux/arm64 # The confluent library doesn't support ARMv7
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           push: ${{ inputs.publish }}
@@ -118,17 +111,17 @@ jobs:
           TRIVY_USERNAME: x-token
           TRIVY_PASSWORD: ${{ steps.pull-token.outputs.token }}
 
-      # - name: Upload Trivy scan results as artifact
-      #   uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
-      #   with:
-      #     name: "[${{ github.job }}] Trivy scan results"
-      #     path: trivy-results.sarif
-      #     retention-days: 5
+      - name: Upload Trivy scan results as artifact
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        with:
+          name: "[${{ github.job }}] Trivy scan results"
+          path: trivy-results.sarif
+          retention-days: 5
 
-      # - name: Upload Trivy scan results to GitHub Security tab
-      #   uses: github/codeql-action/upload-sarif@eb055d739abdc2e8de2e5f4ba1a8b246daa779aa # v3.26.0
-      #   with:
-      #     sarif_file: trivy-results.sarif
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@eb055d739abdc2e8de2e5f4ba1a8b246daa779aa # v3.26.0
+        with:
+          sarif_file: trivy-results.sarif
 
   benthos-collector-container-image:
     name: Benthos Collector Container image
@@ -152,12 +145,6 @@ jobs:
 
       - name: Set up Depot CLI
         uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5 # v1.6.0
-
-      # - name: Set up QEMU
-      #   uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3.2.0
-      #
-      # - name: Set up Docker Buildx
-      #   uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
 
       - name: Set image name
         id: image-name
@@ -187,14 +174,13 @@ jobs:
 
       - name: Build and push image
         id: build
-        # uses: docker/build-push-action@16ebe778df0e7752d2cfcbd924afdbbd89c1a755 # v6.6.1
         uses: depot/build-push-action@e7743ee6585d261968c7ae0ef64977ee98c09d74 # v1.13.0
         with:
           context: .
           file: benthos-collector.Dockerfile
           build-args: |
             VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
-          platforms: linux/amd64,linux/arm64 # The confluent library and UBI8 don't support ARMv7
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           push: ${{ inputs.publish }}
@@ -222,14 +208,14 @@ jobs:
           TRIVY_USERNAME: x-token
           TRIVY_PASSWORD: ${{ steps.pull-token.outputs.token }}
 
-      # - name: Upload Trivy scan results as artifact
-      #   uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
-      #   with:
-      #     name: "[${{ github.job }}] Trivy scan results"
-      #     path: trivy-results.sarif
-      #     retention-days: 5
+      - name: Upload Trivy scan results as artifact
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        with:
+          name: "[${{ github.job }}] Trivy scan results"
+          path: trivy-results.sarif
+          retention-days: 5
 
-      # - name: Upload Trivy scan results to GitHub Security tab
-      #   uses: github/codeql-action/upload-sarif@eb055d739abdc2e8de2e5f4ba1a8b246daa779aa # v3.26.0
-      #   with:
-      #     sarif_file: trivy-results.sarif
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@eb055d739abdc2e8de2e5f4ba1a8b246daa779aa # v3.26.0
+        with:
+          sarif_file: trivy-results.sarif
