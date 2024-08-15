@@ -486,6 +486,24 @@ func (r repository) ListEvents(ctx context.Context, params notification.ListEven
 		query = query.WithDeliveryStatuses()
 	}
 
+	if len(params.Features) > 0 {
+		query = query.Where(
+			eventdb.Or(
+				entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventFeatureKey, params.Features),
+				entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventFeatureID, params.Features),
+			),
+		)
+	}
+
+	if len(params.Subjects) > 0 {
+		query = query.Where(
+			eventdb.Or(
+				entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventSubjectKey, params.Subjects),
+				entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventSubjectID, params.Subjects),
+			),
+		)
+	}
+
 	query = query.WithRules(func(query *entdb.NotificationRuleQuery) {
 		query.WithChannels()
 	})

@@ -3,6 +3,7 @@
 package migrate
 
 import (
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/dialect/sql/schema"
 	"entgo.io/ent/schema/field"
 )
@@ -277,6 +278,16 @@ var (
 				Name:    "notificationevent_namespace_type",
 				Unique:  false,
 				Columns: []*schema.Column{NotificationEventsColumns[1], NotificationEventsColumns[3]},
+			},
+			{
+				Name:    "notificationevent_annotations",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationEventsColumns[5]},
+				Annotation: &entsql.IndexAnnotation{
+					Types: map[string]string{
+						"postgres": "GIN",
+					},
+				},
 			},
 		},
 	}
