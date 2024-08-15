@@ -29,6 +29,8 @@ type NotificationEvent struct {
 	RuleID string `json:"rule_id,omitempty"`
 	// Payload holds the value of the "payload" field.
 	Payload string `json:"payload,omitempty"`
+	// Annotations holds the value of the "annotations" field.
+	Annotations map[string]interface{} `json:"annotations,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the NotificationEventQuery when eager-loading is set.
 	Edges        NotificationEventEdges `json:"edges"`
@@ -75,6 +77,8 @@ func (*NotificationEvent) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case notificationevent.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
+		case notificationevent.FieldAnnotations:
+			values[i] = notificationevent.ValueScanner.Annotations.ScanValue()
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -125,6 +129,12 @@ func (ne *NotificationEvent) assignValues(columns []string, values []any) error 
 				return fmt.Errorf("unexpected type %T for field payload", values[i])
 			} else if value.Valid {
 				ne.Payload = value.String
+			}
+		case notificationevent.FieldAnnotations:
+			if value, err := notificationevent.ValueScanner.Annotations.FromValue(values[i]); err != nil {
+				return err
+			} else {
+				ne.Annotations = value
 			}
 		default:
 			ne.selectValues.Set(columns[i], values[i])
@@ -186,6 +196,9 @@ func (ne *NotificationEvent) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("payload=")
 	builder.WriteString(ne.Payload)
+	builder.WriteString(", ")
+	builder.WriteString("annotations=")
+	builder.WriteString(fmt.Sprintf("%v", ne.Annotations))
 	builder.WriteByte(')')
 	return builder.String()
 }

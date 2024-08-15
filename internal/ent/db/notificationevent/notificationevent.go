@@ -8,6 +8,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/internal/notification"
 )
 
@@ -26,6 +27,8 @@ const (
 	FieldRuleID = "rule_id"
 	// FieldPayload holds the string denoting the payload field in the database.
 	FieldPayload = "payload"
+	// FieldAnnotations holds the string denoting the annotations field in the database.
+	FieldAnnotations = "annotations"
 	// EdgeDeliveryStatuses holds the string denoting the delivery_statuses edge name in mutations.
 	EdgeDeliveryStatuses = "delivery_statuses"
 	// EdgeRules holds the string denoting the rules edge name in mutations.
@@ -54,6 +57,7 @@ var Columns = []string{
 	FieldType,
 	FieldRuleID,
 	FieldPayload,
+	FieldAnnotations,
 }
 
 var (
@@ -79,6 +83,10 @@ var (
 	DefaultCreatedAt func() time.Time
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
+	// ValueScanner of all NotificationEvent fields.
+	ValueScanner struct {
+		Annotations field.TypeValueScanner[map[string]interface{}]
+	}
 )
 
 // TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
@@ -122,6 +130,11 @@ func ByRuleID(opts ...sql.OrderTermOption) OrderOption {
 // ByPayload orders the results by the payload field.
 func ByPayload(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPayload, opts...).ToFunc()
+}
+
+// ByAnnotations orders the results by the annotations field.
+func ByAnnotations(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAnnotations, opts...).ToFunc()
 }
 
 // ByDeliveryStatusesCount orders the results by delivery_statuses count.

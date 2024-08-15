@@ -6196,6 +6196,7 @@ type NotificationEventMutation struct {
 	created_at               *time.Time
 	_type                    *notification.EventType
 	payload                  *string
+	annotations              *map[string]interface{}
 	clearedFields            map[string]struct{}
 	delivery_statuses        map[string]struct{}
 	removeddelivery_statuses map[string]struct{}
@@ -6491,6 +6492,55 @@ func (m *NotificationEventMutation) ResetPayload() {
 	m.payload = nil
 }
 
+// SetAnnotations sets the "annotations" field.
+func (m *NotificationEventMutation) SetAnnotations(value map[string]interface{}) {
+	m.annotations = &value
+}
+
+// Annotations returns the value of the "annotations" field in the mutation.
+func (m *NotificationEventMutation) Annotations() (r map[string]interface{}, exists bool) {
+	v := m.annotations
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAnnotations returns the old "annotations" field's value of the NotificationEvent entity.
+// If the NotificationEvent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NotificationEventMutation) OldAnnotations(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAnnotations is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAnnotations requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAnnotations: %w", err)
+	}
+	return oldValue.Annotations, nil
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (m *NotificationEventMutation) ClearAnnotations() {
+	m.annotations = nil
+	m.clearedFields[notificationevent.FieldAnnotations] = struct{}{}
+}
+
+// AnnotationsCleared returns if the "annotations" field was cleared in this mutation.
+func (m *NotificationEventMutation) AnnotationsCleared() bool {
+	_, ok := m.clearedFields[notificationevent.FieldAnnotations]
+	return ok
+}
+
+// ResetAnnotations resets all changes to the "annotations" field.
+func (m *NotificationEventMutation) ResetAnnotations() {
+	m.annotations = nil
+	delete(m.clearedFields, notificationevent.FieldAnnotations)
+}
+
 // AddDeliveryStatusIDs adds the "delivery_statuses" edge to the NotificationEventDeliveryStatus entity by ids.
 func (m *NotificationEventMutation) AddDeliveryStatusIDs(ids ...string) {
 	if m.delivery_statuses == nil {
@@ -6619,7 +6669,7 @@ func (m *NotificationEventMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *NotificationEventMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 6)
 	if m.namespace != nil {
 		fields = append(fields, notificationevent.FieldNamespace)
 	}
@@ -6634,6 +6684,9 @@ func (m *NotificationEventMutation) Fields() []string {
 	}
 	if m.payload != nil {
 		fields = append(fields, notificationevent.FieldPayload)
+	}
+	if m.annotations != nil {
+		fields = append(fields, notificationevent.FieldAnnotations)
 	}
 	return fields
 }
@@ -6653,6 +6706,8 @@ func (m *NotificationEventMutation) Field(name string) (ent.Value, bool) {
 		return m.RuleID()
 	case notificationevent.FieldPayload:
 		return m.Payload()
+	case notificationevent.FieldAnnotations:
+		return m.Annotations()
 	}
 	return nil, false
 }
@@ -6672,6 +6727,8 @@ func (m *NotificationEventMutation) OldField(ctx context.Context, name string) (
 		return m.OldRuleID(ctx)
 	case notificationevent.FieldPayload:
 		return m.OldPayload(ctx)
+	case notificationevent.FieldAnnotations:
+		return m.OldAnnotations(ctx)
 	}
 	return nil, fmt.Errorf("unknown NotificationEvent field %s", name)
 }
@@ -6716,6 +6773,13 @@ func (m *NotificationEventMutation) SetField(name string, value ent.Value) error
 		}
 		m.SetPayload(v)
 		return nil
+	case notificationevent.FieldAnnotations:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAnnotations(v)
+		return nil
 	}
 	return fmt.Errorf("unknown NotificationEvent field %s", name)
 }
@@ -6745,7 +6809,11 @@ func (m *NotificationEventMutation) AddField(name string, value ent.Value) error
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *NotificationEventMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(notificationevent.FieldAnnotations) {
+		fields = append(fields, notificationevent.FieldAnnotations)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -6758,6 +6826,11 @@ func (m *NotificationEventMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *NotificationEventMutation) ClearField(name string) error {
+	switch name {
+	case notificationevent.FieldAnnotations:
+		m.ClearAnnotations()
+		return nil
+	}
 	return fmt.Errorf("unknown NotificationEvent nullable field %s", name)
 }
 
@@ -6779,6 +6852,9 @@ func (m *NotificationEventMutation) ResetField(name string) error {
 		return nil
 	case notificationevent.FieldPayload:
 		m.ResetPayload()
+		return nil
+	case notificationevent.FieldAnnotations:
+		m.ResetAnnotations()
 		return nil
 	}
 	return fmt.Errorf("unknown NotificationEvent field %s", name)

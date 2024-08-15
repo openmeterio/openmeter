@@ -197,6 +197,9 @@ func init() {
 	notificationeventDescCreatedAt := notificationeventFields[0].Descriptor()
 	// notificationevent.DefaultCreatedAt holds the default value on creation for the created_at field.
 	notificationevent.DefaultCreatedAt = notificationeventDescCreatedAt.Default.(func() time.Time)
+	// notificationeventDescAnnotations is the schema descriptor for annotations field.
+	notificationeventDescAnnotations := notificationeventFields[4].Descriptor()
+	notificationevent.ValueScanner.Annotations = notificationeventDescAnnotations.ValueScanner.(field.TypeValueScanner[map[string]interface{}])
 	// notificationeventDescID is the schema descriptor for id field.
 	notificationeventDescID := notificationeventMixinFields0[0].Descriptor()
 	// notificationevent.DefaultID holds the default value on creation for the id field.

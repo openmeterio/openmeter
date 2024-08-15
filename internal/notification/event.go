@@ -21,6 +21,7 @@ var _ payloadObjectMapper = (*Event)(nil)
 
 type Event struct {
 	models.NamespacedModel
+	Annotations
 
 	// ID is the unique identifier for Event.
 	ID string `json:"id"`
@@ -96,6 +97,7 @@ func (e Event) AsNotificationEvent() (api.NotificationEvent, error) {
 
 	switch e.Type {
 	case EventTypeBalanceThreshold:
+		event.Type = api.EntitlementsBalanceThreshold
 		err = event.Payload.FromNotificationEventBalanceThresholdPayload(e.AsNotificationEventBalanceThresholdPayload())
 		if err != nil {
 			return event, ValidationError{
@@ -297,6 +299,7 @@ var _ validator = (*CreateEventInput)(nil)
 
 type CreateEventInput struct {
 	models.NamespacedModel
+	Annotations `json:"annotations,omitempty"`
 
 	// Type of the notification Event (e.g. entitlements.balance.threshold)
 	Type EventType `json:"type"`

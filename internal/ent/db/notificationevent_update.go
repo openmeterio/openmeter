@@ -42,6 +42,18 @@ func (neu *NotificationEventUpdate) SetNillablePayload(s *string) *NotificationE
 	return neu
 }
 
+// SetAnnotations sets the "annotations" field.
+func (neu *NotificationEventUpdate) SetAnnotations(m map[string]interface{}) *NotificationEventUpdate {
+	neu.mutation.SetAnnotations(m)
+	return neu
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (neu *NotificationEventUpdate) ClearAnnotations() *NotificationEventUpdate {
+	neu.mutation.ClearAnnotations()
+	return neu
+}
+
 // AddDeliveryStatusIDs adds the "delivery_statuses" edge to the NotificationEventDeliveryStatus entity by IDs.
 func (neu *NotificationEventUpdate) AddDeliveryStatusIDs(ids ...string) *NotificationEventUpdate {
 	neu.mutation.AddDeliveryStatusIDs(ids...)
@@ -133,6 +145,16 @@ func (neu *NotificationEventUpdate) sqlSave(ctx context.Context) (n int, err err
 	if value, ok := neu.mutation.Payload(); ok {
 		_spec.SetField(notificationevent.FieldPayload, field.TypeString, value)
 	}
+	if value, ok := neu.mutation.Annotations(); ok {
+		vv, err := notificationevent.ValueScanner.Annotations.Value(value)
+		if err != nil {
+			return 0, err
+		}
+		_spec.SetField(notificationevent.FieldAnnotations, field.TypeString, vv)
+	}
+	if neu.mutation.AnnotationsCleared() {
+		_spec.ClearField(notificationevent.FieldAnnotations, field.TypeString)
+	}
 	if neu.mutation.DeliveryStatusesCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
@@ -209,6 +231,18 @@ func (neuo *NotificationEventUpdateOne) SetNillablePayload(s *string) *Notificat
 	if s != nil {
 		neuo.SetPayload(*s)
 	}
+	return neuo
+}
+
+// SetAnnotations sets the "annotations" field.
+func (neuo *NotificationEventUpdateOne) SetAnnotations(m map[string]interface{}) *NotificationEventUpdateOne {
+	neuo.mutation.SetAnnotations(m)
+	return neuo
+}
+
+// ClearAnnotations clears the value of the "annotations" field.
+func (neuo *NotificationEventUpdateOne) ClearAnnotations() *NotificationEventUpdateOne {
+	neuo.mutation.ClearAnnotations()
 	return neuo
 }
 
@@ -332,6 +366,16 @@ func (neuo *NotificationEventUpdateOne) sqlSave(ctx context.Context) (_node *Not
 	}
 	if value, ok := neuo.mutation.Payload(); ok {
 		_spec.SetField(notificationevent.FieldPayload, field.TypeString, value)
+	}
+	if value, ok := neuo.mutation.Annotations(); ok {
+		vv, err := notificationevent.ValueScanner.Annotations.Value(value)
+		if err != nil {
+			return nil, err
+		}
+		_spec.SetField(notificationevent.FieldAnnotations, field.TypeString, vv)
+	}
+	if neuo.mutation.AnnotationsCleared() {
+		_spec.ClearField(notificationevent.FieldAnnotations, field.TypeString)
 	}
 	if neuo.mutation.DeliveryStatusesCleared() {
 		edge := &sqlgraph.EdgeSpec{

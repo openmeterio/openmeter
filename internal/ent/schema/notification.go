@@ -138,6 +138,13 @@ func (NotificationEvent) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				dialect.Postgres: "jsonb",
 			}),
+		field.String("annotations").
+			GoType(notification.Annotations{}).
+			ValueScanner(AnnotationsValueScanner).
+			SchemaType(map[string]string{
+				dialect.Postgres: "jsonb",
+			}).
+			Optional(),
 	}
 }
 
@@ -325,5 +332,28 @@ var RuleConfigValueScanner = field.ValueScannerFunc[notification.RuleConfig, *sq
 		}
 
 		return ruleConfig, nil
+	},
+}
+
+var AnnotationsValueScanner = field.ValueScannerFunc[notification.Annotations, *sql.NullString]{
+	V: func(annotations notification.Annotations) (driver.Value, error) {
+		b, err := json.Marshal(annotations)
+		if err != nil {
+			return nil, err
+		}
+
+		return string(b), nil
+	},
+	S: func(ns *sql.NullString) (notification.Annotations, error) {
+		var annotations notification.Annotations
+		if ns == nil || !ns.Valid {
+			return annotations, nil
+		}
+
+		if err := json.Unmarshal([]byte(ns.String), &annotations); err != nil {
+			return nil, err
+		}
+
+		return annotations, nil
 	},
 }

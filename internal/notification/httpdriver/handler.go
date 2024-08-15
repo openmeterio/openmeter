@@ -31,12 +31,12 @@ type RuleHandler interface {
 	DeleteRule() DeleteRuleHandler
 	GetRule() GetRuleHandler
 	UpdateRule() UpdateRuleHandler
+	TestRule() TestRuleHandler
 }
 
 type EventHandler interface {
 	ListEvents() ListEventsHandler
 	GetEvent() GetEventHandler
-	CreateEvent() CreateEventHandler
 }
 
 var _ Handler = (*handler)(nil)

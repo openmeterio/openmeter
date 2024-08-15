@@ -16,7 +16,7 @@ type (
 	UpdateRuleHandler    = httpdriver.UpdateRuleHandler
 	ListEventsHandler    = httpdriver.ListEventsHandler
 	GetEventHandler      = httpdriver.GetEventHandler
-	CreateEventHandler   = httpdriver.CreateEventHandler
+	TestRuleHandler      = httpdriver.TestRuleHandler
 )
 
 type (
@@ -43,15 +43,15 @@ type (
 	GetRuleResponse    = httpdriver.GetRuleResponse
 	UpdateRuleRequest  = httpdriver.UpdateRuleRequest
 	UpdateRuleResponse = httpdriver.UpdateRuleResponse
+	TestRuleRequest    = httpdriver.TestRuleRequest
+	TestRuleResponse   = httpdriver.TestRuleResponse
 )
 
 type (
-	ListEventsRequest   = httpdriver.ListEventsRequest
-	ListEventsResponse  = httpdriver.ListEventsResponse
-	GetEventRequest     = httpdriver.GetEventRequest
-	GetEventResponse    = httpdriver.GetEventResponse
-	CreateEventRequest  = httpdriver.CreateEventRequest
-	CreateEventResponse = httpdriver.CreateEventResponse
+	ListEventsRequest  = httpdriver.ListEventsRequest
+	ListEventsResponse = httpdriver.ListEventsResponse
+	GetEventRequest    = httpdriver.GetEventRequest
+	GetEventResponse   = httpdriver.GetEventResponse
 )
 
 var NewHandler = httpdriver.New

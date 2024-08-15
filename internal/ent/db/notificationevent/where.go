@@ -351,6 +351,16 @@ func PayloadContainsFold(v string) predicate.NotificationEvent {
 	return predicate.NotificationEvent(sql.FieldContainsFold(FieldPayload, v))
 }
 
+// AnnotationsIsNil applies the IsNil predicate on the "annotations" field.
+func AnnotationsIsNil() predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldIsNull(FieldAnnotations))
+}
+
+// AnnotationsNotNil applies the NotNil predicate on the "annotations" field.
+func AnnotationsNotNil() predicate.NotificationEvent {
+	return predicate.NotificationEvent(sql.FieldNotNull(FieldAnnotations))
+}
+
 // HasDeliveryStatuses applies the HasEdge predicate on the "delivery_statuses" edge.
 func HasDeliveryStatuses() predicate.NotificationEvent {
 	return predicate.NotificationEvent(func(s *sql.Selector) {

@@ -35,6 +35,17 @@ func NotificationChannelOrErr(p NotificationChannel, err error) NotificationChan
 // NotificationEvent is the predicate function for notificationevent builders.
 type NotificationEvent func(*sql.Selector)
 
+// NotificationEventOrErr calls the predicate only if the error is not nit.
+func NotificationEventOrErr(p NotificationEvent, err error) NotificationEvent {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // NotificationEventDeliveryStatus is the predicate function for notificationeventdeliverystatus builders.
 type NotificationEventDeliveryStatus func(*sql.Selector)
 

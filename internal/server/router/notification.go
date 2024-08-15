@@ -83,17 +83,6 @@ func (a *Router) GetNotificationEvent(w http.ResponseWriter, r *http.Request, ev
 	a.notificationHandler.GetEvent().With(eventID).ServeHTTP(w, r)
 }
 
-// Create notification event
-// (POST /api/v1/notification/events)
-func (a *Router) CreateNotificationEvent(w http.ResponseWriter, r *http.Request) {
-	if !a.config.NotificationEnabled {
-		unimplemented.CreateNotificationEvent(w, r)
-		return
-	}
-
-	a.notificationHandler.CreateEvent().ServeHTTP(w, r)
-}
-
 // List notification rules
 // (GET /api/v1/notification/rules)
 func (a *Router) ListNotificationRules(w http.ResponseWriter, r *http.Request, params api.ListNotificationRulesParams) {
@@ -147,6 +136,17 @@ func (a *Router) UpdateNotificationRule(w http.ResponseWriter, r *http.Request, 
 	}
 
 	a.notificationHandler.UpdateRule().With(ruleID).ServeHTTP(w, r)
+}
+
+// Test notification rule
+// (POST /api/v1/notification/rules/{ruleId}/test)
+func (a *Router) TestNotificationRule(w http.ResponseWriter, r *http.Request, ruleID api.RuleId) {
+	if !a.config.NotificationEnabled {
+		unimplemented.TestNotificationRule(w, r, ruleID)
+		return
+	}
+
+	a.notificationHandler.TestRule().With(ruleID).ServeHTTP(w, r)
 }
 
 // Receive Svix operational events
