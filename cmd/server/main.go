@@ -409,6 +409,7 @@ func main() {
 			Notification:                notificationService,
 			// modules
 			EntitlementsEnabled: conf.Entitlements.Enabled,
+			NotificationEnabled: conf.Notification.Enabled,
 		},
 		RouterHook: func(r chi.Router) {
 			r.Use(func(h http.Handler) http.Handler {
