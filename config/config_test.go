@@ -240,7 +240,7 @@ func TestComplete(t *testing.T) {
 			},
 		},
 		Svix: notificationwebhook.SvixConfig{
-			APIToken:  "test-svix-token",
+			APIKey:    "test-svix-token",
 			ServerURL: "http://127.0.0.1:8071",
 			Debug:     true,
 		},
