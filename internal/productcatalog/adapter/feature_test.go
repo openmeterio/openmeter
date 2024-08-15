@@ -212,11 +212,11 @@ func TestCreateFeature(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			driver := testutils.InitPostgresDB(t)
-			dbClient := db.NewClient(db.Driver(driver))
-
 			m.Lock()
 			defer m.Unlock()
+
+			driver := testutils.InitPostgresDB(t)
+			dbClient := db.NewClient(db.Driver(driver))
 
 			if err := dbClient.Schema.Create(context.Background()); err != nil {
 				t.Fatalf("failed to migrate database %s", err)
@@ -231,6 +231,9 @@ func TestCreateFeature(t *testing.T) {
 
 	t.Run("Should actually use the pg driver and write through that", func(t *testing.T) {
 		t.Parallel()
+		m.Lock()
+		defer m.Unlock()
+
 		driver := testutils.InitPostgresDB(t)
 		dbClient := db.NewClient(db.Driver(driver))
 		defer dbClient.Close()
