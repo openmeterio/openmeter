@@ -8,6 +8,7 @@ import (
 
 	"github.com/openmeterio/openmeter/internal/notification/webhook"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 type Service interface {
@@ -406,6 +407,16 @@ func (c service) CreateEvent(ctx context.Context, params CreateEventInput) (*Eve
 	if err != nil {
 		return nil, fmt.Errorf("failed to get rule: %w", err)
 	}
+
+	if rule.DeletedAt != nil {
+		return nil, NotFoundError{
+			NamespacedID: models.NamespacedID{
+				Namespace: params.Namespace,
+				ID:        params.RuleID,
+			},
+		}
+	}
+
 	if rule.Disabled {
 		return nil, ValidationError{
 			Err: errors.New("failed to send event: rule is disabled"),
