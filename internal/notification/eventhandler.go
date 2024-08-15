@@ -156,7 +156,7 @@ func (h *handler) dispatchWebhook(ctx context.Context, event *Event) error {
 		Namespace: event.Namespace,
 		EventID:   event.ID,
 		EventType: string(event.Type),
-		Channels:  channelIDs,
+		Channels:  []string{event.Rule.ID},
 	}
 
 	switch event.Type {
