@@ -197,6 +197,7 @@ func (a *entitlementDBAdapter) GetEntitlementsOfSubject(ctx context.Context, nam
 func (a *entitlementDBAdapter) HasEntitlementForMeter(ctx context.Context, namespace string, meterSlug string) (bool, error) {
 	exists, err := a.db.Entitlement.Query().
 		Where(
+			db_entitlement.Or(db_entitlement.DeletedAtGT(clock.Now()), db_entitlement.DeletedAtIsNil()),
 			db_entitlement.Namespace(namespace),
 			db_entitlement.HasFeatureWith(db_feature.MeterSlugEQ(meterSlug)),
 		).
