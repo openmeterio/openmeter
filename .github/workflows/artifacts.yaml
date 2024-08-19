@@ -111,7 +111,7 @@ jobs:
           TRIVY_PASSWORD: ${{ steps.pull-token.outputs.token }}
 
       - name: Upload Trivy scan results as artifact
-        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
         with:
           name: "[${{ github.job }}] Trivy scan results"
           path: trivy-results.sarif
@@ -208,7 +208,7 @@ jobs:
           TRIVY_PASSWORD: ${{ steps.pull-token.outputs.token }}
 
       - name: Upload Trivy scan results as artifact
-        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
         with:
           name: "[${{ github.job }}] Trivy scan results"
           path: trivy-results.sarif
