@@ -10,10 +10,12 @@ import (
 	"github.com/openmeterio/openmeter/internal/notification/webhook"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-const DefaultReconcileInterval = 15 * time.Second
+const (
+	DefaultReconcileInterval = 15 * time.Second
+	DefaultDispatchTimeout   = 30 * time.Second
+)
 
 type EventHandler interface {
 	EventDispatcher
@@ -122,7 +124,7 @@ func (h *handler) Reconcile(ctx context.Context) error {
 
 	for _, event := range events.Items {
 		var errs error
-		for _, state := range event.DeliveryStates() {
+		for _, state := range DeliveryStatusStates(event.DeliveryStatus) {
 			switch state {
 			case EventDeliveryStatusStatePending:
 				if err = h.reconcilePending(ctx, &event); err != nil {
@@ -148,10 +150,6 @@ func (h *handler) Reconcile(ctx context.Context) error {
 }
 
 func (h *handler) dispatchWebhook(ctx context.Context, event *Event) error {
-	channelIDs := slicesx.Map(event.Rule.Channels, func(channel Channel) string {
-		return channel.ID
-	})
-
 	sendIn := webhook.SendMessageInput{
 		Namespace: event.Namespace,
 		EventID:   event.ID,
@@ -183,7 +181,7 @@ func (h *handler) dispatchWebhook(ctx context.Context, event *Event) error {
 		state = EventDeliveryStatusStateFailed
 	}
 
-	for _, channelID := range channelIDs {
+	for _, channelID := range ChannelIDsByType(event.Rule.Channels, ChannelTypeWebhook) {
 		_, err = h.repo.UpdateEventDeliveryStatus(ctx, UpdateEventDeliveryStatusInput{
 			NamespacedModel: models.NamespacedModel{
 				Namespace: event.Namespace,
@@ -204,7 +202,7 @@ func (h *handler) dispatchWebhook(ctx context.Context, event *Event) error {
 func (h *handler) dispatch(ctx context.Context, event *Event) error {
 	var errs error
 
-	for _, channelType := range event.ChannelTypes() {
+	for _, channelType := range ChannelTypes(event.Rule.Channels) {
 		var err error
 
 		switch channelType {
@@ -224,7 +222,7 @@ func (h *handler) dispatch(ctx context.Context, event *Event) error {
 
 func (h *handler) Dispatch(event *Event) error {
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), DefaultDispatchTimeout)
 		defer cancel()
 
 		if err := h.dispatch(ctx, event); err != nil {
