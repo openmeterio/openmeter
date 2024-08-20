@@ -9,7 +9,6 @@ import (
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
@@ -35,22 +34,6 @@ type Event struct {
 	Payload EventPayload `json:"payload"`
 	// Rule defines the notification Rule that generated this Event.
 	Rule Rule `json:"rule"`
-}
-
-func (e Event) ChannelTypes() []ChannelType {
-	channelTypes := slicesx.Map(e.Rule.Channels, func(channel Channel) ChannelType {
-		return channel.Type
-	})
-
-	return slicesx.Dedupe(channelTypes)
-}
-
-func (e Event) DeliveryStates() []EventDeliveryStatusState {
-	stateTypes := slicesx.Map(e.DeliveryStatus, func(status EventDeliveryStatus) EventDeliveryStatusState {
-		return status.State
-	})
-
-	return slicesx.Dedupe(stateTypes)
 }
 
 func (e Event) AsNotificationEvent() (api.NotificationEvent, error) {
