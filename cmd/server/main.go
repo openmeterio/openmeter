@@ -12,7 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	entDialectSQL "entgo.io/ent/dialect/sql"
 	health "github.com/AppsFlyer/go-sundheit"
 	healthhttp "github.com/AppsFlyer/go-sundheit/http"
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -36,7 +35,7 @@ import (
 
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/internal/debug"
-	"github.com/openmeterio/openmeter/internal/ent/db"
+	entdb "github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/internal/ingest"
 	"github.com/openmeterio/openmeter/internal/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/internal/ingest/kafkaingest"
@@ -59,8 +58,9 @@ import (
 	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/contextx"
 	"github.com/openmeterio/openmeter/pkg/errorsx"
-	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/driver"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
+	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	pkgkafka "github.com/openmeterio/openmeter/pkg/kafka"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
@@ -321,20 +321,47 @@ func main() {
 	debugConnector := debug.NewDebugConnector(streamingConnector)
 	entitlementConnRegistry := &registry.Entitlement{}
 
-	var postgresClients *pgClients
-
+	var entClient *entdb.Client
 	if conf.Entitlements.Enabled {
-		// Initialize Postgres
-		postgresClients, err = initPGClients(conf.Postgres)
+		// Initialize Postgres driver
+		var postgresDriver *pgdriver.Driver
+		postgresDriver, err = pgdriver.NewPostgresDriver(
+			ctx,
+			conf.Postgres.URL,
+			pgdriver.WithTracerProvider(otelTracerProvider),
+			pgdriver.WithMeterProvider(otelMeterProvider),
+		)
 		if err != nil {
-			logger.Error("failed to initialize postgres clients", "error", err)
+			logger.Error("failed to initialize postgres driver", "error", err)
 			os.Exit(1)
 		}
-		defer postgresClients.client.Close()
-		logger.Info("Postgres clients initialized")
+
+		defer func() {
+			if err = postgresDriver.Close(); err != nil {
+				logger.Error("failed to close postgres driver", "error", err)
+			}
+		}()
+
+		// Initialize Ent driver
+		entPostgresDriver := entdriver.NewEntPostgresDriver(postgresDriver.DB())
+		defer func() {
+			if err = entPostgresDriver.Close(); err != nil {
+				logger.Error("failed to close ent driver", "error", err)
+			}
+		}()
+
+		entClient = entPostgresDriver.Client()
+
+		// Run database schema creation
+		err = entClient.Schema.Create(ctx)
+		if err != nil {
+			logger.Error("failed to create schema in database", "error", err)
+		}
+
+		logger.Info("Postgres client initialized")
 
 		entitlementConnRegistry = registrybuilder.GetEntitlementRegistry(registry.EntitlementOptions{
-			DatabaseClient:     postgresClients.client,
+			DatabaseClient:     entClient,
 			StreamingConnector: streamingConnector,
 			MeterRepository:    meterRepository,
 			Logger:             logger,
@@ -350,14 +377,14 @@ func main() {
 		}
 
 		// CreatingPG client is done as part of entitlements initialization
-		if postgresClients == nil {
+		if entClient == nil {
 			logger.Error("failed to initialize notification service: postgres client is not initialized")
 			os.Exit(1)
 		}
 
 		var notificationRepo notification.Repository
 		notificationRepo, err = notificationrepository.New(notificationrepository.Config{
-			Client: postgresClients.client,
+			Client: entClient,
 			Logger: logger.WithGroup("notification.postgres"),
 		})
 		if err != nil {
@@ -605,35 +632,4 @@ func initNamespace(config config.Configuration, namespaces ...namespace.Handler)
 	}
 	slog.Info("default namespace created")
 	return namespaceManager, nil
-}
-
-type pgClients struct {
-	driver *entDialectSQL.Driver
-	client *db.Client
-}
-
-func initPGClients(config config.PostgresConfig) (
-	*pgClients,
-	error,
-) {
-	if err := config.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid postgres config: %w", err)
-	}
-	driver, err := entutils.GetPGDriver(config.URL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init postgres driver: %w", err)
-	}
-
-	// initialize client & run migrations
-	dbClient := db.NewClient(db.Driver(driver))
-
-	// TODO: use versioned migrations: https://entgo.io/docs/versioned-migrations
-	if err := dbClient.Schema.Create(context.Background()); err != nil {
-		return nil, fmt.Errorf("failed to migrate credit db: %w", err)
-	}
-
-	return &pgClients{
-		driver: driver,
-		client: dbClient,
-	}, nil
 }
