@@ -2,7 +2,7 @@ package main
 
 const (
 	// Alpine is required for our current build (due to Kafka and CGO), but it doesn't seem to work well with golangci-lint
-	goVersion = "1.22.6"
+	goVersion = "1.23.0"
 
 	kafkaVersion      = "3.6"
 	clickhouseVersion = "24.5.5.78"
@@ -13,8 +13,8 @@ const (
 	// TODO: add update mechanism for versions below
 
 	// Alpine is required for our current build (due to Kafka and CGO), but it doesn't seem to work well with golangci-lint
-	goBuildVersion = goVersion + "-alpine3.20@sha256:1a478681b671001b7f029f94b5016aed984a23ad99c707f6a0ab6563860ae2f3"
-	xxBaseImage    = "tonistiigi/xx:1.4.0@sha256:0cd3f05c72d6c9b038eb135f91376ee1169ef3a330d34e418e65e2a5c2e9c0d4"
+	goBuildVersion = goVersion + "-alpine3.20@sha256:d0b31558e6b3e4cc59f6011d79905835108c919143ebecc58f35965bf79948f4"
+	xxBaseImage    = "tonistiigi/xx:1.5.0@sha256:0c6a569797744e45955f39d4f7538ac344bfb7ebf0a54006a0a4297b153ccf0f"
 
-	alpineBaseImage = "alpine:3.20.1@sha256:b89d9c93e9ed3597455c90a0b88a8bbb5cb7188438f70953fede212a0c4394e0"
+	alpineBaseImage = "alpine:3.20.2@sha256:0a4eaa0eecf5f8c050e5bba433f58c052be7587ee8af3e8b3910ef9ab5fbe9f5"
 )
