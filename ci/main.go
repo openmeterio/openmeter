@@ -101,6 +101,8 @@ func (m *Ci) QuickstartTest(
 	port int,
 ) *dagger.Container {
 	return goModule().
+		WithModuleCache(cacheVolume("go-mod-quickstart")).
+		WithBuildCache(cacheVolume("go-build-quickstart")).
 		WithSource(m.Source).
 		Container().
 		WithServiceBinding("openmeter", service).
