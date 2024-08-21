@@ -10,7 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"entgo.io/ent/dialect/sql"
 	health "github.com/AppsFlyer/go-sundheit"
 	healthhttp "github.com/AppsFlyer/go-sundheit/http"
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -30,7 +29,6 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 
 	"github.com/openmeterio/openmeter/config"
-	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/notification/consumer"
 	"github.com/openmeterio/openmeter/internal/registry"
@@ -41,8 +39,9 @@ import (
 	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
 	"github.com/openmeterio/openmeter/internal/watermill/router"
 	"github.com/openmeterio/openmeter/pkg/contextx"
-	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/driver"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
+	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -210,14 +209,42 @@ func main() {
 	}
 
 	// Dependencies: postgresql
-	pgClients, err := initPGClients(conf.Postgres)
+
+	// Initialize Postgres driver
+	postgresDriver, err := pgdriver.NewPostgresDriver(
+		ctx,
+		conf.Postgres.URL,
+		pgdriver.WithTracerProvider(otelTracerProvider),
+		pgdriver.WithMeterProvider(otelMeterProvider),
+	)
 	if err != nil {
-		logger.Error("failed to initialize postgres clients", "error", err)
+		logger.Error("failed to initialize postgres driver", "error", err)
 		os.Exit(1)
 	}
-	defer pgClients.driver.Close()
 
-	logger.Info("Postgres clients initialized")
+	defer func() {
+		if err = postgresDriver.Close(); err != nil {
+			logger.Error("failed to close postgres driver", "error", err)
+		}
+	}()
+
+	// Initialize Ent driver
+	entPostgresDriver := entdriver.NewEntPostgresDriver(postgresDriver.DB())
+	defer func() {
+		if err = entPostgresDriver.Close(); err != nil {
+			logger.Error("failed to close ent driver", "error", err)
+		}
+	}()
+
+	entClient := entPostgresDriver.Client()
+
+	// Run database schema creation
+	err = entClient.Schema.Create(ctx)
+	if err != nil {
+		logger.Error("failed to create database schema", "error", err)
+	}
+
+	logger.Info("Postgres client initialized")
 
 	// Create  subscriber
 	wmSubscriber, err := watermillkafka.NewSubscriber(watermillkafka.SubscriberOptions{
@@ -256,7 +283,7 @@ func main() {
 
 	// Dependencies: entitlement
 	entitlementConnectors := registrybuilder.GetEntitlementRegistry(registry.EntitlementOptions{
-		DatabaseClient:     pgClients.client,
+		DatabaseClient:     entClient,
 		StreamingConnector: clickhouseStreamingConnector,
 		MeterRepository:    meterRepository,
 		Logger:             logger,
@@ -342,27 +369,4 @@ func initEventPublisherDriver(ctx context.Context, logger *slog.Logger, conf con
 		Broker:          wmBrokerConfiguration(conf, logger, metricMeter),
 		ProvisionTopics: provisionTopics,
 	})
-}
-
-type pgClients struct {
-	driver *sql.Driver
-	client *db.Client
-}
-
-func initPGClients(config config.PostgresConfig) (
-	*pgClients,
-	error,
-) {
-	if err := config.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid postgres config: %w", err)
-	}
-	driver, err := entutils.GetPGDriver(config.URL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init postgres driver: %w", err)
-	}
-
-	return &pgClients{
-		driver: driver,
-		client: db.NewClient(db.Driver(driver)),
-	}, nil
 }

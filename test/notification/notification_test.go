@@ -8,7 +8,10 @@ import (
 )
 
 func TestNotification(t *testing.T) {
-	env, err := NewTestEnv()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	env, err := NewTestEnv(ctx)
 	require.NoError(t, err, "NotificationTestEnv() failed")
 	require.NotNil(t, env.Notification())
 	require.NotNil(t, env.NotificationRepo())
@@ -19,9 +22,6 @@ func TestNotification(t *testing.T) {
 			t.Errorf("failed to close environment: %v", err)
 		}
 	}()
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	// Test suite for testing integration with webhook provider (Svix)
 	t.Run("Webhook", func(t *testing.T) {

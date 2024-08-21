@@ -1,9 +1,12 @@
 package notification
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/notification"
@@ -12,6 +15,8 @@ import (
 	"github.com/openmeterio/openmeter/internal/productcatalog"
 	productcatalogadapter "github.com/openmeterio/openmeter/internal/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
+	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/driver"
+	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 )
 
 const (
@@ -85,30 +90,34 @@ const (
 	DefaultSvixJWTSigningSecret = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MjI5NzYyNzMsImV4cCI6MjAzODMzNjI3MywibmJmIjoxNzIyOTc2MjczLCJpc3MiOiJzdml4LXNlcnZlciIsInN1YiI6Im9yZ18yM3JiOFlkR3FNVDBxSXpwZ0d3ZFhmSGlyTXUifQ.PomP6JWRI62W5N4GtNdJm2h635Q5F54eij0J3BU-_Ds"
 )
 
-func NewTestEnv() (TestEnv, error) {
+func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	logger := slog.Default().WithGroup("notification")
 
 	postgresHost := defaultx.IfZero(os.Getenv("POSTGRES_HOST"), DefaultPostgresHost)
 
-	pgClient, err := NewPGClient(fmt.Sprintf(PostgresURLTemplate, postgresHost))
+	postgresDriver, err := pgdriver.NewPostgresDriver(ctx, fmt.Sprintf(PostgresURLTemplate, postgresHost))
 	if err != nil {
-		return nil, err
+		logger.Error("failed to initialize postgres driver", "error", err)
 	}
-	defer func() {
-		if err != nil {
-			if err := pgClient.Close(); err != nil {
-				logger.Error("failed to close postgres client", slog.String("error", err.Error()))
-			}
-		}
-	}()
+
+	entPostgresDriver := entdriver.NewEntPostgresDriver(postgresDriver.DB())
+	entClient := entPostgresDriver.Client()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err = entClient.Schema.Create(ctx); err != nil {
+		logger.Error("failed to initialize ent driver using postgres", "error", err)
+		os.Exit(1)
+	}
 
 	meterRepository := NewMeterRepository()
 
-	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(pgClient, logger.WithGroup("feature.postgres"))
+	featureAdapter := productcatalogadapter.NewPostgresFeatureRepo(entClient, logger.WithGroup("feature.postgres"))
 	featureConnector := productcatalog.NewFeatureConnector(featureAdapter, meterRepository)
 
 	repo, err := notificationrepository.New(notificationrepository.Config{
-		Client: pgClient,
+		Client: entClient,
 		Logger: logger.WithGroup("postgres"),
 	})
 	if err != nil {
@@ -149,7 +158,17 @@ func NewTestEnv() (TestEnv, error) {
 	}
 
 	closerFunc := func() error {
-		return pgClient.Close()
+		var errs error
+
+		if err = entPostgresDriver.Close(); err != nil {
+			errs = errors.Join(errs, fmt.Errorf("failed to close ent driver: %w", err))
+		}
+
+		if err = postgresDriver.Close(); err != nil {
+			errs = errors.Join(errs, fmt.Errorf("failed to close postgres driver: %w", err))
+		}
+
+		return errs
 	}
 
 	return &testEnv{

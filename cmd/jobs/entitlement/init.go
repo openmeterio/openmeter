@@ -9,14 +9,14 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/config"
-	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/internal/meter"
 	"github.com/openmeterio/openmeter/internal/registry"
 	registrybuilder "github.com/openmeterio/openmeter/internal/registry/builder"
 	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
 	watermillkafka "github.com/openmeterio/openmeter/internal/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
-	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/driver"
+	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
@@ -28,13 +28,16 @@ type entitlementConnectors struct {
 }
 
 func initEntitlements(ctx context.Context, conf config.Configuration, logger *slog.Logger, metricMeter metric.Meter, otelName string) (*entitlementConnectors, error) {
-	// Postgresql
-	entDriver, err := entutils.GetPGDriver(conf.Postgres.URL)
+	// Initialize Postgres driver
+	postgresDriver, err := pgdriver.NewPostgresDriver(ctx, conf.Postgres.URL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to init postgres driver: %w", err)
+		return nil, fmt.Errorf("error initializing postgres driver: %w", err)
 	}
 
-	dbClient := db.NewClient(db.Driver(entDriver))
+	// Initialize Ent driver
+	entPostgresDriver := entdriver.NewEntPostgresDriver(postgresDriver.DB())
+
+	logger.Info("Postgres client initialized")
 
 	// Meter repository
 	meterRepository := meter.NewInMemoryRepository(slicesx.Map(conf.Meters, func(meter *models.Meter) models.Meter {
@@ -84,7 +87,7 @@ func initEntitlements(ctx context.Context, conf config.Configuration, logger *sl
 	}
 
 	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registry.EntitlementOptions{
-		DatabaseClient:     dbClient,
+		DatabaseClient:     entPostgresDriver.Client(),
 		StreamingConnector: streamingConnector,
 		MeterRepository:    meterRepository,
 		Logger:             logger,
@@ -95,8 +98,15 @@ func initEntitlements(ctx context.Context, conf config.Configuration, logger *sl
 		Registry: entitlementRegistry,
 		EventBus: eventPublisher,
 		Shutdown: func() {
-			if err := dbClient.Close(); err != nil {
-				logger.Error("failed to close entitlement db client", "error", err)
+			if err := entPostgresDriver.Close(); err != nil {
+				logger.Error("failed to close ent driver", "error", err)
+			}
+
+			if postgresDriver != nil {
+				err := postgresDriver.Close()
+				if err != nil {
+					logger.Error("failed to close postgres driver", "error", err)
+				}
 			}
 
 			if err := clickHouseClient.Close(); err != nil {

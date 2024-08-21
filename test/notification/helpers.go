@@ -1,9 +1,7 @@
 package notification
 
 import (
-	"context"
 	"crypto/rand"
-	"fmt"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -11,9 +9,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/oklog/ulid/v2"
 
-	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/internal/meter"
-	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -62,20 +58,4 @@ func NewMeterRepository() meter.Repository {
 			WindowSize: "MINUTE",
 		},
 	})
-}
-
-func NewPGClient(url string) (*db.Client, error) {
-	driver, err := entutils.GetPGDriver(url)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init postgres driver: %w", err)
-	}
-
-	// initialize client & run migrations
-	dbClient := db.NewClient(db.Driver(driver))
-
-	if err = dbClient.Schema.Create(context.Background()); err != nil {
-		return nil, fmt.Errorf("failed to migrate databse schme: %w", err)
-	}
-
-	return dbClient, nil
 }
