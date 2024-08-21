@@ -242,6 +242,7 @@ func main() {
 	err = entClient.Schema.Create(ctx)
 	if err != nil {
 		logger.Error("failed to create database schema", "error", err)
+		os.Exit(1)
 	}
 
 	logger.Info("Postgres client initialized")
