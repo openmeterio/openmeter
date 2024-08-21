@@ -7,14 +7,16 @@ import (
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
+	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/config"
 )
 
 type Options struct {
-	Subscriber message.Subscriber
-	Publisher  message.Publisher
-	Logger     *slog.Logger
+	Subscriber  message.Subscriber
+	Publisher   message.Publisher
+	Logger      *slog.Logger
+	MetricMeter metric.Meter
 
 	Config config.ConsumerConfiguration
 }
@@ -89,6 +91,14 @@ func NewDefaultRouter(opts Options) (*message.Router, error) {
 			RestoreContext,
 			middleware.Timeout(opts.Config.ProcessingTimeout),
 		)
+	}
+
+	if opts.MetricMeter != nil {
+		metricsMiddleware, err := Metrics(opts.MetricMeter, "consumer", opts.Logger)
+		if err != nil {
+			return nil, err
+		}
+		router.AddMiddleware(metricsMiddleware)
 	}
 
 	return router, nil

@@ -300,9 +300,10 @@ func main() {
 		IngestEventsTopic: conf.Events.IngestEvents.Topic,
 
 		Router: router.Options{
-			Subscriber: wmSubscriber,
-			Publisher:  eventPublisherDriver,
-			Logger:     logger,
+			Subscriber:  wmSubscriber,
+			Publisher:   eventPublisherDriver,
+			Logger:      logger,
+			MetricMeter: metricMeter,
 
 			Config: conf.BalanceWorker.ConsumerConfiguration,
 		},

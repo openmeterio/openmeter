@@ -113,7 +113,7 @@ func (w *Worker) eventHandler() message.NoPublishHandlerFunc {
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *entitlement.EntitlementCreatedEvent) error {
 			return w.opts.EventBus.
 				WithContext(ctx).
-				PublishIfNoError(w.handleEntitlementUpdateEvent(
+				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
 					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID),
@@ -124,14 +124,17 @@ func (w *Worker) eventHandler() message.NoPublishHandlerFunc {
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *entitlement.EntitlementDeletedEvent) error {
 			return w.opts.EventBus.
 				WithContext(ctx).
-				PublishIfNoError(w.handleEntitlementDeleteEvent(ctx, *event))
+				PublishIfNoError(w.handleEntitlementEvent(ctx,
+					NamespacedID{Namespace: event.Namespace.ID, ID: event.ID},
+					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.ID),
+				))
 		}),
 
 		// Grant created event
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *grant.CreatedEvent) error {
 			return w.opts.EventBus.
 				WithContext(ctx).
-				PublishIfNoError(w.handleEntitlementUpdateEvent(
+				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: string(event.OwnerID)},
 					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, string(event.OwnerID), metadata.EntityGrant, event.ID),
@@ -142,7 +145,7 @@ func (w *Worker) eventHandler() message.NoPublishHandlerFunc {
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *grant.VoidedEvent) error {
 			return w.opts.EventBus.
 				WithContext(ctx).
-				PublishIfNoError(w.handleEntitlementUpdateEvent(
+				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: string(event.OwnerID)},
 					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, string(event.OwnerID), metadata.EntityGrant, event.ID),
@@ -153,7 +156,7 @@ func (w *Worker) eventHandler() message.NoPublishHandlerFunc {
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *meteredentitlement.EntitlementResetEvent) error {
 			return w.opts.EventBus.
 				WithContext(ctx).
-				PublishIfNoError(w.handleEntitlementUpdateEvent(
+				PublishIfNoError(w.handleEntitlementEvent(
 					ctx,
 					NamespacedID{Namespace: event.Namespace.ID, ID: event.EntitlementID},
 					metadata.ComposeResourcePath(event.Namespace.ID, metadata.EntityEntitlement, event.EntitlementID),

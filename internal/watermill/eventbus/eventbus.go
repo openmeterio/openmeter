@@ -49,6 +49,11 @@ type publisher struct {
 }
 
 func (p publisher) Publish(ctx context.Context, event marshaler.Event) error {
+	if event == nil {
+		// nil events are always ignored as the handler signifies that it doesn't want to publish anything
+		return nil
+	}
+
 	return p.eventBus.Publish(ctx, event)
 }
 
