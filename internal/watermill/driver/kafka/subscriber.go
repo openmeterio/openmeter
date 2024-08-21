@@ -10,6 +10,14 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 )
 
+const (
+	// defaultMaxProcessinTime is the default maximum time a message is allowed to be processed before the
+	// partition assignment is lost by the consumer. For now we just set it to a high enough value (default 1s)
+	//
+	// Later we can make this configurable if needed.
+	defaultMaxProcessingTime = 5 * time.Minute
+)
+
 type SubscriberOptions struct {
 	Broker            BrokerOptions
 	ConsumerGroupName string
@@ -36,6 +44,8 @@ func NewSubscriber(in SubscriberOptions) (message.Subscriber, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	saramaConfig.Consumer.MaxProcessingTime = defaultMaxProcessingTime
 
 	wmConfig := kafka.SubscriberConfig{
 		Brokers:               []string{in.Broker.KafkaConfig.Broker},
