@@ -230,7 +230,6 @@ type ListEventsInput struct {
 	From time.Time `json:"from,omitempty"`
 	To   time.Time `json:"to,omitempty"`
 
-	// TODO(chrisgacsal): add filtering based on subject and feature
 	Subjects []string `json:"subjects,omitempty"`
 	Features []string `json:"features,omitempty"`
 
@@ -288,7 +287,7 @@ var _ validator = (*CreateEventInput)(nil)
 
 type CreateEventInput struct {
 	models.NamespacedModel
-	Annotations `json:"annotations,omitempty"`
+	Annotations Annotations `json:"annotations,omitempty"`
 
 	// Type of the notification Event (e.g. entitlements.balance.threshold)
 	Type EventType `json:"type"`

@@ -108,6 +108,7 @@ func EventFromDBEntity(e db.NotificationEvent) (*notification.Event, error) {
 		Payload:        payload,
 		Rule:           *rule,
 		DeliveryStatus: statuses,
+		Annotations:    e.Annotations,
 	}, nil
 }
 

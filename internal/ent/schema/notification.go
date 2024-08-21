@@ -7,6 +7,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -165,6 +166,13 @@ func (NotificationEvent) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("namespace", "id"),
 		index.Fields("namespace", "type"),
+		// GIN indexes can only be set on specific types such as jsonb
+		index.Fields("annotations").
+			Annotations(
+				entsql.IndexTypes(map[string]string{
+					dialect.Postgres: "GIN",
+				}),
+			),
 	}
 }
 
@@ -293,7 +301,7 @@ var RuleConfigValueScanner = field.ValueScannerFunc[notification.RuleConfig, *sq
 			}
 			return json.Marshal(serde)
 		default:
-			return nil, fmt.Errorf("unknown channel type: %s", config.Type)
+			return nil, fmt.Errorf("unknown rule config type: %s", config.Type)
 		}
 	},
 	S: func(ns *sql.NullString) (notification.RuleConfig, error) {
