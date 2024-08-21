@@ -136,4 +136,21 @@ func TestNotification(t *testing.T) {
 			testSuite.TestUpdateDeliveryStatus(ctx, t)
 		})
 	})
+
+	// Test suite for repo methods
+	t.Run("Repository", func(t *testing.T) {
+		testSuite := RepositoryTestSuite{
+			Env: env,
+		}
+
+		testSuite.Setup(ctx, t)
+
+		t.Run("TestFilterEventByFeature", func(t *testing.T) {
+			testSuite.TestFilterEventByFeature(t)
+		})
+
+		t.Run("TestFilterEventBySubject", func(t *testing.T) {
+			testSuite.TestFilterEventBySubject(t)
+		})
+	})
 }

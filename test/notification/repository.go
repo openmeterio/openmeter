@@ -1,34 +1,22 @@
-package repository
+package notification
 
 import (
 	"context"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
 
-	"github.com/openmeterio/openmeter/internal/ent/db"
 	"github.com/openmeterio/openmeter/internal/notification"
-	"github.com/openmeterio/openmeter/internal/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-const (
-	featureKey1 = "feature1"
-	featureID1  = "featureID1"
-
-	subjectKey1 = "subject1"
-	subjectID1  = "subjectID1"
-
-	namespace = "test"
-)
-
 type RepositoryTestSuite struct {
-	suite.Suite
+	Env TestEnv
 
-	dbClient *db.Client
-	repo     notification.Repository
+	namespace string
 
 	eventWithFeature1          *notification.Event
 	eventWithSubject1          *notification.Event
@@ -36,39 +24,14 @@ type RepositoryTestSuite struct {
 	eventWithoutAnnotations    *notification.Event
 }
 
-func TestRepositoryTestSuite(t *testing.T) {
-	suite.Run(t, new(RepositoryTestSuite))
-}
+func (s *RepositoryTestSuite) Setup(ctx context.Context, t *testing.T) {
+	s.namespace = fmt.Sprintf("ns_%s", time.Now().Format(time.RFC3339))
 
-func (s *RepositoryTestSuite) SetupSuite() {
-	// create isolated pg db for tests
-	driver := testutils.InitPostgresDB(s.T())
+	repo := s.Env.NotificationRepo()
 
-	// build db clients
-	s.dbClient = db.NewClient(db.Driver(driver))
-
-	if err := s.dbClient.Schema.Create(context.Background()); err != nil {
-		s.T().Fatalf("failed to migrate database %s", err)
-	}
-
-	repo, err := New(Config{
-		Client: s.dbClient,
-		Logger: testutils.NewLogger(s.T()),
-	})
-	require.NoError(s.T(), err)
-	s.repo = repo
-
-	s.setupTestData()
-}
-
-func (s *RepositoryTestSuite) setupTestData() {
-	require := require.New(s.T())
-
-	ctx := context.Background()
-
-	channel, err := s.repo.CreateChannel(ctx, notification.CreateChannelInput{
+	channel, err := repo.CreateChannel(ctx, notification.CreateChannelInput{
 		NamespacedModel: models.NamespacedModel{
-			Namespace: namespace,
+			Namespace: s.namespace,
 		},
 		Type: notification.ChannelTypeWebhook,
 		Name: "whatever",
@@ -83,11 +46,11 @@ func (s *RepositoryTestSuite) setupTestData() {
 		},
 	})
 
-	require.NoError(err)
+	require.NoError(t, err)
 
-	rule, err := s.repo.CreateRule(ctx, notification.CreateRuleInput{
+	rule, err := repo.CreateRule(ctx, notification.CreateRuleInput{
 		NamespacedModel: models.NamespacedModel{
-			Namespace: namespace,
+			Namespace: s.namespace,
 		},
 		Type:     notification.RuleTypeBalanceThreshold,
 		Name:     "whatever",
@@ -101,16 +64,16 @@ func (s *RepositoryTestSuite) setupTestData() {
 	},
 	)
 
-	require.NoError(err)
+	require.NoError(t, err)
 
-	s.eventWithFeature1, err = s.repo.CreateEvent(ctx, notification.CreateEventInput{
+	s.eventWithFeature1, err = repo.CreateEvent(ctx, notification.CreateEventInput{
 		NamespacedModel: models.NamespacedModel{
-			Namespace: namespace,
+			Namespace: s.namespace,
 		},
 
 		Annotations: map[string]interface{}{
-			notification.AnnotationEventFeatureKey: featureKey1,
-			notification.AnnotationEventFeatureID:  featureID1,
+			notification.AnnotationEventFeatureKey: TestFeatureKey,
+			notification.AnnotationEventFeatureID:  TestFeatureID,
 		},
 
 		Type: notification.EventTypeBalanceThreshold,
@@ -122,40 +85,16 @@ func (s *RepositoryTestSuite) setupTestData() {
 
 		RuleID: rule.ID,
 	})
-	require.NoError(err)
+	require.NoError(t, err)
 
-	s.eventWithSubject1, err = s.repo.CreateEvent(ctx, notification.CreateEventInput{
+	s.eventWithSubject1, err = repo.CreateEvent(ctx, notification.CreateEventInput{
 		NamespacedModel: models.NamespacedModel{
-			Namespace: namespace,
+			Namespace: s.namespace,
 		},
 
 		Annotations: map[string]interface{}{
-			notification.AnnotationEventSubjectID:  subjectID1,
-			notification.AnnotationEventSubjectKey: subjectKey1,
-		},
-
-		Type: notification.EventTypeBalanceThreshold,
-		Payload: notification.EventPayload{
-			EventPayloadMeta: notification.EventPayloadMeta{
-				Type: notification.EventTypeBalanceThreshold,
-			},
-		},
-
-		RuleID: rule.ID,
-	})
-
-	require.NoError(err)
-
-	s.eventWithFeatureAndSubject, err = s.repo.CreateEvent(ctx, notification.CreateEventInput{
-		NamespacedModel: models.NamespacedModel{
-			Namespace: namespace,
-		},
-
-		Annotations: map[string]interface{}{
-			notification.AnnotationEventSubjectID:  subjectID1,
-			notification.AnnotationEventSubjectKey: subjectKey1,
-			notification.AnnotationEventFeatureKey: featureKey1,
-			notification.AnnotationEventFeatureID:  featureID1,
+			notification.AnnotationEventSubjectID:  TestSubjectID,
+			notification.AnnotationEventSubjectKey: TestSubjectKey,
 		},
 
 		Type: notification.EventTypeBalanceThreshold,
@@ -168,11 +107,35 @@ func (s *RepositoryTestSuite) setupTestData() {
 		RuleID: rule.ID,
 	})
 
-	require.NoError(err)
+	require.NoError(t, err)
 
-	s.eventWithoutAnnotations, err = s.repo.CreateEvent(ctx, notification.CreateEventInput{
+	s.eventWithFeatureAndSubject, err = repo.CreateEvent(ctx, notification.CreateEventInput{
 		NamespacedModel: models.NamespacedModel{
-			Namespace: namespace,
+			Namespace: s.namespace,
+		},
+
+		Annotations: map[string]interface{}{
+			notification.AnnotationEventSubjectID:  TestSubjectID,
+			notification.AnnotationEventSubjectKey: TestSubjectKey,
+			notification.AnnotationEventFeatureKey: TestFeatureKey,
+			notification.AnnotationEventFeatureID:  TestFeatureID,
+		},
+
+		Type: notification.EventTypeBalanceThreshold,
+		Payload: notification.EventPayload{
+			EventPayloadMeta: notification.EventPayloadMeta{
+				Type: notification.EventTypeBalanceThreshold,
+			},
+		},
+
+		RuleID: rule.ID,
+	})
+
+	require.NoError(t, err)
+
+	s.eventWithoutAnnotations, err = repo.CreateEvent(ctx, notification.CreateEventInput{
+		NamespacedModel: models.NamespacedModel{
+			Namespace: s.namespace,
 		},
 
 		Annotations: nil,
@@ -187,33 +150,35 @@ func (s *RepositoryTestSuite) setupTestData() {
 		RuleID: rule.ID,
 	})
 
-	require.NoError(err)
+	require.NoError(t, err)
 }
 
-func (s *RepositoryTestSuite) TestFilterEventByFeature() {
-	require := require.New(s.T())
+func (s *RepositoryTestSuite) TestFilterEventByFeature(t *testing.T) {
+	require := require.New(t)
 	ctx := context.Background()
 
-	listedEvents, err := s.repo.ListEvents(ctx, notification.ListEventsInput{
-		Namespaces: []string{namespace},
-		Features:   []string{featureID1},
+	repo := s.Env.NotificationRepo()
+
+	listedEvents, err := repo.ListEvents(ctx, notification.ListEventsInput{
+		Namespaces: []string{s.namespace},
+		Features:   []string{TestFeatureID},
 	})
 
 	require.NoError(err)
 	require.Len(listedEvents.Items, 2)
 	require.ElementsMatch(eventIDsFromEventPaginatedResponse(listedEvents), []string{s.eventWithFeature1.ID, s.eventWithFeatureAndSubject.ID})
 
-	listedEvents, err = s.repo.ListEvents(ctx, notification.ListEventsInput{
-		Namespaces: []string{namespace},
-		Features:   []string{featureKey1},
+	listedEvents, err = repo.ListEvents(ctx, notification.ListEventsInput{
+		Namespaces: []string{s.namespace},
+		Features:   []string{TestFeatureKey},
 	})
 
 	require.NoError(err)
 	require.Len(listedEvents.Items, 2)
 	require.ElementsMatch(eventIDsFromEventPaginatedResponse(listedEvents), []string{s.eventWithFeature1.ID, s.eventWithFeatureAndSubject.ID})
 
-	listedEvents, err = s.repo.ListEvents(ctx, notification.ListEventsInput{
-		Namespaces: []string{namespace},
+	listedEvents, err = repo.ListEvents(ctx, notification.ListEventsInput{
+		Namespaces: []string{s.namespace},
 		Features:   []string{"invalid-feature"},
 	})
 
@@ -221,30 +186,32 @@ func (s *RepositoryTestSuite) TestFilterEventByFeature() {
 	require.Len(listedEvents.Items, 0)
 }
 
-func (s *RepositoryTestSuite) TestFilterEventBySubject() {
-	require := require.New(s.T())
+func (s *RepositoryTestSuite) TestFilterEventBySubject(t *testing.T) {
+	require := require.New(t)
 	ctx := context.Background()
 
-	listedEvents, err := s.repo.ListEvents(ctx, notification.ListEventsInput{
-		Namespaces: []string{namespace},
-		Subjects:   []string{subjectID1},
+	repo := s.Env.NotificationRepo()
+
+	listedEvents, err := repo.ListEvents(ctx, notification.ListEventsInput{
+		Namespaces: []string{s.namespace},
+		Subjects:   []string{TestSubjectID},
 	})
 
 	require.NoError(err)
 	require.Len(listedEvents.Items, 2)
 	require.ElementsMatch(eventIDsFromEventPaginatedResponse(listedEvents), []string{s.eventWithSubject1.ID, s.eventWithFeatureAndSubject.ID})
 
-	listedEvents, err = s.repo.ListEvents(ctx, notification.ListEventsInput{
-		Namespaces: []string{namespace},
-		Subjects:   []string{subjectID1},
+	listedEvents, err = repo.ListEvents(ctx, notification.ListEventsInput{
+		Namespaces: []string{s.namespace},
+		Subjects:   []string{TestSubjectID},
 	})
 
 	require.NoError(err)
 	require.Len(listedEvents.Items, 2)
 	require.ElementsMatch(eventIDsFromEventPaginatedResponse(listedEvents), []string{s.eventWithSubject1.ID, s.eventWithFeatureAndSubject.ID})
 
-	listedEvents, err = s.repo.ListEvents(ctx, notification.ListEventsInput{
-		Namespaces: []string{namespace},
+	listedEvents, err = repo.ListEvents(ctx, notification.ListEventsInput{
+		Namespaces: []string{s.namespace},
 		Subjects:   []string{"invalid-subject"},
 	})
 
@@ -259,8 +226,4 @@ func eventIDsFromEventPaginatedResponse(events pagination.PagedResponse[notifica
 	}
 
 	return eventIDs
-}
-
-func (s *RepositoryTestSuite) TeardownSuite() {
-	require.NoError(s.T(), s.dbClient.Close())
 }
