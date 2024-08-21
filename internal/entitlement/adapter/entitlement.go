@@ -40,7 +40,7 @@ func NewPostgresEntitlementRepo(db *db.Client) repo {
 }
 
 func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID models.NamespacedID) (*entitlement.Entitlement, error) {
-	res, err := withLatestUsageReset(a.db.Entitlement.Query()).
+	res, err := withLatestUsageReset(a.db.Entitlement.Query(), []string{entitlementID.Namespace}).
 		Where(
 			db_entitlement.ID(entitlementID.ID),
 			db_entitlement.Namespace(entitlementID.Namespace),
@@ -58,7 +58,7 @@ func (a *entitlementDBAdapter) GetEntitlement(ctx context.Context, entitlementID
 }
 
 func (a *entitlementDBAdapter) GetEntitlementOfSubject(ctx context.Context, namespace string, subjectKey string, idOrFeatureKey string) (*entitlement.Entitlement, error) {
-	res, err := withLatestUsageReset(a.db.Entitlement.Query()).
+	res, err := withLatestUsageReset(a.db.Entitlement.Query(), []string{namespace}).
 		Where(
 			db_entitlement.Or(db_entitlement.DeletedAtGT(clock.Now()), db_entitlement.DeletedAtIsNil()),
 			db_entitlement.SubjectKey(subjectKey),
@@ -175,7 +175,7 @@ func (a *entitlementDBAdapter) ListAffectedEntitlements(ctx context.Context, eve
 }
 
 func (a *entitlementDBAdapter) GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]entitlement.Entitlement, error) {
-	res, err := withLatestUsageReset(a.db.Entitlement.Query()).
+	res, err := withLatestUsageReset(a.db.Entitlement.Query(), []string{namespace}).
 		Where(
 			db_entitlement.Or(db_entitlement.DeletedAtGT(clock.Now()), db_entitlement.DeletedAtIsNil()),
 			db_entitlement.SubjectKey(string(subjectKey)),
@@ -215,7 +215,7 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 		query = query.Where(db_entitlement.NamespaceIn(params.Namespaces...))
 	}
 
-	query = withLatestUsageReset(query)
+	query = withLatestUsageReset(query, params.Namespaces)
 
 	if len(params.SubjectKeys) > 0 {
 		query = query.Where(db_entitlement.SubjectKeyIn(params.SubjectKeys...))
@@ -405,7 +405,7 @@ func (a *entitlementDBAdapter) UpdateEntitlementUsagePeriod(ctx context.Context,
 }
 
 func (a *entitlementDBAdapter) ListEntitlementsWithExpiredUsagePeriod(ctx context.Context, namespace string, expiredBefore time.Time) ([]entitlement.Entitlement, error) {
-	res, err := withLatestUsageReset(a.db.Entitlement.Query()).
+	res, err := withLatestUsageReset(a.db.Entitlement.Query(), []string{namespace}).
 		Where(
 			db_entitlement.Namespace(namespace),
 			db_entitlement.CurrentUsagePeriodEndNotNil(),
@@ -449,9 +449,14 @@ func (a *entitlementDBAdapter) ListNamespacesWithActiveEntitlements(ctx context.
 	}), nil
 }
 
-func withLatestUsageReset(q *db.EntitlementQuery) *db.EntitlementQuery {
+func withLatestUsageReset(q *db.EntitlementQuery, namespaces []string) *db.EntitlementQuery {
 	return q.WithUsageReset(func(urq *db.UsageResetQuery) {
-		urq.Order(db_usagereset.ByResetTime(sql.OrderDesc()))
-		urq.Limit(1)
+		urq.
+			Order(db_usagereset.ByResetTime(sql.OrderDesc())).
+			Limit(1)
+
+		if len(namespaces) > 0 {
+			urq.Where(db_usagereset.NamespaceIn(namespaces...))
+		}
 	})
 }
