@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/event/metadata"
@@ -13,12 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
-var ss sync.Mutex
-
 func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevents.EventBatchedIngest) error {
-	ss.Lock()
-	defer ss.Unlock()
-
 	filters := slicesx.Map(event.Events, func(e ingestevents.IngestEventData) IngestEventQueryFilter {
 		return IngestEventQueryFilter{
 			Namespace:  e.Namespace.ID,
