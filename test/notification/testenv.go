@@ -97,7 +97,7 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 
 	postgresDriver, err := pgdriver.NewPostgresDriver(ctx, fmt.Sprintf(PostgresURLTemplate, postgresHost))
 	if err != nil {
-		logger.Error("failed to initialize postgres driver", "error", err)
+		return nil, fmt.Errorf("failed to initialize postgres driver: %w", err)
 	}
 
 	entPostgresDriver := entdriver.NewEntPostgresDriver(postgresDriver.DB())
@@ -107,8 +107,7 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 	defer cancel()
 
 	if err = entClient.Schema.Create(ctx); err != nil {
-		logger.Error("failed to initialize ent driver using postgres", "error", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("failed to create database schema: %w", err)
 	}
 
 	meterRepository := NewMeterRepository()
