@@ -228,6 +228,10 @@ func (a *entitlementDBAdapter) ListEntitlements(ctx context.Context, params enti
 		})...))
 	}
 
+	if len(params.IDs) > 0 {
+		query = query.Where(db_entitlement.IDIn(params.IDs...))
+	}
+
 	if len(params.FeatureIDsOrKeys) > 0 {
 		var ep predicate.Entitlement
 		for i, idOrKey := range params.FeatureIDsOrKeys {

@@ -37,6 +37,7 @@ func (o ListEntitlementsOrderBy) StrValues() []string {
 }
 
 type ListEntitlementsParams struct {
+	IDs                 []string
 	Namespaces          []string
 	SubjectKeys         []string
 	FeatureIDs          []string

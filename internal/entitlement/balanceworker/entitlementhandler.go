@@ -83,17 +83,39 @@ func (w *Worker) handleEntitlementUpdateEvent(ctx context.Context, entitlementID
 }
 
 func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementID NamespacedID, source string, calculatedAt time.Time) (marshaler.Event, error) {
-	entitlement, err := w.entitlement.Entitlement.GetEntitlement(ctx, entitlementID.Namespace, entitlementID.ID)
+	entitlements, err := w.entitlement.Entitlement.ListEntitlements(ctx, entitlement.ListEntitlementsParams{
+		Namespaces:     []string{entitlementID.Namespace},
+		IDs:            []string{entitlementID.ID},
+		IncludeDeleted: true,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get entitlement: %w", err)
 	}
 
-	feature, err := w.entitlement.Feature.GetFeature(ctx, entitlementID.Namespace, entitlement.FeatureID, productcatalog.IncludeArchivedFeatureTrue)
+	if len(entitlements.Items) == 0 {
+		return nil, fmt.Errorf("entitlement not found: %s", entitlementID.ID)
+	}
+
+	if len(entitlements.Items) > 1 {
+		return nil, fmt.Errorf("multiple entitlements found: %s", entitlementID.ID)
+	}
+
+	entitlementEntity := &entitlements.Items[0]
+	if entitlementEntity.DeletedAt != nil {
+		// entitlement got deleted while processing changes => let's create a delete event so that we are not working
+		// on entitlement updates that are not relevant anymore
+		return w.handleEntitlementDeleteEvent(ctx, entitlement.EntitlementDeletedEvent{
+			Entitlement: *entitlementEntity,
+			Namespace:   models.NamespaceID{ID: entitlementID.Namespace},
+		})
+	}
+
+	feature, err := w.entitlement.Feature.GetFeature(ctx, entitlementID.Namespace, entitlementEntity.FeatureID, productcatalog.IncludeArchivedFeatureTrue)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get feature: %w", err)
 	}
 
-	value, err := w.entitlement.Entitlement.GetEntitlementValue(ctx, entitlementID.Namespace, entitlement.SubjectKey, entitlement.ID, calculatedAt)
+	value, err := w.entitlement.Entitlement.GetEntitlementValue(ctx, entitlementID.Namespace, entitlementEntity.SubjectKey, entitlementEntity.ID, calculatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get entitlement value: %w", err)
 	}
@@ -104,10 +126,10 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementID Namespac
 	}
 
 	subject := models.Subject{
-		Key: entitlement.SubjectKey,
+		Key: entitlementEntity.SubjectKey,
 	}
 	if w.opts.SubjectResolver != nil {
-		subject, err = w.opts.SubjectResolver.GetSubjectByKey(ctx, entitlementID.Namespace, entitlement.SubjectKey)
+		subject, err = w.opts.SubjectResolver.GetSubjectByKey(ctx, entitlementID.Namespace, entitlementEntity.SubjectKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get subject ID: %w", err)
 		}
@@ -116,7 +138,7 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementID Namespac
 	event := marshaler.WithSource(
 		source,
 		snapshot.SnapshotEvent{
-			Entitlement: *entitlement,
+			Entitlement: *entitlementEntity,
 			Namespace: models.NamespaceID{
 				ID: entitlementID.Namespace,
 			},
@@ -127,7 +149,7 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementID Namespac
 			CalculatedAt: &calculatedAt,
 
 			Value:              convert.ToPointer((snapshot.EntitlementValue)(mappedValues)),
-			CurrentUsagePeriod: entitlement.CurrentUsagePeriod,
+			CurrentUsagePeriod: entitlementEntity.CurrentUsagePeriod,
 		},
 	)
 
