@@ -3,6 +3,8 @@ package balanceworker
 import (
 	"context"
 	"errors"
+	"fmt"
+	"sync"
 
 	"github.com/openmeterio/openmeter/internal/entitlement"
 	"github.com/openmeterio/openmeter/internal/event/metadata"
@@ -11,7 +13,12 @@ import (
 	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
+var ss sync.Mutex
+
 func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevents.EventBatchedIngest) error {
+	ss.Lock()
+	defer ss.Unlock()
+
 	filters := slicesx.Map(event.Events, func(e ingestevents.IngestEventData) IngestEventQueryFilter {
 		return IngestEventQueryFilter{
 			Namespace:  e.Namespace.ID,
@@ -27,7 +34,7 @@ func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevent
 	var handlingError error
 
 	for _, entitlement := range affectedEntitlements {
-		event, err := w.handleEntitlementUpdateEvent(
+		event, err := w.handleEntitlementEvent(
 			ctx,
 			NamespacedID{Namespace: entitlement.Namespace, ID: entitlement.EntitlementID},
 			metadata.ComposeResourcePath(entitlement.Namespace, metadata.EntityEvent),
@@ -39,8 +46,12 @@ func (w *Worker) handleBatchedIngestEvent(ctx context.Context, event ingestevent
 		}
 
 		if err := w.opts.EventBus.Publish(ctx, event); err != nil {
-			handlingError = errors.Join(handlingError, err)
+			handlingError = errors.Join(handlingError, fmt.Errorf("handling entitlement event for %s: %w", entitlement.EntitlementID, err))
 		}
+	}
+
+	if handlingError != nil {
+		w.opts.Logger.Error("error handling batched ingest event", "error", handlingError)
 	}
 
 	return handlingError

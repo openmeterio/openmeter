@@ -326,9 +326,10 @@ func main() {
 	consumerOptions := consumer.Options{
 		SystemEventsTopic: conf.Events.SystemEvents.Topic,
 		Router: router.Options{
-			Subscriber: wmSubscriber,
-			Publisher:  eventPublisherDriver,
-			Logger:     logger,
+			Subscriber:  wmSubscriber,
+			Publisher:   eventPublisherDriver,
+			Logger:      logger,
+			MetricMeter: metricMeter,
 
 			Config: conf.Notification.Consumer,
 		},
