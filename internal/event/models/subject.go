@@ -2,7 +2,11 @@ package models
 
 import (
 	"errors"
+	"maps"
 	"time"
+
+	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/pkg/convert"
 )
 
 type SubjectKeyAndID struct {
@@ -34,4 +38,16 @@ func (s Subject) Validate() error {
 	}
 
 	return nil
+}
+
+func (s Subject) ToAPIModel() api.Subject {
+	return api.Subject{
+		Id:                 s.Id,
+		Key:                s.Key,
+		DisplayName:        s.DisplayName,
+		Metadata:           convert.ToPointer(maps.Clone(s.Metadata)),
+		CurrentPeriodStart: s.CurrentPeriodStart,
+		CurrentPeriodEnd:   s.CurrentPeriodEnd,
+		StripeCustomerId:   s.StripeCustomerId,
+	}
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/convert"
 )
 
-func MaptFeatureToResponse(f productcatalog.Feature) api.Feature {
+func MapFeatureToResponse(f productcatalog.Feature) api.Feature {
 	return api.Feature{
 		CreatedAt:           &f.CreatedAt,
 		DeletedAt:           nil,

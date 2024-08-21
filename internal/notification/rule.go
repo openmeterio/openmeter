@@ -131,6 +131,16 @@ func (r Rule) Validate(ctx context.Context, service Service) error {
 	return nil
 }
 
+func (r Rule) HasEnabledChannels() bool {
+	for _, channel := range r.Channels {
+		if !channel.Disabled {
+			return true
+		}
+	}
+
+	return false
+}
+
 const (
 	RuleTypeBalanceThreshold = RuleType(api.EntitlementsBalanceThreshold)
 )
@@ -263,6 +273,7 @@ type ListRulesInput struct {
 	Namespaces      []string
 	Rules           []string
 	IncludeDisabled bool
+	Types           []RuleType
 
 	OrderBy api.ListNotificationRulesParamsOrderBy
 	Order   sortx.Order

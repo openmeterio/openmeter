@@ -153,4 +153,19 @@ func TestNotification(t *testing.T) {
 			testSuite.TestFilterEventBySubject(t)
 		})
 	})
+
+	// Test suite covering the consumer that listens to events (balance)
+	t.Run("Consumer", func(t *testing.T) {
+		testSuite := BalanceNotificaiontHandlerTestSuite{
+			Env: env,
+		}
+
+		t.Run("TestGrantingFlow", func(t *testing.T) {
+			testSuite.TestGrantingFlow(ctx, t)
+		})
+
+		t.Run("TestFeatureFiltering", func(t *testing.T) {
+			testSuite.TestFeatureFiltering(ctx, t)
+		})
+	})
 }

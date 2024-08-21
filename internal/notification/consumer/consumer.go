@@ -7,7 +7,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 
 	"github.com/openmeterio/openmeter/internal/entitlement/snapshot"
-	"github.com/openmeterio/openmeter/internal/registry"
+	"github.com/openmeterio/openmeter/internal/notification"
 	"github.com/openmeterio/openmeter/internal/watermill/grouphandler"
 	"github.com/openmeterio/openmeter/internal/watermill/router"
 	"github.com/openmeterio/openmeter/openmeter/watermill/marshaler"
@@ -16,8 +16,9 @@ import (
 type Options struct {
 	SystemEventsTopic string
 
-	Entitlement *registry.Entitlement
-	Router      router.Options
+	Router router.Options
+
+	Notification notification.Service
 
 	Marshaler marshaler.Marshaler
 
@@ -27,11 +28,20 @@ type Options struct {
 type Consumer struct {
 	opts   Options
 	router *message.Router
+
+	balanceThresholdHandler *BalanceThresholdEventHandler
 }
 
 func New(opts Options) (*Consumer, error) {
+	balanceThresholdEventHandler := &BalanceThresholdEventHandler{
+		Notification: opts.Notification,
+		Logger:       opts.Logger.WithGroup("balance_threshold_event_handler"),
+	}
+
 	consumer := &Consumer{
 		opts: opts,
+
+		balanceThresholdHandler: balanceThresholdEventHandler,
 	}
 
 	router, err := router.NewDefaultRouter(opts.Router)
@@ -49,7 +59,7 @@ func New(opts Options) (*Consumer, error) {
 					return nil
 				}
 
-				return consumer.handleSnapshotEvent(ctx, *event)
+				return consumer.balanceThresholdHandler.Handle(ctx, *event)
 			}),
 		),
 	)
@@ -60,16 +70,10 @@ func New(opts Options) (*Consumer, error) {
 	}, nil
 }
 
-func (w *Consumer) Run(ctx context.Context) error {
-	return w.router.Run(ctx)
+func (c *Consumer) Run(ctx context.Context) error {
+	return c.router.Run(ctx)
 }
 
-func (w *Consumer) Close() error {
-	return w.router.Close()
-}
-
-func (w *Consumer) handleSnapshotEvent(_ context.Context, payload snapshot.SnapshotEvent) error {
-	w.opts.Logger.Info("handling entitlement snapshot event", slog.String("entitlement_id", payload.Entitlement.ID))
-
-	return nil
+func (c *Consumer) Close() error {
+	return c.router.Close()
 }

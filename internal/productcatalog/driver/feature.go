@@ -187,7 +187,7 @@ func (h *featureHandlers) ListFeatures() ListFeaturesHandler {
 
 			mapped := make([]api.Feature, 0, len(paged.Items))
 			for _, f := range paged.Items {
-				mapped = append(mapped, MaptFeatureToResponse(f))
+				mapped = append(mapped, MapFeatureToResponse(f))
 			}
 
 			if params.Page.IsZero() {

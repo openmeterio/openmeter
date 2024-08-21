@@ -281,6 +281,10 @@ func (r repository) ListRules(ctx context.Context, params notification.ListRules
 		query = query.Where(ruledb.Disabled(false))
 	}
 
+	if len(params.Types) > 0 {
+		query = query.Where(ruledb.TypeIn(params.Types...))
+	}
+
 	query = query.WithChannels()
 
 	order := entutils.GetOrdering(sortx.OrderDefault)
@@ -475,6 +479,12 @@ func (r repository) ListEvents(ctx context.Context, params notification.ListEven
 
 	if !params.To.IsZero() {
 		query = query.Where(eventdb.CreatedAtLTE(params.To.UTC()))
+	}
+
+	if len(params.DeduplicationHashes) > 0 {
+		query = query.Where(
+			entutils.JSONBIn(eventdb.FieldAnnotations, notification.AnnotationEventDedupeHash, params.DeduplicationHashes),
+		)
 	}
 
 	// Eager load DeliveryStatus, Rules (including Channels)
