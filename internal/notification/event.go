@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
@@ -78,6 +80,7 @@ func (e Event) AsNotificationEvent() (api.NotificationEvent, error) {
 		DeliveryStatus: deliveryStatuses,
 		Id:             e.ID,
 		Rule:           rule,
+		Annotations:    lo.EmptyableToPtr(e.Annotations),
 	}
 
 	switch e.Type {

@@ -3463,8 +3463,7 @@ components:
           description: |
             List of annotations managed by the system.
           type: object
-          additionalProperties:
-            type: string
+          additionalProperties: true
           example:
             test-event: "true"
 
