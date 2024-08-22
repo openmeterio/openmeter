@@ -38,15 +38,16 @@ func New(opts Options) (*Consumer, error) {
 		Logger:       opts.Logger.WithGroup("balance_threshold_event_handler"),
 	}
 
-	consumer := &Consumer{
-		opts: opts,
-
-		balanceThresholdHandler: balanceThresholdEventHandler,
-	}
-
 	router, err := router.NewDefaultRouter(opts.Router)
 	if err != nil {
 		return nil, err
+	}
+
+	consumer := &Consumer{
+		opts:   opts,
+		router: router,
+
+		balanceThresholdHandler: balanceThresholdEventHandler,
 	}
 
 	_ = router.AddNoPublisherHandler(
