@@ -174,15 +174,15 @@
                 aarch64-linux = "linux-arm64";
               };
               hashMappings = {
-                x86_64-linux = "sha256-6270kOQ0uqiv/ljHtAi41uCzb+bkf+99rnmsc87/n6w=";
-                x86_64-darwin = "sha256-KeOp6LeHIY59Y2DJVAhMcr9xyb3KItFqEs6y9+uA7rM=";
-                aarch64-darwin = "sha256-bYJtNDE13UhJWL4ALLKI0sHMZrDS//kFWzguGX63EAo=";
-                aarch64-linux = "sha256-pRLZo7bwFJ1Xxlw2Afi/tAT6HSEvQ/B83ZzHGzCKXT8=";
+                x86_64-linux = "sha256-C/my+oOVX1DzdwuA2otud1Zer+0WOPjR749E8c03TOE=";
+                x86_64-darwin = "sha256-YWrLeH3d0x4I5lr3uArJqsQW3uY3XIy22PiNEmHrSLc=";
+                aarch64-darwin = "sha256-73G/kvh7gqXJpVidR7zB1e+0bkDegvFFavCsHYxSI1Q=";
+                aarch64-linux = "sha256-bQCCJF2tYkAAgwbBc1+nkdNtczmU+eRJlXRppulFvvc=";
               };
             in
             pkgs.stdenv.mkDerivation rec {
               pname = "atlasx";
-              version = "0.25.0";
+              version = "0.26.0";
 
               src = pkgs.fetchurl {
                 # License: https://ariga.io/legal/atlas/eula/eula-20240804.pdf
