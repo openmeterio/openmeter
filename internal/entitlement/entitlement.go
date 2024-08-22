@@ -96,7 +96,7 @@ type Entitlement struct {
 
 	// All none-core fields are optional
 	// metered
-	MeasureUsageFrom        *time.Time `json:"-"`
+	MeasureUsageFrom        *time.Time `json:"measureUsageFrom,omitempty"`
 	IssueAfterReset         *float64   `json:"issueAfterReset,omitempty"`
 	IssueAfterResetPriority *uint8     `json:"issueAfterResetPriority,omitempty"`
 	IsSoftLimit             *bool      `json:"isSoftLimit,omitempty"`
