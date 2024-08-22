@@ -265,6 +265,7 @@ type ListRulesInput struct {
 	Rules           []string
 	IncludeDisabled bool
 	Types           []RuleType
+	Channels        []string
 
 	OrderBy api.ListNotificationRulesParamsOrderBy
 	Order   sortx.Order
