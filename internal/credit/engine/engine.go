@@ -189,36 +189,41 @@ func (e *engine) GetPhases(period recurrence.Period) ([]burnPhase, error) {
 	acI, rtI := 0, 0
 	phaseFrom := period.From
 
+	var phase burnPhase
 	for len(activityChanges) > acI && len(recurrenceTimes) > rtI {
+
 		// compare the first activity change and the first recurrence time
 		// - if they're the same we create a single period and increment both
 		// - if not we increment the earlier
 		if activityChanges[acI].Before(recurrenceTimes[rtI].time) {
-			phases = append(phases, burnPhase{
+			phase = burnPhase{
 				from:           phaseFrom,
 				to:             activityChanges[acI],
 				priorityChange: true,
-			})
-			phaseFrom = activityChanges[acI]
+			}
 			acI++
 		} else if activityChanges[acI].After(recurrenceTimes[rtI].time) {
-			phases = append(phases, burnPhase{
+			phase = burnPhase{
 				from:                phaseFrom,
 				to:                  recurrenceTimes[rtI].time,
 				grantsRecurredAtEnd: recurrenceTimes[rtI].grantIDs,
-			})
-			phaseFrom = recurrenceTimes[rtI].time
+			}
 			rtI++
 		} else {
-			phases = append(phases, burnPhase{
+			phase = burnPhase{
 				from:                phaseFrom,
 				to:                  activityChanges[acI],
 				priorityChange:      true,
 				grantsRecurredAtEnd: recurrenceTimes[rtI].grantIDs,
-			})
-			phaseFrom = activityChanges[acI]
+			}
 			acI++
 			rtI++
+		}
+
+		// If it's a valid phase (non-zero duration), we save it and break
+		if phase.to.After(phase.from) {
+			phases = append(phases, phase)
+			phaseFrom = phase.to
 		}
 	}
 
