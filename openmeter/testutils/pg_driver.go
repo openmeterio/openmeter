@@ -6,11 +6,10 @@ import (
 	"os"
 	"testing"
 
-	"entgo.io/ent/dialect"
-	entsql "entgo.io/ent/dialect/sql"
 	_ "github.com/jackc/pgx/v5/stdlib" // pgx database driver
 	"github.com/peterldowns/pgtestdb"
 
+	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 )
 
@@ -53,7 +52,8 @@ func (*NoopMigrator) Verify(
 }
 
 type TestDB struct {
-	EntDriver *entsql.Driver
+	EntDriver *entdriver.EntPostgresDriver
+	PGDriver  *pgdriver.Driver
 	SQLDriver *sql.DB
 	URL       string
 }
@@ -87,17 +87,11 @@ func InitPostgresDB(t *testing.T) *TestDB {
 		t.Fatalf("failed to get pg driver: %s", err)
 	}
 
-	defer func() {
-		if err = postgresDriver.Close(); err != nil {
-			t.Error("failed to close ent driver", "error", err)
-		}
-	}()
-
-	entDriver := entsql.OpenDB(dialect.Postgres, postgresDriver.DB())
+	entDriver := entdriver.NewEntPostgresDriver(postgresDriver.DB())
 
 	return &TestDB{
+		PGDriver:  postgresDriver,
 		EntDriver: entDriver,
-		SQLDriver: postgresDriver.DB(),
 		URL:       dbConf.URL(),
 	}
 }

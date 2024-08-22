@@ -9,7 +9,6 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	db_feature "github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
@@ -216,15 +215,12 @@ func TestCreateFeature(t *testing.T) {
 			m.Lock()
 			defer m.Unlock()
 
-			driver := testutils.InitPostgresDB(t)
-			defer driver.SQLDriver.Close()
-			dbClient := db.NewClient(db.Driver(driver.EntDriver))
+			testdb := testutils.InitPostgresDB(t)
+			defer testdb.PGDriver.Close()
+			dbClient := testdb.EntDriver.Client()
 			defer dbClient.Close()
 
-			m.Lock()
-			defer m.Unlock()
-
-			if err := migrate.Up(driver.URL); err != nil {
+			if err := migrate.Up(testdb.URL); err != nil {
 				t.Fatalf("failed to migrate db: %s", err.Error())
 			}
 
@@ -238,11 +234,12 @@ func TestCreateFeature(t *testing.T) {
 		m.Lock()
 		defer m.Unlock()
 
-		driver := testutils.InitPostgresDB(t)
-		dbClient := db.NewClient(db.Driver(driver.EntDriver))
+		testdb := testutils.InitPostgresDB(t)
+		defer testdb.PGDriver.Close()
+		dbClient := testdb.EntDriver.Client()
 		defer dbClient.Close()
 
-		if err := migrate.Up(driver.URL); err != nil {
+		if err := migrate.Up(testdb.URL); err != nil {
 			t.Fatalf("failed to migrate db: %s", err.Error())
 		}
 
