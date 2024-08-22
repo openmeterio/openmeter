@@ -3,6 +3,7 @@ package framework_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -463,4 +464,114 @@ func TestCreatingEntitlementsForKeyOfArchivedFeatures(t *testing.T) {
 	})
 	assert.NoError(err)
 	assert.NotNil(ent2)
+}
+
+func TestGrantingAfterOverage(t *testing.T) {
+	defer clock.ResetTime()
+	deps := setupDependencies(t)
+	defer deps.Close()
+	ctx := context.Background()
+	assert := assert.New(t)
+
+	// Let's create a feature
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-07-07T14:44:19Z"))
+	feature, err := deps.FeatureConnector.CreateFeature(ctx, productcatalog.CreateFeatureInputs{
+		Name:      "feature-1",
+		Key:       "feature-1",
+		Namespace: "namespace-1",
+		MeterSlug: convert.ToPointer("meter-1"),
+	})
+	assert.NoError(err)
+	assert.NotNil(feature)
+
+	// Let's create a new entitlement for the feature
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z"))
+	ent, err := deps.EntitlementConnector.CreateEntitlement(ctx, entitlement.CreateEntitlementInputs{
+		Namespace:       "namespace-1",
+		FeatureID:       &feature.ID,
+		FeatureKey:      &feature.Key,
+		SubjectKey:      "subject-1",
+		EntitlementType: entitlement.EntitlementTypeMetered,
+		UsagePeriod: &entitlement.UsagePeriod{
+			Interval: recurrence.RecurrencePeriodMonth,
+			Anchor:   testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z"),
+		},
+	})
+	assert.NoError(err)
+	assert.NotNil(ent)
+
+	// Lets grant some credit for 500
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-08-22T11:27:18Z"))
+	grant1, err := deps.GrantConnector.CreateGrant(ctx,
+		grant.NamespacedOwner{
+			Namespace: "namespace-1",
+			ID:        grant.Owner(ent.ID),
+		},
+		credit.CreateGrantInput{
+			Amount:      500,
+			Priority:    1,
+			EffectiveAt: testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z"),
+			Expiration: grant.ExpirationPeriod{
+				Count:    1,
+				Duration: grant.ExpirationPeriodDurationMonth,
+			},
+			Recurrence: &recurrence.Recurrence{
+				Interval: recurrence.RecurrencePeriodMonth,
+				Anchor:   testutils.GetRFC3339Time(t, "2024-08-22T11:25:00Z"),
+			},
+		})
+	assert.NoError(err)
+	assert.NotNil(grant1)
+
+	addInMany := func(amount int, from, to time.Time) {
+		for i := 0; i < amount; i++ {
+
+			dur := to.Sub(from)
+			clock.SetTime(from.Add(time.Duration(i) * dur / time.Duration(amount)))
+
+			deps.Streaming.AddSimpleEvent("meter-1", 1, clock.Now())
+		}
+	}
+
+	// Lets register usage until it reaches overage
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-08-22T11:30:18Z"))
+	addInMany(1000, testutils.GetRFC3339Time(t, "2024-08-22T11:30:18Z"), testutils.GetRFC3339Time(t, "2024-08-22T12:05:18Z"))
+
+	// Lets grant more credits
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-08-22T12:31:30Z"))
+	grant2, err := deps.GrantConnector.CreateGrant(ctx,
+		grant.NamespacedOwner{
+			Namespace: "namespace-1",
+			ID:        grant.Owner(ent.ID),
+		},
+		credit.CreateGrantInput{
+			Amount:      8000,
+			Priority:    1,
+			EffectiveAt: testutils.GetRFC3339Time(t, "2024-08-22T12:31:00Z"),
+			Expiration: grant.ExpirationPeriod{
+				Count:    1,
+				Duration: grant.ExpirationPeriodDurationMonth,
+			},
+		})
+	assert.NoError(err)
+	assert.NotNil(grant2)
+
+	// Lets register usage until it reaches overage
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-08-22T11:30:18Z"))
+	deps.Streaming.AddSimpleEvent("meter-1", 1000, testutils.GetRFC3339Time(t, "2024-08-22T12:35:18Z"))
+
+	// Lets get the balance
+	clock.SetTime(testutils.GetRFC3339Time(t, "2024-08-22T13:30:18Z"))
+	currentBalance, err := deps.MeteredEntitlementConnector.GetEntitlementBalance(ctx,
+		models.NamespacedID{
+			Namespace: "namespace-1",
+			ID:        ent.ID,
+		},
+		testutils.GetRFC3339Time(t, "2024-08-22T13:30:18Z"))
+
+	assert.NoError(err)
+	assert.NotNil(currentBalance)
+	assert.Equal(6500.0, currentBalance.Balance)
+	assert.Equal(0.0, currentBalance.Overage)
+	assert.Equal(2000.0, currentBalance.UsageInPeriod)
 }
