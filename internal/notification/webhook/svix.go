@@ -268,7 +268,7 @@ func (h svixWebhookHandler) CreateWebhook(ctx context.Context, params CreateWebh
 	// Set custom HTTP headers for webhook endpoint if provided
 
 	if len(params.CustomHeaders) > 0 {
-		webhook.CustomHeaders, err = h.GetOrUpdateEndpointHeaders(ctx, app.Id, endpoint.Id, nil)
+		webhook.CustomHeaders, err = h.GetOrUpdateEndpointHeaders(ctx, app.Id, endpoint.Id, params.CustomHeaders)
 		if err != nil {
 			return nil, err
 		}
