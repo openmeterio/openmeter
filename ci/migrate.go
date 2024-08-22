@@ -28,7 +28,7 @@ func (m *Migrate) Check(
 
 	bin := dag.Container(dagger.ContainerOpts{
 		Platform: "linux/amd64",
-	}).From("arigaio/atlas:0.25.0").File("atlas")
+	}).From("arigaio/atlas:0.26.0").File("atlas")
 
 	atlas := app.
 		WithFile("/bin/atlas", bin).
