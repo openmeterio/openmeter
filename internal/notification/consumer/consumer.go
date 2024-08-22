@@ -64,10 +64,11 @@ func New(opts Options) (*Consumer, error) {
 		),
 	)
 
-	return &Consumer{
-		opts:   opts,
-		router: router,
-	}, nil
+	return consumer, nil
+}
+
+func (c *Consumer) Handle(ctx context.Context, event snapshot.SnapshotEvent) error {
+	return c.balanceThresholdHandler.Handle(ctx, event)
 }
 
 func (c *Consumer) Run(ctx context.Context) error {
