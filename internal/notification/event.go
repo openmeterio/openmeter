@@ -235,6 +235,9 @@ type ListEventsInput struct {
 	Subjects []string `json:"subjects,omitempty"`
 	Features []string `json:"features,omitempty"`
 
+	Rules    []string `json:"rules,omitempty"`
+	Channels []string `json:"channels,omitempty"`
+
 	DeduplicationHashes []string `json:"deduplicationHashes,omitempty"`
 
 	DeliveryStatusStates []EventDeliveryStatusState `json:"deliveryStatusStates,omitempty"`

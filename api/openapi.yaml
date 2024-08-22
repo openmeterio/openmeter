@@ -1656,6 +1656,28 @@ paths:
         - $ref: "#/components/parameters/queryTo"
         - $ref: "#/components/parameters/queryFilterFeature"
         - $ref: "#/components/parameters/queryFilterSubject"
+        - name: rule
+          description: |
+            Filtering by multiple rules.
+
+            Usage: `?rule=ID1&rule=rule=ID2`
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+        - name: channel
+          description: |
+            Filtering by multiple channels.
+
+            Usage: `?channel=ID1&channel=ID2`
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
       responses:
         "200":
           description: List of notification events.
