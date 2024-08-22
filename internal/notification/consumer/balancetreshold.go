@@ -44,7 +44,7 @@ func (b *BalanceThresholdEventHandler) Handle(ctx context.Context, event snapsho
 
 	// TODO[issue-1364]: this must be cached to prevent going to the DB for each balance.snapshot event
 	affectedRulesPaged, err := b.Notification.ListRules(ctx, notification.ListRulesInput{
-		Namespaces: []string{event.Entitlement.Namespace},
+		Namespaces: []string{event.Namespace.ID},
 		Types:      []notification.RuleType{notification.RuleTypeBalanceThreshold},
 	})
 	if err != nil {
@@ -101,7 +101,7 @@ func (b *BalanceThresholdEventHandler) handleRule(ctx context.Context, balSnapsh
 			PageSize:   1,
 			PageNumber: 1,
 		},
-		Namespaces: []string{balSnapshot.Entitlement.Namespace},
+		Namespaces: []string{balSnapshot.Namespace.ID},
 
 		From: balSnapshot.Entitlement.CurrentUsagePeriod.From,
 		To:   balSnapshot.Entitlement.CurrentUsagePeriod.To,
@@ -185,7 +185,7 @@ func (b *BalanceThresholdEventHandler) createEvent(ctx context.Context, in creat
 
 	_, err = b.Notification.CreateEvent(ctx, notification.CreateEventInput{
 		NamespacedModel: models.NamespacedModel{
-			Namespace: in.Snapshot.Entitlement.Namespace,
+			Namespace: in.Snapshot.Namespace.ID,
 		},
 		Annotations: annotations,
 		Type:        notification.EventTypeBalanceThreshold,
