@@ -39,6 +39,8 @@ func (h *handler) ListEvents() ListEventsHandler {
 				},
 				Subjects: defaultx.WithDefault(params.Subject, nil),
 				Features: defaultx.WithDefault(params.Feature, nil),
+				Rules:    defaultx.WithDefault(params.Rule, nil),
+				Channels: defaultx.WithDefault(params.Channel, nil),
 				From:     defaultx.WithDefault(params.From, time.Time{}),
 				To:       defaultx.WithDefault(params.To, time.Time{}),
 			}

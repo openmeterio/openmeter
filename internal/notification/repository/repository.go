@@ -519,6 +519,14 @@ func (r repository) ListEvents(ctx context.Context, params notification.ListEven
 		)
 	}
 
+	if len(params.Rules) > 0 {
+		query = query.Where(eventdb.RuleIDIn(params.Rules...))
+	}
+
+	if len(params.Channels) > 0 {
+		query = query.Where(eventdb.HasRulesWith(ruledb.HasChannelsWith(channeldb.IDIn(params.Channels...))))
+	}
+
 	query = query.WithRules(func(query *entdb.NotificationRuleQuery) {
 		query.WithChannels()
 	})
