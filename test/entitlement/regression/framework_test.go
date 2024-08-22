@@ -21,12 +21,16 @@ import (
 	streamingtestutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
+	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 type Dependencies struct {
-	DBClient *db.Client
+	DBClient  *db.Client
+	PGDriver  *pgdriver.Driver
+	EntDriver *entdriver.EntPostgresDriver
 
 	GrantRepo           grant.Repo
 	BalanceSnapshotRepo balance.SnapshotRepo
@@ -49,14 +53,15 @@ type Dependencies struct {
 
 func (d *Dependencies) Close() {
 	d.DBClient.Close()
+	d.EntDriver.Close()
+	d.PGDriver.Close()
 }
 
 func setupDependencies(t *testing.T) Dependencies {
 	log := slog.Default()
 	driver := testutils.InitPostgresDB(t)
-
 	// init db
-	dbClient := db.NewClient(db.Driver(driver.EntDriver))
+	dbClient := db.NewClient(db.Driver(driver.EntDriver.Driver()))
 	if err := migrate.Up(driver.URL); err != nil {
 		t.Fatalf("failed to migrate db: %s", err.Error())
 	}
@@ -132,7 +137,9 @@ func setupDependencies(t *testing.T) Dependencies {
 	)
 
 	return Dependencies{
-		DBClient: dbClient,
+		DBClient:  dbClient,
+		PGDriver:  driver.PGDriver,
+		EntDriver: driver.EntDriver,
 
 		GrantRepo:      grantRepo,
 		GrantConnector: creditConnector,

@@ -4,12 +4,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/openmeterio/openmeter/internal/testutils"
+	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 func TestUpDownUp(t *testing.T) {
 	testDB := testutils.InitPostgresDB(t)
+	defer testDB.PGDriver.Close()
 
 	migrator, err := migrate.NewMigrate(testDB.URL, migrate.OMMigrations, "migrations")
 	if err != nil {
