@@ -525,7 +525,6 @@ func TestGrantingAfterOverage(t *testing.T) {
 
 	addInMany := func(amount int, from, to time.Time) {
 		for i := 0; i < amount; i++ {
-
 			dur := to.Sub(from)
 			clock.SetTime(from.Add(time.Duration(i) * dur / time.Duration(amount)))
 

@@ -191,7 +191,6 @@ func (e *engine) GetPhases(period recurrence.Period) ([]burnPhase, error) {
 
 	var phase burnPhase
 	for len(activityChanges) > acI && len(recurrenceTimes) > rtI {
-
 		// compare the first activity change and the first recurrence time
 		// - if they're the same we create a single period and increment both
 		// - if not we increment the earlier
