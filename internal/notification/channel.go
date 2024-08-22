@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/openmeterio/openmeter/api"
+	"github.com/openmeterio/openmeter/internal/notification/webhook"
 	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -143,7 +144,17 @@ type WebHookChannelConfig struct {
 // Validate returns an error if webhook channel configuration is invalid.
 func (w WebHookChannelConfig) Validate() error {
 	if w.URL == "" {
-		return fmt.Errorf("invalid webhook channel configuration: missing URL")
+		return ValidationError{
+			Err: errors.New("missing URL"),
+		}
+	}
+
+	if w.SigningSecret != "" {
+		if err := webhook.ValidateSigningSecret(w.SigningSecret); err != nil {
+			return ValidationError{
+				Err: fmt.Errorf("invalid signing secret: %w", err),
+			}
+		}
 	}
 
 	return nil

@@ -77,9 +77,8 @@ func (i CreateWebhookInput) Validate() error {
 	}
 
 	if i.Secret != nil {
-		secret, _ := strings.CutPrefix(*i.Secret, SigningSecretPrefix)
-		if _, err := base64.StdEncoding.DecodeString(secret); err != nil {
-			return errors.New("invalid secret: must be base64 encoded")
+		if err := ValidateSigningSecret(*i.Secret); err != nil {
+			return fmt.Errorf("invalid secret: %w", err)
 		}
 	}
 
@@ -261,4 +260,17 @@ func New(config Config) (Handler, error) {
 	}
 
 	return handler, nil
+}
+
+func ValidateSigningSecret(secret string) error {
+	s, _ := strings.CutPrefix(secret, SigningSecretPrefix)
+	if len(s) < 32 || len(s) > 100 {
+		return errors.New("secret length must be between 32 to 100 chars without the optional prefix")
+	}
+
+	if _, err := base64.StdEncoding.DecodeString(s); err != nil {
+		return errors.New("invalid base64 string")
+	}
+
+	return nil
 }

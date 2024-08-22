@@ -204,19 +204,10 @@ func (b BalanceThresholdRuleConfig) Validate(ctx context.Context, service Servic
 
 	for _, threshold := range b.Thresholds {
 		switch threshold.Type {
-		case BalanceThresholdTypeNumber:
+		case BalanceThresholdTypeNumber, BalanceThresholdTypePercent:
 			if threshold.Value <= 0 {
 				return ValidationError{
-					Err: fmt.Errorf("invalid threshold with type %s: value must be greater than 0: %f",
-						threshold.Type,
-						threshold.Value,
-					),
-				}
-			}
-		case BalanceThresholdTypePercent:
-			if threshold.Value <= 0 || threshold.Value > 100 {
-				return ValidationError{
-					Err: fmt.Errorf("invalid threshold with type %s: value must be between 0 anad 100: %f",
+					Err: fmt.Errorf("invalid threshold with type %s: value must be greater than 0: %.2f",
 						threshold.Type,
 						threshold.Value,
 					),
@@ -274,6 +265,7 @@ type ListRulesInput struct {
 	Rules           []string
 	IncludeDisabled bool
 	Types           []RuleType
+	Channels        []string
 
 	OrderBy api.ListNotificationRulesParamsOrderBy
 	Order   sortx.Order

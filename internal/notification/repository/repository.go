@@ -285,6 +285,11 @@ func (r repository) ListRules(ctx context.Context, params notification.ListRules
 		query = query.Where(ruledb.TypeIn(params.Types...))
 	}
 
+	if len(params.Channels) > 0 {
+		query = query.Where(ruledb.HasChannelsWith(channeldb.IDIn(params.Channels...)))
+	}
+
+	// Eager load Channels
 	query = query.WithChannels()
 
 	order := entutils.GetOrdering(sortx.OrderDefault)

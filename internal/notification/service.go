@@ -191,6 +191,27 @@ func (c service) DeleteChannel(ctx context.Context, params DeleteChannelInput) e
 		return fmt.Errorf("invalid params: %w", err)
 	}
 
+	rules, err := c.repo.ListRules(ctx, ListRulesInput{
+		Namespaces:      []string{params.Namespace},
+		IncludeDisabled: true,
+		Channels:        []string{params.ID},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to list rules for channel: %w", err)
+	}
+
+	if rules.TotalCount > 0 {
+		ruleIDs := make([]string, 0, len(rules.Items))
+
+		for _, rule := range rules.Items {
+			ruleIDs = append(ruleIDs, rule.ID)
+		}
+
+		return ValidationError{
+			Err: fmt.Errorf("cannot delete channel as it is assigned to one or more rules: %v", ruleIDs),
+		}
+	}
+
 	txFunc := func(ctx context.Context, repo TxRepository) error {
 		if err := c.webhook.DeleteWebhook(ctx, webhook.DeleteWebhookInput{
 			Namespace: params.Namespace,
