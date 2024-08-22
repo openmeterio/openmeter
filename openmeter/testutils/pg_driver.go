@@ -11,7 +11,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib" // pgx database driver
 	"github.com/peterldowns/pgtestdb"
 
-	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 )
 
 // NoopMigrator is a migrator for pgtestdb.
@@ -79,16 +79,25 @@ func InitPostgresDB(t *testing.T) *TestDB {
 		Options:    "sslmode=disable",
 	}, &NoopMigrator{})
 
-	sqlDriver, err := entutils.GetSQLDriver(dbConf.URL())
+	postgresDriver, err := pgdriver.NewPostgresDriver(
+		context.TODO(),
+		dbConf.URL(),
+	)
 	if err != nil {
 		t.Fatalf("failed to get pg driver: %s", err)
 	}
 
-	entDriver := entsql.OpenDB(dialect.Postgres, sqlDriver)
+	defer func() {
+		if err = postgresDriver.Close(); err != nil {
+			t.Error("failed to close ent driver", "error", err)
+		}
+	}()
+
+	entDriver := entsql.OpenDB(dialect.Postgres, postgresDriver.DB())
 
 	return &TestDB{
 		EntDriver: entDriver,
-		SQLDriver: sqlDriver,
+		SQLDriver: postgresDriver.DB(),
 		URL:       dbConf.URL(),
 	}
 }

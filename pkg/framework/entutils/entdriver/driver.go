@@ -1,4 +1,4 @@
-package entutils
+package entdriver
 
 import (
 	"database/sql"

@@ -16,7 +16,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
 	"github.com/openmeterio/openmeter/pkg/defaultx"
-	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/driver"
+	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 )
 

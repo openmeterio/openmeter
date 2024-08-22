@@ -15,7 +15,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
-	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/driver"
+	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
