@@ -176,7 +176,7 @@ func (b *BalanceThresholdEventHandler) createEvent(ctx context.Context, in creat
 	}
 
 	if in.Snapshot.Subject.Id != nil && *in.Snapshot.Subject.Id != "" {
-		annotations[notification.AnnotationEventSubjectID] = in.Snapshot
+		annotations[notification.AnnotationEventSubjectID] = in.Snapshot.Subject.Id
 	}
 
 	if in.Snapshot.Feature.ID != "" {
