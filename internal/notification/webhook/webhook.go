@@ -70,16 +70,22 @@ type CreateWebhookInput struct {
 
 func (i CreateWebhookInput) Validate() error {
 	if i.Namespace == "" {
-		return errors.New("namespace is required")
+		return ValidationError{
+			Err: errors.New("namespace is required"),
+		}
 	}
 
 	if i.URL == "" {
-		return errors.New("url is required")
+		return ValidationError{
+			Err: errors.New("url is required"),
+		}
 	}
 
-	if i.Secret != nil {
+	if i.Secret != nil && *i.Secret != "" {
 		if err := ValidateSigningSecret(*i.Secret); err != nil {
-			return fmt.Errorf("invalid secret: %w", err)
+			return ValidationError{
+				Err: fmt.Errorf("invalid secret: %w", err),
+			}
 		}
 	}
 
@@ -105,23 +111,33 @@ type UpdateWebhookInput struct {
 
 func (i UpdateWebhookInput) Validate() error {
 	if i.Namespace == "" {
-		return errors.New("namespace is required")
+		return ValidationError{
+			Err: errors.New("namespace is required"),
+		}
 	}
 
 	if i.ID == "" {
-		return errors.New("id is required")
+		return ValidationError{
+			Err: errors.New("id is required"),
+		}
 	}
 
 	if i.URL == "" {
-		return errors.New("url is required")
+		return ValidationError{
+			Err: errors.New("url is required"),
+		}
 	}
 
 	if i.Secret == nil {
-		return errors.New("secret is required")
+		return ValidationError{
+			Err: errors.New("secret is required"),
+		}
 	} else {
 		secret, _ := strings.CutPrefix(*i.Secret, SigningSecretPrefix)
 		if _, err := base64.StdEncoding.DecodeString(secret); err != nil {
-			return errors.New("invalid secret: must be base64 encoded")
+			return ValidationError{
+				Err: errors.New("invalid secret: must be base64 encoded"),
+			}
 		}
 	}
 
@@ -140,11 +156,15 @@ type UpdateWebhookChannelsInput struct {
 
 func (i UpdateWebhookChannelsInput) Validate() error {
 	if i.Namespace == "" {
-		return errors.New("namespace is required")
+		return ValidationError{
+			Err: errors.New("namespace is required"),
+		}
 	}
 
 	if i.ID == "" {
-		return errors.New("id is required")
+		return ValidationError{
+			Err: errors.New("id is required"),
+		}
 	}
 
 	return nil
@@ -160,11 +180,15 @@ type GetWebhookInput struct {
 
 func (i GetWebhookInput) Validate() error {
 	if i.Namespace == "" {
-		return errors.New("namespace is required")
+		return ValidationError{
+			Err: errors.New("namespace is required"),
+		}
 	}
 
 	if i.ID == "" {
-		return errors.New("id is required")
+		return ValidationError{
+			Err: errors.New("id is required"),
+		}
 	}
 
 	return nil
@@ -195,15 +219,21 @@ type SendMessageInput struct {
 
 func (i SendMessageInput) Validate() error {
 	if i.Namespace == "" {
-		return errors.New("namespace is required")
+		return ValidationError{
+			Err: errors.New("namespace is required"),
+		}
 	}
 
 	if i.EventType == "" {
-		return errors.New("event type is required")
+		return ValidationError{
+			Err: errors.New("event type is required"),
+		}
 	}
 
 	if len(i.Payload) == 0 {
-		return errors.New("payload must not be empty")
+		return ValidationError{
+			Err: errors.New("payload must not be empty"),
+		}
 	}
 
 	return nil
