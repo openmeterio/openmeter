@@ -1750,7 +1750,7 @@ export interface components {
        * }
        */
       annotations?: {
-        [key: string]: string
+        [key: string]: unknown
       }
     }
     /** @description The actual payload sent to channel as part of the notification event. */
@@ -3235,6 +3235,18 @@ export interface operations {
         to?: components['parameters']['queryTo']
         feature?: components['parameters']['queryFilterFeature']
         subject?: components['parameters']['queryFilterSubject']
+        /**
+         * @description Filtering by multiple rules.
+         *
+         * Usage: `?rule=ID1&rule=rule=ID2`
+         */
+        rule?: string[]
+        /**
+         * @description Filtering by multiple channels.
+         *
+         * Usage: `?channel=ID1&channel=ID2`
+         */
+        channel?: string[]
       }
     }
     responses: {
