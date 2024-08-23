@@ -65,6 +65,7 @@ type CreateWebhookInput struct {
 	Description   *string
 	EventTypes    []string
 	Channels      []string
+	Metadata      map[string]string
 }
 
 func (i CreateWebhookInput) Validate() error {
@@ -99,6 +100,7 @@ type UpdateWebhookInput struct {
 	Description   *string
 	EventTypes    []string
 	Channels      []string
+	Metadata      map[string]string
 }
 
 func (i UpdateWebhookInput) Validate() error {
