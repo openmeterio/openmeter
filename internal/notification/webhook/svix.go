@@ -251,6 +251,13 @@ func (h svixWebhookHandler) CreateWebhook(ctx context.Context, params CreateWebh
 		Secret:      *svix.NullableString(params.Secret),
 		FilterTypes: params.EventTypes,
 		Channels:    params.Channels,
+		Metadata: func() *map[string]string {
+			if len(params.Metadata) > 0 {
+				return &params.Metadata
+			}
+
+			return nil
+		}(),
 	}
 
 	idempotencyKey, err := toIdempotencyKey(input, time.Now())
@@ -330,6 +337,13 @@ func (h svixWebhookHandler) UpdateWebhook(ctx context.Context, params UpdateWebh
 		RateLimit:   *svix.NullableInt32(params.RateLimit),
 		FilterTypes: params.EventTypes,
 		Channels:    params.Channels,
+		Metadata: func() *map[string]string {
+			if len(params.Metadata) > 0 {
+				return &params.Metadata
+			}
+
+			return nil
+		}(),
 	}
 
 	endpoint, err := h.client.Endpoint.Update(ctx, app.Id, params.ID, input)
