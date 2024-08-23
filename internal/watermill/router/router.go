@@ -65,6 +65,15 @@ func NewDefaultRouter(opts Options) (*message.Router, error) {
 		poisionQueue,
 	)
 
+	if opts.MetricMeter != nil {
+		dlqMetrics, err := DLQMetrics(opts.MetricMeter, "consumer", opts.Logger)
+		if err != nil {
+			return nil, err
+		}
+
+		router.AddMiddleware(dlqMetrics)
+	}
+
 	router.AddMiddleware(
 		middleware.CorrelationID,
 		middleware.Recoverer,
@@ -94,11 +103,12 @@ func NewDefaultRouter(opts Options) (*message.Router, error) {
 	}
 
 	if opts.MetricMeter != nil {
-		metricsMiddleware, err := Metrics(opts.MetricMeter, "consumer", opts.Logger)
+		// This should be the last to report every message processing try
+		handlerMetrics, err := HandlerMetrics(opts.MetricMeter, "consumer", opts.Logger)
 		if err != nil {
 			return nil, err
 		}
-		router.AddMiddleware(metricsMiddleware)
+		router.AddMiddleware(handlerMetrics)
 	}
 
 	return router, nil
