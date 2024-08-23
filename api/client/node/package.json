@@ -57,13 +57,13 @@
     "prettier": "3.3.3",
     "rimraf": "6.0.1",
     "tslib": "2.6.3",
-    "typescript": "5.5.3",
-    "vitest": "2.0.3"
+    "typescript": "5.5.4",
+    "vitest": "2.0.5"
   },
   "browserslist": [
     "current node"
   ],
   "dependencies": {
-    "undici": "^6.19.2"
+    "undici": "^6.19.8"
   }
 }
