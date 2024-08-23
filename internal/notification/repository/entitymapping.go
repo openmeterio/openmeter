@@ -104,7 +104,7 @@ func EventFromDBEntity(e db.NotificationEvent) (*notification.Event, error) {
 		},
 		ID:             e.ID,
 		Type:           e.Type,
-		CreatedAt:      e.CreatedAt,
+		CreatedAt:      e.CreatedAt.UTC(),
 		Payload:        payload,
 		Rule:           *rule,
 		DeliveryStatus: statuses,
@@ -122,7 +122,7 @@ func EventDeliveryStatusFromDBEntity(e db.NotificationEventDeliveryStatus) *noti
 		EventID:   e.EventID,
 		State:     e.State,
 		Reason:    e.Reason,
-		CreatedAt: e.CreatedAt,
-		UpdatedAt: e.UpdatedAt,
+		CreatedAt: e.CreatedAt.UTC(),
+		UpdatedAt: e.UpdatedAt.UTC(),
 	}
 }
