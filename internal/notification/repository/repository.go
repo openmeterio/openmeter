@@ -532,18 +532,18 @@ func (r repository) ListEvents(ctx context.Context, params notification.ListEven
 		query.WithChannels()
 	})
 
-	order := entutils.GetOrdering(sortx.OrderDefault)
+	order := entutils.GetOrdering(sortx.OrderDesc)
 	if !params.Order.IsDefaultValue() {
 		order = entutils.GetOrdering(params.Order)
 	}
 
 	switch params.OrderBy {
-	case notification.EventOrderByCreatedAt:
-		query = query.Order(eventdb.ByCreatedAt(order...))
 	case notification.EventOrderByID:
+		query = query.Order(eventdb.ByID(order...))
+	case notification.EventOrderByCreatedAt:
 		fallthrough
 	default:
-		query = query.Order(eventdb.ByID(order...))
+		query = query.Order(eventdb.ByCreatedAt(order...))
 	}
 
 	response := pagination.PagedResponse[notification.Event]{
