@@ -294,6 +294,8 @@ type CreateRuleInput struct {
 	Channels []string
 }
 
+const MaxChannelsPerRule = 5
+
 func (i CreateRuleInput) Validate(ctx context.Context, service Service) error {
 	if i.Namespace == "" {
 		return ValidationError{
@@ -313,6 +315,12 @@ func (i CreateRuleInput) Validate(ctx context.Context, service Service) error {
 
 	if err := i.Config.Validate(ctx, service, i.Namespace); err != nil {
 		return err
+	}
+
+	if len(i.Channels) > MaxChannelsPerRule {
+		return ValidationError{
+			Err: fmt.Errorf("too many channels: %d > %d", len(i.Channels), MaxChannelsPerRule),
+		}
 	}
 
 	return nil
@@ -383,6 +391,12 @@ func (i UpdateRuleInput) Validate(ctx context.Context, service Service) error {
 	if i.ID == "" {
 		return ValidationError{
 			Err: errors.New("rule id is required"),
+		}
+	}
+
+	if len(i.Channels) > MaxChannelsPerRule {
+		return ValidationError{
+			Err: fmt.Errorf("too many channels: %d > %d", len(i.Channels), MaxChannelsPerRule),
 		}
 	}
 
