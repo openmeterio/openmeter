@@ -59,6 +59,8 @@ type service struct {
 	webhook webhook.Handler
 
 	eventHandler EventHandler
+
+	logger *slog.Logger
 }
 
 func (c service) Close() error {
@@ -105,6 +107,7 @@ func New(config Config) (Service, error) {
 		feature:      config.FeatureConnector,
 		webhook:      config.Webhook,
 		eventHandler: eventHandler,
+		logger:       config.Logger,
 	}, nil
 }
 
