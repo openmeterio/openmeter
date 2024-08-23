@@ -4,12 +4,14 @@ import { EventsClient } from './clients/event.js'
 import { FeatureClient } from './clients/feature.js'
 import { GrantClient } from './clients/grant.js'
 import { MetersClient } from './clients/meter.js'
+import { NotificationClient } from './clients/notifications.js'
 import { PortalClient } from './clients/portal.js'
 import { SubjectClient } from './clients/subject.js'
 
 export { OpenMeterConfig, RequestOptions } from './clients/client.js'
 export { Event, IngestedEvent, CloudEvent } from './clients/event.js'
 export { Meter, MeterAggregation, WindowSize } from './clients/meter.js'
+export * from './clients/notifications.js'
 
 export class OpenMeter {
   public events: EventsClient
@@ -19,6 +21,7 @@ export class OpenMeter {
   public features: FeatureClient
   public entitlements: EntitlementClient
   public grants: GrantClient
+  public notification: NotificationClient
 
   constructor(config: OpenMeterConfig) {
     this.events = new EventsClient(config)
@@ -28,5 +31,6 @@ export class OpenMeter {
     this.features = new FeatureClient(config)
     this.entitlements = new EntitlementClient(config)
     this.grants = new GrantClient(config)
+    this.notification = new NotificationClient(config)
   }
 }
