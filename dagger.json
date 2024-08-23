@@ -11,6 +11,10 @@
   ],
   "dependencies": [
     {
+      "name": "trivy",
+      "source": "github.com/sagikazarmark/daggerverse/trivy@d5fde48ac060eb10fb30d4c47daf76aeb6249781"
+    },
+    {
       "name": "archivist",
       "source": "github.com/sagikazarmark/daggerverse/archivist@8f444e2c2b8e8162cea76d702086034ed3edc4f1"
     },
@@ -53,14 +57,10 @@
     {
       "name": "stainless",
       "source": "github.com/sagikazarmark/daggerverse/stainless@8f444e2c2b8e8162cea76d702086034ed3edc4f1"
-    },
-    {
-      "name": "trivy",
-      "source": "github.com/sagikazarmark/daggerverse/trivy@d5fde48ac060eb10fb30d4c47daf76aeb6249781"
     }
   ],
   "source": "ci",
-  "engineVersion": "v0.12.5",
+  "engineVersion": "v0.12.0",
   "views": [
     {
       "name": "default",
