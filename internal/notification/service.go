@@ -144,7 +144,7 @@ func (c service) CreateChannel(ctx context.Context, params CreateChannelInput) (
 		switch params.Type {
 		case ChannelTypeWebhook:
 			var headers map[string]string
-			headers, err = interfaceMapToStringMap(channel.Config.WebHook.CustomHeaders)
+			headers, err = StrictInterfaceMapToStringMap(channel.Config.WebHook.CustomHeaders)
 			if err != nil {
 				return nil, fmt.Errorf("failed to cast custom headers: %w", err)
 			}
@@ -262,7 +262,7 @@ func (c service) UpdateChannel(ctx context.Context, params UpdateChannelInput) (
 		switch params.Type {
 		case ChannelTypeWebhook:
 			var headers map[string]string
-			headers, err = interfaceMapToStringMap(channel.Config.WebHook.CustomHeaders)
+			headers, err = StrictInterfaceMapToStringMap(channel.Config.WebHook.CustomHeaders)
 			if err != nil {
 				return nil, fmt.Errorf("failed to cast custom headers: %w", err)
 			}
@@ -478,23 +478,4 @@ func (c service) GetEventDeliveryStatus(ctx context.Context, params GetEventDeli
 	}
 
 	return c.repo.GetEventDeliveryStatus(ctx, params)
-}
-
-func interfaceMapToStringMap(m map[string]interface{}) (map[string]string, error) {
-	var s map[string]string
-	if len(m) > 0 {
-		s = make(map[string]string, len(m))
-		for k, v := range m {
-			switch t := v.(type) {
-			case string:
-				s[k] = t
-			case fmt.Stringer:
-				s[k] = t.String()
-			default:
-				return s, fmt.Errorf("failed to cast value with %T to string", t)
-			}
-		}
-	}
-
-	return s, nil
 }

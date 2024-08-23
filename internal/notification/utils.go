@@ -1,5 +1,7 @@
 package notification
 
+import "fmt"
+
 // ChannelTypes returns a set of ChannelType from Channel slice
 func ChannelTypes(channels []Channel) []ChannelType {
 	seen := make(map[ChannelType]struct{}, len(channels))
@@ -47,4 +49,44 @@ func DeliveryStatusStates(statuses []EventDeliveryStatus) []EventDeliveryStatusS
 	}
 
 	return types
+}
+
+func interfaceMapToStringMap(m map[string]interface{}, strict bool) (map[string]string, error) {
+	var s map[string]string
+
+	if len(m) > 0 {
+		s = make(map[string]string, len(m))
+		for k, v := range m {
+			switch t := v.(type) {
+			case string:
+				s[k] = t
+			case fmt.Stringer:
+				s[k] = t.String()
+			case int, int32, int64:
+				s[k] = fmt.Sprintf("%d", t)
+			case float32, float64:
+				s[k] = fmt.Sprintf("%f", t)
+			case bool:
+				s[k] = fmt.Sprintf("%t", t)
+			default:
+				if strict {
+					return nil, fmt.Errorf("failed to cast value with %T to string", t)
+				} else {
+					continue
+				}
+			}
+		}
+	}
+
+	return s, nil
+}
+
+func StrictInterfaceMapToStringMap(m map[string]interface{}) (map[string]string, error) {
+	return interfaceMapToStringMap(m, true)
+}
+
+func InterfaceMapToStringMap(m map[string]interface{}) map[string]string {
+	s, _ := interfaceMapToStringMap(m, false)
+
+	return s
 }
