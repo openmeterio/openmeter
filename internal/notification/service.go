@@ -6,9 +6,13 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/internal/notification/webhook"
 	"github.com/openmeterio/openmeter/internal/productcatalog"
+	"github.com/openmeterio/openmeter/pkg/convert"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
 type Service interface {
@@ -51,6 +55,10 @@ type FeatureService interface {
 }
 
 var _ Service = (*service)(nil)
+
+const (
+	ChannelIDMetadataKey = "om-channel-id"
+)
 
 type service struct {
 	feature productcatalog.FeatureConnector
@@ -160,6 +168,10 @@ func (c service) CreateChannel(ctx context.Context, params CreateChannelInput) (
 				CustomHeaders: headers,
 				Disabled:      channel.Disabled,
 				Secret:        &channel.Config.WebHook.SigningSecret,
+				Metadata: map[string]string{
+					ChannelIDMetadataKey: channel.ID,
+				},
+				Description: convert.ToPointer("Notification Channel: " + channel.ID),
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to create webhook for channel: %w", err)
@@ -382,18 +394,89 @@ func (c service) UpdateRule(ctx context.Context, params UpdateRuleInput) (*Rule,
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
+	logger := c.logger.WithGroup("rule").With(
+		"operation", "update",
+		"id", params.ID,
+		"namespace", params.Namespace,
+	)
+
+	rule, err := c.repo.GetRule(ctx, GetRuleInput{
+		ID:        params.ID,
+		Namespace: params.Namespace,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get rule: %w", err)
+	}
+
+	if rule.DeletedAt != nil {
+		return nil, UpdateAfterDeleteError{
+			Err: errors.New("not allowed to update deleted rule"),
+		}
+	}
+
+	// Get list of channel IDs currently assigned to rule
+	oldChannelIDs := lo.Map(rule.Channels, func(channel Channel, _ int) string {
+		return channel.ID
+	})
+	logger.Debug("currently assigned channels", "channels", oldChannelIDs)
+
+	// Calculate channels diff for the update
+	channelIDsDiff := NewChannelIDsDifference(params.Channels, oldChannelIDs)
+
+	logger.WithGroup("channels").Debug("difference in channels assignment",
+		"changed", channelIDsDiff.HasChanged(),
+		"additions", channelIDsDiff.Additions(),
+		"removals", channelIDsDiff.Removals(),
+	)
+
+	// We can return early ff there is no change in the list of channels assigned to rule.
+	if !channelIDsDiff.HasChanged() {
+		return c.repo.UpdateRule(ctx, params)
+	}
+
 	txFunc := func(ctx context.Context, repo TxRepository) (*Rule, error) {
-		channel, err := repo.GetRule(ctx, GetRuleInput{
-			ID:        params.ID,
-			Namespace: params.Namespace,
+		// Fetch all the channels from repo which are either added or removed from rule
+		channels, err := repo.ListChannels(ctx, ListChannelsInput{
+			Page: pagination.Page{
+				// In order to avoid under-fetching. There cannot be more affected channels than
+				// twice as the maximum number of allowed channels per rule.
+				PageSize:   2 * MaxChannelsPerRule,
+				PageNumber: 1,
+			},
+			Namespaces:      []string{params.Namespace},
+			Channels:        channelIDsDiff.All(),
+			IncludeDisabled: true,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to get rule: %w", err)
+			return nil, fmt.Errorf("failed to list channels for rule: %w", err)
 		}
+		logger.Debug("fetched all affected channels", "channels", channels.Items)
 
-		if channel.DeletedAt != nil {
-			return nil, UpdateAfterDeleteError{
-				Err: errors.New("not allowed to update deleted rule"),
+		// Update affected channels
+		for _, channel := range channels.Items {
+			switch channel.Type {
+			case ChannelTypeWebhook:
+				input := webhook.UpdateWebhookChannelsInput{
+					Namespace: params.Namespace,
+					ID:        channel.ID,
+				}
+
+				if channelIDsDiff.InAdditions(channel.ID) {
+					input.AddChannels = []string{rule.ID}
+				}
+
+				if channelIDsDiff.InRemovals(channel.ID) {
+					input.RemoveChannels = []string{rule.ID}
+				}
+
+				logger.Debug("updating webhook for channel", "id", channel.ID, "input", input)
+
+				_, err = c.webhook.UpdateWebhookChannels(ctx, input)
+				if err != nil {
+					return nil, fmt.Errorf("failed to update webhook for channel: %w", err)
+				}
+			default:
+				return nil, fmt.Errorf("invalid channel type: %s", channel.Type)
 			}
 		}
 

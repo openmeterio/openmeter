@@ -1,6 +1,10 @@
 package notification
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/samber/lo"
+)
 
 // ChannelTypes returns a set of ChannelType from Channel slice
 func ChannelTypes(channels []Channel) []ChannelType {
@@ -89,4 +93,101 @@ func InterfaceMapToStringMap(m map[string]interface{}) map[string]string {
 	s, _ := interfaceMapToStringMap(m, false)
 
 	return s
+}
+
+type difference[T comparable] struct {
+	leftMap map[T]struct{}
+	left    []T
+
+	rightMap map[T]struct{}
+	right    []T
+}
+
+func (d difference[T]) Has(item T) bool {
+	return d.HasLeft(item) || d.HasRight(item)
+}
+
+func (d difference[T]) HasLeft(item T) bool {
+	if _, ok := d.leftMap[item]; ok {
+		return true
+	}
+
+	return false
+}
+
+func (d difference[T]) HasRight(item T) bool {
+	if _, ok := d.rightMap[item]; ok {
+		return true
+	}
+
+	return false
+}
+
+func (d difference[T]) Left() []T {
+	return d.left
+}
+
+func (d difference[T]) Right() []T {
+	return d.right
+}
+
+func (d difference[T]) HasChanged() bool {
+	return len(d.left) > 0 || len(d.right) > 0
+}
+
+func (d difference[T]) All() []T {
+	return append(d.left, d.right...)
+}
+
+type ChannelIDsDifference struct {
+	diff difference[string]
+}
+
+func (d ChannelIDsDifference) Has(id string) bool {
+	return d.diff.Has(id)
+}
+
+func (d ChannelIDsDifference) HasChanged() bool {
+	return d.diff.HasChanged()
+}
+
+func (d ChannelIDsDifference) InAdditions(id string) bool {
+	return d.diff.HasLeft(id)
+}
+
+func (d ChannelIDsDifference) InRemovals(id string) bool {
+	return d.diff.HasRight(id)
+}
+
+func (d ChannelIDsDifference) Additions() []string {
+	return d.diff.Left()
+}
+
+func (d ChannelIDsDifference) Removals() []string {
+	return d.diff.Right()
+}
+
+func (d ChannelIDsDifference) All() []string {
+	return d.diff.All()
+}
+
+func NewChannelIDsDifference(new, old []string) *ChannelIDsDifference {
+	left, right := lo.Difference(new, old)
+
+	leftMap := lo.SliceToMap(left, func(item string) (string, struct{}) {
+		return item, struct{}{}
+	})
+
+	rightMap := lo.SliceToMap(right, func(item string) (string, struct{}) {
+		return item, struct{}{}
+	})
+
+	return &ChannelIDsDifference{
+		diff: difference[string]{
+			leftMap:  leftMap,
+			left:     left,
+			rightMap: rightMap,
+			right:    right,
+		},
+	}
 }

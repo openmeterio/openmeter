@@ -431,6 +431,7 @@ func (r repository) UpdateRule(ctx context.Context, params notification.UpdateRu
 		SetDisabled(params.Disabled).
 		SetConfig(params.Config).
 		SetName(params.Name).
+		ClearChannels().
 		AddChannelIDs(params.Channels...)
 
 	queryRow, err := query.Save(ctx)
