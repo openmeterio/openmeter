@@ -289,6 +289,10 @@ func (c service) UpdateChannel(ctx context.Context, params UpdateChannelInput) (
 				CustomHeaders: headers,
 				Disabled:      channel.Disabled,
 				Secret:        &channel.Config.WebHook.SigningSecret,
+				Metadata: map[string]string{
+					ChannelIDMetadataKey: channel.ID,
+				},
+				Description: convert.ToPointer("Notification Channel: " + channel.ID),
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to update webhook for channel: %w", err)
