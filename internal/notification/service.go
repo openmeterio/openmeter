@@ -146,11 +146,22 @@ func (c service) CreateChannel(ctx context.Context, params CreateChannelInput) (
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
 
+	logger := c.logger.WithGroup("channel").With(
+		"operation", "create",
+		"namespace", params.Namespace,
+	)
+
+	logger.Debug("creating channel", "type", params.Type)
+
 	txFunc := func(ctx context.Context, repo TxRepository) (*Channel, error) {
 		channel, err := repo.CreateChannel(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create channel: %w", err)
 		}
+
+		logger = logger.With("id", channel.ID)
+
+		logger.Debug("channel stored in repository")
 
 		switch params.Type {
 		case ChannelTypeWebhook:
@@ -177,6 +188,8 @@ func (c service) CreateChannel(ctx context.Context, params CreateChannelInput) (
 				return nil, fmt.Errorf("failed to create webhook for channel: %w", err)
 			}
 
+			logger.Debug("webhook is created")
+
 			updateIn := UpdateChannelInput{
 				NamespacedModel: channel.NamespacedModel,
 				Type:            channel.Type,
@@ -191,6 +204,7 @@ func (c service) CreateChannel(ctx context.Context, params CreateChannelInput) (
 			if err != nil {
 				return nil, fmt.Errorf("failed to update channel: %w", err)
 			}
+			logger.Debug("channel is updated in database with webhook configuration")
 		default:
 			return nil, fmt.Errorf("invalid channel type: %s", channel.Type)
 		}
@@ -205,6 +219,14 @@ func (c service) DeleteChannel(ctx context.Context, params DeleteChannelInput) e
 	if err := params.Validate(ctx, c); err != nil {
 		return fmt.Errorf("invalid params: %w", err)
 	}
+
+	logger := c.logger.WithGroup("channel").With(
+		"operation", "delete",
+		"id", params.ID,
+		"namespace", params.Namespace,
+	)
+
+	logger.Debug("deleting channel")
 
 	rules, err := c.repo.ListRules(ctx, ListRulesInput{
 		Namespaces:      []string{params.Namespace},
@@ -235,6 +257,8 @@ func (c service) DeleteChannel(ctx context.Context, params DeleteChannelInput) e
 			return fmt.Errorf("failed to delete webhook: %w", err)
 		}
 
+		logger.Debug("webhook associated with channel deleted")
+
 		return repo.DeleteChannel(ctx, params)
 	}
 
@@ -253,6 +277,14 @@ func (c service) UpdateChannel(ctx context.Context, params UpdateChannelInput) (
 	if err := params.Validate(ctx, c); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
+
+	logger := c.logger.WithGroup("channel").With(
+		"operation", "update",
+		"id", params.ID,
+		"namespace", params.Namespace,
+	)
+
+	logger.Debug("updating channel")
 
 	channel, err := c.repo.GetChannel(ctx, GetChannelInput{
 		ID:        params.ID,
@@ -274,6 +306,8 @@ func (c service) UpdateChannel(ctx context.Context, params UpdateChannelInput) (
 			return nil, fmt.Errorf("failed to create channel: %w", err)
 		}
 
+		logger.Debug("channel updated in repository")
+
 		switch params.Type {
 		case ChannelTypeWebhook:
 			var headers map[string]string
@@ -289,10 +323,17 @@ func (c service) UpdateChannel(ctx context.Context, params UpdateChannelInput) (
 				CustomHeaders: headers,
 				Disabled:      channel.Disabled,
 				Secret:        &channel.Config.WebHook.SigningSecret,
+				Metadata: map[string]string{
+					ChannelIDMetadataKey: channel.ID,
+				},
+				Description: convert.ToPointer("Notification Channel: " + channel.ID),
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to update webhook for channel: %w", err)
 			}
+
+			logger.Debug("webhook is updated")
+
 		default:
 			return nil, fmt.Errorf("invalid channel type: %s", channel.Type)
 		}
@@ -315,6 +356,13 @@ func (c service) CreateRule(ctx context.Context, params CreateRuleInput) (*Rule,
 	if err := params.Validate(ctx, c); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
+
+	logger := c.logger.WithGroup("rule").With(
+		"operation", "create",
+		"namespace", params.Namespace,
+	)
+
+	logger.Debug("creating rule", "type", params.Type)
 
 	txFunc := func(ctx context.Context, repo TxRepository) (*Rule, error) {
 		rule, err := repo.CreateRule(ctx, params)
@@ -399,6 +447,8 @@ func (c service) UpdateRule(ctx context.Context, params UpdateRuleInput) (*Rule,
 		"id", params.ID,
 		"namespace", params.Namespace,
 	)
+
+	logger.Debug("updating rule")
 
 	rule, err := c.repo.GetRule(ctx, GetRuleInput{
 		ID:        params.ID,
@@ -506,6 +556,13 @@ func (c service) CreateEvent(ctx context.Context, params CreateEventInput) (*Eve
 	if err := params.Validate(ctx, c); err != nil {
 		return nil, fmt.Errorf("invalid params: %w", err)
 	}
+
+	logger := c.logger.WithGroup("event").With(
+		"operation", "create",
+		"namespace", params.Namespace,
+	)
+
+	logger.Debug("creating event")
 
 	rule, err := c.repo.GetRule(ctx, GetRuleInput{
 		Namespace: params.Namespace,

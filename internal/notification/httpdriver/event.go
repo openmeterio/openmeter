@@ -13,6 +13,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/transport/httptransport"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
+	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
 type (
@@ -32,7 +33,8 @@ func (h *handler) ListEvents() ListEventsHandler {
 
 			req := ListEventsRequest{
 				Namespaces: []string{ns},
-				OrderBy:    defaultx.WithDefault(params.OrderBy, notification.EventOrderByID),
+				Order:      sortx.Order(defaultx.WithDefault(params.Order, api.ListNotificationEventsParamsOrderSortOrderDESC)),
+				OrderBy:    defaultx.WithDefault(params.OrderBy, notification.EventOrderByCreatedAt),
 				Page: pagination.Page{
 					PageSize:   defaultx.WithDefault(params.PageSize, notification.DefaultPageSize),
 					PageNumber: defaultx.WithDefault(params.Page, notification.DefaultPageNumber),
