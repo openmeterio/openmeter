@@ -5648,6 +5648,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         to: Optional[datetime.datetime] = None,
         feature: Optional[List[str]] = None,
         subject: Optional[List[str]] = None,
+        rule: Optional[List[str]] = None,
+        channel: Optional[List[str]] = None,
         **kwargs: Any
     ) -> JSON:
         """List notification evens.
@@ -5679,6 +5681,14 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
 
          Usage: ``?subject=customer-1&subject=customer-2``. Default value is None.
         :paramtype subject: list[str]
+        :keyword rule: Filtering by multiple rules.
+
+         Usage: ``?rule=ID1&rule=rule=ID2``. Default value is None.
+        :paramtype rule: list[str]
+        :keyword channel: Filtering by multiple channels.
+
+         Usage: ``?channel=ID1&channel=ID2``. Default value is None.
+        :paramtype channel: list[str]
         :return: JSON object
         :rtype: JSON
         :raises ~azure.core.exceptions.HttpResponseError:
@@ -5715,8 +5725,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                             "type": "str",  # The type of the notification event.
                               Required. "entitlements.balance.threshold"
                             "annotations": {
-                                "str": "str"  # Optional. List of annotations managed
-                                  by the system.
+                                "str": {}  # Optional. List of annotations managed by
+                                  the system.
                             }
                         }
                     ],
@@ -5748,6 +5758,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
             to=to,
             feature=feature,
             subject=subject,
+            rule=rule,
+            channel=channel,
             headers=_headers,
             params=_params,
         )
