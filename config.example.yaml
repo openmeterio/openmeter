@@ -78,6 +78,17 @@ meters:
       model: $.model                # AI model used: gpt4-turbo, etc.
       type: $.type                  # Prompt type: input, output, system
 
+  # Sample meter to count workload runtime
+  - slug: workload_runtime_duration_seconds
+    description: Workload runtime duration in seconds
+    eventType: workload                       # Filter events by type
+    aggregation: SUM
+    valueProperty: $.duration_seconds         # JSONPath to parse usage value
+    groupBy:
+      region: $.region                        # Cloud region: us-east-1, etc.
+      zone: $.zone                            # Cloud zone: us-east-1a, etc.
+      instance_type: $.instance_type          # Instance type: t2.micro, etc.
+
 notification:
   enabled: true
 

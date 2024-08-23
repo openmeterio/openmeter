@@ -34,3 +34,9 @@ make SEEDER_MAX_SUBJECTS=100 seed
 (The default is 100)
 
 Take a look at [seed.yaml](../etc/seed/seed.yaml) for further details.
+
+You can find seeders for all meters defined in the example config. You can run them together via Benthos's streams mode:
+
+```sh
+benthos -c ./etc/seed/observability.yaml streams ./etc/seed/streams/*.yaml
+```
