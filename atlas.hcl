@@ -67,9 +67,9 @@ env "remote" {
 
 locals {
     // Define the directory where the schema definition resides.
-    schema_src = "ent://internal/ent/schema"
+    schema_src = "ent://openmeter/ent/schema"
     // Define the initial migration timestamp
-    init_migration_ts = "20240807123504"
+    init_migration_ts = "20240826120919"
     // Define the directory where the migrations are stored.
     migrations_dir = "file://tools/migrate/migrations"
     // We use golang-migrate
