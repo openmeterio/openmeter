@@ -103,6 +103,100 @@ CREATE INDEX "grant_effective_at_expires_at" ON "grants" ("effective_at", "expir
 CREATE INDEX "grant_id" ON "grants" ("id");
 -- create index "grant_namespace_owner_id" to table: "grants"
 CREATE INDEX "grant_namespace_owner_id" ON "grants" ("namespace", "owner_id");
+-- create "notification_channels" table
+CREATE TABLE "notification_channels" (
+  "id" character(26) NOT NULL,
+  "namespace" character varying NOT NULL,
+  "created_at" timestamptz NOT NULL,
+  "updated_at" timestamptz NOT NULL,
+  "deleted_at" timestamptz NULL,
+  "type" character varying NOT NULL,
+  "name" character varying NOT NULL,
+  "disabled" boolean NULL DEFAULT false,
+  "config" jsonb NOT NULL,
+  PRIMARY KEY ("id")
+);
+-- create index "notificationchannel_id" to table: "notification_channels"
+CREATE INDEX "notificationchannel_id" ON "notification_channels" ("id");
+-- create index "notificationchannel_namespace_id" to table: "notification_channels"
+CREATE INDEX "notificationchannel_namespace_id" ON "notification_channels" ("namespace", "id");
+-- create index "notificationchannel_namespace_type" to table: "notification_channels"
+CREATE INDEX "notificationchannel_namespace_type" ON "notification_channels" ("namespace", "type");
+-- create "notification_rules" table
+CREATE TABLE "notification_rules" (
+  "id" character(26) NOT NULL,
+  "namespace" character varying NOT NULL,
+  "created_at" timestamptz NOT NULL,
+  "updated_at" timestamptz NOT NULL,
+  "deleted_at" timestamptz NULL,
+  "type" character varying NOT NULL,
+  "name" character varying NOT NULL,
+  "disabled" boolean NULL DEFAULT false,
+  "config" jsonb NOT NULL,
+  PRIMARY KEY ("id")
+);
+-- create index "notificationrule_id" to table: "notification_rules"
+CREATE INDEX "notificationrule_id" ON "notification_rules" ("id");
+-- create index "notificationrule_namespace_id" to table: "notification_rules"
+CREATE INDEX "notificationrule_namespace_id" ON "notification_rules" ("namespace", "id");
+-- create index "notificationrule_namespace_type" to table: "notification_rules"
+CREATE INDEX "notificationrule_namespace_type" ON "notification_rules" ("namespace", "type");
+-- create "notification_channel_rules" table
+CREATE TABLE "notification_channel_rules" (
+  "notification_channel_id" character(26) NOT NULL,
+  "notification_rule_id" character(26) NOT NULL,
+  PRIMARY KEY ("notification_channel_id", "notification_rule_id"),
+  CONSTRAINT "notification_channel_rules_notification_channel_id" FOREIGN KEY ("notification_channel_id") REFERENCES "notification_channels" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  CONSTRAINT "notification_channel_rules_notification_rule_id" FOREIGN KEY ("notification_rule_id") REFERENCES "notification_rules" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+-- create "notification_event_delivery_status" table
+CREATE TABLE "notification_event_delivery_status" (
+  "id" character(26) NOT NULL,
+  "namespace" character varying NOT NULL,
+  "created_at" timestamptz NOT NULL,
+  "updated_at" timestamptz NOT NULL,
+  "event_id" character varying NOT NULL,
+  "channel_id" character varying NOT NULL,
+  "state" character varying NOT NULL DEFAULT 'PENDING',
+  "reason" character varying NULL,
+  PRIMARY KEY ("id")
+);
+-- create index "notificationeventdeliverystatus_id" to table: "notification_event_delivery_status"
+CREATE INDEX "notificationeventdeliverystatus_id" ON "notification_event_delivery_status" ("id");
+-- create index "notificationeventdeliverystatus_namespace_event_id_channel_id" to table: "notification_event_delivery_status"
+CREATE INDEX "notificationeventdeliverystatus_namespace_event_id_channel_id" ON "notification_event_delivery_status" ("namespace", "event_id", "channel_id");
+-- create index "notificationeventdeliverystatus_namespace_id" to table: "notification_event_delivery_status"
+CREATE INDEX "notificationeventdeliverystatus_namespace_id" ON "notification_event_delivery_status" ("namespace", "id");
+-- create index "notificationeventdeliverystatus_namespace_state" to table: "notification_event_delivery_status"
+CREATE INDEX "notificationeventdeliverystatus_namespace_state" ON "notification_event_delivery_status" ("namespace", "state");
+-- create "notification_events" table
+CREATE TABLE "notification_events" (
+  "id" character(26) NOT NULL,
+  "namespace" character varying NOT NULL,
+  "created_at" timestamptz NOT NULL,
+  "type" character varying NOT NULL,
+  "payload" jsonb NOT NULL,
+  "annotations" jsonb NULL,
+  "rule_id" character(26) NOT NULL,
+  PRIMARY KEY ("id"),
+  CONSTRAINT "notification_events_notification_rules_events" FOREIGN KEY ("rule_id") REFERENCES "notification_rules" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION
+);
+-- create index "notificationevent_annotations" to table: "notification_events"
+CREATE INDEX "notificationevent_annotations" ON "notification_events" USING gin ("annotations");
+-- create index "notificationevent_id" to table: "notification_events"
+CREATE INDEX "notificationevent_id" ON "notification_events" ("id");
+-- create index "notificationevent_namespace_id" to table: "notification_events"
+CREATE INDEX "notificationevent_namespace_id" ON "notification_events" ("namespace", "id");
+-- create index "notificationevent_namespace_type" to table: "notification_events"
+CREATE INDEX "notificationevent_namespace_type" ON "notification_events" ("namespace", "type");
+-- create "notification_event_delivery_status_events" table
+CREATE TABLE "notification_event_delivery_status_events" (
+  "notification_event_delivery_status_id" character(26) NOT NULL,
+  "notification_event_id" character(26) NOT NULL,
+  PRIMARY KEY ("notification_event_delivery_status_id", "notification_event_id"),
+  CONSTRAINT "notification_event_delivery_status_events_notification_event_de" FOREIGN KEY ("notification_event_delivery_status_id") REFERENCES "notification_event_delivery_status" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  CONSTRAINT "notification_event_delivery_status_events_notification_event_id" FOREIGN KEY ("notification_event_id") REFERENCES "notification_events" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
 -- create "usage_resets" table
 CREATE TABLE "usage_resets" (
   "id" character(26) NOT NULL,
