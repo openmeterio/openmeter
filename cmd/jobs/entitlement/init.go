@@ -86,7 +86,7 @@ func initEntitlements(ctx context.Context, conf config.Configuration, logger *sl
 		return nil, fmt.Errorf("failed to initialize event publisher: %w", err)
 	}
 
-	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registry.EntitlementOptions{
+	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     entPostgresDriver.Client(),
 		StreamingConnector: streamingConnector,
 		MeterRepository:    meterRepository,

@@ -361,7 +361,7 @@ func main() {
 
 		logger.Info("Postgres client initialized")
 
-		entitlementConnRegistry = registrybuilder.GetEntitlementRegistry(registry.EntitlementOptions{
+		entitlementConnRegistry = registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 			DatabaseClient:     entClient,
 			StreamingConnector: streamingConnector,
 			MeterRepository:    meterRepository,
