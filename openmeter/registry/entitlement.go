@@ -1,15 +1,21 @@
 package registry
 
 import (
-	"github.com/openmeterio/openmeter/internal/registry"
-	registrybuilder "github.com/openmeterio/openmeter/internal/registry/builder"
+	"github.com/openmeterio/openmeter/openmeter/credit"
+	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
 
-type (
-	Entitlement        = registry.Entitlement
-	EntitlementOptions = registry.EntitlementOptions
-)
-
-func GetEntitlementRegistry(opts EntitlementOptions) *Entitlement {
-	return registrybuilder.GetEntitlementRegistry(opts)
+type Entitlement struct {
+	Feature            productcatalog.FeatureConnector
+	FeatureRepo        productcatalog.FeatureRepo
+	EntitlementOwner   grant.OwnerConnector
+	CreditBalance      credit.BalanceConnector
+	Grant              credit.GrantConnector
+	GrantRepo          grant.Repo
+	MeteredEntitlement meteredentitlement.Connector
+	Entitlement        entitlement.Connector
+	EntitlementRepo    entitlement.EntitlementRepo
 }

@@ -9,12 +9,12 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/config"
-	"github.com/openmeterio/openmeter/internal/meter"
-	"github.com/openmeterio/openmeter/internal/registry"
-	registrybuilder "github.com/openmeterio/openmeter/internal/registry/builder"
-	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
-	watermillkafka "github.com/openmeterio/openmeter/internal/watermill/driver/kafka"
-	"github.com/openmeterio/openmeter/internal/watermill/eventbus"
+	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/registry"
+	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
+	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector"
+	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/driver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -86,7 +86,7 @@ func initEntitlements(ctx context.Context, conf config.Configuration, logger *sl
 		return nil, fmt.Errorf("failed to initialize event publisher: %w", err)
 	}
 
-	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registry.EntitlementOptions{
+	entitlementRegistry := registrybuilder.GetEntitlementRegistry(registrybuilder.EntitlementOptions{
 		DatabaseClient:     entPostgresDriver.Client(),
 		StreamingConnector: streamingConnector,
 		MeterRepository:    meterRepository,

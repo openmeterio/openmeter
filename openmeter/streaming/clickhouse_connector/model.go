@@ -1,7 +1,9 @@
 package clickhouse_connector
 
-import (
-	"github.com/openmeterio/openmeter/internal/streaming/clickhouse_connector"
-)
+import "github.com/openmeterio/openmeter/pkg/models"
 
-type MeterView = clickhouse_connector.MeterView
+type MeterView struct {
+	Slug        string
+	Aggregation models.MeterAggregation
+	GroupBy     []string
+}

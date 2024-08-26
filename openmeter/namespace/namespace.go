@@ -2,16 +2,31 @@
 package namespace
 
 import (
-	"github.com/openmeterio/openmeter/internal/namespace"
+	"context"
+	"errors"
 )
 
 // Manager is responsible for managing namespaces in different components.
-type Manager = namespace.Manager
+type Manager struct {
+	config ManagerConfig
+}
 
-type ManagerConfig = namespace.ManagerConfig
+type ManagerConfig struct {
+	DefaultNamespace  string
+	DisableManagement bool
+	Handlers          []Handler
+}
 
 func NewManager(config ManagerConfig) (*Manager, error) {
-	return namespace.NewManager(config)
+	if config.DefaultNamespace == "" {
+		return nil, errors.New("default namespace is required")
+	}
+
+	manager := Manager{
+		config: config,
+	}
+
+	return &manager, nil
 }
 
 // Handler is responsible for creating a namespace in a given component.
@@ -20,4 +35,72 @@ func NewManager(config ManagerConfig) (*Manager, error) {
 // The concept of a default namespace is implementation specific.
 //
 // The behavior for trying to create a namespace that already exists is unspecified at the moment.
-type Handler = namespace.Handler
+type Handler interface {
+	CreateNamespace(ctx context.Context, name string) error
+	DeleteNamespace(ctx context.Context, name string) error
+}
+
+// CreateNamespace orchestrates namespace creation across different components.
+func (m Manager) CreateNamespace(ctx context.Context, name string) error {
+	if name == "" {
+		return errors.New("cannot create empty namespace")
+	}
+
+	return m.createNamespace(ctx, name)
+}
+
+// DeleteNamespace orchestrates namespace creation across different components.
+func (m Manager) DeleteNamespace(ctx context.Context, name string) error {
+	if name == "" {
+		return errors.New("cannot delete empty namespace")
+	}
+
+	if name == m.config.DefaultNamespace {
+		return errors.New("cannot delete default namespace")
+	}
+
+	return m.deleteNamespace(ctx, name)
+}
+
+// CreateDefaultNamespace orchestrates the creation of a default namespace.
+//
+// The concept of a default namespace is implementation specific.
+func (m Manager) CreateDefaultNamespace(ctx context.Context) error {
+	return m.createNamespace(ctx, m.config.DefaultNamespace)
+}
+
+func (m Manager) GetDefaultNamespace() string {
+	return m.config.DefaultNamespace
+}
+
+func (m Manager) IsManagementDisabled() bool {
+	return m.config.DisableManagement
+}
+
+// TODO: introduce some resiliency (eg. retries or rollbacks in case a component fails to create a namespace).
+func (m Manager) createNamespace(ctx context.Context, name string) error {
+	var errs []error
+
+	for _, handler := range m.config.Handlers {
+		err := handler.CreateNamespace(ctx, name)
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
+// TODO: introduce some resiliency (eg. retries or rollbacks in case a component fails to delete a namespace).
+func (m Manager) deleteNamespace(ctx context.Context, name string) error {
+	var errs []error
+
+	for _, handler := range m.config.Handlers {
+		err := handler.DeleteNamespace(ctx, name)
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errors.Join(errs...)
+}

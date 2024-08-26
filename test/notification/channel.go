@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/openmeterio/openmeter/internal/notification"
-	notificationwebhook "github.com/openmeterio/openmeter/internal/notification/webhook"
+	"github.com/openmeterio/openmeter/openmeter/notification"
+	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
