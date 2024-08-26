@@ -74,15 +74,14 @@ func (m *Generate) Check(ctx context.Context) error {
 		WithEnvVariable("GOFLAGS", "-tags=musl")
 
 	result := app.
-		WithExec([]string{"go", "generate", "-x", "-tags=musl", "-ldflags", "linkmode=external", "./..."}).
+		WithExec([]string{"go", "generate", "-x", "./..."}).
 		Directory("")
 
-	source := m.Source
-
-	err := diff(ctx, source, result)
+	err := diff(ctx, m.Source, result)
 	if err != nil {
 		return fmt.Errorf("go generate wasn't run: %w", err)
 	}
+
 	return nil
 }
 
@@ -94,5 +93,6 @@ func diff(ctx context.Context, d1, d2 *dagger.Directory) error {
 		WithDirectory("res", d2).
 		WithExec([]string{"diff", "-u", "-r", "-q", "src", "res"}).
 		Sync(ctx)
+
 	return err
 }
