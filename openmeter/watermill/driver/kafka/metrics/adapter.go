@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"reflect"
+	"sync"
 
 	"github.com/rcrowley/go-metrics"
 	otelmetric "go.opentelemetry.io/otel/metric"
@@ -61,12 +62,17 @@ func NewRegistry(opts NewRegistryOptions) (metrics.Registry, error) {
 
 type registry struct {
 	metrics.Registry
+
+	mu              sync.Mutex
 	meticMeter      otelmetric.Meter
 	nameTransformFn TransformMetricsNameToOtel
 	errorHandler    ErrorHandler
 }
 
 func (r *registry) GetOrRegister(name string, def interface{}) interface{} {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	existingMeter := r.Registry.Get(name)
 	if existingMeter != nil {
 		return existingMeter
@@ -78,7 +84,7 @@ func (r *registry) GetOrRegister(name string, def interface{}) interface{} {
 		return def
 	}
 
-	if err := r.Register(name, wrappedMeter); err != nil {
+	if err := r.Registry.Register(name, wrappedMeter); err != nil {
 		r.errorHandler(err)
 	}
 
@@ -86,6 +92,9 @@ func (r *registry) GetOrRegister(name string, def interface{}) interface{} {
 }
 
 func (r *registry) Register(name string, def interface{}) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	wrappedMeter, err := r.getWrappedMeter(name, def)
 	if err != nil {
 		return err
