@@ -7,7 +7,7 @@ import (
 	"go.opentelemetry.io/otel"
 
 	"github.com/openmeterio/openmeter/cmd/jobs/config"
-	"github.com/openmeterio/openmeter/internal/entitlement/balanceworker"
+	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
 )
 
 const (

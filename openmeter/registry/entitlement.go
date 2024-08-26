@@ -1,15 +1,35 @@
 package registry
 
 import (
-	"github.com/openmeterio/openmeter/internal/registry"
-	registrybuilder "github.com/openmeterio/openmeter/internal/registry/builder"
+	"log/slog"
+
+	"github.com/openmeterio/openmeter/openmeter/credit"
+	"github.com/openmeterio/openmeter/openmeter/credit/grant"
+	"github.com/openmeterio/openmeter/openmeter/ent/db"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	meteredentitlement "github.com/openmeterio/openmeter/openmeter/entitlement/metered"
+	"github.com/openmeterio/openmeter/openmeter/meter"
+	"github.com/openmeterio/openmeter/openmeter/productcatalog"
+	"github.com/openmeterio/openmeter/openmeter/streaming"
+	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 )
 
-type (
-	Entitlement        = registry.Entitlement
-	EntitlementOptions = registry.EntitlementOptions
-)
+type Entitlement struct {
+	Feature            productcatalog.FeatureConnector
+	FeatureRepo        productcatalog.FeatureRepo
+	EntitlementOwner   grant.OwnerConnector
+	CreditBalance      credit.BalanceConnector
+	Grant              credit.GrantConnector
+	GrantRepo          grant.Repo
+	MeteredEntitlement meteredentitlement.Connector
+	Entitlement        entitlement.Connector
+	EntitlementRepo    entitlement.EntitlementRepo
+}
 
-func GetEntitlementRegistry(opts EntitlementOptions) *Entitlement {
-	return registrybuilder.GetEntitlementRegistry(opts)
+type EntitlementOptions struct {
+	DatabaseClient     *db.Client
+	StreamingConnector streaming.Connector
+	Logger             *slog.Logger
+	MeterRepository    meter.Repository
+	Publisher          eventbus.Publisher
 }

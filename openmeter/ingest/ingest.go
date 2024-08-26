@@ -2,8 +2,13 @@
 package ingest
 
 import (
-	"github.com/openmeterio/openmeter/internal/ingest"
+	"context"
+
+	"github.com/cloudevents/sdk-go/v2/event"
 )
 
 // Collector is a receiver of events that handles sending those events to some downstream broker.
-type Collector = ingest.Collector
+type Collector interface {
+	Ingest(ctx context.Context, namespace string, ev event.Event) error
+	Close()
+}

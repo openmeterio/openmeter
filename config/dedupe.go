@@ -8,9 +8,9 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 
-	"github.com/openmeterio/openmeter/internal/dedupe"
-	"github.com/openmeterio/openmeter/internal/dedupe/memorydedupe"
-	"github.com/openmeterio/openmeter/internal/dedupe/redisdedupe"
+	"github.com/openmeterio/openmeter/openmeter/dedupe"
+	"github.com/openmeterio/openmeter/openmeter/dedupe/memorydedupe"
+	"github.com/openmeterio/openmeter/openmeter/dedupe/redisdedupe"
 	"github.com/openmeterio/openmeter/pkg/redis"
 )
 

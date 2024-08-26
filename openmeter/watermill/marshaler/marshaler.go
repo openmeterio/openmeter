@@ -11,7 +11,7 @@ import (
 	cloudevents "github.com/cloudevents/sdk-go/v2/event"
 	"github.com/oklog/ulid/v2"
 
-	"github.com/openmeterio/openmeter/internal/event/metadata"
+	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 )
 
 const (

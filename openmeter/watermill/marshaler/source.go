@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/openmeterio/openmeter/internal/event/metadata"
+	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 )
 
 type eventWithSource struct {

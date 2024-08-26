@@ -1,17 +1,25 @@
 package nopublisher
 
 import (
-	"github.com/ThreeDotsLabs/watermill/message"
+	"errors"
 
-	"github.com/openmeterio/openmeter/internal/watermill/nopublisher"
+	"github.com/ThreeDotsLabs/watermill/message"
 )
 
-var ErrMessagesProduced = nopublisher.ErrMessagesProduced
+var ErrMessagesProduced = errors.New("messages produced by no publisher handler")
 
 func NoPublisherHandlerToHandlerFunc(h message.NoPublishHandlerFunc) message.HandlerFunc {
-	return nopublisher.NoPublisherHandlerToHandlerFunc(h)
+	return func(message *message.Message) ([]*message.Message, error) {
+		return nil, h(message)
+	}
 }
 
 func HandlerFuncToNoPublisherHandler(h message.HandlerFunc) message.NoPublishHandlerFunc {
-	return nopublisher.HandlerFuncToNoPublisherHandler(h)
+	return func(message *message.Message) error {
+		outMessages, err := h(message)
+		if len(outMessages) > 0 {
+			return ErrMessagesProduced
+		}
+		return err
+	}
 }

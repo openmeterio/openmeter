@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/internal/event/metadata"
+	"github.com/openmeterio/openmeter/openmeter/event/metadata"
 )
 
 type event struct {

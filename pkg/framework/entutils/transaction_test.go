@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openmeterio/openmeter/internal/testutils"
+	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	db1 "github.com/openmeterio/openmeter/pkg/framework/entutils/testutils/ent1/db"
 	db2 "github.com/openmeterio/openmeter/pkg/framework/entutils/testutils/ent2/db"
