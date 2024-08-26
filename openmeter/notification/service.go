@@ -97,6 +97,10 @@ func New(config Config) (Service, error) {
 		return nil, errors.New("missing webhook handler")
 	}
 
+	if config.Logger == nil {
+		return nil, errors.New("missing logger")
+	}
+
 	eventHandler, err := NewEventHandler(EventHandlerConfig{
 		Repository: config.Repository,
 		Webhook:    config.Webhook,
