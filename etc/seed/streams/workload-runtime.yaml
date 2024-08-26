@@ -1,0 +1,56 @@
+input:
+  generate:
+    count: 0
+    interval: "${SEEDER_INTERVAL:100ms}"
+    mapping: |
+      let subject_count = ${SEEDER_SUBJECT_COUNT:1000}
+
+      let event_type = "workload"
+      let source = "demo-org-seeder"
+
+      let regions = ["us-east-1", "us-west-1", "us-east-2", "us-west-2"]
+      let zoneSuffixes = ["a", "b", "c", "d"]
+      let instance_types = ["t2.micro", "t2.small", "t2.medium", "t2.large", "t2.xlarge", "t2.2xlarge"]
+
+      let subject = "demo-subject-%d".format(random_int(seed: timestamp_unix_nano()) % $subject_count)
+      let time = now()
+
+      let region = $regions.index(random_int(seed: timestamp_unix_nano()) % $regions.length())
+      let zone = "%s%s".format($region, $zoneSuffixes.index(random_int(seed: timestamp_unix_nano()) % $zoneSuffixes.length()))
+      let instance_type = $instance_types.index(random_int(seed: timestamp_unix_nano()) % $instance_types.length())
+
+      let duration_seconds = random_int(seed: timestamp_unix_nano(), max: 1000)
+
+      root = {
+        "id": uuid_v4(),
+        "specversion": "1.0",
+        "type": $event_type,
+        "source": $source,
+        "subject": $subject,
+        "time": $time,
+        "data": {
+          "duration_seconds": $duration_seconds,
+          "region": $region,
+          "zone": $zone,
+          "instance_type": $instance_type,
+        },
+      }
+
+output:
+  switch:
+    cases:
+      - check: ""
+        continue: true
+        output:
+          http_client:
+            url: ${OPENMETER_BASE_URL:http://127.0.0.1:8888}/api/v1/events
+            verb: POST
+            headers:
+              Content-Type: application/cloudevents+json
+              Authorization: "Bearer ${OPENMETER_TOKEN:}"
+            max_in_flight: 256
+
+      - check: '"${SEEDER_LOG:false}" == "true"'
+        output:
+          stdout:
+            codec: lines

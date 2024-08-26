@@ -1,0 +1,49 @@
+input:
+  generate:
+    count: 0
+    interval: "${SEEDER_INTERVAL:100ms}"
+    mapping: |
+      let subject_count = ${SEEDER_SUBJECT_COUNT:1000}
+
+      let event_type = "request"
+      let source = "demo-org-seeder"
+      let methods = ["GET", "POST"]
+      let routes = ["/", "/about", "/contact", "/pricing", "/docs"]
+
+      let subject = "demo-subject-%d".format(random_int(seed: timestamp_unix_nano()) % $subject_count)
+      let time = now()
+
+      let method = $methods.index(random_int(seed: timestamp_unix_nano()) % $methods.length())
+      let path = $routes.index(random_int(seed: timestamp_unix_nano()) % $routes.length())
+
+      root = {
+        "id": uuid_v4(),
+        "specversion": "1.0",
+        "type": $event_type,
+        "source": $source,
+        "subject": $subject,
+        "time": $time,
+        "data": {
+          "method": $method,
+          "path": $path,
+        },
+      }
+
+output:
+  switch:
+    cases:
+      - check: ""
+        continue: true
+        output:
+          http_client:
+            url: ${OPENMETER_BASE_URL:http://127.0.0.1:8888}/api/v1/events
+            verb: POST
+            headers:
+              Content-Type: application/cloudevents+json
+              Authorization: "Bearer ${OPENMETER_TOKEN:}"
+            max_in_flight: 256
+
+      - check: '"${SEEDER_LOG:false}" == "true"'
+        output:
+          stdout:
+            codec: lines
