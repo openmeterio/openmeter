@@ -18,7 +18,7 @@ func TestCreateEventsTable(t *testing.T) {
 			data: createEventsTable{
 				Database: "openmeter",
 			},
-			want: "CREATE TABLE IF NOT EXISTS openmeter.om_events (namespace String, validation_error String, id String, type LowCardinality(String), subject String, source String, time DateTime, data String) ENGINE = MergeTree PARTITION BY toYYYYMM(time) ORDER BY (namespace, time, type, subject)",
+			want: "CREATE TABLE IF NOT EXISTS openmeter.om_events (namespace String, validation_error String, id String, type LowCardinality(String), subject String, source String, time DateTime, data String, ingested_at DateTime, create_at DateTime) ENGINE = MergeTree PARTITION BY toYYYYMM(time) ORDER BY (namespace, time, type, subject)",
 		},
 	}
 
@@ -43,7 +43,7 @@ func TestQueryEventsTable(t *testing.T) {
 				Namespace: "my_namespace",
 				Limit:     100,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error FROM openmeter.om_events WHERE namespace = ? ORDER BY time DESC LIMIT 100",
+			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, created_at FROM openmeter.om_events WHERE namespace = ? ORDER BY time DESC LIMIT 100",
 			wantArgs: []interface{}{"my_namespace"},
 		},
 	}

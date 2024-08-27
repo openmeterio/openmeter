@@ -1958,17 +1958,29 @@ components:
           type: "input"
     IngestedEvent:
       description: An ingested event with optional validation error.
+      readOnly: true
       type: object
       additionalProperties: false
       required:
         - event
+        - ingestedAt
+        - createdAt
       properties:
         event:
           $ref: "#/components/schemas/Event"
         validationError:
           type: string
-          readOnly: true
           example: "invalid event"
+        ingestedAt:
+          type: string
+          format: date-time
+          description: The date and time the event was ingested.
+          example: "2024-01-01T00:00:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          description: The date and time the event was stored.
+          example: "2024-01-01T00:00:00Z"
       example:
         event:
           id: 5c10fade-1c9e-4d6c-8275-c52c36731d3d
@@ -1976,11 +1988,13 @@ components:
           specversion: "1.0"
           type: prompt
           subject: customer-id
-          time: "2023-01-01T01:01:01.001Z"
+          time: "2024-01-01T01:01:01.001Z"
           data:
             tokens: "1234"
             model: "gpt-4-turbo"
         validationError: "meter not found for event"
+        ingestedAt: "2024-01-01T00:00:00Z"
+        createdAt: "2024-01-01T00:00:00Z"
     FeatureCreateInputs:
       type: object
       description: |

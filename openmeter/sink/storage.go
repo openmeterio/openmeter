@@ -3,6 +3,7 @@ package sink
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/huandu/go-sqlbuilder"
@@ -58,12 +59,28 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
 
 	query := sqlbuilder.ClickHouse.NewInsertBuilder()
 	query.InsertInto(tableName)
-	query.Cols("namespace", "validation_error", "id", "type", "source", "subject", "time", "data")
+	query.Cols("namespace", "validation_error", "id", "type", "source", "subject", "time", "data", "ingested_at", "created_at")
 
 	for _, message := range q.Messages {
 		var eventErr string
 		if message.Status.Error != nil {
 			eventErr = message.Status.Error.Error()
+		}
+
+		ingestedAt := time.Now()
+		createdAt := time.Now()
+
+		for _, header := range message.KafkaMessage.Headers {
+			// Parse ingested_at header
+			if header.Key == "ingested_at" {
+				var err error
+
+				ingestedAtStr := string(header.Value)
+				ingestedAt, err = time.Parse(time.RFC3339, ingestedAtStr)
+				if err != nil {
+					eventErr = fmt.Sprintf("failed to parse ingested_at header: %s", err)
+				}
+			}
 		}
 
 		query.Values(
@@ -75,6 +92,8 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
 			message.Serialized.Subject,
 			message.Serialized.Time,
 			message.Serialized.Data,
+			ingestedAt,
+			createdAt,
 		)
 	}
 

@@ -243,11 +243,13 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 		var eventType string
 		var subject string
 		var source string
-		var time time.Time
+		var eventTime time.Time
 		var dataStr string
 		var validationError string
+		var ingestedAt time.Time
+		var createdAt time.Time
 
-		if err = rows.Scan(&id, &eventType, &subject, &source, &time, &dataStr, &validationError); err != nil {
+		if err = rows.Scan(&id, &eventType, &subject, &source, &eventTime, &dataStr, &validationError, &ingestedAt, &createdAt); err != nil {
 			return nil, err
 		}
 
@@ -263,7 +265,7 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 		event.SetType(eventType)
 		event.SetSubject(subject)
 		event.SetSource(source)
-		event.SetTime(time)
+		event.SetTime(eventTime)
 		err = event.SetData("application/json", data)
 		if err != nil {
 			return nil, fmt.Errorf("query events set data: %w", err)
@@ -276,6 +278,9 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 		if validationError != "" {
 			ingestedEvent.ValidationError = &validationError
 		}
+
+		ingestedEvent.IngestedAt = ingestedAt
+		ingestedEvent.CreatedAt = createdAt
 
 		events = append(events, ingestedEvent)
 	}
