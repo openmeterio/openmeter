@@ -68,12 +68,10 @@ func (m *Generate) WebSdk() *dagger.Directory {
 }
 
 func (m *Generate) Check(ctx context.Context) error {
-	app := goModuleCross("").
+	result := goModuleCross("").
 		WithSource(m.Source).
 		Container().
-		WithEnvVariable("GOFLAGS", "-tags=musl")
-
-	result := app.
+		WithEnvVariable("GOFLAGS", "-tags=musl").
 		WithExec([]string{"go", "generate", "-x", "./..."}).
 		Directory("")
 
@@ -88,7 +86,6 @@ func (m *Generate) Check(ctx context.Context) error {
 func diff(ctx context.Context, d1, d2 *dagger.Directory) error {
 	_, err := dag.Container(dagger.ContainerOpts{Platform: ""}).
 		From(alpineBaseImage).
-		WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "tzdata", "bash"}).
 		WithDirectory("src", d1).
 		WithDirectory("res", d2).
 		WithExec([]string{"diff", "-u", "-r", "-q", "src", "res"}).
