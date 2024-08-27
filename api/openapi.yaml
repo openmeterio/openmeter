@@ -91,6 +91,8 @@ paths:
                         tokens: "1234"
                         model: "gpt-4-turbo"
                         type: "input"
+                      ingestedAt: "2023-01-01T01:01:01.001Z"
+                      createdAt: "2023-01-01T01:01:01.001Z"
                   - event:
                       id: 912d1d87-09ad-4bcc-a57d-5b3552493ed2
                       source: service-name
@@ -102,6 +104,8 @@ paths:
                         tokens: "2345"
                         model: "gpt-4-turbo"
                         type: "output"
+                      ingestedAt: "2023-01-01T01:01:02.001Z"
+                      createdAt: "2023-01-01T01:01:02.001Z"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
