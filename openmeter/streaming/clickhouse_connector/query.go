@@ -38,7 +38,7 @@ func (d createEventsTable) toSQL() string {
 	sb.Define("time", "DateTime")
 	sb.Define("data", "String")
 	sb.Define("ingested_at", "DateTime")
-	sb.Define("created_at", "DateTime")
+	sb.Define("stored_at", "DateTime")
 	sb.SQL("ENGINE = MergeTree")
 	sb.SQL("PARTITION BY toYYYYMM(time)")
 	sb.SQL("ORDER BY (namespace, time, type, subject)")
@@ -60,7 +60,7 @@ func (d queryEventsTable) toSQL() (string, []interface{}) {
 	where := []string{}
 
 	query := sqlbuilder.ClickHouse.NewSelectBuilder()
-	query.Select("id", "type", "subject", "source", "time", "data", "validation_error", "ingested_at", "created_at")
+	query.Select("id", "type", "subject", "source", "time", "data", "validation_error", "ingested_at", "stored_at")
 	query.From(tableName)
 
 	where = append(where, query.Equal("namespace", d.Namespace))

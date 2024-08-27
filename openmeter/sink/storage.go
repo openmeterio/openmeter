@@ -59,7 +59,7 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
 
 	query := sqlbuilder.ClickHouse.NewInsertBuilder()
 	query.InsertInto(tableName)
-	query.Cols("namespace", "validation_error", "id", "type", "source", "subject", "time", "data", "ingested_at", "created_at")
+	query.Cols("namespace", "validation_error", "id", "type", "source", "subject", "time", "data", "ingested_at", "stored_at")
 
 	for _, message := range q.Messages {
 		var eventErr string
@@ -67,17 +67,19 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
 			eventErr = message.Status.Error.Error()
 		}
 
-		createdAt := time.Now()
-		ingestedAt := createdAt
+		storedAt := time.Now()
+		ingestedAt := storedAt
 
-		for _, header := range message.KafkaMessage.Headers {
-			// Parse ingested_at header
-			if header.Key == "ingested_at" {
-				var err error
+		if message.KafkaMessage != nil {
+			for _, header := range message.KafkaMessage.Headers {
+				// Parse ingested_at header
+				if header.Key == "ingested_at" {
+					var err error
 
-				ingestedAt, err = time.Parse(time.RFC3339, string(header.Value))
-				if err != nil {
-					eventErr = fmt.Sprintf("failed to parse ingested_at header: %s", err)
+					ingestedAt, err = time.Parse(time.RFC3339, string(header.Value))
+					if err != nil {
+						eventErr = fmt.Sprintf("failed to parse ingested_at header: %s", err)
+					}
 				}
 			}
 		}
@@ -92,7 +94,7 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
 			message.Serialized.Time,
 			message.Serialized.Data,
 			ingestedAt,
-			createdAt,
+			storedAt,
 		)
 	}
 

@@ -91,8 +91,8 @@ paths:
                         tokens: "1234"
                         model: "gpt-4-turbo"
                         type: "input"
-                      ingestedAt: "2023-01-01T01:01:01.001Z"
-                      createdAt: "2023-01-01T01:01:01.001Z"
+                    ingestedAt: "2023-01-01T01:01:01.001Z"
+                    storedAt: "2023-01-01T01:01:01.001Z"
                   - event:
                       id: 912d1d87-09ad-4bcc-a57d-5b3552493ed2
                       source: service-name
@@ -104,8 +104,8 @@ paths:
                         tokens: "2345"
                         model: "gpt-4-turbo"
                         type: "output"
-                      ingestedAt: "2023-01-01T01:01:02.001Z"
-                      createdAt: "2023-01-01T01:01:02.001Z"
+                    ingestedAt: "2023-01-01T01:01:02.001Z"
+                    storedAt: "2023-01-01T01:01:02.001Z"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
@@ -1968,7 +1968,7 @@ components:
       required:
         - event
         - ingestedAt
-        - createdAt
+        - storedAt
       properties:
         event:
           $ref: "#/components/schemas/Event"
@@ -1980,7 +1980,7 @@ components:
           format: date-time
           description: The date and time the event was ingested.
           example: "2024-01-01T00:00:00Z"
-        createdAt:
+        storedAt:
           type: string
           format: date-time
           description: The date and time the event was stored.
@@ -1998,7 +1998,7 @@ components:
             model: "gpt-4-turbo"
         validationError: "meter not found for event"
         ingestedAt: "2024-01-01T00:00:00Z"
-        createdAt: "2024-01-01T00:00:00Z"
+        storedAt: "2024-01-01T00:00:00Z"
     FeatureCreateInputs:
       type: object
       description: |

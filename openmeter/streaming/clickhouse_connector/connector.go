@@ -247,9 +247,9 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 		var dataStr string
 		var validationError string
 		var ingestedAt time.Time
-		var createdAt time.Time
+		var storedAt time.Time
 
-		if err = rows.Scan(&id, &eventType, &subject, &source, &eventTime, &dataStr, &validationError, &ingestedAt, &createdAt); err != nil {
+		if err = rows.Scan(&id, &eventType, &subject, &source, &eventTime, &dataStr, &validationError, &ingestedAt, &storedAt); err != nil {
 			return nil, err
 		}
 
@@ -280,7 +280,7 @@ func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace st
 		}
 
 		ingestedEvent.IngestedAt = ingestedAt
-		ingestedEvent.CreatedAt = createdAt
+		ingestedEvent.StoredAt = storedAt
 
 		events = append(events, ingestedEvent)
 	}
