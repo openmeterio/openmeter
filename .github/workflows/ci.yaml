@@ -253,6 +253,22 @@ jobs:
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
 
+      - name: Export Container Logs
+        id: export-container-logs
+        run: docker logs $(docker container list --all --filter 'name=^*-openmeter-*' --format '{{.Names}}') > container.stdout.log 2> container.stderr.log
+        if: always()
+        continue-on-error: true
+
+      - name: Upload Container logs as artifact
+        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+        if: always() && steps.export-container-logs.outcome == 'success'
+        with:
+          name: "[${{ github.job }}] Container logs"
+          path: |
+            container.stdout.log
+            container.stderr.log
+          retention-days: 14
+
       - name: Cleanup Docker Compose
         run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml down -v
         working-directory: quickstart

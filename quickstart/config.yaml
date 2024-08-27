@@ -10,6 +10,10 @@ sink:
   minCommitCount: 1
   namespaceRefetch: 1s
 
+postgres:
+  url: postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
+  autoMigrate: migration # Runs migrations as part of the service startup, valid values are: ent, migration, false
+
 meters:
   # Sample meter to count API requests
   - slug: api_requests_total        # Unique identifier for the meter

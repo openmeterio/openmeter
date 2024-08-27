@@ -28,11 +28,11 @@ func (m *Migrate) Check(
 
 	bin := dag.Container(dagger.ContainerOpts{
 		Platform: "linux/amd64",
-	}).From("arigaio/atlas:0.26.0").File("atlas")
+	}).From(atlasImage).File("atlas")
 
 	atlas := app.
 		WithFile("/bin/atlas", bin).
-		WithDirectory("internal/ent", m.Source.Directory("internal/ent")).
+		WithDirectory("openmeter/ent", m.Source.Directory("openmeter/ent")).
 		WithDirectory("tools/migrate/migrations", m.Source.Directory("tools/migrate/migrations")).
 		WithFile("atlas.hcl", m.Source.File("atlas.hcl"))
 
@@ -41,10 +41,10 @@ func (m *Migrate) Check(
 	// Always validate schema is generated
 	p.Go(func(ctx context.Context) error {
 		result := app.
-			WithExec([]string{"go", "generate", "-x", "-tags=musl", "-ldflags", "linkmode=external", "./internal/ent/..."}).
-			Directory("internal/ent")
+			WithExec([]string{"go", "generate", "-x", "./openmeter/ent/..."}).
+			Directory("openmeter/ent")
 
-		source := m.Source.Directory("internal/ent")
+		source := m.Source.Directory("openmeter/ent")
 
 		err := diff(ctx, source, result)
 		if err != nil {
@@ -84,15 +84,4 @@ func (m *Migrate) Check(
 	))
 
 	return p.Wait()
-}
-
-func diff(ctx context.Context, d1, d2 *dagger.Directory) error {
-	_, err := dag.Container(dagger.ContainerOpts{Platform: ""}).
-		From(alpineBaseImage).
-		WithExec([]string{"apk", "add", "--update", "--no-cache", "ca-certificates", "tzdata", "bash"}).
-		WithDirectory("src", d1).
-		WithDirectory("res", d2).
-		WithExec([]string{"diff", "-u", "-r", "src", "res"}).
-		Sync(ctx)
-	return err
 }

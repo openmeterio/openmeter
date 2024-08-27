@@ -17,4 +17,6 @@ const (
 	xxBaseImage    = "tonistiigi/xx:1.5.0@sha256:0c6a569797744e45955f39d4f7538ac344bfb7ebf0a54006a0a4297b153ccf0f"
 
 	alpineBaseImage = "alpine:3.20.2@sha256:0a4eaa0eecf5f8c050e5bba433f58c052be7587ee8af3e8b3910ef9ab5fbe9f5"
+
+	atlasImage = "arigaio/atlas:0.26.1@sha256:f77152f5458255410d2e59ad80a0fc661524067a90d297a0b62e6bda23437893"
 )

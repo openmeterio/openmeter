@@ -29,7 +29,7 @@ func (m *Ci) Etoe(
 		WithExec([]string{"openmeter-sink-worker", "--config", "/etc/openmeter/config.yaml"}).
 		AsService()
 
-	args := []string{"go", "test", "-count=1", "-v"}
+	args := []string{"go", "test", "-tags", "musl", "-count=1", "-v"}
 
 	if test != "" {
 		args = append(args, "-run", fmt.Sprintf("Test%s", test))
@@ -37,7 +37,7 @@ func (m *Ci) Etoe(
 
 	args = append(args, "./e2e/...")
 
-	return goModule().
+	return goModuleCross("").
 		WithModuleCache(cacheVolume("go-mod-e2e")).
 		WithBuildCache(cacheVolume("go-build-e2e")).
 		WithSource(m.Source).
