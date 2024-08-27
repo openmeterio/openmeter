@@ -75,8 +75,7 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
 			if header.Key == "ingested_at" {
 				var err error
 
-				ingestedAtStr := string(header.Value)
-				ingestedAt, err = time.Parse(time.RFC3339, ingestedAtStr)
+				ingestedAt, err = time.Parse(time.RFC3339, string(header.Value))
 				if err != nil {
 					eventErr = fmt.Sprintf("failed to parse ingested_at header: %s", err)
 				}
