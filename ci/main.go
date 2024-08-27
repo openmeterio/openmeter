@@ -85,13 +85,12 @@ func (m *Ci) Ci(ctx context.Context) (*dagger.Directory, error) {
 func (m *Ci) Test() *dagger.Container {
 	return goModuleCross("").
 		WithSource(m.Source).
-		Container().
-		WithServiceBinding("postgres", postgres()).
-		WithServiceBinding("svix", svix()).
 		WithEnvVariable("POSTGRES_HOST", "postgres").
 		WithEnvVariable("SVIX_HOST", "svix").
 		WithEnvVariable("SVIX_JWT_SECRET", SvixJWTSingingSecret).
-		WithExec([]string{"go", "test", "-tags", "musl", "-v", "./..."})
+		WithServiceBinding("postgres", postgres()).
+		WithServiceBinding("svix", svix()).
+		Exec([]string{"go", "test", "-tags", "musl", "-v", "./..."})
 }
 
 func (m *Ci) QuickstartTest(
@@ -104,8 +103,7 @@ func (m *Ci) QuickstartTest(
 		WithModuleCache(cacheVolume("go-mod-quickstart")).
 		WithBuildCache(cacheVolume("go-build-quickstart")).
 		WithSource(m.Source).
-		Container().
-		WithServiceBinding("openmeter", service).
 		WithEnvVariable("OPENMETER_ADDRESS", fmt.Sprintf("http://openmeter:%d", port)).
-		WithExec([]string{"go", "test", "-v", "./quickstart/"})
+		WithServiceBinding("openmeter", service).
+		Exec([]string{"go", "test", "-v", "./quickstart/"})
 }
