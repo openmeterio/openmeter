@@ -315,6 +315,7 @@ func main() {
 		Repository:       notificationRepo,
 		Webhook:          notificationWebhook,
 		FeatureConnector: entitlementConnRegistry.Feature,
+		Logger:           logger.With(slog.String("subsystem", "notification")),
 	})
 	if err != nil {
 		logger.Error("failed to initialize notification service", "error", err)
