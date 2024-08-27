@@ -152,7 +152,7 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		Repository:       repo,
 		FeatureConnector: featureConnector,
 		Webhook:          webhook,
-		Logger:           logger.With(slog.String("subsystem", "notification")),
+		Logger:           logger.WithGroup("notification"),
 	})
 	if err != nil {
 		return nil, err
