@@ -67,8 +67,8 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
 			eventErr = message.Status.Error.Error()
 		}
 
-		ingestedAt := time.Now()
 		createdAt := time.Now()
+		ingestedAt := createdAt
 
 		for _, header := range message.KafkaMessage.Headers {
 			// Parse ingested_at header
