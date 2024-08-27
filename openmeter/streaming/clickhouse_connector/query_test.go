@@ -454,7 +454,7 @@ func TestQueryEvents(t *testing.T) {
 				To:        &toTime,
 				Limit:     10,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND time <= ? ORDER BY time DESC LIMIT 10",
+			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND time <= ? ORDER BY time DESC LIMIT 10",
 			wantArgs: []interface{}{"my_namespace", fromTime.Unix(), toTime.Unix()},
 		},
 		{
@@ -464,7 +464,7 @@ func TestQueryEvents(t *testing.T) {
 				From:      &fromTime,
 				Limit:     10,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error FROM openmeter.om_events WHERE namespace = ? AND time >= ? ORDER BY time DESC LIMIT 10",
+			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? ORDER BY time DESC LIMIT 10",
 			wantArgs: []interface{}{"my_namespace", fromTime.Unix()},
 		},
 		{
@@ -474,7 +474,7 @@ func TestQueryEvents(t *testing.T) {
 				To:        &toTime,
 				Limit:     10,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error FROM openmeter.om_events WHERE namespace = ? AND time <= ? ORDER BY time DESC LIMIT 10",
+			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time <= ? ORDER BY time DESC LIMIT 10",
 			wantArgs: []interface{}{"my_namespace", toTime.Unix()},
 		},
 	}
