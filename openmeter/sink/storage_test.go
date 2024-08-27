@@ -63,11 +63,12 @@ func TestInsertEventsQuery(t *testing.T) {
 
 	// Remove the ingested_at and stored_at fields from the args to make the comparison easier
 	argsWithoutIngestTimes := []interface{}{}
-	for idx, arg := range args {
-		// Skip the ingested_at and stored_at fields at indexes 8 and 9
-		if idx != 0 && (idx%8 == 0 || idx%9 == 0) {
+	for _, arg := range args {
+		// Skip the ingested_at and stored_at fields
+		if _, ok := arg.(time.Time); ok {
 			continue
 		}
+
 		argsWithoutIngestTimes = append(argsWithoutIngestTimes, arg)
 	}
 
