@@ -1,6 +1,11 @@
 package main
 
-import "github.com/openmeterio/openmeter/ci/internal/dagger"
+import (
+	"context"
+	"fmt"
+
+	"github.com/openmeterio/openmeter/ci/internal/dagger"
+)
 
 // Generate various artifacts.
 func (m *Ci) Generate() *Generate {
@@ -60,4 +65,30 @@ func (m *Generate) WebSdk() *dagger.Directory {
 		WithExec([]string{"pnpm", "run", "generate"}).
 		Directory("/work/client/web").
 		WithoutDirectory("node_modules")
+}
+
+func (m *Generate) Check(ctx context.Context) error {
+	result := goModuleCross("").
+		WithSource(m.Source).
+		WithEnvVariable("GOFLAGS", "-tags=musl").
+		Exec([]string{"go", "generate", "-x", "./..."}).
+		Directory("")
+
+	err := diff(ctx, m.Source, result)
+	if err != nil {
+		return fmt.Errorf("go generate wasn't run: %w", err)
+	}
+
+	return nil
+}
+
+func diff(ctx context.Context, d1, d2 *dagger.Directory) error {
+	_, err := dag.Container(dagger.ContainerOpts{Platform: ""}).
+		From(alpineBaseImage).
+		WithDirectory("src", d1).
+		WithDirectory("res", d2).
+		WithExec([]string{"diff", "-u", "-r", "-q", "src", "res"}).
+		Sync(ctx)
+
+	return err
 }

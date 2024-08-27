@@ -70,6 +70,7 @@ func (m *Ci) Ci(ctx context.Context) (*dagger.Directory, error) {
 		WithDirectory("generated/", generated)
 
 	p.addJobs(
+		m.Generate().Check,
 		wrapSyncable(m.Test()),
 		m.Lint().All,
 
