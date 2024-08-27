@@ -7,6 +7,7 @@ import (
 	"log/slog"
 
 	"github.com/openmeterio/openmeter/openmeter/notification"
+	"github.com/openmeterio/openmeter/openmeter/notification/eventhandler"
 	"github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 )
@@ -59,7 +60,7 @@ func New(config Config) (*Service, error) {
 	}
 	config.Logger = config.Logger.WithGroup("notification")
 
-	eventHandler, err := notification.NewEventHandler(notification.EventHandlerConfig{
+	eventHandler, err := eventhandler.New(eventhandler.Config{
 		Repository: config.Repository,
 		Webhook:    config.Webhook,
 		Logger:     config.Logger,
