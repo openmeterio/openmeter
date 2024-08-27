@@ -70,9 +70,8 @@ func (m *Generate) WebSdk() *dagger.Directory {
 func (m *Generate) Check(ctx context.Context) error {
 	result := goModuleCross("").
 		WithSource(m.Source).
-		Container().
 		WithEnvVariable("GOFLAGS", "-tags=musl").
-		WithExec([]string{"go", "generate", "-x", "./..."}).
+		Exec([]string{"go", "generate", "-x", "./..."}).
 		Directory("")
 
 	err := diff(ctx, m.Source, result)
