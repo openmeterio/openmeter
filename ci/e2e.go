@@ -37,17 +37,14 @@ func (m *Ci) Etoe(
 
 	args = append(args, "./e2e/...")
 
-	return dag.Go(dagger.GoOpts{
-		Container: goModule().
-			WithModuleCache(cacheVolume("go-mod-e2e")).
-			WithBuildCache(cacheVolume("go-build-e2e")).
-			WithSource(m.Source).
-			Container().
-			WithServiceBinding("api", api).
-			WithServiceBinding("sink-worker", sinkWorker).
-			WithEnvVariable("OPENMETER_ADDRESS", "http://api:8080").
-			WithEnvVariable("TEST_WAIT_ON_START", "true"),
-	}).
+	return goModule().
+		WithModuleCache(cacheVolume("go-mod-e2e")).
+		WithBuildCache(cacheVolume("go-build-e2e")).
+		WithSource(m.Source).
+		WithEnvVariable("OPENMETER_ADDRESS", "http://api:8080").
+		WithEnvVariable("TEST_WAIT_ON_START", "true").
+		WithServiceBinding("api", api).
+		WithServiceBinding("sink-worker", sinkWorker).
 		Exec(args)
 }
 
