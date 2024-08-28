@@ -43,7 +43,6 @@ func NewRecalculateBalanceSnapshotsCommand() *cobra.Command {
 
 			recalculator, err := balanceworker.NewRecalculator(balanceworker.RecalculatorOptions{
 				Entitlement: entitlementConnectors.Registry,
-				Namespace:   "default",
 				EventBus:    entitlementConnectors.EventBus,
 				MetricMeter: metricMeter,
 			})
@@ -51,7 +50,7 @@ func NewRecalculateBalanceSnapshotsCommand() *cobra.Command {
 				return err
 			}
 
-			return recalculator.Recalculate(cmd.Context())
+			return recalculator.Recalculate(cmd.Context(), "default")
 		},
 	}
 }
