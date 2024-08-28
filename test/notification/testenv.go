@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	notificationrepository "github.com/openmeterio/openmeter/openmeter/notification/repository"
+	notificationservice "github.com/openmeterio/openmeter/openmeter/notification/service"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog"
 	productcatalogadapter "github.com/openmeterio/openmeter/openmeter/productcatalog/adapter"
@@ -148,7 +149,7 @@ func NewTestEnv(ctx context.Context) (TestEnv, error) {
 		return nil, fmt.Errorf("failed to create webhook handler: %w", err)
 	}
 
-	service, err := notification.New(notification.Config{
+	service, err := notificationservice.New(notificationservice.Config{
 		Repository:       repo,
 		FeatureConnector: featureConnector,
 		Webhook:          webhook,

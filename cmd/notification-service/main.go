@@ -30,9 +30,9 @@ import (
 
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/openmeter/meter"
-	"github.com/openmeterio/openmeter/openmeter/notification"
 	"github.com/openmeterio/openmeter/openmeter/notification/consumer"
 	notificationrepository "github.com/openmeterio/openmeter/openmeter/notification/repository"
+	notificationservice "github.com/openmeterio/openmeter/openmeter/notification/service"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector"
@@ -311,7 +311,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	notificationService, err := notification.New(notification.Config{
+	notificationService, err := notificationservice.New(notificationservice.Config{
 		Repository:       notificationRepo,
 		Webhook:          notificationWebhook,
 		FeatureConnector: entitlementConnRegistry.Feature,

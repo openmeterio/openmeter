@@ -45,6 +45,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/namespace/namespacedriver"
 	"github.com/openmeterio/openmeter/openmeter/notification"
 	notificationrepository "github.com/openmeterio/openmeter/openmeter/notification/repository"
+	notificationservice "github.com/openmeterio/openmeter/openmeter/notification/service"
 	notificationwebhook "github.com/openmeterio/openmeter/openmeter/notification/webhook"
 	"github.com/openmeterio/openmeter/openmeter/registry"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
@@ -402,7 +403,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		notificationService, err = notification.New(notification.Config{
+		notificationService, err = notificationservice.New(notificationservice.Config{
 			Repository:       notificationRepo,
 			Webhook:          notificationWebhook,
 			FeatureConnector: entitlementConnRegistry.Feature,
