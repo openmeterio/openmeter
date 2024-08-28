@@ -33,6 +33,7 @@ type ClickHouseStorage struct {
 
 func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmodels.SinkMessage) error {
 	query := InsertEventsQuery{
+		Clock:    realClock{},
 		Database: c.config.Database,
 		Messages: messages,
 	}
@@ -50,6 +51,7 @@ func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmode
 }
 
 type InsertEventsQuery struct {
+	Clock    Clock
 	Database string
 	Messages []sinkmodels.SinkMessage
 }
@@ -67,7 +69,7 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
 			eventErr = message.Status.Error.Error()
 		}
 
-		storedAt := time.Now()
+		storedAt := q.Clock.Now()
 		ingestedAt := storedAt
 
 		if message.KafkaMessage != nil {
@@ -100,4 +102,17 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
 
 	sql, args := query.Build()
 	return sql, args, nil
+}
+
+// Clock is an interface for getting the current time.
+// It is used to make the code testable.
+type Clock interface {
+	Now() time.Time
+}
+
+// realClock implements Clock using the system clock.
+type realClock struct{}
+
+func (realClock) Now() time.Time {
+	return time.Now()
 }

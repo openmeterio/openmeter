@@ -16,6 +16,7 @@ func TestInsertEventsQuery(t *testing.T) {
 	now := time.Now()
 
 	query := sink.InsertEventsQuery{
+		Clock:    mockClock{now: now},
 		Database: "database",
 		Messages: []sinkmodels.SinkMessage{
 			{
@@ -61,21 +62,18 @@ func TestInsertEventsQuery(t *testing.T) {
 	sql, args, err := query.ToSQL()
 	assert.NoError(t, err)
 
-	// Remove the ingested_at and stored_at fields from the args to make the comparison easier
-	argsWithoutIngestTimes := []interface{}{}
-	for _, arg := range args {
-		// Skip the ingested_at and stored_at fields
-		if _, ok := arg.(time.Time); ok {
-			continue
-		}
-
-		argsWithoutIngestTimes = append(argsWithoutIngestTimes, arg)
-	}
-
 	assert.Equal(t, []interface{}{
-		"my_namespace", "", "1", "api-calls", "source", "subject-1", now.UnixMilli(), `{"duration_ms": 100, "method": "GET", "path": "/api/v1"}`,
-		"my_namespace", "", "2", "api-calls", "source", "subject-2", now.UnixMilli(), `{"duration_ms": 80, "method": "GET", "path": "/api/v1"}`,
-		"my_namespace", "event data value cannot be parsed as float64: not a number", "3", "api-calls", "source", "subject-2", now.UnixMilli(), `{"duration_ms": "foo", "method": "GET", "path": "/api/v1"}`,
-	}, argsWithoutIngestTimes)
+		"my_namespace", "", "1", "api-calls", "source", "subject-1", now.UnixMilli(), `{"duration_ms": 100, "method": "GET", "path": "/api/v1"}`, now, now,
+		"my_namespace", "", "2", "api-calls", "source", "subject-2", now.UnixMilli(), `{"duration_ms": 80, "method": "GET", "path": "/api/v1"}`, now, now,
+		"my_namespace", "event data value cannot be parsed as float64: not a number", "3", "api-calls", "source", "subject-2", now.UnixMilli(), `{"duration_ms": "foo", "method": "GET", "path": "/api/v1"}`, now, now,
+	}, args)
 	assert.Equal(t, `INSERT INTO database.om_events (namespace, validation_error, id, type, source, subject, time, data, ingested_at, stored_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, sql)
+}
+
+type mockClock struct {
+	now time.Time
+}
+
+func (m mockClock) Now() time.Time {
+	return m.now
 }
