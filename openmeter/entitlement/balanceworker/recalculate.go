@@ -43,7 +43,6 @@ var (
 
 type RecalculatorOptions struct {
 	Entitlement     *registry.Entitlement
-	Namespace       string
 	SubjectResolver SubjectResolver
 	EventBus        eventbus.Publisher
 	MetricMeter     metric.Meter
@@ -52,10 +51,6 @@ type RecalculatorOptions struct {
 func (o RecalculatorOptions) Validate() error {
 	if o.Entitlement == nil {
 		return errors.New("missing entitlement registry")
-	}
-
-	if o.Namespace == "" {
-		return errors.New("missing namespace")
 	}
 
 	if o.EventBus == nil {
@@ -110,11 +105,15 @@ func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
 	}, nil
 }
 
-func (r *Recalculator) Recalculate(ctx context.Context) error {
+func (r *Recalculator) Recalculate(ctx context.Context, ns string) error {
+	if ns == "" {
+		return errors.New("namespace is required")
+	}
+
 	affectedEntitlements, err := r.opts.Entitlement.EntitlementRepo.ListEntitlements(
 		ctx,
 		entitlement.ListEntitlementsParams{
-			Namespaces:          []string{r.opts.Namespace},
+			Namespaces:          []string{ns},
 			IncludeDeleted:      true,
 			IncludeDeletedAfter: time.Now().Add(-DefaultIncludeDeletedDuration),
 		})
@@ -154,7 +153,7 @@ func (r *Recalculator) processEntitlements(ctx context.Context, entitlements []e
 }
 
 func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent entitlement.Entitlement) error {
-	subject, err := r.getSubjectByKey(ctx, r.opts.Namespace, ent.SubjectKey)
+	subject, err := r.getSubjectByKey(ctx, ent.Namespace, ent.SubjectKey)
 	if err != nil {
 		return err
 	}
@@ -185,7 +184,7 @@ func (r *Recalculator) sendEntitlementDeletedEvent(ctx context.Context, ent enti
 }
 
 func (r *Recalculator) sendEntitlementUpdatedEvent(ctx context.Context, ent entitlement.Entitlement) error {
-	subject, err := r.getSubjectByKey(ctx, r.opts.Namespace, ent.SubjectKey)
+	subject, err := r.getSubjectByKey(ctx, ent.Namespace, ent.SubjectKey)
 	if err != nil {
 		return err
 	}
