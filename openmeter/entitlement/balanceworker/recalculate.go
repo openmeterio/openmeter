@@ -132,7 +132,7 @@ func (r *Recalculator) processEntitlements(ctx context.Context, entitlements []e
 		if ent.DeletedAt != nil {
 			err := r.sendEntitlementDeletedEvent(ctx, ent)
 			if err != nil {
-				errs = errors.Join(errs, err)
+				errs = errors.Join(errs, fmt.Errorf("error recalculating deleted event entitlement %s: %w", ent.ID, err))
 			}
 
 			r.metricRecalculationTime.Record(ctx,
@@ -141,7 +141,7 @@ func (r *Recalculator) processEntitlements(ctx context.Context, entitlements []e
 		} else {
 			err := r.sendEntitlementUpdatedEvent(ctx, ent)
 			if err != nil {
-				errs = errors.Join(errs, err)
+				errs = errors.Join(errs, fmt.Errorf("error recalculating updated event for entitlement %s: %w", ent.ID, err))
 			}
 
 			r.metricRecalculationTime.Record(ctx,
