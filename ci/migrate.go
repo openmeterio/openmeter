@@ -18,9 +18,7 @@ type Migrate struct {
 	Source *dagger.Directory
 }
 
-func (m *Migrate) Check(
-	ctx context.Context,
-) error {
+func (m *Migrate) Check(ctx context.Context) error {
 	app := goModuleCross("").
 		WithSource(m.Source).
 		Container().
