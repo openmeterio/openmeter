@@ -8,6 +8,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	lru "github.com/hashicorp/golang-lru/v2"
+	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
@@ -85,7 +86,11 @@ func New(opts WorkerOptions) (*Worker, error) {
 
 	worker.router = router
 
-	eventHandler := worker.eventHandler()
+	eventHandler, err := worker.eventHandler(opts.Router.MetricMeter)
+	if err != nil {
+		return nil, err
+	}
+
 	router.AddNoPublisherHandler(
 		"balance_worker_system_events",
 		opts.SystemEventsTopic,
@@ -105,9 +110,10 @@ func New(opts WorkerOptions) (*Worker, error) {
 	return worker, nil
 }
 
-func (w *Worker) eventHandler() message.NoPublishHandlerFunc {
+func (w *Worker) eventHandler(metricMeter metric.Meter) (message.NoPublishHandlerFunc, error) {
 	return grouphandler.NewNoPublishingHandler(
 		w.opts.EventBus.Marshaler(),
+		metricMeter,
 
 		// Entitlement created event
 		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *entitlement.EntitlementCreatedEvent) error {
