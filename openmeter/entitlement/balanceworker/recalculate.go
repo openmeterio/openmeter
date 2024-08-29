@@ -29,7 +29,7 @@ const (
 
 	defaultLRUCacheSize = 10_000
 
-	metricNameRecalculationTime = "balance_worker_entitlement_recalculation_time_ms"
+	metricNameRecalculationTime = "balance_worker.entitlement_recalculation_time_ms"
 )
 
 var (

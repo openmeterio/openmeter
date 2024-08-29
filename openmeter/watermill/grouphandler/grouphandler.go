@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	meterNameHandlerMessageCount   = "grouphandler_message_count"
-	meterNameHandlerProcessingTime = "grouphandler_processing_time_ms"
+	meterNameHandlerMessageCount   = "watermill.grouphandler.message_count"
+	meterNameHandlerProcessingTime = "watermill.grouphandler.processing_time_ms"
 )
 
 var (

@@ -15,8 +15,8 @@ import (
 const (
 	unkonwnEventType = "UNKNOWN"
 
-	messageHandlerProcessingTimeMetricName = "message_handler_processing_time_ms"
-	messageHandlerMessageCountMetricName   = "message_handler_message_count"
+	messageHandlerProcessingTimeMetricName = "watermill.router.message_handler.processing_time_ms"
+	messageHandlerMessageCountMetricName   = "watermill.router.message_handler.message_count"
 )
 
 var (
@@ -78,8 +78,8 @@ func HandlerMetrics(metricMeter metric.Meter, prefix string, log *slog.Logger) (
 }
 
 const (
-	messageProcessingCountMetricName = "message_processing_count"
-	messageProcessingTimeMetricName  = "message_processing_time_ms"
+	messageProcessingCountMetricName = "watermill.router.message_processing_count"
+	messageProcessingTimeMetricName  = "watermill.router.message_processing_time_ms"
 )
 
 func DLQMetrics(metricMeter metric.Meter, prefix string, log *slog.Logger) (func(message.HandlerFunc) message.HandlerFunc, error) {
