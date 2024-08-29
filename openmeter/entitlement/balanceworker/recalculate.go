@@ -33,10 +33,6 @@ const (
 )
 
 var (
-	// metricRecalculationBuckets are the default buckets for the recalculation time histogram. It is geared towards
-	// representing smaller values.
-	metricRecalculationBuckets = []float64{0.001, 0.005, 0.01, 0.02, 0.05, 0.075, 0.1, 0.2, 0.5, 1, 5, 10, 30, 60}
-
 	recalculationTimeUpdateAttribute = attribute.String("operation", "update")
 	recalculationTimeDeleteAttribute = attribute.String("operation", "delete")
 )
@@ -91,7 +87,6 @@ func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
 	metricRecalculationTime, err := opts.MetricMeter.Int64Histogram(
 		metricNameRecalculationTime,
 		metric.WithDescription("Entitlement recalculation time"),
-		metric.WithExplicitBucketBoundaries(metricRecalculationBuckets...),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create recalculation time histogram: %w", err)
