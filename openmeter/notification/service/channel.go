@@ -178,6 +178,22 @@ func (s Service) UpdateChannel(ctx context.Context, params notification.UpdateCh
 	}
 
 	txFunc := func(ctx context.Context, repo notification.TxRepository) (*notification.Channel, error) {
+		// Fetch rules assigned to channel as we need to make sure that we do not remove rule assignments
+		// from channel during update.
+		rules, err := s.repo.ListRules(ctx, notification.ListRulesInput{
+			Namespaces:      []string{params.Namespace},
+			IncludeDisabled: true,
+			Channels:        []string{params.ID},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to list rules for channel: %w", err)
+		}
+
+		ruleIDs := make([]string, 0, len(rules.Items))
+		for _, rule := range rules.Items {
+			ruleIDs = append(ruleIDs, rule.ID)
+		}
+
 		channel, err = repo.UpdateChannel(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create channel: %w", err)
@@ -204,6 +220,7 @@ func (s Service) UpdateChannel(ctx context.Context, params notification.UpdateCh
 					ChannelIDMetadataKey: channel.ID,
 				},
 				Description: convert.ToPointer("Notification Channel: " + channel.ID),
+				Channels:    ruleIDs,
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to update webhook for channel: %w", err)
