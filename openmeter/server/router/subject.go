@@ -32,6 +32,13 @@ func (a *Router) ListSubjects(w http.ResponseWriter, r *http.Request) {
 	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w)
 }
 
+func (a *Router) ListSubjectsV2(w http.ResponseWriter, r *http.Request) {
+	ctx := contextx.WithAttr(r.Context(), "operation", "listSubjectsV2")
+	err := fmt.Errorf("not implemented: subjects are only available in OpenMeter Cloud")
+
+	models.NewStatusProblem(ctx, err, http.StatusNotImplemented).Respond(w)
+}
+
 func (a *Router) DeleteSubject(w http.ResponseWriter, r *http.Request, idOrKey string) {
 	ctx := contextx.WithAttr(r.Context(), "operation", "deleteSubject")
 	ctx = contextx.WithAttr(ctx, "id", idOrKey)
