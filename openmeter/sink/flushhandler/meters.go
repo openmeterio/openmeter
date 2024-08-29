@@ -10,7 +10,7 @@ type metrics struct {
 	eventsReceived      metric.Int64Counter
 	eventsProcessed     metric.Int64Counter
 	eventsFailed        metric.Int64Counter
-	eventProcessingTime metric.Float64Histogram
+	eventProcessingTime metric.Int64Histogram
 	eventChannelFull    metric.Int64Counter
 }
 
@@ -35,7 +35,7 @@ func newMetrics(handlerName string, meter metric.Meter) (*metrics, error) {
 		return nil, err
 	}
 
-	if r.eventProcessingTime, err = meter.Float64Histogram(fmt.Sprintf("sink.flush_handler.%s.event_processing_time", handlerName)); err != nil {
+	if r.eventProcessingTime, err = meter.Int64Histogram(fmt.Sprintf("sink.flush_handler.%s.event_processing_time_ms", handlerName)); err != nil {
 		return nil, err
 	}
 

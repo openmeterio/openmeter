@@ -50,19 +50,24 @@ func New(opts Options) (*Consumer, error) {
 		balanceThresholdHandler: balanceThresholdEventHandler,
 	}
 
+	handler, err := grouphandler.NewNoPublishingHandler(opts.Marshaler, opts.Router.MetricMeter,
+		grouphandler.NewGroupEventHandler(func(ctx context.Context, event *snapshot.SnapshotEvent) error {
+			if event == nil {
+				return nil
+			}
+
+			return consumer.balanceThresholdHandler.Handle(ctx, *event)
+		}),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	_ = router.AddNoPublisherHandler(
 		"balance_consumer_system_events",
 		opts.SystemEventsTopic,
 		opts.Router.Subscriber,
-		grouphandler.NewNoPublishingHandler(opts.Marshaler,
-			grouphandler.NewGroupEventHandler(func(ctx context.Context, event *snapshot.SnapshotEvent) error {
-				if event == nil {
-					return nil
-				}
-
-				return consumer.balanceThresholdHandler.Handle(ctx, *event)
-			}),
-		),
+		handler,
 	)
 
 	return consumer, nil

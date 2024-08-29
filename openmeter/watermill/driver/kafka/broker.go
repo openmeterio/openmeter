@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	defaultMeterPrefix = "sarama.publisher."
+	defaultMeterPrefix = "sarama."
 	defaultKeepalive   = time.Minute
 )
 

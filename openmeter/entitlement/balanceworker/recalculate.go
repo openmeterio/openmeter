@@ -29,7 +29,7 @@ const (
 
 	defaultLRUCacheSize = 10_000
 
-	metricNameRecalculationTime = "balance_worker_entitlement_recalculation_time"
+	metricNameRecalculationTime = "balance_worker.entitlement_recalculation_time_ms"
 )
 
 var (
@@ -70,7 +70,7 @@ type Recalculator struct {
 	featureCache *lru.Cache[string, productcatalog.Feature]
 	subjectCache *lru.Cache[string, models.Subject]
 
-	metricRecalculationTime metric.Float64Histogram
+	metricRecalculationTime metric.Int64Histogram
 }
 
 func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
@@ -88,7 +88,7 @@ func NewRecalculator(opts RecalculatorOptions) (*Recalculator, error) {
 		return nil, fmt.Errorf("failed to create subject ID cache: %w", err)
 	}
 
-	metricRecalculationTime, err := opts.MetricMeter.Float64Histogram(
+	metricRecalculationTime, err := opts.MetricMeter.Int64Histogram(
 		metricNameRecalculationTime,
 		metric.WithDescription("Entitlement recalculation time"),
 		metric.WithExplicitBucketBoundaries(metricRecalculationBuckets...),
@@ -135,7 +135,7 @@ func (r *Recalculator) processEntitlements(ctx context.Context, entitlements []e
 			}
 
 			r.metricRecalculationTime.Record(ctx,
-				time.Since(start).Seconds(),
+				time.Since(start).Milliseconds(),
 				metric.WithAttributes(recalculationTimeDeleteAttribute))
 		} else {
 			err := r.sendEntitlementUpdatedEvent(ctx, ent)
@@ -144,7 +144,7 @@ func (r *Recalculator) processEntitlements(ctx context.Context, entitlements []e
 			}
 
 			r.metricRecalculationTime.Record(ctx,
-				time.Since(start).Seconds(),
+				time.Since(start).Milliseconds(),
 				metric.WithAttributes(recalculationTimeUpdateAttribute))
 		}
 	}

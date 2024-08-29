@@ -15,13 +15,17 @@ import (
 const (
 	unkonwnEventType = "UNKNOWN"
 
-	messageHandlerProcessingTimeMetricName = "message_handler_processing_time_seconds"
-	messageHandlerSuccessCountMetricName   = "message_handler_success_count"
-	messageHandlerErrorCountMetricName     = "message_handler_error_count"
+	messageHandlerProcessingTimeMetricName = "watermill.router.message_handler.processing_time_ms"
+	messageHandlerMessageCountMetricName   = "watermill.router.message_handler.message_count"
+)
+
+var (
+	meterAttributeStatusFailed  = attribute.String("status", "failed")
+	meterAttributeStatusSuccess = attribute.String("status", "success")
 )
 
 func HandlerMetrics(metricMeter metric.Meter, prefix string, log *slog.Logger) (func(message.HandlerFunc) message.HandlerFunc, error) {
-	messageProcessingTime, err := metricMeter.Float64Histogram(
+	meterMessageProcessingTime, err := metricMeter.Int64Histogram(
 		fmt.Sprintf("%s.%s", prefix, messageHandlerProcessingTimeMetricName),
 		metric.WithDescription("Time spent by the handler processing a message"),
 	)
@@ -29,17 +33,9 @@ func HandlerMetrics(metricMeter metric.Meter, prefix string, log *slog.Logger) (
 		return nil, err
 	}
 
-	messageProcessed, err := metricMeter.Int64Counter(
-		fmt.Sprintf("%s.%s", prefix, messageHandlerSuccessCountMetricName),
+	meterMessageCount, err := metricMeter.Int64Counter(
+		fmt.Sprintf("%s.%s", prefix, messageHandlerMessageCountMetricName),
 		metric.WithDescription("Number of messages processed by the handler"),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	messageProcessingError, err := metricMeter.Int64Counter(
-		fmt.Sprintf("%s.%s", prefix, messageHandlerErrorCountMetricName),
-		metric.WithDescription("Number of messages that failed to process by the handler"),
 	)
 	if err != nil {
 		return nil, err
@@ -49,24 +45,32 @@ func HandlerMetrics(metricMeter metric.Meter, prefix string, log *slog.Logger) (
 		return func(msg *message.Message) ([]*message.Message, error) {
 			start := time.Now()
 
-			attrSet := metricAttributesFromMessage(msg)
+			meterAttributeType := metricAttributeTypeFromMessage(msg)
 
 			resMsg, err := h(msg)
 			if err != nil {
 				// This should be warning, as it might happen that the kafka message is produced later than the
 				// database commit happens.
 				log.Warn("Message handler failed, will retry later", "error", err, "message_metadata", msg.Metadata, "message_payload", string(msg.Payload))
-				messageProcessingError.Add(msg.Context(), 1, metric.WithAttributeSet(
-					attrSet,
+				meterMessageCount.Add(msg.Context(), 1, metric.WithAttributes(
+					meterAttributeType,
+					meterAttributeStatusFailed,
+				))
+
+				meterMessageProcessingTime.Record(msg.Context(), time.Since(start).Milliseconds(), metric.WithAttributes(
+					meterAttributeType,
+					meterAttributeStatusFailed,
 				))
 				return resMsg, err
 			}
 
-			messageProcessingTime.Record(msg.Context(), time.Since(start).Seconds(), metric.WithAttributeSet(
-				attrSet,
+			meterMessageProcessingTime.Record(msg.Context(), time.Since(start).Milliseconds(), metric.WithAttributes(
+				meterAttributeType,
+				meterAttributeStatusSuccess,
 			))
-			messageProcessed.Add(msg.Context(), 1, metric.WithAttributeSet(
-				attrSet,
+			meterMessageCount.Add(msg.Context(), 1, metric.WithAttributes(
+				meterAttributeType,
+				meterAttributeStatusSuccess,
 			))
 			return resMsg, nil
 		}
@@ -74,22 +78,22 @@ func HandlerMetrics(metricMeter metric.Meter, prefix string, log *slog.Logger) (
 }
 
 const (
-	messageProcessingErrorCountMetricName   = "message_processing_error_count"
-	messageProcessingSuccessCountMetricName = "message_processing_success_count"
+	messageProcessingCountMetricName = "watermill.router.message_processing_count"
+	messageProcessingTimeMetricName  = "watermill.router.message_processing_time_ms"
 )
 
 func DLQMetrics(metricMeter metric.Meter, prefix string, log *slog.Logger) (func(message.HandlerFunc) message.HandlerFunc, error) {
-	messageProcessingErrorCount, err := metricMeter.Int64Counter(
-		fmt.Sprintf("%s.%s", prefix, messageProcessingErrorCountMetricName),
-		metric.WithDescription("Number of messages that failed to process"),
+	meterMessageProcessingCount, err := metricMeter.Int64Counter(
+		fmt.Sprintf("%s.%s", prefix, messageProcessingCountMetricName),
+		metric.WithDescription("Number of messages processed"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	messageProcessingSuccessCount, err := metricMeter.Int64Counter(
-		fmt.Sprintf("%s.%s", prefix, messageProcessingSuccessCountMetricName),
-		metric.WithDescription("Number of messages that were successfully processed"),
+	meterMessageProcessingTime, err := metricMeter.Int64Histogram(
+		fmt.Sprintf("%s.%s", prefix, messageProcessingTimeMetricName),
+		metric.WithDescription("Time spent processing a message (including retries)"),
 	)
 	if err != nil {
 		return nil, err
@@ -97,19 +101,33 @@ func DLQMetrics(metricMeter metric.Meter, prefix string, log *slog.Logger) (func
 
 	return func(h message.HandlerFunc) message.HandlerFunc {
 		return func(msg *message.Message) ([]*message.Message, error) {
-			attrSet := metricAttributesFromMessage(msg)
+			start := time.Now()
+
+			meterAttributeCEType := metricAttributeTypeFromMessage(msg)
 
 			resMsg, err := h(msg)
 			if err != nil {
 				log.Error("Failed to process message, message is going to DLQ", "error", err, "message_metadata", msg.Metadata, "message_payload", string(msg.Payload))
-				messageProcessingErrorCount.Add(msg.Context(), 1, metric.WithAttributeSet(
-					attrSet,
+
+				meterMessageProcessingCount.Add(msg.Context(), 1, metric.WithAttributes(
+					meterAttributeCEType,
+					meterAttributeStatusFailed,
 				))
+				meterMessageProcessingTime.Record(msg.Context(), time.Since(start).Milliseconds(), metric.WithAttributes(
+					meterAttributeCEType,
+					meterAttributeStatusFailed,
+				))
+
 				return resMsg, err
 			}
 
-			messageProcessingSuccessCount.Add(msg.Context(), 1, metric.WithAttributeSet(
-				attrSet,
+			meterMessageProcessingCount.Add(msg.Context(), 1, metric.WithAttributes(
+				meterAttributeCEType,
+				meterAttributeStatusSuccess,
+			))
+			meterMessageProcessingTime.Record(msg.Context(), time.Since(start).Milliseconds(), metric.WithAttributes(
+				meterAttributeCEType,
+				meterAttributeStatusSuccess,
 			))
 
 			return resMsg, nil
@@ -117,12 +135,11 @@ func DLQMetrics(metricMeter metric.Meter, prefix string, log *slog.Logger) (func
 	}, nil
 }
 
-func metricAttributesFromMessage(msg *message.Message) attribute.Set {
+func metricAttributeTypeFromMessage(msg *message.Message) attribute.KeyValue {
 	ce_type := msg.Metadata.Get(marshaler.CloudEventsHeaderType)
 	if ce_type == "" {
 		ce_type = unkonwnEventType
 	}
-	attrSet := attribute.NewSet(attribute.String("ce_type", ce_type))
 
-	return attrSet
+	return attribute.String("ce_type", ce_type)
 }
