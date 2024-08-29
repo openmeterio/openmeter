@@ -480,6 +480,7 @@ paths:
   # Subject
   /api/v1/subjects:
     get:
+      deprecated: true
       operationId: listSubjects
       summary: ☁ List subjects
       description: |
@@ -497,6 +498,39 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Subject"
+        "401":
+          $ref: "#/components/responses/UnauthorizedProblemResponse"
+        default:
+          $ref: "#/components/responses/UnexpectedProblemResponse"
+  /api/v2/subjects:
+    get:
+      operationId: listSubjectsV2
+      summary: ☁ List subjects
+      description: |
+        *Available in OpenMeter Cloud.*
+
+        List subjects.
+      tags:
+        - Subjects
+      parameters:
+        - $ref: "#/components/parameters/queryPage"
+        - $ref: "#/components/parameters/queryPageSize"
+      responses:
+        "200":
+          description: List of subjects.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginationInfo"
+                  - type: object
+                    required:
+                      - items
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Subject"
         "401":
           $ref: "#/components/responses/UnauthorizedProblemResponse"
         default:
@@ -2038,35 +2072,25 @@ components:
         - $ref: "#/components/schemas/FeatureCreateInputs"
         - $ref: "#/components/schemas/SharedMetaFields"
 
-    ListFeatureResponse:
-      oneOf:
-        - type: array
-          items:
-            $ref: "#/components/schemas/Feature"
+    ListFeaturePaginatedResponse:
+      allOf:
+        - $ref: "#/components/schemas/PaginationInfo"
         - type: object
           required:
-            - totalCount
-            - page
-            - pageSize
             - items
           properties:
-            totalCount:
-              type: integer
-              description: Total number of features.
-              example: 500
-            page:
-              type: integer
-              description: Current page number.
-              example: 1
-            pageSize:
-              type: integer
-              description: Number of features per page.
-              example: 100
             items:
               description: List of features.
               type: array
               items:
                 $ref: "#/components/schemas/Feature"
+
+    ListFeatureResponse:
+      oneOf:
+        - type: array
+          items:
+            $ref: "#/components/schemas/Feature"
+        - $ref: "#/components/schemas/ListFeaturePaginatedResponse"
 
     FeatureMeta:
       type: object
@@ -2306,35 +2330,24 @@ components:
           metered: "#/components/schemas/EntitlementMetered"
           static: "#/components/schemas/EntitlementStatic"
           boolean: "#/components/schemas/EntitlementBoolean"
-    ListEntitlementResponse:
-      oneOf:
-        - type: array
-          items:
-            $ref: "#/components/schemas/Entitlement"
+    ListEntitlementPaginatedResponse:
+      allOf:
+        - $ref: "#/components/schemas/PaginationInfo"
         - type: object
           required:
-            - totalCount
-            - page
-            - pageSize
             - items
           properties:
-            totalCount:
-              type: integer
-              description: Total number of entitlements.
-              example: 500
-            page:
-              type: integer
-              description: Current page number.
-              example: 1
-            pageSize:
-              type: integer
-              description: Number of entitlements per page.
-              example: 100
             items:
               description: List of entitlements.
               type: array
               items:
                 $ref: "#/components/schemas/Entitlement"
+    ListEntitlementResponse:
+      oneOf:
+        - type: array
+          items:
+            $ref: "#/components/schemas/Entitlement"
+        - $ref: "#/components/schemas/ListEntitlementPaginatedResponse"
     # Might be changed later
     GrantBurnDownHistorySegment:
       type: object
@@ -2623,35 +2636,24 @@ components:
               readOnly: true
             recurrence:
               $ref: "#/components/schemas/RecurringPeriod"
-    ListEntitlementGrantResponse:
-      oneOf:
-        - type: array
-          items:
-            $ref: "#/components/schemas/EntitlementGrant"
+    ListEntitlementGrantPaginatedResponse:
+      allOf:
+        - $ref: "#/components/schemas/PaginationInfo"
         - type: object
           required:
-            - totalCount
-            - page
-            - pageSize
             - items
           properties:
-            totalCount:
-              type: integer
-              description: Total number of grants.
-              example: 500
-            page:
-              type: integer
-              description: Current page number.
-              example: 1
-            pageSize:
-              type: integer
-              description: Number of grants per page.
-              example: 100
             items:
               description: List of grants.
               type: array
               items:
                 $ref: "#/components/schemas/EntitlementGrant"
+    ListEntitlementGrantResponse:
+      oneOf:
+        - type: array
+          items:
+            $ref: "#/components/schemas/EntitlementGrant"
+        - $ref: "#/components/schemas/ListEntitlementGrantPaginatedResponse"
     EntitlementValue:
       type: object
       required:
@@ -3033,27 +3035,14 @@ components:
         $ref: "#/components/schemas/NotificationChannel"
 
     NotificationChannelsResponse:
-      type: object
-      required:
-        - totalCount
-        - page
-        - pageSize
-        - items
-      properties:
-        totalCount:
-          type: integer
-          description: Total number of channels.
-          example: 500
-        page:
-          type: integer
-          description: Current page number.
-          example: 1
-        pageSize:
-          type: integer
-          description: Number of channels per page.
-          example: 100
-        items:
-          $ref: "#/components/schemas/NotificationChannels"
+      allOf:
+        - $ref: "#/components/schemas/PaginationInfo"
+        - type: object
+          required:
+            - items
+          properties:
+            items:
+              $ref: "#/components/schemas/NotificationChannels"
 
     NotificationChannelWebhookCreateRequest:
       allOf:
@@ -3214,27 +3203,14 @@ components:
         $ref: "#/components/schemas/NotificationRule"
 
     NotificationRulesResponse:
-      type: object
-      required:
-        - totalCount
-        - page
-        - pageSize
-        - items
-      properties:
-        totalCount:
-          type: integer
-          description: Total number of rules.
-          example: 500
-        page:
-          type: integer
-          description: Current page number.
-          example: 1
-        pageSize:
-          type: integer
-          description: Number of rules per page.
-          example: 100
-        items:
-          $ref: "#/components/schemas/NotificationRules"
+      allOf:
+        - $ref: "#/components/schemas/PaginationInfo"
+        - type: object
+          required:
+            - items
+          properties:
+            items:
+              $ref: "#/components/schemas/NotificationRules"
 
     NotificationRuleBalanceThresholdCreateRequest:
       description: |
@@ -3557,27 +3533,14 @@ components:
         $ref: "#/components/schemas/NotificationEvent"
 
     NotificationEventsResponse:
-      type: object
-      required:
-        - totalCount
-        - page
-        - pageSize
-        - items
-      properties:
-        totalCount:
-          type: integer
-          description: Total number of rules.
-          example: 500
-        page:
-          type: integer
-          description: Current page number.
-          example: 1
-        pageSize:
-          type: integer
-          description: Number of rules per page.
-          example: 100
-        items:
-          $ref: "#/components/schemas/NotificationEvents"
+      allOf:
+        - $ref: "#/components/schemas/PaginationInfo"
+        - type: object
+          required:
+            - items
+          properties:
+            items:
+              $ref: "#/components/schemas/NotificationEvents"
 
     SvixOperationalWebhookRequest:
       type: object
@@ -3598,6 +3561,27 @@ components:
         data:
           type: object
           additionalProperties: true
+
+    PaginationInfo:
+      description: Pagination information.
+      type: object
+      required:
+        - totalCount
+        - page
+        - pageSize
+      properties:
+        totalCount:
+          type: integer
+          description: Total number of items.
+          example: 500
+        page:
+          type: integer
+          description: Current page number.
+          example: 1
+        pageSize:
+          type: integer
+          description: Number of items per page.
+          example: 100
 
   parameters:
     meterIdOrSlug:
