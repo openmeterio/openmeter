@@ -291,10 +291,12 @@ func TestTransaction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// create isolated pg db for tests
 			driver := testutils.InitPostgresDB(t)
+			defer driver.PGDriver.Close()
+			defer driver.EntDriver.Close()
 
 			// build db clients
-			db1Client := db1.NewClient(db1.Driver(driver))
-			db2Client := db2.NewClient(db2.Driver(driver))
+			db1Client := db1.NewClient(db1.Driver(driver.EntDriver.Driver()))
+			db2Client := db2.NewClient(db2.Driver(driver.EntDriver.Driver()))
 
 			if err := db1Client.Schema.Create(context.Background()); err != nil {
 				t.Fatalf("failed to migrate database %s", err)

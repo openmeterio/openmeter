@@ -1,7 +1,6 @@
 package meteredentitlement_test
 
 import (
-	"context"
 	"sync"
 	"testing"
 	"time"
@@ -22,11 +21,16 @@ import (
 	streaming_testutils "github.com/openmeterio/openmeter/openmeter/streaming/testutils"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
+	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
+	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 type dependencies struct {
 	dbClient            *db.Client
+	pgDriver            *pgdriver.Driver
+	entDriver           *entdriver.EntPostgresDriver
 	featureRepo         productcatalog.FeatureRepo
 	entitlementRepo     entitlement.EntitlementRepo
 	usageResetRepo      meteredentitlement.UsageResetRepo
@@ -39,6 +43,8 @@ type dependencies struct {
 // Teardown cleans up the dependencies
 func (d *dependencies) Teardown() {
 	d.dbClient.Close()
+	d.entDriver.Close()
+	d.pgDriver.Close()
 }
 
 // When migrating in parallel with entgo it causes concurrent writes error
@@ -57,10 +63,10 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	}})
 
 	// create isolated pg db for tests
-	driver := testutils.InitPostgresDB(t)
-
-	// build db client & adapters
-	dbClient := db.NewClient(db.Driver(driver))
+	testdb := testutils.InitPostgresDB(t)
+	dbClient := testdb.EntDriver.Client()
+	pgDriver := testdb.PGDriver
+	entDriver := testdb.EntDriver
 
 	featureRepo := productcatalog_postgresadapter.NewPostgresFeatureRepo(dbClient, testLogger)
 	entitlementRepo := entitlement_postgresadapter.NewPostgresEntitlementRepo(dbClient)
@@ -71,8 +77,8 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	m.Lock()
 	defer m.Unlock()
 	// migrate db
-	if err := dbClient.Schema.Create(context.Background()); err != nil {
-		t.Fatalf("failed to migrate database %s", err)
+	if err := migrate.Up(testdb.URL); err != nil {
+		t.Fatalf("failed to migrate db: %s", err.Error())
 	}
 
 	mockPublisher := eventbus.NewMock(t)
@@ -108,6 +114,8 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 
 	return connector, &dependencies{
 		dbClient,
+		pgDriver,
+		entDriver,
 		featureRepo,
 		entitlementRepo,
 		usageResetRepo,

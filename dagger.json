@@ -43,6 +43,10 @@
       "source": "github.com/sagikazarmark/daggerverse/kafka@00deb5158b5d3a71dae8926fd8a4119ac2f45cca"
     },
     {
+      "name": "nix",
+      "source": "github.com/tsirysndr/daggerverse/nix@631932b459d218e641dec8047085f0cc87cf5f1c"
+    },
+    {
       "name": "python",
       "source": "github.com/sagikazarmark/daggerverse/python@00deb5158b5d3a71dae8926fd8a4119ac2f45cca"
     },

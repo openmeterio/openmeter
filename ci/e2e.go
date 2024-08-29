@@ -29,7 +29,7 @@ func (m *Ci) Etoe(
 		WithExec([]string{"openmeter-sink-worker", "--config", "/etc/openmeter/config.yaml"}).
 		AsService()
 
-	args := []string{"go", "test", "-count=1", "-v"}
+	args := []string{"go", "test", "-tags", "musl", "-count=1", "-v"}
 
 	if test != "" {
 		args = append(args, "-run", fmt.Sprintf("Test%s", test))
@@ -37,7 +37,7 @@ func (m *Ci) Etoe(
 
 	args = append(args, "./e2e/...")
 
-	return goModule().
+	return goModuleCross("").
 		WithModuleCache(cacheVolume("go-mod-e2e")).
 		WithBuildCache(cacheVolume("go-build-e2e")).
 		WithSource(m.Source).
@@ -67,14 +67,22 @@ func redis() *dagger.Service {
 		AsService()
 }
 
-func postgres() *dagger.Service {
+func pg() *dagger.Container {
 	return dag.Container().
 		From(fmt.Sprintf("postgres:%s", postgresVersion)).
 		WithEnvVariable("POSTGRES_USER", "postgres").
 		WithEnvVariable("POSTGRES_PASSWORD", "postgres").
 		WithEnvVariable("POSTGRES_DB", "postgres").
-		WithExposedPort(5432).
-		AsService()
+		WithExposedPort(5432)
+}
+
+func postgres() *dagger.Service {
+	return pg().AsService()
+}
+
+// Creates a postgres service unique by name
+func postgresNamed(name string) *dagger.Service {
+	return pg().WithLabel("uniq-name", name).AsService()
 }
 
 const (

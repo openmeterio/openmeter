@@ -33,13 +33,14 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/entitlement/balanceworker"
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	registrybuilder "github.com/openmeterio/openmeter/openmeter/registry/builder"
+	"github.com/openmeterio/openmeter/openmeter/registry/startup"
 	"github.com/openmeterio/openmeter/openmeter/streaming/clickhouse_connector"
 	"github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	watermillkafka "github.com/openmeterio/openmeter/openmeter/watermill/driver/kafka"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/openmeter/watermill/router"
 	"github.com/openmeterio/openmeter/pkg/contextx"
-	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/driver"
+	entdriver "github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/operation"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 	"github.com/openmeterio/openmeter/pkg/gosundheit"
@@ -238,10 +239,8 @@ func main() {
 
 	entClient := entPostgresDriver.Client()
 
-	// Run database schema creation
-	err = entClient.Schema.Create(ctx)
-	if err != nil {
-		logger.Error("failed to create database schema", "error", err)
+	if err := startup.DB(ctx, conf.Postgres, entClient); err != nil {
+		logger.Error("failed to initialize database", "error", err)
 		os.Exit(1)
 	}
 
