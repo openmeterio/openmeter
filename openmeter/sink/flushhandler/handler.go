@@ -146,7 +146,7 @@ func (f *flushEventHandler) invokeCallback(ctx context.Context, events []models.
 		return err
 	}
 
-	f.metrics.eventProcessingTime.Record(ctx, time.Since(startTime).Seconds())
+	f.metrics.eventProcessingTime.Record(ctx, time.Since(startTime).Milliseconds())
 	f.metrics.eventsProcessed.Add(ctx, 1)
 
 	return nil

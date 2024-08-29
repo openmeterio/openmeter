@@ -15,13 +15,13 @@ import (
 const (
 	unkonwnEventType = "UNKNOWN"
 
-	messageHandlerProcessingTimeMetricName = "message_handler_processing_time_seconds"
+	messageHandlerProcessingTimeMetricName = "message_handler_processing_time_ms"
 	messageHandlerSuccessCountMetricName   = "message_handler_success_count"
 	messageHandlerErrorCountMetricName     = "message_handler_error_count"
 )
 
 func HandlerMetrics(metricMeter metric.Meter, prefix string, log *slog.Logger) (func(message.HandlerFunc) message.HandlerFunc, error) {
-	messageProcessingTime, err := metricMeter.Float64Histogram(
+	messageProcessingTime, err := metricMeter.Int64Histogram(
 		fmt.Sprintf("%s.%s", prefix, messageHandlerProcessingTimeMetricName),
 		metric.WithDescription("Time spent by the handler processing a message"),
 	)
@@ -62,7 +62,7 @@ func HandlerMetrics(metricMeter metric.Meter, prefix string, log *slog.Logger) (
 				return resMsg, err
 			}
 
-			messageProcessingTime.Record(msg.Context(), time.Since(start).Seconds(), metric.WithAttributeSet(
+			messageProcessingTime.Record(msg.Context(), time.Since(start).Milliseconds(), metric.WithAttributeSet(
 				attrSet,
 			))
 			messageProcessed.Add(msg.Context(), 1, metric.WithAttributeSet(
