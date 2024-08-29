@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
+
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
 	"github.com/openmeterio/openmeter/openmeter/entitlement/snapshot"
@@ -83,10 +86,16 @@ func (w *Worker) createSnapshotEvent(ctx context.Context, entitlementEntity *ent
 		return nil, fmt.Errorf("failed to get feature: %w", err)
 	}
 
+	calculationStart := time.Now()
+
 	value, err := w.entitlement.Entitlement.GetEntitlementValue(ctx, entitlementEntity.Namespace, entitlementEntity.SubjectKey, entitlementEntity.ID, calculatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get entitlement value: %w", err)
 	}
+
+	w.metricRecalculationTime.Record(ctx, time.Since(calculationStart).Milliseconds(), metric.WithAttributes(
+		attribute.String(metricAttributeKeyEntitltementType, string(entitlementEntity.EntitlementType)),
+	))
 
 	mappedValues, err := entitlementdriver.MapEntitlementValueToAPI(value)
 	if err != nil {
