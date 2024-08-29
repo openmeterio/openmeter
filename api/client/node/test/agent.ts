@@ -303,6 +303,49 @@ client
 
 client
   .intercept({
+    path: '/api/v2/subjects',
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  .reply(200, {
+    totalCount: 1,
+    page: 1,
+    pageSize: 10,
+    items: [mockSubject]
+  }, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+client
+  .intercept({
+    path: '/api/v2/subjects',
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+    query: {
+      page: 1,
+      pageSize: 10,
+      search: 'acme',
+    },
+  })
+  .reply(200, {
+    totalCount: 1,
+    page: 1,
+    pageSize: 10,
+    items: [mockSubject]
+  }, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+client
+  .intercept({
     path: `/api/v1/subjects/${mockSubject.key}`,
     method: 'GET',
     headers: {

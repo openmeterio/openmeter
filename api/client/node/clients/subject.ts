@@ -60,12 +60,37 @@ export class SubjectClient extends BaseClient {
   /**
    * List subjects
    * @note OpenMeter Cloud only feature
+   * @deprecated Use listV2
    */
   public async list(options?: RequestOptions): Promise<Subject[]> {
     return await this.request({
       path: '/api/v1/subjects',
       method: 'GET',
       options,
+    })
+  }
+
+  /**
+   * List subjects
+   * @note OpenMeter Cloud only feature
+   */
+  public async listV2(
+    params?: {
+      search?: string,
+      page?: number,
+      pageSize?: number,
+    },
+    options?: RequestOptions
+  ): Promise<Subject[]> {
+    const searchParams = params
+      ? BaseClient.toURLSearchParams(params)
+      : undefined
+
+    return await this.request({
+      path: '/api/v2/subjects',
+      method: 'GET',
+      options,
+      searchParams,
     })
   }
 

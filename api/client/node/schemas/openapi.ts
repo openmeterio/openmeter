@@ -3,17 +3,6 @@
  * Do not make direct changes to the file.
  */
 
-/** OneOf type helpers */
-type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never }
-type XOR<T, U> = T | U extends object
-  ? (Without<T, U> & U) | (Without<U, T> & T)
-  : T | U
-type OneOf<T extends any[]> = T extends [infer Only]
-  ? Only
-  : T extends [infer A, infer B, ...infer Rest]
-    ? OneOf<[XOR<A, B>, ...Rest]>
-    : never
-
 export interface paths {
   '/api/v1/events': {
     /**
@@ -96,11 +85,21 @@ export interface paths {
   '/api/v1/subjects': {
     /**
      * ☁ List subjects
+     * @deprecated
+     * @description *Available in OpenMeter Cloud.*
+     *
+     * List subjects. Deprecated in favor of /api/v2/subjects.
+     */
+    get: operations['listSubjects']
+  }
+  '/api/v2/subjects': {
+    /**
+     * ☁ List subjects
      * @description *Available in OpenMeter Cloud.*
      *
      * List subjects.
      */
-    get: operations['listSubjects']
+    get: operations['listSubjectsV2']
     /**
      * ☁ Upsert subject
      * @description *Available in OpenMeter Cloud.*
@@ -654,30 +653,13 @@ export interface components {
       archivedAt?: string
     } & components['schemas']['FeatureCreateInputs'] &
       components['schemas']['SharedMetaFields']
-    ListFeatureResponse: OneOf<
-      [
-        components['schemas']['Feature'][],
-        {
-          /**
-           * @description Total number of features.
-           * @example 500
-           */
-          totalCount: number
-          /**
-           * @description Current page number.
-           * @example 1
-           */
-          page: number
-          /**
-           * @description Number of features per page.
-           * @example 100
-           */
-          pageSize: number
-          /** @description List of features. */
-          items: components['schemas']['Feature'][]
-        },
-      ]
-    >
+    ListFeaturePaginatedResponse: components['schemas']['PaginationInfo'] & {
+      /** @description List of features. */
+      items: components['schemas']['Feature'][]
+    }
+    ListFeatureResponse:
+      | components['schemas']['Feature'][]
+      | components['schemas']['ListFeaturePaginatedResponse']
     /** @description Limited representation of a feature resource which includes only its unique identifiers (id, key). */
     FeatureMeta: {
       /**
@@ -845,30 +827,13 @@ export interface components {
       | components['schemas']['EntitlementMetered']
       | components['schemas']['EntitlementStatic']
       | components['schemas']['EntitlementBoolean']
-    ListEntitlementResponse: OneOf<
-      [
-        components['schemas']['Entitlement'][],
-        {
-          /**
-           * @description Total number of entitlements.
-           * @example 500
-           */
-          totalCount: number
-          /**
-           * @description Current page number.
-           * @example 1
-           */
-          page: number
-          /**
-           * @description Number of entitlements per page.
-           * @example 100
-           */
-          pageSize: number
-          /** @description List of entitlements. */
-          items: components['schemas']['Entitlement'][]
-        },
-      ]
-    >
+    ListEntitlementPaginatedResponse: components['schemas']['PaginationInfo'] & {
+      /** @description List of entitlements. */
+      items: components['schemas']['Entitlement'][]
+    }
+    ListEntitlementResponse:
+      | components['schemas']['Entitlement'][]
+      | components['schemas']['ListEntitlementPaginatedResponse']
     /**
      * @description A segment of the grant burn down history.
      *
@@ -1109,30 +1074,13 @@ export interface components {
         voidedAt?: string
         recurrence?: components['schemas']['RecurringPeriod']
       }
-    ListEntitlementGrantResponse: OneOf<
-      [
-        components['schemas']['EntitlementGrant'][],
-        {
-          /**
-           * @description Total number of grants.
-           * @example 500
-           */
-          totalCount: number
-          /**
-           * @description Current page number.
-           * @example 1
-           */
-          page: number
-          /**
-           * @description Number of grants per page.
-           * @example 100
-           */
-          pageSize: number
-          /** @description List of grants. */
-          items: components['schemas']['EntitlementGrant'][]
-        },
-      ]
-    >
+    ListEntitlementGrantPaginatedResponse: components['schemas']['PaginationInfo'] & {
+      /** @description List of grants. */
+      items: components['schemas']['EntitlementGrant'][]
+    }
+    ListEntitlementGrantResponse:
+      | components['schemas']['EntitlementGrant'][]
+      | components['schemas']['ListEntitlementGrantPaginatedResponse']
     EntitlementValue: {
       /**
        * @description Whether the subject has access to the feature. Shared accross all entitlement types.
@@ -1435,22 +1383,7 @@ export interface components {
     NotificationChannel: components['schemas']['NotificationChannelWebhook']
     /** @description List of channels. */
     NotificationChannels: components['schemas']['NotificationChannel'][]
-    NotificationChannelsResponse: {
-      /**
-       * @description Total number of channels.
-       * @example 500
-       */
-      totalCount: number
-      /**
-       * @description Current page number.
-       * @example 1
-       */
-      page: number
-      /**
-       * @description Number of channels per page.
-       * @example 100
-       */
-      pageSize: number
+    NotificationChannelsResponse: components['schemas']['PaginationInfo'] & {
       items: components['schemas']['NotificationChannels']
     }
     NotificationChannelWebhookCreateRequest: components['schemas']['NotificationChannelCommonCreateRequest'] & {
@@ -1568,22 +1501,7 @@ export interface components {
     NotificationRule: components['schemas']['NotificationRuleBalanceThreshold']
     /** @description List of rules. */
     NotificationRules: components['schemas']['NotificationRule'][]
-    NotificationRulesResponse: {
-      /**
-       * @description Total number of rules.
-       * @example 500
-       */
-      totalCount: number
-      /**
-       * @description Current page number.
-       * @example 1
-       */
-      page: number
-      /**
-       * @description Number of rules per page.
-       * @example 100
-       */
-      pageSize: number
+    NotificationRulesResponse: components['schemas']['PaginationInfo'] & {
       items: components['schemas']['NotificationRules']
     }
     /**
@@ -1797,22 +1715,7 @@ export interface components {
     }
     /** @description List of notification events. */
     NotificationEvents: components['schemas']['NotificationEvent'][]
-    NotificationEventsResponse: {
-      /**
-       * @description Total number of rules.
-       * @example 500
-       */
-      totalCount: number
-      /**
-       * @description Current page number.
-       * @example 1
-       */
-      page: number
-      /**
-       * @description Number of rules per page.
-       * @example 100
-       */
-      pageSize: number
+    NotificationEventsResponse: components['schemas']['PaginationInfo'] & {
       items: components['schemas']['NotificationEvents']
     }
     SvixOperationalWebhookRequest: {
@@ -1828,6 +1731,24 @@ export interface components {
       data: {
         [key: string]: unknown
       }
+    }
+    /** @description Pagination information. */
+    PaginationInfo: {
+      /**
+       * @description Total number of items.
+       * @example 500
+       */
+      totalCount: number
+      /**
+       * @description Current page number.
+       * @example 1
+       */
+      page: number
+      /**
+       * @description Number of items per page.
+       * @example 100
+       */
+      pageSize: number
     }
   }
   responses: {
@@ -2249,9 +2170,10 @@ export interface operations {
   }
   /**
    * ☁ List subjects
+   * @deprecated
    * @description *Available in OpenMeter Cloud.*
    *
-   * List subjects.
+   * List subjects. Deprecated in favor of /api/v2/subjects.
    */
   listSubjects: {
     responses: {
@@ -2259,6 +2181,34 @@ export interface operations {
       200: {
         content: {
           'application/json': components['schemas']['Subject'][]
+        }
+      }
+      401: components['responses']['UnauthorizedProblemResponse']
+      default: components['responses']['UnexpectedProblemResponse']
+    }
+  }
+  /**
+   * ☁ List subjects
+   * @description *Available in OpenMeter Cloud.*
+   *
+   * List subjects.
+   */
+  listSubjectsV2: {
+    parameters: {
+      query?: {
+        page?: components['parameters']['queryPage']
+        pageSize?: components['parameters']['queryPageSize']
+        /** @description Search for subjects by key or display name. */
+        search?: string
+      }
+    }
+    responses: {
+      /** @description List of subjects. */
+      200: {
+        content: {
+          'application/json': components['schemas']['PaginationInfo'] & {
+            items: components['schemas']['Subject'][]
+          }
         }
       }
       401: components['responses']['UnauthorizedProblemResponse']

@@ -179,6 +179,30 @@ describe('sdk', () => {
       expect(subjects).toEqual([mockSubject])
     })
 
+    it('should list subjects v2', async ({ openmeter }) => {
+      const data = await openmeter.subjects.listV2()
+      expect(data).toEqual({
+        totalCount: 1,
+        page: 1,
+        pageSize: 10,
+        items: [mockSubject]
+      })
+    })
+
+    it('should list subjects v2 with params', async ({ openmeter }) => {
+      const data = await openmeter.subjects.listV2({
+        page: 1,
+        pageSize: 10,
+        search: 'acme',
+      })
+      expect(data).toEqual({
+        totalCount: 1,
+        page: 1,
+        pageSize: 10,
+        items: [mockSubject]
+      })
+    })
+
     it('should get subject', async ({ openmeter }) => {
       const subjects = await openmeter.subjects.get(mockSubject.key)
       expect(subjects).toEqual(mockSubject)

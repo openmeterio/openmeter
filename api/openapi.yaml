@@ -486,7 +486,7 @@ paths:
       description: |
         *Available in OpenMeter Cloud.*
 
-        List subjects.
+        List subjects. Deprecated in favor of /api/v2/subjects.
       tags:
         - Subjects
       responses:
@@ -515,6 +515,11 @@ paths:
       parameters:
         - $ref: "#/components/parameters/queryPage"
         - $ref: "#/components/parameters/queryPageSize"
+        - in: query
+          name: search
+          description: Search for subjects by key or display name.
+          schema:
+            type: string
       responses:
         "200":
           description: List of subjects.
