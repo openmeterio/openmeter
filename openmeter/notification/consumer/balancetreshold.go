@@ -12,6 +12,7 @@ import (
 
 	"golang.org/x/exp/slices"
 
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/openmeterio/openmeter/api"
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	entitlementdriver "github.com/openmeterio/openmeter/openmeter/entitlement/driver"
@@ -26,16 +27,37 @@ import (
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
-type BalanceThresholdEventHandler struct {
+const (
+	defaultEventCacheSize = 50_000
+)
+
+type BalanceThresholdOptions struct {
 	Notification notification.Service
 	Logger       *slog.Logger
 }
 
-type BalanceThresholdEventHandlerState struct {
-	TotalGrants float64 `json:"totalGrants"`
+type BalanceThresholdEventHandler struct {
+	notification notification.Service
+	logger       *slog.Logger
+
+	lastEventCache *lru.Cache[string, *notification.Event]
 }
 
 var ErrNoBalanceAvailable = errors.New("no balance available")
+
+func NewBalanceThresholdEventHandler(opts BalanceThresholdOptions) (*BalanceThresholdEventHandler, error) {
+	lastEventCache, err := lru.New[string, *notification.Event](defaultEventCacheSize)
+	if err != nil {
+		return nil, err
+	}
+
+	return &BalanceThresholdEventHandler{
+		notification: opts.Notification,
+		logger:       opts.Logger.With("handler", "balance_threshold"),
+
+		lastEventCache: lastEventCache,
+	}, nil
+}
 
 func (b *BalanceThresholdEventHandler) Handle(ctx context.Context, event snapshot.SnapshotEvent) error {
 	if !b.isBalanceThresholdEvent(event) {
@@ -43,7 +65,7 @@ func (b *BalanceThresholdEventHandler) Handle(ctx context.Context, event snapsho
 	}
 
 	// TODO[issue-1364]: this must be cached to prevent going to the DB for each balance.snapshot event
-	affectedRulesPaged, err := b.Notification.ListRules(ctx, notification.ListRulesInput{
+	affectedRulesPaged, err := b.notification.ListRules(ctx, notification.ListRulesInput{
 		Namespaces: []string{event.Namespace.ID},
 		Types:      []notification.RuleType{notification.RuleTypeBalanceThreshold},
 	})
@@ -95,8 +117,62 @@ func (b *BalanceThresholdEventHandler) handleRule(ctx context.Context, balSnapsh
 
 	periodDedupeHash := b.getPeriodsDeduplicationHash(balSnapshot, rule.ID)
 
-	// TODO[issue-1364]: this must be cached to prevent going to the DB for each balance.snapshot event
-	lastEvents, err := b.Notification.ListEvents(ctx, notification.ListEventsInput{
+	lastEvent, err := b.getLastEvent(ctx, balSnapshot, periodDedupeHash)
+	if err != nil {
+		return fmt.Errorf("failed getting last events: %w", err)
+	}
+
+	createEventInput := createBalanceThresholdEventInput{
+		Snapshot:   balSnapshot,
+		DedupeHash: periodDedupeHash,
+		Threshold:  *threshold,
+		RuleID:     rule.ID,
+	}
+
+	if lastEvent == nil {
+		// we need to trigger the event, as we have hit a threshold, and have no previous event
+		return b.createEvent(ctx, createEventInput)
+	}
+
+	if lastEvent.Payload.Type != notification.EventTypeBalanceThreshold {
+		// This should never happen, but let's log it and trigger the event, so that we have a better reference point
+		// in place
+		b.logger.Error("last event is not a balance threshold event", slog.String("event_id", lastEvent.ID))
+		return b.createEvent(ctx, createEventInput)
+	}
+
+	lastEventActualValue, err := getBalanceThreshold(
+		lastEvent.Payload.BalanceThreshold.Threshold,
+		lastEvent.Payload.BalanceThreshold.Value)
+	if err != nil {
+		if err == ErrNoBalanceAvailable {
+			// In case there are no grants, percentage all percentage rules would match, so let's instead
+			// wait until we have some credits to calculate the actual value
+			b.logger.Warn("no balance available skipping event creation", "last_event_id", lastEvent.ID)
+			return nil
+		}
+		return fmt.Errorf("failed to calculate actual value from last event: %w", err)
+	}
+
+	// The cached item might be stale, let's refetch from the database
+
+	if lastEventActualValue.BalanceThreshold != *threshold {
+		// The last event was triggered by a different threshold, so we need to trigger a new event
+		return b.createEvent(ctx, createEventInput)
+	}
+
+	return nil
+}
+
+// getLastEvent gets the last event using a local cache if possible. The cache's consistency is ensured as:
+// - events do not change, thus
+func (b *BalanceThresholdEventHandler) getLastEvent(ctx context.Context, balSnapshot snapshot.SnapshotEvent, periodDedupeHash string) (*notification.Event, error) {
+	event, ok := b.lastEventCache.Get(periodDedupeHash)
+	if ok {
+		return event, nil
+	}
+
+	lastEvents, err := b.notification.ListEvents(ctx, notification.ListEventsInput{
 		Page: pagination.Page{
 			PageSize:   1,
 			PageNumber: 1,
@@ -111,49 +187,18 @@ func (b *BalanceThresholdEventHandler) handleRule(ctx context.Context, balSnapsh
 		Order:               sortx.OrderDesc,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to list events: %w", err)
-	}
-
-	createEventInput := createBalanceThresholdEventInput{
-		Snapshot:   balSnapshot,
-		DedupeHash: periodDedupeHash,
-		Threshold:  *threshold,
-		RuleID:     rule.ID,
+		return nil, fmt.Errorf("failed to list events: %w", err)
 	}
 
 	if len(lastEvents.Items) == 0 {
-		// we need to trigger the event, as we have hit a threshold, and have no previous event
-		return b.createEvent(ctx, createEventInput)
+		// TODO: negative cache is needed!
+		return nil, nil
 	}
 
 	lastEvent := lastEvents.Items[0]
 
-	if lastEvent.Payload.Type != notification.EventTypeBalanceThreshold {
-		// This should never happen, but let's log it and trigger the event, so that we have a better reference point
-		// in place
-		b.Logger.Error("last event is not a balance threshold event", slog.String("event_id", lastEvent.ID))
-		return b.createEvent(ctx, createEventInput)
-	}
-
-	lastEventActualValue, err := getBalanceThreshold(
-		lastEvent.Payload.BalanceThreshold.Threshold,
-		lastEvent.Payload.BalanceThreshold.Value)
-	if err != nil {
-		if err == ErrNoBalanceAvailable {
-			// In case there are no grants, percentage all percentage rules would match, so let's instead
-			// wait until we have some credits to calculate the actual value
-			b.Logger.Warn("no balance available skipping event creation", "last_event_id", lastEvent.ID)
-			return nil
-		}
-		return fmt.Errorf("failed to calculate actual value from last event: %w", err)
-	}
-
-	if lastEventActualValue.BalanceThreshold != *threshold {
-		// The last event was triggered by a different threshold, so we need to trigger a new event
-		return b.createEvent(ctx, createEventInput)
-	}
-
-	return nil
+	b.lastEventCache.Add(periodDedupeHash, &lastEvent)
+	return &lastEvent, nil
 }
 
 type createBalanceThresholdEventInput struct {
@@ -183,7 +228,7 @@ func (b *BalanceThresholdEventHandler) createEvent(ctx context.Context, in creat
 		annotations[notification.AnnotationEventFeatureID] = in.Snapshot.Feature.ID
 	}
 
-	_, err = b.Notification.CreateEvent(ctx, notification.CreateEventInput{
+	event, err := b.notification.CreateEvent(ctx, notification.CreateEventInput{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: in.Snapshot.Namespace.ID,
 		},
@@ -201,9 +246,13 @@ func (b *BalanceThresholdEventHandler) createEvent(ctx context.Context, in creat
 				Threshold:   in.Threshold,
 			},
 		},
-		RuleID:                   in.RuleID,
-		HandlerDeduplicationHash: in.DedupeHash,
+		RuleID: in.RuleID,
 	})
+	if err != nil {
+		return err
+	}
+
+	_ = b.lastEventCache.Add(in.DedupeHash, event)
 
 	return err
 }

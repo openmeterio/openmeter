@@ -36,8 +36,6 @@ type Event struct {
 	Payload EventPayload `json:"payload"`
 	// Rule defines the notification Rule that generated this Event.
 	Rule Rule `json:"rule"`
-	// DeduplicationHash is a hash that the handler can use to deduplicate events if needed
-	HandlerDeduplicationHash string `json:"-"`
 }
 
 func (e Event) AsNotificationEvent() (api.NotificationEvent, error) {
@@ -305,8 +303,6 @@ type CreateEventInput struct {
 	Payload EventPayload `json:"payload"`
 	// RuleID defines the notification Rule that generated this Event.
 	RuleID string `json:"ruleId"`
-	// HandlerDeduplicationHash is a hash that the handler can use to deduplicate events if needed
-	HandlerDeduplicationHash string `json:"handlerDeduplicationHash"`
 }
 
 func (i CreateEventInput) Validate(ctx context.Context, service Service) error {
