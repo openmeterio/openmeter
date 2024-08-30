@@ -1,3 +1,3 @@
 package entdb
 
-//go:generate go run -mod=mod entc.go
+//go:generate go run -mod=readonly entc.go
