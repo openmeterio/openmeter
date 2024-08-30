@@ -1,4 +1,4 @@
-package entutils_test
+package entpaginate_test
 
 import (
 	"context"
