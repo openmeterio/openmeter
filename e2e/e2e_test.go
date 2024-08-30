@@ -904,7 +904,7 @@ func TestCredit(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 		require.NotNil(t, resp.JSON200)
 		// should be a paginated response
-		resBody, err := resp.JSON200.AsListEntitlementResponse1()
+		resBody, err := resp.JSON200.AsListEntitlementPaginatedResponse()
 		require.NoError(t, err)
 
 		require.Equal(t, 1, resBody.Page)
@@ -923,7 +923,7 @@ func TestCredit(t *testing.T) {
 		require.Equal(t, http.StatusOK, resp.StatusCode())
 		require.NotNil(t, resp.JSON200)
 		// should be a paginated response
-		resBody, err = resp.JSON200.AsListEntitlementResponse1()
+		resBody, err = resp.JSON200.AsListEntitlementPaginatedResponse()
 		require.NoError(t, err)
 
 		require.Equal(t, 1, resBody.Page)
