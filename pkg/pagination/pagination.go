@@ -20,6 +20,31 @@ type Page struct {
 	PageNumber int `json:"page"`
 }
 
+// NewPage creates a new Page with the given pageNumber and pageSize.
+func NewPage(pageNumber int, pageSize int) Page {
+	return Page{
+		PageSize:   pageSize,
+		PageNumber: pageNumber,
+	}
+}
+
+// NewPageFromRef creates a new Page from pointers to pageNumber and pageSize.
+// Useful for handling query parameters.
+func NewPageFromRef(pageNumber *int, pageSize *int) Page {
+	pn := 0
+	ps := 0
+
+	if pageNumber != nil {
+		pn = *pageNumber
+	}
+
+	if pageSize != nil {
+		ps = *pageSize
+	}
+
+	return NewPage(pn, ps)
+}
+
 func (p Page) Offset() int {
 	return p.PageSize * (p.PageNumber - 1)
 }
@@ -48,6 +73,14 @@ type PagedResponse[T any] struct {
 	Page       Page `json:"-"`
 	TotalCount int  `json:"totalCount"`
 	Items      []T  `json:"items"`
+}
+
+func NewPagedResponseWith[OUT any, IN any](resp PagedResponse[IN], items []OUT) PagedResponse[OUT] {
+	return PagedResponse[OUT]{
+		Page:       resp.Page,
+		TotalCount: resp.TotalCount,
+		Items:      items,
+	}
 }
 
 // Implement json.Marshaler interface to flatten the Page struct
