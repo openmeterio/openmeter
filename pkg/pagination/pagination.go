@@ -75,12 +75,23 @@ type PagedResponse[T any] struct {
 	Items      []T  `json:"items"`
 }
 
-func NewPagedResponseWith[OUT any, IN any](resp PagedResponse[IN], items []OUT) PagedResponse[OUT] {
+// NewPagedResponse creates a new PagedResponse with the given page, totalCount and items.
+func NewPagedResponseWith[OUT any, IN any](resp PagedResponse[IN], m func(in IN) (OUT, error)) (PagedResponse[OUT], error) {
+	items := make([]OUT, 0, len(resp.Items))
+	for _, inItem := range resp.Items {
+		item, err := m(inItem)
+		if err != nil {
+			return PagedResponse[OUT]{}, err
+		}
+
+		items = append(items, item)
+	}
+
 	return PagedResponse[OUT]{
 		Page:       resp.Page,
 		TotalCount: resp.TotalCount,
 		Items:      items,
-	}
+	}, nil
 }
 
 // Implement json.Marshaler interface to flatten the Page struct
