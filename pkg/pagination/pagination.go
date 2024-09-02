@@ -75,19 +75,34 @@ type PagedResponse[T any] struct {
 	Items      []T  `json:"items"`
 }
 
-// NewPagedResponse creates a new PagedResponse with the given page, totalCount and items.
-func NewPagedResponseWith[OUT any, IN any](resp PagedResponse[IN], m func(in IN) (OUT, error)) (PagedResponse[OUT], error) {
-	items := make([]OUT, 0, len(resp.Items))
+// MapPagedResponse creates a new PagedResponse with the given page, totalCount and items.
+func MapPagedResponse[Out any, In any](resp PagedResponse[In], m func(in In) Out) PagedResponse[Out] {
+	items := make([]Out, 0, len(resp.Items))
+	for _, inItem := range resp.Items {
+		items = append(items, m(inItem))
+	}
+
+	return PagedResponse[Out]{
+		Page:       resp.Page,
+		TotalCount: resp.TotalCount,
+		Items:      items,
+	}
+}
+
+// MapPagedResponseError is similar to MapPagedResponse
+// but it allows the mapping function to return an error.
+func MapPagedResponseError[Out any, In any](resp PagedResponse[In], m func(in In) (Out, error)) (PagedResponse[Out], error) {
+	items := make([]Out, 0, len(resp.Items))
 	for _, inItem := range resp.Items {
 		item, err := m(inItem)
 		if err != nil {
-			return PagedResponse[OUT]{}, err
+			return PagedResponse[Out]{}, err
 		}
 
 		items = append(items, item)
 	}
 
-	return PagedResponse[OUT]{
+	return PagedResponse[Out]{
 		Page:       resp.Page,
 		TotalCount: resp.TotalCount,
 		Items:      items,
