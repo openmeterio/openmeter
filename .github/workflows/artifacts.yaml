@@ -77,7 +77,7 @@ jobs:
 
       - name: Build and push image
         id: build
-        uses: depot/build-push-action@e7743ee6585d261968c7ae0ef64977ee98c09d74 # v1.13.0
+        uses: depot/build-push-action@636daae76684e38c301daa0c5eca1c095b24e780 # v1.14.0
         with:
           context: .
           build-args: |
@@ -173,7 +173,7 @@ jobs:
 
       - name: Build and push image
         id: build
-        uses: depot/build-push-action@e7743ee6585d261968c7ae0ef64977ee98c09d74 # v1.13.0
+        uses: depot/build-push-action@636daae76684e38c301daa0c5eca1c095b24e780 # v1.14.0
         with:
           context: .
           file: benthos-collector.Dockerfile
