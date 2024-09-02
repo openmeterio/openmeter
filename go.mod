@@ -10,7 +10,7 @@ require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.28.0
 	github.com/IBM/sarama v1.43.3
 	github.com/ThreeDotsLabs/watermill v1.3.7
-	github.com/ThreeDotsLabs/watermill-kafka/v3 v3.0.1
+	github.com/ThreeDotsLabs/watermill-kafka/v3 v3.0.5
 	github.com/XSAM/otelsql v0.32.0
 	github.com/alpacahq/alpacadecimal v0.0.4
 	github.com/avast/retry-go/v4 v4.6.0
@@ -188,7 +188,7 @@ require (
 	github.com/dgraph-io/ristretto v0.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dlclark/regexp2 v1.11.0 // indirect
-	github.com/dnwe/otelsarama v0.0.0-20231212173111-631a0a53d5d4 // indirect
+	github.com/dnwe/otelsarama v0.0.0-20240308230250-9388d9d40bc0 // indirect
 	github.com/dop251/goja v0.0.0-20231014103939-873a1496dc8e // indirect
 	github.com/dop251/goja_nodejs v0.0.0-20231122114759-e84d9a924c5c // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
