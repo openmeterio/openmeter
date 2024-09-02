@@ -20,6 +20,31 @@ type Page struct {
 	PageNumber int `json:"page"`
 }
 
+// NewPage creates a new Page with the given pageNumber and pageSize.
+func NewPage(pageNumber int, pageSize int) Page {
+	return Page{
+		PageSize:   pageSize,
+		PageNumber: pageNumber,
+	}
+}
+
+// NewPageFromRef creates a new Page from pointers to pageNumber and pageSize.
+// Useful for handling query parameters.
+func NewPageFromRef(pageNumber *int, pageSize *int) Page {
+	pn := 0
+	ps := 0
+
+	if pageNumber != nil {
+		pn = *pageNumber
+	}
+
+	if pageSize != nil {
+		ps = *pageSize
+	}
+
+	return NewPage(pn, ps)
+}
+
 func (p Page) Offset() int {
 	return p.PageSize * (p.PageNumber - 1)
 }
@@ -48,6 +73,40 @@ type PagedResponse[T any] struct {
 	Page       Page `json:"-"`
 	TotalCount int  `json:"totalCount"`
 	Items      []T  `json:"items"`
+}
+
+// MapPagedResponse creates a new PagedResponse with the given page, totalCount and items.
+func MapPagedResponse[Out any, In any](resp PagedResponse[In], m func(in In) Out) PagedResponse[Out] {
+	items := make([]Out, 0, len(resp.Items))
+	for _, inItem := range resp.Items {
+		items = append(items, m(inItem))
+	}
+
+	return PagedResponse[Out]{
+		Page:       resp.Page,
+		TotalCount: resp.TotalCount,
+		Items:      items,
+	}
+}
+
+// MapPagedResponseError is similar to MapPagedResponse
+// but it allows the mapping function to return an error.
+func MapPagedResponseError[Out any, In any](resp PagedResponse[In], m func(in In) (Out, error)) (PagedResponse[Out], error) {
+	items := make([]Out, 0, len(resp.Items))
+	for _, inItem := range resp.Items {
+		item, err := m(inItem)
+		if err != nil {
+			return PagedResponse[Out]{}, err
+		}
+
+		items = append(items, item)
+	}
+
+	return PagedResponse[Out]{
+		Page:       resp.Page,
+		TotalCount: resp.TotalCount,
+		Items:      items,
+	}, nil
 }
 
 // Implement json.Marshaler interface to flatten the Page struct
