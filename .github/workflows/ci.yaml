@@ -63,7 +63,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Dagger Engine logs as artifact
-        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         if: always() && steps.export-dagger-engine-logs.outcome == 'success'
         with:
           name: "[${{ github.job }}] Dagger Engine logs"
@@ -99,7 +99,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Dagger Engine logs as artifact
-        uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029 # v4.3.5
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         if: always() && steps.export-dagger-engine-logs.outcome == 'success'
         with:
           name: "[${{ github.job }}] Dagger Engine logs"
@@ -133,7 +133,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Dagger Engine logs as artifact
-        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         if: always() && steps.export-dagger-engine-logs.outcome == 'success'
         with:
           name: "[${{ github.job }}] Dagger Engine logs"
@@ -260,7 +260,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Container logs as artifact
-        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         if: always() && steps.export-container-logs.outcome == 'success'
         with:
           name: "[${{ github.job }}] Container logs"
@@ -299,7 +299,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Dagger Engine logs as artifact
-        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         if: always() && steps.export-dagger-engine-logs.outcome == 'success'
         with:
           name: "[${{ github.job }}] Dagger Engine logs"
@@ -333,7 +333,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Dagger Engine logs as artifact
-        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         if: always() && steps.export-dagger-engine-logs.outcome == 'success'
         with:
           name: "[${{ github.job }}] Dagger Engine logs"
