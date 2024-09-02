@@ -4575,8 +4575,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         {}
                     ],
                     "page": 0,  # Current page number. Required.
-                    "pageSize": 0,  # Number of channels per page. Required.
-                    "totalCount": 0  # Total number of channels. Required.
+                    "pageSize": 0,  # Number of items per page. Required.
+                    "totalCount": 0  # Total number of items. Required.
                 }
         """
         error_map = {
@@ -5089,8 +5089,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         {}
                     ],
                     "page": 0,  # Current page number. Required.
-                    "pageSize": 0,  # Number of rules per page. Required.
-                    "totalCount": 0  # Total number of rules. Required.
+                    "pageSize": 0,  # Number of items per page. Required.
+                    "totalCount": 0  # Total number of items. Required.
                 }
         """
         error_map = {
@@ -5731,8 +5731,8 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                         }
                     ],
                     "page": 0,  # Current page number. Required.
-                    "pageSize": 0,  # Number of rules per page. Required.
-                    "totalCount": 0  # Total number of rules. Required.
+                    "pageSize": 0,  # Number of items per page. Required.
+                    "totalCount": 0  # Total number of items. Required.
                 }
         """
         error_map = {
