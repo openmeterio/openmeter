@@ -8,7 +8,7 @@ require (
 	entgo.io/ent v0.14.1
 	github.com/AppsFlyer/go-sundheit v0.6.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.28.0
-	github.com/IBM/sarama v1.43.2
+	github.com/IBM/sarama v1.43.3
 	github.com/ThreeDotsLabs/watermill v1.3.5
 	github.com/ThreeDotsLabs/watermill-kafka/v3 v3.0.1
 	github.com/XSAM/otelsql v0.32.0
@@ -193,7 +193,7 @@ require (
 	github.com/dop251/goja_nodejs v0.0.0-20231122114759-e84d9a924c5c // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/dvsekhvalnov/jose2go v1.6.0 // indirect
-	github.com/eapache/go-resiliency v1.6.0 // indirect
+	github.com/eapache/go-resiliency v1.7.0 // indirect
 	github.com/eapache/go-xerial-snappy v0.0.0-20230731223053-c322873962e3 // indirect
 	github.com/eapache/queue v1.1.0 // indirect
 	github.com/eclipse/paho.mqtt.golang v1.4.3 // indirect
