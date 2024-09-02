@@ -48,7 +48,7 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Run pipeline
-        uses: dagger/dagger-for-github@145f04c8b5d7a638e3f0fd68fa6329bb2eebc385 # v6.5.0
+        uses: dagger/dagger-for-github@8ab204f3cf74a4940a1648469c426ef0d28af7cc # v6.6.0
         with:
           verb: call
           module: github.com/${{ github.repository }}@${{ github.ref }}
@@ -84,7 +84,7 @@ jobs:
           fetch-depth: 0 # Needed to compare against base branch
 
       - name: Run pipeline
-        uses: dagger/dagger-for-github@29a88e72255e732147ba18a670978b90bcc59efd # v6.4.0
+        uses: dagger/dagger-for-github@8ab204f3cf74a4940a1648469c426ef0d28af7cc # v6.6.0
         with:
           verb: call
           module: github.com/${{ github.repository }}@${{ github.ref }}
@@ -118,7 +118,7 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Run pipeline
-        uses: dagger/dagger-for-github@145f04c8b5d7a638e3f0fd68fa6329bb2eebc385 # v6.5.0
+        uses: dagger/dagger-for-github@8ab204f3cf74a4940a1648469c426ef0d28af7cc # v6.6.0
         with:
           verb: call
           module: github.com/${{ github.repository }}@${{ github.ref }}
@@ -246,7 +246,7 @@ jobs:
         run: curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:10000/healthz
 
       - name: Run tests
-        uses: dagger/dagger-for-github@145f04c8b5d7a638e3f0fd68fa6329bb2eebc385 # v6.5.0
+        uses: dagger/dagger-for-github@8ab204f3cf74a4940a1648469c426ef0d28af7cc # v6.6.0
         with:
           verb: call
           args: --source .:default quickstart-test --service tcp://localhost:8888 --port 8888
@@ -284,7 +284,7 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Run pipeline
-        uses: dagger/dagger-for-github@145f04c8b5d7a638e3f0fd68fa6329bb2eebc385 # v6.5.0
+        uses: dagger/dagger-for-github@8ab204f3cf74a4940a1648469c426ef0d28af7cc # v6.6.0
         with:
           verb: call
           module: github.com/${{ github.repository }}@${{ github.ref }}
@@ -318,7 +318,7 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Run pipeline
-        uses: dagger/dagger-for-github@145f04c8b5d7a638e3f0fd68fa6329bb2eebc385 # v6.5.0
+        uses: dagger/dagger-for-github@8ab204f3cf74a4940a1648469c426ef0d28af7cc # v6.6.0
         with:
           verb: call
           module: github.com/${{ github.repository }}@${{ github.ref }}
