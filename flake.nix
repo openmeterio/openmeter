@@ -83,6 +83,9 @@
               # confluent-platform
 
               # golangci-lint
+              (golangci-lint.override (_: {
+                buildGoModule = pkgs.buildGo123Module;
+              }))
               goreleaser
               air
 
