@@ -105,9 +105,9 @@ func ConfigureAggregation(v *viper.Viper) {
 	v.SetDefault("aggregation.clickhouse.password", "default")
 
 	// ClickHouse connection options
-	v.SetDefault("aggregation.clickhouse.dial_timeout", "10s")
-	v.SetDefault("aggregation.clickhouse.max_open_conns", 5)
-	v.SetDefault("aggregation.clickhouse.max_idle_conns", 5)
-	v.SetDefault("aggregation.clickhouse.conn_max_lifetime", "10m")
-	v.SetDefault("aggregation.clickhouse.block_buffer_size", 10)
+	v.SetDefault("aggregation.clickhouse.dialTimeout", "10s")
+	v.SetDefault("aggregation.clickhouse.maxOpenConns", 5)
+	v.SetDefault("aggregation.clickhouse.maxIdleConns", 5)
+	v.SetDefault("aggregation.clickhouse.connMaxLifetime", "10m")
+	v.SetDefault("aggregation.clickhouse.blockBufferSize", 10)
 }
