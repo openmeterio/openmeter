@@ -32,7 +32,7 @@ type EntitlementRepo interface {
 	LockEntitlementForTx(ctx context.Context, entitlementID models.NamespacedID) error
 
 	UpdateEntitlementUsagePeriod(ctx context.Context, entitlementID models.NamespacedID, params UpdateEntitlementUsagePeriodParams) error
-	ListEntitlementsWithExpiredUsagePeriod(ctx context.Context, namespace string, highwatermark time.Time) ([]Entitlement, error)
+	ListEntitlementsWithExpiredUsagePeriod(ctx context.Context, namespaces []string, highwatermark time.Time) ([]Entitlement, error)
 
 	entutils.TxCreator
 	entutils.TxUser[EntitlementRepo]
