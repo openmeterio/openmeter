@@ -9,8 +9,6 @@ import (
 
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/metric"
 
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
 	kafkametrics "github.com/openmeterio/openmeter/pkg/kafka/metrics"
@@ -25,15 +23,12 @@ type Collector struct {
 	// NamespacedTopicTemplate needs to contain at least one string parameter passed to fmt.Sprintf.
 	// For example: "om_%s_events"
 	NamespacedTopicTemplate string
-
-	ingestEventCounter metric.Int64Counter
 }
 
 func NewCollector(
 	producer *kafka.Producer,
 	serializer serializer.Serializer,
 	namespacedTopicTemplate string,
-	metricMeter metric.Meter,
 ) (*Collector, error) {
 	if producer == nil {
 		return nil, fmt.Errorf("producer is required")
@@ -44,25 +39,11 @@ func NewCollector(
 	if namespacedTopicTemplate == "" {
 		return nil, fmt.Errorf("namespaced topic template is required")
 	}
-	if metricMeter == nil {
-		return nil, fmt.Errorf("metric meter is required")
-	}
-
-	// Initialize OTel metrics
-	ingestEventCounter, err := metricMeter.Int64Counter(
-		"ingest.events",
-		metric.WithDescription("The number of events ingested"),
-		metric.WithUnit("{event}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create events counter: %w", err)
-	}
 
 	return &Collector{
 		Producer:                producer,
 		Serializer:              serializer,
 		NamespacedTopicTemplate: namespacedTopicTemplate,
-		ingestEventCounter:      ingestEventCounter,
 	}, nil
 }
 
@@ -95,10 +76,6 @@ func (s Collector) Ingest(ctx context.Context, namespace string, ev event.Event)
 	if err != nil {
 		return fmt.Errorf("producing kafka message: %w", err)
 	}
-
-	// Increment the ingest event counter metric
-	namespaceAttr := attribute.String("namespace", namespace)
-	s.ingestEventCounter.Add(ctx, 1, metric.WithAttributes(namespaceAttr))
 
 	return nil
 }

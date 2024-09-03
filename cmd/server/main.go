@@ -36,6 +36,7 @@ import (
 	"github.com/openmeterio/openmeter/config"
 	"github.com/openmeterio/openmeter/openmeter/debug"
 	"github.com/openmeterio/openmeter/openmeter/ingest"
+	"github.com/openmeterio/openmeter/openmeter/ingest/ingestadapter"
 	"github.com/openmeterio/openmeter/openmeter/ingest/ingestdriver"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest"
 	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
@@ -573,13 +574,19 @@ func initKafkaProducer(ctx context.Context, config config.Configuration, logger 
 	return producer, nil
 }
 
-func initKafkaIngest(producer *kafka.Producer, config config.Configuration, logger *slog.Logger, metricMeter metric.Meter, serializer serializer.Serializer) (*kafkaingest.Collector, *kafkaingest.NamespaceHandler, error) {
+func initKafkaIngest(producer *kafka.Producer, config config.Configuration, logger *slog.Logger, metricMeter metric.Meter, serializer serializer.Serializer) (ingest.Collector, *kafkaingest.NamespaceHandler, error) {
+	var collector ingest.Collector
+
 	collector, err := kafkaingest.NewCollector(
 		producer,
 		serializer,
 		config.Ingest.Kafka.EventsTopicTemplate,
-		metricMeter,
 	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("init kafka ingest: %w", err)
+	}
+
+	collector, err = ingestadapter.WithMetrics(collector, metricMeter)
 	if err != nil {
 		return nil, nil, fmt.Errorf("init kafka ingest: %w", err)
 	}
