@@ -576,19 +576,33 @@ export interface components {
      *     "specversion": "1.0",
      *     "type": "prompt",
      *     "subject": "customer-id",
-     *     "time": "2023-01-01T01:01:01.001Z",
+     *     "time": "2024-01-01T01:01:01.001Z",
      *     "data": {
      *       "tokens": "1234",
      *       "model": "gpt-4-turbo"
      *     }
      *   },
-     *   "validationError": "meter not found for event"
+     *   "validationError": "meter not found for event",
+     *   "ingestedAt": "2024-01-01T00:00:00Z",
+     *   "storedAt": "2024-01-01T00:00:00Z"
      * }
      */
-    IngestedEvent: {
-      event: components['schemas']['Event']
+    readonly IngestedEvent: {
+      readonly event: components['schemas']['Event']
       /** @example invalid event */
-      validationError?: string
+      readonly validationError?: string
+      /**
+       * Format: date-time
+       * @description The date and time the event was ingested.
+       * @example 2024-01-01T00:00:00Z
+       */
+      readonly ingestedAt: string
+      /**
+       * Format: date-time
+       * @description The date and time the event was stored.
+       * @example 2024-01-01T00:00:00Z
+       */
+      readonly storedAt: string
     }
     /**
      * @description A feature is a feature or service offered to a customer.
