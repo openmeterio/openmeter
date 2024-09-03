@@ -85,6 +85,7 @@ func (s Collector) Ingest(ctx context.Context, namespace string, ev event.Event)
 		Headers: []kafka.Header{
 			{Key: "namespace", Value: []byte(namespace)},
 			{Key: "specversion", Value: []byte(ev.SpecVersion())},
+			{Key: "ingested_at", Value: []byte(time.Now().UTC().Format(time.RFC3339))},
 		},
 		Key:   key,
 		Value: value,

@@ -3,6 +3,7 @@ package sink
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/huandu/go-sqlbuilder"
@@ -32,6 +33,7 @@ type ClickHouseStorage struct {
 
 func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmodels.SinkMessage) error {
 	query := InsertEventsQuery{
+		Clock:    realClock{},
 		Database: c.config.Database,
 		Messages: messages,
 	}
@@ -49,6 +51,7 @@ func (c *ClickHouseStorage) BatchInsert(ctx context.Context, messages []sinkmode
 }
 
 type InsertEventsQuery struct {
+	Clock    Clock
 	Database string
 	Messages []sinkmodels.SinkMessage
 }
@@ -58,12 +61,29 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
 
 	query := sqlbuilder.ClickHouse.NewInsertBuilder()
 	query.InsertInto(tableName)
-	query.Cols("namespace", "validation_error", "id", "type", "source", "subject", "time", "data")
+	query.Cols("namespace", "validation_error", "id", "type", "source", "subject", "time", "data", "ingested_at", "stored_at")
 
 	for _, message := range q.Messages {
 		var eventErr string
 		if message.Status.Error != nil {
 			eventErr = message.Status.Error.Error()
+		}
+
+		storedAt := q.Clock.Now()
+		ingestedAt := storedAt
+
+		if message.KafkaMessage != nil {
+			for _, header := range message.KafkaMessage.Headers {
+				// Parse ingested_at header
+				if header.Key == "ingested_at" {
+					var err error
+
+					ingestedAt, err = time.Parse(time.RFC3339, string(header.Value))
+					if err != nil {
+						eventErr = fmt.Sprintf("failed to parse ingested_at header: %s", err)
+					}
+				}
+			}
 		}
 
 		query.Values(
@@ -75,9 +95,24 @@ func (q InsertEventsQuery) ToSQL() (string, []interface{}, error) {
 			message.Serialized.Subject,
 			message.Serialized.Time,
 			message.Serialized.Data,
+			ingestedAt,
+			storedAt,
 		)
 	}
 
 	sql, args := query.Build()
 	return sql, args, nil
+}
+
+// Clock is an interface for getting the current time.
+// It is used to make the code testable.
+type Clock interface {
+	Now() time.Time
+}
+
+// realClock implements Clock using the system clock.
+type realClock struct{}
+
+func (realClock) Now() time.Time {
+	return time.Now()
 }

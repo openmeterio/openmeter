@@ -91,6 +91,8 @@ paths:
                         tokens: "1234"
                         model: "gpt-4-turbo"
                         type: "input"
+                    ingestedAt: "2023-01-01T01:01:01.001Z"
+                    storedAt: "2023-01-01T01:01:01.001Z"
                   - event:
                       id: 912d1d87-09ad-4bcc-a57d-5b3552493ed2
                       source: service-name
@@ -102,6 +104,8 @@ paths:
                         tokens: "2345"
                         model: "gpt-4-turbo"
                         type: "output"
+                    ingestedAt: "2023-01-01T01:01:02.001Z"
+                    storedAt: "2023-01-01T01:01:02.001Z"
         "400":
           $ref: "#/components/responses/BadRequestProblemResponse"
         "401":
@@ -1958,17 +1962,29 @@ components:
           type: "input"
     IngestedEvent:
       description: An ingested event with optional validation error.
+      readOnly: true
       type: object
       additionalProperties: false
       required:
         - event
+        - ingestedAt
+        - storedAt
       properties:
         event:
           $ref: "#/components/schemas/Event"
         validationError:
           type: string
-          readOnly: true
           example: "invalid event"
+        ingestedAt:
+          type: string
+          format: date-time
+          description: The date and time the event was ingested.
+          example: "2024-01-01T00:00:00Z"
+        storedAt:
+          type: string
+          format: date-time
+          description: The date and time the event was stored.
+          example: "2024-01-01T00:00:00Z"
       example:
         event:
           id: 5c10fade-1c9e-4d6c-8275-c52c36731d3d
@@ -1976,11 +1992,13 @@ components:
           specversion: "1.0"
           type: prompt
           subject: customer-id
-          time: "2023-01-01T01:01:01.001Z"
+          time: "2024-01-01T01:01:01.001Z"
           data:
             tokens: "1234"
             model: "gpt-4-turbo"
         validationError: "meter not found for event"
+        ingestedAt: "2024-01-01T00:00:00Z"
+        storedAt: "2024-01-01T00:00:00Z"
     FeatureCreateInputs:
       type: object
       description: |
