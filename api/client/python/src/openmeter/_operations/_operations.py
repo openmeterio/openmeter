@@ -1300,6 +1300,10 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
                             "time": "2020-02-20 00:00:00"  # Optional. Timestamp of when
                               the occurrence happened. Must adhere to RFC 3339.
                         },
+                        "ingestedAt": "2020-02-20 00:00:00",  # The date and time the event
+                          was ingested. Required.
+                        "storedAt": "2020-02-20 00:00:00",  # The date and time the event was
+                          stored. Required.
                         "validationError": "str"  # Optional.
                     }
                 ]
