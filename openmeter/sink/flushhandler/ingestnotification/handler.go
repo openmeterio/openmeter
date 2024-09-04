@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/samber/lo"
 )
 
 type handler struct {
@@ -68,7 +69,7 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 	})
 
 	// We need to chunk the events to not exceed message size limits
-	chunkedEvents := slicesx.Chunk(iEvents, h.config.MaxEventsInBatch)
+	chunkedEvents := lo.Chunk(iEvents, h.config.MaxEventsInBatch)
 	for _, chunk := range chunkedEvents {
 		if err := h.publisher.Publish(ctx, ingestevents.EventBatchedIngest{Events: chunk}); err != nil {
 			finalErr = errors.Join(finalErr, err)
