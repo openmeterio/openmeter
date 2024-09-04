@@ -49,7 +49,7 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 	var finalErr error
 
 	// Filter meaningful events for downstream
-	filtered := slicesx.Filter(events, func(event sinkmodels.SinkMessage) bool {
+	filtered := lo.Filter(events, func(event sinkmodels.SinkMessage, _ int) bool {
 		// We explicityl ignore non-parseable & non-meter affecting events
 		return event.Serialized != nil && len(event.Meters) > 0
 	})

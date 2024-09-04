@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/alpacahq/alpacadecimal"
+	"github.com/samber/lo"
 
 	"github.com/openmeterio/openmeter/openmeter/credit/balance"
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 )
 
 type Engine interface {
@@ -311,7 +311,7 @@ func (e *engine) getGrantRecurrenceTimes(period recurrence.Period) ([]struct {
 		time    time.Time
 		grantID string
 	}{}
-	grantsWithRecurrence := slicesx.Filter(e.grants, func(grant grant.Grant) bool {
+	grantsWithRecurrence := lo.Filter(e.grants, func(grant grant.Grant, _ int) bool {
 		return grant.Recurrence != nil
 	})
 	if len(grantsWithRecurrence) == 0 {
