@@ -329,6 +329,7 @@ func main() {
 		conf.Postgres.URL,
 		pgdriver.WithTracerProvider(otelTracerProvider),
 		pgdriver.WithMeterProvider(otelMeterProvider),
+		pgdriver.WithMetricMeter(metricMeter),
 	)
 	if err != nil {
 		logger.Error("failed to initialize postgres driver", "error", err)
