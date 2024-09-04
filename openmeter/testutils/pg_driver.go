@@ -91,6 +91,7 @@ func InitPostgresDB(t *testing.T) *TestDB {
 
 	return &TestDB{
 		PGDriver:  postgresDriver,
+		SQLDriver: postgresDriver.DB(),
 		EntDriver: entDriver,
 		URL:       dbConf.URL(),
 	}
