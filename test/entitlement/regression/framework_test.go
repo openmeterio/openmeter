@@ -62,8 +62,14 @@ func setupDependencies(t *testing.T) Dependencies {
 	driver := testutils.InitPostgresDB(t)
 	// init db
 	dbClient := db.NewClient(db.Driver(driver.EntDriver.Driver()))
-	if err := migrate.Up(driver.URL); err != nil {
-		t.Fatalf("failed to migrate db: %s", err.Error())
+
+	// Migrate
+	if m, err := migrate.Default(driver.SQLDriver); err == nil {
+		if err := m.Up(); err != nil {
+			t.Fatalf("failed to migrate db: %s", err.Error())
+		}
+	} else {
+		t.Fatalf("failed to create migrate instance: %s", err.Error())
 	}
 
 	// Init product catalog

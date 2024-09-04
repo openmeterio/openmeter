@@ -2,12 +2,12 @@
 package migrate
 
 import (
+	"database/sql"
 	"embed"
 	"io/fs"
-	"net/url"
 
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
 
@@ -20,21 +20,48 @@ type Migrate = migrate.Migrate
 //go:embed migrations
 var OMMigrations embed.FS
 
+type Options struct {
+	db       *sql.DB
+	fs       fs.FS
+	fsPath   string
+	pgConfig *postgres.Config
+}
+
 // NewMigrate creates a new migrate instance.
-func NewMigrate(conn string, fs fs.FS, fsPath string) (*Migrate, error) {
-	d, err := iofs.New(fs, fsPath)
+func NewMigrate(opt Options) (*Migrate, error) {
+	d, err := iofs.New(opt.fs, opt.fsPath)
 	if err != nil {
 		return nil, err
 	}
-	return migrate.NewWithSourceInstance("iofs", d, conn)
+
+	driver, err := postgres.WithInstance(opt.db, opt.pgConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return migrate.NewWithInstance("iofs", d, "postgres", driver)
 }
 
-func Up(conn string) error {
-	conn, err := SetMigrationTableName(conn, MigrationsTable)
-	if err != nil {
-		return err
-	}
-	m, err := NewMigrate(conn, OMMigrations, "migrations")
+func Default(db *sql.DB) (*Migrate, error) {
+	return NewMigrate(Options{
+		db:     db,
+		fs:     OMMigrations,
+		fsPath: "migrations",
+		pgConfig: &postgres.Config{
+			MigrationsTable: MigrationsTable,
+		},
+	})
+}
+
+func Up(db *sql.DB) error {
+	m, err := NewMigrate(Options{
+		db:     db,
+		fs:     OMMigrations,
+		fsPath: "migrations",
+		pgConfig: &postgres.Config{
+			MigrationsTable: MigrationsTable,
+		},
+	})
 	if err != nil {
 		return err
 	}
@@ -45,17 +72,4 @@ func Up(conn string) error {
 		return err
 	}
 	return nil
-}
-
-func SetMigrationTableName(conn, tableName string) (string, error) {
-	parsedURL, err := url.Parse(conn)
-	if err != nil {
-		return "", err
-	}
-
-	values := parsedURL.Query()
-	values.Set("x-migrations-table", tableName)
-	parsedURL.RawQuery = values.Encode()
-
-	return parsedURL.String(), nil
 }

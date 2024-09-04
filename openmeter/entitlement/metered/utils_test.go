@@ -77,8 +77,12 @@ func setupConnector(t *testing.T) (meteredentitlement.Connector, *dependencies) 
 	m.Lock()
 	defer m.Unlock()
 	// migrate db
-	if err := migrate.Up(testdb.URL); err != nil {
-		t.Fatalf("failed to migrate db: %s", err.Error())
+	if m, err := migrate.Default(testdb.SQLDriver); err == nil {
+		if err := m.Up(); err != nil {
+			t.Fatalf("failed to migrate db: %s", err.Error())
+		}
+	} else {
+		t.Fatalf("failed to create migrate instance: %s", err.Error())
 	}
 
 	mockPublisher := eventbus.NewMock(t)

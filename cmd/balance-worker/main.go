@@ -239,7 +239,7 @@ func main() {
 
 	entClient := entPostgresDriver.Client()
 
-	if err := startup.DB(ctx, conf.Postgres, entClient); err != nil {
+	if err := startup.DB(ctx, conf.Postgres, entClient, postgresDriver.DB()); err != nil {
 		logger.Error("failed to initialize database", "error", err)
 		os.Exit(1)
 	}
