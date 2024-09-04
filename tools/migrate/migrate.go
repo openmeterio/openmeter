@@ -21,20 +21,20 @@ type Migrate = migrate.Migrate
 var OMMigrations embed.FS
 
 type Options struct {
-	db       *sql.DB
-	fs       fs.FS
-	fsPath   string
-	pgConfig *postgres.Config
+	DB       *sql.DB
+	FS       fs.FS
+	FSPath   string
+	PGConfig *postgres.Config
 }
 
 // NewMigrate creates a new migrate instance.
 func NewMigrate(opt Options) (*Migrate, error) {
-	d, err := iofs.New(opt.fs, opt.fsPath)
+	d, err := iofs.New(opt.FS, opt.FSPath)
 	if err != nil {
 		return nil, err
 	}
 
-	driver, err := postgres.WithInstance(opt.db, opt.pgConfig)
+	driver, err := postgres.WithInstance(opt.DB, opt.PGConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -44,10 +44,10 @@ func NewMigrate(opt Options) (*Migrate, error) {
 
 func Default(db *sql.DB) (*Migrate, error) {
 	return NewMigrate(Options{
-		db:     db,
-		fs:     OMMigrations,
-		fsPath: "migrations",
-		pgConfig: &postgres.Config{
+		DB:     db,
+		FS:     OMMigrations,
+		FSPath: "migrations",
+		PGConfig: &postgres.Config{
 			MigrationsTable: MigrationsTable,
 		},
 	})
@@ -55,10 +55,10 @@ func Default(db *sql.DB) (*Migrate, error) {
 
 func Up(db *sql.DB) error {
 	m, err := NewMigrate(Options{
-		db:     db,
-		fs:     OMMigrations,
-		fsPath: "migrations",
-		pgConfig: &postgres.Config{
+		DB:     db,
+		FS:     OMMigrations,
+		FSPath: "migrations",
+		PGConfig: &postgres.Config{
 			MigrationsTable: MigrationsTable,
 		},
 	})
