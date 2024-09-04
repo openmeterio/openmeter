@@ -7,7 +7,7 @@ import (
 	"io/fs"
 
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/golang-migrate/migrate/v4/database/pgx"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
 
@@ -24,7 +24,7 @@ type Options struct {
 	DB       *sql.DB
 	FS       fs.FS
 	FSPath   string
-	PGConfig *postgres.Config
+	PGConfig *pgx.Config
 }
 
 // NewMigrate creates a new migrate instance.
@@ -34,7 +34,7 @@ func NewMigrate(opt Options) (*Migrate, error) {
 		return nil, err
 	}
 
-	driver, err := postgres.WithInstance(opt.DB, opt.PGConfig)
+	driver, err := pgx.WithInstance(opt.DB, opt.PGConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -47,29 +47,8 @@ func Default(db *sql.DB) (*Migrate, error) {
 		DB:     db,
 		FS:     OMMigrations,
 		FSPath: "migrations",
-		PGConfig: &postgres.Config{
+		PGConfig: &pgx.Config{
 			MigrationsTable: MigrationsTable,
 		},
 	})
-}
-
-func Up(db *sql.DB) error {
-	m, err := NewMigrate(Options{
-		DB:     db,
-		FS:     OMMigrations,
-		FSPath: "migrations",
-		PGConfig: &postgres.Config{
-			MigrationsTable: MigrationsTable,
-		},
-	})
-	if err != nil {
-		return err
-	}
-
-	defer m.Close()
-	err = m.Up()
-	if err != nil && err != migrate.ErrNoChange {
-		return err
-	}
-	return nil
 }
