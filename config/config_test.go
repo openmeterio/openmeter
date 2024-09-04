@@ -105,11 +105,16 @@ func TestComplete(t *testing.T) {
 		},
 		Aggregation: AggregationConfiguration{
 			ClickHouse: ClickHouseAggregationConfiguration{
-				Address:  "127.0.0.1:9440",
-				TLS:      true,
-				Username: "default",
-				Password: "default",
-				Database: "openmeter",
+				Address:         "127.0.0.1:9440",
+				TLS:             true,
+				Username:        "default",
+				Password:        "default",
+				Database:        "openmeter",
+				DialTimeout:     10 * time.Second,
+				MaxOpenConns:    5,
+				MaxIdleConns:    5,
+				ConnMaxLifetime: 10 * time.Minute,
+				BlockBufferSize: 10,
 			},
 		},
 		Sink: SinkConfiguration{

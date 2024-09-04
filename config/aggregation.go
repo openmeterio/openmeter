@@ -35,11 +35,38 @@ type ClickHouseAggregationConfiguration struct {
 	Username string
 	Password string
 	Database string
+
+	// ClickHouse connection options
+	DialTimeout     time.Duration
+	MaxOpenConns    int
+	MaxIdleConns    int
+	ConnMaxLifetime time.Duration
+	BlockBufferSize uint8
 }
 
 func (c ClickHouseAggregationConfiguration) Validate() error {
 	if c.Address == "" {
 		return errors.New("address is required")
+	}
+
+	if c.DialTimeout <= 0 {
+		return errors.New("dial timeout must be greater than 0")
+	}
+
+	if c.MaxOpenConns <= 0 {
+		return errors.New("max open connections must be greater than 0")
+	}
+
+	if c.MaxIdleConns <= 0 {
+		return errors.New("max idle connections must be greater than 0")
+	}
+
+	if c.ConnMaxLifetime <= 0 {
+		return errors.New("connection max lifetime must be greater than 0")
+	}
+
+	if c.BlockBufferSize <= 0 {
+		return errors.New("block buffer size must be greater than 0")
 	}
 
 	return nil
@@ -53,12 +80,12 @@ func (c ClickHouseAggregationConfiguration) GetClientOptions() *clickhouse.Optio
 			Username: c.Username,
 			Password: c.Password,
 		},
-		DialTimeout:      time.Duration(10) * time.Second,
-		MaxOpenConns:     5,
-		MaxIdleConns:     5,
-		ConnMaxLifetime:  time.Duration(10) * time.Minute,
+		DialTimeout:      c.DialTimeout,
+		MaxOpenConns:     c.MaxOpenConns,
+		MaxIdleConns:     c.MaxIdleConns,
+		ConnMaxLifetime:  c.ConnMaxLifetime,
 		ConnOpenStrategy: clickhouse.ConnOpenInOrder,
-		BlockBufferSize:  10,
+		BlockBufferSize:  c.BlockBufferSize,
 	}
 	// This minimal TLS.Config is normally sufficient to connect to the secure native port (normally 9440) on a ClickHouse server.
 	// See: https://clickhouse.com/docs/en/integrations/go#using-tls
@@ -76,4 +103,11 @@ func ConfigureAggregation(v *viper.Viper) {
 	v.SetDefault("aggregation.clickhouse.database", "openmeter")
 	v.SetDefault("aggregation.clickhouse.username", "default")
 	v.SetDefault("aggregation.clickhouse.password", "default")
+
+	// ClickHouse connection options
+	v.SetDefault("aggregation.clickhouse.dialTimeout", "10s")
+	v.SetDefault("aggregation.clickhouse.maxOpenConns", 5)
+	v.SetDefault("aggregation.clickhouse.maxIdleConns", 5)
+	v.SetDefault("aggregation.clickhouse.connMaxLifetime", "10m")
+	v.SetDefault("aggregation.clickhouse.blockBufferSize", 10)
 }
