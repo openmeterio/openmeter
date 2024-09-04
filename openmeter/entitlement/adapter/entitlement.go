@@ -409,15 +409,19 @@ func (a *entitlementDBAdapter) UpdateEntitlementUsagePeriod(ctx context.Context,
 	return err
 }
 
-func (a *entitlementDBAdapter) ListEntitlementsWithExpiredUsagePeriod(ctx context.Context, namespace string, expiredBefore time.Time) ([]entitlement.Entitlement, error) {
-	res, err := withLatestUsageReset(a.db.Entitlement.Query(), []string{namespace}).
+func (a *entitlementDBAdapter) ListEntitlementsWithExpiredUsagePeriod(ctx context.Context, namespaces []string, expiredBefore time.Time) ([]entitlement.Entitlement, error) {
+	query := withLatestUsageReset(a.db.Entitlement.Query(), namespaces).
 		Where(
-			db_entitlement.Namespace(namespace),
 			db_entitlement.CurrentUsagePeriodEndNotNil(),
 			db_entitlement.CurrentUsagePeriodEndLTE(expiredBefore),
 			db_entitlement.Or(db_entitlement.DeletedAtIsNil(), db_entitlement.DeletedAtGT(clock.Now())),
-		).
-		All(ctx)
+		)
+
+	if len(namespaces) > 0 {
+		query = query.Where(db_entitlement.NamespaceIn(namespaces...))
+	}
+
+	res, err := query.All(ctx)
 	if err != nil {
 		return nil, err
 	}

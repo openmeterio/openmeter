@@ -120,6 +120,11 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[18]},
 			},
+			{
+				Name:    "entitlement_current_usage_period_end_deleted_at",
+				Unique:  false,
+				Columns: []*schema.Column{EntitlementsColumns[18], EntitlementsColumns[5]},
+			},
 		},
 	}
 	// FeaturesColumns holds the columns for the "features" table.

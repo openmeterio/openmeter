@@ -73,7 +73,7 @@ func (e *connector) ResetEntitlementUsage(ctx context.Context, entitlementID mod
 }
 
 func (c *connector) ResetEntitlementsWithExpiredUsagePeriod(ctx context.Context, namespace string, highwatermark time.Time) ([]models.NamespacedID, error) {
-	entitlements, err := c.entitlementRepo.ListEntitlementsWithExpiredUsagePeriod(ctx, namespace, highwatermark)
+	entitlements, err := c.entitlementRepo.ListEntitlementsWithExpiredUsagePeriod(ctx, []string{namespace}, highwatermark)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list entitlements with due reset: %w", err)
 	}
