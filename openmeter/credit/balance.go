@@ -14,7 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/samber/lo"
 )
 
 type ResetUsageForOwnerParams struct {
@@ -498,12 +498,7 @@ func SortedPeriodsFromDedupedTimes(ts []time.Time) []recurrence.Period {
 		return nil
 	}
 
-	// copy
-	times := make([]time.Time, len(ts))
-	copy(times, ts)
-
-	// dedupe
-	times = slicesx.Dedupe(times)
+	times := lo.Uniq(ts)
 
 	// sort
 	sort.Slice(times, func(i, j int) bool {
