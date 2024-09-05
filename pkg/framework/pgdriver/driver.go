@@ -11,6 +11,8 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/openmeterio/openmeter/pkg/pgxpoolobserver"
 )
 
 type Option interface {
@@ -35,9 +37,16 @@ func WithMeterProvider(p metric.MeterProvider) Option {
 	})
 }
 
+func WithMetricMeter(m metric.Meter) Option {
+	return optionFunc(func(o *options) {
+		o.metricMeter = m
+	})
+}
+
 type options struct {
 	connConfig  *pgxpool.Config
 	otelOptions []otelsql.Option
+	metricMeter metric.Meter
 }
 
 type Driver struct {
@@ -77,6 +86,12 @@ func NewPostgresDriver(ctx context.Context, url string, opts ...Option) (*Driver
 	pool, err := pgxpool.NewWithConfig(ctx, o.connConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create postgres pool: %w", err)
+	}
+
+	if o.metricMeter != nil {
+		if err := pgxpoolobserver.ObservePoolMetrics(o.metricMeter, pool); err != nil {
+			return nil, err
+		}
 	}
 
 	db := otelsql.OpenDB(pgxstdlib.GetPoolConnector(pool), o.otelOptions...)
