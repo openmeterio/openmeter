@@ -96,3 +96,48 @@ notification:
 svix:
   apiKey: secret
   serverURL: http://localhost:8071
+
+kafka:
+  brokers: 127.0.0.1:9092,127.0.0.2:9092
+  securityProtocol: SASL_SSL
+  saslMechanisms: PLAIN
+  saslUsername: user
+  saslPassword: pass
+  # To enable stats reporting set this value to >=5s.
+  # Setting this value to 0 makes reporting explicitly disabled.
+  statsInterval: 5s
+  # Set IP address family used for communicating with Kafka cluster
+  brokerAddressFamily: v4
+  # Use this configuration parameter to define how frequently the local metadata cache needs to be updated.
+  # It cannot be lower than 10 seconds.
+  topicMetadataRefreshInterval: 1m
+  # Use this config parameter to enable TCP keep-alive in order to prevent the Kafka broker to close idle network connection.
+  socketKeepAliveEnabled: true
+  # Set list of debug contexts to enable for librdkafka
+  # See: https://github.com/confluentinc/librdkafka/blob/master/INTRODUCTION.md#debug-contexts
+  debugContexts:
+    - broker
+    - topic
+  # Consumer/Producer identifier
+  clientID: kafka-client-1
+  # Consumer group identifier
+  consumerGroupID: consumer-group
+  # Static membership identifier in consumer group
+  consumerGroupInstanceID: consumer-group-1
+  # Consumer group session and failure detection timeout.
+  # The consumer sends periodic heartbeats (heartbeatInterval) to indicate its liveness to the broker.
+  #	If no hearts are received by the broker for a group member within the session timeout,
+  #	the broker will remove the consumer from the group and trigger a rebalance.
+  sessionTimeout: 5m
+  # Consumer group session keepalive heartbeat interval
+  heartbeatInterval: 3s
+  # Automatically and periodically commit offsets in the background
+  enableAutoCommit: true
+  # Automatically store offset of last message provided to application.
+  # The offset store is an in-memory store of the next offset to (auto-)commit for each partition.
+  enableAutoOffsetStore: false
+  # AutoOffsetReset defines the action to take when there is no initial offset in offset store or the desired offset is out of range:
+  #	* "smallest","earliest","beginning": automatically reset the offset to the smallest offset
+  #	* "largest","latest","end": automatically reset the offset to the largest offset
+  #	* "error":  trigger an error (ERR__AUTO_OFFSET_RESET) which is retrieved by consuming messages and checking 'message->err'.
+  autoOffsetReset: "error"
