@@ -3,11 +3,350 @@ package kafka
 import (
 	"encoding"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 )
+
+type ConfigValidator interface {
+	Validate() error
+}
+
+type ConfigMapper interface {
+	AsConfigMap() (kafka.ConfigMap, error)
+}
+
+var (
+	_ ConfigMapper    = (*CommonConfigParams)(nil)
+	_ ConfigValidator = (*CommonConfigParams)(nil)
+)
+
+type CommonConfigParams struct {
+	Brokers          string
+	SecurityProtocol string
+	SaslMechanisms   string
+	SaslUsername     string
+	SaslPassword     string
+
+	StatsInterval TimeDurationMilliSeconds
+
+	// BrokerAddressFamily defines the IP address family to be used for network communication with Kafka cluster
+	BrokerAddressFamily BrokerAddressFamily
+	// SocketKeepAliveEnable defines if TCP socket keep-alive is enabled to prevent closing idle connections
+	// by Kafka brokers.
+	SocketKeepAliveEnabled bool
+	// TopicMetadataRefreshInterval defines how frequently the Kafka client needs to fetch metadata information
+	// (brokers, topic, partitions, etc) from the Kafka cluster.
+	// The 5 minutes default value is appropriate for mostly static Kafka clusters, but needs to be lowered
+	// in case of large clusters where changes are more frequent.
+	// This value must not be set to value lower than 10s.
+	TopicMetadataRefreshInterval TimeDurationMilliSeconds
+
+	// Enable contexts for extensive debugging of librdkafka.
+	// See: https://github.com/confluentinc/librdkafka/blob/master/INTRODUCTION.md#debug-contexts
+	DebugContexts DebugContexts
+
+	// ClientID sets the Consumer/Producer identifier
+	ClientID string
+}
+
+func (c CommonConfigParams) AsConfigMap() (kafka.ConfigMap, error) {
+	m := kafka.ConfigMap{
+		// Required for logging
+		"go.logs.channel.enable": true,
+	}
+
+	if err := m.SetKey("bootstrap.servers", c.Brokers); err != nil {
+		return nil, err
+	}
+
+	// This is needed when using localhost brokers on OSX,
+	// since the OSX resolver will return the IPv6 addresses first.
+	// See: https://github.com/openmeterio/openmeter/issues/321
+	if c.BrokerAddressFamily != "" {
+		if err := m.SetKey("broker.address.family", c.BrokerAddressFamily); err != nil {
+			return nil, err
+		}
+	} else if strings.Contains(c.Brokers, "localhost") || strings.Contains(c.Brokers, "127.0.0.1") {
+		if err := m.SetKey("broker.address.family", BrokerAddressFamilyIPv4); err != nil {
+			return nil, err
+		}
+	}
+
+	if c.SecurityProtocol != "" {
+		if err := m.SetKey("security.protocol", c.SecurityProtocol); err != nil {
+			return nil, err
+		}
+	}
+
+	if c.SaslMechanisms != "" {
+		if err := m.SetKey("sasl.mechanism", c.SaslMechanisms); err != nil {
+			return nil, err
+		}
+	}
+
+	if c.SaslUsername != "" {
+		if err := m.SetKey("sasl.username", c.SaslUsername); err != nil {
+			return nil, err
+		}
+	}
+
+	if c.SaslPassword != "" {
+		if err := m.SetKey("sasl.password", c.SaslPassword); err != nil {
+			return nil, err
+		}
+	}
+
+	if c.StatsInterval > 0 {
+		if err := m.SetKey("statistics.interval.ms", c.StatsInterval); err != nil {
+			return nil, err
+		}
+	}
+
+	if c.SocketKeepAliveEnabled {
+		if err := m.SetKey("socket.keepalive.enable", c.SocketKeepAliveEnabled); err != nil {
+			return nil, err
+		}
+	}
+
+	// The `topic.metadata.refresh.interval.ms` defines the frequency the Kafka client needs to retrieve metadata
+	// from Kafka cluster. While `metadata.max.age.ms` defines the interval after the metadata cache maintained
+	// on client side becomes invalid. Setting the former will automatically adjust the value of the latter to avoid
+	// misconfiguration where the entries in metadata cache are evicted prior metadata refresh.
+	if c.TopicMetadataRefreshInterval > 0 {
+		if err := m.SetKey("topic.metadata.refresh.interval.ms", c.TopicMetadataRefreshInterval); err != nil {
+			return nil, err
+		}
+
+		if err := m.SetKey("metadata.max.age.ms", 3*c.TopicMetadataRefreshInterval); err != nil {
+			return nil, err
+		}
+	}
+
+	if len(c.DebugContexts) > 0 {
+		if err := m.SetKey("debug", c.DebugContexts.String()); err != nil {
+			return nil, err
+		}
+	}
+
+	if c.ClientID != "" {
+		if err := m.SetKey("client.id", c.ClientID); err != nil {
+			return nil, err
+		}
+	}
+
+	return m, nil
+}
+
+func (c CommonConfigParams) Validate() error {
+	if c.Brokers == "" {
+		return errors.New("broker is required")
+	}
+
+	if c.StatsInterval > 0 && c.StatsInterval.Duration() < 5*time.Second {
+		return errors.New("StatsInterval must be >=5s")
+	}
+
+	if c.TopicMetadataRefreshInterval > 0 && c.TopicMetadataRefreshInterval.Duration() < 10*time.Second {
+		return errors.New("topic metadata refresh interval must be >=10s")
+	}
+
+	return nil
+}
+
+var (
+	_ ConfigMapper    = (*ConsumerConfigParams)(nil)
+	_ ConfigValidator = (*ConsumerConfigParams)(nil)
+)
+
+type ConsumerConfigParams struct {
+	// ConsumerGroupID defines the group id. All clients sharing the same ConsumerGroupID belong to the same group.
+	ConsumerGroupID string
+	// ConsumerGroupInstanceID defines the instance id in consumer group. Setting this parameter enables static group membership.
+	// Static group members are able to leave and rejoin a group within the configured SessionTimeout without prompting a group rebalance.
+	// This should be used in combination with a larger session.timeout.ms to avoid group rebalances caused by transient unavailability (e.g. process restarts).
+	ConsumerGroupInstanceID string
+
+	// SessionTimeout defines the consumer group session and failure detection timeout.
+	// The consumer sends periodic heartbeats (HeartbeatInterval) to indicate its liveness to the broker.
+	// If no hearts are received by the broker for a group member within the session timeout,
+	// the broker will remove the consumer from the group and trigger a rebalance.
+	SessionTimeout TimeDurationMilliSeconds
+	// Defines the consumer group session keepalive heartbeat interval.
+	HeartbeatInterval TimeDurationMilliSeconds
+
+	// EnableAutoCommit enables automatically and periodically commit offsets in the background.
+	EnableAutoCommit bool
+	// EnableAutoOffsetStore enables automatically store offset of last message provided to application.
+	// The offset store is an in-memory store of the next offset to (auto-)commit for each partition.
+	EnableAutoOffsetStore bool
+	// AutoOffsetReset defines the action to take when there is no initial offset in offset store or the desired offset is out of range:
+	// * "smallest","earliest","beginning": automatically reset the offset to the smallest offset
+	// * "largest","latest","end": automatically reset the offset to the largest offset
+	// * "error":  trigger an error (ERR__AUTO_OFFSET_RESET) which is retrieved by consuming messages and checking 'message->err'.
+	AutoOffsetReset string
+}
+
+func (c ConsumerConfigParams) Validate() error {
+	if c.ConsumerGroupInstanceID != "" && c.ConsumerGroupID == "" {
+		return errors.New("consumer group instance id is required")
+	}
+
+	if c.AutoOffsetReset != "" && !slices.Contains([]string{
+		"smallest", "earliest", "beginning",
+		"largest", "latest", "end",
+		"error",
+	}, c.AutoOffsetReset) {
+		return errors.New("invalid auto offset reset")
+	}
+
+	return nil
+}
+
+func (c ConsumerConfigParams) AsConfigMap() (kafka.ConfigMap, error) {
+	m := kafka.ConfigMap{
+		"go.application.rebalance.enable": true,
+	}
+
+	if c.ConsumerGroupID != "" {
+		if err := m.SetKey("group.id", c.ConsumerGroupID); err != nil {
+			return nil, err
+		}
+	}
+
+	if c.ConsumerGroupInstanceID != "" {
+		if err := m.SetKey("group.instance.id", c.ConsumerGroupID); err != nil {
+			return nil, err
+		}
+	}
+
+	if c.SessionTimeout > 0 {
+		if err := m.SetKey("session.timeout.ms", c.SessionTimeout); err != nil {
+			return nil, err
+		}
+	}
+
+	if c.HeartbeatInterval > 0 {
+		if err := m.SetKey("heartbeat.interval.ms", c.HeartbeatInterval); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := m.SetKey("enable.auto.commit", c.EnableAutoCommit); err != nil {
+		return nil, err
+	}
+
+	if err := m.SetKey("enable.auto.offset.store", c.EnableAutoOffsetStore); err != nil {
+		return nil, err
+	}
+
+	if c.AutoOffsetReset != "" {
+		if err := m.SetKey("auto.offset.reset", c.AutoOffsetReset); err != nil {
+			return nil, err
+		}
+	}
+
+	return m, nil
+}
+
+var (
+	_ ConfigMapper    = (*ProducerConfigParams)(nil)
+	_ ConfigValidator = (*ProducerConfigParams)(nil)
+)
+
+type ProducerConfigParams struct{}
+
+func (p ProducerConfigParams) Validate() error {
+	return nil
+}
+
+func (p ProducerConfigParams) AsConfigMap() (kafka.ConfigMap, error) {
+	return nil, nil
+}
+
+var (
+	_ ConfigMapper    = (*ConsumerConfig)(nil)
+	_ ConfigValidator = (*ConsumerConfig)(nil)
+)
+
+type ConsumerConfig struct {
+	CommonConfigParams
+	ConsumerConfigParams
+}
+
+func (c ConsumerConfig) AsConfigMap() (kafka.ConfigMap, error) {
+	return mergeConfigsToMap(c.CommonConfigParams, c.ConsumerConfigParams)
+}
+
+func (c ConsumerConfig) Validate() error {
+	validators := []ConfigValidator{
+		c.CommonConfigParams,
+		c.ConsumerConfigParams,
+	}
+
+	for _, validator := range validators {
+		if err := validator.Validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+var (
+	_ ConfigMapper    = (*ProducerConfig)(nil)
+	_ ConfigValidator = (*ProducerConfig)(nil)
+)
+
+type ProducerConfig struct {
+	CommonConfigParams
+	ProducerConfigParams
+}
+
+func (c ProducerConfig) AsConfigMap() (kafka.ConfigMap, error) {
+	return mergeConfigsToMap(c.CommonConfigParams, c.ProducerConfigParams)
+}
+
+func (c ProducerConfig) Validate() error {
+	validators := []ConfigValidator{
+		c.CommonConfigParams,
+		c.ProducerConfigParams,
+	}
+
+	for _, validator := range validators {
+		if err := validator.Validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func mergeConfigsToMap(mappers ...ConfigMapper) (kafka.ConfigMap, error) {
+	if len(mappers) == 0 {
+		return nil, nil
+	}
+
+	configMap := kafka.ConfigMap{}
+
+	for _, mapper := range mappers {
+		m, err := mapper.AsConfigMap()
+		if err != nil {
+			return nil, err
+		}
+
+		for k, v := range m {
+			configMap[k] = v
+		}
+	}
+
+	return configMap, nil
+}
 
 type configValue interface {
 	fmt.Stringer
