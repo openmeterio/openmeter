@@ -8,6 +8,7 @@ export interface paths {
     /**
      * List ingested events
      * @description List ingested events within a time range.
+     * If the from query param is not provided it defaults to last 72 hours.
      */
     get: operations['listEvents']
     /**
@@ -1899,12 +1900,39 @@ export interface operations {
   /**
    * List ingested events
    * @description List ingested events within a time range.
+   * If the from query param is not provided it defaults to last 72 hours.
    */
   listEvents: {
     parameters: {
       query?: {
         from?: components['parameters']['queryFrom']
         to?: components['parameters']['queryTo']
+        /**
+         * @description Start date-time in RFC 3339 format.
+         * Inclusive.
+         */
+        ingestedAtFrom?: string
+        /**
+         * @description End date-time in RFC 3339 format.
+         * Inclusive.
+         */
+        ingestedAtTo?: string
+        /**
+         * @description If not provided lists all events.
+         * If provided with true, only list events with processing error.
+         * If provided with false, only list events without processing error.
+         */
+        hasError?: boolean
+        /**
+         * @description The event ID.
+         * Accepts partial ID.
+         */
+        id?: string
+        /**
+         * @description The event subject.
+         * Accepts partial subject.
+         */
+        subject?: string
         /** @description Number of events to return */
         limit?: number
       }
