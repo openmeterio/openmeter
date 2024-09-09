@@ -5,8 +5,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill-kafka/v3/pkg/kafka"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/cloudevents/sdk-go/v2/event"
-
-	"github.com/openmeterio/openmeter/pkg/slicesx"
+	"github.com/samber/lo"
 )
 
 const (
@@ -26,7 +25,7 @@ func (m marshalerWithPartitionKey) Marshal(topic string, msg *message.Message) (
 	partitionKey := msg.Metadata.Get(PartitionKeyMetadataKey)
 	if partitionKey != "" {
 		kafkaMsg.Key = sarama.ByteEncoder(partitionKey)
-		kafkaMsg.Headers = slicesx.Filter(kafkaMsg.Headers, func(header sarama.RecordHeader) bool {
+		kafkaMsg.Headers = lo.Filter(kafkaMsg.Headers, func(header sarama.RecordHeader, _ int) bool {
 			return string(header.Key) != PartitionKeyMetadataKey
 		})
 	}

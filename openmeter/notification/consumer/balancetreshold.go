@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/samber/lo"
 	"golang.org/x/exp/slices"
 
 	"github.com/openmeterio/openmeter/api"
@@ -22,7 +23,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
-	"github.com/openmeterio/openmeter/pkg/slicesx"
 	"github.com/openmeterio/openmeter/pkg/sortx"
 )
 
@@ -51,7 +51,7 @@ func (b *BalanceThresholdEventHandler) Handle(ctx context.Context, event snapsho
 		return fmt.Errorf("failed to list notification rules: %w", err)
 	}
 
-	affectedRules := slicesx.Filter(affectedRulesPaged.Items, func(rule notification.Rule) bool {
+	affectedRules := lo.Filter(affectedRulesPaged.Items, func(rule notification.Rule, _ int) bool {
 		if len(rule.Config.BalanceThreshold.Thresholds) == 0 {
 			return false
 		}

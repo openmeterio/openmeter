@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 
+	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/metric"
 
 	eventmodels "github.com/openmeterio/openmeter/openmeter/event/models"
@@ -48,7 +49,7 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 	var finalErr error
 
 	// Filter meaningful events for downstream
-	filtered := slicesx.Filter(events, func(event sinkmodels.SinkMessage) bool {
+	filtered := lo.Filter(events, func(event sinkmodels.SinkMessage, _ int) bool {
 		// We explicityl ignore non-parseable & non-meter affecting events
 		return event.Serialized != nil && len(event.Meters) > 0
 	})
@@ -68,7 +69,7 @@ func (h *handler) OnFlushSuccess(ctx context.Context, events []sinkmodels.SinkMe
 	})
 
 	// We need to chunk the events to not exceed message size limits
-	chunkedEvents := slicesx.Chunk(iEvents, h.config.MaxEventsInBatch)
+	chunkedEvents := lo.Chunk(iEvents, h.config.MaxEventsInBatch)
 	for _, chunk := range chunkedEvents {
 		if err := h.publisher.Publish(ctx, ingestevents.EventBatchedIngest{Events: chunk}); err != nil {
 			finalErr = errors.Join(finalErr, err)
