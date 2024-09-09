@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/samber/lo"
 	"golang.org/x/exp/slices"
 
 	"github.com/openmeterio/openmeter/api"
@@ -23,7 +24,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 	"github.com/openmeterio/openmeter/pkg/sortx"
-	"github.com/samber/lo"
 )
 
 type BalanceThresholdEventHandler struct {
