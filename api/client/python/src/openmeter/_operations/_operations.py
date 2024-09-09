@@ -41,6 +41,11 @@ def build_list_events_request(
     *,
     from_parameter: Optional[datetime.datetime] = None,
     to: Optional[datetime.datetime] = None,
+    ingested_at_from: Optional[datetime.datetime] = None,
+    ingested_at_to: Optional[datetime.datetime] = None,
+    has_error: Optional[bool] = None,
+    id: Optional[str] = None,
+    subject: Optional[str] = None,
     limit: int = 100,
     **kwargs: Any
 ) -> HttpRequest:
@@ -57,6 +62,16 @@ def build_list_events_request(
         _params["from"] = _SERIALIZER.query("from_parameter", from_parameter, "iso-8601")
     if to is not None:
         _params["to"] = _SERIALIZER.query("to", to, "iso-8601")
+    if ingested_at_from is not None:
+        _params["ingestedAtFrom"] = _SERIALIZER.query("ingested_at_from", ingested_at_from, "iso-8601")
+    if ingested_at_to is not None:
+        _params["ingestedAtTo"] = _SERIALIZER.query("ingested_at_to", ingested_at_to, "iso-8601")
+    if has_error is not None:
+        _params["hasError"] = _SERIALIZER.query("has_error", has_error, "bool")
+    if id is not None:
+        _params["id"] = _SERIALIZER.query("id", id, "str")
+    if subject is not None:
+        _params["subject"] = _SERIALIZER.query("subject", subject, "str")
     if limit is not None:
         _params["limit"] = _SERIALIZER.query("limit", limit, "int", maximum=100, minimum=1)
 
@@ -1254,6 +1269,11 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         *,
         from_parameter: Optional[datetime.datetime] = None,
         to: Optional[datetime.datetime] = None,
+        ingested_at_from: Optional[datetime.datetime] = None,
+        ingested_at_to: Optional[datetime.datetime] = None,
+        has_error: Optional[bool] = None,
+        id: Optional[str] = None,
+        subject: Optional[str] = None,
         limit: int = 100,
         **kwargs: Any
     ) -> List[JSON]:
@@ -1261,6 +1281,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         """List ingested events.
 
         List ingested events within a time range.
+        If the from query param is not provided it defaults to last 72 hours.
 
         :keyword from_parameter: Start date-time in RFC 3339 format.
          Inclusive. Default value is None.
@@ -1268,6 +1289,22 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         :keyword to: End date-time in RFC 3339 format.
          Inclusive. Default value is None.
         :paramtype to: ~datetime.datetime
+        :keyword ingested_at_from: Start date-time in RFC 3339 format.
+         Inclusive. Default value is None.
+        :paramtype ingested_at_from: ~datetime.datetime
+        :keyword ingested_at_to: End date-time in RFC 3339 format.
+         Inclusive. Default value is None.
+        :paramtype ingested_at_to: ~datetime.datetime
+        :keyword has_error: If not provided lists all events.
+         If provided with true, only list events with processing error.
+         If provided with false, only list events without processing error. Default value is None.
+        :paramtype has_error: bool
+        :keyword id: The event ID.
+         Accepts partial ID. Default value is None.
+        :paramtype id: str
+        :keyword subject: The event subject.
+         Accepts partial subject. Default value is None.
+        :paramtype subject: str
         :keyword limit: Number of events to return. Default value is 100.
         :paramtype limit: int
         :return: list of JSON object
@@ -1325,6 +1362,11 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         _request = build_list_events_request(
             from_parameter=from_parameter,
             to=to,
+            ingested_at_from=ingested_at_from,
+            ingested_at_to=ingested_at_to,
+            has_error=has_error,
+            id=id,
+            subject=subject,
             limit=limit,
             headers=_headers,
             params=_params,
