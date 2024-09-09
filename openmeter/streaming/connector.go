@@ -9,9 +9,14 @@ import (
 )
 
 type ListEventsParams struct {
-	From  *time.Time
-	To    *time.Time
-	Limit int
+	From           *time.Time
+	To             *time.Time
+	IngestedAtFrom *time.Time
+	IngestedAtTo   *time.Time
+	ID             *string
+	Subject        *string
+	HasError       *bool
+	Limit          int
 }
 
 type CountEventsParams struct {

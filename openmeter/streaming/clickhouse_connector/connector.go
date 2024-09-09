@@ -218,11 +218,16 @@ func (c *ClickhouseConnector) createEventsTable(ctx context.Context) error {
 
 func (c *ClickhouseConnector) queryEventsTable(ctx context.Context, namespace string, params streaming.ListEventsParams) ([]api.IngestedEvent, error) {
 	table := queryEventsTable{
-		Database:  c.config.Database,
-		Namespace: namespace,
-		From:      params.From,
-		To:        params.To,
-		Limit:     params.Limit,
+		Database:       c.config.Database,
+		Namespace:      namespace,
+		From:           params.From,
+		To:             params.To,
+		IngestedAtFrom: params.IngestedAtFrom,
+		IngestedAtTo:   params.IngestedAtTo,
+		ID:             params.ID,
+		Subject:        params.Subject,
+		HasError:       params.HasError,
+		Limit:          params.Limit,
 	}
 
 	sql, args := table.toSQL()

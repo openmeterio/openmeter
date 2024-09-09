@@ -48,11 +48,16 @@ func (d createEventsTable) toSQL() string {
 }
 
 type queryEventsTable struct {
-	Database  string
-	Namespace string
-	From      *time.Time
-	To        *time.Time
-	Limit     int
+	Database       string
+	Namespace      string
+	From           *time.Time
+	To             *time.Time
+	IngestedAtFrom *time.Time
+	IngestedAtTo   *time.Time
+	ID             *string
+	Subject        *string
+	HasError       *bool
+	Limit          int
 }
 
 func (d queryEventsTable) toSQL() (string, []interface{}) {
@@ -69,6 +74,25 @@ func (d queryEventsTable) toSQL() (string, []interface{}) {
 	}
 	if d.To != nil {
 		where = append(where, query.LessEqualThan("time", d.To.Unix()))
+	}
+	if d.IngestedAtFrom != nil {
+		where = append(where, query.GreaterEqualThan("ingested_at", d.IngestedAtFrom.Unix()))
+	}
+	if d.IngestedAtTo != nil {
+		where = append(where, query.LessEqualThan("ingested_at", d.IngestedAtTo.Unix()))
+	}
+	if d.ID != nil {
+		where = append(where, query.Like("id", fmt.Sprintf("%%%s%%", *d.ID)))
+	}
+	if d.Subject != nil {
+		where = append(where, query.Like("subject", fmt.Sprintf("%%%s%%", *d.Subject)))
+	}
+	if d.HasError != nil {
+		if *d.HasError {
+			where = append(where, "notEmpty(validation_error) = 1")
+		} else {
+			where = append(where, "empty(validation_error) = 1")
+		}
 	}
 	query.Where(where...)
 

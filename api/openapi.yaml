@@ -98,6 +98,15 @@ paths:
           schema:
             type: string
             example: false
+        - name: subject
+          in: query
+          required: false
+          description: |
+            The event subject.
+            Accepts partial subject.
+          schema:
+            type: string
+            example: false
         - name: limit
           in: query
           required: false
