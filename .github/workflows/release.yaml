@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Run pipeline
-        uses: dagger/dagger-for-github@8ab204f3cf74a4940a1648469c426ef0d28af7cc # v6.6.0
+        uses: dagger/dagger-for-github@a419ddbf5ee9800810f7e029de674fbe0ce855aa # v6.7.0
         with:
           verb: call
           module: github.com/${{ github.repository }}@${{ github.ref }}
