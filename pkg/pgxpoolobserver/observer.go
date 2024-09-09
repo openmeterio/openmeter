@@ -134,9 +134,16 @@ func ObservePoolMetrics(meter metric.Meter, pool *pgxpool.Pool, additionalAttrib
 
 	_, err = meter.RegisterCallback(func(_ context.Context, o metric.Observer) error {
 		stat := pool.Stat()
-		o.ObserveInt64(acquireCountMetric, stat.AcquireCount(), metric.WithAttributes(additionalAttributes...))
-		o.ObserveInt64(acquiredDurationMetric, stat.AcquireDuration().Milliseconds(), metric.WithAttributes(additionalAttributes...))
-		o.ObserveInt64(avgAcquiredDurationMetric, stat.AcquireDuration().Milliseconds()/stat.AcquireCount(), metric.WithAttributes(additionalAttributes...))
+
+		acquireCount := stat.AcquireCount()
+		acquireDurationMS := stat.AcquireDuration().Milliseconds()
+
+		o.ObserveInt64(acquireCountMetric, acquireCount, metric.WithAttributes(additionalAttributes...))
+		o.ObserveInt64(acquiredDurationMetric, acquireDurationMS, metric.WithAttributes(additionalAttributes...))
+
+		if acquireCount > 0 {
+			o.ObserveInt64(avgAcquiredDurationMetric, acquireDurationMS/acquireCount, metric.WithAttributes(additionalAttributes...))
+		}
 		o.ObserveInt64(acquiredConnsMetric, int64(stat.AcquiredConns()), metric.WithAttributes(additionalAttributes...))
 		o.ObserveInt64(canceledAcquireCountMetric, stat.CanceledAcquireCount(), metric.WithAttributes(additionalAttributes...))
 		o.ObserveInt64(constructingConnsMetric, int64(stat.ConstructingConns()), metric.WithAttributes(additionalAttributes...))
