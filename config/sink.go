@@ -9,12 +9,15 @@ import (
 )
 
 type SinkConfiguration struct {
+	// FIXME(chrisgacsal): remove as it is deprecated by moving Kafka specific configuration to dedicated config params.
 	GroupId             string
 	Dedupe              DedupeConfiguration
 	MinCommitCount      int
 	MaxCommitWait       time.Duration
 	NamespaceRefetch    time.Duration
 	IngestNotifications IngestNotificationsConfiguration
+	// Kafka client/Consumer configuration
+	Kafka KafkaConfig
 }
 
 func (c SinkConfiguration) Validate() error {
@@ -32,6 +35,10 @@ func (c SinkConfiguration) Validate() error {
 
 	if err := c.IngestNotifications.Validate(); err != nil {
 		return fmt.Errorf("ingest notifications: %w", err)
+	}
+
+	if err := c.Kafka.Validate(); err != nil {
+		return fmt.Errorf("kafka: %w", err)
 	}
 
 	return nil
@@ -53,7 +60,7 @@ func (c IngestNotificationsConfiguration) Validate() error {
 	return nil
 }
 
-// Configure configures some defaults in the Viper instance.
+// ConfigureSink setup Sink specific configuration defaults for provided *viper.Viper instance.
 func ConfigureSink(v *viper.Viper) {
 	// Sink Dedupe
 	v.SetDefault("sink.dedupe.enabled", false)
@@ -74,9 +81,13 @@ func ConfigureSink(v *viper.Viper) {
 	v.SetDefault("sink.dedupe.config.tls.insecureSkipVerify", false)
 
 	// Sink
+	// FIXME(chrisgacsal): remove as it is deprecated by moving Kafka specific configuration to dedicated config params.
 	v.SetDefault("sink.groupId", "openmeter-sink-worker")
 	v.SetDefault("sink.minCommitCount", 500)
 	v.SetDefault("sink.maxCommitWait", "5s")
 	v.SetDefault("sink.namespaceRefetch", "15s")
 	v.SetDefault("sink.ingestNotifications.maxEventsInBatch", 500)
+
+	// Sink Kafka configuration
+	ConfigureKafkaConfiguration(v, "sink")
 }

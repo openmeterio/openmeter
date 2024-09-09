@@ -33,7 +33,6 @@ type Configuration struct {
 	BalanceWorker BalanceWorkerConfiguration
 	Notification  NotificationConfiguration
 	Svix          SvixConfig
-	Kafka         KafkaConfig
 }
 
 // Validate validates the configuration.
@@ -106,10 +105,6 @@ func (c Configuration) Validate() error {
 		}
 	}
 
-	if err := c.Kafka.Validate(); err != nil {
-		return fmt.Errorf("kafka: %w", err)
-	}
-
 	return nil
 }
 
@@ -145,5 +140,4 @@ func SetViperDefaults(v *viper.Viper, flags *pflag.FlagSet) {
 	ConfigureEvents(v)
 	ConfigureBalanceWorker(v)
 	ConfigureNotification(v)
-	ConfigureKafkaConfiguration(v)
 }

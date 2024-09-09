@@ -144,6 +144,34 @@ func TestComplete(t *testing.T) {
 			IngestNotifications: IngestNotificationsConfiguration{
 				MaxEventsInBatch: 500,
 			},
+			Kafka: KafkaConfig{
+				CommonConfigParams: pkgkafka.CommonConfigParams{
+					Brokers:                      "127.0.0.1:9092",
+					SecurityProtocol:             "SASL_SSL",
+					SaslMechanisms:               "PLAIN",
+					SaslUsername:                 "user",
+					SaslPassword:                 "pass",
+					ClientID:                     "kafka-client-1",
+					StatsInterval:                pkgkafka.TimeDurationMilliSeconds(5 * time.Second),
+					BrokerAddressFamily:          pkgkafka.BrokerAddressFamilyAny,
+					TopicMetadataRefreshInterval: pkgkafka.TimeDurationMilliSeconds(time.Minute),
+					SocketKeepAliveEnabled:       true,
+					DebugContexts: pkgkafka.DebugContexts{
+						"broker",
+						"topic",
+						"consumer",
+					},
+				},
+				ConsumerConfigParams: pkgkafka.ConsumerConfigParams{
+					ConsumerGroupID:         "consumer-group",
+					ConsumerGroupInstanceID: "consumer-group-1",
+					SessionTimeout:          pkgkafka.TimeDurationMilliSeconds(5 * time.Minute),
+					HeartbeatInterval:       pkgkafka.TimeDurationMilliSeconds(3 * time.Second),
+					EnableAutoCommit:        true,
+					EnableAutoOffsetStore:   false,
+					AutoOffsetReset:         "error",
+				},
+			},
 		},
 		Dedupe: DedupeConfiguration{
 			Enabled: true,
@@ -249,35 +277,6 @@ func TestComplete(t *testing.T) {
 			APIKey:    "test-svix-token",
 			ServerURL: "http://127.0.0.1:8071",
 			Debug:     true,
-		},
-		Kafka: KafkaConfig{
-			CommonConfigParams: pkgkafka.CommonConfigParams{
-				Brokers:                      "127.0.0.1:9092",
-				SecurityProtocol:             "SASL_SSL",
-				SaslMechanisms:               "PLAIN",
-				SaslUsername:                 "user",
-				SaslPassword:                 "pass",
-				ClientID:                     "kafka-client-1",
-				StatsInterval:                pkgkafka.TimeDurationMilliSeconds(5 * time.Second),
-				BrokerAddressFamily:          pkgkafka.BrokerAddressFamilyAny,
-				TopicMetadataRefreshInterval: pkgkafka.TimeDurationMilliSeconds(time.Minute),
-				SocketKeepAliveEnabled:       true,
-				DebugContexts: pkgkafka.DebugContexts{
-					"broker",
-					"topic",
-					"consumer",
-				},
-			},
-			ConsumerConfigParams: pkgkafka.ConsumerConfigParams{
-				ConsumerGroupID:         "consumer-group",
-				ConsumerGroupInstanceID: "consumer-group-1",
-				SessionTimeout:          pkgkafka.TimeDurationMilliSeconds(5 * time.Minute),
-				HeartbeatInterval:       pkgkafka.TimeDurationMilliSeconds(3 * time.Second),
-				EnableAutoCommit:        true,
-				EnableAutoOffsetStore:   false,
-				AutoOffsetReset:         "error",
-			},
-			ProducerConfigParams: pkgkafka.ProducerConfigParams{},
 		},
 	}
 
