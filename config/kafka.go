@@ -45,6 +45,6 @@ func (c KafkaConfig) Validate() error {
 }
 
 // ConfigureKafkaConfiguration sets defaults in the Viper instance.
-func ConfigureKafkaConfiguration(v *viper.Viper) {
-	v.SetDefault("kafka.brokers", "127.0.0.1:29092")
+func ConfigureKafkaConfiguration(v *viper.Viper, prefix string) {
+	v.SetDefault(AddPrefix(prefix, "kafka.brokers"), "127.0.0.1:29092")
 }

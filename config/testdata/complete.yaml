@@ -68,6 +68,28 @@ sink:
       password: pass
       tls:
         enabled: true
+  kafka:
+    brokers: 127.0.0.1:9092
+    securityProtocol: SASL_SSL
+    saslMechanisms: PLAIN
+    saslUsername: user
+    saslPassword: pass
+    statsInterval: 5s
+    brokerAddressFamily: any
+    socketKeepAliveEnabled: true
+    topicMetadataRefreshInterval: 1m
+    debugContexts:
+      - broker
+      - topic
+      - consumer
+    clientID: kafka-client-1
+    consumerGroupID: consumer-group
+    consumerGroupInstanceID: consumer-group-1
+    sessionTimeout: 5m
+    heartbeatInterval: 3s
+    enableAutoCommit: true
+    enableAutoOffsetStore: false
+    autoOffsetReset: "error"
 
 dedupe:
   enabled: true
@@ -97,26 +119,3 @@ svix:
   apiKey: test-svix-token
   serverURL: http://127.0.0.1:8071
   debug: true
-
-kafka:
-  brokers: 127.0.0.1:9092
-  securityProtocol: SASL_SSL
-  saslMechanisms: PLAIN
-  saslUsername: user
-  saslPassword: pass
-  statsInterval: 5s
-  brokerAddressFamily: any
-  socketKeepAliveEnabled: true
-  topicMetadataRefreshInterval: 1m
-  debugContexts:
-    - broker
-    - topic
-    - consumer
-  clientID: kafka-client-1
-  consumerGroupID: consumer-group
-  consumerGroupInstanceID: consumer-group-1
-  sessionTimeout: 5m
-  heartbeatInterval: 3s
-  enableAutoCommit: true
-  enableAutoOffsetStore: false
-  autoOffsetReset: "error"
