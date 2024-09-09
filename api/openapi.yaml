@@ -54,10 +54,50 @@ paths:
       summary: List ingested events
       description: |
         List ingested events within a time range.
+        If the from query param is not provided it defaults to last 72 hours.
       operationId: listEvents
       parameters:
         - $ref: "#/components/parameters/queryFrom"
         - $ref: "#/components/parameters/queryTo"
+        - name: ingestedAtFrom
+          in: query
+          required: false
+          description: |
+            Start date-time in RFC 3339 format.
+            Inclusive.
+          schema:
+            type: string
+            format: date-time
+            example: "2023-01-01T00:00:00Z"
+        - name: ingestedAtTo
+          in: query
+          required: false
+          description: |
+            End date-time in RFC 3339 format.
+            Inclusive.
+          schema:
+            type: string
+            format: date-time
+            example: "2023-01-02T00:00:00Z"
+        - name: hasError
+          in: query
+          required: false
+          description: |
+            If not provided lists all events.
+            If provided with true, only list events with processing error.
+            If provided with false, only list events without processing error.
+          schema:
+            type: boolean
+            example: false
+        - name: id
+          in: query
+          required: false
+          description: |
+            The event ID.
+            Accepts partial ID.
+          schema:
+            type: string
+            example: false
         - name: limit
           in: query
           required: false
