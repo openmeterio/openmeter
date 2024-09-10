@@ -181,7 +181,7 @@ func (c *entitlementConnector) OverrideEntitlement(ctx context.Context, subject 
 	}
 
 	if oldEnt.DeletedAt != nil {
-		return nil, fmt.Errorf("inconsistency error, entitlement already deleted: %s", oldEnt.ID)
+		return nil, &models.GenericUserError{Message: fmt.Sprintf("Entitlement already deleted: %s", oldEnt.ID)}
 	}
 
 	// ID has priority over key
