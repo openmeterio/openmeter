@@ -15,6 +15,7 @@ var groupByKeyRegExp = regexp.MustCompile(`^[a-zA-Z_][0-9a-zA-Z_]*$`)
 
 type MeterAggregation string
 
+// Note: keep values up to date in the meter package
 const (
 	MeterAggregationSum         MeterAggregation = "SUM"
 	MeterAggregationCount       MeterAggregation = "COUNT"
@@ -53,6 +54,7 @@ func (MeterAggregation) IsValid(input string) bool {
 
 type WindowSize string
 
+// Note: keep values up to date in the meter package
 const (
 	WindowSizeMinute WindowSize = "MINUTE"
 	WindowSizeHour   WindowSize = "HOUR"
