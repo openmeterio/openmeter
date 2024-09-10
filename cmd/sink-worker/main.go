@@ -296,18 +296,36 @@ func initSink(config config.Configuration, logger *slog.Logger, metricMeter metr
 		},
 	)
 
-	consumerKafkaConfig := config.Ingest.Kafka.CreateKafkaConfig()
-	_ = consumerKafkaConfig.SetKey("group.id", config.Sink.GroupId)
-	_ = consumerKafkaConfig.SetKey("session.timeout.ms", 6000)
-	_ = consumerKafkaConfig.SetKey("enable.auto.commit", true)
-	_ = consumerKafkaConfig.SetKey("enable.auto.offset.store", false)
-	_ = consumerKafkaConfig.SetKey("go.application.rebalance.enable", true)
-	// Used when offset retention resets the offset. In this case we want to consume from the latest offset as everything before should be already processed.
-	_ = consumerKafkaConfig.SetKey("auto.offset.reset", "latest")
-	// Guarantees an assignment that is maximally balanced while preserving as many existing partition assignments as possible.
-	_ = consumerKafkaConfig.SetKey("partition.assignment.strategy", "cooperative-sticky")
+	// Initialize Kafka consumer
 
-	consumer, err := kafka.NewConsumer(&consumerKafkaConfig)
+	consumerConfig := config.Sink.Kafka.AsConsumerConfig()
+
+	// Override following Kafka consumer configuration parameters with hardcoded values as the Sink implementation relies on
+	// these to be set to a specific value.
+	consumerConfig.EnableAutoCommit = true
+	consumerConfig.EnableAutoOffsetStore = false
+	// Used when offset retention resets the offset. In this case we want to consume from the latest offset
+	// as everything before should be already processed.
+	consumerConfig.AutoOffsetReset = "latest"
+
+	if err = consumerConfig.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid Kafka consumer configuration: %w", err)
+	}
+
+	logger.WithGroup("kafka").
+		Debug("initializing Kafka consumer with group configuration",
+			"group.id", consumerConfig.ConsumerGroupID,
+			"group.instance.id", consumerConfig.ConsumerGroupInstanceID,
+			"client.id", consumerConfig.ClientID,
+			"session.timeout", consumerConfig.SessionTimeout.Duration().String(),
+		)
+
+	consumerConfigMap, err := consumerConfig.AsConfigMap()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate Kafka configuration map: %w", err)
+	}
+
+	consumer, err := kafka.NewConsumer(&consumerConfigMap)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize kafka consumer: %s", err)
 	}
