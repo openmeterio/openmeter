@@ -151,14 +151,14 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 	)
 }
 
-func (a *entitlementDBAdapter) DeleteEntitlement(ctx context.Context, entitlementID models.NamespacedID) error {
+func (a *entitlementDBAdapter) DeleteEntitlement(ctx context.Context, entitlementID models.NamespacedID, at time.Time) error {
 	_, err := entutils.TransactingRepo[*entitlement.Entitlement, *entitlementDBAdapter](
 		ctx,
 		a,
 		func(ctx context.Context, repo *entitlementDBAdapter) (*entitlement.Entitlement, error) {
 			affectedCount, err := repo.db.Entitlement.Update().
 				Where(db_entitlement.ID(entitlementID.ID), db_entitlement.Namespace(entitlementID.Namespace)).
-				SetDeletedAt(clock.Now()).
+				SetDeletedAt(at).
 				Save(ctx)
 			if err != nil {
 				return nil, err
