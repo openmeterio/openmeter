@@ -73,7 +73,7 @@ func TestNamespaceStore(t *testing.T) {
 			},
 			want: sinkmodels.ProcessingStatus{
 				State: sinkmodels.INVALID,
-				Error: errors.New("cannot unmarshal event data as json"),
+				Error: errors.New("cannot unmarshal event data"),
 			},
 		},
 		{
@@ -87,7 +87,7 @@ func TestNamespaceStore(t *testing.T) {
 			},
 			want: sinkmodels.ProcessingStatus{
 				State: sinkmodels.INVALID,
-				Error: errors.New("event data is missing value property at $.duration_ms"),
+				Error: errors.New("event data is missing value property at \"$.duration_ms\""),
 			},
 		},
 		{

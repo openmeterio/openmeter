@@ -2,13 +2,14 @@ package sink
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
+	"time"
 
-	"github.com/oliveagle/jsonpath"
+	"github.com/cloudevents/sdk-go/v2/event"
 
+	"github.com/openmeterio/openmeter/openmeter/ingest/kafkaingest/serializer"
+	"github.com/openmeterio/openmeter/openmeter/meter"
 	sinkmodels "github.com/openmeterio/openmeter/openmeter/sink/models"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -74,81 +75,42 @@ func (n *NamespaceStore) ValidateEvent(_ context.Context, m *sinkmodels.SinkMess
 	}
 }
 
+func kafkaPayloadToCloudEvents(payload serializer.CloudEventsKafkaPayload) (event.Event, error) {
+	ev := event.New()
+
+	ev.SetID(payload.Id)
+	ev.SetType(payload.Type)
+	ev.SetSource(payload.Source)
+	ev.SetSubject(payload.Subject)
+	ev.SetTime(time.Unix(payload.Time, 0))
+
+	err := ev.SetData(event.ApplicationJSON, []byte(payload.Data))
+	if err != nil {
+		return event.Event{}, err
+	}
+
+	return ev, nil
+}
+
 // validateEventWithMeter validates a single event against a single meter
-func validateEventWithMeter(meter models.Meter, m *sinkmodels.SinkMessage) {
-	// Parse CloudEvents data as JSON, currently we only support JSON encoding
-	var data interface{}
-	err := json.Unmarshal([]byte(m.Serialized.Data), &data)
+func validateEventWithMeter(m models.Meter, sm *sinkmodels.SinkMessage) {
+	ev, err := kafkaPayloadToCloudEvents(*sm.Serialized)
 	if err != nil {
-		m.Status = sinkmodels.ProcessingStatus{
+		sm.Status = sinkmodels.ProcessingStatus{
 			State: sinkmodels.INVALID,
-			Error: errors.New("cannot unmarshal event data as json"),
+			Error: errors.New("cannot parse event"),
 		}
 
 		return
 	}
 
-	// We can skip count events as they don't have value property
-	if meter.Aggregation == models.MeterAggregationCount {
-		return
-	}
-
-	// Get value from event data by value property
-	valueRaw, err := jsonpath.JsonPathLookup(data, meter.ValueProperty)
+	err = meter.ValidateEvent(m, ev)
 	if err != nil {
-		m.Status = sinkmodels.ProcessingStatus{
+		sm.Status = sinkmodels.ProcessingStatus{
 			State: sinkmodels.INVALID,
-			Error: fmt.Errorf("event data is missing value property at %s", meter.ValueProperty),
+			Error: err,
 		}
 
 		return
-	}
-	if valueRaw == nil {
-		m.Status = sinkmodels.ProcessingStatus{
-			State: sinkmodels.INVALID,
-			Error: errors.New("event data value cannot be null"),
-		}
-
-		return
-	}
-
-	// Aggregation specific value validation
-	switch meter.Aggregation {
-	// UNIQUE_COUNT aggregation requires string property value
-	case models.MeterAggregationUniqueCount:
-		switch valueRaw.(type) {
-		case string, float64:
-			// No need to do anything
-		default:
-			m.Status = sinkmodels.ProcessingStatus{
-				State: sinkmodels.INVALID,
-				Error: errors.New("event data value property must be string for unique count aggregation"),
-			}
-
-			return
-		}
-	// SUM, AVG, MIN, MAX aggregations require float64 parsable value property value
-	case models.MeterAggregationSum, models.MeterAggregationAvg, models.MeterAggregationMin, models.MeterAggregationMax:
-		switch value := valueRaw.(type) {
-		case string:
-			_, err = strconv.ParseFloat(value, 64)
-			if err != nil {
-				m.Status = sinkmodels.ProcessingStatus{
-					State: sinkmodels.INVALID,
-					Error: fmt.Errorf("event data value cannot be parsed as float64: %s", value),
-				}
-
-				return
-			}
-		case float64:
-			// No need to do anything
-		default:
-			m.Status = sinkmodels.ProcessingStatus{
-				State: sinkmodels.INVALID,
-				Error: errors.New("event data value property cannot be parsed"),
-			}
-
-			return
-		}
 	}
 }
