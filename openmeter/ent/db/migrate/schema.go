@@ -908,6 +908,8 @@ var (
 		{Name: "usage_period_anchor", Type: field.TypeTime, Nullable: true},
 		{Name: "current_usage_period_start", Type: field.TypeTime, Nullable: true},
 		{Name: "current_usage_period_end", Type: field.TypeTime, Nullable: true},
+		{Name: "subscription_managed", Type: field.TypeBool, Nullable: true},
+		{Name: "entitlement_subscription_item", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
 		{Name: "feature_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// EntitlementsTable holds the schema information for the "entitlements" table.
@@ -917,8 +919,14 @@ var (
 		PrimaryKey: []*schema.Column{EntitlementsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
+				Symbol:     "entitlements_subscription_items_subscription_item",
+				Columns:    []*schema.Column{EntitlementsColumns[22]},
+				RefColumns: []*schema.Column{SubscriptionItemsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
 				Symbol:     "entitlements_features_entitlement",
-				Columns:    []*schema.Column{EntitlementsColumns[21]},
+				Columns:    []*schema.Column{EntitlementsColumns[23]},
 				RefColumns: []*schema.Column{FeaturesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -952,7 +960,7 @@ var (
 			{
 				Name:    "entitlement_namespace_feature_id_id",
 				Unique:  false,
-				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[21], EntitlementsColumns[0]},
+				Columns: []*schema.Column{EntitlementsColumns[1], EntitlementsColumns[23], EntitlementsColumns[0]},
 			},
 			{
 				Name:    "entitlement_namespace_current_usage_period_end",
@@ -1416,6 +1424,177 @@ var (
 			},
 		},
 	}
+	// SubscriptionsColumns holds the columns for the "subscriptions" table.
+	SubscriptionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "active_from", Type: field.TypeTime},
+		{Name: "active_to", Type: field.TypeTime, Nullable: true},
+		{Name: "plan_key", Type: field.TypeString},
+		{Name: "plan_version", Type: field.TypeInt},
+		{Name: "currency", Type: field.TypeString, Size: 3},
+		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// SubscriptionsTable holds the schema information for the "subscriptions" table.
+	SubscriptionsTable = &schema.Table{
+		Name:       "subscriptions",
+		Columns:    SubscriptionsColumns,
+		PrimaryKey: []*schema.Column{SubscriptionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "subscriptions_customers_subscription",
+				Columns:    []*schema.Column{SubscriptionsColumns[11]},
+				RefColumns: []*schema.Column{CustomersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "subscription_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionsColumns[0]},
+			},
+			{
+				Name:    "subscription_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionsColumns[1]},
+			},
+			{
+				Name:    "subscription_namespace_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[0]},
+			},
+			{
+				Name:    "subscription_namespace_customer_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionsColumns[1], SubscriptionsColumns[11]},
+			},
+		},
+	}
+	// SubscriptionItemsColumns holds the columns for the "subscription_items" table.
+	SubscriptionItemsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "active_from", Type: field.TypeTime},
+		{Name: "active_to", Type: field.TypeTime, Nullable: true},
+		{Name: "key", Type: field.TypeString},
+		{Name: "active_from_override_relative_to_phase_start", Type: field.TypeString, Nullable: true},
+		{Name: "active_to_override_relative_to_phase_start", Type: field.TypeString, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "feature_key", Type: field.TypeString, Nullable: true},
+		{Name: "entitlement_template", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "tax_config", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "billing_cadence", Type: field.TypeString, Nullable: true},
+		{Name: "price", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "entitlement_id", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "phase_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// SubscriptionItemsTable holds the schema information for the "subscription_items" table.
+	SubscriptionItemsTable = &schema.Table{
+		Name:       "subscription_items",
+		Columns:    SubscriptionItemsColumns,
+		PrimaryKey: []*schema.Column{SubscriptionItemsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "subscription_items_entitlements_entitlement",
+				Columns:    []*schema.Column{SubscriptionItemsColumns[18]},
+				RefColumns: []*schema.Column{EntitlementsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "subscription_items_subscription_phases_items",
+				Columns:    []*schema.Column{SubscriptionItemsColumns[19]},
+				RefColumns: []*schema.Column{SubscriptionPhasesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "subscriptionitem_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionItemsColumns[0]},
+			},
+			{
+				Name:    "subscriptionitem_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionItemsColumns[1]},
+			},
+			{
+				Name:    "subscriptionitem_namespace_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionItemsColumns[1], SubscriptionItemsColumns[0]},
+			},
+			{
+				Name:    "subscriptionitem_namespace_phase_id_key",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionItemsColumns[1], SubscriptionItemsColumns[19], SubscriptionItemsColumns[8]},
+			},
+		},
+	}
+	// SubscriptionPhasesColumns holds the columns for the "subscription_phases" table.
+	SubscriptionPhasesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "key", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString, Nullable: true},
+		{Name: "active_from", Type: field.TypeTime},
+		{Name: "subscription_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// SubscriptionPhasesTable holds the schema information for the "subscription_phases" table.
+	SubscriptionPhasesTable = &schema.Table{
+		Name:       "subscription_phases",
+		Columns:    SubscriptionPhasesColumns,
+		PrimaryKey: []*schema.Column{SubscriptionPhasesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "subscription_phases_subscriptions_phases",
+				Columns:    []*schema.Column{SubscriptionPhasesColumns[10]},
+				RefColumns: []*schema.Column{SubscriptionsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "subscriptionphase_id",
+				Unique:  true,
+				Columns: []*schema.Column{SubscriptionPhasesColumns[0]},
+			},
+			{
+				Name:    "subscriptionphase_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionPhasesColumns[1]},
+			},
+			{
+				Name:    "subscriptionphase_namespace_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionPhasesColumns[1], SubscriptionPhasesColumns[0]},
+			},
+			{
+				Name:    "subscriptionphase_namespace_subscription_id",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionPhasesColumns[1], SubscriptionPhasesColumns[10]},
+			},
+			{
+				Name:    "subscriptionphase_namespace_subscription_id_key",
+				Unique:  false,
+				Columns: []*schema.Column{SubscriptionPhasesColumns[1], SubscriptionPhasesColumns[10], SubscriptionPhasesColumns[6]},
+			},
+		},
+	}
 	// UsageResetsColumns holds the columns for the "usage_resets" table.
 	UsageResetsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -1540,6 +1719,9 @@ var (
 		PlansTable,
 		PlanPhasesTable,
 		PlanRateCardsTable,
+		SubscriptionsTable,
+		SubscriptionItemsTable,
+		SubscriptionPhasesTable,
 		UsageResetsTable,
 		NotificationChannelRulesTable,
 		NotificationEventDeliveryStatusEventsTable,
@@ -1572,12 +1754,17 @@ func init() {
 	BillingProfilesTable.ForeignKeys[2].RefTable = AppsTable
 	BillingProfilesTable.ForeignKeys[3].RefTable = BillingWorkflowConfigsTable
 	CustomerSubjectsTable.ForeignKeys[0].RefTable = CustomersTable
-	EntitlementsTable.ForeignKeys[0].RefTable = FeaturesTable
+	EntitlementsTable.ForeignKeys[0].RefTable = SubscriptionItemsTable
+	EntitlementsTable.ForeignKeys[1].RefTable = FeaturesTable
 	GrantsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	NotificationEventsTable.ForeignKeys[0].RefTable = NotificationRulesTable
 	PlanPhasesTable.ForeignKeys[0].RefTable = PlansTable
 	PlanRateCardsTable.ForeignKeys[0].RefTable = FeaturesTable
 	PlanRateCardsTable.ForeignKeys[1].RefTable = PlanPhasesTable
+	SubscriptionsTable.ForeignKeys[0].RefTable = CustomersTable
+	SubscriptionItemsTable.ForeignKeys[0].RefTable = EntitlementsTable
+	SubscriptionItemsTable.ForeignKeys[1].RefTable = SubscriptionPhasesTable
+	SubscriptionPhasesTable.ForeignKeys[0].RefTable = SubscriptionsTable
 	UsageResetsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	NotificationChannelRulesTable.ForeignKeys[0].RefTable = NotificationChannelsTable
 	NotificationChannelRulesTable.ForeignKeys[1].RefTable = NotificationRulesTable

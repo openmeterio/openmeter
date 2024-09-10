@@ -23,8 +23,9 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input Cr
 		if input.ActiveTo != nil && input.ActiveFrom == nil {
 			return nil, &models.GenericUserError{Message: "ActiveFrom must be set if ActiveTo is set"}
 		}
-		if input.ActiveTo != nil && !input.ActiveTo.After(activeFromTime) {
-			return nil, &models.GenericUserError{Message: "ActiveTo must be after ActiveFrom"}
+		// We can allow an active period of 0 (ActiveFrom = ActiveTo)
+		if input.ActiveTo != nil && input.ActiveTo.Before(activeFromTime) {
+			return nil, &models.GenericUserError{Message: "ActiveTo cannot be before ActiveFrom"}
 		}
 
 		// ID has priority over key
@@ -49,7 +50,7 @@ func (c *entitlementConnector) ScheduleEntitlement(ctx context.Context, input Cr
 		input.ActiveFrom = &activeFromTime
 
 		// Get scheduled entitlements for subject-feature pair
-		scheduledEnts, err := c.entitlementRepo.GetScheduledEntitlements(ctx, input.Namespace, models.SubjectKey(input.SubjectKey), feat.Key, activeFromTime)
+		scheduledEnts, err := c.entitlementRepo.GetScheduledEntitlements(ctx, input.Namespace, input.SubjectKey, feat.Key, activeFromTime)
 		if err != nil {
 			return nil, err
 		}
@@ -190,6 +191,8 @@ func (c *entitlementConnector) SupersedeEntitlement(ctx context.Context, entitle
 		}
 
 		// Create new entitlement
+		//
+		// The Unique Constraint during Scheduling catches the InconsistencyError where the new entitltment would be scheduled active longer then any later entitlement would start.
 		return c.ScheduleEntitlement(ctx, input)
 	})
 }

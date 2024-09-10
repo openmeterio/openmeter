@@ -17,20 +17,20 @@ type UpdateEntitlementUsagePeriodParams struct {
 
 type EntitlementRepo interface {
 	// GetActiveEntitlementsOfSubject returns all active entitlements of a subject at a given time
-	GetActiveEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey, at time.Time) ([]Entitlement, error)
+	GetActiveEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey string, at time.Time) ([]Entitlement, error)
 
 	// GetActiveEntitlementOfSubjectAt returns the active entitlement of a subject at a given time by feature key
 	GetActiveEntitlementOfSubjectAt(ctx context.Context, namespace string, subjectKey string, featureKey string, at time.Time) (*Entitlement, error)
 
 	// GetScheduledEntitlements returns all scheduled entitlements for a given subject-feature pair that become inactive after the given time, sorted by the time they become active
-	GetScheduledEntitlements(ctx context.Context, namespace string, subjectKey models.SubjectKey, featureKey string, starting time.Time) ([]Entitlement, error)
+	GetScheduledEntitlements(ctx context.Context, namespace string, subjectKey string, featureKey string, starting time.Time) ([]Entitlement, error)
 
 	// DeactivateEntitlement deactivates an entitlement by setting the activeTo time. If the entitlement is already deactivated, it returns an error.
 	DeactivateEntitlement(ctx context.Context, entitlementID models.NamespacedID, at time.Time) error
 
 	CreateEntitlement(ctx context.Context, entitlement CreateEntitlementRepoInputs) (*Entitlement, error)
 	GetEntitlement(ctx context.Context, entitlementID models.NamespacedID) (*Entitlement, error)
-	DeleteEntitlement(ctx context.Context, entitlementID models.NamespacedID) error
+	DeleteEntitlement(ctx context.Context, entitlementID models.NamespacedID, at time.Time) error
 
 	ListEntitlements(ctx context.Context, params ListEntitlementsParams) (pagination.PagedResponse[Entitlement], error)
 
@@ -73,4 +73,6 @@ type CreateEntitlementRepoInputs struct {
 	UsagePeriod             *UsagePeriod       `json:"usagePeriod,omitempty"`
 	CurrentUsagePeriod      *recurrence.Period `json:"currentUsagePeriod,omitempty"`
 	PreserveOverageAtReset  *bool              `json:"preserveOverageAtReset,omitempty"`
+
+	SubscriptionManaged bool `json:"subscriptionManaged,omitempty"`
 }

@@ -25,7 +25,6 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/datex"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 func TestPlanService(t *testing.T) {
@@ -1097,7 +1096,7 @@ type testEnv struct {
 func (e *testEnv) DBSchemaMigrate(t *testing.T) {
 	require.NotNilf(t, e.db, "database must be initialized")
 
-	err := migrate.Up(e.db.URL)
+	err := e.db.EntDriver.Client().Schema.Create(context.Background())
 	require.NoErrorf(t, err, "schema migration must not fail")
 }
 

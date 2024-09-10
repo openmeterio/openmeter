@@ -136,7 +136,7 @@ func (NamespaceMixin) Indexes() []ent.Index {
 	}
 }
 
-// NamespaceMixin can be used for namespaced entities
+// MetadataAnnotationsMixin adds metadata to the schema
 type MetadataAnnotationsMixin struct {
 	mixin.Schema
 }
@@ -169,6 +169,17 @@ func (TimeMixin) Fields() []ent.Field {
 		field.Time("deleted_at").
 			Optional().
 			Nillable(),
+	}
+}
+
+type CadencedMixin struct {
+	mixin.Schema
+}
+
+func (CadencedMixin) Fields() []ent.Field {
+	return []ent.Field{
+		field.Time("active_from").Immutable(),
+		field.Time("active_to").Optional().Nillable(),
 	}
 }
 

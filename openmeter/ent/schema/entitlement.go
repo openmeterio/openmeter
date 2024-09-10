@@ -1,11 +1,14 @@
 package schema
 
 import (
+	"fmt"
+
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
+	"github.com/oklog/ulid/v2"
 
 	"github.com/openmeterio/openmeter/openmeter/entitlement"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
@@ -33,7 +36,12 @@ func (Entitlement) Fields() []ent.Field {
 		}),
 		field.Time("active_from").Optional().Nillable().Immutable(),
 		field.Time("active_to").Optional().Nillable(),
-		field.String("feature_key").NotEmpty().Immutable(),
+		field.String("feature_key").NotEmpty().Validate(func(fK string) error {
+			if _, err := ulid.Parse(fK); err == nil {
+				return fmt.Errorf("selected feature key cannot be a valid ULID")
+			}
+			return nil
+		}).Immutable(),
 		field.String("subject_key").NotEmpty().Immutable(),
 		field.Time("measure_usage_from").Optional().Nillable().Immutable(),
 		field.Float("issue_after_reset").Optional().Nillable().Immutable(),
@@ -47,6 +55,7 @@ func (Entitlement) Fields() []ent.Field {
 		field.Time("usage_period_anchor").Optional().Nillable(),
 		field.Time("current_usage_period_start").Optional().Nillable(),
 		field.Time("current_usage_period_end").Optional().Nillable(),
+		field.Bool("subscription_managed").Optional().Immutable(),
 	}
 }
 
@@ -67,6 +76,7 @@ func (Entitlement) Edges() []ent.Edge {
 		edge.To("usage_reset", UsageReset.Type),
 		edge.To("grant", Grant.Type),
 		edge.To("balance_snapshot", BalanceSnapshot.Type),
+		edge.To("subscription_item", SubscriptionItem.Type).Unique(),
 		edge.From("feature", Feature.Type).
 			Ref("entitlement").
 			Field("feature_id").

@@ -18,21 +18,24 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 )
 
 // EntitlementQuery is the builder for querying Entitlement entities.
 type EntitlementQuery struct {
 	config
-	ctx                 *QueryContext
-	order               []entitlement.OrderOption
-	inters              []Interceptor
-	predicates          []predicate.Entitlement
-	withUsageReset      *UsageResetQuery
-	withGrant           *GrantQuery
-	withBalanceSnapshot *BalanceSnapshotQuery
-	withFeature         *FeatureQuery
-	modifiers           []func(*sql.Selector)
+	ctx                  *QueryContext
+	order                []entitlement.OrderOption
+	inters               []Interceptor
+	predicates           []predicate.Entitlement
+	withUsageReset       *UsageResetQuery
+	withGrant            *GrantQuery
+	withBalanceSnapshot  *BalanceSnapshotQuery
+	withSubscriptionItem *SubscriptionItemQuery
+	withFeature          *FeatureQuery
+	withFKs              bool
+	modifiers            []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -128,6 +131,28 @@ func (eq *EntitlementQuery) QueryBalanceSnapshot() *BalanceSnapshotQuery {
 			sqlgraph.From(entitlement.Table, entitlement.FieldID, selector),
 			sqlgraph.To(balancesnapshot.Table, balancesnapshot.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, entitlement.BalanceSnapshotTable, entitlement.BalanceSnapshotColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QuerySubscriptionItem chains the current query on the "subscription_item" edge.
+func (eq *EntitlementQuery) QuerySubscriptionItem() *SubscriptionItemQuery {
+	query := (&SubscriptionItemClient{config: eq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := eq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := eq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(entitlement.Table, entitlement.FieldID, selector),
+			sqlgraph.To(subscriptionitem.Table, subscriptionitem.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, entitlement.SubscriptionItemTable, entitlement.SubscriptionItemColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(eq.driver.Dialect(), step)
 		return fromU, nil
@@ -344,15 +369,16 @@ func (eq *EntitlementQuery) Clone() *EntitlementQuery {
 		return nil
 	}
 	return &EntitlementQuery{
-		config:              eq.config,
-		ctx:                 eq.ctx.Clone(),
-		order:               append([]entitlement.OrderOption{}, eq.order...),
-		inters:              append([]Interceptor{}, eq.inters...),
-		predicates:          append([]predicate.Entitlement{}, eq.predicates...),
-		withUsageReset:      eq.withUsageReset.Clone(),
-		withGrant:           eq.withGrant.Clone(),
-		withBalanceSnapshot: eq.withBalanceSnapshot.Clone(),
-		withFeature:         eq.withFeature.Clone(),
+		config:               eq.config,
+		ctx:                  eq.ctx.Clone(),
+		order:                append([]entitlement.OrderOption{}, eq.order...),
+		inters:               append([]Interceptor{}, eq.inters...),
+		predicates:           append([]predicate.Entitlement{}, eq.predicates...),
+		withUsageReset:       eq.withUsageReset.Clone(),
+		withGrant:            eq.withGrant.Clone(),
+		withBalanceSnapshot:  eq.withBalanceSnapshot.Clone(),
+		withSubscriptionItem: eq.withSubscriptionItem.Clone(),
+		withFeature:          eq.withFeature.Clone(),
 		// clone intermediate query.
 		sql:  eq.sql.Clone(),
 		path: eq.path,
@@ -389,6 +415,17 @@ func (eq *EntitlementQuery) WithBalanceSnapshot(opts ...func(*BalanceSnapshotQue
 		opt(query)
 	}
 	eq.withBalanceSnapshot = query
+	return eq
+}
+
+// WithSubscriptionItem tells the query-builder to eager-load the nodes that are connected to
+// the "subscription_item" edge. The optional arguments are used to configure the query builder of the edge.
+func (eq *EntitlementQuery) WithSubscriptionItem(opts ...func(*SubscriptionItemQuery)) *EntitlementQuery {
+	query := (&SubscriptionItemClient{config: eq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	eq.withSubscriptionItem = query
 	return eq
 }
 
@@ -480,14 +517,22 @@ func (eq *EntitlementQuery) prepareQuery(ctx context.Context) error {
 func (eq *EntitlementQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Entitlement, error) {
 	var (
 		nodes       = []*Entitlement{}
+		withFKs     = eq.withFKs
 		_spec       = eq.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [5]bool{
 			eq.withUsageReset != nil,
 			eq.withGrant != nil,
 			eq.withBalanceSnapshot != nil,
+			eq.withSubscriptionItem != nil,
 			eq.withFeature != nil,
 		}
 	)
+	if eq.withSubscriptionItem != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, entitlement.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Entitlement).scanValues(nil, columns)
 	}
@@ -527,6 +572,12 @@ func (eq *EntitlementQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*
 		if err := eq.loadBalanceSnapshot(ctx, query, nodes,
 			func(n *Entitlement) { n.Edges.BalanceSnapshot = []*BalanceSnapshot{} },
 			func(n *Entitlement, e *BalanceSnapshot) { n.Edges.BalanceSnapshot = append(n.Edges.BalanceSnapshot, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := eq.withSubscriptionItem; query != nil {
+		if err := eq.loadSubscriptionItem(ctx, query, nodes, nil,
+			func(n *Entitlement, e *SubscriptionItem) { n.Edges.SubscriptionItem = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -626,6 +677,38 @@ func (eq *EntitlementQuery) loadBalanceSnapshot(ctx context.Context, query *Bala
 			return fmt.Errorf(`unexpected referenced foreign-key "owner_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
+	}
+	return nil
+}
+func (eq *EntitlementQuery) loadSubscriptionItem(ctx context.Context, query *SubscriptionItemQuery, nodes []*Entitlement, init func(*Entitlement), assign func(*Entitlement, *SubscriptionItem)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*Entitlement)
+	for i := range nodes {
+		if nodes[i].entitlement_subscription_item == nil {
+			continue
+		}
+		fk := *nodes[i].entitlement_subscription_item
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(subscriptionitem.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "entitlement_subscription_item" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }

@@ -1,0 +1,155 @@
+package service
+
+import (
+	"context"
+	"fmt"
+
+	customerentity "github.com/openmeterio/openmeter/openmeter/customer/entity"
+	"github.com/openmeterio/openmeter/openmeter/entitlement"
+	"github.com/openmeterio/openmeter/openmeter/subscription"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
+	"github.com/openmeterio/openmeter/pkg/models"
+)
+
+func (s *service) createPhase(
+	ctx context.Context,
+	cust customerentity.Customer,
+	phaseSpec subscription.SubscriptionPhaseSpec,
+	sub subscription.Subscription,
+	cadence models.CadencedModel,
+) (subscription.SubscriptionPhaseView, error) {
+	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionPhaseView, error) {
+		res := subscription.SubscriptionPhaseView{
+			Spec:       phaseSpec,
+			ItemsByKey: make(map[string][]subscription.SubscriptionItemView),
+		}
+
+		// First, let's create the phase itself
+		phase, err := s.SubscriptionPhaseRepo.Create(ctx, phaseSpec.ToCreateSubscriptionPhaseEntityInput(sub, cadence.ActiveFrom))
+		if err != nil {
+			return res, fmt.Errorf("failed to create phase: %w", err)
+		}
+
+		res.SubscriptionPhase = phase
+
+		// Second, let's create all items
+		for key, itemSpecs := range phaseSpec.ItemsByKey {
+			itemsByKey := make([]subscription.SubscriptionItemView, 0, len(itemSpecs))
+			for _, itemSpec := range itemSpecs {
+				item, err := s.createItem(ctx, cust, itemSpec, phase, cadence)
+				if err != nil {
+					return res, fmt.Errorf("failed to create item: %w", err)
+				}
+
+				if _, exists := res.ItemsByKey[item.SubscriptionItem.Key]; exists {
+					return res, fmt.Errorf("item %s already exists", item.SubscriptionItem.Key)
+				}
+
+				itemsByKey = append(itemsByKey, item)
+			}
+			res.ItemsByKey[key] = itemsByKey
+		}
+
+		return res, nil
+	})
+}
+
+func (s *service) createItem(
+	ctx context.Context,
+	cust customerentity.Customer,
+	itemSpec subscription.SubscriptionItemSpec,
+	phase subscription.SubscriptionPhase,
+	phaseCadence models.CadencedModel,
+) (subscription.SubscriptionItemView, error) {
+	return transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (subscription.SubscriptionItemView, error) {
+		res := subscription.SubscriptionItemView{
+			Spec: itemSpec,
+		}
+
+		itemCadence, err := itemSpec.GetCadence(phaseCadence)
+		if err != nil {
+			return res, fmt.Errorf("failed to get item cadence: %w", err)
+		}
+
+		// First, let's see if we need to create an entitlement
+		entInput, hasEnt, err := itemSpec.ToScheduleSubscriptionEntitlementInput(
+			cust,
+			itemCadence,
+		)
+		if err != nil {
+			return res, fmt.Errorf("failed to determine entitlement input for item %s: %w", itemSpec.ItemKey, err)
+		}
+
+		var newEnt *entitlement.Entitlement
+
+		if hasEnt {
+			ent, err := s.EntitlementAdapter.ScheduleEntitlement(ctx, entInput)
+			if err != nil {
+				return res, fmt.Errorf("failed to create entitlement: %w", err)
+			}
+
+			res.Entitlement = ent
+			newEnt = &ent.Entitlement
+		}
+
+		// Second, let's create the item itself
+		itemEntityInput, err := itemSpec.ToCreateSubscriptionItemEntityInput(
+			phase,
+			phaseCadence,
+			newEnt,
+		)
+		if err != nil {
+			return res, fmt.Errorf("failed to get item entity input: %w", err)
+		}
+
+		item, err := s.SubscriptionItemRepo.Create(ctx, itemEntityInput)
+		if err != nil {
+			return res, fmt.Errorf("failed to create item: %w", err)
+		}
+
+		res.SubscriptionItem = item
+
+		return res, nil
+	})
+}
+
+func (s *service) deletePhase(ctx context.Context, phase subscription.SubscriptionPhaseView) error {
+	_, err := transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (any, error) {
+		// To delete the phase, we need to delete all sub-resources of it.
+		// Because deleting them is specific to the type of resource, we'll do it individually
+		for _, items := range phase.ItemsByKey {
+			for _, item := range items {
+				if err := s.deleteItem(ctx, item); err != nil {
+					return nil, fmt.Errorf("failed to delete item: %w", err)
+				}
+			}
+		}
+
+		// Let's delete the phase itself
+		if err := s.SubscriptionPhaseRepo.Delete(ctx, phase.SubscriptionPhase.NamespacedID); err != nil {
+			return nil, fmt.Errorf("failed to delete phase: %w", err)
+		}
+
+		return nil, nil
+	})
+	return err
+}
+
+func (s *service) deleteItem(ctx context.Context, item subscription.SubscriptionItemView) error {
+	_, err := transaction.Run(ctx, s.TransactionManager, func(ctx context.Context) (any, error) {
+		// If there's an entitlement let's delete it
+		if item.Entitlement != nil {
+			if err := s.EntitlementAdapter.DeleteByItemID(ctx, item.SubscriptionItem.NamespacedID); err != nil {
+				return nil, fmt.Errorf("failed to delete entitlement: %w", err)
+			}
+		}
+
+		// Let's delete the item itself
+		if err := s.SubscriptionItemRepo.Delete(ctx, item.SubscriptionItem.NamespacedID); err != nil {
+			return nil, fmt.Errorf("failed to delete item: %w", err)
+		}
+
+		return nil, nil
+	})
+	return err
+}

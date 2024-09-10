@@ -31,6 +31,9 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/plan"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/planratecard"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscription"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionphase"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/usagereset"
 	"github.com/openmeterio/openmeter/openmeter/ent/schema"
 	"github.com/openmeterio/openmeter/openmeter/notification"
@@ -645,7 +648,21 @@ func init() {
 	// entitlementDescFeatureKey is the schema descriptor for feature_key field.
 	entitlementDescFeatureKey := entitlementFields[4].Descriptor()
 	// entitlement.FeatureKeyValidator is a validator for the "feature_key" field. It is called by the builders before save.
-	entitlement.FeatureKeyValidator = entitlementDescFeatureKey.Validators[0].(func(string) error)
+	entitlement.FeatureKeyValidator = func() func(string) error {
+		validators := entitlementDescFeatureKey.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(feature_key string) error {
+			for _, fn := range fns {
+				if err := fn(feature_key); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 	// entitlementDescSubjectKey is the schema descriptor for subject_key field.
 	entitlementDescSubjectKey := entitlementFields[5].Descriptor()
 	// entitlement.SubjectKeyValidator is a validator for the "subject_key" field. It is called by the builders before save.
@@ -964,6 +981,151 @@ func init() {
 	planratecardDescID := planratecardMixinFields0[0].Descriptor()
 	// planratecard.DefaultID holds the default value on creation for the id field.
 	planratecard.DefaultID = planratecardDescID.Default.(func() string)
+	subscriptionMixin := schema.Subscription{}.Mixin()
+	subscriptionMixinFields0 := subscriptionMixin[0].Fields()
+	_ = subscriptionMixinFields0
+	subscriptionMixinFields1 := subscriptionMixin[1].Fields()
+	_ = subscriptionMixinFields1
+	subscriptionMixinFields2 := subscriptionMixin[2].Fields()
+	_ = subscriptionMixinFields2
+	subscriptionFields := schema.Subscription{}.Fields()
+	_ = subscriptionFields
+	// subscriptionDescNamespace is the schema descriptor for namespace field.
+	subscriptionDescNamespace := subscriptionMixinFields1[0].Descriptor()
+	// subscription.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	subscription.NamespaceValidator = subscriptionDescNamespace.Validators[0].(func(string) error)
+	// subscriptionDescCreatedAt is the schema descriptor for created_at field.
+	subscriptionDescCreatedAt := subscriptionMixinFields2[0].Descriptor()
+	// subscription.DefaultCreatedAt holds the default value on creation for the created_at field.
+	subscription.DefaultCreatedAt = subscriptionDescCreatedAt.Default.(func() time.Time)
+	// subscriptionDescUpdatedAt is the schema descriptor for updated_at field.
+	subscriptionDescUpdatedAt := subscriptionMixinFields2[1].Descriptor()
+	// subscription.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	subscription.DefaultUpdatedAt = subscriptionDescUpdatedAt.Default.(func() time.Time)
+	// subscription.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	subscription.UpdateDefaultUpdatedAt = subscriptionDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// subscriptionDescPlanKey is the schema descriptor for plan_key field.
+	subscriptionDescPlanKey := subscriptionFields[0].Descriptor()
+	// subscription.PlanKeyValidator is a validator for the "plan_key" field. It is called by the builders before save.
+	subscription.PlanKeyValidator = subscriptionDescPlanKey.Validators[0].(func(string) error)
+	// subscriptionDescPlanVersion is the schema descriptor for plan_version field.
+	subscriptionDescPlanVersion := subscriptionFields[1].Descriptor()
+	// subscription.PlanVersionValidator is a validator for the "plan_version" field. It is called by the builders before save.
+	subscription.PlanVersionValidator = subscriptionDescPlanVersion.Validators[0].(func(int) error)
+	// subscriptionDescCustomerID is the schema descriptor for customer_id field.
+	subscriptionDescCustomerID := subscriptionFields[2].Descriptor()
+	// subscription.CustomerIDValidator is a validator for the "customer_id" field. It is called by the builders before save.
+	subscription.CustomerIDValidator = subscriptionDescCustomerID.Validators[0].(func(string) error)
+	// subscriptionDescCurrency is the schema descriptor for currency field.
+	subscriptionDescCurrency := subscriptionFields[3].Descriptor()
+	// subscription.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	subscription.CurrencyValidator = func() func(string) error {
+		validators := subscriptionDescCurrency.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+			validators[2].(func(string) error),
+		}
+		return func(currency string) error {
+			for _, fn := range fns {
+				if err := fn(currency); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// subscriptionDescID is the schema descriptor for id field.
+	subscriptionDescID := subscriptionMixinFields0[0].Descriptor()
+	// subscription.DefaultID holds the default value on creation for the id field.
+	subscription.DefaultID = subscriptionDescID.Default.(func() string)
+	subscriptionitemMixin := schema.SubscriptionItem{}.Mixin()
+	subscriptionitemMixinFields0 := subscriptionitemMixin[0].Fields()
+	_ = subscriptionitemMixinFields0
+	subscriptionitemMixinFields1 := subscriptionitemMixin[1].Fields()
+	_ = subscriptionitemMixinFields1
+	subscriptionitemMixinFields2 := subscriptionitemMixin[2].Fields()
+	_ = subscriptionitemMixinFields2
+	subscriptionitemFields := schema.SubscriptionItem{}.Fields()
+	_ = subscriptionitemFields
+	// subscriptionitemDescNamespace is the schema descriptor for namespace field.
+	subscriptionitemDescNamespace := subscriptionitemMixinFields1[0].Descriptor()
+	// subscriptionitem.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	subscriptionitem.NamespaceValidator = subscriptionitemDescNamespace.Validators[0].(func(string) error)
+	// subscriptionitemDescCreatedAt is the schema descriptor for created_at field.
+	subscriptionitemDescCreatedAt := subscriptionitemMixinFields2[0].Descriptor()
+	// subscriptionitem.DefaultCreatedAt holds the default value on creation for the created_at field.
+	subscriptionitem.DefaultCreatedAt = subscriptionitemDescCreatedAt.Default.(func() time.Time)
+	// subscriptionitemDescUpdatedAt is the schema descriptor for updated_at field.
+	subscriptionitemDescUpdatedAt := subscriptionitemMixinFields2[1].Descriptor()
+	// subscriptionitem.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	subscriptionitem.DefaultUpdatedAt = subscriptionitemDescUpdatedAt.Default.(func() time.Time)
+	// subscriptionitem.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	subscriptionitem.UpdateDefaultUpdatedAt = subscriptionitemDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// subscriptionitemDescPhaseID is the schema descriptor for phase_id field.
+	subscriptionitemDescPhaseID := subscriptionitemFields[2].Descriptor()
+	// subscriptionitem.PhaseIDValidator is a validator for the "phase_id" field. It is called by the builders before save.
+	subscriptionitem.PhaseIDValidator = subscriptionitemDescPhaseID.Validators[0].(func(string) error)
+	// subscriptionitemDescKey is the schema descriptor for key field.
+	subscriptionitemDescKey := subscriptionitemFields[3].Descriptor()
+	// subscriptionitem.KeyValidator is a validator for the "key" field. It is called by the builders before save.
+	subscriptionitem.KeyValidator = subscriptionitemDescKey.Validators[0].(func(string) error)
+	// subscriptionitemDescName is the schema descriptor for name field.
+	subscriptionitemDescName := subscriptionitemFields[7].Descriptor()
+	// subscriptionitem.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	subscriptionitem.NameValidator = subscriptionitemDescName.Validators[0].(func(string) error)
+	// subscriptionitemDescEntitlementTemplate is the schema descriptor for entitlement_template field.
+	subscriptionitemDescEntitlementTemplate := subscriptionitemFields[10].Descriptor()
+	subscriptionitem.ValueScanner.EntitlementTemplate = subscriptionitemDescEntitlementTemplate.ValueScanner.(field.TypeValueScanner[*productcatalog.EntitlementTemplate])
+	// subscriptionitemDescTaxConfig is the schema descriptor for tax_config field.
+	subscriptionitemDescTaxConfig := subscriptionitemFields[11].Descriptor()
+	subscriptionitem.ValueScanner.TaxConfig = subscriptionitemDescTaxConfig.ValueScanner.(field.TypeValueScanner[*productcatalog.TaxConfig])
+	// subscriptionitemDescPrice is the schema descriptor for price field.
+	subscriptionitemDescPrice := subscriptionitemFields[13].Descriptor()
+	subscriptionitem.ValueScanner.Price = subscriptionitemDescPrice.ValueScanner.(field.TypeValueScanner[*productcatalog.Price])
+	// subscriptionitemDescID is the schema descriptor for id field.
+	subscriptionitemDescID := subscriptionitemMixinFields0[0].Descriptor()
+	// subscriptionitem.DefaultID holds the default value on creation for the id field.
+	subscriptionitem.DefaultID = subscriptionitemDescID.Default.(func() string)
+	subscriptionphaseMixin := schema.SubscriptionPhase{}.Mixin()
+	subscriptionphaseMixinFields0 := subscriptionphaseMixin[0].Fields()
+	_ = subscriptionphaseMixinFields0
+	subscriptionphaseMixinFields1 := subscriptionphaseMixin[1].Fields()
+	_ = subscriptionphaseMixinFields1
+	subscriptionphaseMixinFields2 := subscriptionphaseMixin[2].Fields()
+	_ = subscriptionphaseMixinFields2
+	subscriptionphaseFields := schema.SubscriptionPhase{}.Fields()
+	_ = subscriptionphaseFields
+	// subscriptionphaseDescNamespace is the schema descriptor for namespace field.
+	subscriptionphaseDescNamespace := subscriptionphaseMixinFields1[0].Descriptor()
+	// subscriptionphase.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	subscriptionphase.NamespaceValidator = subscriptionphaseDescNamespace.Validators[0].(func(string) error)
+	// subscriptionphaseDescCreatedAt is the schema descriptor for created_at field.
+	subscriptionphaseDescCreatedAt := subscriptionphaseMixinFields2[0].Descriptor()
+	// subscriptionphase.DefaultCreatedAt holds the default value on creation for the created_at field.
+	subscriptionphase.DefaultCreatedAt = subscriptionphaseDescCreatedAt.Default.(func() time.Time)
+	// subscriptionphaseDescUpdatedAt is the schema descriptor for updated_at field.
+	subscriptionphaseDescUpdatedAt := subscriptionphaseMixinFields2[1].Descriptor()
+	// subscriptionphase.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	subscriptionphase.DefaultUpdatedAt = subscriptionphaseDescUpdatedAt.Default.(func() time.Time)
+	// subscriptionphase.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	subscriptionphase.UpdateDefaultUpdatedAt = subscriptionphaseDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// subscriptionphaseDescSubscriptionID is the schema descriptor for subscription_id field.
+	subscriptionphaseDescSubscriptionID := subscriptionphaseFields[0].Descriptor()
+	// subscriptionphase.SubscriptionIDValidator is a validator for the "subscription_id" field. It is called by the builders before save.
+	subscriptionphase.SubscriptionIDValidator = subscriptionphaseDescSubscriptionID.Validators[0].(func(string) error)
+	// subscriptionphaseDescKey is the schema descriptor for key field.
+	subscriptionphaseDescKey := subscriptionphaseFields[1].Descriptor()
+	// subscriptionphase.KeyValidator is a validator for the "key" field. It is called by the builders before save.
+	subscriptionphase.KeyValidator = subscriptionphaseDescKey.Validators[0].(func(string) error)
+	// subscriptionphaseDescName is the schema descriptor for name field.
+	subscriptionphaseDescName := subscriptionphaseFields[2].Descriptor()
+	// subscriptionphase.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	subscriptionphase.NameValidator = subscriptionphaseDescName.Validators[0].(func(string) error)
+	// subscriptionphaseDescID is the schema descriptor for id field.
+	subscriptionphaseDescID := subscriptionphaseMixinFields0[0].Descriptor()
+	// subscriptionphase.DefaultID holds the default value on creation for the id field.
+	subscriptionphase.DefaultID = subscriptionphaseDescID.Default.(func() string)
 	usageresetMixin := schema.UsageReset{}.Mixin()
 	usageresetMixinFields0 := usageresetMixin[0].Fields()
 	_ = usageresetMixinFields0

@@ -1,6 +1,7 @@
 package framework_test
 
 import (
+	"context"
 	"log/slog"
 	"testing"
 	"time"
@@ -25,7 +26,6 @@ import (
 	"github.com/openmeterio/openmeter/pkg/framework/entutils/entdriver"
 	"github.com/openmeterio/openmeter/pkg/framework/pgdriver"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 type Dependencies struct {
@@ -63,8 +63,8 @@ func setupDependencies(t *testing.T) Dependencies {
 	driver := testutils.InitPostgresDB(t)
 	// init db
 	dbClient := db.NewClient(db.Driver(driver.EntDriver.Driver()))
-	if err := migrate.Up(driver.URL); err != nil {
-		t.Fatalf("failed to migrate db: %s", err.Error())
+	if err := dbClient.Schema.Create(context.Background()); err != nil {
+		t.Fatalf("failed to create schema: %v", err)
 	}
 
 	// Init product catalog

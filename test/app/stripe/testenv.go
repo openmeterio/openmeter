@@ -25,7 +25,6 @@ import (
 	secretservice "github.com/openmeterio/openmeter/openmeter/secret/service"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
-	"github.com/openmeterio/openmeter/tools/migrate"
 )
 
 const (
@@ -82,8 +81,8 @@ func NewTestEnv(t *testing.T, ctx context.Context) (TestEnv, error) {
 	driver := testutils.InitPostgresDB(t)
 
 	entClient := driver.EntDriver.Client()
-	if err := migrate.Up(driver.URL); err != nil {
-		t.Fatalf("failed to migrate db: %s", err.Error())
+	if err := entClient.Schema.Create(ctx); err != nil {
+		t.Fatalf("failed to create schema: %v", err)
 	}
 
 	// Customer

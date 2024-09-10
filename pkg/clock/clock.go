@@ -13,7 +13,7 @@ var (
 
 func Now() time.Time {
 	if atomic.LoadInt32(&frozen) == 1 {
-		return frozenTime.Load().(time.Time)
+		return frozenTime.Load().(time.Time).Round(0)
 	}
 	driftDuration := time.Duration(atomic.LoadInt64(&drift))
 	t := time.Now().Add(-driftDuration)

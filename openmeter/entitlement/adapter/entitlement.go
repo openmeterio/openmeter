@@ -78,7 +78,7 @@ func (a *entitlementDBAdapter) GetActiveEntitlementOfSubjectAt(ctx context.Conte
 		a,
 		func(ctx context.Context, repo *entitlementDBAdapter) (*entitlement.Entitlement, error) {
 			res, err := withLatestUsageReset(repo.db.Entitlement.Query(), []string{namespace}).
-				Where(entitlementActiveAt(at)...).
+				Where(EntitlementActiveAt(at)...).
 				Where(
 					db_entitlement.Or(db_entitlement.DeletedAtGT(at), db_entitlement.DeletedAtIsNil()),
 					db_entitlement.SubjectKey(subjectKey),
@@ -121,7 +121,8 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 				SetNillablePreserveOverageAtReset(ent.PreserveOverageAtReset).
 				SetNillableIsSoftLimit(ent.IsSoftLimit).
 				SetNillableActiveFrom(ent.ActiveFrom).
-				SetNillableActiveTo(ent.ActiveTo)
+				SetNillableActiveTo(ent.ActiveTo).
+				SetSubscriptionManaged(ent.SubscriptionManaged)
 
 			if ent.UsagePeriod != nil {
 				dbInterval := db_entitlement.UsagePeriodInterval(ent.UsagePeriod.Interval)
@@ -149,14 +150,14 @@ func (a *entitlementDBAdapter) CreateEntitlement(ctx context.Context, ent entitl
 	)
 }
 
-func (a *entitlementDBAdapter) DeleteEntitlement(ctx context.Context, entitlementID models.NamespacedID) error {
+func (a *entitlementDBAdapter) DeleteEntitlement(ctx context.Context, entitlementID models.NamespacedID, at time.Time) error {
 	_, err := entutils.TransactingRepo[*entitlement.Entitlement, *entitlementDBAdapter](
 		ctx,
 		a,
 		func(ctx context.Context, repo *entitlementDBAdapter) (*entitlement.Entitlement, error) {
 			affectedCount, err := repo.db.Entitlement.Update().
 				Where(db_entitlement.ID(entitlementID.ID), db_entitlement.Namespace(entitlementID.Namespace)).
-				SetDeletedAt(clock.Now()).
+				SetDeletedAt(at).
 				Save(ctx)
 			if err != nil {
 				return nil, err
@@ -239,16 +240,16 @@ func (a *entitlementDBAdapter) ListAffectedEntitlements(ctx context.Context, eve
 		})
 }
 
-func (a *entitlementDBAdapter) GetActiveEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey, at time.Time) ([]entitlement.Entitlement, error) {
+func (a *entitlementDBAdapter) GetActiveEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey string, at time.Time) ([]entitlement.Entitlement, error) {
 	return entutils.TransactingRepo(
 		ctx,
 		a,
 		func(ctx context.Context, repo *entitlementDBAdapter) ([]entitlement.Entitlement, error) {
 			res, err := withLatestUsageReset(repo.db.Entitlement.Query(), []string{namespace}).
-				Where(entitlementActiveAt(at)...).
+				Where(EntitlementActiveAt(at)...).
 				Where(
 					db_entitlement.Or(db_entitlement.DeletedAtGT(clock.Now()), db_entitlement.DeletedAtIsNil()),
-					db_entitlement.SubjectKey(string(subjectKey)),
+					db_entitlement.SubjectKey(subjectKey),
 					db_entitlement.Namespace(namespace),
 				).
 				All(ctx)
@@ -412,14 +413,18 @@ func mapEntitlementEntity(e *db.Entitlement) *entitlement.Entitlement {
 				UpdatedAt: e.UpdatedAt.UTC(),
 				DeletedAt: convert.SafeToUTC(e.DeletedAt),
 			},
+			AnnotatedModel: models.AnnotatedModel{
+				Metadata: e.Metadata,
+			},
 			ID:              e.ID,
 			SubjectKey:      e.SubjectKey,
 			FeatureID:       e.FeatureID,
 			FeatureKey:      e.FeatureKey,
 			EntitlementType: entitlement.EntitlementType(e.EntitlementType),
-			Metadata:        e.Metadata,
 			ActiveFrom:      convert.SafeToUTC(e.ActiveFrom),
 			ActiveTo:        convert.SafeToUTC(e.ActiveTo),
+
+			SubscriptionManaged: e.SubscriptionManaged,
 		},
 		MeasureUsageFrom:        e.MeasureUsageFrom,
 		IssueAfterReset:         e.IssueAfterReset,
@@ -483,7 +488,7 @@ func (a *entitlementDBAdapter) ListActiveEntitlementsWithExpiredUsagePeriod(ctx 
 		a,
 		func(ctx context.Context, repo *entitlementDBAdapter) ([]entitlement.Entitlement, error) {
 			query := withLatestUsageReset(repo.db.Entitlement.Query(), namespaces).
-				Where(entitlementActiveAt(expiredBefore)...).
+				Where(EntitlementActiveAt(expiredBefore)...).
 				Where(
 					db_entitlement.CurrentUsagePeriodEndNotNil(),
 					db_entitlement.CurrentUsagePeriodEndLTE(expiredBefore),
@@ -549,7 +554,7 @@ func (a *entitlementDBAdapter) ListNamespacesWithActiveEntitlements(ctx context.
 				)
 
 			if includeDeletedAfter.Before(now) || includeDeletedAfter.Equal(now) {
-				query = query.Where(entitlementActiveAt(now)...)
+				query = query.Where(EntitlementActiveAt(now)...)
 			} else {
 				query = query.Where(entitlementActiveBetween(includeDeletedAfter, now)...)
 			}
@@ -570,7 +575,7 @@ func (a *entitlementDBAdapter) ListNamespacesWithActiveEntitlements(ctx context.
 	)
 }
 
-func (a *entitlementDBAdapter) GetScheduledEntitlements(ctx context.Context, namespace string, subjectKey models.SubjectKey, featureKey string, starting time.Time) ([]entitlement.Entitlement, error) {
+func (a *entitlementDBAdapter) GetScheduledEntitlements(ctx context.Context, namespace string, subjectKey string, featureKey string, starting time.Time) ([]entitlement.Entitlement, error) {
 	res, err := entutils.TransactingRepo(
 		ctx,
 		a,
@@ -585,7 +590,7 @@ func (a *entitlementDBAdapter) GetScheduledEntitlements(ctx context.Context, nam
 				Where(
 					db_entitlement.Or(db_entitlement.DeletedAtIsNil(), db_entitlement.DeletedAtGT(clock.Now())),
 					db_entitlement.Namespace(namespace),
-					db_entitlement.SubjectKey(string(subjectKey)),
+					db_entitlement.SubjectKey(subjectKey),
 					db_entitlement.FeatureKey(featureKey),
 				).Order(
 				func(s *sql.Selector) {
@@ -622,7 +627,8 @@ func entitlementActiveBetween(from, to time.Time) []predicate.Entitlement {
 	}
 }
 
-func entitlementActiveAt(at time.Time) []predicate.Entitlement {
+// EntitlementActiveAt is exposed to be used for subscription adapter
+func EntitlementActiveAt(at time.Time) []predicate.Entitlement {
 	return []predicate.Entitlement{
 		db_entitlement.Or(
 			// If activeFrom is nil activity starts at creation time

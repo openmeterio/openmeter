@@ -100,7 +100,7 @@ type EventTestSuite struct {
 
 	channel    notification.Channel
 	rule       notification.Rule
-	subjectKey models.SubjectKey
+	subjectKey string
 	feature    feature.Feature
 }
 
