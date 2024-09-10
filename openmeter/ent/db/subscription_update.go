@@ -87,6 +87,40 @@ func (su *SubscriptionUpdate) ClearActiveTo() *SubscriptionUpdate {
 	return su
 }
 
+// SetName sets the "name" field.
+func (su *SubscriptionUpdate) SetName(s string) *SubscriptionUpdate {
+	su.mutation.SetName(s)
+	return su
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (su *SubscriptionUpdate) SetNillableName(s *string) *SubscriptionUpdate {
+	if s != nil {
+		su.SetName(*s)
+	}
+	return su
+}
+
+// SetDescription sets the "description" field.
+func (su *SubscriptionUpdate) SetDescription(s string) *SubscriptionUpdate {
+	su.mutation.SetDescription(s)
+	return su
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (su *SubscriptionUpdate) SetNillableDescription(s *string) *SubscriptionUpdate {
+	if s != nil {
+		su.SetDescription(*s)
+	}
+	return su
+}
+
+// ClearDescription clears the value of the "description" field.
+func (su *SubscriptionUpdate) ClearDescription() *SubscriptionUpdate {
+	su.mutation.ClearDescription()
+	return su
+}
+
 // AddPhaseIDs adds the "phases" edge to the SubscriptionPhase entity by IDs.
 func (su *SubscriptionUpdate) AddPhaseIDs(ids ...string) *SubscriptionUpdate {
 	su.mutation.AddPhaseIDs(ids...)
@@ -166,6 +200,11 @@ func (su *SubscriptionUpdate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (su *SubscriptionUpdate) check() error {
+	if v, ok := su.mutation.Name(); ok {
+		if err := subscription.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "Subscription.name": %w`, err)}
+		}
+	}
 	if su.mutation.CustomerCleared() && len(su.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "Subscription.customer"`)
 	}
@@ -204,6 +243,15 @@ func (su *SubscriptionUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if su.mutation.ActiveToCleared() {
 		_spec.ClearField(subscription.FieldActiveTo, field.TypeTime)
+	}
+	if value, ok := su.mutation.Name(); ok {
+		_spec.SetField(subscription.FieldName, field.TypeString, value)
+	}
+	if value, ok := su.mutation.Description(); ok {
+		_spec.SetField(subscription.FieldDescription, field.TypeString, value)
+	}
+	if su.mutation.DescriptionCleared() {
+		_spec.ClearField(subscription.FieldDescription, field.TypeString)
 	}
 	if su.mutation.PhasesCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -328,6 +376,40 @@ func (suo *SubscriptionUpdateOne) ClearActiveTo() *SubscriptionUpdateOne {
 	return suo
 }
 
+// SetName sets the "name" field.
+func (suo *SubscriptionUpdateOne) SetName(s string) *SubscriptionUpdateOne {
+	suo.mutation.SetName(s)
+	return suo
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (suo *SubscriptionUpdateOne) SetNillableName(s *string) *SubscriptionUpdateOne {
+	if s != nil {
+		suo.SetName(*s)
+	}
+	return suo
+}
+
+// SetDescription sets the "description" field.
+func (suo *SubscriptionUpdateOne) SetDescription(s string) *SubscriptionUpdateOne {
+	suo.mutation.SetDescription(s)
+	return suo
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (suo *SubscriptionUpdateOne) SetNillableDescription(s *string) *SubscriptionUpdateOne {
+	if s != nil {
+		suo.SetDescription(*s)
+	}
+	return suo
+}
+
+// ClearDescription clears the value of the "description" field.
+func (suo *SubscriptionUpdateOne) ClearDescription() *SubscriptionUpdateOne {
+	suo.mutation.ClearDescription()
+	return suo
+}
+
 // AddPhaseIDs adds the "phases" edge to the SubscriptionPhase entity by IDs.
 func (suo *SubscriptionUpdateOne) AddPhaseIDs(ids ...string) *SubscriptionUpdateOne {
 	suo.mutation.AddPhaseIDs(ids...)
@@ -420,6 +502,11 @@ func (suo *SubscriptionUpdateOne) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (suo *SubscriptionUpdateOne) check() error {
+	if v, ok := suo.mutation.Name(); ok {
+		if err := subscription.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "Subscription.name": %w`, err)}
+		}
+	}
 	if suo.mutation.CustomerCleared() && len(suo.mutation.CustomerIDs()) > 0 {
 		return errors.New(`db: clearing a required unique edge "Subscription.customer"`)
 	}
@@ -475,6 +562,15 @@ func (suo *SubscriptionUpdateOne) sqlSave(ctx context.Context) (_node *Subscript
 	}
 	if suo.mutation.ActiveToCleared() {
 		_spec.ClearField(subscription.FieldActiveTo, field.TypeTime)
+	}
+	if value, ok := suo.mutation.Name(); ok {
+		_spec.SetField(subscription.FieldName, field.TypeString, value)
+	}
+	if value, ok := suo.mutation.Description(); ok {
+		_spec.SetField(subscription.FieldDescription, field.TypeString, value)
+	}
+	if suo.mutation.DescriptionCleared() {
+		_spec.ClearField(subscription.FieldDescription, field.TypeString)
 	}
 	if suo.mutation.PhasesCleared() {
 		edge := &sqlgraph.EdgeSpec{

@@ -29,6 +29,8 @@ func (Subscription) Mixin() []ent.Mixin {
 
 func (Subscription) Fields() []ent.Field {
 	return []ent.Field{
+		field.String("name").NotEmpty().Default("Subscription"),
+		field.String("description").Optional().Nillable(),
 		field.String("plan_key").NotEmpty().Immutable(),
 		field.Int("plan_version").Min(1).Immutable(),
 		field.String("customer_id").NotEmpty().Immutable(),
@@ -160,6 +162,6 @@ func (SubscriptionItem) Indexes() []ent.Index {
 func (SubscriptionItem) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("phase", SubscriptionPhase.Type).Field("phase_id").Ref("items").Unique().Immutable().Required(),
-		edge.To("entitlement", Entitlement.Type).Field("entitlement_id").Unique(),
+		edge.From("entitlement", Entitlement.Type).Field("entitlement_id").Ref("subscription_item").Unique(),
 	}
 }

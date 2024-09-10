@@ -284,8 +284,7 @@ interface Subscriptions {
     @path subscriptionId: ULID,
 
     @body
-    @maxItems(100)
-    body: SubscriptionPatch[],
+    body: SubscriptionEdit,
   ):
     | Subscription
     | OpenMeter.ConflictError

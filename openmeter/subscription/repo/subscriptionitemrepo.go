@@ -94,6 +94,8 @@ func (r *subscriptionItemRepo) Create(ctx context.Context, input subscription.Cr
 			SetActiveFrom(input.ActiveFrom).
 			SetNillableActiveTo(input.ActiveTo).
 			SetNamespace(input.Namespace).
+			SetName(input.Name).
+			SetNillableDescription(input.Description).
 			SetPhaseID(input.PhaseID).
 			SetKey(input.Key).
 			SetName(input.RateCard.Name).

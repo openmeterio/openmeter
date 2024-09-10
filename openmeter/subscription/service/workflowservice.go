@@ -53,7 +53,7 @@ func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.C
 	}
 
 	// Let's validate the plan exists
-	plan, err := s.PlanAdapter.GetVersion(ctx, inp.Plan.Key, inp.Plan.Version)
+	plan, err := s.PlanAdapter.GetVersion(ctx, inp.Namespace, inp.Plan.Key, inp.Plan.Version)
 	if err != nil {
 		return def, fmt.Errorf("failed to fetch plan: %w", err)
 	}
@@ -61,15 +61,18 @@ func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.C
 	// Let's validate the patches
 	for i, patch := range inp.Customization {
 		if err := patch.Validate(); err != nil {
-			return def, fmt.Errorf("invalid patch at index %d: %w", i, err)
+			return def, &models.GenericUserError{Message: fmt.Sprintf("invalid patch at index %d: %s", i, err.Error())}
 		}
 	}
 
 	// Let's create the new Spec
 	spec, err := subscription.NewSpecFromPlan(plan, subscription.CreateSubscriptionCustomerInput{
-		CustomerId: cust.ID,
-		Currency:   inp.Currency,
-		ActiveFrom: inp.ActiveFrom,
+		CustomerId:     cust.ID,
+		Currency:       inp.Currency,
+		ActiveFrom:     inp.ActiveFrom,
+		AnnotatedModel: inp.AnnotatedModel,
+		Name:           inp.Name,
+		Description:    inp.Description,
 	})
 	if err != nil {
 		return def, fmt.Errorf("failed to create spec from plan: %w", err)
@@ -80,7 +83,10 @@ func (s *workflowService) CreateFromPlan(ctx context.Context, inp subscription.C
 		Operation:   subscription.SpecOperationCreate,
 		CurrentTime: clock.Now(),
 	})
-	if err != nil {
+	if sErr, ok := lo.ErrorsAs[*subscription.SpecValidationError](err); ok {
+		// FIXME: error details are lost here
+		return def, &models.GenericUserError{Message: sErr.Error()}
+	} else if err != nil {
 		return def, fmt.Errorf("failed to apply customizations: %w", err)
 	}
 
@@ -105,7 +111,7 @@ func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models
 	// Let's validate the patches
 	for i, patch := range customizations {
 		if err := patch.Validate(); err != nil {
-			return subscription.SubscriptionView{}, fmt.Errorf("invalid patch at index %d: %w", i, err)
+			return subscription.SubscriptionView{}, &models.GenericUserError{Message: fmt.Sprintf("invalid patch at index %d: %s", i, err.Error())}
 		}
 	}
 
@@ -116,7 +122,10 @@ func (s *workflowService) EditRunning(ctx context.Context, subscriptionID models
 		Operation:   subscription.SpecOperationEdit,
 		CurrentTime: clock.Now(),
 	})
-	if err != nil {
+	if sErr, ok := lo.ErrorsAs[*subscription.SpecValidationError](err); ok {
+		// FIXME: error details are lost here
+		return subscription.SubscriptionView{}, &models.GenericUserError{Message: sErr.Error()}
+	} else if err != nil {
 		return subscription.SubscriptionView{}, fmt.Errorf("failed to apply customizations: %w", err)
 	}
 

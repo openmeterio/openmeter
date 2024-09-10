@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/subscriptionitem"
 )
 
 // Entitlement is the model entity for the Entitlement schema.
@@ -66,9 +65,8 @@ type Entitlement struct {
 	SubscriptionManaged bool `json:"subscription_managed,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the EntitlementQuery when eager-loading is set.
-	Edges                         EntitlementEdges `json:"edges"`
-	entitlement_subscription_item *string
-	selectValues                  sql.SelectValues
+	Edges        EntitlementEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // EntitlementEdges holds the relations/edges for other nodes in the graph.
@@ -80,7 +78,7 @@ type EntitlementEdges struct {
 	// BalanceSnapshot holds the value of the balance_snapshot edge.
 	BalanceSnapshot []*BalanceSnapshot `json:"balance_snapshot,omitempty"`
 	// SubscriptionItem holds the value of the subscription_item edge.
-	SubscriptionItem *SubscriptionItem `json:"subscription_item,omitempty"`
+	SubscriptionItem []*SubscriptionItem `json:"subscription_item,omitempty"`
 	// Feature holds the value of the feature edge.
 	Feature *Feature `json:"feature,omitempty"`
 	// loadedTypes holds the information for reporting if a
@@ -116,12 +114,10 @@ func (e EntitlementEdges) BalanceSnapshotOrErr() ([]*BalanceSnapshot, error) {
 }
 
 // SubscriptionItemOrErr returns the SubscriptionItem value or an error if the edge
-// was not loaded in eager-loading, or loaded but was not found.
-func (e EntitlementEdges) SubscriptionItemOrErr() (*SubscriptionItem, error) {
-	if e.SubscriptionItem != nil {
+// was not loaded in eager-loading.
+func (e EntitlementEdges) SubscriptionItemOrErr() ([]*SubscriptionItem, error) {
+	if e.loadedTypes[3] {
 		return e.SubscriptionItem, nil
-	} else if e.loadedTypes[3] {
-		return nil, &NotFoundError{label: subscriptionitem.Label}
 	}
 	return nil, &NotLoadedError{edge: "subscription_item"}
 }
@@ -154,8 +150,6 @@ func (*Entitlement) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case entitlement.FieldCreatedAt, entitlement.FieldUpdatedAt, entitlement.FieldDeletedAt, entitlement.FieldActiveFrom, entitlement.FieldActiveTo, entitlement.FieldMeasureUsageFrom, entitlement.FieldUsagePeriodAnchor, entitlement.FieldCurrentUsagePeriodStart, entitlement.FieldCurrentUsagePeriodEnd:
 			values[i] = new(sql.NullTime)
-		case entitlement.ForeignKeys[0]: // entitlement_subscription_item
-			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -324,13 +318,6 @@ func (e *Entitlement) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field subscription_managed", values[i])
 			} else if value.Valid {
 				e.SubscriptionManaged = value.Bool
-			}
-		case entitlement.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field entitlement_subscription_item", values[i])
-			} else if value.Valid {
-				e.entitlement_subscription_item = new(string)
-				*e.entitlement_subscription_item = value.String
 			}
 		default:
 			e.selectValues.Set(columns[i], values[i])

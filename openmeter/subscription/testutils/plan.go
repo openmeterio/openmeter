@@ -104,7 +104,7 @@ type planAdapter struct {
 
 var _ subscription.PlanAdapter = &planAdapter{}
 
-func (a *planAdapter) GetVersion(ctx context.Context, k string, v int) (subscription.Plan, error) {
+func (a *planAdapter) GetVersion(ctx context.Context, _ string, k string, v int) (subscription.Plan, error) {
 	versions, ok := a.store[k]
 	if !ok {
 		return nil, &subscription.PlanNotFoundError{Key: k, Version: v}

@@ -12,7 +12,7 @@ import (
 // List plans
 // (GET /api/v1/plans)
 func (a *Router) ListPlans(w http.ResponseWriter, r *http.Request, params api.ListPlansParams) {
-	if a.config.Plan == nil {
+	if !a.config.ProductCatalogEnabled {
 		unimplemented.ListPlans(w, r, params)
 		return
 	}
@@ -23,7 +23,7 @@ func (a *Router) ListPlans(w http.ResponseWriter, r *http.Request, params api.Li
 // Create a plan
 // (POST /api/v1/plans)
 func (a *Router) CreatePlan(w http.ResponseWriter, r *http.Request) {
-	if a.config.Plan == nil {
+	if !a.config.ProductCatalogEnabled {
 		unimplemented.CreatePlan(w, r)
 		return
 	}
@@ -34,7 +34,7 @@ func (a *Router) CreatePlan(w http.ResponseWriter, r *http.Request) {
 // Delete plan
 // (DELETE /api/v1/plans/{planId})
 func (a *Router) DeletePlan(w http.ResponseWriter, r *http.Request, planId string) {
-	if a.config.Plan == nil {
+	if !a.config.ProductCatalogEnabled {
 		unimplemented.DeletePlan(w, r, planId)
 		return
 	}
@@ -45,7 +45,7 @@ func (a *Router) DeletePlan(w http.ResponseWriter, r *http.Request, planId strin
 // Get plan
 // (GET /api/v1/plans/{planId})
 func (a *Router) GetPlan(w http.ResponseWriter, r *http.Request, planIdOrKey string, params api.GetPlanParams) {
-	if a.config.Plan == nil {
+	if !a.config.ProductCatalogEnabled {
 		unimplemented.GetPlan(w, r, planIdOrKey, params)
 		return
 	}
@@ -59,7 +59,7 @@ func (a *Router) GetPlan(w http.ResponseWriter, r *http.Request, planIdOrKey str
 // Update a plan
 // (PUT /api/v1/plans/{planId})
 func (a *Router) UpdatePlan(w http.ResponseWriter, r *http.Request, planId string) {
-	if a.config.Plan == nil {
+	if !a.config.ProductCatalogEnabled {
 		unimplemented.UpdatePlan(w, r, planId)
 		return
 	}
@@ -70,7 +70,7 @@ func (a *Router) UpdatePlan(w http.ResponseWriter, r *http.Request, planId strin
 // New draft plan
 // (POST /api/v1/plans/{planIdOrKey}/next)
 func (a *Router) NextPlan(w http.ResponseWriter, r *http.Request, planIdOrKey string) {
-	if a.config.Plan == nil {
+	if !a.config.ProductCatalogEnabled {
 		unimplemented.NextPlan(w, r, planIdOrKey)
 		return
 	}
@@ -82,7 +82,7 @@ func (a *Router) NextPlan(w http.ResponseWriter, r *http.Request, planIdOrKey st
 // List phases in plan
 // (GET /api/v1/plans/{planId}/phases)
 func (a *Router) ListPlanPhases(w http.ResponseWriter, r *http.Request, planId string, params api.ListPlanPhasesParams) {
-	if a.config.Plan == nil {
+	if !a.config.ProductCatalogEnabled {
 		unimplemented.ListPlanPhases(w, r, planId, params)
 		return
 	}
@@ -96,7 +96,7 @@ func (a *Router) ListPlanPhases(w http.ResponseWriter, r *http.Request, planId s
 // Create new phase in plan
 // (POST /api/v1/plans/{planId}/phases)
 func (a *Router) CreatePlanPhase(w http.ResponseWriter, r *http.Request, planId string) {
-	if a.config.Plan == nil {
+	if !a.config.ProductCatalogEnabled {
 		unimplemented.CreatePlanPhase(w, r, planId)
 		return
 	}
@@ -107,7 +107,7 @@ func (a *Router) CreatePlanPhase(w http.ResponseWriter, r *http.Request, planId 
 // Delete phase for plan
 // (DELETE /api/v1/plans/{planId}/phases/{planPhaseKey})
 func (a *Router) DeletePlanPhase(w http.ResponseWriter, r *http.Request, planId string, planPhaseKey string) {
-	if a.config.Plan == nil {
+	if !a.config.ProductCatalogEnabled {
 		unimplemented.DeletePlanPhase(w, r, planId, planPhaseKey)
 		return
 	}
@@ -121,7 +121,7 @@ func (a *Router) DeletePlanPhase(w http.ResponseWriter, r *http.Request, planId 
 // Get phase for plan
 // (GET /api/v1/plans/{planId}/phases/{planPhaseKey})
 func (a *Router) GetPlanPhase(w http.ResponseWriter, r *http.Request, planId string, planPhaseKey string) {
-	if a.config.Plan == nil {
+	if !a.config.ProductCatalogEnabled {
 		unimplemented.GetPlanPhase(w, r, planId, planPhaseKey)
 		return
 	}
@@ -135,7 +135,7 @@ func (a *Router) GetPlanPhase(w http.ResponseWriter, r *http.Request, planId str
 // Update phase in plan
 // (PUT /api/v1/plans/{planId}/phases/{planPhaseKey})
 func (a *Router) UpdatePlanPhase(w http.ResponseWriter, r *http.Request, planId string, planPhaseKey string) {
-	if a.config.Plan == nil {
+	if !a.config.ProductCatalogEnabled {
 		unimplemented.UpdatePlanPhase(w, r, planId, planPhaseKey)
 		return
 	}
@@ -149,7 +149,7 @@ func (a *Router) UpdatePlanPhase(w http.ResponseWriter, r *http.Request, planId 
 // Publish plan
 // (POST /api/v1/plans/{planId}/publish)
 func (a *Router) PublishPlan(w http.ResponseWriter, r *http.Request, planId string) {
-	if a.config.Plan == nil {
+	if !a.config.ProductCatalogEnabled {
 		unimplemented.PublishPlan(w, r, planId)
 		return
 	}
@@ -160,7 +160,7 @@ func (a *Router) PublishPlan(w http.ResponseWriter, r *http.Request, planId stri
 // Archive plan version
 // (POST /api/v1/plans/{planId}/archive)
 func (a *Router) ArchivePlan(w http.ResponseWriter, r *http.Request, planId string) {
-	if a.config.Plan == nil {
+	if !a.config.ProductCatalogEnabled {
 		unimplemented.ArchivePlan(w, r, planId)
 		return
 	}

@@ -10,7 +10,7 @@ import (
 
 // wPatch is used to serialize patches
 type wPatch struct {
-	Op    string `json:"operation"`
+	Op    string `json:"op"`
 	Path  string `json:"path"`
 	Value any    `json:"value,omitempty"`
 }
@@ -51,10 +51,14 @@ func (p PatchStretchPhase) MarshalJSON() ([]byte, error) {
 }
 
 type rPatch struct {
-	Op    string          `json:"operation"`
+	Op    string          `json:"op"`
 	Path  string          `json:"path"`
 	Value json.RawMessage `json:"value,omitempty"`
 }
+
+// TODO: patch serialization currently is only ever needed for parsing API requests
+// The internal patch types (these) don't properly match up with the API types so they're explicitly mapped in the httpdriver package
+// In conclusion, this serialization is redundant
 
 // Deserialization of patches
 func Deserialize(b []byte) (any, error) {

@@ -488,6 +488,7 @@ func TestEditRunning(t *testing.T) {
 				ActiveFrom: tcDeps.CurrentTime,
 				Currency:   "USD",
 				Plan:       subscriptiontestutils.ExamplePlanRef,
+				Name:       "Example Subscription",
 			})
 			require.Nil(t, err)
 

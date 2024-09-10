@@ -1,6 +1,7 @@
 package subscription
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"time"
@@ -30,10 +31,13 @@ type CreateSubscriptionPlanInput struct {
 }
 
 type CreateSubscriptionCustomerInput struct {
-	CustomerId string         `json:"customerId"`
-	Currency   currencyx.Code `json:"currency"`
-	ActiveFrom time.Time      `json:"activeFrom,omitempty"`
-	ActiveTo   *time.Time     `json:"activeTo,omitempty"`
+	models.AnnotatedModel
+	Name        string         `json:"name"`
+	Description *string        `json:"description,omitempty"`
+	CustomerId  string         `json:"customerId"`
+	Currency    currencyx.Code `json:"currency"`
+	ActiveFrom  time.Time      `json:"activeFrom,omitempty"`
+	ActiveTo    *time.Time     `json:"activeTo,omitempty"`
 }
 
 type SubscriptionSpec struct {
@@ -44,18 +48,17 @@ type SubscriptionSpec struct {
 	Phases map[string]*SubscriptionPhaseSpec
 }
 
-func (s SubscriptionSpec) Self() SubscriptionSpec {
-	return s
-}
-
 func (s *SubscriptionSpec) ToCreateSubscriptionEntityInput(ns string) CreateSubscriptionEntityInput {
 	return CreateSubscriptionEntityInput{
 		NamespacedModel: models.NamespacedModel{
 			Namespace: ns,
 		},
-		Plan:       s.Plan,
-		CustomerId: s.CustomerId,
-		Currency:   s.Currency,
+		Plan:           s.Plan,
+		CustomerId:     s.CustomerId,
+		Currency:       s.Currency,
+		AnnotatedModel: s.AnnotatedModel,
+		Name:           s.Name,
+		Description:    s.Description,
 		CadencedModel: models.CadencedModel{
 			ActiveFrom: s.ActiveFrom,
 			ActiveTo:   s.ActiveTo,
@@ -147,16 +150,17 @@ func (s *SubscriptionSpec) GetCurrentPhaseAt(t time.Time) (*SubscriptionPhaseSpe
 
 func (s *SubscriptionSpec) Validate() error {
 	// All consistency checks should happen here
+	var errs []error
 	for _, phase := range s.Phases {
 		if err := phase.Validate(); err != nil {
-			return fmt.Errorf("phase %s validation failed: %w", phase.PhaseKey, err)
+			errs = append(errs, fmt.Errorf("phase %s validation failed: %w", phase.PhaseKey, err))
 		}
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 type CreateSubscriptionPhasePlanInput struct {
-	PhaseKey    string       `json:"phaseKey"`
+	PhaseKey    string       `json:"key"`
 	StartAfter  datex.Period `json:"startAfter"`
 	Name        string       `json:"name"`
 	Description *string      `json:"description,omitempty"`
@@ -173,7 +177,9 @@ func (i CreateSubscriptionPhasePlanInput) Validate() error {
 	return nil
 }
 
-type CreateSubscriptionPhaseCustomerInput struct{}
+type CreateSubscriptionPhaseCustomerInput struct {
+	models.AnnotatedModel
+}
 
 type RemoveSubscriptionPhaseShifting int
 
@@ -226,6 +232,7 @@ func (s SubscriptionPhaseSpec) ToCreateSubscriptionPhaseEntityInput(
 		NamespacedModel: models.NamespacedModel{
 			Namespace: subscription.Namespace,
 		},
+		AnnotatedModel: s.AnnotatedModel,
 		SubscriptionID: subscription.ID,
 		Key:            s.PhaseKey,
 		Name:           s.Name,
@@ -235,11 +242,29 @@ func (s SubscriptionPhaseSpec) ToCreateSubscriptionPhaseEntityInput(
 }
 
 func (s *SubscriptionPhaseSpec) Validate() error {
+	var errs []error
+
+	// Let's validate that the phase is not empty
+	flat := lo.Flatten(lo.Values(s.ItemsByKey))
+	if len(flat) == 0 {
+		errs = append(errs, &AllowedDuringApplyingPatchesError{
+			Inner: &SpecValidationError{
+				AffectedKeys: [][]string{
+					{
+						"phaseKey",
+						s.PhaseKey,
+					},
+				},
+				Msg: "Phase must have at least one item",
+			},
+		})
+	}
+
 	for key, items := range s.ItemsByKey {
 		for _, item := range items {
 			// Let's validate key is correct
 			if item.ItemKey != key {
-				return &SpecValidationError{
+				errs = append(errs, &SpecValidationError{
 					AffectedKeys: [][]string{
 						{
 							"phaseKey",
@@ -249,12 +274,12 @@ func (s *SubscriptionPhaseSpec) Validate() error {
 						},
 					},
 					Msg: "Items must be grouped correctly by key",
-				}
+				})
 			}
 
 			// Let's validate the phase linking is correct
 			if item.PhaseKey != s.PhaseKey {
-				return &SpecValidationError{
+				errs = append(errs, &SpecValidationError{
 					AffectedKeys: [][]string{
 						{
 							"phaseKey",
@@ -269,12 +294,12 @@ func (s *SubscriptionPhaseSpec) Validate() error {
 						},
 					},
 					Msg: "PhaseKey in Item must match Key in Phase",
-				}
+				})
 			}
 
 			// Let's validate the item contents
 			if err := item.Validate(); err != nil {
-				return fmt.Errorf("item %s validation failed: %w", item.ItemKey, err)
+				errs = append(errs, fmt.Errorf("item %s validation failed: %w", item.ItemKey, err))
 			}
 
 			// TODO: Let's validate that BillingCadence aligns with phase length
@@ -319,16 +344,17 @@ func (s *SubscriptionPhaseSpec) Validate() error {
 		for i := range items {
 			cadence, err := items[i].GetCadence(somePhaseCadence)
 			if err != nil {
-				return fmt.Errorf("failed to get cadence for item %s: %w", items[i].ItemKey, err)
+				errs = append(errs, fmt.Errorf("failed to get cadence for item %s: %w", items[i].ItemKey, err))
 			}
 			cadences = append(cadences, cadence)
 		}
 
 		if err := ValidateCadencesAreSortedAndNonOverlapping(cadences); err != nil {
-			return fmt.Errorf("items for key %s are not sorted or overlapping: %w", key, err)
+			errs = append(errs, fmt.Errorf("items for key %s are not sorted or overlapping: %w", key, err))
 		}
 	}
-	return nil
+
+	return errors.Join(errs...)
 }
 
 type CreateSubscriptionItemPlanInput struct {
@@ -407,6 +433,8 @@ func (s SubscriptionItemSpec) ToCreateSubscriptionItemEntityInput(
 		PhaseID:                                phase.ID,
 		Key:                                    s.ItemKey,
 		RateCard:                               s.CreateSubscriptionItemPlanInput.RateCard,
+		Name:                                   s.RateCard.Name,
+		Description:                            s.RateCard.Description,
 	}
 
 	if entitlement != nil {
@@ -495,6 +523,7 @@ func (s SubscriptionItemSpec) GetRef(subId string) SubscriptionItemRef {
 }
 
 func (s *SubscriptionItemSpec) Validate() error {
+	var errs []error
 	// TODO: if the price is usage based, we have to validate that that the feature is metered
 	// TODO: if the entitlement is metered, we have to validate that the feature is metered
 
@@ -507,7 +536,7 @@ func (s *SubscriptionItemSpec) Validate() error {
 
 	// Let's validate nested models
 	if err := s.RateCard.Validate(); err != nil {
-		return &SpecValidationError{
+		errs = append(errs, &SpecValidationError{
 			AffectedKeys: [][]string{
 				{
 					"phaseKey",
@@ -518,10 +547,10 @@ func (s *SubscriptionItemSpec) Validate() error {
 				},
 			},
 			Msg: fmt.Sprintf("RateCard validation failed: %s", err),
-		}
+		})
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // NewSpecFromPlan creates a SubscriptionSpec from a Plan and a CreateSubscriptionCustomerInput.
@@ -555,9 +584,11 @@ func NewSpecFromPlan(p Plan, c CreateSubscriptionCustomerInput) (SubscriptionSpe
 		createSubscriptionPhasePlanInput := planPhase.ToCreateSubscriptionPhasePlanInput()
 
 		phase := &SubscriptionPhaseSpec{
-			CreateSubscriptionPhasePlanInput:     createSubscriptionPhasePlanInput,
-			CreateSubscriptionPhaseCustomerInput: CreateSubscriptionPhaseCustomerInput{},
-			ItemsByKey:                           make(map[string][]SubscriptionItemSpec),
+			CreateSubscriptionPhasePlanInput: createSubscriptionPhasePlanInput,
+			CreateSubscriptionPhaseCustomerInput: CreateSubscriptionPhaseCustomerInput{
+				AnnotatedModel: models.AnnotatedModel{}, // TODO: where should we source this from? inherit from PlanPhase, or Subscription?
+			},
+			ItemsByKey: make(map[string][]SubscriptionItemSpec),
 		}
 
 		if len(planPhase.GetRateCards()) == 0 {
@@ -602,10 +633,13 @@ func NewSpecFromEntities(sub Subscription, phases []SubscriptionPhase, items []S
 	spec := &SubscriptionSpec{
 		CreateSubscriptionPlanInput: CreateSubscriptionPlanInput{Plan: sub.Plan},
 		CreateSubscriptionCustomerInput: CreateSubscriptionCustomerInput{
-			CustomerId: sub.CustomerId,
-			Currency:   sub.Currency,
-			ActiveFrom: sub.ActiveFrom,
-			ActiveTo:   sub.ActiveTo,
+			CustomerId:     sub.CustomerId,
+			Currency:       sub.Currency,
+			ActiveFrom:     sub.ActiveFrom,
+			ActiveTo:       sub.ActiveTo,
+			AnnotatedModel: sub.AnnotatedModel,
+			Name:           sub.Name,
+			Description:    sub.Description,
 		},
 		Phases: make(map[string]*SubscriptionPhaseSpec),
 	}
@@ -636,8 +670,10 @@ func NewSpecFromEntities(sub Subscription, phases []SubscriptionPhase, items []S
 				Name:        phase.Name,
 				Description: phase.Description,
 			},
-			CreateSubscriptionPhaseCustomerInput: CreateSubscriptionPhaseCustomerInput{},
-			ItemsByKey:                           make(map[string][]SubscriptionItemSpec),
+			CreateSubscriptionPhaseCustomerInput: CreateSubscriptionPhaseCustomerInput{
+				AnnotatedModel: phase.AnnotatedModel,
+			},
+			ItemsByKey: make(map[string][]SubscriptionItemSpec),
 		}
 
 		spec.Phases[phase.Key] = phaseSpec
@@ -745,10 +781,38 @@ func (s *SubscriptionSpec) ApplyPatches(patches []Applies, context ApplyContext)
 			return fmt.Errorf("patch %d failed: %w", i, err)
 		}
 		if err = s.Validate(); err != nil {
+			if uw, ok := err.(interface{ Unwrap() []error }); ok {
+				// If all returned errors are allowed during applying patches, we can continue
+				if lo.EveryBy(uw.Unwrap(), func(e error) bool {
+					_, ok := lo.ErrorsAs[*AllowedDuringApplyingPatchesError](e)
+					return ok
+				}) {
+					continue
+				}
+			}
+			// Otherwise we return with the error
 			return fmt.Errorf("patch %d failed during validation: %w", i, err)
 		}
 	}
+
+	if err := s.Validate(); err != nil {
+		return fmt.Errorf("final validation failed when applying patches: %w", err)
+	}
+
 	return nil
+}
+
+// Some errors are allowed during applying individual patches, but still mean the Spec as a whole is invalid
+type AllowedDuringApplyingPatchesError struct {
+	Inner error
+}
+
+func (e *AllowedDuringApplyingPatchesError) Error() string {
+	return fmt.Sprintf("allowed during incremental validation failed: %s", e.Inner)
+}
+
+func (e *AllowedDuringApplyingPatchesError) Unwrap() error {
+	return e.Inner
 }
 
 type SpecValidationError struct {
