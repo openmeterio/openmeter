@@ -101,7 +101,10 @@ func (r *subscriptionRepo) Create(ctx context.Context, sub subscription.CreateSu
 			SetPlanVersion(sub.Plan.Version).
 			SetCustomerID(sub.CustomerId).
 			SetCurrency(sub.Currency).
-			SetActiveFrom(sub.ActiveFrom)
+			SetActiveFrom(sub.ActiveFrom).
+			SetName(sub.Name).
+			SetNillableDescription(sub.Description).
+			SetMetadata(sub.Metadata)
 
 		if sub.ActiveTo != nil {
 			command = command.SetActiveTo(*sub.ActiveTo)

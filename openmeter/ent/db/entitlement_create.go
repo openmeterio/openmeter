@@ -339,23 +339,19 @@ func (ec *EntitlementCreate) AddBalanceSnapshot(b ...*BalanceSnapshot) *Entitlem
 	return ec.AddBalanceSnapshotIDs(ids...)
 }
 
-// SetSubscriptionItemID sets the "subscription_item" edge to the SubscriptionItem entity by ID.
-func (ec *EntitlementCreate) SetSubscriptionItemID(id string) *EntitlementCreate {
-	ec.mutation.SetSubscriptionItemID(id)
+// AddSubscriptionItemIDs adds the "subscription_item" edge to the SubscriptionItem entity by IDs.
+func (ec *EntitlementCreate) AddSubscriptionItemIDs(ids ...string) *EntitlementCreate {
+	ec.mutation.AddSubscriptionItemIDs(ids...)
 	return ec
 }
 
-// SetNillableSubscriptionItemID sets the "subscription_item" edge to the SubscriptionItem entity by ID if the given value is not nil.
-func (ec *EntitlementCreate) SetNillableSubscriptionItemID(id *string) *EntitlementCreate {
-	if id != nil {
-		ec = ec.SetSubscriptionItemID(*id)
+// AddSubscriptionItem adds the "subscription_item" edges to the SubscriptionItem entity.
+func (ec *EntitlementCreate) AddSubscriptionItem(s ...*SubscriptionItem) *EntitlementCreate {
+	ids := make([]string, len(s))
+	for i := range s {
+		ids[i] = s[i].ID
 	}
-	return ec
-}
-
-// SetSubscriptionItem sets the "subscription_item" edge to the SubscriptionItem entity.
-func (ec *EntitlementCreate) SetSubscriptionItem(s *SubscriptionItem) *EntitlementCreate {
-	return ec.SetSubscriptionItemID(s.ID)
+	return ec.AddSubscriptionItemIDs(ids...)
 }
 
 // SetFeature sets the "feature" edge to the Feature entity.
@@ -633,7 +629,7 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 	}
 	if nodes := ec.mutation.SubscriptionItemIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
 			Table:   entitlement.SubscriptionItemTable,
 			Columns: []string{entitlement.SubscriptionItemColumn},
@@ -645,7 +641,6 @@ func (ec *EntitlementCreate) createSpec() (*Entitlement, *sqlgraph.CreateSpec) {
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.entitlement_subscription_item = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := ec.mutation.FeatureIDs(); len(nodes) > 0 {

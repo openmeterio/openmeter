@@ -30,6 +30,11 @@ type SubscriptionItem struct {
 	RateCard RateCard `json:"rateCard"`
 
 	EntitlementID *string `json:"entitlementId,omitempty"`
+	// Name
+	Name string `json:"name"`
+
+	// Description
+	Description *string `json:"description,omitempty"`
 }
 
 func (i SubscriptionItem) GetCadence(phaseCadence models.CadencedModel) models.CadencedModel {
@@ -68,6 +73,8 @@ func (i SubscriptionItem) AsEntityInput() CreateSubscriptionItemEntityInput {
 		Key:                                    i.Key,
 		RateCard:                               i.RateCard,
 		EntitlementID:                          i.EntitlementID,
+		Name:                                   i.Name,
+		Description:                            i.Description,
 	}
 }
 

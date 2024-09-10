@@ -14,8 +14,11 @@ import (
 type CreateSubscriptionEntityInput struct {
 	models.CadencedModel
 	models.NamespacedModel
+	models.AnnotatedModel
 
-	Plan PlanRef
+	Plan        PlanRef
+	Name        string  `json:"name,omitempty"`
+	Description *string `json:"description,omitempty"`
 
 	CustomerId string `json:"customerId,omitempty"`
 	Currency   currencyx.Code
@@ -38,6 +41,7 @@ type SubscriptionRepository interface {
 
 type CreateSubscriptionPhaseEntityInput struct {
 	models.NamespacedModel
+	models.AnnotatedModel
 
 	// ActiveFrom is the time the phase becomes active.
 	ActiveFrom time.Time
@@ -53,9 +57,6 @@ type CreateSubscriptionPhaseEntityInput struct {
 
 	// Description
 	Description *string `json:"description,omitempty"`
-
-	// Metadata
-	Metadata map[string]string `json:"metadata,omitempty"`
 
 	// StartAfter
 	StartAfter datex.Period `json:"interval"`
@@ -94,6 +95,8 @@ type CreateSubscriptionItemEntityInput struct {
 	RateCard RateCard
 
 	EntitlementID *string
+	Name          string  `json:"name,omitempty"`
+	Description   *string `json:"description,omitempty"`
 }
 
 func (i CreateSubscriptionItemEntityInput) Equal(other CreateSubscriptionItemEntityInput) bool {

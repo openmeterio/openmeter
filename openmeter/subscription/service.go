@@ -29,10 +29,13 @@ type WorkflowService interface {
 }
 
 type CreateFromPlanInput struct {
-	Namespace  string
-	ActiveFrom time.Time
-	CustomerID string
-	Currency   currencyx.Code
+	Namespace   string
+	ActiveFrom  time.Time
+	CustomerID  string
+	Currency    currencyx.Code
+	Name        string
+	Description *string
+	models.AnnotatedModel
 
 	Plan PlanRef
 

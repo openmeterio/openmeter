@@ -7049,14 +7049,7 @@ paths:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                anyOf:
-                  - $ref: '#/components/schemas/SubscriptionEditAddUpdateItem'
-                  - $ref: '#/components/schemas/SubscriptionEditRemoveUpdateItem'
-                  - $ref: '#/components/schemas/SubscriptionEditAdd'
-                  - $ref: '#/components/schemas/SubscriptionEditStretch'
-                  - $ref: '#/components/schemas/SubscriptionEditRemoveWithValue'
+              $ref: '#/components/schemas/SubscriptionEdit'
       x-internal: true
   /api/v1/subscriptions/{subscriptionId}/cancel:
     post:
@@ -8888,29 +8881,6 @@ components:
       description: |-
         [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country code.
         Custom two-letter country codes are also supported for convenience.
-    CreateCustomSubscriptionRequestBody:
-      type: object
-      required:
-        - currency
-        - activeFrom
-        - customPlan
-        - customerId
-      properties:
-        currency:
-          $ref: '#/components/schemas/CurrencyCode'
-        activeFrom:
-          type: string
-          format: date-time
-          example: 2023-01-01T01:01:01.001Z
-          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
-        customPlan:
-          $ref: '#/components/schemas/PlanCreate'
-        customerId:
-          type: string
-          example: 01G65Z755AFWAKHE12NY0CQ9FH
-          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
-          description: ULID (Universally Unique Lexicographically Sortable Identifier).
-      description: Create a custom subscription.
     CreateStripeCheckoutSessionRequest:
       type: object
       required:
@@ -9050,10 +9020,17 @@ components:
     CustomSubscriptionChange:
       type: object
       required:
+        - name
         - currency
         - activeFrom
         - customPlan
       properties:
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        name:
+          type: string
+        description:
+          type: string
         currency:
           $ref: '#/components/schemas/CurrencyCode'
         activeFrom:
@@ -9064,6 +9041,36 @@ components:
         customPlan:
           $ref: '#/components/schemas/PlanCreate'
       description: Change a custom subscription.
+    CustomSubscriptionCreate:
+      type: object
+      required:
+        - name
+        - currency
+        - activeFrom
+        - customPlan
+        - customerId
+      properties:
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+        name:
+          type: string
+        description:
+          type: string
+        currency:
+          $ref: '#/components/schemas/CurrencyCode'
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+        customPlan:
+          $ref: '#/components/schemas/PlanCreate'
+        customerId:
+          type: string
+          example: 01G65Z755AFWAKHE12NY0CQ9FH
+          pattern: ^[0-7][0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{25}$
+          description: ULID (Universally Unique Lexicographically Sortable Identifier).
+      description: Create a custom subscription.
     Customer:
       type: object
       required:
@@ -13416,8 +13423,11 @@ components:
         - plan
         - currency
         - activeFrom
+        - name
         - customizations
       properties:
+        metadata:
+          $ref: '#/components/schemas/Metadata'
         plan:
           type: object
           properties:
@@ -13439,12 +13449,14 @@ components:
           format: date-time
           example: 2023-01-01T01:01:01.001Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+        name:
+          type: string
+        description:
+          type: string
         customizations:
           type: array
           items:
-            anyOf:
-              - $ref: '#/components/schemas/SubscriptionEditAddItem'
-              - $ref: '#/components/schemas/SubscriptionEditRemoveItem'
+            $ref: '#/components/schemas/SubscriptionItemPatch'
           maxItems: 100
           description: |-
             Batch processing commands for customizing the susbcription.
@@ -13460,9 +13472,12 @@ components:
         - plan
         - currency
         - activeFrom
+        - name
         - customizations
         - customerId
       properties:
+        metadata:
+          $ref: '#/components/schemas/Metadata'
         plan:
           type: object
           properties:
@@ -13484,12 +13499,14 @@ components:
           format: date-time
           example: 2023-01-01T01:01:01.001Z
           description: '[RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.'
+        name:
+          type: string
+        description:
+          type: string
         customizations:
           type: array
           items:
-            anyOf:
-              - $ref: '#/components/schemas/SubscriptionEditAddItem'
-              - $ref: '#/components/schemas/SubscriptionEditRemoveItem'
+            $ref: '#/components/schemas/SubscriptionItemPatch'
           maxItems: 100
           description: |-
             Batch processing commands for customizing the susbcription.
@@ -14642,6 +14659,7 @@ components:
         - name
         - createdAt
         - updatedAt
+        - activeFrom
         - customerId
         - plan
         - currency
@@ -14692,6 +14710,16 @@ components:
           description: Timestamp of when the resource was permanently deleted.
           title: Deletion Time
           readOnly: true
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The cadence start of the resource.
+        activeTo:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The cadence end of the resource.
         customerId:
           type: string
           example: 01G65Z755AFWAKHE12NY0CQ9FH
@@ -14709,11 +14737,6 @@ components:
             Will be revised once we add multi currency support.
           title: Currency
           default: USD
-        activeTo:
-          type: string
-          format: date-time
-          example: 2023-01-01T01:01:01.001Z
-          description: If the subscription is canceled or otherwise have to end activeTo denotes the end date.
       description: Subscription is an exact subscription instance.
     SubscriptionChange:
       oneOf:
@@ -14723,9 +14746,21 @@ components:
     SubscriptionCreate:
       oneOf:
         - $ref: '#/components/schemas/PlanSubscriptionCreate'
-        - $ref: '#/components/schemas/CreateCustomSubscriptionRequestBody'
+        - $ref: '#/components/schemas/CustomSubscriptionCreate'
       description: Create a subscription.
-    SubscriptionEditAdd:
+    SubscriptionEdit:
+      type: object
+      properties:
+        customizations:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionPatch'
+          maxItems: 100
+          description: |-
+            Batch processing commands for manipulating running subscriptions.
+            The key format is `/phases/{phaseKey}` or `/phases/{phaseKey}/items/{itemKey}`.
+      description: Subscription edit input.
+    SubscriptionEditAddSubscriptionItemPatchKey:
       type: object
       required:
         - op
@@ -14738,28 +14773,11 @@ components:
             - add
         path:
           type: string
-          pattern: ^\/phases\/[a-zA-Z0-9\-]+$
-        value:
-          $ref: '#/components/schemas/SubscriptionPhaseCreate'
-      description: Subscription item add operation.
-    SubscriptionEditAddItem:
-      type: object
-      required:
-        - op
-        - path
-        - value
-      properties:
-        op:
-          type: string
-          enum:
-            - add
-        path:
-          type: string
-          pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
+          pattern: ^\/phases\/[a-z0-9]+(?:_[a-z0-9]+)*\/items\/[a-z0-9]+(?:_[a-z0-9]+)*$
         value:
           $ref: '#/components/schemas/RateCard'
       description: Subscription item add operation.
-    SubscriptionEditAddUpdateItem:
+    SubscriptionEditAddSubscriptionItemPatchKeyUpdateItem:
       type: object
       required:
         - op
@@ -14772,11 +14790,28 @@ components:
             - add
         path:
           type: string
-          pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
+          pattern: ^\/phases\/[a-z0-9]+(?:_[a-z0-9]+)*\/items\/[a-z0-9]+(?:_[a-z0-9]+)*$
         value:
           $ref: '#/components/schemas/RateCardUpdateItem'
       description: Subscription item add operation.
-    SubscriptionEditRemoveItem:
+    SubscriptionEditAddSubscriptionPhasePatchKey:
+      type: object
+      required:
+        - op
+        - path
+        - value
+      properties:
+        op:
+          type: string
+          enum:
+            - add
+        path:
+          type: string
+          pattern: ^\/phases\/[a-z0-9]+(?:_[a-z0-9]+)*$
+        value:
+          $ref: '#/components/schemas/SubscriptionPhaseCreate'
+      description: Subscription item add operation.
+    SubscriptionEditRemoveSubscriptionItemPatchKey:
       type: object
       required:
         - op
@@ -14788,9 +14823,9 @@ components:
             - remove
         path:
           type: string
-          pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
+          pattern: ^\/phases\/[a-z0-9]+(?:_[a-z0-9]+)*\/items\/[a-z0-9]+(?:_[a-z0-9]+)*$
       description: Subscription phase remove operation.
-    SubscriptionEditRemoveUpdateItem:
+    SubscriptionEditRemoveSubscriptionItemPatchKeyUpdateItem:
       type: object
       required:
         - op
@@ -14802,9 +14837,9 @@ components:
             - remove
         path:
           type: string
-          pattern: ^\/phases\/[a-zA-Z0-9\-]+\/items\/[a-zA-Z0-9\-]+$
+          pattern: ^\/phases\/[a-z0-9]+(?:_[a-z0-9]+)*\/items\/[a-z0-9]+(?:_[a-z0-9]+)*$
       description: Subscription phase remove operation.
-    SubscriptionEditRemoveWithValue:
+    SubscriptionEditRemoveWithValueSubscriptionPhasePatchKey:
       type: object
       required:
         - op
@@ -14817,7 +14852,7 @@ components:
             - remove
         path:
           type: string
-          pattern: ^\/phases\/[a-zA-Z0-9\-]+$
+          pattern: ^\/phases\/[a-z0-9]+(?:_[a-z0-9]+)*$
         value:
           type: object
           properties:
@@ -14826,7 +14861,7 @@ components:
           required:
             - shift
       description: Subscription item remove operation with a value.
-    SubscriptionEditStretch:
+    SubscriptionEditStretchSubscriptionPhasePatchKey:
       type: object
       required:
         - op
@@ -14839,7 +14874,7 @@ components:
             - extend
         path:
           type: string
-          pattern: ^\/phases\/[a-zA-Z0-9\-]+$
+          pattern: ^\/phases\/[a-z0-9]+(?:_[a-z0-9]+)*$
         value:
           type: object
           properties:
@@ -14857,6 +14892,7 @@ components:
         - name
         - createdAt
         - updatedAt
+        - activeFrom
         - customerId
         - plan
         - currency
@@ -14908,6 +14944,16 @@ components:
           description: Timestamp of when the resource was permanently deleted.
           title: Deletion Time
           readOnly: true
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The cadence start of the resource.
+        activeTo:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The cadence end of the resource.
         customerId:
           type: string
           example: 01G65Z755AFWAKHE12NY0CQ9FH
@@ -14925,11 +14971,6 @@ components:
             Will be revised once we add multi currency support.
           title: Currency
           default: USD
-        activeTo:
-          type: string
-          format: date-time
-          example: 2023-01-01T01:01:01.001Z
-          description: If the subscription is canceled or otherwise have to end activeTo denotes the end date.
         phases:
           type: array
           items:
@@ -14942,6 +14983,7 @@ components:
         - name
         - createdAt
         - updatedAt
+        - activeFrom
         - key
         - billingCandence
         - price
@@ -14992,6 +15034,16 @@ components:
           description: Timestamp of when the resource was permanently deleted.
           title: Deletion Time
           readOnly: true
+        activeFrom:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The cadence start of the resource.
+        activeTo:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The cadence end of the resource.
         key:
           type: string
           minLength: 1
@@ -15030,26 +15082,14 @@ components:
               allOf:
                 - $ref: '#/components/schemas/TieredPriceWithCommitments'
               nullable: true
-            - type: object
-              allOf:
-                - $ref: '#/components/schemas/FlatPriceWithPaymentTerm'
-              nullable: true
           example: {}
           description: |-
             The price of the rate card.
             When null, the feature or service is free.
           title: Price
         included:
-          type: object
-          properties:
-            feature:
-              allOf:
-                - $ref: '#/components/schemas/Feature'
-              description: The feature the customer is entitled to use.
-            entitlement:
-              $ref: '#/components/schemas/Entitlement'
-          required:
-            - feature
+          allOf:
+            - $ref: '#/components/schemas/SubscriptionItemIncluded'
           description: Describes what access is gained via the SubscriptionItem
         taxConfig:
           allOf:
@@ -15059,6 +15099,43 @@ components:
             When undefined, the tax config of the feature or the default tax config of the plan is used.
           title: Tax config
       description: The actual contents of the Subscription, what the user gets, what they pay, etc...
+    SubscriptionItemIncluded:
+      type: object
+      required:
+        - feature
+      properties:
+        feature:
+          allOf:
+            - $ref: '#/components/schemas/Feature'
+          description: The feature the customer is entitled to use.
+        entitlement:
+          $ref: '#/components/schemas/Entitlement'
+      description: Included contents like Entitlement, or the Feature.
+    SubscriptionItemPatch:
+      oneOf:
+        - $ref: '#/components/schemas/SubscriptionEditAddSubscriptionItemPatchKey'
+        - $ref: '#/components/schemas/SubscriptionEditRemoveSubscriptionItemPatchKey'
+      discriminator:
+        propertyName: op
+        mapping:
+          add: '#/components/schemas/SubscriptionEditAddSubscriptionItemPatchKey'
+          remove: '#/components/schemas/SubscriptionEditRemoveSubscriptionItemPatchKey'
+      description: Subscription item patch.
+    SubscriptionItemPatchUpdateItem:
+      oneOf:
+        - $ref: '#/components/schemas/SubscriptionEditAddSubscriptionItemPatchKeyUpdateItem'
+        - $ref: '#/components/schemas/SubscriptionEditRemoveSubscriptionItemPatchKeyUpdateItem'
+      discriminator:
+        propertyName: op
+        mapping:
+          add: '#/components/schemas/SubscriptionEditAddSubscriptionItemPatchKeyUpdateItem'
+          remove: '#/components/schemas/SubscriptionEditRemoveSubscriptionItemPatchKeyUpdateItem'
+      description: Subscription item patch.
+    SubscriptionPatch:
+      oneOf:
+        - $ref: '#/components/schemas/SubscriptionItemPatchUpdateItem'
+        - $ref: '#/components/schemas/SubscriptionPhasePatch'
+      description: Subscription patch.
     SubscriptionPhase:
       type: object
       required:
@@ -15067,7 +15144,6 @@ components:
         - createdAt
         - updatedAt
         - key
-        - duration
         - activeFrom
       properties:
         id:
@@ -15122,12 +15198,6 @@ components:
           maxLength: 64
           pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
           description: A locally unique identifier for the resource.
-        duration:
-          type: string
-          format: duration
-          example: P1M
-          description: The intended duration of the new phase.
-          title: Duration
         discounts:
           type: array
           items:
@@ -15139,12 +15209,19 @@ components:
           format: date-time
           example: 2023-01-01T01:01:01.001Z
           description: The time from which the phase is active.
+        activeTo:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The until which the Phase is active.
       description: Subscription phase, analogous to plan phases.
     SubscriptionPhaseCreate:
       type: object
       required:
         - startAfter
         - duration
+        - key
+        - name
       properties:
         startAfter:
           type: string
@@ -15167,6 +15244,18 @@ components:
             $ref: '#/components/schemas/DiscountUpdateItem'
           description: The discounts on the plan.
           title: Discounts
+        key:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
+          description: A locally unique identifier for the phase.
+        name:
+          type: string
+          description: The name of the phase.
+        description:
+          type: string
+          description: The description of the phase.
       description: Subscription phase create input.
     SubscriptionPhaseExpanded:
       type: object
@@ -15176,7 +15265,6 @@ components:
         - createdAt
         - updatedAt
         - key
-        - duration
         - activeFrom
         - items
       properties:
@@ -15232,12 +15320,6 @@ components:
           maxLength: 64
           pattern: ^[a-z0-9]+(?:_[a-z0-9]+)*$
           description: A locally unique identifier for the resource.
-        duration:
-          type: string
-          format: duration
-          example: P1M
-          description: The intended duration of the new phase.
-          title: Duration
         discounts:
           type: array
           items:
@@ -15249,11 +15331,28 @@ components:
           format: date-time
           example: 2023-01-01T01:01:01.001Z
           description: The time from which the phase is active.
+        activeTo:
+          type: string
+          format: date-time
+          example: 2023-01-01T01:01:01.001Z
+          description: The until which the Phase is active.
         items:
           type: array
           items:
             $ref: '#/components/schemas/SubscriptionItem'
       description: Expanded subscription phase
+    SubscriptionPhasePatch:
+      oneOf:
+        - $ref: '#/components/schemas/SubscriptionEditAddSubscriptionPhasePatchKey'
+        - $ref: '#/components/schemas/SubscriptionEditStretchSubscriptionPhasePatchKey'
+        - $ref: '#/components/schemas/SubscriptionEditRemoveWithValueSubscriptionPhasePatchKey'
+      discriminator:
+        propertyName: op
+        mapping:
+          add: '#/components/schemas/SubscriptionEditAddSubscriptionPhasePatchKey'
+          extend: '#/components/schemas/SubscriptionEditStretchSubscriptionPhasePatchKey'
+          remove: '#/components/schemas/SubscriptionEditRemoveWithValueSubscriptionPhasePatchKey'
+      description: Subscription phase patch.
     SvixOperationalWebhookRequest:
       type: object
       required:

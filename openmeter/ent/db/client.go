@@ -3483,7 +3483,7 @@ func (c *EntitlementClient) QuerySubscriptionItem(e *Entitlement) *SubscriptionI
 		step := sqlgraph.NewStep(
 			sqlgraph.From(entitlement.Table, entitlement.FieldID, id),
 			sqlgraph.To(subscriptionitem.Table, subscriptionitem.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, entitlement.SubscriptionItemTable, entitlement.SubscriptionItemColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, entitlement.SubscriptionItemTable, entitlement.SubscriptionItemColumn),
 		)
 		fromV = sqlgraph.Neighbors(e.driver.Dialect(), step)
 		return fromV, nil
@@ -5250,7 +5250,7 @@ func (c *SubscriptionItemClient) QueryEntitlement(si *SubscriptionItem) *Entitle
 		step := sqlgraph.NewStep(
 			sqlgraph.From(subscriptionitem.Table, subscriptionitem.FieldID, id),
 			sqlgraph.To(entitlement.Table, entitlement.FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, subscriptionitem.EntitlementTable, subscriptionitem.EntitlementColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, subscriptionitem.EntitlementTable, subscriptionitem.EntitlementColumn),
 		)
 		fromV = sqlgraph.Neighbors(si.driver.Dialect(), step)
 		return fromV, nil

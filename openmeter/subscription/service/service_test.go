@@ -39,6 +39,7 @@ func TestCreation(t *testing.T) {
 			CustomerId: cust.ID,
 			Currency:   "USD",
 			ActiveFrom: currentTime,
+			Name:       "Test Subscription",
 		})
 		require.Nil(t, err)
 
@@ -179,6 +180,7 @@ func TestCancellation(t *testing.T) {
 			CustomerId: cust.ID,
 			Currency:   "USD",
 			ActiveFrom: currentTime,
+			Name:       "Test Subscription",
 		})
 		require.Nil(t, err)
 
@@ -291,6 +293,7 @@ func TestContinuing(t *testing.T) {
 			CustomerId: cust.ID,
 			Currency:   "USD",
 			ActiveFrom: currentTime,
+			Name:       "Test Subscription",
 		})
 		require.Nil(t, err)
 

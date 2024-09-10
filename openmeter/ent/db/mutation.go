@@ -20759,7 +20759,8 @@ type EntitlementMutation struct {
 	balance_snapshot              map[int]struct{}
 	removedbalance_snapshot       map[int]struct{}
 	clearedbalance_snapshot       bool
-	subscription_item             *string
+	subscription_item             map[string]struct{}
+	removedsubscription_item      map[string]struct{}
 	clearedsubscription_item      bool
 	feature                       *string
 	clearedfeature                bool
@@ -22079,9 +22080,14 @@ func (m *EntitlementMutation) ResetBalanceSnapshot() {
 	m.removedbalance_snapshot = nil
 }
 
-// SetSubscriptionItemID sets the "subscription_item" edge to the SubscriptionItem entity by id.
-func (m *EntitlementMutation) SetSubscriptionItemID(id string) {
-	m.subscription_item = &id
+// AddSubscriptionItemIDs adds the "subscription_item" edge to the SubscriptionItem entity by ids.
+func (m *EntitlementMutation) AddSubscriptionItemIDs(ids ...string) {
+	if m.subscription_item == nil {
+		m.subscription_item = make(map[string]struct{})
+	}
+	for i := range ids {
+		m.subscription_item[ids[i]] = struct{}{}
+	}
 }
 
 // ClearSubscriptionItem clears the "subscription_item" edge to the SubscriptionItem entity.
@@ -22094,20 +22100,29 @@ func (m *EntitlementMutation) SubscriptionItemCleared() bool {
 	return m.clearedsubscription_item
 }
 
-// SubscriptionItemID returns the "subscription_item" edge ID in the mutation.
-func (m *EntitlementMutation) SubscriptionItemID() (id string, exists bool) {
-	if m.subscription_item != nil {
-		return *m.subscription_item, true
+// RemoveSubscriptionItemIDs removes the "subscription_item" edge to the SubscriptionItem entity by IDs.
+func (m *EntitlementMutation) RemoveSubscriptionItemIDs(ids ...string) {
+	if m.removedsubscription_item == nil {
+		m.removedsubscription_item = make(map[string]struct{})
+	}
+	for i := range ids {
+		delete(m.subscription_item, ids[i])
+		m.removedsubscription_item[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedSubscriptionItem returns the removed IDs of the "subscription_item" edge to the SubscriptionItem entity.
+func (m *EntitlementMutation) RemovedSubscriptionItemIDs() (ids []string) {
+	for id := range m.removedsubscription_item {
+		ids = append(ids, id)
 	}
 	return
 }
 
 // SubscriptionItemIDs returns the "subscription_item" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// SubscriptionItemID instead. It exists only for internal usage by the builders.
 func (m *EntitlementMutation) SubscriptionItemIDs() (ids []string) {
-	if id := m.subscription_item; id != nil {
-		ids = append(ids, *id)
+	for id := range m.subscription_item {
+		ids = append(ids, id)
 	}
 	return
 }
@@ -22116,6 +22131,7 @@ func (m *EntitlementMutation) SubscriptionItemIDs() (ids []string) {
 func (m *EntitlementMutation) ResetSubscriptionItem() {
 	m.subscription_item = nil
 	m.clearedsubscription_item = false
+	m.removedsubscription_item = nil
 }
 
 // ClearFeature clears the "feature" edge to the Feature entity.
@@ -22797,9 +22813,11 @@ func (m *EntitlementMutation) AddedIDs(name string) []ent.Value {
 		}
 		return ids
 	case entitlement.EdgeSubscriptionItem:
-		if id := m.subscription_item; id != nil {
-			return []ent.Value{*id}
+		ids := make([]ent.Value, 0, len(m.subscription_item))
+		for id := range m.subscription_item {
+			ids = append(ids, id)
 		}
+		return ids
 	case entitlement.EdgeFeature:
 		if id := m.feature; id != nil {
 			return []ent.Value{*id}
@@ -22819,6 +22837,9 @@ func (m *EntitlementMutation) RemovedEdges() []string {
 	}
 	if m.removedbalance_snapshot != nil {
 		edges = append(edges, entitlement.EdgeBalanceSnapshot)
+	}
+	if m.removedsubscription_item != nil {
+		edges = append(edges, entitlement.EdgeSubscriptionItem)
 	}
 	return edges
 }
@@ -22842,6 +22863,12 @@ func (m *EntitlementMutation) RemovedIDs(name string) []ent.Value {
 	case entitlement.EdgeBalanceSnapshot:
 		ids := make([]ent.Value, 0, len(m.removedbalance_snapshot))
 		for id := range m.removedbalance_snapshot {
+			ids = append(ids, id)
+		}
+		return ids
+	case entitlement.EdgeSubscriptionItem:
+		ids := make([]ent.Value, 0, len(m.removedsubscription_item))
+		for id := range m.removedsubscription_item {
 			ids = append(ids, id)
 		}
 		return ids
@@ -22892,9 +22919,6 @@ func (m *EntitlementMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *EntitlementMutation) ClearEdge(name string) error {
 	switch name {
-	case entitlement.EdgeSubscriptionItem:
-		m.ClearSubscriptionItem()
-		return nil
 	case entitlement.EdgeFeature:
 		m.ClearFeature()
 		return nil
@@ -32462,6 +32486,8 @@ type SubscriptionMutation struct {
 	metadata        *map[string]string
 	active_from     *time.Time
 	active_to       *time.Time
+	name            *string
+	description     *string
 	plan_key        *string
 	plan_version    *int
 	addplan_version *int
@@ -32872,6 +32898,91 @@ func (m *SubscriptionMutation) ResetActiveTo() {
 	delete(m.clearedFields, subscription.FieldActiveTo)
 }
 
+// SetName sets the "name" field.
+func (m *SubscriptionMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *SubscriptionMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *SubscriptionMutation) ResetName() {
+	m.name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *SubscriptionMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *SubscriptionMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the Subscription entity.
+// If the Subscription object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionMutation) OldDescription(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *SubscriptionMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[subscription.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *SubscriptionMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[subscription.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *SubscriptionMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, subscription.FieldDescription)
+}
+
 // SetPlanKey sets the "plan_key" field.
 func (m *SubscriptionMutation) SetPlanKey(s string) {
 	m.plan_key = &s
@@ -33151,7 +33262,7 @@ func (m *SubscriptionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 13)
 	if m.namespace != nil {
 		fields = append(fields, subscription.FieldNamespace)
 	}
@@ -33172,6 +33283,12 @@ func (m *SubscriptionMutation) Fields() []string {
 	}
 	if m.active_to != nil {
 		fields = append(fields, subscription.FieldActiveTo)
+	}
+	if m.name != nil {
+		fields = append(fields, subscription.FieldName)
+	}
+	if m.description != nil {
+		fields = append(fields, subscription.FieldDescription)
 	}
 	if m.plan_key != nil {
 		fields = append(fields, subscription.FieldPlanKey)
@@ -33207,6 +33324,10 @@ func (m *SubscriptionMutation) Field(name string) (ent.Value, bool) {
 		return m.ActiveFrom()
 	case subscription.FieldActiveTo:
 		return m.ActiveTo()
+	case subscription.FieldName:
+		return m.Name()
+	case subscription.FieldDescription:
+		return m.Description()
 	case subscription.FieldPlanKey:
 		return m.PlanKey()
 	case subscription.FieldPlanVersion:
@@ -33238,6 +33359,10 @@ func (m *SubscriptionMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldActiveFrom(ctx)
 	case subscription.FieldActiveTo:
 		return m.OldActiveTo(ctx)
+	case subscription.FieldName:
+		return m.OldName(ctx)
+	case subscription.FieldDescription:
+		return m.OldDescription(ctx)
 	case subscription.FieldPlanKey:
 		return m.OldPlanKey(ctx)
 	case subscription.FieldPlanVersion:
@@ -33303,6 +33428,20 @@ func (m *SubscriptionMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetActiveTo(v)
+		return nil
+	case subscription.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case subscription.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
 		return nil
 	case subscription.FieldPlanKey:
 		v, ok := value.(string)
@@ -33386,6 +33525,9 @@ func (m *SubscriptionMutation) ClearedFields() []string {
 	if m.FieldCleared(subscription.FieldActiveTo) {
 		fields = append(fields, subscription.FieldActiveTo)
 	}
+	if m.FieldCleared(subscription.FieldDescription) {
+		fields = append(fields, subscription.FieldDescription)
+	}
 	return fields
 }
 
@@ -33408,6 +33550,9 @@ func (m *SubscriptionMutation) ClearField(name string) error {
 		return nil
 	case subscription.FieldActiveTo:
 		m.ClearActiveTo()
+		return nil
+	case subscription.FieldDescription:
+		m.ClearDescription()
 		return nil
 	}
 	return fmt.Errorf("unknown Subscription nullable field %s", name)
@@ -33437,6 +33582,12 @@ func (m *SubscriptionMutation) ResetField(name string) error {
 		return nil
 	case subscription.FieldActiveTo:
 		m.ResetActiveTo()
+		return nil
+	case subscription.FieldName:
+		m.ResetName()
+		return nil
+	case subscription.FieldDescription:
+		m.ResetDescription()
 		return nil
 	case subscription.FieldPlanKey:
 		m.ResetPlanKey()

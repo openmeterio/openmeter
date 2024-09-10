@@ -24,7 +24,7 @@ type PlanAdapter interface {
 	// GetPlan returns the plan with the given key and version with all it's dependent resources.
 	//
 	// If the Plan is Not Found, it should return a PlanNotFoundError.
-	GetVersion(ctx context.Context, planKey string, version int) (Plan, error)
+	GetVersion(ctx context.Context, namespace string, planKey string, version int) (Plan, error)
 }
 
 // All methods are expected to return stable values.

@@ -34,6 +34,10 @@ type Subscription struct {
 	ActiveFrom time.Time `json:"active_from,omitempty"`
 	// ActiveTo holds the value of the "active_to" field.
 	ActiveTo *time.Time `json:"active_to,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
+	// Description holds the value of the "description" field.
+	Description *string `json:"description,omitempty"`
 	// PlanKey holds the value of the "plan_key" field.
 	PlanKey string `json:"plan_key,omitempty"`
 	// PlanVersion holds the value of the "plan_version" field.
@@ -88,7 +92,7 @@ func (*Subscription) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case subscription.FieldPlanVersion:
 			values[i] = new(sql.NullInt64)
-		case subscription.FieldID, subscription.FieldNamespace, subscription.FieldPlanKey, subscription.FieldCustomerID, subscription.FieldCurrency:
+		case subscription.FieldID, subscription.FieldNamespace, subscription.FieldName, subscription.FieldDescription, subscription.FieldPlanKey, subscription.FieldCustomerID, subscription.FieldCurrency:
 			values[i] = new(sql.NullString)
 		case subscription.FieldCreatedAt, subscription.FieldUpdatedAt, subscription.FieldDeletedAt, subscription.FieldActiveFrom, subscription.FieldActiveTo:
 			values[i] = new(sql.NullTime)
@@ -158,6 +162,19 @@ func (s *Subscription) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				s.ActiveTo = new(time.Time)
 				*s.ActiveTo = value.Time
+			}
+		case subscription.FieldName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name", values[i])
+			} else if value.Valid {
+				s.Name = value.String
+			}
+		case subscription.FieldDescription:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field description", values[i])
+			} else if value.Valid {
+				s.Description = new(string)
+				*s.Description = value.String
 			}
 		case subscription.FieldPlanKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -252,6 +269,14 @@ func (s *Subscription) String() string {
 	if v := s.ActiveTo; v != nil {
 		builder.WriteString("active_to=")
 		builder.WriteString(v.Format(time.ANSIC))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("name=")
+	builder.WriteString(s.Name)
+	builder.WriteString(", ")
+	if v := s.Description; v != nil {
+		builder.WriteString("description=")
+		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	builder.WriteString("plan_key=")

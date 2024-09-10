@@ -11,6 +11,10 @@ type Subscription struct {
 	models.NamespacedID
 	models.ManagedModel
 	models.CadencedModel
+	models.AnnotatedModel
+
+	Name        string  `json:"name,omitempty"`
+	Description *string `json:"description,omitempty"`
 
 	Plan PlanRef
 

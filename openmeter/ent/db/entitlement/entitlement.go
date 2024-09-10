@@ -93,12 +93,12 @@ const (
 	// BalanceSnapshotColumn is the table column denoting the balance_snapshot relation/edge.
 	BalanceSnapshotColumn = "owner_id"
 	// SubscriptionItemTable is the table that holds the subscription_item relation/edge.
-	SubscriptionItemTable = "entitlements"
+	SubscriptionItemTable = "subscription_items"
 	// SubscriptionItemInverseTable is the table name for the SubscriptionItem entity.
 	// It exists in this package in order to avoid circular dependency with the "subscriptionitem" package.
 	SubscriptionItemInverseTable = "subscription_items"
 	// SubscriptionItemColumn is the table column denoting the subscription_item relation/edge.
-	SubscriptionItemColumn = "entitlement_subscription_item"
+	SubscriptionItemColumn = "entitlement_id"
 	// FeatureTable is the table that holds the feature relation/edge.
 	FeatureTable = "entitlements"
 	// FeatureInverseTable is the table name for the Feature entity.
@@ -135,21 +135,10 @@ var Columns = []string{
 	FieldSubscriptionManaged,
 }
 
-// ForeignKeys holds the SQL foreign-keys that are owned by the "entitlements"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"entitlement_subscription_item",
-}
-
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -372,10 +361,17 @@ func ByBalanceSnapshot(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	}
 }
 
-// BySubscriptionItemField orders the results by subscription_item field.
-func BySubscriptionItemField(field string, opts ...sql.OrderTermOption) OrderOption {
+// BySubscriptionItemCount orders the results by subscription_item count.
+func BySubscriptionItemCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newSubscriptionItemStep(), sql.OrderByField(field, opts...))
+		sqlgraph.OrderByNeighborsCount(s, newSubscriptionItemStep(), opts...)
+	}
+}
+
+// BySubscriptionItem orders the results by subscription_item terms.
+func BySubscriptionItem(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSubscriptionItemStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
@@ -410,7 +406,7 @@ func newSubscriptionItemStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(SubscriptionItemInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.M2O, false, SubscriptionItemTable, SubscriptionItemColumn),
+		sqlgraph.Edge(sqlgraph.O2M, false, SubscriptionItemTable, SubscriptionItemColumn),
 	)
 }
 func newFeatureStep() *sqlgraph.Step {
