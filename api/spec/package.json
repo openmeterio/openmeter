@@ -1,0 +1,26 @@
+{
+  "name": "@openmeter/api-spec",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "compile": "tsp compile ./src",
+    "watch": "tsp compile --watch ./src",
+    "format": "prettier --list-different --find-config-path --write ."
+  },
+  "exports": {
+    "./openapi.yaml": "./output/openapi.yaml"
+  },
+  "main": "./linter/index.js",
+  "devDependencies": {
+    "@typespec/compiler": "0.60.0",
+    "@typespec/http": "0.60.0",
+    "@typespec/openapi": "0.60.0",
+    "@typespec/openapi3": "0.60.0",
+    "@typespec/prettier-plugin-typespec": "0.60.0",
+    "@typespec/rest": "0.60.0",
+    "@typespec/versioning": "0.60.0",
+    "prettier": "3.3.3"
+  },
+  "private": true,
+  "packageManager": "pnpm@9.10.0+sha512.73a29afa36a0d092ece5271de5177ecbf8318d454ecd701343131b8ebc0c1a91c487da46ab77c8e596d6acf1461e3594ced4becedf8921b074fbd8653ed7051c"
+}
