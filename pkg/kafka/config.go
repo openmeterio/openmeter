@@ -190,6 +190,12 @@ type ConsumerConfigParams struct {
 	// * "largest","latest","end": automatically reset the offset to the largest offset
 	// * "error":  trigger an error (ERR__AUTO_OFFSET_RESET) which is retrieved by consuming messages and checking 'message->err'.
 	AutoOffsetReset string
+	// PartitionAssignmentStrategy defines one or more partition assignment strategies.
+	// The elected group leader will use a strategy supported by all members of the group to assign partitions to group members.
+	// If there is more than one eligible strategy, preference is determined by the order of this list (strategies earlier in the list have higher priority).
+	// Cooperative and non-cooperative (eager) strategies must not be mixed.
+	// Available strategies: range, roundrobin, cooperative-sticky.
+	PartitionAssignmentStrategy string
 }
 
 func (c ConsumerConfigParams) Validate() error {
@@ -203,6 +209,16 @@ func (c ConsumerConfigParams) Validate() error {
 		"error",
 	}, c.AutoOffsetReset) {
 		return errors.New("invalid auto offset reset")
+	}
+
+	if c.PartitionAssignmentStrategy != "" {
+		strategies := strings.Split(c.PartitionAssignmentStrategy, ",")
+
+		for _, strategy := range strategies {
+			if !slices.Contains([]string{"range", "roundrobin", "cooperative-sticky"}, strategy) {
+				return fmt.Errorf("invalid partition assignment strategy: %s", strategy)
+			}
+		}
 	}
 
 	return nil
@@ -247,6 +263,12 @@ func (c ConsumerConfigParams) AsConfigMap() (kafka.ConfigMap, error) {
 
 	if c.AutoOffsetReset != "" {
 		if err := m.SetKey("auto.offset.reset", c.AutoOffsetReset); err != nil {
+			return nil, err
+		}
+	}
+
+	if c.PartitionAssignmentStrategy != "" {
+		if err := m.SetKey("partition.assignment.strategy", c.PartitionAssignmentStrategy); err != nil {
 			return nil, err
 		}
 	}

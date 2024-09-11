@@ -9,6 +9,9 @@ aggregation:
 sink:
   minCommitCount: 1
   namespaceRefetch: 1s
+  kafka:
+    brokers: kafka:29092
+    brokerAddressFamily: v4
 
 postgres:
   url: postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable

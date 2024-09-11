@@ -24,6 +24,9 @@ sink:
       expiration: 768h # 32d
       database: 1
       address: redis:6379
+  kafka:
+    brokers: kafka:9092
+    brokerAddressFamily: v4
 
 entitlements:
   enabled: true
