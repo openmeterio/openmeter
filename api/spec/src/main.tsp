@@ -36,5 +36,4 @@ using TypeSpec.Versioning;
     port: string = "8888",
   }
 )
-@server("https://openmeter.cloud", "Cloud")
 namespace OpenMeter;

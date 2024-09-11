@@ -33,4 +33,10 @@ using TypeSpec.OpenAPI;
 @server("https://openmeter.cloud", "Cloud")
 namespace OpenMeterCloud;
 
+@route("/api/v1/events")
+@tag("Events")
 interface Events extends OpenMeter.Events{}
+
+@route("/api/v1/meters")
+@tag("Meters")
+interface Meters extends OpenMeter.Meters{}

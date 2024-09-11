@@ -25,6 +25,7 @@ namespace OpenMeter;
   subject: "customer-id",
   time: DateTime.fromISO("2023-01-01T01:01:01.001Z"),
 })
+@friendlyName("Event")
 model Event {
   /**
    * Identifies the event.
@@ -91,6 +92,7 @@ model Event {
 /**
  * An ingested event with optional validation error.
  */
+@friendlyName("IngestedEvent")
 model IngestedEvent {
   event: Event;
   validationError?: string;
@@ -109,6 +111,7 @@ model IngestedEvent {
 /**
  * Query parameters for listing events.
  */
+@friendlyName("EventQuery")
 model EventQuery {
   @query
   @format("date-time")

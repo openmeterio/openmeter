@@ -27,6 +27,7 @@ namespace OpenMeter;
   valueProperty: "$.tokens",
   groupBy: #{ type: "$.type" },
 })
+@friendlyName("Meter")
 model Meter {
   /**
    * A unique identifier for the meter.
@@ -95,6 +96,7 @@ model Meter {
   }
 )
 #suppress "@openmeter/api-spec/casing" "Use existing values"
+@friendlyName("MeterAggregation")
 enum MeterAggregation {
   SUM,
   COUNT,
@@ -115,6 +117,7 @@ enum MeterAggregation {
   }
 )
 #suppress "@openmeter/api-spec/casing" "Use existing values"
+@friendlyName("WindowSize")
 enum WindowSize {
   MINUTE,
   HOUR,
