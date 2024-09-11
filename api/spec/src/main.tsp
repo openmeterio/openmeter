@@ -4,6 +4,9 @@ import "@typespec/openapi";
 import "@typespec/openapi3";
 import "@typespec/versioning";
 
+import "./errors.tsp";
+import "./types.tsp";
+
 import "./events.tsp";
 
 using TypeSpec.Http;

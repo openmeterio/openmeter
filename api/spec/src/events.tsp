@@ -1,8 +1,6 @@
 import "@typespec/http";
 import "@typespec/openapi";
 import "@typespec/openapi3";
-import "./date.tsp";
-import "./errors.tsp";
 
 using Http;
 using OpenAPI;
