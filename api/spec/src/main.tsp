@@ -8,6 +8,7 @@ import "./errors.tsp";
 import "./types.tsp";
 
 import "./events.tsp";
+import "./meters.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
