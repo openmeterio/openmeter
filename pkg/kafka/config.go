@@ -236,7 +236,7 @@ func (c ConsumerConfigParams) AsConfigMap() (kafka.ConfigMap, error) {
 	}
 
 	if c.ConsumerGroupInstanceID != "" {
-		if err := m.SetKey("group.instance.id", c.ConsumerGroupID); err != nil {
+		if err := m.SetKey("group.instance.id", c.ConsumerGroupInstanceID); err != nil {
 			return nil, err
 		}
 	}
