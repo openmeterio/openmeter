@@ -32,7 +32,7 @@
     },
     {
       "name": "helm",
-      "source": "github.com/sagikazarmark/daggerverse/helm@00deb5158b5d3a71dae8926fd8a4119ac2f45cca"
+      "source": "github.com/sagikazarmark/daggerverse/helm@fb3d654856bd7d53a4129184bf1338e930ac6ca1"
     },
     {
       "name": "helm-docs",
@@ -64,7 +64,7 @@
     }
   ],
   "source": "ci",
-  "engineVersion": "v0.12.0",
+  "engineVersion": "v0.13.0",
   "views": [
     {
       "name": "default",

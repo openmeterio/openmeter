@@ -50,8 +50,8 @@ github.com/vektah/gqlparser/v2 v2.5.16 h1:1gcmLTvs3JLKXckwCwlUagVn/IlV2bwqle0vJ0
 github.com/vektah/gqlparser/v2 v2.5.16/go.mod h1:1lz1OeCqgQbQepsGxPVywrjdBHW2T08PUS3pJqepRww=
 go.opentelemetry.io/otel v1.28.0 h1:/SqNcYk+idO0CxKEUOtKQClMK/MimZihKYMruSMViUo=
 go.opentelemetry.io/otel v1.28.0/go.mod h1:q68ijF8Fc8CnMHKyzqL6akLO46ePnjkgfIMIjUIX9z4=
-go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.0.0-20240619101304-773aec217df3 h1:+Wdli3py2yZkUEnN6r1sBW8altSukTVnEEsAYzTBtus=
-go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.0.0-20240619101304-773aec217df3/go.mod h1:rf7KtfQ+evvgLpiKHIEx+2k+UWfzbxQ2G1nGlNqYEDQ=
+go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.0.0-20240518090000-14441aefdf88 h1:oM0GTNKGlc5qHctWeIGTVyda4iFFalOzMZ3Ehj5rwB4=
+go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.0.0-20240518090000-14441aefdf88/go.mod h1:JGG8ebaMO5nXOPnvKEl+DiA4MGwFjCbjsxT1WHIEBPY=
 go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp v0.3.0 h1:ccBrA8nCY5mM0y5uO7FT0ze4S0TuFcWdDB2FxGMTjkI=
 go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp v0.3.0/go.mod h1:/9pb6634zi2Lk8LYg9Q0X8Ar6jka4dkFOylBLbVQPCE=
 go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.28.0 h1:3Q/xZUyC1BBkualc9ROb4G8qkH90LXEIICcs5zv1OYY=
