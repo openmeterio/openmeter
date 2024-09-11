@@ -200,7 +200,7 @@ type ConsumerConfigParams struct {
 
 func (c ConsumerConfigParams) Validate() error {
 	if c.ConsumerGroupInstanceID != "" && c.ConsumerGroupID == "" {
-		return errors.New("consumer group instance id is required")
+		return errors.New("consumer group id is required if instance id is set")
 	}
 
 	if c.AutoOffsetReset != "" && !slices.Contains([]string{
@@ -236,7 +236,7 @@ func (c ConsumerConfigParams) AsConfigMap() (kafka.ConfigMap, error) {
 	}
 
 	if c.ConsumerGroupInstanceID != "" {
-		if err := m.SetKey("group.instance.id", c.ConsumerGroupID); err != nil {
+		if err := m.SetKey("group.instance.id", c.ConsumerGroupInstanceID); err != nil {
 			return nil, err
 		}
 	}
