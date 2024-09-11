@@ -54,7 +54,7 @@ func ConfigureKafkaConfiguration(v *viper.Viper, prefix string) {
 	v.SetDefault(AddPrefix(prefix, "kafka.saslUsername"), "")
 	v.SetDefault(AddPrefix(prefix, "kafka.saslPassword"), "")
 	v.SetDefault(AddPrefix(prefix, "kafka.statsInterval"), 0)
-	v.SetDefault(AddPrefix(prefix, "kafka.brokerAddressFamily"), "")
+	v.SetDefault(AddPrefix(prefix, "kafka.brokerAddressFamily"), "any")
 	v.SetDefault(AddPrefix(prefix, "kafka.topicMetadataRefreshInterval"), 0)
 	v.SetDefault(AddPrefix(prefix, "kafka.socketKeepAliveEnabled"), false)
 	v.SetDefault(AddPrefix(prefix, "kafka.debugContexts"), nil)
