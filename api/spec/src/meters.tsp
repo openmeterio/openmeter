@@ -94,6 +94,7 @@ model Meter {
     path: "github.com/openmeterio/openmeter/pkg/models",
   }
 )
+#suppress "@openmeter/api-spec/casing" "Use existing values"
 enum MeterAggregation {
   SUM,
   COUNT,
@@ -113,6 +114,7 @@ enum MeterAggregation {
     path: "github.com/openmeterio/openmeter/pkg/models",
   }
 )
+#suppress "@openmeter/api-spec/casing" "Use existing values"
 enum WindowSize {
   MINUTE,
   HOUR,
