@@ -93,7 +93,4 @@ func ConfigureSink(v *viper.Viper) {
 
 	// Override Kafka configuration defaults
 	v.SetDefault("sink.kafka.consumerGroupId", "openmeter-sink-worker")
-	v.SetDefault("sink.kafka.sessionTimeout", "3m")
-	// Guarantees an assignment that is maximally balanced while preserving as many existing partition assignments as possible.
-	v.SetDefault("sink.kafka.partitionAssignmentStrategy", "cooperative-sticky")
 }
