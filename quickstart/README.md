@@ -38,7 +38,8 @@ curl -X POST http://localhost:8888/api/v1/events \
   "subject": "customer-1",
   "data": {
     "method": "GET",
-    "route": "/hello"
+    "route": "/hello",
+    "duration_ms": 10
   }
 }
 '
@@ -59,7 +60,8 @@ curl -X POST http://localhost:8888/api/v1/events \
   "subject": "customer-1",
   "data": {
     "method": "GET",
-    "route": "/hello"
+    "route": "/hello",
+    "duration_ms": 20
   }
 }
 '
@@ -80,7 +82,8 @@ curl -X POST http://localhost:8888/api/v1/events \
   "subject": "customer-1",
   "data": {
     "method": "GET",
-    "route": "/hello"
+    "route": "/hello",
+    "duration_ms": 30
   }
 }
 '
