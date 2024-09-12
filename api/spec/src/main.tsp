@@ -4,6 +4,7 @@ import "@typespec/openapi";
 import "@typespec/openapi3";
 import "@typespec/versioning";
 
+import "./auth.tsp";
 import "./errors.tsp";
 import "./types.tsp";
 

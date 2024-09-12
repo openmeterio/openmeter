@@ -5,6 +5,8 @@ import "@typespec/openapi3";
 
 import "..";
 
+import "./auth.tsp";
+
 using TypeSpec.Http;
 using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
@@ -31,6 +33,7 @@ using TypeSpec.OpenAPI;
   }
 )
 @server("https://openmeter.cloud", "Cloud")
+@useAuth(NoAuth | CloudTokenAuth | CloudCookieAuth)
 namespace OpenMeterCloud;
 
 @route("/api/v1/events")
