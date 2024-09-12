@@ -88,6 +88,7 @@ model Meter {
 /**
  * The aggregation type to use for the meter.
  */
+#suppress "@openmeter/api-spec/casing" "Use existing values"
 @extension("x-go-type", "models.MeterAggregation")
 @extension(
   "x-go-type-import",
@@ -95,7 +96,6 @@ model Meter {
     path: "github.com/openmeterio/openmeter/pkg/models",
   }
 )
-#suppress "@openmeter/api-spec/casing" "Use existing values"
 @friendlyName("MeterAggregation")
 enum MeterAggregation {
   SUM,
@@ -109,6 +109,7 @@ enum MeterAggregation {
 /**
  * Aggregation window size.
  */
+#suppress "@openmeter/api-spec/casing" "Use existing values"
 @extension("x-go-type", "models.WindowSize")
 @extension(
   "x-go-type-import",
@@ -116,7 +117,6 @@ enum MeterAggregation {
     path: "github.com/openmeterio/openmeter/pkg/models",
   }
 )
-#suppress "@openmeter/api-spec/casing" "Use existing values"
 @friendlyName("WindowSize")
 enum WindowSize {
   MINUTE,

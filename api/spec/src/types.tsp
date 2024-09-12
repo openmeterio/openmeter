@@ -24,6 +24,7 @@ scalar Key extends string;
  * Metadata can be used to store additional information about a resource.
  */
 @example(#{ externalId: "019142cc-a016-796a-8113-1a942fecd26d" })
+@friendlyName("Metadata")
 model Metadata {
   ...Record<string>;
 }
