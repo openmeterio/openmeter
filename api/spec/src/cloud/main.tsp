@@ -39,4 +39,21 @@ interface Events extends OpenMeter.Events{}
 
 @route("/api/v1/meters")
 @tag("Meters")
-interface Meters extends OpenMeter.Meters{}
+interface Meters extends OpenMeter.Meters{
+  /**
+   * Create a meter.
+   */
+  @post
+  @operationId("createMeter")
+  create(@body meter: OpenMeter.Meter): {
+    @statusCode _: 201;
+    @body body: OpenMeter.Meter;
+  } | OpenMeter.CommonErrors;
+
+  /**
+   * Delete a meter.
+   */
+  @delete
+  @operationId("deleteMeter")
+  delete(@path meterIdOrSlug: OpenMeter.MeterIdentifier): void | OpenMeter.CommonErrors;
+}

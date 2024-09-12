@@ -2,6 +2,8 @@ import "@typespec/http";
 
 using TypeSpec.Http;
 
+namespace OpenMeter;
+
 /**
  * A Problem Details object (RFC 7807).
  * Additional properties specific to the problem type may be present.
