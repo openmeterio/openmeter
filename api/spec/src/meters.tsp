@@ -8,6 +8,68 @@ using TypeSpec.OpenAPI;
 
 namespace OpenMeter;
 
+@route("/api/v1/meters")
+@tag("Meters")
+interface Meters {
+  /**
+   * List meters.
+   */
+  @get
+  @operationId("listMeters")
+  list(): Meter[] | CommonErrors;
+
+  /**
+   * Get a meter by ID or slug.
+   */
+  @get
+  @operationId("getMeter")
+  get(@path meterIdOrSlug: MeterIdentifier): Meter | NotFoundError | CommonErrors;
+
+  /**
+   * Query meter for usage.
+   */
+  @get
+  @route("/{meterIdOrSlug}/query")
+  @operationId("queryMeter")
+  @sharedRoute
+  queryJson(@path meterIdOrSlug: MeterIdentifier, @header accept?: "application/json" = "application/json"): {
+    @header contentType: "application/json";
+    @body _: MeterQueryResult;
+  } | NotFoundError | CommonErrors;
+
+  /**
+   * Query meter for usage.
+   */
+  @get
+  @route("/{meterIdOrSlug}/query")
+  @operationId("queryMeter")
+  @sharedRoute
+  queryCsv(@path meterIdOrSlug: MeterIdentifier, @header accept?: "text/csv"): {
+    @header contentType: "text/csv";
+
+    @body
+    @example("""
+      window_start,window_end,subject,model,type,value
+      2023-01-01T00:00:00Z,2023-01-01T00:01:00Z,customer_1,gpt-4-turbo,input,12
+      2023-01-01T00:01:00Z,2023-01-02T00:02:00Z,customer_1,gpt-4-turbo,input,20
+      2023-01-01T00:02:00Z,2023-01-02T00:03:00Z,customer_2,gpt-4-turbo,output,4
+      """)
+    _: string;
+  } | NotFoundError | CommonErrors;
+
+  /**
+   * List subjects for a meter.
+   */
+  @get
+  @route("/{meterIdOrSlug}/subjects")
+  @operationId("listMeterSubjects")
+  listSubjects(@path meterIdOrSlug: MeterIdentifier): {
+    @body
+    @example(#["customer_1", "customer_2"])
+    _: string[];
+  } | CommonErrors;
+}
+
 /**
  * A meter is a configuration that defines how to match and aggregate events.
  */
@@ -27,7 +89,7 @@ namespace OpenMeter;
   windowSize: WindowSize.MINUTE,
   eventType: "prompt",
   valueProperty: "$.tokens",
-  groupBy: #{ type: "$.type" },
+  groupBy: #{ `model`: "$.model", type: "$.type" },
 })
 model Meter {
   /**
@@ -125,68 +187,6 @@ enum WindowSize {
   DAY,
 }
 
-@route("/api/v1/meters")
-@tag("Meters")
-interface Meters {
-  /**
-   * List meters.
-   */
-  @get
-  @operationId("listMeters")
-  list(): Meter[] | CommonErrors;
-
-  /**
-   * Get a meter by ID or slug.
-   */
-  @get
-  @operationId("getMeter")
-  get(@path meterIdOrSlug: MeterIdentifier): Meter | NotFoundError | CommonErrors;
-
-  /**
-   * Query meter for usage.
-   */
-  @get
-  @route("/{meterIdOrSlug}/query")
-  @operationId("queryMeter")
-  @sharedRoute
-  queryJson(@path meterIdOrSlug: MeterIdentifier, @header accept?: "application/json" = "application/json"): {
-    @header contentType: "application/json";
-    @body _: MeterQueryResult;
-  } | NotFoundError | CommonErrors;
-
-  /**
-   * Query meter for usage.
-   */
-  @get
-  @route("/{meterIdOrSlug}/query")
-  @operationId("queryMeter")
-  @sharedRoute
-  queryCsv(@path meterIdOrSlug: MeterIdentifier, @header accept?: "text/csv"): {
-    @header contentType: "text/csv";
-
-    @body
-    @example("""
-      window_start,window_end,subject,model,type,value
-      2023-01-01T00:00:00Z,2023-01-01T00:01:00Z,customer_1,gpt-4-turbo,input,12
-      2023-01-01T00:01:00Z,2023-01-02T00:02:00Z,customer_1,gpt-4-turbo,input,20
-      2023-01-01T00:02:00Z,2023-01-02T00:03:00Z,customer_2,gpt-4-turbo,output,4
-      """)
-    _: string;
-  } | NotFoundError | CommonErrors;
-
-  /**
-   * List subjects for a meter.
-   */
-  @get
-  @route("/{meterIdOrSlug}/subjects")
-  @operationId("listMeterSubjects")
-  listSubjects(@path meterIdOrSlug: MeterIdentifier): {
-    @body
-    @example(#["customer_1", "customer_2"])
-    _: string[];
-  } | CommonErrors;
-}
-
 /**
  * A unique meter identifier.
  */
@@ -196,6 +196,20 @@ alias MeterIdentifier = ULID | Key;
  * The result of a meter query.
  */
 @friendlyName("MeterQueryResult")
+@example(#{
+  from: DateTime.fromISO("2023-01-01T00:00:00Z"),
+  to: DateTime.fromISO("2023-01-02T00:00:00Z"),
+  windowSize: WindowSize.DAY,
+  data: #[
+    #{
+      value: 12,
+      windowStart: DateTime.fromISO("2023-01-01T00:00:00Z"),
+      windowEnd: DateTime.fromISO("2023-01-02T00:00:00Z"),
+      subject: "customer-1",
+      groupBy: #{ `model`: "gpt-4-turbo", type: "prompt" },
+    }
+  ],
+})
 model MeterQueryResult {
   from?: DateTime;
   to?: DateTime;
@@ -214,6 +228,13 @@ model MeterQueryResult {
   }
 )
 @friendlyName("MeterQueryRow")
+@example(#{
+  value: 12,
+  windowStart: DateTime.fromISO("2023-01-01T00:00:00Z"),
+  windowEnd: DateTime.fromISO("2023-01-02T00:00:00Z"),
+  subject: "customer-1",
+  groupBy: #{ `model`: "gpt-4-turbo", type: "prompt" },
+})
 model MeterQueryRow {
   value: numeric;
   windowStart: DateTime;
