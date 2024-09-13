@@ -1,0 +1,13 @@
+{
+    "specversion": "1.0",
+    "type": "request",
+    "id": "00001",
+    "time": "2023-01-01T00:00:00.001Z",
+    "source": "service-0",
+    "subject": "customer-1",
+    "data": {
+        "method": "GET",
+        "route": "/hello",
+        "duration_ms": 10
+    }
+}
