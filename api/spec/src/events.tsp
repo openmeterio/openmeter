@@ -8,6 +8,110 @@ using TypeSpec.OpenAPI;
 
 namespace OpenMeter;
 
+@route("/api/v1/events")
+@tag("Events")
+interface Events {
+  /**
+   * List ingested events within a time range.
+   *
+   * If the from query param is not provided it defaults to last 72 hours.
+   */
+  @get
+  @operationId("listEvents")
+  @summary("List ingested events")
+  list(
+    /**
+     * Start date-time in RFC 3339 format.
+     *
+     * Inclusive.
+     */
+    @query
+    @example(utcDateTime.fromISO("2023-01-01T00:00:00Z"))
+    ingestedAtFrom: utcDateTime,
+
+    /**
+     * End date-time in RFC 3339 format.
+     *
+     * Inclusive.
+     */
+    @query
+    @example(utcDateTime.fromISO("2023-01-01T00:00:00Z"))
+    ingestedAtTo: utcDateTime,
+
+    /**
+     * If not provided lists all events.
+     *
+     * If provided with true, only list events with processing error.
+     *
+     * If provided with false, only list events without processing error.
+     */
+    @query
+    @example(false)
+    hasError: boolean,
+
+    /**
+     * The event ID.
+     *
+     * Accepts partial ID.
+     */
+    @query
+    @example("my-event-id")
+    id: string,
+
+    /**
+     * The event subject.
+     *
+     * Accepts partial subject.
+     */
+    @query
+    @example("customer-1")
+    subject: string,
+
+    /**
+     * Start date-time in RFC 3339 format.
+     *
+     * Inclusive.
+     */
+    @query
+    @example(utcDateTime.fromISO("2023-01-01T00:00:00Z"))
+    from: utcDateTime,
+
+    /**
+     * End date-time in RFC 3339 format.
+     *
+     * Inclusive.
+     */
+    @query
+    @example(utcDateTime.fromISO("2023-01-01T00:00:00Z"))
+    to: utcDateTime,
+
+    /**
+     * Number of events to return.
+     */
+    @query
+    @minValue(1)
+    @maxValue(100)
+    @example(100)
+    limit: integer = 100,
+  ): IngestedEvent[] | CommonErrors;
+
+  @post
+  @operationId("ingestEvents")
+  @sharedRoute
+  ingestEvent(@header contentType: "application/cloudevents+json", @body body: Event): {
+    @header contentType: "application/cloudevents+json";
+    @body _: Event;
+  } | CommonErrors;
+
+  @post
+  @operationId("ingestEvents")
+  @sharedRoute
+  ingestEvents(@header contentType: "application/cloudevents-batch+json", @body body: Event[]): {
+    @header contentType: "application/cloudevents-batch+json";
+    @body _: Event[];
+  } | CommonErrors;
+}
+
 /**
  * CloudEvents Specification JSON Schema
  */
@@ -18,6 +122,7 @@ namespace OpenMeter;
     path: "github.com/cloudevents/sdk-go/v2/event",
   }
 )
+@friendlyName("Event")
 @example(#{
   id: "5c10fade-1c9e-4d6c-8275-c52c36731d3c",
   source: "service-name",
@@ -26,7 +131,6 @@ namespace OpenMeter;
   subject: "customer-id",
   time: DateTime.fromISO("2023-01-01T01:01:01.001Z"),
 })
-@friendlyName("Event")
 model Event {
   /**
    * Identifies the event.
@@ -94,96 +198,36 @@ model Event {
  * An ingested event with optional validation error.
  */
 @friendlyName("IngestedEvent")
+@example(#{
+  event: #{
+    id: "5c10fade-1c9e-4d6c-8275-c52c36731d3c",
+    source: "service-name",
+    specversion: "1.0",
+    type: "prompt",
+    subject: "customer-id",
+    time: DateTime.fromISO("2023-01-01T01:01:01.001Z"),
+  },
+  ingestedAt: DateTime.fromISO("2023-01-01T01:01:01.001Z"),
+  storedAt: DateTime.fromISO("2023-01-01T01:01:02.001Z"),
+})
 model IngestedEvent {
+  /*
+   * The original event ingested.
+   */
   event: Event;
+
+  /**
+   * The validation error if the event failed validation.
+   */
   validationError?: string;
 
-  @format("date-time")
-  @doc("Start date-time in RFC 3339 format. Inclusive.")
-  @example("2023-01-01T00:00:00Z")
-  ingestedAt: string;
+  /**
+   * The date and time the event was ingested.
+   */
+  ingestedAt: DateTime;
 
-  @format("date-time")
-  @doc("Start date-time in RFC 3339 format. Inclusive.")
-  @example("2023-01-01T00:00:00Z")
-  storedAt: string;
-}
-
-/**
- * Query parameters for listing events.
- */
-@friendlyName("EventQuery")
-model EventQuery {
-  @query
-  @format("date-time")
-  @doc("Start date-time in RFC 3339 format. Inclusive.")
-  @example("2023-01-01T00:00:00Z")
-  from: string;
-
-  @query
-  @format("date-time")
-  @doc("End date-time in RFC 3339 format. Inclusive.")
-  @example("2023-01-01T00:00:00Z")
-  to: string;
-
-  @query
-  @minValue(1)
-  @maxValue(100)
-  @example(100)
-  @doc("Number of events to return.")
-  limit: integer = 100;
-}
-
-@route("/api/v1/events")
-@tag("Events")
-interface Events {
-  @get
-  @operationId("listEvents")
-  @doc("List ingested events")
-  list(
-    @query
-    @format("date-time")
-    @doc("Start date-time in RFC 3339 format. Inclusive.")
-    @example("2023-01-01T00:00:00Z")
-    ingestedAtFrom: string,
-
-    @query
-    @format("date-time")
-    @doc("End date-time in RFC 3339 format. Inclusive.")
-    @example("2023-01-01T00:00:00Z")
-    ingestedAtTo: string,
-
-    @query
-    @doc("If not provided lists all events. If provided with true, only list events with processing error. If provided with false, only list events without processing error.")
-    @example(false)
-    hasError: boolean,
-
-    @query
-    @doc("The event ID. Accepts partial ID.")
-    @example("my-event-id")
-    id: string,
-
-    @query
-    @doc("The event subject. Accepts partial subject.")
-    @example("customer-1")
-    subject: string,
-
-    ...EventQuery,
-  ): IngestedEvent[] | CommonErrors;
-
-  @post
-  @operationId("ingestEvents")
-  @sharedRoute
-  ingestEvent(@header contentType: "application/cloudevents+json", @body body: Event): {
-    @header contentType: "application/cloudevents+json";
-    @body _: Event;
-  } | CommonErrors;
-
-  @post
-  @operationId("ingestEvents")
-  @sharedRoute
-  ingestEvents(@header contentType: "application/cloudevents-batch+json", @body body: Event[]): {
-    @header contentType: "application/cloudevents-batch+json";
-    @body _: Event[];
-  } | CommonErrors;
+  /**
+   * The date and time the event was stored.
+   */
+  storedAt: DateTime;
 }

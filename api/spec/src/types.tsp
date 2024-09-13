@@ -33,4 +33,5 @@ model Metadata {
  * [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
  */
 @encode("rfc3339")
+@example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
 scalar DateTime extends utcDateTime;
