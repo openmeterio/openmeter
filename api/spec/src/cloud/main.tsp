@@ -101,3 +101,7 @@ namespace OpenMeterCloud.Portal {
   @useAuth(PortalTokenAuth | CloudPortalTokenAuth)
   interface Meters extends OpenMeter.Portal.Meters {}
 }
+
+@route("/api/v1/debug")
+@tag("Debug")
+interface Debug extends OpenMeter.Debug {}
