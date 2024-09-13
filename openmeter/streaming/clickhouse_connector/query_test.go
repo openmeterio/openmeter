@@ -58,7 +58,7 @@ func TestQueryEventsTable(t *testing.T) {
 				Limit:     100,
 				Subject:   &subjectFilter,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND subject LIKE ? ORDER BY time DESC LIMIT 100",
+			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND subject = ? ORDER BY time DESC LIMIT 100",
 			wantArgs: []interface{}{"my_namespace", "%customer-1%"},
 		},
 		{
