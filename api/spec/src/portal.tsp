@@ -8,6 +8,22 @@ using TypeSpec.OpenAPI;
 
 namespace OpenMeter.Portal;
 
+@route("/api/v1/portal/tokens")
+@tag("Portal")
+interface Tokens {
+  /**
+   * Create a consumer portal token.
+   */
+  @post
+  @operationId("createPortalToken")
+  create(@body token: Token): {
+    // TODO: Should be 201
+    @statusCode _: 200;
+
+    @body body: Token;
+  } | CommonErrors;
+}
+
 /**
  * A consumer portal token.
  *
@@ -32,41 +48,23 @@ model Token {
   @visibility("read")
   createdAt?: DateTime;
 
+  // TODO: technically the visibility is incorrect, because the token is only returned at creation.
+
   /**
    * The token is only returned at creation.
-   *
-   * TODO: technically the visibility is incorrect, because the token is only returned at creation.
    */
   @visibility("read")
   @example("om_portal_IAnD3PpWW2A2Wr8m9jfzeHlGX8xmCXwG.y5q4S-AWqFu6qjfaFz0zQq4Ez28RsnyVwJffX5qxMvo")
   token?: string;
 
+  // TODO: make sure items are unique
+
   /**
    * Optional, if defined only the specified meters will be allowed.
-   *
-   * TODO: Make sure items are unique.
    */
   @example(#["tokens_total"])
   allowedMeterSlugs?: string[];
 }
-
-@route("/api/v1/portal/tokens")
-@tag("Portal")
-interface Tokens {
-  /**
-   * Create a consumer portal token.
-   */
-  @post
-  @operationId("createPortalToken")
-  create(@body token: Token): {
-    // TODO: Should be 201
-    @statusCode _: 200;
-
-    @body body: Token;
-  } | CommonErrors;
-}
-
-// TODO: add query parameters
 
 @route("/api/v1/portal/meters")
 @tag("Portal")
@@ -79,7 +77,7 @@ interface Meters {
   @route("/{meterSlug}/query")
   @operationId("queryPortalMeter")
   @sharedRoute
-  queryJson(@path meterSlug: Key, @header accept?: "application/json" = "application/json"): {
+  queryJson(@path meterSlug: Key, ...OpenMeter.MeterQuery, @header accept?: "application/json" = "application/json"): {
     @header contentType: "application/json";
     @body _: MeterQueryResult;
   } | NotFoundError | CommonErrors;
@@ -91,7 +89,7 @@ interface Meters {
   @route("/{meterSlug}/query")
   @operationId("queryPortalMeter")
   @sharedRoute
-  queryCsv(@path meterSlug: Key, @header accept?: "text/csv"): {
+  queryCsv(@path meterSlug: Key, ...OpenMeter.MeterQuery, @header accept?: "text/csv"): {
     @header contentType: "text/csv";
 
     @body

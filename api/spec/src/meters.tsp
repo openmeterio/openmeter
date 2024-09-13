@@ -32,7 +32,11 @@ interface Meters {
   @route("/{meterIdOrSlug}/query")
   @operationId("queryMeter")
   @sharedRoute
-  queryJson(@path meterIdOrSlug: MeterIdentifier, @header accept?: "application/json" = "application/json"): {
+  queryJson(
+    @path meterIdOrSlug: MeterIdentifier,
+    ...MeterQuery,
+    @header accept?: "application/json" = "application/json",
+  ): {
     @header contentType: "application/json";
     @body _: MeterQueryResult;
   } | NotFoundError | CommonErrors;
@@ -44,7 +48,7 @@ interface Meters {
   @route("/{meterIdOrSlug}/query")
   @operationId("queryMeter")
   @sharedRoute
-  queryCsv(@path meterIdOrSlug: MeterIdentifier, @header accept?: "text/csv"): {
+  queryCsv(@path meterIdOrSlug: MeterIdentifier, ...MeterQuery, @header accept?: "text/csv"): {
     @header contentType: "text/csv";
 
     @body
@@ -191,6 +195,67 @@ enum WindowSize {
  * A unique meter identifier.
  */
 alias MeterIdentifier = ULID | Key;
+
+/**
+ * Meter query parameters.
+ */
+@friendlyName("MeterQuery")
+model MeterQuery {
+  /**
+   * Start date-time in RFC 3339 format.
+   *
+   * Inclusive.
+   */
+  @query
+  from?: DateTime;
+
+  /**
+   * End date-time in RFC 3339 format.
+   *
+   * Inclusive.
+   */
+  @query
+  to?: DateTime;
+
+  /**
+   * If not specified, a single usage aggregate will be returned for the entirety of the specified period for each subject and group.
+   */
+  @query
+  windowSize?: WindowSize;
+
+  /**
+   * The value is the name of the time zone as defined in the IANA Time Zone Database (http://www.iana.org/time-zones).
+   * If not specified, the UTC timezone will be used.
+   */
+  @query
+  @example("America/New_York")
+  windowTimeZone?: string = "UTC";
+
+  /**
+   * Filtering by multiple subjects.
+   */
+  @query
+  @example(#["customer-1", "customer-2"])
+  subject?: string[];
+
+  // TODO: should be deepObject
+  // See: https://github.com/microsoft/typespec/issues/4440
+
+  /**
+   * Simple filter for group bys with exact match.
+   */
+  @query
+  @example(#{ `model`: "gpt-4-turbo", type: "prompt" })
+  filterGroupBy?: Record<string>;
+
+  /**
+   * If not specified a single aggregate will be returned for each subject and time window.
+   * `subject` is a reserved group by value.
+   */
+  @query
+  @example(#["model", "type"])
+  groupBy?: string[];
+}
 
 /**
  * The result of a meter query.
