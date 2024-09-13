@@ -19,6 +19,19 @@ type Generate struct {
 	Source *dagger.Directory
 }
 
+// Generate OpenAPI from TypeSpec.
+func (m *Generate) Openapi() *dagger.File {
+	return dag.Container().
+		From("node:22.8.0-alpine3.20").
+		WithExec([]string{"npm", "install", "-g", "pnpm"}).
+		WithDirectory("/work", m.Source.Directory("api/spec")).
+		WithWorkdir("/work").
+		WithExec([]string{"pnpm", "install", "--frozen-lockfile"}).
+		WithExec([]string{"pnpm", "compile"}).
+		File("/work/output/openapi.OpenMeterCloud.yaml").
+		WithName("openapi.yaml")
+}
+
 // Generate the Python SDK.
 func (m *Generate) PythonSdk() *dagger.Directory {
 	// We build our image as the official autorest Dockerfile is outdated
