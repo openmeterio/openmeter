@@ -85,7 +85,7 @@ func (d queryEventsTable) toSQL() (string, []interface{}) {
 		where = append(where, query.Like("id", fmt.Sprintf("%%%s%%", *d.ID)))
 	}
 	if d.Subject != nil {
-		where = append(where, query.Like("subject", fmt.Sprintf("%%%s%%", *d.Subject)))
+		where = append(where, query.Equal("subject", *d.Subject))
 	}
 	if d.HasError != nil {
 		if *d.HasError {
