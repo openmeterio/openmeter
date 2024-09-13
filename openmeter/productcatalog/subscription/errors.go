@@ -1,7 +1,9 @@
 package subscription
 
-type ForbiddenError struct{}
+type ForbiddenError struct {
+	Message string
+}
 
 func (e *ForbiddenError) Error() string {
-	panic("not implemented")
+	return e.Message
 }
