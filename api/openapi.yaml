@@ -102,8 +102,7 @@ paths:
           in: query
           required: false
           description: |
-            The event subject.
-            Accepts partial subject.
+            The event subject. Full match.
           schema:
             type: string
             example: customer-1
