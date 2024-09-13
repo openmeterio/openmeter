@@ -1,9 +1,10 @@
 import "@typespec/http";
-import "@typespec/openapi";
+import "@typespec/rest";
 import "@typespec/openapi3";
 
-using Http;
-using OpenAPI;
+using TypeSpec.Http;
+using TypeSpec.Rest;
+using TypeSpec.OpenAPI;
 
 namespace OpenMeter;
 
@@ -17,6 +18,7 @@ namespace OpenMeter;
     path: "github.com/openmeterio/openmeter/pkg/models",
   }
 )
+@friendlyName("Meter")
 @example(#{
   id: "01G65Z755AFWAKHE12NY0CQ9FH",
   slug: "tokens_total",
@@ -27,7 +29,6 @@ namespace OpenMeter;
   valueProperty: "$.tokens",
   groupBy: #{ type: "$.type" },
 })
-@friendlyName("Meter")
 model Meter {
   /**
    * A unique identifier for the meter.
@@ -141,9 +142,6 @@ interface Meters {
   @operationId("getMeter")
   get(@path meterIdOrSlug: MeterIdentifier): Meter | NotFoundError | CommonErrors;
 
-  // create
-  // delete
-
   /**
    * Query meter for usage.
    */
@@ -153,7 +151,7 @@ interface Meters {
   @sharedRoute
   queryJson(@path meterIdOrSlug: MeterIdentifier, @header accept?: "application/json" = "application/json"): {
     @header contentType: "application/json";
-    @body _: Meter;
+    @body _: MeterQueryResult;
   } | NotFoundError | CommonErrors;
 
   /**
@@ -193,3 +191,33 @@ interface Meters {
  * A unique meter identifier.
  */
 alias MeterIdentifier = ULID | Key;
+
+/**
+ * The result of a meter query.
+ */
+@friendlyName("MeterQueryResult")
+model MeterQueryResult {
+  from?: DateTime;
+  to?: DateTime;
+  windowSize?: WindowSize;
+  data: MeterQueryRow[];
+}
+
+/**
+ * A row in the result of a meter query.
+ */
+@extension("x-go-type", "models.MeterQueryRow")
+@extension(
+  "x-go-type-import",
+  {
+    path: "github.com/openmeterio/openmeter/pkg/models",
+  }
+)
+@friendlyName("MeterQueryRow")
+model MeterQueryRow {
+  value: numeric;
+  windowStart: DateTime;
+  windowEnd: DateTime;
+  subject?: string;
+  groupBy?: Record<string>;
+}

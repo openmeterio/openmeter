@@ -38,11 +38,11 @@ namespace OpenMeterCloud;
 
 @route("/api/v1/events")
 @tag("Events")
-interface Events extends OpenMeter.Events{}
+interface Events extends OpenMeter.Events {}
 
 @route("/api/v1/meters")
 @tag("Meters")
-interface Meters extends OpenMeter.Meters{
+interface Meters extends OpenMeter.Meters {
   /**
    * Create a meter.
    */
@@ -59,4 +59,45 @@ interface Meters extends OpenMeter.Meters{
   @delete
   @operationId("deleteMeter")
   delete(@path meterIdOrSlug: OpenMeter.MeterIdentifier): void | OpenMeter.CommonErrors;
+}
+
+namespace OpenMeterCloud.Portal {
+  @route("/api/v1/portal/tokens")
+  @tag("Portal")
+  interface Tokens extends OpenMeter.Portal.Tokens {
+    /**
+     * List tokens.
+     */
+    @get
+    @operationId("listPortalTokens")
+    list(
+      @query
+      @minValue(1)
+      @maxValue(100)
+      limit?: integer = 25,
+    ): OpenMeter.Portal.Token[] | OpenMeter.CommonErrors;
+
+    /**
+     * Invalidates consumer portal tokens by ID or subject.
+     */
+    @route("/invalidate")
+    @post
+    @operationId("invalidatePortalTokens")
+    invalidate(
+      /**
+       * Invalidate a portal token by ID.
+       */
+      id?: string,
+
+      /**
+       * Invalidate all portal tokens for a subject.
+       */
+      subject?: string,
+    ): void | OpenMeter.CommonErrors;
+  }
+
+  @route("/api/v1/portal/tokens")
+  @tag("Portal")
+  @useAuth(PortalTokenAuth | CloudPortalTokenAuth)
+  interface Meters extends OpenMeter.Portal.Meters {}
 }

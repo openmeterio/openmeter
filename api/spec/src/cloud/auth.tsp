@@ -4,16 +4,16 @@ using TypeSpec.Http;
  * Cloud API token.
  */
 @friendlyName("CloudTokenAuth")
-model CloudTokenAuth is BearerAuth {}
+model CloudTokenAuth is BearerAuth;
 
 /**
  * Cloud API web app cookie.
  */
 @friendlyName("CloudCookieAuth")
-model CloudCookieAuth is ApiKeyAuth<ApiKeyLocation.cookie, "__session"> {}
+model CloudCookieAuth is ApiKeyAuth<ApiKeyLocation.cookie, "__session">;
 
 /**
  * Cloud consumer portal token.
  */
 @friendlyName("CloudPortalTokenAuth")
-model CloudPortalTokenAuth is BearerAuth {}
+model CloudPortalTokenAuth is BearerAuth;

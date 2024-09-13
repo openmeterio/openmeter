@@ -1,9 +1,10 @@
 import "@typespec/http";
-import "@typespec/openapi";
+import "@typespec/rest";
 import "@typespec/openapi3";
 
-using Http;
-using OpenAPI;
+using TypeSpec.Http;
+using TypeSpec.Rest;
+using TypeSpec.OpenAPI;
 
 namespace OpenMeter;
 

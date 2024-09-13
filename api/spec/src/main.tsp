@@ -10,6 +10,7 @@ import "./types.tsp";
 
 import "./events.tsp";
 import "./meters.tsp";
+import "./portal.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
