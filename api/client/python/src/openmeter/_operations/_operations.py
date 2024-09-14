@@ -1302,8 +1302,7 @@ class ClientOperationsMixin(ClientMixinABC):  # pylint: disable=too-many-public-
         :keyword id: The event ID.
          Accepts partial ID. Default value is None.
         :paramtype id: str
-        :keyword subject: The event subject.
-         Accepts partial subject. Default value is None.
+        :keyword subject: The event subject. Full match. Default value is None.
         :paramtype subject: str
         :keyword limit: Number of events to return. Default value is 100.
         :paramtype limit: int
