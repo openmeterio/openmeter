@@ -1928,10 +1928,7 @@ export interface operations {
          * Accepts partial ID.
          */
         id?: string
-        /**
-         * @description The event subject.
-         * Accepts partial subject.
-         */
+        /** @description The event subject. Full match. */
         subject?: string
         /** @description Number of events to return */
         limit?: number
