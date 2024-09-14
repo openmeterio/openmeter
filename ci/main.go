@@ -57,6 +57,7 @@ func (m *Ci) Ci(ctx context.Context) (*dagger.Directory, error) {
 	releaseAssets := dag.Directory().WithFiles("", m.releaseAssets("ci"))
 
 	generated := dag.Directory().
+		WithFile("", m.Generate().Openapi()).
 		WithDirectory("sdk/python", m.Generate().PythonSdk()).
 		WithDirectory("sdk/node", m.Generate().NodeSdk()).
 		WithDirectory("sdk/web", m.Generate().WebSdk())
@@ -71,6 +72,7 @@ func (m *Ci) Ci(ctx context.Context) (*dagger.Directory, error) {
 
 	p.addJobs(
 		m.Generate().Check,
+
 		wrapSyncable(m.Test()),
 		m.Lint().All,
 

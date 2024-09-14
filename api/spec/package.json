@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "compile": "tsp compile ./src",
-    "watch": "tsp compile --watch ./src",
+    "compile": "tsp compile ./src/cloud",
+    "watch": "tsp compile --watch ./src/cloud",
     "format": "prettier --list-different --find-config-path --write ."
   },
   "exports": {

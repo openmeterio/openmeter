@@ -4,7 +4,14 @@ import "@typespec/openapi";
 import "@typespec/openapi3";
 import "@typespec/versioning";
 
+import "./auth.tsp";
+import "./errors.tsp";
+import "./types.tsp";
+
 import "./events.tsp";
+import "./meters.tsp";
+import "./portal.tsp";
+import "./debug.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
@@ -32,5 +39,4 @@ using TypeSpec.Versioning;
     port: string = "8888",
   }
 )
-@server("https://openmeter.cloud", "Cloud")
 namespace OpenMeter;
