@@ -21,7 +21,7 @@ type Generate struct {
 
 // Generate OpenAPI from TypeSpec.
 func (m *Generate) Openapi() *dagger.File {
-	return dag.Container().
+	file := dag.Container().
 		From("node:22.8.0-alpine3.20").
 		WithExec([]string{"npm", "install", "-g", "pnpm"}).
 		WithDirectory("/work", m.Source.Directory("api/spec")).
@@ -30,6 +30,18 @@ func (m *Generate) Openapi() *dagger.File {
 		WithExec([]string{"pnpm", "compile"}).
 		File("/work/output/openapi.OpenMeterCloud.yaml").
 		WithName("openapi.yaml")
+
+	// https://github.com/microsoft/typespec/issues/2154
+	file = dag.Container().
+		From("alpine").
+		WithFile("/work/openapi.yaml", file).
+		WithWorkdir("/work").
+		WithExec([]string{"sed", "-i", "s/ingestEvents_ingestEvents/ingestEvents/", "openapi.yaml"}).
+		WithExec([]string{"sed", "-i", "s/queryMeter_queryMeter/queryMeter/", "openapi.yaml"}).
+		WithExec([]string{"sed", "-i", "s/queryPortalMeter_queryPortalMeter/queryPortalMeter/", "openapi.yaml"}).
+		File("/work/openapi.yaml")
+
+	return file
 }
 
 // Generate the Python SDK.
