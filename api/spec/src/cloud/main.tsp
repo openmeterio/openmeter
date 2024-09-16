@@ -6,6 +6,7 @@ import "@typespec/openapi3";
 import "..";
 
 import "./auth.tsp";
+import "./subjects.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
