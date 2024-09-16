@@ -27,7 +27,7 @@ interface Subjects {
 
   /**
    * Upserts a subject. Creates or updates subject.
-   * 
+   *
    * If the subject doesn't exist, it will be created.
    * If the subject exists, it will be partially updated with the provided fields.
    */
@@ -44,9 +44,7 @@ interface Subjects {
   id: "01G65Z755AFWAKHE12NY0CQ9FH",
   key: "customer-id",
   displayName: "Customer Name",
-  metadata: #{
-    hubspotId: "123456",
-  },
+  metadata: #{ hubspotId: "123456" },
   currentPeriodStart: DateTime.fromISO("2023-01-01T00:00:00Z"),
   currentPeriodEnd: DateTime.fromISO("2023-02-01T00:00:00Z"),
   stripeCustomerId: "cus_JMOlctsKV8",
@@ -75,9 +73,7 @@ model Subject {
   @example("Customer Name")
   displayName?: string;
 
-  @example(#{
-    hubspotId: "123456",
-  })
+  @example(#{ hubspotId: "123456" })
   metadata?: Record<string>;
 
   @example(DateTime.fromISO("2023-01-01T00:00:00Z"))

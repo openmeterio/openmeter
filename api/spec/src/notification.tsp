@@ -10,6 +10,4 @@ namespace OpenMeter;
 
 @route("/api/v1/notification")
 @tag("Notification (Experimental)")
-interface Notification {
-
-}
+interface Notification {}

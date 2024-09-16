@@ -11,6 +11,4 @@ namespace OpenMeter.Entitlements;
 
 @route("/api/v1/entitlements")
 @tag("Entitlements (Experimental)")
-interface Entitlements {
-
-}
+interface Entitlements {}
