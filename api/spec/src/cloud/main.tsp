@@ -97,7 +97,7 @@ namespace OpenMeterCloud.Portal {
     ): void | OpenMeter.CommonErrors;
   }
 
-  @route("/api/v1/portal/tokens")
+  @route("/api/v1/portal/meters")
   @tag("Portal")
   @useAuth(PortalTokenAuth | CloudPortalTokenAuth)
   interface Meters extends OpenMeter.Portal.Meters {}
