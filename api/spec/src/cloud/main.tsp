@@ -106,3 +106,13 @@ namespace OpenMeterCloud.Portal {
 @route("/api/v1/debug")
 @tag("Debug")
 interface Debug extends OpenMeter.Debug {}
+
+@route("/api/v1/notification")
+@tag("Notification (Experimental)")
+interface Notification extends OpenMeter.Notification {}
+
+namespace OpenMeterCloud.Entitlements {
+  @route("/api/v1/entitlements")
+  @tag("Entitlements (Experimental)")
+  interface Entitlements extends OpenMeter.Entitlements.Entitlements {}
+}
