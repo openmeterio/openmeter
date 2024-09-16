@@ -14,6 +14,12 @@ type Tx struct {
 	config
 	// BalanceSnapshot is the client for interacting with the BalanceSnapshot builders.
 	BalanceSnapshot *BalanceSnapshotClient
+	// BillingInvoice is the client for interacting with the BillingInvoice builders.
+	BillingInvoice *BillingInvoiceClient
+	// BillingInvoiceItem is the client for interacting with the BillingInvoiceItem builders.
+	BillingInvoiceItem *BillingInvoiceItemClient
+	// BillingProfile is the client for interacting with the BillingProfile builders.
+	BillingProfile *BillingProfileClient
 	// Entitlement is the client for interacting with the Entitlement builders.
 	Entitlement *EntitlementClient
 	// Feature is the client for interacting with the Feature builders.
@@ -162,6 +168,9 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.BalanceSnapshot = NewBalanceSnapshotClient(tx.config)
+	tx.BillingInvoice = NewBillingInvoiceClient(tx.config)
+	tx.BillingInvoiceItem = NewBillingInvoiceItemClient(tx.config)
+	tx.BillingProfile = NewBillingProfileClient(tx.config)
 	tx.Entitlement = NewEntitlementClient(tx.config)
 	tx.Feature = NewFeatureClient(tx.config)
 	tx.Grant = NewGrantClient(tx.config)

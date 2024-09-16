@@ -9,6 +9,37 @@ import (
 // BalanceSnapshot is the predicate function for balancesnapshot builders.
 type BalanceSnapshot func(*sql.Selector)
 
+// BillingInvoice is the predicate function for billinginvoice builders.
+type BillingInvoice func(*sql.Selector)
+
+// BillingInvoiceOrErr calls the predicate only if the error is not nit.
+func BillingInvoiceOrErr(p BillingInvoice, err error) BillingInvoice {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
+// BillingInvoiceItem is the predicate function for billinginvoiceitem builders.
+type BillingInvoiceItem func(*sql.Selector)
+
+// BillingProfile is the predicate function for billingprofile builders.
+type BillingProfile func(*sql.Selector)
+
+// BillingProfileOrErr calls the predicate only if the error is not nit.
+func BillingProfileOrErr(p BillingProfile, err error) BillingProfile {
+	return func(s *sql.Selector) {
+		if err != nil {
+			s.AddError(err)
+			return
+		}
+		p(s)
+	}
+}
+
 // Entitlement is the predicate function for entitlement builders.
 type Entitlement func(*sql.Selector)
 

@@ -21,6 +21,42 @@ func (f BalanceSnapshotFunc) Mutate(ctx context.Context, m db.Mutation) (db.Valu
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BalanceSnapshotMutation", m)
 }
 
+// The BillingInvoiceFunc type is an adapter to allow the use of ordinary
+// function as BillingInvoice mutator.
+type BillingInvoiceFunc func(context.Context, *db.BillingInvoiceMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillingInvoiceFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.BillingInvoiceMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingInvoiceMutation", m)
+}
+
+// The BillingInvoiceItemFunc type is an adapter to allow the use of ordinary
+// function as BillingInvoiceItem mutator.
+type BillingInvoiceItemFunc func(context.Context, *db.BillingInvoiceItemMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillingInvoiceItemFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.BillingInvoiceItemMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingInvoiceItemMutation", m)
+}
+
+// The BillingProfileFunc type is an adapter to allow the use of ordinary
+// function as BillingProfile mutator.
+type BillingProfileFunc func(context.Context, *db.BillingProfileMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillingProfileFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.BillingProfileMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingProfileMutation", m)
+}
+
 // The EntitlementFunc type is an adapter to allow the use of ordinary
 // function as Entitlement mutator.
 type EntitlementFunc func(context.Context, *db.EntitlementMutation) (db.Value, error)
