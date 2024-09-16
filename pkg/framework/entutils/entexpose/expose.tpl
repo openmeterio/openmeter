@@ -23,19 +23,34 @@ func (c *Client) GetConfig() *entutils.RawEntConfig {
     }
 }
 {{/* Expose internals of a Transactional Client so it can be used by transaction management */}}
+// ignores hooks and intersectors
 type ExposedTxDriver struct {
     Driver *txDriver
 }
 
+var _ entutils.Transactable = (*ExposedTxDriver)(nil)
 
-// ignores hooks
 func (d *ExposedTxDriver) Rollback() error {
     return d.Driver.tx.Rollback()
 }
 
-// ignores hooks
 func (d *ExposedTxDriver) Commit() error {
     return d.Driver.tx.Commit()
+}
+
+func (d *ExposedTxDriver) SavePoint(name string) error {
+	_, err := d.Driver.ExecContext(context.Background(), "SAVEPOINT " + name)
+    return err
+}
+
+func (d *ExposedTxDriver) RollbackTo(name string) error {
+	_, err := d.Driver.ExecContext(context.Background(), "ROLLBACK TO " + name)
+    return err
+}
+
+func (d *ExposedTxDriver) Release(name string) error {
+	_, err := d.Driver.ExecContext(context.Background(), "RELEASE SAVEPOINT " + name)
+    return err
 }
 
 // HijackTx returns a new transaction driver with the provided options.

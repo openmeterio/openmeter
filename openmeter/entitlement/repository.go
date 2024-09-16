@@ -28,14 +28,12 @@ type EntitlementRepo interface {
 
 	HasEntitlementForMeter(ctx context.Context, namespace string, meterSlug string) (bool, error)
 
-	// FIXME: This is a terrbile hack
-	LockEntitlementForTx(ctx context.Context, entitlementID models.NamespacedID) error
-
 	UpdateEntitlementUsagePeriod(ctx context.Context, entitlementID models.NamespacedID, params UpdateEntitlementUsagePeriodParams) error
 	ListEntitlementsWithExpiredUsagePeriod(ctx context.Context, namespaces []string, highwatermark time.Time) ([]Entitlement, error)
 
+	LockEntitlementForTx(ctx context.Context, tx *entutils.TxDriver, entitlementID models.NamespacedID) error
+
 	entutils.TxCreator
-	entutils.TxUser[EntitlementRepo]
 }
 
 type CreateEntitlementRepoInputs struct {

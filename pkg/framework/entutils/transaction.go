@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"runtime/debug"
+	"strconv"
 	"sync"
 
 	"entgo.io/ent/dialect"
+
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 type RawEntConfig struct {
@@ -33,6 +35,9 @@ type RawEntConfig struct {
 type Transactable interface {
 	Commit() error
 	Rollback() error
+	SavePoint(name string) error
+	RollbackTo(name string) error
+	Release(name string) error
 }
 
 type TxHijacker interface {
@@ -46,71 +51,129 @@ func NewTxDriver(driver Transactable, cfg *RawEntConfig) *TxDriver {
 	}
 }
 
+type txSavepoint int
+
+const (
+	txSavepointNone txSavepoint = 0
+)
+
+func (sp txSavepoint) Next() txSavepoint {
+	return sp + 1
+}
+
+func (sp txSavepoint) Prev() txSavepoint {
+	if sp == txSavepointNone {
+		return txSavepointNone
+	}
+
+	return sp - 1
+}
+
+func (sp txSavepoint) String() string {
+	return "s" + strconv.Itoa(int(sp))
+}
+
 type TxDriver struct {
 	driver Transactable
 	// db.config is nominally different but structurally identical for all generations of entgo,
 	// so we represent it as an interface{} here
 	cfg *RawEntConfig
 
-	mu        sync.Mutex
-	endTxOnce sync.Once
+	mu   sync.Mutex
+	once sync.Once
+
+	currentSavepoint txSavepoint
 
 	err error
 }
+
+var _ transaction.Driver = &TxDriver{}
 
 func (t *TxDriver) GetConfig() *RawEntConfig {
 	return t.cfg
 }
 
+// Commit commits the (complete) transaction.
 func (t *TxDriver) Commit() error {
 	// lock so we don't use the driver twice
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	// you can end a transaction only once
-	t.endTxOnce.Do(func() {
+	// If there was an error before, we don't do anything
+	if t.err != nil {
+		return t.err
+	}
+
+	if t.currentSavepoint != txSavepointNone {
+		// If we're not at the top level, we release the savepoint
+		if err := t.driver.Release(t.currentSavepoint.String()); err == nil {
+			t.currentSavepoint = t.currentSavepoint.Prev()
+		} else {
+			t.err = err
+		}
+	} else {
+		// If we're at the top level, we commit the transaction
 		t.err = t.driver.Commit()
-	})
+	}
 
 	return t.err
 }
 
+// Rollback rolls back the (complete) transaction.
 func (t *TxDriver) Rollback() error {
 	// lock so we don't use the driver twice
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	// you can end a transaction only once
-	t.endTxOnce.Do(func() {
+	// If there was an error before, we don't do anything
+	if t.err != nil {
+		return t.err
+	}
+
+	if t.currentSavepoint != txSavepointNone {
+		// If we're not at the top level, we rollback to the savepoint
+		if err := t.driver.RollbackTo(t.currentSavepoint.String()); err == nil {
+			t.currentSavepoint = t.currentSavepoint.Prev()
+		} else {
+			t.err = err
+		}
+	} else {
+		// If we're at the top level, we rollback the transaction
 		t.err = t.driver.Rollback()
-	})
+	}
 
 	return t.err
 }
 
-// Able to start a new transaction
-type TxCreator interface {
-	// Creates a TxDriver from a hijacked ent transaction (the driver of it).
-	// Example:
-	//
-	// type dbAdapter struct {
-	// 	db *db.Client
-	// }
-	//
-	// // we have to implement the TxCreator interface
-	// func (d *dbAdapter) Tx(ctx context.Context) (context.Context, *entutils.TxDriver, error) {
-	//     // HijackTx gets generated when using expose.tpl
-	// 	txCtx, rawConfig, eDriver, err := d.db.HijackTX(ctx, &sql.TxOptions{
-	// 		ReadOnly: false,
-	// 	})
-	//
-	// 	if err != nil {
-	// 		return nil, nil, fmt.Errorf("failed to hijack transaction: %w", err)
-	// 	}
-	// 	return txCtx, entutils.NewTxDriver(eDriver, rawConfig), nil
-	// }
-	Tx(ctx context.Context) (context.Context, *TxDriver, error)
+func (t *TxDriver) SavePoint() error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	skipSavePoint := false
+
+	t.once.Do(func() {
+		// As savePoint() is called each time we use the wrapper (including the first)
+		// we don't want to create a savepoint for the first call, otherwise the transaction itself
+		// would never be closed.
+		skipSavePoint = true
+	})
+
+	if !skipSavePoint {
+		next := t.currentSavepoint.Next()
+
+		err := t.driver.SavePoint(next.String())
+		if err != nil {
+			return err
+		}
+
+		t.currentSavepoint = next
+	}
+
+	return nil
 }
+
+// Able to start a new transaction
+type TxCreator = transaction.Creator
 
 // Able to use an existing transaction
 type TxUser[T any] interface {
@@ -130,56 +193,34 @@ type TxUser[T any] interface {
 	WithTx(ctx context.Context, tx *TxDriver) T
 }
 
-func StartAndRunTx[R any](ctx context.Context, src TxCreator, cb func(ctx context.Context, tx *TxDriver) (*R, error)) (*R, error) {
-	txCtx, txDriver, err := src.Tx(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to start transaction: %w", err)
-	}
-
-	return RunInTransaction(txCtx, txDriver, cb)
+// TransactingRepo is a helper that can be used inside repository methods.
+// It uses any preexisting transaction in the context or starts and executes a new one.
+func TransactingRepo[R, T any](
+	ctx context.Context,
+	repo interface {
+		TxUser[T]
+		TxCreator
+	},
+	cb func(ctx context.Context, rep T) (*R, error),
+) (*R, error) {
+	return transaction.Run(ctx, repo, func(ctx context.Context) (*R, error) {
+		tx, err := GetDriverFromContext(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return cb(ctx, repo.WithTx(ctx, tx))
+	})
 }
 
-func RunInTransaction[R any](txCtx context.Context, txDriver *TxDriver, cb func(ctx context.Context, tx *TxDriver) (*R, error)) (*R, error) {
-	defer func() {
-		if r := recover(); r != nil {
-			pMsg := fmt.Sprintf("%v:\n%s", r, debug.Stack())
-
-			// roll back the tx for all downstream (WithTx) clients
-			_ = txDriver.Rollback()
-			panic(pMsg)
-		}
-	}()
-
-	result, err := cb(txCtx, txDriver)
-	if err != nil {
-		// roll back the tx for all downstream (WithTx) clients
-		if rerr := txDriver.Rollback(); rerr != nil {
-			err = fmt.Errorf("%w: %v", err, rerr)
-		}
-		return nil, err
-	}
-
-	// commit the transaction
-	err = txDriver.Commit()
+// Only use for direct interacton with the Ent driver implementation
+func GetDriverFromContext(ctx context.Context) (*TxDriver, error) {
+	driver, err := transaction.GetDriverFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
-
-	return result, nil
-}
-
-type TxDriverContextKey string
-
-const txDriverKey TxDriverContextKey = "txDriver"
-
-func NewTxContext(ctx context.Context, tx *TxDriver) context.Context {
-	return context.WithValue(ctx, txDriverKey, tx)
-}
-
-func GetTxDriver(ctx context.Context) (*TxDriver, error) {
-	txDriver, ok := ctx.Value(txDriverKey).(*TxDriver)
+	entTxDriver, ok := driver.(*TxDriver)
 	if !ok {
-		return nil, fmt.Errorf("tx driver not found in context")
+		return nil, fmt.Errorf("tx driver is not ent tx driver")
 	}
-	return txDriver, nil
+	return entTxDriver, nil
 }

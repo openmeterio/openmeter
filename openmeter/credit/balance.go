@@ -14,6 +14,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/recurrence"
 )
@@ -327,22 +328,24 @@ func (m *connector) ResetUsageForOwner(ctx context.Context, owner grant.Namespac
 		Overage:  startingOverage,
 	}
 
-	// FIXME: this is a bad hack to be able to pass around transactions on the connector level.
-	// We should introduce an abstraction, maybe an AtomicOperation with something like an AtimicityGuarantee
-	// (these would practically mirror entutils.TxUser & entutils.TxDriver) and then write an implementation of the
-	// using the ent transactions we have.
-	_, err = entutils.StartAndRunTx(ctx, m.balanceSnapshotRepo, func(txCtx context.Context, tx *entutils.TxDriver) (*balance.Snapshot, error) {
-		err := m.ownerConnector.LockOwnerForTx(ctx, tx, owner)
+	_, err = transaction.Run(ctx, m.transactionManager, func(ctx context.Context) (*balance.Snapshot, error) {
+		//lint:ignore SA1019 we need to use the transaction here
+		tx, err := entutils.GetDriverFromContext(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		err = m.ownerConnector.LockOwnerForTx(ctx, owner)
 		if err != nil {
 			return nil, fmt.Errorf("failed to lock owner %s: %w", owner.ID, err)
 		}
 
-		err = m.balanceSnapshotRepo.WithTx(txCtx, tx).Save(ctx, owner, []balance.Snapshot{startingSnapshot})
+		err = m.balanceSnapshotRepo.WithTx(ctx, tx).Save(ctx, owner, []balance.Snapshot{startingSnapshot})
 		if err != nil {
 			return nil, fmt.Errorf("failed to save balance for owner %s at %s: %w", owner.ID, at, err)
 		}
 
-		err = m.ownerConnector.EndCurrentUsagePeriodTx(ctx, tx, owner, grant.EndCurrentUsagePeriodParams{
+		err = m.ownerConnector.EndCurrentUsagePeriod(ctx, owner, grant.EndCurrentUsagePeriodParams{
 			At:           at,
 			RetainAnchor: params.RetainAnchor,
 		})

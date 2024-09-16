@@ -8,12 +8,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 // We implement entuitls.TxUser[T] and entuitls.TxCreator here
 // There ought to be a better way....
 
-func (e *featureDBAdapter) Tx(ctx context.Context) (context.Context, *entutils.TxDriver, error) {
+func (e *featureDBAdapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
 	txCtx, rawConfig, eDriver, err := e.db.HijackTx(ctx, &sql.TxOptions{
 		ReadOnly: false,
 	})

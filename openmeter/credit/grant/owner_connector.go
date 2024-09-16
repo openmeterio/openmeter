@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/openmeterio/openmeter/openmeter/streaming"
-	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -29,10 +28,8 @@ type OwnerConnector interface {
 	GetUsagePeriodStartAt(ctx context.Context, owner NamespacedOwner, at time.Time) (time.Time, error)
 	GetOwnerSubjectKey(ctx context.Context, owner NamespacedOwner) (string, error)
 
-	// FIXME: this is a terrible hack
-	EndCurrentUsagePeriodTx(ctx context.Context, tx *entutils.TxDriver, owner NamespacedOwner, params EndCurrentUsagePeriodParams) error
-	// FIXME: this is a terrible hack
-	LockOwnerForTx(ctx context.Context, tx *entutils.TxDriver, owner NamespacedOwner) error
+	EndCurrentUsagePeriod(ctx context.Context, owner NamespacedOwner, params EndCurrentUsagePeriodParams) error
+	LockOwnerForTx(ctx context.Context, owner NamespacedOwner) error
 }
 
 type OwnerNotFoundError struct {

@@ -9,7 +9,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/meter"
 	"github.com/openmeterio/openmeter/openmeter/productcatalog/feature"
 	"github.com/openmeterio/openmeter/openmeter/watermill/eventbus"
-	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 	"github.com/openmeterio/openmeter/pkg/slicesx"
@@ -100,7 +100,7 @@ func NewEntitlementConnector(
 }
 
 func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input CreateEntitlementInputs) (*Entitlement, error) {
-	doInTx := func(ctx context.Context, tx *entutils.TxDriver) (*Entitlement, error) {
+	doInTx := func(ctx context.Context) (*Entitlement, error) {
 		// ID has priority over key
 		featureIdOrKey := input.FeatureID
 		if featureIdOrKey == nil {
@@ -119,7 +119,7 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 		input.FeatureID = &feat.ID
 		input.FeatureKey = &feat.Key
 
-		currentEntitlements, err := c.entitlementRepo.WithTx(ctx, tx).GetEntitlementsOfSubject(ctx, input.Namespace, models.SubjectKey(input.SubjectKey))
+		currentEntitlements, err := c.entitlementRepo.GetEntitlementsOfSubject(ctx, input.Namespace, models.SubjectKey(input.SubjectKey))
 		if err != nil {
 			return nil, err
 		}
@@ -139,14 +139,12 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 			return nil, err
 		}
 
-		txCtx := entutils.NewTxContext(ctx, tx)
-
-		ent, err := c.entitlementRepo.WithTx(txCtx, tx).CreateEntitlement(txCtx, *repoInputs)
+		ent, err := c.entitlementRepo.CreateEntitlement(ctx, *repoInputs)
 		if err != nil {
 			return nil, err
 		}
 
-		err = connector.AfterCreate(txCtx, ent)
+		err = connector.AfterCreate(ctx, ent)
 		if err != nil {
 			return nil, err
 		}
@@ -164,12 +162,7 @@ func (c *entitlementConnector) CreateEntitlement(ctx context.Context, input Crea
 		return ent, err
 	}
 
-	if ctxTx, err := entutils.GetTxDriver(ctx); err == nil {
-		// we're already in a tx
-		return doInTx(ctx, ctxTx)
-	} else {
-		return entutils.StartAndRunTx(ctx, c.entitlementRepo, doInTx)
-	}
+	return transaction.Run(ctx, c.entitlementRepo, doInTx)
 }
 
 func (c *entitlementConnector) OverrideEntitlement(ctx context.Context, subject string, entitlementIdOrFeatureKey string, input CreateEntitlementInputs) (*Entitlement, error) {
@@ -210,9 +203,7 @@ func (c *entitlementConnector) OverrideEntitlement(ctx context.Context, subject 
 	}
 
 	// Do the override in TX
-	return entutils.StartAndRunTx(ctx, c.entitlementRepo, func(ctx context.Context, tx *entutils.TxDriver) (*Entitlement, error) {
-		ctx = entutils.NewTxContext(ctx, tx)
-
+	return transaction.Run(ctx, c.entitlementRepo, func(ctx context.Context) (*Entitlement, error) {
 		// Delete previous entitlement
 		// FIXME: we publish an event during this even if we fail later
 		err := c.DeleteEntitlement(ctx, input.Namespace, oldEnt.ID)
@@ -230,13 +221,13 @@ func (c *entitlementConnector) GetEntitlement(ctx context.Context, namespace str
 }
 
 func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace string, id string) error {
-	doInTx := func(ctx context.Context, tx *entutils.TxDriver) (*Entitlement, error) {
-		ent, err := c.entitlementRepo.WithTx(ctx, tx).GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
+	doInTx := func(ctx context.Context) (*Entitlement, error) {
+		ent, err := c.entitlementRepo.GetEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
 		if err != nil {
 			return nil, err
 		}
 
-		err = c.entitlementRepo.WithTx(ctx, tx).DeleteEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
+		err = c.entitlementRepo.DeleteEntitlement(ctx, models.NamespacedID{Namespace: namespace, ID: id})
 		if err != nil {
 			return nil, err
 		}
@@ -254,14 +245,8 @@ func (c *entitlementConnector) DeleteEntitlement(ctx context.Context, namespace 
 		return ent, nil
 	}
 
-	if ctxTx, err := entutils.GetTxDriver(ctx); err == nil {
-		// we're already in a tx
-		_, err := doInTx(ctx, ctxTx)
-		return err
-	} else {
-		_, err := entutils.StartAndRunTx(ctx, c.entitlementRepo, doInTx)
-		return err
-	}
+	_, err := transaction.Run(ctx, c.entitlementRepo, doInTx)
+	return err
 }
 
 func (c *entitlementConnector) GetEntitlementsOfSubject(ctx context.Context, namespace string, subjectKey models.SubjectKey) ([]Entitlement, error) {

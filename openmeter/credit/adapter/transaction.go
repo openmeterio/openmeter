@@ -9,12 +9,13 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/credit/grant"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
+	"github.com/openmeterio/openmeter/pkg/framework/transaction"
 )
 
 // We implement entuitls.TxUser[T] and entuitls.TxCreator here
 // There ought to be a better way....
 
-func (e *grantDBADapter) Tx(ctx context.Context) (context.Context, *entutils.TxDriver, error) {
+func (e *grantDBADapter) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
 	txCtx, rawConfig, eDriver, err := e.db.HijackTx(ctx, &sql.TxOptions{
 		ReadOnly: false,
 	})
@@ -29,7 +30,7 @@ func (e *grantDBADapter) WithTx(ctx context.Context, tx *entutils.TxDriver) gran
 	return NewPostgresGrantRepo(txClient.Client())
 }
 
-func (e *balanceSnapshotRepo) Tx(ctx context.Context) (context.Context, *entutils.TxDriver, error) {
+func (e *balanceSnapshotRepo) Tx(ctx context.Context) (context.Context, transaction.Driver, error) {
 	txCtx, rawConfig, eDriver, err := e.db.HijackTx(ctx, &sql.TxOptions{
 		ReadOnly: false,
 	})
