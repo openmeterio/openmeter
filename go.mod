@@ -70,8 +70,8 @@ require (
 	golang.org/x/net v0.29.0
 	google.golang.org/grpc v1.66.0
 	google.golang.org/protobuf v1.34.2
-	k8s.io/apimachinery v0.31.0
-	k8s.io/client-go v0.31.0
+	k8s.io/apimachinery v0.31.1
+	k8s.io/client-go v0.31.1
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
 	sigs.k8s.io/controller-runtime v0.19.0
 )
