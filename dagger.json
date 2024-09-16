@@ -12,55 +12,55 @@
   "dependencies": [
     {
       "name": "archivist",
-      "source": "github.com/sagikazarmark/daggerverse/archivist@00deb5158b5d3a71dae8926fd8a4119ac2f45cca"
+      "source": "github.com/sagikazarmark/daggerverse/archivist@691dcc2fc5e53b351453c803c8abb1a5ad727d1b"
     },
     {
       "name": "checksum",
-      "source": "github.com/sagikazarmark/daggerverse/checksum@00deb5158b5d3a71dae8926fd8a4119ac2f45cca"
+      "source": "github.com/sagikazarmark/daggerverse/checksum@691dcc2fc5e53b351453c803c8abb1a5ad727d1b"
     },
     {
       "name": "gh",
-      "source": "github.com/sagikazarmark/daggerverse/gh@00deb5158b5d3a71dae8926fd8a4119ac2f45cca"
+      "source": "github.com/sagikazarmark/daggerverse/gh@691dcc2fc5e53b351453c803c8abb1a5ad727d1b"
     },
     {
       "name": "go",
-      "source": "github.com/sagikazarmark/daggerverse/go@00deb5158b5d3a71dae8926fd8a4119ac2f45cca"
+      "source": "github.com/sagikazarmark/daggerverse/go@691dcc2fc5e53b351453c803c8abb1a5ad727d1b"
     },
     {
       "name": "golangci-lint",
-      "source": "github.com/sagikazarmark/daggerverse/golangci-lint@00deb5158b5d3a71dae8926fd8a4119ac2f45cca"
+      "source": "github.com/sagikazarmark/daggerverse/golangci-lint@691dcc2fc5e53b351453c803c8abb1a5ad727d1b"
     },
     {
       "name": "helm",
-      "source": "github.com/sagikazarmark/daggerverse/helm@00deb5158b5d3a71dae8926fd8a4119ac2f45cca"
+      "source": "github.com/sagikazarmark/daggerverse/helm@691dcc2fc5e53b351453c803c8abb1a5ad727d1b"
     },
     {
       "name": "helm-docs",
-      "source": "github.com/sagikazarmark/daggerverse/helm-docs@00deb5158b5d3a71dae8926fd8a4119ac2f45cca"
+      "source": "github.com/sagikazarmark/daggerverse/helm-docs@691dcc2fc5e53b351453c803c8abb1a5ad727d1b"
     },
     {
       "name": "kafka",
-      "source": "github.com/sagikazarmark/daggerverse/kafka@00deb5158b5d3a71dae8926fd8a4119ac2f45cca"
+      "source": "github.com/sagikazarmark/daggerverse/kafka@691dcc2fc5e53b351453c803c8abb1a5ad727d1b"
     },
     {
       "name": "nix",
-      "source": "github.com/tsirysndr/daggerverse/nix@631932b459d218e641dec8047085f0cc87cf5f1c"
+      "source": "github.com/tsirysndr/daggerverse/nix@06ff14707b36c781eaa41a01072564fbe4172eef"
     },
     {
       "name": "python",
-      "source": "github.com/sagikazarmark/daggerverse/python@00deb5158b5d3a71dae8926fd8a4119ac2f45cca"
+      "source": "github.com/sagikazarmark/daggerverse/python@691dcc2fc5e53b351453c803c8abb1a5ad727d1b"
     },
     {
       "name": "spectral",
-      "source": "github.com/sagikazarmark/daggerverse/spectral@00deb5158b5d3a71dae8926fd8a4119ac2f45cca"
+      "source": "github.com/sagikazarmark/daggerverse/spectral@691dcc2fc5e53b351453c803c8abb1a5ad727d1b"
     },
     {
       "name": "stainless",
-      "source": "github.com/sagikazarmark/daggerverse/stainless@00deb5158b5d3a71dae8926fd8a4119ac2f45cca"
+      "source": "github.com/sagikazarmark/daggerverse/stainless@691dcc2fc5e53b351453c803c8abb1a5ad727d1b"
     },
     {
       "name": "trivy",
-      "source": "github.com/sagikazarmark/daggerverse/trivy@00deb5158b5d3a71dae8926fd8a4119ac2f45cca"
+      "source": "github.com/sagikazarmark/daggerverse/trivy@691dcc2fc5e53b351453c803c8abb1a5ad727d1b"
     }
   ],
   "source": "ci",
