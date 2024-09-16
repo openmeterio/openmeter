@@ -244,7 +244,7 @@ model MeterQuery {
   /**
    * Simple filter for group bys with exact match.
    */
-  @query
+  @query(#{ explode: false, style: "deepObject" })
   @example(#{ `model`: "gpt-4-turbo", type: "prompt" })
   filterGroupBy?: Record<string>;
 
