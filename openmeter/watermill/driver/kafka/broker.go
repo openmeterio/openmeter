@@ -15,8 +15,7 @@ import (
 )
 
 const (
-	defaultMeterPrefix = "sarama."
-	defaultKeepalive   = time.Minute
+	defaultKeepalive = time.Minute
 )
 
 type BrokerOptions struct {
@@ -24,7 +23,6 @@ type BrokerOptions struct {
 	ClientID     string
 	Logger       *slog.Logger
 	MetricMeter  otelmetric.Meter
-	MeterPrefix  string
 	DebugLogging bool
 }
 
@@ -53,11 +51,6 @@ func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 	if role == "" {
 		return nil, errors.New("role is required")
 	}
-
-	if o.MeterPrefix == "" {
-		o.MeterPrefix = defaultMeterPrefix
-	}
-
 	if o.KafkaConfig.SocketKeepAliveEnabled {
 		config.Net.KeepAlive = defaultKeepalive
 	}
@@ -100,7 +93,7 @@ func (o *BrokerOptions) createKafkaConfig(role string) (*sarama.Config, error) {
 
 	meterRegistry, err := metrics.NewRegistry(metrics.NewRegistryOptions{
 		MetricMeter:     o.MetricMeter,
-		NameTransformFn: metrics.MetricAddNamePrefix(fmt.Sprintf("%s%s.", o.MeterPrefix, role)),
+		NameTransformFn: SaramaMetricRenamer(role),
 		ErrorHandler:    metrics.LoggingErrorHandler(o.Logger),
 	})
 	if err != nil {
