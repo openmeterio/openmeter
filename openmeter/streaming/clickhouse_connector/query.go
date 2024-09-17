@@ -96,7 +96,7 @@ func (d queryEventsTable) toSQL() (string, []interface{}) {
 	}
 	query.Where(where...)
 
-	query.Desc().OrderBy("time")
+	query.Desc().OrderBy("time").OrderBy("id")
 	query.Limit(d.Limit)
 
 	sql, args := query.Build()
