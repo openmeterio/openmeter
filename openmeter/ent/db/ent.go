@@ -13,6 +13,10 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/balancesnapshot"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 
@@ -83,6 +87,10 @@ func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			balancesnapshot.Table:                 balancesnapshot.ValidColumn,
+			billinginvoice.Table:                  billinginvoice.ValidColumn,
+			billinginvoiceitem.Table:              billinginvoiceitem.ValidColumn,
+			billingprofile.Table:                  billingprofile.ValidColumn,
+			billingworkflowconfig.Table:           billingworkflowconfig.ValidColumn,
 			entitlement.Table:                     entitlement.ValidColumn,
 			feature.Table:                         feature.ValidColumn,
 			dbgrant.Table:                         dbgrant.ValidColumn,
