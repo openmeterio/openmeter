@@ -15,14 +15,16 @@ import (
 func (m *Ci) Dev() *Dev {
 	return &Dev{
 		Source: m.Source,
+		CI:     m,
 	}
 }
 
 type Dev struct {
 	Source *dagger.Directory
+	CI     *Ci
 }
 
-// Udate dependency versions used in CI.
+// Update dependency versions used in CI.
 func (m *Dev) UpdateVersions(
 	ctx context.Context,
 
@@ -100,4 +102,12 @@ func (m *Dev) UpdateVersions(
 	}
 
 	return dag.Directory().WithNewFile("versions.go", buf.String()).File("versions.go"), nil
+}
+
+// Check OpenAPI changes between the "old" hand-written version and the "new" TypeSpec generated one.
+func (m *Dev) OpenapiChanges() *dagger.Service {
+	old := m.Source.File("api/openapi.yaml")
+	new := m.CI.Generate().Openapi()
+
+	return dag.OpenapiChanges().Diff(old, new).HTML().Serve()
 }

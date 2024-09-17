@@ -1,6 +1,8 @@
 import "@typespec/http";
+import "@typespec/openapi3";
 
 using TypeSpec.Http;
+using TypeSpec.OpenAPI;
 
 namespace OpenMeter;
 
@@ -9,6 +11,13 @@ namespace OpenMeter;
  * Additional properties specific to the problem type may be present.
  */
 @error
+@extension("x-go-type", "models.Problem")
+@extension(
+  "x-go-type-import",
+  {
+    path: "github.com/openmeterio/openmeter/pkg/models",
+  }
+)
 @friendlyName("UnexpectedProblemResponse")
 model Error {
   @header contentType: "application/problem+json";

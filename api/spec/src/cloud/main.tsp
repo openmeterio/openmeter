@@ -6,6 +6,7 @@ import "@typespec/openapi3";
 import "..";
 
 import "./auth.tsp";
+import "./subjects.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
@@ -96,7 +97,7 @@ namespace OpenMeterCloud.Portal {
     ): void | OpenMeter.CommonErrors;
   }
 
-  @route("/api/v1/portal/tokens")
+  @route("/api/v1/portal/meters")
   @tag("Portal")
   @useAuth(PortalTokenAuth | CloudPortalTokenAuth)
   interface Meters extends OpenMeter.Portal.Meters {}
@@ -105,3 +106,13 @@ namespace OpenMeterCloud.Portal {
 @route("/api/v1/debug")
 @tag("Debug")
 interface Debug extends OpenMeter.Debug {}
+
+@route("/api/v1/notification")
+@tag("Notification (Experimental)")
+interface Notification extends OpenMeter.Notification {}
+
+namespace OpenMeterCloud.Entitlements {
+  @route("/api/v1/entitlements")
+  @tag("Entitlements (Experimental)")
+  interface Entitlements extends OpenMeter.Entitlements.Entitlements {}
+}
