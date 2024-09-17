@@ -3,16 +3,15 @@
 package db
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 )
 
 // BillingProfile is the model entity for the BillingProfile schema.
@@ -32,8 +31,8 @@ type BillingProfile struct {
 	Key string `json:"key,omitempty"`
 	// ProviderConfig holds the value of the "provider_config" field.
 	ProviderConfig provider.Configuration `json:"provider_config,omitempty"`
-	// BillingConfig holds the value of the "billing_config" field.
-	BillingConfig billing.Configuration `json:"billing_config,omitempty"`
+	// WorkflowConfigID holds the value of the "workflow_config_id" field.
+	WorkflowConfigID string `json:"workflow_config_id,omitempty"`
 	// Default holds the value of the "default" field.
 	Default bool `json:"default,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -46,9 +45,11 @@ type BillingProfile struct {
 type BillingProfileEdges struct {
 	// BillingInvoices holds the value of the billing_invoices edge.
 	BillingInvoices []*BillingInvoice `json:"billing_invoices,omitempty"`
+	// BillingWorkflowConfig holds the value of the billing_workflow_config edge.
+	BillingWorkflowConfig *BillingWorkflowConfig `json:"billing_workflow_config,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // BillingInvoicesOrErr returns the BillingInvoices value or an error if the edge
@@ -60,16 +61,25 @@ func (e BillingProfileEdges) BillingInvoicesOrErr() ([]*BillingInvoice, error) {
 	return nil, &NotLoadedError{edge: "billing_invoices"}
 }
 
+// BillingWorkflowConfigOrErr returns the BillingWorkflowConfig value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingProfileEdges) BillingWorkflowConfigOrErr() (*BillingWorkflowConfig, error) {
+	if e.BillingWorkflowConfig != nil {
+		return e.BillingWorkflowConfig, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: billingworkflowconfig.Label}
+	}
+	return nil, &NotLoadedError{edge: "billing_workflow_config"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*BillingProfile) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case billingprofile.FieldBillingConfig:
-			values[i] = new([]byte)
 		case billingprofile.FieldDefault:
 			values[i] = new(sql.NullBool)
-		case billingprofile.FieldID, billingprofile.FieldNamespace, billingprofile.FieldKey:
+		case billingprofile.FieldID, billingprofile.FieldNamespace, billingprofile.FieldKey, billingprofile.FieldWorkflowConfigID:
 			values[i] = new(sql.NullString)
 		case billingprofile.FieldCreatedAt, billingprofile.FieldUpdatedAt, billingprofile.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -133,13 +143,11 @@ func (bp *BillingProfile) assignValues(columns []string, values []any) error {
 			} else {
 				bp.ProviderConfig = value
 			}
-		case billingprofile.FieldBillingConfig:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field billing_config", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &bp.BillingConfig); err != nil {
-					return fmt.Errorf("unmarshal field billing_config: %w", err)
-				}
+		case billingprofile.FieldWorkflowConfigID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field workflow_config_id", values[i])
+			} else if value.Valid {
+				bp.WorkflowConfigID = value.String
 			}
 		case billingprofile.FieldDefault:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -163,6 +171,11 @@ func (bp *BillingProfile) Value(name string) (ent.Value, error) {
 // QueryBillingInvoices queries the "billing_invoices" edge of the BillingProfile entity.
 func (bp *BillingProfile) QueryBillingInvoices() *BillingInvoiceQuery {
 	return NewBillingProfileClient(bp.config).QueryBillingInvoices(bp)
+}
+
+// QueryBillingWorkflowConfig queries the "billing_workflow_config" edge of the BillingProfile entity.
+func (bp *BillingProfile) QueryBillingWorkflowConfig() *BillingWorkflowConfigQuery {
+	return NewBillingProfileClient(bp.config).QueryBillingWorkflowConfig(bp)
 }
 
 // Update returns a builder for updating this BillingProfile.
@@ -208,8 +221,8 @@ func (bp *BillingProfile) String() string {
 	builder.WriteString("provider_config=")
 	builder.WriteString(fmt.Sprintf("%v", bp.ProviderConfig))
 	builder.WriteString(", ")
-	builder.WriteString("billing_config=")
-	builder.WriteString(fmt.Sprintf("%v", bp.BillingConfig))
+	builder.WriteString("workflow_config_id=")
+	builder.WriteString(bp.WorkflowConfigID)
 	builder.WriteString(", ")
 	builder.WriteString("default=")
 	builder.WriteString(fmt.Sprintf("%v", bp.Default))

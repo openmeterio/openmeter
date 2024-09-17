@@ -16,19 +16,21 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
 // BillingInvoiceQuery is the builder for querying BillingInvoice entities.
 type BillingInvoiceQuery struct {
 	config
-	ctx                     *QueryContext
-	order                   []billinginvoice.OrderOption
-	inters                  []Interceptor
-	predicates              []predicate.BillingInvoice
-	withBillingProfile      *BillingProfileQuery
-	withBillingInvoiceItems *BillingInvoiceItemQuery
-	modifiers               []func(*sql.Selector)
+	ctx                       *QueryContext
+	order                     []billinginvoice.OrderOption
+	inters                    []Interceptor
+	predicates                []predicate.BillingInvoice
+	withBillingProfile        *BillingProfileQuery
+	withBillingWorkflowConfig *BillingWorkflowConfigQuery
+	withBillingInvoiceItems   *BillingInvoiceItemQuery
+	modifiers                 []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -80,6 +82,28 @@ func (biq *BillingInvoiceQuery) QueryBillingProfile() *BillingProfileQuery {
 			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
 			sqlgraph.To(billingprofile.Table, billingprofile.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoice.BillingProfileTable, billinginvoice.BillingProfileColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(biq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBillingWorkflowConfig chains the current query on the "billing_workflow_config" edge.
+func (biq *BillingInvoiceQuery) QueryBillingWorkflowConfig() *BillingWorkflowConfigQuery {
+	query := (&BillingWorkflowConfigClient{config: biq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := biq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := biq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(billinginvoice.Table, billinginvoice.FieldID, selector),
+			sqlgraph.To(billingworkflowconfig.Table, billingworkflowconfig.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, billinginvoice.BillingWorkflowConfigTable, billinginvoice.BillingWorkflowConfigColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(biq.driver.Dialect(), step)
 		return fromU, nil
@@ -296,13 +320,14 @@ func (biq *BillingInvoiceQuery) Clone() *BillingInvoiceQuery {
 		return nil
 	}
 	return &BillingInvoiceQuery{
-		config:                  biq.config,
-		ctx:                     biq.ctx.Clone(),
-		order:                   append([]billinginvoice.OrderOption{}, biq.order...),
-		inters:                  append([]Interceptor{}, biq.inters...),
-		predicates:              append([]predicate.BillingInvoice{}, biq.predicates...),
-		withBillingProfile:      biq.withBillingProfile.Clone(),
-		withBillingInvoiceItems: biq.withBillingInvoiceItems.Clone(),
+		config:                    biq.config,
+		ctx:                       biq.ctx.Clone(),
+		order:                     append([]billinginvoice.OrderOption{}, biq.order...),
+		inters:                    append([]Interceptor{}, biq.inters...),
+		predicates:                append([]predicate.BillingInvoice{}, biq.predicates...),
+		withBillingProfile:        biq.withBillingProfile.Clone(),
+		withBillingWorkflowConfig: biq.withBillingWorkflowConfig.Clone(),
+		withBillingInvoiceItems:   biq.withBillingInvoiceItems.Clone(),
 		// clone intermediate query.
 		sql:  biq.sql.Clone(),
 		path: biq.path,
@@ -317,6 +342,17 @@ func (biq *BillingInvoiceQuery) WithBillingProfile(opts ...func(*BillingProfileQ
 		opt(query)
 	}
 	biq.withBillingProfile = query
+	return biq
+}
+
+// WithBillingWorkflowConfig tells the query-builder to eager-load the nodes that are connected to
+// the "billing_workflow_config" edge. The optional arguments are used to configure the query builder of the edge.
+func (biq *BillingInvoiceQuery) WithBillingWorkflowConfig(opts ...func(*BillingWorkflowConfigQuery)) *BillingInvoiceQuery {
+	query := (&BillingWorkflowConfigClient{config: biq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	biq.withBillingWorkflowConfig = query
 	return biq
 }
 
@@ -409,8 +445,9 @@ func (biq *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	var (
 		nodes       = []*BillingInvoice{}
 		_spec       = biq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			biq.withBillingProfile != nil,
+			biq.withBillingWorkflowConfig != nil,
 			biq.withBillingInvoiceItems != nil,
 		}
 	)
@@ -438,6 +475,12 @@ func (biq *BillingInvoiceQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	if query := biq.withBillingProfile; query != nil {
 		if err := biq.loadBillingProfile(ctx, query, nodes, nil,
 			func(n *BillingInvoice, e *BillingProfile) { n.Edges.BillingProfile = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := biq.withBillingWorkflowConfig; query != nil {
+		if err := biq.loadBillingWorkflowConfig(ctx, query, nodes, nil,
+			func(n *BillingInvoice, e *BillingWorkflowConfig) { n.Edges.BillingWorkflowConfig = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -475,6 +518,35 @@ func (biq *BillingInvoiceQuery) loadBillingProfile(ctx context.Context, query *B
 		nodes, ok := nodeids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected foreign-key "billing_profile_id" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (biq *BillingInvoiceQuery) loadBillingWorkflowConfig(ctx context.Context, query *BillingWorkflowConfigQuery, nodes []*BillingInvoice, init func(*BillingInvoice), assign func(*BillingInvoice, *BillingWorkflowConfig)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*BillingInvoice)
+	for i := range nodes {
+		fk := nodes[i].WorkflowConfigID
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(billingworkflowconfig.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "workflow_config_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -543,6 +615,9 @@ func (biq *BillingInvoiceQuery) querySpec() *sqlgraph.QuerySpec {
 		}
 		if biq.withBillingProfile != nil {
 			_spec.Node.AddColumnOnce(billinginvoice.FieldBillingProfileID)
+		}
+		if biq.withBillingWorkflowConfig != nil {
+			_spec.Node.AddColumnOnce(billinginvoice.FieldWorkflowConfigID)
 		}
 	}
 	if ps := biq.predicates; len(ps) > 0 {

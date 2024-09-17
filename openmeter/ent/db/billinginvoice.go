@@ -11,11 +11,11 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/invoice"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 )
 
 // BillingInvoice is the model entity for the BillingInvoice schema.
@@ -51,8 +51,8 @@ type BillingInvoice struct {
 	Status invoice.InvoiceStatus `json:"status,omitempty"`
 	// ProviderConfig holds the value of the "provider_config" field.
 	ProviderConfig provider.Configuration `json:"provider_config,omitempty"`
-	// BillingConfig holds the value of the "billing_config" field.
-	BillingConfig billing.Configuration `json:"billing_config,omitempty"`
+	// WorkflowConfigID holds the value of the "workflow_config_id" field.
+	WorkflowConfigID string `json:"workflow_config_id,omitempty"`
 	// ProviderReference holds the value of the "provider_reference" field.
 	ProviderReference provider.Reference `json:"provider_reference,omitempty"`
 	// PeriodStart holds the value of the "period_start" field.
@@ -69,11 +69,13 @@ type BillingInvoice struct {
 type BillingInvoiceEdges struct {
 	// BillingProfile holds the value of the billing_profile edge.
 	BillingProfile *BillingProfile `json:"billing_profile,omitempty"`
+	// BillingWorkflowConfig holds the value of the billing_workflow_config edge.
+	BillingWorkflowConfig *BillingWorkflowConfig `json:"billing_workflow_config,omitempty"`
 	// BillingInvoiceItems holds the value of the billing_invoice_items edge.
 	BillingInvoiceItems []*BillingInvoiceItem `json:"billing_invoice_items,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // BillingProfileOrErr returns the BillingProfile value or an error if the edge
@@ -87,10 +89,21 @@ func (e BillingInvoiceEdges) BillingProfileOrErr() (*BillingProfile, error) {
 	return nil, &NotLoadedError{edge: "billing_profile"}
 }
 
+// BillingWorkflowConfigOrErr returns the BillingWorkflowConfig value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e BillingInvoiceEdges) BillingWorkflowConfigOrErr() (*BillingWorkflowConfig, error) {
+	if e.BillingWorkflowConfig != nil {
+		return e.BillingWorkflowConfig, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: billingworkflowconfig.Label}
+	}
+	return nil, &NotLoadedError{edge: "billing_workflow_config"}
+}
+
 // BillingInvoiceItemsOrErr returns the BillingInvoiceItems value or an error if the edge
 // was not loaded in eager-loading.
 func (e BillingInvoiceEdges) BillingInvoiceItemsOrErr() ([]*BillingInvoiceItem, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[2] {
 		return e.BillingInvoiceItems, nil
 	}
 	return nil, &NotLoadedError{edge: "billing_invoice_items"}
@@ -101,11 +114,11 @@ func (*BillingInvoice) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case billinginvoice.FieldMetadata, billinginvoice.FieldBillingConfig:
+		case billinginvoice.FieldMetadata:
 			values[i] = new([]byte)
 		case billinginvoice.FieldTotalAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldKey, billinginvoice.FieldCustomerID, billinginvoice.FieldBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus:
+		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldKey, billinginvoice.FieldCustomerID, billinginvoice.FieldBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldWorkflowConfigID:
 			values[i] = new(sql.NullString)
 		case billinginvoice.FieldCreatedAt, billinginvoice.FieldUpdatedAt, billinginvoice.FieldDeletedAt, billinginvoice.FieldVoidedAt, billinginvoice.FieldDueDate, billinginvoice.FieldPeriodStart, billinginvoice.FieldPeriodEnd:
 			values[i] = new(sql.NullTime)
@@ -221,13 +234,11 @@ func (bi *BillingInvoice) assignValues(columns []string, values []any) error {
 			} else {
 				bi.ProviderConfig = value
 			}
-		case billinginvoice.FieldBillingConfig:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field billing_config", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &bi.BillingConfig); err != nil {
-					return fmt.Errorf("unmarshal field billing_config: %w", err)
-				}
+		case billinginvoice.FieldWorkflowConfigID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field workflow_config_id", values[i])
+			} else if value.Valid {
+				bi.WorkflowConfigID = value.String
 			}
 		case billinginvoice.FieldProviderReference:
 			if value, err := billinginvoice.ValueScanner.ProviderReference.FromValue(values[i]); err != nil {
@@ -263,6 +274,11 @@ func (bi *BillingInvoice) Value(name string) (ent.Value, error) {
 // QueryBillingProfile queries the "billing_profile" edge of the BillingInvoice entity.
 func (bi *BillingInvoice) QueryBillingProfile() *BillingProfileQuery {
 	return NewBillingInvoiceClient(bi.config).QueryBillingProfile(bi)
+}
+
+// QueryBillingWorkflowConfig queries the "billing_workflow_config" edge of the BillingInvoice entity.
+func (bi *BillingInvoice) QueryBillingWorkflowConfig() *BillingWorkflowConfigQuery {
+	return NewBillingInvoiceClient(bi.config).QueryBillingWorkflowConfig(bi)
 }
 
 // QueryBillingInvoiceItems queries the "billing_invoice_items" edge of the BillingInvoice entity.
@@ -337,8 +353,8 @@ func (bi *BillingInvoice) String() string {
 	builder.WriteString("provider_config=")
 	builder.WriteString(fmt.Sprintf("%v", bi.ProviderConfig))
 	builder.WriteString(", ")
-	builder.WriteString("billing_config=")
-	builder.WriteString(fmt.Sprintf("%v", bi.BillingConfig))
+	builder.WriteString("workflow_config_id=")
+	builder.WriteString(bi.WorkflowConfigID)
 	builder.WriteString(", ")
 	builder.WriteString("provider_reference=")
 	builder.WriteString(fmt.Sprintf("%v", bi.ProviderReference))

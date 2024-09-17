@@ -69,11 +69,11 @@ var (
 		{Name: "due_date", Type: field.TypeTime},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"created", "draft", "draft_sync", "draft_sync_failed", "issuing", "issued", "issuing_failed", "manual_approval_needed"}},
 		{Name: "provider_config", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "billing_config", Type: field.TypeJSON, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "provider_reference", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "period_start", Type: field.TypeTime},
 		{Name: "period_end", Type: field.TypeTime},
 		{Name: "billing_profile_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "workflow_config_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingInvoicesTable holds the schema information for the "billing_invoices" table.
 	BillingInvoicesTable = &schema.Table{
@@ -83,8 +83,14 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_invoices_billing_profiles_billing_invoices",
-				Columns:    []*schema.Column{BillingInvoicesColumns[18]},
+				Columns:    []*schema.Column{BillingInvoicesColumns[17]},
 				RefColumns: []*schema.Column{BillingProfilesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "billing_invoices_billing_workflow_configs_billing_invoices",
+				Columns:    []*schema.Column{BillingInvoicesColumns[18]},
+				RefColumns: []*schema.Column{BillingWorkflowConfigsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 		},
@@ -184,14 +190,22 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "key", Type: field.TypeString},
 		{Name: "provider_config", Type: field.TypeString, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "billing_config", Type: field.TypeJSON, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "default", Type: field.TypeBool, Default: false},
+		{Name: "workflow_config_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// BillingProfilesTable holds the schema information for the "billing_profiles" table.
 	BillingProfilesTable = &schema.Table{
 		Name:       "billing_profiles",
 		Columns:    BillingProfilesColumns,
 		PrimaryKey: []*schema.Column{BillingProfilesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "billing_profiles_billing_workflow_configs_billing_profile",
+				Columns:    []*schema.Column{BillingProfilesColumns[8]},
+				RefColumns: []*schema.Column{BillingWorkflowConfigsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "billingprofile_id",
@@ -211,7 +225,41 @@ var (
 			{
 				Name:    "billingprofile_namespace_default",
 				Unique:  false,
-				Columns: []*schema.Column{BillingProfilesColumns[1], BillingProfilesColumns[8]},
+				Columns: []*schema.Column{BillingProfilesColumns[1], BillingProfilesColumns[7]},
+			},
+		},
+	}
+	// BillingWorkflowConfigsColumns holds the columns for the "billing_workflow_configs" table.
+	BillingWorkflowConfigsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "alignment", Type: field.TypeEnum, Enums: []string{"subscription"}},
+		{Name: "collection_period_seconds", Type: field.TypeInt64},
+		{Name: "invoice_auto_advance", Type: field.TypeBool},
+		{Name: "invoice_draft_period_seconds", Type: field.TypeInt64},
+		{Name: "invoice_due_after_seconds", Type: field.TypeInt64},
+		{Name: "invoice_collection_method", Type: field.TypeEnum, Enums: []string{"charge_automatically", "send_invoice"}},
+		{Name: "invoice_line_item_resolution", Type: field.TypeEnum, Enums: []string{"day", "period"}},
+		{Name: "invoice_line_item_per_subject", Type: field.TypeBool, Default: false},
+	}
+	// BillingWorkflowConfigsTable holds the schema information for the "billing_workflow_configs" table.
+	BillingWorkflowConfigsTable = &schema.Table{
+		Name:       "billing_workflow_configs",
+		Columns:    BillingWorkflowConfigsColumns,
+		PrimaryKey: []*schema.Column{BillingWorkflowConfigsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "billingworkflowconfig_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingWorkflowConfigsColumns[0]},
+			},
+			{
+				Name:    "billingworkflowconfig_namespace_id",
+				Unique:  false,
+				Columns: []*schema.Column{BillingWorkflowConfigsColumns[1], BillingWorkflowConfigsColumns[0]},
 			},
 		},
 	}
@@ -629,6 +677,7 @@ var (
 		BillingInvoicesTable,
 		BillingInvoiceItemsTable,
 		BillingProfilesTable,
+		BillingWorkflowConfigsTable,
 		EntitlementsTable,
 		FeaturesTable,
 		GrantsTable,
@@ -645,7 +694,9 @@ var (
 func init() {
 	BalanceSnapshotsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	BillingInvoicesTable.ForeignKeys[0].RefTable = BillingProfilesTable
+	BillingInvoicesTable.ForeignKeys[1].RefTable = BillingWorkflowConfigsTable
 	BillingInvoiceItemsTable.ForeignKeys[0].RefTable = BillingInvoicesTable
+	BillingProfilesTable.ForeignKeys[0].RefTable = BillingWorkflowConfigsTable
 	EntitlementsTable.ForeignKeys[0].RefTable = FeaturesTable
 	GrantsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	NotificationEventsTable.ForeignKeys[0].RefTable = NotificationRulesTable

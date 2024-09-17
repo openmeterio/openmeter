@@ -32,3 +32,9 @@ DROP INDEX "billingprofile_namespace_default";
 DROP INDEX "billingprofile_id";
 -- reverse: create "billing_profiles" table
 DROP TABLE "billing_profiles";
+-- reverse: create index "billingworkflowconfig_namespace_id" to table: "billing_workflow_configs"
+DROP INDEX "billingworkflowconfig_namespace_id";
+-- reverse: create index "billingworkflowconfig_id" to table: "billing_workflow_configs"
+DROP INDEX "billingworkflowconfig_id";
+-- reverse: create "billing_workflow_configs" table
+DROP TABLE "billing_workflow_configs";

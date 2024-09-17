@@ -11,10 +11,10 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
@@ -71,16 +71,16 @@ func (bpu *BillingProfileUpdate) SetNillableProviderConfig(pr *provider.Configur
 	return bpu
 }
 
-// SetBillingConfig sets the "billing_config" field.
-func (bpu *BillingProfileUpdate) SetBillingConfig(b billing.Configuration) *BillingProfileUpdate {
-	bpu.mutation.SetBillingConfig(b)
+// SetWorkflowConfigID sets the "workflow_config_id" field.
+func (bpu *BillingProfileUpdate) SetWorkflowConfigID(s string) *BillingProfileUpdate {
+	bpu.mutation.SetWorkflowConfigID(s)
 	return bpu
 }
 
-// SetNillableBillingConfig sets the "billing_config" field if the given value is not nil.
-func (bpu *BillingProfileUpdate) SetNillableBillingConfig(b *billing.Configuration) *BillingProfileUpdate {
-	if b != nil {
-		bpu.SetBillingConfig(*b)
+// SetNillableWorkflowConfigID sets the "workflow_config_id" field if the given value is not nil.
+func (bpu *BillingProfileUpdate) SetNillableWorkflowConfigID(s *string) *BillingProfileUpdate {
+	if s != nil {
+		bpu.SetWorkflowConfigID(*s)
 	}
 	return bpu
 }
@@ -114,6 +114,17 @@ func (bpu *BillingProfileUpdate) AddBillingInvoices(b ...*BillingInvoice) *Billi
 	return bpu.AddBillingInvoiceIDs(ids...)
 }
 
+// SetBillingWorkflowConfigID sets the "billing_workflow_config" edge to the BillingWorkflowConfig entity by ID.
+func (bpu *BillingProfileUpdate) SetBillingWorkflowConfigID(id string) *BillingProfileUpdate {
+	bpu.mutation.SetBillingWorkflowConfigID(id)
+	return bpu
+}
+
+// SetBillingWorkflowConfig sets the "billing_workflow_config" edge to the BillingWorkflowConfig entity.
+func (bpu *BillingProfileUpdate) SetBillingWorkflowConfig(b *BillingWorkflowConfig) *BillingProfileUpdate {
+	return bpu.SetBillingWorkflowConfigID(b.ID)
+}
+
 // Mutation returns the BillingProfileMutation object of the builder.
 func (bpu *BillingProfileUpdate) Mutation() *BillingProfileMutation {
 	return bpu.mutation
@@ -138,6 +149,12 @@ func (bpu *BillingProfileUpdate) RemoveBillingInvoices(b ...*BillingInvoice) *Bi
 		ids[i] = b[i].ID
 	}
 	return bpu.RemoveBillingInvoiceIDs(ids...)
+}
+
+// ClearBillingWorkflowConfig clears the "billing_workflow_config" edge to the BillingWorkflowConfig entity.
+func (bpu *BillingProfileUpdate) ClearBillingWorkflowConfig() *BillingProfileUpdate {
+	bpu.mutation.ClearBillingWorkflowConfig()
+	return bpu
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -176,7 +193,28 @@ func (bpu *BillingProfileUpdate) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (bpu *BillingProfileUpdate) check() error {
+	if v, ok := bpu.mutation.ProviderConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "provider_config", err: fmt.Errorf(`db: validator failed for field "BillingProfile.provider_config": %w`, err)}
+		}
+	}
+	if v, ok := bpu.mutation.WorkflowConfigID(); ok {
+		if err := billingprofile.WorkflowConfigIDValidator(v); err != nil {
+			return &ValidationError{Name: "workflow_config_id", err: fmt.Errorf(`db: validator failed for field "BillingProfile.workflow_config_id": %w`, err)}
+		}
+	}
+	if bpu.mutation.BillingWorkflowConfigCleared() && len(bpu.mutation.BillingWorkflowConfigIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "BillingProfile.billing_workflow_config"`)
+	}
+	return nil
+}
+
 func (bpu *BillingProfileUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := bpu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(billingprofile.Table, billingprofile.Columns, sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString))
 	if ps := bpu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -200,9 +238,6 @@ func (bpu *BillingProfileUpdate) sqlSave(ctx context.Context) (n int, err error)
 			return 0, err
 		}
 		_spec.SetField(billingprofile.FieldProviderConfig, field.TypeString, vv)
-	}
-	if value, ok := bpu.mutation.BillingConfig(); ok {
-		_spec.SetField(billingprofile.FieldBillingConfig, field.TypeJSON, value)
 	}
 	if value, ok := bpu.mutation.Default(); ok {
 		_spec.SetField(billingprofile.FieldDefault, field.TypeBool, value)
@@ -245,6 +280,35 @@ func (bpu *BillingProfileUpdate) sqlSave(ctx context.Context) (n int, err error)
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if bpu.mutation.BillingWorkflowConfigCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingprofile.BillingWorkflowConfigTable,
+			Columns: []string{billingprofile.BillingWorkflowConfigColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingworkflowconfig.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bpu.mutation.BillingWorkflowConfigIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingprofile.BillingWorkflowConfigTable,
+			Columns: []string{billingprofile.BillingWorkflowConfigColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingworkflowconfig.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -312,16 +376,16 @@ func (bpuo *BillingProfileUpdateOne) SetNillableProviderConfig(pr *provider.Conf
 	return bpuo
 }
 
-// SetBillingConfig sets the "billing_config" field.
-func (bpuo *BillingProfileUpdateOne) SetBillingConfig(b billing.Configuration) *BillingProfileUpdateOne {
-	bpuo.mutation.SetBillingConfig(b)
+// SetWorkflowConfigID sets the "workflow_config_id" field.
+func (bpuo *BillingProfileUpdateOne) SetWorkflowConfigID(s string) *BillingProfileUpdateOne {
+	bpuo.mutation.SetWorkflowConfigID(s)
 	return bpuo
 }
 
-// SetNillableBillingConfig sets the "billing_config" field if the given value is not nil.
-func (bpuo *BillingProfileUpdateOne) SetNillableBillingConfig(b *billing.Configuration) *BillingProfileUpdateOne {
-	if b != nil {
-		bpuo.SetBillingConfig(*b)
+// SetNillableWorkflowConfigID sets the "workflow_config_id" field if the given value is not nil.
+func (bpuo *BillingProfileUpdateOne) SetNillableWorkflowConfigID(s *string) *BillingProfileUpdateOne {
+	if s != nil {
+		bpuo.SetWorkflowConfigID(*s)
 	}
 	return bpuo
 }
@@ -355,6 +419,17 @@ func (bpuo *BillingProfileUpdateOne) AddBillingInvoices(b ...*BillingInvoice) *B
 	return bpuo.AddBillingInvoiceIDs(ids...)
 }
 
+// SetBillingWorkflowConfigID sets the "billing_workflow_config" edge to the BillingWorkflowConfig entity by ID.
+func (bpuo *BillingProfileUpdateOne) SetBillingWorkflowConfigID(id string) *BillingProfileUpdateOne {
+	bpuo.mutation.SetBillingWorkflowConfigID(id)
+	return bpuo
+}
+
+// SetBillingWorkflowConfig sets the "billing_workflow_config" edge to the BillingWorkflowConfig entity.
+func (bpuo *BillingProfileUpdateOne) SetBillingWorkflowConfig(b *BillingWorkflowConfig) *BillingProfileUpdateOne {
+	return bpuo.SetBillingWorkflowConfigID(b.ID)
+}
+
 // Mutation returns the BillingProfileMutation object of the builder.
 func (bpuo *BillingProfileUpdateOne) Mutation() *BillingProfileMutation {
 	return bpuo.mutation
@@ -379,6 +454,12 @@ func (bpuo *BillingProfileUpdateOne) RemoveBillingInvoices(b ...*BillingInvoice)
 		ids[i] = b[i].ID
 	}
 	return bpuo.RemoveBillingInvoiceIDs(ids...)
+}
+
+// ClearBillingWorkflowConfig clears the "billing_workflow_config" edge to the BillingWorkflowConfig entity.
+func (bpuo *BillingProfileUpdateOne) ClearBillingWorkflowConfig() *BillingProfileUpdateOne {
+	bpuo.mutation.ClearBillingWorkflowConfig()
+	return bpuo
 }
 
 // Where appends a list predicates to the BillingProfileUpdate builder.
@@ -430,7 +511,28 @@ func (bpuo *BillingProfileUpdateOne) defaults() {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (bpuo *BillingProfileUpdateOne) check() error {
+	if v, ok := bpuo.mutation.ProviderConfig(); ok {
+		if err := v.Validate(); err != nil {
+			return &ValidationError{Name: "provider_config", err: fmt.Errorf(`db: validator failed for field "BillingProfile.provider_config": %w`, err)}
+		}
+	}
+	if v, ok := bpuo.mutation.WorkflowConfigID(); ok {
+		if err := billingprofile.WorkflowConfigIDValidator(v); err != nil {
+			return &ValidationError{Name: "workflow_config_id", err: fmt.Errorf(`db: validator failed for field "BillingProfile.workflow_config_id": %w`, err)}
+		}
+	}
+	if bpuo.mutation.BillingWorkflowConfigCleared() && len(bpuo.mutation.BillingWorkflowConfigIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "BillingProfile.billing_workflow_config"`)
+	}
+	return nil
+}
+
 func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *BillingProfile, err error) {
+	if err := bpuo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(billingprofile.Table, billingprofile.Columns, sqlgraph.NewFieldSpec(billingprofile.FieldID, field.TypeString))
 	id, ok := bpuo.mutation.ID()
 	if !ok {
@@ -471,9 +573,6 @@ func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 			return nil, err
 		}
 		_spec.SetField(billingprofile.FieldProviderConfig, field.TypeString, vv)
-	}
-	if value, ok := bpuo.mutation.BillingConfig(); ok {
-		_spec.SetField(billingprofile.FieldBillingConfig, field.TypeJSON, value)
 	}
 	if value, ok := bpuo.mutation.Default(); ok {
 		_spec.SetField(billingprofile.FieldDefault, field.TypeBool, value)
@@ -516,6 +615,35 @@ func (bpuo *BillingProfileUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(billinginvoice.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if bpuo.mutation.BillingWorkflowConfigCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingprofile.BillingWorkflowConfigTable,
+			Columns: []string{billingprofile.BillingWorkflowConfigColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingworkflowconfig.FieldID, field.TypeString),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := bpuo.mutation.BillingWorkflowConfigIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingprofile.BillingWorkflowConfigTable,
+			Columns: []string{billingprofile.BillingWorkflowConfigColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingworkflowconfig.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

@@ -28,12 +28,14 @@ const (
 	FieldKey = "key"
 	// FieldProviderConfig holds the string denoting the provider_config field in the database.
 	FieldProviderConfig = "provider_config"
-	// FieldBillingConfig holds the string denoting the billing_config field in the database.
-	FieldBillingConfig = "billing_config"
+	// FieldWorkflowConfigID holds the string denoting the workflow_config_id field in the database.
+	FieldWorkflowConfigID = "workflow_config_id"
 	// FieldDefault holds the string denoting the default field in the database.
 	FieldDefault = "default"
 	// EdgeBillingInvoices holds the string denoting the billing_invoices edge name in mutations.
 	EdgeBillingInvoices = "billing_invoices"
+	// EdgeBillingWorkflowConfig holds the string denoting the billing_workflow_config edge name in mutations.
+	EdgeBillingWorkflowConfig = "billing_workflow_config"
 	// Table holds the table name of the billingprofile in the database.
 	Table = "billing_profiles"
 	// BillingInvoicesTable is the table that holds the billing_invoices relation/edge.
@@ -43,6 +45,13 @@ const (
 	BillingInvoicesInverseTable = "billing_invoices"
 	// BillingInvoicesColumn is the table column denoting the billing_invoices relation/edge.
 	BillingInvoicesColumn = "billing_profile_id"
+	// BillingWorkflowConfigTable is the table that holds the billing_workflow_config relation/edge.
+	BillingWorkflowConfigTable = "billing_profiles"
+	// BillingWorkflowConfigInverseTable is the table name for the BillingWorkflowConfig entity.
+	// It exists in this package in order to avoid circular dependency with the "billingworkflowconfig" package.
+	BillingWorkflowConfigInverseTable = "billing_workflow_configs"
+	// BillingWorkflowConfigColumn is the table column denoting the billing_workflow_config relation/edge.
+	BillingWorkflowConfigColumn = "workflow_config_id"
 )
 
 // Columns holds all SQL columns for billingprofile fields.
@@ -54,7 +63,7 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldKey,
 	FieldProviderConfig,
-	FieldBillingConfig,
+	FieldWorkflowConfigID,
 	FieldDefault,
 }
 
@@ -79,6 +88,8 @@ var (
 	UpdateDefaultUpdatedAt func() time.Time
 	// KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	KeyValidator func(string) error
+	// WorkflowConfigIDValidator is a validator for the "workflow_config_id" field. It is called by the builders before save.
+	WorkflowConfigIDValidator func(string) error
 	// DefaultDefault holds the default value on creation for the "default" field.
 	DefaultDefault bool
 	// DefaultID holds the default value on creation for the "id" field.
@@ -127,6 +138,11 @@ func ByProviderConfig(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldProviderConfig, opts...).ToFunc()
 }
 
+// ByWorkflowConfigID orders the results by the workflow_config_id field.
+func ByWorkflowConfigID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldWorkflowConfigID, opts...).ToFunc()
+}
+
 // ByDefault orders the results by the default field.
 func ByDefault(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDefault, opts...).ToFunc()
@@ -145,10 +161,24 @@ func ByBillingInvoices(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newBillingInvoicesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByBillingWorkflowConfigField orders the results by billing_workflow_config field.
+func ByBillingWorkflowConfigField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingWorkflowConfigStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newBillingInvoicesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingInvoicesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BillingInvoicesTable, BillingInvoicesColumn),
+	)
+}
+func newBillingWorkflowConfigStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingWorkflowConfigInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, BillingWorkflowConfigTable, BillingWorkflowConfigColumn),
 	)
 }

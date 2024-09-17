@@ -5,6 +5,21 @@ import (
 	"time"
 )
 
+// AlignmentKind specifies what governs when an invoice is issued
+type AlignmentKind string
+
+const (
+	// AlignmentKindSubscription specifies that the invoice is issued based on the subscription period (
+	// e.g. whenever a due line item is added, it will trigger an invoice generation after the collection period)
+	AlignmentKindSubscription AlignmentKind = "subscription"
+)
+
+func (k AlignmentKind) Values() []string {
+	return []string{
+		string(AlignmentKindSubscription),
+	}
+}
+
 type Configuration struct {
 	// Collection describes the rules for collecting pending line items
 	Collection *CollectionConfig `json:"collection,omitempty"`
@@ -57,6 +72,13 @@ const (
 	CollectionMethodSendInvoice CollectionMethod = "send_invoice"
 )
 
+func (c CollectionMethod) Values() []string {
+	return []string{
+		string(CollectionMethodChargeAutomatically),
+		string(CollectionMethodSendInvoice),
+	}
+}
+
 type WorkflowConfig struct {
 	// AutoAdvance specifies if the workflow will automatically advance from draft to issued after DraftPeriod, if not set it
 	// will default to the billing provider's default behavior
@@ -95,6 +117,13 @@ const (
 	// GranualityResolutionPeriod provides one line item per period
 	GranualityResolutionPeriod GranualityResolution = "period"
 )
+
+func (r GranualityResolution) Values() []string {
+	return []string{
+		string(GranualityResolutionDay),
+		string(GranualityResolutionPeriod),
+	}
+}
 
 type GranualityConfig struct {
 	// Resolution specifies the resolution of the line items

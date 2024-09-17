@@ -46,8 +46,8 @@ const (
 	FieldStatus = "status"
 	// FieldProviderConfig holds the string denoting the provider_config field in the database.
 	FieldProviderConfig = "provider_config"
-	// FieldBillingConfig holds the string denoting the billing_config field in the database.
-	FieldBillingConfig = "billing_config"
+	// FieldWorkflowConfigID holds the string denoting the workflow_config_id field in the database.
+	FieldWorkflowConfigID = "workflow_config_id"
 	// FieldProviderReference holds the string denoting the provider_reference field in the database.
 	FieldProviderReference = "provider_reference"
 	// FieldPeriodStart holds the string denoting the period_start field in the database.
@@ -56,6 +56,8 @@ const (
 	FieldPeriodEnd = "period_end"
 	// EdgeBillingProfile holds the string denoting the billing_profile edge name in mutations.
 	EdgeBillingProfile = "billing_profile"
+	// EdgeBillingWorkflowConfig holds the string denoting the billing_workflow_config edge name in mutations.
+	EdgeBillingWorkflowConfig = "billing_workflow_config"
 	// EdgeBillingInvoiceItems holds the string denoting the billing_invoice_items edge name in mutations.
 	EdgeBillingInvoiceItems = "billing_invoice_items"
 	// Table holds the table name of the billinginvoice in the database.
@@ -67,6 +69,13 @@ const (
 	BillingProfileInverseTable = "billing_profiles"
 	// BillingProfileColumn is the table column denoting the billing_profile relation/edge.
 	BillingProfileColumn = "billing_profile_id"
+	// BillingWorkflowConfigTable is the table that holds the billing_workflow_config relation/edge.
+	BillingWorkflowConfigTable = "billing_invoices"
+	// BillingWorkflowConfigInverseTable is the table name for the BillingWorkflowConfig entity.
+	// It exists in this package in order to avoid circular dependency with the "billingworkflowconfig" package.
+	BillingWorkflowConfigInverseTable = "billing_workflow_configs"
+	// BillingWorkflowConfigColumn is the table column denoting the billing_workflow_config relation/edge.
+	BillingWorkflowConfigColumn = "workflow_config_id"
 	// BillingInvoiceItemsTable is the table that holds the billing_invoice_items relation/edge.
 	BillingInvoiceItemsTable = "billing_invoice_items"
 	// BillingInvoiceItemsInverseTable is the table name for the BillingInvoiceItem entity.
@@ -93,7 +102,7 @@ var Columns = []string{
 	FieldDueDate,
 	FieldStatus,
 	FieldProviderConfig,
-	FieldBillingConfig,
+	FieldWorkflowConfigID,
 	FieldProviderReference,
 	FieldPeriodStart,
 	FieldPeriodEnd,
@@ -218,6 +227,11 @@ func ByProviderConfig(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldProviderConfig, opts...).ToFunc()
 }
 
+// ByWorkflowConfigID orders the results by the workflow_config_id field.
+func ByWorkflowConfigID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldWorkflowConfigID, opts...).ToFunc()
+}
+
 // ByProviderReference orders the results by the provider_reference field.
 func ByProviderReference(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldProviderReference, opts...).ToFunc()
@@ -240,6 +254,13 @@ func ByBillingProfileField(field string, opts ...sql.OrderTermOption) OrderOptio
 	}
 }
 
+// ByBillingWorkflowConfigField orders the results by billing_workflow_config field.
+func ByBillingWorkflowConfigField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBillingWorkflowConfigStep(), sql.OrderByField(field, opts...))
+	}
+}
+
 // ByBillingInvoiceItemsCount orders the results by billing_invoice_items count.
 func ByBillingInvoiceItemsCount(opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
@@ -258,6 +279,13 @@ func newBillingProfileStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BillingProfileInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, BillingProfileTable, BillingProfileColumn),
+	)
+}
+func newBillingWorkflowConfigStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BillingWorkflowConfigInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, BillingWorkflowConfigTable, BillingWorkflowConfigColumn),
 	)
 }
 func newBillingInvoiceItemsStep() *sqlgraph.Step {

@@ -57,6 +57,18 @@ func (f BillingProfileFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingProfileMutation", m)
 }
 
+// The BillingWorkflowConfigFunc type is an adapter to allow the use of ordinary
+// function as BillingWorkflowConfig mutator.
+type BillingWorkflowConfigFunc func(context.Context, *db.BillingWorkflowConfigMutation) (db.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BillingWorkflowConfigFunc) Mutate(ctx context.Context, m db.Mutation) (db.Value, error) {
+	if mv, ok := m.(*db.BillingWorkflowConfigMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *db.BillingWorkflowConfigMutation", m)
+}
+
 // The EntitlementFunc type is an adapter to allow the use of ordinary
 // function as Entitlement mutator.
 type EntitlementFunc func(context.Context, *db.EntitlementMutation) (db.Value, error)

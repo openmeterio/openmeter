@@ -1,3 +1,24 @@
+-- create "billing_workflow_configs" table
+CREATE TABLE "billing_workflow_configs" (
+  "id" character(26) NOT NULL,
+  "namespace" character varying NOT NULL,
+  "created_at" timestamptz NOT NULL,
+  "updated_at" timestamptz NOT NULL,
+  "deleted_at" timestamptz NULL,
+  "alignment" character varying NOT NULL,
+  "collection_period_seconds" bigint NOT NULL,
+  "invoice_auto_advance" boolean NOT NULL,
+  "invoice_draft_period_seconds" bigint NOT NULL,
+  "invoice_due_after_seconds" bigint NOT NULL,
+  "invoice_collection_method" character varying NOT NULL,
+  "invoice_line_item_resolution" character varying NOT NULL,
+  "invoice_line_item_per_subject" boolean NOT NULL DEFAULT false,
+  PRIMARY KEY ("id")
+);
+-- create index "billingworkflowconfig_id" to table: "billing_workflow_configs"
+CREATE INDEX "billingworkflowconfig_id" ON "billing_workflow_configs" ("id");
+-- create index "billingworkflowconfig_namespace_id" to table: "billing_workflow_configs"
+CREATE INDEX "billingworkflowconfig_namespace_id" ON "billing_workflow_configs" ("namespace", "id");
 -- create "billing_profiles" table
 CREATE TABLE "billing_profiles" (
   "id" character(26) NOT NULL,
@@ -7,9 +28,10 @@ CREATE TABLE "billing_profiles" (
   "deleted_at" timestamptz NULL,
   "key" character varying NOT NULL,
   "provider_config" jsonb NOT NULL,
-  "billing_config" jsonb NOT NULL,
   "default" boolean NOT NULL DEFAULT false,
-  PRIMARY KEY ("id")
+  "workflow_config_id" character(26) NOT NULL,
+  PRIMARY KEY ("id"),
+  CONSTRAINT "billing_profiles_billing_workflow_configs_billing_profile" FOREIGN KEY ("workflow_config_id") REFERENCES "billing_workflow_configs" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 -- create index "billingprofile_id" to table: "billing_profiles"
 CREATE INDEX "billingprofile_id" ON "billing_profiles" ("id");
@@ -35,13 +57,14 @@ CREATE TABLE "billing_invoices" (
   "due_date" timestamptz NOT NULL,
   "status" character varying NOT NULL,
   "provider_config" jsonb NOT NULL,
-  "billing_config" jsonb NOT NULL,
   "provider_reference" jsonb NOT NULL,
   "period_start" timestamptz NOT NULL,
   "period_end" timestamptz NOT NULL,
   "billing_profile_id" character(26) NOT NULL,
+  "workflow_config_id" character(26) NOT NULL,
   PRIMARY KEY ("id"),
-  CONSTRAINT "billing_invoices_billing_profiles_billing_invoices" FOREIGN KEY ("billing_profile_id") REFERENCES "billing_profiles" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION
+  CONSTRAINT "billing_invoices_billing_profiles_billing_invoices" FOREIGN KEY ("billing_profile_id") REFERENCES "billing_profiles" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT "billing_invoices_billing_workflow_configs_billing_invoices" FOREIGN KEY ("workflow_config_id") REFERENCES "billing_workflow_configs" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 -- create index "billinginvoice_id" to table: "billing_invoices"
 CREATE INDEX "billinginvoice_id" ON "billing_invoices" ("id");

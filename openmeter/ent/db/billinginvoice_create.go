@@ -13,12 +13,12 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/invoice"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 )
 
 // BillingInvoiceCreate is the builder for creating a BillingInvoice entity.
@@ -145,9 +145,9 @@ func (bic *BillingInvoiceCreate) SetProviderConfig(pr provider.Configuration) *B
 	return bic
 }
 
-// SetBillingConfig sets the "billing_config" field.
-func (bic *BillingInvoiceCreate) SetBillingConfig(b billing.Configuration) *BillingInvoiceCreate {
-	bic.mutation.SetBillingConfig(b)
+// SetWorkflowConfigID sets the "workflow_config_id" field.
+func (bic *BillingInvoiceCreate) SetWorkflowConfigID(s string) *BillingInvoiceCreate {
+	bic.mutation.SetWorkflowConfigID(s)
 	return bic
 }
 
@@ -186,6 +186,17 @@ func (bic *BillingInvoiceCreate) SetNillableID(s *string) *BillingInvoiceCreate 
 // SetBillingProfile sets the "billing_profile" edge to the BillingProfile entity.
 func (bic *BillingInvoiceCreate) SetBillingProfile(b *BillingProfile) *BillingInvoiceCreate {
 	return bic.SetBillingProfileID(b.ID)
+}
+
+// SetBillingWorkflowConfigID sets the "billing_workflow_config" edge to the BillingWorkflowConfig entity by ID.
+func (bic *BillingInvoiceCreate) SetBillingWorkflowConfigID(id string) *BillingInvoiceCreate {
+	bic.mutation.SetBillingWorkflowConfigID(id)
+	return bic
+}
+
+// SetBillingWorkflowConfig sets the "billing_workflow_config" edge to the BillingWorkflowConfig entity.
+func (bic *BillingInvoiceCreate) SetBillingWorkflowConfig(b *BillingWorkflowConfig) *BillingInvoiceCreate {
+	return bic.SetBillingWorkflowConfigID(b.ID)
 }
 
 // AddBillingInvoiceItemIDs adds the "billing_invoice_items" edge to the BillingInvoiceItem entity by IDs.
@@ -322,13 +333,8 @@ func (bic *BillingInvoiceCreate) check() error {
 			return &ValidationError{Name: "provider_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.provider_config": %w`, err)}
 		}
 	}
-	if _, ok := bic.mutation.BillingConfig(); !ok {
-		return &ValidationError{Name: "billing_config", err: errors.New(`db: missing required field "BillingInvoice.billing_config"`)}
-	}
-	if v, ok := bic.mutation.BillingConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "billing_config", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.billing_config": %w`, err)}
-		}
+	if _, ok := bic.mutation.WorkflowConfigID(); !ok {
+		return &ValidationError{Name: "workflow_config_id", err: errors.New(`db: missing required field "BillingInvoice.workflow_config_id"`)}
 	}
 	if _, ok := bic.mutation.ProviderReference(); !ok {
 		return &ValidationError{Name: "provider_reference", err: errors.New(`db: missing required field "BillingInvoice.provider_reference"`)}
@@ -341,6 +347,9 @@ func (bic *BillingInvoiceCreate) check() error {
 	}
 	if len(bic.mutation.BillingProfileIDs()) == 0 {
 		return &ValidationError{Name: "billing_profile", err: errors.New(`db: missing required edge "BillingInvoice.billing_profile"`)}
+	}
+	if len(bic.mutation.BillingWorkflowConfigIDs()) == 0 {
+		return &ValidationError{Name: "billing_workflow_config", err: errors.New(`db: missing required edge "BillingInvoice.billing_workflow_config"`)}
 	}
 	return nil
 }
@@ -437,10 +446,6 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 		_spec.SetField(billinginvoice.FieldProviderConfig, field.TypeString, vv)
 		_node.ProviderConfig = value
 	}
-	if value, ok := bic.mutation.BillingConfig(); ok {
-		_spec.SetField(billinginvoice.FieldBillingConfig, field.TypeJSON, value)
-		_node.BillingConfig = value
-	}
 	if value, ok := bic.mutation.ProviderReference(); ok {
 		vv, err := billinginvoice.ValueScanner.ProviderReference.Value(value)
 		if err != nil {
@@ -472,6 +477,23 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.BillingProfileID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bic.mutation.BillingWorkflowConfigIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billinginvoice.BillingWorkflowConfigTable,
+			Columns: []string{billinginvoice.BillingWorkflowConfigColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingworkflowconfig.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.WorkflowConfigID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := bic.mutation.BillingInvoiceItemsIDs(); len(nodes) > 0 {
@@ -656,15 +678,15 @@ func (u *BillingInvoiceUpsert) UpdateProviderConfig() *BillingInvoiceUpsert {
 	return u
 }
 
-// SetBillingConfig sets the "billing_config" field.
-func (u *BillingInvoiceUpsert) SetBillingConfig(v billing.Configuration) *BillingInvoiceUpsert {
-	u.Set(billinginvoice.FieldBillingConfig, v)
+// SetWorkflowConfigID sets the "workflow_config_id" field.
+func (u *BillingInvoiceUpsert) SetWorkflowConfigID(v string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldWorkflowConfigID, v)
 	return u
 }
 
-// UpdateBillingConfig sets the "billing_config" field to the value that was provided on create.
-func (u *BillingInvoiceUpsert) UpdateBillingConfig() *BillingInvoiceUpsert {
-	u.SetExcluded(billinginvoice.FieldBillingConfig)
+// UpdateWorkflowConfigID sets the "workflow_config_id" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdateWorkflowConfigID() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldWorkflowConfigID)
 	return u
 }
 
@@ -903,17 +925,17 @@ func (u *BillingInvoiceUpsertOne) UpdateProviderConfig() *BillingInvoiceUpsertOn
 	})
 }
 
-// SetBillingConfig sets the "billing_config" field.
-func (u *BillingInvoiceUpsertOne) SetBillingConfig(v billing.Configuration) *BillingInvoiceUpsertOne {
+// SetWorkflowConfigID sets the "workflow_config_id" field.
+func (u *BillingInvoiceUpsertOne) SetWorkflowConfigID(v string) *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetBillingConfig(v)
+		s.SetWorkflowConfigID(v)
 	})
 }
 
-// UpdateBillingConfig sets the "billing_config" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertOne) UpdateBillingConfig() *BillingInvoiceUpsertOne {
+// UpdateWorkflowConfigID sets the "workflow_config_id" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdateWorkflowConfigID() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateBillingConfig()
+		s.UpdateWorkflowConfigID()
 	})
 }
 
@@ -1328,17 +1350,17 @@ func (u *BillingInvoiceUpsertBulk) UpdateProviderConfig() *BillingInvoiceUpsertB
 	})
 }
 
-// SetBillingConfig sets the "billing_config" field.
-func (u *BillingInvoiceUpsertBulk) SetBillingConfig(v billing.Configuration) *BillingInvoiceUpsertBulk {
+// SetWorkflowConfigID sets the "workflow_config_id" field.
+func (u *BillingInvoiceUpsertBulk) SetWorkflowConfigID(v string) *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.SetBillingConfig(v)
+		s.SetWorkflowConfigID(v)
 	})
 }
 
-// UpdateBillingConfig sets the "billing_config" field to the value that was provided on create.
-func (u *BillingInvoiceUpsertBulk) UpdateBillingConfig() *BillingInvoiceUpsertBulk {
+// UpdateWorkflowConfigID sets the "workflow_config_id" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdateWorkflowConfigID() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
-		s.UpdateBillingConfig()
+		s.UpdateWorkflowConfigID()
 	})
 }
 

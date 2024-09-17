@@ -12,10 +12,10 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/billing"
 	"github.com/openmeterio/openmeter/openmeter/billing/provider"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoice"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 )
 
 // BillingProfileCreate is the builder for creating a BillingProfile entity.
@@ -86,9 +86,9 @@ func (bpc *BillingProfileCreate) SetProviderConfig(pr provider.Configuration) *B
 	return bpc
 }
 
-// SetBillingConfig sets the "billing_config" field.
-func (bpc *BillingProfileCreate) SetBillingConfig(b billing.Configuration) *BillingProfileCreate {
-	bpc.mutation.SetBillingConfig(b)
+// SetWorkflowConfigID sets the "workflow_config_id" field.
+func (bpc *BillingProfileCreate) SetWorkflowConfigID(s string) *BillingProfileCreate {
+	bpc.mutation.SetWorkflowConfigID(s)
 	return bpc
 }
 
@@ -133,6 +133,17 @@ func (bpc *BillingProfileCreate) AddBillingInvoices(b ...*BillingInvoice) *Billi
 		ids[i] = b[i].ID
 	}
 	return bpc.AddBillingInvoiceIDs(ids...)
+}
+
+// SetBillingWorkflowConfigID sets the "billing_workflow_config" edge to the BillingWorkflowConfig entity by ID.
+func (bpc *BillingProfileCreate) SetBillingWorkflowConfigID(id string) *BillingProfileCreate {
+	bpc.mutation.SetBillingWorkflowConfigID(id)
+	return bpc
+}
+
+// SetBillingWorkflowConfig sets the "billing_workflow_config" edge to the BillingWorkflowConfig entity.
+func (bpc *BillingProfileCreate) SetBillingWorkflowConfig(b *BillingWorkflowConfig) *BillingProfileCreate {
+	return bpc.SetBillingWorkflowConfigID(b.ID)
 }
 
 // Mutation returns the BillingProfileMutation object of the builder.
@@ -220,16 +231,19 @@ func (bpc *BillingProfileCreate) check() error {
 			return &ValidationError{Name: "provider_config", err: fmt.Errorf(`db: validator failed for field "BillingProfile.provider_config": %w`, err)}
 		}
 	}
-	if _, ok := bpc.mutation.BillingConfig(); !ok {
-		return &ValidationError{Name: "billing_config", err: errors.New(`db: missing required field "BillingProfile.billing_config"`)}
+	if _, ok := bpc.mutation.WorkflowConfigID(); !ok {
+		return &ValidationError{Name: "workflow_config_id", err: errors.New(`db: missing required field "BillingProfile.workflow_config_id"`)}
 	}
-	if v, ok := bpc.mutation.BillingConfig(); ok {
-		if err := v.Validate(); err != nil {
-			return &ValidationError{Name: "billing_config", err: fmt.Errorf(`db: validator failed for field "BillingProfile.billing_config": %w`, err)}
+	if v, ok := bpc.mutation.WorkflowConfigID(); ok {
+		if err := billingprofile.WorkflowConfigIDValidator(v); err != nil {
+			return &ValidationError{Name: "workflow_config_id", err: fmt.Errorf(`db: validator failed for field "BillingProfile.workflow_config_id": %w`, err)}
 		}
 	}
 	if _, ok := bpc.mutation.Default(); !ok {
 		return &ValidationError{Name: "default", err: errors.New(`db: missing required field "BillingProfile.default"`)}
+	}
+	if len(bpc.mutation.BillingWorkflowConfigIDs()) == 0 {
+		return &ValidationError{Name: "billing_workflow_config", err: errors.New(`db: missing required edge "BillingProfile.billing_workflow_config"`)}
 	}
 	return nil
 }
@@ -298,10 +312,6 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 		_spec.SetField(billingprofile.FieldProviderConfig, field.TypeString, vv)
 		_node.ProviderConfig = value
 	}
-	if value, ok := bpc.mutation.BillingConfig(); ok {
-		_spec.SetField(billingprofile.FieldBillingConfig, field.TypeJSON, value)
-		_node.BillingConfig = value
-	}
 	if value, ok := bpc.mutation.Default(); ok {
 		_spec.SetField(billingprofile.FieldDefault, field.TypeBool, value)
 		_node.Default = value
@@ -320,6 +330,23 @@ func (bpc *BillingProfileCreate) createSpec() (*BillingProfile, *sqlgraph.Create
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := bpc.mutation.BillingWorkflowConfigIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   billingprofile.BillingWorkflowConfigTable,
+			Columns: []string{billingprofile.BillingWorkflowConfigColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(billingworkflowconfig.FieldID, field.TypeString),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.WorkflowConfigID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec, nil
@@ -416,15 +443,15 @@ func (u *BillingProfileUpsert) UpdateProviderConfig() *BillingProfileUpsert {
 	return u
 }
 
-// SetBillingConfig sets the "billing_config" field.
-func (u *BillingProfileUpsert) SetBillingConfig(v billing.Configuration) *BillingProfileUpsert {
-	u.Set(billingprofile.FieldBillingConfig, v)
+// SetWorkflowConfigID sets the "workflow_config_id" field.
+func (u *BillingProfileUpsert) SetWorkflowConfigID(v string) *BillingProfileUpsert {
+	u.Set(billingprofile.FieldWorkflowConfigID, v)
 	return u
 }
 
-// UpdateBillingConfig sets the "billing_config" field to the value that was provided on create.
-func (u *BillingProfileUpsert) UpdateBillingConfig() *BillingProfileUpsert {
-	u.SetExcluded(billingprofile.FieldBillingConfig)
+// UpdateWorkflowConfigID sets the "workflow_config_id" field to the value that was provided on create.
+func (u *BillingProfileUpsert) UpdateWorkflowConfigID() *BillingProfileUpsert {
+	u.SetExcluded(billingprofile.FieldWorkflowConfigID)
 	return u
 }
 
@@ -546,17 +573,17 @@ func (u *BillingProfileUpsertOne) UpdateProviderConfig() *BillingProfileUpsertOn
 	})
 }
 
-// SetBillingConfig sets the "billing_config" field.
-func (u *BillingProfileUpsertOne) SetBillingConfig(v billing.Configuration) *BillingProfileUpsertOne {
+// SetWorkflowConfigID sets the "workflow_config_id" field.
+func (u *BillingProfileUpsertOne) SetWorkflowConfigID(v string) *BillingProfileUpsertOne {
 	return u.Update(func(s *BillingProfileUpsert) {
-		s.SetBillingConfig(v)
+		s.SetWorkflowConfigID(v)
 	})
 }
 
-// UpdateBillingConfig sets the "billing_config" field to the value that was provided on create.
-func (u *BillingProfileUpsertOne) UpdateBillingConfig() *BillingProfileUpsertOne {
+// UpdateWorkflowConfigID sets the "workflow_config_id" field to the value that was provided on create.
+func (u *BillingProfileUpsertOne) UpdateWorkflowConfigID() *BillingProfileUpsertOne {
 	return u.Update(func(s *BillingProfileUpsert) {
-		s.UpdateBillingConfig()
+		s.UpdateWorkflowConfigID()
 	})
 }
 
@@ -850,17 +877,17 @@ func (u *BillingProfileUpsertBulk) UpdateProviderConfig() *BillingProfileUpsertB
 	})
 }
 
-// SetBillingConfig sets the "billing_config" field.
-func (u *BillingProfileUpsertBulk) SetBillingConfig(v billing.Configuration) *BillingProfileUpsertBulk {
+// SetWorkflowConfigID sets the "workflow_config_id" field.
+func (u *BillingProfileUpsertBulk) SetWorkflowConfigID(v string) *BillingProfileUpsertBulk {
 	return u.Update(func(s *BillingProfileUpsert) {
-		s.SetBillingConfig(v)
+		s.SetWorkflowConfigID(v)
 	})
 }
 
-// UpdateBillingConfig sets the "billing_config" field to the value that was provided on create.
-func (u *BillingProfileUpsertBulk) UpdateBillingConfig() *BillingProfileUpsertBulk {
+// UpdateWorkflowConfigID sets the "workflow_config_id" field to the value that was provided on create.
+func (u *BillingProfileUpsertBulk) UpdateWorkflowConfigID() *BillingProfileUpsertBulk {
 	return u.Update(func(s *BillingProfileUpsert) {
-		s.UpdateBillingConfig()
+		s.UpdateWorkflowConfigID()
 	})
 }
 

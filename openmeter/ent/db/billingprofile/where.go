@@ -90,6 +90,11 @@ func Key(v string) predicate.BillingProfile {
 	return predicate.BillingProfile(sql.FieldEQ(FieldKey, v))
 }
 
+// WorkflowConfigID applies equality check predicate on the "workflow_config_id" field. It's identical to WorkflowConfigIDEQ.
+func WorkflowConfigID(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldEQ(FieldWorkflowConfigID, v))
+}
+
 // Default applies equality check predicate on the "default" field. It's identical to DefaultEQ.
 func Default(v bool) predicate.BillingProfile {
 	return predicate.BillingProfile(sql.FieldEQ(FieldDefault, v))
@@ -355,6 +360,71 @@ func KeyContainsFold(v string) predicate.BillingProfile {
 	return predicate.BillingProfile(sql.FieldContainsFold(FieldKey, v))
 }
 
+// WorkflowConfigIDEQ applies the EQ predicate on the "workflow_config_id" field.
+func WorkflowConfigIDEQ(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldEQ(FieldWorkflowConfigID, v))
+}
+
+// WorkflowConfigIDNEQ applies the NEQ predicate on the "workflow_config_id" field.
+func WorkflowConfigIDNEQ(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNEQ(FieldWorkflowConfigID, v))
+}
+
+// WorkflowConfigIDIn applies the In predicate on the "workflow_config_id" field.
+func WorkflowConfigIDIn(vs ...string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldIn(FieldWorkflowConfigID, vs...))
+}
+
+// WorkflowConfigIDNotIn applies the NotIn predicate on the "workflow_config_id" field.
+func WorkflowConfigIDNotIn(vs ...string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldNotIn(FieldWorkflowConfigID, vs...))
+}
+
+// WorkflowConfigIDGT applies the GT predicate on the "workflow_config_id" field.
+func WorkflowConfigIDGT(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldGT(FieldWorkflowConfigID, v))
+}
+
+// WorkflowConfigIDGTE applies the GTE predicate on the "workflow_config_id" field.
+func WorkflowConfigIDGTE(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldGTE(FieldWorkflowConfigID, v))
+}
+
+// WorkflowConfigIDLT applies the LT predicate on the "workflow_config_id" field.
+func WorkflowConfigIDLT(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldLT(FieldWorkflowConfigID, v))
+}
+
+// WorkflowConfigIDLTE applies the LTE predicate on the "workflow_config_id" field.
+func WorkflowConfigIDLTE(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldLTE(FieldWorkflowConfigID, v))
+}
+
+// WorkflowConfigIDContains applies the Contains predicate on the "workflow_config_id" field.
+func WorkflowConfigIDContains(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldContains(FieldWorkflowConfigID, v))
+}
+
+// WorkflowConfigIDHasPrefix applies the HasPrefix predicate on the "workflow_config_id" field.
+func WorkflowConfigIDHasPrefix(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldHasPrefix(FieldWorkflowConfigID, v))
+}
+
+// WorkflowConfigIDHasSuffix applies the HasSuffix predicate on the "workflow_config_id" field.
+func WorkflowConfigIDHasSuffix(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldHasSuffix(FieldWorkflowConfigID, v))
+}
+
+// WorkflowConfigIDEqualFold applies the EqualFold predicate on the "workflow_config_id" field.
+func WorkflowConfigIDEqualFold(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldEqualFold(FieldWorkflowConfigID, v))
+}
+
+// WorkflowConfigIDContainsFold applies the ContainsFold predicate on the "workflow_config_id" field.
+func WorkflowConfigIDContainsFold(v string) predicate.BillingProfile {
+	return predicate.BillingProfile(sql.FieldContainsFold(FieldWorkflowConfigID, v))
+}
+
 // DefaultEQ applies the EQ predicate on the "default" field.
 func DefaultEQ(v bool) predicate.BillingProfile {
 	return predicate.BillingProfile(sql.FieldEQ(FieldDefault, v))
@@ -380,6 +450,29 @@ func HasBillingInvoices() predicate.BillingProfile {
 func HasBillingInvoicesWith(preds ...predicate.BillingInvoice) predicate.BillingProfile {
 	return predicate.BillingProfile(func(s *sql.Selector) {
 		step := newBillingInvoicesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasBillingWorkflowConfig applies the HasEdge predicate on the "billing_workflow_config" edge.
+func HasBillingWorkflowConfig() predicate.BillingProfile {
+	return predicate.BillingProfile(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, BillingWorkflowConfigTable, BillingWorkflowConfigColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBillingWorkflowConfigWith applies the HasEdge predicate on the "billing_workflow_config" edge with a given conditions (other predicates).
+func HasBillingWorkflowConfigWith(preds ...predicate.BillingWorkflowConfig) predicate.BillingProfile {
+	return predicate.BillingProfile(func(s *sql.Selector) {
+		step := newBillingWorkflowConfigStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

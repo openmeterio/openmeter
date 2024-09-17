@@ -81,6 +81,8 @@ func NewTxClientFromRawConfig(ctx context.Context, cfg entutils.RawEntConfig) *T
 
 		BillingProfile: NewBillingProfileClient(config),
 
+		BillingWorkflowConfig: NewBillingWorkflowConfigClient(config),
+
 		Entitlement: NewEntitlementClient(config),
 
 		Feature: NewFeatureClient(config),

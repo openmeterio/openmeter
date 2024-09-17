@@ -20,6 +20,8 @@ type Tx struct {
 	BillingInvoiceItem *BillingInvoiceItemClient
 	// BillingProfile is the client for interacting with the BillingProfile builders.
 	BillingProfile *BillingProfileClient
+	// BillingWorkflowConfig is the client for interacting with the BillingWorkflowConfig builders.
+	BillingWorkflowConfig *BillingWorkflowConfigClient
 	// Entitlement is the client for interacting with the Entitlement builders.
 	Entitlement *EntitlementClient
 	// Feature is the client for interacting with the Feature builders.
@@ -171,6 +173,7 @@ func (tx *Tx) init() {
 	tx.BillingInvoice = NewBillingInvoiceClient(tx.config)
 	tx.BillingInvoiceItem = NewBillingInvoiceItemClient(tx.config)
 	tx.BillingProfile = NewBillingProfileClient(tx.config)
+	tx.BillingWorkflowConfig = NewBillingWorkflowConfigClient(tx.config)
 	tx.Entitlement = NewEntitlementClient(tx.config)
 	tx.Feature = NewFeatureClient(tx.config)
 	tx.Grant = NewGrantClient(tx.config)

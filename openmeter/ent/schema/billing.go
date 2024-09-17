@@ -42,10 +42,8 @@ func (BillingProfile) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				"postgres": "jsonb",
 			}),
-		field.JSON("billing_config", billing.Configuration{}).
-			SchemaType(map[string]string{
-				"postgres": "jsonb",
-			}),
+		field.String("workflow_config_id").
+			NotEmpty(),
 		field.Bool("default").
 			Default(false),
 	}
@@ -54,6 +52,11 @@ func (BillingProfile) Fields() []ent.Field {
 func (BillingProfile) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("billing_invoices", BillingInvoice.Type),
+		edge.From("billing_workflow_config", BillingWorkflowConfig.Type).
+			Ref("billing_profile").
+			Field("workflow_config_id").
+			Unique().
+			Required(),
 	}
 }
 
@@ -127,6 +130,58 @@ var ProviderConfigValueScanner = field.ValueScannerFunc[provider.Configuration, 
 			return provider.Configuration{}, fmt.Errorf("unknown backend type: %s", meta.Type)
 		}
 	},
+}
+
+type BillingWorkflowConfig struct {
+	ent.Schema
+}
+
+func (BillingWorkflowConfig) Mixin() []ent.Mixin {
+	return []ent.Mixin{
+		entutils.IDMixin{},
+		entutils.NamespaceMixin{},
+		entutils.TimeMixin{},
+	}
+}
+
+func (BillingWorkflowConfig) Fields() []ent.Field {
+	return []ent.Field{
+		field.Enum("alignment").
+			GoType(billing.AlignmentKind("")),
+
+		// TODO: later we will add more alignment details here (e.g. monthly, yearly, etc.)
+
+		field.Int64("collection_period_seconds"),
+
+		field.Bool("invoice_auto_advance").
+			Nillable(),
+
+		field.Int64("invoice_draft_period_seconds"),
+
+		field.Int64("invoice_due_after_seconds"),
+
+		field.Enum("invoice_collection_method").
+			GoType(billing.CollectionMethod("")),
+
+		field.Enum("invoice_line_item_resolution").
+			GoType(billing.GranualityResolution("")),
+
+		field.Bool("invoice_line_item_per_subject").
+			Default(false),
+	}
+}
+
+func (BillingWorkflowConfig) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace", "id"),
+	}
+}
+
+func (BillingWorkflowConfig) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.To("billing_invoices", BillingInvoice.Type),
+		edge.To("billing_profile", BillingProfile.Type),
+	}
 }
 
 type BillingInvoiceItem struct {
@@ -254,9 +309,10 @@ func (BillingInvoice) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				"postgres": "jsonb",
 			}),
-		field.JSON("billing_config", billing.Configuration{}).
+
+		field.String("workflow_config_id").
 			SchemaType(map[string]string{
-				"postgres": "jsonb",
+				"postgres": "char(26)",
 			}),
 		field.String("provider_reference").
 			GoType(provider.Reference{}).
@@ -288,8 +344,12 @@ func (BillingInvoice) Edges() []ent.Edge {
 			Required().
 			Unique().
 			Immutable(), // Billing profile changes are forbidden => invoice must be voided in this case
+		edge.From("billing_workflow_config", BillingWorkflowConfig.Type).
+			Ref("billing_invoices").
+			Field("workflow_config_id").
+			Unique().
+			Required(),
 		edge.To("billing_invoice_items", BillingInvoiceItem.Type),
-		// Customer edge!
 	}
 }
 
