@@ -115,4 +115,16 @@ namespace OpenMeterCloud.Entitlements {
   @route("/api/v1/entitlements")
   @tag("Entitlements (Experimental)")
   interface Entitlements extends OpenMeter.Entitlements.Entitlements {}
+
+  @route("/api/v1/features")
+  @tag("Entitlements (Experimental)")
+  interface Features extends OpenMeter.Entitlements.Features {}
+
+  @route("/api/v1/grants")
+  @tag("Entitlements (Experimental)")
+  interface Grants extends OpenMeter.Entitlements.Grants {}
+
+  @route("/api/v1/subjects/{subjectIdOrKey}/entitlements")
+  @tag("Entitlements (Experimental)")
+  interface SubjectManagement extends OpenMeter.Entitlements.SubjectManagement {}
 }

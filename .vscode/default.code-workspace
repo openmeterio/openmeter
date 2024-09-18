@@ -6,7 +6,11 @@
         },
         {
             "name": "ci",
-            "path": "../ci"
+            "path": "../.dagger"
+        },
+        {
+            "name": "typespec",
+            "path": "../api/spec"
         }
     ]
 }

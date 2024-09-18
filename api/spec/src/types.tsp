@@ -33,7 +33,7 @@ model Metadata {
 /**
  * [RFC3339](https://tools.ietf.org/html/rfc3339) formatted date-time string in UTC.
  */
-@encode("rfc3339")
+@encode(DateTimeKnownEncoding.rfc3339)
 @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
 scalar DateTime extends utcDateTime;
 
@@ -74,21 +74,29 @@ model Resource {
    * Additional metadata for the resource.
    */
   @summary("Metadata")
-  metadata?: Metadata = #{};
+  metadata?: Metadata;
 
+  ...ResourceTimestamps;
+}
+
+/**
+ * Collects the timestamps used by all resources.
+ */
+@friendlyName("Timestamps")
+model ResourceTimestamps {
   /**
    * Timestamp of when the resource was created.
    */
   @summary("Creation Time")
   @visibility("read")
-  createdAt?: DateTime;
+  createdAt: DateTime;
 
   /**
    * Timestamp of when the resource was last updated.
    */
   @summary("Last Update Time")
   @visibility("read")
-  updatedAt?: DateTime;
+  updatedAt: DateTime;
 
   /**
    * Timestamp of when the resource was permanently deleted.
@@ -96,7 +104,13 @@ model Resource {
   @summary("Deletion Time")
   @visibility("read")
   deletedAt?: DateTime;
+}
 
+/**
+ * Represents common fields of resources that can be archived.
+ */
+@friendlyName("Archiveable")
+model Archiveable {
   /**
    * Timestamp of when the resource was archived.
    */
@@ -109,39 +123,54 @@ model Resource {
  * The unit of time for the interval.
  * One of: `day`, `week`, `month`, or `year`.
  */
-@friendlyName("IntervalUnit")
-union IntervalUnit {
-  @summary("Day")
-  day: "day",
-
-  @summary("Week")
-  week: "week",
-
-  @summary("Month")
-  month: "month",
-
-  @summary("Year")
-  year: "year",
+@friendlyName("RecurringPeriodInterval")
+enum RecurringPeriodInterval {
+  #suppress "@openmeter/api-spec/casing" "Use existing values"
+  Day: "DAY",
+  #suppress "@openmeter/api-spec/casing" "Use existing values"
+  Week: "WEEK",
+  #suppress "@openmeter/api-spec/casing" "Use existing values"
+  Month: "MONTH",
+  #suppress "@openmeter/api-spec/casing" "Use existing values"
+  Year: "YEAR",
 }
 
 /**
- * Time interval with a time unit and count.
+ * Recurring period with an interval and an anchor.
  */
-@example(#{ unit: "month", count: 3 })
-@friendlyName("Interval")
-model Interval {
+@example(#{ interval: RecurringPeriodInterval.Day, anchor: DateTime.fromISO("2023-01-01T01:01:01.001Z") })
+@friendlyName("RecurringPeriod")
+model RecurringPeriod {
   /**
    * The unit of time for the interval.
    */
-  @summary("Interval unit")
-  unit: IntervalUnit;
+  @summary("Interval")
+  interval: RecurringPeriodInterval;
 
   /**
-   * The number of time units in the interval.
+   * A date-time anchor to base the recurring period on.
    */
-  @minValue(1)
-  @summary("Interval count")
-  count?: integer = 1;
+  @summary("Anchor time")
+  @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
+  anchor: DateTime;
+}
+
+/**
+ * A period with a start and end time.
+ */
+@friendlyName("Period")
+model Period {
+  /**
+   * Period start time.
+   */
+  @example(DateTime.fromISO("2023-01-01T01:01:01.001Z"))
+  from: DateTime;
+
+  /**
+   * Period end time.
+   */
+  @example(DateTime.fromISO("2023-02-01T01:01:01.001Z"))
+  to: DateTime;
 }
 
 /**

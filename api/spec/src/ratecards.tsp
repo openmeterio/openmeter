@@ -2,7 +2,7 @@ import "./types.tsp";
 import "./billing.tsp";
 import "./discounts.tsp";
 import "./prices.tsp";
-import "./entitlements.tsp";
+import "./entitlements/main.tsp";
 
 namespace OpenMeter;
 
@@ -33,7 +33,7 @@ model RateCardBase extends Resource {
    * Only available when featureKey is set.
    */
   @summary("Entitlement template")
-  entitlementTemplate?: EntitlementTemplate;
+  entitlementTemplate?: RateCardEntitlement;
 
   /**
    * The tax config of the rate card.
@@ -65,7 +65,8 @@ model RateCardFlatFee extends RateCardBase {
    * When null, the rate card is a one-time purchase.
    */
   @summary("Billing cadence")
-  billingCandence: Interval | null;
+  @encode(DurationKnownEncoding.ISO8601)
+  billingCandence: duration | null;
 
   /**
    * The price of the rate card.
@@ -94,7 +95,8 @@ model RateCardUsageBased extends RateCardBase {
    * The billing cadence of the rate card.
    */
   @summary("Billing cadence")
-  billingCandence: Interval;
+  @encode(DurationKnownEncoding.ISO8601)
+  billingCandence: duration;
 
   /**
    * The price of the rate card.
@@ -137,26 +139,49 @@ model RateCardOverrideUsageBased {
   ...PickProperties<RateCardUsageBased, "type" | "price" | "discount">;
 }
 
-// /**
-//  * Addons are additional services that can be added to a subscription.
-//  */
-// model AddonRateCard extends RateCard {
-//   /**
-//    * The maximum quantity of the addon that can be added to a subscription.
-//    */
-//   maxQuantity?: integer = 1;
+/**
+ * Entitlement templates are used to define the entitlements of a plan.
+ * Features are omitted from the entitlement template, as they are defined in the rate card.
+ */
+@discriminator("type")
+@friendlyName("RateCardEntitlement")
+union RateCardEntitlement {
+  metered: RateCardMeteredEntitlement,
+  static: RateCardStaticEntitlement,
+  boolean: RateCardBooleanEntitlement,
+}
 
-//   /**
-//    * The strategy for an existing entitlement of the addon.
-//    * Without entitlement, the strategy must be null.
-//    */
-//   entitlementStrategy: AddonEntitlementStrategy | null;
-// }
+/**
+ * The entitlement template with a metered entitlement.
+ */
+@friendlyName("RateCardMeteredEntitlement")
+model RateCardMeteredEntitlement {
+  ...OmitProperties<
+    EntitlementMeteredCreateInputs,
+    "featureKey" | "featureId" | "usagePeriod" | "measureUsageFrom" | "isUnlimited"
+  >;
 
-// /**
-//  * The strategy for an existing entitlement of the addon.
-//  */
-// enum AddonEntitlementStrategy {
-//   replace: "replace",
-//   accumulate: "accumulate",
-// }
+  /**
+   * The interval of the metered entitlement.
+   * Defaults to the billing cadence of the rate card.
+   */
+  @summary("Interval")
+  @encode(DurationKnownEncoding.ISO8601)
+  usagePeriod?: duration;
+}
+
+/**
+ * Entitlement template of a static entitlement.
+ */
+@friendlyName("RateCardStaticEntitlement")
+model RateCardStaticEntitlement {
+  ...OmitProperties<EntitlementStaticCreateInputs, "featureKey" | "featureId" | "usagePeriod">;
+}
+
+/**
+ * Entitlement template of a boolean entitlement.
+ */
+@friendlyName("RateCardBooleanEntitlement")
+model RateCardBooleanEntitlement {
+  ...OmitProperties<EntitlementBooleanCreateInputs, "featureKey" | "featureId" | "usagePeriod">;
+}

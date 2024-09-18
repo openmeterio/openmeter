@@ -7,16 +7,6 @@ namespace OpenMeter;
  * A customer object.
  */
 @friendlyName("Customer")
-@example(#{
-  id: "01G65Z755AFWAKHE12NY0CQ9FH",
-  key: "my_customer_key",
-  name: "ACME Inc.",
-  usageAttribution: #{ subjects: #["my_subject_key"] },
-  taxProvider: "stripe_tax",
-  invoicingProvider: "stripe_invoicing",
-  paymentProvider: "stripe_payments",
-  external: #{ stripeCustomerId: "cus_xxxxxxxxxxxxxx" },
-})
 model Customer extends Resource {
   /**
    * A unique identifier for the customer.

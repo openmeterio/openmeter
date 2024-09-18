@@ -8,12 +8,13 @@ import "./auth.tsp";
 import "./errors.tsp";
 import "./types.tsp";
 
+import "./query.tsp";
 import "./events.tsp";
 import "./meters.tsp";
 import "./portal.tsp";
 import "./debug.tsp";
 import "./notification.tsp";
-import "./entitlements.tsp";
+import "./entitlements";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
