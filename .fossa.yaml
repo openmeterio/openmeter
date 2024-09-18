@@ -6,5 +6,6 @@ project:
 
 paths:
   exclude:
+    - ./.dagger/
     - ./.direnv/
     - ./.devenv/

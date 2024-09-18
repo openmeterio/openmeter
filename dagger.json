@@ -1,5 +1,5 @@
 {
-  "name": "ci",
+  "name": "openmeter",
   "sdk": "go",
   "exclude": [
     ".devenv",
@@ -67,7 +67,7 @@
       "source": "github.com/sagikazarmark/daggerverse/trivy@691dcc2fc5e53b351453c803c8abb1a5ad727d1b"
     }
   ],
-  "source": "ci",
+  "source": ".dagger",
   "engineVersion": "v0.12.0",
   "views": [
     {

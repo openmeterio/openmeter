@@ -9,10 +9,10 @@ import (
 	"github.com/elliotchance/orderedmap/v2"
 	"github.com/google/go-github/v63/github"
 
-	"github.com/openmeterio/openmeter/ci/internal/dagger"
+	"github.com/openmeterio/openmeter/.dagger/internal/dagger"
 )
 
-func (m *Ci) Dev() *Dev {
+func (m *Openmeter) Dev() *Dev {
 	return &Dev{
 		Source: m.Source,
 		CI:     m,
@@ -21,7 +21,7 @@ func (m *Ci) Dev() *Dev {
 
 type Dev struct {
 	Source *dagger.Directory
-	CI     *Ci
+	CI     *Openmeter
 }
 
 // Update dependency versions used in CI.

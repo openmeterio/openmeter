@@ -6,7 +6,7 @@ import (
 
 	"github.com/sourcegraph/conc/pool"
 
-	"github.com/openmeterio/openmeter/ci/internal/dagger"
+	"github.com/openmeterio/openmeter/.dagger/internal/dagger"
 )
 
 type syncable[T any] interface {

@@ -7,11 +7,11 @@ import (
 
 	"github.com/sourcegraph/conc/pool"
 
-	"github.com/openmeterio/openmeter/ci/internal/dagger"
+	"github.com/openmeterio/openmeter/.dagger/internal/dagger"
 )
 
 // Build individual artifacts. (Useful for testing and development)
-func (m *Ci) Build() *Build {
+func (m *Openmeter) Build() *Build {
 	return &Build{
 		Source: m.Source,
 	}
