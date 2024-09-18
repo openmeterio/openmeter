@@ -43,6 +43,9 @@ func BillingProfileOrErr(p BillingProfile, err error) BillingProfile {
 // BillingWorkflowConfig is the predicate function for billingworkflowconfig builders.
 type BillingWorkflowConfig func(*sql.Selector)
 
+// Customer is the predicate function for customer builders.
+type Customer func(*sql.Selector)
+
 // Entitlement is the predicate function for entitlement builders.
 type Entitlement func(*sql.Selector)
 

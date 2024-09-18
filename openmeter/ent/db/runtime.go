@@ -11,6 +11,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
@@ -207,6 +208,35 @@ func init() {
 	billingworkflowconfigDescID := billingworkflowconfigMixinFields0[0].Descriptor()
 	// billingworkflowconfig.DefaultID holds the default value on creation for the id field.
 	billingworkflowconfig.DefaultID = billingworkflowconfigDescID.Default.(func() string)
+	customerMixin := schema.Customer{}.Mixin()
+	customerMixinFields0 := customerMixin[0].Fields()
+	_ = customerMixinFields0
+	customerMixinFields1 := customerMixin[1].Fields()
+	_ = customerMixinFields1
+	customerFields := schema.Customer{}.Fields()
+	_ = customerFields
+	// customerDescCreatedAt is the schema descriptor for created_at field.
+	customerDescCreatedAt := customerMixinFields1[0].Descriptor()
+	// customer.DefaultCreatedAt holds the default value on creation for the created_at field.
+	customer.DefaultCreatedAt = customerDescCreatedAt.Default.(func() time.Time)
+	// customerDescUpdatedAt is the schema descriptor for updated_at field.
+	customerDescUpdatedAt := customerMixinFields1[1].Descriptor()
+	// customer.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	customer.DefaultUpdatedAt = customerDescUpdatedAt.Default.(func() time.Time)
+	// customer.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	customer.UpdateDefaultUpdatedAt = customerDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// customerDescNamespace is the schema descriptor for namespace field.
+	customerDescNamespace := customerFields[0].Descriptor()
+	// customer.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	customer.NamespaceValidator = customerDescNamespace.Validators[0].(func(string) error)
+	// customerDescKey is the schema descriptor for key field.
+	customerDescKey := customerFields[1].Descriptor()
+	// customer.KeyValidator is a validator for the "key" field. It is called by the builders before save.
+	customer.KeyValidator = customerDescKey.Validators[0].(func(string) error)
+	// customerDescID is the schema descriptor for id field.
+	customerDescID := customerMixinFields0[0].Descriptor()
+	// customer.DefaultID holds the default value on creation for the id field.
+	customer.DefaultID = customerDescID.Default.(func() string)
 	entitlementMixin := schema.Entitlement{}.Mixin()
 	entitlementMixinFields0 := entitlementMixin[0].Fields()
 	_ = entitlementMixinFields0

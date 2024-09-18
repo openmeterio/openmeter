@@ -20,6 +20,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billinginvoiceitem"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
@@ -45,6 +46,8 @@ type Client struct {
 	BillingProfile *BillingProfileClient
 	// BillingWorkflowConfig is the client for interacting with the BillingWorkflowConfig builders.
 	BillingWorkflowConfig *BillingWorkflowConfigClient
+	// Customer is the client for interacting with the Customer builders.
+	Customer *CustomerClient
 	// Entitlement is the client for interacting with the Entitlement builders.
 	Entitlement *EntitlementClient
 	// Feature is the client for interacting with the Feature builders.
@@ -77,6 +80,7 @@ func (c *Client) init() {
 	c.BillingInvoiceItem = NewBillingInvoiceItemClient(c.config)
 	c.BillingProfile = NewBillingProfileClient(c.config)
 	c.BillingWorkflowConfig = NewBillingWorkflowConfigClient(c.config)
+	c.Customer = NewCustomerClient(c.config)
 	c.Entitlement = NewEntitlementClient(c.config)
 	c.Feature = NewFeatureClient(c.config)
 	c.Grant = NewGrantClient(c.config)
@@ -182,6 +186,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		BillingInvoiceItem:              NewBillingInvoiceItemClient(cfg),
 		BillingProfile:                  NewBillingProfileClient(cfg),
 		BillingWorkflowConfig:           NewBillingWorkflowConfigClient(cfg),
+		Customer:                        NewCustomerClient(cfg),
 		Entitlement:                     NewEntitlementClient(cfg),
 		Feature:                         NewFeatureClient(cfg),
 		Grant:                           NewGrantClient(cfg),
@@ -214,6 +219,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		BillingInvoiceItem:              NewBillingInvoiceItemClient(cfg),
 		BillingProfile:                  NewBillingProfileClient(cfg),
 		BillingWorkflowConfig:           NewBillingWorkflowConfigClient(cfg),
+		Customer:                        NewCustomerClient(cfg),
 		Entitlement:                     NewEntitlementClient(cfg),
 		Feature:                         NewFeatureClient(cfg),
 		Grant:                           NewGrantClient(cfg),
@@ -252,7 +258,7 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.BalanceSnapshot, c.BillingInvoice, c.BillingInvoiceItem, c.BillingProfile,
-		c.BillingWorkflowConfig, c.Entitlement, c.Feature, c.Grant,
+		c.BillingWorkflowConfig, c.Customer, c.Entitlement, c.Feature, c.Grant,
 		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
 		c.NotificationRule, c.UsageReset,
 	} {
@@ -265,7 +271,7 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.BalanceSnapshot, c.BillingInvoice, c.BillingInvoiceItem, c.BillingProfile,
-		c.BillingWorkflowConfig, c.Entitlement, c.Feature, c.Grant,
+		c.BillingWorkflowConfig, c.Customer, c.Entitlement, c.Feature, c.Grant,
 		c.NotificationChannel, c.NotificationEvent, c.NotificationEventDeliveryStatus,
 		c.NotificationRule, c.UsageReset,
 	} {
@@ -286,6 +292,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.BillingProfile.mutate(ctx, m)
 	case *BillingWorkflowConfigMutation:
 		return c.BillingWorkflowConfig.mutate(ctx, m)
+	case *CustomerMutation:
+		return c.Customer.mutate(ctx, m)
 	case *EntitlementMutation:
 		return c.Entitlement.mutate(ctx, m)
 	case *FeatureMutation:
@@ -1113,6 +1121,139 @@ func (c *BillingWorkflowConfigClient) mutate(ctx context.Context, m *BillingWork
 		return (&BillingWorkflowConfigDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("db: unknown BillingWorkflowConfig mutation op: %q", m.Op())
+	}
+}
+
+// CustomerClient is a client for the Customer schema.
+type CustomerClient struct {
+	config
+}
+
+// NewCustomerClient returns a client for the Customer from the given config.
+func NewCustomerClient(c config) *CustomerClient {
+	return &CustomerClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `customer.Hooks(f(g(h())))`.
+func (c *CustomerClient) Use(hooks ...Hook) {
+	c.hooks.Customer = append(c.hooks.Customer, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `customer.Intercept(f(g(h())))`.
+func (c *CustomerClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Customer = append(c.inters.Customer, interceptors...)
+}
+
+// Create returns a builder for creating a Customer entity.
+func (c *CustomerClient) Create() *CustomerCreate {
+	mutation := newCustomerMutation(c.config, OpCreate)
+	return &CustomerCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Customer entities.
+func (c *CustomerClient) CreateBulk(builders ...*CustomerCreate) *CustomerCreateBulk {
+	return &CustomerCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *CustomerClient) MapCreateBulk(slice any, setFunc func(*CustomerCreate, int)) *CustomerCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &CustomerCreateBulk{err: fmt.Errorf("calling to CustomerClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*CustomerCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &CustomerCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Customer.
+func (c *CustomerClient) Update() *CustomerUpdate {
+	mutation := newCustomerMutation(c.config, OpUpdate)
+	return &CustomerUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *CustomerClient) UpdateOne(cu *Customer) *CustomerUpdateOne {
+	mutation := newCustomerMutation(c.config, OpUpdateOne, withCustomer(cu))
+	return &CustomerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *CustomerClient) UpdateOneID(id string) *CustomerUpdateOne {
+	mutation := newCustomerMutation(c.config, OpUpdateOne, withCustomerID(id))
+	return &CustomerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Customer.
+func (c *CustomerClient) Delete() *CustomerDelete {
+	mutation := newCustomerMutation(c.config, OpDelete)
+	return &CustomerDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *CustomerClient) DeleteOne(cu *Customer) *CustomerDeleteOne {
+	return c.DeleteOneID(cu.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *CustomerClient) DeleteOneID(id string) *CustomerDeleteOne {
+	builder := c.Delete().Where(customer.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &CustomerDeleteOne{builder}
+}
+
+// Query returns a query builder for Customer.
+func (c *CustomerClient) Query() *CustomerQuery {
+	return &CustomerQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeCustomer},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Customer entity by its id.
+func (c *CustomerClient) Get(ctx context.Context, id string) (*Customer, error) {
+	return c.Query().Where(customer.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *CustomerClient) GetX(ctx context.Context, id string) *Customer {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *CustomerClient) Hooks() []Hook {
+	return c.hooks.Customer
+}
+
+// Interceptors returns the client interceptors.
+func (c *CustomerClient) Interceptors() []Interceptor {
+	return c.inters.Customer
+}
+
+func (c *CustomerClient) mutate(ctx context.Context, m *CustomerMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&CustomerCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&CustomerUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&CustomerUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&CustomerDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("db: unknown Customer mutation op: %q", m.Op())
 	}
 }
 
@@ -2392,14 +2533,14 @@ func (c *UsageResetClient) mutate(ctx context.Context, m *UsageResetMutation) (V
 type (
 	hooks struct {
 		BalanceSnapshot, BillingInvoice, BillingInvoiceItem, BillingProfile,
-		BillingWorkflowConfig, Entitlement, Feature, Grant, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule,
-		UsageReset []ent.Hook
+		BillingWorkflowConfig, Customer, Entitlement, Feature, Grant,
+		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
+		NotificationRule, UsageReset []ent.Hook
 	}
 	inters struct {
 		BalanceSnapshot, BillingInvoice, BillingInvoiceItem, BillingProfile,
-		BillingWorkflowConfig, Entitlement, Feature, Grant, NotificationChannel,
-		NotificationEvent, NotificationEventDeliveryStatus, NotificationRule,
-		UsageReset []ent.Interceptor
+		BillingWorkflowConfig, Customer, Entitlement, Feature, Grant,
+		NotificationChannel, NotificationEvent, NotificationEventDeliveryStatus,
+		NotificationRule, UsageReset []ent.Interceptor
 	}
 )

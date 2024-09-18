@@ -263,6 +263,35 @@ var (
 			},
 		},
 	}
+	// CustomersColumns holds the columns for the "customers" table.
+	CustomersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "key", Type: field.TypeString},
+		{Name: "primary_email", Type: field.TypeString},
+	}
+	// CustomersTable holds the schema information for the "customers" table.
+	CustomersTable = &schema.Table{
+		Name:       "customers",
+		Columns:    CustomersColumns,
+		PrimaryKey: []*schema.Column{CustomersColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "customer_id",
+				Unique:  false,
+				Columns: []*schema.Column{CustomersColumns[0]},
+			},
+			{
+				Name:    "customer_namespace_id",
+				Unique:  false,
+				Columns: []*schema.Column{CustomersColumns[5], CustomersColumns[0]},
+			},
+		},
+	}
 	// EntitlementsColumns holds the columns for the "entitlements" table.
 	EntitlementsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
@@ -678,6 +707,7 @@ var (
 		BillingInvoiceItemsTable,
 		BillingProfilesTable,
 		BillingWorkflowConfigsTable,
+		CustomersTable,
 		EntitlementsTable,
 		FeaturesTable,
 		GrantsTable,
