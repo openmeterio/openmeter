@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/openmeterio/openmeter/.dagger/internal/dagger"
@@ -18,26 +17,14 @@ type Openmeter struct {
 
 func New(
 	// Project source directory.
-	// +optional
+	//
+	// +defaultPath="/"
+	// +ignore=[".devenv", ".direnv", ".github", ".vscode", "api/client/node/node_modules", "tmp", "go.work", "go.work.sum"]
 	source *dagger.Directory,
-
-	// Checkout the repository (at the designated ref) and use it as the source directory instead of the local one.
-	// +optional
-	ref string,
-) (*Openmeter, error) {
-	if source == nil && ref != "" {
-		source = dag.Git("https://github.com/openmeterio/openmeter.git", dagger.GitOpts{
-			KeepGitDir: true,
-		}).Ref(ref).Tree()
-	}
-
-	if source == nil {
-		return nil, errors.New("either source or ref is required")
-	}
-
+) *Openmeter {
 	return &Openmeter{
 		Source: source,
-	}, nil
+	}
 }
 
 func (m *Openmeter) Ci(ctx context.Context) (*dagger.Directory, error) {
