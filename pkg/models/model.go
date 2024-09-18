@@ -27,27 +27,31 @@ type NamespacedModel struct {
 }
 
 type Address struct {
-	Country     *string `json:"country"`
-	PostalCode  *string `json:"postalCode"`
-	State       *string `json:"state"`
-	City        *string `json:"city"`
-	Line1       *string `json:"line1"`
-	Line2       *string `json:"line2"`
-	PhoneNumber *string `json:"phoneNumber"`
+	Country     *CountryCode `json:"country"`
+	PostalCode  *string      `json:"postalCode"`
+	State       *string      `json:"state"`
+	City        *string      `json:"city"`
+	Line1       *string      `json:"line1"`
+	Line2       *string      `json:"line2"`
+	PhoneNumber *string      `json:"phoneNumber"`
 }
 
+// Three-letter [ISO4217](https://www.iso.org/iso-4217-currency-codes.html) currency code.
 type CurrencyCode string
+
+// [ISO 3166-1](https://www.iso.org/iso-3166-country-codes.html) alpha-2 country code.
+type CountryCode string
 
 type TaxProvider string
 
 var (
-	TaxProviderOpenMeterTest TaxProvider = "openmeter_test"
-	TaxProviderStripeTax     TaxProvider = "stripe_tax"
+	TaxProviderOpenMeterSandbox TaxProvider = "openmeter_sandbox"
+	TaxProviderStripeTax        TaxProvider = "stripe_tax"
 )
 
 func (k TaxProvider) Values() []string {
 	return []string{
-		string(TaxProviderOpenMeterTest),
+		string(TaxProviderOpenMeterSandbox),
 		string(TaxProviderStripeTax),
 	}
 }
@@ -55,13 +59,13 @@ func (k TaxProvider) Values() []string {
 type InvoicingProvider string
 
 var (
-	InvoicingProviderOpenMeterTest   InvoicingProvider = "openmeter_test"
-	InvoicingProviderStripeInvoicing InvoicingProvider = "stripe_invoicing"
+	InvoicingProviderOpenMeterSandbox InvoicingProvider = "openmeter_sandbox"
+	InvoicingProviderStripeInvoicing  InvoicingProvider = "stripe_invoicing"
 )
 
 func (k InvoicingProvider) Values() []string {
 	return []string{
-		string(InvoicingProviderOpenMeterTest),
+		string(InvoicingProviderOpenMeterSandbox),
 		string(InvoicingProviderStripeInvoicing),
 	}
 }
@@ -69,13 +73,13 @@ func (k InvoicingProvider) Values() []string {
 type PaymentProvider string
 
 var (
-	PaymentProviderOpenMeterTest  PaymentProvider = "openmeter_test"
-	PaymentProviderStripePayments PaymentProvider = "stripe_payments"
+	PaymentProviderOpenMeterSandbox PaymentProvider = "openmeter_sandbox"
+	PaymentProviderStripePayments   PaymentProvider = "stripe_payments"
 )
 
 func (k PaymentProvider) Values() []string {
 	return []string{
-		string(PaymentProviderOpenMeterTest),
+		string(PaymentProviderOpenMeterSandbox),
 		string(PaymentProviderStripePayments),
 	}
 }

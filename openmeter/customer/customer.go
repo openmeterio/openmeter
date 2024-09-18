@@ -15,7 +15,7 @@ type Customer struct {
 	UsageAttribution  CustomerUsageAttribution  `json:"usageAttribution"`
 	PrimaryEmail      *string                   `json:"primaryEmail"`
 	Currency          *models.CurrencyCode      `json:"currency"`
-	Address           *models.Address           `json:"address"`
+	BillingAddress    *models.Address           `json:"billingAddress"`
 	TaxProvider       *models.TaxProvider       `json:"taxProvider"`
 	InvoicingProvider *models.InvoicingProvider `json:"invoicingProvider"`
 	PaymentProvider   *models.PaymentProvider   `json:"paymentProvider"`

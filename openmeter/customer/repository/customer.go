@@ -72,15 +72,15 @@ func (r repository) CreateCustomer(ctx context.Context, params customer_model.Cr
 		SetNillableInvoicingProvider(params.InvoicingProvider).
 		SetNillablePaymentProvider(params.PaymentProvider)
 
-	if params.Address != nil {
+	if params.BillingAddress != nil {
 		query = query.
-			SetNillableAddressCity(params.Address.City).
-			SetNillableAddressCountry(params.Address.Country).
-			SetNillableAddressLine1(params.Address.Line1).
-			SetNillableAddressLine2(params.Address.Line2).
-			SetNillableAddressPhoneNumber(params.Address.PhoneNumber).
-			SetNillableAddressPostalCode(params.Address.PostalCode).
-			SetNillableAddressState(params.Address.State)
+			SetNillableBillingAddressCity(params.BillingAddress.City).
+			SetNillableBillingAddressCountry(params.BillingAddress.Country).
+			SetNillableBillingAddressLine1(params.BillingAddress.Line1).
+			SetNillableBillingAddressLine2(params.BillingAddress.Line2).
+			SetNillableBillingAddressPhoneNumber(params.BillingAddress.PhoneNumber).
+			SetNillableBillingAddressPostalCode(params.BillingAddress.PostalCode).
+			SetNillableBillingAddressState(params.BillingAddress.State)
 	}
 
 	for _, subjectKey := range params.UsageAttribution.SubjectKeys {
@@ -173,24 +173,24 @@ func (r repository) UpdateCustomer(ctx context.Context, params customer_model.Up
 		SetNillableInvoicingProvider(params.InvoicingProvider).
 		SetNillablePaymentProvider(params.PaymentProvider)
 
-	if params.Address != nil {
+	if params.BillingAddress != nil {
 		query = query.
-			SetNillableAddressCity(params.Address.City).
-			SetNillableAddressCountry(params.Address.Country).
-			SetNillableAddressLine1(params.Address.Line1).
-			SetNillableAddressLine2(params.Address.Line2).
-			SetNillableAddressPhoneNumber(params.Address.PhoneNumber).
-			SetNillableAddressPostalCode(params.Address.PostalCode).
-			SetNillableAddressState(params.Address.State)
+			SetNillableBillingAddressCity(params.BillingAddress.City).
+			SetNillableBillingAddressCountry(params.BillingAddress.Country).
+			SetNillableBillingAddressLine1(params.BillingAddress.Line1).
+			SetNillableBillingAddressLine2(params.BillingAddress.Line2).
+			SetNillableBillingAddressPhoneNumber(params.BillingAddress.PhoneNumber).
+			SetNillableBillingAddressPostalCode(params.BillingAddress.PostalCode).
+			SetNillableBillingAddressState(params.BillingAddress.State)
 	} else {
 		query = query.
-			ClearAddressCity().
-			ClearAddressCountry().
-			ClearAddressLine1().
-			ClearAddressLine2().
-			ClearAddressPhoneNumber().
-			ClearAddressPostalCode().
-			ClearAddressState()
+			ClearBillingAddressCity().
+			ClearBillingAddressCountry().
+			ClearBillingAddressLine1().
+			ClearBillingAddressLine2().
+			ClearBillingAddressPhoneNumber().
+			ClearBillingAddressPostalCode().
+			ClearBillingAddressState()
 	}
 
 	// Add new subjects

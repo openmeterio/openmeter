@@ -6,12 +6,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
@@ -29,65 +27,13 @@ func (csu *CustomerSubjectsUpdate) Where(ps ...predicate.CustomerSubjects) *Cust
 	return csu
 }
 
-// SetUpdatedAt sets the "updated_at" field.
-func (csu *CustomerSubjectsUpdate) SetUpdatedAt(t time.Time) *CustomerSubjectsUpdate {
-	csu.mutation.SetUpdatedAt(t)
-	return csu
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (csu *CustomerSubjectsUpdate) SetDeletedAt(t time.Time) *CustomerSubjectsUpdate {
-	csu.mutation.SetDeletedAt(t)
-	return csu
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (csu *CustomerSubjectsUpdate) SetNillableDeletedAt(t *time.Time) *CustomerSubjectsUpdate {
-	if t != nil {
-		csu.SetDeletedAt(*t)
-	}
-	return csu
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (csu *CustomerSubjectsUpdate) ClearDeletedAt() *CustomerSubjectsUpdate {
-	csu.mutation.ClearDeletedAt()
-	return csu
-}
-
-// SetCustomerID sets the "customer" edge to the Customer entity by ID.
-func (csu *CustomerSubjectsUpdate) SetCustomerID(id string) *CustomerSubjectsUpdate {
-	csu.mutation.SetCustomerID(id)
-	return csu
-}
-
-// SetNillableCustomerID sets the "customer" edge to the Customer entity by ID if the given value is not nil.
-func (csu *CustomerSubjectsUpdate) SetNillableCustomerID(id *string) *CustomerSubjectsUpdate {
-	if id != nil {
-		csu = csu.SetCustomerID(*id)
-	}
-	return csu
-}
-
-// SetCustomer sets the "customer" edge to the Customer entity.
-func (csu *CustomerSubjectsUpdate) SetCustomer(c *Customer) *CustomerSubjectsUpdate {
-	return csu.SetCustomerID(c.ID)
-}
-
 // Mutation returns the CustomerSubjectsMutation object of the builder.
 func (csu *CustomerSubjectsUpdate) Mutation() *CustomerSubjectsMutation {
 	return csu.mutation
 }
 
-// ClearCustomer clears the "customer" edge to the Customer entity.
-func (csu *CustomerSubjectsUpdate) ClearCustomer() *CustomerSubjectsUpdate {
-	csu.mutation.ClearCustomer()
-	return csu
-}
-
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (csu *CustomerSubjectsUpdate) Save(ctx context.Context) (int, error) {
-	csu.defaults()
 	return withHooks(ctx, csu.sqlSave, csu.mutation, csu.hooks)
 }
 
@@ -113,15 +59,18 @@ func (csu *CustomerSubjectsUpdate) ExecX(ctx context.Context) {
 	}
 }
 
-// defaults sets the default values of the builder before save.
-func (csu *CustomerSubjectsUpdate) defaults() {
-	if _, ok := csu.mutation.UpdatedAt(); !ok {
-		v := customersubjects.UpdateDefaultUpdatedAt()
-		csu.mutation.SetUpdatedAt(v)
+// check runs all checks and user-defined validators on the builder.
+func (csu *CustomerSubjectsUpdate) check() error {
+	if csu.mutation.CustomerCleared() && len(csu.mutation.CustomerIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "CustomerSubjects.customer"`)
 	}
+	return nil
 }
 
 func (csu *CustomerSubjectsUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := csu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(customersubjects.Table, customersubjects.Columns, sqlgraph.NewFieldSpec(customersubjects.FieldID, field.TypeInt))
 	if ps := csu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -129,44 +78,6 @@ func (csu *CustomerSubjectsUpdate) sqlSave(ctx context.Context) (n int, err erro
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := csu.mutation.UpdatedAt(); ok {
-		_spec.SetField(customersubjects.FieldUpdatedAt, field.TypeTime, value)
-	}
-	if value, ok := csu.mutation.DeletedAt(); ok {
-		_spec.SetField(customersubjects.FieldDeletedAt, field.TypeTime, value)
-	}
-	if csu.mutation.DeletedAtCleared() {
-		_spec.ClearField(customersubjects.FieldDeletedAt, field.TypeTime)
-	}
-	if csu.mutation.CustomerCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   customersubjects.CustomerTable,
-			Columns: []string{customersubjects.CustomerColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := csu.mutation.CustomerIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   customersubjects.CustomerTable,
-			Columns: []string{customersubjects.CustomerColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, csu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -188,60 +99,9 @@ type CustomerSubjectsUpdateOne struct {
 	mutation *CustomerSubjectsMutation
 }
 
-// SetUpdatedAt sets the "updated_at" field.
-func (csuo *CustomerSubjectsUpdateOne) SetUpdatedAt(t time.Time) *CustomerSubjectsUpdateOne {
-	csuo.mutation.SetUpdatedAt(t)
-	return csuo
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (csuo *CustomerSubjectsUpdateOne) SetDeletedAt(t time.Time) *CustomerSubjectsUpdateOne {
-	csuo.mutation.SetDeletedAt(t)
-	return csuo
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (csuo *CustomerSubjectsUpdateOne) SetNillableDeletedAt(t *time.Time) *CustomerSubjectsUpdateOne {
-	if t != nil {
-		csuo.SetDeletedAt(*t)
-	}
-	return csuo
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (csuo *CustomerSubjectsUpdateOne) ClearDeletedAt() *CustomerSubjectsUpdateOne {
-	csuo.mutation.ClearDeletedAt()
-	return csuo
-}
-
-// SetCustomerID sets the "customer" edge to the Customer entity by ID.
-func (csuo *CustomerSubjectsUpdateOne) SetCustomerID(id string) *CustomerSubjectsUpdateOne {
-	csuo.mutation.SetCustomerID(id)
-	return csuo
-}
-
-// SetNillableCustomerID sets the "customer" edge to the Customer entity by ID if the given value is not nil.
-func (csuo *CustomerSubjectsUpdateOne) SetNillableCustomerID(id *string) *CustomerSubjectsUpdateOne {
-	if id != nil {
-		csuo = csuo.SetCustomerID(*id)
-	}
-	return csuo
-}
-
-// SetCustomer sets the "customer" edge to the Customer entity.
-func (csuo *CustomerSubjectsUpdateOne) SetCustomer(c *Customer) *CustomerSubjectsUpdateOne {
-	return csuo.SetCustomerID(c.ID)
-}
-
 // Mutation returns the CustomerSubjectsMutation object of the builder.
 func (csuo *CustomerSubjectsUpdateOne) Mutation() *CustomerSubjectsMutation {
 	return csuo.mutation
-}
-
-// ClearCustomer clears the "customer" edge to the Customer entity.
-func (csuo *CustomerSubjectsUpdateOne) ClearCustomer() *CustomerSubjectsUpdateOne {
-	csuo.mutation.ClearCustomer()
-	return csuo
 }
 
 // Where appends a list predicates to the CustomerSubjectsUpdate builder.
@@ -259,7 +119,6 @@ func (csuo *CustomerSubjectsUpdateOne) Select(field string, fields ...string) *C
 
 // Save executes the query and returns the updated CustomerSubjects entity.
 func (csuo *CustomerSubjectsUpdateOne) Save(ctx context.Context) (*CustomerSubjects, error) {
-	csuo.defaults()
 	return withHooks(ctx, csuo.sqlSave, csuo.mutation, csuo.hooks)
 }
 
@@ -285,15 +144,18 @@ func (csuo *CustomerSubjectsUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
-// defaults sets the default values of the builder before save.
-func (csuo *CustomerSubjectsUpdateOne) defaults() {
-	if _, ok := csuo.mutation.UpdatedAt(); !ok {
-		v := customersubjects.UpdateDefaultUpdatedAt()
-		csuo.mutation.SetUpdatedAt(v)
+// check runs all checks and user-defined validators on the builder.
+func (csuo *CustomerSubjectsUpdateOne) check() error {
+	if csuo.mutation.CustomerCleared() && len(csuo.mutation.CustomerIDs()) > 0 {
+		return errors.New(`db: clearing a required unique edge "CustomerSubjects.customer"`)
 	}
+	return nil
 }
 
 func (csuo *CustomerSubjectsUpdateOne) sqlSave(ctx context.Context) (_node *CustomerSubjects, err error) {
+	if err := csuo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(customersubjects.Table, customersubjects.Columns, sqlgraph.NewFieldSpec(customersubjects.FieldID, field.TypeInt))
 	id, ok := csuo.mutation.ID()
 	if !ok {
@@ -318,44 +180,6 @@ func (csuo *CustomerSubjectsUpdateOne) sqlSave(ctx context.Context) (_node *Cust
 				ps[i](selector)
 			}
 		}
-	}
-	if value, ok := csuo.mutation.UpdatedAt(); ok {
-		_spec.SetField(customersubjects.FieldUpdatedAt, field.TypeTime, value)
-	}
-	if value, ok := csuo.mutation.DeletedAt(); ok {
-		_spec.SetField(customersubjects.FieldDeletedAt, field.TypeTime, value)
-	}
-	if csuo.mutation.DeletedAtCleared() {
-		_spec.ClearField(customersubjects.FieldDeletedAt, field.TypeTime)
-	}
-	if csuo.mutation.CustomerCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   customersubjects.CustomerTable,
-			Columns: []string{customersubjects.CustomerColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := csuo.mutation.CustomerIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2O,
-			Inverse: true,
-			Table:   customersubjects.CustomerTable,
-			Columns: []string{customersubjects.CustomerColumn},
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(customer.FieldID, field.TypeString),
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &CustomerSubjects{config: csuo.config}
 	_spec.Assign = _node.assignValues

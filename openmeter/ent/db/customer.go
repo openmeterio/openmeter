@@ -19,8 +19,6 @@ type Customer struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
-	// Name holds the value of the "name" field.
-	Name string `json:"name,omitempty"`
 	// Key holds the value of the "key" field.
 	Key string `json:"key,omitempty"`
 	// Namespace holds the value of the "namespace" field.
@@ -33,6 +31,8 @@ type Customer struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency *models.CurrencyCode `json:"currency,omitempty"`
 	// TaxProvider holds the value of the "tax_provider" field.
@@ -45,20 +45,20 @@ type Customer struct {
 	ExternalMappingStripeCustomerID *string `json:"external_mapping_stripe_customer_id,omitempty"`
 	// PrimaryEmail holds the value of the "primary_email" field.
 	PrimaryEmail *string `json:"primary_email,omitempty"`
-	// AddressCountry holds the value of the "address_country" field.
-	AddressCountry *string `json:"address_country,omitempty"`
-	// AddressPostalCode holds the value of the "address_postal_code" field.
-	AddressPostalCode *string `json:"address_postal_code,omitempty"`
-	// AddressState holds the value of the "address_state" field.
-	AddressState *string `json:"address_state,omitempty"`
-	// AddressCity holds the value of the "address_city" field.
-	AddressCity *string `json:"address_city,omitempty"`
-	// AddressLine1 holds the value of the "address_line1" field.
-	AddressLine1 *string `json:"address_line1,omitempty"`
-	// AddressLine2 holds the value of the "address_line2" field.
-	AddressLine2 *string `json:"address_line2,omitempty"`
-	// AddressPhoneNumber holds the value of the "address_phone_number" field.
-	AddressPhoneNumber *string `json:"address_phone_number,omitempty"`
+	// BillingAddressCountry holds the value of the "billing_address_country" field.
+	BillingAddressCountry *models.CountryCode `json:"billing_address_country,omitempty"`
+	// BillingAddressPostalCode holds the value of the "billing_address_postal_code" field.
+	BillingAddressPostalCode *string `json:"billing_address_postal_code,omitempty"`
+	// BillingAddressState holds the value of the "billing_address_state" field.
+	BillingAddressState *string `json:"billing_address_state,omitempty"`
+	// BillingAddressCity holds the value of the "billing_address_city" field.
+	BillingAddressCity *string `json:"billing_address_city,omitempty"`
+	// BillingAddressLine1 holds the value of the "billing_address_line1" field.
+	BillingAddressLine1 *string `json:"billing_address_line1,omitempty"`
+	// BillingAddressLine2 holds the value of the "billing_address_line2" field.
+	BillingAddressLine2 *string `json:"billing_address_line2,omitempty"`
+	// BillingAddressPhoneNumber holds the value of the "billing_address_phone_number" field.
+	BillingAddressPhoneNumber *string `json:"billing_address_phone_number,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CustomerQuery when eager-loading is set.
 	Edges        CustomerEdges `json:"edges"`
@@ -90,7 +90,7 @@ func (*Customer) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case customer.FieldMetadata:
 			values[i] = new([]byte)
-		case customer.FieldID, customer.FieldName, customer.FieldKey, customer.FieldNamespace, customer.FieldCurrency, customer.FieldTaxProvider, customer.FieldInvoicingProvider, customer.FieldPaymentProvider, customer.FieldExternalMappingStripeCustomerID, customer.FieldPrimaryEmail, customer.FieldAddressCountry, customer.FieldAddressPostalCode, customer.FieldAddressState, customer.FieldAddressCity, customer.FieldAddressLine1, customer.FieldAddressLine2, customer.FieldAddressPhoneNumber:
+		case customer.FieldID, customer.FieldKey, customer.FieldNamespace, customer.FieldName, customer.FieldCurrency, customer.FieldTaxProvider, customer.FieldInvoicingProvider, customer.FieldPaymentProvider, customer.FieldExternalMappingStripeCustomerID, customer.FieldPrimaryEmail, customer.FieldBillingAddressCountry, customer.FieldBillingAddressPostalCode, customer.FieldBillingAddressState, customer.FieldBillingAddressCity, customer.FieldBillingAddressLine1, customer.FieldBillingAddressLine2, customer.FieldBillingAddressPhoneNumber:
 			values[i] = new(sql.NullString)
 		case customer.FieldCreatedAt, customer.FieldUpdatedAt, customer.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -114,12 +114,6 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", values[i])
 			} else if value.Valid {
 				c.ID = value.String
-			}
-		case customer.FieldName:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field name", values[i])
-			} else if value.Valid {
-				c.Name = value.String
 			}
 		case customer.FieldKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -159,6 +153,12 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				c.DeletedAt = new(time.Time)
 				*c.DeletedAt = value.Time
+			}
+		case customer.FieldName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name", values[i])
+			} else if value.Valid {
+				c.Name = value.String
 			}
 		case customer.FieldCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -202,54 +202,54 @@ func (c *Customer) assignValues(columns []string, values []any) error {
 				c.PrimaryEmail = new(string)
 				*c.PrimaryEmail = value.String
 			}
-		case customer.FieldAddressCountry:
+		case customer.FieldBillingAddressCountry:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field address_country", values[i])
+				return fmt.Errorf("unexpected type %T for field billing_address_country", values[i])
 			} else if value.Valid {
-				c.AddressCountry = new(string)
-				*c.AddressCountry = value.String
+				c.BillingAddressCountry = new(models.CountryCode)
+				*c.BillingAddressCountry = models.CountryCode(value.String)
 			}
-		case customer.FieldAddressPostalCode:
+		case customer.FieldBillingAddressPostalCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field address_postal_code", values[i])
+				return fmt.Errorf("unexpected type %T for field billing_address_postal_code", values[i])
 			} else if value.Valid {
-				c.AddressPostalCode = new(string)
-				*c.AddressPostalCode = value.String
+				c.BillingAddressPostalCode = new(string)
+				*c.BillingAddressPostalCode = value.String
 			}
-		case customer.FieldAddressState:
+		case customer.FieldBillingAddressState:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field address_state", values[i])
+				return fmt.Errorf("unexpected type %T for field billing_address_state", values[i])
 			} else if value.Valid {
-				c.AddressState = new(string)
-				*c.AddressState = value.String
+				c.BillingAddressState = new(string)
+				*c.BillingAddressState = value.String
 			}
-		case customer.FieldAddressCity:
+		case customer.FieldBillingAddressCity:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field address_city", values[i])
+				return fmt.Errorf("unexpected type %T for field billing_address_city", values[i])
 			} else if value.Valid {
-				c.AddressCity = new(string)
-				*c.AddressCity = value.String
+				c.BillingAddressCity = new(string)
+				*c.BillingAddressCity = value.String
 			}
-		case customer.FieldAddressLine1:
+		case customer.FieldBillingAddressLine1:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field address_line1", values[i])
+				return fmt.Errorf("unexpected type %T for field billing_address_line1", values[i])
 			} else if value.Valid {
-				c.AddressLine1 = new(string)
-				*c.AddressLine1 = value.String
+				c.BillingAddressLine1 = new(string)
+				*c.BillingAddressLine1 = value.String
 			}
-		case customer.FieldAddressLine2:
+		case customer.FieldBillingAddressLine2:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field address_line2", values[i])
+				return fmt.Errorf("unexpected type %T for field billing_address_line2", values[i])
 			} else if value.Valid {
-				c.AddressLine2 = new(string)
-				*c.AddressLine2 = value.String
+				c.BillingAddressLine2 = new(string)
+				*c.BillingAddressLine2 = value.String
 			}
-		case customer.FieldAddressPhoneNumber:
+		case customer.FieldBillingAddressPhoneNumber:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field address_phone_number", values[i])
+				return fmt.Errorf("unexpected type %T for field billing_address_phone_number", values[i])
 			} else if value.Valid {
-				c.AddressPhoneNumber = new(string)
-				*c.AddressPhoneNumber = value.String
+				c.BillingAddressPhoneNumber = new(string)
+				*c.BillingAddressPhoneNumber = value.String
 			}
 		default:
 			c.selectValues.Set(columns[i], values[i])
@@ -292,9 +292,6 @@ func (c *Customer) String() string {
 	var builder strings.Builder
 	builder.WriteString("Customer(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", c.ID))
-	builder.WriteString("name=")
-	builder.WriteString(c.Name)
-	builder.WriteString(", ")
 	builder.WriteString("key=")
 	builder.WriteString(c.Key)
 	builder.WriteString(", ")
@@ -314,6 +311,9 @@ func (c *Customer) String() string {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("name=")
+	builder.WriteString(c.Name)
 	builder.WriteString(", ")
 	if v := c.Currency; v != nil {
 		builder.WriteString("currency=")
@@ -345,38 +345,38 @@ func (c *Customer) String() string {
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := c.AddressCountry; v != nil {
-		builder.WriteString("address_country=")
+	if v := c.BillingAddressCountry; v != nil {
+		builder.WriteString("billing_address_country=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := c.BillingAddressPostalCode; v != nil {
+		builder.WriteString("billing_address_postal_code=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := c.AddressPostalCode; v != nil {
-		builder.WriteString("address_postal_code=")
+	if v := c.BillingAddressState; v != nil {
+		builder.WriteString("billing_address_state=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := c.AddressState; v != nil {
-		builder.WriteString("address_state=")
+	if v := c.BillingAddressCity; v != nil {
+		builder.WriteString("billing_address_city=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := c.AddressCity; v != nil {
-		builder.WriteString("address_city=")
+	if v := c.BillingAddressLine1; v != nil {
+		builder.WriteString("billing_address_line1=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := c.AddressLine1; v != nil {
-		builder.WriteString("address_line1=")
+	if v := c.BillingAddressLine2; v != nil {
+		builder.WriteString("billing_address_line2=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
-	if v := c.AddressLine2; v != nil {
-		builder.WriteString("address_line2=")
-		builder.WriteString(*v)
-	}
-	builder.WriteString(", ")
-	if v := c.AddressPhoneNumber; v != nil {
-		builder.WriteString("address_phone_number=")
+	if v := c.BillingAddressPhoneNumber; v != nil {
+		builder.WriteString("billing_address_phone_number=")
 		builder.WriteString(*v)
 	}
 	builder.WriteByte(')')

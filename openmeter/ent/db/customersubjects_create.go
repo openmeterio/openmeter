@@ -23,48 +23,6 @@ type CustomerSubjectsCreate struct {
 	conflict []sql.ConflictOption
 }
 
-// SetCreatedAt sets the "created_at" field.
-func (csc *CustomerSubjectsCreate) SetCreatedAt(t time.Time) *CustomerSubjectsCreate {
-	csc.mutation.SetCreatedAt(t)
-	return csc
-}
-
-// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
-func (csc *CustomerSubjectsCreate) SetNillableCreatedAt(t *time.Time) *CustomerSubjectsCreate {
-	if t != nil {
-		csc.SetCreatedAt(*t)
-	}
-	return csc
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (csc *CustomerSubjectsCreate) SetUpdatedAt(t time.Time) *CustomerSubjectsCreate {
-	csc.mutation.SetUpdatedAt(t)
-	return csc
-}
-
-// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
-func (csc *CustomerSubjectsCreate) SetNillableUpdatedAt(t *time.Time) *CustomerSubjectsCreate {
-	if t != nil {
-		csc.SetUpdatedAt(*t)
-	}
-	return csc
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (csc *CustomerSubjectsCreate) SetDeletedAt(t time.Time) *CustomerSubjectsCreate {
-	csc.mutation.SetDeletedAt(t)
-	return csc
-}
-
-// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
-func (csc *CustomerSubjectsCreate) SetNillableDeletedAt(t *time.Time) *CustomerSubjectsCreate {
-	if t != nil {
-		csc.SetDeletedAt(*t)
-	}
-	return csc
-}
-
 // SetCustomerID sets the "customer_id" field.
 func (csc *CustomerSubjectsCreate) SetCustomerID(s string) *CustomerSubjectsCreate {
 	csc.mutation.SetCustomerID(s)
@@ -77,16 +35,16 @@ func (csc *CustomerSubjectsCreate) SetSubjectKey(s string) *CustomerSubjectsCrea
 	return csc
 }
 
-// SetCustomerID sets the "customer" edge to the Customer entity by ID.
-func (csc *CustomerSubjectsCreate) SetCustomerID(id string) *CustomerSubjectsCreate {
-	csc.mutation.SetCustomerID(id)
+// SetCreatedAt sets the "created_at" field.
+func (csc *CustomerSubjectsCreate) SetCreatedAt(t time.Time) *CustomerSubjectsCreate {
+	csc.mutation.SetCreatedAt(t)
 	return csc
 }
 
-// SetNillableCustomerID sets the "customer" edge to the Customer entity by ID if the given value is not nil.
-func (csc *CustomerSubjectsCreate) SetNillableCustomerID(id *string) *CustomerSubjectsCreate {
-	if id != nil {
-		csc = csc.SetCustomerID(*id)
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (csc *CustomerSubjectsCreate) SetNillableCreatedAt(t *time.Time) *CustomerSubjectsCreate {
+	if t != nil {
+		csc.SetCreatedAt(*t)
 	}
 	return csc
 }
@@ -135,25 +93,31 @@ func (csc *CustomerSubjectsCreate) defaults() {
 		v := customersubjects.DefaultCreatedAt()
 		csc.mutation.SetCreatedAt(v)
 	}
-	if _, ok := csc.mutation.UpdatedAt(); !ok {
-		v := customersubjects.DefaultUpdatedAt()
-		csc.mutation.SetUpdatedAt(v)
-	}
 }
 
 // check runs all checks and user-defined validators on the builder.
 func (csc *CustomerSubjectsCreate) check() error {
-	if _, ok := csc.mutation.CreatedAt(); !ok {
-		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "CustomerSubjects.created_at"`)}
-	}
-	if _, ok := csc.mutation.UpdatedAt(); !ok {
-		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "CustomerSubjects.updated_at"`)}
-	}
 	if _, ok := csc.mutation.CustomerID(); !ok {
 		return &ValidationError{Name: "customer_id", err: errors.New(`db: missing required field "CustomerSubjects.customer_id"`)}
 	}
+	if v, ok := csc.mutation.CustomerID(); ok {
+		if err := customersubjects.CustomerIDValidator(v); err != nil {
+			return &ValidationError{Name: "customer_id", err: fmt.Errorf(`db: validator failed for field "CustomerSubjects.customer_id": %w`, err)}
+		}
+	}
 	if _, ok := csc.mutation.SubjectKey(); !ok {
 		return &ValidationError{Name: "subject_key", err: errors.New(`db: missing required field "CustomerSubjects.subject_key"`)}
+	}
+	if v, ok := csc.mutation.SubjectKey(); ok {
+		if err := customersubjects.SubjectKeyValidator(v); err != nil {
+			return &ValidationError{Name: "subject_key", err: fmt.Errorf(`db: validator failed for field "CustomerSubjects.subject_key": %w`, err)}
+		}
+	}
+	if _, ok := csc.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`db: missing required field "CustomerSubjects.created_at"`)}
+	}
+	if len(csc.mutation.CustomerIDs()) == 0 {
+		return &ValidationError{Name: "customer", err: errors.New(`db: missing required edge "CustomerSubjects.customer"`)}
 	}
 	return nil
 }
@@ -182,25 +146,13 @@ func (csc *CustomerSubjectsCreate) createSpec() (*CustomerSubjects, *sqlgraph.Cr
 		_spec = sqlgraph.NewCreateSpec(customersubjects.Table, sqlgraph.NewFieldSpec(customersubjects.FieldID, field.TypeInt))
 	)
 	_spec.OnConflict = csc.conflict
-	if value, ok := csc.mutation.CreatedAt(); ok {
-		_spec.SetField(customersubjects.FieldCreatedAt, field.TypeTime, value)
-		_node.CreatedAt = value
-	}
-	if value, ok := csc.mutation.UpdatedAt(); ok {
-		_spec.SetField(customersubjects.FieldUpdatedAt, field.TypeTime, value)
-		_node.UpdatedAt = value
-	}
-	if value, ok := csc.mutation.DeletedAt(); ok {
-		_spec.SetField(customersubjects.FieldDeletedAt, field.TypeTime, value)
-		_node.DeletedAt = &value
-	}
-	if value, ok := csc.mutation.CustomerID(); ok {
-		_spec.SetField(customersubjects.FieldCustomerID, field.TypeString, value)
-		_node.CustomerID = value
-	}
 	if value, ok := csc.mutation.SubjectKey(); ok {
 		_spec.SetField(customersubjects.FieldSubjectKey, field.TypeString, value)
 		_node.SubjectKey = value
+	}
+	if value, ok := csc.mutation.CreatedAt(); ok {
+		_spec.SetField(customersubjects.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
 	}
 	if nodes := csc.mutation.CustomerIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -216,7 +168,7 @@ func (csc *CustomerSubjectsCreate) createSpec() (*CustomerSubjects, *sqlgraph.Cr
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
-		_node.customer_subjects = &nodes[0]
+		_node.CustomerID = nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -226,7 +178,7 @@ func (csc *CustomerSubjectsCreate) createSpec() (*CustomerSubjects, *sqlgraph.Cr
 // of the `INSERT` statement. For example:
 //
 //	client.CustomerSubjects.Create().
-//		SetCreatedAt(v).
+//		SetCustomerID(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -235,7 +187,7 @@ func (csc *CustomerSubjectsCreate) createSpec() (*CustomerSubjects, *sqlgraph.Cr
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.CustomerSubjectsUpsert) {
-//			SetCreatedAt(v+v).
+//			SetCustomerID(v+v).
 //		}).
 //		Exec(ctx)
 func (csc *CustomerSubjectsCreate) OnConflict(opts ...sql.ConflictOption) *CustomerSubjectsUpsertOne {
@@ -271,36 +223,6 @@ type (
 	}
 )
 
-// SetUpdatedAt sets the "updated_at" field.
-func (u *CustomerSubjectsUpsert) SetUpdatedAt(v time.Time) *CustomerSubjectsUpsert {
-	u.Set(customersubjects.FieldUpdatedAt, v)
-	return u
-}
-
-// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
-func (u *CustomerSubjectsUpsert) UpdateUpdatedAt() *CustomerSubjectsUpsert {
-	u.SetExcluded(customersubjects.FieldUpdatedAt)
-	return u
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (u *CustomerSubjectsUpsert) SetDeletedAt(v time.Time) *CustomerSubjectsUpsert {
-	u.Set(customersubjects.FieldDeletedAt, v)
-	return u
-}
-
-// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
-func (u *CustomerSubjectsUpsert) UpdateDeletedAt() *CustomerSubjectsUpsert {
-	u.SetExcluded(customersubjects.FieldDeletedAt)
-	return u
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (u *CustomerSubjectsUpsert) ClearDeletedAt() *CustomerSubjectsUpsert {
-	u.SetNull(customersubjects.FieldDeletedAt)
-	return u
-}
-
 // UpdateNewValues updates the mutable fields using the new values that were set on create.
 // Using this option is equivalent to using:
 //
@@ -312,14 +234,14 @@ func (u *CustomerSubjectsUpsert) ClearDeletedAt() *CustomerSubjectsUpsert {
 func (u *CustomerSubjectsUpsertOne) UpdateNewValues() *CustomerSubjectsUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
-		if _, exists := u.create.mutation.CreatedAt(); exists {
-			s.SetIgnore(customersubjects.FieldCreatedAt)
-		}
 		if _, exists := u.create.mutation.CustomerID(); exists {
 			s.SetIgnore(customersubjects.FieldCustomerID)
 		}
 		if _, exists := u.create.mutation.SubjectKey(); exists {
 			s.SetIgnore(customersubjects.FieldSubjectKey)
+		}
+		if _, exists := u.create.mutation.CreatedAt(); exists {
+			s.SetIgnore(customersubjects.FieldCreatedAt)
 		}
 	}))
 	return u
@@ -350,41 +272,6 @@ func (u *CustomerSubjectsUpsertOne) Update(set func(*CustomerSubjectsUpsert)) *C
 		set(&CustomerSubjectsUpsert{UpdateSet: update})
 	}))
 	return u
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (u *CustomerSubjectsUpsertOne) SetUpdatedAt(v time.Time) *CustomerSubjectsUpsertOne {
-	return u.Update(func(s *CustomerSubjectsUpsert) {
-		s.SetUpdatedAt(v)
-	})
-}
-
-// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
-func (u *CustomerSubjectsUpsertOne) UpdateUpdatedAt() *CustomerSubjectsUpsertOne {
-	return u.Update(func(s *CustomerSubjectsUpsert) {
-		s.UpdateUpdatedAt()
-	})
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (u *CustomerSubjectsUpsertOne) SetDeletedAt(v time.Time) *CustomerSubjectsUpsertOne {
-	return u.Update(func(s *CustomerSubjectsUpsert) {
-		s.SetDeletedAt(v)
-	})
-}
-
-// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
-func (u *CustomerSubjectsUpsertOne) UpdateDeletedAt() *CustomerSubjectsUpsertOne {
-	return u.Update(func(s *CustomerSubjectsUpsert) {
-		s.UpdateDeletedAt()
-	})
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (u *CustomerSubjectsUpsertOne) ClearDeletedAt() *CustomerSubjectsUpsertOne {
-	return u.Update(func(s *CustomerSubjectsUpsert) {
-		s.ClearDeletedAt()
-	})
 }
 
 // Exec executes the query.
@@ -522,7 +409,7 @@ func (cscb *CustomerSubjectsCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.CustomerSubjectsUpsert) {
-//			SetCreatedAt(v+v).
+//			SetCustomerID(v+v).
 //		}).
 //		Exec(ctx)
 func (cscb *CustomerSubjectsCreateBulk) OnConflict(opts ...sql.ConflictOption) *CustomerSubjectsUpsertBulk {
@@ -563,14 +450,14 @@ func (u *CustomerSubjectsUpsertBulk) UpdateNewValues() *CustomerSubjectsUpsertBu
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
 		for _, b := range u.create.builders {
-			if _, exists := b.mutation.CreatedAt(); exists {
-				s.SetIgnore(customersubjects.FieldCreatedAt)
-			}
 			if _, exists := b.mutation.CustomerID(); exists {
 				s.SetIgnore(customersubjects.FieldCustomerID)
 			}
 			if _, exists := b.mutation.SubjectKey(); exists {
 				s.SetIgnore(customersubjects.FieldSubjectKey)
+			}
+			if _, exists := b.mutation.CreatedAt(); exists {
+				s.SetIgnore(customersubjects.FieldCreatedAt)
 			}
 		}
 	}))
@@ -602,41 +489,6 @@ func (u *CustomerSubjectsUpsertBulk) Update(set func(*CustomerSubjectsUpsert)) *
 		set(&CustomerSubjectsUpsert{UpdateSet: update})
 	}))
 	return u
-}
-
-// SetUpdatedAt sets the "updated_at" field.
-func (u *CustomerSubjectsUpsertBulk) SetUpdatedAt(v time.Time) *CustomerSubjectsUpsertBulk {
-	return u.Update(func(s *CustomerSubjectsUpsert) {
-		s.SetUpdatedAt(v)
-	})
-}
-
-// UpdateUpdatedAt sets the "updated_at" field to the value that was provided on create.
-func (u *CustomerSubjectsUpsertBulk) UpdateUpdatedAt() *CustomerSubjectsUpsertBulk {
-	return u.Update(func(s *CustomerSubjectsUpsert) {
-		s.UpdateUpdatedAt()
-	})
-}
-
-// SetDeletedAt sets the "deleted_at" field.
-func (u *CustomerSubjectsUpsertBulk) SetDeletedAt(v time.Time) *CustomerSubjectsUpsertBulk {
-	return u.Update(func(s *CustomerSubjectsUpsert) {
-		s.SetDeletedAt(v)
-	})
-}
-
-// UpdateDeletedAt sets the "deleted_at" field to the value that was provided on create.
-func (u *CustomerSubjectsUpsertBulk) UpdateDeletedAt() *CustomerSubjectsUpsertBulk {
-	return u.Update(func(s *CustomerSubjectsUpsert) {
-		s.UpdateDeletedAt()
-	})
-}
-
-// ClearDeletedAt clears the value of the "deleted_at" field.
-func (u *CustomerSubjectsUpsertBulk) ClearDeletedAt() *CustomerSubjectsUpsertBulk {
-	return u.Update(func(s *CustomerSubjectsUpsert) {
-		s.ClearDeletedAt()
-	})
 }
 
 // Exec executes the query.

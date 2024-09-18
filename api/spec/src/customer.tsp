@@ -44,11 +44,11 @@ model Customer extends Resource {
   currency?: CurrencyCode;
 
   /**
-   * The address of the customer.
+   * The billing address of the customer.
    * Used for tax and invoicing.
    */
-  @summary("Address")
-  address?: Address;
+  @summary("Billing Address")
+  billingAddress?: Address;
 
   /**
    * The tax provider for the customer.

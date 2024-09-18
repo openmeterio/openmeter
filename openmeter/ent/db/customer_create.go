@@ -25,12 +25,6 @@ type CustomerCreate struct {
 	conflict []sql.ConflictOption
 }
 
-// SetName sets the "name" field.
-func (cc *CustomerCreate) SetName(s string) *CustomerCreate {
-	cc.mutation.SetName(s)
-	return cc
-}
-
 // SetKey sets the "key" field.
 func (cc *CustomerCreate) SetKey(s string) *CustomerCreate {
 	cc.mutation.SetKey(s)
@@ -88,6 +82,12 @@ func (cc *CustomerCreate) SetNillableDeletedAt(t *time.Time) *CustomerCreate {
 	if t != nil {
 		cc.SetDeletedAt(*t)
 	}
+	return cc
+}
+
+// SetName sets the "name" field.
+func (cc *CustomerCreate) SetName(s string) *CustomerCreate {
+	cc.mutation.SetName(s)
 	return cc
 }
 
@@ -175,100 +175,100 @@ func (cc *CustomerCreate) SetNillablePrimaryEmail(s *string) *CustomerCreate {
 	return cc
 }
 
-// SetAddressCountry sets the "address_country" field.
-func (cc *CustomerCreate) SetAddressCountry(s string) *CustomerCreate {
-	cc.mutation.SetAddressCountry(s)
+// SetBillingAddressCountry sets the "billing_address_country" field.
+func (cc *CustomerCreate) SetBillingAddressCountry(mc models.CountryCode) *CustomerCreate {
+	cc.mutation.SetBillingAddressCountry(mc)
 	return cc
 }
 
-// SetNillableAddressCountry sets the "address_country" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableAddressCountry(s *string) *CustomerCreate {
-	if s != nil {
-		cc.SetAddressCountry(*s)
+// SetNillableBillingAddressCountry sets the "billing_address_country" field if the given value is not nil.
+func (cc *CustomerCreate) SetNillableBillingAddressCountry(mc *models.CountryCode) *CustomerCreate {
+	if mc != nil {
+		cc.SetBillingAddressCountry(*mc)
 	}
 	return cc
 }
 
-// SetAddressPostalCode sets the "address_postal_code" field.
-func (cc *CustomerCreate) SetAddressPostalCode(s string) *CustomerCreate {
-	cc.mutation.SetAddressPostalCode(s)
+// SetBillingAddressPostalCode sets the "billing_address_postal_code" field.
+func (cc *CustomerCreate) SetBillingAddressPostalCode(s string) *CustomerCreate {
+	cc.mutation.SetBillingAddressPostalCode(s)
 	return cc
 }
 
-// SetNillableAddressPostalCode sets the "address_postal_code" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableAddressPostalCode(s *string) *CustomerCreate {
+// SetNillableBillingAddressPostalCode sets the "billing_address_postal_code" field if the given value is not nil.
+func (cc *CustomerCreate) SetNillableBillingAddressPostalCode(s *string) *CustomerCreate {
 	if s != nil {
-		cc.SetAddressPostalCode(*s)
+		cc.SetBillingAddressPostalCode(*s)
 	}
 	return cc
 }
 
-// SetAddressState sets the "address_state" field.
-func (cc *CustomerCreate) SetAddressState(s string) *CustomerCreate {
-	cc.mutation.SetAddressState(s)
+// SetBillingAddressState sets the "billing_address_state" field.
+func (cc *CustomerCreate) SetBillingAddressState(s string) *CustomerCreate {
+	cc.mutation.SetBillingAddressState(s)
 	return cc
 }
 
-// SetNillableAddressState sets the "address_state" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableAddressState(s *string) *CustomerCreate {
+// SetNillableBillingAddressState sets the "billing_address_state" field if the given value is not nil.
+func (cc *CustomerCreate) SetNillableBillingAddressState(s *string) *CustomerCreate {
 	if s != nil {
-		cc.SetAddressState(*s)
+		cc.SetBillingAddressState(*s)
 	}
 	return cc
 }
 
-// SetAddressCity sets the "address_city" field.
-func (cc *CustomerCreate) SetAddressCity(s string) *CustomerCreate {
-	cc.mutation.SetAddressCity(s)
+// SetBillingAddressCity sets the "billing_address_city" field.
+func (cc *CustomerCreate) SetBillingAddressCity(s string) *CustomerCreate {
+	cc.mutation.SetBillingAddressCity(s)
 	return cc
 }
 
-// SetNillableAddressCity sets the "address_city" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableAddressCity(s *string) *CustomerCreate {
+// SetNillableBillingAddressCity sets the "billing_address_city" field if the given value is not nil.
+func (cc *CustomerCreate) SetNillableBillingAddressCity(s *string) *CustomerCreate {
 	if s != nil {
-		cc.SetAddressCity(*s)
+		cc.SetBillingAddressCity(*s)
 	}
 	return cc
 }
 
-// SetAddressLine1 sets the "address_line1" field.
-func (cc *CustomerCreate) SetAddressLine1(s string) *CustomerCreate {
-	cc.mutation.SetAddressLine1(s)
+// SetBillingAddressLine1 sets the "billing_address_line1" field.
+func (cc *CustomerCreate) SetBillingAddressLine1(s string) *CustomerCreate {
+	cc.mutation.SetBillingAddressLine1(s)
 	return cc
 }
 
-// SetNillableAddressLine1 sets the "address_line1" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableAddressLine1(s *string) *CustomerCreate {
+// SetNillableBillingAddressLine1 sets the "billing_address_line1" field if the given value is not nil.
+func (cc *CustomerCreate) SetNillableBillingAddressLine1(s *string) *CustomerCreate {
 	if s != nil {
-		cc.SetAddressLine1(*s)
+		cc.SetBillingAddressLine1(*s)
 	}
 	return cc
 }
 
-// SetAddressLine2 sets the "address_line2" field.
-func (cc *CustomerCreate) SetAddressLine2(s string) *CustomerCreate {
-	cc.mutation.SetAddressLine2(s)
+// SetBillingAddressLine2 sets the "billing_address_line2" field.
+func (cc *CustomerCreate) SetBillingAddressLine2(s string) *CustomerCreate {
+	cc.mutation.SetBillingAddressLine2(s)
 	return cc
 }
 
-// SetNillableAddressLine2 sets the "address_line2" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableAddressLine2(s *string) *CustomerCreate {
+// SetNillableBillingAddressLine2 sets the "billing_address_line2" field if the given value is not nil.
+func (cc *CustomerCreate) SetNillableBillingAddressLine2(s *string) *CustomerCreate {
 	if s != nil {
-		cc.SetAddressLine2(*s)
+		cc.SetBillingAddressLine2(*s)
 	}
 	return cc
 }
 
-// SetAddressPhoneNumber sets the "address_phone_number" field.
-func (cc *CustomerCreate) SetAddressPhoneNumber(s string) *CustomerCreate {
-	cc.mutation.SetAddressPhoneNumber(s)
+// SetBillingAddressPhoneNumber sets the "billing_address_phone_number" field.
+func (cc *CustomerCreate) SetBillingAddressPhoneNumber(s string) *CustomerCreate {
+	cc.mutation.SetBillingAddressPhoneNumber(s)
 	return cc
 }
 
-// SetNillableAddressPhoneNumber sets the "address_phone_number" field if the given value is not nil.
-func (cc *CustomerCreate) SetNillableAddressPhoneNumber(s *string) *CustomerCreate {
+// SetNillableBillingAddressPhoneNumber sets the "billing_address_phone_number" field if the given value is not nil.
+func (cc *CustomerCreate) SetNillableBillingAddressPhoneNumber(s *string) *CustomerCreate {
 	if s != nil {
-		cc.SetAddressPhoneNumber(*s)
+		cc.SetBillingAddressPhoneNumber(*s)
 	}
 	return cc
 }
@@ -353,14 +353,6 @@ func (cc *CustomerCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (cc *CustomerCreate) check() error {
-	if _, ok := cc.mutation.Name(); !ok {
-		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "Customer.name"`)}
-	}
-	if v, ok := cc.mutation.Name(); ok {
-		if err := customer.NameValidator(v); err != nil {
-			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "Customer.name": %w`, err)}
-		}
-	}
 	if _, ok := cc.mutation.Key(); !ok {
 		return &ValidationError{Name: "key", err: errors.New(`db: missing required field "Customer.key"`)}
 	}
@@ -383,6 +375,14 @@ func (cc *CustomerCreate) check() error {
 	if _, ok := cc.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`db: missing required field "Customer.updated_at"`)}
 	}
+	if _, ok := cc.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New(`db: missing required field "Customer.name"`)}
+	}
+	if v, ok := cc.mutation.Name(); ok {
+		if err := customer.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`db: validator failed for field "Customer.name": %w`, err)}
+		}
+	}
 	if v, ok := cc.mutation.Currency(); ok {
 		if err := customer.CurrencyValidator(string(v)); err != nil {
 			return &ValidationError{Name: "currency", err: fmt.Errorf(`db: validator failed for field "Customer.currency": %w`, err)}
@@ -403,9 +403,9 @@ func (cc *CustomerCreate) check() error {
 			return &ValidationError{Name: "payment_provider", err: fmt.Errorf(`db: validator failed for field "Customer.payment_provider": %w`, err)}
 		}
 	}
-	if v, ok := cc.mutation.AddressCountry(); ok {
-		if err := customer.AddressCountryValidator(v); err != nil {
-			return &ValidationError{Name: "address_country", err: fmt.Errorf(`db: validator failed for field "Customer.address_country": %w`, err)}
+	if v, ok := cc.mutation.BillingAddressCountry(); ok {
+		if err := customer.BillingAddressCountryValidator(string(v)); err != nil {
+			return &ValidationError{Name: "billing_address_country", err: fmt.Errorf(`db: validator failed for field "Customer.billing_address_country": %w`, err)}
 		}
 	}
 	return nil
@@ -444,10 +444,6 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
-	if value, ok := cc.mutation.Name(); ok {
-		_spec.SetField(customer.FieldName, field.TypeString, value)
-		_node.Name = value
-	}
 	if value, ok := cc.mutation.Key(); ok {
 		_spec.SetField(customer.FieldKey, field.TypeString, value)
 		_node.Key = value
@@ -471,6 +467,10 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 	if value, ok := cc.mutation.DeletedAt(); ok {
 		_spec.SetField(customer.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
+	}
+	if value, ok := cc.mutation.Name(); ok {
+		_spec.SetField(customer.FieldName, field.TypeString, value)
+		_node.Name = value
 	}
 	if value, ok := cc.mutation.Currency(); ok {
 		_spec.SetField(customer.FieldCurrency, field.TypeString, value)
@@ -496,33 +496,33 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 		_spec.SetField(customer.FieldPrimaryEmail, field.TypeString, value)
 		_node.PrimaryEmail = &value
 	}
-	if value, ok := cc.mutation.AddressCountry(); ok {
-		_spec.SetField(customer.FieldAddressCountry, field.TypeString, value)
-		_node.AddressCountry = &value
+	if value, ok := cc.mutation.BillingAddressCountry(); ok {
+		_spec.SetField(customer.FieldBillingAddressCountry, field.TypeString, value)
+		_node.BillingAddressCountry = &value
 	}
-	if value, ok := cc.mutation.AddressPostalCode(); ok {
-		_spec.SetField(customer.FieldAddressPostalCode, field.TypeString, value)
-		_node.AddressPostalCode = &value
+	if value, ok := cc.mutation.BillingAddressPostalCode(); ok {
+		_spec.SetField(customer.FieldBillingAddressPostalCode, field.TypeString, value)
+		_node.BillingAddressPostalCode = &value
 	}
-	if value, ok := cc.mutation.AddressState(); ok {
-		_spec.SetField(customer.FieldAddressState, field.TypeString, value)
-		_node.AddressState = &value
+	if value, ok := cc.mutation.BillingAddressState(); ok {
+		_spec.SetField(customer.FieldBillingAddressState, field.TypeString, value)
+		_node.BillingAddressState = &value
 	}
-	if value, ok := cc.mutation.AddressCity(); ok {
-		_spec.SetField(customer.FieldAddressCity, field.TypeString, value)
-		_node.AddressCity = &value
+	if value, ok := cc.mutation.BillingAddressCity(); ok {
+		_spec.SetField(customer.FieldBillingAddressCity, field.TypeString, value)
+		_node.BillingAddressCity = &value
 	}
-	if value, ok := cc.mutation.AddressLine1(); ok {
-		_spec.SetField(customer.FieldAddressLine1, field.TypeString, value)
-		_node.AddressLine1 = &value
+	if value, ok := cc.mutation.BillingAddressLine1(); ok {
+		_spec.SetField(customer.FieldBillingAddressLine1, field.TypeString, value)
+		_node.BillingAddressLine1 = &value
 	}
-	if value, ok := cc.mutation.AddressLine2(); ok {
-		_spec.SetField(customer.FieldAddressLine2, field.TypeString, value)
-		_node.AddressLine2 = &value
+	if value, ok := cc.mutation.BillingAddressLine2(); ok {
+		_spec.SetField(customer.FieldBillingAddressLine2, field.TypeString, value)
+		_node.BillingAddressLine2 = &value
 	}
-	if value, ok := cc.mutation.AddressPhoneNumber(); ok {
-		_spec.SetField(customer.FieldAddressPhoneNumber, field.TypeString, value)
-		_node.AddressPhoneNumber = &value
+	if value, ok := cc.mutation.BillingAddressPhoneNumber(); ok {
+		_spec.SetField(customer.FieldBillingAddressPhoneNumber, field.TypeString, value)
+		_node.BillingAddressPhoneNumber = &value
 	}
 	if nodes := cc.mutation.SubjectsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -547,7 +547,7 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 // of the `INSERT` statement. For example:
 //
 //	client.Customer.Create().
-//		SetName(v).
+//		SetKey(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
@@ -556,7 +556,7 @@ func (cc *CustomerCreate) createSpec() (*Customer, *sqlgraph.CreateSpec) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.CustomerUpsert) {
-//			SetName(v+v).
+//			SetKey(v+v).
 //		}).
 //		Exec(ctx)
 func (cc *CustomerCreate) OnConflict(opts ...sql.ConflictOption) *CustomerUpsertOne {
@@ -591,18 +591,6 @@ type (
 		*sql.UpdateSet
 	}
 )
-
-// SetName sets the "name" field.
-func (u *CustomerUpsert) SetName(v string) *CustomerUpsert {
-	u.Set(customer.FieldName, v)
-	return u
-}
-
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *CustomerUpsert) UpdateName() *CustomerUpsert {
-	u.SetExcluded(customer.FieldName)
-	return u
-}
 
 // SetMetadata sets the "metadata" field.
 func (u *CustomerUpsert) SetMetadata(v map[string]string) *CustomerUpsert {
@@ -649,6 +637,18 @@ func (u *CustomerUpsert) UpdateDeletedAt() *CustomerUpsert {
 // ClearDeletedAt clears the value of the "deleted_at" field.
 func (u *CustomerUpsert) ClearDeletedAt() *CustomerUpsert {
 	u.SetNull(customer.FieldDeletedAt)
+	return u
+}
+
+// SetName sets the "name" field.
+func (u *CustomerUpsert) SetName(v string) *CustomerUpsert {
+	u.Set(customer.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *CustomerUpsert) UpdateName() *CustomerUpsert {
+	u.SetExcluded(customer.FieldName)
 	return u
 }
 
@@ -760,129 +760,129 @@ func (u *CustomerUpsert) ClearPrimaryEmail() *CustomerUpsert {
 	return u
 }
 
-// SetAddressCountry sets the "address_country" field.
-func (u *CustomerUpsert) SetAddressCountry(v string) *CustomerUpsert {
-	u.Set(customer.FieldAddressCountry, v)
+// SetBillingAddressCountry sets the "billing_address_country" field.
+func (u *CustomerUpsert) SetBillingAddressCountry(v models.CountryCode) *CustomerUpsert {
+	u.Set(customer.FieldBillingAddressCountry, v)
 	return u
 }
 
-// UpdateAddressCountry sets the "address_country" field to the value that was provided on create.
-func (u *CustomerUpsert) UpdateAddressCountry() *CustomerUpsert {
-	u.SetExcluded(customer.FieldAddressCountry)
+// UpdateBillingAddressCountry sets the "billing_address_country" field to the value that was provided on create.
+func (u *CustomerUpsert) UpdateBillingAddressCountry() *CustomerUpsert {
+	u.SetExcluded(customer.FieldBillingAddressCountry)
 	return u
 }
 
-// ClearAddressCountry clears the value of the "address_country" field.
-func (u *CustomerUpsert) ClearAddressCountry() *CustomerUpsert {
-	u.SetNull(customer.FieldAddressCountry)
+// ClearBillingAddressCountry clears the value of the "billing_address_country" field.
+func (u *CustomerUpsert) ClearBillingAddressCountry() *CustomerUpsert {
+	u.SetNull(customer.FieldBillingAddressCountry)
 	return u
 }
 
-// SetAddressPostalCode sets the "address_postal_code" field.
-func (u *CustomerUpsert) SetAddressPostalCode(v string) *CustomerUpsert {
-	u.Set(customer.FieldAddressPostalCode, v)
+// SetBillingAddressPostalCode sets the "billing_address_postal_code" field.
+func (u *CustomerUpsert) SetBillingAddressPostalCode(v string) *CustomerUpsert {
+	u.Set(customer.FieldBillingAddressPostalCode, v)
 	return u
 }
 
-// UpdateAddressPostalCode sets the "address_postal_code" field to the value that was provided on create.
-func (u *CustomerUpsert) UpdateAddressPostalCode() *CustomerUpsert {
-	u.SetExcluded(customer.FieldAddressPostalCode)
+// UpdateBillingAddressPostalCode sets the "billing_address_postal_code" field to the value that was provided on create.
+func (u *CustomerUpsert) UpdateBillingAddressPostalCode() *CustomerUpsert {
+	u.SetExcluded(customer.FieldBillingAddressPostalCode)
 	return u
 }
 
-// ClearAddressPostalCode clears the value of the "address_postal_code" field.
-func (u *CustomerUpsert) ClearAddressPostalCode() *CustomerUpsert {
-	u.SetNull(customer.FieldAddressPostalCode)
+// ClearBillingAddressPostalCode clears the value of the "billing_address_postal_code" field.
+func (u *CustomerUpsert) ClearBillingAddressPostalCode() *CustomerUpsert {
+	u.SetNull(customer.FieldBillingAddressPostalCode)
 	return u
 }
 
-// SetAddressState sets the "address_state" field.
-func (u *CustomerUpsert) SetAddressState(v string) *CustomerUpsert {
-	u.Set(customer.FieldAddressState, v)
+// SetBillingAddressState sets the "billing_address_state" field.
+func (u *CustomerUpsert) SetBillingAddressState(v string) *CustomerUpsert {
+	u.Set(customer.FieldBillingAddressState, v)
 	return u
 }
 
-// UpdateAddressState sets the "address_state" field to the value that was provided on create.
-func (u *CustomerUpsert) UpdateAddressState() *CustomerUpsert {
-	u.SetExcluded(customer.FieldAddressState)
+// UpdateBillingAddressState sets the "billing_address_state" field to the value that was provided on create.
+func (u *CustomerUpsert) UpdateBillingAddressState() *CustomerUpsert {
+	u.SetExcluded(customer.FieldBillingAddressState)
 	return u
 }
 
-// ClearAddressState clears the value of the "address_state" field.
-func (u *CustomerUpsert) ClearAddressState() *CustomerUpsert {
-	u.SetNull(customer.FieldAddressState)
+// ClearBillingAddressState clears the value of the "billing_address_state" field.
+func (u *CustomerUpsert) ClearBillingAddressState() *CustomerUpsert {
+	u.SetNull(customer.FieldBillingAddressState)
 	return u
 }
 
-// SetAddressCity sets the "address_city" field.
-func (u *CustomerUpsert) SetAddressCity(v string) *CustomerUpsert {
-	u.Set(customer.FieldAddressCity, v)
+// SetBillingAddressCity sets the "billing_address_city" field.
+func (u *CustomerUpsert) SetBillingAddressCity(v string) *CustomerUpsert {
+	u.Set(customer.FieldBillingAddressCity, v)
 	return u
 }
 
-// UpdateAddressCity sets the "address_city" field to the value that was provided on create.
-func (u *CustomerUpsert) UpdateAddressCity() *CustomerUpsert {
-	u.SetExcluded(customer.FieldAddressCity)
+// UpdateBillingAddressCity sets the "billing_address_city" field to the value that was provided on create.
+func (u *CustomerUpsert) UpdateBillingAddressCity() *CustomerUpsert {
+	u.SetExcluded(customer.FieldBillingAddressCity)
 	return u
 }
 
-// ClearAddressCity clears the value of the "address_city" field.
-func (u *CustomerUpsert) ClearAddressCity() *CustomerUpsert {
-	u.SetNull(customer.FieldAddressCity)
+// ClearBillingAddressCity clears the value of the "billing_address_city" field.
+func (u *CustomerUpsert) ClearBillingAddressCity() *CustomerUpsert {
+	u.SetNull(customer.FieldBillingAddressCity)
 	return u
 }
 
-// SetAddressLine1 sets the "address_line1" field.
-func (u *CustomerUpsert) SetAddressLine1(v string) *CustomerUpsert {
-	u.Set(customer.FieldAddressLine1, v)
+// SetBillingAddressLine1 sets the "billing_address_line1" field.
+func (u *CustomerUpsert) SetBillingAddressLine1(v string) *CustomerUpsert {
+	u.Set(customer.FieldBillingAddressLine1, v)
 	return u
 }
 
-// UpdateAddressLine1 sets the "address_line1" field to the value that was provided on create.
-func (u *CustomerUpsert) UpdateAddressLine1() *CustomerUpsert {
-	u.SetExcluded(customer.FieldAddressLine1)
+// UpdateBillingAddressLine1 sets the "billing_address_line1" field to the value that was provided on create.
+func (u *CustomerUpsert) UpdateBillingAddressLine1() *CustomerUpsert {
+	u.SetExcluded(customer.FieldBillingAddressLine1)
 	return u
 }
 
-// ClearAddressLine1 clears the value of the "address_line1" field.
-func (u *CustomerUpsert) ClearAddressLine1() *CustomerUpsert {
-	u.SetNull(customer.FieldAddressLine1)
+// ClearBillingAddressLine1 clears the value of the "billing_address_line1" field.
+func (u *CustomerUpsert) ClearBillingAddressLine1() *CustomerUpsert {
+	u.SetNull(customer.FieldBillingAddressLine1)
 	return u
 }
 
-// SetAddressLine2 sets the "address_line2" field.
-func (u *CustomerUpsert) SetAddressLine2(v string) *CustomerUpsert {
-	u.Set(customer.FieldAddressLine2, v)
+// SetBillingAddressLine2 sets the "billing_address_line2" field.
+func (u *CustomerUpsert) SetBillingAddressLine2(v string) *CustomerUpsert {
+	u.Set(customer.FieldBillingAddressLine2, v)
 	return u
 }
 
-// UpdateAddressLine2 sets the "address_line2" field to the value that was provided on create.
-func (u *CustomerUpsert) UpdateAddressLine2() *CustomerUpsert {
-	u.SetExcluded(customer.FieldAddressLine2)
+// UpdateBillingAddressLine2 sets the "billing_address_line2" field to the value that was provided on create.
+func (u *CustomerUpsert) UpdateBillingAddressLine2() *CustomerUpsert {
+	u.SetExcluded(customer.FieldBillingAddressLine2)
 	return u
 }
 
-// ClearAddressLine2 clears the value of the "address_line2" field.
-func (u *CustomerUpsert) ClearAddressLine2() *CustomerUpsert {
-	u.SetNull(customer.FieldAddressLine2)
+// ClearBillingAddressLine2 clears the value of the "billing_address_line2" field.
+func (u *CustomerUpsert) ClearBillingAddressLine2() *CustomerUpsert {
+	u.SetNull(customer.FieldBillingAddressLine2)
 	return u
 }
 
-// SetAddressPhoneNumber sets the "address_phone_number" field.
-func (u *CustomerUpsert) SetAddressPhoneNumber(v string) *CustomerUpsert {
-	u.Set(customer.FieldAddressPhoneNumber, v)
+// SetBillingAddressPhoneNumber sets the "billing_address_phone_number" field.
+func (u *CustomerUpsert) SetBillingAddressPhoneNumber(v string) *CustomerUpsert {
+	u.Set(customer.FieldBillingAddressPhoneNumber, v)
 	return u
 }
 
-// UpdateAddressPhoneNumber sets the "address_phone_number" field to the value that was provided on create.
-func (u *CustomerUpsert) UpdateAddressPhoneNumber() *CustomerUpsert {
-	u.SetExcluded(customer.FieldAddressPhoneNumber)
+// UpdateBillingAddressPhoneNumber sets the "billing_address_phone_number" field to the value that was provided on create.
+func (u *CustomerUpsert) UpdateBillingAddressPhoneNumber() *CustomerUpsert {
+	u.SetExcluded(customer.FieldBillingAddressPhoneNumber)
 	return u
 }
 
-// ClearAddressPhoneNumber clears the value of the "address_phone_number" field.
-func (u *CustomerUpsert) ClearAddressPhoneNumber() *CustomerUpsert {
-	u.SetNull(customer.FieldAddressPhoneNumber)
+// ClearBillingAddressPhoneNumber clears the value of the "billing_address_phone_number" field.
+func (u *CustomerUpsert) ClearBillingAddressPhoneNumber() *CustomerUpsert {
+	u.SetNull(customer.FieldBillingAddressPhoneNumber)
 	return u
 }
 
@@ -943,20 +943,6 @@ func (u *CustomerUpsertOne) Update(set func(*CustomerUpsert)) *CustomerUpsertOne
 	return u
 }
 
-// SetName sets the "name" field.
-func (u *CustomerUpsertOne) SetName(v string) *CustomerUpsertOne {
-	return u.Update(func(s *CustomerUpsert) {
-		s.SetName(v)
-	})
-}
-
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *CustomerUpsertOne) UpdateName() *CustomerUpsertOne {
-	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateName()
-	})
-}
-
 // SetMetadata sets the "metadata" field.
 func (u *CustomerUpsertOne) SetMetadata(v map[string]string) *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
@@ -1010,6 +996,20 @@ func (u *CustomerUpsertOne) UpdateDeletedAt() *CustomerUpsertOne {
 func (u *CustomerUpsertOne) ClearDeletedAt() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *CustomerUpsertOne) SetName(v string) *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *CustomerUpsertOne) UpdateName() *CustomerUpsertOne {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateName()
 	})
 }
 
@@ -1139,150 +1139,150 @@ func (u *CustomerUpsertOne) ClearPrimaryEmail() *CustomerUpsertOne {
 	})
 }
 
-// SetAddressCountry sets the "address_country" field.
-func (u *CustomerUpsertOne) SetAddressCountry(v string) *CustomerUpsertOne {
+// SetBillingAddressCountry sets the "billing_address_country" field.
+func (u *CustomerUpsertOne) SetBillingAddressCountry(v models.CountryCode) *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
-		s.SetAddressCountry(v)
+		s.SetBillingAddressCountry(v)
 	})
 }
 
-// UpdateAddressCountry sets the "address_country" field to the value that was provided on create.
-func (u *CustomerUpsertOne) UpdateAddressCountry() *CustomerUpsertOne {
+// UpdateBillingAddressCountry sets the "billing_address_country" field to the value that was provided on create.
+func (u *CustomerUpsertOne) UpdateBillingAddressCountry() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateAddressCountry()
+		s.UpdateBillingAddressCountry()
 	})
 }
 
-// ClearAddressCountry clears the value of the "address_country" field.
-func (u *CustomerUpsertOne) ClearAddressCountry() *CustomerUpsertOne {
+// ClearBillingAddressCountry clears the value of the "billing_address_country" field.
+func (u *CustomerUpsertOne) ClearBillingAddressCountry() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
-		s.ClearAddressCountry()
+		s.ClearBillingAddressCountry()
 	})
 }
 
-// SetAddressPostalCode sets the "address_postal_code" field.
-func (u *CustomerUpsertOne) SetAddressPostalCode(v string) *CustomerUpsertOne {
+// SetBillingAddressPostalCode sets the "billing_address_postal_code" field.
+func (u *CustomerUpsertOne) SetBillingAddressPostalCode(v string) *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
-		s.SetAddressPostalCode(v)
+		s.SetBillingAddressPostalCode(v)
 	})
 }
 
-// UpdateAddressPostalCode sets the "address_postal_code" field to the value that was provided on create.
-func (u *CustomerUpsertOne) UpdateAddressPostalCode() *CustomerUpsertOne {
+// UpdateBillingAddressPostalCode sets the "billing_address_postal_code" field to the value that was provided on create.
+func (u *CustomerUpsertOne) UpdateBillingAddressPostalCode() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateAddressPostalCode()
+		s.UpdateBillingAddressPostalCode()
 	})
 }
 
-// ClearAddressPostalCode clears the value of the "address_postal_code" field.
-func (u *CustomerUpsertOne) ClearAddressPostalCode() *CustomerUpsertOne {
+// ClearBillingAddressPostalCode clears the value of the "billing_address_postal_code" field.
+func (u *CustomerUpsertOne) ClearBillingAddressPostalCode() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
-		s.ClearAddressPostalCode()
+		s.ClearBillingAddressPostalCode()
 	})
 }
 
-// SetAddressState sets the "address_state" field.
-func (u *CustomerUpsertOne) SetAddressState(v string) *CustomerUpsertOne {
+// SetBillingAddressState sets the "billing_address_state" field.
+func (u *CustomerUpsertOne) SetBillingAddressState(v string) *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
-		s.SetAddressState(v)
+		s.SetBillingAddressState(v)
 	})
 }
 
-// UpdateAddressState sets the "address_state" field to the value that was provided on create.
-func (u *CustomerUpsertOne) UpdateAddressState() *CustomerUpsertOne {
+// UpdateBillingAddressState sets the "billing_address_state" field to the value that was provided on create.
+func (u *CustomerUpsertOne) UpdateBillingAddressState() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateAddressState()
+		s.UpdateBillingAddressState()
 	})
 }
 
-// ClearAddressState clears the value of the "address_state" field.
-func (u *CustomerUpsertOne) ClearAddressState() *CustomerUpsertOne {
+// ClearBillingAddressState clears the value of the "billing_address_state" field.
+func (u *CustomerUpsertOne) ClearBillingAddressState() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
-		s.ClearAddressState()
+		s.ClearBillingAddressState()
 	})
 }
 
-// SetAddressCity sets the "address_city" field.
-func (u *CustomerUpsertOne) SetAddressCity(v string) *CustomerUpsertOne {
+// SetBillingAddressCity sets the "billing_address_city" field.
+func (u *CustomerUpsertOne) SetBillingAddressCity(v string) *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
-		s.SetAddressCity(v)
+		s.SetBillingAddressCity(v)
 	})
 }
 
-// UpdateAddressCity sets the "address_city" field to the value that was provided on create.
-func (u *CustomerUpsertOne) UpdateAddressCity() *CustomerUpsertOne {
+// UpdateBillingAddressCity sets the "billing_address_city" field to the value that was provided on create.
+func (u *CustomerUpsertOne) UpdateBillingAddressCity() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateAddressCity()
+		s.UpdateBillingAddressCity()
 	})
 }
 
-// ClearAddressCity clears the value of the "address_city" field.
-func (u *CustomerUpsertOne) ClearAddressCity() *CustomerUpsertOne {
+// ClearBillingAddressCity clears the value of the "billing_address_city" field.
+func (u *CustomerUpsertOne) ClearBillingAddressCity() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
-		s.ClearAddressCity()
+		s.ClearBillingAddressCity()
 	})
 }
 
-// SetAddressLine1 sets the "address_line1" field.
-func (u *CustomerUpsertOne) SetAddressLine1(v string) *CustomerUpsertOne {
+// SetBillingAddressLine1 sets the "billing_address_line1" field.
+func (u *CustomerUpsertOne) SetBillingAddressLine1(v string) *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
-		s.SetAddressLine1(v)
+		s.SetBillingAddressLine1(v)
 	})
 }
 
-// UpdateAddressLine1 sets the "address_line1" field to the value that was provided on create.
-func (u *CustomerUpsertOne) UpdateAddressLine1() *CustomerUpsertOne {
+// UpdateBillingAddressLine1 sets the "billing_address_line1" field to the value that was provided on create.
+func (u *CustomerUpsertOne) UpdateBillingAddressLine1() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateAddressLine1()
+		s.UpdateBillingAddressLine1()
 	})
 }
 
-// ClearAddressLine1 clears the value of the "address_line1" field.
-func (u *CustomerUpsertOne) ClearAddressLine1() *CustomerUpsertOne {
+// ClearBillingAddressLine1 clears the value of the "billing_address_line1" field.
+func (u *CustomerUpsertOne) ClearBillingAddressLine1() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
-		s.ClearAddressLine1()
+		s.ClearBillingAddressLine1()
 	})
 }
 
-// SetAddressLine2 sets the "address_line2" field.
-func (u *CustomerUpsertOne) SetAddressLine2(v string) *CustomerUpsertOne {
+// SetBillingAddressLine2 sets the "billing_address_line2" field.
+func (u *CustomerUpsertOne) SetBillingAddressLine2(v string) *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
-		s.SetAddressLine2(v)
+		s.SetBillingAddressLine2(v)
 	})
 }
 
-// UpdateAddressLine2 sets the "address_line2" field to the value that was provided on create.
-func (u *CustomerUpsertOne) UpdateAddressLine2() *CustomerUpsertOne {
+// UpdateBillingAddressLine2 sets the "billing_address_line2" field to the value that was provided on create.
+func (u *CustomerUpsertOne) UpdateBillingAddressLine2() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateAddressLine2()
+		s.UpdateBillingAddressLine2()
 	})
 }
 
-// ClearAddressLine2 clears the value of the "address_line2" field.
-func (u *CustomerUpsertOne) ClearAddressLine2() *CustomerUpsertOne {
+// ClearBillingAddressLine2 clears the value of the "billing_address_line2" field.
+func (u *CustomerUpsertOne) ClearBillingAddressLine2() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
-		s.ClearAddressLine2()
+		s.ClearBillingAddressLine2()
 	})
 }
 
-// SetAddressPhoneNumber sets the "address_phone_number" field.
-func (u *CustomerUpsertOne) SetAddressPhoneNumber(v string) *CustomerUpsertOne {
+// SetBillingAddressPhoneNumber sets the "billing_address_phone_number" field.
+func (u *CustomerUpsertOne) SetBillingAddressPhoneNumber(v string) *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
-		s.SetAddressPhoneNumber(v)
+		s.SetBillingAddressPhoneNumber(v)
 	})
 }
 
-// UpdateAddressPhoneNumber sets the "address_phone_number" field to the value that was provided on create.
-func (u *CustomerUpsertOne) UpdateAddressPhoneNumber() *CustomerUpsertOne {
+// UpdateBillingAddressPhoneNumber sets the "billing_address_phone_number" field to the value that was provided on create.
+func (u *CustomerUpsertOne) UpdateBillingAddressPhoneNumber() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateAddressPhoneNumber()
+		s.UpdateBillingAddressPhoneNumber()
 	})
 }
 
-// ClearAddressPhoneNumber clears the value of the "address_phone_number" field.
-func (u *CustomerUpsertOne) ClearAddressPhoneNumber() *CustomerUpsertOne {
+// ClearBillingAddressPhoneNumber clears the value of the "billing_address_phone_number" field.
+func (u *CustomerUpsertOne) ClearBillingAddressPhoneNumber() *CustomerUpsertOne {
 	return u.Update(func(s *CustomerUpsert) {
-		s.ClearAddressPhoneNumber()
+		s.ClearBillingAddressPhoneNumber()
 	})
 }
 
@@ -1422,7 +1422,7 @@ func (ccb *CustomerCreateBulk) ExecX(ctx context.Context) {
 //		// Override some of the fields with custom
 //		// update values.
 //		Update(func(u *ent.CustomerUpsert) {
-//			SetName(v+v).
+//			SetKey(v+v).
 //		}).
 //		Exec(ctx)
 func (ccb *CustomerCreateBulk) OnConflict(opts ...sql.ConflictOption) *CustomerUpsertBulk {
@@ -1510,20 +1510,6 @@ func (u *CustomerUpsertBulk) Update(set func(*CustomerUpsert)) *CustomerUpsertBu
 	return u
 }
 
-// SetName sets the "name" field.
-func (u *CustomerUpsertBulk) SetName(v string) *CustomerUpsertBulk {
-	return u.Update(func(s *CustomerUpsert) {
-		s.SetName(v)
-	})
-}
-
-// UpdateName sets the "name" field to the value that was provided on create.
-func (u *CustomerUpsertBulk) UpdateName() *CustomerUpsertBulk {
-	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateName()
-	})
-}
-
 // SetMetadata sets the "metadata" field.
 func (u *CustomerUpsertBulk) SetMetadata(v map[string]string) *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
@@ -1577,6 +1563,20 @@ func (u *CustomerUpsertBulk) UpdateDeletedAt() *CustomerUpsertBulk {
 func (u *CustomerUpsertBulk) ClearDeletedAt() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
 		s.ClearDeletedAt()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *CustomerUpsertBulk) SetName(v string) *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *CustomerUpsertBulk) UpdateName() *CustomerUpsertBulk {
+	return u.Update(func(s *CustomerUpsert) {
+		s.UpdateName()
 	})
 }
 
@@ -1706,150 +1706,150 @@ func (u *CustomerUpsertBulk) ClearPrimaryEmail() *CustomerUpsertBulk {
 	})
 }
 
-// SetAddressCountry sets the "address_country" field.
-func (u *CustomerUpsertBulk) SetAddressCountry(v string) *CustomerUpsertBulk {
+// SetBillingAddressCountry sets the "billing_address_country" field.
+func (u *CustomerUpsertBulk) SetBillingAddressCountry(v models.CountryCode) *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
-		s.SetAddressCountry(v)
+		s.SetBillingAddressCountry(v)
 	})
 }
 
-// UpdateAddressCountry sets the "address_country" field to the value that was provided on create.
-func (u *CustomerUpsertBulk) UpdateAddressCountry() *CustomerUpsertBulk {
+// UpdateBillingAddressCountry sets the "billing_address_country" field to the value that was provided on create.
+func (u *CustomerUpsertBulk) UpdateBillingAddressCountry() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateAddressCountry()
+		s.UpdateBillingAddressCountry()
 	})
 }
 
-// ClearAddressCountry clears the value of the "address_country" field.
-func (u *CustomerUpsertBulk) ClearAddressCountry() *CustomerUpsertBulk {
+// ClearBillingAddressCountry clears the value of the "billing_address_country" field.
+func (u *CustomerUpsertBulk) ClearBillingAddressCountry() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
-		s.ClearAddressCountry()
+		s.ClearBillingAddressCountry()
 	})
 }
 
-// SetAddressPostalCode sets the "address_postal_code" field.
-func (u *CustomerUpsertBulk) SetAddressPostalCode(v string) *CustomerUpsertBulk {
+// SetBillingAddressPostalCode sets the "billing_address_postal_code" field.
+func (u *CustomerUpsertBulk) SetBillingAddressPostalCode(v string) *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
-		s.SetAddressPostalCode(v)
+		s.SetBillingAddressPostalCode(v)
 	})
 }
 
-// UpdateAddressPostalCode sets the "address_postal_code" field to the value that was provided on create.
-func (u *CustomerUpsertBulk) UpdateAddressPostalCode() *CustomerUpsertBulk {
+// UpdateBillingAddressPostalCode sets the "billing_address_postal_code" field to the value that was provided on create.
+func (u *CustomerUpsertBulk) UpdateBillingAddressPostalCode() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateAddressPostalCode()
+		s.UpdateBillingAddressPostalCode()
 	})
 }
 
-// ClearAddressPostalCode clears the value of the "address_postal_code" field.
-func (u *CustomerUpsertBulk) ClearAddressPostalCode() *CustomerUpsertBulk {
+// ClearBillingAddressPostalCode clears the value of the "billing_address_postal_code" field.
+func (u *CustomerUpsertBulk) ClearBillingAddressPostalCode() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
-		s.ClearAddressPostalCode()
+		s.ClearBillingAddressPostalCode()
 	})
 }
 
-// SetAddressState sets the "address_state" field.
-func (u *CustomerUpsertBulk) SetAddressState(v string) *CustomerUpsertBulk {
+// SetBillingAddressState sets the "billing_address_state" field.
+func (u *CustomerUpsertBulk) SetBillingAddressState(v string) *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
-		s.SetAddressState(v)
+		s.SetBillingAddressState(v)
 	})
 }
 
-// UpdateAddressState sets the "address_state" field to the value that was provided on create.
-func (u *CustomerUpsertBulk) UpdateAddressState() *CustomerUpsertBulk {
+// UpdateBillingAddressState sets the "billing_address_state" field to the value that was provided on create.
+func (u *CustomerUpsertBulk) UpdateBillingAddressState() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateAddressState()
+		s.UpdateBillingAddressState()
 	})
 }
 
-// ClearAddressState clears the value of the "address_state" field.
-func (u *CustomerUpsertBulk) ClearAddressState() *CustomerUpsertBulk {
+// ClearBillingAddressState clears the value of the "billing_address_state" field.
+func (u *CustomerUpsertBulk) ClearBillingAddressState() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
-		s.ClearAddressState()
+		s.ClearBillingAddressState()
 	})
 }
 
-// SetAddressCity sets the "address_city" field.
-func (u *CustomerUpsertBulk) SetAddressCity(v string) *CustomerUpsertBulk {
+// SetBillingAddressCity sets the "billing_address_city" field.
+func (u *CustomerUpsertBulk) SetBillingAddressCity(v string) *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
-		s.SetAddressCity(v)
+		s.SetBillingAddressCity(v)
 	})
 }
 
-// UpdateAddressCity sets the "address_city" field to the value that was provided on create.
-func (u *CustomerUpsertBulk) UpdateAddressCity() *CustomerUpsertBulk {
+// UpdateBillingAddressCity sets the "billing_address_city" field to the value that was provided on create.
+func (u *CustomerUpsertBulk) UpdateBillingAddressCity() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateAddressCity()
+		s.UpdateBillingAddressCity()
 	})
 }
 
-// ClearAddressCity clears the value of the "address_city" field.
-func (u *CustomerUpsertBulk) ClearAddressCity() *CustomerUpsertBulk {
+// ClearBillingAddressCity clears the value of the "billing_address_city" field.
+func (u *CustomerUpsertBulk) ClearBillingAddressCity() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
-		s.ClearAddressCity()
+		s.ClearBillingAddressCity()
 	})
 }
 
-// SetAddressLine1 sets the "address_line1" field.
-func (u *CustomerUpsertBulk) SetAddressLine1(v string) *CustomerUpsertBulk {
+// SetBillingAddressLine1 sets the "billing_address_line1" field.
+func (u *CustomerUpsertBulk) SetBillingAddressLine1(v string) *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
-		s.SetAddressLine1(v)
+		s.SetBillingAddressLine1(v)
 	})
 }
 
-// UpdateAddressLine1 sets the "address_line1" field to the value that was provided on create.
-func (u *CustomerUpsertBulk) UpdateAddressLine1() *CustomerUpsertBulk {
+// UpdateBillingAddressLine1 sets the "billing_address_line1" field to the value that was provided on create.
+func (u *CustomerUpsertBulk) UpdateBillingAddressLine1() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateAddressLine1()
+		s.UpdateBillingAddressLine1()
 	})
 }
 
-// ClearAddressLine1 clears the value of the "address_line1" field.
-func (u *CustomerUpsertBulk) ClearAddressLine1() *CustomerUpsertBulk {
+// ClearBillingAddressLine1 clears the value of the "billing_address_line1" field.
+func (u *CustomerUpsertBulk) ClearBillingAddressLine1() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
-		s.ClearAddressLine1()
+		s.ClearBillingAddressLine1()
 	})
 }
 
-// SetAddressLine2 sets the "address_line2" field.
-func (u *CustomerUpsertBulk) SetAddressLine2(v string) *CustomerUpsertBulk {
+// SetBillingAddressLine2 sets the "billing_address_line2" field.
+func (u *CustomerUpsertBulk) SetBillingAddressLine2(v string) *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
-		s.SetAddressLine2(v)
+		s.SetBillingAddressLine2(v)
 	})
 }
 
-// UpdateAddressLine2 sets the "address_line2" field to the value that was provided on create.
-func (u *CustomerUpsertBulk) UpdateAddressLine2() *CustomerUpsertBulk {
+// UpdateBillingAddressLine2 sets the "billing_address_line2" field to the value that was provided on create.
+func (u *CustomerUpsertBulk) UpdateBillingAddressLine2() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateAddressLine2()
+		s.UpdateBillingAddressLine2()
 	})
 }
 
-// ClearAddressLine2 clears the value of the "address_line2" field.
-func (u *CustomerUpsertBulk) ClearAddressLine2() *CustomerUpsertBulk {
+// ClearBillingAddressLine2 clears the value of the "billing_address_line2" field.
+func (u *CustomerUpsertBulk) ClearBillingAddressLine2() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
-		s.ClearAddressLine2()
+		s.ClearBillingAddressLine2()
 	})
 }
 
-// SetAddressPhoneNumber sets the "address_phone_number" field.
-func (u *CustomerUpsertBulk) SetAddressPhoneNumber(v string) *CustomerUpsertBulk {
+// SetBillingAddressPhoneNumber sets the "billing_address_phone_number" field.
+func (u *CustomerUpsertBulk) SetBillingAddressPhoneNumber(v string) *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
-		s.SetAddressPhoneNumber(v)
+		s.SetBillingAddressPhoneNumber(v)
 	})
 }
 
-// UpdateAddressPhoneNumber sets the "address_phone_number" field to the value that was provided on create.
-func (u *CustomerUpsertBulk) UpdateAddressPhoneNumber() *CustomerUpsertBulk {
+// UpdateBillingAddressPhoneNumber sets the "billing_address_phone_number" field to the value that was provided on create.
+func (u *CustomerUpsertBulk) UpdateBillingAddressPhoneNumber() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
-		s.UpdateAddressPhoneNumber()
+		s.UpdateBillingAddressPhoneNumber()
 	})
 }
 
-// ClearAddressPhoneNumber clears the value of the "address_phone_number" field.
-func (u *CustomerUpsertBulk) ClearAddressPhoneNumber() *CustomerUpsertBulk {
+// ClearBillingAddressPhoneNumber clears the value of the "billing_address_phone_number" field.
+func (u *CustomerUpsertBulk) ClearBillingAddressPhoneNumber() *CustomerUpsertBulk {
 	return u.Update(func(s *CustomerUpsert) {
-		s.ClearAddressPhoneNumber()
+		s.ClearBillingAddressPhoneNumber()
 	})
 }
 

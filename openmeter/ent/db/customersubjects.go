@@ -18,21 +18,16 @@ type CustomerSubjects struct {
 	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
-	// CreatedAt holds the value of the "created_at" field.
-	CreatedAt time.Time `json:"created_at,omitempty"`
-	// UpdatedAt holds the value of the "updated_at" field.
-	UpdatedAt time.Time `json:"updated_at,omitempty"`
-	// DeletedAt holds the value of the "deleted_at" field.
-	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// CustomerID holds the value of the "customer_id" field.
 	CustomerID string `json:"customer_id,omitempty"`
 	// SubjectKey holds the value of the "subject_key" field.
 	SubjectKey string `json:"subject_key,omitempty"`
+	// CreatedAt holds the value of the "created_at" field.
+	CreatedAt time.Time `json:"created_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the CustomerSubjectsQuery when eager-loading is set.
-	Edges             CustomerSubjectsEdges `json:"edges"`
-	customer_subjects *string
-	selectValues      sql.SelectValues
+	Edges        CustomerSubjectsEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // CustomerSubjectsEdges holds the relations/edges for other nodes in the graph.
@@ -64,10 +59,8 @@ func (*CustomerSubjects) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case customersubjects.FieldCustomerID, customersubjects.FieldSubjectKey:
 			values[i] = new(sql.NullString)
-		case customersubjects.FieldCreatedAt, customersubjects.FieldUpdatedAt, customersubjects.FieldDeletedAt:
+		case customersubjects.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
-		case customersubjects.ForeignKeys[0]: // customer_subjects
-			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -89,25 +82,6 @@ func (cs *CustomerSubjects) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			cs.ID = int(value.Int64)
-		case customersubjects.FieldCreatedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field created_at", values[i])
-			} else if value.Valid {
-				cs.CreatedAt = value.Time
-			}
-		case customersubjects.FieldUpdatedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
-			} else if value.Valid {
-				cs.UpdatedAt = value.Time
-			}
-		case customersubjects.FieldDeletedAt:
-			if value, ok := values[i].(*sql.NullTime); !ok {
-				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
-			} else if value.Valid {
-				cs.DeletedAt = new(time.Time)
-				*cs.DeletedAt = value.Time
-			}
 		case customersubjects.FieldCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field customer_id", values[i])
@@ -120,12 +94,11 @@ func (cs *CustomerSubjects) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				cs.SubjectKey = value.String
 			}
-		case customersubjects.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field customer_subjects", values[i])
+		case customersubjects.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
-				cs.customer_subjects = new(string)
-				*cs.customer_subjects = value.String
+				cs.CreatedAt = value.Time
 			}
 		default:
 			cs.selectValues.Set(columns[i], values[i])
@@ -168,22 +141,14 @@ func (cs *CustomerSubjects) String() string {
 	var builder strings.Builder
 	builder.WriteString("CustomerSubjects(")
 	builder.WriteString(fmt.Sprintf("id=%v, ", cs.ID))
-	builder.WriteString("created_at=")
-	builder.WriteString(cs.CreatedAt.Format(time.ANSIC))
-	builder.WriteString(", ")
-	builder.WriteString("updated_at=")
-	builder.WriteString(cs.UpdatedAt.Format(time.ANSIC))
-	builder.WriteString(", ")
-	if v := cs.DeletedAt; v != nil {
-		builder.WriteString("deleted_at=")
-		builder.WriteString(v.Format(time.ANSIC))
-	}
-	builder.WriteString(", ")
 	builder.WriteString("customer_id=")
 	builder.WriteString(cs.CustomerID)
 	builder.WriteString(", ")
 	builder.WriteString("subject_key=")
 	builder.WriteString(cs.SubjectKey)
+	builder.WriteString(", ")
+	builder.WriteString("created_at=")
+	builder.WriteString(cs.CreatedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

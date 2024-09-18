@@ -301,12 +301,12 @@ func (cq *CustomerQuery) WithSubjects(opts ...func(*CustomerSubjectsQuery)) *Cus
 // Example:
 //
 //	var v []struct {
-//		Name string `json:"name,omitempty"`
+//		Key string `json:"key,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Customer.Query().
-//		GroupBy(customer.FieldName).
+//		GroupBy(customer.FieldKey).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
 func (cq *CustomerQuery) GroupBy(field string, fields ...string) *CustomerGroupBy {
@@ -324,11 +324,11 @@ func (cq *CustomerQuery) GroupBy(field string, fields ...string) *CustomerGroupB
 // Example:
 //
 //	var v []struct {
-//		Name string `json:"name,omitempty"`
+//		Key string `json:"key,omitempty"`
 //	}
 //
 //	client.Customer.Query().
-//		Select(customer.FieldName).
+//		Select(customer.FieldKey).
 //		Scan(ctx, &v)
 func (cq *CustomerQuery) Select(fields ...string) *CustomerSelect {
 	cq.ctx.Fields = append(cq.ctx.Fields, fields...)
@@ -418,7 +418,9 @@ func (cq *CustomerQuery) loadSubjects(ctx context.Context, query *CustomerSubjec
 			init(nodes[i])
 		}
 	}
-	query.withFKs = true
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(customersubjects.FieldCustomerID)
+	}
 	query.Where(predicate.CustomerSubjects(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(customer.SubjectsColumn), fks...))
 	}))
@@ -427,13 +429,10 @@ func (cq *CustomerQuery) loadSubjects(ctx context.Context, query *CustomerSubjec
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.customer_subjects
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "customer_subjects" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		fk := n.CustomerID
+		node, ok := nodeids[fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "customer_subjects" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "customer_id" returned %v for node %v`, fk, n.ID)
 		}
 		assign(node, n)
 	}

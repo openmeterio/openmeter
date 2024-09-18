@@ -17,22 +17,26 @@ type ResourceMixin struct {
 }
 
 func (ResourceMixin) Fields() []ent.Field {
-	fields := []ent.Field{
-		field.String("name").NotEmpty(),
-	}
+	var fields []ent.Field
 	fields = append(fields, IDMixin{}.Fields()...)
 	fields = append(fields, KeyMixin{}.Fields()...)
 	fields = append(fields, NamespaceMixin{}.Fields()...)
 	fields = append(fields, MetadataAnnotationsMixin{}.Fields()...)
 	fields = append(fields, TimeMixin{}.Fields()...)
+	fields = append(fields, field.String("name").NotEmpty())
 
 	return fields
 }
 
 func (ResourceMixin) Indexes() []ent.Index {
-	indexes := []ent.Index{}
+	var indexes []ent.Index
 	indexes = append(indexes, IDMixin{}.Indexes()...)
+	indexes = append(indexes, KeyMixin{}.Indexes()...)
+	indexes = append(indexes, NamespaceMixin{}.Indexes()...)
+	indexes = append(indexes, MetadataAnnotationsMixin{}.Indexes()...)
+	indexes = append(indexes, TimeMixin{}.Indexes()...)
 	indexes = append(indexes, index.Fields("namespace", "id"))
+	indexes = append(indexes, index.Fields("namespace", "key").Unique())
 	return indexes
 }
 
@@ -87,6 +91,12 @@ func (NamespaceMixin) Fields() []ent.Field {
 		field.String("namespace").
 			NotEmpty().
 			Immutable(),
+	}
+}
+
+func (NamespaceMixin) Indexes() []ent.Index {
+	return []ent.Index{
+		index.Fields("namespace"),
 	}
 }
 

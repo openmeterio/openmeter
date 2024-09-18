@@ -2,10 +2,12 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
 
+	"github.com/openmeterio/openmeter/pkg/clock"
 	"github.com/openmeterio/openmeter/pkg/framework/entutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
@@ -31,18 +33,14 @@ func (Customer) Fields() []ent.Field {
 
 		// PII fields
 		field.String("primary_email").Optional().Nillable(),
-		field.String("address_country").MinLen(2).MaxLen(2).Optional().Nillable(),
-		field.String("address_postal_code").Optional().Nillable(),
-		field.String("address_state").Optional().Nillable(),
-		field.String("address_city").Optional().Nillable(),
-		field.String("address_line1").Optional().Nillable(),
-		field.String("address_line2").Optional().Nillable(),
-		field.String("address_phone_number").Optional().Nillable(),
+		field.String("billing_address_country").GoType(models.CountryCode("")).MinLen(2).MaxLen(2).Optional().Nillable(),
+		field.String("billing_address_postal_code").Optional().Nillable(),
+		field.String("billing_address_state").Optional().Nillable(),
+		field.String("billing_address_city").Optional().Nillable(),
+		field.String("billing_address_line1").Optional().Nillable(),
+		field.String("billing_address_line2").Optional().Nillable(),
+		field.String("billing_address_phone_number").Optional().Nillable(),
 	}
-}
-
-func (Customer) Indexes() []ent.Index {
-	return []ent.Index{}
 }
 
 func (Customer) Edges() []ent.Edge {
@@ -56,16 +54,20 @@ type CustomerSubjects struct {
 	ent.Schema
 }
 
-func (CustomerSubjects) Mixin() []ent.Mixin {
-	return []ent.Mixin{
-		entutils.TimeMixin{},
-	}
-}
-
 func (CustomerSubjects) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("customer_id").Immutable(),
-		field.String("subject_key").Immutable(),
+		field.String("customer_id").
+			Immutable().
+			NotEmpty().
+			SchemaType(map[string]string{
+				dialect.Postgres: "char(26)",
+			}),
+		field.String("subject_key").
+			Immutable().
+			NotEmpty(),
+		field.Time("created_at").
+			Default(clock.Now).
+			Immutable(),
 	}
 }
 
@@ -80,6 +82,9 @@ func (CustomerSubjects) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("customer", Customer.Type).
 			Ref("subjects").
+			Field("customer_id").
+			Required().
+			Immutable().
 			Unique(),
 	}
 }

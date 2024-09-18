@@ -3,6 +3,8 @@ package repository
 import (
 	"time"
 
+	"github.com/samber/lo"
+
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/ent/db"
 	"github.com/openmeterio/openmeter/pkg/models"
@@ -12,15 +14,19 @@ func CustomerFromDBEntity(e db.Customer) *customer.Customer {
 	var subjectKeys []string
 
 	if e.Edges.Subjects != nil {
-		subjectKeys = make([]string, 0, len(e.Edges.Subjects))
-		for _, subject := range e.Edges.Subjects {
-			subjectKeys = append(subjectKeys, subject.SubjectKey)
-		}
+		subjectKeys = lo.Map(
+			e.Edges.Subjects,
+			func(item *db.CustomerSubjects, _ int) string {
+				return item.SubjectKey
+			},
+		)
 	}
 
 	result := &customer.Customer{
 		// TODO: create common function to convert managed resource entity to model
 		ManagedResource: models.ManagedResource{
+			ID:  e.ID,
+			Key: e.Key,
 			NamespacedModel: models.NamespacedModel{
 				Namespace: e.Namespace,
 			},
@@ -48,15 +54,15 @@ func CustomerFromDBEntity(e db.Customer) *customer.Customer {
 		PaymentProvider:   e.PaymentProvider,
 	}
 
-	if e.AddressCity != nil || e.AddressCountry != nil || e.AddressLine1 != nil || e.AddressLine2 != nil || e.AddressPhoneNumber != nil || e.AddressPostalCode != nil || e.AddressState != nil {
-		result.Address = &models.Address{
-			City:        e.AddressCity,
-			Country:     e.AddressCountry,
-			Line1:       e.AddressLine1,
-			Line2:       e.AddressLine2,
-			PhoneNumber: e.AddressPhoneNumber,
-			PostalCode:  e.AddressPostalCode,
-			State:       e.AddressState,
+	if e.BillingAddressCity != nil || e.BillingAddressCountry != nil || e.BillingAddressLine1 != nil || e.BillingAddressLine2 != nil || e.BillingAddressPhoneNumber != nil || e.BillingAddressPostalCode != nil || e.BillingAddressState != nil {
+		result.BillingAddress = &models.Address{
+			City:        e.BillingAddressCity,
+			Country:     e.BillingAddressCountry,
+			Line1:       e.BillingAddressLine1,
+			Line2:       e.BillingAddressLine2,
+			PhoneNumber: e.BillingAddressPhoneNumber,
+			PostalCode:  e.BillingAddressPostalCode,
+			State:       e.BillingAddressState,
 		}
 	}
 

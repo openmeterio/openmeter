@@ -25,7 +25,6 @@ type CustomerSubjectsQuery struct {
 	inters       []Interceptor
 	predicates   []predicate.CustomerSubjects
 	withCustomer *CustomerQuery
-	withFKs      bool
 	modifiers    []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
@@ -301,12 +300,12 @@ func (csq *CustomerSubjectsQuery) WithCustomer(opts ...func(*CustomerQuery)) *Cu
 // Example:
 //
 //	var v []struct {
-//		CreatedAt time.Time `json:"created_at,omitempty"`
+//		CustomerID string `json:"customer_id,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.CustomerSubjects.Query().
-//		GroupBy(customersubjects.FieldCreatedAt).
+//		GroupBy(customersubjects.FieldCustomerID).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
 func (csq *CustomerSubjectsQuery) GroupBy(field string, fields ...string) *CustomerSubjectsGroupBy {
@@ -324,11 +323,11 @@ func (csq *CustomerSubjectsQuery) GroupBy(field string, fields ...string) *Custo
 // Example:
 //
 //	var v []struct {
-//		CreatedAt time.Time `json:"created_at,omitempty"`
+//		CustomerID string `json:"customer_id,omitempty"`
 //	}
 //
 //	client.CustomerSubjects.Query().
-//		Select(customersubjects.FieldCreatedAt).
+//		Select(customersubjects.FieldCustomerID).
 //		Scan(ctx, &v)
 func (csq *CustomerSubjectsQuery) Select(fields ...string) *CustomerSubjectsSelect {
 	csq.ctx.Fields = append(csq.ctx.Fields, fields...)
@@ -372,18 +371,11 @@ func (csq *CustomerSubjectsQuery) prepareQuery(ctx context.Context) error {
 func (csq *CustomerSubjectsQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*CustomerSubjects, error) {
 	var (
 		nodes       = []*CustomerSubjects{}
-		withFKs     = csq.withFKs
 		_spec       = csq.querySpec()
 		loadedTypes = [1]bool{
 			csq.withCustomer != nil,
 		}
 	)
-	if csq.withCustomer != nil {
-		withFKs = true
-	}
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, customersubjects.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*CustomerSubjects).scanValues(nil, columns)
 	}
@@ -418,10 +410,7 @@ func (csq *CustomerSubjectsQuery) loadCustomer(ctx context.Context, query *Custo
 	ids := make([]string, 0, len(nodes))
 	nodeids := make(map[string][]*CustomerSubjects)
 	for i := range nodes {
-		if nodes[i].customer_subjects == nil {
-			continue
-		}
-		fk := *nodes[i].customer_subjects
+		fk := nodes[i].CustomerID
 		if _, ok := nodeids[fk]; !ok {
 			ids = append(ids, fk)
 		}
@@ -438,7 +427,7 @@ func (csq *CustomerSubjectsQuery) loadCustomer(ctx context.Context, query *Custo
 	for _, n := range neighbors {
 		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "customer_subjects" returned %v`, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "customer_id" returned %v`, n.ID)
 		}
 		for i := range nodes {
 			assign(nodes[i], n)
@@ -474,6 +463,9 @@ func (csq *CustomerSubjectsQuery) querySpec() *sqlgraph.QuerySpec {
 			if fields[i] != customersubjects.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
+		}
+		if csq.withCustomer != nil {
+			_spec.Node.AddColumnOnce(customersubjects.FieldCustomerID)
 		}
 	}
 	if ps := csq.predicates; len(ps) > 0 {

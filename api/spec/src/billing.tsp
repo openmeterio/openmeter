@@ -27,7 +27,7 @@ union TaxProvider {
    * Useful to generate test invoices.
    */
   @summary("OpenMeter Test")
-  openmeter_test: "openmeter_test",
+  openmeter_sandbox: "openmeter_sandbox",
 
   /**
    * Stripe Tax.
@@ -47,7 +47,7 @@ union InvoicingProvider {
    * Useful to generate test invoices.
    */
   @summary("OpenMeter Test")
-  openmeter_test: "openmeter_test",
+  openmeter_sandbox: "openmeter_sandbox",
 
   /**
    * Stripe Invoicing.
@@ -67,7 +67,7 @@ union PaymentProvider {
    * Useful to generate test invoices.
    */
   @summary("OpenMeter Test")
-  openmeter_test: "openmeter_test",
+  openmeter_sandbox: "openmeter_sandbox",
 
   /**
    * Stripe Payments.

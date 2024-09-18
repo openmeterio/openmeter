@@ -37,6 +37,11 @@ var (
 		},
 		Indexes: []*schema.Index{
 			{
+				Name:    "balancesnapshot_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BalanceSnapshotsColumns[1]},
+			},
+			{
 				Name:    "balancesnapshot_namespace_at",
 				Unique:  false,
 				Columns: []*schema.Column{BalanceSnapshotsColumns[1], BalanceSnapshotsColumns[8]},
@@ -99,6 +104,11 @@ var (
 				Name:    "billinginvoice_id",
 				Unique:  false,
 				Columns: []*schema.Column{BillingInvoicesColumns[0]},
+			},
+			{
+				Name:    "billinginvoice_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoicesColumns[1]},
 			},
 			{
 				Name:    "billinginvoice_namespace_id",
@@ -165,6 +175,11 @@ var (
 				Columns: []*schema.Column{BillingInvoiceItemsColumns[0]},
 			},
 			{
+				Name:    "billinginvoiceitem_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BillingInvoiceItemsColumns[1]},
+			},
+			{
 				Name:    "billinginvoiceitem_namespace_id",
 				Unique:  false,
 				Columns: []*schema.Column{BillingInvoiceItemsColumns[1], BillingInvoiceItemsColumns[0]},
@@ -213,6 +228,11 @@ var (
 				Columns: []*schema.Column{BillingProfilesColumns[0]},
 			},
 			{
+				Name:    "billingprofile_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BillingProfilesColumns[1]},
+			},
+			{
 				Name:    "billingprofile_namespace_key",
 				Unique:  false,
 				Columns: []*schema.Column{BillingProfilesColumns[1], BillingProfilesColumns[5]},
@@ -257,6 +277,11 @@ var (
 				Columns: []*schema.Column{BillingWorkflowConfigsColumns[0]},
 			},
 			{
+				Name:    "billingworkflowconfig_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{BillingWorkflowConfigsColumns[1]},
+			},
+			{
 				Name:    "billingworkflowconfig_namespace_id",
 				Unique:  false,
 				Columns: []*schema.Column{BillingWorkflowConfigsColumns[1], BillingWorkflowConfigsColumns[0]},
@@ -266,26 +291,26 @@ var (
 	// CustomersColumns holds the columns for the "customers" table.
 	CustomersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
-		{Name: "name", Type: field.TypeString},
 		{Name: "key", Type: field.TypeString},
 		{Name: "namespace", Type: field.TypeString},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "name", Type: field.TypeString},
 		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},
-		{Name: "tax_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_test", "stripe_tax"}},
-		{Name: "invoicing_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_test", "stripe_invoicing"}},
-		{Name: "payment_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_test", "stripe_payments"}},
+		{Name: "tax_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_sandbox", "stripe_tax"}},
+		{Name: "invoicing_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_sandbox", "stripe_invoicing"}},
+		{Name: "payment_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_sandbox", "stripe_payments"}},
 		{Name: "external_mapping_stripe_customer_id", Type: field.TypeString, Nullable: true},
 		{Name: "primary_email", Type: field.TypeString, Nullable: true},
-		{Name: "address_country", Type: field.TypeString, Nullable: true, Size: 2},
-		{Name: "address_postal_code", Type: field.TypeString, Nullable: true},
-		{Name: "address_state", Type: field.TypeString, Nullable: true},
-		{Name: "address_city", Type: field.TypeString, Nullable: true},
-		{Name: "address_line1", Type: field.TypeString, Nullable: true},
-		{Name: "address_line2", Type: field.TypeString, Nullable: true},
-		{Name: "address_phone_number", Type: field.TypeString, Nullable: true},
+		{Name: "billing_address_country", Type: field.TypeString, Nullable: true, Size: 2},
+		{Name: "billing_address_postal_code", Type: field.TypeString, Nullable: true},
+		{Name: "billing_address_state", Type: field.TypeString, Nullable: true},
+		{Name: "billing_address_city", Type: field.TypeString, Nullable: true},
+		{Name: "billing_address_line1", Type: field.TypeString, Nullable: true},
+		{Name: "billing_address_line2", Type: field.TypeString, Nullable: true},
+		{Name: "billing_address_phone_number", Type: field.TypeString, Nullable: true},
 	}
 	// CustomersTable holds the schema information for the "customers" table.
 	CustomersTable = &schema.Table{
@@ -299,21 +324,28 @@ var (
 				Columns: []*schema.Column{CustomersColumns[0]},
 			},
 			{
+				Name:    "customer_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{CustomersColumns[2]},
+			},
+			{
 				Name:    "customer_namespace_id",
 				Unique:  false,
-				Columns: []*schema.Column{CustomersColumns[3], CustomersColumns[0]},
+				Columns: []*schema.Column{CustomersColumns[2], CustomersColumns[0]},
+			},
+			{
+				Name:    "customer_namespace_key",
+				Unique:  true,
+				Columns: []*schema.Column{CustomersColumns[2], CustomersColumns[1]},
 			},
 		},
 	}
 	// CustomerSubjectsColumns holds the columns for the "customer_subjects" table.
 	CustomerSubjectsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
-		{Name: "created_at", Type: field.TypeTime},
-		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "customer_id", Type: field.TypeString},
 		{Name: "subject_key", Type: field.TypeString},
-		{Name: "customer_subjects", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
 	}
 	// CustomerSubjectsTable holds the schema information for the "customer_subjects" table.
 	CustomerSubjectsTable = &schema.Table{
@@ -323,16 +355,16 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "customer_subjects_customers_subjects",
-				Columns:    []*schema.Column{CustomerSubjectsColumns[6]},
+				Columns:    []*schema.Column{CustomerSubjectsColumns[3]},
 				RefColumns: []*schema.Column{CustomersColumns[0]},
-				OnDelete:   schema.SetNull,
+				OnDelete:   schema.NoAction,
 			},
 		},
 		Indexes: []*schema.Index{
 			{
 				Name:    "customersubjects_customer_id_subject_key",
 				Unique:  true,
-				Columns: []*schema.Column{CustomerSubjectsColumns[4], CustomerSubjectsColumns[5]},
+				Columns: []*schema.Column{CustomerSubjectsColumns[3], CustomerSubjectsColumns[1]},
 			},
 		},
 	}
@@ -377,6 +409,11 @@ var (
 				Name:    "entitlement_id",
 				Unique:  false,
 				Columns: []*schema.Column{EntitlementsColumns[0]},
+			},
+			{
+				Name:    "entitlement_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{EntitlementsColumns[1]},
 			},
 			{
 				Name:    "entitlement_namespace_id",
@@ -482,6 +519,11 @@ var (
 				Columns: []*schema.Column{GrantsColumns[0]},
 			},
 			{
+				Name:    "grant_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{GrantsColumns[1]},
+			},
+			{
 				Name:    "grant_namespace_owner_id",
 				Unique:  false,
 				Columns: []*schema.Column{GrantsColumns[1], GrantsColumns[16]},
@@ -515,6 +557,11 @@ var (
 				Name:    "notificationchannel_id",
 				Unique:  false,
 				Columns: []*schema.Column{NotificationChannelsColumns[0]},
+			},
+			{
+				Name:    "notificationchannel_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationChannelsColumns[1]},
 			},
 			{
 				Name:    "notificationchannel_namespace_id",
@@ -556,6 +603,11 @@ var (
 				Name:    "notificationevent_id",
 				Unique:  false,
 				Columns: []*schema.Column{NotificationEventsColumns[0]},
+			},
+			{
+				Name:    "notificationevent_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationEventsColumns[1]},
 			},
 			{
 				Name:    "notificationevent_namespace_id",
@@ -602,6 +654,11 @@ var (
 				Columns: []*schema.Column{NotificationEventDeliveryStatusColumns[0]},
 			},
 			{
+				Name:    "notificationeventdeliverystatus_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationEventDeliveryStatusColumns[1]},
+			},
+			{
 				Name:    "notificationeventdeliverystatus_namespace_id",
 				Unique:  false,
 				Columns: []*schema.Column{NotificationEventDeliveryStatusColumns[1], NotificationEventDeliveryStatusColumns[0]},
@@ -640,6 +697,11 @@ var (
 				Name:    "notificationrule_id",
 				Unique:  false,
 				Columns: []*schema.Column{NotificationRulesColumns[0]},
+			},
+			{
+				Name:    "notificationrule_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{NotificationRulesColumns[1]},
 			},
 			{
 				Name:    "notificationrule_namespace_id",
@@ -681,6 +743,11 @@ var (
 				Name:    "usagereset_id",
 				Unique:  false,
 				Columns: []*schema.Column{UsageResetsColumns[0]},
+			},
+			{
+				Name:    "usagereset_namespace",
+				Unique:  false,
+				Columns: []*schema.Column{UsageResetsColumns[1]},
 			},
 			{
 				Name:    "usagereset_namespace_entitlement_id",
