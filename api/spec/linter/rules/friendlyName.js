@@ -32,5 +32,17 @@ export const friendlyNameRule = createRule({
         })
       }
     },
+    union: (node) => {
+      if (node.name && !node.decorators.some((d) => d.decorator.name === '$friendlyName')) {
+        context.reportDiagnostic({
+          format: {
+            type: node.kind,
+            name: node.name,
+          },
+          target: node,
+          messageId: 'default',
+        })
+      }
+    },
   }),
 })
