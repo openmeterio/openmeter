@@ -7,10 +7,11 @@
     "watch": "tsp compile --watch ./src/cloud",
     "format": "prettier --list-different --find-config-path --write ."
   },
+  "main": "./lib/index.js",
+  "tspMain": "./src/cloud/main.tsp",
   "exports": {
-    "./openapi.yaml": "./output/openapi.yaml"
+    "./openapi.yaml": "./output/openapi.OpenMeterCloud.yaml"
   },
-  "main": "./linter/index.js",
   "devDependencies": {
     "@typespec/compiler": "0.60.0",
     "@typespec/http": "0.60.0",
