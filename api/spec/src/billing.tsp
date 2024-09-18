@@ -20,6 +20,7 @@ model TaxConfig {
 /**
  * A tax provider.
  */
+@friendlyName("Tax Provider")
 union TaxProvider {
   /**
    * OpenMeter test billing provider.
@@ -39,6 +40,7 @@ union TaxProvider {
 /**
  * A invoicing provider.
  */
+@friendlyName("Invoicing Provider")
 union InvoicingProvider {
   /**
    * OpenMeter test billing provider.
@@ -58,6 +60,7 @@ union InvoicingProvider {
 /**
  * A payment provider.
  */
+@friendlyName("Payment Provider")
 union PaymentProvider {
   /**
    * OpenMeter test billing provider.
@@ -72,5 +75,5 @@ union PaymentProvider {
    * See: https://stripe.com/payments
    */
   @summary("Stripe Payments")
-  stripe_invoice: "stripe_payments",
+  stripe_payments: "stripe_payments",
 }

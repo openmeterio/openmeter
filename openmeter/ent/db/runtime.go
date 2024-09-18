@@ -12,6 +12,7 @@ import (
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingprofile"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/billingworkflowconfig"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/entitlement"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/feature"
 	dbgrant "github.com/openmeterio/openmeter/openmeter/ent/db/grant"
@@ -211,32 +212,85 @@ func init() {
 	customerMixin := schema.Customer{}.Mixin()
 	customerMixinFields0 := customerMixin[0].Fields()
 	_ = customerMixinFields0
-	customerMixinFields1 := customerMixin[1].Fields()
-	_ = customerMixinFields1
 	customerFields := schema.Customer{}.Fields()
 	_ = customerFields
+	// customerDescName is the schema descriptor for name field.
+	customerDescName := customerMixinFields0[0].Descriptor()
+	// customer.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	customer.NameValidator = customerDescName.Validators[0].(func(string) error)
+	// customerDescKey is the schema descriptor for key field.
+	customerDescKey := customerMixinFields0[2].Descriptor()
+	// customer.KeyValidator is a validator for the "key" field. It is called by the builders before save.
+	customer.KeyValidator = customerDescKey.Validators[0].(func(string) error)
+	// customerDescNamespace is the schema descriptor for namespace field.
+	customerDescNamespace := customerMixinFields0[3].Descriptor()
+	// customer.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
+	customer.NamespaceValidator = customerDescNamespace.Validators[0].(func(string) error)
 	// customerDescCreatedAt is the schema descriptor for created_at field.
-	customerDescCreatedAt := customerMixinFields1[0].Descriptor()
+	customerDescCreatedAt := customerMixinFields0[5].Descriptor()
 	// customer.DefaultCreatedAt holds the default value on creation for the created_at field.
 	customer.DefaultCreatedAt = customerDescCreatedAt.Default.(func() time.Time)
 	// customerDescUpdatedAt is the schema descriptor for updated_at field.
-	customerDescUpdatedAt := customerMixinFields1[1].Descriptor()
+	customerDescUpdatedAt := customerMixinFields0[6].Descriptor()
 	// customer.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	customer.DefaultUpdatedAt = customerDescUpdatedAt.Default.(func() time.Time)
 	// customer.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	customer.UpdateDefaultUpdatedAt = customerDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// customerDescNamespace is the schema descriptor for namespace field.
-	customerDescNamespace := customerFields[0].Descriptor()
-	// customer.NamespaceValidator is a validator for the "namespace" field. It is called by the builders before save.
-	customer.NamespaceValidator = customerDescNamespace.Validators[0].(func(string) error)
-	// customerDescKey is the schema descriptor for key field.
-	customerDescKey := customerFields[1].Descriptor()
-	// customer.KeyValidator is a validator for the "key" field. It is called by the builders before save.
-	customer.KeyValidator = customerDescKey.Validators[0].(func(string) error)
+	// customerDescCurrency is the schema descriptor for currency field.
+	customerDescCurrency := customerFields[0].Descriptor()
+	// customer.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	customer.CurrencyValidator = func() func(string) error {
+		validators := customerDescCurrency.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(currency string) error {
+			for _, fn := range fns {
+				if err := fn(currency); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// customerDescAddressCountry is the schema descriptor for address_country field.
+	customerDescAddressCountry := customerFields[6].Descriptor()
+	// customer.AddressCountryValidator is a validator for the "address_country" field. It is called by the builders before save.
+	customer.AddressCountryValidator = func() func(string) error {
+		validators := customerDescAddressCountry.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(address_country string) error {
+			for _, fn := range fns {
+				if err := fn(address_country); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 	// customerDescID is the schema descriptor for id field.
-	customerDescID := customerMixinFields0[0].Descriptor()
+	customerDescID := customerMixinFields0[1].Descriptor()
 	// customer.DefaultID holds the default value on creation for the id field.
 	customer.DefaultID = customerDescID.Default.(func() string)
+	customersubjectsMixin := schema.CustomerSubjects{}.Mixin()
+	customersubjectsMixinFields0 := customersubjectsMixin[0].Fields()
+	_ = customersubjectsMixinFields0
+	customersubjectsFields := schema.CustomerSubjects{}.Fields()
+	_ = customersubjectsFields
+	// customersubjectsDescCreatedAt is the schema descriptor for created_at field.
+	customersubjectsDescCreatedAt := customersubjectsMixinFields0[0].Descriptor()
+	// customersubjects.DefaultCreatedAt holds the default value on creation for the created_at field.
+	customersubjects.DefaultCreatedAt = customersubjectsDescCreatedAt.Default.(func() time.Time)
+	// customersubjectsDescUpdatedAt is the schema descriptor for updated_at field.
+	customersubjectsDescUpdatedAt := customersubjectsMixinFields0[1].Descriptor()
+	// customersubjects.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	customersubjects.DefaultUpdatedAt = customersubjectsDescUpdatedAt.Default.(func() time.Time)
+	// customersubjects.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	customersubjects.UpdateDefaultUpdatedAt = customersubjectsDescUpdatedAt.UpdateDefault.(func() time.Time)
 	entitlementMixin := schema.Entitlement{}.Mixin()
 	entitlementMixinFields0 := entitlementMixin[0].Fields()
 	_ = entitlementMixinFields0

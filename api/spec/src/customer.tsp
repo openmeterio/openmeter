@@ -1,18 +1,23 @@
 import "./billing.tsp";
+import "./types.tsp";
+
+namespace OpenMeter;
 
 /**
- * A customer is a configuration that defines how to match and aggregate events.
+ * A customer object.
  */
 @friendlyName("Customer")
 @example(#{
   id: "01G65Z755AFWAKHE12NY0CQ9FH",
   key: "my_customer_key",
-  usageAttribution: {
-      subjects: ["my_subject_key"]
-  },
-  billingProvider: "stripe",
+  name: "ACME Inc.",
+  usageAttribution: #{ subjects: #["my_subject_key"] },
+  taxProvider: "stripe_tax",
+  invoicingProvider: "stripe_invoicing",
+  paymentProvider: "stripe_payments",
+  external: #{ stripeCustomerId: "cus_xxxxxxxxxxxxxx" },
 })
-model Customer {
+model Customer extends Resource {
   /**
    * A unique identifier for the customer.
    */
@@ -21,80 +26,82 @@ model Customer {
   @summary("ID")
   id: ULID;
 
-  /**
-   * A unique, human-readable identifier for the customer.
-   * Must consist only alphanumeric and underscore characters.
-   */
-  @example("my_customer_key")
-  @summary("Key")
-  key: Key;
-
   // Mapping to attribute metered usage to the customer
-  // One customer can have multiple subjects,
-  // but one subject can only belong to one customer.
   @summary("Usage Attribution")
-  usageAttribution: {
-    // TODO allow multiple subjects
-    @minItems(1)
-    @maxItems(1)
-    subjects: Key[];
-  };
+  usageAttribution: CustomerUsageAttribution;
 
   /**
    * The primary email address of the customer.
    */
   @summary("Primary Email")
-  primaryEmail: string;
+  primaryEmail?: string;
 
   /**
-   * Billing configuration for the customer.
+   * Currency of the customer.
+   * Used for billing, tax and invoicing.
    */
-  @summary("Billing Configuration")
-  billingConfig: {
-    taxProvider?: TaxProvider;
-    invocingProvider?: InvoicingProvider;
-    paymentProvider?: PaymentProvider;
-  }
+  @summary("Currency")
+  currency?: CurrencyCode;
 
   /**
-   * Invoice configuration for the customer.
+   * The address of the customer.
+   * Used for tax and invoicing.
    */
-  @summary("Invoice Configuration")
-  invoiceConfig?: {
-    address: Address;
-    currency: CurrencyCode;
-  };
+  @summary("Address")
+  address?: Address;
+
+  /**
+   * The tax provider for the customer.
+   */
+  @summary("Tax Provider")
+  taxProvider?: TaxProvider;
+
+  /**
+   * The invoicing provider for the customer.
+   */
+  @summary("Invoicing Provider")
+  invoicingProvider?: InvoicingProvider;
+
+  /**
+   * The payment provider for the customer.
+   */
+  @summary("Payment Provider")
+  paymentProvider?: PaymentProvider;
 
   /**
    * External mappings for the customer.
    */
   @summary("External Mappings")
-  external: {
-    /**
-     * The Stripe customer ID.
-     * Mapping to a Stripe Customer object.
-     * Required to use Stripe as an invocing provider.
-     */
-    @summary("Stripe Customer")
-    stripeCustomerId?: string;
-  };
-
-  /**
-   * Additional metadata for the customer.
-   */
-  @summary("Metadata")
-  metadata?: Metadata = #{};
+  external?: CustomerExternalMapping;
 }
 
 /**
- * Address of a customer.
+ * Mapping to attribute metered usage to the customer.
+ * One customer can have multiple subjects,
+ * but one subject can only belong to one customer.
  */
-model Address {
-  country: CountryCode;
-  postalCode?: string;
-  state?: string;
-  city?: string;
-  line1?: string;
-  line2?: string;
-  phoneNumber?: string;
+@friendlyName("Usage Attribution")
+model CustomerUsageAttribution {
+  /**
+   * The subjects that are attributed to the customer.
+   * @TODO allow multiple subjects
+   */
+  @summary("Subjects")
+  @minItems(1)
+  @maxItems(1)
+  subjects: Key[];
+}
+
+/**
+ * External mappings for the customer.
+ */
+@friendlyName("External Mapping")
+model CustomerExternalMapping {
+  /**
+   * The Stripe customer ID.
+   * Mapping to a Stripe Customer object.
+   * Required to use Stripe as an invocing provider.
+   */
+  @summary("Stripe Customer")
+  stripeCustomerId?: string;
 }

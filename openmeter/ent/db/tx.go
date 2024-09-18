@@ -24,6 +24,8 @@ type Tx struct {
 	BillingWorkflowConfig *BillingWorkflowConfigClient
 	// Customer is the client for interacting with the Customer builders.
 	Customer *CustomerClient
+	// CustomerSubjects is the client for interacting with the CustomerSubjects builders.
+	CustomerSubjects *CustomerSubjectsClient
 	// Entitlement is the client for interacting with the Entitlement builders.
 	Entitlement *EntitlementClient
 	// Feature is the client for interacting with the Feature builders.
@@ -177,6 +179,7 @@ func (tx *Tx) init() {
 	tx.BillingProfile = NewBillingProfileClient(tx.config)
 	tx.BillingWorkflowConfig = NewBillingWorkflowConfigClient(tx.config)
 	tx.Customer = NewCustomerClient(tx.config)
+	tx.CustomerSubjects = NewCustomerSubjectsClient(tx.config)
 	tx.Entitlement = NewEntitlementClient(tx.config)
 	tx.Feature = NewFeatureClient(tx.config)
 	tx.Grant = NewGrantClient(tx.config)

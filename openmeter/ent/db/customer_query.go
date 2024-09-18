@@ -4,6 +4,7 @@ package db
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -13,17 +14,19 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/customer"
+	"github.com/openmeterio/openmeter/openmeter/ent/db/customersubjects"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 )
 
 // CustomerQuery is the builder for querying Customer entities.
 type CustomerQuery struct {
 	config
-	ctx        *QueryContext
-	order      []customer.OrderOption
-	inters     []Interceptor
-	predicates []predicate.Customer
-	modifiers  []func(*sql.Selector)
+	ctx          *QueryContext
+	order        []customer.OrderOption
+	inters       []Interceptor
+	predicates   []predicate.Customer
+	withSubjects *CustomerSubjectsQuery
+	modifiers    []func(*sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -58,6 +61,28 @@ func (cq *CustomerQuery) Unique(unique bool) *CustomerQuery {
 func (cq *CustomerQuery) Order(o ...customer.OrderOption) *CustomerQuery {
 	cq.order = append(cq.order, o...)
 	return cq
+}
+
+// QuerySubjects chains the current query on the "subjects" edge.
+func (cq *CustomerQuery) QuerySubjects() *CustomerSubjectsQuery {
+	query := (&CustomerSubjectsClient{config: cq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := cq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := cq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(customer.Table, customer.FieldID, selector),
+			sqlgraph.To(customersubjects.Table, customersubjects.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, customer.SubjectsTable, customer.SubjectsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(cq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Customer entity from the query.
@@ -247,15 +272,27 @@ func (cq *CustomerQuery) Clone() *CustomerQuery {
 		return nil
 	}
 	return &CustomerQuery{
-		config:     cq.config,
-		ctx:        cq.ctx.Clone(),
-		order:      append([]customer.OrderOption{}, cq.order...),
-		inters:     append([]Interceptor{}, cq.inters...),
-		predicates: append([]predicate.Customer{}, cq.predicates...),
+		config:       cq.config,
+		ctx:          cq.ctx.Clone(),
+		order:        append([]customer.OrderOption{}, cq.order...),
+		inters:       append([]Interceptor{}, cq.inters...),
+		predicates:   append([]predicate.Customer{}, cq.predicates...),
+		withSubjects: cq.withSubjects.Clone(),
 		// clone intermediate query.
 		sql:  cq.sql.Clone(),
 		path: cq.path,
 	}
+}
+
+// WithSubjects tells the query-builder to eager-load the nodes that are connected to
+// the "subjects" edge. The optional arguments are used to configure the query builder of the edge.
+func (cq *CustomerQuery) WithSubjects(opts ...func(*CustomerSubjectsQuery)) *CustomerQuery {
+	query := (&CustomerSubjectsClient{config: cq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	cq.withSubjects = query
+	return cq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -264,12 +301,12 @@ func (cq *CustomerQuery) Clone() *CustomerQuery {
 // Example:
 //
 //	var v []struct {
-//		CreatedAt time.Time `json:"created_at,omitempty"`
+//		Name string `json:"name,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
 //	client.Customer.Query().
-//		GroupBy(customer.FieldCreatedAt).
+//		GroupBy(customer.FieldName).
 //		Aggregate(db.Count()).
 //		Scan(ctx, &v)
 func (cq *CustomerQuery) GroupBy(field string, fields ...string) *CustomerGroupBy {
@@ -287,11 +324,11 @@ func (cq *CustomerQuery) GroupBy(field string, fields ...string) *CustomerGroupB
 // Example:
 //
 //	var v []struct {
-//		CreatedAt time.Time `json:"created_at,omitempty"`
+//		Name string `json:"name,omitempty"`
 //	}
 //
 //	client.Customer.Query().
-//		Select(customer.FieldCreatedAt).
+//		Select(customer.FieldName).
 //		Scan(ctx, &v)
 func (cq *CustomerQuery) Select(fields ...string) *CustomerSelect {
 	cq.ctx.Fields = append(cq.ctx.Fields, fields...)
@@ -334,8 +371,11 @@ func (cq *CustomerQuery) prepareQuery(ctx context.Context) error {
 
 func (cq *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Customer, error) {
 	var (
-		nodes = []*Customer{}
-		_spec = cq.querySpec()
+		nodes       = []*Customer{}
+		_spec       = cq.querySpec()
+		loadedTypes = [1]bool{
+			cq.withSubjects != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Customer).scanValues(nil, columns)
@@ -343,6 +383,7 @@ func (cq *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cus
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Customer{config: cq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if len(cq.modifiers) > 0 {
@@ -357,7 +398,46 @@ func (cq *CustomerQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cus
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := cq.withSubjects; query != nil {
+		if err := cq.loadSubjects(ctx, query, nodes,
+			func(n *Customer) { n.Edges.Subjects = []*CustomerSubjects{} },
+			func(n *Customer, e *CustomerSubjects) { n.Edges.Subjects = append(n.Edges.Subjects, e) }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (cq *CustomerQuery) loadSubjects(ctx context.Context, query *CustomerSubjectsQuery, nodes []*Customer, init func(*Customer), assign func(*Customer, *CustomerSubjects)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Customer)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.CustomerSubjects(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(customer.SubjectsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.customer_subjects
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "customer_subjects" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "customer_subjects" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (cq *CustomerQuery) sqlCount(ctx context.Context) (int, error) {

@@ -165,3 +165,17 @@ scalar CurrencyCode extends string;
 @maxLength(2)
 @example("US")
 scalar CountryCode extends string;
+
+/**
+ * Address
+ */
+@friendlyName("Address")
+model Address {
+  country: CountryCode;
+  postalCode?: string;
+  state?: string;
+  city?: string;
+  line1?: string;
+  line2?: string;
+  phoneNumber?: string;
+}

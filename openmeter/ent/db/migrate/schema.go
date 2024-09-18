@@ -266,13 +266,26 @@ var (
 	// CustomersColumns holds the columns for the "customers" table.
 	CustomersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "name", Type: field.TypeString},
+		{Name: "key", Type: field.TypeString},
+		{Name: "namespace", Type: field.TypeString},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
-		{Name: "namespace", Type: field.TypeString},
-		{Name: "key", Type: field.TypeString},
-		{Name: "primary_email", Type: field.TypeString},
+		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},
+		{Name: "tax_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_test", "stripe_tax"}},
+		{Name: "invoicing_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_test", "stripe_invoicing"}},
+		{Name: "payment_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_test", "stripe_payments"}},
+		{Name: "external_mapping_stripe_customer_id", Type: field.TypeString, Nullable: true},
+		{Name: "primary_email", Type: field.TypeString, Nullable: true},
+		{Name: "address_country", Type: field.TypeString, Nullable: true, Size: 2},
+		{Name: "address_postal_code", Type: field.TypeString, Nullable: true},
+		{Name: "address_state", Type: field.TypeString, Nullable: true},
+		{Name: "address_city", Type: field.TypeString, Nullable: true},
+		{Name: "address_line1", Type: field.TypeString, Nullable: true},
+		{Name: "address_line2", Type: field.TypeString, Nullable: true},
+		{Name: "address_phone_number", Type: field.TypeString, Nullable: true},
 	}
 	// CustomersTable holds the schema information for the "customers" table.
 	CustomersTable = &schema.Table{
@@ -288,7 +301,38 @@ var (
 			{
 				Name:    "customer_namespace_id",
 				Unique:  false,
-				Columns: []*schema.Column{CustomersColumns[5], CustomersColumns[0]},
+				Columns: []*schema.Column{CustomersColumns[3], CustomersColumns[0]},
+			},
+		},
+	}
+	// CustomerSubjectsColumns holds the columns for the "customer_subjects" table.
+	CustomerSubjectsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "customer_id", Type: field.TypeString},
+		{Name: "subject_key", Type: field.TypeString},
+		{Name: "customer_subjects", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)"}},
+	}
+	// CustomerSubjectsTable holds the schema information for the "customer_subjects" table.
+	CustomerSubjectsTable = &schema.Table{
+		Name:       "customer_subjects",
+		Columns:    CustomerSubjectsColumns,
+		PrimaryKey: []*schema.Column{CustomerSubjectsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "customer_subjects_customers_subjects",
+				Columns:    []*schema.Column{CustomerSubjectsColumns[6]},
+				RefColumns: []*schema.Column{CustomersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "customersubjects_customer_id_subject_key",
+				Unique:  true,
+				Columns: []*schema.Column{CustomerSubjectsColumns[4], CustomerSubjectsColumns[5]},
 			},
 		},
 	}
@@ -708,6 +752,7 @@ var (
 		BillingProfilesTable,
 		BillingWorkflowConfigsTable,
 		CustomersTable,
+		CustomerSubjectsTable,
 		EntitlementsTable,
 		FeaturesTable,
 		GrantsTable,
@@ -727,6 +772,7 @@ func init() {
 	BillingInvoicesTable.ForeignKeys[1].RefTable = BillingWorkflowConfigsTable
 	BillingInvoiceItemsTable.ForeignKeys[0].RefTable = BillingInvoicesTable
 	BillingProfilesTable.ForeignKeys[0].RefTable = BillingWorkflowConfigsTable
+	CustomerSubjectsTable.ForeignKeys[0].RefTable = CustomersTable
 	EntitlementsTable.ForeignKeys[0].RefTable = FeaturesTable
 	GrantsTable.ForeignKeys[0].RefTable = EntitlementsTable
 	NotificationEventsTable.ForeignKeys[0].RefTable = NotificationRulesTable

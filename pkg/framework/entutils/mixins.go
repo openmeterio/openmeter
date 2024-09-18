@@ -11,6 +11,31 @@ import (
 	"github.com/openmeterio/openmeter/pkg/clock"
 )
 
+// ResourceMixin adds common fields
+type ResourceMixin struct {
+	mixin.Schema
+}
+
+func (ResourceMixin) Fields() []ent.Field {
+	fields := []ent.Field{
+		field.String("name").NotEmpty(),
+	}
+	fields = append(fields, IDMixin{}.Fields()...)
+	fields = append(fields, KeyMixin{}.Fields()...)
+	fields = append(fields, NamespaceMixin{}.Fields()...)
+	fields = append(fields, MetadataAnnotationsMixin{}.Fields()...)
+	fields = append(fields, TimeMixin{}.Fields()...)
+
+	return fields
+}
+
+func (ResourceMixin) Indexes() []ent.Index {
+	indexes := []ent.Index{}
+	indexes = append(indexes, IDMixin{}.Indexes()...)
+	indexes = append(indexes, index.Fields("namespace", "id"))
+	return indexes
+}
+
 // IDMixin adds the ID field to the schema
 type IDMixin struct {
 	mixin.Schema
@@ -34,6 +59,20 @@ func (IDMixin) Fields() []ent.Field {
 func (IDMixin) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("id"),
+	}
+}
+
+// KeyMixin adds the key field to the schema
+type KeyMixin struct {
+	mixin.Schema
+}
+
+// Fields of the KeyMixin.
+func (KeyMixin) Fields() []ent.Field {
+	return []ent.Field{
+		field.String("key").
+			NotEmpty().
+			Immutable(),
 	}
 }
 
