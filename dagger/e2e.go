@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 
-	"github.com/openmeterio/openmeter/ci/internal/dagger"
+	"github.com/openmeterio/openmeter/dagger/internal/dagger"
 )
 
-func (m *Ci) Etoe(
+func (m *Openmeter) Etoe(
 	// +optional
 	test string,
 ) *dagger.Container {

@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/ci/internal/dagger"
+	"github.com/openmeterio/openmeter/dagger/internal/dagger"
 )
 
 // Generate various artifacts.
-func (m *Ci) Generate() *Generate {
+func (m *Openmeter) Generate() *Generate {
 	return &Generate{
 		Source: m.Source,
 	}

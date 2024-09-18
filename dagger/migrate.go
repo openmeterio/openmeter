@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/ci/internal/dagger"
+	"github.com/openmeterio/openmeter/dagger/internal/dagger"
 	"github.com/sourcegraph/conc/pool"
 )
 
-func (m *Ci) Migrate() *Migrate {
+func (m *Openmeter) Migrate() *Migrate {
 	return &Migrate{
 		Source: m.Source,
 	}

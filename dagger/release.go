@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openmeterio/openmeter/ci/internal/dagger"
+	"github.com/openmeterio/openmeter/dagger/internal/dagger"
 )
 
-func (m *Ci) Release(ctx context.Context, version string, githubActor string, githubToken *dagger.Secret, pypiToken *dagger.Secret, npmToken *dagger.Secret) error {
+func (m *Openmeter) Release(ctx context.Context, version string, githubActor string, githubToken *dagger.Secret, pypiToken *dagger.Secret, npmToken *dagger.Secret) error {
 	p := newPipeline(ctx)
 
 	p.addJobs(
@@ -55,21 +55,21 @@ func (m *Ci) Release(ctx context.Context, version string, githubActor string, gi
 	return p.wait()
 }
 
-func (m *Ci) pushHelmChart(ctx context.Context, name string, version string, githubActor string, githubToken *dagger.Secret) error {
+func (m *Openmeter) pushHelmChart(ctx context.Context, name string, version string, githubActor string, githubToken *dagger.Secret) error {
 	return m.Build().
 		helmChart(name, version).
 		WithRegistryAuth("ghcr.io", githubActor, githubToken).
 		Publish(ctx, "oci://ghcr.io/openmeterio/helm-charts")
 }
 
-func (m *Ci) releaseAssets(version string) []*dagger.File {
+func (m *Openmeter) releaseAssets(version string) []*dagger.File {
 	binaryArchives := m.binaryArchives(version)
 	checksums := dag.Checksum().Sha256().Calculate(binaryArchives)
 
 	return append(binaryArchives, checksums)
 }
 
-func (m *Ci) binaryArchives(version string) []*dagger.File {
+func (m *Openmeter) binaryArchives(version string) []*dagger.File {
 	platforms := []dagger.Platform{
 		"linux/amd64",
 		"linux/arm64",
@@ -87,7 +87,7 @@ func (m *Ci) binaryArchives(version string) []*dagger.File {
 	return archives
 }
 
-func (m *Ci) binaryArchive(version string, platform dagger.Platform) *dagger.File {
+func (m *Openmeter) binaryArchive(version string, platform dagger.Platform) *dagger.File {
 	var archiver interface {
 		Archive(name string, source *dagger.Directory) *dagger.File
 	} = dag.Archivist().TarGz()
@@ -105,7 +105,7 @@ func (m *Ci) binaryArchive(version string, platform dagger.Platform) *dagger.Fil
 	)
 }
 
-func (m *Ci) publishPythonSdk(ctx context.Context, version string, pypiToken *dagger.Secret) error {
+func (m *Openmeter) publishPythonSdk(ctx context.Context, version string, pypiToken *dagger.Secret) error {
 	_, err := dag.Python(dagger.PythonOpts{
 		Container: dag.Python(dagger.PythonOpts{Container: dag.Container().From("pypy:3.10-7.3.16-slim")}).
 			WithPipCache(cacheVolume("pip")).
@@ -126,17 +126,17 @@ func (m *Ci) publishPythonSdk(ctx context.Context, version string, pypiToken *da
 	return err
 }
 
-func (m *Ci) publishNodeSdk(ctx context.Context, version string, npmToken *dagger.Secret) error {
+func (m *Openmeter) publishNodeSdk(ctx context.Context, version string, npmToken *dagger.Secret) error {
 	// TODO: generate SDK on the fly?
 	return m.publishToNpm(ctx, "node", version, npmToken)
 }
 
-func (m *Ci) publishWebSdk(ctx context.Context, version string, npmToken *dagger.Secret) error {
+func (m *Openmeter) publishWebSdk(ctx context.Context, version string, npmToken *dagger.Secret) error {
 	// TODO: generate SDK on the fly?
 	return m.publishToNpm(ctx, "web", version, npmToken)
 }
 
-func (m *Ci) publishToNpm(ctx context.Context, pkg string, version string, npmToken *dagger.Secret) error {
+func (m *Openmeter) publishToNpm(ctx context.Context, pkg string, version string, npmToken *dagger.Secret) error {
 	_, err := dag.Container().
 		From("node:20.15.1-alpine3.20").
 		WithExec([]string{"npm", "install", "-g", "pnpm"}).

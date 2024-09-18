@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/ci/internal/dagger"
+	"github.com/openmeterio/openmeter/dagger/internal/dagger"
 )
 
-type Ci struct {
+type Openmeter struct {
 	// Project source directory
 	// This will become useful once pulling from remote becomes available
 	//
@@ -24,7 +24,7 @@ func New(
 	// Checkout the repository (at the designated ref) and use it as the source directory instead of the local one.
 	// +optional
 	ref string,
-) (*Ci, error) {
+) (*Openmeter, error) {
 	if source == nil && ref != "" {
 		source = dag.Git("https://github.com/openmeterio/openmeter.git", dagger.GitOpts{
 			KeepGitDir: true,
@@ -35,12 +35,12 @@ func New(
 		return nil, errors.New("either source or ref is required")
 	}
 
-	return &Ci{
+	return &Openmeter{
 		Source: source,
 	}, nil
 }
 
-func (m *Ci) Ci(ctx context.Context) (*dagger.Directory, error) {
+func (m *Openmeter) Ci(ctx context.Context) (*dagger.Directory, error) {
 	p := newPipeline(ctx)
 
 	trivy := dag.Trivy(dagger.TrivyOpts{
@@ -85,7 +85,7 @@ func (m *Ci) Ci(ctx context.Context) (*dagger.Directory, error) {
 	return dir, p.wait()
 }
 
-func (m *Ci) Test() *dagger.Container {
+func (m *Openmeter) Test() *dagger.Container {
 	return goModuleCross("").
 		WithSource(m.Source).
 		WithEnvVariable("POSTGRES_HOST", "postgres").
@@ -96,7 +96,7 @@ func (m *Ci) Test() *dagger.Container {
 		Exec([]string{"go", "test", "-tags", "musl", "-v", "./..."})
 }
 
-func (m *Ci) QuickstartTest(
+func (m *Openmeter) QuickstartTest(
 	service *dagger.Service,
 
 	// +default=8888

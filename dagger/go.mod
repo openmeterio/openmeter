@@ -1,4 +1,4 @@
-module github.com/openmeterio/openmeter/ci
+module github.com/openmeterio/openmeter/dagger
 
 go 1.22.5
 

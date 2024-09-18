@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 
-	"github.com/openmeterio/openmeter/ci/internal/dagger"
+	"github.com/openmeterio/openmeter/dagger/internal/dagger"
 	"github.com/sourcegraph/conc/pool"
 )
 
-func (m *Ci) Lint() *Lint {
+func (m *Openmeter) Lint() *Lint {
 	return &Lint{
 		Source: m.Source,
 	}
