@@ -41,15 +41,81 @@ func (d createEventsTable) toSQL() string {
 	sb.Define("stored_at", "DateTime")
 	sb.SQL("ENGINE = MergeTree")
 	sb.SQL("PARTITION BY toYYYYMM(time)")
-	sb.SQL("ORDER BY (namespace, time, type, subject)")
+	sb.SQL("ORDER BY (namespace, time, type, subject, id)")
 
 	sql, _ := sb.Build()
 	return sql
 }
 
-type queryEventsTable struct {
-	Database       string
-	Namespace      string
+// Points to a specific record in the table
+type eventsTableCursor struct {
+	Namespace string
+	Time      time.Time
+	Type      string
+	Subject   string
+	ID        string
+
+	IsGreater bool
+}
+
+func (d eventsTableCursor) toSQLWhere(query *sqlbuilder.SelectBuilder) []string {
+	eq := query.Equal
+	compFn := query.GreaterThan
+	if !d.IsGreater {
+		compFn = query.LessThan
+	}
+
+	case1 := []string{
+		compFn("time", d.Time.Unix()),
+	}
+
+	case2 := []string{
+		eq("time", d.Time.Unix()),
+		compFn("type", d.Type),
+	}
+
+	case3 := []string{
+		eq("time", d.Time.Unix()),
+		eq("type", d.Type),
+		compFn("subject", d.Subject),
+	}
+
+	case4 := []string{
+		eq("time", d.Time.Unix()),
+		eq("type", d.Type),
+		eq("subject", d.Subject),
+		compFn("id", d.ID),
+	}
+
+	where := query.And(
+		eq("namespace", d.Namespace),
+		query.Or(
+			query.And(case1...),
+			query.And(case2...),
+			query.And(case3...),
+			query.And(case4...),
+		),
+	)
+
+	return []string{where}
+}
+
+type queryEventsCursor struct {
+	cursor eventsTableCursor
+
+	filters queryEventsFilters
+}
+
+func (c queryEventsCursor) toSQLWhere(query *sqlbuilder.SelectBuilder) []string {
+	where := []string{}
+
+	where = append(where, c.cursor.toSQLWhere(query)...)
+	where = append(where, c.filters.toSQLWhere(query)...)
+
+	return where
+}
+
+type queryEventsFilters struct {
 	From           *time.Time
 	To             *time.Time
 	IngestedAtFrom *time.Time
@@ -57,43 +123,68 @@ type queryEventsTable struct {
 	ID             *string
 	Subject        *string
 	HasError       *bool
-	Limit          int
 }
 
-func (d queryEventsTable) toSQL() (string, []interface{}) {
-	tableName := GetEventsTableName(d.Database)
+func (f queryEventsFilters) toSQLWhere(query *sqlbuilder.SelectBuilder) []string {
 	where := []string{}
-
-	query := sqlbuilder.ClickHouse.NewSelectBuilder()
-	query.Select("id", "type", "subject", "source", "time", "data", "validation_error", "ingested_at", "stored_at")
-	query.From(tableName)
-
-	where = append(where, query.Equal("namespace", d.Namespace))
-	if d.From != nil {
-		where = append(where, query.GreaterEqualThan("time", d.From.Unix()))
+	if f.From != nil {
+		where = append(where, query.GreaterEqualThan("time", f.From.Unix()))
 	}
-	if d.To != nil {
-		where = append(where, query.LessEqualThan("time", d.To.Unix()))
+	if f.To != nil {
+		where = append(where, query.LessEqualThan("time", f.To.Unix()))
 	}
-	if d.IngestedAtFrom != nil {
-		where = append(where, query.GreaterEqualThan("ingested_at", d.IngestedAtFrom.Unix()))
+	if f.IngestedAtFrom != nil {
+		where = append(where, query.GreaterEqualThan("ingested_at", f.IngestedAtFrom.Unix()))
 	}
-	if d.IngestedAtTo != nil {
-		where = append(where, query.LessEqualThan("ingested_at", d.IngestedAtTo.Unix()))
+	if f.IngestedAtTo != nil {
+		where = append(where, query.LessEqualThan("ingested_at", f.IngestedAtTo.Unix()))
 	}
-	if d.ID != nil {
-		where = append(where, query.Like("id", fmt.Sprintf("%%%s%%", *d.ID)))
+	if f.ID != nil {
+		where = append(where, query.Like("id", fmt.Sprintf("%%%s%%", *f.ID)))
 	}
-	if d.Subject != nil {
-		where = append(where, query.Equal("subject", *d.Subject))
+	if f.Subject != nil {
+		where = append(where, query.Equal("subject", *f.Subject))
 	}
-	if d.HasError != nil {
-		if *d.HasError {
+	if f.HasError != nil {
+		if *f.HasError {
 			where = append(where, "notEmpty(validation_error) = 1")
 		} else {
 			where = append(where, "empty(validation_error) = 1")
 		}
 	}
+	return where
+}
+
+type queryEventsTable struct {
+	Database  string
+	Namespace string
+	Limit     int
+}
+
+func (d queryEventsTable) toSelectSQL() string {
+	tableName := GetEventsTableName(d.Database)
+
+	query := sqlbuilder.ClickHouse.NewSelectBuilder()
+	query.Select("id", "type", "subject", "source", "time", "data", "validation_error", "ingested_at", "stored_at")
+	query.From(tableName)
+
+	return query.String()
+}
+
+type whereable interface {
+	toSQLWhere(query *sqlbuilder.SelectBuilder) []string
+}
+
+func (d queryEventsTable) toSQLWithWhere(w whereable) (string, []interface{}) {
+	query := sqlbuilder.ClickHouse.NewSelectBuilder()
+	selectSQL := d.toSelectSQL()
+	query.SQL(selectSQL)
+
+	where := []string{}
+	where = append(where, query.Equal("namespace", d.Namespace))
+
+	where = append(where, w.toSQLWhere(query)...)
+
 	query.Where(where...)
 
 	query.Desc().OrderBy("time").OrderBy("id")

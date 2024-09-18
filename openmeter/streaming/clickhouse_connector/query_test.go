@@ -4,8 +4,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/openmeterio/openmeter/openmeter/testutils"
 	"github.com/openmeterio/openmeter/pkg/models"
 )
 
@@ -18,7 +20,7 @@ func TestCreateEventsTable(t *testing.T) {
 			data: createEventsTable{
 				Database: "openmeter",
 			},
-			want: "CREATE TABLE IF NOT EXISTS openmeter.om_events (namespace String, validation_error String, id String, type LowCardinality(String), subject String, source String, time DateTime, data String, ingested_at DateTime, stored_at DateTime) ENGINE = MergeTree PARTITION BY toYYYYMM(time) ORDER BY (namespace, time, type, subject)",
+			want: "CREATE TABLE IF NOT EXISTS openmeter.om_events (namespace String, validation_error String, id String, type LowCardinality(String), subject String, source String, time DateTime, data String, ingested_at DateTime, stored_at DateTime) ENGINE = MergeTree PARTITION BY toYYYYMM(time) ORDER BY (namespace, time, type, subject, id)",
 		},
 	}
 
@@ -37,8 +39,9 @@ func TestQueryEventsTable(t *testing.T) {
 	hasErrorTrue := true
 	hasErrorFalse := false
 
-	tests := []struct {
+	filterTests := []struct {
 		query    queryEventsTable
+		filters  queryEventsFilters
 		wantSQL  string
 		wantArgs []interface{}
 	}{
@@ -48,6 +51,7 @@ func TestQueryEventsTable(t *testing.T) {
 				Namespace: "my_namespace",
 				Limit:     100,
 			},
+			filters:  queryEventsFilters{},
 			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? ORDER BY time, id DESC LIMIT 100",
 			wantArgs: []interface{}{"my_namespace"},
 		},
@@ -56,7 +60,9 @@ func TestQueryEventsTable(t *testing.T) {
 				Database:  "openmeter",
 				Namespace: "my_namespace",
 				Limit:     100,
-				Subject:   &subjectFilter,
+			},
+			filters: queryEventsFilters{
+				Subject: &subjectFilter,
 			},
 			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND subject = ? ORDER BY time, id DESC LIMIT 100",
 			wantArgs: []interface{}{"my_namespace", subjectFilter},
@@ -66,7 +72,9 @@ func TestQueryEventsTable(t *testing.T) {
 				Database:  "openmeter",
 				Namespace: "my_namespace",
 				Limit:     100,
-				ID:        &idFilter,
+			},
+			filters: queryEventsFilters{
+				ID: &idFilter,
 			},
 			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND id LIKE ? ORDER BY time, id DESC LIMIT 100",
 			wantArgs: []interface{}{"my_namespace", "%event-id-1%"},
@@ -76,7 +84,9 @@ func TestQueryEventsTable(t *testing.T) {
 				Database:  "openmeter",
 				Namespace: "my_namespace",
 				Limit:     100,
-				HasError:  &hasErrorTrue,
+			},
+			filters: queryEventsFilters{
+				HasError: &hasErrorTrue,
 			},
 			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND notEmpty(validation_error) = 1 ORDER BY time, id DESC LIMIT 100",
 			wantArgs: []interface{}{"my_namespace"},
@@ -86,17 +96,137 @@ func TestQueryEventsTable(t *testing.T) {
 				Database:  "openmeter",
 				Namespace: "my_namespace",
 				Limit:     100,
-				HasError:  &hasErrorFalse,
+			},
+			filters: queryEventsFilters{
+				HasError: &hasErrorFalse,
 			},
 			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND empty(validation_error) = 1 ORDER BY time, id DESC LIMIT 100",
 			wantArgs: []interface{}{"my_namespace"},
 		},
 	}
 
-	for _, tt := range tests {
+	for _, tt := range filterTests {
 		tt := tt
 		t.Run("", func(t *testing.T) {
-			gotSql, gotArgs := tt.query.toSQL()
+			gotSql, gotArgs := tt.query.toSQLWithWhere(tt.filters)
+
+			assert.Equal(t, tt.wantArgs, gotArgs)
+			assert.Equal(t, tt.wantSQL, gotSql)
+		})
+	}
+
+	cursorTests := []struct {
+		query    queryEventsTable
+		cursor   queryEventsCursor
+		wantSQL  string
+		wantArgs []interface{}
+	}{
+		{
+			query: queryEventsTable{
+				Database:  "openmeter",
+				Namespace: "my_namespace",
+				Limit:     100,
+			},
+			cursor: queryEventsCursor{
+				cursor: eventsTableCursor{
+					Namespace: "my_namespace",
+					Time:      testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z"),
+					Type:      "test_type",
+					Subject:   "test_subject",
+					ID:        "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+				},
+			},
+			wantSQL: "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND (namespace = ? AND ((time < ?) OR (time = ? AND type < ?) OR (time = ? AND type = ? AND subject < ?) OR (time = ? AND type = ? AND subject = ? AND id < ?))) ORDER BY time, id DESC LIMIT 100",
+			wantArgs: []interface{}{
+				"my_namespace",
+				"my_namespace",
+				testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z").Unix(),
+				testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z").Unix(),
+				"test_type",
+				testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z").Unix(),
+				"test_type",
+				"test_subject",
+				testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z").Unix(),
+				"test_type",
+				"test_subject",
+				"01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			},
+		},
+		{
+			query: queryEventsTable{
+				Database:  "openmeter",
+				Namespace: "my_namespace",
+				Limit:     100,
+			},
+			cursor: queryEventsCursor{
+				cursor: eventsTableCursor{
+					Namespace: "my_namespace",
+					Time:      testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z"),
+					Type:      "test_type",
+					Subject:   "test_subject",
+					ID:        "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+				},
+				filters: queryEventsFilters{
+					HasError: lo.ToPtr(true),
+				},
+			},
+			wantSQL: "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND (namespace = ? AND ((time < ?) OR (time = ? AND type < ?) OR (time = ? AND type = ? AND subject < ?) OR (time = ? AND type = ? AND subject = ? AND id < ?))) AND notEmpty(validation_error) = 1 ORDER BY time, id DESC LIMIT 100",
+			wantArgs: []interface{}{
+				"my_namespace",
+				"my_namespace",
+				testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z").Unix(),
+				testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z").Unix(),
+				"test_type",
+				testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z").Unix(),
+				"test_type",
+				"test_subject",
+				testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z").Unix(),
+				"test_type",
+				"test_subject",
+				"01ARZ3NDEKTSV4RRFFQ69G5FAV",
+			},
+		},
+		{
+			query: queryEventsTable{
+				Database:  "openmeter",
+				Namespace: "my_namespace",
+				Limit:     100,
+			},
+			cursor: queryEventsCursor{
+				cursor: eventsTableCursor{
+					Namespace: "my_namespace",
+					Time:      testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z"),
+					Type:      "test_type",
+					Subject:   "test_subject",
+					ID:        "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+				},
+				filters: queryEventsFilters{
+					Subject: lo.ToPtr("test_subject"),
+				},
+			},
+			wantSQL: "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND (namespace = ? AND ((time < ?) OR (time = ? AND type < ?) OR (time = ? AND type = ? AND subject < ?) OR (time = ? AND type = ? AND subject = ? AND id < ?))) AND subject = ? ORDER BY time, id DESC LIMIT 100",
+			wantArgs: []interface{}{
+				"my_namespace",
+				"my_namespace",
+				testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z").Unix(),
+				testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z").Unix(),
+				"test_type",
+				testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z").Unix(),
+				"test_type",
+				"test_subject",
+				testutils.GetRFC3339Time(t, "2024-03-01T00:00:00Z").Unix(),
+				"test_type",
+				"test_subject",
+				"01ARZ3NDEKTSV4RRFFQ69G5FAV",
+				"test_subject",
+			},
+		},
+	}
+
+	for _, tt := range cursorTests {
+		tt := tt
+		t.Run("", func(t *testing.T) {
+			gotSql, gotArgs := tt.query.toSQLWithWhere(tt.cursor)
 
 			assert.Equal(t, tt.wantArgs, gotArgs)
 			assert.Equal(t, tt.wantSQL, gotSql)
@@ -488,6 +618,7 @@ func TestQueryEvents(t *testing.T) {
 
 	tests := []struct {
 		query    queryEventsTable
+		filters  queryEventsFilters
 		wantSQL  string
 		wantArgs []interface{}
 	}{
@@ -495,37 +626,43 @@ func TestQueryEvents(t *testing.T) {
 			query: queryEventsTable{
 				Database:  "openmeter",
 				Namespace: "my_namespace",
-				From:      &fromTime,
-				To:        &toTime,
 				Limit:     10,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND time <= ? ORDER BY time DESC LIMIT 10",
+			filters: queryEventsFilters{
+				From: &fromTime,
+				To:   &toTime,
+			},
+			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? AND time <= ? ORDER BY time, id DESC LIMIT 10",
 			wantArgs: []interface{}{"my_namespace", fromTime.Unix(), toTime.Unix()},
 		},
 		{
 			query: queryEventsTable{
 				Database:  "openmeter",
 				Namespace: "my_namespace",
-				From:      &fromTime,
 				Limit:     10,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? ORDER BY time DESC LIMIT 10",
+			filters: queryEventsFilters{
+				From: &fromTime,
+			},
+			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time >= ? ORDER BY time, id DESC LIMIT 10",
 			wantArgs: []interface{}{"my_namespace", fromTime.Unix()},
 		},
 		{
 			query: queryEventsTable{
 				Database:  "openmeter",
 				Namespace: "my_namespace",
-				To:        &toTime,
 				Limit:     10,
 			},
-			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time <= ? ORDER BY time DESC LIMIT 10",
+			filters: queryEventsFilters{
+				To: &toTime,
+			},
+			wantSQL:  "SELECT id, type, subject, source, time, data, validation_error, ingested_at, stored_at FROM openmeter.om_events WHERE namespace = ? AND time <= ? ORDER BY time, id DESC LIMIT 10",
 			wantArgs: []interface{}{"my_namespace", toTime.Unix()},
 		},
 	}
 
 	for _, tt := range tests {
-		gotSql, gotArgs := tt.query.toSQL()
+		gotSql, gotArgs := tt.query.toSQLWithWhere(tt.filters)
 
 		assert.Equal(t, tt.wantSQL, gotSql)
 		assert.Equal(t, tt.wantArgs, gotArgs)
