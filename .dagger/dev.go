@@ -9,7 +9,7 @@ import (
 	"github.com/elliotchance/orderedmap/v2"
 	"github.com/google/go-github/v63/github"
 
-	"github.com/openmeterio/openmeter/dagger/internal/dagger"
+	"github.com/openmeterio/openmeter/.dagger/internal/dagger"
 )
 
 func (m *Openmeter) Dev() *Dev {

@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/dagger/internal/dagger"
 	"github.com/sourcegraph/conc/pool"
+
+	"github.com/openmeterio/openmeter/.dagger/internal/dagger"
 )
 
 func (m *Openmeter) Migrate() *Migrate {

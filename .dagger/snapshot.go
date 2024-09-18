@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	"github.com/openmeterio/openmeter/dagger/internal/dagger"
+	"github.com/openmeterio/openmeter/.dagger/internal/dagger"
 )
 
 func (m *Openmeter) Snapshot(ctx context.Context, stainlessToken *dagger.Secret) error {

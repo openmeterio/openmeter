@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/openmeterio/openmeter/dagger/internal/dagger"
+	"github.com/openmeterio/openmeter/.dagger/internal/dagger"
 )
 
 func (m *Openmeter) Etoe(

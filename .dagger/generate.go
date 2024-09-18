@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openmeterio/openmeter/dagger/internal/dagger"
+	"github.com/openmeterio/openmeter/.dagger/internal/dagger"
 )
 
 // Generate various artifacts.

@@ -7,7 +7,7 @@ import (
 
 	"github.com/sourcegraph/conc/pool"
 
-	"github.com/openmeterio/openmeter/dagger/internal/dagger"
+	"github.com/openmeterio/openmeter/.dagger/internal/dagger"
 )
 
 // Build individual artifacts. (Useful for testing and development)

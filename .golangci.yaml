@@ -60,6 +60,6 @@ linters:
 
 issues:
   exclude-dirs:
-    - ci/internal
-    - ci/dagger.gen.go
+    - .dagger/internal
+    - .dagger/dagger.gen.go
     - collector/benthos/internal

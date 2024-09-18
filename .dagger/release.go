@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openmeterio/openmeter/dagger/internal/dagger"
+	"github.com/openmeterio/openmeter/.dagger/internal/dagger"
 )
 
 func (m *Openmeter) Release(ctx context.Context, version string, githubActor string, githubToken *dagger.Secret, pypiToken *dagger.Secret, npmToken *dagger.Secret) error {
