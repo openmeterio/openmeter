@@ -28,20 +28,6 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
-	// FieldName holds the string denoting the name field in the database.
-	FieldName = "name"
-	// FieldCurrency holds the string denoting the currency field in the database.
-	FieldCurrency = "currency"
-	// FieldTaxProvider holds the string denoting the tax_provider field in the database.
-	FieldTaxProvider = "tax_provider"
-	// FieldInvoicingProvider holds the string denoting the invoicing_provider field in the database.
-	FieldInvoicingProvider = "invoicing_provider"
-	// FieldPaymentProvider holds the string denoting the payment_provider field in the database.
-	FieldPaymentProvider = "payment_provider"
-	// FieldExternalMappingStripeCustomerID holds the string denoting the external_mapping_stripe_customer_id field in the database.
-	FieldExternalMappingStripeCustomerID = "external_mapping_stripe_customer_id"
-	// FieldPrimaryEmail holds the string denoting the primary_email field in the database.
-	FieldPrimaryEmail = "primary_email"
 	// FieldBillingAddressCountry holds the string denoting the billing_address_country field in the database.
 	FieldBillingAddressCountry = "billing_address_country"
 	// FieldBillingAddressPostalCode holds the string denoting the billing_address_postal_code field in the database.
@@ -56,6 +42,22 @@ const (
 	FieldBillingAddressLine2 = "billing_address_line2"
 	// FieldBillingAddressPhoneNumber holds the string denoting the billing_address_phone_number field in the database.
 	FieldBillingAddressPhoneNumber = "billing_address_phone_number"
+	// FieldCurrency holds the string denoting the currency field in the database.
+	FieldCurrency = "currency"
+	// FieldTimezone holds the string denoting the timezone field in the database.
+	FieldTimezone = "timezone"
+	// FieldTaxProvider holds the string denoting the tax_provider field in the database.
+	FieldTaxProvider = "tax_provider"
+	// FieldInvoicingProvider holds the string denoting the invoicing_provider field in the database.
+	FieldInvoicingProvider = "invoicing_provider"
+	// FieldPaymentProvider holds the string denoting the payment_provider field in the database.
+	FieldPaymentProvider = "payment_provider"
+	// FieldExternalMappingStripeCustomerID holds the string denoting the external_mapping_stripe_customer_id field in the database.
+	FieldExternalMappingStripeCustomerID = "external_mapping_stripe_customer_id"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
+	// FieldPrimaryEmail holds the string denoting the primary_email field in the database.
+	FieldPrimaryEmail = "primary_email"
 	// EdgeSubjects holds the string denoting the subjects edge name in mutations.
 	EdgeSubjects = "subjects"
 	// Table holds the table name of the customer in the database.
@@ -78,13 +80,6 @@ var Columns = []string{
 	FieldCreatedAt,
 	FieldUpdatedAt,
 	FieldDeletedAt,
-	FieldName,
-	FieldCurrency,
-	FieldTaxProvider,
-	FieldInvoicingProvider,
-	FieldPaymentProvider,
-	FieldExternalMappingStripeCustomerID,
-	FieldPrimaryEmail,
 	FieldBillingAddressCountry,
 	FieldBillingAddressPostalCode,
 	FieldBillingAddressState,
@@ -92,6 +87,14 @@ var Columns = []string{
 	FieldBillingAddressLine1,
 	FieldBillingAddressLine2,
 	FieldBillingAddressPhoneNumber,
+	FieldCurrency,
+	FieldTimezone,
+	FieldTaxProvider,
+	FieldInvoicingProvider,
+	FieldPaymentProvider,
+	FieldExternalMappingStripeCustomerID,
+	FieldName,
+	FieldPrimaryEmail,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -115,12 +118,10 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
-	// NameValidator is a validator for the "name" field. It is called by the builders before save.
-	NameValidator func(string) error
-	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
-	CurrencyValidator func(string) error
 	// BillingAddressCountryValidator is a validator for the "billing_address_country" field. It is called by the builders before save.
 	BillingAddressCountryValidator func(string) error
+	// CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	CurrencyValidator func(string) error
 	// DefaultID holds the default value on creation for the "id" field.
 	DefaultID func() string
 )
@@ -188,41 +189,6 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
 }
 
-// ByName orders the results by the name field.
-func ByName(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldName, opts...).ToFunc()
-}
-
-// ByCurrency orders the results by the currency field.
-func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
-}
-
-// ByTaxProvider orders the results by the tax_provider field.
-func ByTaxProvider(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldTaxProvider, opts...).ToFunc()
-}
-
-// ByInvoicingProvider orders the results by the invoicing_provider field.
-func ByInvoicingProvider(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldInvoicingProvider, opts...).ToFunc()
-}
-
-// ByPaymentProvider orders the results by the payment_provider field.
-func ByPaymentProvider(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPaymentProvider, opts...).ToFunc()
-}
-
-// ByExternalMappingStripeCustomerID orders the results by the external_mapping_stripe_customer_id field.
-func ByExternalMappingStripeCustomerID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldExternalMappingStripeCustomerID, opts...).ToFunc()
-}
-
-// ByPrimaryEmail orders the results by the primary_email field.
-func ByPrimaryEmail(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldPrimaryEmail, opts...).ToFunc()
-}
-
 // ByBillingAddressCountry orders the results by the billing_address_country field.
 func ByBillingAddressCountry(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldBillingAddressCountry, opts...).ToFunc()
@@ -256,6 +222,46 @@ func ByBillingAddressLine2(opts ...sql.OrderTermOption) OrderOption {
 // ByBillingAddressPhoneNumber orders the results by the billing_address_phone_number field.
 func ByBillingAddressPhoneNumber(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldBillingAddressPhoneNumber, opts...).ToFunc()
+}
+
+// ByCurrency orders the results by the currency field.
+func ByCurrency(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCurrency, opts...).ToFunc()
+}
+
+// ByTimezone orders the results by the timezone field.
+func ByTimezone(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTimezone, opts...).ToFunc()
+}
+
+// ByTaxProvider orders the results by the tax_provider field.
+func ByTaxProvider(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTaxProvider, opts...).ToFunc()
+}
+
+// ByInvoicingProvider orders the results by the invoicing_provider field.
+func ByInvoicingProvider(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldInvoicingProvider, opts...).ToFunc()
+}
+
+// ByPaymentProvider orders the results by the payment_provider field.
+func ByPaymentProvider(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPaymentProvider, opts...).ToFunc()
+}
+
+// ByExternalMappingStripeCustomerID orders the results by the external_mapping_stripe_customer_id field.
+func ByExternalMappingStripeCustomerID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldExternalMappingStripeCustomerID, opts...).ToFunc()
+}
+
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
+}
+
+// ByPrimaryEmail orders the results by the primary_email field.
+func ByPrimaryEmail(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPrimaryEmail, opts...).ToFunc()
 }
 
 // BySubjectsCount orders the results by subjects count.

@@ -23,8 +23,8 @@ type Repository interface {
 type CustomerRepository interface {
 	ListCustomers(ctx context.Context, params ListCustomersInput) (pagination.PagedResponse[Customer], error)
 	CreateCustomer(ctx context.Context, params CreateCustomerInput) (*Customer, error)
-	DeleteCustomer(ctx context.Context, params DeleteCustomerInput) error
-	GetCustomer(ctx context.Context, params GetCustomerInput) (*Customer, error)
+	DeleteCustomer(ctx context.Context, customer CustomerID) error
+	GetCustomer(ctx context.Context, customer CustomerID) (*Customer, error)
 	UpdateCustomer(ctx context.Context, params UpdateCustomerInput) (*Customer, error)
 }
 

@@ -1,6 +1,8 @@
 package entutils
 
 import (
+	"fmt"
+
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/schema/field"
@@ -9,6 +11,7 @@ import (
 	"github.com/oklog/ulid/v2"
 
 	"github.com/openmeterio/openmeter/pkg/clock"
+	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 // ResourceMixin adds common fields
@@ -23,7 +26,6 @@ func (ResourceMixin) Fields() []ent.Field {
 	fields = append(fields, NamespaceMixin{}.Fields()...)
 	fields = append(fields, MetadataAnnotationsMixin{}.Fields()...)
 	fields = append(fields, TimeMixin{}.Fields()...)
-	fields = append(fields, field.String("name").NotEmpty())
 
 	return fields
 }
@@ -133,5 +135,24 @@ func (TimeMixin) Fields() []ent.Field {
 		field.Time("deleted_at").
 			Optional().
 			Nillable(),
+	}
+}
+
+// CustomerAddressMixin adds address fields to a customer, used by billing to snapshot addresses for invoices
+type CustomerAddressMixin struct {
+	ent.Schema
+	FieldPrefix string
+}
+
+func (c CustomerAddressMixin) Fields() []ent.Field {
+	return []ent.Field{
+		// PII fields
+		field.String(fmt.Sprintf("%s_address_country", c.FieldPrefix)).GoType(models.CountryCode("")).MinLen(2).MaxLen(2).Optional().Nillable(),
+		field.String(fmt.Sprintf("%s_address_postal_code", c.FieldPrefix)).Optional().Nillable(),
+		field.String(fmt.Sprintf("%s_address_state", c.FieldPrefix)).Optional().Nillable(),
+		field.String(fmt.Sprintf("%s_address_city", c.FieldPrefix)).Optional().Nillable(),
+		field.String(fmt.Sprintf("%s_address_line1", c.FieldPrefix)).Optional().Nillable(),
+		field.String(fmt.Sprintf("%s_address_line2", c.FieldPrefix)).Optional().Nillable(),
+		field.String(fmt.Sprintf("%s_address_phone_number", c.FieldPrefix)).Optional().Nillable(),
 	}
 }

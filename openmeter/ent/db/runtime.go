@@ -212,6 +212,8 @@ func init() {
 	customerMixin := schema.Customer{}.Mixin()
 	customerMixinFields0 := customerMixin[0].Fields()
 	_ = customerMixinFields0
+	customerMixinFields1 := customerMixin[1].Fields()
+	_ = customerMixinFields1
 	customerFields := schema.Customer{}.Fields()
 	_ = customerFields
 	// customerDescKey is the schema descriptor for key field.
@@ -232,10 +234,24 @@ func init() {
 	customer.DefaultUpdatedAt = customerDescUpdatedAt.Default.(func() time.Time)
 	// customer.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	customer.UpdateDefaultUpdatedAt = customerDescUpdatedAt.UpdateDefault.(func() time.Time)
-	// customerDescName is the schema descriptor for name field.
-	customerDescName := customerMixinFields0[7].Descriptor()
-	// customer.NameValidator is a validator for the "name" field. It is called by the builders before save.
-	customer.NameValidator = customerDescName.Validators[0].(func(string) error)
+	// customerDescBillingAddressCountry is the schema descriptor for billing_address_country field.
+	customerDescBillingAddressCountry := customerMixinFields1[0].Descriptor()
+	// customer.BillingAddressCountryValidator is a validator for the "billing_address_country" field. It is called by the builders before save.
+	customer.BillingAddressCountryValidator = func() func(string) error {
+		validators := customerDescBillingAddressCountry.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(billing_address_country string) error {
+			for _, fn := range fns {
+				if err := fn(billing_address_country); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 	// customerDescCurrency is the schema descriptor for currency field.
 	customerDescCurrency := customerFields[0].Descriptor()
 	// customer.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
@@ -248,24 +264,6 @@ func init() {
 		return func(currency string) error {
 			for _, fn := range fns {
 				if err := fn(currency); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}()
-	// customerDescBillingAddressCountry is the schema descriptor for billing_address_country field.
-	customerDescBillingAddressCountry := customerFields[6].Descriptor()
-	// customer.BillingAddressCountryValidator is a validator for the "billing_address_country" field. It is called by the builders before save.
-	customer.BillingAddressCountryValidator = func() func(string) error {
-		validators := customerDescBillingAddressCountry.Validators
-		fns := [...]func(string) error{
-			validators[0].(func(string) error),
-			validators[1].(func(string) error),
-		}
-		return func(billing_address_country string) error {
-			for _, fn := range fns {
-				if err := fn(billing_address_country); err != nil {
 					return err
 				}
 			}
