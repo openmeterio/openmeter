@@ -13,10 +13,6 @@
   ],
   "dependencies": [
     {
-      "name": "postgres",
-      "source": "github.com/sagikazarmark/daggerverse/postgres@ccca98362d39b3df2dcb538d6b4864686b833ee3"
-    },
-    {
       "name": "archivist",
       "source": "github.com/sagikazarmark/daggerverse/archivist@691dcc2fc5e53b351453c803c8abb1a5ad727d1b"
     },
@@ -55,6 +51,10 @@
     {
       "name": "openapi-changes",
       "source": "github.com/sagikazarmark/daggerverse/openapi-changes@b2bd806a2c43a5a58459aa7969d0e3740e66ec43"
+    },
+    {
+      "name": "postgres",
+      "source": "github.com/sagikazarmark/daggerverse/postgres@89a5a332f2ad1a182e6e8172f6872c4ab3ada507"
     },
     {
       "name": "python",

@@ -71,20 +71,6 @@ func redis() *dagger.Service {
 		AsService()
 }
 
-func pg() *dagger.Container {
-	return dag.Container().
-		From(fmt.Sprintf("postgres:%s", postgresVersion)).
-		WithEnvVariable("POSTGRES_USER", "postgres").
-		WithEnvVariable("POSTGRES_PASSWORD", "postgres").
-		WithEnvVariable("POSTGRES_DB", "postgres").
-		WithExposedPort(5432)
-}
-
-// Creates a postgres service unique by name
-func postgresNamed(name string) *dagger.Service {
-	return pg().WithLabel("uniq-name", name).AsService()
-}
-
 const (
 	SvixJWTSingingSecret = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MjI5NzYyNzMsImV4cCI6MjAzODMzNjI3MywibmJmIjoxNzIyOTc2MjczLCJpc3MiOiJzdml4LXNlcnZlciIsInN1YiI6Im9yZ18yM3JiOFlkR3FNVDBxSXpwZ0d3ZFhmSGlyTXUifQ.PomP6JWRI62W5N4GtNdJm2h635Q5F54eij0J3BU-_Ds"
 )
