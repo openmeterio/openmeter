@@ -13,6 +13,10 @@
   ],
   "dependencies": [
     {
+      "name": "postgres",
+      "source": "github.com/sagikazarmark/daggerverse/postgres@ccca98362d39b3df2dcb538d6b4864686b833ee3"
+    },
+    {
       "name": "archivist",
       "source": "github.com/sagikazarmark/daggerverse/archivist@691dcc2fc5e53b351453c803c8abb1a5ad727d1b"
     },
@@ -63,6 +67,10 @@
     {
       "name": "stainless",
       "source": "github.com/sagikazarmark/daggerverse/stainless@691dcc2fc5e53b351453c803c8abb1a5ad727d1b"
+    },
+    {
+      "name": "svix",
+      "source": "github.com/sagikazarmark/daggerverse/svix@126b5fbbdad70dbf2a8689600baec2eb78c05ef4"
     },
     {
       "name": "trivy",

@@ -16,9 +16,13 @@ func (m *Openmeter) Etoe(
 		WithServiceBinding("kafka", dag.Kafka(dagger.KafkaOpts{Version: kafkaVersion}).SingleNode().Service()).
 		WithServiceBinding("clickhouse", clickhouse())
 
+	postgres := dag.Postgres(dagger.PostgresOpts{
+		Version: postgresVersion,
+	})
+
 	api := image.
 		WithExposedPort(8080).
-		WithServiceBinding("postgres", postgres()).
+		WithServiceBinding("postgres", postgres.Service()).
 		WithEnvVariable("POSTGRES_HOST", "postgres").
 		WithExec([]string{"openmeter", "--config", "/etc/openmeter/config.yaml"}).
 		AsService()
@@ -76,10 +80,6 @@ func pg() *dagger.Container {
 		WithExposedPort(5432)
 }
 
-func postgres() *dagger.Service {
-	return pg().AsService()
-}
-
 // Creates a postgres service unique by name
 func postgresNamed(name string) *dagger.Service {
 	return pg().WithLabel("uniq-name", name).AsService()
@@ -88,16 +88,3 @@ func postgresNamed(name string) *dagger.Service {
 const (
 	SvixJWTSingingSecret = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MjI5NzYyNzMsImV4cCI6MjAzODMzNjI3MywibmJmIjoxNzIyOTc2MjczLCJpc3MiOiJzdml4LXNlcnZlciIsInN1YiI6Im9yZ18yM3JiOFlkR3FNVDBxSXpwZ0d3ZFhmSGlyTXUifQ.PomP6JWRI62W5N4GtNdJm2h635Q5F54eij0J3BU-_Ds"
 )
-
-func svix() *dagger.Service {
-	return dag.Container().
-		From(fmt.Sprintf("svix/svix-server:%s", svixVersion)).
-		WithEnvVariable("WAIT_FOR", "true").
-		WithEnvVariable("SVIX_QUEUE_TYPE", "memory").
-		WithEnvVariable("SVIX_CACHE_TYPE", "memory").
-		WithEnvVariable("SVIX_DB_DSN", "postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable").
-		WithEnvVariable("SVIX_JWT_SECRET", SvixJWTSingingSecret).
-		WithServiceBinding("postgres", postgres()).
-		WithExposedPort(8071).
-		AsService()
-}
