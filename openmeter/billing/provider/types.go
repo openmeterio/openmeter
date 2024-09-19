@@ -1,6 +1,11 @@
 package provider
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/openmeterio/openmeter/openmeter/billing/provider/openmetersandbox"
+	"github.com/openmeterio/openmeter/openmeter/billing/provider/stripe"
+)
 
 // Type specifies the provider used for billing
 type Type string
@@ -27,8 +32,8 @@ type Meta struct {
 type Configuration struct {
 	Meta
 
-	OpenMeter OpenMeterConfig `json:"openMeter"`
-	Stripe    StripeConfig    `json:"stripe"`
+	OpenMeter openmetersandbox.OpenMeterConfig `json:"openMeter"`
+	Stripe    stripe.StripeConfig              `json:"stripe"`
 }
 
 func (c *Configuration) Validate() error {
@@ -47,17 +52,5 @@ func (c *Configuration) Validate() error {
 		return fmt.Errorf("unknown backend type: %s", c.Type)
 	}
 
-	return nil
-}
-
-type OpenMeterConfig struct{}
-
-func (c *OpenMeterConfig) Validate() error {
-	return nil
-}
-
-type StripeConfig struct{}
-
-func (c *StripeConfig) Validate() error {
 	return nil
 }

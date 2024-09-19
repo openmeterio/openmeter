@@ -35,12 +35,16 @@ type BillingInvoice struct {
 	Metadata map[string]string `json:"metadata,omitempty"`
 	// Key holds the value of the "key" field.
 	Key string `json:"key,omitempty"`
+	// Type holds the value of the "type" field.
+	Type invoice.InvoiceType `json:"type,omitempty"`
 	// CustomerID holds the value of the "customer_id" field.
 	CustomerID string `json:"customer_id,omitempty"`
 	// BillingProfileID holds the value of the "billing_profile_id" field.
 	BillingProfileID string `json:"billing_profile_id,omitempty"`
+	// PrecedingInvoiceIds holds the value of the "preceding_invoice_ids" field.
+	PrecedingInvoiceIds []string `json:"preceding_invoice_ids,omitempty"`
 	// VoidedAt holds the value of the "voided_at" field.
-	VoidedAt time.Time `json:"voided_at,omitempty"`
+	VoidedAt *time.Time `json:"voided_at,omitempty"`
 	// Currency holds the value of the "currency" field.
 	Currency string `json:"currency,omitempty"`
 	// TotalAmount holds the value of the "total_amount" field.
@@ -114,11 +118,11 @@ func (*BillingInvoice) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case billinginvoice.FieldMetadata:
+		case billinginvoice.FieldMetadata, billinginvoice.FieldPrecedingInvoiceIds:
 			values[i] = new([]byte)
 		case billinginvoice.FieldTotalAmount:
 			values[i] = new(alpacadecimal.Decimal)
-		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldKey, billinginvoice.FieldCustomerID, billinginvoice.FieldBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldWorkflowConfigID:
+		case billinginvoice.FieldID, billinginvoice.FieldNamespace, billinginvoice.FieldKey, billinginvoice.FieldType, billinginvoice.FieldCustomerID, billinginvoice.FieldBillingProfileID, billinginvoice.FieldCurrency, billinginvoice.FieldStatus, billinginvoice.FieldWorkflowConfigID:
 			values[i] = new(sql.NullString)
 		case billinginvoice.FieldCreatedAt, billinginvoice.FieldUpdatedAt, billinginvoice.FieldDeletedAt, billinginvoice.FieldVoidedAt, billinginvoice.FieldDueDate, billinginvoice.FieldPeriodStart, billinginvoice.FieldPeriodEnd:
 			values[i] = new(sql.NullTime)
@@ -186,6 +190,12 @@ func (bi *BillingInvoice) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				bi.Key = value.String
 			}
+		case billinginvoice.FieldType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field type", values[i])
+			} else if value.Valid {
+				bi.Type = invoice.InvoiceType(value.String)
+			}
 		case billinginvoice.FieldCustomerID:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field customer_id", values[i])
@@ -198,11 +208,20 @@ func (bi *BillingInvoice) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				bi.BillingProfileID = value.String
 			}
+		case billinginvoice.FieldPrecedingInvoiceIds:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field preceding_invoice_ids", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &bi.PrecedingInvoiceIds); err != nil {
+					return fmt.Errorf("unmarshal field preceding_invoice_ids: %w", err)
+				}
+			}
 		case billinginvoice.FieldVoidedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field voided_at", values[i])
 			} else if value.Valid {
-				bi.VoidedAt = value.Time
+				bi.VoidedAt = new(time.Time)
+				*bi.VoidedAt = value.Time
 			}
 		case billinginvoice.FieldCurrency:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -329,14 +348,22 @@ func (bi *BillingInvoice) String() string {
 	builder.WriteString("key=")
 	builder.WriteString(bi.Key)
 	builder.WriteString(", ")
+	builder.WriteString("type=")
+	builder.WriteString(fmt.Sprintf("%v", bi.Type))
+	builder.WriteString(", ")
 	builder.WriteString("customer_id=")
 	builder.WriteString(bi.CustomerID)
 	builder.WriteString(", ")
 	builder.WriteString("billing_profile_id=")
 	builder.WriteString(bi.BillingProfileID)
 	builder.WriteString(", ")
-	builder.WriteString("voided_at=")
-	builder.WriteString(bi.VoidedAt.Format(time.ANSIC))
+	builder.WriteString("preceding_invoice_ids=")
+	builder.WriteString(fmt.Sprintf("%v", bi.PrecedingInvoiceIds))
+	builder.WriteString(", ")
+	if v := bi.VoidedAt; v != nil {
+		builder.WriteString("voided_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("currency=")
 	builder.WriteString(bi.Currency)

@@ -272,8 +272,18 @@ func (BillingInvoice) Mixin() []ent.Mixin {
 
 func (BillingInvoice) Fields() []ent.Field {
 	return []ent.Field{
+		// TODO: this is a mess!
 		field.String("key").
 			NotEmpty().
+			Immutable(),
+		field.String("key_series").
+			NotEmpty().
+			Immutable(),
+		field.String("key_number"). // TODO:?!?! int maybe?
+						NotEmpty().
+						Immutable(),
+		field.Enum("type").
+			GoType(invoice.InvoiceType("")).
 			Immutable(),
 		field.String("customer_id").
 			NotEmpty().
@@ -287,8 +297,14 @@ func (BillingInvoice) Fields() []ent.Field {
 			SchemaType(map[string]string{
 				"postgres": "char(26)",
 			}),
+		field.Strings("preceding_invoice_ids").
+			Optional().
+			SchemaType(map[string]string{
+				"postgres": "char(26)[]",
+			}),
 		field.Time("voided_at").
-			Optional(),
+			Optional().
+			Nillable(),
 		field.String("currency").
 			NotEmpty().
 			Immutable().

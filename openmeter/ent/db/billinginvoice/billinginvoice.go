@@ -30,10 +30,14 @@ const (
 	FieldMetadata = "metadata"
 	// FieldKey holds the string denoting the key field in the database.
 	FieldKey = "key"
+	// FieldType holds the string denoting the type field in the database.
+	FieldType = "type"
 	// FieldCustomerID holds the string denoting the customer_id field in the database.
 	FieldCustomerID = "customer_id"
 	// FieldBillingProfileID holds the string denoting the billing_profile_id field in the database.
 	FieldBillingProfileID = "billing_profile_id"
+	// FieldPrecedingInvoiceIds holds the string denoting the preceding_invoice_ids field in the database.
+	FieldPrecedingInvoiceIds = "preceding_invoice_ids"
 	// FieldVoidedAt holds the string denoting the voided_at field in the database.
 	FieldVoidedAt = "voided_at"
 	// FieldCurrency holds the string denoting the currency field in the database.
@@ -94,8 +98,10 @@ var Columns = []string{
 	FieldDeletedAt,
 	FieldMetadata,
 	FieldKey,
+	FieldType,
 	FieldCustomerID,
 	FieldBillingProfileID,
+	FieldPrecedingInvoiceIds,
 	FieldVoidedAt,
 	FieldCurrency,
 	FieldTotalAmount,
@@ -144,6 +150,16 @@ var (
 	}
 )
 
+// TypeValidator is a validator for the "type" field enum values. It is called by the builders before save.
+func TypeValidator(_type invoice.InvoiceType) error {
+	switch _type {
+	case "standard", "credit-note":
+		return nil
+	default:
+		return fmt.Errorf("billinginvoice: invalid enum value for type field: %q", _type)
+	}
+}
+
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s invoice.InvoiceStatus) error {
 	switch s {
@@ -185,6 +201,11 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByKey orders the results by the key field.
 func ByKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldKey, opts...).ToFunc()
+}
+
+// ByType orders the results by the type field.
+func ByType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldType, opts...).ToFunc()
 }
 
 // ByCustomerID orders the results by the customer_id field.

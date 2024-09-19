@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/openmeterio/openmeter/openmeter/billing/invoice"
@@ -68,6 +69,24 @@ func (biu *BillingInvoiceUpdate) SetMetadata(m map[string]string) *BillingInvoic
 // ClearMetadata clears the value of the "metadata" field.
 func (biu *BillingInvoiceUpdate) ClearMetadata() *BillingInvoiceUpdate {
 	biu.mutation.ClearMetadata()
+	return biu
+}
+
+// SetPrecedingInvoiceIds sets the "preceding_invoice_ids" field.
+func (biu *BillingInvoiceUpdate) SetPrecedingInvoiceIds(s []string) *BillingInvoiceUpdate {
+	biu.mutation.SetPrecedingInvoiceIds(s)
+	return biu
+}
+
+// AppendPrecedingInvoiceIds appends s to the "preceding_invoice_ids" field.
+func (biu *BillingInvoiceUpdate) AppendPrecedingInvoiceIds(s []string) *BillingInvoiceUpdate {
+	biu.mutation.AppendPrecedingInvoiceIds(s)
+	return biu
+}
+
+// ClearPrecedingInvoiceIds clears the value of the "preceding_invoice_ids" field.
+func (biu *BillingInvoiceUpdate) ClearPrecedingInvoiceIds() *BillingInvoiceUpdate {
+	biu.mutation.ClearPrecedingInvoiceIds()
 	return biu
 }
 
@@ -345,6 +364,17 @@ func (biu *BillingInvoiceUpdate) sqlSave(ctx context.Context) (n int, err error)
 	if biu.mutation.MetadataCleared() {
 		_spec.ClearField(billinginvoice.FieldMetadata, field.TypeJSON)
 	}
+	if value, ok := biu.mutation.PrecedingInvoiceIds(); ok {
+		_spec.SetField(billinginvoice.FieldPrecedingInvoiceIds, field.TypeJSON, value)
+	}
+	if value, ok := biu.mutation.AppendedPrecedingInvoiceIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, billinginvoice.FieldPrecedingInvoiceIds, value)
+		})
+	}
+	if biu.mutation.PrecedingInvoiceIdsCleared() {
+		_spec.ClearField(billinginvoice.FieldPrecedingInvoiceIds, field.TypeJSON)
+	}
 	if value, ok := biu.mutation.VoidedAt(); ok {
 		_spec.SetField(billinginvoice.FieldVoidedAt, field.TypeTime, value)
 	}
@@ -509,6 +539,24 @@ func (biuo *BillingInvoiceUpdateOne) SetMetadata(m map[string]string) *BillingIn
 // ClearMetadata clears the value of the "metadata" field.
 func (biuo *BillingInvoiceUpdateOne) ClearMetadata() *BillingInvoiceUpdateOne {
 	biuo.mutation.ClearMetadata()
+	return biuo
+}
+
+// SetPrecedingInvoiceIds sets the "preceding_invoice_ids" field.
+func (biuo *BillingInvoiceUpdateOne) SetPrecedingInvoiceIds(s []string) *BillingInvoiceUpdateOne {
+	biuo.mutation.SetPrecedingInvoiceIds(s)
+	return biuo
+}
+
+// AppendPrecedingInvoiceIds appends s to the "preceding_invoice_ids" field.
+func (biuo *BillingInvoiceUpdateOne) AppendPrecedingInvoiceIds(s []string) *BillingInvoiceUpdateOne {
+	biuo.mutation.AppendPrecedingInvoiceIds(s)
+	return biuo
+}
+
+// ClearPrecedingInvoiceIds clears the value of the "preceding_invoice_ids" field.
+func (biuo *BillingInvoiceUpdateOne) ClearPrecedingInvoiceIds() *BillingInvoiceUpdateOne {
+	biuo.mutation.ClearPrecedingInvoiceIds()
 	return biuo
 }
 
@@ -815,6 +863,17 @@ func (biuo *BillingInvoiceUpdateOne) sqlSave(ctx context.Context) (_node *Billin
 	}
 	if biuo.mutation.MetadataCleared() {
 		_spec.ClearField(billinginvoice.FieldMetadata, field.TypeJSON)
+	}
+	if value, ok := biuo.mutation.PrecedingInvoiceIds(); ok {
+		_spec.SetField(billinginvoice.FieldPrecedingInvoiceIds, field.TypeJSON, value)
+	}
+	if value, ok := biuo.mutation.AppendedPrecedingInvoiceIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, billinginvoice.FieldPrecedingInvoiceIds, value)
+		})
+	}
+	if biuo.mutation.PrecedingInvoiceIdsCleared() {
+		_spec.ClearField(billinginvoice.FieldPrecedingInvoiceIds, field.TypeJSON)
 	}
 	if value, ok := biuo.mutation.VoidedAt(); ok {
 		_spec.SetField(billinginvoice.FieldVoidedAt, field.TypeTime, value)

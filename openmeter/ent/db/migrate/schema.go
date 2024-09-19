@@ -67,7 +67,9 @@ var (
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "metadata", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "jsonb"}},
 		{Name: "key", Type: field.TypeString},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"standard", "credit-note"}},
 		{Name: "customer_id", Type: field.TypeString, SchemaType: map[string]string{"postgres": "char(26)"}},
+		{Name: "preceding_invoice_ids", Type: field.TypeJSON, Nullable: true, SchemaType: map[string]string{"postgres": "char(26)[]"}},
 		{Name: "voided_at", Type: field.TypeTime, Nullable: true},
 		{Name: "currency", Type: field.TypeString, SchemaType: map[string]string{"postgres": "varchar(3)"}},
 		{Name: "total_amount", Type: field.TypeOther, SchemaType: map[string]string{"postgres": "numeric"}},
@@ -88,13 +90,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "billing_invoices_billing_profiles_billing_invoices",
-				Columns:    []*schema.Column{BillingInvoicesColumns[17]},
+				Columns:    []*schema.Column{BillingInvoicesColumns[19]},
 				RefColumns: []*schema.Column{BillingProfilesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "billing_invoices_billing_workflow_configs_billing_invoices",
-				Columns:    []*schema.Column{BillingInvoicesColumns[18]},
+				Columns:    []*schema.Column{BillingInvoicesColumns[20]},
 				RefColumns: []*schema.Column{BillingWorkflowConfigsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -123,17 +125,17 @@ var (
 			{
 				Name:    "billinginvoice_namespace_customer_id",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[7]},
+				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[8]},
 			},
 			{
 				Name:    "billinginvoice_namespace_due_date",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[11]},
+				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[13]},
 			},
 			{
 				Name:    "billinginvoice_namespace_status",
 				Unique:  false,
-				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[12]},
+				Columns: []*schema.Column{BillingInvoicesColumns[1], BillingInvoicesColumns[14]},
 			},
 		},
 	}

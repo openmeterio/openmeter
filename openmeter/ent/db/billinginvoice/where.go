@@ -407,6 +407,36 @@ func KeyContainsFold(v string) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldContainsFold(FieldKey, v))
 }
 
+// TypeEQ applies the EQ predicate on the "type" field.
+func TypeEQ(v invoice.InvoiceType) predicate.BillingInvoice {
+	vc := v
+	return predicate.BillingInvoice(sql.FieldEQ(FieldType, vc))
+}
+
+// TypeNEQ applies the NEQ predicate on the "type" field.
+func TypeNEQ(v invoice.InvoiceType) predicate.BillingInvoice {
+	vc := v
+	return predicate.BillingInvoice(sql.FieldNEQ(FieldType, vc))
+}
+
+// TypeIn applies the In predicate on the "type" field.
+func TypeIn(vs ...invoice.InvoiceType) predicate.BillingInvoice {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoice(sql.FieldIn(FieldType, v...))
+}
+
+// TypeNotIn applies the NotIn predicate on the "type" field.
+func TypeNotIn(vs ...invoice.InvoiceType) predicate.BillingInvoice {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.BillingInvoice(sql.FieldNotIn(FieldType, v...))
+}
+
 // CustomerIDEQ applies the EQ predicate on the "customer_id" field.
 func CustomerIDEQ(v string) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldEQ(FieldCustomerID, v))
@@ -535,6 +565,16 @@ func BillingProfileIDEqualFold(v string) predicate.BillingInvoice {
 // BillingProfileIDContainsFold applies the ContainsFold predicate on the "billing_profile_id" field.
 func BillingProfileIDContainsFold(v string) predicate.BillingInvoice {
 	return predicate.BillingInvoice(sql.FieldContainsFold(FieldBillingProfileID, v))
+}
+
+// PrecedingInvoiceIdsIsNil applies the IsNil predicate on the "preceding_invoice_ids" field.
+func PrecedingInvoiceIdsIsNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldIsNull(FieldPrecedingInvoiceIds))
+}
+
+// PrecedingInvoiceIdsNotNil applies the NotNil predicate on the "preceding_invoice_ids" field.
+func PrecedingInvoiceIdsNotNil() predicate.BillingInvoice {
+	return predicate.BillingInvoice(sql.FieldNotNull(FieldPrecedingInvoiceIds))
 }
 
 // VoidedAtEQ applies the EQ predicate on the "voided_at" field.

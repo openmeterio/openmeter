@@ -89,6 +89,12 @@ func (bic *BillingInvoiceCreate) SetKey(s string) *BillingInvoiceCreate {
 	return bic
 }
 
+// SetType sets the "type" field.
+func (bic *BillingInvoiceCreate) SetType(it invoice.InvoiceType) *BillingInvoiceCreate {
+	bic.mutation.SetType(it)
+	return bic
+}
+
 // SetCustomerID sets the "customer_id" field.
 func (bic *BillingInvoiceCreate) SetCustomerID(s string) *BillingInvoiceCreate {
 	bic.mutation.SetCustomerID(s)
@@ -98,6 +104,12 @@ func (bic *BillingInvoiceCreate) SetCustomerID(s string) *BillingInvoiceCreate {
 // SetBillingProfileID sets the "billing_profile_id" field.
 func (bic *BillingInvoiceCreate) SetBillingProfileID(s string) *BillingInvoiceCreate {
 	bic.mutation.SetBillingProfileID(s)
+	return bic
+}
+
+// SetPrecedingInvoiceIds sets the "preceding_invoice_ids" field.
+func (bic *BillingInvoiceCreate) SetPrecedingInvoiceIds(s []string) *BillingInvoiceCreate {
+	bic.mutation.SetPrecedingInvoiceIds(s)
 	return bic
 }
 
@@ -287,6 +299,14 @@ func (bic *BillingInvoiceCreate) check() error {
 			return &ValidationError{Name: "key", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.key": %w`, err)}
 		}
 	}
+	if _, ok := bic.mutation.GetType(); !ok {
+		return &ValidationError{Name: "type", err: errors.New(`db: missing required field "BillingInvoice.type"`)}
+	}
+	if v, ok := bic.mutation.GetType(); ok {
+		if err := billinginvoice.TypeValidator(v); err != nil {
+			return &ValidationError{Name: "type", err: fmt.Errorf(`db: validator failed for field "BillingInvoice.type": %w`, err)}
+		}
+	}
 	if _, ok := bic.mutation.CustomerID(); !ok {
 		return &ValidationError{Name: "customer_id", err: errors.New(`db: missing required field "BillingInvoice.customer_id"`)}
 	}
@@ -414,13 +434,21 @@ func (bic *BillingInvoiceCreate) createSpec() (*BillingInvoice, *sqlgraph.Create
 		_spec.SetField(billinginvoice.FieldKey, field.TypeString, value)
 		_node.Key = value
 	}
+	if value, ok := bic.mutation.GetType(); ok {
+		_spec.SetField(billinginvoice.FieldType, field.TypeEnum, value)
+		_node.Type = value
+	}
 	if value, ok := bic.mutation.CustomerID(); ok {
 		_spec.SetField(billinginvoice.FieldCustomerID, field.TypeString, value)
 		_node.CustomerID = value
 	}
+	if value, ok := bic.mutation.PrecedingInvoiceIds(); ok {
+		_spec.SetField(billinginvoice.FieldPrecedingInvoiceIds, field.TypeJSON, value)
+		_node.PrecedingInvoiceIds = value
+	}
 	if value, ok := bic.mutation.VoidedAt(); ok {
 		_spec.SetField(billinginvoice.FieldVoidedAt, field.TypeTime, value)
-		_node.VoidedAt = value
+		_node.VoidedAt = &value
 	}
 	if value, ok := bic.mutation.Currency(); ok {
 		_spec.SetField(billinginvoice.FieldCurrency, field.TypeString, value)
@@ -612,6 +640,24 @@ func (u *BillingInvoiceUpsert) ClearMetadata() *BillingInvoiceUpsert {
 	return u
 }
 
+// SetPrecedingInvoiceIds sets the "preceding_invoice_ids" field.
+func (u *BillingInvoiceUpsert) SetPrecedingInvoiceIds(v []string) *BillingInvoiceUpsert {
+	u.Set(billinginvoice.FieldPrecedingInvoiceIds, v)
+	return u
+}
+
+// UpdatePrecedingInvoiceIds sets the "preceding_invoice_ids" field to the value that was provided on create.
+func (u *BillingInvoiceUpsert) UpdatePrecedingInvoiceIds() *BillingInvoiceUpsert {
+	u.SetExcluded(billinginvoice.FieldPrecedingInvoiceIds)
+	return u
+}
+
+// ClearPrecedingInvoiceIds clears the value of the "preceding_invoice_ids" field.
+func (u *BillingInvoiceUpsert) ClearPrecedingInvoiceIds() *BillingInvoiceUpsert {
+	u.SetNull(billinginvoice.FieldPrecedingInvoiceIds)
+	return u
+}
+
 // SetVoidedAt sets the "voided_at" field.
 func (u *BillingInvoiceUpsert) SetVoidedAt(v time.Time) *BillingInvoiceUpsert {
 	u.Set(billinginvoice.FieldVoidedAt, v)
@@ -752,6 +798,9 @@ func (u *BillingInvoiceUpsertOne) UpdateNewValues() *BillingInvoiceUpsertOne {
 		if _, exists := u.create.mutation.Key(); exists {
 			s.SetIgnore(billinginvoice.FieldKey)
 		}
+		if _, exists := u.create.mutation.GetType(); exists {
+			s.SetIgnore(billinginvoice.FieldType)
+		}
 		if _, exists := u.create.mutation.CustomerID(); exists {
 			s.SetIgnore(billinginvoice.FieldCustomerID)
 		}
@@ -845,6 +894,27 @@ func (u *BillingInvoiceUpsertOne) UpdateMetadata() *BillingInvoiceUpsertOne {
 func (u *BillingInvoiceUpsertOne) ClearMetadata() *BillingInvoiceUpsertOne {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearMetadata()
+	})
+}
+
+// SetPrecedingInvoiceIds sets the "preceding_invoice_ids" field.
+func (u *BillingInvoiceUpsertOne) SetPrecedingInvoiceIds(v []string) *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetPrecedingInvoiceIds(v)
+	})
+}
+
+// UpdatePrecedingInvoiceIds sets the "preceding_invoice_ids" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertOne) UpdatePrecedingInvoiceIds() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdatePrecedingInvoiceIds()
+	})
+}
+
+// ClearPrecedingInvoiceIds clears the value of the "preceding_invoice_ids" field.
+func (u *BillingInvoiceUpsertOne) ClearPrecedingInvoiceIds() *BillingInvoiceUpsertOne {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearPrecedingInvoiceIds()
 	})
 }
 
@@ -1176,6 +1246,9 @@ func (u *BillingInvoiceUpsertBulk) UpdateNewValues() *BillingInvoiceUpsertBulk {
 			if _, exists := b.mutation.Key(); exists {
 				s.SetIgnore(billinginvoice.FieldKey)
 			}
+			if _, exists := b.mutation.GetType(); exists {
+				s.SetIgnore(billinginvoice.FieldType)
+			}
 			if _, exists := b.mutation.CustomerID(); exists {
 				s.SetIgnore(billinginvoice.FieldCustomerID)
 			}
@@ -1270,6 +1343,27 @@ func (u *BillingInvoiceUpsertBulk) UpdateMetadata() *BillingInvoiceUpsertBulk {
 func (u *BillingInvoiceUpsertBulk) ClearMetadata() *BillingInvoiceUpsertBulk {
 	return u.Update(func(s *BillingInvoiceUpsert) {
 		s.ClearMetadata()
+	})
+}
+
+// SetPrecedingInvoiceIds sets the "preceding_invoice_ids" field.
+func (u *BillingInvoiceUpsertBulk) SetPrecedingInvoiceIds(v []string) *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.SetPrecedingInvoiceIds(v)
+	})
+}
+
+// UpdatePrecedingInvoiceIds sets the "preceding_invoice_ids" field to the value that was provided on create.
+func (u *BillingInvoiceUpsertBulk) UpdatePrecedingInvoiceIds() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.UpdatePrecedingInvoiceIds()
+	})
+}
+
+// ClearPrecedingInvoiceIds clears the value of the "preceding_invoice_ids" field.
+func (u *BillingInvoiceUpsertBulk) ClearPrecedingInvoiceIds() *BillingInvoiceUpsertBulk {
+	return u.Update(func(s *BillingInvoiceUpsert) {
+		s.ClearPrecedingInvoiceIds()
 	})
 }
 
