@@ -106,6 +106,7 @@ func (s *service) GetPendingInvoiceItems(ctx context.Context, customerID custome
 		return nil, err
 	}
 
+	// TODO: if we want this in the same txn we either use multi stage commits or we need to move this to the repo
 	customer, err := s.customer.GetCustomer(ctx, customer.CustomerID{
 		Namespace: customerID.Namespace,
 		ID:        customerID.ID,

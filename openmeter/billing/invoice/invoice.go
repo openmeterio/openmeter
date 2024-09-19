@@ -102,8 +102,6 @@ type InvoiceItem struct {
 }
 
 type Invoice struct {
-	Invoice bill.Invoice `json:"invoice"`
-
 	ID   InvoiceID   `json:"id"`
 	Key  string      `json:"key"`
 	Type InvoiceType `json:"type"`

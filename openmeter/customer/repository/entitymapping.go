@@ -48,6 +48,7 @@ func CustomerFromDBEntity(e db.Customer) *customer.Customer {
 			SubjectKeys: subjectKeys,
 		},
 		PrimaryEmail:      e.PrimaryEmail,
+		Name:              e.Name,
 		Currency:          e.Currency,
 		TaxProvider:       e.TaxProvider,
 		InvoicingProvider: e.InvoicingProvider,

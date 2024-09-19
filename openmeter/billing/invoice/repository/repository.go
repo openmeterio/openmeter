@@ -164,7 +164,7 @@ func invoiceFromDBEntity(dbInvoice *entdb.BillingInvoice) *invoice.Invoice {
 	} else {
 		inv.Customer = invoice.InvoiceCustomer{
 			CustomerID: dbInvoice.CustomerID,
-			Name:       lo.FromPtrOr(dbInvoice.Edges.Customer.Name, ""),
+			Name:       dbInvoice.Edges.Customer.Name,
 			BillingAddress: &models.Address{
 				Country:     dbInvoice.Edges.Customer.BillingAddressCountry,
 				PostalCode:  dbInvoice.Edges.Customer.BillingAddressPostalCode,

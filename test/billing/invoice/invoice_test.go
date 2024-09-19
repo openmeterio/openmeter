@@ -7,6 +7,7 @@ import (
 
 	"github.com/alpacahq/alpacadecimal"
 	"github.com/invopop/gobl/currency"
+	"github.com/invopop/gobl/l10n"
 	"github.com/openmeterio/openmeter/openmeter/billing/invoice"
 	"github.com/openmeterio/openmeter/openmeter/customer"
 	"github.com/openmeterio/openmeter/openmeter/testutils"
@@ -139,14 +140,47 @@ func (s *InvoicingTestSuite) TestCreateInvoice() {
 		require.NotEmpty(items[1].ID)
 	})
 
+	var pendingInvoice *invoice.Invoice
 	s.T().Run("Pending invoices", func(t *testing.T) {
 		// get pending items invoice
-		pendingInvoice, err := s.InvoiceService.GetPendingInvoiceItems(ctx, customer.CustomerID{
+		pendingInvoice, err = s.InvoiceService.GetPendingInvoiceItems(ctx, customer.CustomerID{
 			Namespace: namespace,
 			ID:        customerEntity.ID,
 		})
 
 		require.NoError(err)
 		require.NotNil(pendingInvoice)
+
+		require.EqualValues(invoice.InvoiceCustomer{
+			CustomerID:     customerEntity.ID,
+			Name:           customerEntity.Name,
+			BillingAddress: customerEntity.BillingAddress,
+		}, pendingInvoice.Customer)
+
+		require.Len(pendingInvoice.Items, 2)
+		require.ElementsMatch(
+			lo.Map(pendingInvoice.Items, func(item invoice.InvoiceItem, _ int) string {
+				return item.ID.ID
+			}),
+			lo.Map(items, func(item invoice.InvoiceItem, _ int) string {
+				return item.ID.ID
+			}),
+		)
+	})
+
+	testSupplier := invoice.InvoiceSupplier{
+		Name:           "Test Supplier",
+		TaxCountryCode: l10n.TaxCountryCode(l10n.US),
+	}
+
+	s.T().Run("Pending invoice - GOBL validation", func(t *testing.T) {
+		pendingInvoiceGOBL, err := pendingInvoice.ToGOBL(invoice.GOBLMetadata{
+			Supplier: testSupplier,
+		})
+		require.NoError(err)
+		require.NotNil(pendingInvoiceGOBL)
+
+		require.NoError(pendingInvoiceGOBL.Calculate(), "GOBL can calculate the invoice values")
+		require.NoError(pendingInvoiceGOBL.Validate(), "GOBL can validate the invoice")
 	})
 }
