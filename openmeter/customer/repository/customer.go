@@ -101,17 +101,18 @@ func (r repository) CreateCustomer(ctx context.Context, params customer.CreateCu
 	return CustomerFromDBEntity(*entity), nil
 }
 
-func (r repository) DeleteCustomer(ctx context.Context, customerID customer.CustomerID) error {
+func (r repository) DeleteCustomer(ctx context.Context, params customer.DeleteCustomerInput) error {
 	db := r.client()
 
-	query := db.Customer.UpdateOneID(customerID.ID).
+	query := db.Customer.UpdateOneID(params.ID).
+		Where(customerdb.Namespace(params.Namespace)).
 		SetDeletedAt(clock.Now().UTC())
 
 	_, err := query.Save(ctx)
 	if err != nil {
 		if entdb.IsNotFound(err) {
 			return customer.NotFoundError{
-				CustomerID: customerID,
+				CustomerID: customer.CustomerID(params),
 			}
 		}
 
@@ -121,18 +122,18 @@ func (r repository) DeleteCustomer(ctx context.Context, customerID customer.Cust
 	return nil
 }
 
-func (r repository) GetCustomer(ctx context.Context, customerID customer.CustomerID) (*customer.Customer, error) {
+func (r repository) GetCustomer(ctx context.Context, params customer.GetCustomerInput) (*customer.Customer, error) {
 	db := r.client()
 
 	query := db.Customer.Query().
-		Where(customerdb.ID(customerID.ID)).
-		Where(customerdb.Namespace(customerID.Namespace))
+		Where(customerdb.ID(params.ID)).
+		Where(customerdb.Namespace(params.Namespace))
 
 	entity, err := query.First(ctx)
 	if err != nil {
 		if entdb.IsNotFound(err) {
 			return nil, customer.NotFoundError{
-				CustomerID: customerID,
+				CustomerID: customer.CustomerID(params),
 			}
 		}
 
@@ -149,7 +150,7 @@ func (r repository) GetCustomer(ctx context.Context, customerID customer.Custome
 func (r repository) UpdateCustomer(ctx context.Context, params customer.UpdateCustomerInput) (*customer.Customer, error) {
 	db := r.client()
 
-	dbCustomer, err := r.GetCustomer(ctx, customer.CustomerID{
+	dbCustomer, err := r.GetCustomer(ctx, customer.GetCustomerInput{
 		Namespace: params.Namespace,
 		ID:        params.ID,
 	})

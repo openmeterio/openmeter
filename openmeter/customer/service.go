@@ -14,8 +14,8 @@ type Service interface {
 type CustomerService interface {
 	ListCustomers(ctx context.Context, params ListCustomersInput) (pagination.PagedResponse[Customer], error)
 	CreateCustomer(ctx context.Context, params CreateCustomerInput) (*Customer, error)
-	DeleteCustomer(ctx context.Context, customer CustomerID) error
-	GetCustomer(ctx context.Context, customer CustomerID) (*Customer, error)
+	DeleteCustomer(ctx context.Context, customer DeleteCustomerInput) error
+	GetCustomer(ctx context.Context, customer GetCustomerInput) (*Customer, error)
 	UpdateCustomer(ctx context.Context, params UpdateCustomerInput) (*Customer, error)
 }
 
@@ -55,13 +55,13 @@ func (s *service) CreateCustomer(ctx context.Context, params CreateCustomerInput
 	})
 }
 
-func (s *service) DeleteCustomer(ctx context.Context, customer CustomerID) error {
+func (s *service) DeleteCustomer(ctx context.Context, customer DeleteCustomerInput) error {
 	return WithTxNoValue(ctx, s.repo, func(ctx context.Context, repo TxRepository) error {
 		return s.repo.DeleteCustomer(ctx, customer)
 	})
 }
 
-func (s *service) GetCustomer(ctx context.Context, customer CustomerID) (*Customer, error) {
+func (s *service) GetCustomer(ctx context.Context, customer GetCustomerInput) (*Customer, error) {
 	return s.repo.GetCustomer(ctx, customer)
 }
 

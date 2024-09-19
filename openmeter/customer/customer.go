@@ -108,3 +108,9 @@ func (i UpdateCustomerInput) Validate(_ context.Context, _ Service) error {
 
 	return nil
 }
+
+// DeleteCustomerInput represents the input for the DeleteCustomer method
+type DeleteCustomerInput CustomerID
+
+// GetCustomerInput represents the input for the GetCustomer method
+type GetCustomerInput CustomerID
