@@ -2,14 +2,12 @@ package customer
 
 import (
 	"fmt"
-
-	"github.com/openmeterio/openmeter/pkg/models"
 )
 
 var _ error = (*NotFoundError)(nil)
 
 type NotFoundError struct {
-	models.NamespacedID
+	CustomerID
 }
 
 func (e NotFoundError) Error() string {

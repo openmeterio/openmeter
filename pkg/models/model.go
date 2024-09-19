@@ -10,8 +10,6 @@ type ManagedResource struct {
 	ID string `json:"id"`
 	// Key is the unique key for Resource.
 	Key string `json:"key"`
-	// Name is the name of the Resource.
-	Name string `json:"name"`
 }
 
 type ManagedModel struct {

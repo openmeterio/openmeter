@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/openmeterio/openmeter/openmeter/ent/db/predicate"
 	"github.com/openmeterio/openmeter/pkg/models"
+	"github.com/openmeterio/openmeter/pkg/timezone"
 )
 
 // ID filters vertices based on their ID field.
@@ -91,27 +92,6 @@ func DeletedAt(v time.Time) predicate.Customer {
 	return predicate.Customer(sql.FieldEQ(FieldDeletedAt, v))
 }
 
-// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
-func Name(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldEQ(FieldName, v))
-}
-
-// Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
-func Currency(v models.CurrencyCode) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldEQ(FieldCurrency, vc))
-}
-
-// ExternalMappingStripeCustomerID applies equality check predicate on the "external_mapping_stripe_customer_id" field. It's identical to ExternalMappingStripeCustomerIDEQ.
-func ExternalMappingStripeCustomerID(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldEQ(FieldExternalMappingStripeCustomerID, v))
-}
-
-// PrimaryEmail applies equality check predicate on the "primary_email" field. It's identical to PrimaryEmailEQ.
-func PrimaryEmail(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldEQ(FieldPrimaryEmail, v))
-}
-
 // BillingAddressCountry applies equality check predicate on the "billing_address_country" field. It's identical to BillingAddressCountryEQ.
 func BillingAddressCountry(v models.CountryCode) predicate.Customer {
 	vc := string(v)
@@ -146,6 +126,33 @@ func BillingAddressLine2(v string) predicate.Customer {
 // BillingAddressPhoneNumber applies equality check predicate on the "billing_address_phone_number" field. It's identical to BillingAddressPhoneNumberEQ.
 func BillingAddressPhoneNumber(v string) predicate.Customer {
 	return predicate.Customer(sql.FieldEQ(FieldBillingAddressPhoneNumber, v))
+}
+
+// Currency applies equality check predicate on the "currency" field. It's identical to CurrencyEQ.
+func Currency(v models.CurrencyCode) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldEQ(FieldCurrency, vc))
+}
+
+// Timezone applies equality check predicate on the "timezone" field. It's identical to TimezoneEQ.
+func Timezone(v timezone.Timezone) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldEQ(FieldTimezone, vc))
+}
+
+// ExternalMappingStripeCustomerID applies equality check predicate on the "external_mapping_stripe_customer_id" field. It's identical to ExternalMappingStripeCustomerIDEQ.
+func ExternalMappingStripeCustomerID(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldEQ(FieldExternalMappingStripeCustomerID, v))
+}
+
+// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
+func Name(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldEQ(FieldName, v))
+}
+
+// PrimaryEmail applies equality check predicate on the "primary_email" field. It's identical to PrimaryEmailEQ.
+func PrimaryEmail(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldEQ(FieldPrimaryEmail, v))
 }
 
 // KeyEQ applies the EQ predicate on the "key" field.
@@ -416,435 +423,6 @@ func DeletedAtIsNil() predicate.Customer {
 // DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
 func DeletedAtNotNil() predicate.Customer {
 	return predicate.Customer(sql.FieldNotNull(FieldDeletedAt))
-}
-
-// NameEQ applies the EQ predicate on the "name" field.
-func NameEQ(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldEQ(FieldName, v))
-}
-
-// NameNEQ applies the NEQ predicate on the "name" field.
-func NameNEQ(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldNEQ(FieldName, v))
-}
-
-// NameIn applies the In predicate on the "name" field.
-func NameIn(vs ...string) predicate.Customer {
-	return predicate.Customer(sql.FieldIn(FieldName, vs...))
-}
-
-// NameNotIn applies the NotIn predicate on the "name" field.
-func NameNotIn(vs ...string) predicate.Customer {
-	return predicate.Customer(sql.FieldNotIn(FieldName, vs...))
-}
-
-// NameGT applies the GT predicate on the "name" field.
-func NameGT(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldGT(FieldName, v))
-}
-
-// NameGTE applies the GTE predicate on the "name" field.
-func NameGTE(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldGTE(FieldName, v))
-}
-
-// NameLT applies the LT predicate on the "name" field.
-func NameLT(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldLT(FieldName, v))
-}
-
-// NameLTE applies the LTE predicate on the "name" field.
-func NameLTE(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldLTE(FieldName, v))
-}
-
-// NameContains applies the Contains predicate on the "name" field.
-func NameContains(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldContains(FieldName, v))
-}
-
-// NameHasPrefix applies the HasPrefix predicate on the "name" field.
-func NameHasPrefix(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldHasPrefix(FieldName, v))
-}
-
-// NameHasSuffix applies the HasSuffix predicate on the "name" field.
-func NameHasSuffix(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldHasSuffix(FieldName, v))
-}
-
-// NameEqualFold applies the EqualFold predicate on the "name" field.
-func NameEqualFold(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldEqualFold(FieldName, v))
-}
-
-// NameContainsFold applies the ContainsFold predicate on the "name" field.
-func NameContainsFold(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldContainsFold(FieldName, v))
-}
-
-// CurrencyEQ applies the EQ predicate on the "currency" field.
-func CurrencyEQ(v models.CurrencyCode) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldEQ(FieldCurrency, vc))
-}
-
-// CurrencyNEQ applies the NEQ predicate on the "currency" field.
-func CurrencyNEQ(v models.CurrencyCode) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldNEQ(FieldCurrency, vc))
-}
-
-// CurrencyIn applies the In predicate on the "currency" field.
-func CurrencyIn(vs ...models.CurrencyCode) predicate.Customer {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = string(vs[i])
-	}
-	return predicate.Customer(sql.FieldIn(FieldCurrency, v...))
-}
-
-// CurrencyNotIn applies the NotIn predicate on the "currency" field.
-func CurrencyNotIn(vs ...models.CurrencyCode) predicate.Customer {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = string(vs[i])
-	}
-	return predicate.Customer(sql.FieldNotIn(FieldCurrency, v...))
-}
-
-// CurrencyGT applies the GT predicate on the "currency" field.
-func CurrencyGT(v models.CurrencyCode) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldGT(FieldCurrency, vc))
-}
-
-// CurrencyGTE applies the GTE predicate on the "currency" field.
-func CurrencyGTE(v models.CurrencyCode) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldGTE(FieldCurrency, vc))
-}
-
-// CurrencyLT applies the LT predicate on the "currency" field.
-func CurrencyLT(v models.CurrencyCode) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldLT(FieldCurrency, vc))
-}
-
-// CurrencyLTE applies the LTE predicate on the "currency" field.
-func CurrencyLTE(v models.CurrencyCode) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldLTE(FieldCurrency, vc))
-}
-
-// CurrencyContains applies the Contains predicate on the "currency" field.
-func CurrencyContains(v models.CurrencyCode) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldContains(FieldCurrency, vc))
-}
-
-// CurrencyHasPrefix applies the HasPrefix predicate on the "currency" field.
-func CurrencyHasPrefix(v models.CurrencyCode) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldHasPrefix(FieldCurrency, vc))
-}
-
-// CurrencyHasSuffix applies the HasSuffix predicate on the "currency" field.
-func CurrencyHasSuffix(v models.CurrencyCode) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldHasSuffix(FieldCurrency, vc))
-}
-
-// CurrencyIsNil applies the IsNil predicate on the "currency" field.
-func CurrencyIsNil() predicate.Customer {
-	return predicate.Customer(sql.FieldIsNull(FieldCurrency))
-}
-
-// CurrencyNotNil applies the NotNil predicate on the "currency" field.
-func CurrencyNotNil() predicate.Customer {
-	return predicate.Customer(sql.FieldNotNull(FieldCurrency))
-}
-
-// CurrencyEqualFold applies the EqualFold predicate on the "currency" field.
-func CurrencyEqualFold(v models.CurrencyCode) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldEqualFold(FieldCurrency, vc))
-}
-
-// CurrencyContainsFold applies the ContainsFold predicate on the "currency" field.
-func CurrencyContainsFold(v models.CurrencyCode) predicate.Customer {
-	vc := string(v)
-	return predicate.Customer(sql.FieldContainsFold(FieldCurrency, vc))
-}
-
-// TaxProviderEQ applies the EQ predicate on the "tax_provider" field.
-func TaxProviderEQ(v models.TaxProvider) predicate.Customer {
-	vc := v
-	return predicate.Customer(sql.FieldEQ(FieldTaxProvider, vc))
-}
-
-// TaxProviderNEQ applies the NEQ predicate on the "tax_provider" field.
-func TaxProviderNEQ(v models.TaxProvider) predicate.Customer {
-	vc := v
-	return predicate.Customer(sql.FieldNEQ(FieldTaxProvider, vc))
-}
-
-// TaxProviderIn applies the In predicate on the "tax_provider" field.
-func TaxProviderIn(vs ...models.TaxProvider) predicate.Customer {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.Customer(sql.FieldIn(FieldTaxProvider, v...))
-}
-
-// TaxProviderNotIn applies the NotIn predicate on the "tax_provider" field.
-func TaxProviderNotIn(vs ...models.TaxProvider) predicate.Customer {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.Customer(sql.FieldNotIn(FieldTaxProvider, v...))
-}
-
-// TaxProviderIsNil applies the IsNil predicate on the "tax_provider" field.
-func TaxProviderIsNil() predicate.Customer {
-	return predicate.Customer(sql.FieldIsNull(FieldTaxProvider))
-}
-
-// TaxProviderNotNil applies the NotNil predicate on the "tax_provider" field.
-func TaxProviderNotNil() predicate.Customer {
-	return predicate.Customer(sql.FieldNotNull(FieldTaxProvider))
-}
-
-// InvoicingProviderEQ applies the EQ predicate on the "invoicing_provider" field.
-func InvoicingProviderEQ(v models.InvoicingProvider) predicate.Customer {
-	vc := v
-	return predicate.Customer(sql.FieldEQ(FieldInvoicingProvider, vc))
-}
-
-// InvoicingProviderNEQ applies the NEQ predicate on the "invoicing_provider" field.
-func InvoicingProviderNEQ(v models.InvoicingProvider) predicate.Customer {
-	vc := v
-	return predicate.Customer(sql.FieldNEQ(FieldInvoicingProvider, vc))
-}
-
-// InvoicingProviderIn applies the In predicate on the "invoicing_provider" field.
-func InvoicingProviderIn(vs ...models.InvoicingProvider) predicate.Customer {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.Customer(sql.FieldIn(FieldInvoicingProvider, v...))
-}
-
-// InvoicingProviderNotIn applies the NotIn predicate on the "invoicing_provider" field.
-func InvoicingProviderNotIn(vs ...models.InvoicingProvider) predicate.Customer {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.Customer(sql.FieldNotIn(FieldInvoicingProvider, v...))
-}
-
-// InvoicingProviderIsNil applies the IsNil predicate on the "invoicing_provider" field.
-func InvoicingProviderIsNil() predicate.Customer {
-	return predicate.Customer(sql.FieldIsNull(FieldInvoicingProvider))
-}
-
-// InvoicingProviderNotNil applies the NotNil predicate on the "invoicing_provider" field.
-func InvoicingProviderNotNil() predicate.Customer {
-	return predicate.Customer(sql.FieldNotNull(FieldInvoicingProvider))
-}
-
-// PaymentProviderEQ applies the EQ predicate on the "payment_provider" field.
-func PaymentProviderEQ(v models.PaymentProvider) predicate.Customer {
-	vc := v
-	return predicate.Customer(sql.FieldEQ(FieldPaymentProvider, vc))
-}
-
-// PaymentProviderNEQ applies the NEQ predicate on the "payment_provider" field.
-func PaymentProviderNEQ(v models.PaymentProvider) predicate.Customer {
-	vc := v
-	return predicate.Customer(sql.FieldNEQ(FieldPaymentProvider, vc))
-}
-
-// PaymentProviderIn applies the In predicate on the "payment_provider" field.
-func PaymentProviderIn(vs ...models.PaymentProvider) predicate.Customer {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.Customer(sql.FieldIn(FieldPaymentProvider, v...))
-}
-
-// PaymentProviderNotIn applies the NotIn predicate on the "payment_provider" field.
-func PaymentProviderNotIn(vs ...models.PaymentProvider) predicate.Customer {
-	v := make([]any, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.Customer(sql.FieldNotIn(FieldPaymentProvider, v...))
-}
-
-// PaymentProviderIsNil applies the IsNil predicate on the "payment_provider" field.
-func PaymentProviderIsNil() predicate.Customer {
-	return predicate.Customer(sql.FieldIsNull(FieldPaymentProvider))
-}
-
-// PaymentProviderNotNil applies the NotNil predicate on the "payment_provider" field.
-func PaymentProviderNotNil() predicate.Customer {
-	return predicate.Customer(sql.FieldNotNull(FieldPaymentProvider))
-}
-
-// ExternalMappingStripeCustomerIDEQ applies the EQ predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDEQ(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldEQ(FieldExternalMappingStripeCustomerID, v))
-}
-
-// ExternalMappingStripeCustomerIDNEQ applies the NEQ predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDNEQ(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldNEQ(FieldExternalMappingStripeCustomerID, v))
-}
-
-// ExternalMappingStripeCustomerIDIn applies the In predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDIn(vs ...string) predicate.Customer {
-	return predicate.Customer(sql.FieldIn(FieldExternalMappingStripeCustomerID, vs...))
-}
-
-// ExternalMappingStripeCustomerIDNotIn applies the NotIn predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDNotIn(vs ...string) predicate.Customer {
-	return predicate.Customer(sql.FieldNotIn(FieldExternalMappingStripeCustomerID, vs...))
-}
-
-// ExternalMappingStripeCustomerIDGT applies the GT predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDGT(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldGT(FieldExternalMappingStripeCustomerID, v))
-}
-
-// ExternalMappingStripeCustomerIDGTE applies the GTE predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDGTE(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldGTE(FieldExternalMappingStripeCustomerID, v))
-}
-
-// ExternalMappingStripeCustomerIDLT applies the LT predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDLT(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldLT(FieldExternalMappingStripeCustomerID, v))
-}
-
-// ExternalMappingStripeCustomerIDLTE applies the LTE predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDLTE(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldLTE(FieldExternalMappingStripeCustomerID, v))
-}
-
-// ExternalMappingStripeCustomerIDContains applies the Contains predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDContains(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldContains(FieldExternalMappingStripeCustomerID, v))
-}
-
-// ExternalMappingStripeCustomerIDHasPrefix applies the HasPrefix predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDHasPrefix(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldHasPrefix(FieldExternalMappingStripeCustomerID, v))
-}
-
-// ExternalMappingStripeCustomerIDHasSuffix applies the HasSuffix predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDHasSuffix(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldHasSuffix(FieldExternalMappingStripeCustomerID, v))
-}
-
-// ExternalMappingStripeCustomerIDIsNil applies the IsNil predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDIsNil() predicate.Customer {
-	return predicate.Customer(sql.FieldIsNull(FieldExternalMappingStripeCustomerID))
-}
-
-// ExternalMappingStripeCustomerIDNotNil applies the NotNil predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDNotNil() predicate.Customer {
-	return predicate.Customer(sql.FieldNotNull(FieldExternalMappingStripeCustomerID))
-}
-
-// ExternalMappingStripeCustomerIDEqualFold applies the EqualFold predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDEqualFold(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldEqualFold(FieldExternalMappingStripeCustomerID, v))
-}
-
-// ExternalMappingStripeCustomerIDContainsFold applies the ContainsFold predicate on the "external_mapping_stripe_customer_id" field.
-func ExternalMappingStripeCustomerIDContainsFold(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldContainsFold(FieldExternalMappingStripeCustomerID, v))
-}
-
-// PrimaryEmailEQ applies the EQ predicate on the "primary_email" field.
-func PrimaryEmailEQ(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldEQ(FieldPrimaryEmail, v))
-}
-
-// PrimaryEmailNEQ applies the NEQ predicate on the "primary_email" field.
-func PrimaryEmailNEQ(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldNEQ(FieldPrimaryEmail, v))
-}
-
-// PrimaryEmailIn applies the In predicate on the "primary_email" field.
-func PrimaryEmailIn(vs ...string) predicate.Customer {
-	return predicate.Customer(sql.FieldIn(FieldPrimaryEmail, vs...))
-}
-
-// PrimaryEmailNotIn applies the NotIn predicate on the "primary_email" field.
-func PrimaryEmailNotIn(vs ...string) predicate.Customer {
-	return predicate.Customer(sql.FieldNotIn(FieldPrimaryEmail, vs...))
-}
-
-// PrimaryEmailGT applies the GT predicate on the "primary_email" field.
-func PrimaryEmailGT(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldGT(FieldPrimaryEmail, v))
-}
-
-// PrimaryEmailGTE applies the GTE predicate on the "primary_email" field.
-func PrimaryEmailGTE(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldGTE(FieldPrimaryEmail, v))
-}
-
-// PrimaryEmailLT applies the LT predicate on the "primary_email" field.
-func PrimaryEmailLT(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldLT(FieldPrimaryEmail, v))
-}
-
-// PrimaryEmailLTE applies the LTE predicate on the "primary_email" field.
-func PrimaryEmailLTE(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldLTE(FieldPrimaryEmail, v))
-}
-
-// PrimaryEmailContains applies the Contains predicate on the "primary_email" field.
-func PrimaryEmailContains(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldContains(FieldPrimaryEmail, v))
-}
-
-// PrimaryEmailHasPrefix applies the HasPrefix predicate on the "primary_email" field.
-func PrimaryEmailHasPrefix(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldHasPrefix(FieldPrimaryEmail, v))
-}
-
-// PrimaryEmailHasSuffix applies the HasSuffix predicate on the "primary_email" field.
-func PrimaryEmailHasSuffix(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldHasSuffix(FieldPrimaryEmail, v))
-}
-
-// PrimaryEmailIsNil applies the IsNil predicate on the "primary_email" field.
-func PrimaryEmailIsNil() predicate.Customer {
-	return predicate.Customer(sql.FieldIsNull(FieldPrimaryEmail))
-}
-
-// PrimaryEmailNotNil applies the NotNil predicate on the "primary_email" field.
-func PrimaryEmailNotNil() predicate.Customer {
-	return predicate.Customer(sql.FieldNotNull(FieldPrimaryEmail))
-}
-
-// PrimaryEmailEqualFold applies the EqualFold predicate on the "primary_email" field.
-func PrimaryEmailEqualFold(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldEqualFold(FieldPrimaryEmail, v))
-}
-
-// PrimaryEmailContainsFold applies the ContainsFold predicate on the "primary_email" field.
-func PrimaryEmailContainsFold(v string) predicate.Customer {
-	return predicate.Customer(sql.FieldContainsFold(FieldPrimaryEmail, v))
 }
 
 // BillingAddressCountryEQ applies the EQ predicate on the "billing_address_country" field.
@@ -1389,6 +967,529 @@ func BillingAddressPhoneNumberEqualFold(v string) predicate.Customer {
 // BillingAddressPhoneNumberContainsFold applies the ContainsFold predicate on the "billing_address_phone_number" field.
 func BillingAddressPhoneNumberContainsFold(v string) predicate.Customer {
 	return predicate.Customer(sql.FieldContainsFold(FieldBillingAddressPhoneNumber, v))
+}
+
+// CurrencyEQ applies the EQ predicate on the "currency" field.
+func CurrencyEQ(v models.CurrencyCode) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldEQ(FieldCurrency, vc))
+}
+
+// CurrencyNEQ applies the NEQ predicate on the "currency" field.
+func CurrencyNEQ(v models.CurrencyCode) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldNEQ(FieldCurrency, vc))
+}
+
+// CurrencyIn applies the In predicate on the "currency" field.
+func CurrencyIn(vs ...models.CurrencyCode) predicate.Customer {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.Customer(sql.FieldIn(FieldCurrency, v...))
+}
+
+// CurrencyNotIn applies the NotIn predicate on the "currency" field.
+func CurrencyNotIn(vs ...models.CurrencyCode) predicate.Customer {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.Customer(sql.FieldNotIn(FieldCurrency, v...))
+}
+
+// CurrencyGT applies the GT predicate on the "currency" field.
+func CurrencyGT(v models.CurrencyCode) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldGT(FieldCurrency, vc))
+}
+
+// CurrencyGTE applies the GTE predicate on the "currency" field.
+func CurrencyGTE(v models.CurrencyCode) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldGTE(FieldCurrency, vc))
+}
+
+// CurrencyLT applies the LT predicate on the "currency" field.
+func CurrencyLT(v models.CurrencyCode) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldLT(FieldCurrency, vc))
+}
+
+// CurrencyLTE applies the LTE predicate on the "currency" field.
+func CurrencyLTE(v models.CurrencyCode) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldLTE(FieldCurrency, vc))
+}
+
+// CurrencyContains applies the Contains predicate on the "currency" field.
+func CurrencyContains(v models.CurrencyCode) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldContains(FieldCurrency, vc))
+}
+
+// CurrencyHasPrefix applies the HasPrefix predicate on the "currency" field.
+func CurrencyHasPrefix(v models.CurrencyCode) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldHasPrefix(FieldCurrency, vc))
+}
+
+// CurrencyHasSuffix applies the HasSuffix predicate on the "currency" field.
+func CurrencyHasSuffix(v models.CurrencyCode) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldHasSuffix(FieldCurrency, vc))
+}
+
+// CurrencyIsNil applies the IsNil predicate on the "currency" field.
+func CurrencyIsNil() predicate.Customer {
+	return predicate.Customer(sql.FieldIsNull(FieldCurrency))
+}
+
+// CurrencyNotNil applies the NotNil predicate on the "currency" field.
+func CurrencyNotNil() predicate.Customer {
+	return predicate.Customer(sql.FieldNotNull(FieldCurrency))
+}
+
+// CurrencyEqualFold applies the EqualFold predicate on the "currency" field.
+func CurrencyEqualFold(v models.CurrencyCode) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldEqualFold(FieldCurrency, vc))
+}
+
+// CurrencyContainsFold applies the ContainsFold predicate on the "currency" field.
+func CurrencyContainsFold(v models.CurrencyCode) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldContainsFold(FieldCurrency, vc))
+}
+
+// TimezoneEQ applies the EQ predicate on the "timezone" field.
+func TimezoneEQ(v timezone.Timezone) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldEQ(FieldTimezone, vc))
+}
+
+// TimezoneNEQ applies the NEQ predicate on the "timezone" field.
+func TimezoneNEQ(v timezone.Timezone) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldNEQ(FieldTimezone, vc))
+}
+
+// TimezoneIn applies the In predicate on the "timezone" field.
+func TimezoneIn(vs ...timezone.Timezone) predicate.Customer {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.Customer(sql.FieldIn(FieldTimezone, v...))
+}
+
+// TimezoneNotIn applies the NotIn predicate on the "timezone" field.
+func TimezoneNotIn(vs ...timezone.Timezone) predicate.Customer {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = string(vs[i])
+	}
+	return predicate.Customer(sql.FieldNotIn(FieldTimezone, v...))
+}
+
+// TimezoneGT applies the GT predicate on the "timezone" field.
+func TimezoneGT(v timezone.Timezone) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldGT(FieldTimezone, vc))
+}
+
+// TimezoneGTE applies the GTE predicate on the "timezone" field.
+func TimezoneGTE(v timezone.Timezone) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldGTE(FieldTimezone, vc))
+}
+
+// TimezoneLT applies the LT predicate on the "timezone" field.
+func TimezoneLT(v timezone.Timezone) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldLT(FieldTimezone, vc))
+}
+
+// TimezoneLTE applies the LTE predicate on the "timezone" field.
+func TimezoneLTE(v timezone.Timezone) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldLTE(FieldTimezone, vc))
+}
+
+// TimezoneContains applies the Contains predicate on the "timezone" field.
+func TimezoneContains(v timezone.Timezone) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldContains(FieldTimezone, vc))
+}
+
+// TimezoneHasPrefix applies the HasPrefix predicate on the "timezone" field.
+func TimezoneHasPrefix(v timezone.Timezone) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldHasPrefix(FieldTimezone, vc))
+}
+
+// TimezoneHasSuffix applies the HasSuffix predicate on the "timezone" field.
+func TimezoneHasSuffix(v timezone.Timezone) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldHasSuffix(FieldTimezone, vc))
+}
+
+// TimezoneIsNil applies the IsNil predicate on the "timezone" field.
+func TimezoneIsNil() predicate.Customer {
+	return predicate.Customer(sql.FieldIsNull(FieldTimezone))
+}
+
+// TimezoneNotNil applies the NotNil predicate on the "timezone" field.
+func TimezoneNotNil() predicate.Customer {
+	return predicate.Customer(sql.FieldNotNull(FieldTimezone))
+}
+
+// TimezoneEqualFold applies the EqualFold predicate on the "timezone" field.
+func TimezoneEqualFold(v timezone.Timezone) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldEqualFold(FieldTimezone, vc))
+}
+
+// TimezoneContainsFold applies the ContainsFold predicate on the "timezone" field.
+func TimezoneContainsFold(v timezone.Timezone) predicate.Customer {
+	vc := string(v)
+	return predicate.Customer(sql.FieldContainsFold(FieldTimezone, vc))
+}
+
+// TaxProviderEQ applies the EQ predicate on the "tax_provider" field.
+func TaxProviderEQ(v models.TaxProvider) predicate.Customer {
+	vc := v
+	return predicate.Customer(sql.FieldEQ(FieldTaxProvider, vc))
+}
+
+// TaxProviderNEQ applies the NEQ predicate on the "tax_provider" field.
+func TaxProviderNEQ(v models.TaxProvider) predicate.Customer {
+	vc := v
+	return predicate.Customer(sql.FieldNEQ(FieldTaxProvider, vc))
+}
+
+// TaxProviderIn applies the In predicate on the "tax_provider" field.
+func TaxProviderIn(vs ...models.TaxProvider) predicate.Customer {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Customer(sql.FieldIn(FieldTaxProvider, v...))
+}
+
+// TaxProviderNotIn applies the NotIn predicate on the "tax_provider" field.
+func TaxProviderNotIn(vs ...models.TaxProvider) predicate.Customer {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Customer(sql.FieldNotIn(FieldTaxProvider, v...))
+}
+
+// TaxProviderIsNil applies the IsNil predicate on the "tax_provider" field.
+func TaxProviderIsNil() predicate.Customer {
+	return predicate.Customer(sql.FieldIsNull(FieldTaxProvider))
+}
+
+// TaxProviderNotNil applies the NotNil predicate on the "tax_provider" field.
+func TaxProviderNotNil() predicate.Customer {
+	return predicate.Customer(sql.FieldNotNull(FieldTaxProvider))
+}
+
+// InvoicingProviderEQ applies the EQ predicate on the "invoicing_provider" field.
+func InvoicingProviderEQ(v models.InvoicingProvider) predicate.Customer {
+	vc := v
+	return predicate.Customer(sql.FieldEQ(FieldInvoicingProvider, vc))
+}
+
+// InvoicingProviderNEQ applies the NEQ predicate on the "invoicing_provider" field.
+func InvoicingProviderNEQ(v models.InvoicingProvider) predicate.Customer {
+	vc := v
+	return predicate.Customer(sql.FieldNEQ(FieldInvoicingProvider, vc))
+}
+
+// InvoicingProviderIn applies the In predicate on the "invoicing_provider" field.
+func InvoicingProviderIn(vs ...models.InvoicingProvider) predicate.Customer {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Customer(sql.FieldIn(FieldInvoicingProvider, v...))
+}
+
+// InvoicingProviderNotIn applies the NotIn predicate on the "invoicing_provider" field.
+func InvoicingProviderNotIn(vs ...models.InvoicingProvider) predicate.Customer {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Customer(sql.FieldNotIn(FieldInvoicingProvider, v...))
+}
+
+// InvoicingProviderIsNil applies the IsNil predicate on the "invoicing_provider" field.
+func InvoicingProviderIsNil() predicate.Customer {
+	return predicate.Customer(sql.FieldIsNull(FieldInvoicingProvider))
+}
+
+// InvoicingProviderNotNil applies the NotNil predicate on the "invoicing_provider" field.
+func InvoicingProviderNotNil() predicate.Customer {
+	return predicate.Customer(sql.FieldNotNull(FieldInvoicingProvider))
+}
+
+// PaymentProviderEQ applies the EQ predicate on the "payment_provider" field.
+func PaymentProviderEQ(v models.PaymentProvider) predicate.Customer {
+	vc := v
+	return predicate.Customer(sql.FieldEQ(FieldPaymentProvider, vc))
+}
+
+// PaymentProviderNEQ applies the NEQ predicate on the "payment_provider" field.
+func PaymentProviderNEQ(v models.PaymentProvider) predicate.Customer {
+	vc := v
+	return predicate.Customer(sql.FieldNEQ(FieldPaymentProvider, vc))
+}
+
+// PaymentProviderIn applies the In predicate on the "payment_provider" field.
+func PaymentProviderIn(vs ...models.PaymentProvider) predicate.Customer {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Customer(sql.FieldIn(FieldPaymentProvider, v...))
+}
+
+// PaymentProviderNotIn applies the NotIn predicate on the "payment_provider" field.
+func PaymentProviderNotIn(vs ...models.PaymentProvider) predicate.Customer {
+	v := make([]any, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Customer(sql.FieldNotIn(FieldPaymentProvider, v...))
+}
+
+// PaymentProviderIsNil applies the IsNil predicate on the "payment_provider" field.
+func PaymentProviderIsNil() predicate.Customer {
+	return predicate.Customer(sql.FieldIsNull(FieldPaymentProvider))
+}
+
+// PaymentProviderNotNil applies the NotNil predicate on the "payment_provider" field.
+func PaymentProviderNotNil() predicate.Customer {
+	return predicate.Customer(sql.FieldNotNull(FieldPaymentProvider))
+}
+
+// ExternalMappingStripeCustomerIDEQ applies the EQ predicate on the "external_mapping_stripe_customer_id" field.
+func ExternalMappingStripeCustomerIDEQ(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldEQ(FieldExternalMappingStripeCustomerID, v))
+}
+
+// ExternalMappingStripeCustomerIDNEQ applies the NEQ predicate on the "external_mapping_stripe_customer_id" field.
+func ExternalMappingStripeCustomerIDNEQ(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldNEQ(FieldExternalMappingStripeCustomerID, v))
+}
+
+// ExternalMappingStripeCustomerIDIn applies the In predicate on the "external_mapping_stripe_customer_id" field.
+func ExternalMappingStripeCustomerIDIn(vs ...string) predicate.Customer {
+	return predicate.Customer(sql.FieldIn(FieldExternalMappingStripeCustomerID, vs...))
+}
+
+// ExternalMappingStripeCustomerIDNotIn applies the NotIn predicate on the "external_mapping_stripe_customer_id" field.
+func ExternalMappingStripeCustomerIDNotIn(vs ...string) predicate.Customer {
+	return predicate.Customer(sql.FieldNotIn(FieldExternalMappingStripeCustomerID, vs...))
+}
+
+// ExternalMappingStripeCustomerIDGT applies the GT predicate on the "external_mapping_stripe_customer_id" field.
+func ExternalMappingStripeCustomerIDGT(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldGT(FieldExternalMappingStripeCustomerID, v))
+}
+
+// ExternalMappingStripeCustomerIDGTE applies the GTE predicate on the "external_mapping_stripe_customer_id" field.
+func ExternalMappingStripeCustomerIDGTE(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldGTE(FieldExternalMappingStripeCustomerID, v))
+}
+
+// ExternalMappingStripeCustomerIDLT applies the LT predicate on the "external_mapping_stripe_customer_id" field.
+func ExternalMappingStripeCustomerIDLT(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldLT(FieldExternalMappingStripeCustomerID, v))
+}
+
+// ExternalMappingStripeCustomerIDLTE applies the LTE predicate on the "external_mapping_stripe_customer_id" field.
+func ExternalMappingStripeCustomerIDLTE(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldLTE(FieldExternalMappingStripeCustomerID, v))
+}
+
+// ExternalMappingStripeCustomerIDContains applies the Contains predicate on the "external_mapping_stripe_customer_id" field.
+func ExternalMappingStripeCustomerIDContains(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldContains(FieldExternalMappingStripeCustomerID, v))
+}
+
+// ExternalMappingStripeCustomerIDHasPrefix applies the HasPrefix predicate on the "external_mapping_stripe_customer_id" field.
+func ExternalMappingStripeCustomerIDHasPrefix(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldHasPrefix(FieldExternalMappingStripeCustomerID, v))
+}
+
+// ExternalMappingStripeCustomerIDHasSuffix applies the HasSuffix predicate on the "external_mapping_stripe_customer_id" field.
+func ExternalMappingStripeCustomerIDHasSuffix(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldHasSuffix(FieldExternalMappingStripeCustomerID, v))
+}
+
+// ExternalMappingStripeCustomerIDIsNil applies the IsNil predicate on the "external_mapping_stripe_customer_id" field.
+func ExternalMappingStripeCustomerIDIsNil() predicate.Customer {
+	return predicate.Customer(sql.FieldIsNull(FieldExternalMappingStripeCustomerID))
+}
+
+// ExternalMappingStripeCustomerIDNotNil applies the NotNil predicate on the "external_mapping_stripe_customer_id" field.
+func ExternalMappingStripeCustomerIDNotNil() predicate.Customer {
+	return predicate.Customer(sql.FieldNotNull(FieldExternalMappingStripeCustomerID))
+}
+
+// ExternalMappingStripeCustomerIDEqualFold applies the EqualFold predicate on the "external_mapping_stripe_customer_id" field.
+func ExternalMappingStripeCustomerIDEqualFold(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldEqualFold(FieldExternalMappingStripeCustomerID, v))
+}
+
+// ExternalMappingStripeCustomerIDContainsFold applies the ContainsFold predicate on the "external_mapping_stripe_customer_id" field.
+func ExternalMappingStripeCustomerIDContainsFold(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldContainsFold(FieldExternalMappingStripeCustomerID, v))
+}
+
+// NameEQ applies the EQ predicate on the "name" field.
+func NameEQ(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldEQ(FieldName, v))
+}
+
+// NameNEQ applies the NEQ predicate on the "name" field.
+func NameNEQ(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldNEQ(FieldName, v))
+}
+
+// NameIn applies the In predicate on the "name" field.
+func NameIn(vs ...string) predicate.Customer {
+	return predicate.Customer(sql.FieldIn(FieldName, vs...))
+}
+
+// NameNotIn applies the NotIn predicate on the "name" field.
+func NameNotIn(vs ...string) predicate.Customer {
+	return predicate.Customer(sql.FieldNotIn(FieldName, vs...))
+}
+
+// NameGT applies the GT predicate on the "name" field.
+func NameGT(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldGT(FieldName, v))
+}
+
+// NameGTE applies the GTE predicate on the "name" field.
+func NameGTE(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldGTE(FieldName, v))
+}
+
+// NameLT applies the LT predicate on the "name" field.
+func NameLT(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldLT(FieldName, v))
+}
+
+// NameLTE applies the LTE predicate on the "name" field.
+func NameLTE(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldLTE(FieldName, v))
+}
+
+// NameContains applies the Contains predicate on the "name" field.
+func NameContains(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldContains(FieldName, v))
+}
+
+// NameHasPrefix applies the HasPrefix predicate on the "name" field.
+func NameHasPrefix(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldHasPrefix(FieldName, v))
+}
+
+// NameHasSuffix applies the HasSuffix predicate on the "name" field.
+func NameHasSuffix(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldHasSuffix(FieldName, v))
+}
+
+// NameEqualFold applies the EqualFold predicate on the "name" field.
+func NameEqualFold(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldEqualFold(FieldName, v))
+}
+
+// NameContainsFold applies the ContainsFold predicate on the "name" field.
+func NameContainsFold(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldContainsFold(FieldName, v))
+}
+
+// PrimaryEmailEQ applies the EQ predicate on the "primary_email" field.
+func PrimaryEmailEQ(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldEQ(FieldPrimaryEmail, v))
+}
+
+// PrimaryEmailNEQ applies the NEQ predicate on the "primary_email" field.
+func PrimaryEmailNEQ(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldNEQ(FieldPrimaryEmail, v))
+}
+
+// PrimaryEmailIn applies the In predicate on the "primary_email" field.
+func PrimaryEmailIn(vs ...string) predicate.Customer {
+	return predicate.Customer(sql.FieldIn(FieldPrimaryEmail, vs...))
+}
+
+// PrimaryEmailNotIn applies the NotIn predicate on the "primary_email" field.
+func PrimaryEmailNotIn(vs ...string) predicate.Customer {
+	return predicate.Customer(sql.FieldNotIn(FieldPrimaryEmail, vs...))
+}
+
+// PrimaryEmailGT applies the GT predicate on the "primary_email" field.
+func PrimaryEmailGT(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldGT(FieldPrimaryEmail, v))
+}
+
+// PrimaryEmailGTE applies the GTE predicate on the "primary_email" field.
+func PrimaryEmailGTE(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldGTE(FieldPrimaryEmail, v))
+}
+
+// PrimaryEmailLT applies the LT predicate on the "primary_email" field.
+func PrimaryEmailLT(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldLT(FieldPrimaryEmail, v))
+}
+
+// PrimaryEmailLTE applies the LTE predicate on the "primary_email" field.
+func PrimaryEmailLTE(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldLTE(FieldPrimaryEmail, v))
+}
+
+// PrimaryEmailContains applies the Contains predicate on the "primary_email" field.
+func PrimaryEmailContains(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldContains(FieldPrimaryEmail, v))
+}
+
+// PrimaryEmailHasPrefix applies the HasPrefix predicate on the "primary_email" field.
+func PrimaryEmailHasPrefix(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldHasPrefix(FieldPrimaryEmail, v))
+}
+
+// PrimaryEmailHasSuffix applies the HasSuffix predicate on the "primary_email" field.
+func PrimaryEmailHasSuffix(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldHasSuffix(FieldPrimaryEmail, v))
+}
+
+// PrimaryEmailIsNil applies the IsNil predicate on the "primary_email" field.
+func PrimaryEmailIsNil() predicate.Customer {
+	return predicate.Customer(sql.FieldIsNull(FieldPrimaryEmail))
+}
+
+// PrimaryEmailNotNil applies the NotNil predicate on the "primary_email" field.
+func PrimaryEmailNotNil() predicate.Customer {
+	return predicate.Customer(sql.FieldNotNull(FieldPrimaryEmail))
+}
+
+// PrimaryEmailEqualFold applies the EqualFold predicate on the "primary_email" field.
+func PrimaryEmailEqualFold(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldEqualFold(FieldPrimaryEmail, v))
+}
+
+// PrimaryEmailContainsFold applies the ContainsFold predicate on the "primary_email" field.
+func PrimaryEmailContainsFold(v string) predicate.Customer {
+	return predicate.Customer(sql.FieldContainsFold(FieldPrimaryEmail, v))
 }
 
 // HasSubjects applies the HasEdge predicate on the "subjects" edge.

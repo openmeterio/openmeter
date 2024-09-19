@@ -297,13 +297,6 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
-		{Name: "name", Type: field.TypeString},
-		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},
-		{Name: "tax_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_sandbox", "stripe_tax"}},
-		{Name: "invoicing_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_sandbox", "stripe_invoicing"}},
-		{Name: "payment_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_sandbox", "stripe_payments"}},
-		{Name: "external_mapping_stripe_customer_id", Type: field.TypeString, Nullable: true},
-		{Name: "primary_email", Type: field.TypeString, Nullable: true},
 		{Name: "billing_address_country", Type: field.TypeString, Nullable: true, Size: 2},
 		{Name: "billing_address_postal_code", Type: field.TypeString, Nullable: true},
 		{Name: "billing_address_state", Type: field.TypeString, Nullable: true},
@@ -311,6 +304,14 @@ var (
 		{Name: "billing_address_line1", Type: field.TypeString, Nullable: true},
 		{Name: "billing_address_line2", Type: field.TypeString, Nullable: true},
 		{Name: "billing_address_phone_number", Type: field.TypeString, Nullable: true},
+		{Name: "currency", Type: field.TypeString, Nullable: true, Size: 3},
+		{Name: "timezone", Type: field.TypeString, Nullable: true},
+		{Name: "tax_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_sandbox", "stripe_tax"}},
+		{Name: "invoicing_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_sandbox", "stripe_invoicing"}},
+		{Name: "payment_provider", Type: field.TypeEnum, Nullable: true, Enums: []string{"openmeter_sandbox", "stripe_payments"}},
+		{Name: "external_mapping_stripe_customer_id", Type: field.TypeString, Nullable: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "primary_email", Type: field.TypeString, Nullable: true},
 	}
 	// CustomersTable holds the schema information for the "customers" table.
 	CustomersTable = &schema.Table{

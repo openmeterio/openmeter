@@ -4,15 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	customer_model "github.com/openmeterio/openmeter/openmeter/customer"
+	"github.com/openmeterio/openmeter/openmeter/customer"
 	entdb "github.com/openmeterio/openmeter/openmeter/ent/db"
 	customerdb "github.com/openmeterio/openmeter/openmeter/ent/db/customer"
 	"github.com/openmeterio/openmeter/pkg/clock"
-	"github.com/openmeterio/openmeter/pkg/models"
 	"github.com/openmeterio/openmeter/pkg/pagination"
 )
 
-func (r repository) ListCustomers(ctx context.Context, params customer_model.ListCustomersInput) (pagination.PagedResponse[customer_model.Customer], error) {
+func (r repository) ListCustomers(ctx context.Context, params customer.ListCustomersInput) (pagination.PagedResponse[customer.Customer], error) {
 	db := r.client()
 
 	query := db.Customer.Query().
@@ -34,7 +33,7 @@ func (r repository) ListCustomers(ctx context.Context, params customer_model.Lis
 	// 	query = query.Order(customerdb.ByID(order...))
 	// }
 
-	response := pagination.PagedResponse[customer_model.Customer]{
+	response := pagination.PagedResponse[customer.Customer]{
 		Page: params.Page,
 	}
 
@@ -43,7 +42,7 @@ func (r repository) ListCustomers(ctx context.Context, params customer_model.Lis
 		return response, err
 	}
 
-	result := make([]customer_model.Customer, 0, len(paged.Items))
+	result := make([]customer.Customer, 0, len(paged.Items))
 	for _, item := range paged.Items {
 		if item == nil {
 			r.logger.Warn("invalid query result: nil customer customer received")
@@ -59,7 +58,7 @@ func (r repository) ListCustomers(ctx context.Context, params customer_model.Lis
 	return response, nil
 }
 
-func (r repository) CreateCustomer(ctx context.Context, params customer_model.CreateCustomerInput) (*customer_model.Customer, error) {
+func (r repository) CreateCustomer(ctx context.Context, params customer.CreateCustomerInput) (*customer.Customer, error) {
 	db := r.client()
 
 	query := db.Customer.Create().
@@ -102,20 +101,17 @@ func (r repository) CreateCustomer(ctx context.Context, params customer_model.Cr
 	return CustomerFromDBEntity(*entity), nil
 }
 
-func (r repository) DeleteCustomer(ctx context.Context, params customer_model.DeleteCustomerInput) error {
+func (r repository) DeleteCustomer(ctx context.Context, customerID customer.CustomerID) error {
 	db := r.client()
 
-	query := db.Customer.UpdateOneID(params.ID).
+	query := db.Customer.UpdateOneID(customerID.ID).
 		SetDeletedAt(clock.Now().UTC())
 
 	_, err := query.Save(ctx)
 	if err != nil {
 		if entdb.IsNotFound(err) {
-			return customer_model.NotFoundError{
-				NamespacedID: models.NamespacedID{
-					Namespace: params.Namespace,
-					ID:        params.ID,
-				},
+			return customer.NotFoundError{
+				CustomerID: customerID,
 			}
 		}
 
@@ -125,21 +121,18 @@ func (r repository) DeleteCustomer(ctx context.Context, params customer_model.De
 	return nil
 }
 
-func (r repository) GetCustomer(ctx context.Context, params customer_model.GetCustomerInput) (*customer_model.Customer, error) {
+func (r repository) GetCustomer(ctx context.Context, customerID customer.CustomerID) (*customer.Customer, error) {
 	db := r.client()
 
 	query := db.Customer.Query().
-		Where(customerdb.ID(params.ID)).
-		Where(customerdb.Namespace(params.Namespace))
+		Where(customerdb.ID(customerID.ID)).
+		Where(customerdb.Namespace(customerID.Namespace))
 
 	entity, err := query.First(ctx)
 	if err != nil {
 		if entdb.IsNotFound(err) {
-			return nil, customer_model.NotFoundError{
-				NamespacedID: models.NamespacedID{
-					Namespace: params.Namespace,
-					ID:        params.ID,
-				},
+			return nil, customer.NotFoundError{
+				CustomerID: customerID,
 			}
 		}
 
@@ -153,12 +146,12 @@ func (r repository) GetCustomer(ctx context.Context, params customer_model.GetCu
 	return CustomerFromDBEntity(*entity), nil
 }
 
-func (r repository) UpdateCustomer(ctx context.Context, params customer_model.UpdateCustomerInput) (*customer_model.Customer, error) {
+func (r repository) UpdateCustomer(ctx context.Context, params customer.UpdateCustomerInput) (*customer.Customer, error) {
 	db := r.client()
 
-	customer, err := r.GetCustomer(ctx, customer_model.GetCustomerInput{
-		NamespacedModel: params.NamespacedModel,
-		ID:              params.ID,
+	dbCustomer, err := r.GetCustomer(ctx, customer.CustomerID{
+		Namespace: params.Namespace,
+		ID:        params.ID,
 	})
 	if err != nil {
 		return nil, err
@@ -197,7 +190,7 @@ func (r repository) UpdateCustomer(ctx context.Context, params customer_model.Up
 	for _, subjectKey := range params.UsageAttribution.SubjectKeys {
 		found := false
 
-		for _, existingSubjectKey := range customer.UsageAttribution.SubjectKeys {
+		for _, existingSubjectKey := range dbCustomer.UsageAttribution.SubjectKeys {
 			if subjectKey == existingSubjectKey {
 				found = true
 				continue
@@ -213,7 +206,7 @@ func (r repository) UpdateCustomer(ctx context.Context, params customer_model.Up
 	}
 
 	// Remove subjects
-	for _, existingSubjectKey := range customer.UsageAttribution.SubjectKeys {
+	for _, existingSubjectKey := range dbCustomer.UsageAttribution.SubjectKeys {
 		found := false
 
 		for _, subjectKey := range params.UsageAttribution.SubjectKeys {
@@ -235,8 +228,8 @@ func (r repository) UpdateCustomer(ctx context.Context, params customer_model.Up
 	entity, err := query.Save(ctx)
 	if err != nil {
 		if entdb.IsNotFound(err) {
-			return nil, customer_model.NotFoundError{
-				NamespacedID: models.NamespacedID{
+			return nil, customer.NotFoundError{
+				CustomerID: customer.CustomerID{
 					Namespace: params.Namespace,
 					ID:        params.ID,
 				},
